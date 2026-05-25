@@ -23,8 +23,8 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 	const documentsQuery = useQuery(
 		trpc.dealerPortal.salesDocuments.queryOptions({ type }),
 	);
-	const convertQuote = useMutation(
-		trpc.dealerPortal.convertQuoteToOrder.mutationOptions({
+	const requestOrder = useMutation(
+		trpc.dealerPortal.requestQuoteOrder.mutationOptions({
 			onSuccess: async () => {
 				await Promise.all([
 					queryClient.invalidateQueries({
@@ -35,13 +35,13 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 					}),
 				]);
 				toast({
-					title: "Quote converted to order.",
+					title: "Order request sent.",
 					variant: "success",
 				});
 			},
 			onError: (error) => {
 				toast({
-					title: "Could not convert quote.",
+					title: "Could not request order.",
 					description: error.message,
 					variant: "destructive",
 				});
@@ -49,6 +49,12 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 		}),
 	);
 	const documents = documentsQuery.data ?? [];
+	const requestStatusLabel = (status?: string | null) => {
+		if (status === "pending") return "Order requested";
+		if (status === "approved") return "Approved";
+		if (status === "rejected") return "Rejected";
+		return null;
+	};
 
 	return (
 		<div className="space-y-6">
@@ -94,7 +100,9 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 									</TableCell>
 									<TableCell>
 										<Badge className="capitalize" variant="outline">
-											{document.status || "open"}
+											{requestStatusLabel(document.requestStatus) ||
+												document.status ||
+												"open"}
 										</Badge>
 									</TableCell>
 									<TableCell>{formatCurrency(document.grandTotal)}</TableCell>
@@ -112,15 +120,22 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 													<Link href={`/quotes/${document.id}/edit`}>Edit</Link>
 												</Button>
 												<Button
-													disabled={convertQuote.isPending}
+													disabled={
+														requestOrder.isPending ||
+														document.requestStatus === "pending" ||
+														document.requestStatus === "approved" ||
+														document.requestStatus === "rejected"
+													}
 													onClick={() =>
-														convertQuote.mutate({ id: document.id })
+														requestOrder.mutate({ id: document.id })
 													}
 													size="sm"
 													type="button"
 													variant="outline"
 												>
-													Convert to order
+													{document.requestStatus === "pending"
+														? "Requested"
+														: "Request order"}
 												</Button>
 											</div>
 										</TableCell>

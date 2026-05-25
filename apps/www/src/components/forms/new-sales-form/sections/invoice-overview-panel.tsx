@@ -466,6 +466,7 @@ export function InvoiceOverviewPanel(props: Props) {
 				paymentMethod={record.form.paymentMethod || "None"}
 				paymentMethods={paymentMethodOptions}
 				showCcc={showCcc}
+				showGrandTotal={false}
 				subTotal={liveSummary.subTotal}
 				taxCode={record.form.taxCode || "none"}
 				taxOptions={taxSelectOptions}

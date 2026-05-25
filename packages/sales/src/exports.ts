@@ -10,6 +10,7 @@ export {
 	withSalesControl,
 } from "./utils/with-sales-control";
 export * from "./new-sales-form-costing";
+export * from "./order-status";
 export * from "./pdf-system";
 export * from "./payment-system/contracts";
 export * from "./payment-system/projections";

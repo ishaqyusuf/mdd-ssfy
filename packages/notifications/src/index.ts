@@ -31,6 +31,7 @@ import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { dealerMagicLoginLink } from "./types/dealer-magic-login-link";
 import { dealerOnboarding } from "./types/dealer-onboarding";
 import { dealerPasswordReset } from "./types/dealer-password-reset";
+import { dealerSalesRequest } from "./types/dealer-sales-request";
 import { employeeAccessRevoked } from "./types/employee-access-revoked";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { inventoryInbound } from "./types/inventory-inbound";
@@ -101,6 +102,7 @@ const handlers = {
 	auth_new_device_login: authNewDeviceLogin,
 	dealer_magic_login_link: dealerMagicLoginLink,
 	dealer_password_reset: dealerPasswordReset,
+	dealer_sales_request: dealerSalesRequest,
 	quote_accepted: quoteAccepted,
 	job_assigned: jobAssigned,
 	job_submitted: jobSubmitted,

@@ -7,6 +7,7 @@ import {
   setSalesFormMeta,
   setSalesFormTaxRate,
   type DealerSalesFormQuoteSource,
+  type SalesFormEditorState,
 } from "@gnd/sales/sales-form";
 import { useCallback, useMemo, useState } from "react";
 import type { DealerSalesFormRecord, DealerSalesFormState } from "../types";
@@ -76,6 +77,16 @@ export function useDealerSalesFormState(initialCustomerId?: number | null) {
     [],
   );
 
+  const setEditor = useCallback((patch: Partial<SalesFormEditorState>) => {
+    setState((current) => ({
+      ...current,
+      editor: {
+        ...current.editor,
+        ...patch,
+      },
+    }));
+  }, []);
+
   return useMemo(
     () => ({
       state,
@@ -85,6 +96,7 @@ export function useDealerSalesFormState(initialCustomerId?: number | null) {
       setState,
       setCustomer,
       setCustomerProfile,
+      setEditor,
       setMeta,
       setTaxRate,
     }),
@@ -93,6 +105,7 @@ export function useDealerSalesFormState(initialCustomerId?: number | null) {
       reset,
       setCustomer,
       setCustomerProfile,
+      setEditor,
       setMeta,
       setTaxRate,
       state,

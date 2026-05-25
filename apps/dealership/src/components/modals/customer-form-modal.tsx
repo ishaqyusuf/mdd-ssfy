@@ -62,7 +62,25 @@ export function CustomerFormModal() {
             formId={CUSTOMER_FORM_ID}
             mode="modal"
             onCancel={customerForm.close}
-            onSaved={() => {
+            onSaved={(savedCustomer) => {
+              if (
+                customerForm.params.returnPayload &&
+                !isEditing &&
+                savedCustomer.id
+              ) {
+                customerForm.setParams({
+                  customerForm: null,
+                  customerId: null,
+                  returnPayload: null,
+                  payload: {
+                    customerId: savedCustomer.id,
+                  },
+                  onCloseQuery: null,
+                });
+                router.refresh();
+                return;
+              }
+
               customerForm.close();
               router.refresh();
             }}

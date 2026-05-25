@@ -145,28 +145,46 @@ export async function saveDealerPortalQuote(
       throw new Error("Dealer customer could not be found.");
     }
 
-    const dealerProfileId =
-      input.customerProfileId || customer.customerTypeId || null;
-    const [dealerProfile, internalProfile] = await Promise.all([
-      dealerProfileId
-        ? tx.customerTypes.findFirst({
-            where: {
-              id: dealerProfileId,
-              dealerOwnerId: dealerId,
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              title: true,
-              salesPercentage: true,
-            },
-          })
-        : null,
+    const [internalProfile, dealerAccount] = await Promise.all([
       getDealerPortalInternalSalesProfile(tx),
+      tx.dealerAuth.findUnique({
+        where: {
+          id: dealerId,
+        },
+        select: {
+          salesRepId: true,
+          dealer: {
+            select: {
+              customerTypeId: true,
+              profile: {
+                select: {
+                  id: true,
+                  title: true,
+                  coefficient: true,
+                },
+              },
+            },
+          },
+        },
+      } as any),
     ]);
 
-    if (dealerProfileId && !dealerProfile) {
-      throw new Error("Dealer sales profile could not be found.");
+    const dealerProfile =
+      (
+        dealerAccount as {
+          dealer?: {
+            profile?: {
+              id?: number | null;
+              title?: string | null;
+              coefficient?: number | null;
+            } | null;
+          } | null;
+        } | null
+      )?.dealer?.profile || null;
+    if (!dealerProfile) {
+      throw new Error(
+        "Dealer customer profile is required before saving a quote.",
+      );
     }
 
     const normalizedLines = normalizeDealerQuoteLines(input.lineItems);
@@ -216,6 +234,9 @@ export async function saveDealerPortalQuote(
       status: "Draft",
       isDyke: true,
       dealerAuthId: dealerId,
+      salesRepId:
+        (dealerAccount as { salesRepId?: number | null } | null)?.salesRepId ||
+        null,
       customerId: customer.id,
       customerProfileId: internalProfile?.id || null,
       dealerSalesProfileId: dealerProfile?.id || null,

@@ -104,3 +104,25 @@ model PublicLinkToken {
     @@index([resourceType, resourceId])
     @@index([kind, expiresAt])
 }
+
+model ShortLink {
+    id            String    @id @default(cuid())
+    slug          String    @unique @db.VarChar(191)
+    targetUrl     String    @db.VarChar(2048)
+    title         String?   @db.VarChar(255)
+    sourceType    String?   @db.VarChar(100)
+    sourceId      String?   @db.VarChar(191)
+    active        Boolean   @default(true)
+    expiresAt     DateTime? @db.Timestamp(0)
+    clickCount    Int       @default(0)
+    lastClickedAt DateTime? @db.Timestamp(0)
+    createdById   Int?
+    meta          Json?     @db.Json
+    createdAt     DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime? @updatedAt
+    deletedAt     DateTime? @db.Timestamp(0)
+
+    @@index([sourceType, sourceId])
+    @@index([active, expiresAt])
+    @@index([createdById])
+}

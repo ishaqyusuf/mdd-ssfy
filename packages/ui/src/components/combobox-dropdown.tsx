@@ -13,7 +13,12 @@ import {
   CommandInput,
   CommandItem,
 } from "./command";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "./popover";
+import { Skeleton } from "./skeleton";
 export interface ComboboxItem {
   id: string;
   label: string;
@@ -50,6 +55,9 @@ export interface ComboboxProps<T> {
     inputValue: string;
     close: () => void;
   }) => React.ReactNode;
+  contentInPlace?: boolean;
+  isLoading?: boolean;
+  loadingResults?: React.ReactNode;
 }
 export function ComboboxDropdown<T extends ComboboxItem>({
   headless,
@@ -74,6 +82,9 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   Trigger,
   showCreateWhenMatches,
   renderActions,
+  contentInPlace,
+  isLoading,
+  loadingResults,
 }: ComboboxProps<T>) {
   const [open, setOpen] = React.useState(false);
   const [internalSelectedItem, setInternalSelectedItem] = React.useState<
@@ -103,8 +114,16 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   }, [filteredItems, cursor, pageSize]);
   const showCreate =
     onCreate &&
+    !isLoading &&
     Boolean(inputValue) &&
     (showCreateWhenMatches || !filteredItems.length);
+  const loadingContent = loadingResults ?? (
+    <div className="space-y-2 p-2" aria-live="polite" aria-label="Searching">
+      <Skeleton className="h-8 rounded-md" />
+      <Skeleton className="h-8 rounded-md" />
+      <Skeleton className="h-8 rounded-md" />
+    </div>
+  );
 
   const Component = (
     <Command loop shouldFilter={false}>
@@ -124,7 +143,8 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       <CommandGroup>
         <CommandList className={cn("")}>
           <div className={cn("max-h-56.25 overflow-auto", listClassName)}>
-            {__items.map((item, itemIndex) => {
+            {isLoading ? loadingContent : null}
+            {!isLoading && __items.map((item, itemIndex) => {
               let value = item.id;
               if (typeof value !== "string") value = String(item.id);
               const isChecked = selectedItem?.id === item.id;
@@ -173,7 +193,9 @@ export function ComboboxDropdown<T extends ComboboxItem>({
                 </CommandItem>
               );
             })}
-            <CommandEmpty>{emptyResults ?? "No item found"}</CommandEmpty>
+            {!isLoading ? (
+              <CommandEmpty>{emptyResults ?? "No item found"}</CommandEmpty>
+            ) : null}
             {showCreate && (
               <CommandItem
                 key={inputValue}
@@ -210,6 +232,81 @@ export function ComboboxDropdown<T extends ComboboxItem>({
     return Component;
   }
 
+  const trigger = Trigger ? (
+    Trigger
+  ) : (
+    <Button
+      variant="outline"
+      aria-expanded={open}
+      className="relative w-full justify-between"
+      disabled={disabled}
+    >
+      <span className="truncate text-ellipsis pr-3">
+        {selectedItem ? (
+          renderSelectedItem ? (
+            <span className="  flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
+              {renderSelectedItem?.(selectedItem)}
+            </span>
+          ) : (
+            selectedItem.label
+          )
+        ) : (
+          (placeholder ?? "Select item...")
+        )}
+      </span>
+      <Icons.ChevronsUpDown className="absolute right-2 size-4 opacity-50" />
+    </Button>
+  );
+
+  if (contentInPlace) {
+    return (
+      <div
+        className="relative w-full"
+        onBlur={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget)) return;
+          setOpen(false);
+          openChanged?.(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          setOpen(false);
+          openChanged?.(false);
+        }}
+      >
+        {React.isValidElement(trigger)
+          ? React.cloneElement(trigger as React.ReactElement<any>, {
+              "aria-expanded": open,
+              disabled,
+              onClick: (event: React.MouseEvent) => {
+                (
+                  trigger as React.ReactElement<{
+                    onClick?: (event: React.MouseEvent) => void;
+                  }>
+                ).props.onClick?.(event);
+                if (event.defaultPrevented || disabled) return;
+                setOpen((current) => {
+                  const next = !current;
+                  openChanged?.(next);
+                  return next;
+                });
+              },
+            })
+          : trigger}
+        {open ? (
+          <div
+            className={cn(
+              "absolute left-0 top-full z-50 mt-1 w-full border bg-background p-0 text-popover-foreground shadow-md outline-none",
+              popoverProps?.className,
+            )}
+            style={popoverProps?.style}
+          >
+            {Component}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <Popover
       open={open}
@@ -220,30 +317,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
       modal
     >
       <PopoverTrigger asChild disabled={disabled} className="w-full">
-        {Trigger ? (
-          Trigger
-        ) : (
-          <Button
-            variant="outline"
-            aria-expanded={open}
-            className="relative w-full justify-between"
-          >
-            <span className="truncate text-ellipsis pr-3">
-              {selectedItem ? (
-                renderSelectedItem ? (
-                  <span className="  flex items-center overflow-hidden text-ellipsis whitespace-nowrap">
-                    {renderSelectedItem?.(selectedItem)}
-                  </span>
-                ) : (
-                  selectedItem.label
-                )
-              ) : (
-                (placeholder ?? "Select item...")
-              )}
-            </span>
-            <Icons.ChevronsUpDown className="absolute right-2 size-4 opacity-50" />
-          </Button>
-        )}
+        {trigger}
       </PopoverTrigger>
 
       <PopoverContent

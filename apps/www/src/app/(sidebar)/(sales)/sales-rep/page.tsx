@@ -9,6 +9,7 @@ import {
 } from "@/components/sales-rep-summary-cards";
 import { SummaryCardSkeleton } from "@/components/summary-card";
 import { DataTable } from "@/components/tables/sales-orders/data-table";
+import { SalesRepDealerRequests } from "@/components/sales-rep-dealer-requests";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, getQueryClient, prefetch, trpc } from "@/trpc/server";
 import { Badge } from "@gnd/ui/badge";
@@ -67,12 +68,16 @@ export default async function SalesRepProfile(props: {
 }) {
 	const searchParams = await props.searchParams;
 	searchParamsCache.parse(searchParams);
-	getQueryClient();
+	const queryClient = getQueryClient();
 	prefetch(
 		trpc.sales.getOrders.infiniteQueryOptions({
 			size: 5,
 		}),
 	);
+	const requestCount = await queryClient.fetchQuery(
+		trpc.sales.dealerOrderRequestCount.queryOptions(),
+	);
+	const defaultTab = searchParams.tab === "requests" ? "requests" : "recent-sales";
 	const user = await authUser();
 
 	return (
@@ -135,9 +140,17 @@ export default async function SalesRepProfile(props: {
 						</Card>
 					</div>
 					<div className="flex flex-col">
-						<Tabs defaultValue="recent-sales" className="space-y-4">
+						<Tabs defaultValue={defaultTab} className="space-y-4">
 							<div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
 								<TabsList className="inline-flex min-w-max bg-muted">
+									<TabsTrigger value="requests">
+										Requests
+										{requestCount ? (
+											<Badge className="ml-2 h-5 min-w-5 justify-center rounded-sm px-1">
+												{requestCount}
+											</Badge>
+										) : null}
+									</TabsTrigger>
 									<TabsTrigger value="recent-sales">Recent Sales</TabsTrigger>
 									<TabsTrigger value="recent-quotes">Recent Quotes</TabsTrigger>
 									{/* <TabsTrigger  value="customer-profile">
@@ -146,6 +159,9 @@ export default async function SalesRepProfile(props: {
 									<TabsTrigger value="commission">Commission</TabsTrigger>
 								</TabsList>
 							</div>
+							<TabsContent value="requests" className="space-y-4">
+								<SalesRepDealerRequests />
+							</TabsContent>
 							<TabsContent value="recent-sales" className="space-y-4">
 								<DataTable
 									singlePage

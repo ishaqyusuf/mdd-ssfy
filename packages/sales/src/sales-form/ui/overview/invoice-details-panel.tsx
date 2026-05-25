@@ -1,8 +1,11 @@
 "use client";
 
+import { Button } from "@gnd/ui/button";
+import { Calendar } from "@gnd/ui/calendar";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { InputGroup } from "@gnd/ui/namespace";
+import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import {
 	Select,
 	SelectContent,
@@ -39,28 +42,80 @@ function dateInputValue(value?: string | null) {
 	return /^\d{4}-\d{2}-\d{2}/.test(value) ? value.slice(0, 10) : "";
 }
 
+function dateDisplayValue(value?: string | null) {
+	const normalized = dateInputValue(value);
+	if (!normalized) return "Pick a date";
+	const [year, month, day] = normalized.split("-").map(Number);
+	const date = new Date(year, month - 1, day);
+	return new Intl.DateTimeFormat("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	}).format(date);
+}
+
+function datePickerValue(value?: string | null) {
+	const normalized = dateInputValue(value);
+	if (!normalized) return undefined;
+	const [year, month, day] = normalized.split("-").map(Number);
+	return new Date(year, month - 1, day);
+}
+
+function toDateInputValue(date: Date) {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
+}
+
+function FieldLabel(props: { htmlFor?: string; children: React.ReactNode }) {
+	return (
+		<label
+			htmlFor={props.htmlFor}
+			className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground"
+		>
+			{props.children}
+		</label>
+	);
+}
+
 function DateInputField(props: {
 	id: string;
 	label: string;
 	value?: string | null;
 	onChange?: (value: string | null) => void;
 }) {
+	const selectedDate = datePickerValue(props.value);
 	return (
-		<label
-			htmlFor={props.id}
-			className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card px-3"
-		>
-			<span className="min-w-[96px] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-				{props.label}
-			</span>
-			<Input
-				id={props.id}
-				type="date"
-				value={dateInputValue(props.value)}
-				onChange={(event) => props.onChange?.(event.target.value || null)}
-				className="h-10 flex-1 cursor-pointer border-0 bg-transparent px-0 text-xs font-bold shadow-none focus-visible:ring-0"
-			/>
-		</label>
+		<div className="grid gap-1.5">
+			<FieldLabel htmlFor={props.id}>{props.label}</FieldLabel>
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button
+						id={props.id}
+						type="button"
+						variant="outline"
+						className={cn(
+							"h-10 justify-start bg-card text-left text-xs font-bold",
+							!selectedDate && "text-muted-foreground",
+						)}
+					>
+						{dateDisplayValue(props.value)}
+						<Icons.CalendarIcon className="ml-auto size-4 opacity-50" />
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent align="start" className="w-auto p-0">
+					<Calendar
+						mode="single"
+						selected={selectedDate}
+						onSelect={(date) =>
+							props.onChange?.(date ? toDateInputValue(date) : null)
+						}
+						initialFocus
+					/>
+				</PopoverContent>
+			</Popover>
+		</div>
 	);
 }
 
@@ -76,17 +131,16 @@ export function SalesFormInvoiceDetailsPanel(
 			</div>
 			<div className="grid gap-4 rounded-xl border border-border bg-muted/30 p-4 shadow-sm">
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<InputGroup className="bg-card">
-						<InputGroup.Addon align="inline-start">
-							<InputGroup.Text>PO</InputGroup.Text>
-						</InputGroup.Addon>
-						<InputGroup.Input
+					<div className="grid gap-1.5">
+						<FieldLabel htmlFor="invoice-po">PO</FieldLabel>
+						<Input
+							id="invoice-po"
 							value={props.po || ""}
 							onChange={(event) => props.onPoChange?.(event.target.value)}
-							className="h-10 text-xs font-bold"
+							className="h-10 bg-card text-xs font-bold"
 							placeholder="Number"
 						/>
-					</InputGroup>
+					</div>
 					<DateInputField
 						id="invoice-order-date"
 						label="Date"
@@ -95,18 +149,17 @@ export function SalesFormInvoiceDetailsPanel(
 					/>
 				</div>
 				<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-					<div className="rounded-lg border bg-card">
+					<div className="grid gap-1.5">
+						<FieldLabel htmlFor="invoice-payment-term">Net</FieldLabel>
 						<Select
 							value={props.paymentTerm}
 							onValueChange={props.onPaymentTermChange}
 						>
-							<SelectTrigger className="h-10 rounded-lg border-0 bg-card text-xs font-bold">
-								<div className="flex items-center gap-2">
-									<span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-										Net
-									</span>
-									<SelectValue />
-								</div>
+							<SelectTrigger
+								id="invoice-payment-term"
+								className="h-10 bg-card text-xs font-bold"
+							>
+								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
 								{props.paymentTerms.map((term) => (
@@ -119,12 +172,10 @@ export function SalesFormInvoiceDetailsPanel(
 					</div>
 					<DateInputField
 						id="invoice-payment-due-date"
-						label={isQuote ? "Good Until" : "Due Date"}
+						label={isQuote ? "Good Until" : "Due"}
 						value={isQuote ? props.goodUntil : props.paymentDueDate}
 						onChange={
-							isQuote
-								? props.onGoodUntilChange
-								: props.onPaymentDueDateChange
+							isQuote ? props.onGoodUntilChange : props.onPaymentDueDateChange
 						}
 					/>
 				</div>
@@ -134,23 +185,22 @@ export function SalesFormInvoiceDetailsPanel(
 					) : (
 						<DateInputField
 							id="invoice-production-due-date"
-							label="Production"
+							label="Prod"
 							value={props.prodDueDate}
 							onChange={props.onProdDueDateChange}
 						/>
 					)}
-					<div className="rounded-lg border bg-card px-3">
+					<div className="grid gap-1.5">
+						<FieldLabel htmlFor="invoice-fulfillment">Fulfillment</FieldLabel>
 						<Select
 							value={props.deliveryOption}
 							onValueChange={props.onDeliveryOptionChange}
 						>
-							<SelectTrigger className="h-10 border-0 bg-transparent px-0 text-xs font-bold shadow-none">
-								<div className="flex items-center gap-3">
-									<span className="min-w-[96px] text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-										Delivery
-									</span>
-									<SelectValue />
-								</div>
+							<SelectTrigger
+								id="invoice-fulfillment"
+								className="h-10 bg-card text-xs font-bold"
+							>
+								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
 								{props.deliveryOptions.map((mode) => (

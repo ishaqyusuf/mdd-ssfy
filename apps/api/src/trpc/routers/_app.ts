@@ -26,6 +26,7 @@ import { salesRouter } from "./sales.route";
 import { searchRouter } from "./search.route";
 import { settingsRouter } from "./settings.route";
 import { shoppingProductsRouter } from "./shopping-products.route";
+import { shortLinksRouter } from "./short-links.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { squareTestRouter } from "./square-test.route";
 import { storefrontRouter } from "./storefront.route";
@@ -61,6 +62,7 @@ export const appRouter = createTRPCRouter({
 	salesDashboard: salesDashboardRouter,
 	search: searchRouter,
 	settings: settingsRouter,
+	shortLinks: shortLinksRouter,
 	storefront: storefrontRouter,
 	shoppingProducts: shoppingProductsRouter,
 	siteActions: siteActionsRoutes,

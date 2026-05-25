@@ -1,10 +1,39 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
+import { useTestEmailMode } from "@/store/test-email-mode";
 import { SiteNav, useSiteNav } from "@gnd/site-nav";
+import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 import type { CSSProperties } from "react";
 import { NotificationCenter } from "./notification-center";
 import { OpenSearchButton } from "./search/open-search-button";
+import { SalesRepRequestBadge } from "./sales-rep-request-badge";
 import { UserNav } from "./user-nav";
+
+function TestEmailModeButton() {
+    const auth = useAuth();
+    const testEmailMode = useTestEmailMode((state) => state.enabled);
+    const toggleTestEmailMode = useTestEmailMode((state) => state.toggle);
+    const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
+
+    if (!isSuperAdmin) return null;
+
+    return (
+        <Button
+            type="button"
+            variant={testEmailMode ? "destructive" : "secondary"}
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            aria-label="Toggle test email mode"
+            aria-pressed={testEmailMode}
+            title="Toggle test email mode"
+            onClick={toggleTestEmailMode}
+        >
+            <Icons.Mail className="size-4" />
+        </Button>
+    );
+}
 
 export function Header() {
     const { isExpanded, linkModules } = useSiteNav();
@@ -57,6 +86,8 @@ export function Header() {
                 <div className="contents sm:hidden">
                     <OpenSearchButton />
                 </div>
+                <SalesRepRequestBadge />
+                <TestEmailModeButton />
                 <NotificationCenter />
                 <UserNav />
             </header>

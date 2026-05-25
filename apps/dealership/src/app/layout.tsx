@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     {
       rel: "icon",
       type: "image/svg+xml",
-      url: "/icons/favicon.svg",
+      url: `/icons/favicon${prod ? "" : ".dev"}.svg`,
     },
     {
       rel: "icon",

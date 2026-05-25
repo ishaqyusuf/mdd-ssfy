@@ -1,5 +1,7 @@
 export { SalesFormHeaderActions } from "./header-actions";
 export type { SalesFormHeaderActionsProps } from "./header-actions";
+export { SalesFormFloatingActions } from "./floating-actions";
+export type { SalesFormFloatingActionsProps } from "./floating-actions";
 export { SalesFormBasicWorkflowPanel } from "./basic-workflow-panel";
 export type {
 	SalesFormBasicWorkflowLine,

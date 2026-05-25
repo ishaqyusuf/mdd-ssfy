@@ -22,16 +22,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@gnd/ui/form";
+import { Input } from "@gnd/ui/input";
 import { InputGroup } from "@gnd/ui/namespace";
 import { Separator } from "@gnd/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@gnd/ui/select";
 import { toast } from "@gnd/ui/use-toast";
 import {
   US_PHONE_FORMAT_PATTERN,
@@ -44,13 +37,15 @@ import {
   Mail,
   MapPin,
   Phone,
+  Plus,
+  Save,
   X,
   UserRound,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { PatternFormat } from "react-number-format";
 
 type CustomerFormRecord = {
@@ -106,13 +101,13 @@ function getCustomerDefaultValues(
 
 function formatSalesProfileOption(profile: {
   title?: string | null;
-  salesPercentage?: number | null;
+  coefficient?: number | null;
 }) {
-  const percentage = new Intl.NumberFormat("en-US", {
+  const coefficient = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
-  }).format(Number(profile.salesPercentage || 0));
+  }).format(Number(profile.coefficient || 0));
 
-  return `${profile.title || "Untitled profile"} (${percentage}%)`;
+  return `${profile.title || "Untitled profile"} (coefficient ${coefficient})`;
 }
 
 function getCustomerDisplayName(customer?: CustomerFormRecord) {
@@ -186,6 +181,16 @@ type PredictionItem = PlacePrediction & {
   label: string;
 };
 
+type SalesProfileOption = {
+  id: string;
+  label: string;
+  profile: {
+    id: number;
+    title?: string | null;
+    coefficient?: number | null;
+  };
+};
+
 function resolvePlaceId(prediction?: PlacePrediction) {
   const placePrediction = prediction?.placePrediction;
   if (!placePrediction) return "";
@@ -200,15 +205,18 @@ function resolvePlaceId(prediction?: PlacePrediction) {
 }
 
 function GoogleAddressInput({
+  contentInPlace,
   onAddressChange,
   value,
 }: {
+  contentInPlace?: boolean;
   onAddressChange: (address: GoogleAddress) => void;
   value: string;
 }) {
   const trpc = useTRPC();
   const [searchInput, setSearchInput] = useState("");
   const [selectedPlaceId, setSelectedPlaceId] = useState("");
+  const onAddressChangeRef = useRef(onAddressChange);
   const debouncedSearchInput = useDebounce(searchInput, 500);
   const predictionsQuery = useQuery(
     trpc.google.places.queryOptions(
@@ -233,11 +241,15 @@ function GoogleAddressInput({
   );
 
   useEffect(() => {
+    onAddressChangeRef.current = onAddressChange;
+  }, [onAddressChange]);
+
+  useEffect(() => {
     const address = placeQuery.data?.data?.address as GoogleAddress | undefined;
     if (!address?.formattedAddress) return;
 
-    onAddressChange(address);
-  }, [onAddressChange, placeQuery.data?.data?.address]);
+    onAddressChangeRef.current(address);
+  }, [placeQuery.data?.data?.address]);
 
   const predictions = (
     Array.isArray(predictionsQuery.data) ? predictionsQuery.data : []
@@ -285,8 +297,12 @@ function GoogleAddressInput({
 
   return (
     <ComboboxDropdown
+      contentInPlace={contentInPlace}
       emptyResults={
         searchInput.trim().length > 2 ? "No address found" : "Type an address"
+      }
+      isLoading={
+        predictionsQuery.isFetching && debouncedSearchInput.trim().length > 2
       }
       items={predictions}
       onSearch={setSearchInput}
@@ -337,6 +353,9 @@ export function CustomerFormClient({
   const form = useZodForm(dealerPortalCustomerSchema, {
     defaultValues: getCustomerDefaultValues(customer ?? null),
   });
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  const [profileTitle, setProfileTitle] = useState("");
+  const [profileCoefficient, setProfileCoefficient] = useState("");
   const formattedAddress =
     form.watch("formattedAddress") || form.watch("address") || "";
   const saveCustomer = useMutation(
@@ -381,6 +400,82 @@ export function CustomerFormClient({
   const selectedProfile = profiles.find(
     (profile) => profile.id === form.watch("customerTypeId"),
   );
+  const profileOptions: SalesProfileOption[] = profiles.flatMap((profile) => {
+    if (!profile.id) return [];
+
+    return [
+      {
+        id: String(profile.id),
+        label: formatSalesProfileOption(profile),
+        profile: {
+          id: profile.id,
+          title: profile.title,
+          coefficient: profile.coefficient,
+        },
+      },
+    ];
+  });
+  const selectedProfileOption = selectedProfile
+    ? profileOptions.find((option) => option.profile.id === selectedProfile.id)
+    : undefined;
+  const saveProfile = useMutation(
+    trpc.dealerPortal.saveSalesProfile.mutationOptions({
+      onSuccess: async (savedProfile) => {
+        await queryClient.invalidateQueries({
+          queryKey: trpc.dealerPortal.salesProfiles.pathKey(),
+        });
+        form.setValue("customerTypeId", savedProfile.id, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+        setIsCreatingProfile(false);
+        setProfileTitle("");
+        setProfileCoefficient("");
+        toast({
+          title: "Sales profile saved.",
+          variant: "success",
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Could not save profile.",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    }),
+  );
+  const openProfileCreator = (title = "") => {
+    setProfileTitle(title.trim());
+    setProfileCoefficient("");
+    setIsCreatingProfile(true);
+  };
+  const saveInlineProfile = () => {
+    const title = profileTitle.trim();
+    const coefficient =
+      profileCoefficient.trim() === "" ? null : Number(profileCoefficient);
+    if (!title) {
+      toast({
+        title: "Profile name is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (coefficient !== null && !Number.isFinite(coefficient)) {
+      toast({
+        title: "Enter a valid coefficient.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    saveProfile.mutate({
+      title,
+      coefficient,
+      defaultProfile: false,
+    });
+  };
 
   const cancelAction = onCancel ? (
     <Button onClick={onCancel} type="button" variant="outline">
@@ -406,17 +501,20 @@ export function CustomerFormClient({
     <Form {...form}>
       <Card
         className={cn(
-          "overflow-hidden rounded-lg border bg-background shadow-xl shadow-muted/40",
-          mode === "modal" && "-mx-4 -mt-2 rounded-none border-x-0 border-t-0",
+          "flex min-h-0 overflow-hidden rounded-lg border bg-background shadow-xl shadow-muted/40",
+          mode === "modal"
+            ? "-mx-4 -mt-2 h-[min(70vh,720px)] rounded-none border-x-0 border-t-0"
+            : "h-[calc(100vh-12rem)] max-h-[900px]",
         )}
       >
         <form
+          className="flex min-h-0 flex-1 flex-col"
           id={formId}
           key={customer?.id || "new-customer"}
           onSubmit={form.handleSubmit((values) => saveCustomer.mutate(values))}
         >
-          <CardContent className="grid gap-0 p-0 lg:grid-cols-[280px_1fr]">
-            <aside className="flex flex-col gap-5 border-b bg-muted/30 p-5 lg:border-r lg:border-b-0">
+          <CardContent className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 lg:grid-cols-[280px_minmax(0,1fr)] lg:grid-rows-1">
+            <aside className="flex flex-col gap-5 border-b bg-muted/30 p-5 lg:h-full lg:border-r lg:border-b-0">
               <div className="flex items-center gap-3">
                 <Avatar className="size-14 rounded-md border bg-background shadow-sm">
                   <AvatarFallback className="rounded-md text-base font-semibold">
@@ -453,322 +551,299 @@ export function CustomerFormClient({
               </div>
             </aside>
 
-            <FieldGroup className="gap-0 divide-y">
-              <div className="flex flex-col gap-4 p-5 md:p-6">
-                <SectionHeading icon={<UserRound className="size-4" />}>
-                  Identity
-                </SectionHeading>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <InputGroup.Addon align="inline-start">
-                            <UserRound />
-                          </InputGroup.Addon>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="businessName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Business name</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <InputGroup.Addon align="inline-start">
-                            <Building2 />
-                          </InputGroup.Addon>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="customerTypeId"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Sales profile</FormLabel>
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(
-                              value === "none" ? null : Number(value),
-                            )
+            <div className="relative min-h-0 overflow-hidden">
+              <FieldGroup
+                className={cn(
+                  "min-h-0 gap-0 divide-y overflow-y-auto overscroll-contain pb-44",
+                  isCreatingProfile && "pointer-events-none invisible",
+                )}
+              >
+                <div className="flex flex-col gap-4 p-5 md:p-6">
+                  <SectionHeading icon={<UserRound className="size-4" />}>
+                    Identity
+                  </SectionHeading>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name</FormLabel>
+                          <InputGroup className="h-11 bg-background">
+                            <FormControl>
+                              <InputGroup.Input
+                                {...field}
+                                value={field.value ?? ""}
+                              />
+                            </FormControl>
+                            <InputGroup.Addon align="inline-start">
+                              <UserRound />
+                            </InputGroup.Addon>
+                          </InputGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="businessName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Business name</FormLabel>
+                          <InputGroup className="h-11 bg-background">
+                            <FormControl>
+                              <InputGroup.Input
+                                {...field}
+                                value={field.value ?? ""}
+                              />
+                            </FormControl>
+                            <InputGroup.Addon align="inline-start">
+                              <Building2 />
+                            </InputGroup.Addon>
+                          </InputGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="customerTypeId"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Sales profile</FormLabel>
+                          <ComboboxDropdown
+                            contentInPlace={mode === "modal"}
+                            emptyResults="No sales profile found"
+                            isLoading={profilesQuery.isPending}
+                            items={profileOptions}
+                            onCreate={openProfileCreator}
+                            onSelect={(option) => {
+                              field.onChange(Number(option.id));
+                            }}
+                            placeholder="Select sales profile"
+                            popoverProps={{ align: "start" }}
+                            renderOnCreate={(value) => (
+                              <div className="flex items-center gap-2">
+                                <Plus className="size-4" />
+                                <span>Create "{value}"</span>
+                              </div>
+                            )}
+                            searchPlaceholder="Search sales profiles"
+                            selectedItem={selectedProfileOption}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4 p-5 md:p-6">
+                  <SectionHeading
+                    icon={<BriefcaseBusiness className="size-4" />}
+                  >
+                    Contact
+                  </SectionHeading>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <InputGroup className="h-11 bg-background">
+                            <FormControl>
+                              <InputGroup.Input
+                                {...field}
+                                onChange={(event) =>
+                                  field.onChange(
+                                    event.currentTarget.value.toLowerCase(),
+                                  )
+                                }
+                                type="email"
+                                value={field.value ?? ""}
+                              />
+                            </FormControl>
+                            <InputGroup.Addon align="inline-start">
+                              <Mail />
+                            </InputGroup.Addon>
+                          </InputGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phoneNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <InputGroup className="h-11 bg-background">
+                            <FormControl>
+                              <PatternFormat
+                                autoComplete="tel-national"
+                                customInput={InputGroup.Input}
+                                format="###-###-####"
+                                getInputRef={field.ref}
+                                inputMode="numeric"
+                                mask="*"
+                                name={field.name}
+                                onBlur={field.onBlur}
+                                onValueChange={({ formattedValue, value }) => {
+                                  if (!value) {
+                                    field.onChange("");
+                                    return;
+                                  }
+
+                                  if (
+                                    US_PHONE_FORMAT_PATTERN.test(formattedValue)
+                                  ) {
+                                    field.onChange(formattedValue);
+                                    return;
+                                  }
+
+                                  field.onChange(
+                                    formattedValue.replaceAll("_", ""),
+                                  );
+                                }}
+                                placeholder="XXX-XXX-XXXX"
+                                type="tel"
+                                value={field.value ?? ""}
+                              />
+                            </FormControl>
+                            <InputGroup.Addon align="inline-start">
+                              <InputGroup.Text>+1</InputGroup.Text>
+                            </InputGroup.Addon>
+                            <InputGroup.Addon align="inline-end">
+                              <Phone />
+                            </InputGroup.Addon>
+                          </InputGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Address</FormLabel>
+                          <GoogleAddressInput
+                            onAddressChange={(address) => {
+                              const formatted = address.formattedAddress || "";
+                              field.onChange(formatted);
+                              form.setValue("formattedAddress", formatted);
+                              form.setValue("address1", address.address1 || "");
+                              form.setValue("address2", address.address2 || "");
+                              form.setValue("city", address.city || "");
+                              form.setValue(
+                                "state",
+                                address.region || address.state || "",
+                              );
+                              form.setValue(
+                                "zip_code",
+                                address.postalCode || "",
+                              );
+                              form.setValue("country", address.country || "");
+                              form.setValue("lat", address.lat ?? null);
+                              form.setValue("lng", address.lng ?? null);
+                            }}
+                            contentInPlace={mode === "modal"}
+                            value={formattedAddress}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address2"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Address line 2</FormLabel>
+                          <InputGroup className="h-11 bg-background">
+                            <FormControl>
+                              <InputGroup.Input
+                                {...field}
+                                placeholder="Apt, suite, unit, building"
+                                value={field.value ?? ""}
+                              />
+                            </FormControl>
+                            <InputGroup.Addon align="inline-start">
+                              <Building2 />
+                            </InputGroup.Addon>
+                          </InputGroup>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </FieldGroup>
+
+              {isCreatingProfile ? (
+                <div
+                  className="absolute inset-0 overflow-y-auto bg-background p-5 md:p-6"
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    saveInlineProfile();
+                  }}
+                >
+                  <div className="flex flex-col gap-5">
+                    <SectionHeading icon={<UsersRound className="size-4" />}>
+                      Create sales profile
+                    </SectionHeading>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="flex flex-col gap-2 md:col-span-2">
+                        <FormLabel htmlFor="inline-sales-profile-title">
+                          Profile name
+                        </FormLabel>
+                        <Input
+                          autoFocus
+                          id="inline-sales-profile-title"
+                          onChange={(event) =>
+                            setProfileTitle(event.currentTarget.value)
                           }
-                          value={field.value ? String(field.value) : "none"}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-11 bg-background">
-                              <SelectValue placeholder="None" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="none">None</SelectItem>
-                              {profiles.map((profile) => (
-                                <SelectItem
-                                  key={profile.id}
-                                  value={String(profile.id)}
-                                >
-                                  {formatSalesProfileOption(profile)}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4 p-5 md:p-6">
-                <SectionHeading icon={<BriefcaseBusiness className="size-4" />}>
-                  Contact
-                </SectionHeading>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              onChange={(event) =>
-                                field.onChange(
-                                  event.currentTarget.value.toLowerCase(),
-                                )
-                              }
-                              type="email"
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <InputGroup.Addon align="inline-start">
-                            <Mail />
-                          </InputGroup.Addon>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phoneNo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <PatternFormat
-                              autoComplete="tel-national"
-                              customInput={InputGroup.Input}
-                              format="###-###-####"
-                              getInputRef={field.ref}
-                              inputMode="numeric"
-                              mask="_"
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              onValueChange={({ formattedValue, value }) => {
-                                if (!value) {
-                                  field.onChange("");
-                                  return;
-                                }
-
-                                if (
-                                  US_PHONE_FORMAT_PATTERN.test(formattedValue)
-                                ) {
-                                  field.onChange(formattedValue);
-                                  return;
-                                }
-
-                                field.onChange(
-                                  formattedValue.replaceAll("_", ""),
-                                );
-                              }}
-                              placeholder="XXX-XXX-XXXX"
-                              type="tel"
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <InputGroup.Addon align="inline-start">
-                            <InputGroup.Text>+1</InputGroup.Text>
-                          </InputGroup.Addon>
-                          <InputGroup.Addon align="inline-end">
-                            <Phone />
-                          </InputGroup.Addon>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Address</FormLabel>
-                        <GoogleAddressInput
-                          onAddressChange={(address) => {
-                            const formatted = address.formattedAddress || "";
-                            field.onChange(formatted);
-                            form.setValue("formattedAddress", formatted);
-                            form.setValue("address1", address.address1 || "");
-                            form.setValue("address2", address.address2 || "");
-                            form.setValue("city", address.city || "");
-                            form.setValue(
-                              "state",
-                              address.region || address.state || "",
-                            );
-                            form.setValue("zip_code", address.postalCode || "");
-                            form.setValue("country", address.country || "");
-                            form.setValue("lat", address.lat ?? null);
-                            form.setValue("lng", address.lng ?? null);
-                          }}
-                          value={formattedAddress}
+                          value={profileTitle}
                         />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address1"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Address line 1</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <InputGroup.Addon align="inline-start">
-                            <MapPin />
-                          </InputGroup.Addon>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address2"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Address line 2</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                          <InputGroup.Addon align="inline-start">
-                            <Building2 />
-                          </InputGroup.Addon>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State / Province</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="zip_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP / Postal code</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country</FormLabel>
-                        <InputGroup className="h-11 bg-background">
-                          <FormControl>
-                            <InputGroup.Input
-                              {...field}
-                              value={field.value ?? ""}
-                            />
-                          </FormControl>
-                        </InputGroup>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <FormLabel htmlFor="inline-sales-profile-coefficient">
+                          Coefficient
+                        </FormLabel>
+                        <Input
+                          id="inline-sales-profile-coefficient"
+                          onChange={(event) =>
+                            setProfileCoefficient(event.currentTarget.value)
+                          }
+                          step="0.01"
+                          type="number"
+                          value={profileCoefficient}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+                      <Button
+                        onClick={() => setIsCreatingProfile(false)}
+                        type="button"
+                        variant="outline"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        disabled={saveProfile.isPending}
+                        onClick={saveInlineProfile}
+                        type="button"
+                      >
+                        <Save data-icon="inline-start" />
+                        {saveProfile.isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </FieldGroup>
+              ) : null}
+            </div>
           </CardContent>
 
           {renderActions ? null : (

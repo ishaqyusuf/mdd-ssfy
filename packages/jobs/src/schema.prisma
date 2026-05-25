@@ -3131,6 +3131,28 @@ model PublicLinkToken {
     @@index([kind, expiresAt])
 }
 
+model ShortLink {
+    id            String    @id @default(cuid())
+    slug          String    @unique @db.VarChar(191)
+    targetUrl     String    @db.VarChar(2048)
+    title         String?   @db.VarChar(255)
+    sourceType    String?   @db.VarChar(100)
+    sourceId      String?   @db.VarChar(191)
+    active        Boolean   @default(true)
+    expiresAt     DateTime? @db.Timestamp(0)
+    clickCount    Int       @default(0)
+    lastClickedAt DateTime? @db.Timestamp(0)
+    createdById   Int?
+    meta          Json?     @db.Json
+    createdAt     DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt     DateTime? @updatedAt
+    deletedAt     DateTime? @db.Timestamp(0)
+
+    @@index([sourceType, sourceId])
+    @@index([active, expiresAt])
+    @@index([createdById])
+}
+
 // ---- sales.payment-system.prisma ----
 model PaymentLedgerEntry {
     id              String    @id @default(cuid())
@@ -3536,6 +3558,7 @@ model Users {
     pageView                    PageView[]
     notes                       Progress[]
     approvedDealerStatusHistory DealerStatusHistory[]
+    assignedDealers             DealerAuth[]                     @relation(name: "dealerSalesRep")
     mailEvents                  MailEventTrigger[]
     sessions                    Session[]
     approvedRequests            DealerSalesRequest[]
@@ -3551,6 +3574,7 @@ model Users {
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
     payrollHistory              PayrollHistory[]
     customer                    Customers?
+    webAuthUser                 WebAuthUser?
 
     @@index([createdAt, deletedAt, name])
     @@index([employeeProfileId])
@@ -3595,6 +3619,68 @@ model UserDocuments {
     user        Users?    @relation(fields: [userId], references: [id])
 
     @@index([userId])
+}
+
+// ---- web.better-auth.prisma ----
+model WebAuthUser {
+    id            String           @id
+    legacyUserId  Int              @unique
+    legacyUser    Users            @relation(fields: [legacyUserId], references: [id], onDelete: Cascade)
+    name          String
+    email         String
+    emailVerified Boolean
+    image         String?
+    createdAt     DateTime
+    updatedAt     DateTime
+    sessions      WebAuthSession[]
+    accounts      WebAuthAccount[]
+
+    @@unique([email])
+    @@index([legacyUserId])
+}
+
+model WebAuthSession {
+    id        String      @id
+    expiresAt DateTime
+    token     String
+    createdAt DateTime
+    updatedAt DateTime
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      WebAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([token])
+    @@index([userId])
+}
+
+model WebAuthAccount {
+    id                    String      @id
+    accountId             String
+    providerId            String
+    userId                String
+    user                  WebAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?     @db.Text
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime
+    updatedAt             DateTime
+
+    @@unique([providerId, accountId])
+    @@index([userId])
+}
+
+model WebAuthVerification {
+    id         String    @id
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime?
+    updatedAt  DateTime?
 }
 
 // ---- sales.takeoff.prisma ----
@@ -3687,10 +3773,13 @@ model DealerAuth {
     primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
     primaryShippingAddress   AddressBooks?         @relation(name: "primaryShippingAddress", fields: [primaryShippingAddressId], references: [id])
     authUser                 DealerAuthUser?       @relation(fields: [authUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    salesRepId               Int?
+    salesRep                 Users?                @relation(name: "dealerSalesRep", fields: [salesRepId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
     @@index([authUserId])
     @@index([primaryBillingAddressId])
     @@index([primaryShippingAddressId])
+    @@index([salesRepId])
 }
 
 model DealerStatusHistory {

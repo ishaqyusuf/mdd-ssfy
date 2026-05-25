@@ -19,7 +19,7 @@ const sale = {
 };
 
 describe("sales PDF email attachments", () => {
-	it("attaches PDFs for simple sales document emails without passing PDF links to the template", () => {
+	it("passes simple sales document PDF links to the template", () => {
 		const email = simpleSalesDocumentEmail.createEmail?.(
 			{
 				type: "order",
@@ -28,7 +28,7 @@ describe("sales PDF email attachments", () => {
 				salesRep: "Sales Rep",
 				salesRepEmail: "rep@gndprodesk.com",
 				paymentLink: "https://example.com/checkout/token",
-				pdfLink: null,
+				pdfLink: "https://example.com/api/download/sales?token=pdf-token",
 				pdfAttachment,
 				sales: [sale],
 			} as never,
@@ -41,8 +41,8 @@ describe("sales PDF email attachments", () => {
 		expect(email?.data).toMatchObject({
 			hasPdfAttachment: true,
 			paymentLink: "https://example.com/checkout/token",
+			pdfLink: "https://example.com/api/download/sales?token=pdf-token",
 		});
-		expect(email?.data).not.toHaveProperty("pdfLink");
 	});
 
 	it("sends simple sales document emails without PDF attachment state when PDF generation is unavailable", () => {

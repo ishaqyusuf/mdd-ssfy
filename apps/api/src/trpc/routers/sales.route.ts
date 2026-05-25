@@ -3,6 +3,13 @@ import {
 	accountingIndexSchema,
 } from "@api/db/queries/accounting";
 import { getCustomers } from "@api/db/queries/customer";
+import {
+	approveDealerOrderRequest,
+	getDealerOrderRequest,
+	getDealerOrderRequestCount,
+	getDealerOrderRequests,
+	rejectDealerOrderRequest,
+} from "@gnd/db/queries";
 import { getInboundSummary, getInbounds } from "@api/db/queries/inbound";
 import {
 	getProductReport,
@@ -66,6 +73,7 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import { generateRandomString, timeLog } from "@gnd/utils";
 import { createNoteAction } from "@notifications/note";
+import { EmailService } from "@gnd/notifications/services/email-service";
 import {
 	getInvoicePrintData,
 	printInvoiceSchema,
@@ -85,8 +93,102 @@ import {
 } from "@sales/sales-production";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { z } from "zod";
+import { getAppUrl } from "@gnd/utils/envs";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+
+const dealerOrderRequestsSchema = z.object({
+	cursor: z.number().optional().nullable(),
+	size: z.number().min(1).max(100).optional().nullable(),
+	status: z.enum(["pending", "approved", "rejected", "all"]).optional().nullable(),
+});
+const dealerOrderRequestIdSchema = z.object({
+	requestId: z.number(),
+});
+const rejectDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
+	reason: z.string().optional().nullable(),
+});
+
+async function sendDealerApprovalEmail(
+	ctx: { db: any },
+	result: Awaited<ReturnType<typeof approveDealerOrderRequest>>,
+) {
+	if (!result.dealerEmail) return;
+	const orderUrl = `${getAppUrl().replace(/\/$/, "")}/orders`;
+	await new EmailService(ctx.db).sendTransactional({
+		to: result.dealerEmail,
+		subject: `Quote ${result.quoteNo} approved as order ${result.order.orderId}`,
+		template: "dealer-sales-request-approved",
+		data: {
+			dealerName: result.dealerName,
+			quoteNo: result.quoteNo,
+			orderNo: result.order.orderId,
+			customerName: result.customerName,
+			total: result.total,
+			orderUrl,
+		},
+	});
+}
+
+async function sendDealerRejectedEmail(
+	ctx: { db: any },
+	result: Awaited<ReturnType<typeof rejectDealerOrderRequest>>,
+) {
+	if (!result.dealerEmail) return;
+	await new EmailService(ctx.db).sendTransactional({
+		to: result.dealerEmail,
+		subject: `Quote ${result.quoteNo} order request needs review`,
+		template: "dealer-sales-request-rejected",
+		data: {
+			dealerName: result.dealerName,
+			quoteNo: result.quoteNo,
+			customerName: result.customerName,
+			reason: result.reason,
+		},
+	});
+}
 export const salesRouter = createTRPCRouter({
+	dealerOrderRequestCount: protectedProcedure.query(async (props) => {
+		return getDealerOrderRequestCount(props.ctx.db, props.ctx.userId);
+	}),
+	dealerOrderRequests: protectedProcedure
+		.input(dealerOrderRequestsSchema)
+		.query(async (props) => {
+			return getDealerOrderRequests(props.ctx.db, props.ctx.userId, props.input);
+		}),
+	dealerOrderRequest: protectedProcedure
+		.input(dealerOrderRequestIdSchema)
+		.query(async (props) => {
+			return getDealerOrderRequest(
+				props.ctx.db,
+				props.ctx.userId,
+				props.input.requestId,
+			);
+		}),
+	approveDealerSalesRequest: protectedProcedure
+		.input(dealerOrderRequestIdSchema)
+		.mutation(async (props) => {
+			const result = await approveDealerOrderRequest(
+				props.ctx.db,
+				props.ctx.userId,
+				props.input.requestId,
+			);
+			if (!result.alreadyApproved) {
+				await sendDealerApprovalEmail(props.ctx, result);
+			}
+			return result;
+		}),
+	rejectDealerSalesRequest: protectedProcedure
+		.input(rejectDealerOrderRequestSchema)
+		.mutation(async (props) => {
+			const result = await rejectDealerOrderRequest(
+				props.ctx.db,
+				props.ctx.userId,
+				props.input.requestId,
+				props.input.reason,
+			);
+			await sendDealerRejectedEmail(props.ctx, result);
+			return result;
+		}),
 	createStep: publicProcedure
 		.input(
 			z.object({

@@ -51,7 +51,7 @@ export type DealerCustomerFormInput = {
 export type DealerSalesProfileFormInput = {
   id?: number | null;
   title: string;
-  salesPercentage?: number | null;
+  coefficient?: number | null;
   defaultProfile?: boolean | null;
 };
 
@@ -97,6 +97,7 @@ export type DealerPortalSaveQuoteInput = {
 export type DealerPortalSalesListInput = {
   cursor?: number | null;
   size?: number | null;
+  customerId?: number | null;
   q?: string | null;
   "customer.name"?: string | null;
   phone?: string | null;
@@ -107,6 +108,15 @@ export type DealerPortalSalesListInput = {
   amountDue?: "due" | "paid" | "credit" | null;
   invoiceStatus?: string | null;
   paymentStatus?: "due" | "paid" | "credit" | null;
+};
+
+export type DealerSalesRequestStatus = "pending" | "approved" | "rejected";
+export const DEALER_ORDER_REQUEST_TYPE = "make_order";
+
+export type DealerOrderRequestsInput = {
+  cursor?: number | null;
+  size?: number | null;
+  status?: DealerSalesRequestStatus | "all" | null;
 };
 
 function getObjectMeta(meta: unknown): Record<string, unknown> {
@@ -218,6 +228,13 @@ export async function getDealers(db: Database, input: DealerListInput = {}) {
           businessName: true,
           email: true,
           phoneNo: true,
+          profile: {
+            select: {
+              id: true,
+              title: true,
+              coefficient: true,
+            },
+          },
         },
       },
     },
@@ -551,7 +568,7 @@ export async function getDealerPortalDashboard(db: Database, dealerId: number) {
       }),
       db.customerTypes.count({
         where: {
-          dealerOwnerId: dealerId,
+          dealerOwnerId: null,
           deletedAt: null,
         },
       }),
@@ -589,7 +606,7 @@ export async function getDealerPortalCustomers(db: Database, dealerId: number) {
         select: {
           id: true,
           title: true,
-          salesPercentage: true,
+          coefficient: true,
         },
       },
     },
@@ -629,11 +646,81 @@ export async function getDealerPortalCustomer(
   };
 }
 
+export async function getDealerPortalCustomerOverview(
+  db: Database,
+  dealerId: number,
+  id: number,
+) {
+  const customer = await db.customers.findFirst({
+    where: {
+      id,
+      dealerOwnerId: dealerId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      businessName: true,
+      email: true,
+      phoneNo: true,
+      address: true,
+      meta: true,
+      customerTypeId: true,
+      createdAt: true,
+      profile: {
+        select: {
+          id: true,
+          title: true,
+          coefficient: true,
+        },
+      },
+    },
+  });
+
+  if (!customer) {
+    throw new Error("Dealer customer could not be found.");
+  }
+
+  const salesCounts = await db.salesOrders.groupBy({
+    by: ["type"],
+    where: {
+      dealerAuthId: dealerId,
+      customerId: customer.id,
+      deletedAt: null,
+      type: {
+        in: ["order", "quote"],
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+  const counts = salesCounts.reduce(
+    (acc, row) => {
+      if (row.type === "quote") acc.quotesCount = row._count._all;
+      if (row.type === "order") acc.ordersCount = row._count._all;
+      return acc;
+    },
+    {
+      ordersCount: 0,
+      quotesCount: 0,
+    },
+  );
+  const { meta: _meta, ...safeCustomer } = customer;
+
+  return {
+    ...safeCustomer,
+    ...getDealerCustomerAddressMeta(customer.meta),
+    ...counts,
+  };
+}
+
 function getDealerSalesListWhere(
   dealerId: number,
   type: "order" | "quote",
   input: DealerPortalSalesListInput = {},
 ): Prisma.SalesOrdersWhereInput {
+  const customerId = Number(input.customerId || 0) || null;
   const search = input.q?.trim();
   const customerName = input["customer.name"]?.trim();
   const phone = input.phone?.trim();
@@ -651,6 +738,7 @@ function getDealerSalesListWhere(
     dealerAuthId: dealerId,
     deletedAt: null,
     type: type === "quote" ? "quote" : { not: "quote" },
+    ...(customerId ? { customerId } : {}),
     ...(orderNo
       ? {
           orderId: {
@@ -764,13 +852,23 @@ function mapDealerSalesDocument(document: {
     email: string | null;
     phoneNo?: string | null;
   } | null;
+  requests?: Array<{
+    id: number;
+    status: string;
+    request: string;
+    createdAt: Date | null;
+    updatedAt: Date | null;
+  }>;
 }) {
   const dealerSummary = getDealerPricingSummaryFromMeta(document.meta);
+  const latestRequest = document.requests?.[0] || null;
   const { meta: _meta, ...safeDocument } = document;
   return {
     ...safeDocument,
     grandTotal: Number(dealerSummary?.grandTotal ?? document.grandTotal ?? 0),
     amountDue: Number(dealerSummary?.grandTotal ?? document.amountDue ?? 0),
+    requestId: latestRequest?.id ?? null,
+    requestStatus: latestRequest?.status ?? null,
   };
 }
 
@@ -783,7 +881,7 @@ export async function getDealerPortalSalesList(
   const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
   const cursor = Number(input.cursor || 0);
   const where = getDealerSalesListWhere(dealerId, type, input);
-  const [documents, count] = await Promise.all([
+  const [rawDocuments, count] = await Promise.all([
     db.salesOrders.findMany({
       where,
       orderBy: {
@@ -811,10 +909,30 @@ export async function getDealerPortalSalesList(
             phoneNo: true,
           },
         },
+        requests: {
+          where: {
+            request: DEALER_ORDER_REQUEST_TYPE,
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            request: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
-    }),
+    } as any),
     db.salesOrders.count({ where }),
   ]);
+  const documents = rawDocuments as unknown as Parameters<
+    typeof mapDealerSalesDocument
+  >[0][];
   const nextCursor = cursor + documents.length;
 
   return {
@@ -910,17 +1028,55 @@ export async function getDealerPortalCustomersList(
           select: {
             id: true,
             title: true,
-            salesPercentage: true,
+            coefficient: true,
           },
         },
       },
     }),
     db.customers.count({ where }),
   ]);
+  const customerIds = customers.map((customer) => customer.id);
+  const salesCounts = customerIds.length
+    ? await db.salesOrders.groupBy({
+        by: ["customerId", "type"],
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          customerId: {
+            in: customerIds,
+          },
+          type: {
+            in: ["order", "quote"],
+          },
+        },
+        _count: {
+          _all: true,
+        },
+      })
+    : [];
+  const salesCountsByCustomer = new Map<
+    number,
+    { ordersCount: number; quotesCount: number }
+  >();
+
+  for (const countRow of salesCounts) {
+    if (!countRow.customerId) continue;
+    const current = salesCountsByCustomer.get(countRow.customerId) || {
+      ordersCount: 0,
+      quotesCount: 0,
+    };
+    if (countRow.type === "order") current.ordersCount = countRow._count._all;
+    if (countRow.type === "quote") current.quotesCount = countRow._count._all;
+    salesCountsByCustomer.set(countRow.customerId, current);
+  }
   const nextCursor = cursor + customers.length;
 
   return {
-    data: customers,
+    data: customers.map((customer) => ({
+      ...customer,
+      ordersCount: salesCountsByCustomer.get(customer.id)?.ordersCount || 0,
+      quotesCount: salesCountsByCustomer.get(customer.id)?.quotesCount || 0,
+    })),
     meta: {
       cursor: nextCursor < count ? nextCursor : null,
       count,
@@ -940,7 +1096,7 @@ export async function saveDealerPortalCustomer(
     const profile = await db.customerTypes.findFirst({
       where: {
         id: customerTypeId,
-        dealerOwnerId: dealerId,
+        dealerOwnerId: null,
         deletedAt: null,
       },
       select: {
@@ -949,7 +1105,7 @@ export async function saveDealerPortalCustomer(
     });
 
     if (!profile) {
-      throw new Error("Dealer sales profile could not be found.");
+      throw new Error("Customer profile could not be found.");
     }
   }
 
@@ -1018,20 +1174,18 @@ export async function saveDealerPortalCustomer(
 
 export async function getDealerPortalSalesProfiles(
   db: Database,
-  dealerId: number,
+  _dealerId: number,
 ) {
   return db.customerTypes.findMany({
     where: {
-      dealerOwnerId: dealerId,
+      dealerOwnerId: null,
       deletedAt: null,
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [{ defaultProfile: "desc" }, { title: "asc" }],
     select: {
       id: true,
       title: true,
-      salesPercentage: true,
+      coefficient: true,
       defaultProfile: true,
       createdAt: true,
       _count: {
@@ -1041,6 +1195,34 @@ export async function getDealerPortalSalesProfiles(
       },
     },
   });
+}
+
+export async function getDealerPortalPrimarySalesProfile(
+  db: Database,
+  dealerId: number,
+) {
+  const dealer = await db.dealerAuth.findUnique({
+    where: {
+      id: dealerId,
+    },
+    select: {
+      dealer: {
+        select: {
+          customerTypeId: true,
+          profile: {
+            select: {
+              id: true,
+              title: true,
+              coefficient: true,
+              defaultProfile: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return dealer?.dealer?.profile || null;
 }
 
 export async function getDealerPortalInternalSalesProfile(
@@ -1062,21 +1244,34 @@ export async function getDealerPortalInternalSalesProfile(
 
 export async function saveDealerPortalSalesProfile(
   db: Database,
-  dealerId: number,
+  _dealerId: number,
   input: DealerSalesProfileFormInput,
 ) {
   const data = {
     title: input.title.trim(),
-    salesPercentage: input.salesPercentage ?? null,
+    coefficient: input.coefficient ?? null,
     defaultProfile: input.defaultProfile ?? false,
-    dealerOwnerId: dealerId,
+    dealerOwnerId: null,
   };
+
+  if (input.defaultProfile) {
+    await db.customerTypes.updateMany({
+      where: {
+        dealerOwnerId: null,
+        deletedAt: null,
+        ...(input.id ? { id: { not: input.id } } : {}),
+      },
+      data: {
+        defaultProfile: false,
+      },
+    });
+  }
 
   if (input.id) {
     const existing = await db.customerTypes.findFirst({
       where: {
         id: input.id,
-        dealerOwnerId: dealerId,
+        dealerOwnerId: null,
         deletedAt: null,
       },
       select: {
@@ -1106,7 +1301,7 @@ export async function getDealerPortalSalesDocuments(
   dealerId: number,
   type: "order" | "quote",
 ) {
-  const documents = await db.salesOrders.findMany({
+  const documents = (await db.salesOrders.findMany({
     where: {
       dealerAuthId: dealerId,
       deletedAt: null,
@@ -1135,17 +1330,26 @@ export async function getDealerPortalSalesDocuments(
           email: true,
         },
       },
+      requests: {
+        where: {
+          request: DEALER_ORDER_REQUEST_TYPE,
+          deletedAt: null,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          request: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
-  });
-  return documents.map((document) => {
-    const dealerSummary = getDealerPricingSummaryFromMeta(document.meta);
-    const { meta: _meta, ...safeDocument } = document;
-    return {
-      ...safeDocument,
-      grandTotal: Number(dealerSummary?.grandTotal ?? document.grandTotal ?? 0),
-      amountDue: Number(dealerSummary?.grandTotal ?? document.amountDue ?? 0),
-    };
-  });
+  } as any)) as unknown as Parameters<typeof mapDealerSalesDocument>[0][];
+  return documents.map(mapDealerSalesDocument);
 }
 
 function getDealerNewSalesFormMeta(meta: Prisma.JsonValue | null | undefined) {
@@ -1303,11 +1507,10 @@ function pricingCoefficient(profile?: { coefficient?: number | null } | null) {
   return Number.isFinite(value) && value > 0 ? value : 1;
 }
 
-function pricingPercentage(
-  profile?: { salesPercentage?: number | null } | null,
+function pricingCoefficientMultiplier(
+  profile?: { coefficient?: number | null } | null,
 ) {
-  const value = Number(profile?.salesPercentage ?? 0);
-  return Number.isFinite(value) ? value : 0;
+  return roundCurrency(1 / pricingCoefficient(profile));
 }
 
 function baseUnitPriceFromDealerLine(line: DealerPortalQuoteLineItemInput) {
@@ -1576,13 +1779,14 @@ export function calculateDealerQuotePricing({
   dealerProfile?: {
     id?: number | null;
     title?: string | null;
-    salesPercentage?: number | null;
+    coefficient?: number | null;
   } | null;
   createdAt?: string | Date | null;
 }) {
   const internalCoefficient = pricingCoefficient(internalProfile);
-  const dealerSalesPercentage = pricingPercentage(dealerProfile);
-  const dealerMultiplier = 1 + dealerSalesPercentage / 100;
+  const dealerCoefficient = pricingCoefficient(dealerProfile);
+  const internalMultiplier = pricingCoefficientMultiplier(internalProfile);
+  const dealerMultiplier = pricingCoefficientMultiplier(dealerProfile);
   const snapshotCreatedAt =
     createdAt instanceof Date
       ? createdAt.toISOString()
@@ -1591,10 +1795,8 @@ export function calculateDealerQuotePricing({
   const lines = lineItems.map((line) => {
     const qty = Number(line.qty ?? 0);
     const baseUnitPrice = baseUnitPriceFromDealerLine(line);
-    const internalUnitPrice = roundCurrency(
-      baseUnitPrice * internalCoefficient,
-    );
-    const dealerUnitPrice = roundCurrency(internalUnitPrice * dealerMultiplier);
+    const internalUnitPrice = roundCurrency(baseUnitPrice * internalMultiplier);
+    const dealerUnitPrice = roundCurrency(baseUnitPrice * dealerMultiplier);
 
     return {
       uid: line.uid,
@@ -1631,7 +1833,7 @@ export function calculateDealerQuotePricing({
       dealer: {
         id: dealerProfile?.id ?? null,
         label: dealerProfile?.title ?? null,
-        salesPercentage: dealerSalesPercentage,
+        coefficient: dealerCoefficient,
       },
     },
     lines,
@@ -1726,28 +1928,34 @@ export async function saveDealerPortalQuote(
       throw new Error("Dealer customer could not be found.");
     }
 
-    const dealerProfileId =
-      input.customerProfileId || customer.customerTypeId || null;
-    const [dealerProfile, internalProfile] = await Promise.all([
-      dealerProfileId
-        ? tx.customerTypes.findFirst({
-            where: {
-              id: dealerProfileId,
-              dealerOwnerId: dealerId,
-              deletedAt: null,
-            },
+    const [dealerAccount, internalProfile] = await Promise.all([
+      tx.dealerAuth.findUnique({
+        where: {
+          id: dealerId,
+        },
+        select: {
+          dealer: {
             select: {
-              id: true,
-              title: true,
-              salesPercentage: true,
+              customerTypeId: true,
+              profile: {
+                select: {
+                  id: true,
+                  title: true,
+                  coefficient: true,
+                },
+              },
             },
-          })
-        : null,
+          },
+        },
+      }),
       getDealerPortalInternalSalesProfile(tx),
     ]);
 
-    if (dealerProfileId && !dealerProfile) {
-      throw new Error("Dealer sales profile could not be found.");
+    const dealerProfile = dealerAccount?.dealer?.profile || null;
+    if (!dealerProfile) {
+      throw new Error(
+        "Dealer customer profile is required before saving a quote.",
+      );
     }
 
     await validateDealerPortalQuoteVisibility(tx, input.lineItems);
@@ -1939,13 +2147,102 @@ export async function saveDealerPortalQuote(
   });
 }
 
+async function convertDealerPortalQuoteToOrderTx(
+  tx: Database,
+  dealerId: number,
+  quoteId: number,
+  metaPatch: Record<string, unknown> = {},
+) {
+  const quote = await tx.salesOrders.findFirst({
+    where: {
+      id: quoteId,
+      dealerAuthId: dealerId,
+      deletedAt: null,
+      type: "quote",
+    },
+    select: {
+      id: true,
+      meta: true,
+    },
+  });
+
+  if (!quote) {
+    throw new Error("Dealer quote could not be found.");
+  }
+
+  const identity = await createDealerProgramPartnerIdentity(tx, "order");
+  const currentMeta =
+    quote.meta && typeof quote.meta === "object" && !Array.isArray(quote.meta)
+      ? quote.meta
+      : {};
+
+  return tx.salesOrders.update({
+    where: {
+      id: quote.id,
+    },
+    data: {
+      orderId: identity.orderId,
+      slug: identity.slug,
+      type: "order",
+      status: "New",
+      meta: {
+        ...currentMeta,
+        convertedFromDealerQuoteId: quote.id,
+        convertedAt: new Date().toISOString(),
+        ...metaPatch,
+      } as Prisma.InputJsonValue,
+    },
+    select: {
+      id: true,
+      orderId: true,
+      slug: true,
+      type: true,
+      status: true,
+    },
+  });
+}
+
 export async function convertDealerPortalQuoteToOrder(
   db: Database,
   dealerId: number,
   quoteId: number,
 ) {
+  return db.$transaction((tx) =>
+    convertDealerPortalQuoteToOrderTx(
+      tx as unknown as Database,
+      dealerId,
+      quoteId,
+    ),
+  );
+}
+
+function dealerName(dealer: {
+  companyName?: string | null;
+  name?: string | null;
+  email?: string | null;
+}) {
+  return dealer.companyName || dealer.name || dealer.email || "Dealer";
+}
+
+function customerName(
+  customer?: {
+    businessName?: string | null;
+    name?: string | null;
+    email?: string | null;
+  } | null,
+) {
+  return (
+    customer?.businessName || customer?.name || customer?.email || "Customer"
+  );
+}
+
+export async function requestDealerPortalQuoteOrder(
+  db: Database,
+  dealerId: number,
+  quoteId: number,
+) {
   return db.$transaction(async (tx) => {
-    const quote = await tx.salesOrders.findFirst({
+    const quote = (await tx.salesOrders.findFirst({
       where: {
         id: quoteId,
         dealerAuthId: dealerId,
@@ -1954,43 +2251,558 @@ export async function convertDealerPortalQuoteToOrder(
       },
       select: {
         id: true,
-        meta: true,
+        orderId: true,
+        slug: true,
+        salesRepId: true,
+        dealerAuth: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            companyName: true,
+            salesRepId: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            businessName: true,
+            email: true,
+          },
+        },
+        requests: {
+          where: {
+            request: DEALER_ORDER_REQUEST_TYPE,
+            deletedAt: null,
+            status: "pending",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            createdAt: true,
+          },
+        },
       },
-    });
+    } as any)) as any;
 
     if (!quote) {
       throw new Error("Dealer quote could not be found.");
     }
 
-    const identity = await createDealerProgramPartnerIdentity(tx, "order");
-    const currentMeta =
-      quote.meta && typeof quote.meta === "object" && !Array.isArray(quote.meta)
-        ? quote.meta
-        : {};
+    const existing = quote.requests?.[0] || null;
+    const salesRepId = quote.salesRepId || quote.dealerAuth?.salesRepId || null;
+    if (!quote.salesRepId && salesRepId) {
+      await tx.salesOrders.update({
+        where: {
+          id: quote.id,
+        },
+        data: {
+          salesRepId,
+        } as any,
+      });
+    }
+    const request =
+      existing ||
+      (await tx.dealerSalesRequest.create({
+        data: {
+          salesId: quote.id,
+          request: DEALER_ORDER_REQUEST_TYPE,
+          status: "pending",
+        },
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+        },
+      }));
 
-    return tx.salesOrders.update({
-      where: {
-        id: quote.id,
+    return {
+      request,
+      alreadyPending: Boolean(existing),
+      salesRepId,
+      notification: {
+        requestId: request.id,
+        salesId: quote.id,
+        quoteNo: quote.orderId,
+        dealerName: dealerName(quote.dealerAuth || {}),
+        customerName: customerName(quote.customer),
+        requestedAt: (request.createdAt || new Date()).toISOString(),
       },
-      data: {
-        orderId: identity.orderId,
-        slug: identity.slug,
-        type: "order",
-        status: "New",
-        meta: {
-          ...currentMeta,
-          convertedFromDealerQuoteId: quote.id,
-          convertedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
+    };
+  });
+}
+
+async function getSalesRequestUserScope(db: Database, userId: number) {
+  const user = await db.users.findUnique({
+    where: { id: userId },
+    select: {
+      roles: {
+        select: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
       },
+    },
+  });
+  const roleNames =
+    user?.roles
+      .map((entry) => entry.role?.name?.trim().toLowerCase())
+      .filter(Boolean) || [];
+  const isAdmin = roleNames.some((role) =>
+    ["admin", "super admin", "sales admin", "sales manager"].includes(role),
+  );
+  return { isAdmin };
+}
+
+function dealerOrderRequestWhere(
+  userId: number,
+  isAdmin: boolean,
+  input: DealerOrderRequestsInput = {},
+): Prisma.DealerSalesRequestWhereInput {
+  const status = input.status && input.status !== "all" ? input.status : null;
+  return {
+    request: DEALER_ORDER_REQUEST_TYPE,
+    deletedAt: null,
+    ...(status ? { status } : {}),
+    OR: [
+      {
+        sale: {
+          salesRepId: userId,
+        },
+      },
+      ...(isAdmin
+        ? [
+            {
+              sale: {
+                salesRepId: null,
+              },
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+export async function getDealerOrderRequestCount(db: Database, userId: number) {
+  const scope = await getSalesRequestUserScope(db, userId);
+  return db.dealerSalesRequest.count({
+    where: dealerOrderRequestWhere(userId, scope.isAdmin, {
+      status: "pending",
+    }),
+  });
+}
+
+function mapDealerOrderRequest(row: any) {
+  const sale = row.sale || {};
+  const dealer = sale.dealerAuth || {};
+  const customer = sale.customer || {};
+  return {
+    id: row.id,
+    status: row.status,
+    request: row.request,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    approvedById: row.approvedById,
+    salesId: sale.id,
+    quoteNo: sale.orderId,
+    quoteSlug: sale.slug,
+    orderType: sale.type,
+    orderStatus: sale.status,
+    grandTotal: Number(sale.grandTotal || 0),
+    amountDue: Number(sale.amountDue || 0),
+    dealerId: dealer.id || null,
+    dealerName: dealerName(dealer),
+    dealerEmail: dealer.email || null,
+    customerName: customerName(customer),
+    customerEmail: customer.email || null,
+    salesRepId: sale.salesRepId || null,
+  };
+}
+
+export async function getDealerOrderRequests(
+  db: Database,
+  userId: number,
+  input: DealerOrderRequestsInput = {},
+) {
+  const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
+  const cursor = Number(input.cursor || 0);
+  const scope = await getSalesRequestUserScope(db, userId);
+  const where = dealerOrderRequestWhere(userId, scope.isAdmin, input);
+  const select = {
+    id: true,
+    request: true,
+    status: true,
+    createdAt: true,
+    updatedAt: true,
+    approvedById: true,
+    sale: {
       select: {
         id: true,
         orderId: true,
         slug: true,
         type: true,
         status: true,
+        grandTotal: true,
+        amountDue: true,
+        salesRepId: true,
+        customer: {
+          select: {
+            name: true,
+            businessName: true,
+            email: true,
+          },
+        },
+        dealerAuth: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            companyName: true,
+          },
+        },
+      },
+    },
+  } satisfies Prisma.DealerSalesRequestSelect;
+  let rows: any[] = [];
+  let count = 0;
+
+  if (input.status && input.status !== "all") {
+    const [rawRows, total] = await Promise.all([
+      db.dealerSalesRequest.findMany({
+        where,
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip: cursor,
+        take: size,
+        select,
+      }),
+      db.dealerSalesRequest.count({ where }),
+    ]);
+    rows = rawRows as any[];
+    count = total;
+  } else {
+    const pendingWhere = {
+      ...where,
+      status: "pending",
+    } satisfies Prisma.DealerSalesRequestWhereInput;
+    const historicalWhere = {
+      ...where,
+      status: {
+        in: ["approved", "rejected"],
+      },
+    } satisfies Prisma.DealerSalesRequestWhereInput;
+    const [pendingCount, historicalCount] = await Promise.all([
+      db.dealerSalesRequest.count({ where: pendingWhere }),
+      db.dealerSalesRequest.count({ where: historicalWhere }),
+    ]);
+    count = pendingCount + historicalCount;
+    const pendingSkip = Math.min(cursor, pendingCount);
+    const pendingTake = cursor < pendingCount ? size : 0;
+    const pendingRows = pendingTake
+      ? await db.dealerSalesRequest.findMany({
+          where: pendingWhere,
+          orderBy: {
+            createdAt: "desc",
+          },
+          skip: pendingSkip,
+          take: pendingTake,
+          select,
+        })
+      : [];
+    const historicalTake = size - pendingRows.length;
+    const historicalSkip = Math.max(0, cursor - pendingCount);
+    const historicalRows = historicalTake
+      ? await db.dealerSalesRequest.findMany({
+          where: historicalWhere,
+          orderBy: {
+            updatedAt: "desc",
+          },
+          skip: historicalSkip,
+          take: historicalTake,
+          select,
+        })
+      : [];
+    rows = [...(pendingRows as any[]), ...(historicalRows as any[])];
+  }
+  const nextCursor = cursor + rows.length;
+  return {
+    data: rows.map(mapDealerOrderRequest),
+    meta: {
+      count,
+      size,
+      cursor: nextCursor < count ? nextCursor : null,
+    },
+  };
+}
+
+export async function getDealerOrderRequest(
+  db: Database,
+  userId: number,
+  requestId: number,
+) {
+  const scope = await getSalesRequestUserScope(db, userId);
+  const row = (await db.dealerSalesRequest.findFirst({
+    where: {
+      id: requestId,
+      ...dealerOrderRequestWhere(userId, scope.isAdmin, { status: "all" }),
+    },
+    select: {
+      id: true,
+      request: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      approvedById: true,
+      sale: {
+        select: {
+          id: true,
+          orderId: true,
+          slug: true,
+          type: true,
+          status: true,
+          grandTotal: true,
+          amountDue: true,
+          salesRepId: true,
+          customer: {
+            select: {
+              name: true,
+              businessName: true,
+              email: true,
+            },
+          },
+          dealerAuth: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              companyName: true,
+            },
+          },
+        },
+      },
+    },
+  })) as any;
+  if (!row) {
+    throw new Error("Dealer order request could not be found.");
+  }
+  return mapDealerOrderRequest(row);
+}
+
+export async function approveDealerOrderRequest(
+  db: Database,
+  userId: number,
+  requestId: number,
+) {
+  return db.$transaction(async (tx) => {
+    const scope = await getSalesRequestUserScope(
+      tx as unknown as Database,
+      userId,
+    );
+    const row = (await tx.dealerSalesRequest.findFirst({
+      where: {
+        id: requestId,
+        ...dealerOrderRequestWhere(userId, scope.isAdmin, { status: "all" }),
+      },
+      select: {
+        id: true,
+        status: true,
+        approvedById: true,
+        sale: {
+          select: {
+            id: true,
+            orderId: true,
+            slug: true,
+            type: true,
+            status: true,
+            meta: true,
+            dealerAuthId: true,
+            grandTotal: true,
+            amountDue: true,
+            customer: {
+              select: {
+                name: true,
+                businessName: true,
+                email: true,
+              },
+            },
+            dealerAuth: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                companyName: true,
+              },
+            },
+          },
+        },
+      },
+    } as any)) as any;
+
+    if (!row?.sale) {
+      throw new Error("Dealer order request could not be found.");
+    }
+
+    if (row.status === "rejected") {
+      throw new Error("Rejected dealer order requests cannot be approved.");
+    }
+
+    const alreadyApproved = row.status === "approved";
+    let order =
+      row.sale.type === "order"
+        ? {
+            id: row.sale.id,
+            orderId: row.sale.orderId,
+            slug: row.sale.slug,
+            type: row.sale.type,
+            status: row.sale.status,
+          }
+        : null;
+
+    if (!order) {
+      if (!row.sale.dealerAuthId) {
+        throw new Error("Dealer quote is missing dealer account ownership.");
+      }
+      order = await convertDealerPortalQuoteToOrderTx(
+        tx as unknown as Database,
+        row.sale.dealerAuthId,
+        row.sale.id,
+        {
+          dealerRequestApproval: {
+            requestId: row.id,
+            approvedById: userId,
+            approvedAt: new Date().toISOString(),
+          },
+        },
+      );
+    }
+
+    const updatedRequest = await tx.dealerSalesRequest.update({
+      where: { id: row.id },
+      data: {
+        status: "approved",
+        approvedById: row.approvedById || userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        updatedAt: true,
       },
     });
+
+    return {
+      request: updatedRequest,
+      order,
+      alreadyApproved,
+      dealerEmail: row.sale.dealerAuth?.email || null,
+      dealerName: dealerName(row.sale.dealerAuth || {}),
+      quoteNo: row.sale.orderId,
+      customerName: customerName(row.sale.customer),
+      total: Number(row.sale.grandTotal || 0),
+    };
+  });
+}
+
+export async function rejectDealerOrderRequest(
+  db: Database,
+  userId: number,
+  requestId: number,
+  reason?: string | null,
+) {
+  return db.$transaction(async (tx) => {
+    const scope = await getSalesRequestUserScope(
+      tx as unknown as Database,
+      userId,
+    );
+    const row = (await tx.dealerSalesRequest.findFirst({
+      where: {
+        id: requestId,
+        ...dealerOrderRequestWhere(userId, scope.isAdmin, { status: "all" }),
+      },
+      select: {
+        id: true,
+        status: true,
+        sale: {
+          select: {
+            id: true,
+            orderId: true,
+            meta: true,
+            dealerAuth: {
+              select: {
+                email: true,
+                name: true,
+                companyName: true,
+              },
+            },
+            customer: {
+              select: {
+                name: true,
+                businessName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    } as any)) as any;
+
+    if (!row?.sale) {
+      throw new Error("Dealer order request could not be found.");
+    }
+    if (row.status === "approved") {
+      throw new Error("Approved dealer order requests cannot be rejected.");
+    }
+
+    const currentMeta =
+      row.sale.meta &&
+      typeof row.sale.meta === "object" &&
+      !Array.isArray(row.sale.meta)
+        ? row.sale.meta
+        : {};
+    await tx.salesOrders.update({
+      where: { id: row.sale.id },
+      data: {
+        meta: {
+          ...currentMeta,
+          dealerRequestRejection: {
+            requestId: row.id,
+            rejectedById: userId,
+            rejectedAt: new Date().toISOString(),
+            reason: reason?.trim() || null,
+          },
+        } as Prisma.InputJsonValue,
+      },
+    });
+
+    const updatedRequest = await tx.dealerSalesRequest.update({
+      where: { id: row.id },
+      data: {
+        status: "rejected",
+        approvedById: userId,
+      },
+      select: {
+        id: true,
+        status: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      request: updatedRequest,
+      dealerEmail: row.sale.dealerAuth?.email || null,
+      dealerName: dealerName(row.sale.dealerAuth || {}),
+      quoteNo: row.sale.orderId,
+      customerName: customerName(row.sale.customer),
+      reason: reason?.trim() || null,
+    };
   });
 }
 

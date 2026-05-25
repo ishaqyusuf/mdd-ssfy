@@ -40,11 +40,18 @@ function customerName(item: Item) {
 	);
 }
 
+function requestStatusLabel(status?: string | null) {
+	if (status === "pending") return "Order requested";
+	if (status === "approved") return "Approved";
+	if (status === "rejected") return "Rejected";
+	return "Draft";
+}
+
 function QuoteActions({ item }: { item: Item }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const convertQuote = useMutation(
-		trpc.dealerPortal.convertQuoteToOrder.mutationOptions({
+	const requestOrder = useMutation(
+		trpc.dealerPortal.requestQuoteOrder.mutationOptions({
 			onSuccess: async () => {
 				await Promise.all([
 					queryClient.invalidateQueries({
@@ -54,23 +61,29 @@ function QuoteActions({ item }: { item: Item }) {
 						queryKey: trpc.dealerPortal.orders.pathKey(),
 					}),
 					queryClient.invalidateQueries({
+						queryKey: trpc.dealerPortal.customersList.pathKey(),
+					}),
+					queryClient.invalidateQueries({
 						queryKey: trpc.dealerPortal.dashboard.pathKey(),
 					}),
 				]);
 				toast({
-					title: "Quote converted to order.",
+					title: "Order request sent.",
 					variant: "success",
 				});
 			},
 			onError: (error) => {
 				toast({
-					title: "Could not convert quote.",
+					title: "Could not request order.",
 					description: error.message,
 					variant: "destructive",
 				});
 			},
 		}),
 	);
+	const isPendingRequest = item.requestStatus === "pending";
+	const isClosedRequest =
+		item.requestStatus === "approved" || item.requestStatus === "rejected";
 
 	return (
 		<div className="flex justify-end gap-2">
@@ -78,13 +91,13 @@ function QuoteActions({ item }: { item: Item }) {
 				<Link href={`/quotes/${item.id}/edit`}>Edit</Link>
 			</Button>
 			<Button
-				disabled={convertQuote.isPending}
-				onClick={() => convertQuote.mutate({ id: item.id })}
+				disabled={requestOrder.isPending || isPendingRequest || isClosedRequest}
+				onClick={() => requestOrder.mutate({ id: item.id })}
 				size="sm"
 				type="button"
 				variant="outline"
 			>
-				Convert
+				{isPendingRequest ? "Requested" : "Request order"}
 			</Button>
 		</div>
 	);
@@ -126,7 +139,7 @@ export const columns: Column[] = [
 		accessorKey: "status",
 		cell: ({ row: { original: item } }) => (
 			<Badge className="capitalize" variant="outline">
-				{item.status || "open"}
+				{requestStatusLabel(item.requestStatus) || item.status || "open"}
 			</Badge>
 		),
 	},

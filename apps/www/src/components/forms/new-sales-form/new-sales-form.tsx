@@ -14,32 +14,21 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import {
+    SalesFormFloatingActions,
     SalesFormHeaderActions,
     SalesFormShell,
     normalizeSalesFormInitialCustomerId,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
+import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
     type MouseEvent as ReactMouseEvent,
-    type ReactNode,
     useCallback,
     useEffect,
     useMemo,
@@ -391,304 +380,6 @@ function NewSalesFormSkeleton() {
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-function FloatingActionTooltip({
-    children,
-    label,
-}: {
-    children: ReactNode;
-    label: string;
-}) {
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>{children}</TooltipTrigger>
-            <TooltipContent side="top" className="px-2 py-1 text-xs">
-                {label}
-            </TooltipContent>
-        </Tooltip>
-    );
-}
-
-function NewSalesFormFloatingActions({
-    type,
-    record,
-    isSaved,
-    isSaving,
-    isPrinting,
-    isPreviewing,
-    onAddItem,
-    onSave,
-    onOpenOverview,
-    onPreview,
-    onPrint,
-}: {
-    type: Props["type"];
-    record: NewSalesFormRecord;
-    isSaved: boolean;
-    isSaving: boolean;
-    isPrinting: boolean;
-    isPreviewing: boolean;
-    onAddItem: () => void;
-    onSave: () => void;
-    onOpenOverview: () => void;
-    onPreview: () => void;
-    onPrint: (event?: ReactMouseEvent<HTMLButtonElement>) => void;
-}) {
-    const isOrder = type === "order";
-    const salesId = Number(record.salesId || 0);
-    const customer = record.customer;
-    const customerId = Number(customer?.id || record.form.customerId || 0);
-    const amountDue = Math.max(
-        0,
-        Number(record.summary.grandTotal || 0) -
-            Number(record.paymentTotal || 0),
-    );
-    const canUseSavedActions = isSaved && salesId > 0;
-    const canPay =
-        isOrder && canUseSavedActions && amountDue > 0 && customerId > 0;
-    const salesIds = salesId ? [salesId] : [];
-    const customerName = customer?.businessName || customer?.name || undefined;
-
-    return (
-        <div className="pointer-events-none absolute inset-x-0 bottom-1 z-20 hidden justify-center px-2 pb-[env(safe-area-inset-bottom)] lg:flex">
-            <TooltipProvider delayDuration={120}>
-                <div className="pointer-events-auto flex w-fit max-w-[calc(100%-1rem)] items-center gap-1 overflow-hidden rounded-full border border-slate-200 bg-card/95 p-1 shadow-lg backdrop-blur">
-                    <FloatingActionTooltip label="Add item">
-                        <Button
-                            type="button"
-                            size="icon"
-                            onClick={onAddItem}
-                            className="size-8 rounded-full"
-                            aria-label="Add item"
-                        >
-                            <Icons.Plus className="size-3.5" />
-                        </Button>
-                    </FloatingActionTooltip>
-
-                    {canUseSavedActions ? (
-                        <div className="hidden items-center gap-1 xl:flex">
-                            {isOrder ? (
-                                <SalesPaymentProcessor
-                                    phoneNo={customer?.phoneNo}
-                                    selectedIds={salesIds}
-                                    customerId={customerId}
-                                    disabled={!canPay}
-                                >
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="outline"
-                                        disabled={!canPay}
-                                        className="size-8 rounded-full"
-                                        aria-label="Pay"
-                                        title="Pay"
-                                    >
-                                        <Icons.payment className="size-3.5" />
-                                    </Button>
-                                </SalesPaymentProcessor>
-                            ) : null}
-                            <SalesMenu
-                                id={salesId}
-                                salesIds={salesIds}
-                                type={type}
-                                orderNo={record.orderId}
-                                customerEmail={customer?.email ?? null}
-                                customerName={customerName}
-                                trigger={
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="outline"
-                                        className="size-8 rounded-full"
-                                        aria-label="Email"
-                                        title="Email"
-                                    >
-                                        <Icons.Mail className="size-3.5" />
-                                    </Button>
-                                }
-                            >
-                                {isOrder ? (
-                                    <SalesMenu.SalesEmailMenuItems />
-                                ) : (
-                                    <SalesMenu.QuoteEmailMenuItems />
-                                )}
-                            </SalesMenu>
-                            <FloatingActionTooltip label="Overview">
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="outline"
-                                    onClick={onOpenOverview}
-                                    className="size-8 rounded-full"
-                                    aria-label="Overview"
-                                >
-                                    <Icons.ExternalLink className="size-3.5" />
-                                </Button>
-                            </FloatingActionTooltip>
-                            <FloatingActionTooltip
-                                label={
-                                    isPreviewing
-                                        ? "Preparing preview"
-                                        : "Preview"
-                                }
-                            >
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="outline"
-                                    onClick={onPreview}
-                                    disabled={isSaving || isPreviewing}
-                                    className="size-8 rounded-full"
-                                    aria-label={
-                                        isPreviewing
-                                            ? "Preparing preview"
-                                            : "Preview"
-                                    }
-                                >
-                                    {isPreviewing ? (
-                                        <Icons.Loader2 className="size-3.5 animate-spin" />
-                                    ) : (
-                                        <Icons.Eye className="size-3.5" />
-                                    )}
-                                </Button>
-                            </FloatingActionTooltip>
-                            <FloatingActionTooltip
-                                label={isPrinting ? "Preparing print" : "Print"}
-                            >
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="outline"
-                                    onClick={(event) => onPrint(event)}
-                                    disabled={isPrinting}
-                                    className="size-8 rounded-full"
-                                    aria-label={
-                                        isPrinting ? "Preparing print" : "Print"
-                                    }
-                                >
-                                    {isPrinting ? (
-                                        <Icons.Loader2 className="size-3.5 animate-spin" />
-                                    ) : (
-                                        <Icons.Printer className="size-3.5" />
-                                    )}
-                                </Button>
-                            </FloatingActionTooltip>
-                        </div>
-                    ) : null}
-
-                    {canUseSavedActions ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="outline"
-                                    className="size-8 shrink-0 rounded-full xl:hidden"
-                                    aria-label="More actions"
-                                >
-                                    <Icons.MoreHorizontal className="size-3.5" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                                {isOrder ? (
-                                    <SalesPaymentProcessor
-                                        phoneNo={customer?.phoneNo}
-                                        selectedIds={salesIds}
-                                        customerId={customerId}
-                                        disabled={!canPay}
-                                    >
-                                        <DropdownMenuItem
-                                            disabled={!canPay}
-                                            onSelect={(event) =>
-                                                event.preventDefault()
-                                            }
-                                        >
-                                            <Icons.payment className="mr-2 size-4" />
-                                            Pay
-                                        </DropdownMenuItem>
-                                    </SalesPaymentProcessor>
-                                ) : null}
-                                <SalesMenu
-                                    id={salesId}
-                                    salesIds={salesIds}
-                                    type={type}
-                                    orderNo={record.orderId}
-                                    customerEmail={customer?.email ?? null}
-                                    customerName={customerName}
-                                    trigger={
-                                        <DropdownMenuItem
-                                            onSelect={(event) =>
-                                                event.preventDefault()
-                                            }
-                                        >
-                                            <Icons.Mail className="mr-2 size-4" />
-                                            Email
-                                        </DropdownMenuItem>
-                                    }
-                                >
-                                    {isOrder ? (
-                                        <SalesMenu.SalesEmailMenuItems />
-                                    ) : (
-                                        <SalesMenu.QuoteEmailMenuItems />
-                                    )}
-                                </SalesMenu>
-                                <DropdownMenuItem onSelect={onOpenOverview}>
-                                    <Icons.ExternalLink className="mr-2 size-4" />
-                                    Overview
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    disabled={isSaving || isPreviewing}
-                                    onSelect={(event) => {
-                                        event.preventDefault();
-                                        onPreview();
-                                    }}
-                                >
-                                    {isPreviewing ? (
-                                        <Icons.Loader2 className="mr-2 size-4 animate-spin" />
-                                    ) : (
-                                        <Icons.Eye className="mr-2 size-4" />
-                                    )}
-                                    {isPreviewing ? "Preparing..." : "Preview"}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    disabled={isPrinting}
-                                    onSelect={(event) => {
-                                        event.preventDefault();
-                                        onPrint();
-                                    }}
-                                >
-                                    {isPrinting ? (
-                                        <Icons.Loader2 className="mr-2 size-4 animate-spin" />
-                                    ) : (
-                                        <Icons.Printer className="mr-2 size-4" />
-                                    )}
-                                    {isPrinting ? "Preparing..." : "Print"}
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    ) : null}
-
-                    <FloatingActionTooltip label={isSaving ? "Saving" : "Save"}>
-                        <Button
-                            type="button"
-                            size="icon"
-                            onClick={onSave}
-                            disabled={isSaving}
-                            className="size-8 rounded-full p-0"
-                            aria-label={isSaving ? "Saving" : "Save"}
-                        >
-                            {isSaving ? (
-                                <Icons.Loader2 className="size-3.5 animate-spin" />
-                            ) : (
-                                <Icons.Save className="size-3.5" />
-                            )}
-                        </Button>
-                    </FloatingActionTooltip>
-                </div>
-            </TooltipProvider>
         </div>
     );
 }
@@ -1686,6 +1377,106 @@ export function NewSalesForm(props: Props) {
         return <NewSalesFormSkeleton />;
     }
 
+    const salesId = Number(record.salesId || 0);
+    const customer = record.customer;
+    const customerId = Number(customer?.id || record.form.customerId || 0);
+    const amountDue = Math.max(
+        0,
+        Number(record.summary.grandTotal || 0) -
+            Number(record.paymentTotal || 0),
+    );
+    const canPay = isOrder && isSaved && amountDue > 0 && customerId > 0;
+    const salesIds = salesId ? [salesId] : [];
+    const customerName = customer?.businessName || customer?.name || undefined;
+    const paymentAction =
+        isOrder && salesId ? (
+            <SalesPaymentProcessor
+                phoneNo={customer?.phoneNo}
+                selectedIds={salesIds}
+                customerId={customerId}
+                disabled={!canPay}
+            >
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={!canPay}
+                    className="size-8 rounded-full"
+                    aria-label="Pay"
+                    title="Pay"
+                >
+                    <Icons.payment className="size-3.5" />
+                </Button>
+            </SalesPaymentProcessor>
+        ) : null;
+    const paymentMenuAction =
+        isOrder && salesId ? (
+            <SalesPaymentProcessor
+                phoneNo={customer?.phoneNo}
+                selectedIds={salesIds}
+                customerId={customerId}
+                disabled={!canPay}
+            >
+                <DropdownMenuItem
+                    disabled={!canPay}
+                    onSelect={(event) => event.preventDefault()}
+                >
+                    <Icons.payment className="mr-2 size-4" />
+                    Pay
+                </DropdownMenuItem>
+            </SalesPaymentProcessor>
+        ) : null;
+    const emailAction = salesId ? (
+        <SalesMenu
+            id={salesId}
+            salesIds={salesIds}
+            type={props.type}
+            orderNo={record.orderId}
+            customerEmail={customer?.email ?? null}
+            customerName={customerName}
+            trigger={
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    className="size-8 rounded-full"
+                    aria-label="Email"
+                    title="Email"
+                >
+                    <Icons.Mail className="size-3.5" />
+                </Button>
+            }
+        >
+            {isOrder ? (
+                <SalesMenu.SalesEmailMenuItems />
+            ) : (
+                <SalesMenu.QuoteEmailMenuItems />
+            )}
+        </SalesMenu>
+    ) : null;
+    const emailMenuAction = salesId ? (
+        <SalesMenu
+            id={salesId}
+            salesIds={salesIds}
+            type={props.type}
+            orderNo={record.orderId}
+            customerEmail={customer?.email ?? null}
+            customerName={customerName}
+            trigger={
+                <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
+                    <Icons.Mail className="mr-2 size-4" />
+                    Email
+                </DropdownMenuItem>
+            }
+        >
+            {isOrder ? (
+                <SalesMenu.SalesEmailMenuItems />
+            ) : (
+                <SalesMenu.QuoteEmailMenuItems />
+            )}
+        </SalesMenu>
+    ) : null;
+
     return (
         <>
             <SalesFormDevSwitcher
@@ -1813,18 +1604,23 @@ export function NewSalesForm(props: Props) {
                         <ItemWorkflowPanel />
                     ),
                     FloatingActions: (
-                        <NewSalesFormFloatingActions
-                            type={props.type}
-                            record={record}
+                        <SalesFormFloatingActions
                             isSaved={isSaved}
                             isSaving={isSaveBusy}
+                            capabilities={salesFormCapabilities}
+                            permissions={salesFormPermissions}
                             isPrinting={salesPrint.isPrinting}
                             isPreviewing={isPreviewing}
                             onAddItem={() => addLineItem()}
-                            onSave={() => void saveDraftNow()}
+                            onSaveDraft={saveDraftNow}
                             onOpenOverview={handleOpenOverview}
                             onPreview={() => void handlePreview()}
                             onPrint={(event) => void handlePrint(event)}
+                            paymentAction={paymentAction}
+                            paymentMenuAction={paymentMenuAction}
+                            enableSavedRecordActions
+                            savedRecordAction={emailAction}
+                            savedRecordMenuAction={emailMenuAction}
                         />
                     ),
                     SummaryPanel: (

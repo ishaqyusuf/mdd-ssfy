@@ -112,6 +112,27 @@ export const quoteAcceptedTags = actityTagsSchema.extend({
 });
 export type QuoteAcceptedTags = z.infer<typeof quoteAcceptedTags>;
 
+export const dealerSalesRequestSchema = z.object({
+	requestId: z.number(),
+	salesId: z.number(),
+	quoteNo: z.string(),
+	dealerName: z.string(),
+	customerName: z.string().optional(),
+	requestedAt: z.string(),
+});
+export type DealerSalesRequestInput = z.infer<
+	typeof dealerSalesRequestSchema
+>;
+export const dealerSalesRequestTags = actityTagsSchema.extend({
+	requestId: z.number(),
+	salesId: z.number(),
+	quoteNo: z.string(),
+	dealerName: z.string(),
+	customerName: z.string().optional(),
+	requestedAt: z.string(),
+});
+export type DealerSalesRequestTags = z.infer<typeof dealerSalesRequestTags>;
+
 export const salesPaymentRecordedSchema = z.object({
 	orderNo: z.string(),
 	customerName: z.string().optional(),
@@ -685,6 +706,7 @@ export type CommunityUnitProductionBatchUpdatedTags = z.infer<
 export type NotificationTypes = {
 	sales_checkout_success: SalesCheckoutSuccessInput;
 	quote_accepted: QuoteAcceptedInput;
+	dealer_sales_request: DealerSalesRequestInput;
 	sales_payment_recorded: SalesPaymentRecordedInput;
 	sales_payment_refunded: SalesPaymentRefundedInput;
 	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
@@ -1082,6 +1104,7 @@ export const simpleSalesDocumentEmailSchema = z.object({
 	salesNos: z.array(z.string()).optional().nullable(),
 	customerEmail: z.string().email().optional().nullable(),
 	note: z.string().optional().nullable(),
+	skipPdfAttachment: z.boolean().optional().nullable(),
 });
 export type SendSalesEmailPayloadInput = z.infer<
 	typeof simpleSalesDocumentEmailSchema
@@ -1356,6 +1379,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("quote_accepted"),
 		payload: quoteAcceptedSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("dealer_sales_request"),
+		payload: dealerSalesRequestSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_payment_recorded"),

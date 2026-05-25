@@ -25,13 +25,14 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useBin } from "@/hooks/use-bin";
 import { useDriversList } from "@/hooks/use-data-list";
-import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
+import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useTRPC } from "@/trpc/client";
 import type { DeliveryOption } from "@/types/sales";
+import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { toast } from "@gnd/ui/use-toast";
 import type { UpdateSalesControl } from "@sales/schema";
@@ -46,6 +47,28 @@ export type Item = SalesOrderItem;
 interface ItemProps {
 	item: SalesOrderItem;
 }
+
+type LifecycleQtySnapshot = {
+	total?: number | string | null;
+	qty?: number | string | null;
+};
+
+type SalesOrderLifecycleSource = SalesOrderItem & {
+	control?: {
+		productionStatus?: string | null;
+		dispatchStatus?: string | null;
+		packed?: LifecycleQtySnapshot | null;
+		pendingPacking?: LifecycleQtySnapshot | null;
+		pendingDispatch?: LifecycleQtySnapshot | null;
+		packables?: LifecycleQtySnapshot | null;
+	};
+	statistic?: {
+		packed?: LifecycleQtySnapshot | null;
+		pendingPacking?: LifecycleQtySnapshot | null;
+		pendingDispatch?: LifecycleQtySnapshot | null;
+		packables?: LifecycleQtySnapshot | null;
+	};
+};
 
 function SalesOrderPreviewAction({ item }: ItemProps) {
 	const salesPreview = useSalesPreview();
@@ -69,21 +92,59 @@ function SalesOrderPreviewAction({ item }: ItemProps) {
 	);
 }
 
-function getProductionStatusLabel(item: SalesOrderItem) {
-	const status = (item as any)?.control?.productionStatus;
-	if (status && status !== "unknown") return status;
-	return item.status.production?.scoreStatus || item.status.production?.status;
+function getLifecycleStatusInfo(item: SalesOrderItem) {
+	const source = item as SalesOrderLifecycleSource;
+	const control = source.control;
+	const statistic = source.statistic;
+	const productionStatus =
+		control?.productionStatus && control.productionStatus !== "unknown"
+			? control.productionStatus
+			: item.status?.production?.status;
+	const assignmentStatus = item.status?.assignment?.status;
+	const legacyProductionStatus =
+		assignmentStatus === "in progress" || assignmentStatus === "completed"
+			? "assigned"
+			: undefined;
+	const fulfillmentStatus =
+		control?.dispatchStatus && control.dispatchStatus !== "unknown"
+			? control.dispatchStatus
+			: item?.deliveryStatus || item.status?.delivery?.status;
+
+	return getSalesOrderLifecycleStatusInfo({
+		productionStatus,
+		legacyProductionStatus,
+		fulfillmentStatus,
+		hasProductionWork: productionStatus === "N/A" ? false : undefined,
+		packed: control?.packed || statistic?.packed,
+		pendingPacking: control?.pendingPacking || statistic?.pendingPacking,
+		pendingDispatch: control?.pendingDispatch || statistic?.pendingDispatch,
+		packables: control?.packables || statistic?.packables,
+	});
 }
 
-function getFulfillmentStatusLabel(item: SalesOrderItem) {
-	const status = (item as any)?.control?.dispatchStatus;
-	if (status && status !== "unknown") return status;
-	return item?.deliveryStatus || "-";
-}
+// Previous separate production/fulfillment status helpers. Keep these close to
+// the unified lifecycle helper so the old two-column feature can be restored.
+// function getProductionStatusLabel(item: SalesOrderItem) {
+// 	const status = (item as any)?.control?.productionStatus;
+// 	if (status && status !== "unknown") return status;
+// 	return item.status.production?.scoreStatus || item.status.production?.status;
+// }
+//
+// function getFulfillmentStatusLabel(item: SalesOrderItem) {
+// 	const status = (item as any)?.control?.dispatchStatus;
+// 	if (status && status !== "unknown") return status;
+// 	return item?.deliveryStatus || "-";
+// }
 
 function normalizeInboundStatus(status?: string | null) {
-	const value = String(status || "").trim().toUpperCase();
-	if (value === "AVAILABLE" || value === "ORDERED" || value === "PENDING ORDER") {
+	const value = String(status || "")
+		.trim()
+		.toUpperCase();
+	if (
+		value === "AVAILABLE" ||
+		value === "ORDERED" ||
+		value === "PENDING ORDER"
+	) {
 		return value;
 	}
 	return null;
@@ -301,22 +362,39 @@ export const columns2: ColumnDef<SalesOrderItem>[] = [
 		),
 	},
 	{
-		header: "Production",
-		accessorKey: "production",
-		cell: ({ row: { original: item } }) => (
-			<Progress>
-				<Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
-			</Progress>
-		),
+		header: "Status",
+		accessorKey: "lifecycleStatus",
+		cell: ({ row: { original: item } }) => {
+			const lifecycle = getLifecycleStatusInfo(item);
+
+			return (
+				<Badge
+					className={cn("border-0 whitespace-nowrap", lifecycle.badgeClassName)}
+				>
+					{lifecycle.label}
+				</Badge>
+			);
+		},
 	},
-	{
-		header: "Fulfillment",
-		id: "fulfillmentStatus",
-		accessorKey: "dispatch",
-		cell: ({ row: { original: item } }) => (
-			<Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
-		),
-	},
+	// Previous two-column production/fulfillment display, replaced by the
+	// unified lifecycle Status column above.
+	// {
+	// 	header: "Production",
+	// 	accessorKey: "production",
+	// 	cell: ({ row: { original: item } }) => (
+	// 		<Progress>
+	// 			<Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
+	// 		</Progress>
+	// 	),
+	// },
+	// {
+	// 	header: "Fulfillment",
+	// 	id: "fulfillmentStatus",
+	// 	accessorKey: "dispatch",
+	// 	cell: ({ row: { original: item } }) => (
+	// 		<Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
+	// 	),
+	// },
 	{
 		header: "",
 		accessorKey: "action",
@@ -416,22 +494,39 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
 		),
 	},
 	{
-		header: "Production",
-		accessorKey: "production",
-		cell: ({ row: { original: item } }) => (
-			<Progress>
-				<Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
-			</Progress>
-		),
+		header: "Status",
+		accessorKey: "lifecycleStatus",
+		cell: ({ row: { original: item } }) => {
+			const lifecycle = getLifecycleStatusInfo(item);
+
+			return (
+				<Badge
+					className={cn("border-0 whitespace-nowrap", lifecycle.badgeClassName)}
+				>
+					{lifecycle.label}
+				</Badge>
+			);
+		},
 	},
-	{
-		header: "Fulfillment",
-		id: "fulfillmentStatus",
-		accessorKey: "dispatch",
-		cell: ({ row: { original: item } }) => (
-			<Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
-		),
-	},
+	// Previous two-column production/fulfillment display, replaced by the
+	// unified lifecycle Status column above.
+	// {
+	// 	header: "Production",
+	// 	accessorKey: "production",
+	// 	cell: ({ row: { original: item } }) => (
+	// 		<Progress>
+	// 			<Progress.Status>{getProductionStatusLabel(item)}</Progress.Status>
+	// 		</Progress>
+	// 	),
+	// },
+	// {
+	// 	header: "Fulfillment",
+	// 	id: "fulfillmentStatus",
+	// 	accessorKey: "dispatch",
+	// 	cell: ({ row: { original: item } }) => (
+	// 		<Progress.Status>{getFulfillmentStatusLabel(item)}</Progress.Status>
+	// 	),
+	// },
 	{
 		header: "",
 		accessorKey: "action",
@@ -891,32 +986,36 @@ function getInvoiceToneClass(item: SalesOrderItem) {
 	return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
-function MobileStatusBlock({
-	label,
-	value,
-	icon: Icon,
-}: {
-	label: string;
-	value: string;
-	icon: React.ComponentType<{ className?: string }>;
-}) {
-	return (
-		<div className="min-w-0 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
-			<div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-				<Icon className="size-3.5 shrink-0" />
-				<span className="truncate">{label}</span>
-			</div>
-			<div className="mt-1 truncate text-sm font-semibold capitalize text-foreground">
-				{value || "-"}
-			</div>
-		</div>
-	);
-}
+// Previous mobile production/fulfillment status block, kept as a restore point
+// for the old two-status mobile card layout.
+// function MobileStatusBlock({
+// 	label,
+// 	value,
+// 	icon: Icon,
+// }: {
+// 	label: string;
+// 	value: string;
+// 	icon: React.ComponentType<{ className?: string }>;
+// }) {
+// 	return (
+// 		<div className="min-w-0 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+// 			<div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+// 				<Icon className="size-3.5 shrink-0" />
+// 				<span className="truncate">{label}</span>
+// 			</div>
+// 			<div className="mt-1 truncate text-sm font-semibold capitalize text-foreground">
+// 				{value || "-"}
+// 			</div>
+// 		</div>
+// 	);
+// }
 
 function ItemCard({ item }: ItemProps) {
 	const invoiceStatus = getInvoiceStatusLabel(item);
-	const productionStatus = getProductionStatusLabel(item) || "-";
-	const fulfillmentStatus = getFulfillmentStatusLabel(item) || "-";
+	const lifecycle = getLifecycleStatusInfo(item);
+	// Previous separate mobile status values:
+	// const productionStatus = getProductionStatusLabel(item) || "-";
+	// const fulfillmentStatus = getFulfillmentStatusLabel(item) || "-";
 
 	return (
 		<div
@@ -1032,6 +1131,28 @@ function ItemCard({ item }: ItemProps) {
 				</div>
 			</div>
 
+			<div className="grid grid-cols-1 gap-2">
+				<div className="min-w-0 rounded-2xl border border-border/70 bg-muted/20 px-3 py-2.5">
+					<div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+						<Icons.Package2 className="size-3.5 shrink-0" />
+						<span className="truncate">Status</span>
+					</div>
+					<div className="mt-1">
+						<Badge
+							className={cn(
+								"border-0 whitespace-nowrap",
+								lifecycle.badgeClassName,
+							)}
+						>
+							{lifecycle.label}
+						</Badge>
+					</div>
+				</div>
+			</div>
+			{/*
+			Previous two-block mobile production/fulfillment display, replaced by
+			the unified lifecycle Status block above.
+
 			<div className="grid grid-cols-2 gap-2">
 				<MobileStatusBlock
 					label="Production"
@@ -1044,6 +1165,7 @@ function ItemCard({ item }: ItemProps) {
 					icon={Icons.Package2}
 				/>
 			</div>
+			*/}
 
 			<div className="flex items-center justify-between border-border/70 border-t pt-3 text-sm">
 				<span className="text-muted-foreground">Open sales order</span>

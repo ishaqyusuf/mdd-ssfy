@@ -1,3 +1,22 @@
+## Dealer Customer-Profile Coefficient Pricing and Margin Toggle
+- Status: Implementation Complete
+- Objective: Make dealer dual pricing use the linked dealer customer's primary customer profile coefficient, matching old sales form coefficient pricing, then add a dealer-facing Show Margin toggle in the quote right-side info panel.
+- Current Phase: Focused validation complete
+- Next Step: Browser-check `/sales-book/dealers` customer-profile display and the dealership quote margin panel against seeded dealer data.
+- Blockers: Full `@gnd/api` and `@gnd/www` typechecks still hit unrelated workspace baseline errors; filtered output for touched dealer-pricing files is clean.
+- Related Files: apps/www/src/app/(sidebar)/(sales)/sales-book/dealers/page.tsx, apps/www/src/components/dealers/dealers-admin-page.tsx, apps/api/src/schemas/dealer.ts, apps/api/src/trpc/routers/dealer.route.ts, apps/api/src/trpc/routers/dealer-portal.route.ts, apps/api/src/db/queries/dealer-portal-sales-form.ts, packages/db/src/queries/dealers.ts, packages/db/src/schema/sales.customer.prisma, packages/db/src/schema/sales.prisma, apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx, apps/dealership/src/components/dealer-sales-form/dealer-quote-summary-panel.tsx, apps/dealership/src/components/dealer-sales-form/dealer-quote-main-panel.tsx, packages/sales/src/sales-form/domain/dual-pricing.ts, packages/sales/src/sales-form/composer/index.ts, brain/dealer-tax-tracking-client-memo.md
+- Last Updated: 2026-05-25
+
+### Completed
+1. Corrected the first-pass tier model: dealer quote pricing now resolves from `DealerAuth.dealer.profile` only, using the same customer-profile coefficient source as normal customers.
+2. Matched old sales form coefficient logic by pricing from `base price / coefficient` for both internal and dealer snapshots, with coefficient `1` as the missing/invalid fallback.
+3. Removed dealer-owned `%` pricing tier management from the Sales Book Dealers admin surface and now display the linked customer profile title/coefficient instead.
+4. Added Show Margin state and UI in the dealer quote right-side panel, computing GND subtotal, dealer subtotal, gross profit, margin percent, and dealer coefficient from the dual-pricing snapshot.
+5. Ran focused dealer pricing/DPP/composer tests, dealership typecheck, diff whitespace check, and targeted API/www typecheck filtering for touched dealer-pricing files.
+
+### Resume Prompt
+Continue the Dealer Customer-Profile Coefficient Pricing and Margin Toggle follow-up from `brain/plans/ongoing.md`. Current phase: focused validation complete. Next step: browser-check `/sales-book/dealers` customer-profile display and the dealership quote margin panel against seeded dealer data. Blockers: full `@gnd/api` and `@gnd/www` typechecks still hit unrelated workspace baseline errors; filtered output for touched dealer-pricing files is clean. Relevant files: `apps/www/src/components/dealers/dealers-admin-page.tsx`, `apps/api/src/schemas/dealer.ts`, `apps/api/src/trpc/routers/dealer.route.ts`, `apps/api/src/db/queries/dealer-portal-sales-form.ts`, `packages/db/src/queries/dealers.ts`, `apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx`, and `apps/dealership/src/components/dealer-sales-form/dealer-quote-summary-panel.tsx`. Keep the focused pricing tests green and only address full-workspace typecheck failures if they become directly related to this feature.
+
 ## Install Cost Sorting Rollout
 - Status: In Progress
 - Objective: Implement server-authoritative install-cost sorting by `builderTask.taskIndex` with `builderTask.createdAt` fallback across web admin and jobs flows on web and Expo.

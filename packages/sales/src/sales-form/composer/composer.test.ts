@@ -141,7 +141,7 @@ describe("sales form composer", () => {
     expect(payload.lineItems[0]?.title).toBe("Garage");
   });
 
-  it("keeps dealership percentage pricing explicit and separate from internal coefficient", () => {
+  it("keeps dealership customer-profile coefficient pricing explicit and separate from internal coefficient", () => {
     const snapshot = composeSalesFormPricingSnapshot({
       config: {
         surface: "dealership",
@@ -150,12 +150,12 @@ describe("sales form composer", () => {
           internalProfile: {
             id: 10,
             label: "Office",
-            coefficient: 1.5,
+            coefficient: 0.67,
           },
           dealerProfile: {
             id: 20,
             label: "Retail",
-            salesPercentage: 20,
+            coefficient: 0.56,
           },
         },
       },
@@ -175,18 +175,18 @@ describe("sales form composer", () => {
     expect(snapshot.profiles.internal).toEqual({
       id: 10,
       label: "Office",
-      coefficient: 1.5,
+      coefficient: 0.67,
     });
     expect(snapshot.profiles.dealer).toEqual({
       id: 20,
       label: "Retail",
-      salesPercentage: 20,
+      coefficient: 0.56,
     });
-    expect(snapshot.internalPricing.grandTotal).toBe(330);
-    expect(snapshot.dealerPricing.grandTotal).toBe(396);
+    expect(snapshot.internalPricing.grandTotal).toBe(327.8);
+    expect(snapshot.dealerPricing.grandTotal).toBe(393.8);
     expect(snapshot.lines[0]).toMatchObject({
-      internalUnitPrice: 150,
-      dealerUnitPrice: 180,
+      internalUnitPrice: 149,
+      dealerUnitPrice: 179,
     });
   });
 
@@ -197,12 +197,12 @@ describe("sales form composer", () => {
       internalProfile: {
         id: 10,
         title: "Office",
-        coefficient: 1.5,
+        coefficient: 0.67,
       },
       dealerProfile: {
         id: 20,
         title: "Retail",
-        salesPercentage: 20,
+        coefficient: 0.56,
       },
       lineItems: [
         {
@@ -217,7 +217,7 @@ describe("sales form composer", () => {
     expect(snapshot.source).toBe("sales_form_dual_pricing");
     expect(snapshot.profiles.internal.label).toBe("Office");
     expect(snapshot.profiles.dealer.label).toBe("Retail");
-    expect(snapshot.internalPricing.grandTotal).toBe(330);
-    expect(snapshot.dealerPricing.grandTotal).toBe(396);
+    expect(snapshot.internalPricing.grandTotal).toBe(327.8);
+    expect(snapshot.dealerPricing.grandTotal).toBe(393.8);
   });
 });

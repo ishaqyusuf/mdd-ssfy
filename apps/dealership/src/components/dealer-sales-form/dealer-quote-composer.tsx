@@ -2,6 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import {
+  SalesFormFloatingActions,
   SalesFormHeaderActions,
   SalesFormShell,
   buildSalesFormTaxSelectOptions,
@@ -14,6 +15,7 @@ import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { parseAsInteger, useQueryStates } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
 
 import { useSalesFormActions } from "./adapters/use-sales-form-actions";
@@ -38,6 +40,46 @@ type DealerQuoteComposerProps = {
   initialCustomerId?: number | null;
 };
 
+function getLineTitlePlaceholder(line: {
+  title?: string | null;
+  formSteps?: Array<{
+    step?: { title?: string | null } | null;
+    title?: string | null;
+    value?: string | null;
+    prodUid?: string | null;
+  }> | null;
+}) {
+  const explicitTitle = String(line?.title || "").trim();
+  if (explicitTitle) return explicitTitle;
+  const itemTypeStep = (line?.formSteps || []).find(
+    (step) =>
+      String(step?.step?.title || "")
+        .trim()
+        .toLowerCase() === "item type",
+  );
+  return String(
+    itemTypeStep?.value || itemTypeStep?.title || itemTypeStep?.prodUid || "",
+  ).trim();
+}
+
+function lineItemPickerLabel(
+  line: {
+    title?: string | null;
+    formSteps?: Array<{
+      step?: { title?: string | null } | null;
+      title?: string | null;
+      value?: string | null;
+      prodUid?: string | null;
+    }> | null;
+  },
+  index: number,
+) {
+  const placeholder = getLineTitlePlaceholder(line);
+  return placeholder
+    ? `Item ${index + 1} (${placeholder})`
+    : `Item ${index + 1}`;
+}
+
 export function DealerQuoteComposer({
   quoteId = null,
   mode,
@@ -48,12 +90,19 @@ export function DealerQuoteComposer({
   const queryClient = useQueryClient();
   const router = useRouter();
   const editingQuoteId = mode === "edit" ? quoteId : null;
+  const [, setQuoteCustomerParams] = useQueryStates({
+    selectedCustomerId: parseAsInteger,
+  });
   const [customerSelectorOpen, setCustomerSelectorOpen] = useState(false);
+  const [showMargin, setShowMargin] = useState(false);
   const [selectedCustomerOverride, setSelectedCustomerOverride] =
     useState<DealerSalesFormCustomer | null>(null);
   const customersQuery = useQuery(trpc.dealerPortal.customers.queryOptions());
   const profilesQuery = useQuery(
     trpc.dealerPortal.salesProfiles.queryOptions(),
+  );
+  const primaryProfileQuery = useQuery(
+    trpc.dealerPortal.primarySalesProfile.queryOptions(),
   );
   const taxProfilesQuery = useQuery(
     trpc.dealerPortal.taxProfiles.queryOptions(),
@@ -74,9 +123,20 @@ export function DealerQuoteComposer({
   const saveQuote = useMutation(
     trpc.dealerPortal.saveQuote.mutationOptions({
       onSuccess: async (result) => {
-        await queryClient.invalidateQueries({
-          queryKey: trpc.dealerPortal.salesDocuments.pathKey(),
-        });
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: trpc.dealerPortal.salesDocuments.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.dealerPortal.quotes.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.dealerPortal.customersList.pathKey(),
+          }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.dealerPortal.dashboard.pathKey(),
+          }),
+        ]);
         toast({
           title: `Quote ${result.orderId} saved.`,
           variant: "success",
@@ -102,6 +162,8 @@ export function DealerQuoteComposer({
 
   const customers = (customersQuery.data ?? []) as DealerSalesFormCustomer[];
   const profiles = (profilesQuery.data ?? []) as DealerSalesFormProfile[];
+  const primaryProfile =
+    (primaryProfileQuery.data as DealerSalesFormProfile | null) || null;
   const taxOptions = useMemo(
     () => normalizeSalesFormTaxOptions(taxProfilesQuery.data || []),
     [taxProfilesQuery.data],
@@ -115,29 +177,22 @@ export function DealerQuoteComposer({
     null;
   const record = form.record;
   const customerId = record?.form.customerId || null;
-  const customerProfileId = record?.form.customerProfileId || null;
   const selectedCustomer =
     customers.find((customer) => customer.id === customerId) ||
     (selectedCustomerOverride?.id === customerId
       ? selectedCustomerOverride
       : null);
-  const selectedProfile =
-    profiles.find((profile) => profile.id === customerProfileId) ||
-    profiles.find(
-      (profile) => profile.id === selectedCustomer?.customerTypeId,
-    ) ||
-    null;
+  const selectedProfile = primaryProfile;
 
   useEffect(() => {
     if (!record?.form.customerId || record.form.customerProfileId) return;
-    const defaultProfileId = selectedCustomer?.customerTypeId;
-    if (!defaultProfileId) return;
-    form.setCustomer(record.form.customerId, defaultProfileId);
+    if (!selectedProfile?.id) return;
+    form.setCustomer(record.form.customerId, selectedProfile.id);
   }, [
     form.setCustomer,
     record?.form.customerId,
     record?.form.customerProfileId,
-    selectedCustomer?.customerTypeId,
+    selectedProfile?.id,
   ]);
 
   const salesFormData = useDealerSalesFormData({
@@ -183,6 +238,26 @@ export function DealerQuoteComposer({
       ),
     [pricing.lines],
   );
+  const margin = useMemo(() => {
+    const internalSubtotal = Number(pricing.internalPricing.subTotal || 0);
+    const dealerSubtotal = Number(pricing.dealerPricing.subTotal || 0);
+    const grossProfit = dealerSubtotal - internalSubtotal;
+    return {
+      internalSubtotal,
+      dealerSubtotal,
+      grossProfit,
+      marginPercent: dealerSubtotal ? (grossProfit / dealerSubtotal) * 100 : 0,
+      dealerCoefficient: Number(pricing.profiles.dealer.coefficient || 1),
+    };
+  }, [pricing]);
+  const itemOptions = useMemo(
+    () =>
+      (record?.lineItems || []).map((line, index) => ({
+        uid: line.uid,
+        label: lineItemPickerLabel(line, index),
+      })),
+    [record?.lineItems],
+  );
   const isEditQuoteLoading =
     Boolean(editingQuoteId) &&
     (quoteQuery.isPending ||
@@ -192,6 +267,7 @@ export function DealerQuoteComposer({
   const isInitialLoading =
     customersQuery.isPending ||
     profilesQuery.isPending ||
+    primaryProfileQuery.isPending ||
     taxProfilesQuery.isPending ||
     internalProfileQuery.isPending ||
     isEditQuoteLoading;
@@ -209,11 +285,20 @@ export function DealerQuoteComposer({
       });
       return;
     }
+    if (!selectedProfile?.id) {
+      toast({
+        title: "Assign the dealer customer profile first.",
+        description:
+          "This dealer needs a primary customer profile before quotes can be saved.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const payload = composeDealerSalesFormQuoteSaveInput({
       record,
       id: editingQuoteId,
-      customerProfileId,
+      customerProfileId: selectedProfile.id,
       lineTotalsByUid: dealerLineTotalsByUid,
     });
     if (!payload) return;
@@ -233,6 +318,7 @@ export function DealerQuoteComposer({
       grandTotal={pricing.dealerPricing.grandTotal}
       isSaved={Boolean(editingQuoteId)}
       isSaving={saveQuote.isPending || quoteQuery.isFetching}
+      mobileSummaryOpen={form.state.editor.showMobileSummary}
       mobileSaveLabel={editingQuoteId ? "Update quote" : "Save quote"}
       surface="fixed"
       showMobileFooter
@@ -240,6 +326,8 @@ export function DealerQuoteComposer({
       permissions={permissions}
       onSaveDraft={save}
       onSaveFinal={save}
+      onOpenSummary={() => form.setEditor({ showMobileSummary: true })}
+      onCloseSummary={() => form.setEditor({ showMobileSummary: false })}
       slots={{
         MainPanel: (
           <DealerQuoteMainPanel
@@ -253,19 +341,25 @@ export function DealerQuoteComposer({
         SummaryPanel: (
           <DealerQuoteSummaryPanel
             customer={selectedCustomer}
-            profiles={profiles}
-            customerProfileId={customerProfileId}
+            profiles={selectedProfile ? [selectedProfile] : profiles}
+            customerProfileId={selectedProfile?.id ?? null}
             deliveryOption={record.form.deliveryOption}
             goodUntil={record.form.goodUntil}
             grandTotal={pricing.dealerPricing.grandTotal}
+            internalSubTotal={margin.internalSubtotal}
+            dealerSubTotal={margin.dealerSubtotal}
+            grossProfit={margin.grossProfit}
+            marginPercent={margin.marginPercent}
+            dealerCoefficient={margin.dealerCoefficient}
             paymentTerm={record.form.paymentTerm}
             po={record.form.po}
+            showMargin={showMargin}
             taxCode={selectedTaxCode}
             taxOptions={taxSelectOptions}
             isEditing={Boolean(editingQuoteId)}
             isFetching={quoteQuery.isFetching}
             isSaving={saveQuote.isPending}
-            canSave={Boolean(customerId)}
+            canSave={Boolean(customerId && selectedProfile?.id)}
             onChangeCustomer={() => setCustomerSelectorOpen(true)}
             onDeliveryOptionChange={(deliveryOption) =>
               form.setMeta({ deliveryOption })
@@ -277,7 +371,8 @@ export function DealerQuoteComposer({
             }
             onPaymentTermChange={(paymentTerm) => form.setMeta({ paymentTerm })}
             onPoChange={(po) => form.setMeta({ po })}
-            onProfileChange={form.setCustomerProfile}
+            onProfileChange={() => undefined}
+            onShowMarginChange={setShowMargin}
             onTaxCodeChange={(taxCode) => {
               form.setMeta({ taxCode });
               form.setTaxRate(
@@ -297,8 +392,23 @@ export function DealerQuoteComposer({
             onOpenChange={setCustomerSelectorOpen}
             onSelectCustomer={(customer) => {
               setSelectedCustomerOverride(customer);
-              form.setCustomer(customer.id, customer.customerTypeId || null);
+              form.setCustomer(customer.id, selectedProfile?.id || null);
+              if (!editingQuoteId) {
+                void setQuoteCustomerParams({
+                  selectedCustomerId: customer.id,
+                });
+              }
             }}
+          />
+        ),
+        FloatingActions: (
+          <SalesFormFloatingActions
+            isSaved={Boolean(editingQuoteId)}
+            isSaving={saveQuote.isPending || quoteQuery.isFetching}
+            capabilities={capabilities}
+            permissions={permissions}
+            onAddItem={actions.addLineItem}
+            onSaveDraft={save}
           />
         ),
       }}
@@ -327,13 +437,26 @@ export function DealerQuoteComposer({
         ) : null}
       </div>
       <SalesFormHeaderActions
-        dirty
+        orderId={record.orderId}
+        dirty={form.state.dirty}
         isSaved={Boolean(editingQuoteId)}
         isSaving={saveQuote.isPending || quoteQuery.isFetching}
+        lastSavedAt={form.state.lastSavedAt}
+        statusMessage={form.state.lastSaveError}
+        activeItem={
+          form.state.editor.activeItem || record.lineItems[0]?.uid || null
+        }
+        itemOptions={itemOptions}
         onAddItem={actions.addLineItem}
+        onActiveItemChange={(value) => form.setEditor({ activeItem: value })}
+        onOpenMobileSummary={() =>
+          form.setEditor({
+            showMobileSummary: !form.state.editor.showMobileSummary,
+          })
+        }
         onSaveDraft={save}
         onSaveFinal={save}
-        saveStatus={saveQuote.isPending ? "saving" : "idle"}
+        saveStatus={saveQuote.isPending ? "saving" : form.state.saveStatus}
         capabilities={capabilities}
         permissions={permissions}
         type="quote"

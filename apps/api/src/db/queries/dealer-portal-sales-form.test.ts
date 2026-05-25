@@ -6,309 +6,332 @@ import { saveDealerPortalQuote } from "./dealer-portal-sales-form";
 type Row = Record<string, unknown>;
 type Selection = Record<string, unknown>;
 type QueryArgs = {
-	where?: Row;
-	select?: Selection;
+  where?: Row;
+  select?: Selection;
 };
 type WriteArgs = QueryArgs & {
-	data: Row;
+  data: Row;
 };
 type CreateManyArgs = {
-	data: SalesOrderItemRow[];
+  data: SalesOrderItemRow[];
 };
 type DealerOrderRow = Row & {
-	id: number;
-	orderId: string;
-	slug: string;
-	type: string;
-	dealerAuthId: number | null;
-	deletedAt: Date | null;
+  id: number;
+  orderId: string;
+  slug: string;
+  type: string;
+  dealerAuthId: number | null;
+  deletedAt: Date | null;
 };
 type SalesOrderItemRow = Row & {
-	salesOrderId: number;
+  salesOrderId: number;
 };
 
 function pickSelected(row: Row | null, select?: Selection) {
-	if (!row || !select) return row;
-	return Object.fromEntries(
-		Object.keys(select)
-			.filter((key) => select[key])
-			.map((key) => [key, row[key]]),
-	);
+  if (!row || !select) return row;
+  return Object.fromEntries(
+    Object.keys(select)
+      .filter((key) => select[key])
+      .map((key) => [key, row[key]]),
+  );
 }
 
 function dealerQuoteInput(
-	overrides: Record<string, unknown> = {},
+  overrides: Record<string, unknown> = {},
 ): DealerPortalSaveQuoteSchema {
-	return {
-		customerId: 20,
-		customerProfileId: 30,
-		taxRate: 0,
-		lineItems: [
-			{
-				uid: "line-1",
-				title: "Door",
-				description: "",
-				qty: 1,
-				unitPrice: 100,
-				lineTotal: 100,
-				meta: {},
-				formSteps: [],
-				shelfItems: [],
-				housePackageTool: null,
-			},
-		],
-		...overrides,
-	} as DealerPortalSaveQuoteSchema;
+  return {
+    customerId: 20,
+    customerProfileId: 30,
+    taxRate: 0,
+    lineItems: [
+      {
+        uid: "line-1",
+        title: "Door",
+        description: "",
+        qty: 1,
+        unitPrice: 100,
+        lineTotal: 100,
+        meta: {},
+        formSteps: [],
+        shelfItems: [],
+        housePackageTool: null,
+      },
+    ],
+    ...overrides,
+  } as DealerPortalSaveQuoteSchema;
 }
 
 function createDealerPortalSalesFormContext(
-	options: {
-		existingQuote?: { id: number; orderId: string; slug: string } | null;
-		dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
-		collidingOrderIds?: string[];
-	} = {},
+  options: {
+    existingQuote?: { id: number; orderId: string; slug: string } | null;
+    dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
+    collidingOrderIds?: string[];
+  } = {},
 ) {
-	const state = {
-		orders: [] as DealerOrderRow[],
-		items: [] as SalesOrderItemRow[],
-		nextOrderId: 1,
-		createdOrderData: null as Row | null,
-		updatedOrderData: null as Row | null,
-		sequenceCountWhere: null as Row | null,
-	};
-	const collidingOrderIds = new Set(options.collidingOrderIds || []);
+  const state = {
+    orders: [] as DealerOrderRow[],
+    items: [] as SalesOrderItemRow[],
+    nextOrderId: 1,
+    createdOrderData: null as Row | null,
+    updatedOrderData: null as Row | null,
+    sequenceCountWhere: null as Row | null,
+  };
+  const collidingOrderIds = new Set(options.collidingOrderIds || []);
 
-	for (const [index, document] of (options.dppDocuments || []).entries()) {
-		state.orders.push({
-			id: 100 + index,
-			orderId: document.orderId,
-			slug: `quote-${document.orderId.toLowerCase()}`,
-			type: "quote",
-			dealerAuthId: 10,
-			deletedAt: document.deletedAt ?? null,
-		});
-	}
+  for (const [index, document] of (options.dppDocuments || []).entries()) {
+    state.orders.push({
+      id: 100 + index,
+      orderId: document.orderId,
+      slug: `quote-${document.orderId.toLowerCase()}`,
+      type: "quote",
+      dealerAuthId: 10,
+      deletedAt: document.deletedAt ?? null,
+    });
+  }
 
-	if (options.existingQuote) {
-		state.orders.push({
-			...options.existingQuote,
-			type: "quote",
-			dealerAuthId: 10,
-			deletedAt: null,
-		});
-		state.nextOrderId = Math.max(
-			state.nextOrderId,
-			options.existingQuote.id + 1,
-		);
-	}
+  if (options.existingQuote) {
+    state.orders.push({
+      ...options.existingQuote,
+      type: "quote",
+      dealerAuthId: 10,
+      deletedAt: null,
+    });
+    state.nextOrderId = Math.max(
+      state.nextOrderId,
+      options.existingQuote.id + 1,
+    );
+  }
 
-	const customers = [
-		{
-			id: 20,
-			dealerOwnerId: 10,
-			customerTypeId: 30,
-			deletedAt: null,
-		},
-	];
-	const customerTypes = [
-		{
-			id: 30,
-			dealerOwnerId: 10,
-			deletedAt: null,
-			title: "Dealer Standard",
-			salesPercentage: 10,
-		},
-		{
-			id: 1,
-			dealerOwnerId: null,
-			deletedAt: null,
-			defaultProfile: true,
-			title: "Internal Default",
-			coefficient: 1,
-		},
-	];
+  const customers = [
+    {
+      id: 20,
+      dealerOwnerId: 10,
+      customerTypeId: 30,
+      deletedAt: null,
+    },
+  ];
+  const customerTypes = [
+    {
+      id: 30,
+      dealerOwnerId: null,
+      deletedAt: null,
+      title: "Dealer Standard",
+      coefficient: 1.1,
+    },
+    {
+      id: 1,
+      dealerOwnerId: null,
+      deletedAt: null,
+      defaultProfile: true,
+      title: "Internal Default",
+      coefficient: 1,
+    },
+  ];
+  const dealerAuth = [
+    {
+      id: 10,
+      salesRepId: 700,
+      dealer: {
+        customerTypeId: 30,
+        profile: {
+          id: 30,
+          title: "Dealer Standard",
+          coefficient: 1.1,
+        },
+      },
+    },
+  ];
 
-	const tx = {
-		customers: {
-			findFirst: async ({ where, select }: QueryArgs) =>
-				pickSelected(
-					customers.find(
-						(customer) =>
-							customer.id === where?.id &&
-							customer.dealerOwnerId === where?.dealerOwnerId &&
-							customer.deletedAt === where?.deletedAt,
-					) || null,
-					select,
-				),
-		},
-		customerTypes: {
-			findFirst: async ({ where, select }: QueryArgs) =>
-				pickSelected(
-					customerTypes.find((profile) => {
-						if (where?.id != null && profile.id !== where.id) return false;
-						if (where?.dealerOwnerId !== undefined) {
-							if (profile.dealerOwnerId !== where.dealerOwnerId) return false;
-						}
-						if (where?.deletedAt === null && profile.deletedAt !== null) {
-							return false;
-						}
-						return true;
-					}) || null,
-					select,
-				),
-		},
-		settings: {
-			findFirst: async () => ({
-				meta: {},
-			}),
-		},
-		salesOrders: {
-			count: async ({ where }: QueryArgs) => {
-				const orderIdFilter = where?.orderId;
-				if (typeof orderIdFilter === "string") {
-					return collidingOrderIds.has(orderIdFilter) ||
-						state.orders.some((order) => order.orderId === orderIdFilter)
-						? 1
-						: 0;
-				}
-				if (
-					orderIdFilter &&
-					typeof orderIdFilter === "object" &&
-					"endsWith" in orderIdFilter &&
-					typeof orderIdFilter.endsWith === "string"
-				) {
-					state.sequenceCountWhere = where;
-					return state.orders.filter(
-						(order) =>
-							order.dealerAuthId != null &&
-							order.deletedAt === null &&
-							String(order.orderId || "").endsWith(orderIdFilter.endsWith),
-					).length;
-				}
-				return 0;
-			},
-			findFirst: async ({ where, select }: QueryArgs) =>
-				pickSelected(
-					state.orders.find((order) => {
-						if (where?.id != null && order.id !== where.id) return false;
-						if (
-							where?.dealerAuthId != null &&
-							order.dealerAuthId !== where.dealerAuthId
-						) {
-							return false;
-						}
-						if (where?.deletedAt === null && order.deletedAt !== null)
-							return false;
-						if (where?.type && order.type !== where.type) return false;
-						return true;
-					}) || null,
-					select,
-				),
-			create: async ({ data, select }: WriteArgs) => {
-				state.createdOrderData = data;
-				const row = {
-					id: state.nextOrderId++,
-					deletedAt: null,
-					...data,
-				} as DealerOrderRow;
-				state.orders.push(row);
-				return pickSelected(row, select);
-			},
-			update: async ({ where, data, select }: WriteArgs) => {
-				state.updatedOrderData = data;
-				const row = state.orders.find((order) => order.id === where.id);
-				if (!row) throw new Error("Dealer quote not found in test mock.");
-				Object.assign(row, data);
-				return pickSelected(row, select);
-			},
-		},
-		salesOrderItems: {
-			deleteMany: async ({ where }: QueryArgs) => {
-				state.items = state.items.filter(
-					(item) => item.salesOrderId !== where?.salesOrderId,
-				);
-			},
-			createMany: async ({ data }: CreateManyArgs) => {
-				state.items.push(...data);
-				return { count: data.length };
-			},
-		},
-	};
-	const db = {
-		$transaction: async (callback: (transaction: typeof tx) => unknown) =>
-			callback(tx),
-	};
+  const tx = {
+    dealerAuth: {
+      findUnique: async ({ where, select }: QueryArgs) =>
+        pickSelected(
+          dealerAuth.find((dealer) => dealer.id === where?.id) || null,
+          select,
+        ),
+    },
+    customers: {
+      findFirst: async ({ where, select }: QueryArgs) =>
+        pickSelected(
+          customers.find(
+            (customer) =>
+              customer.id === where?.id &&
+              customer.dealerOwnerId === where?.dealerOwnerId &&
+              customer.deletedAt === where?.deletedAt,
+          ) || null,
+          select,
+        ),
+    },
+    customerTypes: {
+      findFirst: async ({ where, select }: QueryArgs) =>
+        pickSelected(
+          customerTypes.find((profile) => {
+            if (where?.id != null && profile.id !== where.id) return false;
+            if (where?.dealerOwnerId !== undefined) {
+              if (profile.dealerOwnerId !== where.dealerOwnerId) return false;
+            }
+            if (where?.deletedAt === null && profile.deletedAt !== null) {
+              return false;
+            }
+            return true;
+          }) || null,
+          select,
+        ),
+    },
+    settings: {
+      findFirst: async () => ({
+        meta: {},
+      }),
+    },
+    salesOrders: {
+      count: async ({ where }: QueryArgs) => {
+        const orderIdFilter = where?.orderId;
+        if (typeof orderIdFilter === "string") {
+          return collidingOrderIds.has(orderIdFilter) ||
+            state.orders.some((order) => order.orderId === orderIdFilter)
+            ? 1
+            : 0;
+        }
+        if (
+          orderIdFilter &&
+          typeof orderIdFilter === "object" &&
+          "endsWith" in orderIdFilter &&
+          typeof orderIdFilter.endsWith === "string"
+        ) {
+          const suffix = orderIdFilter.endsWith;
+          state.sequenceCountWhere = where;
+          return state.orders.filter(
+            (order) =>
+              order.dealerAuthId != null &&
+              order.deletedAt === null &&
+              String(order.orderId || "").endsWith(suffix),
+          ).length;
+        }
+        return 0;
+      },
+      findFirst: async ({ where, select }: QueryArgs) =>
+        pickSelected(
+          state.orders.find((order) => {
+            if (where?.id != null && order.id !== where.id) return false;
+            if (
+              where?.dealerAuthId != null &&
+              order.dealerAuthId !== where.dealerAuthId
+            ) {
+              return false;
+            }
+            if (where?.deletedAt === null && order.deletedAt !== null)
+              return false;
+            if (where?.type && order.type !== where.type) return false;
+            return true;
+          }) || null,
+          select,
+        ),
+      create: async ({ data, select }: WriteArgs) => {
+        state.createdOrderData = data;
+        const row = {
+          id: state.nextOrderId++,
+          deletedAt: null,
+          ...data,
+        } as DealerOrderRow;
+        state.orders.push(row);
+        return pickSelected(row, select);
+      },
+      update: async ({ where, data, select }: WriteArgs) => {
+        state.updatedOrderData = data;
+        const row = state.orders.find((order) => order.id === where?.id);
+        if (!row) throw new Error("Dealer quote not found in test mock.");
+        Object.assign(row, data);
+        return pickSelected(row, select);
+      },
+    },
+    salesOrderItems: {
+      deleteMany: async ({ where }: QueryArgs) => {
+        state.items = state.items.filter(
+          (item) => item.salesOrderId !== where?.salesOrderId,
+        );
+      },
+      createMany: async ({ data }: CreateManyArgs) => {
+        state.items.push(...data);
+        return { count: data.length };
+      },
+    },
+  };
+  const db = {
+    $transaction: async (callback: (transaction: typeof tx) => unknown) =>
+      callback(tx),
+  };
 
-	return {
-		ctx: { db } as unknown as TRPCContext,
-		state,
-	};
+  return {
+    ctx: { db } as unknown as TRPCContext,
+    state,
+  };
 }
 
 describe("dealer portal sales form DPP identities", () => {
-	it("assigns DPP ids and ignores client-supplied internal order ids", async () => {
-		const { ctx, state } = createDealerPortalSalesFormContext();
+  it("assigns DPP ids and ignores client-supplied internal order ids", async () => {
+    const { ctx, state } = createDealerPortalSalesFormContext();
 
-		const saved = await saveDealerPortalQuote(
-			ctx,
-			10,
-			dealerQuoteInput({ orderId: "00000AL" }),
-		);
+    const saved = await saveDealerPortalQuote(
+      ctx,
+      10,
+      dealerQuoteInput({ orderId: "00000AL" }),
+    );
 
-		expect(saved.orderId).toBe("00001DPP");
-		expect(saved.slug).toBe("quote-00001dpp");
-		expect(saved.orderId).not.toBe("00000AL");
-		expect(state.createdOrderData).toMatchObject({
-			orderId: "00001DPP",
-			slug: "quote-00001dpp",
-			type: "quote",
-			dealerAuthId: 10,
-		});
-		expect(state.sequenceCountWhere).toMatchObject({
-			dealerAuthId: {
-				not: null,
-			},
-			deletedAt: null,
-			orderId: {
-				endsWith: "DPP",
-			},
-		});
-	});
+    expect(saved.orderId).toBe("00001DPP");
+    expect(saved.slug).toBe("quote-00001dpp");
+    expect(saved.orderId).not.toBe("00000AL");
+    expect(state.createdOrderData).toMatchObject({
+      orderId: "00001DPP",
+      slug: "quote-00001dpp",
+      type: "quote",
+      dealerAuthId: 10,
+      salesRepId: 700,
+    });
+    expect(state.sequenceCountWhere).toMatchObject({
+      dealerAuthId: {
+        not: null,
+      },
+      deletedAt: null,
+      orderId: {
+        endsWith: "DPP",
+      },
+    });
+  });
 
-	it("uses the next DPP serial and skips collisions", async () => {
-		const { ctx } = createDealerPortalSalesFormContext({
-			dppDocuments: [{ orderId: "00001DPP", deletedAt: null }],
-			collidingOrderIds: ["00002DPP"],
-		});
+  it("uses the next DPP serial and skips collisions", async () => {
+    const { ctx } = createDealerPortalSalesFormContext({
+      dppDocuments: [{ orderId: "00001DPP", deletedAt: null }],
+      collidingOrderIds: ["00002DPP"],
+    });
 
-		const saved = await saveDealerPortalQuote(ctx, 10, dealerQuoteInput());
+    const saved = await saveDealerPortalQuote(ctx, 10, dealerQuoteInput());
 
-		expect(saved.orderId).toBe("00003DPP");
-		expect(saved.slug).toBe("quote-00003dpp");
-	});
+    expect(saved.orderId).toBe("00003DPP");
+    expect(saved.slug).toBe("quote-00003dpp");
+  });
 
-	it("preserves an existing dealer quote order id on edit", async () => {
-		const { ctx, state } = createDealerPortalSalesFormContext({
-			existingQuote: {
-				id: 55,
-				orderId: "00007DPP",
-				slug: "quote-00007dpp",
-			},
-		});
+  it("preserves an existing dealer quote order id on edit", async () => {
+    const { ctx, state } = createDealerPortalSalesFormContext({
+      existingQuote: {
+        id: 55,
+        orderId: "00007DPP",
+        slug: "quote-00007dpp",
+      },
+    });
 
-		const saved = await saveDealerPortalQuote(
-			ctx,
-			10,
-			dealerQuoteInput({ id: 55, orderId: "00000AL" }),
-		);
+    const saved = await saveDealerPortalQuote(
+      ctx,
+      10,
+      dealerQuoteInput({ id: 55, orderId: "00000AL" }),
+    );
 
-		expect(saved.orderId).toBe("00007DPP");
-		expect(saved.slug).toBe("quote-00007dpp");
-		expect(state.sequenceCountWhere).toBeNull();
-		expect(state.updatedOrderData).toMatchObject({
-			orderId: "00007DPP",
-			slug: "quote-00007dpp",
-			type: "quote",
-		});
-	});
+    expect(saved.orderId).toBe("00007DPP");
+    expect(saved.slug).toBe("quote-00007dpp");
+    expect(state.sequenceCountWhere).toBeNull();
+    expect(state.updatedOrderData).toMatchObject({
+      orderId: "00007DPP",
+      slug: "quote-00007dpp",
+      type: "quote",
+    });
+  });
 });

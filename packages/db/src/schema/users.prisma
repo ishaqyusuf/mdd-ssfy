@@ -51,6 +51,7 @@ model Users {
     pageView                    PageView[]
     notes                       Progress[]
     approvedDealerStatusHistory DealerStatusHistory[]
+    assignedDealers             DealerAuth[]                     @relation(name: "dealerSalesRep")
     mailEvents                  MailEventTrigger[]
     sessions                    Session[]
     approvedRequests            DealerSalesRequest[]

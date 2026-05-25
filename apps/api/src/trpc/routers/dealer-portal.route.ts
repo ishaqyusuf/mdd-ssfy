@@ -3,6 +3,7 @@ import {
   dealerPortalCustomersListSchema,
   dealerPortalCustomerLookupSchema,
   dealerPortalCustomerSchema,
+  dealerPortalRequestQuoteOrderSchema,
   dealerPortalSaveQuoteSchema,
   dealerPortalSalesDocumentSchema,
   dealerPortalSalesDocumentsSchema,
@@ -17,14 +18,17 @@ import { getDealershipQuotesFilter } from "@api/filters/dealership-quotes-filter
 import {
   getDealerPortalCustomers,
   getDealerPortalCustomer,
+  getDealerPortalCustomerOverview,
   getDealerPortalCustomersList,
   getDealerPortalDashboard,
   getDealerPortalSalesDocuments,
   getDealerPortalSalesDocument,
   getDealerPortalSalesList,
   getDealerPortalSalesProfiles,
+  getDealerPortalPrimarySalesProfile,
   getDealerPortalInternalSalesProfile,
   getDealerPortalSettings,
+  requestDealerPortalQuoteOrder,
   convertDealerPortalQuoteToOrder,
   saveDealerPortalCustomer,
   saveDealerPortalSalesProfile,
@@ -54,6 +58,8 @@ import {
   resolveDealerWorkflowStepUid,
   type DealerWorkflowVisibility,
 } from "@api/utils/dealer-workflow-visibility";
+import { NotificationService } from "@gnd/notifications/services/triggers";
+import { tasks } from "@trigger.dev/sdk/v3";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
 const dealerWorkflowStepComponentsSchema = z.object({
@@ -76,6 +82,11 @@ export const dealerPortalRouter = createTRPCRouter({
     .query(({ ctx, input }) => {
       return getDealerPortalCustomer(ctx.db, ctx.dealer.id, input.id);
     }),
+  customerOverview: dealerProtectedProcedure
+    .input(dealerPortalCustomerLookupSchema)
+    .query(({ ctx, input }) => {
+      return getDealerPortalCustomerOverview(ctx.db, ctx.dealer.id, input.id);
+    }),
   customersList: dealerProtectedProcedure
     .input(dealerPortalCustomersListSchema)
     .query(({ ctx, input }) => {
@@ -91,6 +102,9 @@ export const dealerPortalRouter = createTRPCRouter({
     }),
   salesProfiles: dealerProtectedProcedure.query(({ ctx }) => {
     return getDealerPortalSalesProfiles(ctx.db, ctx.dealer.id);
+  }),
+  primarySalesProfile: dealerProtectedProcedure.query(({ ctx }) => {
+    return getDealerPortalPrimarySalesProfile(ctx.db, ctx.dealer.id);
   }),
   taxProfiles: dealerProtectedProcedure.query(({ ctx }) => {
     return ctx.db.taxes.findMany({
@@ -191,6 +205,27 @@ export const dealerPortalRouter = createTRPCRouter({
     .input(dealerPortalConvertQuoteSchema)
     .mutation(({ ctx, input }) => {
       return convertDealerPortalQuoteToOrder(ctx.db, ctx.dealer.id, input.id);
+    }),
+  requestQuoteOrder: dealerProtectedProcedure
+    .input(dealerPortalRequestQuoteOrderSchema)
+    .mutation(async ({ ctx, input }) => {
+      const result = await requestDealerPortalQuoteOrder(
+        ctx.db,
+        ctx.dealer.id,
+        input.id,
+      );
+      if (result.salesRepId && !result.alreadyPending) {
+        const notificationService = new NotificationService(tasks, ctx);
+        notificationService.setEmployeeRecipients(result.salesRepId);
+        await notificationService.send("dealer_sales_request", {
+          author: {
+            id: result.salesRepId,
+            role: "employee",
+          },
+          payload: result.notification,
+        });
+      }
+      return result;
     }),
   settings: dealerProtectedProcedure.query(({ ctx }) => {
     return getDealerPortalSettings(ctx.db, ctx.dealer.id);

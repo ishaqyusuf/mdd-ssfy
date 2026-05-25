@@ -12,6 +12,8 @@ import ComposedSalesDocumentEmail from "@gnd/email/emails/composed-sales-documen
 import DealerMagicLoginLinkEmail from "@gnd/email/emails/dealer-magic-login-link";
 import DealerOnboardingEmail from "@gnd/email/emails/dealer-onboarding";
 import DealerPasswordResetEmail from "@gnd/email/emails/dealer-password-reset";
+import DealerSalesRequestApprovedEmail from "@gnd/email/emails/dealer-sales-request-approved";
+import DealerSalesRequestRejectedEmail from "@gnd/email/emails/dealer-sales-request-rejected";
 import LoginEmail from "@gnd/email/emails/login-link-email";
 import { SalesCustomerPaymentFailedEmail } from "@gnd/email/emails/sales-customer-payment-failed";
 import { SalesCustomerPaymentReceivedEmail } from "@gnd/email/emails/sales-customer-payment-received";
@@ -255,6 +257,8 @@ export class EmailService {
 			"sales-reminder-schedule-admin-notification":
 				SalesReminderScheduleAdminNotificationEmail,
 			"dealer-onboarding": DealerOnboardingEmail,
+			"dealer-sales-request-approved": DealerSalesRequestApprovedEmail,
+			"dealer-sales-request-rejected": DealerSalesRequestRejectedEmail,
 			"auth-new-device-login": AuthNewDeviceLoginEmail,
 			"dealer-magic-login-link": DealerMagicLoginLinkEmail,
 			"dealer-password-reset": DealerPasswordResetEmail,

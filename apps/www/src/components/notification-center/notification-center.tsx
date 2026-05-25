@@ -53,6 +53,10 @@ export function NotificationCenter() {
 			context.close();
 			legacySalesOverview.open2(String(data.orderNo), "sales");
 		},
+		dealer_sales_request: (data, _notification, context) => {
+			context.close();
+			router.push(`/sales-rep?tab=requests&requestId=${data.requestId}`);
+		},
 		sales_checkout_success: (data, _notification, context) => {
 			const firstOrderNo = data.orderNos[0];
 			if (!firstOrderNo) return;
@@ -177,7 +181,7 @@ export function NotificationCenter() {
 					{hasUnseenNotifications && (
 						<div className="w-1.5 h-1.5 bg-destructive rounded-full absolute top-0 right-0" />
 					)}
-					<Icons.Notifications />
+					<Icons.Bell />
 				</Button>
 			</Popover.Trigger>
 			<Popover.Content

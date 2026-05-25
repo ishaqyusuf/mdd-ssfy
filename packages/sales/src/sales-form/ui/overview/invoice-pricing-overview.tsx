@@ -34,6 +34,7 @@ export type SalesFormPricingOverviewProps = {
 	showTaxGroup?: boolean;
 	showLaborCost?: boolean;
 	showAddOnCost?: boolean;
+	showGrandTotal?: boolean;
 	onPaymentMethodChange?: (value: string) => void;
 	onTaxCodeChange?: (value: string) => void;
 	onLaborCostChange?: (value: number) => void;
@@ -45,6 +46,7 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 	const showTaxGroup = props.showTaxGroup ?? true;
 	const showLaborCost = props.showLaborCost ?? true;
 	const showAddOnCost = props.showAddOnCost ?? true;
+	const showGrandTotal = props.showGrandTotal ?? true;
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -95,7 +97,10 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 							Tax Group
 						</span>
 						<div className="max-w-[190px] flex-1">
-							<Select value={props.taxCode} onValueChange={props.onTaxCodeChange}>
+							<Select
+								value={props.taxCode}
+								onValueChange={props.onTaxCodeChange}
+							>
 								<SelectTrigger className="h-9 rounded-lg bg-muted text-xs font-bold">
 									<SelectValue placeholder="Select Tax Group" />
 								</SelectTrigger>
@@ -181,19 +186,21 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 					</div>
 				) : null}
 
-				<div className="mt-2 flex items-center justify-between gap-4 rounded-lg border border-primary/10 bg-primary/5 p-4">
-					<div className="flex flex-col">
-						<span className="text-xs font-bold uppercase tracking-tighter text-primary">
-							Grand Total Due
-						</span>
-						<span className="text-[10px] text-primary/60">
-							Includes all taxes & labor
+				{showGrandTotal ? (
+					<div className="mt-2 flex items-center justify-between gap-4 rounded-lg border border-primary/10 bg-primary/5 p-4">
+						<div className="flex flex-col">
+							<span className="text-xs font-bold uppercase tracking-tighter text-primary">
+								Grand Total Due
+							</span>
+							<span className="text-[10px] text-primary/60">
+								Includes all taxes & labor
+							</span>
+						</div>
+						<span className="text-2xl font-black text-primary">
+							{formatSalesFormCurrency(props.grandTotal)}
 						</span>
 					</div>
-					<span className="text-2xl font-black text-primary">
-						{formatSalesFormCurrency(props.grandTotal)}
-					</span>
-				</div>
+				) : null}
 			</div>
 		</div>
 	);

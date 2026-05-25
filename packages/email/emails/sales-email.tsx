@@ -24,6 +24,7 @@ interface Props {
 	note?: string;
 	acceptQuoteLink?: string | null;
 	paymentLink?: string;
+	pdfLink?: string | null;
 	hasPdfAttachment?: boolean;
 	sales: {
 		orderId: string;
@@ -55,6 +56,7 @@ const SalesEmail = ({
 	note,
 	acceptQuoteLink = null,
 	paymentLink, // = "https://payment.com",
+	pdfLink = null,
 	hasPdfAttachment = false,
 }: Props) => {
 	const props = {
@@ -64,6 +66,7 @@ const SalesEmail = ({
 		note,
 		acceptQuoteLink,
 		paymentLink,
+		pdfLink,
 		hasPdfAttachment,
 	};
 	const previewText = `You've received ${
@@ -338,6 +341,14 @@ const SalesEmail = ({
 								</Section>
 							) : null}
 
+							{props.pdfLink ? (
+								<Section className="text-center mt-[12px]">
+									<Button href={props.pdfLink} variant="secondary">
+										Download PDF
+									</Button>
+								</Section>
+							) : null}
+
 							{props.hasPdfAttachment ? (
 								<Text
 									className={`m-0 mt-[14px] text-[14px] leading-[22px] ${themeClasses.text}`}
@@ -369,11 +380,21 @@ const SalesEmail = ({
 									className={`m-0 mt-[8px] text-[15px] leading-[24px] ${themeClasses.text}`}
 									style={{ color: lightStyles.text.color }}
 								>
-									{props.hasPdfAttachment
-										? "The invoice PDF is attached to this email for your reference."
-										: "Use the secure payment button when you are ready."}
+									{props.pdfLink
+										? "Download the invoice PDF or use the secure payment button when you are ready."
+										: props.hasPdfAttachment
+											? "The invoice PDF is attached to this email for your reference."
+											: "Use the secure payment button when you are ready."}
 								</Text>
 							</Section>
+
+							{props.pdfLink ? (
+								<Section className="text-center mt-[16px]">
+									<Button href={props.pdfLink} variant="secondary">
+										Download PDF
+									</Button>
+								</Section>
+							) : null}
 
 							{props.paymentLink ? (
 								<>

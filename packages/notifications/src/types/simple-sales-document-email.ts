@@ -4,6 +4,7 @@ import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
+	type SalesPdfToken,
 	tryTokenize,
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
@@ -193,24 +194,37 @@ async function buildSalesDocumentEmailData(
 						: null;
 				})();
 	const salesIds = sales.map((sale) => sale.id);
-	const pdfAttachment = await (async () => {
-		try {
-			return await buildSalesPdfAttachment(db, {
-				salesIds,
-				mode: input.printType,
-			});
-		} catch (error) {
-			logger.warn(
-				"Failed to build sales PDF attachment; sending simple sales document email without attachment",
-				{
-					error,
-					salesIds,
-					mode: input.printType,
-				},
-			);
-			return null;
-		}
-	})();
+	const pdfToken = tryTokenize({
+		salesIds,
+		expiry,
+		mode: input.printType,
+	} satisfies SalesPdfToken);
+	const pdfLink =
+		pdfToken && appUrl
+			? `${appUrl}/api/download/sales?token=${encodeURIComponent(
+					pdfToken,
+				)}&preview=false`
+			: null;
+	const pdfAttachment = input.skipPdfAttachment
+		? null
+		: await (async () => {
+				try {
+					return await buildSalesPdfAttachment(db, {
+						salesIds,
+						mode: input.printType,
+					});
+				} catch (error) {
+					logger.warn(
+						"Failed to build sales PDF attachment; sending simple sales document email without attachment",
+						{
+							error,
+							salesIds,
+							mode: input.printType,
+						},
+					);
+					return null;
+				}
+			})();
 
 	return {
 		type: input.printType,
@@ -221,7 +235,7 @@ async function buildSalesDocumentEmailData(
 		salesRepEmail: primarySale.salesRepEmail,
 		note: normalizeText(input.note),
 		paymentLink,
-		pdfLink: null,
+		pdfLink,
 		pdfAttachment,
 		acceptQuoteLink,
 		sales: sales.map((sale) => ({
@@ -274,7 +288,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			reminderType: data.type,
 			salesNo: data.sales.map((sale) => sale.orderId),
 			hasPaymentLink: Boolean(data.paymentLink),
-			hasPdfLink: false,
+			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
 		};
 
@@ -304,6 +318,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 				note: data.note || undefined,
 				acceptQuoteLink: data.acceptQuoteLink || undefined,
 				paymentLink: data.paymentLink || undefined,
+				...(data.pdfLink ? { pdfLink: data.pdfLink } : {}),
 				hasPdfAttachment: Boolean(data.pdfAttachment),
 				sales: data.sales.map((sale) => ({
 					...sale,

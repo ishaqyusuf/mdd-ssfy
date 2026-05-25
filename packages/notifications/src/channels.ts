@@ -23,6 +23,7 @@ export const channelNames = [
 	"community_unit_production_batch_updated",
 	"sales_checkout_success",
 	"quote_accepted",
+	"dealer_sales_request",
 	"sales_payment_recorded",
 	"sales_payment_refunded",
 	"sales_customer_payment_received",
@@ -245,6 +246,12 @@ export const channelsConfig: Partial<{
 		name: "Quote Accepted",
 		description: "Send when a customer accepts a sales quote.",
 		priority: 5,
+		category: "Sales",
+	},
+	dealer_sales_request: {
+		name: "Dealer Sales Request",
+		description: "Send when a dealer asks a sales rep to approve a quote as an order.",
+		priority: 4,
 		category: "Sales",
 	},
 	sales_payment_recorded: {

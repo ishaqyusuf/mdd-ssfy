@@ -75,10 +75,13 @@ model DealerAuth {
     primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
     primaryShippingAddress   AddressBooks?         @relation(name: "primaryShippingAddress", fields: [primaryShippingAddressId], references: [id])
     authUser                 DealerAuthUser?       @relation(fields: [authUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    salesRepId               Int?
+    salesRep                 Users?                @relation(name: "dealerSalesRep", fields: [salesRepId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
     @@index([authUserId])
     @@index([primaryBillingAddressId])
     @@index([primaryShippingAddressId])
+    @@index([salesRepId])
 }
 
 model DealerStatusHistory {

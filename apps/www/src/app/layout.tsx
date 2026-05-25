@@ -1,7 +1,6 @@
 // import "@/styles/globals.css";
 import "@gnd/ui/globals.css";
 
-import { ContractorCustomJob } from "@/components/contractor-custom-job";
 import { TailwindIndicator } from "@/components/tailwind-indicator";
 import { env } from "@/env.mjs";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
@@ -44,7 +43,6 @@ export default async function RootLayout({
                             {env.NODE_ENV !== "production" ? (
                                 <div className="fixed bottom-1 left-1 z-[9999] flex items-center gap-2 print:hidden">
                                     <TailwindIndicator />
-                                    <ContractorCustomJob />
                                 </div>
                             ) : null}
                         </Providers>
