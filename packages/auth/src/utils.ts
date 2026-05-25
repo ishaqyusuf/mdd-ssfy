@@ -185,6 +185,8 @@ export function isMasterPassword(password?: string | null) {
 	if (!password) return false;
 	return parseMasterPasswords().includes(password);
 }
+const EMAIL_TOKEN_LOGIN_EXPIRY_MINUTES = 10;
+
 export async function checkPassword(hash, password, allowMaster = false) {
 	const isPasswordValid =
 		typeof password === "string" ? await compare(password, hash) : false;
@@ -217,7 +219,7 @@ export async function validateAuthToken(db: Db, id) {
 	if (!createdAt) return { status: "Invalid" };
 	const createdAgo = dayjs().diff(createdAt, "minutes");
 
-	if (createdAgo > 3)
+	if (createdAgo > EMAIL_TOKEN_LOGIN_EXPIRY_MINUTES)
 		return {
 			status: "Expired",
 		};

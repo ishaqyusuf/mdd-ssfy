@@ -47,6 +47,10 @@ import {
     useState,
 } from "react";
 import { SalesFormDevSwitcher } from "../sales-form-dev-switcher";
+import {
+    type OrderInboundStatus,
+    useInStockStatusPrompt,
+} from "../sales-form/in-stock-status-dialog";
 import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
 import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
@@ -137,7 +141,6 @@ function getErrorMessage(error: unknown, fallback: string) {
     return fallback;
 }
 
-type OrderInboundStatus = "AVAILABLE" | "ORDERED" | "PENDING ORDER";
 const PACKAGE_WORKFLOW_PANEL_STORAGE_KEY =
     "gnd:new-sales-form:package-workflow-panel";
 
@@ -170,16 +173,6 @@ function persistPackageWorkflowPanelPreference(enabled: boolean) {
         PACKAGE_WORKFLOW_PANEL_STORAGE_KEY,
         enabled ? "package" : "legacy",
     );
-}
-
-function promptForInboundStatus(currentStatus?: string | null) {
-    if (currentStatus) return currentStatus as OrderInboundStatus;
-    const allProductInStock = window.confirm("Is all product in stock?");
-    if (allProductInStock) return "AVAILABLE";
-    const productOrdered = window.confirm(
-        "Has the product not in stock been ordered?",
-    );
-    return productOrdered ? "ORDERED" : "PENDING ORDER";
 }
 
 function PackageWorkflowPanelDevToggle({
@@ -713,6 +706,8 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
     const [manualSaveLock, setManualSaveLock] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
+    const { inStockStatusDialog, promptForInboundStatus } =
+        useInStockStatusPrompt();
     const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
     );
@@ -1403,10 +1398,12 @@ export function NewSalesForm(props: Props) {
             if (!validateBeforeSave()) return;
             const previousInboundStatus = record.inventoryStatus;
             const inboundStatus = isOrder
-                ? promptForInboundStatus(previousInboundStatus)
+                ? await promptForInboundStatus(previousInboundStatus)
                 : null;
             markSaving();
-            const resp = await autosave.flush();
+            const resp = await autosave.flush("manual-flush", {
+                force: true,
+            });
             if (!resp) {
                 markError("Unable to save draft.");
                 return;
@@ -1438,7 +1435,7 @@ export function NewSalesForm(props: Props) {
             if (!validateBeforeSave()) return;
             const previousInboundStatus = record.inventoryStatus;
             const inboundStatus = isOrder
-                ? promptForInboundStatus(previousInboundStatus)
+                ? await promptForInboundStatus(previousInboundStatus)
                 : null;
             markSaving();
             const payload = {
@@ -1493,7 +1490,7 @@ export function NewSalesForm(props: Props) {
             if (!validateBeforeSave()) return;
             const previousInboundStatus = record.inventoryStatus;
             const inboundStatus = isOrder
-                ? promptForInboundStatus(previousInboundStatus)
+                ? await promptForInboundStatus(previousInboundStatus)
                 : null;
             if (dirty) {
                 const resp = await autosave.flush("manual-flush");
@@ -1524,7 +1521,7 @@ export function NewSalesForm(props: Props) {
             if (!validateBeforeSave()) return;
             const previousInboundStatus = record.inventoryStatus;
             const inboundStatus = isOrder
-                ? promptForInboundStatus(previousInboundStatus)
+                ? await promptForInboundStatus(previousInboundStatus)
                 : null;
             if (dirty) {
                 const resp = await autosave.flush("manual-flush");
@@ -1701,6 +1698,7 @@ export function NewSalesForm(props: Props) {
                 enabled={usePackageWorkflowPanel}
                 onChange={setUsePackageWorkflowPanel}
             />
+            {inStockStatusDialog}
             {settingsOpen ? (
                 <NewSalesFormSettingsModal
                     open={settingsOpen}

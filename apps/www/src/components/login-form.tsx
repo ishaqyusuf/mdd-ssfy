@@ -9,11 +9,13 @@ import FormInput from "./common/controls/form-input";
 import { SubmitButton } from "./submit-button";
 import { signIn, useSession } from "@/lib/auth/client";
 import { useTransition } from "@/utils/use-safe-transistion";
+import { sendEmailLoginLink } from "@/app-deps/(v1)/_actions/auth";
+import { Icons } from "@gnd/ui/icons";
 
 import Link from "@/components/link";
 import { parseAsString, useQueryStates } from "nuqs";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const loginSchema = z.object({
@@ -43,6 +45,9 @@ export function LoginForm() {
     const token = loginEmail.params.token;
     const { data: session } = useSession();
     const callbackUrl = getLoginCallbackUrl(searchParams);
+    const [isEmailLinkPending, setIsEmailLinkPending] = useState(false);
+    const [emailLinkNotice, setEmailLinkNotice] = useState<string | null>(null);
+    const [emailLinkError, setEmailLinkError] = useState<string | null>(null);
 
     useEffect(() => {
         if (session?.user?.id) {
@@ -72,6 +77,34 @@ export function LoginForm() {
             });
         });
     });
+
+    async function onSendEmailLink() {
+        const hasValidEmail = await form.trigger("email");
+        if (!hasValidEmail) return;
+
+        setEmailLinkNotice(null);
+        setEmailLinkError(null);
+        setIsEmailLinkPending(true);
+
+        try {
+            await sendEmailLoginLink({
+                email: form.getValues("email"),
+                callbackUrl,
+            });
+            setEmailLinkNotice(
+                "If this account is active, a login link is on its way.",
+            );
+        } catch (error) {
+            setEmailLinkError(
+                error instanceof Error
+                    ? error.message
+                    : "Unable to send login link. Please try again.",
+            );
+        } finally {
+            setIsEmailLinkPending(false);
+        }
+    }
+
     return (
         <>
             <Form {...form}>
@@ -121,6 +154,29 @@ export function LoginForm() {
                         >
                             Sign in
                         </SubmitButton>
+                        <button
+                            type="button"
+                            onClick={onSendEmailLink}
+                            disabled={isEmailLinkPending || isPending}
+                            className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                        >
+                            {isEmailLinkPending ? (
+                                <Icons.Loader2 className="size-4 animate-spin" />
+                            ) : (
+                                <Icons.Mail className="size-4" />
+                            )}
+                            Email me a login link
+                        </button>
+                        {emailLinkNotice ? (
+                            <p className="text-sm text-emerald-600">
+                                {emailLinkNotice}
+                            </p>
+                        ) : null}
+                        {emailLinkError ? (
+                            <p className="text-sm text-destructive">
+                                {emailLinkError}
+                            </p>
+                        ) : null}
                     </CardFooter>
                 </form>
             </Form>

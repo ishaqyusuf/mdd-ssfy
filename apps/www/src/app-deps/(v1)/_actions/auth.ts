@@ -5,6 +5,7 @@ import type { ResetPasswordRequestInputs } from "@/components/_v1/forms/reset-pa
 import type { ResetPasswordFormInputs } from "@/components/_v1/forms/reset-password-form-step2";
 import { prisma } from "@/db";
 import va from "@/lib/va";
+import { getActiveWebLegacyUserWhere } from "@gnd/auth/better-auth/www";
 import { hashPassword } from "better-auth/crypto";
 import dayjs from "dayjs";
 
@@ -21,6 +22,22 @@ function getPasswordResetBaseUrl() {
         /\/$/,
         "",
     );
+}
+
+function getSafeCallbackUrl(value?: string | null) {
+    if (!value?.startsWith("/") || value.startsWith("//")) {
+        return "/";
+    }
+
+    return value;
+}
+
+function getLoginLinkUrl(token: string, callbackUrl?: string | null) {
+    const loginUrl = new URL("/login", getPasswordResetBaseUrl());
+    loginUrl.searchParams.set("token", token);
+    loginUrl.searchParams.set("return_to", getSafeCallbackUrl(callbackUrl));
+
+    return loginUrl.toString();
 }
 
 export async function resetPasswordRequest({
@@ -77,6 +94,57 @@ export async function resetPasswordRequest({
     va.track("Password Reset");
     return { ok: true };
 }
+
+export async function sendEmailLoginLink({
+    callbackUrl,
+    email,
+}: {
+    callbackUrl?: string | null;
+    email: string;
+}) {
+    const user = await prisma.users.findFirst({
+        where: getActiveWebLegacyUserWhere(email),
+        select: {
+            email: true,
+            id: true,
+            name: true,
+        },
+    });
+
+    if (!user?.email) {
+        va.track("Email Link Login");
+        return { ok: true };
+    }
+
+    const token = await prisma.emailTokenLogin.create({
+        data: {
+            userId: user.id,
+        },
+        select: {
+            id: true,
+        },
+    });
+
+    try {
+        const emailService = new EmailService(prisma);
+        await emailService.sendTransactional({
+            to: user.email,
+            subject: "Your GND login link",
+            template: "login-link-email",
+            data: {
+                customerName: user.name ?? "there",
+                loginLink: getLoginLinkUrl(token.id, callbackUrl),
+            },
+        });
+    } catch (error) {
+        console.error("Failed to send login link email:", error);
+        throw new Error("Unable to send login link. Please try again.");
+    }
+
+    va.track("Email Link Login");
+    return { ok: true };
+}
+
 export async function resetPassword({
     token,
     confirmPassword,

@@ -23,6 +23,7 @@ import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import { useDealerSalesFormState } from "./adapters/use-sales-form-state";
 import { DealerCustomerSelectorDialog } from "./dealer-customer-selector-dialog";
 import { DealerQuoteMainPanel } from "./dealer-quote-main-panel";
+import { DealerQuoteSkeleton } from "./dealer-quote-skeleton";
 import { DealerQuoteSummaryPanel } from "./dealer-quote-summary-panel";
 import type {
   DealerInternalSalesFormProfile,
@@ -178,6 +179,18 @@ export function DealerQuoteComposer({
       ),
     [pricing.lines],
   );
+  const isEditQuoteLoading =
+    Boolean(editingQuoteId) &&
+    (quoteQuery.isPending ||
+      (quoteQuery.isSuccess &&
+        Boolean(quoteQuery.data) &&
+        record?.id !== editingQuoteId));
+  const isInitialLoading =
+    customersQuery.isPending ||
+    profilesQuery.isPending ||
+    taxProfilesQuery.isPending ||
+    internalProfileQuery.isPending ||
+    isEditQuoteLoading;
 
   function resetComposer() {
     form.reset();
@@ -203,7 +216,7 @@ export function DealerQuoteComposer({
     saveQuote.mutate(payload);
   }
 
-  if (!record) return null;
+  if (isInitialLoading || !record) return <DealerQuoteSkeleton />;
 
   return (
     <SalesFormShell

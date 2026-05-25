@@ -17,7 +17,7 @@ import { Logo } from "../components/logo";
 interface Props {
   customerName: string;
   loginLink: string;
-  revokeLink: string;
+  revokeLink?: string | null;
 }
 
 const LoginEmail = ({ customerName, loginLink, revokeLink }: Props) => {
@@ -65,23 +65,32 @@ const LoginEmail = ({ customerName, loginLink, revokeLink }: Props) => {
             <Button href={loginLink}>Log In Now</Button>
           </Section>
 
-          <Text
-            className="text-[12px] leading-tight text-gray-500"
-            style={{ color: lightStyles.text.color }}
-          >
-            {/* If you didn’t request this email, you can safely ignore it. */}
-            If you did not request this login link, you can{" "}
-            <a
-              href={revokeLink}
-              style={{
-                color: "#d92d20",
-                textDecoration: "underline",
-              }}
+          {revokeLink ? (
+            <Text
+              className="text-[12px] leading-tight text-gray-500"
+              style={{ color: lightStyles.text.color }}
             >
-              destroy this request
-            </a>{" "}
-            and prevent unauthorized access.
-          </Text>
+              If you did not request this login link, you can{" "}
+              <a
+                href={revokeLink}
+                style={{
+                  color: "#d92d20",
+                  textDecoration: "underline",
+                }}
+              >
+                destroy this request
+              </a>{" "}
+              and prevent unauthorized access.
+            </Text>
+          ) : (
+            <Text
+              className="text-[12px] leading-tight text-gray-500"
+              style={{ color: lightStyles.text.color }}
+            >
+              If you did not request this login link, you can safely ignore this
+              email.
+            </Text>
+          )}
         </Container>
       </Body>
     </EmailThemeProvider>

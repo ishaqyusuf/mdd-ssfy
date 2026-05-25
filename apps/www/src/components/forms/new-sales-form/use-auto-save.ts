@@ -40,6 +40,7 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
 
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const inFlightRef = useRef(false);
+    const queuePromiseRef = useRef<Promise<any | null> | null>(null);
     const queuedPayloadRef = useRef<NewSalesFormSaveDraftInput | null>(null);
     const mountedRef = useRef(true);
 
@@ -65,30 +66,43 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
     }, []);
 
     const processQueue = useCallback(async () => {
-        if (inFlightRef.current) return;
-        inFlightRef.current = true;
+        if (queuePromiseRef.current) return queuePromiseRef.current;
 
-        while (mountedRef.current && queuedPayloadRef.current) {
-            const next = queuedPayloadRef.current;
-            queuedPayloadRef.current = null;
-            setQueued(false);
-
-            onSaving?.(next, "debounced-change");
-            setLastAttemptAt(new Date().toISOString());
+        queuePromiseRef.current = (async () => {
+            inFlightRef.current = true;
+            let latestResponse: any | null = null;
 
             try {
-                const response = await saveDraft.mutateAsync({
-                    ...next,
-                    autosave: true,
-                });
-                onSaved?.(response, next);
-            } catch (error) {
-                if (isStaleError(error)) onStale?.(error, next);
-                else onError?.(error, next);
-            }
-        }
+                while (mountedRef.current && queuedPayloadRef.current) {
+                    const next = queuedPayloadRef.current;
+                    queuedPayloadRef.current = null;
+                    setQueued(false);
 
-        inFlightRef.current = false;
+                    onSaving?.(next, "debounced-change");
+                    setLastAttemptAt(new Date().toISOString());
+                    latestResponse = null;
+
+                    try {
+                        const response = await saveDraft.mutateAsync({
+                            ...next,
+                            autosave: true,
+                        });
+                        latestResponse = response;
+                        onSaved?.(response, next);
+                    } catch (error) {
+                        if (isStaleError(error)) onStale?.(error, next);
+                        else onError?.(error, next);
+                    }
+                }
+
+                return latestResponse;
+            } finally {
+                inFlightRef.current = false;
+                queuePromiseRef.current = null;
+            }
+        })();
+
+        return queuePromiseRef.current;
     }, [onError, onSaved, onSaving, onStale, saveDraft]);
 
     const enqueueSave = useCallback(
@@ -123,7 +137,7 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
             if (inFlightRef.current) {
                 queuedPayloadRef.current = next;
                 setQueued(true);
-                return null;
+                return processQueue();
             }
 
             onSaving?.(next, reason);
@@ -148,6 +162,7 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
             onSaving,
             onStale,
             payload,
+            processQueue,
             saveDraft,
         ],
     );

@@ -20,6 +20,7 @@ import {
 import { Env } from "@/components/env";
 import QuickLogin from "@/components/quick-login";
 import { SubmitButton } from "@/components/submit-button";
+import { sendEmailLoginLink } from "@/app-deps/(v1)/_actions/auth";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { Icons } from "@gnd/ui/icons";
@@ -40,6 +41,7 @@ export function LoginV2() {
 	const { data: session } = useSession();
 	const [isPending, startTransition] = useTransition();
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [isEmailLinkSubmitting, setIsEmailLinkSubmitting] = useState(false);
 
 	const callbackUrl =
 		getSafeCallbackUrl(searchParams.get("return_to")) ||
@@ -107,6 +109,28 @@ export function LoginV2() {
 			}
 		});
 	});
+
+	async function onSendEmailLink() {
+		const hasValidEmail = await form.trigger("email");
+		if (!hasValidEmail) return;
+
+		setIsEmailLinkSubmitting(true);
+		try {
+			await sendEmailLoginLink({
+				email: form.getValues("email"),
+				callbackUrl,
+			});
+			toast.success("If this account is active, a login link is on its way.");
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: "Unable to send login link. Please try again.",
+			);
+		} finally {
+			setIsEmailLinkSubmitting(false);
+		}
+	}
 
 	return (
 		<main className="min-h-screen bg-[linear-gradient(180deg,#eef2f7_0%,#f7f9fc_100%)] text-[#0f172a]">
@@ -263,6 +287,22 @@ export function LoginV2() {
 										>
 											Sign in
 										</SubmitButton>
+
+										<button
+											type="button"
+											onClick={onSendEmailLink}
+											disabled={
+												isEmailLinkSubmitting || isSubmitting || isPending
+											}
+											className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{isEmailLinkSubmitting ? (
+												<Icons.Loader2 className="size-4 animate-spin" />
+											) : (
+												<Icons.Mail className="size-4" />
+											)}
+											Email me a login link
+										</button>
 									</form>
 								</Form>
 

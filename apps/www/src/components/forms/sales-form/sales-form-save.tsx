@@ -20,25 +20,13 @@ import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useTRPC } from "@/trpc/client";
 import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { useInStockStatusPrompt } from "./in-stock-status-dialog";
 
 interface Props {
     type?: "button" | "menu";
     and?: "default" | "close" | "new";
     className?: string;
     iconOnly?: boolean;
-}
-
-type OrderInboundStatus = "AVAILABLE" | "ORDERED" | "PENDING ORDER";
-
-function promptForInboundStatus(currentStatus?: string | null) {
-    if (currentStatus) return currentStatus as OrderInboundStatus;
-    const allProductInStock = window.confirm("Is all product in stock?");
-    if (allProductInStock) return "AVAILABLE";
-
-    const productOrdered = window.confirm(
-        "Has the product not in stock been ordered?",
-    );
-    return productOrdered ? "ORDERED" : "PENDING ORDER";
 }
 
 export function SalesFormSave({ type = "button", and, className, iconOnly }: Props) {
@@ -57,6 +45,8 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
     );
     const [isSaving, setIsSaving] = useState(false);
     const saveLockRef = useRef(false);
+    const { inStockStatusDialog, promptForInboundStatus } =
+        useInStockStatusPrompt();
     async function save(action: "new" | "close" | "default" = "default") {
         if (saveLockRef.current || isSaving) return;
         saveLockRef.current = true;
@@ -73,7 +63,7 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
             }
             const inboundStatus =
                 metaData?.type === "order"
-                    ? promptForInboundStatus(metaData?.inventoryStatus)
+                    ? await promptForInboundStatus(metaData?.inventoryStatus)
                     : null;
             const shouldLogInboundStatus =
                 !!inboundStatus && inboundStatus !== metaData?.inventoryStatus;
@@ -192,7 +182,7 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
         });
         zus.init(zhInitializeState(data));
     }
-    return type === "button" ? (
+    const saveControl = type === "button" ? (
         <Button
             icon="save"
             size="sm"
@@ -239,6 +229,13 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
             >
                 Save &
             </Menu.Item>
+        </>
+    );
+
+    return (
+        <>
+            {inStockStatusDialog}
+            {saveControl}
         </>
     );
 }

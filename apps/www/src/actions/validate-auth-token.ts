@@ -1,6 +1,8 @@
 import { prisma } from "@/db";
 import dayjs from "dayjs";
 
+const EMAIL_TOKEN_LOGIN_EXPIRY_MINUTES = 10;
+
 export async function validateAuthToken(id) {
     const token = await prisma.emailTokenLogin.findFirst({
         where: {
@@ -24,7 +26,7 @@ export async function validateAuthToken(id) {
     const createdAt = token.createdAt;
     const createdAgo = dayjs().diff(createdAt, "minutes");
 
-    if (createdAgo > 3)
+    if (createdAgo > EMAIL_TOKEN_LOGIN_EXPIRY_MINUTES)
         return {
             status: "Expired",
         };
@@ -32,4 +34,3 @@ export async function validateAuthToken(id) {
         email: user.email,
     };
 }
-
