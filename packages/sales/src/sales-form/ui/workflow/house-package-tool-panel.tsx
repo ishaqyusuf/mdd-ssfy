@@ -1,7 +1,7 @@
 "use client";
 
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Menu } from "@gnd/ui/custom/menu";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,7 +10,6 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Tooltip,
 	TooltipContent,
@@ -19,14 +18,14 @@ import {
 } from "@gnd/ui/tooltip";
 import type { ReactNode } from "react";
 import { getHptDoorSalesUnitPrice } from "../../domain";
+import { DoorPriceCell, updateDoorRowBasePrice } from "./door-price-cell";
+import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 import type {
 	DoorStoredRow,
 	WorkflowComponentRecord,
 	WorkflowStepRecord,
 } from "./workflow-records";
 import { firstFiniteNumber } from "./workflow-records";
-import { DoorPriceCell, updateDoorRowBasePrice } from "./door-price-cell";
-import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 
 type HousePackageToolPricedStep = Pick<
 	WorkflowStepRecord,
@@ -87,78 +86,36 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 	const componentId = Number(props.activeDoorComponent?.id || 0);
 	const rowsForComponent = props.focusedRows.map(clearUnpricedDoorRowQty);
 	const priceInputClassName = "h-8 w-24 text-right text-xs";
+	const showDoorTabs = props.selectedDoorComponents.length > 1;
 
 	return (
-		<section className="mt-4 overflow-hidden rounded-lg border bg-card">
-			<div className="border-b bg-muted/30 p-4">
-				<div className="flex flex-wrap items-center gap-2">
-					<Badge variant="secondary" className="h-6 rounded-md gap-1.5">
-						<Icons.Package2 className="size-3.5" />
-						House Package Tool
-					</Badge>
-					<Badge variant="outline" className="h-6 rounded-md gap-1.5">
-						<Icons.Hammer className="size-3.5" />
-						{props.supplierName || "GND MILLWORK"}
-					</Badge>
+		<section className="mt-4 space-y-3">
+			{showDoorTabs ? (
+				<div className="flex flex-wrap gap-2">
+					{props.selectedDoorComponents.map((component) => {
+						const selected = component.uid === props.activeDoorUid;
+						return (
+							<button
+								key={`hpt-door-tab-${component.uid}`}
+								type="button"
+								aria-current={selected ? "true" : undefined}
+								aria-label={`Show ${props.componentLabel(component.title || component.uid)} door rows`}
+								className={`max-w-full rounded-md border px-3 py-1 text-[11px] font-semibold uppercase transition-colors ${
+									selected
+										? "border-primary bg-primary/10 text-primary"
+										: "bg-background text-muted-foreground hover:border-primary/70"
+								}`}
+								onClick={() => props.onActiveDoorChange(String(component.uid))}
+							>
+								<span className="block truncate">
+									{props.componentLabel(component.title || component.uid)}
+								</span>
+							</button>
+						);
+					})}
 				</div>
-				{props.selectedDoorComponents.length ? (
-					<div className="mt-3 flex flex-wrap gap-2">
-						{props.selectedDoorComponents.map((component) => {
-							const selected = component.uid === props.activeDoorUid;
-							return (
-								<button
-									key={`hpt-door-tab-${component.uid}`}
-									type="button"
-									aria-current={selected ? "true" : undefined}
-									aria-label={`Show ${props.componentLabel(component.title || component.uid)} door rows`}
-									className={`max-w-full rounded-md border px-3 py-1 text-[11px] font-semibold uppercase transition-colors ${
-										selected
-											? "border-primary bg-primary/10 text-primary"
-											: "bg-background text-muted-foreground hover:border-primary/70"
-									}`}
-									onClick={() =>
-										props.onActiveDoorChange(String(component.uid))
-									}
-								>
-									<span className="block truncate">
-										{props.componentLabel(component.title || component.uid)}
-									</span>
-								</button>
-							);
-						})}
-					</div>
-				) : null}
-				<div className="mt-3 grid gap-2 sm:grid-cols-3">
-					<div className="rounded-md border bg-background px-3 py-2">
-						<p className="text-[10px] font-semibold uppercase text-muted-foreground">
-							Rows
-						</p>
-						<p className="mt-1 flex items-center gap-2 text-sm font-semibold">
-							<Icons.Layers3 className="size-3.5" />
-							{props.summary.rows.length}
-						</p>
-					</div>
-					<div className="rounded-md border bg-background px-3 py-2">
-						<p className="text-[10px] font-semibold uppercase text-muted-foreground">
-							Total Doors
-						</p>
-						<p className="mt-1 flex items-center gap-2 text-sm font-semibold">
-							<Icons.DoorOpen className="size-3.5" />
-							{props.summary.totalDoors}
-						</p>
-					</div>
-					<div className="rounded-md border bg-background px-3 py-2">
-						<p className="text-[10px] font-semibold uppercase text-muted-foreground">
-							Package Total
-						</p>
-						<p className="mt-1 flex items-center gap-2 text-sm font-semibold">
-							<Icons.WalletCards className="size-3.5" />
-							{props.formatMoney(props.summary.totalPrice) || "$0.00"}
-						</p>
-					</div>
-				</div>
-			</div>
-			<div className="flex flex-col gap-3 p-4">
+			) : null}
+			<div className="flex flex-col gap-3">
 				{!props.selectedDoorComponents.length ? (
 					<div className="rounded-lg border border-dashed bg-background p-6 text-center text-sm text-muted-foreground">
 						Select at least one DOOR component first, then continue to HOUSE
@@ -367,14 +324,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	? String(Number(row.lhQty || 0))
 																	: ""
 															}
-														onChange={(event) =>
-															props.onPatchRow(row, {
-																lhQty: Number(event.target.value || 0),
-															})
-														}
-														disabled={isDoorRowPriceMissing(row)}
-														className="h-8 rounded-md border-slate-200 text-right text-xs"
-													/>
+															onChange={(event) =>
+																props.onPatchRow(row, {
+																	lhQty: Number(event.target.value || 0),
+																})
+															}
+															disabled={isDoorRowPriceMissing(row)}
+															className="h-8 rounded-md border-slate-200 text-right text-xs"
+														/>
 													</td>
 													<td className="px-3 py-2">
 														<Input
@@ -384,14 +341,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	? String(Number(row.rhQty || 0))
 																	: ""
 															}
-														onChange={(event) =>
-															props.onPatchRow(row, {
-																rhQty: Number(event.target.value || 0),
-															})
-														}
-														disabled={isDoorRowPriceMissing(row)}
-														className="h-8 rounded-md border-slate-200 text-right text-xs"
-													/>
+															onChange={(event) =>
+																props.onPatchRow(row, {
+																	rhQty: Number(event.target.value || 0),
+																})
+															}
+															disabled={isDoorRowPriceMissing(row)}
+															className="h-8 rounded-md border-slate-200 text-right text-xs"
+														/>
 													</td>
 													<td className="px-3 py-2 text-right text-xs font-semibold text-slate-700">
 														{Number(row.totalQty || 0)}
@@ -517,9 +474,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																	value={row.addon ?? 0}
 																	onChange={(event) =>
 																		props.onPatchRow(row, {
-																			addon: Number(
-																				event.target.value || 0,
-																			),
+																			addon: Number(event.target.value || 0),
 																		})
 																	}
 																	className={priceInputClassName}
@@ -543,9 +498,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																			customPrice:
 																				event.target.value === ""
 																					? null
-																					: Number(
-																							event.target.value || 0,
-																						),
+																					: Number(event.target.value || 0),
 																		})
 																	}
 																	className={priceInputClassName}

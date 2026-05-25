@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   icons: [
     {
       rel: "apple-touch-icon",
-      sizes: "32x32",
+      sizes: "180x180",
       url: `/icons/apple-touch-icon${prod ? ".png" : ".dev.jpg"}`,
     },
     {

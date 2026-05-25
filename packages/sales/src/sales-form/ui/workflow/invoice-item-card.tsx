@@ -149,7 +149,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 										? "border-primary bg-primary/10 text-primary"
 										: props.isRedirectDisabledStep(step)
 											? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
-											: "text-muted-foreground"
+											: "text-muted-foreground hover:bg-muted-foreground hover:text-muted"
 								}`}
 								disabled={props.isRedirectDisabledStep(step)}
 								onClick={(event) => {
