@@ -93,6 +93,33 @@ describe("HPT legacy compatibility", () => {
 		expect(row.lineTotal).toBe(139);
 	});
 
+	it("lets durable legacy fields override stale new-form metadata on hydrate", () => {
+		const row: any = hydrateHptDoorRowFromLegacy(
+			{
+				jambSizePrice: 111,
+				doorPrice: 5,
+				addon: 99,
+				totalQty: 2,
+				unitPrice: 136,
+				lineTotal: 272,
+				meta: {
+					doorSalesUnitPrice: 999,
+					addon: 88,
+				},
+			},
+			{
+				sharedDoorSurcharge: 20,
+			},
+		);
+
+		expect(row.jambSizePrice).toBe(111);
+		expect(row.doorPrice).toBe(5);
+		expect(row.addon).toBe(5);
+		expect(row.unitPrice).toBe(136);
+		expect(row.lineTotal).toBe(272);
+		expect(row.meta.doorSalesUnitPrice).toBe(111);
+	});
+
 	it("normalizes HPT parent totals and average rate", () => {
 		const line: any = normalizeHptLineForLegacy({
 			uid: "line-1",

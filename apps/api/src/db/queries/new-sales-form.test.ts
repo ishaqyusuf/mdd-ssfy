@@ -930,6 +930,286 @@ describe("new-sales-form relational parity", () => {
 		expect(loaded.lineItems[0]?.lineTotal).toBe(272);
 	});
 
+	it("updates existing HPT sales item, tool, and door ids on re-save", async () => {
+		const { ctx, state } = createMockContext();
+
+		const first = await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "line-hpt-id-preserve",
+					title: "Door Package",
+					description: "",
+					qty: 1,
+					unitPrice: 0,
+					lineTotal: 0,
+					meta: {},
+					formSteps: [
+						{ stepId: 1, price: 20, step: { id: 1, title: "Specie" } },
+						{ stepId: 2, step: { id: 2, title: "Door" } },
+						{ stepId: 3, step: { id: 3, title: "House Package Tool" } },
+					],
+					shelfItems: [],
+					housePackageTool: {
+						id: null,
+						doorType: "Interior",
+						totalPrice: 0,
+						totalDoors: 0,
+						meta: {},
+						doors: [
+							{
+								id: null,
+								dimension: "2-8 x 6-8",
+								lhQty: 1,
+								rhQty: 1,
+								totalQty: 2,
+								addon: 5,
+								meta: {
+									baseUnitPrice: 111,
+								},
+							},
+						],
+					},
+				} as any,
+			],
+		});
+
+		const itemId = state.items[0].id;
+		const hptId = state.hpts[0].id;
+		const doorId = state.doors[0].id;
+
+		await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: first.slug!,
+			salesId: first.salesId!,
+			version: first.version,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: itemId,
+					uid: "line-hpt-id-preserve",
+					title: "Door Package",
+					description: "",
+					qty: 2,
+					unitPrice: 136,
+					lineTotal: 272,
+					meta: {},
+					formSteps: [
+						{ stepId: 1, price: 20, step: { id: 1, title: "Specie" } },
+						{ stepId: 2, step: { id: 2, title: "Door" } },
+						{ stepId: 3, step: { id: 3, title: "House Package Tool" } },
+					],
+					shelfItems: [],
+					housePackageTool: {
+						id: hptId,
+						doorType: "Interior",
+						totalPrice: 272,
+						totalDoors: 2,
+						meta: {},
+						doors: [
+							{
+								id: doorId,
+								dimension: "2-8 x 6-8",
+								lhQty: 2,
+								rhQty: 1,
+								totalQty: 3,
+								addon: 5,
+								meta: {
+									baseUnitPrice: 111,
+								},
+							},
+						],
+					},
+				} as any,
+			],
+		});
+
+		expect(state.items.map((row) => row.id)).toEqual([itemId]);
+		expect(state.hpts.map((row) => row.id)).toEqual([hptId]);
+		expect(state.doors.map((row) => row.id)).toEqual([doorId]);
+		expect(state.items[0]).toMatchObject({
+			id: itemId,
+			deletedAt: null,
+			qty: 3,
+			rate: 136,
+			total: 408,
+		});
+		expect(state.hpts[0]).toMatchObject({
+			id: hptId,
+			deletedAt: null,
+			totalDoors: 3,
+			totalPrice: 408,
+		});
+		expect(state.doors[0]).toMatchObject({
+			id: doorId,
+			deletedAt: null,
+			jambSizePrice: 111,
+			doorPrice: 5,
+			unitPrice: 136,
+			lineTotal: 408,
+			totalQty: 3,
+		});
+	});
+
+	it("hydrates legacy-edited HPT rows over stale new-form metadata", async () => {
+		const { ctx, state } = createMockContext();
+
+		const saved = await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "line-hpt-stale-meta",
+					title: "Door Package",
+					description: "",
+					qty: 1,
+					unitPrice: 0,
+					lineTotal: 0,
+					meta: {},
+					formSteps: [
+						{ stepId: 1, price: 20, step: { id: 1, title: "Specie" } },
+						{ stepId: 2, step: { id: 2, title: "Door" } },
+						{ stepId: 3, step: { id: 3, title: "House Package Tool" } },
+					],
+					shelfItems: [],
+					housePackageTool: {
+						id: null,
+						doorType: "Interior",
+						totalPrice: 0,
+						totalDoors: 0,
+						meta: {},
+						doors: [
+							{
+								id: null,
+								dimension: "2-8 x 6-8",
+								lhQty: 1,
+								rhQty: 1,
+								totalQty: 2,
+								addon: 5,
+								meta: {
+									baseUnitPrice: 111,
+								},
+							},
+						],
+					},
+				} as any,
+			],
+		});
+
+		const staleDoor =
+			state.orders[0].meta.newSalesForm.lineItems[0].housePackageTool.doors[0];
+		Object.assign(staleDoor, {
+			jambSizePrice: 999,
+			doorPrice: 99,
+			addon: 99,
+			unitPrice: 1118,
+			lineTotal: 2236,
+			totalQty: 2,
+			meta: {
+				doorSalesUnitPrice: 999,
+				addon: 99,
+			},
+		});
+		Object.assign(state.items[0], {
+			qty: 3,
+			rate: 136,
+			total: 408,
+		});
+		Object.assign(state.hpts[0], {
+			totalDoors: 3,
+			totalPrice: 408,
+		});
+		Object.assign(state.doors[0], {
+			jambSizePrice: 111,
+			doorPrice: 5,
+			addon: undefined,
+			unitPrice: 136,
+			lineTotal: 408,
+			lhQty: 2,
+			rhQty: 1,
+			totalQty: 3,
+			meta: {},
+		});
+
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: saved.slug!,
+		});
+		const door = loaded.lineItems[0]?.housePackageTool?.doors?.[0];
+
+		expect(loaded.lineItems[0]).toMatchObject({
+			qty: 3,
+			unitPrice: 136,
+			lineTotal: 408,
+		});
+		expect(door).toMatchObject({
+			jambSizePrice: 111,
+			doorPrice: 5,
+			addon: 5,
+			unitPrice: 136,
+			lineTotal: 408,
+			totalQty: 3,
+		});
+		expect(door?.meta).toMatchObject({
+			doorSalesUnitPrice: 111,
+			sharedDoorSurcharge: 20,
+		});
+	});
+
 	it("saves multiple quote drafts independently and hydrates each quote by slug", async () => {
 		const { ctx } = createMockContext();
 

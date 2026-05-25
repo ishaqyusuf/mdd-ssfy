@@ -191,7 +191,23 @@ export function hydrateHptDoorRowFromLegacy<T extends HptDoorRow>(
 	door: T,
 	context?: HptCompatibilityContext,
 ): T & HptDoorRow {
-	return normalizeHptDoorRowForLegacy(door, context);
+	const meta = door?.meta || {};
+	const doorSalesUnitPrice =
+		firstFinite(door?.jambSizePrice, meta?.doorSalesUnitPrice) ?? 0;
+	const addon = firstFinite(door?.doorPrice, door?.addon, meta?.addon) ?? 0;
+	return normalizeHptDoorRowForLegacy(
+		{
+			...door,
+			addon,
+			meta: {
+				...meta,
+				doorSalesUnitPrice,
+				jambSizePrice: doorSalesUnitPrice,
+				addon,
+			},
+		},
+		context,
+	);
 }
 
 export function recalculateHptLineTotals<T extends HptLine>(line: T): T & HptLine {
