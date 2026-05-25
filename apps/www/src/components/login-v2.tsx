@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { signIn, useSession } from "@/lib/auth/client";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 
-import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Form,
@@ -17,13 +16,15 @@ import {
 	FormLabel,
 	FormMessage,
 } from "@gnd/ui/form";
-import { Input } from "@gnd/ui/input";
 
-import { Icons } from "@gnd/ui/icons";
 import { Env } from "@/components/env";
 import QuickLogin from "@/components/quick-login";
+import { SubmitButton } from "@/components/submit-button";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTransition } from "@/utils/use-safe-transistion";
+import { Icons } from "@gnd/ui/icons";
+import { InputGroup } from "@gnd/ui/namespace";
+import { toast } from "sonner";
 
 const loginSchema = z.object({
 	email: z.string().email({ message: "Enter a valid work email address." }),
@@ -38,6 +39,7 @@ export function LoginV2() {
 	const searchParams = useSearchParams();
 	const { data: session } = useSession();
 	const [isPending, startTransition] = useTransition();
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	const callbackUrl =
 		getSafeCallbackUrl(searchParams.get("return_to")) ||
@@ -60,6 +62,13 @@ export function LoginV2() {
 	}, [callbackUrl, router, session]);
 
 	useEffect(() => {
+		const error = searchParams.get("error");
+		if (!error) return;
+
+		toast.error(getLoginErrorMessage(error));
+	}, [searchParams]);
+
+	useEffect(() => {
 		if (!token) return;
 
 		signIn("credentials", {
@@ -70,14 +79,32 @@ export function LoginV2() {
 	}, [callbackUrl, token]);
 
 	const onSubmit = form.handleSubmit((values: LoginFormValues) => {
+		setIsSubmitting(true);
 		startTransition(async () => {
-			await signIn("credentials", {
-				email: values.email,
-				password: values.password,
-				rememberMe: values.rememberMe ? "true" : "false",
-				callbackUrl,
-				redirect: true,
-			});
+			try {
+				const result = await signIn("credentials", {
+					email: values.email,
+					password: values.password,
+					rememberMe: values.rememberMe ? "true" : "false",
+					callbackUrl,
+					redirect: false,
+				});
+
+				if (!result.ok) {
+					toast.error(result.error || "Invalid email or password.");
+					setIsSubmitting(false);
+					return;
+				}
+
+				window.location.assign(result.url || callbackUrl);
+			} catch (error) {
+				setIsSubmitting(false);
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Unable to sign in. Please try again.",
+				);
+			}
 		});
 	});
 
@@ -149,16 +176,18 @@ export function LoginV2() {
 														Email
 													</FormLabel>
 													<FormControl>
-														<div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-															<Icons.Mail className="size-4 text-slate-400" />
-															<Input
+														<InputGroup className="h-12 rounded-2xl bg-slate-50">
+															<InputGroup.Addon align="inline-start">
+																<Icons.Mail className="text-slate-400" />
+															</InputGroup.Addon>
+															<InputGroup.Input
 																{...field}
 																type="email"
 																placeholder="you@gndmillwork.com"
 																autoComplete="email"
-																className="h-auto border-0 bg-transparent p-0 text-base text-slate-950 placeholder:text-slate-400 focus-visible:ring-0"
+																className="text-base text-slate-950 placeholder:text-slate-400"
 															/>
-														</div>
+														</InputGroup>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -209,36 +238,31 @@ export function LoginV2() {
 														</Link>
 													</div>
 													<FormControl>
-														<div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-															<Icons.LockKeyhole className="size-4 text-slate-400" />
-															<Input
+														<InputGroup className="h-12 rounded-2xl bg-slate-50">
+															<InputGroup.Addon align="inline-start">
+																<Icons.LockKeyhole className="text-slate-400" />
+															</InputGroup.Addon>
+															<InputGroup.Input
 																{...field}
 																type="password"
 																placeholder="Enter your password"
 																autoComplete="current-password"
-																className="h-auto border-0 bg-transparent p-0 text-base text-slate-950 placeholder:text-slate-400 focus-visible:ring-0"
+																className="text-base text-slate-950 placeholder:text-slate-400"
 															/>
-														</div>
+														</InputGroup>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
 											)}
 										/>
 
-										<Button
+										<SubmitButton
 											type="submit"
-											disabled={isPending}
+											isSubmitting={isSubmitting || isPending}
 											className="h-12 w-full rounded-2xl bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
 										>
-											{isPending ? (
-												<>
-													<Icons.Loader2 className="size-4 animate-spin" />
-													Signing in
-												</>
-											) : (
-												"Sign in"
-											)}
-										</Button>
+											Sign in
+										</SubmitButton>
 									</form>
 								</Form>
 
@@ -265,4 +289,13 @@ function getSafeCallbackUrl(value: string | null) {
 	}
 
 	return value;
+}
+
+function getLoginErrorMessage(error: string) {
+	const message = error.replace(/\+/g, " ");
+	if (message.toLowerCase() === "login failed") {
+		return "Invalid email or password.";
+	}
+
+	return message || "Unable to sign in. Please try again.";
 }

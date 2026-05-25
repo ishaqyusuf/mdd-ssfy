@@ -48,6 +48,13 @@ export async function updateEmployeeRole(id, roleId) {
             userId: id,
         },
     });
+    await prisma.webAuthSession.deleteMany({
+        where: {
+            user: {
+                legacyUserId: id,
+            },
+        },
+    });
     createSiteActionTicket({
         event: "edited",
         type: "employee-role",

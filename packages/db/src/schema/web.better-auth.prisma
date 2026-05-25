@@ -1,0 +1,60 @@
+model WebAuthUser {
+    id            String           @id
+    legacyUserId  Int              @unique
+    legacyUser    Users            @relation(fields: [legacyUserId], references: [id], onDelete: Cascade)
+    name          String
+    email         String
+    emailVerified Boolean
+    image         String?
+    createdAt     DateTime
+    updatedAt     DateTime
+    sessions      WebAuthSession[]
+    accounts      WebAuthAccount[]
+
+    @@unique([email])
+    @@index([legacyUserId])
+}
+
+model WebAuthSession {
+    id        String      @id
+    expiresAt DateTime
+    token     String
+    createdAt DateTime
+    updatedAt DateTime
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      WebAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([token])
+    @@index([userId])
+}
+
+model WebAuthAccount {
+    id                    String      @id
+    accountId             String
+    providerId            String
+    userId                String
+    user                  WebAuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?     @db.Text
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime
+    updatedAt             DateTime
+
+    @@unique([providerId, accountId])
+    @@index([userId])
+}
+
+model WebAuthVerification {
+    id         String    @id
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime?
+    updatedAt  DateTime?
+}

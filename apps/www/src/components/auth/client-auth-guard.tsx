@@ -2,51 +2,53 @@
 
 import { AUTH_LOGIN_ROUTE, isAuthLoginPath } from "@/lib/auth/auth-routes";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
 type ClientAuthGuardProps = {
-	children: ReactNode;
-	loginPath?: string;
+    children: ReactNode;
+    loginPath?: string;
 };
 
 export function ClientAuthGuard({
-	children,
-	loginPath = AUTH_LOGIN_ROUTE,
+    children,
+    loginPath = AUTH_LOGIN_ROUTE,
 }: ClientAuthGuardProps) {
-	const { status } = useSession();
-	const pathname = usePathname();
-	const searchParams = useSearchParams();
-	const hasRedirectedRef = useRef(false);
+    const { status } = useSession();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const hasRedirectedRef = useRef(false);
 
-	useEffect(() => {
-		if (status !== "unauthenticated" || hasRedirectedRef.current) {
-			return;
-		}
+    useEffect(() => {
+        if (status !== "unauthenticated" || hasRedirectedRef.current) {
+            return;
+        }
 
-		hasRedirectedRef.current = true;
-		window.location.assign(buildLoginUrl(loginPath, pathname, searchParams));
-	}, [loginPath, pathname, searchParams, status]);
+        hasRedirectedRef.current = true;
+        window.location.assign(
+            buildLoginUrl(loginPath, pathname, searchParams),
+        );
+    }, [loginPath, pathname, searchParams, status]);
 
-	if (status === "unauthenticated") {
-		return null;
-	}
+    if (status === "unauthenticated") {
+        return null;
+    }
 
-	return <>{children}</>;
+    return <>{children}</>;
 }
 
 function buildLoginUrl(
-	loginPath: string,
-	pathname: string | null,
-	searchParams: ReturnType<typeof useSearchParams>,
+    loginPath: string,
+    pathname: string | null,
+    searchParams: ReturnType<typeof useSearchParams>,
 ) {
-	if (!pathname || isAuthLoginPath(pathname)) {
-		return loginPath;
-	}
+    if (!pathname || isAuthLoginPath(pathname)) {
+        return loginPath;
+    }
 
-	const currentSearch = searchParams.toString();
-	const returnTo = `${pathname}${currentSearch ? `?${currentSearch}` : ""}`;
+    const currentSearch = searchParams.toString();
+    const returnTo = `${pathname}${currentSearch ? `?${currentSearch}` : ""}`;
 
-	return `${loginPath}?return_to=${encodeURIComponent(returnTo)}`;
+    return `${loginPath}?return_to=${encodeURIComponent(returnTo)}`;
 }

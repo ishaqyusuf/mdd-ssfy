@@ -5,7 +5,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { openModal } from "@/lib/modal";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 
 import { Button } from "@gnd/ui/button";
 import {

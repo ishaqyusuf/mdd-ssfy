@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { getEmployees } from "@/app-deps/(v1)/_actions/hrm/get-employess";
 import { createQuickLoginToken } from "@/app-deps/(v1)/_actions/auth";
 import { IUser } from "@/types/hrm";
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth/client";
 
 import { Button } from "@gnd/ui/button";
 import {

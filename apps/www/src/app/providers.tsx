@@ -6,30 +6,35 @@ import { ViewerShellProvider } from "@/components/viewer-shell";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { store } from "@/store";
 import { TRPCReactProvider } from "@/trpc/client";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider } from "@/lib/auth/client";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 import { Provider } from "react-redux";
 
 type Props = {
-	children: ReactNode;
+    children: ReactNode;
 };
 export function Providers({ children }: Props) {
-	return (
-		<SessionProvider refetchOnWindowFocus refetchWhenOffline={false}>
-			<NuqsAdapter>
-				<TRPCReactProvider>
-					<Provider store={store}>
-						<ModalProvider>
-							<ThemeProvider attribute="class" defaultTheme="light">
-								<ViewerShellProvider>
-									<CommandProvider>{children}</CommandProvider>
-								</ViewerShellProvider>
-							</ThemeProvider>
-						</ModalProvider>
-					</Provider>
-				</TRPCReactProvider>
-			</NuqsAdapter>
-		</SessionProvider>
-	);
+    return (
+        <SessionProvider refetchOnWindowFocus refetchWhenOffline={false}>
+            <NuqsAdapter>
+                <TRPCReactProvider>
+                    <Provider store={store}>
+                        <ModalProvider>
+                            <ThemeProvider
+                                attribute="class"
+                                defaultTheme="light"
+                            >
+                                <ViewerShellProvider>
+                                    <CommandProvider>
+                                        {children}
+                                    </CommandProvider>
+                                </ViewerShellProvider>
+                            </ThemeProvider>
+                        </ModalProvider>
+                    </Provider>
+                </TRPCReactProvider>
+            </NuqsAdapter>
+        </SessionProvider>
+    );
 }

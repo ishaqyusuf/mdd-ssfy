@@ -1,5 +1,5 @@
 import { ICan } from "@/types/auth";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 
 export function usePermission() {
     const { data: session } = useSession({

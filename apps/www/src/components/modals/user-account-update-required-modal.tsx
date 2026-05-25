@@ -6,7 +6,7 @@ import {
     updateAccountInfoAction,
 } from "@/actions/user-account-update-required-action";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signIn, useSession } from "next-auth/react";
+import { signIn, useSession } from "@/lib/auth/client";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";

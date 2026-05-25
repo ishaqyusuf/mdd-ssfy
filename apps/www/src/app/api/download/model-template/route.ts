@@ -4,8 +4,7 @@ import { PdfTemplate, renderToStream } from "@gnd/community";
 import { z } from "zod";
 import { db } from "@gnd/db";
 import { generatePrintData } from "@community/generate-print-data";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { getServerAuthSession } from "@/lib/auth/session";
 
 const paramsSchema = z.object({
     // id: z.string().uuid().optional(),
@@ -18,9 +17,9 @@ const paramsSchema = z.object({
 });
 export async function GET(req: NextRequest) {
     const requestUrl = new URL(req.url);
-    const session = await getServerSession(authOptions);
+    const session = await getServerAuthSession();
     const result = paramsSchema.safeParse(
-        Object.fromEntries(requestUrl.searchParams.entries())
+        Object.fromEntries(requestUrl.searchParams.entries()),
     );
     const homeIds = result.data.slugs
         ?.split(",")
@@ -61,4 +60,3 @@ export async function GET(req: NextRequest) {
     }
     return new Response(blob, { headers });
 }
-

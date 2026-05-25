@@ -1,7 +1,6 @@
 "use server";
 
 import { CustomerTypes, prisma } from "@/db";
-import { authOptions } from "@/lib/auth-options";
 import { sum } from "@/lib/utils";
 import { ISalesSettingMeta, PostTypes } from "@/types/post";
 import { ISalesOrder, ISalesType } from "@/types/sales";
