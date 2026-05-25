@@ -16,6 +16,20 @@ export function moneyIfPositive(value?: number | null) {
 	}).format(amount);
 }
 
+export function middleTruncateText(value?: string | null, maxLength = 24) {
+	const text = String(value || "").trim();
+	if (text.length <= maxLength) return text;
+	if (maxLength <= 3) return ".".repeat(Math.max(0, maxLength));
+
+	const visibleLength = maxLength - 3;
+	const leadingLength = Math.ceil(visibleLength / 2);
+	const trailingLength = Math.floor(visibleLength / 2);
+
+	return `${text.slice(0, leadingLength)}...${text.slice(
+		text.length - trailingLength,
+	)}`;
+}
+
 export function profileAdjustedSalesPrice(
 	salesPrice: number | null | undefined,
 	basePrice: number | null | undefined,

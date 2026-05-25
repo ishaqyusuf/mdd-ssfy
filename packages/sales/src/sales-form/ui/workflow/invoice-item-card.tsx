@@ -4,6 +4,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { InputGroup } from "@gnd/ui/namespace";
 import type { ReactNode } from "react";
+import { middleTruncateText } from "./workflow-format";
 
 export type WorkflowStepUiRecord = {
 	value?: string | null;
@@ -19,6 +20,8 @@ function currency(value?: number | null) {
 		currency: "USD",
 	}).format(Number(value || 0));
 }
+
+const STEP_PILL_COMPONENT_LABEL_MAX_LENGTH = 24;
 
 export type InvoiceItemCardProps = {
 	index: number;
@@ -134,6 +137,12 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 						const stepLabel = step.value
 							? props.componentLabel(step.value)
 							: step.step?.title || `Step ${stepIndex + 1}`;
+						const stepPillLabel = step.value
+							? middleTruncateText(
+									stepLabel,
+									STEP_PILL_COMPONENT_LABEL_MAX_LENGTH,
+								)
+							: stepLabel;
 
 						return (
 							<button
@@ -158,7 +167,9 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 									props.onStepChange(stepIndex);
 								}}
 							>
-								<span className="block truncate">{stepLabel}</span>
+								<span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+									{stepPillLabel}
+								</span>
 							</button>
 						);
 					})}
