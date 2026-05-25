@@ -6,6 +6,7 @@ import {
 	buildCursorWhereClause,
 	buildKeysetWhereClause,
 	buildUpsertSql,
+	buildUpsertValues,
 	classifyTable,
 	parseArgs,
 	parseEnvFile,
@@ -86,6 +87,23 @@ describe("local db sync helpers", () => {
 		expect(buildUpsertSql("Users", ["id", "name", "updatedAt"], ["id"], 2)).toBe(
 			"INSERT INTO `Users` (`id`, `name`, `updatedAt`) VALUES (?, ?, ?), (?, ?, ?) ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `updatedAt` = VALUES(`updatedAt`)",
 		);
+	});
+
+	test("serializes JSON values before raw MySQL upserts", () => {
+		const createdAt = new Date("2026-05-25T12:00:00.000Z");
+		const bytes = new Uint8Array([1, 2, 3]);
+
+		expect(
+			buildUpsertValues(["id", "tags", "settings", "createdAt", "bytes"], [
+				{
+					id: 1,
+					tags: ["builder", "vip"],
+					settings: { alerts: true },
+					createdAt,
+					bytes,
+				},
+			]),
+		).toEqual([1, '["builder","vip"]', '{"alerts":true}', createdAt, bytes]);
 	});
 
 	test("rejects unsafe target connections", () => {

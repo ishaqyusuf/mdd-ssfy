@@ -1884,8 +1884,8 @@ export function NewSalesForm(props: Props) {
                     permissions={salesFormPermissions}
                     packingButtonLabel={
                         activePackingDispatch
-                            ? "Sent for Packing"
-                            : "Send for Packing"
+                            ? "Packing sent"
+                            : "Packing"
                     }
                     packingBusy={isPackingBusy}
                     onSendForPacking={handleSendForPacking}

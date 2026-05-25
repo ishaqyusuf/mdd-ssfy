@@ -95,6 +95,52 @@ describe("sales form composer", () => {
     expect(snapshot.summary.grandTotal).toBe(330);
   });
 
+  it("uses the item type as the save title when the editable title is blank", () => {
+    const payload = composeSalesFormSavePayload(
+      {
+        type: "order",
+        salesId: 10,
+        slug: "order-10",
+        version: "v1",
+        form: {
+          customerId: 20,
+        },
+        lineItems: [
+          {
+            uid: "line-1",
+            title: "",
+            qty: 1,
+            unitPrice: 25,
+            formSteps: [
+              {
+                step: {
+                  title: "Item Type",
+                },
+                value: "Garage",
+              },
+            ],
+          },
+        ],
+        extraCosts: [],
+        summary: {
+          taxRate: 0,
+        },
+      },
+      {
+        surface: "www",
+        autosave: false,
+        pricing: {
+          mode: "coefficient",
+          profile: {
+            coefficient: 1,
+          },
+        },
+      },
+    );
+
+    expect(payload.lineItems[0]?.title).toBe("Garage");
+  });
+
   it("keeps dealership percentage pricing explicit and separate from internal coefficient", () => {
     const snapshot = composeSalesFormPricingSnapshot({
       config: {

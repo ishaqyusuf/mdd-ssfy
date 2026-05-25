@@ -75,7 +75,7 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 				props.onActivate();
 			}}
 		>
-			<div className="grid gap-4 md:grid-cols-12">
+			<div className="-mx-4 -mt-4 grid gap-3 bg-muted p-4 md:grid-cols-12">
 				<div className="min-w-0 md:col-span-10">
 					<InputGroup
 						className="h-10 bg-card"
@@ -120,13 +120,14 @@ export function InvoiceItemCard(props: InvoiceItemCardProps) {
 					<Button
 						size="icon"
 						variant="destructive"
+						className="size-8"
 						onClick={(event) => {
 							event.stopPropagation();
 							props.onRemove();
 						}}
 						aria-label={`Remove item ${props.index + 1}`}
 					>
-						<Icons.Trash2 className="size-4" />
+						<Icons.Trash2 className="size-3.5" />
 					</Button>
 				</div>
 			</div>

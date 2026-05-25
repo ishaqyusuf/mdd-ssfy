@@ -171,6 +171,18 @@ export function buildUpsertSql(table: string, columns: string[], keyColumns: str
 	return `INSERT INTO ${quoteIdent(table)} (${columnList}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE ${updates}`;
 }
 
+export function normalizeUpsertValue(value: unknown): unknown {
+	if (Array.isArray(value) || isPlainObject(value)) {
+		return JSON.stringify(value);
+	}
+
+	return value;
+}
+
+export function buildUpsertValues(columns: string[], rows: Array<Record<string, unknown>>): unknown[] {
+	return rows.flatMap((row) => columns.map((column) => normalizeUpsertValue(row[column])));
+}
+
 export function classifyTable(input: {
 	table: string;
 	columns: string[];
@@ -828,12 +840,21 @@ async function upsertRows(
 	for (let index = 0; index < rows.length; index += writeBatchSize) {
 		const batch = rows.slice(index, index + writeBatchSize);
 		const sql = buildUpsertSql(manifest.table, manifest.columns, manifest.keyColumns, batch.length);
-		const values = batch.flatMap((row) => manifest.columns.map((column) => row[column]));
+		const values = buildUpsertValues(manifest.columns, batch);
 		await target.$executeRawUnsafe(sql, ...values);
 		written += batch.length;
 	}
 
 	return written;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	if (value === null || typeof value !== "object") {
+		return false;
+	}
+
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
 }
 
 function normalizeCursorValue(value: unknown): string | null {

@@ -21,6 +21,7 @@ export type SalesFormSummarySidebarProps = {
 	isSaving?: boolean;
 	mobileOpen: boolean;
 	orderId?: string | null;
+	grandTotal?: number | null;
 	capabilities: Pick<SalesFormCapabilities, "salesHistory">;
 	permissions: Pick<SalesFormPermissions, "canSaveDraft" | "canFinalize">;
 	summaryPanel: React.ReactNode;
@@ -31,6 +32,13 @@ export type SalesFormSummarySidebarProps = {
 	onSaveNew: () => void;
 	onSaveFinal: () => void;
 };
+
+function currency(value?: number | null) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(Number(value || 0));
+}
 
 export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 	const [tab, setTab] = useState<"summary" | "history">("summary");
@@ -101,6 +109,14 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 					</div>
 
 					<div className="sticky bottom-0 border-t bg-card/95 px-4 py-3 backdrop-blur">
+						<div className="mb-3 flex items-center justify-between gap-4">
+							<span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+								Grand Total
+							</span>
+							<span className="text-lg font-bold text-foreground">
+								{currency(props.grandTotal)}
+							</span>
+						</div>
 						<div className="flex items-center gap-2">
 							<Button
 								className="flex-1"
@@ -127,6 +143,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 										}}
 										disabled={props.isSaving || !props.permissions.canSaveDraft}
 									>
+										<Icons.Save className="mr-2 size-4" />
 										Save Draft
 									</DropdownMenuItem>
 									<DropdownMenuItem
@@ -136,6 +153,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 										}}
 										disabled={props.isSaving || !props.permissions.canSaveDraft}
 									>
+										<Icons.LogOut className="mr-2 size-4" />
 										Save & Close
 									</DropdownMenuItem>
 									<DropdownMenuItem
@@ -145,6 +163,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 										}}
 										disabled={props.isSaving || !props.permissions.canSaveDraft}
 									>
+										<Icons.Plus className="mr-2 size-4" />
 										Save & New
 									</DropdownMenuItem>
 									<DropdownMenuItem
@@ -154,16 +173,12 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 										}}
 										disabled={props.isSaving || !props.permissions.canFinalize}
 									>
+										<Icons.CheckCheck className="mr-2 size-4" />
 										Save Final
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 						</div>
-						<p className="mt-2 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-							{props.isSaved && props.orderId
-								? `Saved as ${props.orderId}`
-								: "Unsaved draft"}
-						</p>
 					</div>
 				</div>
 			</aside>

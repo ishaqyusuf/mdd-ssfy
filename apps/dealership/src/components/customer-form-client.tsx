@@ -72,6 +72,15 @@ type CustomerFormRecord = {
   customerTypeId: number | null;
 } | null;
 
+type CustomerFormSavedRecord = {
+  id?: number | null;
+  name?: string | null;
+  businessName?: string | null;
+  email?: string | null;
+  phoneNo?: string | null;
+  customerTypeId?: number | null;
+};
+
 function getCustomerDefaultValues(
   customer?: CustomerFormRecord,
 ): DealerPortalCustomerSchema {
@@ -317,7 +326,7 @@ export function CustomerFormClient({
   mode?: "page" | "modal";
   renderActions?: (actions: ReactNode) => ReactNode;
   onCancel?: () => void;
-  onSaved?: () => void;
+  onSaved?: (customer: CustomerFormSavedRecord) => void;
 }) {
   const trpc = useTRPC();
   const router = useRouter();
@@ -332,7 +341,7 @@ export function CustomerFormClient({
     form.watch("formattedAddress") || form.watch("address") || "";
   const saveCustomer = useMutation(
     trpc.dealerPortal.saveCustomer.mutationOptions({
-      onSuccess: async () => {
+      onSuccess: async (savedCustomer) => {
         await Promise.all([
           queryClient.invalidateQueries({
             queryKey: trpc.dealerPortal.customers.pathKey(),
@@ -346,7 +355,7 @@ export function CustomerFormClient({
           variant: "success",
         });
         if (onSaved) {
-          onSaved();
+          onSaved(savedCustomer);
           router.refresh();
           return;
         }

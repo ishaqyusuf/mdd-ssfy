@@ -142,12 +142,9 @@ export function DoorPriceCell({
 
   if (readOnly) {
     return (
-      <div className="h-10 w-full min-w-[116px] px-3 py-2 text-left">
-        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-          {isMissingPrice ? "Missing" : "Price"}
-        </span>
+      <div className="flex h-8 w-full min-w-[92px] items-center justify-end px-2 text-right">
         <span className="block text-sm font-semibold text-foreground">
-          {currency(displayDoorPrice)}
+          {isMissingPrice ? "Missing" : currency(displayDoorPrice)}
         </span>
       </div>
     );
@@ -166,11 +163,8 @@ export function DoorPriceCell({
                 ? "outline"
                 : "secondary"
           }
-          className="h-10 w-full min-w-[116px] flex-col items-start gap-0 rounded-xl border-slate-300 px-3 py-2 text-left"
+          className="h-8 w-full min-w-[92px] justify-end rounded-lg border-slate-300 px-2 text-right"
         >
-          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-            {isMissingPrice ? "Missing" : "Price"}
-          </span>
           <span className="text-sm font-semibold text-foreground">
             {isMissingPrice && !readOnly
               ? "Add Price"

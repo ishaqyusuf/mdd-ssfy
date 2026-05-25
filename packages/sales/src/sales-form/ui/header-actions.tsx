@@ -2,12 +2,6 @@
 
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import {
 	Select,
@@ -16,7 +10,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
-import type { MouseEvent } from "react";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
+import type { MouseEvent, ReactNode } from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
 import { salesFormStatusClass, salesFormStatusLabel } from "./status-utils";
 import type { SalesFormHeaderItemOption, SalesFormSaveStatus } from "./types";
@@ -63,6 +63,23 @@ export type SalesFormHeaderActionsProps = {
 	permissions?: Partial<SalesFormPermissions>;
 };
 
+function HeaderActionTooltip({
+	children,
+	label,
+}: {
+	children: ReactNode;
+	label: string;
+}) {
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>{children}</TooltipTrigger>
+			<TooltipContent side="bottom" className="px-2 py-1 text-xs">
+				{label}
+			</TooltipContent>
+		</Tooltip>
+	);
+}
+
 export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 	const canOpenOverview =
 		props.capabilities?.internalOverview !== false &&
@@ -88,11 +105,13 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 		props.capabilities?.settings !== false &&
 		props.permissions?.canOpenSettings !== false &&
 		!!props.onOpenSettings;
+	const packingTooltip = props.packingButtonLabel || "Packing";
 
 	return (
 		<header className="border-b bg-card px-4 py-3 sm:px-6">
-			<div className="flex flex-wrap items-center gap-2">
-				<div className="mr-auto min-w-0">
+			<TooltipProvider delayDuration={120}>
+				<div className="flex w-full flex-wrap items-center gap-2">
+				<div className="min-w-0 flex-1">
 					<p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
 						Sales Invoice Editor
 					</p>
@@ -119,7 +138,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						) : null}
 					</div>
 				</div>
-				<div className="hidden items-center gap-2 lg:flex">
+				<div className="ml-auto hidden items-center justify-end gap-2 lg:flex">
 					{canOpenOverview ? (
 						<Button
 							size="sm"
@@ -133,95 +152,58 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						</Button>
 					) : null}
 					{canPreview ? (
-						<Button
-							size="icon"
-							variant="outline"
-							onClick={() => void props.onPreview?.()}
-							disabled={props.isSaving || props.isPreviewing}
-							aria-label={props.isPreviewing ? "Preparing preview" : "Preview"}
+						<HeaderActionTooltip
+							label={props.isPreviewing ? "Preparing preview" : "Preview"}
 						>
-							{props.isPreviewing ? (
-								<Icons.Loader2 className="size-4 animate-spin" />
-							) : (
-								<Icons.Eye className="size-4" />
-							)}
-						</Button>
+							<Button
+								size="icon"
+								variant="outline"
+								onClick={() => void props.onPreview?.()}
+								disabled={props.isSaving || props.isPreviewing}
+								aria-label={props.isPreviewing ? "Preparing preview" : "Preview"}
+							>
+								{props.isPreviewing ? (
+									<Icons.Loader2 className="size-4 animate-spin" />
+								) : (
+									<Icons.Eye className="size-4" />
+								)}
+							</Button>
+						</HeaderActionTooltip>
 					) : null}
 					{canPrint ? (
-						<Button
-							size="icon"
-							variant="outline"
-							onClick={(event) => void props.onPrint?.(event)}
-							disabled={props.isSaving || !props.isSaved || props.isPrinting}
-							aria-label={props.isPrinting ? "Preparing print" : "Print"}
+						<HeaderActionTooltip
+							label={props.isPrinting ? "Preparing print" : "Print"}
 						>
-							{props.isPrinting ? (
-								<Icons.Loader2 className="size-4 animate-spin" />
-							) : (
-								<Icons.Printer className="size-4" />
-							)}
-						</Button>
+							<Button
+								size="icon"
+								variant="outline"
+								onClick={(event) => void props.onPrint?.(event)}
+								disabled={props.isSaving || !props.isSaved || props.isPrinting}
+								aria-label={props.isPrinting ? "Preparing print" : "Print"}
+							>
+								{props.isPrinting ? (
+									<Icons.Loader2 className="size-4 animate-spin" />
+								) : (
+									<Icons.Printer className="size-4" />
+								)}
+							</Button>
+						</HeaderActionTooltip>
 					) : null}
 					{canPack ? (
-						<div className="flex items-center">
+						<HeaderActionTooltip label={packingTooltip}>
 							<Button
-								size="sm"
+								size="icon"
 								variant="outline"
-								className="rounded-r-none px-3"
 								onClick={() => void props.onSendForPacking?.()}
 								disabled={props.packingBusy || !props.isSaved}
+								aria-label={packingTooltip}
 							>
 								<Icons.packingList className="size-4" />
-								{props.packingButtonLabel || "Send for Packing"}
 							</Button>
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										size="icon"
-										variant="outline"
-										className="-ml-px rounded-l-none"
-										disabled={props.packingBusy || !props.isSaved}
-									>
-										<Icons.MoreVertical className="size-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuItem
-										disabled={props.cancelPackingDisabled}
-										onSelect={(event) => {
-											event.preventDefault();
-											void props.onCancelPacking?.();
-										}}
-									>
-										<Icons.XCircle className="mr-2 size-4" />
-										Cancel
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										disabled={props.completePackingDisabled}
-										onSelect={(event) => {
-											event.preventDefault();
-											void props.onCompletePacking?.();
-										}}
-									>
-										<Icons.CheckCheck className="mr-2 size-4" />
-										Mark as Completed
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										disabled={props.openPackingDisabled}
-										onSelect={(event) => {
-											event.preventDefault();
-											props.onOpenPacking?.();
-										}}
-									>
-										<Icons.ExternalLink className="mr-2 size-4" />
-										Open
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</div>
+						</HeaderActionTooltip>
 					) : null}
 				</div>
-				<div className="flex min-w-0 items-center gap-2 lg:hidden">
+				<div className="order-2 flex w-full min-w-0 items-center gap-2 lg:hidden">
 					<div className="min-w-0 flex-1">
 						<Select
 							value={props.activeItem || undefined}
@@ -277,36 +259,79 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						</Button>
 					}
 				>
-					<Menu.Item disabled={props.isSaving} onClick={props.onAddItem}>
+					<Menu.Item Icon={Icons.Plus} disabled={props.isSaving} onClick={props.onAddItem}>
 						Add Item
 					</Menu.Item>
 					{props.onToggleStepDisplay ? (
-						<Menu.Item onClick={props.onToggleStepDisplay}>
+						<Menu.Item Icon={Icons.Layout} onClick={props.onToggleStepDisplay}>
 							{props.stepDisplayMode === "extended"
 								? "Compact Steps"
 								: "Extended Steps"}
 						</Menu.Item>
 					) : null}
 					{props.onOpenMobileSummary ? (
-						<Menu.Item onClick={props.onOpenMobileSummary}>
+						<Menu.Item Icon={Icons.Sidebar} onClick={props.onOpenMobileSummary}>
 							Invoice Summary
 						</Menu.Item>
 					) : null}
 					{props.onToggleAutosave ? (
-						<Menu.Item onClick={props.onToggleAutosave}>
+						<Menu.Item Icon={Icons.Save} onClick={props.onToggleAutosave}>
 							Autosave: {props.autosaveEnabled ? "On" : "Off"}
 						</Menu.Item>
 					) : null}
 					{canPreview ? (
 						<Menu.Item
+							Icon={props.isPreviewing ? Icons.Loader2 : Icons.Eye}
 							disabled={props.isSaving || props.isPreviewing}
 							onClick={() => void props.onPreview?.()}
 						>
 							{props.isPreviewing ? "Preparing Preview" : "Preview"}
 						</Menu.Item>
 					) : null}
+					{canPrint ? (
+						<Menu.Item
+							Icon={props.isPrinting ? Icons.Loader2 : Icons.Printer}
+							disabled={props.isSaving || !props.isSaved || props.isPrinting}
+							onClick={() => void props.onPrint?.()}
+						>
+							{props.isPrinting ? "Preparing Print" : "Print"}
+						</Menu.Item>
+					) : null}
+					{canPack ? (
+						<>
+							<Menu.Item
+								Icon={Icons.packingList}
+								disabled={props.packingBusy || !props.isSaved}
+								onClick={() => void props.onSendForPacking?.()}
+							>
+								Packing
+							</Menu.Item>
+							<Menu.Item
+								Icon={Icons.XCircle}
+								disabled={props.cancelPackingDisabled}
+								onClick={() => void props.onCancelPacking?.()}
+							>
+								Cancel Packing
+							</Menu.Item>
+							<Menu.Item
+								Icon={Icons.CheckCheck}
+								disabled={props.completePackingDisabled}
+								onClick={() => void props.onCompletePacking?.()}
+							>
+								Complete Packing
+							</Menu.Item>
+							<Menu.Item
+								Icon={Icons.ExternalLink}
+								disabled={props.openPackingDisabled}
+								onClick={props.onOpenPacking}
+							>
+								Open Packing
+							</Menu.Item>
+						</>
+					) : null}
 					{props.onSaveDraft ? (
 						<Menu.Item
+							Icon={Icons.Save}
 							disabled={props.isSaving || !canSaveDraft}
 							onClick={() => void props.onSaveDraft?.()}
 						>
@@ -315,6 +340,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					) : null}
 					{props.onSaveClose ? (
 						<Menu.Item
+							Icon={Icons.LogOut}
 							disabled={props.isSaving || !canSaveDraft}
 							onClick={() => void props.onSaveClose?.()}
 						>
@@ -323,6 +349,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					) : null}
 					{props.onSaveNew ? (
 						<Menu.Item
+							Icon={Icons.Plus}
 							disabled={props.isSaving || !canSaveDraft}
 							onClick={() => void props.onSaveNew?.()}
 						>
@@ -331,6 +358,7 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 					) : null}
 					{props.onSaveFinal ? (
 						<Menu.Item
+							Icon={Icons.CheckCheck}
 							disabled={props.isSaving || !canFinalize}
 							onClick={() => void props.onSaveFinal?.()}
 						>
@@ -338,10 +366,13 @@ export function SalesFormHeaderActions(props: SalesFormHeaderActionsProps) {
 						</Menu.Item>
 					) : null}
 					{canOpenSettings ? (
-						<Menu.Item onClick={props.onOpenSettings}>Settings</Menu.Item>
+						<Menu.Item Icon={Icons.Settings2} onClick={props.onOpenSettings}>
+							Settings
+						</Menu.Item>
 					) : null}
 				</Menu>
-			</div>
+				</div>
+			</TooltipProvider>
 		</header>
 	);
 }

@@ -49,6 +49,8 @@ export function DealerQuoteComposer({
   const router = useRouter();
   const editingQuoteId = mode === "edit" ? quoteId : null;
   const [customerSelectorOpen, setCustomerSelectorOpen] = useState(false);
+  const [selectedCustomerOverride, setSelectedCustomerOverride] =
+    useState<DealerSalesFormCustomer | null>(null);
   const customersQuery = useQuery(trpc.dealerPortal.customers.queryOptions());
   const profilesQuery = useQuery(
     trpc.dealerPortal.salesProfiles.queryOptions(),
@@ -114,9 +116,11 @@ export function DealerQuoteComposer({
   const record = form.record;
   const customerId = record?.form.customerId || null;
   const customerProfileId = record?.form.customerProfileId || null;
-  const selectedCustomer = customers.find(
-    (customer) => customer.id === customerId,
-  );
+  const selectedCustomer =
+    customers.find((customer) => customer.id === customerId) ||
+    (selectedCustomerOverride?.id === customerId
+      ? selectedCustomerOverride
+      : null);
   const selectedProfile =
     profiles.find((profile) => profile.id === customerProfileId) ||
     profiles.find(
@@ -291,9 +295,10 @@ export function DealerQuoteComposer({
             required={!customerId}
             customers={customers}
             onOpenChange={setCustomerSelectorOpen}
-            onSelectCustomer={(customer) =>
-              form.setCustomer(customer.id, customer.customerTypeId || null)
-            }
+            onSelectCustomer={(customer) => {
+              setSelectedCustomerOverride(customer);
+              form.setCustomer(customer.id, customer.customerTypeId || null);
+            }}
           />
         ),
       }}

@@ -250,25 +250,25 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 							</div>
 						</header>
 						<div className="overflow-x-auto">
-							<table className="min-w-[720px] text-sm">
+							<table className="min-w-[620px] text-sm">
 								<thead>
 									<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
 										<th className="whitespace-nowrap px-3 py-2">Size</th>
 										{props.hasSwing ? (
-											<th className="px-3 py-2">Swing</th>
+											<th className="w-20 px-2 py-2">Swing</th>
 										) : null}
 										{props.noHandle ? (
-											<th className="px-3 py-2 text-right">Qty</th>
+											<th className="w-16 px-2 py-2 text-right">Qty</th>
 										) : (
 											<>
-												<th className="px-3 py-2 text-right">LH</th>
-												<th className="px-3 py-2 text-right">RH</th>
-												<th className="px-3 py-2 text-right">Total</th>
+												<th className="w-16 px-2 py-2 text-right">LH</th>
+												<th className="w-16 px-2 py-2 text-right">RH</th>
+												<th className="w-14 px-2 py-2 text-right">Total</th>
 											</>
 										)}
-										<th className="px-3 py-2 text-right">Unit</th>
+										<th className="w-24 px-2 py-2 text-right">Unit</th>
 										<th className="px-3 py-2 text-right">Line</th>
-										<th className="px-3 py-2 text-right">Remove</th>
+										<th className="w-14 px-2 py-2 text-right">Remove</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -281,7 +281,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												{row.dimension || "--"}
 											</td>
 											{props.hasSwing ? (
-												<td className="px-3 py-2">
+												<td className="px-2 py-2">
 													<Input
 														value={row.swing || ""}
 														onChange={(event) =>
@@ -289,13 +289,13 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																swing: event.target.value,
 															})
 														}
-														className="h-8 rounded-md border-slate-200 text-xs"
+														className="h-8 w-16 rounded-md border-slate-200 text-xs"
 														placeholder="LH/RH"
 													/>
 												</td>
 											) : null}
 											{props.noHandle ? (
-												<td className="px-3 py-2">
+												<td className="px-2 py-2">
 													<Input
 														type="number"
 														value={
@@ -311,12 +311,12 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 															})
 														}
 														disabled={isDoorRowPriceMissing(row)}
-														className="h-8 rounded-md border-slate-200 text-right text-xs"
+														className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
 													/>
 												</td>
 											) : (
 												<>
-													<td className="px-3 py-2">
+													<td className="px-2 py-2">
 														<Input
 															type="number"
 															value={
@@ -330,10 +330,10 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																})
 															}
 															disabled={isDoorRowPriceMissing(row)}
-															className="h-8 rounded-md border-slate-200 text-right text-xs"
+															className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
 														/>
 													</td>
-													<td className="px-3 py-2">
+													<td className="px-2 py-2">
 														<Input
 															type="number"
 															value={
@@ -347,15 +347,15 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																})
 															}
 															disabled={isDoorRowPriceMissing(row)}
-															className="h-8 rounded-md border-slate-200 text-right text-xs"
+															className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
 														/>
 													</td>
-													<td className="px-3 py-2 text-right text-xs font-semibold text-slate-700">
+													<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700">
 														{Number(row.totalQty || 0)}
 													</td>
 												</>
 											)}
-											<td className="px-3 py-2">
+											<td className="px-2 py-2">
 												<DoorPriceCell
 													row={row}
 													profileCoefficient={props.profileCoefficient}
@@ -524,14 +524,14 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													</div>
 												</Menu>
 											</td>
-											<td className="px-3 py-2 text-right">
+											<td className="px-2 py-2 text-right">
 												<Button
 													size="icon"
 													variant="ghost"
-													className="size-7 text-slate-500 hover:text-red-600"
+													className="size-6 text-slate-500 hover:text-red-600"
 													onClick={() => props.onRemoveSizeRow(row)}
 												>
-													<Icons.Trash2 className="size-4" />
+													<Icons.Trash2 className="size-3" />
 												</Button>
 											</td>
 										</tr>

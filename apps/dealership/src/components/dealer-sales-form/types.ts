@@ -11,6 +11,7 @@ export type DealerSalesFormCustomer = {
   email?: string | null;
   phoneNo?: string | null;
   customerTypeId?: number | null;
+  createdAt?: Date | string | null;
 };
 
 export type DealerSalesFormProfile = {

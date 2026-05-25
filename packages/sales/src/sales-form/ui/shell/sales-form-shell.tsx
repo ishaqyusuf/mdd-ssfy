@@ -17,7 +17,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 	const slots = props.slots || {};
 	const surface = props.surface || "fixed";
 	const showMobileFooter = props.showMobileFooter ?? true;
-	const mobileSaveLabel = props.mobileSaveLabel || "Finalize";
+	const mobileSaveLabel = props.mobileSaveLabel || "Save";
 	const frameClassName =
 		surface === "embedded"
 			? "relative flex min-h-[560px] overflow-hidden rounded-lg border border-slate-200/80 bg-background shadow-sm"
@@ -61,6 +61,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 							isSaving={props.isSaving}
 							mobileOpen={Boolean(props.mobileSummaryOpen)}
 							orderId={props.orderId}
+							grandTotal={props.grandTotal}
 							capabilities={props.capabilities}
 							permissions={props.permissions}
 							summaryPanel={summaryPanel}
@@ -94,8 +95,8 @@ export function SalesFormShell(props: SalesFormShellProps) {
 								</button>
 								<Button
 									className="h-11 px-4"
-									onClick={() => void props.onSaveFinal?.()}
-									disabled={props.isSaving || !props.permissions.canFinalize}
+									onClick={() => void props.onSaveDraft?.()}
+									disabled={props.isSaving || !props.permissions.canSaveDraft}
 								>
 									{mobileSaveLabel}
 								</Button>

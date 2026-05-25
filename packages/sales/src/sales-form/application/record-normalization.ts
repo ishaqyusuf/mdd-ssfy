@@ -122,6 +122,18 @@ function normalizeGroupedLineTitle(line: Partial<SalesFormLineItemRecord>) {
 	return itemTypeTitle;
 }
 
+function getSaveLineTitle(
+	line: Partial<SalesFormLineItemRecord>,
+	index = 0,
+) {
+	return (
+		normalizeSyntheticLineTitle(line.title) ||
+		getItemTypeTitle(line) ||
+		normalizeSyntheticLineTitle(line.description) ||
+		`Item ${index + 1}`
+	);
+}
+
 function deriveLineTotalForSummary(line: SalesFormLineItemRecord) {
 	const hptDoors = Array.isArray(line.housePackageTool?.doors)
 		? line.housePackageTool.doors
@@ -388,9 +400,9 @@ export function toSalesFormSaveDraftPayload<
 	TRecord extends SalesFormRecordLike,
 >(source: TRecord, autosave = true) {
 	const lineItems = normalizeSalesFormLineItems(source.lineItems || []).map(
-		(line) => ({
+		(line, index) => ({
 			...line,
-			title: normalizeSyntheticLineTitle(line.title),
+			title: getSaveLineTitle(line, index),
 		}),
 	);
 	const extraCosts = normalizeSalesFormExtraCosts(source.extraCosts || []);
