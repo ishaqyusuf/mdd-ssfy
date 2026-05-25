@@ -11,7 +11,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 import { useEffect, useState } from "react";
 
 export function TaskNotification() {

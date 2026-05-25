@@ -6,7 +6,7 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useSearchParams } from "next/navigation";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
-import { signIn } from "next-auth/react";
+import { signIn } from "@/lib/auth/client";
 import { createQuickLoginToken } from "@/app-deps/(v1)/_actions/auth";
 
 export default function QuickLogin() {

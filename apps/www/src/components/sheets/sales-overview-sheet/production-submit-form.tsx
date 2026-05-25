@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 import { useAction } from "next-safe-action/hooks";
 import { useController, useForm, useFormContext } from "react-hook-form";
 import { useEffect } from "react";

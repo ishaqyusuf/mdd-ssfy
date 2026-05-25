@@ -15,8 +15,7 @@ import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
 import { AppRouter } from "@gnd/api/trpc/routers/_app";
 import { generateRandomString } from "@gnd/utils";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+import { getServerAuthSession } from "@/lib/auth/session";
 import { headers as nextHeaders } from "next/headers";
 
 // IMPORTANT: Create a stable getter for the query client that
@@ -36,7 +35,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
                 //         : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
                 transformer: superjson as any,
                 async headers() {
-                    const session = await getServerSession(authOptions);
+                    const session = await getServerAuthSession();
                     const userId = session?.user?.id;
 
                     if (!userId) {
@@ -68,7 +67,7 @@ export function HydrateClient(props: { children: React.ReactNode }) {
 }
 
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
-    queryOptions: T
+    queryOptions: T,
 ) {
     const queryClient = getQueryClient();
 
@@ -85,7 +84,7 @@ function getServerBaseUrl() {
 
 async function fetchWithRequestOrigin(
     input: RequestInfo | URL,
-    init?: RequestInit
+    init?: RequestInit,
 ) {
     const requestOrigin = await getRequestOrigin();
 
@@ -93,7 +92,9 @@ async function fetchWithRequestOrigin(
         return fetch(input, init);
     }
 
-    const url = new URL(input instanceof Request ? input.url : input.toString());
+    const url = new URL(
+        input instanceof Request ? input.url : input.toString(),
+    );
     const requestUrl = new URL(`${url.pathname}${url.search}`, requestOrigin);
 
     return fetch(requestUrl, init);
@@ -125,7 +126,7 @@ function isLocalHost(host: string) {
 }
 
 export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
-    queryOptionsArray: T[]
+    queryOptionsArray: T[],
 ) {
     const queryClient = getQueryClient();
 

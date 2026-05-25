@@ -69,6 +69,13 @@ export async function saveEmployeeAction(data: IUser) {
             userId: id,
         },
     });
+    await prisma.webAuthSession.deleteMany({
+        where: {
+            user: {
+                legacyUserId: id,
+            },
+        },
+    });
 }
 export async function resetEmployeePassword(id) {
     await prisma.users.update({
@@ -80,6 +87,13 @@ export async function resetEmployeePassword(id) {
     await prisma.session.deleteMany({
         where: {
             userId: id,
+        },
+    });
+    await prisma.webAuthSession.deleteMany({
+        where: {
+            user: {
+                legacyUserId: id,
+            },
         },
     });
 }

@@ -1,10 +1,9 @@
-import { authOptions } from "@/lib/auth-options";
-import { toAuthSnapshot } from "@/lib/auth/auth-snapshot";
-import { getServerSession } from "next-auth";
+import { getServerAuthSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
-export async function POST() {
-	const session = await getServerSession(authOptions);
-	const response = toAuthSnapshot(session);
-	return Response.json(response);
+export async function GET() {
+    const session = await getServerAuthSession();
+    return Response.json(session);
 }
+
+export const POST = GET;

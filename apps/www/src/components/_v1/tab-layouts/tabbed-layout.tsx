@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { ISidebar, nav } from "@/lib/navs";
 import { cn } from "@/lib/utils";
 import { PrimitiveDivProps } from "@/types/type";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 
 import { Button } from "@gnd/ui/button";
 import Portal from "../portal";

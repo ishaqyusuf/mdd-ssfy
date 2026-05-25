@@ -1,10 +1,10 @@
 import {
-	resolveSalesDocumentAccessAction,
-	resolveSalesDocumentHtmlPreviewAccessAction,
+    resolveSalesDocumentAccessAction,
+    resolveSalesDocumentHtmlPreviewAccessAction,
 } from "@/actions/resolve-sales-document-access";
 import {
-	closeViewerShell,
-	openViewerShell,
+    closeViewerShell,
+    openViewerShell,
 } from "@/components/viewer-shell/controller";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
@@ -15,8 +15,8 @@ import type { ReactNode } from "react";
 import { createElement } from "react";
 import { ATTACHMENT_OVERLAY } from "./feature-flags";
 import {
-	DEFAULT_SALES_PRINT_TEMPLATE_ID,
-	normalizeSalesPrintMode,
+    DEFAULT_SALES_PRINT_TEMPLATE_ID,
+    normalizeSalesPrintMode,
 } from "./sales-print-request";
 
 const PRINT_VIEWER_PATH = "p/sales-invoice-v2";
@@ -27,605 +27,606 @@ type SalesType = "order" | "quote";
 export type SalesPrintRequestMode = PrintMode | IOrderPrintMode;
 
 export interface SalesPrintRequest {
-	salesIds: number[];
-	mode?: SalesPrintRequestMode;
-	dispatchId?: number | null;
-	templateId?: string | null;
-	baseUrl?: string | null;
-	forceRegenerate?: boolean;
-	openInNewTab?: boolean;
-	onPrintReady?: () => void;
-	onPrintError?: (error: unknown) => void;
-	onPrintStage?: (
-		stage: SalesPrintStage,
-		details?: SalesPrintStageDetails,
-	) => void;
+    salesIds: number[];
+    mode?: SalesPrintRequestMode;
+    dispatchId?: number | null;
+    templateId?: string | null;
+    baseUrl?: string | null;
+    forceRegenerate?: boolean;
+    openInNewTab?: boolean;
+    onPrintReady?: () => void;
+    onPrintError?: (error: unknown) => void;
+    onPrintStage?: (
+        stage: SalesPrintStage,
+        details?: SalesPrintStageDetails,
+    ) => void;
 }
 
 type SalesPrintDependencies = {
-	resolveAccess(input: {
-		salesIds: number[];
-		mode: PrintMode;
-		dispatchId?: number | null;
-		templateId?: string | null;
-		baseUrl?: string | null;
-		forceRegenerate?: boolean;
-	}): Promise<ResolveSalesDocumentAccessResult>;
-	resolveHtmlPreviewAccess(input: {
-		salesIds: number[];
-		mode: PrintMode;
-		dispatchId?: number | null;
-		templateId?: string | null;
-		baseUrl?: string | null;
-	}): Promise<ResolveSalesDocumentAccessResult>;
-	openLink: typeof openLink;
-	openViewerShell: typeof openViewerShell;
-	closeViewerShell?: typeof closeViewerShell;
-	openPendingPrintWindow: typeof openPendingPrintWindow;
-	createPrintViewerContent: typeof createPrintViewerContent;
-	mountHiddenPrintViewer?: typeof mountHiddenPrintViewer;
-	createPrintLoadingContent?: typeof createPrintLoadingContent;
-	getBaseUrl: typeof getBaseUrl;
-	useAttachmentOverlay: boolean;
+    resolveAccess(input: {
+        salesIds: number[];
+        mode: PrintMode;
+        dispatchId?: number | null;
+        templateId?: string | null;
+        baseUrl?: string | null;
+        forceRegenerate?: boolean;
+    }): Promise<ResolveSalesDocumentAccessResult>;
+    resolveHtmlPreviewAccess(input: {
+        salesIds: number[];
+        mode: PrintMode;
+        dispatchId?: number | null;
+        templateId?: string | null;
+        baseUrl?: string | null;
+    }): Promise<ResolveSalesDocumentAccessResult>;
+    openLink: typeof openLink;
+    openViewerShell: typeof openViewerShell;
+    closeViewerShell?: typeof closeViewerShell;
+    openPendingPrintWindow: typeof openPendingPrintWindow;
+    createPrintViewerContent: typeof createPrintViewerContent;
+    mountHiddenPrintViewer?: typeof mountHiddenPrintViewer;
+    createPrintLoadingContent?: typeof createPrintLoadingContent;
+    getBaseUrl: typeof getBaseUrl;
+    useAttachmentOverlay: boolean;
 };
 
 export type SalesPrintStage =
-	| "resolve-access-start"
-	| "resolve-access-done"
-	| "resolve-access-error"
-	| "hidden-viewer-mounted"
-	| "print-data-query-start"
-	| "print-data-query-done"
-	| "print-data-query-error"
-	| "pdf-iframe-load"
-	| "print-dialog-called"
-	| "print-timeout";
+    | "resolve-access-start"
+    | "resolve-access-done"
+    | "resolve-access-error"
+    | "hidden-viewer-mounted"
+    | "print-data-query-start"
+    | "print-data-query-done"
+    | "print-data-query-error"
+    | "pdf-iframe-load"
+    | "print-dialog-called"
+    | "print-timeout";
 
 export type SalesPrintStageDetails = {
-	href?: string;
-	mode?: PrintMode;
-	salesIds?: number[];
-	message?: string;
-	error?: unknown;
-	printedFromSnapshot?: boolean;
+    href?: string;
+    mode?: PrintMode;
+    salesIds?: number[];
+    message?: string;
+    error?: unknown;
+    printedFromSnapshot?: boolean;
 };
 
 const defaultDependencies: SalesPrintDependencies = {
-	resolveAccess: resolveSalesDocumentAccessAction,
-	resolveHtmlPreviewAccess: resolveSalesDocumentHtmlPreviewAccessAction,
-	openLink,
-	openViewerShell,
-	closeViewerShell,
-	openPendingPrintWindow,
-	createPrintViewerContent,
-	mountHiddenPrintViewer,
-	createPrintLoadingContent,
-	getBaseUrl,
-	useAttachmentOverlay: ATTACHMENT_OVERLAY,
+    resolveAccess: resolveSalesDocumentAccessAction,
+    resolveHtmlPreviewAccess: resolveSalesDocumentHtmlPreviewAccessAction,
+    openLink,
+    openViewerShell,
+    closeViewerShell,
+    openPendingPrintWindow,
+    createPrintViewerContent,
+    mountHiddenPrintViewer,
+    createPrintLoadingContent,
+    getBaseUrl,
+    useAttachmentOverlay: ATTACHMENT_OVERLAY,
 };
 
 const inflightAccessRequests = new Map<
-	string,
-	Promise<ResolveSalesDocumentAccessResult>
+    string,
+    Promise<ResolveSalesDocumentAccessResult>
 >();
 const inflightHtmlPreviewRequests = new Map<
-	string,
-	Promise<ResolveSalesDocumentAccessResult>
+    string,
+    Promise<ResolveSalesDocumentAccessResult>
 >();
 
 export function resolveSalesPrintMode(
-	mode?: SalesPrintRequestMode,
-	salesType: SalesType = "order",
+    mode?: SalesPrintRequestMode,
+    salesType: SalesType = "order",
 ): PrintMode {
-	return normalizeSalesPrintMode(mode, salesType);
+    return normalizeSalesPrintMode(mode, salesType);
 }
 
 export function buildSalesPrintViewerUrl(
-	access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
-	options?: {
-		preview?: boolean;
-		templateId?: string | null;
-		mode?: PrintMode;
-		origin?: string;
-	},
+    access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
+    options?: {
+        preview?: boolean;
+        templateId?: string | null;
+        mode?: PrintMode;
+        origin?: string;
+    },
 ) {
-	return buildSalesDocumentRouteUrl(PRINT_VIEWER_PATH, access, options);
+    return buildSalesDocumentRouteUrl(PRINT_VIEWER_PATH, access, options);
 }
 
 export function buildSalesDocumentPreviewUrl(
-	access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
-	options?: {
-		templateId?: string | null;
-		origin?: string;
-	},
+    access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
+    options?: {
+        templateId?: string | null;
+        origin?: string;
+    },
 ) {
-	return buildSalesDocumentRouteUrl(PREVIEW_PAGE_PATH, access, {
-		templateId: options?.templateId,
-		origin: options?.origin,
-	});
+    return buildSalesDocumentRouteUrl(PREVIEW_PAGE_PATH, access, {
+        templateId: options?.templateId,
+        origin: options?.origin,
+    });
 }
 
 export function buildSalesDocumentRouteFromQuery(input: {
-	path?: string;
-	pt?: string;
-	token?: string;
-	accessToken?: string;
-	snapshotId?: string;
-	preview?: boolean;
-	templateId?: string | null;
-	mode?: PrintMode;
-	origin?: string;
+    path?: string;
+    pt?: string;
+    token?: string;
+    accessToken?: string;
+    snapshotId?: string;
+    preview?: boolean;
+    templateId?: string | null;
+    mode?: PrintMode;
+    origin?: string;
 }) {
-	const path = input.path || PRINT_VIEWER_PATH;
-	const url = input.origin
-		? new URL(path, input.origin)
-		: new URL(path, "http://same-origin.local");
+    const path = input.path || PRINT_VIEWER_PATH;
+    const url = input.origin
+        ? new URL(path, input.origin)
+        : new URL(path, "http://same-origin.local");
 
-	if (input.pt) url.searchParams.set("pt", input.pt);
-	if (input.token) url.searchParams.set("token", input.token);
-	if (input.accessToken) url.searchParams.set("accessToken", input.accessToken);
-	if (input.snapshotId) url.searchParams.set("snapshotId", input.snapshotId);
-	if (typeof input.preview === "boolean") {
-		url.searchParams.set("preview", String(input.preview));
-	}
-	if (input.mode) {
-		url.searchParams.set("mode", input.mode);
-	}
+    if (input.pt) url.searchParams.set("pt", input.pt);
+    if (input.token) url.searchParams.set("token", input.token);
+    if (input.accessToken)
+        url.searchParams.set("accessToken", input.accessToken);
+    if (input.snapshotId) url.searchParams.set("snapshotId", input.snapshotId);
+    if (typeof input.preview === "boolean") {
+        url.searchParams.set("preview", String(input.preview));
+    }
+    if (input.mode) {
+        url.searchParams.set("mode", input.mode);
+    }
 
-	const templateId = input.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
-	if (templateId && templateId !== DEFAULT_SALES_PRINT_TEMPLATE_ID) {
-		url.searchParams.set("templateId", templateId);
-	}
+    const templateId = input.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
+    if (templateId && templateId !== DEFAULT_SALES_PRINT_TEMPLATE_ID) {
+        url.searchParams.set("templateId", templateId);
+    }
 
-	if (input.origin) {
-		return url.toString();
-	}
+    if (input.origin) {
+        return url.toString();
+    }
 
-	return `${url.pathname}${url.search}`;
+    return `${url.pathname}${url.search}`;
 }
 
 export function buildSalesPdfDownloadUrlFromQuery(input: {
-	pt?: string;
-	token?: string;
-	accessToken?: string;
-	snapshotId?: string;
-	templateId?: string | null;
-	preview?: boolean;
-	origin?: string;
+    pt?: string;
+    token?: string;
+    accessToken?: string;
+    snapshotId?: string;
+    templateId?: string | null;
+    preview?: boolean;
+    origin?: string;
 }) {
-	return buildSalesDocumentRouteFromQuery({
-		...input,
-		path: DOWNLOAD_ROUTE_PATH,
-		preview: input.preview ?? false,
-	});
+    return buildSalesDocumentRouteFromQuery({
+        ...input,
+        path: DOWNLOAD_ROUTE_PATH,
+        preview: input.preview ?? false,
+    });
 }
 
 export async function resolveSalesPrintAccess(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const mode = resolveSalesPrintMode(request.mode);
-	const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
-	const templateId = request.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
-	const accessKey = JSON.stringify({
-		salesIds: [...request.salesIds].sort((a, b) => a - b),
-		mode,
-		dispatchId: request.dispatchId ?? null,
-		templateId,
-		baseUrl,
-		forceRegenerate: request.forceRegenerate ?? false,
-	});
+    const mode = resolveSalesPrintMode(request.mode);
+    const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
+    const templateId = request.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
+    const accessKey = JSON.stringify({
+        salesIds: [...request.salesIds].sort((a, b) => a - b),
+        mode,
+        dispatchId: request.dispatchId ?? null,
+        templateId,
+        baseUrl,
+        forceRegenerate: request.forceRegenerate ?? false,
+    });
 
-	const inflight = inflightAccessRequests.get(accessKey);
-	if (inflight) return inflight;
+    const inflight = inflightAccessRequests.get(accessKey);
+    if (inflight) return inflight;
 
-	const pendingAccess = dependencies
-		.resolveAccess({
-			salesIds: request.salesIds,
-			mode,
-			dispatchId: request.dispatchId ?? null,
-			templateId,
-			baseUrl,
-			forceRegenerate: request.forceRegenerate ?? false,
-		})
-		.finally(() => {
-			inflightAccessRequests.delete(accessKey);
-		});
+    const pendingAccess = dependencies
+        .resolveAccess({
+            salesIds: request.salesIds,
+            mode,
+            dispatchId: request.dispatchId ?? null,
+            templateId,
+            baseUrl,
+            forceRegenerate: request.forceRegenerate ?? false,
+        })
+        .finally(() => {
+            inflightAccessRequests.delete(accessKey);
+        });
 
-	inflightAccessRequests.set(accessKey, pendingAccess);
-	return pendingAccess;
+    inflightAccessRequests.set(accessKey, pendingAccess);
+    return pendingAccess;
 }
 
 export async function resolveSalesHtmlPreviewAccess(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const mode = resolveSalesPrintMode(request.mode);
-	const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
-	const templateId = request.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
-	const accessKey = JSON.stringify({
-		salesIds: [...request.salesIds].sort((a, b) => a - b),
-		mode,
-		dispatchId: request.dispatchId ?? null,
-		templateId,
-		baseUrl,
-	});
+    const mode = resolveSalesPrintMode(request.mode);
+    const baseUrl = request.baseUrl ?? dependencies.getBaseUrl();
+    const templateId = request.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
+    const accessKey = JSON.stringify({
+        salesIds: [...request.salesIds].sort((a, b) => a - b),
+        mode,
+        dispatchId: request.dispatchId ?? null,
+        templateId,
+        baseUrl,
+    });
 
-	const inflight = inflightHtmlPreviewRequests.get(accessKey);
-	if (inflight) return inflight;
+    const inflight = inflightHtmlPreviewRequests.get(accessKey);
+    if (inflight) return inflight;
 
-	const pendingAccess = dependencies
-		.resolveHtmlPreviewAccess({
-			salesIds: request.salesIds,
-			mode,
-			dispatchId: request.dispatchId ?? null,
-			templateId,
-			baseUrl,
-		})
-		.finally(() => {
-			inflightHtmlPreviewRequests.delete(accessKey);
-		});
+    const pendingAccess = dependencies
+        .resolveHtmlPreviewAccess({
+            salesIds: request.salesIds,
+            mode,
+            dispatchId: request.dispatchId ?? null,
+            templateId,
+            baseUrl,
+        })
+        .finally(() => {
+            inflightHtmlPreviewRequests.delete(accessKey);
+        });
 
-	inflightHtmlPreviewRequests.set(accessKey, pendingAccess);
-	return pendingAccess;
+    inflightHtmlPreviewRequests.set(accessKey, pendingAccess);
+    return pendingAccess;
 }
 
 export async function openSalesPrintDocument(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const mode = resolveSalesPrintMode(request.mode);
-	const shouldUseAttachmentOverlay =
-		dependencies.useAttachmentOverlay && !request.openInNewTab;
-	const pendingWindow = request.openInNewTab
-		? null
-		: shouldUseAttachmentOverlay
-			? null
-			: dependencies.openPendingPrintWindow();
+    const mode = resolveSalesPrintMode(request.mode);
+    const shouldUseAttachmentOverlay =
+        dependencies.useAttachmentOverlay && !request.openInNewTab;
+    const pendingWindow = request.openInNewTab
+        ? null
+        : shouldUseAttachmentOverlay
+          ? null
+          : dependencies.openPendingPrintWindow();
 
-	try {
-		request.onPrintStage?.("resolve-access-start", {
-			mode,
-			salesIds: request.salesIds,
-		});
-		const access = await resolveSalesPrintAccess(request, dependencies);
-		const printedFromSnapshot = access.kind === "snapshot" && !access.generated;
-		request.onPrintStage?.("resolve-access-done", {
-			mode,
-			salesIds: request.salesIds,
-			printedFromSnapshot,
-		});
-		const href = buildSalesPrintViewerUrl(access, {
-			preview: false,
-			templateId: request.templateId,
-			mode,
-		});
+    try {
+        request.onPrintStage?.("resolve-access-start", {
+            mode,
+            salesIds: request.salesIds,
+        });
+        const access = await resolveSalesPrintAccess(request, dependencies);
+        const printedFromSnapshot =
+            access.kind === "snapshot" && !access.generated;
+        request.onPrintStage?.("resolve-access-done", {
+            mode,
+            salesIds: request.salesIds,
+            printedFromSnapshot,
+        });
+        const href = buildSalesPrintViewerUrl(access, {
+            preview: false,
+            templateId: request.templateId,
+            mode,
+        });
 
-		if (shouldUseAttachmentOverlay) {
-			const mountedHiddenViewer = await dependencies.mountHiddenPrintViewer?.(
-				href,
-				{
-					onPrintReady: () => {
-						request.onPrintReady?.();
-					},
-					onPrintError: (error) => {
-						request.onPrintError?.(error);
-					},
-					onPrintStage: (stage, details) => {
-						request.onPrintStage?.(stage, {
-							...details,
-							href: details?.href ?? href,
-							mode: details?.mode ?? mode,
-							salesIds: details?.salesIds ?? request.salesIds,
-							printedFromSnapshot:
-								details?.printedFromSnapshot ?? printedFromSnapshot,
-						});
-					},
-				},
-			);
+        if (shouldUseAttachmentOverlay) {
+            const mountedHiddenViewer =
+                await dependencies.mountHiddenPrintViewer?.(href, {
+                    onPrintReady: () => {
+                        request.onPrintReady?.();
+                    },
+                    onPrintError: (error) => {
+                        request.onPrintError?.(error);
+                    },
+                    onPrintStage: (stage, details) => {
+                        request.onPrintStage?.(stage, {
+                            ...details,
+                            href: details?.href ?? href,
+                            mode: details?.mode ?? mode,
+                            salesIds: details?.salesIds ?? request.salesIds,
+                            printedFromSnapshot:
+                                details?.printedFromSnapshot ??
+                                printedFromSnapshot,
+                        });
+                    },
+                });
 
-			if (mountedHiddenViewer) {
-				request.onPrintStage?.("hidden-viewer-mounted", {
-					href,
-					mode,
-					salesIds: request.salesIds,
-					printedFromSnapshot,
-				});
-				return;
-			}
-		}
+            if (mountedHiddenViewer) {
+                request.onPrintStage?.("hidden-viewer-mounted", {
+                    href,
+                    mode,
+                    salesIds: request.salesIds,
+                    printedFromSnapshot,
+                });
+                return;
+            }
+        }
 
-		if (pendingWindow && !pendingWindow.closed) {
-			pendingWindow.location.replace(href);
-			return;
-		}
+        if (pendingWindow && !pendingWindow.closed) {
+            pendingWindow.location.replace(href);
+            return;
+        }
 
-		dependencies.openLink(href, null, true);
-	} catch (error) {
-		request.onPrintStage?.("resolve-access-error", {
-			mode,
-			salesIds: request.salesIds,
-			error,
-		});
-		if (pendingWindow && !pendingWindow.closed) {
-			pendingWindow.close();
-		}
-		throw error;
-	}
+        dependencies.openLink(href, null, true);
+    } catch (error) {
+        request.onPrintStage?.("resolve-access-error", {
+            mode,
+            salesIds: request.salesIds,
+            error,
+        });
+        if (pendingWindow && !pendingWindow.closed) {
+            pendingWindow.close();
+        }
+        throw error;
+    }
 }
 
 export async function downloadSalesPrintDocument(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const access = await resolveSalesPrintAccess(request, dependencies);
-	downloadSilently(access.downloadUrl);
+    const access = await resolveSalesPrintAccess(request, dependencies);
+    downloadSilently(access.downloadUrl);
 }
 
 export async function regenerateSalesPrintDocument(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	return resolveSalesPrintAccess(
-		{
-			...request,
-			forceRegenerate: true,
-		},
-		dependencies,
-	);
+    return resolveSalesPrintAccess(
+        {
+            ...request,
+            forceRegenerate: true,
+        },
+        dependencies,
+    );
 }
 
 export async function prepareSalesPrintPreview(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const access = await resolveSalesPrintAccess(request, dependencies);
-	return buildSalesDocumentPreviewUrl(access, {
-		templateId: request.templateId,
-	});
+    const access = await resolveSalesPrintAccess(request, dependencies);
+    return buildSalesDocumentPreviewUrl(access, {
+        templateId: request.templateId,
+    });
 }
 
 export async function prepareSalesHtmlPreview(
-	request: SalesPrintRequest,
-	dependencies: SalesPrintDependencies = defaultDependencies,
+    request: SalesPrintRequest,
+    dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
-	const access = await resolveSalesHtmlPreviewAccess(request, dependencies);
-	return buildSalesDocumentPreviewUrl(access, {
-		templateId: request.templateId,
-	});
+    const access = await resolveSalesHtmlPreviewAccess(request, dependencies);
+    return buildSalesDocumentPreviewUrl(access, {
+        templateId: request.templateId,
+    });
 }
 
 export function printOrder(request: Omit<SalesPrintRequest, "mode">) {
-	return openSalesPrintDocument({ ...request, mode: "invoice" });
+    return openSalesPrintDocument({ ...request, mode: "invoice" });
 }
 
 export function printOrderWithPacking(
-	request: Omit<SalesPrintRequest, "mode">,
+    request: Omit<SalesPrintRequest, "mode">,
 ) {
-	return openSalesPrintDocument({ ...request, mode: "order-packing" });
+    return openSalesPrintDocument({ ...request, mode: "order-packing" });
 }
 
 export function printPackingSlip(request: Omit<SalesPrintRequest, "mode">) {
-	return openSalesPrintDocument({ ...request, mode: "packing-slip" });
+    return openSalesPrintDocument({ ...request, mode: "packing-slip" });
 }
 
 export function printProduction(request: Omit<SalesPrintRequest, "mode">) {
-	return openSalesPrintDocument({ ...request, mode: "production" });
+    return openSalesPrintDocument({ ...request, mode: "production" });
 }
 
 export function printQuote(request: Omit<SalesPrintRequest, "mode">) {
-	return openSalesPrintDocument({ ...request, mode: "quote" });
+    return openSalesPrintDocument({ ...request, mode: "quote" });
 }
 
 function buildSalesDocumentRouteUrl(
-	path: string,
-	access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
-	options?: {
-		preview?: boolean;
-		templateId?: string | null;
-		mode?: PrintMode;
-		origin?: string;
-	},
+    path: string,
+    access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
+    options?: {
+        preview?: boolean;
+        templateId?: string | null;
+        mode?: PrintMode;
+        origin?: string;
+    },
 ) {
-	const origin =
-		options?.origin ||
-		(typeof window !== "undefined" ? window.location.origin : undefined);
-	const url = new URL(path, origin ?? "http://same-origin.local");
+    const origin =
+        options?.origin ||
+        (typeof window !== "undefined" ? window.location.origin : undefined);
+    const url = new URL(path, origin ?? "http://same-origin.local");
 
-	if (access.kind === "legacy") {
-		url.searchParams.set("token", access.accessToken);
-	} else {
-		url.searchParams.set("accessToken", access.accessToken);
-	}
+    if (access.kind === "legacy") {
+        url.searchParams.set("token", access.accessToken);
+    } else {
+        url.searchParams.set("accessToken", access.accessToken);
+    }
 
-	if (typeof options?.preview === "boolean") {
-		url.searchParams.set("preview", String(options.preview));
-	}
-	if (options?.mode) {
-		url.searchParams.set("mode", options.mode);
-	}
+    if (typeof options?.preview === "boolean") {
+        url.searchParams.set("preview", String(options.preview));
+    }
+    if (options?.mode) {
+        url.searchParams.set("mode", options.mode);
+    }
 
-	const templateId = options?.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
-	if (templateId && templateId !== DEFAULT_SALES_PRINT_TEMPLATE_ID) {
-		url.searchParams.set("templateId", templateId);
-	}
+    const templateId = options?.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
+    if (templateId && templateId !== DEFAULT_SALES_PRINT_TEMPLATE_ID) {
+        url.searchParams.set("templateId", templateId);
+    }
 
-	if (origin) {
-		return url.toString();
-	}
+    if (origin) {
+        return url.toString();
+    }
 
-	return `${url.pathname}${url.search}`;
+    return `${url.pathname}${url.search}`;
 }
 
 function downloadSilently(url: string) {
-	const link = document.createElement("a");
-	link.href = url;
-	link.rel = "noopener";
-	link.style.display = "none";
-	document.body.appendChild(link);
-	link.click();
+    const link = document.createElement("a");
+    link.href = url;
+    link.rel = "noopener";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
 
-	setTimeout(() => {
-		link.remove();
-	}, 1_000);
+    setTimeout(() => {
+        link.remove();
+    }, 1_000);
 }
 
 function getSalesPrintViewerTitle(mode: PrintMode) {
-	if (mode === "quote") return "Print Quote";
-	if (mode === "packing-slip") return "Print Packing Slip";
-	if (mode === "production") return "Print Production";
-	if (mode === "order-packing") return "Print Order + Packing";
+    if (mode === "quote") return "Print Quote";
+    if (mode === "packing-slip") return "Print Packing Slip";
+    if (mode === "production") return "Print Production";
+    if (mode === "order-packing") return "Print Order + Packing";
 
-	return "Print Invoice";
+    return "Print Invoice";
 }
 
 async function createPrintViewerContent(href: string): Promise<ReactNode> {
-	const { SalesPrintShellViewer } = await import(
-		"@/modules/sales-print/ui/sales-print-shell-viewer"
-	);
+    const { SalesPrintShellViewer } =
+        await import("@/modules/sales-print/ui/sales-print-shell-viewer");
 
-	return createElement(SalesPrintShellViewer, { href });
+    return createElement(SalesPrintShellViewer, { href });
 }
 
 async function mountHiddenPrintViewer(
-	href: string,
-	callbacks?: {
-		onPrintReady?: () => void;
-		onPrintError?: (error: unknown) => void;
-		onPrintStage?: (
-			stage: SalesPrintStage,
-			details?: SalesPrintStageDetails,
-		) => void;
-	},
+    href: string,
+    callbacks?: {
+        onPrintReady?: () => void;
+        onPrintError?: (error: unknown) => void;
+        onPrintStage?: (
+            stage: SalesPrintStage,
+            details?: SalesPrintStageDetails,
+        ) => void;
+    },
 ) {
-	if (typeof document === "undefined") return false;
+    if (typeof document === "undefined") return false;
 
-	const { createRoot } = await import("react-dom/client");
-	const { SalesPrintShellViewer } = await import(
-		"@/modules/sales-print/ui/sales-print-shell-viewer"
-	);
-	const { TRPCReactProvider } = await import("@/trpc/client");
-	const { SessionProvider } = await import("next-auth/react");
+    const { createRoot } = await import("react-dom/client");
+    const { SalesPrintShellViewer } =
+        await import("@/modules/sales-print/ui/sales-print-shell-viewer");
+    const { TRPCReactProvider } = await import("@/trpc/client");
+    const { SessionProvider } = await import("@/lib/auth/client");
 
-	const host = document.createElement("div");
-	host.setAttribute("data-sales-hidden-print-host", "true");
-	Object.assign(host.style, {
-		position: "fixed",
-		top: "0",
-		left: "-10000px",
-		width: "1024px",
-		height: "768px",
-		overflow: "hidden",
-		opacity: "0",
-		pointerEvents: "none",
-		zIndex: "-1",
-	});
+    const host = document.createElement("div");
+    host.setAttribute("data-sales-hidden-print-host", "true");
+    Object.assign(host.style, {
+        position: "fixed",
+        top: "0",
+        left: "-10000px",
+        width: "1024px",
+        height: "768px",
+        overflow: "hidden",
+        opacity: "0",
+        pointerEvents: "none",
+        zIndex: "-1",
+    });
 
-	document.body.appendChild(host);
-	const root = createRoot(host);
-	let cleanupTimer: number | null = null;
-	let settled = false;
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    let cleanupTimer: number | null = null;
+    let settled = false;
 
-	const cleanup = () => {
-		if (cleanupTimer) {
-			window.clearTimeout(cleanupTimer);
-			cleanupTimer = null;
-		}
-		root.unmount();
-		host.remove();
-	};
+    const cleanup = () => {
+        if (cleanupTimer) {
+            window.clearTimeout(cleanupTimer);
+            cleanupTimer = null;
+        }
+        root.unmount();
+        host.remove();
+    };
 
-	const timeout = window.setTimeout(() => {
-		if (settled) return;
-		settled = true;
-		const error = new Error("The print viewer is taking longer than expected.");
-		callbacks?.onPrintStage?.("print-timeout", {
-			href,
-			message: error.message,
-			error,
-		});
-		callbacks?.onPrintError?.(error);
-		cleanup();
-	}, 20_000);
+    const timeout = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        const error = new Error(
+            "The print viewer is taking longer than expected.",
+        );
+        callbacks?.onPrintStage?.("print-timeout", {
+            href,
+            message: error.message,
+            error,
+        });
+        callbacks?.onPrintError?.(error);
+        cleanup();
+    }, 20_000);
 
-	root.render(
-		createElement(
-			SessionProvider,
-			{
-				refetchOnWindowFocus: false,
-				refetchWhenOffline: false,
-			},
-			createElement(
-				TRPCReactProvider,
-				null,
-				createElement(SalesPrintShellViewer, {
-					href,
-					onPrintReady: () => {
-						if (settled) return;
-						settled = true;
-						window.clearTimeout(timeout);
-						callbacks?.onPrintReady?.();
-						cleanupTimer = window.setTimeout(cleanup, 60_000);
-					},
-					onPrintError: (error: unknown) => {
-						if (settled) return;
-						settled = true;
-						window.clearTimeout(timeout);
-						callbacks?.onPrintError?.(error);
-						cleanup();
-					},
-					onPrintStage: callbacks?.onPrintStage,
-				}),
-			),
-		),
-	);
+    root.render(
+        createElement(
+            SessionProvider,
+            {
+                refetchOnWindowFocus: false,
+                refetchWhenOffline: false,
+            },
+            createElement(
+                TRPCReactProvider,
+                null,
+                createElement(SalesPrintShellViewer, {
+                    href,
+                    onPrintReady: () => {
+                        if (settled) return;
+                        settled = true;
+                        window.clearTimeout(timeout);
+                        callbacks?.onPrintReady?.();
+                        cleanupTimer = window.setTimeout(cleanup, 60_000);
+                    },
+                    onPrintError: (error: unknown) => {
+                        if (settled) return;
+                        settled = true;
+                        window.clearTimeout(timeout);
+                        callbacks?.onPrintError?.(error);
+                        cleanup();
+                    },
+                    onPrintStage: callbacks?.onPrintStage,
+                }),
+            ),
+        ),
+    );
 
-	return true;
+    return true;
 }
 
 function createPrintLoadingContent(mode: PrintMode): ReactNode {
-	return createElement(
-		"div",
-		{
-			className:
-				"flex h-full min-h-[420px] items-center justify-center bg-background text-foreground",
-		},
-		createElement(
-			"div",
-			{
-				className:
-					"flex w-[min(360px,calc(100vw-48px))] flex-col items-center gap-4 rounded-lg border bg-card px-6 py-8 text-center shadow-sm",
-			},
-			createElement("div", {
-				className:
-					"size-10 animate-spin rounded-full border-4 border-muted border-t-primary",
-				"aria-hidden": true,
-			}),
-			createElement(
-				"div",
-				{ className: "space-y-1" },
-				createElement(
-					"p",
-					{ className: "text-sm font-semibold" },
-					"Generating document...",
-				),
-				createElement(
-					"p",
-					{ className: "text-xs text-muted-foreground" },
-					`Preparing ${getSalesPrintViewerTitle(mode).toLowerCase()} for preview.`,
-				),
-			),
-		),
-	);
+    return createElement(
+        "div",
+        {
+            className:
+                "flex h-full min-h-[420px] items-center justify-center bg-background text-foreground",
+        },
+        createElement(
+            "div",
+            {
+                className:
+                    "flex w-[min(360px,calc(100vw-48px))] flex-col items-center gap-4 rounded-lg border bg-card px-6 py-8 text-center shadow-sm",
+            },
+            createElement("div", {
+                className:
+                    "size-10 animate-spin rounded-full border-4 border-muted border-t-primary",
+                "aria-hidden": true,
+            }),
+            createElement(
+                "div",
+                { className: "space-y-1" },
+                createElement(
+                    "p",
+                    { className: "text-sm font-semibold" },
+                    "Generating document...",
+                ),
+                createElement(
+                    "p",
+                    { className: "text-xs text-muted-foreground" },
+                    `Preparing ${getSalesPrintViewerTitle(mode).toLowerCase()} for preview.`,
+                ),
+            ),
+        ),
+    );
 }
 
 function openPendingPrintWindow() {
-	if (typeof window === "undefined") return null;
+    if (typeof window === "undefined") return null;
 
-	const printWindow = window.open("", "_blank");
-	if (!printWindow) return null;
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return null;
 
-	printWindow.document.write(`<!doctype html>
+    printWindow.document.write(`<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -672,7 +673,7 @@ function openPendingPrintWindow() {
     </div>
   </body>
 </html>`);
-	printWindow.document.close();
+    printWindow.document.close();
 
-	return printWindow;
+    return printWindow;
 }

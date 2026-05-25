@@ -1,0 +1,692 @@
+import { createHash, randomBytes } from "crypto";
+import { db, type Roles, type Users } from "@gnd/db";
+import { generatePermissions } from "@gnd/utils/constants";
+import { type BetterAuthPlugin, betterAuth } from "better-auth";
+import { APIError, createAuthEndpoint } from "better-auth/api";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { setSessionCookie } from "better-auth/cookies";
+import { parseUserOutput } from "better-auth/db";
+import { nextCookies } from "better-auth/next-js";
+import { compare } from "bcrypt-ts";
+import * as z from "zod";
+import {
+  type ICan,
+  getUserSpecificPermissions,
+  mergePermissionRecords,
+  validateAuthToken,
+} from "../utils";
+import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
+
+export const STANDARD_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
+export const REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
+export const WEB_AUTH_SESSION_MAX_AGE_SECONDS =
+  REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS;
+export const STANDARD_WEB_SESSION_REFRESH_WINDOW_SECONDS = 60 * 60;
+export const REMEMBER_ME_WEB_SESSION_REFRESH_WINDOW_SECONDS = 60 * 60 * 24;
+const PASSWORD_MIGRATION_TOKEN_EXPIRES_IN_SECONDS = 60 * 15;
+const CREDENTIAL_PROVIDER_ID = "credential";
+const PASSWORD_MIGRATION_IDENTIFIER_PREFIX = "www-password-migration:";
+const RESET_PASSWORD_EXPIRY_HOURS = 1;
+
+export type WebActiveSessionInfo = {
+  id: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  expires: Date | null;
+};
+
+export type WebAppSession = {
+  user: Users;
+  can: ICan;
+  role: Roles | null;
+  activeSession?: WebActiveSessionInfo | null;
+  rememberMe?: boolean;
+};
+
+export type WebNewDeviceLoginAlertInput = {
+  sessionId: string;
+  userId: number;
+  accountName: string | null;
+  accountEmail: string;
+  appSurface: "www";
+  deviceLabel: string;
+  deviceKey: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  loginAt: string;
+};
+
+let webNewDeviceLoginAlertHandler:
+  | ((input: WebNewDeviceLoginAlertInput) => Promise<void> | void)
+  | null = null;
+
+export function setWebNewDeviceLoginAlertHandler(
+  handler: typeof webNewDeviceLoginAlertHandler,
+) {
+  webNewDeviceLoginAlertHandler = handler;
+}
+
+function runWebNewDeviceLoginAlert(input: WebNewDeviceLoginAlertInput) {
+  Promise.resolve(webNewDeviceLoginAlertHandler?.(input)).catch((error) => {
+    console.error("Failed to run web new device login hook:", error);
+  });
+}
+
+function getWebBaseUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+function getTrustedOrigins() {
+  const localAppPort =
+    process.env.PORTLESS_APP_PORT || process.env.PORT || "3000";
+  const localOrigins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    `http://localhost:${localAppPort}`,
+    `http://127.0.0.1:${localAppPort}`,
+  ];
+
+  return Array.from(
+    new Set(
+      [
+        getWebBaseUrl(),
+        ...localOrigins,
+        process.env.NEXT_PUBLIC_APP_URL,
+        process.env.BETTER_AUTH_TRUSTED_ORIGINS,
+      ]
+        .flatMap((value) => value?.split(",") ?? [])
+        .map((value) => value.trim().replace(/\/$/, ""))
+        .filter(Boolean),
+    ),
+  );
+}
+
+function normalizeRememberMe(value: unknown) {
+  return value === true || value === "true" || value === "on";
+}
+
+function hashResetToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+async function findLegacyUser(input: {
+  email?: string | null;
+  token?: string | null;
+}) {
+  let email = input.email?.trim();
+  let tokenAuthenticated = false;
+
+  if (input.token) {
+    const { email: tokenEmail } = await validateAuthToken(db, input.token);
+    if (!tokenEmail) return null;
+    email = tokenEmail;
+    tokenAuthenticated = true;
+  }
+
+  if (!email) return null;
+
+  const user = await db.users.findFirst({
+    where: {
+      email,
+      accessRevokedAt: null,
+      OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
+    },
+    include: {
+      roles: {
+        include: {
+          role: {
+            include: {
+              RoleHasPermissions: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  return {
+    user,
+    tokenAuthenticated,
+  };
+}
+
+async function upsertWebAuthUser(user: Users) {
+  return db.webAuthUser.upsert({
+    where: { legacyUserId: user.id },
+    create: {
+      id: crypto.randomUUID(),
+      legacyUserId: user.id,
+      name: user.name || user.email,
+      email: user.email.toLowerCase(),
+      emailVerified: Boolean(user.emailVerifiedAt),
+      image: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: {
+      name: user.name || user.email,
+      email: user.email.toLowerCase(),
+      emailVerified: Boolean(user.emailVerifiedAt),
+      updatedAt: new Date(),
+    },
+  });
+}
+
+async function findCredentialAccount(authUserId: string) {
+  return db.webAuthAccount.findFirst({
+    where: {
+      userId: authUserId,
+      providerId: CREDENTIAL_PROVIDER_ID,
+    },
+  });
+}
+
+async function ensureCredentialAccount(authUserId: string) {
+  return db.webAuthAccount.upsert({
+    where: {
+      providerId_accountId: {
+        providerId: CREDENTIAL_PROVIDER_ID,
+        accountId: authUserId,
+      },
+    },
+    create: {
+      id: crypto.randomUUID(),
+      accountId: authUserId,
+      providerId: CREDENTIAL_PROVIDER_ID,
+      userId: authUserId,
+      password: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: {
+      updatedAt: new Date(),
+    },
+  });
+}
+
+function upsertCredentialPassword(authUserId: string, password: string) {
+  return db.webAuthAccount.upsert({
+    where: {
+      providerId_accountId: {
+        providerId: CREDENTIAL_PROVIDER_ID,
+        accountId: authUserId,
+      },
+    },
+    create: {
+      id: crypto.randomUUID(),
+      accountId: authUserId,
+      providerId: CREDENTIAL_PROVIDER_ID,
+      userId: authUserId,
+      password,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    update: {
+      password,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+async function createPasswordMigrationToken(authUserId: string) {
+  await db.webAuthVerification.deleteMany({
+    where: {
+      identifier: {
+        startsWith: PASSWORD_MIGRATION_IDENTIFIER_PREFIX,
+      },
+      value: authUserId,
+    },
+  });
+
+  const token = randomBytes(32).toString("base64url");
+  await db.webAuthVerification.create({
+    data: {
+      id: crypto.randomUUID(),
+      identifier: `${PASSWORD_MIGRATION_IDENTIFIER_PREFIX}${token}`,
+      value: authUserId,
+      expiresAt: new Date(
+        Date.now() + PASSWORD_MIGRATION_TOKEN_EXPIRES_IN_SECONDS * 1000,
+      ),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  return token;
+}
+
+async function buildPermissions(user: Users & { roles: Array<any> }) {
+  const _role = user.roles[0]?.role;
+  const rolePermissions = await db.permissions.findMany({
+    where: {
+      id: {
+        in: (_role?.RoleHasPermissions ?? []).map((item) => item.permissionId),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+  const specificPermissions = await getUserSpecificPermissions(db, user.id);
+  const can = generatePermissions(
+    _role?.name,
+    mergePermissionRecords(rolePermissions, specificPermissions),
+  );
+  const role = _role
+    ? (({ RoleHasPermissions: _permissions, ...rest }) => rest)(_role)
+    : null;
+
+  return {
+    can,
+    role: role as Roles | null,
+  };
+}
+
+async function getLegacyUserByAuthUserId(authUserId: string) {
+  const authUser = await db.webAuthUser.findUnique({
+    where: { id: authUserId },
+    select: { legacyUserId: true },
+  });
+
+  if (!authUser) return null;
+
+  return db.users.findFirst({
+    where: {
+      id: authUser.legacyUserId,
+      accessRevokedAt: null,
+    },
+    include: {
+      roles: {
+        include: {
+          role: {
+            include: {
+              RoleHasPermissions: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function webCredentialsPlugin(): BetterAuthPlugin {
+  return {
+    id: "web-legacy-credentials",
+    endpoints: {
+      webLegacySignIn: createAuthEndpoint(
+        "/www-legacy-sign-in",
+        {
+          method: "POST",
+          body: z.object({
+            callbackURL: z.string().optional(),
+            email: z.string().email().optional(),
+            password: z.string().optional(),
+            rememberMe: z.union([z.boolean(), z.string()]).optional(),
+            token: z.string().optional(),
+          }),
+        },
+        async (ctx) => {
+          const legacyLogin = await findLegacyUser(ctx.body);
+          if (!legacyLogin) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Invalid email or password.",
+            });
+          }
+
+          const { tokenAuthenticated, user } = legacyLogin;
+          const authUser = await upsertWebAuthUser(user);
+          const credentialAccount = await findCredentialAccount(authUser.id);
+          const password =
+            typeof ctx.body.password === "string" ? ctx.body.password : "";
+          let authenticated = tokenAuthenticated;
+
+          if (!authenticated && user.password && password) {
+            const legacyPasswordMatches = await compare(
+              password,
+              user.password,
+            );
+            if (legacyPasswordMatches && !credentialAccount?.password) {
+              await ensureCredentialAccount(authUser.id);
+              const token = await createPasswordMigrationToken(authUser.id);
+              const url = `/login/create-password?token=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent(ctx.body.callbackURL || "/")}`;
+
+              return ctx.json({
+                redirect: true,
+                requiresPasswordMigration: true,
+                url,
+              });
+            }
+            if (legacyPasswordMatches && credentialAccount?.password) {
+              await db.users.update({
+                where: { id: user.id },
+                data: { password: null },
+              });
+            }
+            authenticated = legacyPasswordMatches;
+          }
+
+          if (!authenticated && credentialAccount?.password && password) {
+            authenticated = await ctx.context.password.verify({
+              hash: credentialAccount.password,
+              password,
+            });
+          }
+
+          if (!authenticated) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Invalid email or password.",
+            });
+          }
+
+          const previousSessions = await db.webAuthSession.findMany({
+            where: { userId: authUser.id },
+            select: {
+              id: true,
+              userAgent: true,
+            },
+          });
+          const shouldSendNewDeviceAlert = isNewLoginDevice(
+            ctx.headers?.get("user-agent") ?? null,
+            previousSessions,
+          );
+          const rememberMe = normalizeRememberMe(ctx.body.rememberMe);
+          const session = await ctx.context.internalAdapter.createSession(
+            authUser.id,
+            !rememberMe,
+          );
+
+          if (!session) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Failed to create session.",
+            });
+          }
+
+          await setSessionCookie(
+            ctx,
+            {
+              session,
+              user: authUser,
+            },
+            !rememberMe,
+          );
+
+          if (shouldSendNewDeviceAlert) {
+            const device = normalizeLoginDevice(session.userAgent);
+            runWebNewDeviceLoginAlert({
+              sessionId: session.id,
+              userId: user.id,
+              accountName: user.name,
+              accountEmail: user.email,
+              appSurface: "www",
+              deviceLabel: device.label,
+              deviceKey: device.key,
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+              loginAt: new Date().toISOString(),
+            });
+          }
+
+          if (ctx.body.callbackURL) {
+            ctx.setHeader("Location", ctx.body.callbackURL);
+          }
+
+          return ctx.json({
+            redirect: !!ctx.body.callbackURL,
+            token: session.token,
+            url: ctx.body.callbackURL,
+            user: parseUserOutput(ctx.context.options, authUser),
+          });
+        },
+      ),
+      webCompletePasswordMigration: createAuthEndpoint(
+        "/www-complete-password-migration",
+        {
+          method: "POST",
+          body: z.object({
+            callbackURL: z.string().optional(),
+            password: z.string().min(6).max(100),
+            token: z.string().min(20),
+          }),
+        },
+        async (ctx) => {
+          const identifier = `${PASSWORD_MIGRATION_IDENTIFIER_PREFIX}${ctx.body.token}`;
+          const verification = await db.webAuthVerification.findFirst({
+            where: {
+              identifier,
+              expiresAt: {
+                gt: new Date(),
+              },
+            },
+          });
+
+          if (!verification) {
+            throw new APIError("BAD_REQUEST", {
+              message: "This password setup link is invalid or has expired.",
+            });
+          }
+
+          const authUser = await db.webAuthUser.findUnique({
+            where: {
+              id: verification.value,
+            },
+            include: {
+              legacyUser: true,
+            },
+          });
+
+          if (!authUser?.legacyUser || authUser.legacyUser.accessRevokedAt) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Invalid account.",
+            });
+          }
+
+          const hashedPassword = await ctx.context.password.hash(
+            ctx.body.password,
+          );
+          await db.$transaction([
+            upsertCredentialPassword(authUser.id, hashedPassword),
+            db.users.update({
+              where: {
+                id: authUser.legacyUserId,
+              },
+              data: {
+                password: null,
+              },
+            }),
+            db.webAuthVerification.delete({
+              where: {
+                id: verification.id,
+              },
+            }),
+          ]);
+
+          const session = await ctx.context.internalAdapter.createSession(
+            authUser.id,
+            false,
+          );
+
+          if (!session) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Failed to create session.",
+            });
+          }
+
+          await setSessionCookie(ctx, {
+            session,
+            user: authUser,
+          });
+
+          return ctx.json({
+            redirect: true,
+            token: session.token,
+            url: ctx.body.callbackURL || "/",
+            user: parseUserOutput(ctx.context.options, authUser),
+          });
+        },
+      ),
+      webResetPassword: createAuthEndpoint(
+        "/www-reset-password",
+        {
+          method: "POST",
+          body: z.object({
+            password: z.string().min(6).max(100),
+            token: z.string().min(20),
+          }),
+        },
+        async (ctx) => {
+          const reset = await db.passwordResets.findFirst({
+            where: {
+              createdAt: {
+                gte: new Date(
+                  Date.now() - RESET_PASSWORD_EXPIRY_HOURS * 60 * 60 * 1000,
+                ),
+              },
+              deletedAt: null,
+              token: hashResetToken(ctx.body.token),
+              usedAt: null,
+            },
+          });
+
+          if (!reset) {
+            throw new APIError("BAD_REQUEST", {
+              message: "This password reset link is invalid or has expired.",
+            });
+          }
+
+          const legacyLogin = await findLegacyUser({ email: reset.email });
+          if (!legacyLogin) {
+            throw new APIError("BAD_REQUEST", {
+              message: "This password reset link is invalid or has expired.",
+            });
+          }
+
+          const authUser = await upsertWebAuthUser(legacyLogin.user);
+          const hashedPassword = await ctx.context.password.hash(
+            ctx.body.password,
+          );
+
+          await db.$transaction([
+            upsertCredentialPassword(authUser.id, hashedPassword),
+            db.users.update({
+              where: {
+                id: legacyLogin.user.id,
+              },
+              data: {
+                password: null,
+              },
+            }),
+            db.passwordResets.update({
+              where: {
+                id: reset.id,
+              },
+              data: {
+                usedAt: new Date(),
+              },
+            }),
+            db.webAuthSession.deleteMany({
+              where: {
+                userId: authUser.id,
+              },
+            }),
+          ]);
+
+          return ctx.json({ status: true });
+        },
+      ),
+    },
+  };
+}
+
+export const webAuth = betterAuth({
+  appName: "GND Workspace",
+  baseURL: getWebBaseUrl(),
+  secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  trustedOrigins: getTrustedOrigins(),
+  database: prismaAdapter(db as never, {
+    provider: "mysql",
+  }),
+  advanced: {
+    cookiePrefix: "gnd-www-auth",
+  },
+  user: {
+    modelName: "WebAuthUser",
+    additionalFields: {
+      legacyUserId: {
+        type: "number",
+        required: true,
+        input: false,
+      },
+    },
+  },
+  session: {
+    modelName: "WebAuthSession",
+    expiresIn: WEB_AUTH_SESSION_MAX_AGE_SECONDS,
+    updateAge: REMEMBER_ME_WEB_SESSION_REFRESH_WINDOW_SECONDS,
+  },
+  account: {
+    modelName: "WebAuthAccount",
+  },
+  verification: {
+    modelName: "WebAuthVerification",
+  },
+  plugins: [webCredentialsPlugin(), nextCookies()],
+});
+
+export type WebAuthSession = typeof webAuth.$Infer.Session;
+
+export async function getWebAuthSession(headers: Headers) {
+  const authSession = await webAuth.api.getSession({
+    headers,
+  });
+
+  return buildWebAppSession(authSession);
+}
+
+export async function buildWebAppSession(
+  authSession: WebAuthSession | null,
+): Promise<WebAppSession | null> {
+  if (!authSession?.session?.id || !authSession.user?.id) {
+    return null;
+  }
+
+  const user = await getLegacyUserByAuthUserId(authSession.user.id);
+  if (!user) {
+    await db.webAuthSession.deleteMany({
+      where: { id: authSession.session.id },
+    });
+    return null;
+  }
+
+  const { can, role } = await buildPermissions(user);
+  const activeSession = {
+    id: authSession.session.id,
+    ipAddress: authSession.session.ipAddress ?? null,
+    userAgent: authSession.session.userAgent ?? null,
+    expires: authSession.session.expiresAt ?? null,
+  } satisfies WebActiveSessionInfo;
+  const createdAt = authSession.session.createdAt?.getTime?.() ?? Date.now();
+  const expiresAt =
+    authSession.session.expiresAt?.getTime?.() ??
+    createdAt + STANDARD_WEB_SESSION_MAX_AGE_SECONDS * 1000;
+  const rememberMe =
+    expiresAt - createdAt > STANDARD_WEB_SESSION_MAX_AGE_SECONDS * 1000;
+
+  return {
+    user,
+    can,
+    role,
+    activeSession,
+    rememberMe,
+  };
+}

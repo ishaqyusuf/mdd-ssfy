@@ -6,7 +6,7 @@ import { Icons } from "@gnd/ui/icons";
 import FormInput from "@/components/common/controls/form-input";
 import { _useAsync } from "@/lib/use-async";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth/client";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 

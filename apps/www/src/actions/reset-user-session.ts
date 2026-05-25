@@ -8,4 +8,11 @@ export async function resetUserSessionAction(userId) {
             userId,
         },
     });
+    await prisma.webAuthSession.deleteMany({
+        where: {
+            user: {
+                legacyUserId: userId,
+            },
+        },
+    });
 }
