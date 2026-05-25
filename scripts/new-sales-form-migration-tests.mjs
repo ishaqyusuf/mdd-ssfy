@@ -40,6 +40,10 @@ const commands = [
 		args: ["test", "apps/api/src/db/queries/new-sales-form.test.ts"],
 	},
 	{
+		label: "sales quote overview open params tests",
+		args: ["test", "apps/www/src/hooks/sales-overview-open-params.test.ts"],
+	},
+	{
 		label: "dealership typecheck",
 		args: ["run", "--filter", "@gnd/dealership", "typecheck"],
 	},
@@ -52,6 +56,9 @@ const commands = [
 			"apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx",
 			"apps/www/src/components/forms/new-sales-form/sections/www-sales-form-workflow-panel.tsx",
 			"apps/www/src/components/forms/new-sales-form/new-sales-form.tsx",
+			"apps/www/src/hooks/sales-overview-open-params.ts",
+			"apps/www/src/hooks/use-sales-overview-open.ts",
+			"apps/www/src/hooks/use-sales-overview-query.ts",
 			"apps/dealership/src/components/dealer-sales-form/dealer-customer-selector-dialog.tsx",
 			"apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx",
 			"apps/dealership/src/components/dealer-sales-form/dealer-quote-main-panel.tsx",

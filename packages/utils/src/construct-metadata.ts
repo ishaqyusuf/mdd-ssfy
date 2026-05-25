@@ -9,14 +9,19 @@ export function constructMetadata({
   icons = [
     {
       rel: "apple-touch-icon",
-      sizes: "32x32",
+      sizes: "180x180",
       url: `/icons/apple-touch-icon${prod ? ".png" : ".dev.jpg"}`,
+    },
+    {
+      rel: "icon",
+      type: "image/svg+xml",
+      url: "/icons/favicon.svg",
     },
     {
       rel: "icon",
       type: "image/png",
       sizes: "32x32",
-      url: `/icons/favicon-32x32s${prod ? ".png" : ".dev.jpg"}`,
+      url: `/icons/favicon-32x32${prod ? ".png" : ".dev.jpg"}`,
     },
     {
       rel: "icon",

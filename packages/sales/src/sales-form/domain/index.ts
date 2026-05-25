@@ -43,6 +43,16 @@ export {
   summarizeServiceRows,
 } from "./workflow-calculators";
 export {
+  computeHptFlatRate,
+  computeHptSharedDoorSurcharge,
+  getHptDoorSalesUnitPrice,
+  hydrateHptDoorRowFromLegacy,
+  normalizeHptDoorRowForLegacy,
+  normalizeHptLineForLegacy,
+  recalculateHptLineTotals,
+  type HptCompatibilityContext,
+} from "./hpt-compatibility";
+export {
   findLineStepByTitle,
   getItemType,
   getSelectedDoorComponentsForLine,

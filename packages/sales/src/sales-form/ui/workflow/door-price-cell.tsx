@@ -5,6 +5,7 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { useEffect, useState } from "react";
+import { getHptDoorSalesUnitPrice } from "../../domain";
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
 
 export type DoorPriceRow = {
@@ -16,6 +17,7 @@ export type DoorPriceRow = {
   lineTotal?: number | null;
   meta?: {
     baseUnitPrice?: number | null;
+    doorSalesUnitPrice?: number | null;
     priceMissing?: boolean | null;
     [key: string]: unknown;
   } | null;
@@ -96,9 +98,11 @@ export function updateDoorRowBasePrice<T extends DoorPriceRow>(
   return calcDoorRow({
     ...row,
     unitPrice: Number((nextCalculatedSales + surcharge).toFixed(2)),
+    jambSizePrice: nextCalculatedSales,
     meta: {
       ...(row.meta || {}),
       baseUnitPrice: normalizedNextBase,
+      doorSalesUnitPrice: nextCalculatedSales,
       priceMissing: false,
     },
   });
@@ -124,6 +128,9 @@ export function DoorPriceCell({
   const doorSalesPrice = hasStoredBasePrice
     ? profileAdjustedDoorSalesPrice(null, baseUnit, profileCoefficient)
     : toNumber(row.unitPrice, 0);
+  const displayDoorPrice = getHptDoorSalesUnitPrice(row, {
+    profileCoefficient,
+  });
 
   useEffect(() => {
     setDraft(
@@ -140,7 +147,7 @@ export function DoorPriceCell({
           {isMissingPrice ? "Missing" : "Price"}
         </span>
         <span className="block text-sm font-semibold text-foreground">
-          {currency(row.unitPrice)}
+          {currency(displayDoorPrice)}
         </span>
       </div>
     );
@@ -167,7 +174,7 @@ export function DoorPriceCell({
           <span className="text-sm font-semibold text-foreground">
             {isMissingPrice && !readOnly
               ? "Add Price"
-              : currency(row.unitPrice)}
+              : currency(displayDoorPrice)}
           </span>
         </Button>
       </PopoverTrigger>

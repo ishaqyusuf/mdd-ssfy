@@ -4,8 +4,8 @@ import {
 } from "@gnd/utils/constants";
 import {
 	calculateSalesFormSummary,
+	normalizeHptLineForLegacy,
 	repriceSalesFormLineItemsByProfile,
-	summarizeDoors,
 	summarizeMouldingPersistRows,
 	summarizeServiceRows,
 } from "../domain";
@@ -128,9 +128,9 @@ function deriveLineTotalForSummary(line: SalesFormLineItemRecord) {
 		: [];
 
 	if (hptDoors.length) {
-		const storedTotal = Number(line.housePackageTool?.totalPrice || 0);
-		if (storedTotal > 0) return storedTotal;
-		return summarizeDoors(hptDoors).totalPrice;
+		return Number(
+			normalizeHptLineForLegacy(line).housePackageTool?.totalPrice || 0,
+		);
 	}
 
 	const serviceRows = getStoredServiceRows(line);

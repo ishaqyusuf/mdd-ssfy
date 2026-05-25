@@ -176,6 +176,10 @@ export function buildWorkflowDoorSyncPatch(input: {
 		storedDoors,
 		computeSharedDoorSurcharge(line as any),
 		profileCoefficient,
+		{
+			noHandle: !!routeConfig?.noHandle,
+			hasSwing: !!routeConfig?.hasSwing,
+		},
 	);
 	const summary = summarizeDoors(normalizedRows, {
 		noHandle: !!routeConfig?.noHandle,
@@ -186,9 +190,15 @@ export function buildWorkflowDoorSyncPatch(input: {
 		JSON.stringify(normalizeStoredDoorRows(summary.rows));
 	const qtyChanged =
 		Number((line as any).qty || 0) !== Number(summary.totalDoors || 0);
+	const unitPrice =
+		summary.totalDoors > 0
+			? Number((summary.totalPrice / summary.totalDoors).toFixed(2))
+			: 0;
+	const unitPriceChanged =
+		roundCurrency((line as any).unitPrice) !== roundCurrency(unitPrice);
 	const totalChanged =
 		roundCurrency((line as any).lineTotal) !== roundCurrency(summary.totalPrice);
-	if (!rowsChanged && !qtyChanged && !totalChanged) return null;
+	if (!rowsChanged && !qtyChanged && !unitPriceChanged && !totalChanged) return null;
 
 	return {
 		lineUid: String(line.uid || ""),
@@ -203,6 +213,7 @@ export function buildWorkflowDoorSyncPatch(input: {
 				totalPrice: summary.totalPrice,
 			},
 			qty: summary.totalDoors,
+			unitPrice,
 			lineTotal: summary.totalPrice,
 		},
 	};

@@ -30,6 +30,7 @@ import {
 	buildSelectedProdUidsByStepUid,
 	deriveDoorSizeCandidates,
 	getRedirectableRoutes,
+	getHptDoorSalesUnitPrice,
 	getSelectedDoorComponentsForLine,
 	getSelectedProdUids,
 	getRouteConfigForLine,
@@ -604,7 +605,9 @@ export function SalesFormWorkflowPanel<
 					swing: "",
 					doorType: "",
 					doorPrice: 0,
-					jambSizePrice: 0,
+					jambSizePrice: hasResolvedPrice
+						? Number(tierPricing.salesPrice.toFixed(2))
+						: 0,
 					casingPrice: 0,
 					unitPrice: hasResolvedPrice
 						? Number((tierPricing.salesPrice + sharedDoorSurcharge).toFixed(2))
@@ -618,6 +621,10 @@ export function SalesFormWorkflowPanel<
 						baseUnitPrice: hasResolvedPrice
 							? Number(tierPricing.basePrice.toFixed(2))
 							: 0,
+						doorSalesUnitPrice: hasResolvedPrice
+							? Number(tierPricing.salesPrice.toFixed(2))
+							: 0,
+						sharedDoorSurcharge,
 						priceMissing: !hasResolvedPrice,
 					},
 				},
@@ -1440,12 +1447,13 @@ export function SalesFormWorkflowPanel<
 					}}
 					onApply={({ rows, selected }) => {
 						if (!doorSizeModalLine || !doorSizeModal.component) return;
+						const sharedDoorSurcharge =
+							computeSharedDoorSurcharge(doorSizeModalLine);
 						const next = buildWorkflowDoorSizeVariantPatch({
 							line: doorSizeModalLine,
 							componentId: Number(doorSizeModal.component.id || 0),
 							rows,
-							sharedDoorSurcharge:
-								computeSharedDoorSurcharge(doorSizeModalLine),
+							sharedDoorSurcharge,
 							profileCoefficient: activeProfileCoefficient,
 						});
 						updateLine(
@@ -1460,7 +1468,12 @@ export function SalesFormWorkflowPanel<
 						const resolvedDoorComponent = firstResolvedRow
 							? {
 									...doorSizeModal.component,
-									salesPrice: Number(firstResolvedRow.unitPrice || 0),
+									salesPrice: Number(
+										getHptDoorSalesUnitPrice(firstResolvedRow, {
+											sharedDoorSurcharge,
+											profileCoefficient: activeProfileCoefficient,
+										}) || 0,
+									),
 									basePrice: Number(firstResolvedRow?.meta?.baseUnitPrice || 0),
 								}
 							: doorSizeModal.component;

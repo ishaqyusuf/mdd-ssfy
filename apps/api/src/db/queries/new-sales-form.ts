@@ -39,6 +39,8 @@ import {
 	calculateSalesFormSummary,
 	collapseLegacyGroupedLines,
 	expandGroupedLineForLegacySave,
+	hydrateHptDoorRowFromLegacy,
+	normalizeHptLineForLegacy,
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,
 } from "@gnd/sales/sales-form";
@@ -258,6 +260,41 @@ function mergeGroupedRowsByIdentity(
 	});
 }
 
+function mergePersistedDoorRows(persistedRows: unknown, dbRows: unknown) {
+	const persisted = Array.isArray(persistedRows) ? persistedRows : [];
+	const database = Array.isArray(dbRows) ? dbRows : [];
+	return database.map((dbRow: Record<string, unknown>, index) => {
+		const dbId = Number(dbRow?.id || 0);
+		const dbDimension = String(dbRow?.dimension || "").trim().toLowerCase();
+		const dbStepProductId = Number(dbRow?.stepProductId || 0);
+		const persistedMatch =
+			persisted.find(
+				(row: Record<string, unknown>) =>
+					dbId > 0 && Number(row?.id || 0) === dbId,
+			) ||
+			persisted.find((row: Record<string, unknown>) => {
+				const dimension = String(row?.dimension || "")
+					.trim()
+					.toLowerCase();
+				return (
+					dbDimension &&
+					dimension === dbDimension &&
+					(!dbStepProductId ||
+						Number(row?.stepProductId || 0) === dbStepProductId)
+				);
+			}) ||
+			persisted[index];
+		return hydrateHptDoorRowFromLegacy({
+			...(persistedMatch || {}),
+			...dbRow,
+			meta: {
+				...safeRecord((persistedMatch as any)?.meta),
+				...safeRecord(dbRow?.meta),
+			},
+		});
+	});
+}
+
 function mergeGroupedLineMeta(
 	persistedMeta: Record<string, unknown>,
 	dbMeta: Record<string, unknown>,
@@ -361,20 +398,24 @@ function recalculateSummary(
 
 function normalizeLineItems(lines: NewSalesFormLineItem[]) {
 	return lines.map((line, index) => {
-		const qty = Number(line.qty || 0);
-		const unitPrice = Number(line.unitPrice || 0);
+		const normalizedHptLine = normalizeHptLineForLegacy(line as any) as any;
+		const qty = Number(normalizedHptLine.qty || 0);
+		const unitPrice = Number(normalizedHptLine.unitPrice || 0);
 		const lineTotal = roundCurrency(
-			Number.isFinite(line.lineTotal) ? line.lineTotal : qty * unitPrice,
+			Number.isFinite(normalizedHptLine.lineTotal)
+				? normalizedHptLine.lineTotal
+				: qty * unitPrice,
 		);
 		return {
-			...line,
+			...normalizedHptLine,
 			qty,
 			unitPrice,
 			lineTotal,
-			uid: line.uid || `line-${index + 1}-${generateRandomString(6)}`,
-			formSteps: line.formSteps || [],
-			shelfItems: line.shelfItems || [],
-			housePackageTool: line.housePackageTool || null,
+			uid:
+				normalizedHptLine.uid || `line-${index + 1}-${generateRandomString(6)}`,
+			formSteps: normalizedHptLine.formSteps || [],
+			shelfItems: normalizedHptLine.shelfItems || [],
+			housePackageTool: normalizedHptLine.housePackageTool || null,
 		};
 	});
 }
@@ -574,7 +615,7 @@ function toBootstrapPayload(
 							})),
 						}
 					: null;
-			return {
+			const rawLine = {
 				id: item.id,
 				multiDykeUid: item.multiDykeUid || null,
 				multiDyke: item.multiDyke ?? null,
@@ -621,6 +662,7 @@ function toBootstrapPayload(
 				})),
 				housePackageTool,
 			};
+			return normalizeHptLineForLegacy(rawLine as any) as typeof rawLine;
 		});
 	const dbLines = collapseLegacyGroupedLines(rawDbLines).map(
 		({ multiDykeUid, multiDyke, dykeProduction, sourceMeta, ...line }) => line,
@@ -635,13 +677,20 @@ function toBootstrapPayload(
 			const mergedHousePackageTool =
 				line.housePackageTool || dbMatch?.housePackageTool
 					? {
-							...(dbMatch?.housePackageTool || {}),
 							...(line.housePackageTool || {}),
+							...(dbMatch?.housePackageTool || {}),
+							meta: {
+								...safeRecord(dbMatch?.housePackageTool?.meta),
+								...safeRecord(line.housePackageTool?.meta),
+							},
 							doors:
-								line.housePackageTool?.doors &&
-								line.housePackageTool.doors.length
-									? line.housePackageTool.doors
-									: dbMatch?.housePackageTool?.doors || [],
+								dbMatch?.housePackageTool?.doors &&
+								dbMatch.housePackageTool.doors.length
+									? mergePersistedDoorRows(
+											line.housePackageTool?.doors,
+											dbMatch.housePackageTool.doors,
+										)
+									: line.housePackageTool?.doors || [],
 							molding:
 								line.housePackageTool?.molding ||
 								dbMatch?.housePackageTool?.molding ||
@@ -674,7 +723,7 @@ function toBootstrapPayload(
 				safeRecord(line.meta),
 				safeRecord(dbMatch?.meta),
 			);
-			return {
+			const mergedLine = {
 				...line,
 				title:
 					groupedLine
@@ -694,6 +743,7 @@ function toBootstrapPayload(
 						: dbMatch?.shelfItems || [],
 				housePackageTool: mergedHousePackageTool,
 			};
+			return normalizeHptLineForLegacy(mergedLine as any) as typeof mergedLine;
 		},
 	);
 	const taxRate = Number(
@@ -1892,9 +1942,11 @@ async function saveNewSalesFormInternal(
 					meta: itemMeta as any,
 					deletedAt: null,
 				};
-				const existingSalesItemId = Number(row.salesItemId || 0);
+				const existingSalesItemId = Number(
+					row.salesItemId || line.id || 0,
+				);
 				const createdItem =
-					legacyLine.kind && existingSalesItemId > 0
+					existingSalesItemId > 0
 						? await tx.salesOrderItems.update({
 								where: {
 									id: existingSalesItemId,
@@ -2037,9 +2089,9 @@ async function saveNewSalesFormInternal(
 						meta: safeRecord(hpt.meta) as any,
 						deletedAt: null,
 					};
-					const existingHptId = Number(row.hptId || 0);
+					const existingHptId = Number(row.hptId || hpt.id || 0);
 					const createdHpt =
-						legacyLine.kind === "moulding" && existingHptId > 0
+						existingHptId > 0
 							? await tx.housePackageTools.update({
 									where: {
 										id: existingHptId,
@@ -2061,8 +2113,8 @@ async function saveNewSalesFormInternal(
 							!!door.dimension && (door.lhQty || door.rhQty || door.totalQty),
 					);
 					if (doors.length) {
-						await tx.dykeSalesDoors.createMany({
-							data: doors.map((door) => ({
+						for (const door of doors) {
+							const doorData = {
 								housePackageToolId: createdHpt.id,
 								salesOrderId: currentId!,
 								salesOrderItemId: createdItem.id,
@@ -2082,8 +2134,22 @@ async function saveNewSalesFormInternal(
 								lineTotal: Number(door.lineTotal || 0),
 								stepProductId: door.stepProductId || null,
 								meta: safeRecord(door.meta) as any,
-							})),
-						});
+								deletedAt: null,
+							};
+							const existingDoorId = Number(door.id || 0);
+							if (existingDoorId > 0) {
+								await tx.dykeSalesDoors.update({
+									where: {
+										id: existingDoorId,
+									},
+									data: doorData,
+								});
+							} else {
+								await tx.dykeSalesDoors.create({
+									data: doorData,
+								});
+							}
+						}
 					}
 				}
 			}

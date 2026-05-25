@@ -18,6 +18,7 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import type { ReactNode } from "react";
+import { getHptDoorSalesUnitPrice } from "../../domain";
 import type {
 	DoorStoredRow,
 	WorkflowComponentRecord,
@@ -25,7 +26,6 @@ import type {
 } from "./workflow-records";
 import { firstFiniteNumber } from "./workflow-records";
 import { DoorPriceCell, updateDoorRowBasePrice } from "./door-price-cell";
-import { profileAdjustedDoorSalesPrice } from "./door-pricing";
 import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 
 type HousePackageToolPricedStep = Pick<
@@ -462,17 +462,12 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 															<span>Door Price</span>
 															<span className="font-semibold">
 																{props.formatMoney(
-																	row?.meta?.baseUnitPrice == null
-																		? Number(row.unitPrice ?? 0) -
-																				props.sharedDoorSurcharge
-																		: profileAdjustedDoorSalesPrice(
-																				null,
-																				firstFiniteNumber(
-																					row?.meta?.baseUnitPrice,
-																					0,
-																				) ?? 0,
-																				props.profileCoefficient,
-																			),
+																	getHptDoorSalesUnitPrice(row, {
+																		sharedDoorSurcharge:
+																			props.sharedDoorSurcharge,
+																		profileCoefficient:
+																			props.profileCoefficient,
+																	}),
 																) || "$0.00"}
 															</span>
 														</div>

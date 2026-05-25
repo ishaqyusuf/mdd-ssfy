@@ -242,6 +242,11 @@ function createMockContext() {
 				state.items.push(row);
 				return select?.id ? { id: row.id } : row;
 			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.items.find((item) => item.id === where.id);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
 		},
 		dykeStepForm: {
 			updateMany: async ({ where, data }: any) => {
@@ -303,6 +308,11 @@ function createMockContext() {
 				state.hpts.push(row);
 				return select?.id ? { id: row.id } : row;
 			},
+			update: async ({ where, data, select }: any) => {
+				const row = state.hpts.find((h) => h.id === where.id);
+				Object.assign(row, data);
+				return select?.id ? { id: row.id } : row;
+			},
 		},
 		dykeSalesDoors: {
 			updateMany: async ({ where, data }: any) => {
@@ -323,6 +333,20 @@ function createMockContext() {
 						...row,
 					}),
 				);
+			},
+			create: async ({ data }: any) => {
+				const row = {
+					id: state.ids.door++,
+					deletedAt: null,
+					...data,
+				};
+				state.doors.push(row);
+				return row;
+			},
+			update: async ({ where, data }: any) => {
+				const row = state.doors.find((d) => d.id === where.id);
+				Object.assign(row, data);
+				return row;
 			},
 		},
 		salesExtraCosts: {
@@ -374,11 +398,25 @@ function createMockContext() {
 		salesOrders: {
 			count: async ({ where }: any) => {
 				return state.orders.filter((o) => {
-					return where.OR.some(
-						(clause) =>
-							(clause.orderId && clause.orderId === o.orderId) ||
-							(clause.slug && clause.slug === o.slug),
-					);
+					if (where?.type && o.type !== where.type) return false;
+					if (where?.deletedAt === null && o.deletedAt != null) return false;
+					if (typeof where?.orderId === "string") {
+						return o.orderId === where.orderId;
+					}
+					if (
+						where?.orderId?.startsWith &&
+						!String(o.orderId || "").startsWith(where.orderId.startsWith)
+					) {
+						return false;
+					}
+					if (Array.isArray(where?.OR)) {
+						return where.OR.some(
+							(clause) =>
+								(clause.orderId && clause.orderId === o.orderId) ||
+								(clause.slug && clause.slug === o.slug),
+						);
+					}
+					return true;
 				}).length;
 			},
 			findFirst: async ({ where }: any) => {
@@ -396,7 +434,10 @@ function createMockContext() {
 					) {
 						return false;
 					}
-					if (where?.isCurrent != null && snapshot.isCurrent !== where.isCurrent) {
+					if (
+						where?.isCurrent != null &&
+						snapshot.isCurrent !== where.isCurrent
+					) {
 						return false;
 					}
 					if (where?.deletedAt === null && snapshot.deletedAt != null) {
@@ -777,9 +818,552 @@ describe("new-sales-form relational parity", () => {
 		expect(line!.housePackageTool?.doors).toHaveLength(1);
 		expect(line!.housePackageTool?.moldingId).toBe(501);
 		expect(line!.housePackageTool?.molding?.title).toBe("Classic Moulding");
+		expect(state.doors[0]).toMatchObject({
+			jambSizePrice: 250,
+			doorPrice: 0,
+			unitPrice: 500,
+			lineTotal: 1000,
+			totalQty: 2,
+		});
+		expect(line!.unitPrice).toBe(500);
+		expect(line!.lineTotal).toBe(1000);
 		expect(loaded.form.paymentMethod).toBe("Credit Card");
 		expect(state.orders[0]?.meta?.payment_option).toBe("Credit Card");
 		expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
+	});
+
+	it("saves HPT door pricing with legacy-compatible door fields", async () => {
+		const { ctx, state } = createMockContext();
+
+		const saved = await saveDraftNewSalesForm(ctx, {
+			type: "order",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "line-hpt-compat",
+					title: "Door Package",
+					description: "",
+					qty: 1,
+					unitPrice: 0,
+					lineTotal: 0,
+					meta: {},
+					formSteps: [
+						{ stepId: 1, price: 20, step: { id: 1, title: "Specie" } },
+						{ stepId: 2, step: { id: 2, title: "Door" } },
+						{ stepId: 3, step: { id: 3, title: "House Package Tool" } },
+					],
+					shelfItems: [],
+					housePackageTool: {
+						id: null,
+						doorType: "Interior",
+						totalPrice: 0,
+						totalDoors: 0,
+						meta: {},
+						doors: [
+							{
+								id: null,
+								dimension: "2-8 x 6-8",
+								lhQty: 1,
+								rhQty: 1,
+								totalQty: 2,
+								addon: 5,
+								meta: {
+									baseUnitPrice: 111,
+								},
+							},
+						],
+					},
+				} as any,
+			],
+		});
+
+		const door = state.doors[0];
+		expect(door).toMatchObject({
+			jambSizePrice: 111,
+			doorPrice: 5,
+			unitPrice: 136,
+			lineTotal: 272,
+			totalQty: 2,
+		});
+		expect(door.meta).toMatchObject({
+			baseUnitPrice: 111,
+			doorSalesUnitPrice: 111,
+			sharedDoorSurcharge: 20,
+			overridePrice: null,
+		});
+		expect(state.items[0]).toMatchObject({
+			qty: 2,
+			rate: 136,
+			total: 272,
+		});
+
+		const loaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: saved.slug!,
+		});
+		expect(loaded.lineItems[0]?.housePackageTool?.doors?.[0]).toMatchObject({
+			jambSizePrice: 111,
+			doorPrice: 5,
+			unitPrice: 136,
+			lineTotal: 272,
+		});
+		expect(loaded.lineItems[0]?.unitPrice).toBe(136);
+		expect(loaded.lineItems[0]?.lineTotal).toBe(272);
+	});
+
+	it("saves multiple quote drafts independently and hydrates each quote by slug", async () => {
+		const { ctx } = createMockContext();
+
+		const simpleQuote = await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: "2026-03-10T00:00:00.000Z",
+				po: "QUOTE-SIMPLE",
+				notes: "Simple quote",
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "quote-simple-line",
+					title: "Simple Quote Line",
+					description: "Simple quote item",
+					qty: 2,
+					unitPrice: 60,
+					lineTotal: 120,
+					meta: {},
+					formSteps: [],
+					shelfItems: [],
+					housePackageTool: null,
+				} as any,
+			],
+		});
+
+		const hptQuote = await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Credit Card",
+				goodUntil: "2026-03-15T00:00:00.000Z",
+				po: "QUOTE-HPT",
+				notes: "Door quote",
+				deliveryOption: "delivery",
+				taxCode: null,
+			},
+			summary: { subTotal: 0, taxRate: 0, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [],
+			lineItems: [
+				{
+					id: null,
+					uid: "quote-hpt-line",
+					title: "HPT Quote Line",
+					description: "Door package quote",
+					qty: 1,
+					unitPrice: 0,
+					lineTotal: 0,
+					meta: {},
+					formSteps: [
+						{ stepId: 1, price: 25, step: { id: 1, title: "Specie" } },
+						{ stepId: 2, step: { id: 2, title: "Door" } },
+						{ stepId: 3, step: { id: 3, title: "House Package Tool" } },
+					],
+					shelfItems: [],
+					housePackageTool: {
+						id: null,
+						doorType: "Interior",
+						totalPrice: 0,
+						totalDoors: 0,
+						meta: {},
+						doors: [
+							{
+								id: null,
+								dimension: "2-8 x 6-8",
+								lhQty: 2,
+								rhQty: 1,
+								totalQty: 3,
+								addon: 10,
+								meta: {
+									baseUnitPrice: 140,
+								},
+							},
+						],
+					},
+				} as any,
+			],
+		});
+
+		const taxedQuote = await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: 7,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: "2026-03-20T00:00:00.000Z",
+				po: "QUOTE-TAXED",
+				notes: "Taxed quote",
+				deliveryOption: "pickup",
+				taxCode: "GST",
+			},
+			summary: { subTotal: 0, taxRate: 8, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [
+				{
+					id: null,
+					label: "Delivery",
+					type: "Delivery",
+					amount: 30,
+					taxxable: true,
+				},
+			],
+			lineItems: [
+				{
+					id: null,
+					uid: "quote-taxed-line",
+					title: "Taxed Quote Line",
+					description: "Taxed quote item",
+					qty: 1,
+					unitPrice: 200,
+					lineTotal: 200,
+					meta: {},
+					formSteps: [],
+					shelfItems: [],
+					housePackageTool: null,
+				} as any,
+			],
+		});
+
+		const savedQuotes = [simpleQuote, hptQuote, taxedQuote];
+		expect(new Set(savedQuotes.map((quote) => quote.salesId)).size).toBe(3);
+		expect(new Set(savedQuotes.map((quote) => quote.orderId)).size).toBe(3);
+		expect(new Set(savedQuotes.map((quote) => quote.slug)).size).toBe(3);
+		for (const quote of savedQuotes) {
+			expect(quote.type).toBe("quote");
+			expect(quote.slug?.startsWith("quote-")).toBe(true);
+		}
+
+		const loadedQuotes = await Promise.all(
+			savedQuotes.map((quote) =>
+				getNewSalesForm(ctx, {
+					type: "quote",
+					slug: quote.slug!,
+				}),
+			),
+		);
+
+		expect(loadedQuotes.map((quote) => quote.lineItems[0]?.title)).toEqual([
+			"Simple Quote Line",
+			"HPT Quote Line",
+			"Taxed Quote Line",
+		]);
+		expect(loadedQuotes.map((quote) => quote.form.po)).toEqual([
+			"QUOTE-SIMPLE",
+			"QUOTE-HPT",
+			"QUOTE-TAXED",
+		]);
+		expect(loadedQuotes[0]?.summary.subTotal).toBe(120);
+		expect(loadedQuotes[0]?.lineItems[0]?.housePackageTool).toBeNull();
+		expect(loadedQuotes[1]?.lineItems[0]?.housePackageTool?.doors).toHaveLength(
+			1,
+		);
+		expect(loadedQuotes[1]?.summary.grandTotal).toBeGreaterThan(
+			loadedQuotes[1]?.summary.subTotal || 0,
+		);
+		expect(loadedQuotes[2]?.extraCosts).toHaveLength(1);
+		expect(loadedQuotes[2]?.extraCosts[0]).toMatchObject({
+			label: "Delivery",
+			amount: 30,
+			taxxable: true,
+		});
+		expect(loadedQuotes[2]?.summary.taxRate).toBe(8);
+		expect(loadedQuotes[2]?.summary.taxTotal).toBeGreaterThan(0);
+		expect(
+			loadedQuotes[0]?.lineItems.some(
+				(line) => line.title === "Taxed Quote Line",
+			),
+		).toBe(false);
+		expect(
+			loadedQuotes[2]?.lineItems.some(
+				(line) => line.title === "HPT Quote Line",
+			),
+		).toBe(false);
+	});
+
+	it("persists quote saves with legacy-compatible relational rows", async () => {
+		const { ctx, state } = createMockContext();
+
+		const saved = await saveDraftNewSalesForm(ctx, {
+			type: "quote",
+			slug: null,
+			salesId: null,
+			version: null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: 7,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				paymentMethod: "Check",
+				goodUntil: "2026-04-01T00:00:00.000Z",
+				po: "LEGACY-COMPARE",
+				notes: "Legacy comparison quote",
+				deliveryOption: "delivery",
+				taxCode: "GST",
+			},
+			summary: { subTotal: 0, taxRate: 10, taxTotal: 0, grandTotal: 0 },
+			extraCosts: [
+				{
+					id: null,
+					label: "Labor",
+					type: "Labor",
+					amount: 15,
+					taxxable: false,
+				},
+				{
+					id: null,
+					label: "Delivery",
+					type: "Delivery",
+					amount: 25,
+					taxxable: true,
+				},
+			],
+			lineItems: [
+				{
+					id: null,
+					uid: "legacy-compare-line",
+					title: "Legacy Comparable Door",
+					description: "Legacy-compatible persisted quote",
+					qty: 1,
+					unitPrice: 300,
+					lineTotal: 300,
+					meta: {},
+					formSteps: [
+						{
+							id: null,
+							stepId: 10,
+							componentId: 1000,
+							prodUid: "legacy-prod-1000",
+							value: "Oak",
+							qty: 1,
+							price: 75,
+							basePrice: 50,
+							meta: { source: "comparison-fixture" },
+							step: { id: 10, title: "Specie" },
+						},
+					],
+					shelfItems: [
+						{
+							id: null,
+							categoryId: 11,
+							productId: 1001,
+							description: "Ball Bearing Hinge",
+							qty: 2,
+							unitPrice: 24.5,
+							totalPrice: 49,
+							meta: { source: "comparison-fixture" },
+						},
+					],
+					housePackageTool: {
+						id: null,
+						doorType: "Interior",
+						dykeDoorId: 200,
+						stepProductId: 1000,
+						totalPrice: 300,
+						totalDoors: 2,
+						meta: { source: "comparison-fixture" },
+						doors: [
+							{
+								id: null,
+								dimension: "3-0 x 6-8",
+								swing: "RH",
+								doorType: "Interior",
+								unitPrice: 150,
+								lhQty: 0,
+								rhQty: 2,
+								totalQty: 2,
+								lineTotal: 300,
+								meta: { source: "comparison-fixture" },
+							},
+						],
+					},
+				} as any,
+			],
+		});
+
+		const order = state.orders[0];
+		expect(order).toMatchObject({
+			id: saved.salesId,
+			slug: saved.slug,
+			orderId: saved.orderId,
+			type: "quote",
+			status: "Draft",
+			isDyke: true,
+			customerId: 100,
+			customerProfileId: 7,
+			deliveryOption: "delivery",
+			inventoryStatus: null,
+			taxPercentage: saved.summary.taxRate,
+			subTotal: saved.summary.subTotal,
+			tax: saved.summary.taxTotal,
+			grandTotal: saved.summary.grandTotal,
+			amountDue: saved.summary.grandTotal,
+		});
+		expect(order.meta).toMatchObject({
+			po: "LEGACY-COMPARE",
+			payment_option: "Check",
+			deliveryCost: 25,
+			labor_cost: 15,
+		});
+
+		expect(state.items).toHaveLength(1);
+		const item = state.items[0];
+		expect(item).toMatchObject({
+			salesOrderId: saved.salesId,
+			dykeDescription: "Legacy Comparable Door",
+			description: "Legacy-compatible persisted quote",
+			qty: 2,
+			rate: 150,
+			total: 300,
+			deletedAt: null,
+		});
+
+		expect(state.stepForms).toHaveLength(1);
+		expect(state.stepForms[0]).toMatchObject({
+			salesId: saved.salesId,
+			salesItemId: item.id,
+			stepId: 10,
+			componentId: 1000,
+			prodUid: "legacy-prod-1000",
+			value: "Oak",
+			qty: 1,
+			price: 75,
+			basePrice: 50,
+		});
+
+		expect(state.shelfItems).toHaveLength(1);
+		expect(state.shelfItems[0]).toMatchObject({
+			salesOrderItemId: item.id,
+			categoryId: 11,
+			productId: 1001,
+			description: "Ball Bearing Hinge",
+			qty: 2,
+			unitPrice: 25,
+			totalPrice: 49,
+		});
+
+		expect(state.hpts).toHaveLength(1);
+		expect(state.hpts[0]).toMatchObject({
+			salesOrderId: saved.salesId,
+			orderItemId: item.id,
+			doorType: "Interior",
+			dykeDoorId: 200,
+			stepProductId: 1000,
+			totalPrice: 300,
+			totalDoors: 2,
+			deletedAt: null,
+		});
+
+		expect(state.doors).toHaveLength(1);
+		expect(state.doors[0]).toMatchObject({
+			housePackageToolId: state.hpts[0].id,
+			salesOrderId: saved.salesId,
+			salesOrderItemId: item.id,
+			dimension: "3-0 x 6-8",
+			swing: "RH",
+			doorType: "Interior",
+			unitPrice: 150,
+			rhQty: 2,
+			totalQty: 2,
+			lineTotal: 300,
+			deletedAt: null,
+		});
+
+		expect(state.extraCosts).toHaveLength(2);
+		expect(
+			state.extraCosts.find((cost) => cost.type === "Labor"),
+		).toMatchObject({
+			orderId: saved.salesId,
+			label: "Labor",
+			amount: 15,
+			taxxable: false,
+		});
+		expect(
+			state.extraCosts.find((cost) => cost.type === "Delivery"),
+		).toMatchObject({
+			orderId: saved.salesId,
+			label: "Delivery",
+			amount: 25,
+			taxxable: true,
+		});
+
+		expect(state.salesTaxes).toHaveLength(1);
+		expect(state.salesTaxes[0]).toMatchObject({
+			salesId: saved.salesId,
+			taxCode: "GST",
+			taxxable: saved.summary.taxableSubTotal,
+			tax: saved.summary.taxTotal,
+		});
+
+		const loaded = await getNewSalesForm(ctx, {
+			type: "quote",
+			slug: saved.slug!,
+		});
+		expect(loaded.lineItems[0]).toMatchObject({
+			title: "Legacy Comparable Door",
+			qty: 2,
+			unitPrice: 150,
+			lineTotal: 300,
+		});
+		expect(loaded.lineItems[0]?.formSteps).toHaveLength(1);
+		expect(loaded.lineItems[0]?.shelfItems).toHaveLength(1);
+		expect(loaded.lineItems[0]?.housePackageTool?.doors).toHaveLength(1);
+		expect(loaded.summary.grandTotal).toBe(saved.summary.grandTotal);
 	});
 
 	it("soft-deletes prior relational rows on update and replaces with current payload", async () => {

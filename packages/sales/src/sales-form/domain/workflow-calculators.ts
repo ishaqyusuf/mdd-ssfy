@@ -1,4 +1,5 @@
 import { resolveSupplierVariantPricing } from "@gnd/inventory/suppliers";
+import { normalizeHptDoorRowForLegacy } from "./hpt-compatibility";
 import { normalizeSalesFormTitle } from "./step-engine";
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
@@ -386,38 +387,12 @@ export function summarizeDoors(
   const noHandle = !!options?.noHandle;
   const hasSwing = options?.hasSwing !== false;
   const normalized = (rows || []).map((row) => {
-    const lhQty = Number(row?.lhQty || 0);
-    const rhQty = Number(row?.rhQty || 0);
-    const totalQty = noHandle
-      ? Number(row?.totalQty || 0)
-      : lhQty + rhQty > 0
-        ? lhQty + rhQty
-        : Number(row?.totalQty || 0);
-    const unitPrice = Number(row?.unitPrice || 0);
-    const addon =
-      row?.addon == null || row?.addon === ""
-        ? 0
-        : Number(row?.addon || 0);
-    const rawCustomPrice =
-      row?.customPrice == null || row?.customPrice === ""
-        ? null
-        : Number(row?.customPrice);
-    const calculatedLineTotal = Number((totalQty * unitPrice + addon).toFixed(2));
-    const lineTotal =
-      rawCustomPrice != null && Number.isFinite(rawCustomPrice)
-        ? Number(rawCustomPrice.toFixed(2))
-        : calculatedLineTotal;
-    return {
-      ...row,
-      swing: hasSwing ? (row?.swing ?? "") : "",
-      lhQty: noHandle ? 0 : lhQty,
-      rhQty: noHandle ? 0 : rhQty,
-      totalQty,
-      unitPrice,
-      addon,
-      customPrice: rawCustomPrice,
-      lineTotal,
-    };
+    return normalizeHptDoorRowForLegacy(row, {
+      noHandle,
+      hasSwing,
+      sharedDoorSurcharge: row?.meta?.sharedDoorSurcharge,
+      flatRate: row?.meta?.flatRate,
+    });
   });
   const totalDoors = normalized.reduce((sum, row) => sum + Number(row?.totalQty || 0), 0);
   const totalPrice = normalized.reduce((sum, row) => sum + Number(row?.lineTotal || 0), 0);

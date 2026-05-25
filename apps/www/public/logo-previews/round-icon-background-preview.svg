@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="880" viewBox="0 0 1440 880">
+  <defs>
+    <style>
+      .label { font: 600 24px Arial, sans-serif; fill: #30343b; }
+      .subtle { font: 400 16px Arial, sans-serif; fill: #626976; }
+      .tile { fill: #ffffff; stroke: #d7dde5; stroke-width: 1; }
+    </style>
+  </defs>
+  
+<rect width="1440" height="880" fill="#f2f4f7"/>
+<text x="80" y="78" class="label">GND icon-only rebrand preview</text>
+<text x="80" y="108" class="subtle">Round background options for tab/app icon; the logo mark itself stays unchanged.</text>
+
+  <g transform="translate(80 160)">
+    <rect class="tile" width="280" height="360" rx="18"/>
+    <circle cx="140" cy="140" r="112" fill="#F7F8F2"/>
+    <text x="32" y="300" class="label">Soft ivory</text>
+    <text x="32" y="330" class="subtle">#F7F8F2</text>
+  </g>
+  <g transform="translate(410 160)">
+    <rect class="tile" width="280" height="360" rx="18"/>
+    <circle cx="140" cy="140" r="112" fill="#EDF3F8"/>
+    <text x="32" y="300" class="label">Ice gray</text>
+    <text x="32" y="330" class="subtle">#EDF3F8</text>
+  </g>
+  <g transform="translate(740 160)">
+    <rect class="tile" width="280" height="360" rx="18"/>
+    <circle cx="140" cy="140" r="112" fill="#E8EEE9"/>
+    <text x="32" y="300" class="label">Mist sage</text>
+    <text x="32" y="330" class="subtle">#E8EEE9</text>
+  </g>
+  <g transform="translate(1070 160)">
+    <rect class="tile" width="280" height="360" rx="18"/>
+    <circle cx="140" cy="140" r="112" fill="#2F343C"/>
+    <text x="32" y="300" class="label">Charcoal</text>
+    <text x="32" y="330" class="subtle">#2F343C</text>
+  </g>
+  <g transform="translate(80 590)">
+    <rect x="0" y="0" width="1280" height="180" rx="18" fill="#ffffff" stroke="#d7dde5"/>
+    <text x="32" y="48" class="label">Recommended direction</text>
+    <text x="32" y="78" class="subtle">Use Ice gray for the tab icon. It is visually separate from the red and blue, keeps the icon bright, and works on light or dark browser chrome.</text>
+    <circle cx="1064" cy="88" r="64" fill="#edf3f8"/>
+    <rect x="1144" y="24" width="128" height="128" rx="32" fill="#edf3f8"/>
+  </g>
+</svg>

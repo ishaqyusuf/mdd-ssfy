@@ -1,5 +1,9 @@
 import { useSalesOverviewV2PageQuery } from "./use-sales-overview-v2-page-query";
 import { useSalesOverviewV2SheetQuery } from "./use-sales-overview-v2-sheet-query";
+import {
+    composeV2QuoteOverviewPageParams,
+    composeV2QuoteOverviewSheetParams,
+} from "./sales-overview-open-params";
 
 export function useSalesOverviewOpen() {
     const sheet = useSalesOverviewV2SheetQuery();
@@ -15,11 +19,7 @@ export function useSalesOverviewOpen() {
             }),
 
         openQuoteSheet: (id: string) =>
-            sheet.setParams({
-                overviewSheetId: id,
-                overviewSheetType: "quote",
-                overviewSheetMode: "quote",
-            }),
+            sheet.setParams(composeV2QuoteOverviewSheetParams(id)),
 
         openProductionSheet: (id: string) =>
             sheet.setParams({
@@ -45,11 +45,7 @@ export function useSalesOverviewOpen() {
             }),
 
         openQuotePage: (id: string) =>
-            page.setParams({
-                overviewId: id,
-                overviewType: "quote",
-                overviewMode: "quote",
-            }),
+            page.setParams(composeV2QuoteOverviewPageParams(id)),
 
         openProductionPage: (id: string) =>
             page.setParams({
@@ -71,4 +67,3 @@ export function useSalesOverviewOpen() {
         closePage: page.close,
     };
 }
-

@@ -22,8 +22,13 @@ export type WorkflowDoorActionPatch = {
 	formSteps?: WorkflowStepRecord[];
 	housePackageTool?: unknown;
 	qty?: number | null;
+	unitPrice?: number | null;
 	lineTotal?: number | null;
 };
+
+function averageUnitPrice(totalPrice: number, totalQty: number) {
+	return totalQty > 0 ? Number((totalPrice / totalQty).toFixed(2)) : 0;
+}
 
 export function updateWorkflowDoorSupplier(input: {
 	line: WorkflowLineItemRecord;
@@ -66,6 +71,10 @@ export function updateWorkflowDoorSupplier(input: {
 			totalPrice: repricedDoors.totalPrice,
 		};
 		linePatch.qty = repricedDoors.totalDoors;
+		linePatch.unitPrice = averageUnitPrice(
+			repricedDoors.totalPrice,
+			repricedDoors.totalDoors,
+		);
 		linePatch.lineTotal = repricedDoors.totalPrice;
 	}
 	return linePatch;
@@ -156,6 +165,10 @@ export function swapWorkflowDoorComponent(input: {
 							totalPrice: repricedDoors.totalPrice,
 						},
 						qty: repricedDoors.totalDoors,
+						unitPrice: averageUnitPrice(
+							repricedDoors.totalPrice,
+							repricedDoors.totalDoors,
+						),
 						lineTotal: repricedDoors.totalPrice,
 					}
 				: {}),
@@ -278,6 +291,10 @@ export function removeWorkflowHptDoorOption(input: {
 				totalPrice: nextSummary.totalPrice,
 			},
 			qty: nextSummary.totalDoors,
+			unitPrice: averageUnitPrice(
+				nextSummary.totalPrice,
+				nextSummary.totalDoors,
+			),
 			lineTotal: nextSummary.totalPrice,
 		},
 	};

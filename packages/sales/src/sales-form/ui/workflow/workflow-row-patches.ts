@@ -198,11 +198,17 @@ export function buildWorkflowDoorRowsPatch(input: {
 		safeRows,
 		Number(input.sharedDoorSurcharge || 0),
 		input.profileCoefficient,
+		{
+			noHandle: !!input.noHandle,
+			hasSwing: input.hasSwing !== false,
+		},
 	);
 	const next = summarizeDoors(normalizedRows, {
 		noHandle: !!input.noHandle,
 		hasSwing: input.hasSwing !== false,
 	});
+	const unitPrice =
+		next.totalDoors > 0 ? Number((next.totalPrice / next.totalDoors).toFixed(2)) : 0;
 	return {
 		rows: next.rows,
 		totalDoors: next.totalDoors,
@@ -215,6 +221,7 @@ export function buildWorkflowDoorRowsPatch(input: {
 				totalPrice: next.totalPrice,
 			},
 			qty: next.totalDoors,
+			unitPrice,
 			lineTotal: next.totalPrice,
 		},
 	};
@@ -256,6 +263,8 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 			.reduce((sum, door) => sum + Number(door.lineTotal || 0), 0)
 			.toFixed(2),
 	);
+	const unitPrice =
+		totalDoors > 0 ? Number((totalPrice / totalDoors).toFixed(2)) : 0;
 	return {
 		rows: nextRows,
 		doors: nextDoors,
@@ -269,6 +278,7 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 				totalPrice,
 			},
 			qty: totalDoors,
+			unitPrice,
 			lineTotal: totalPrice,
 		},
 	};

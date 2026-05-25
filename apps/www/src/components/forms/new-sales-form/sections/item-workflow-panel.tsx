@@ -76,6 +76,7 @@ import {
     DoorStepPanel,
     firstFiniteNumber,
     getDoorSupplierMeta,
+    getHptDoorSalesUnitPrice,
     getItemWorkflowStepFamily,
     getLineTitlePlaceholder,
     getShelfLeafCategoryIds,
@@ -1096,7 +1097,9 @@ export function ItemWorkflowPanel() {
                     swing: "",
                     doorType: "",
                     doorPrice: 0,
-                    jambSizePrice: 0,
+                    jambSizePrice: hasResolvedPrice
+                        ? Number(tierPricing.salesPrice.toFixed(2))
+                        : 0,
                     casingPrice: 0,
                     unitPrice: hasResolvedPrice
                         ? Number(
@@ -1114,6 +1117,10 @@ export function ItemWorkflowPanel() {
                         baseUnitPrice: hasResolvedPrice
                             ? Number(tierPricing.basePrice.toFixed(2))
                             : 0,
+                        doorSalesUnitPrice: hasResolvedPrice
+                            ? Number(tierPricing.salesPrice.toFixed(2))
+                            : 0,
+                        sharedDoorSurcharge,
                         priceMissing: !hasResolvedPrice,
                     },
                 },
@@ -2908,7 +2915,14 @@ export function ItemWorkflowPanel() {
                                 ? {
                                       ...doorStepModal.component,
                                       salesPrice: Number(
-                                          firstResolvedRow.unitPrice || 0,
+                                          getHptDoorSalesUnitPrice(
+                                              firstResolvedRow,
+                                              {
+                                                  sharedDoorSurcharge,
+                                                  profileCoefficient:
+                                                      activeProfileCoefficient,
+                                              },
+                                          ) || 0,
                                       ),
                                       basePrice: Number(
                                           firstResolvedRow?.meta

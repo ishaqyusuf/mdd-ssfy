@@ -1,3 +1,8 @@
+import {
+	computeHptSharedDoorSurcharge,
+	normalizeHptDoorRowForLegacy,
+} from "./hpt-compatibility";
+
 function roundCurrency(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -158,9 +163,15 @@ export function repriceSalesFormLineItemsByProfile<
     });
 
     const existingDoors = line.housePackageTool?.doors || [];
+    const repricedLineForSurcharge = {
+      ...line,
+      formSteps,
+    };
+    const sharedDoorSurcharge = computeHptSharedDoorSurcharge(
+      repricedLineForSurcharge,
+    );
     const doors = existingDoors.map((door) => {
       const currentUnit = toFinite(door?.unitPrice) ?? 0;
-      const totalQty = toFinite(door?.totalQty) ?? 0;
       const baseUnitPrice = firstFinite(door, [
         ["basePrice"],
         ["baseUnitPrice"],
@@ -169,15 +180,25 @@ export function repriceSalesFormLineItemsByProfile<
         ["meta", "priceData", "baseUnitCost"],
         ["meta", "priceData", "basePrice"],
       ]);
-      const nextUnit =
+      const fallbackDoorSales =
         baseUnitPrice != null
           ? roundCurrency(baseUnitPrice * nextMultiplier)
           : roundCurrency(currentUnit * ratio);
-      return {
-        ...door,
-        unitPrice: nextUnit,
-        lineTotal: roundCurrency(totalQty * nextUnit),
-      };
+      return normalizeHptDoorRowForLegacy(
+        {
+          ...door,
+          jambSizePrice: fallbackDoorSales,
+          meta: {
+            ...(door?.meta || {}),
+            ...(baseUnitPrice == null ? {} : { baseUnitPrice }),
+            doorSalesUnitPrice: fallbackDoorSales,
+          },
+        },
+        {
+          sharedDoorSurcharge,
+          salesMultiplier: nextMultiplier,
+        },
+      );
     });
 
     const doorQty = doors.reduce(

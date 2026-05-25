@@ -8,6 +8,7 @@ import {
 } from "nuqs";
 import { z } from "zod";
 
+import { composeLegacySalesOverviewOpenParams } from "./sales-overview-open-params";
 import { useAuth } from "./use-auth";
 import { useOnCloseQuery } from "./use-on-close-query";
 import { useSalesQueryClient } from "./use-sales-query-client";
@@ -85,14 +86,11 @@ export function useSalesOverviewQuery() {
 			});
 		},
 		open2(orderNo: string, mode: Modes) {
-			const salesType: SalesType = mode === "quote" ? "quote" : "order";
-			const resolvedMode = assignedTo ? "production-tasks" : mode;
-			setParams({
-				"sales-overview-id": orderNo,
-				"sales-type": salesType,
-				mode: resolvedMode,
-				salesTab: assignedTo ? "production" : "general",
-			});
+			setParams(
+				composeLegacySalesOverviewOpenParams(orderNo, mode, {
+					assignedTo,
+				}),
+			);
 		},
 	};
 }

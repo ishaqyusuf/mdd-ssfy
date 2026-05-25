@@ -4,6 +4,7 @@ import {
 	deriveDoorSizeCandidates,
 	getSelectedDoorComponentsForLine,
 	hasDoorSizeVariationConfig,
+	normalizeHptDoorRowForLegacy,
 	resolveDoorTierPricing,
 } from "../../domain";
 import type { SalesFormLineItemRecord } from "../../application";
@@ -53,7 +54,10 @@ type DoorComponent = {
 	[key: string]: unknown;
 };
 
-type DoorLine = Pick<SalesFormLineItemRecord, "formSteps" | "housePackageTool">;
+type DoorLine = {
+	formSteps?: SalesFormLineItemRecord["formSteps"] | null;
+	housePackageTool?: SalesFormLineItemRecord["housePackageTool"] | null;
+};
 
 type DoorSizeComponent = {
 	id?: number | null;
@@ -184,6 +188,11 @@ export function deriveDoorSizeRows({
 			calcWorkflowDoorRow({
 				...blankWorkflowDoorRow(),
 				stepProductId: component?.id || null,
+				jambSizePrice: profileAdjustedDoorSalesPrice(
+					component?.salesPrice,
+					component?.basePrice,
+					profileCoefficient,
+				),
 				unitPrice: profileAdjustedDoorSalesPrice(
 					component?.salesPrice,
 					component?.basePrice,
@@ -191,6 +200,11 @@ export function deriveDoorSizeRows({
 				),
 				meta: {
 					baseUnitPrice: fallbackBase,
+					doorSalesUnitPrice: profileAdjustedDoorSalesPrice(
+						component?.salesPrice,
+						component?.basePrice,
+						profileCoefficient,
+					),
 				},
 			}),
 		];
@@ -243,11 +257,13 @@ export function deriveDoorSizeRows({
 				...(existing || blankWorkflowDoorRow()),
 				dimension: normalizedSize,
 				stepProductId: component?.id || existing?.stepProductId || null,
+				jambSizePrice: unitPrice,
 				unitPrice,
 				meta: {
 					...((existing as any)?.meta || {}),
 					priceMissing: !hasResolvedPrice,
 					baseUnitPrice: rowBaseUnit ?? 0,
+					doorSalesUnitPrice: unitPrice,
 				},
 			}),
 		);
@@ -289,6 +305,10 @@ export function applySharedDoorSurcharge(
 	rows: DoorRow[],
 	surcharge: number,
 	profileCoefficient?: number | null,
+	options?: {
+		noHandle?: boolean;
+		hasSwing?: boolean;
+	},
 ) {
 	return rows.map((row) => {
 		if (isDoorRowPriceMissing(row)) {
@@ -297,38 +317,13 @@ export function applySharedDoorSurcharge(
 				unitPrice: 0,
 			});
 		}
-		const storedBaseUnitPrice =
-			row?.meta?.baseUnitPrice == null
-				? null
-				: Number(row.meta.baseUnitPrice);
-		const storedUnitPrice = Number(row?.unitPrice || 0);
-		const hasStoredBasePrice =
-			storedBaseUnitPrice != null &&
-			Number.isFinite(storedBaseUnitPrice) &&
-			(storedBaseUnitPrice > 0 || storedUnitPrice <= 0);
-		const baseUnitPrice = hasStoredBasePrice ? storedBaseUnitPrice : null;
-		const calculatedSalesUnit =
-			baseUnitPrice == null
-				? Math.max(0, Number(row?.unitPrice || 0) - surcharge)
-				: profileAdjustedDoorSalesPrice(
-						null,
-						Math.max(0, baseUnitPrice),
-						profileCoefficient,
-					);
-		const effectiveUnitPrice = Number(
-			(Math.max(0, calculatedSalesUnit) + surcharge).toFixed(2),
-		);
-		const totalQty = Number(row?.totalQty || 0);
 		return clearUnpricedDoorRowQty({
-			...row,
-			unitPrice: effectiveUnitPrice,
-			lineTotal: Number((totalQty * effectiveUnitPrice).toFixed(2)),
-			meta: {
-				...(row?.meta || {}),
-				...(baseUnitPrice == null
-					? {}
-					: { baseUnitPrice: Math.max(0, baseUnitPrice) }),
-			},
+			...normalizeHptDoorRowForLegacy(row, {
+				sharedDoorSurcharge: surcharge,
+				profileCoefficient,
+				noHandle: options?.noHandle,
+				hasSwing: options?.hasSwing,
+			}),
 		});
 	});
 }
@@ -344,6 +339,8 @@ export function normalizeStoredDoorRows(rows: DoorRow[]) {
 		totalQty: Number(row?.totalQty || 0),
 		unitPrice: Number(Number(row?.unitPrice || 0).toFixed(2)),
 		lineTotal: Number(Number(row?.lineTotal || 0).toFixed(2)),
+		doorPrice: Number(Number(row?.doorPrice || 0).toFixed(2)),
+		jambSizePrice: Number(Number(row?.jambSizePrice || 0).toFixed(2)),
 		addon:
 			row?.addon == null || row?.addon === ""
 				? null
@@ -354,6 +351,12 @@ export function normalizeStoredDoorRows(rows: DoorRow[]) {
 				: Number(Number(row.customPrice || 0).toFixed(2)),
 		meta: {
 			baseUnitPrice: Number(Number(row?.meta?.baseUnitPrice || 0).toFixed(2)),
+			doorSalesUnitPrice: Number(
+				Number(row?.meta?.doorSalesUnitPrice || 0).toFixed(2),
+			),
+			sharedDoorSurcharge: Number(
+				Number(row?.meta?.sharedDoorSurcharge || 0).toFixed(2),
+			),
 			priceMissing: Boolean(row?.meta?.priceMissing),
 		},
 	}));
@@ -405,25 +408,30 @@ export function repricePersistedDoorRowsForSupplier(args: {
 		const baseUnitPrice = hasResolvedPrice
 			? Number((tierPricing.basePrice || 0).toFixed(2))
 			: 0;
-		const unitPrice = hasResolvedPrice
-			? Number(
-					(Number(tierPricing.salesPrice || 0) + sharedDoorSurcharge).toFixed(
-						2,
-					),
-				)
-			: 0;
-		const totalQty = Number(row?.totalQty || 0);
-		const nextRow = {
+		const nextRow = normalizeHptDoorRowForLegacy({
 			...row,
-			unitPrice,
-			lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+			jambSizePrice: hasResolvedPrice
+				? Number((tierPricing.salesPrice || 0).toFixed(2))
+				: 0,
 			meta: {
 				...(row?.meta || {}),
 				baseUnitPrice,
+				doorSalesUnitPrice: hasResolvedPrice
+					? Number((tierPricing.salesPrice || 0).toFixed(2))
+					: 0,
 				priceMissing: !hasResolvedPrice,
 			},
-		};
-		return hasResolvedPrice ? nextRow : clearUnpricedDoorRowQty(nextRow);
+		}, {
+			sharedDoorSurcharge,
+			salesMultiplier,
+		});
+		return hasResolvedPrice
+			? nextRow
+			: clearUnpricedDoorRowQty({
+					...nextRow,
+					unitPrice: 0,
+					lineTotal: 0,
+				});
 	});
 
 	const totalDoors = repricedRows.reduce(
