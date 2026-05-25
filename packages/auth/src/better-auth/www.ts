@@ -1,21 +1,22 @@
 import { createHash, randomBytes } from "crypto";
-import { db, type Roles, type Users } from "@gnd/db";
+import { type Prisma, type Roles, type Users, db } from "@gnd/db";
 import { generatePermissions } from "@gnd/utils/constants";
+import { compare } from "bcrypt-ts";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
-import { APIError, createAuthEndpoint } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError, createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
-import { compare } from "bcrypt-ts";
 import * as z from "zod";
+import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
 import {
   type ICan,
   getUserSpecificPermissions,
+  isMasterPassword,
   mergePermissionRecords,
   validateAuthToken,
 } from "../utils";
-import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
 
 export const STANDARD_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
 export const REMEMBER_ME_WEB_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -117,6 +118,15 @@ function hashResetToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
+export function getActiveWebLegacyUserWhere(email: string) {
+  return {
+    email: email.trim(),
+    accessRevokedAt: null,
+    deletedAt: null,
+    OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
+  } satisfies Prisma.UsersWhereInput;
+}
+
 async function findLegacyUser(input: {
   email?: string | null;
   token?: string | null;
@@ -134,11 +144,7 @@ async function findLegacyUser(input: {
   if (!email) return null;
 
   const user = await db.users.findFirst({
-    where: {
-      email,
-      accessRevokedAt: null,
-      OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
-    },
+    where: getActiveWebLegacyUserWhere(email),
     include: {
       roles: {
         include: {
@@ -265,6 +271,128 @@ async function createPasswordMigrationToken(authUserId: string) {
   return token;
 }
 
+type WebCredentialAccountLike = {
+  password?: string | null;
+} | null;
+
+type WebLegacyCredentialDecision =
+  | {
+      authenticated: true;
+      masterPasswordAuthenticated: boolean;
+      requiresPasswordMigration?: false;
+    }
+  | {
+      authenticated: false;
+      masterPasswordAuthenticated: false;
+      requiresPasswordMigration?: false;
+    }
+  | {
+      authenticated: false;
+      masterPasswordAuthenticated: false;
+      requiresPasswordMigration: true;
+      url: string;
+    };
+
+export async function resolveWebLegacyCredentialSignIn(input: {
+  authUserId: string;
+  callbackURL?: string;
+  clearLegacyPassword: (userId: number) => Promise<unknown>;
+  compareLegacyPassword?: (password: string, hash: string) => Promise<boolean>;
+  createPasswordMigrationToken: (authUserId: string) => Promise<string>;
+  credentialAccount?: WebCredentialAccountLike;
+  ensureCredentialAccount: (authUserId: string) => Promise<unknown>;
+  legacyPasswordHash?: string | null;
+  legacyUserId: number;
+  masterPasswordMatches?: (password: string) => boolean;
+  password: string;
+  tokenAuthenticated: boolean;
+  verifyCredentialPassword: (input: {
+    hash: string;
+    password: string;
+  }) => Promise<boolean>;
+}): Promise<WebLegacyCredentialDecision> {
+  const compareLegacyPassword = input.compareLegacyPassword ?? compare;
+  const masterPasswordAuthenticated =
+    !!input.password && (input.masterPasswordMatches ?? isMasterPassword)(
+      input.password,
+    );
+
+  if (masterPasswordAuthenticated) {
+    await input.ensureCredentialAccount(input.authUserId);
+    return {
+      authenticated: true,
+      masterPasswordAuthenticated: true,
+    };
+  }
+
+  let authenticated = input.tokenAuthenticated;
+
+  if (!authenticated && input.legacyPasswordHash && input.password) {
+    const legacyPasswordMatches = await compareLegacyPassword(
+      input.password,
+      input.legacyPasswordHash,
+    );
+    if (legacyPasswordMatches && !input.credentialAccount?.password) {
+      await input.ensureCredentialAccount(input.authUserId);
+      const token = await input.createPasswordMigrationToken(input.authUserId);
+      const url = `/login/create-password?token=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent(input.callbackURL || "/")}`;
+
+      return {
+        authenticated: false,
+        masterPasswordAuthenticated: false,
+        requiresPasswordMigration: true,
+        url,
+      };
+    }
+    if (legacyPasswordMatches && input.credentialAccount?.password) {
+      await input.clearLegacyPassword(input.legacyUserId);
+    }
+    authenticated = legacyPasswordMatches;
+  }
+
+  if (
+    !authenticated &&
+    input.credentialAccount?.password &&
+    input.password
+  ) {
+    authenticated = await input.verifyCredentialPassword({
+      hash: input.credentialAccount.password,
+      password: input.password,
+    });
+  }
+
+  if (authenticated) {
+    return {
+      authenticated: true,
+      masterPasswordAuthenticated: false,
+    };
+  }
+
+  return {
+    authenticated: false,
+    masterPasswordAuthenticated: false,
+  };
+}
+
+function auditWebMasterPasswordSignIn(input: {
+  accountEmail: string;
+  ipAddress: string | null;
+  sessionId: string;
+  userAgent: string | null;
+  userId: number;
+}) {
+  console.info("[auth] web master password login", {
+    accountEmail: input.accountEmail,
+    appSurface: "www",
+    event: "web_master_password_login",
+    ipAddress: input.ipAddress,
+    loginAt: new Date().toISOString(),
+    sessionId: input.sessionId,
+    userAgent: input.userAgent,
+    userId: input.userId,
+  });
+}
+
 async function buildPermissions(user: Users & { roles: Array<any> }) {
   const _role = user.roles[0]?.role;
   const rolePermissions = await db.permissions.findMany({
@@ -349,41 +477,34 @@ function webCredentialsPlugin(): BetterAuthPlugin {
           const credentialAccount = await findCredentialAccount(authUser.id);
           const password =
             typeof ctx.body.password === "string" ? ctx.body.password : "";
-          let authenticated = tokenAuthenticated;
-
-          if (!authenticated && user.password && password) {
-            const legacyPasswordMatches = await compare(
-              password,
-              user.password,
-            );
-            if (legacyPasswordMatches && !credentialAccount?.password) {
-              await ensureCredentialAccount(authUser.id);
-              const token = await createPasswordMigrationToken(authUser.id);
-              const url = `/login/create-password?token=${encodeURIComponent(token)}&callbackUrl=${encodeURIComponent(ctx.body.callbackURL || "/")}`;
-
-              return ctx.json({
-                redirect: true,
-                requiresPasswordMigration: true,
-                url,
-              });
-            }
-            if (legacyPasswordMatches && credentialAccount?.password) {
-              await db.users.update({
-                where: { id: user.id },
+          const authDecision = await resolveWebLegacyCredentialSignIn({
+            authUserId: authUser.id,
+            callbackURL: ctx.body.callbackURL,
+            clearLegacyPassword: (legacyUserId) =>
+              db.users.update({
+                where: { id: legacyUserId },
                 data: { password: null },
-              });
-            }
-            authenticated = legacyPasswordMatches;
-          }
+              }),
+            createPasswordMigrationToken,
+            credentialAccount,
+            ensureCredentialAccount,
+            legacyPasswordHash: user.password,
+            legacyUserId: user.id,
+            password,
+            tokenAuthenticated,
+            verifyCredentialPassword: (input) =>
+              ctx.context.password.verify(input),
+          });
 
-          if (!authenticated && credentialAccount?.password && password) {
-            authenticated = await ctx.context.password.verify({
-              hash: credentialAccount.password,
-              password,
+          if (authDecision.requiresPasswordMigration) {
+            return ctx.json({
+              redirect: true,
+              requiresPasswordMigration: true,
+              url: authDecision.url,
             });
           }
 
-          if (!authenticated) {
+          if (!authDecision.authenticated) {
             throw new APIError("UNAUTHORIZED", {
               message: "Invalid email or password.",
             });
@@ -420,6 +541,16 @@ function webCredentialsPlugin(): BetterAuthPlugin {
             },
             !rememberMe,
           );
+
+          if (authDecision.masterPasswordAuthenticated) {
+            auditWebMasterPasswordSignIn({
+              sessionId: session.id,
+              userId: user.id,
+              accountEmail: user.email,
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+            });
+          }
 
           if (shouldSendNewDeviceAlert) {
             const device = normalizeLoginDevice(session.userAgent);
