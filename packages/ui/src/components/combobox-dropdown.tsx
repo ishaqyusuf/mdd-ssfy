@@ -237,6 +237,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   ) : (
     <Button
       variant="outline"
+      type="button"
       aria-expanded={open}
       className="relative w-full justify-between"
       disabled={disabled}

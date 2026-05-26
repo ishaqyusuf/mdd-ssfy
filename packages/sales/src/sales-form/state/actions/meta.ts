@@ -5,6 +5,7 @@ import {
 } from "../../application";
 import { initialSalesFormEditorState } from "../initial-state";
 import {
+	getInitialSalesFormActiveStepByLine,
 	getFirstSalesFormLineItemUid,
 	recomputeSalesFormRecordSummary,
 } from "../selectors";
@@ -26,6 +27,7 @@ export function hydrateSalesFormState<
 		editor: {
 			...initialSalesFormEditorState,
 			activeItem: getFirstSalesFormLineItemUid(hydratedRecord),
+			activeStepByLine: getInitialSalesFormActiveStepByLine(hydratedRecord),
 		},
 	};
 }
@@ -45,6 +47,10 @@ export function restoreSalesFormLocalDraft<
 		editor: {
 			...state.editor,
 			activeItem: getFirstSalesFormLineItemUid(hydratedRecord),
+			activeStepByLine: {
+				...getInitialSalesFormActiveStepByLine(hydratedRecord),
+				...state.editor.activeStepByLine,
+			},
 		},
 	};
 }

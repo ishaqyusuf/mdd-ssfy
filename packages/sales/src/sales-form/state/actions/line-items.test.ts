@@ -54,12 +54,68 @@ function createRecord(): SalesFormStateRecord {
 
 describe("sales form state line item actions", () => {
 	it("keeps autosave opt-in for hydrated forms", () => {
-		const state = hydrateSalesFormState(createInitialSalesFormState(), createRecord());
+		const state = hydrateSalesFormState(
+			createInitialSalesFormState(),
+			createRecord(),
+		);
 
 		expect(state.dirty).toBe(false);
 		expect(state.saveStatus).toBe("idle");
 		expect(state.editor.autosaveEnabled).toBe(false);
 		expect(state.editor.activeItem).toBe("line-1");
+		expect(state.editor.activeStepByLine).toEqual({ "line-1": 0 });
+	});
+
+	it("hydrates active steps from each loaded line item workflow", () => {
+		const record: SalesFormStateRecord = {
+			...createRecord(),
+			lineItems: [
+				{
+					...createRecord().lineItems[0],
+					uid: "line-complete",
+					formSteps: [
+						{
+							prodUid: "door-root",
+							step: { title: "Item Type" },
+							meta: {},
+						},
+						{
+							prodUid: "height-80",
+							step: { title: "Height" },
+							meta: {},
+						},
+						{
+							prodUid: "line-item",
+							step: { title: "Line Item" },
+							meta: {},
+						},
+					],
+				},
+				{
+					...createRecord().lineItems[0],
+					uid: "line-pending",
+					formSteps: [
+						{
+							prodUid: "shelf-root",
+							step: { title: "Item Type" },
+							meta: {},
+						},
+						{
+							prodUid: "",
+							step: { title: "Shelf Items" },
+							meta: {},
+						},
+					],
+				},
+			],
+		};
+		const state = hydrateSalesFormState(createInitialSalesFormState(), record);
+
+		expect(state.editor.activeItem).toBe("line-complete");
+		expect(state.editor.activeStepByLine).toEqual({
+			"line-complete": 2,
+			"line-pending": 1,
+		});
 	});
 
 	it("updates line totals and marks state dirty", () => {
@@ -174,7 +230,7 @@ describe("sales form state save/recovery actions", () => {
 			},
 		};
 
-		const restored = restoreSalesFormLocalDraft(state, {
+		const recoveredRecord: SalesFormStateRecord = {
 			...createRecord(),
 			lineItems: [
 				{
@@ -189,13 +245,15 @@ describe("sales form state save/recovery actions", () => {
 				subTotal: 35,
 				grandTotal: 35,
 			},
-		});
+		};
+		const restored = restoreSalesFormLocalDraft(state, recoveredRecord);
 
 		expect(restored.dirty).toBe(true);
 		expect(restored.saveStatus).toBe("idle");
 		expect(restored.editor.stepDisplayMode).toBe("compact");
 		expect(restored.editor.autosaveEnabled).toBe(false);
 		expect(restored.editor.activeItem).toBe("line-recovered");
+		expect(restored.editor.activeStepByLine["line-recovered"]).toBe(0);
 		expect(restored.record?.summary?.subTotal).toBe(35);
 	});
 });

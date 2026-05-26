@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import type { SalesFormLineItemRecord } from "../../application";
+import { resolveInitialWorkflowStepIndex } from "./workflow-records";
 
 type WorkflowStep = NonNullable<SalesFormLineItemRecord["formSteps"]>[number];
 type ResolveActiveStepIndex = (
@@ -42,7 +43,7 @@ export function useItemWorkflowController(args: {
 			: resolveActiveStepIndex(
 					activeLineSteps,
 					activeStepByLine[String(activeLine.uid || "")] ??
-						Math.max(0, activeLineSteps.length - 1),
+						resolveInitialWorkflowStepIndex(activeLineSteps),
 				);
 	const activeStep = activeLineSteps[activeStepIndex] || null;
 

@@ -5,6 +5,7 @@ import {
 } from "../../application";
 import {
 	getNextSalesFormActiveItem,
+	getInitialSalesFormActiveStepByLine,
 	recomputeSalesFormRecordSummary,
 } from "../selectors";
 import type { SalesFormState, SalesFormStateRecord } from "../types";
@@ -59,6 +60,13 @@ export function addSalesFormLineItem<
 		editor: {
 			...state.editor,
 			activeItem: next.uid,
+			activeStepByLine: {
+				...state.editor.activeStepByLine,
+				...getInitialSalesFormActiveStepByLine({
+					...state.record,
+					lineItems: [next],
+				} as TRecord),
+			},
 		},
 		dirty: true,
 		saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
@@ -111,6 +119,8 @@ export function removeSalesFormLineItem<
 	TState extends SalesFormState<TRecord>,
 >(state: TState, uid: string): TState {
 	if (!state.record) return state;
+	const activeStepByLine = { ...state.editor.activeStepByLine };
+	delete activeStepByLine[uid];
 
 	return {
 		...state,
@@ -125,9 +135,9 @@ export function removeSalesFormLineItem<
 				uid,
 				state.editor.activeItem,
 			),
+			activeStepByLine,
 		},
 		dirty: true,
 		saveStatus: state.saveStatus === "error" ? "idle" : state.saveStatus,
 	};
 }
-

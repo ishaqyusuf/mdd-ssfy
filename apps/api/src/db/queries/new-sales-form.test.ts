@@ -832,6 +832,135 @@ describe("new-sales-form relational parity", () => {
 		expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
 	});
 
+	it("keeps one active legacy shelf row across repeated new-form saves", async () => {
+		const { ctx, state } = createMockContext();
+
+		const buildPayload = (overrides: {
+			salesId?: number | null;
+			slug?: string | null;
+			version?: string | null;
+			lineId?: number | null;
+			shelfId?: number | null;
+		}) => ({
+			type: "order" as const,
+			slug: overrides.slug ?? null,
+			salesId: overrides.salesId ?? null,
+			version: overrides.version ?? null,
+			autosave: false,
+			meta: {
+				customerId: 100,
+				customerProfileId: null,
+				billingAddressId: null,
+				shippingAddressId: null,
+				paymentTerm: "None",
+				goodUntil: null,
+				po: null,
+				notes: null,
+				deliveryOption: "pickup",
+				taxCode: null,
+			},
+			summary: {
+				subTotal: 0,
+				taxRate: 0,
+				taxTotal: 0,
+				grandTotal: 0,
+			},
+			extraCosts: [{ id: null, label: "Labor", type: "Labor", amount: 0 }],
+			lineItems: [
+				{
+					id: overrides.lineId ?? null,
+					uid: "shelf-line-a",
+					title: "Shelf Items",
+					description: "BYPASS HARDWARE (HEAVY DUTY) 6-0",
+					qty: 1,
+					unitPrice: 87.78,
+					lineTotal: 87.78,
+					meta: {},
+					formSteps: [
+						{
+							id: null,
+							stepId: 1,
+							componentId: null,
+							prodUid: null,
+							value: "Shelf Items",
+							qty: 1,
+							price: 0,
+							basePrice: 0,
+							meta: {},
+							step: { id: 1, title: "Item Type" },
+						},
+					],
+					shelfItems: [
+						{
+							id: overrides.shelfId ?? null,
+							categoryId: 10,
+							productId: 1001,
+							description: "BYPASS HARDWARE (HEAVY DUTY) 6-0",
+							qty: 1,
+							unitPrice: 87.78,
+							totalPrice: 87.78,
+							meta: {
+								lineUid: "hardware-section",
+								itemIndex: 0,
+								categoryUid: "10",
+							},
+						},
+					],
+					housePackageTool: null,
+				},
+			],
+		});
+
+		const first = await saveDraftNewSalesForm(ctx, buildPayload({}));
+		const firstItem = state.items.find((row) => row.deletedAt == null)!;
+		const firstShelf = state.shelfItems.find((row) => row.deletedAt == null)!;
+
+		const second = await saveDraftNewSalesForm(
+			ctx,
+			buildPayload({
+				salesId: first.salesId,
+				slug: first.slug,
+				version: first.version,
+				lineId: firstItem.id,
+				shelfId: firstShelf.id,
+			}),
+		);
+		const secondItem = state.items.find((row) => row.deletedAt == null)!;
+		const secondShelf = state.shelfItems.find((row) => row.deletedAt == null)!;
+
+		const third = await saveDraftNewSalesForm(
+			ctx,
+			buildPayload({
+				salesId: second.salesId,
+				slug: second.slug,
+				version: second.version,
+				lineId: secondItem.id,
+				shelfId: secondShelf.id,
+			}),
+		);
+		const thirdLoaded = await getNewSalesForm(ctx, {
+			type: "order",
+			slug: third.slug!,
+		});
+
+		expect(thirdLoaded.lineItems).toHaveLength(1);
+		expect(thirdLoaded.lineItems[0]?.shelfItems).toHaveLength(1);
+		expect(state.shelfItems).toHaveLength(3);
+		expect(state.shelfItems.filter((row) => row.deletedAt == null)).toHaveLength(
+			1,
+		);
+		expect(
+			state.shelfItems.filter(
+				(row) =>
+					row.salesOrderItemId === secondItem.id &&
+					row.deletedAt == null,
+			),
+		).toHaveLength(1);
+		expect(
+			state.shelfItems.filter((row) => row.salesOrderItemId === secondItem.id),
+		).toHaveLength(3);
+	});
+
 	it("saves HPT door pricing with legacy-compatible door fields", async () => {
 		const { ctx, state } = createMockContext();
 

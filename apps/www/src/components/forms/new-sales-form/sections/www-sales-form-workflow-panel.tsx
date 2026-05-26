@@ -10,6 +10,7 @@ import {
 	DoorSupplierManager,
 	getRedirectableRoutes,
 	getWorkflowSteps,
+	resolveConfiguredRouteStepsForLine,
 	removeWorkflowSelectedComponent,
 	saveWorkflowComponentEdit,
 	SalesFormEnginePanel,
@@ -86,8 +87,9 @@ export function WwwSalesFormWorkflowPanel() {
 	const workflowEditor = useMemo(
 		() => ({
 			activeItem: editor.activeItem,
+			activeStepByLine: editor.activeStepByLine,
 		}),
-		[editor.activeItem],
+		[editor.activeItem, editor.activeStepByLine],
 	);
 	const workflowDataSource = useMemo(
 		() => ({
@@ -249,8 +251,17 @@ export function WwwSalesFormWorkflowPanel() {
 				(line) => line.uid === doorSizeVariantModal.lineUid,
 			) || null
 		: null;
-	const doorSizeVariantSteps = doorSizeVariantLine
-		? getWorkflowSteps(doorSizeVariantLine)
+	const doorSizeVariantScopedLine = doorSizeVariantLine
+		? {
+				...doorSizeVariantLine,
+				formSteps: resolveConfiguredRouteStepsForLine({
+					routeData: doorSizeVariantModal.routeData,
+					line: doorSizeVariantLine,
+				}),
+			}
+		: null;
+	const doorSizeVariantSteps = doorSizeVariantScopedLine
+		? getWorkflowSteps(doorSizeVariantScopedLine)
 		: [];
 	const doorSizeVariantStep =
 		doorSizeVariantModal.stepIndex >= 0
@@ -279,7 +290,13 @@ export function WwwSalesFormWorkflowPanel() {
 						updateLineItem(uid, patch as Partial<NewSalesFormLineItem>),
 					removeLineItem,
 					setActiveItem: (uid) => setEditor({ activeItem: uid }),
-					setActiveStep: () => undefined,
+					setActiveStep: (lineUid, stepIndex) =>
+						setEditor({
+							activeStepByLine: {
+								...editor.activeStepByLine,
+								[lineUid]: stepIndex,
+							},
+						}),
 				}}
 				slots={{
 					getComponentRedirectOptions: ({ routeData }) =>

@@ -2,8 +2,10 @@
 
 import { useDebounce } from "@/hooks/use-debounce";
 import { useTRPC } from "@/trpc/client";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import {
     Dialog,
     DialogContent,
@@ -30,6 +32,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
 type AddMode = "existing" | "new";
+type SalesProfile = RouterOutputs["dealer"]["salesProfiles"][number];
+type SalesProfileOption = {
+    id: string;
+    label: string;
+    coefficient?: number | null;
+};
 type CustomerCandidate = {
     id?: number;
     name?: string | null;
@@ -83,6 +91,9 @@ export function DealersAdminPage() {
     const [resendingDealerId, setResendingDealerId] = useState<number | null>(
         null,
     );
+    const [updatingProfileDealerId, setUpdatingProfileDealerId] = useState<
+        number | null
+    >(null);
     const debouncedSearch = useDebounce(search, 300);
     const debouncedCustomerSearch = useDebounce(customerSearch, 300);
 
@@ -92,6 +103,8 @@ export function DealersAdminPage() {
             size: 50,
         }),
     );
+
+    const profilesQuery = useQuery(trpc.dealer.salesProfiles.queryOptions());
 
     const candidateQuery = useQuery(
         trpc.dealer.searchCustomerCandidates.queryOptions({
@@ -125,6 +138,33 @@ export function DealersAdminPage() {
                     description: error.message,
                     variant: "destructive",
                 });
+            },
+        }),
+    );
+
+    const updateSalesProfile = useMutation(
+        trpc.dealer.updateSalesProfile.mutationOptions({
+            onMutate: (variables) => {
+                setUpdatingProfileDealerId(variables.dealerId);
+            },
+            onSuccess: async () => {
+                await queryClient.invalidateQueries({
+                    queryKey: trpc.dealer.list.pathKey(),
+                });
+                toast({
+                    title: "Sales profile updated.",
+                    variant: "success",
+                });
+            },
+            onError: (error) => {
+                toast({
+                    title: "Could not update sales profile.",
+                    description: error.message,
+                    variant: "destructive",
+                });
+            },
+            onSettled: () => {
+                setUpdatingProfileDealerId(null);
             },
         }),
     );
@@ -164,6 +204,15 @@ export function DealersAdminPage() {
 
     const dealers = dealersQuery.data ?? [];
     const candidates = candidateQuery.data ?? [];
+    const salesProfileOptions = useMemo(
+        () =>
+            (profilesQuery.data ?? []).map((profile) => ({
+                id: String(profile.id),
+                label: profile.title,
+                coefficient: profile.coefficient,
+            })),
+        [profilesQuery.data],
+    );
     const totalActive = useMemo(
         () =>
             dealers.filter((dealer) =>
@@ -395,7 +444,7 @@ export function DealersAdminPage() {
                             <TableHead>Dealer</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Customer profile</TableHead>
+                            <TableHead>Sales profile</TableHead>
                             <TableHead>Customer link</TableHead>
                             <TableHead>Created</TableHead>
                             <TableHead className="text-right">
@@ -424,6 +473,9 @@ export function DealersAdminPage() {
                                 const isResending =
                                     resendOnboarding.isPending &&
                                     resendingDealerId === dealer.id;
+                                const isUpdatingProfile =
+                                    updateSalesProfile.isPending &&
+                                    updatingProfileDealerId === dealer.id;
                                 const canResendOnboarding = !dealer.authUserId;
 
                                 return (
@@ -441,18 +493,24 @@ export function DealersAdminPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-sm">
-                                                    {dealer.dealer?.profile
-                                                        ?.title ||
-                                                        "No customer profile"}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    Coefficient{" "}
-                                                    {dealer.dealer?.profile
-                                                        ?.coefficient ?? "-"}
-                                                </span>
-                                            </div>
+                                            <DealerSalesProfileSelect
+                                                disabled={isUpdatingProfile}
+                                                isLoading={
+                                                    profilesQuery.isPending
+                                                }
+                                                onChange={(profileId) =>
+                                                    updateSalesProfile.mutate({
+                                                        dealerId: dealer.id,
+                                                        customerProfileId:
+                                                            profileId,
+                                                    })
+                                                }
+                                                options={salesProfileOptions}
+                                                profile={
+                                                    dealer.dealer?.profile ??
+                                                    null
+                                                }
+                                            />
                                         </TableCell>
                                         <TableCell>
                                             {dealer.dealer ? (
@@ -525,6 +583,54 @@ function Metric({ label, value }: { label: string; value: number }) {
         <div className="rounded-lg border bg-muted/20 px-3 py-2">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="text-lg font-semibold">{value}</div>
+        </div>
+    );
+}
+
+function DealerSalesProfileSelect({
+    disabled,
+    isLoading,
+    onChange,
+    options,
+    profile,
+}: {
+    disabled?: boolean;
+    isLoading?: boolean;
+    onChange: (profileId: number) => void;
+    options: SalesProfileOption[];
+    profile?: Pick<SalesProfile, "id" | "title" | "coefficient"> | null;
+}) {
+    const selectedItem =
+        options.find((option) => option.id === String(profile?.id || "")) ??
+        (profile
+            ? {
+                  id: String(profile.id),
+                  label: profile.title,
+                  coefficient: profile.coefficient,
+              }
+            : undefined);
+
+    return (
+        <div className="flex min-w-[220px] max-w-[280px] flex-col gap-1">
+            <ComboboxDropdown
+                disabled={disabled || isLoading}
+                emptyResults="No sales profiles found"
+                isLoading={isLoading}
+                items={options}
+                onSelect={(option) => {
+                    const nextProfileId = Number(option.id);
+                    if (!Number.isFinite(nextProfileId)) return;
+                    if (nextProfileId === profile?.id) return;
+                    onChange(nextProfileId);
+                }}
+                placeholder={isLoading ? "Loading profiles" : "Set profile"}
+                popoverProps={{ align: "start", className: "p-0" }}
+                searchPlaceholder="Search profiles"
+                selectedItem={selectedItem}
+            />
+            <span className="text-xs text-muted-foreground">
+                Coefficient {selectedItem?.coefficient ?? "-"}
+            </span>
         </div>
     );
 }

@@ -17,7 +17,10 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 import type { ReactNode } from "react";
-import { getHptDoorSalesUnitPrice } from "../../domain";
+import {
+	getHptDoorSalesUnitPrice,
+	resolveHptDoorUnitPriceBreakdown,
+} from "../../domain";
 import { DoorPriceCell, updateDoorRowBasePrice } from "./door-price-cell";
 import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 import type {
@@ -250,7 +253,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 							</div>
 						</header>
 						<div className="overflow-x-auto">
-							<table className="min-w-[620px] text-sm">
+							<table className="w-full min-w-[620px] table-fixed text-sm">
 								<thead>
 									<tr className="border-b border-slate-100 bg-slate-50/50 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
 										<th className="whitespace-nowrap px-3 py-2">Size</th>
@@ -267,275 +270,307 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											</>
 										)}
 										<th className="w-24 px-2 py-2 text-right">Unit</th>
-										<th className="px-3 py-2 text-right">Line</th>
-										<th className="w-14 px-2 py-2 text-right">Remove</th>
+										<th className="w-24 px-3 py-2 text-right">Line</th>
+										<th className="w-20 px-2 py-2 text-right">Remove</th>
 									</tr>
 								</thead>
 								<tbody>
-									{rowsForComponent.map((row, rowIndex) => (
-										<tr
-											key={`hpt-row-${componentId}-${row.id ?? "new"}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}-${rowIndex}`}
-											className="border-b border-slate-100 last:border-0"
-										>
-											<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">
-												{row.dimension || "--"}
-											</td>
-											{props.hasSwing ? (
-												<td className="px-2 py-2">
-													<Input
-														value={row.swing || ""}
-														onChange={(event) =>
-															props.onPatchRow(row, {
-																swing: event.target.value,
-															})
-														}
-														className="h-8 w-16 rounded-md border-slate-200 text-xs"
-														placeholder="LH/RH"
-													/>
+									{rowsForComponent.map((row, rowIndex) => {
+										const unitBreakdown = resolveHptDoorUnitPriceBreakdown(
+											row,
+											{
+												sharedDoorSurcharge: props.sharedDoorSurcharge,
+												profileCoefficient: props.profileCoefficient,
+											},
+										);
+
+										return (
+											<tr
+												key={`hpt-row-${componentId}-${row.id ?? "new"}-${row.stepProductId || row.dimension || "row"}-${row.swing || "noswing"}-${row.totalQty || 0}-${rowIndex}`}
+												className="border-b border-slate-100 last:border-0"
+											>
+												<td className="whitespace-nowrap px-3 py-2 font-medium text-slate-800">
+													{row.dimension || "--"}
 												</td>
-											) : null}
-											{props.noHandle ? (
-												<td className="px-2 py-2">
-													<Input
-														type="number"
-														value={
-															Number(row.totalQty || 0) > 0
-																? String(Number(row.totalQty || 0))
-																: ""
-														}
-														onChange={(event) =>
-															props.onPatchRow(row, {
-																totalQty: Number(event.target.value || 0),
-																lhQty: 0,
-																rhQty: 0,
-															})
-														}
-														disabled={isDoorRowPriceMissing(row)}
-														className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
-													/>
-												</td>
-											) : (
-												<>
+												{props.hasSwing ? (
+													<td className="px-2 py-2">
+														<Input
+															value={row.swing || ""}
+															onChange={(event) =>
+																props.onPatchRow(row, {
+																	swing: event.target.value,
+																})
+															}
+															className="h-8 w-16 rounded-md border-slate-200 text-xs"
+															placeholder="LH/RH"
+														/>
+													</td>
+												) : null}
+												{props.noHandle ? (
 													<td className="px-2 py-2">
 														<Input
 															type="number"
 															value={
-																Number(row.lhQty || 0) > 0
-																	? String(Number(row.lhQty || 0))
+																Number(row.totalQty || 0) > 0
+																	? String(Number(row.totalQty || 0))
 																	: ""
 															}
 															onChange={(event) =>
 																props.onPatchRow(row, {
-																	lhQty: Number(event.target.value || 0),
+																	totalQty: Number(event.target.value || 0),
+																	lhQty: 0,
+																	rhQty: 0,
 																})
 															}
 															disabled={isDoorRowPriceMissing(row)}
 															className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
 														/>
 													</td>
-													<td className="px-2 py-2">
-														<Input
-															type="number"
-															value={
-																Number(row.rhQty || 0) > 0
-																	? String(Number(row.rhQty || 0))
-																	: ""
-															}
-															onChange={(event) =>
-																props.onPatchRow(row, {
-																	rhQty: Number(event.target.value || 0),
-																})
-															}
-															disabled={isDoorRowPriceMissing(row)}
-															className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
-														/>
-													</td>
-													<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700">
-														{Number(row.totalQty || 0)}
-													</td>
-												</>
-											)}
-											<td className="px-2 py-2">
-												<DoorPriceCell
-													row={row}
-													profileCoefficient={props.profileCoefficient}
-													readOnly={!props.canEditPricing}
-													onSave={(nextBase) =>
-														props.onPatchRow(
-															row,
-															updateDoorRowBasePrice(
-																{
-																	...row,
-																	unitPrice: Number(row?.unitPrice || 0),
-																},
-																nextBase,
-																props.profileCoefficient,
-															),
-														)
-													}
-												/>
-											</td>
-											<td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
-												<Menu
-													noSize
-													Icon={null}
-													label={
-														<span className="cursor-pointer underline decoration-dotted underline-offset-2">
-															{props.formatMoney(row.lineTotal) || "$0.00"}
-														</span>
-													}
-												>
-													<div className="min-w-[260px] space-y-2 p-2 text-left text-xs">
-														<p className="font-bold uppercase text-muted-foreground">
-															Estimate Breakdown
-														</p>
-														{props.pricedSteps.map((step) => (
-															<div
-																key={`priced-step-${row.dimension}-${step.stepId}-${step.value}`}
-																className="flex justify-between gap-3"
-															>
-																<span>{step?.step?.title || "Component"}</span>
-																<span className="font-semibold">
-																	{props.formatMoney(step?.price) || "$0.00"}
-																</span>
-															</div>
-														))}
-														<div className="flex justify-between">
-															<span>Door</span>
-															<span className="font-semibold">
-																{props.componentLabel(
-																	props.activeDoorComponent?.title ||
-																		"Selected Door",
-																)}
-															</span>
-														</div>
-														<div className="flex justify-between">
-															<span>Size</span>
-															<span className="font-semibold">
-																{row.dimension || "--"}
-															</span>
-														</div>
-														<div className="flex justify-between">
-															<span>Door Price</span>
-															<span className="font-semibold">
-																{props.formatMoney(
-																	getHptDoorSalesUnitPrice(row, {
-																		sharedDoorSurcharge:
-																			props.sharedDoorSurcharge,
-																		profileCoefficient:
-																			props.profileCoefficient,
-																	}),
-																) || "$0.00"}
-															</span>
-														</div>
-														{props.canEditPricing ? (
-															<>
-																<div className="flex justify-between">
-																	<span>Base Cost</span>
-																	<span className="font-semibold">
-																		{row?.meta?.baseUnitPrice == null
-																			? "--"
-																			: props.formatMoney(
-																					firstFiniteNumber(
-																						row?.meta?.baseUnitPrice,
-																						0,
-																					) ?? 0,
-																				) || "$0.00"}
-																	</span>
-																</div>
-																<div className="flex justify-between">
-																	<span>Component Surcharge</span>
-																	<span className="font-semibold">
-																		{props.formatMoney(
-																			props.sharedDoorSurcharge,
-																		) || "$0.00"}
-																	</span>
-																</div>
-															</>
-														) : null}
-														<div className="flex justify-between">
-															<span>Final Unit</span>
-															<span className="font-semibold">
-																{props.formatMoney(row.unitPrice) || "$0.00"}
-															</span>
-														</div>
-														<div className="flex justify-between">
-															<span>Qty</span>
-															<span className="font-semibold">
-																{Number(row.totalQty || 0)}
-															</span>
-														</div>
-														<div className="flex items-center justify-between gap-3">
-															<span>Addon Price</span>
-															{props.canEditPricing ? (
-																<Input
-																	type="number"
-																	step="0.01"
-																	value={row.addon ?? 0}
-																	onChange={(event) =>
-																		props.onPatchRow(row, {
-																			addon: Number(event.target.value || 0),
-																		})
-																	}
-																	className={priceInputClassName}
-																/>
-															) : (
-																<span className="font-semibold">
-																	{props.formatMoney(Number(row.addon || 0)) ||
-																		"$0.00"}
-																</span>
-															)}
-														</div>
-														<div className="flex items-center justify-between gap-3">
-															<span>Custom Price</span>
-															{props.canEditPricing ? (
-																<Input
-																	type="number"
-																	step="0.01"
-																	value={row.customPrice ?? ""}
-																	onChange={(event) =>
-																		props.onPatchRow(row, {
-																			customPrice:
-																				event.target.value === ""
-																					? null
-																					: Number(event.target.value || 0),
-																		})
-																	}
-																	className={priceInputClassName}
-																/>
-															) : (
-																<span className="font-semibold">
-																	{row.customPrice == null ||
-																	row.customPrice === ""
-																		? "Auto"
-																		: props.formatMoney(
-																				Number(row.customPrice || 0),
-																			) || "$0.00"}
-																</span>
-															)}
-														</div>
-														<div className="border-t pt-2" />
-														<div className="flex justify-between text-sm">
-															<span className="font-semibold">Line Total</span>
-															<span className="font-bold">
+												) : (
+													<>
+														<td className="px-2 py-2">
+															<Input
+																type="number"
+																value={
+																	Number(row.lhQty || 0) > 0
+																		? String(Number(row.lhQty || 0))
+																		: ""
+																}
+																onChange={(event) =>
+																	props.onPatchRow(row, {
+																		lhQty: Number(event.target.value || 0),
+																	})
+																}
+																disabled={isDoorRowPriceMissing(row)}
+																className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
+															/>
+														</td>
+														<td className="px-2 py-2">
+															<Input
+																type="number"
+																value={
+																	Number(row.rhQty || 0) > 0
+																		? String(Number(row.rhQty || 0))
+																		: ""
+																}
+																onChange={(event) =>
+																	props.onPatchRow(row, {
+																		rhQty: Number(event.target.value || 0),
+																	})
+																}
+																disabled={isDoorRowPriceMissing(row)}
+																className="h-8 w-14 rounded-md border-slate-200 text-right text-xs"
+															/>
+														</td>
+														<td className="px-2 py-2 text-right text-xs font-semibold text-slate-700">
+															{Number(row.totalQty || 0)}
+														</td>
+													</>
+												)}
+												<td className="px-2 py-2">
+													<DoorPriceCell
+														row={row}
+														profileCoefficient={props.profileCoefficient}
+														readOnly={!props.canEditPricing}
+														onSave={(nextBase) =>
+															props.onPatchRow(
+																row,
+																updateDoorRowBasePrice(
+																	{
+																		...row,
+																		unitPrice: Number(row?.unitPrice || 0),
+																	},
+																	nextBase,
+																	props.profileCoefficient,
+																),
+															)
+														}
+													/>
+												</td>
+												<td className="px-3 py-2 text-right text-xs font-semibold text-slate-900">
+													<Menu
+														noSize
+														Icon={null}
+														label={
+															<span className="cursor-pointer underline decoration-dotted underline-offset-2">
 																{props.formatMoney(row.lineTotal) || "$0.00"}
 															</span>
+														}
+													>
+														<div className="min-w-[260px] space-y-2 p-2 text-left text-xs">
+															<p className="font-bold uppercase text-muted-foreground">
+																Estimate Breakdown
+															</p>
+															{props.pricedSteps.map((step) => (
+																<div
+																	key={`priced-step-${row.dimension}-${step.stepId}-${step.value}`}
+																	className="flex justify-between gap-3"
+																>
+																	<span>
+																		{step?.step?.title || "Component"}
+																	</span>
+																	<span className="font-semibold">
+																		{props.formatMoney(step?.price) || "$0.00"}
+																	</span>
+																</div>
+															))}
+															<div className="flex justify-between">
+																<span>Door</span>
+																<span className="font-semibold">
+																	{props.componentLabel(
+																		props.activeDoorComponent?.title ||
+																			"Selected Door",
+																	)}
+																</span>
+															</div>
+															<div className="flex justify-between">
+																<span>Size</span>
+																<span className="font-semibold">
+																	{row.dimension || "--"}
+																</span>
+															</div>
+															<div className="flex justify-between">
+																<span>Door Price</span>
+																<span className="font-semibold">
+																	{props.formatMoney(
+																		getHptDoorSalesUnitPrice(row, {
+																			sharedDoorSurcharge:
+																				props.sharedDoorSurcharge,
+																			profileCoefficient:
+																				props.profileCoefficient,
+																		}),
+																	) || "$0.00"}
+																</span>
+															</div>
+															{props.canEditPricing ? (
+																<>
+																	<div className="flex justify-between">
+																		<span>Base Cost</span>
+																		<span className="font-semibold">
+																			{row?.meta?.baseUnitPrice == null
+																				? "--"
+																				: props.formatMoney(
+																						firstFiniteNumber(
+																							row?.meta?.baseUnitPrice,
+																							0,
+																						) ?? 0,
+																					) || "$0.00"}
+																		</span>
+																	</div>
+																	<div className="flex justify-between">
+																		<span>Component Surcharge</span>
+																		<span className="font-semibold">
+																			{props.formatMoney(
+																				props.sharedDoorSurcharge,
+																			) || "$0.00"}
+																		</span>
+																	</div>
+																</>
+															) : null}
+															<div className="flex justify-between">
+																<span>Final Unit</span>
+																{unitBreakdown.hasCustomPrice ? (
+																	<span className="flex items-center gap-2 font-semibold">
+																		<span className="text-muted-foreground line-through">
+																			{props.formatMoney(
+																				unitBreakdown.calculatedFinalUnitPrice,
+																			) || "$0.00"}
+																		</span>
+																		<span>
+																			{props.formatMoney(
+																				unitBreakdown.unitPrice,
+																			) || "$0.00"}
+																		</span>
+																	</span>
+																) : (
+																	<span className="font-semibold">
+																		{props.formatMoney(
+																			unitBreakdown.unitPrice,
+																		) || "$0.00"}
+																	</span>
+																)}
+															</div>
+															<div className="flex justify-between">
+																<span>Qty</span>
+																<span className="font-semibold">
+																	{Number(row.totalQty || 0)}
+																</span>
+															</div>
+															<div className="flex items-center justify-between gap-3">
+																<span>Addon Price</span>
+																{props.canEditPricing ? (
+																	<Input
+																		type="number"
+																		step="0.01"
+																		value={row.addon ?? 0}
+																		onChange={(event) =>
+																			props.onPatchRow(row, {
+																				addon: Number(event.target.value || 0),
+																			})
+																		}
+																		className={priceInputClassName}
+																	/>
+																) : (
+																	<span className="font-semibold">
+																		{props.formatMoney(
+																			Number(row.addon || 0),
+																		) || "$0.00"}
+																	</span>
+																)}
+															</div>
+															<div className="flex items-center justify-between gap-3">
+																<span>Custom Price</span>
+																{props.canEditPricing ? (
+																	<Input
+																		type="number"
+																		step="0.01"
+																		value={row.customPrice ?? ""}
+																		onChange={(event) =>
+																			props.onPatchRow(row, {
+																				customPrice:
+																					event.target.value === ""
+																						? null
+																						: Number(event.target.value || 0),
+																			})
+																		}
+																		className={priceInputClassName}
+																	/>
+																) : (
+																	<span className="font-semibold">
+																		{row.customPrice == null ||
+																		row.customPrice === ""
+																			? "Auto"
+																			: props.formatMoney(
+																					Number(row.customPrice || 0),
+																				) || "$0.00"}
+																	</span>
+																)}
+															</div>
+															<div className="border-t pt-2" />
+															<div className="flex justify-between text-sm">
+																<span className="font-semibold">
+																	Line Total
+																</span>
+																<span className="font-bold">
+																	{props.formatMoney(row.lineTotal) || "$0.00"}
+																</span>
+															</div>
 														</div>
-													</div>
-												</Menu>
-											</td>
-											<td className="px-2 py-2 text-right">
-												<Button
-													size="icon"
-													variant="ghost"
-													className="size-6 text-slate-500 hover:text-red-600"
-													onClick={() => props.onRemoveSizeRow(row)}
-												>
-													<Icons.Trash2 className="size-3" />
-												</Button>
-											</td>
-										</tr>
-									))}
+													</Menu>
+												</td>
+												<td className="px-2 py-2 text-right">
+													<Button
+														size="icon"
+														variant="ghost"
+														className="size-6 text-slate-500 hover:text-red-600"
+														onClick={() => props.onRemoveSizeRow(row)}
+													>
+														<Icons.Trash2 className="size-3" />
+													</Button>
+												</td>
+											</tr>
+										);
+									})}
 								</tbody>
 							</table>
 						</div>

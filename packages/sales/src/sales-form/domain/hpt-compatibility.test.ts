@@ -3,6 +3,7 @@ import {
 	hydrateHptDoorRowFromLegacy,
 	normalizeHptDoorRowForLegacy,
 	normalizeHptLineForLegacy,
+	resolveHptDoorUnitPriceBreakdown,
 } from "./hpt-compatibility";
 
 describe("HPT legacy compatibility", () => {
@@ -51,7 +52,7 @@ describe("HPT legacy compatibility", () => {
 		expect(row.lineTotal).toBe(414);
 	});
 
-	it("treats custom price as a unit override before addon", () => {
+	it("treats custom price as the final unit price", () => {
 		const row: any = normalizeHptDoorRowForLegacy(
 			{
 				totalQty: 2,
@@ -67,9 +68,36 @@ describe("HPT legacy compatibility", () => {
 		);
 
 		expect(row.jambSizePrice).toBe(111);
-		expect(row.unitPrice).toBe(115);
-		expect(row.lineTotal).toBe(230);
+		expect(row.unitPrice).toBe(90);
+		expect(row.lineTotal).toBe(180);
 		expect(row.meta.overridePrice).toBe(90);
+		expect(row.meta.calculatedFinalUnitPrice).toBe(136);
+	});
+
+	it("resolves persisted override metadata as an active custom final unit", () => {
+		const row: any = normalizeHptDoorRowForLegacy(
+			{
+				totalQty: 2,
+				unitPrice: 136,
+				addon: 5,
+				meta: {
+					doorSalesUnitPrice: 111,
+					overridePrice: 90,
+				},
+			},
+			{
+				sharedDoorSurcharge: 20,
+			},
+		);
+		const breakdown = resolveHptDoorUnitPriceBreakdown(row, {
+			sharedDoorSurcharge: 20,
+		});
+
+		expect(row.customPrice).toBe(90);
+		expect(row.unitPrice).toBe(90);
+		expect(row.lineTotal).toBe(180);
+		expect(breakdown.hasCustomPrice).toBe(true);
+		expect(breakdown.calculatedFinalUnitPrice).toBe(136);
 	});
 
 	it("hydrates legacy rows from jambSizePrice and doorPrice", () => {

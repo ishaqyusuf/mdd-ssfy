@@ -31,7 +31,7 @@ const SALES_PROFILE_FORM_ID = "dealer-sales-profile-form";
 type SalesProfileRecord = {
   id?: number | null;
   title?: string | null;
-  coefficient?: number | null;
+  salesPercentage?: number | null;
   defaultProfile?: boolean | null;
 } | null;
 
@@ -43,7 +43,7 @@ function formatExampleCurrency(value: number) {
   }).format(value);
 }
 
-function formatExampleCoefficient(value: number) {
+function formatExamplePercent(value: number) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
   }).format(value);
@@ -55,7 +55,7 @@ function getSalesProfileDefaultValues(
   return {
     id: profile?.id || null,
     title: profile?.title || "",
-    coefficient: profile?.coefficient ?? null,
+    salesPercentage: profile?.salesPercentage ?? null,
     defaultProfile: !!profile?.defaultProfile,
   };
 }
@@ -101,17 +101,14 @@ export function SalesProfileFormModal() {
   const isEditing = Boolean(profileForm.params.salesProfileId);
   const isMissingProfile =
     isEditing && !profilesQuery.isPending && !selectedProfile;
-  const coefficientValue = Number(form.watch("coefficient") || 0);
-  const exampleCoefficient = Number.isFinite(coefficientValue)
-    ? coefficientValue
+  const percentageValue = Number(form.watch("salesPercentage") || 0);
+  const examplePercentage = Number.isFinite(percentageValue)
+    ? percentageValue
     : 0;
   const exampleBasePrice = 80;
-  const exampleMultiplier =
-    Number.isFinite(exampleCoefficient) && exampleCoefficient > 0
-      ? 1 / exampleCoefficient
-      : 1;
+  const exampleMultiplier = 1 + examplePercentage / 100;
   const exampleAdjustedPrice = exampleBasePrice * exampleMultiplier;
-  const coefficientDescription = `Uses the same sales-form coefficient logic: price = base price / coefficient. Example: ${formatExampleCurrency(exampleBasePrice)} / ${formatExampleCoefficient(exampleCoefficient || 1)} = ${formatExampleCurrency(exampleAdjustedPrice)}.`;
+  const percentageDescription = `Dealer customer pricing applies this percentage after GND pricing. Example: ${formatExampleCurrency(exampleBasePrice)} + ${formatExamplePercent(examplePercentage)}% = ${formatExampleCurrency(exampleAdjustedPrice)}.`;
 
   useEffect(() => {
     if (!profileForm.opened) return;
@@ -174,10 +171,10 @@ export function SalesProfileFormModal() {
                 />
                 <FormField
                   control={form.control}
-                  name="coefficient"
+                  name="salesPercentage"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Coefficient</FormLabel>
+                      <FormLabel>Sales percentage</FormLabel>
                       <FormControl>
                         <Input
                           name={field.name}
@@ -193,7 +190,7 @@ export function SalesProfileFormModal() {
                         />
                       </FormControl>
                       <FormDescription>
-                        {coefficientDescription}
+                        {percentageDescription}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

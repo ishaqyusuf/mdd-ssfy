@@ -13,14 +13,12 @@ export function WorkflowShelfPanel<TSection>(
 	props: WorkflowShelfPanelProps<TSection>,
 ) {
 	return (
-		<div className="space-y-3 rounded-lg border p-3">
-			<ShelfSectionsPanel
-				sections={props.sections}
-				onAddSection={props.onAddSection}
-				renderSection={(section, index): ReactNode =>
-					props.renderSection(section, index)
-				}
-			/>
-		</div>
+		<ShelfSectionsPanel
+			sections={props.sections}
+			onAddSection={props.onAddSection}
+			renderSection={(section, index): ReactNode =>
+				props.renderSection(section, index)
+			}
+		/>
 	);
 }

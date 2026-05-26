@@ -68,6 +68,10 @@ export {
   type ShelfSectionsPanelProps,
 } from "./shelf-sections-panel";
 export {
+  ShelfInlineItemsEditor,
+  type ShelfInlineItemsEditorProps,
+} from "./shelf-inline-items-editor";
+export {
   ServiceLineItemsEditor,
   type ServiceLineItemEditorRow,
   type ServiceLineItemsEditorProps,

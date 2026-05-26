@@ -31,8 +31,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@gnd/ui/dialog";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
+import { Icon } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     useCustomerProfilesQuery,
@@ -113,6 +116,7 @@ import {
     ShelfCategoryPathInput,
     ShelfCategoryRecord,
     ShelfItemRow,
+    ShelfInlineItemsEditor,
     ShelfProductCombobox,
     ShelfProductOption,
     ShelfProductRecord,
@@ -142,6 +146,7 @@ import {
     WorkflowStepRecord,
     resolveWorkflowVisibleComponents,
     proceedWorkflowMultiSelectStep,
+    resolveConfiguredRouteStepsForLine,
 } from "@gnd/sales/sales-form";
 
 type WorkflowStep = WorkflowStepRecord;
@@ -224,6 +229,7 @@ export function ItemWorkflowPanel() {
     } | null>(null);
     const [includeCustomComponents, setIncludeCustomComponents] =
         useState(false);
+    const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
     const [doorSizeVariantModal, setDoorSizeVariantModal] = useState<{
         open: boolean;
         lineUid: string | null;
@@ -246,6 +252,15 @@ export function ItemWorkflowPanel() {
         () => createWwwWorkflowAdminCapabilities(auth.roleTitle),
         [auth.roleTitle],
     );
+    const routeScopedLineItems = useMemo(() => {
+        return record.lineItems.map((line) => ({
+            ...line,
+            formSteps: resolveConfiguredRouteStepsForLine({
+                routeData,
+                line,
+            }),
+        }));
+    }, [record.lineItems, routeData]);
     const {
         activeLine,
         activeLineSteps,
@@ -253,7 +268,7 @@ export function ItemWorkflowPanel() {
         activeStep,
         itemOptions,
     } = useItemWorkflowController({
-        lineItems: record.lineItems,
+        lineItems: routeScopedLineItems,
         activeItem: editor.activeItem,
         activeStepByLine,
         resolveActiveStepIndex: resolveInteractiveStepIndex,
@@ -263,11 +278,11 @@ export function ItemWorkflowPanel() {
         ? findLineStepByTitle(activeLine, "Door")
         : null;
     const visibleLineItems = useMemo(() => {
-        return record.lineItems.map((line, index) => ({
+        return routeScopedLineItems.map((line, index) => ({
             line,
             index,
         }));
-    }, [record.lineItems]);
+    }, [routeScopedLineItems]);
     const activeDoorStepIndex = activeLineSteps.findIndex((step) =>
         isDoorStepTitle(step?.step?.title),
     );
@@ -314,9 +329,16 @@ export function ItemWorkflowPanel() {
         [activeLine?.shelfItems],
     );
     const shelfCategoriesQuery = useNewSalesFormShelfCategoriesQuery({}, true);
+    const shelfProductCategoryIds = useMemo(() => {
+        const categoryIds = ((shelfCategoriesQuery.data ||
+            []) as ShelfCategoryRecord[])
+            .map((category) => Number(category?.id || 0))
+            .filter((id) => id > 0);
+        return categoryIds.length ? categoryIds : shelfCategoryIds;
+    }, [shelfCategoriesQuery.data, shelfCategoryIds]);
     const shelfProductsQuery = useNewSalesFormShelfProductsQuery(
-        { categoryIds: shelfCategoryIds },
-        shelfCategoryIds.length > 0,
+        { categoryIds: shelfProductCategoryIds },
+        shelfProductCategoryIds.length > 0,
     );
     const shelfProductsByCategory = useMemo(() => {
         const bucket = new Map<number, ShelfProductRecord[]>();
@@ -337,6 +359,10 @@ export function ItemWorkflowPanel() {
     const shelfCategories = useMemo(
         () => shelfCategoriesQuery.data || [],
         [shelfCategoriesQuery.data],
+    );
+    const shelfProducts = useMemo(
+        () => (shelfProductsQuery.data || []) as ShelfProductOption[],
+        [shelfProductsQuery.data],
     );
     const [pendingShelfClear, setPendingShelfClear] = useState<{
         sectionUid: string;
@@ -1354,6 +1380,7 @@ export function ItemWorkflowPanel() {
                         supplierName={
                             getDoorSupplierMeta(activeItemStep).supplierName
                         }
+                        hideTitle={stepFamily === "shelf"}
                         onTabChange={setDoorSectionTab}
                     >
                         {stepFamily === "moulding-line-item" ? (
@@ -1361,7 +1388,7 @@ export function ItemWorkflowPanel() {
                         ) : stepFamily === "service-line-item" ? (
                             renderServiceLineItemPanel(line)
                         ) : stepFamily === "shelf" ? (
-                            <div className="space-y-3 rounded-lg border p-3">
+                            <>
                                 {(() => {
                                     const { sections } =
                                         buildWorkflowShelfSectionsContext(
@@ -1433,19 +1460,84 @@ export function ItemWorkflowPanel() {
                                             lineTotal: next.lineTotal,
                                         });
                                     };
+                                    const versionToggle =
+                                        process.env.NODE_ENV !==
+                                        "production" ? (
+                                            <div className="ml-auto flex items-center gap-1 rounded-md border bg-muted/30 p-1">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs"
+                                                    variant={
+                                                        shelfUiVersion === "v1"
+                                                            ? "default"
+                                                            : "ghost"
+                                                    }
+                                                    aria-pressed={
+                                                        shelfUiVersion === "v1"
+                                                    }
+                                                    onClick={() =>
+                                                        setShelfUiVersion("v1")
+                                                    }
+                                                >
+                                                    V1
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs"
+                                                    variant={
+                                                        shelfUiVersion === "v2"
+                                                            ? "default"
+                                                            : "ghost"
+                                                    }
+                                                    aria-pressed={
+                                                        shelfUiVersion === "v2"
+                                                    }
+                                                    onClick={() =>
+                                                        setShelfUiVersion("v2")
+                                                    }
+                                                >
+                                                    V2
+                                                </Button>
+                                            </div>
+                                        ) : null;
+                                    if (shelfUiVersion === "v2") {
+                                        return (
+                                            <ShelfInlineItemsEditor
+                                                sections={sections}
+                                                categories={shelfCategories}
+                                                products={shelfProducts}
+                                                profileCoefficient={
+                                                    activeProfileCoefficient
+                                                }
+                                                canEditPricing
+                                                formatMoney={(value) =>
+                                                    moneyIfPositive(value) ||
+                                                    null
+                                                }
+                                                headerSlot={versionToggle}
+                                                onSectionsChange={
+                                                    persistSections
+                                                }
+                                            />
+                                        );
+                                    }
                                     return (
-                                        <WorkflowShelfPanel
-                                            sections={sections}
-                                            onAddSection={() =>
-                                                persistSections([
-                                                    ...sections,
-                                                    createShelfSectionDraft(),
-                                                ])
-                                            }
-                                            renderSection={(
-                                                section,
-                                                sectionIndex,
-                                            ) => {
+                                        <>
+                                            {versionToggle}
+                                            <WorkflowShelfPanel
+                                                sections={sections}
+                                                onAddSection={() =>
+                                                    persistSections([
+                                                        ...sections,
+                                                        createShelfSectionDraft(),
+                                                    ])
+                                                }
+                                                renderSection={(
+                                                    section,
+                                                    sectionIndex,
+                                                ) => {
                                                 const categoryIds =
                                                     Array.isArray(
                                                         section?.categoryIds,
@@ -1656,24 +1748,38 @@ export function ItemWorkflowPanel() {
                                                             >
                                                                 Clear
                                                             </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="destructive"
-                                                                onClick={() =>
-                                                                    persistSections(
-                                                                        sections.filter(
-                                                                            (
-                                                                                _,
-                                                                                i: number,
-                                                                            ) =>
-                                                                                i !==
-                                                                                sectionIndex,
-                                                                        ),
-                                                                    )
-                                                                }
-                                                            >
-                                                                Remove Section
-                                                            </Button>
+                                                            <Tooltip>
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
+                                                                    <ConfirmBtn
+                                                                        type="button"
+                                                                        size="icon-sm"
+                                                                        variant="ghost"
+                                                                        trash
+                                                                        aria-label="Remove section"
+                                                                        onClick={() =>
+                                                                            persistSections(
+                                                                                sections.filter(
+                                                                                    (
+                                                                                        _,
+                                                                                        i: number,
+                                                                                    ) =>
+                                                                                        i !==
+                                                                                        sectionIndex,
+                                                                                ),
+                                                                            )
+                                                                        }
+                                                                    />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent
+                                                                    side="left"
+                                                                    className="px-2 py-1 text-xs"
+                                                                >
+                                                                    Remove
+                                                                    section
+                                                                </TooltipContent>
+                                                            </Tooltip>
                                                         </div>
 
                                                         <div className="grid gap-2 md:grid-cols-12">
@@ -1800,26 +1906,44 @@ export function ItemWorkflowPanel() {
                                                                 />
                                                             </div>
                                                             <div className="md:col-span-6 flex items-center justify-end">
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    onClick={() =>
-                                                                        patchSection(
-                                                                            (
-                                                                                current,
-                                                                            ) => ({
-                                                                                ...current,
-                                                                                rows: [
-                                                                                    ...(current?.rows ||
-                                                                                        []),
-                                                                                    createShelfProductDraft(),
-                                                                                ],
-                                                                            }),
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Add Product
-                                                                </Button>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <Button
+                                                                            type="button"
+                                                                            size="icon-sm"
+                                                                            variant="outline"
+                                                                            aria-label="Add product"
+                                                                            onClick={() =>
+                                                                                patchSection(
+                                                                                    (
+                                                                                        current,
+                                                                                    ) => ({
+                                                                                        ...current,
+                                                                                        rows: [
+                                                                                            ...(current?.rows ||
+                                                                                                []),
+                                                                                            createShelfProductDraft(),
+                                                                                        ],
+                                                                                    }),
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <Icon
+                                                                                name="Plus"
+                                                                                className="size-4"
+                                                                            />
+                                                                        </Button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent
+                                                                        side="left"
+                                                                        className="px-2 py-1 text-xs"
+                                                                    >
+                                                                        Add
+                                                                        product
+                                                                    </TooltipContent>
+                                                                </Tooltip>
                                                             </div>
                                                         </div>
 
@@ -2363,10 +2487,11 @@ export function ItemWorkflowPanel() {
                                                     </div>
                                                 );
                                             }}
-                                        />
+                                            />
+                                        </>
                                     );
                                 })()}
-                            </div>
+                            </>
                         ) : !activeItemStep?.stepId &&
                           !activeItemStep?.step?.id ? (
                             <p className="text-sm text-muted-foreground">

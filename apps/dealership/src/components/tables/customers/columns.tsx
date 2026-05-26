@@ -32,11 +32,11 @@ function overviewHref(item: Item) {
 function profileName(item: Item) {
   if (!item.profile) return "-";
 
-  const coefficient = new Intl.NumberFormat("en-US", {
+  const percentage = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
-  }).format(Number(item.profile.coefficient || 0));
+  }).format(Number(item.profile.salesPercentage || 0));
 
-  return `${item.profile.title || `Profile #${item.profile.id}`} (coefficient ${coefficient})`;
+  return `${item.profile.title || `Profile #${item.profile.id}`} (${percentage}%)`;
 }
 
 function countLabel(value: number, singular: string) {

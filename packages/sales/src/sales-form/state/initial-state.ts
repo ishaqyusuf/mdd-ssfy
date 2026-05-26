@@ -3,6 +3,7 @@ import type { SalesFormEditorState, SalesFormState } from "./types";
 export const initialSalesFormEditorState: SalesFormEditorState = {
 	stepDisplayMode: "extended",
 	activeItem: null,
+	activeStepByLine: {},
 	doorViewMode: "selection",
 	mouldingViewMode: "selection",
 	isOverviewOpen: false,

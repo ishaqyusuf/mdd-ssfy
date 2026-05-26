@@ -79,7 +79,7 @@ function date(value?: Date | string | null) {
   }).format(new Date(value));
 }
 
-function coefficient(value?: number | null) {
+function percent(value?: number | null) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
@@ -164,7 +164,7 @@ function OverviewPanel({ customer }: { customer: CustomerOverviewRecord }) {
                   {profile.title || `Profile #${profile.id}`}
                   <span className="text-muted-foreground">
                     {" "}
-                    / coefficient {coefficient(profile.coefficient)}
+                    / {percent(profile.salesPercentage)}%
                   </span>
                 </span>
               ) : (

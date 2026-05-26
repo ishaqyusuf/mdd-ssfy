@@ -6,9 +6,12 @@ import {
   getDealerPortalSalesDocument,
   getDealerPortalSalesDocuments,
   getDealerPortalCustomerOverview,
+  getDealerPortalSalesProfiles,
   getDealerPortalSalesList,
   saveDealerPortalQuote,
   saveDealerPortalCustomer,
+  saveDealerPortalSalesProfile,
+  updateDealerSalesProfile,
 } from "./dealers";
 
 describe("dealer portal pricing", () => {
@@ -634,10 +637,112 @@ describe("dealer portal DPP identities", () => {
 });
 
 describe("dealer portal isolation", () => {
+  it("updates the linked customer profile from a dealer account", async () => {
+    const updates: Record<string, unknown>[] = [];
+    const db = {
+      $transaction: async (callback: (tx: unknown) => unknown) => callback(db),
+      dealerAuth: {
+        findFirst: async () => ({
+          id: 10,
+          dealerId: 20,
+          email: "dealer@example.com",
+          name: "Dealer",
+          companyName: null,
+        }),
+      },
+      customerTypes: {
+        findFirst: async () => ({ id: 30 }),
+      },
+      customers: {
+        update: async (args: Record<string, unknown>) => {
+          updates.push(args);
+          return { id: 20 };
+        },
+      },
+    };
+
+    const result = await updateDealerSalesProfile(db as any, {
+      dealerId: 10,
+      customerProfileId: 30,
+    });
+
+    expect(result).toEqual({
+      dealerId: 10,
+      customerId: 20,
+      customerProfileId: 30,
+    });
+    expect(updates[0]).toEqual({
+      where: { id: 20 },
+      data: { customerTypeId: 30 },
+    });
+  });
+
+  it("creates and links a customer when setting a dealer-only sales profile", async () => {
+    const dealerUpdates: Record<string, unknown>[] = [];
+    const customerCreates: Record<string, unknown>[] = [];
+    const db = {
+      $transaction: async (callback: (tx: unknown) => unknown) => callback(db),
+      dealerAuth: {
+        findFirst: async () => ({
+          id: 10,
+          dealerId: null,
+          email: "dealer@example.com",
+          name: "Dealer",
+          companyName: "Dealer Co",
+        }),
+        update: async (args: Record<string, unknown>) => {
+          dealerUpdates.push(args);
+          return { id: 10 };
+        },
+      },
+      customerTypes: {
+        findFirst: async () => ({ id: 30 }),
+      },
+      customers: {
+        create: async (args: Record<string, unknown>) => {
+          customerCreates.push(args);
+          return { id: 40 };
+        },
+      },
+    };
+
+    const result = await updateDealerSalesProfile(db as any, {
+      dealerId: 10,
+      customerProfileId: 30,
+    });
+
+    expect(result).toEqual({
+      dealerId: 10,
+      customerId: 40,
+      customerProfileId: 30,
+    });
+    expect(customerCreates[0]).toEqual({
+      data: {
+        name: "Dealer",
+        businessName: "Dealer Co",
+        email: "dealer@example.com",
+        customerTypeId: 30,
+        meta: {
+          source: "dealer_admin_profile_assignment",
+          dealerAuthId: 10,
+        },
+      },
+      select: { id: true },
+    });
+    expect(dealerUpdates[0]).toEqual({
+      where: { id: 10 },
+      data: { dealerId: 40 },
+    });
+  });
+
   it("rejects assigning another dealer's sales profile to a dealer customer", async () => {
+    let capturedWhere: Record<string, unknown> | null = null;
     const db = {
       customerTypes: {
-        findFirst: async () => null,
+        findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+          capturedWhere = where;
+          return null;
+        },
       },
       customers: {
         create: async () => {
@@ -653,6 +758,69 @@ describe("dealer portal isolation", () => {
         customerTypeId: 99,
       }),
     ).rejects.toThrow("Customer profile could not be found.");
+    expect(capturedWhere).toMatchObject({
+      id: 99,
+      dealerOwnerId: 10,
+      deletedAt: null,
+    });
+  });
+
+  it("lists only the active dealer's percentage sales profiles", async () => {
+    let capturedWhere: Record<string, unknown> | null = null;
+    const profiles = await getDealerPortalSalesProfiles(
+      {
+        customerTypes: {
+          findMany: async ({ where }: { where: Record<string, unknown> }) => {
+            capturedWhere = where;
+            return [
+              {
+                id: 45,
+                title: "Retail",
+                salesPercentage: 20,
+                defaultProfile: true,
+                createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                _count: { customers: 2 },
+              },
+            ];
+          },
+        },
+      } as any,
+      10,
+    );
+
+    expect(capturedWhere).toMatchObject({
+      dealerOwnerId: 10,
+      deletedAt: null,
+    });
+    expect(profiles[0]).toMatchObject({
+      id: 45,
+      salesPercentage: 20,
+    });
+  });
+
+  it("saves dealer sales profiles as dealer-owned percentage profiles", async () => {
+    let createData: Record<string, unknown> | null = null;
+    const db = {
+      customerTypes: {
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          createData = data;
+          return { id: 45, ...data };
+        },
+      },
+    };
+
+    await saveDealerPortalSalesProfile(db as any, 10, {
+      title: "Retail",
+      salesPercentage: 20,
+      defaultProfile: false,
+    });
+
+    expect(createData).toMatchObject({
+      title: "Retail",
+      salesPercentage: 20,
+      defaultProfile: false,
+      dealerOwnerId: 10,
+    });
   });
 
   it("does not expose raw sales order item metadata in dealer document detail", async () => {
@@ -891,8 +1059,9 @@ describe("dealer portal isolation", () => {
       dealerSalesProfileId: 30,
       grandTotal: 100,
     });
+    const savedOrderData = createdOrderData as unknown as Record<string, any>;
     expect(
-      (createdOrderData?.meta as any).dealerPricing.summary.grandTotal,
+      savedOrderData.meta.dealerPricing.summary.grandTotal,
     ).toBe(83);
   });
 

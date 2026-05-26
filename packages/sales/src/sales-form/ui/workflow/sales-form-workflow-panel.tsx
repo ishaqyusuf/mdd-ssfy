@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import {
 	Dialog,
 	DialogContent,
@@ -12,9 +13,11 @@ import {
 	DialogTitle,
 } from "@gnd/ui/dialog";
 import { Menu } from "@gnd/ui/custom/menu";
+import { Icon } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
 import type {
 	SalesFormWorkflowActions,
 	SalesFormWorkflowCapabilities,
@@ -34,6 +37,7 @@ import {
 	getSelectedDoorComponentsForLine,
 	getSelectedProdUids,
 	getRouteConfigForLine,
+	resolveConfiguredRouteStepsForLine,
 	isComponentVisibleByRules,
 	isMouldingItem,
 	normalizeSalesFormTitle as normalizeTitle,
@@ -94,6 +98,7 @@ import {
 	removeWorkflowHptDoorOption,
 	ServiceLineItemsEditor,
 	ShelfCategoryPathInput,
+	ShelfInlineItemsEditor,
 	ShelfProductCombobox,
 	stepKey,
 	useItemWorkflowController,
@@ -150,6 +155,7 @@ export function SalesFormWorkflowPanel<
 	);
 	const [componentSearch, setComponentSearch] = useState("");
 	const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
+	const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
 	const [doorSectionTabByLine, setDoorSectionTabByLine] = useState<
 		Record<string, DoorStepPanelTab>
 	>({});
@@ -182,9 +188,20 @@ export function SalesFormWorkflowPanel<
 			: props.editor.activeItem;
 	const routeQuery = dataSource.useStepRouting();
 	const routeData = routeQuery.data || null;
+	const routeScopedLineItems = useMemo(
+		() =>
+			record.lineItems.map((line) => ({
+				...line,
+				formSteps: resolveConfiguredRouteStepsForLine({
+					routeData,
+					line,
+				}),
+			})),
+		[record.lineItems, routeData],
+	);
 	const { activeLine, activeLineSteps, activeStepIndex, activeStep } =
 		useItemWorkflowController({
-			lineItems: record.lineItems,
+			lineItems: routeScopedLineItems,
 			activeItem: activeItem || null,
 			activeStepByLine,
 			resolveActiveStepIndex: resolveInteractiveStepIndex,
@@ -211,9 +228,15 @@ export function SalesFormWorkflowPanel<
 		[activeLine?.shelfItems],
 	);
 	const shelfCategoriesQuery = dataSource.useShelfCategories?.();
+	const shelfProductCategoryIds = useMemo(() => {
+		const categoryIds = (shelfCategoriesQuery?.data || [])
+			.map((category) => Number(category?.id || 0))
+			.filter((id) => id > 0);
+		return categoryIds.length ? categoryIds : activeShelfCategoryIds;
+	}, [activeShelfCategoryIds, shelfCategoriesQuery?.data]);
 	const shelfProductsQuery = dataSource.useShelfProducts?.({
-		categoryIds: activeShelfCategoryIds,
-		enabled: activeShelfCategoryIds.length > 0,
+		categoryIds: shelfProductCategoryIds,
+		enabled: shelfProductCategoryIds.length > 0,
 	});
 	const doorSuppliersQuery = dataSource.useDoorSuppliers?.({
 		enabled: Boolean(dataSource.useDoorSuppliers),
@@ -233,6 +256,10 @@ export function SalesFormWorkflowPanel<
 		}
 		return bucket;
 	}, [shelfProductsQuery?.data]);
+	const shelfProducts = useMemo(
+		() => (shelfProductsQuery?.data || []) as ShelfProductOption[],
+		[shelfProductsQuery?.data],
+	);
 	const activeProfileCoefficient = useMemo(() => {
 		const selectedProfileId = Number(record?.form?.customerProfileId || 0);
 		if (!selectedProfileId) return 1;
@@ -821,47 +848,46 @@ export function SalesFormWorkflowPanel<
 						filteredComponents={filteredRootComponents}
 						search={componentSearch}
 						getKey={(component) => String(component.uid || component.id || "")}
-							renderComponent={(component) => (
-								<button
-									type="button"
-									className="w-full overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
-									onClick={() => selectRoot(line, component)}
-								>
-									<WorkflowComponentPreview
-										imageSrc={
-											dataSource.resolveImageSrc?.(component.img) ||
-											String(component.img || "")
-										}
-										alt={component.title || component.uid || "Component"}
-										title={componentLabel(component.title || component.uid)}
-										price={moneyIfPositive(component.salesPrice)}
-									/>
-								</button>
-							)}
-							toolbarSlot={
-								<WorkflowComponentToolbar
-									count={filteredRootComponents.length}
-									total={activeRootComponents.length}
-									search={componentSearch}
-									maxWidthClassName="max-w-2xl"
-									onSearchChange={setComponentSearch}
-									menuSlot={
-										!workflowCapabilities.isDealershipMode ? (
-											<>
-												<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
-												<Menu.Item
-													onClick={() =>
-														setIncludeCustomComponents((prev) => !prev)
-													}
-												>
-													Enable Custom:{" "}
-													{includeCustomComponents ? "On" : "Off"}
-												</Menu.Item>
-											</>
-										) : null
+						renderComponent={(component) => (
+							<button
+								type="button"
+								className="w-full overflow-hidden rounded-xl border bg-card text-left transition hover:border-primary"
+								onClick={() => selectRoot(line, component)}
+							>
+								<WorkflowComponentPreview
+									imageSrc={
+										dataSource.resolveImageSrc?.(component.img) ||
+										String(component.img || "")
 									}
+									alt={component.title || component.uid || "Component"}
+									title={componentLabel(component.title || component.uid)}
+									price={moneyIfPositive(component.salesPrice)}
 								/>
-							}
+							</button>
+						)}
+						toolbarSlot={
+							<WorkflowComponentToolbar
+								count={filteredRootComponents.length}
+								total={activeRootComponents.length}
+								search={componentSearch}
+								maxWidthClassName="max-w-2xl"
+								onSearchChange={setComponentSearch}
+								menuSlot={
+									!workflowCapabilities.isDealershipMode ? (
+										<>
+											<Menu.Item onClick={refreshRootData}>Refresh</Menu.Item>
+											<Menu.Item
+												onClick={() =>
+													setIncludeCustomComponents((prev) => !prev)
+												}
+											>
+												Enable Custom: {includeCustomComponents ? "On" : "Off"}
+											</Menu.Item>
+										</>
+									) : null
+								}
+							/>
+						}
 					/>
 				</div>
 			);
@@ -1227,24 +1253,67 @@ export function SalesFormWorkflowPanel<
 									profileCoefficient: activeProfileCoefficient,
 								}).linePatch as unknown as Partial<TLine>,
 							),
-					}) || (
-						<DefaultShelfPanel
-							sections={shelfContext.sections}
-							categories={shelfCategoriesQuery?.data || []}
-							productsByCategory={shelfProductsByCategory}
-							profileCoefficient={activeProfileCoefficient}
-							canEditPricing={workflowCapabilities.canEditLinePricing}
-							onSectionsChange={(sections) =>
-								updateLine(
-									line,
-									buildWorkflowShelfSectionsPatch({
-										sections,
-										profileCoefficient: activeProfileCoefficient,
-									}).linePatch as unknown as Partial<TLine>,
-								)
-							}
-						/>
-					)
+					}) ||
+					(() => {
+						const updateShelfSections = (sections: ShelfSectionDraft[]) =>
+							updateLine(
+								line,
+								buildWorkflowShelfSectionsPatch({
+									sections,
+									profileCoefficient: activeProfileCoefficient,
+								}).linePatch as unknown as Partial<TLine>,
+							);
+						const versionToggle =
+							process.env.NODE_ENV !== "production" ? (
+								<div className="ml-auto flex items-center gap-1 rounded-md border bg-muted/30 p-1">
+									<Button
+										type="button"
+										size="sm"
+										className="h-7 px-2 text-xs"
+										variant={shelfUiVersion === "v1" ? "default" : "ghost"}
+										aria-pressed={shelfUiVersion === "v1"}
+										onClick={() => setShelfUiVersion("v1")}
+									>
+										V1
+									</Button>
+									<Button
+										type="button"
+										size="sm"
+										className="h-7 px-2 text-xs"
+										variant={shelfUiVersion === "v2" ? "default" : "ghost"}
+										aria-pressed={shelfUiVersion === "v2"}
+										onClick={() => setShelfUiVersion("v2")}
+									>
+										V2
+									</Button>
+								</div>
+							) : null;
+
+						return shelfUiVersion === "v1" ? (
+							<div className="space-y-3">
+								{versionToggle}
+								<DefaultShelfPanel
+									sections={shelfContext.sections}
+									categories={shelfCategoriesQuery?.data || []}
+									productsByCategory={shelfProductsByCategory}
+									profileCoefficient={activeProfileCoefficient}
+									canEditPricing={workflowCapabilities.canEditLinePricing}
+									onSectionsChange={updateShelfSections}
+								/>
+							</div>
+						) : (
+							<ShelfInlineItemsEditor
+								sections={shelfContext.sections}
+								categories={shelfCategoriesQuery?.data || []}
+								products={shelfProducts}
+								profileCoefficient={activeProfileCoefficient}
+								canEditPricing={workflowCapabilities.canEditLinePricing}
+								formatMoney={(value) => moneyIfPositive(value) || null}
+								headerSlot={versionToggle}
+								onSectionsChange={updateShelfSections}
+							/>
+						);
+					})()
 				}
 				componentPickerPanel={
 					isDoorStep && doorSupplierPanel ? (
@@ -1273,7 +1342,7 @@ export function SalesFormWorkflowPanel<
 	}
 
 	const doorSizeModalLine =
-		record.lineItems.find(
+		routeScopedLineItems.find(
 			(line) => String(line.uid || "") === String(doorSizeModal.lineUid || ""),
 		) || null;
 	const doorSizeModalSteps = doorSizeModalLine
@@ -1300,7 +1369,7 @@ export function SalesFormWorkflowPanel<
 			})
 		: null;
 	const doorSwapModalLine =
-		record.lineItems.find(
+		routeScopedLineItems.find(
 			(line) => String(line.uid || "") === String(doorSwapModal.lineUid || ""),
 		) || null;
 	const doorSwapModalSteps = doorSwapModalLine
@@ -1338,9 +1407,9 @@ export function SalesFormWorkflowPanel<
 					</Button>
 				</div>
 			) : null}
-			{record.lineItems.length ? (
+			{routeScopedLineItems.length ? (
 				<WorkflowLineList
-					items={record.lineItems.map((line, index) => ({ line, index }))}
+					items={routeScopedLineItems.map((line, index) => ({ line, index }))}
 					activeLineUid={activeLine?.uid || activeItem || null}
 					activeStepByLine={activeStepByLine}
 					resolveActiveStepIndex={resolveInteractiveStepIndex}
@@ -1754,8 +1823,8 @@ function DefaultShelfPanel(props: {
 								<DialogHeader>
 									<DialogTitle>Clear Categories</DialogTitle>
 									<DialogDescription>
-										Clearing categories will remove all selected products in this
-										section.
+										Clearing categories will remove all selected products in
+										this section.
 									</DialogDescription>
 								</DialogHeader>
 								<DialogFooter>
@@ -1814,18 +1883,27 @@ function DefaultShelfPanel(props: {
 							>
 								Clear
 							</Button>
-							<Button
-								type="button"
-								size="sm"
-								variant="destructive"
-								onClick={() =>
-									props.onSectionsChange(
-										props.sections.filter((_section, i) => i !== sectionIndex),
-									)
-								}
-							>
-								Remove Section
-							</Button>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<ConfirmBtn
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										trash
+										aria-label="Remove section"
+										onClick={() =>
+											props.onSectionsChange(
+												props.sections.filter(
+													(_section, i) => i !== sectionIndex,
+												),
+											)
+										}
+									/>
+								</TooltipTrigger>
+								<TooltipContent side="left" className="px-2 py-1 text-xs">
+									Remove section
+								</TooltipContent>
+							</Tooltip>
 						</div>
 
 						<div className="grid gap-2 md:grid-cols-12">
@@ -1845,24 +1923,22 @@ function DefaultShelfPanel(props: {
 											categoryIds: [],
 											parentCategoryId: null,
 											categoryId: null,
-											rows: (section?.rows || []).map(
-												(row: ShelfRowDraft) => ({
-													...row,
-													categoryId: null,
-													productId: null,
-													description: "",
-													unitPrice: 0,
-													totalPrice: 0,
-													meta: {
-														...(row?.meta || {}),
-														categoryIds: [],
-														shelfParentCategoryId: null,
-														basePrice: 0,
-														salesPrice: 0,
-														customPrice: null,
-													},
-												}),
-											),
+											rows: (section?.rows || []).map((row: ShelfRowDraft) => ({
+												...row,
+												categoryId: null,
+												productId: null,
+												description: "",
+												unitPrice: 0,
+												totalPrice: 0,
+												meta: {
+													...(row?.meta || {}),
+													categoryIds: [],
+													shelfParentCategoryId: null,
+													basePrice: 0,
+													salesPrice: 0,
+													customPrice: null,
+												},
+											})),
 										});
 									}}
 									onChange={(nextCategoryIds) =>
@@ -1895,21 +1971,30 @@ function DefaultShelfPanel(props: {
 								/>
 							</div>
 							<div className="flex items-center justify-end md:col-span-6">
-								<Button
-									size="sm"
-									variant="outline"
-									onClick={() =>
-										patchSection(sectionIndex, (current) => ({
-											...current,
-											rows: [
-												...(current?.rows || []),
-												createShelfProductDraft(),
-											],
-										}))
-									}
-								>
-									Add Product
-								</Button>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											type="button"
+											size="icon-sm"
+											variant="outline"
+											aria-label="Add product"
+											onClick={() =>
+												patchSection(sectionIndex, (current) => ({
+													...current,
+													rows: [
+														...(current?.rows || []),
+														createShelfProductDraft(),
+													],
+												}))
+											}
+										>
+											<Icon name="Plus" className="size-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="left" className="px-2 py-1 text-xs">
+										Add product
+									</TooltipContent>
+								</Tooltip>
 							</div>
 						</div>
 
@@ -2020,8 +2105,9 @@ function DefaultShelfPanel(props: {
 															variant="outline"
 															className="h-10 w-full justify-end text-xs font-semibold"
 														>
-															{moneyIfPositive(getShelfRowDisplayUnitPrice(row)) ||
-																"$0.00"}
+															{moneyIfPositive(
+																getShelfRowDisplayUnitPrice(row),
+															) || "$0.00"}
 														</Button>
 													}
 												>
@@ -2031,8 +2117,8 @@ function DefaultShelfPanel(props: {
 																Edit Shelf Price
 															</p>
 															<p className="text-xs text-muted-foreground">
-																Base price recalculates sales price. Custom price
-																overrides the final line price.
+																Base price recalculates sales price. Custom
+																price overrides the final line price.
 															</p>
 														</div>
 														<div className="space-y-2">
@@ -2071,8 +2157,7 @@ function DefaultShelfPanel(props: {
 																					unitPrice,
 																					totalPrice: Number(
 																						(
-																							Number(item?.qty ?? 1) *
-																							unitPrice
+																							Number(item?.qty ?? 1) * unitPrice
 																						).toFixed(2),
 																					),
 																					meta: {
@@ -2115,8 +2200,7 @@ function DefaultShelfPanel(props: {
 																								event.target.value === ""
 																									? null
 																									: Number(
-																											event.target.value ||
-																												0,
+																											event.target.value || 0,
 																										),
 																							unitPrice:
 																								event.target.value === ""
@@ -2128,8 +2212,7 @@ function DefaultShelfPanel(props: {
 																												0,
 																										)
 																									: Number(
-																											event.target.value ||
-																												0,
+																											event.target.value || 0,
 																										),
 																							meta: {
 																								...(item?.meta || {}),
@@ -2137,8 +2220,7 @@ function DefaultShelfPanel(props: {
 																									event.target.value === ""
 																										? null
 																										: Number(
-																												event.target.value ||
-																													0,
+																												event.target.value || 0,
 																											),
 																							},
 																						}

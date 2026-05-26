@@ -54,11 +54,11 @@ export const columns: Column[] = [
     ),
   },
   {
-    header: "Coefficient",
-    accessorKey: "coefficient",
+    header: "Percentage",
+    accessorKey: "salesPercentage",
     cell: ({ row: { original: item } }) => (
       <span className="whitespace-nowrap">
-        {item.coefficient != null ? item.coefficient : "-"}
+        {item.salesPercentage != null ? `${item.salesPercentage}%` : "-"}
       </span>
     ),
   },
@@ -107,9 +107,9 @@ export const mobileColumn: Column[] = [
             />
           </ItemUi.Title>
           <ItemUi.Description>
-            {item.coefficient != null
-              ? `Coefficient ${item.coefficient}`
-              : "No coefficient"}
+            {item.salesPercentage != null
+              ? `${item.salesPercentage}% sales adjustment`
+              : "No sales adjustment"}
           </ItemUi.Description>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">

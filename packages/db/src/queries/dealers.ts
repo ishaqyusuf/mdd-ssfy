@@ -24,6 +24,11 @@ export type ResendDealerOnboardingInput = {
   authorId: number;
 };
 
+export type UpdateDealerSalesProfileInput = {
+  dealerId: number;
+  customerProfileId: number;
+};
+
 export type CompleteDealerOnboardingInput = {
   token: string;
   authUserId: string;
@@ -52,6 +57,7 @@ export type DealerSalesProfileFormInput = {
   id?: number | null;
   title: string;
   coefficient?: number | null;
+  salesPercentage?: number | null;
   defaultProfile?: boolean | null;
 };
 
@@ -162,6 +168,31 @@ function buildDealerAddressMeta(input: DealerCustomerFormInput) {
     country: input.country?.trim() || null,
     lat: input.lat ?? null,
     lng: input.lng ?? null,
+  };
+}
+
+function sanitizeDealerScopedCustomerProfile<
+  T extends {
+    customerTypeId?: number | null;
+    profile?:
+      | (Record<string, unknown> & { dealerOwnerId?: number | null })
+      | null;
+  },
+>(customer: T, dealerId: number): T {
+  if (!customer.profile) return customer;
+
+  if (customer.profile.dealerOwnerId !== dealerId) {
+    return {
+      ...customer,
+      customerTypeId: null,
+      profile: null,
+    };
+  }
+
+  const { dealerOwnerId: _dealerOwnerId, ...profile } = customer.profile;
+  return {
+    ...customer,
+    profile,
   };
 }
 
@@ -276,6 +307,95 @@ export async function searchDealerCustomerCandidates(
         },
       },
     },
+  });
+}
+
+export async function updateDealerSalesProfile(
+  db: Database,
+  input: UpdateDealerSalesProfileInput,
+) {
+  return db.$transaction(async (tx) => {
+    const [dealer, profile] = await Promise.all([
+      tx.dealerAuth.findFirst({
+        where: {
+          id: input.dealerId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          dealerId: true,
+          email: true,
+          name: true,
+          companyName: true,
+        },
+      }),
+      tx.customerTypes.findFirst({
+        where: {
+          id: input.customerProfileId,
+          dealerOwnerId: null,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      }),
+    ]);
+
+    if (!dealer) {
+      throw new Error("Dealer account could not be found.");
+    }
+
+    if (!profile) {
+      throw new Error("Sales profile could not be found.");
+    }
+
+    if (dealer.dealerId) {
+      await tx.customers.update({
+        where: {
+          id: dealer.dealerId,
+        },
+        data: {
+          customerTypeId: profile.id,
+        },
+      });
+
+      return {
+        dealerId: dealer.id,
+        customerId: dealer.dealerId,
+        customerProfileId: profile.id,
+      };
+    }
+
+    const customer = await tx.customers.create({
+      data: {
+        name: dealer.name || dealer.companyName || dealer.email,
+        businessName: dealer.companyName || null,
+        email: dealer.email,
+        customerTypeId: profile.id,
+        meta: {
+          source: "dealer_admin_profile_assignment",
+          dealerAuthId: dealer.id,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    await tx.dealerAuth.update({
+      where: {
+        id: dealer.id,
+      },
+      data: {
+        dealerId: customer.id,
+      },
+    });
+
+    return {
+      dealerId: dealer.id,
+      customerId: customer.id,
+      customerProfileId: profile.id,
+    };
   });
 }
 
@@ -568,7 +688,7 @@ export async function getDealerPortalDashboard(db: Database, dealerId: number) {
       }),
       db.customerTypes.count({
         where: {
-          dealerOwnerId: null,
+          dealerOwnerId: dealerId,
           deletedAt: null,
         },
       }),
@@ -583,34 +703,42 @@ export async function getDealerPortalDashboard(db: Database, dealerId: number) {
 }
 
 export async function getDealerPortalCustomers(db: Database, dealerId: number) {
-  return db.customers.findMany({
-    where: {
-      dealerOwnerId: dealerId,
-      deletedAt: null,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 100,
-    select: {
-      id: true,
-      name: true,
-      businessName: true,
-      email: true,
-      phoneNo: true,
-      address: true,
-      meta: true,
-      customerTypeId: true,
-      createdAt: true,
-      profile: {
-        select: {
-          id: true,
-          title: true,
-          coefficient: true,
+  return db.customers
+    .findMany({
+      where: {
+        dealerOwnerId: dealerId,
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 100,
+      select: {
+        id: true,
+        name: true,
+        businessName: true,
+        email: true,
+        phoneNo: true,
+        address: true,
+        meta: true,
+        customerTypeId: true,
+        createdAt: true,
+        profile: {
+          select: {
+            id: true,
+            title: true,
+            coefficient: true,
+            salesPercentage: true,
+            dealerOwnerId: true,
+          },
         },
       },
-    },
-  });
+    })
+    .then((customers) =>
+      customers.map((customer) =>
+        sanitizeDealerScopedCustomerProfile(customer, dealerId),
+      ),
+    );
 }
 
 export async function getDealerPortalCustomer(
@@ -633,6 +761,11 @@ export async function getDealerPortalCustomer(
       address: true,
       meta: true,
       customerTypeId: true,
+      profile: {
+        select: {
+          dealerOwnerId: true,
+        },
+      },
     },
   });
 
@@ -640,8 +773,14 @@ export async function getDealerPortalCustomer(
     throw new Error("Dealer customer could not be found.");
   }
 
+  const scopedCustomer = sanitizeDealerScopedCustomerProfile(
+    customer,
+    dealerId,
+  );
+  const { profile: _profile, ...safeCustomer } = scopedCustomer;
+
   return {
-    ...customer,
+    ...safeCustomer,
     ...getDealerCustomerAddressMeta(customer.meta),
   };
 }
@@ -672,6 +811,8 @@ export async function getDealerPortalCustomerOverview(
           id: true,
           title: true,
           coefficient: true,
+          salesPercentage: true,
+          dealerOwnerId: true,
         },
       },
     },
@@ -706,7 +847,11 @@ export async function getDealerPortalCustomerOverview(
       quotesCount: 0,
     },
   );
-  const { meta: _meta, ...safeCustomer } = customer;
+  const scopedCustomer = sanitizeDealerScopedCustomerProfile(
+    customer,
+    dealerId,
+  );
+  const { meta: _meta, ...safeCustomer } = scopedCustomer;
 
   return {
     ...safeCustomer,
@@ -1029,6 +1174,8 @@ export async function getDealerPortalCustomersList(
             id: true,
             title: true,
             coefficient: true,
+            salesPercentage: true,
+            dealerOwnerId: true,
           },
         },
       },
@@ -1073,7 +1220,7 @@ export async function getDealerPortalCustomersList(
 
   return {
     data: customers.map((customer) => ({
-      ...customer,
+      ...sanitizeDealerScopedCustomerProfile(customer, dealerId),
       ordersCount: salesCountsByCustomer.get(customer.id)?.ordersCount || 0,
       quotesCount: salesCountsByCustomer.get(customer.id)?.quotesCount || 0,
     })),
@@ -1096,7 +1243,7 @@ export async function saveDealerPortalCustomer(
     const profile = await db.customerTypes.findFirst({
       where: {
         id: customerTypeId,
-        dealerOwnerId: null,
+        dealerOwnerId: dealerId,
         deletedAt: null,
       },
       select: {
@@ -1174,8 +1321,31 @@ export async function saveDealerPortalCustomer(
 
 export async function getDealerPortalSalesProfiles(
   db: Database,
-  _dealerId: number,
+  dealerId: number,
 ) {
+  return db.customerTypes.findMany({
+    where: {
+      dealerOwnerId: dealerId,
+      deletedAt: null,
+    },
+    orderBy: [{ defaultProfile: "desc" }, { title: "asc" }],
+    select: {
+      id: true,
+      title: true,
+      coefficient: true,
+      salesPercentage: true,
+      defaultProfile: true,
+      createdAt: true,
+      _count: {
+        select: {
+          customers: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getDealerOfficeSalesProfiles(db: Database) {
   return db.customerTypes.findMany({
     where: {
       dealerOwnerId: null,
@@ -1244,20 +1414,22 @@ export async function getDealerPortalInternalSalesProfile(
 
 export async function saveDealerPortalSalesProfile(
   db: Database,
-  _dealerId: number,
+  dealerId: number,
   input: DealerSalesProfileFormInput,
 ) {
   const data = {
     title: input.title.trim(),
-    coefficient: input.coefficient ?? null,
+    salesPercentage:
+      input.salesPercentage ??
+      (input.coefficient != null ? (input.coefficient - 1) * 100 : null),
     defaultProfile: input.defaultProfile ?? false,
-    dealerOwnerId: null,
+    dealerOwnerId: dealerId,
   };
 
   if (input.defaultProfile) {
     await db.customerTypes.updateMany({
       where: {
-        dealerOwnerId: null,
+        dealerOwnerId: dealerId,
         deletedAt: null,
         ...(input.id ? { id: { not: input.id } } : {}),
       },
@@ -1271,7 +1443,7 @@ export async function saveDealerPortalSalesProfile(
     const existing = await db.customerTypes.findFirst({
       where: {
         id: input.id,
-        dealerOwnerId: null,
+        dealerOwnerId: dealerId,
         deletedAt: null,
       },
       select: {

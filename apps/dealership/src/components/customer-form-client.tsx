@@ -101,13 +101,13 @@ function getCustomerDefaultValues(
 
 function formatSalesProfileOption(profile: {
   title?: string | null;
-  coefficient?: number | null;
+  salesPercentage?: number | null;
 }) {
-  const coefficient = new Intl.NumberFormat("en-US", {
+  const percentage = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 2,
-  }).format(Number(profile.coefficient || 0));
+  }).format(Number(profile.salesPercentage || 0));
 
-  return `${profile.title || "Untitled profile"} (coefficient ${coefficient})`;
+  return `${profile.title || "Untitled profile"} (${percentage}%)`;
 }
 
 function getCustomerDisplayName(customer?: CustomerFormRecord) {
@@ -187,7 +187,7 @@ type SalesProfileOption = {
   profile: {
     id: number;
     title?: string | null;
-    coefficient?: number | null;
+    salesPercentage?: number | null;
   };
 };
 
@@ -355,7 +355,7 @@ export function CustomerFormClient({
   });
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [profileTitle, setProfileTitle] = useState("");
-  const [profileCoefficient, setProfileCoefficient] = useState("");
+  const [profilePercentage, setProfilePercentage] = useState("");
   const formattedAddress =
     form.watch("formattedAddress") || form.watch("address") || "";
   const saveCustomer = useMutation(
@@ -410,7 +410,7 @@ export function CustomerFormClient({
         profile: {
           id: profile.id,
           title: profile.title,
-          coefficient: profile.coefficient,
+          salesPercentage: profile.salesPercentage,
         },
       },
     ];
@@ -430,7 +430,7 @@ export function CustomerFormClient({
         });
         setIsCreatingProfile(false);
         setProfileTitle("");
-        setProfileCoefficient("");
+        setProfilePercentage("");
         toast({
           title: "Sales profile saved.",
           variant: "success",
@@ -447,13 +447,13 @@ export function CustomerFormClient({
   );
   const openProfileCreator = (title = "") => {
     setProfileTitle(title.trim());
-    setProfileCoefficient("");
+    setProfilePercentage("");
     setIsCreatingProfile(true);
   };
   const saveInlineProfile = () => {
     const title = profileTitle.trim();
-    const coefficient =
-      profileCoefficient.trim() === "" ? null : Number(profileCoefficient);
+    const salesPercentage =
+      profilePercentage.trim() === "" ? null : Number(profilePercentage);
     if (!title) {
       toast({
         title: "Profile name is required.",
@@ -462,9 +462,9 @@ export function CustomerFormClient({
       return;
     }
 
-    if (coefficient !== null && !Number.isFinite(coefficient)) {
+    if (salesPercentage !== null && !Number.isFinite(salesPercentage)) {
       toast({
-        title: "Enter a valid coefficient.",
+        title: "Enter a valid percentage.",
         variant: "destructive",
       });
       return;
@@ -472,7 +472,7 @@ export function CustomerFormClient({
 
     saveProfile.mutate({
       title,
-      coefficient,
+      salesPercentage,
       defaultProfile: false,
     });
   };
@@ -809,17 +809,17 @@ export function CustomerFormClient({
                         />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <FormLabel htmlFor="inline-sales-profile-coefficient">
-                          Coefficient
+                        <FormLabel htmlFor="inline-sales-profile-percentage">
+                          Sales percentage
                         </FormLabel>
                         <Input
-                          id="inline-sales-profile-coefficient"
+                          id="inline-sales-profile-percentage"
                           onChange={(event) =>
-                            setProfileCoefficient(event.currentTarget.value)
+                            setProfilePercentage(event.currentTarget.value)
                           }
                           step="0.01"
                           type="number"
-                          value={profileCoefficient}
+                          value={profilePercentage}
                         />
                       </div>
                     </div>

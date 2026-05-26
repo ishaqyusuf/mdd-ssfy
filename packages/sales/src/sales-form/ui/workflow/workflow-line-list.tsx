@@ -6,6 +6,7 @@ import {
 	InvoiceItemCard,
 	type WorkflowStepUiRecord,
 } from "./invoice-item-card";
+import { resolveInitialWorkflowStepIndex } from "./workflow-records";
 
 export type WorkflowLineListItem = {
 	uid?: string | null;
@@ -56,7 +57,8 @@ export function WorkflowLineList<TLine extends WorkflowLineListItem>(
 					const steps = line.formSteps || [];
 					const activeIndex = props.resolveActiveStepIndex(
 						steps,
-						props.activeStepByLine[lineUid] ?? Math.max(0, steps.length - 1),
+						props.activeStepByLine[lineUid] ??
+							resolveInitialWorkflowStepIndex(steps),
 					);
 					const activeStep = steps[activeIndex];
 

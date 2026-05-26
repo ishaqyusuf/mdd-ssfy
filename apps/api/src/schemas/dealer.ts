@@ -49,6 +49,14 @@ export type ResendDealerOnboardingSchema = z.infer<
   typeof resendDealerOnboardingSchema
 >;
 
+export const updateDealerSalesProfileSchema = z.object({
+  dealerId: z.number(),
+  customerProfileId: z.number(),
+});
+export type UpdateDealerSalesProfileSchema = z.infer<
+  typeof updateDealerSalesProfileSchema
+>;
+
 export const dealerPortalCustomerSchema = z.object({
   id: z.number().optional().nullable(),
   name: z.string().optional().nullable(),
@@ -90,6 +98,7 @@ export const dealerPortalSalesProfileSchema = z.object({
   id: z.number().optional().nullable(),
   title: z.string().min(1),
   coefficient: z.number().optional().nullable(),
+  salesPercentage: z.number().optional().nullable(),
   defaultProfile: z.boolean().optional().nullable(),
 });
 export type DealerPortalSalesProfileSchema = z.infer<

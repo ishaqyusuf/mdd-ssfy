@@ -3,12 +3,15 @@ import {
   getDealersSchema,
   resendDealerOnboardingSchema,
   searchDealerCustomerCandidatesSchema,
+  updateDealerSalesProfileSchema,
 } from "@api/schemas/dealer";
 import {
   createDealerAccount,
+  getDealerOfficeSalesProfiles,
   getDealers,
   resendDealerOnboardingInvite,
   searchDealerCustomerCandidates,
+  updateDealerSalesProfile,
 } from "@gnd/db/queries";
 import { NotificationService } from "@gnd/notifications/services/triggers";
 import { TRPCError } from "@trpc/server";
@@ -44,10 +47,18 @@ export const dealerRouter = createTRPCRouter({
         take: input.size,
       });
     }),
+  salesProfiles: protectedProcedure.query(async ({ ctx }) => {
+    return getDealerOfficeSalesProfiles(ctx.db);
+  }),
   searchCustomerCandidates: protectedProcedure
     .input(searchDealerCustomerCandidatesSchema)
     .query(async ({ ctx, input }) => {
       return searchDealerCustomerCandidates(ctx.db, input);
+    }),
+  updateSalesProfile: protectedProcedure
+    .input(updateDealerSalesProfileSchema)
+    .mutation(async ({ ctx, input }) => {
+      return updateDealerSalesProfile(ctx.db, input);
     }),
   createAccount: protectedProcedure
     .input(createDealerAccountSchema)

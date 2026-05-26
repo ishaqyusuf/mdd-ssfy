@@ -20,6 +20,7 @@ export type SalesFormMouldingViewMode = "selection" | "lineItems";
 export type SalesFormEditorState = {
 	stepDisplayMode: SalesFormStepDisplayMode;
 	activeItem: SalesFormActiveItem;
+	activeStepByLine: Record<string, number>;
 	doorViewMode: SalesFormDoorViewMode;
 	mouldingViewMode: SalesFormMouldingViewMode;
 	isOverviewOpen: boolean;
@@ -49,4 +50,3 @@ export type SalesFormState<
 	lastSavedAt: string | null;
 	editor: SalesFormEditorState;
 };
-

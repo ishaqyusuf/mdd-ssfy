@@ -4,6 +4,7 @@ import {
   buildConfiguredRouteSteps,
   mergeConfiguredSeriesWithExisting,
   rebuildStepsFromSelection,
+  resolveConfiguredRouteStepsForLine,
   resolveNextStep,
 } from "./route-engine";
 
@@ -46,11 +47,15 @@ const routeData = {
 
 describe("route-engine domain", () => {
   it("builds configured route sequence from root component", () => {
-    const steps = buildConfiguredRouteSteps(routeData, routeData.stepsByUid.rootStep, {
-      uid: "rootA",
-      id: 11,
-      title: "Door",
-    });
+    const steps = buildConfiguredRouteSteps(
+      routeData,
+      routeData.stepsByUid.rootStep,
+      {
+        uid: "rootA",
+        id: 11,
+        title: "Door",
+      },
+    );
     expect(steps).toHaveLength(3);
     expect(steps[0].step.uid).toBe("rootStep");
     expect(steps[1].step.uid).toBe("stepB");
@@ -107,6 +112,247 @@ describe("route-engine domain", () => {
     expect(merged).toHaveLength(3);
   });
 
+  it("scopes edit-loaded steps to the selected item-type route", () => {
+    const mixedRouteData = {
+      composedRouter: {
+        rootA: {
+          routeSequence: [{ uid: "stepB" }, { uid: "stepC" }],
+        },
+        rootB: {
+          routeSequence: [{ uid: "stepD" }],
+        },
+      },
+      stepsByUid: {
+        rootStep: {
+          id: 1,
+          uid: "rootStep",
+          title: "Item Type",
+          components: [
+            { uid: "rootA", id: 11, title: "Door" },
+            { uid: "rootB", id: 12, title: "Shelf Items" },
+          ],
+        },
+        stepB: {
+          id: 2,
+          uid: "stepB",
+          title: "Height",
+          components: [{ uid: "h-80", id: 21, title: "8-0" }],
+        },
+        stepC: {
+          id: 3,
+          uid: "stepC",
+          title: "Line Item",
+          components: [{ uid: "manual", id: 31, title: "Manual" }],
+        },
+        stepD: {
+          id: 4,
+          uid: "stepD",
+          title: "Shelf Items",
+          components: [{ uid: "shelf-a", id: 41, title: "Shelf A" }],
+        },
+      },
+      stepsById: {
+        1: "rootStep",
+        2: "stepB",
+        3: "stepC",
+        4: "stepD",
+      },
+      rootStepUid: "rootStep",
+    };
+
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData: mixedRouteData,
+      line: {
+        formSteps: [
+          {
+            stepId: 1,
+            componentId: 11,
+            prodUid: "rootA",
+            value: "Door",
+            price: 25,
+            step: { id: 1, uid: "rootStep", title: "Item Type" },
+          },
+          {
+            stepId: 4,
+            componentId: 41,
+            prodUid: "shelf-a",
+            value: "Shelf A",
+            step: { id: 4, uid: "stepD", title: "Shelf Items" },
+          },
+          {
+            stepId: 2,
+            componentId: 21,
+            prodUid: "h-80",
+            value: "8-0",
+            step: { id: 2, uid: "stepB", title: "Height" },
+          },
+        ],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[0]?.prodUid).toBe("rootA");
+    expect(scoped[0]?.price).toBe(25);
+    expect(scoped[1]?.prodUid).toBe("h-80");
+    expect(scoped.some((step: any) => step.step.uid === "stepD")).toBe(false);
+  });
+
+  it("finds the item-type selection even when persisted steps are out of order", () => {
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData,
+      line: {
+        formSteps: [
+          {
+            stepId: 2,
+            componentId: 21,
+            prodUid: "h-80",
+            value: "8-0",
+            step: { id: 2, uid: "stepB", title: "Height" },
+          },
+          {
+            stepId: 1,
+            componentId: 11,
+            prodUid: "rootA",
+            value: "Door",
+            step: { id: 1, uid: "rootStep", title: "Item Type" },
+          },
+        ],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[1]?.prodUid).toBe("h-80");
+  });
+
+  it("resolves the selected item type from component id when prod uid is missing", () => {
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData,
+      line: {
+        formSteps: [
+          {
+            stepId: 1,
+            componentId: 11,
+            prodUid: "",
+            value: "Door",
+            step: { id: 1, uid: "rootStep", title: "Item Type" },
+          },
+          {
+            stepId: 2,
+            componentId: 21,
+            prodUid: "h-80",
+            value: "8-0",
+            step: { id: 2, uid: "stepB", title: "Height" },
+          },
+          {
+            stepId: 99,
+            componentId: 99,
+            prodUid: "stale",
+            value: "Stale",
+            step: { id: 99, uid: "staleStep", title: "Unrelated" },
+          },
+        ],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[0]?.prodUid).toBe("rootA");
+    expect(scoped.some((step: any) => step.step.uid === "staleStep")).toBe(
+      false,
+    );
+  });
+
+  it("identifies the root step from settings when the saved step title is missing", () => {
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData: {
+        ...routeData,
+        rootStepUid: "rootStep",
+      },
+      line: {
+        formSteps: [
+          {
+            stepId: 1,
+            componentId: 11,
+            prodUid: "",
+            value: "Door",
+          },
+          {
+            stepId: 3,
+            componentId: 31,
+            prodUid: "manual",
+            value: "Manual",
+            step: { id: 3, uid: "stepC", title: "Line Item" },
+          },
+        ],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[0]?.prodUid).toBe("rootA");
+  });
+
+  it("collapses recognized parent selections with no configured route to the parent step", () => {
+    const formSteps = [
+      {
+        stepId: 1,
+        componentId: 99,
+        prodUid: "unconfigured-root",
+        value: "Custom",
+        step: { id: 1, uid: "rootStep", title: "Item Type" },
+      },
+      {
+        stepId: 2,
+        componentId: 21,
+        prodUid: "h-80",
+        value: "8-0",
+        step: { id: 2, uid: "stepB", title: "Height" },
+      },
+    ];
+
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData,
+      line: { formSteps },
+    });
+
+    expect(scoped).toHaveLength(1);
+    expect(scoped[0]?.step.uid).toBe("rootStep");
+    expect(scoped[0]?.prodUid).toBe("unconfigured-root");
+  });
+
+  it("leaves loaded steps unchanged when no parent workflow can be identified", () => {
+    const formSteps = [
+      {
+        stepId: 88,
+        componentId: 88,
+        prodUid: "orphan",
+        value: "Orphan",
+        step: { id: 88, uid: "orphanStep", title: "Orphan" },
+      },
+    ];
+
+    expect(
+      resolveConfiguredRouteStepsForLine({
+        routeData,
+        line: { formSteps },
+      }),
+    ).toBe(formSteps);
+  });
+
   it("auto-advances through single-candidate route steps", () => {
     const seeded = buildConfiguredRouteSteps(
       routeData,
@@ -127,11 +373,7 @@ describe("route-engine domain", () => {
     const routeWithTrailingConfiguredStep = {
       composedRouter: {
         rootA: {
-          routeSequence: [
-            { uid: "stepB" },
-            { uid: "stepC" },
-            { uid: "stepD" },
-          ],
+          routeSequence: [{ uid: "stepB" }, { uid: "stepC" }, { uid: "stepD" }],
           route: {
             rootStep: "stepB",
             stepB: "stepC",
@@ -345,7 +587,12 @@ describe("route-engine domain", () => {
           title: "Casing Y/N",
           components: [
             { uid: "yes-casing", id: 21, title: "Yes Casing" },
-            { uid: "no-casing", id: 22, title: "No Casing", redirectUid: "stepD" },
+            {
+              uid: "no-casing",
+              id: 22,
+              title: "No Casing",
+              redirectUid: "stepD",
+            },
           ],
         },
         stepC: {
@@ -445,7 +692,12 @@ describe("route-engine domain", () => {
           title: "Casing Y/N",
           components: [
             { uid: "yes-casing", id: 21, title: "Yes Casing" },
-            { uid: "no-casing", id: 22, title: "No Casing", redirectUid: "stepD" },
+            {
+              uid: "no-casing",
+              id: 22,
+              title: "No Casing",
+              redirectUid: "stepD",
+            },
           ],
         },
         stepC: {

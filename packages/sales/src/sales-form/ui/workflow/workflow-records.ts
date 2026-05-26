@@ -1,4 +1,9 @@
-import { normalizeSalesFormTitle as normalizeTitle } from "../../domain/step-engine";
+import {
+	isWorkflowRedirectDisabledStep,
+	normalizeSalesFormTitle as normalizeTitle,
+	resolveInitialWorkflowStepIndex as resolveInitialStepIndex,
+	resolveInteractiveWorkflowStepIndex,
+} from "../../domain/step-engine";
 
 export type WorkflowStepRecord = {
 	id?: number | null;
@@ -270,32 +275,18 @@ export function firstPendingStepIndex(steps: WorkflowStepRecord[]) {
 }
 
 export function isRedirectDisabledStep(step: WorkflowStepRecord) {
-	return Boolean(step?.meta?.redirectDisabled);
+	return isWorkflowRedirectDisabledStep(step);
 }
 
 export function resolveInteractiveStepIndex(
 	steps: WorkflowStepRecord[],
 	preferredIndex: number,
 ) {
-	if (!steps.length) return 0;
-	const clampedIndex = Math.max(
-		0,
-		Math.min(preferredIndex, Math.max(0, steps.length - 1)),
-	);
-	if (!isRedirectDisabledStep(steps[clampedIndex] as WorkflowStepRecord)) {
-		return clampedIndex;
-	}
-	for (let index = clampedIndex + 1; index < steps.length; index += 1) {
-		if (!isRedirectDisabledStep(steps[index] as WorkflowStepRecord)) {
-			return index;
-		}
-	}
-	for (let index = clampedIndex - 1; index >= 0; index -= 1) {
-		if (!isRedirectDisabledStep(steps[index] as WorkflowStepRecord)) {
-			return index;
-		}
-	}
-	return clampedIndex;
+	return resolveInteractiveWorkflowStepIndex(steps, preferredIndex);
+}
+
+export function resolveInitialWorkflowStepIndex(steps: WorkflowStepRecord[]) {
+	return resolveInitialStepIndex(steps);
 }
 
 export function componentLabel(value?: string | null) {

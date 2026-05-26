@@ -2,6 +2,13 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@gnd/ui/button";
+import { Icon } from "@gnd/ui/icons";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 
 export type ShelfSectionsPanelProps<TSection> = {
 	sections: TSection[];
@@ -13,19 +20,28 @@ export function ShelfSectionsPanel<TSection>(
 	props: ShelfSectionsPanelProps<TSection>,
 ) {
 	return (
-		<>
+		<TooltipProvider delayDuration={120}>
 			<div className="flex items-center gap-2">
 				<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 					Shelf Items
 				</p>
-				<Button
-					size="sm"
-					variant="outline"
-					className="ml-auto"
-					onClick={props.onAddSection}
-				>
-					Add Section
-				</Button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							type="button"
+							size="icon-sm"
+							variant="outline"
+							className="ml-auto"
+							aria-label="Add section"
+							onClick={props.onAddSection}
+						>
+							<Icon name="Plus" className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="left" className="px-2 py-1 text-xs">
+						Add section
+					</TooltipContent>
+				</Tooltip>
 			</div>
 			{props.sections.length ? (
 				<div className="space-y-2">
@@ -36,6 +52,6 @@ export function ShelfSectionsPanel<TSection>(
 			) : (
 				<p className="text-sm text-muted-foreground">No shelf sections yet.</p>
 			)}
-		</>
+		</TooltipProvider>
 	);
 }

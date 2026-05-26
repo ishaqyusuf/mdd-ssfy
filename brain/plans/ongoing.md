@@ -1,3 +1,28 @@
+## Sales Form Composition Provider Refactor
+- Status: Ready
+- Objective: Refactor the new sales form toward provider-backed compound components so `www` and dealership surfaces compose form features with JSX instead of broad prop bags, slot objects, and boolean-heavy orchestration.
+- Current Phase: Execution plan captured
+- Next Step: Add an ADR for the provider/compound-component direction, then introduce typed shared `SalesFormContextValue` contracts without changing runtime behavior.
+- Blockers: None
+- Related Files: packages/sales/src/sales-form/contracts/form-composition.ts, packages/sales/src/sales-form/contracts/form-slots.ts, packages/sales/src/sales-form/contracts/workflow-data-source.ts, packages/sales/src/sales-form/ui/shell/sales-form-shell.tsx, packages/sales/src/sales-form/ui/workflow/sales-form-workflow-panel.tsx, packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.tsx, apps/www/src/components/forms/new-sales-form/new-sales-form.tsx, apps/www/src/components/forms/new-sales-form/store.ts, apps/www/src/components/forms/new-sales-form/sections/www-sales-form-workflow-panel.tsx, apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx
+- Last Updated: 2026-05-25
+
+### Plan
+1. Add an ADR documenting the sales form move from slot/prop orchestration to provider-backed compound components, including trade-offs and rollback posture.
+2. Add typed shared context contracts for `state`, `actions`, and `meta`, replacing weak `unknown`/record-style composition fields incrementally while preserving existing APIs.
+3. Add a pure package-level `SalesFormProvider` plus `useSalesForm`, `useSalesFormState`, `useSalesFormActions`, and `useSalesFormMeta` hooks.
+4. Add a `WwwSalesFormProvider` adapter that extracts bootstrap, hydration, persistence, recovery, document actions, packing, and payment-review orchestration from `new-sales-form.tsx`.
+5. Convert `SalesFormShell` from named slot-object rendering to compound JSX sections: provider, shell, header, main, summary, dialogs, floating actions, and mobile footer.
+6. Convert header, floating actions, recovery banner, customer selector, and payment review into context-consuming wrappers around prop-driven view components.
+7. Extract `WorkflowProvider` from `SalesFormWorkflowPanel` to own active item/step, search, custom-component mode, door tab state, route/component queries, and derived workflow data.
+8. Split workflow rendering into compound panels for root picker, step component picker, door, HPT, shelf, moulding, service, flat-line editor, and dialogs.
+9. Move `www`-only admin workflow behavior into a host provider for component editing, uploads, door-size variants, supplier mutations, redirects, and step meta updates.
+10. Remove the legacy `ItemWorkflowPanel` and package-panel dev toggle once package workflow parity is validated.
+11. Validate after each slice with focused sales-form tests, `bun run test:new-sales-form-migration`, and manual smoke for create/edit quote/order, autosave/recovery, print/preview, payment, packing, and workflow step families.
+
+### Resume Prompt
+Continue the Sales Form Composition Provider Refactor from `brain/plans/ongoing.md`. Current phase: execution plan captured. Next step: add an ADR for the provider/compound-component direction, then introduce typed shared `SalesFormContextValue` contracts without changing runtime behavior. Blockers: none. Relevant files: `packages/sales/src/sales-form/contracts/form-composition.ts`, `packages/sales/src/sales-form/contracts/form-slots.ts`, `packages/sales/src/sales-form/contracts/workflow-data-source.ts`, `packages/sales/src/sales-form/ui/shell/sales-form-shell.tsx`, `packages/sales/src/sales-form/ui/workflow/sales-form-workflow-panel.tsx`, `packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.tsx`, `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`, `apps/www/src/components/forms/new-sales-form/store.ts`, `apps/www/src/components/forms/new-sales-form/sections/www-sales-form-workflow-panel.tsx`, and `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`. Keep the refactor incremental, preserve runtime behavior at each phase, and update `brain/plans/ongoing.md` as progress continues.
+
 ## Dealer Customer-Profile Coefficient Pricing and Margin Toggle
 - Status: Implementation Complete
 - Objective: Make dealer dual pricing use the linked dealer customer's primary customer profile coefficient, matching old sales form coefficient pricing, then add a dealer-facing Show Margin toggle in the quote right-side info panel.

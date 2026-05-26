@@ -38,7 +38,8 @@ function profileMultiplier(context?: HptCompatibilityContext) {
 	const explicit = toFinite(context?.salesMultiplier);
 	if (explicit != null && explicit > 0) return explicit;
 	const coefficient = toFinite(context?.profileCoefficient);
-	if (coefficient != null && coefficient > 0) return roundCurrency(1 / coefficient);
+	if (coefficient != null && coefficient > 0)
+		return roundCurrency(1 / coefficient);
 	return 1;
 }
 
@@ -54,7 +55,9 @@ function selectedDoorQty(row: HptDoorRow, noHandle?: boolean) {
 	return lhQty + rhQty > 0 ? lhQty + rhQty : totalQty;
 }
 
-export function computeHptSharedDoorSurcharge(line: HptLine | null | undefined) {
+export function computeHptSharedDoorSurcharge(
+	line: HptLine | null | undefined,
+) {
 	return roundCurrency(
 		(line?.formSteps || [])
 			.filter((step: any) => {
@@ -85,9 +88,12 @@ export function getHptDoorSalesUnitPrice(
 ) {
 	if (!row) return 0;
 	const meta = row?.meta || {};
-	const sharedDoorSurcharge = Number(context?.sharedDoorSurcharge ?? meta.sharedDoorSurcharge ?? 0);
+	const sharedDoorSurcharge = Number(
+		context?.sharedDoorSurcharge ?? meta.sharedDoorSurcharge ?? 0,
+	);
 	const flatRate = Number(context?.flatRate ?? meta.flatRate ?? 0);
-	const addon = firstFinite(row?.addon, meta?.addon, row?.doorPrice, meta?.doorPrice) ?? 0;
+	const addon =
+		firstFinite(row?.addon, meta?.addon, row?.doorPrice, meta?.doorPrice) ?? 0;
 	const unitPrice = firstFinite(row?.unitPrice);
 	const baseUnitPrice = firstFinite(
 		meta?.baseUnitPrice,
@@ -97,7 +103,9 @@ export function getHptDoorSalesUnitPrice(
 		meta?.priceData?.basePrice,
 	);
 	const inferredFromUnit =
-		unitPrice == null ? null : Math.max(0, unitPrice - sharedDoorSurcharge - flatRate - addon);
+		unitPrice == null
+			? null
+			: Math.max(0, unitPrice - sharedDoorSurcharge - flatRate - addon);
 	const derivedFromBase =
 		baseUnitPrice != null && baseUnitPrice > 0
 			? profileAdjusted(baseUnitPrice, context)
@@ -122,18 +130,29 @@ export function getHptDoorSalesUnitPrice(
 	);
 }
 
-export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
-	row: T,
+export function resolveHptDoorUnitPriceBreakdown(
+	row: HptDoorRow | null | undefined,
 	context?: HptCompatibilityContext,
-): T & HptDoorRow {
+) {
+	if (!row) {
+		return {
+			doorSalesUnitPrice: 0,
+			sharedDoorSurcharge: 0,
+			flatRate: 0,
+			addon: 0,
+			customPrice: null,
+			calculatedFinalUnitPrice: 0,
+			unitPrice: 0,
+			hasCustomPrice: false,
+		};
+	}
 	const meta = row?.meta || {};
-	const noHandle = !!context?.noHandle;
-	const hasSwing = context?.hasSwing !== false;
-	const totalQty = selectedDoorQty(row, noHandle);
 	const sharedDoorSurcharge = roundCurrency(
 		Number(context?.sharedDoorSurcharge ?? meta.sharedDoorSurcharge ?? 0),
 	);
-	const flatRate = roundCurrency(Number(context?.flatRate ?? meta.flatRate ?? 0));
+	const flatRate = roundCurrency(
+		Number(context?.flatRate ?? meta.flatRate ?? 0),
+	);
 	const addon = roundCurrency(
 		firstFinite(row?.addon, meta?.addon, row?.doorPrice, meta?.doorPrice) ?? 0,
 	);
@@ -142,7 +161,39 @@ export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
 		meta?.overridePrice,
 		meta?.customPrice,
 	);
-	const customPrice = customPriceRaw == null ? null : roundCurrency(customPriceRaw);
+	const customPrice =
+		customPriceRaw == null ? null : roundCurrency(customPriceRaw);
+	const doorSalesUnitPrice = getHptDoorSalesUnitPrice(row, {
+		...context,
+		sharedDoorSurcharge,
+		flatRate,
+	});
+	const calculatedFinalUnitPrice = roundCurrency(
+		doorSalesUnitPrice + sharedDoorSurcharge + flatRate + addon,
+	);
+	const unitPrice =
+		customPrice == null ? calculatedFinalUnitPrice : customPrice;
+
+	return {
+		doorSalesUnitPrice,
+		sharedDoorSurcharge,
+		flatRate,
+		addon,
+		customPrice,
+		calculatedFinalUnitPrice,
+		unitPrice,
+		hasCustomPrice: customPrice != null,
+	};
+}
+
+export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
+	row: T,
+	context?: HptCompatibilityContext,
+): T & HptDoorRow {
+	const meta = row?.meta || {};
+	const noHandle = !!context?.noHandle;
+	const hasSwing = context?.hasSwing !== false;
+	const totalQty = selectedDoorQty(row, noHandle);
 	const baseUnitPrice = firstFinite(
 		meta?.baseUnitPrice,
 		row?.baseUnitPrice,
@@ -150,17 +201,8 @@ export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
 		meta?.priceData?.baseUnitCost,
 		meta?.priceData?.basePrice,
 	);
-	const doorSalesUnitPrice = getHptDoorSalesUnitPrice(row, {
-		...context,
-		sharedDoorSurcharge,
-		flatRate,
-	});
-	const doorUnit =
-		customPrice == null
-			? doorSalesUnitPrice + sharedDoorSurcharge + flatRate
-			: customPrice + sharedDoorSurcharge + flatRate;
-	const unitPrice = roundCurrency(doorUnit + addon);
-	const lineTotal = roundCurrency(totalQty * unitPrice);
+	const unitBreakdown = resolveHptDoorUnitPriceBreakdown(row, context);
+	const lineTotal = roundCurrency(totalQty * unitBreakdown.unitPrice);
 	const priceMissing = Boolean(meta?.priceMissing);
 
 	return {
@@ -169,19 +211,22 @@ export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
 		lhQty: noHandle ? 0 : Number(row?.lhQty || 0),
 		rhQty: noHandle ? 0 : Number(row?.rhQty || 0),
 		totalQty,
-		addon,
-		customPrice,
-		doorPrice: addon,
-		jambSizePrice: doorSalesUnitPrice,
-		unitPrice,
+		addon: unitBreakdown.addon,
+		customPrice: unitBreakdown.customPrice,
+		doorPrice: unitBreakdown.addon,
+		jambSizePrice: unitBreakdown.doorSalesUnitPrice,
+		unitPrice: unitBreakdown.unitPrice,
 		lineTotal,
 		meta: {
 			...meta,
 			...(baseUnitPrice == null ? {} : { baseUnitPrice }),
-			doorSalesUnitPrice,
-			sharedDoorSurcharge,
-			flatRate,
-			overridePrice: customPrice,
+			doorSalesUnitPrice: unitBreakdown.doorSalesUnitPrice,
+			sharedDoorSurcharge: unitBreakdown.sharedDoorSurcharge,
+			flatRate: unitBreakdown.flatRate,
+			overridePrice: unitBreakdown.customPrice,
+			customPrice: unitBreakdown.customPrice,
+			calculatedFinalUnitPrice: unitBreakdown.calculatedFinalUnitPrice,
+			finalUnitPrice: unitBreakdown.unitPrice,
 			priceMissing,
 		},
 	} as T & HptDoorRow;
@@ -210,7 +255,9 @@ export function hydrateHptDoorRowFromLegacy<T extends HptDoorRow>(
 	);
 }
 
-export function recalculateHptLineTotals<T extends HptLine>(line: T): T & HptLine {
+export function recalculateHptLineTotals<T extends HptLine>(
+	line: T,
+): T & HptLine {
 	const doors = Array.isArray(line?.housePackageTool?.doors)
 		? line.housePackageTool.doors
 		: [];
@@ -220,7 +267,10 @@ export function recalculateHptLineTotals<T extends HptLine>(line: T): T & HptLin
 		0,
 	);
 	const totalPrice = roundCurrency(
-		doors.reduce((sum: number, door: HptDoorRow) => sum + Number(door?.lineTotal || 0), 0),
+		doors.reduce(
+			(sum: number, door: HptDoorRow) => sum + Number(door?.lineTotal || 0),
+			0,
+		),
 	);
 	const unitPrice = totalDoors > 0 ? roundCurrency(totalPrice / totalDoors) : 0;
 	return {

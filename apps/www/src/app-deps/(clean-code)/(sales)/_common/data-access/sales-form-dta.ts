@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import { SalesMeta, SalesType, StepComponentMeta } from "../../types";
 import { SalesBookFormIncludes } from "../utils/db-utils";
 import { transformSalesBookForm } from "./dto/sales-book-form-dto";
+import { normalizeSalesBookFormExtraCosts } from "./sales-book-extra-costs";
 import { getLoggedInDealerAccountDta } from "./sales-dealer-dta";
 import { getSalesFormStepByIdDta } from "./sales-form-step-dta";
 import { salesTaxForm } from "./sales-tax.persistent";
@@ -52,15 +53,12 @@ export async function getSalesBookFormDataDta(data: GetSalesBookFormDataProps) {
         .filter(Boolean);
     const stepComponents = await getFormStepComponentsDta(prodIds || []);
     const meta = (order?.meta || {}) as any as Partial<SalesMeta>;
-    if (meta.deliveryCost) {
-        order.extraCosts.push({
-            label: "Delivery",
-            amount: meta.deliveryCost,
-            orderId: order.id,
-            type: "Delivery",
-        } as any);
-        meta.deliveryCost = null;
-    }
+    if (order)
+        order.extraCosts = normalizeSalesBookFormExtraCosts({
+            id: order.id,
+            extraCosts: order.extraCosts,
+            meta,
+        }) as typeof order.extraCosts;
     const labor = order?.extraCosts.find((a) => a.type == "Labor");
     if (!labor)
         order.extraCosts.push({

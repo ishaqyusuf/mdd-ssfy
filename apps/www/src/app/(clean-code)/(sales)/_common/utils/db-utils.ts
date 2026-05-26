@@ -403,8 +403,8 @@ export const SalesBookFormIncludes = (restoreQuery) =>
             include: {
                 formSteps: {
                     where: {
-                        // ...withDeleted,
-                        // ...restoreQuery,
+                        deletedAt: null,
+                        ...restoreQuery,
                     },
 
                     include: {
@@ -424,6 +424,7 @@ export const SalesBookFormIncludes = (restoreQuery) =>
                 },
                 shelfItems: {
                     where: {
+                        deletedAt: null,
                         ...restoreQuery,
                     },
                 },

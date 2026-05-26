@@ -550,6 +550,23 @@ export function summarizeShelfRows(
   };
 }
 
+function normalizeShelfCategoryPath(row: any) {
+  const meta = row?.meta || {};
+  const explicitCategoryIds = Array.isArray(meta?.categoryIds)
+    ? meta.categoryIds
+        .map((value: any) => Number(value || 0))
+        .filter((value: number) => value > 0)
+    : [];
+  if (explicitCategoryIds.length) return explicitCategoryIds;
+
+  return [
+    Number(meta?.shelfParentCategoryId || 0),
+    Number(row?.categoryId || meta?.categoryId || 0),
+  ].filter(
+    (value, index, values) => value > 0 && values.indexOf(value) === index,
+  );
+}
+
 export function buildShelfSections(
   nextRowsRaw: any[],
   profileCoefficient?: number | null,
@@ -560,18 +577,35 @@ export function buildShelfSections(
   const sections = new Map<string, any>();
   rows.forEach((row: any, index: number) => {
     const rowMeta = row?.meta || {};
+    const categoryIds = normalizeShelfCategoryPath(row);
+    const parentCategoryId =
+      Number(rowMeta?.shelfParentCategoryId || 0) ||
+      categoryIds[0] ||
+      null;
+    const categoryId =
+      Number(row?.categoryId || rowMeta?.categoryId || 0) ||
+      (categoryIds.length ? categoryIds[categoryIds.length - 1] : null) ||
+      null;
     const sectionUid =
       String(rowMeta?.sectionUid || "").trim() || `shelf-section-${index + 1}`;
     const existing = sections.get(sectionUid);
     const nextRow = {
       ...row,
+      categoryId,
       meta: {
         ...rowMeta,
         sectionUid,
+        categoryIds,
+        shelfParentCategoryId: parentCategoryId,
       },
     };
     if (existing) {
       existing.rows.push(nextRow);
+      existing.categoryIds = existing.categoryIds.length
+        ? existing.categoryIds
+        : categoryIds;
+      existing.parentCategoryId = existing.parentCategoryId ?? parentCategoryId;
+      existing.categoryId = existing.categoryId ?? categoryId;
       existing.subTotal = roundCurrency(
         existing.rows.reduce(
           (sum: number, sectionRow: any) =>
@@ -586,12 +620,9 @@ export function buildShelfSections(
     }
     sections.set(sectionUid, {
       uid: sectionUid,
-      categoryIds: Array.isArray(rowMeta?.categoryIds)
-        ? rowMeta.categoryIds.map((value: any) => Number(value || 0)).filter((value: number) => value > 0)
-        : [],
-      parentCategoryId:
-        Number(rowMeta?.shelfParentCategoryId || 0) || null,
-      categoryId: Number(row?.categoryId || 0) || null,
+      categoryIds,
+      parentCategoryId,
+      categoryId,
       rows: [nextRow],
       subTotal: isShelfPlaceholderRow(nextRow)
         ? 0
