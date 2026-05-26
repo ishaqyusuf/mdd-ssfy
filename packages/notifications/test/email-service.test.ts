@@ -44,6 +44,17 @@ describe("resolveEmailRecipients", () => {
 		).toEqual(["one@gndprodesk.com", "two@gndprodesk.com"]);
 	});
 
+	it("fails closed in test mode when TEST_EMAILS is not configured", () => {
+		process.env.NODE_ENV = "production";
+		process.env.TEST_EMAILS = "";
+
+		expect(() =>
+			resolveEmailRecipients(["customer@example.com"], {
+				testEmailMode: true,
+			}),
+		).toThrow("TEST_EMAILS must be configured for test email mode");
+	});
+
 	it("keeps production recipients when non-super-admin test mode is not validated", () => {
 		process.env.NODE_ENV = "production";
 		process.env.TEST_EMAILS = "test@gndprodesk.com";

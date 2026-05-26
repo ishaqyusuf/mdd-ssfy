@@ -36,7 +36,15 @@ export function resolveEmailRecipients(
 	const testEmails = getTestEmails();
 	const isTestEnv = process.env.NODE_ENV === "test";
 
-	if ((isTestEnv || options?.testEmailMode) && testEmails.length) {
+	if (options?.testEmailMode) {
+		if (!testEmails.length) {
+			throw new Error("TEST_EMAILS must be configured for test email mode");
+		}
+
+		return testEmails;
+	}
+
+	if (isTestEnv && testEmails.length) {
 		return testEmails;
 	}
 
