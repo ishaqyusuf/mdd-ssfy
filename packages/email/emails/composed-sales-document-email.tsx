@@ -21,7 +21,6 @@ type Props = {
 	customerName: string;
 	message?: string;
 	paymentLink?: string;
-	attachSalesPdf?: boolean;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -42,16 +41,25 @@ export default function ComposedSalesDocumentEmail({
 	customerName,
 	message,
 	paymentLink,
-	attachSalesPdf = false,
 	sales,
 }: Props) {
 	const themeClasses = getEmailThemeClasses();
 	const lightStyles = getEmailInlineStyles("light");
 	const totalDue = sales.reduce((acc, sale) => acc + (sale.due || 0), 0);
+	const messageLineCounts = new Map<string, number>();
 	const messageLines = (message || "")
 		.split(/\r?\n/)
 		.map((line) => line.trim())
-		.filter(Boolean);
+		.filter(Boolean)
+		.map((line) => {
+			const count = messageLineCounts.get(line) || 0;
+			messageLineCounts.set(line, count + 1);
+
+			return {
+				key: count ? `${line}-${count}` : line,
+				line,
+			};
+		});
 
 	return (
 		<EmailThemeProvider preview={<Preview>{subject}</Preview>}>
@@ -103,9 +111,9 @@ export default function ComposedSalesDocumentEmail({
 
 					{messageLines.length ? (
 						<Section className="mb-[18px]">
-							{messageLines.map((line, index) => (
+							{messageLines.map(({ key, line }) => (
 								<Text
-									key={`${line}-${index}`}
+									key={key}
 									className={`m-0 mb-[12px] text-[15px] leading-[24px] ${themeClasses.text}`}
 									style={{ color: lightStyles.text.color }}
 								>
@@ -176,26 +184,6 @@ export default function ComposedSalesDocumentEmail({
 							</Section>
 						))}
 					</Section>
-
-					{attachSalesPdf ? (
-						<Section
-							className="mb-[18px] p-[14px]"
-							style={{
-								borderStyle: "solid",
-								borderWidth: 1,
-								borderColor: lightStyles.container.borderColor,
-								borderRadius: 10,
-								backgroundColor: "#f8fafc",
-							}}
-						>
-							<Text
-								className={`m-0 text-[14px] ${themeClasses.text}`}
-								style={{ color: lightStyles.text.color }}
-							>
-								The sales PDF is attached to this email for your reference.
-							</Text>
-						</Section>
-					) : null}
 
 					{paymentLink && totalDue > 0 ? (
 						<Section className="mb-[22px]">

@@ -4,7 +4,11 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { TaskName } from "@jobs/schema";
 
-export type TaskMonitorStatus = "SYNCING" | "COMPLETED" | "FAILED";
+export type TaskMonitorStatus =
+    | "SYNCING"
+    | "COMPLETED"
+    | "FAILED"
+    | "CANCELED";
 
 export type TaskMonitorMetadata = {
     taskName?: TaskName | string;

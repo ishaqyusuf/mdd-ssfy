@@ -551,6 +551,9 @@ export interface SalesFormFields {
         };
         customer?: {
             id?: number;
+            email?: string | null;
+            businessName?: string | null;
+            name?: string | null;
         };
         // sad?: number;
         paymentMethod: SalesPaymentOptions | null;

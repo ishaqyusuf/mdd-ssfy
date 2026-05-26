@@ -1,17 +1,20 @@
 "use client";
 
+import { cancelTaskRunAction } from "@/actions/cancel-task-run";
 import { useTaskMonitorTasks } from "@/hooks/use-task-notification-params";
+import { useSession } from "@/lib/auth/client";
+import { cn } from "@/lib/utils";
 import {
     type TaskMonitorStatus,
     type TaskMonitorTask,
     useTaskMonitorStore,
 } from "@/store/task-monitor";
-import { cn } from "@/lib/utils";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import { toast } from "@gnd/ui/use-toast";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
-import { useSession } from "@/lib/auth/client";
+import { useAction } from "next-safe-action/hooks";
 import { useEffect, useState } from "react";
 
 export function TaskNotification() {
@@ -26,8 +29,11 @@ export function TaskNotification() {
     const [open, setOpen] = useState(false);
     const runningTasks = tasks.filter((task) => task.status === "SYNCING");
     const failedTasks = tasks.filter((task) => task.status === "FAILED");
+    const canceledTasks = tasks.filter((task) => task.status === "CANCELED");
     const visibleTasks = tasks.filter((task) => task.status !== "COMPLETED");
-    const visibleCount = runningTasks.length + failedTasks.length;
+    const visibleCount =
+        runningTasks.length + failedTasks.length + canceledTasks.length;
+    const hasRunning = runningTasks.length > 0;
     const hasFailures = failedTasks.length > 0;
 
     useEffect(() => {
@@ -55,7 +61,11 @@ export function TaskNotification() {
                                 <div className="flex items-center gap-2">
                                     <TaskStatusIcon
                                         status={
-                                            hasFailures ? "FAILED" : "SYNCING"
+                                            hasFailures
+                                                ? "FAILED"
+                                                : hasRunning
+                                                  ? "SYNCING"
+                                                  : "CANCELED"
                                         }
                                     />
                                     <div>
@@ -63,6 +73,7 @@ export function TaskNotification() {
                                             {formatTaskSummary(
                                                 runningTasks.length,
                                                 failedTasks.length,
+                                                canceledTasks.length,
                                             )}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
@@ -97,7 +108,9 @@ export function TaskNotification() {
                             "group relative flex size-14 items-center justify-center rounded-full border bg-background text-foreground shadow-2xl transition hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                             hasFailures
                                 ? "border-destructive text-destructive"
-                                : "border-primary text-primary",
+                                : hasRunning
+                                  ? "border-primary text-primary"
+                                  : "border-border text-muted-foreground",
                         )}
                         onClick={() => setOpen((current) => !current)}
                         aria-label="Open task monitor"
@@ -107,7 +120,9 @@ export function TaskNotification() {
                                 "absolute inset-0 rounded-full border-2",
                                 hasFailures
                                     ? "border-destructive"
-                                    : "animate-spin border-primary border-t-transparent",
+                                    : hasRunning
+                                      ? "animate-spin border-primary border-t-transparent"
+                                      : "border-muted-foreground/40",
                             )}
                         />
                         <span className="relative text-base font-bold">
@@ -152,10 +167,19 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
             return;
         }
 
-        if (run.status === "FAILED" || run.status === "CANCELED") {
+        if (run.status === "CANCELED") {
+            updateTask(task.runId, {
+                status: "CANCELED",
+                completedAt: Date.now(),
+            });
+            stop?.();
+            return;
+        }
+
+        if (run.status === "FAILED") {
             updateTask(task.runId, {
                 status: "FAILED",
-                error: error?.message || `Task ${run.status.toLowerCase()}.`,
+                error: error?.message || "Task failed.",
                 completedAt: Date.now(),
             });
             stop?.();
@@ -166,11 +190,31 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 }
 
 function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
+    const updateTask = useTaskMonitorStore((state) => state.updateTask);
     const removeTask = useTaskMonitorStore((state) => state.removeTask);
     const [copied, setCopied] = useState(false);
     const title = task.title || defaultTitle(task);
     const description =
         task.error || task.description || `Run ${shortRunId(task.runId)}`;
+    const cancelTask = useAction(cancelTaskRunAction, {
+        onSuccess: () => {
+            updateTask(task.runId, {
+                status: "CANCELED",
+                completedAt: Date.now(),
+            });
+            toast({
+                title: "Task cancelled",
+                variant: "success",
+            });
+        },
+        onError: ({ error }) => {
+            toast({
+                title: "Unable to cancel task",
+                description: error.serverError || "Please try again.",
+                variant: "destructive",
+            });
+        },
+    });
     const copyRunId = async () => {
         try {
             await navigator.clipboard.writeText(task.runId);
@@ -222,13 +266,30 @@ function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
                     <Icons.Copy className="size-3.5" />
                 )}
             </Button>
-            {task.status === "FAILED" ? (
+            {task.status === "SYNCING" ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    disabled={cancelTask.isPending}
+                    onClick={() => cancelTask.execute({ runId: task.runId })}
+                    aria-label="Cancel running task"
+                    title="Cancel task"
+                >
+                    {cancelTask.isPending ? (
+                        <Icons.Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                        <Icons.Ban className="size-3.5" />
+                    )}
+                </Button>
+            ) : null}
+            {task.status === "FAILED" || task.status === "CANCELED" ? (
                 <Button
                     type="button"
                     variant="ghost"
                     size="icon-xs"
                     onClick={() => removeTask(task.runId)}
-                    aria-label="Dismiss failed task"
+                    aria-label="Dismiss task"
                 >
                     <Icons.X className="size-3.5" />
                 </Button>
@@ -252,6 +313,12 @@ function TaskStatusIcon({ status }: { status: TaskMonitorStatus }) {
         );
     }
 
+    if (status === "CANCELED") {
+        return (
+            <Icons.Ban className={cn(className, "text-muted-foreground")} />
+        );
+    }
+
     return (
         <Icons.Loader2 className={cn(className, "animate-spin text-primary")} />
     );
@@ -260,16 +327,22 @@ function TaskStatusIcon({ status }: { status: TaskMonitorStatus }) {
 function defaultTitle(task: TaskMonitorTask) {
     if (task.status === "FAILED") return "Task failed";
     if (task.status === "COMPLETED") return "Task completed";
+    if (task.status === "CANCELED") return "Task cancelled";
     return "Task running";
 }
 
 function statusLabel(status: TaskMonitorStatus) {
     if (status === "FAILED") return "Failed";
     if (status === "COMPLETED") return "Done";
+    if (status === "CANCELED") return "Cancelled";
     return "Running";
 }
 
-function formatTaskSummary(runningCount: number, failedCount: number) {
+function formatTaskSummary(
+    runningCount: number,
+    failedCount: number,
+    canceledCount: number,
+) {
     const parts = [];
 
     if (runningCount) {
@@ -280,6 +353,10 @@ function formatTaskSummary(runningCount: number, failedCount: number) {
 
     if (failedCount) {
         parts.push(`${failedCount} failed`);
+    }
+
+    if (canceledCount) {
+        parts.push(`${canceledCount} cancelled`);
     }
 
     return parts.join(", ");

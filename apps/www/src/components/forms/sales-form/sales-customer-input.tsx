@@ -114,6 +114,8 @@ export function SalesCustomerInput() {
             },
             customer: {
                 id: customer.customerId,
+                email: customer.customer?.email,
+                name: customer.customer?.name,
             },
         };
 
@@ -474,6 +476,10 @@ function SearchCustomer() {
 
                                                 metaData.customer.id =
                                                     sr.customerId;
+                                                metaData.customer.email =
+                                                    sr.email;
+                                                metaData.customer.name =
+                                                    sr.name;
                                                 if (!md.shipping.id)
                                                     metaData.shipping.id =
                                                         sr.addressId;

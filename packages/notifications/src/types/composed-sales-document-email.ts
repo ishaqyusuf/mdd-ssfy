@@ -18,6 +18,9 @@ import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const LINK_TTL_DAYS = 7;
+const isProd =
+	process.env.VERCEL_ENV === "production" ||
+	process.env.NODE_ENV === "production";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -48,7 +51,6 @@ const resolvedSchema = z.object({
 	salesRepEmail: z.string().email(),
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
-	attachSalesPdf: z.boolean(),
 	paymentLink: z.string().optional().nullable(),
 	sales: z.array(
 		z.object({
@@ -228,9 +230,9 @@ async function buildComposedSalesDocumentEmailData(
 
 	const type = input.printType === "quote" ? "quote" : "order";
 	const paymentLink = await buildPaymentLink(db, sales);
-	const pdfAttachment = input.attachSalesPdf
-		? await buildPdfAttachment(db, sales, type)
-		: null;
+	const pdfAttachment = isProd
+		? null
+		: await buildPdfAttachment(db, sales, type);
 
 	return {
 		type,
@@ -244,7 +246,6 @@ async function buildComposedSalesDocumentEmailData(
 		salesRepEmail: primarySale.salesRepEmail,
 		subject: input.subject.trim(),
 		message: normalizeText(input.message),
-		attachSalesPdf: Boolean(pdfAttachment),
 		paymentLink,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
@@ -322,7 +323,6 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 				customerName: data.customerName,
 				message: data.message || undefined,
 				paymentLink: data.paymentLink || undefined,
-				attachSalesPdf: data.attachSalesPdf,
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

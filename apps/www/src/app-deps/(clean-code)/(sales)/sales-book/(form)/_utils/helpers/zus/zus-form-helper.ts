@@ -112,6 +112,9 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             // cad: data.customer?.id,
             customer: {
                 id: data.customer?.id,
+                email: data.customer?.email,
+                businessName: data.customer?.businessName,
+                name: data.customer?.name,
             },
             billing: {
                 id: data.billingAddressId,

@@ -120,9 +120,7 @@ export const dealerSalesRequestSchema = z.object({
 	customerName: z.string().optional(),
 	requestedAt: z.string(),
 });
-export type DealerSalesRequestInput = z.infer<
-	typeof dealerSalesRequestSchema
->;
+export type DealerSalesRequestInput = z.infer<typeof dealerSalesRequestSchema>;
 export const dealerSalesRequestTags = actityTagsSchema.extend({
 	requestId: z.number(),
 	salesId: z.number(),
@@ -271,9 +269,7 @@ export type DealerMagicLoginLinkInput = z.infer<
 export const dealerMagicLoginLinkTags = actityTagsSchema.extend({
 	dealerEmail: z.string().email(),
 });
-export type DealerMagicLoginLinkTags = z.infer<
-	typeof dealerMagicLoginLinkTags
->;
+export type DealerMagicLoginLinkTags = z.infer<typeof dealerMagicLoginLinkTags>;
 
 export const dealerPasswordResetSchema = z.object({
 	dealerName: z.string().optional().nullable(),
@@ -1075,7 +1071,6 @@ export const composedSalesDocumentEmailSchema = z.object({
 	customerName: z.string().optional().nullable(),
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
-	attachSalesPdf: z.boolean().default(true).optional(),
 });
 export type ComposedSalesDocumentEmailInput = z.infer<
 	typeof composedSalesDocumentEmailSchema

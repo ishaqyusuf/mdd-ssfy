@@ -7,7 +7,6 @@ import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -67,7 +66,6 @@ export function SalesDocumentEmailDialog({
 	const [email, setEmail] = useState(customerEmail || "");
 	const [subject, setSubject] = useState(buildDefaultSubject(orderNo));
 	const [message, setMessage] = useState("");
-	const [attachSalesPdf, setAttachSalesPdf] = useState(true);
 	const open = controlledOpen ?? internalOpen;
 	const setOpen = onOpenChange ?? setInternalOpen;
 	const auth = useAuth();
@@ -82,7 +80,6 @@ export function SalesDocumentEmailDialog({
 			setOpen(false);
 			setSubject(buildDefaultSubject(orderNo));
 			setMessage("");
-			setAttachSalesPdf(true);
 			await Promise.all([
 				queryClient.invalidateQueries({
 					queryKey: trpc.notes.activityTree.pathKey(),
@@ -96,7 +93,6 @@ export function SalesDocumentEmailDialog({
 
 	const isQuote = mode === "quote";
 	const isEmailValid = EMAIL_RE.test(email.trim());
-	const attachmentLabel = "Attach sales PDF";
 	const canSend =
 		!disabled &&
 		!notification.isActionPending &&
@@ -118,7 +114,6 @@ export function SalesDocumentEmailDialog({
 				setEmail(customerEmail || "");
 				setSubject(buildDefaultSubject(orderNo));
 				setMessage("");
-				setAttachSalesPdf(true);
 				setOpen(true);
 			}}
 			className={triggerVariant === "icon" ? "size-8 rounded-full" : undefined}
@@ -140,7 +135,6 @@ export function SalesDocumentEmailDialog({
 		setEmail(customerEmail || "");
 		setSubject(buildDefaultSubject(orderNo));
 		setMessage("");
-		setAttachSalesPdf(true);
 	}, [customerEmail, open, orderNo]);
 
 	useEffect(() => {
@@ -183,26 +177,9 @@ export function SalesDocumentEmailDialog({
 									<Icons.FileText className="size-4 text-muted-foreground" />
 								</div>
 								<div className="min-w-0 flex-1">
-									<div className="flex items-start gap-3">
-										<Checkbox
-											id="sales-preview-attach-pdf"
-											checked={attachSalesPdf}
-											onCheckedChange={(checked) =>
-												setAttachSalesPdf(checked === true)
-											}
-										/>
-										<div>
-											<Label
-												htmlFor="sales-preview-attach-pdf"
-												className="text-sm font-medium"
-											>
-												{attachmentLabel}
-											</Label>
-											<p className="truncate text-sm text-muted-foreground">
-												{documentTitle}
-											</p>
-										</div>
-									</div>
+									<p className="truncate text-sm font-medium">
+										{documentTitle}
+									</p>
 								</div>
 								{downloadUrl ? (
 									<Button variant="ghost" size="sm" asChild>
@@ -213,7 +190,9 @@ export function SalesDocumentEmailDialog({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="sales-preview-email-address">Customer Email</Label>
+							<Label htmlFor="sales-preview-email-address">
+								Customer Email
+							</Label>
 							<Input
 								id="sales-preview-email-address"
 								type="email"
@@ -251,8 +230,8 @@ export function SalesDocumentEmailDialog({
 								className="min-h-32"
 							/>
 							<p className="text-xs text-muted-foreground">
-								If this sale has an outstanding balance, a payment button will be
-								included automatically.
+								If this sale has an outstanding balance, a payment button will
+								be included automatically.
 							</p>
 						</div>
 					</div>
@@ -278,7 +257,6 @@ export function SalesDocumentEmailDialog({
 									customerName: customerName?.trim() || undefined,
 									subject: subject.trim(),
 									message: message.trim() || undefined,
-									attachSalesPdf,
 									testEmailMode: shouldUseTestEmailMode,
 								});
 							}}

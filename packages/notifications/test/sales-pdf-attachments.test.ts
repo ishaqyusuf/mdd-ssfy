@@ -106,7 +106,6 @@ describe("sales PDF email attachments", () => {
 				salesRepEmail: "rep@gndprodesk.com",
 				subject: "Invoice ready",
 				message: "Please review your invoice.",
-				attachSalesPdf: false,
 				paymentLink: null,
 				pdfAttachment: null,
 				sales: [sale],
@@ -118,7 +117,7 @@ describe("sales PDF email attachments", () => {
 
 		expect(email?.attachments).toBeUndefined();
 		expect(email?.data).toMatchObject({
-			attachSalesPdf: false,
+			subject: "Invoice ready",
 		});
 	});
 
@@ -132,7 +131,6 @@ describe("sales PDF email attachments", () => {
 				salesRepEmail: "rep@gndprodesk.com",
 				subject: "Invoice ready",
 				message: "Please review your invoice.",
-				attachSalesPdf: false,
 				paymentLink: null,
 				pdfAttachment: null,
 				sales: [sale],
