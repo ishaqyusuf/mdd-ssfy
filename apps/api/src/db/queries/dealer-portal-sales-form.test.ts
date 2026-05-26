@@ -137,6 +137,7 @@ function createDealerPortalSalesFormContext(
           id: 30,
           title: "Dealer Standard",
           coefficient: 1.1,
+          salesPercentage: 20,
         },
       },
     },
@@ -286,6 +287,20 @@ describe("dealer portal sales form DPP identities", () => {
       type: "quote",
       dealerAuthId: 10,
       salesRepId: 700,
+    });
+    expect(state.createdOrderData?.meta).toMatchObject({
+      pricingSnapshot: {
+        profiles: {
+          dealer: {
+            salesPercentage: 20,
+          },
+        },
+      },
+      dealerPricing: {
+        summary: {
+          grandTotal: 109.2,
+        },
+      },
     });
     expect(state.sequenceCountWhere).toMatchObject({
       dealerAuthId: {

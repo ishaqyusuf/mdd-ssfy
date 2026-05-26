@@ -28,7 +28,8 @@ describe("dealer portal pricing", () => {
       dealerProfile: {
         id: 2,
         title: "Retail",
-        coefficient: 0.56,
+        coefficient: 99,
+        salesPercentage: 20,
       },
       lineItems: [
         {
@@ -50,16 +51,17 @@ describe("dealer portal pricing", () => {
     expect(result.profiles.dealer).toEqual({
       id: 2,
       label: "Retail",
-      coefficient: 0.56,
+      coefficient: 99,
+      salesPercentage: 20,
     });
     expect(result.lines[0]).toMatchObject({
       internalUnitPrice: 149,
       internalLineTotal: 298,
-      dealerUnitPrice: 179,
-      dealerLineTotal: 358,
+      dealerUnitPrice: 178.8,
+      dealerLineTotal: 357.6,
     });
     expect(result.internalPricing.grandTotal).toBe(327.8);
-    expect(result.dealerPricing.grandTotal).toBe(393.8);
+    expect(result.dealerPricing.grandTotal).toBe(393.36);
   });
 
   it("prices flat, door, shelf, moulding, and service lines from their effective totals", () => {
@@ -74,7 +76,8 @@ describe("dealer portal pricing", () => {
       dealerProfile: {
         id: 2,
         title: "Retail",
-        coefficient: 0.91,
+        coefficient: 99,
+        salesPercentage: 10,
       },
       lineItems: [
         {
@@ -1084,7 +1087,7 @@ describe("dealer portal isolation", () => {
     const savedOrderData = testDb.getCreatedOrderData() as Record<string, any>;
     expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
     expect(savedOrderData.meta.dealerPricing.profileId).toBe(45);
-    expect(savedOrderData.meta.dealerPricing.summary.grandTotal).toBe(200);
+    expect(savedOrderData.meta.dealerPricing.summary.grandTotal).toBe(150);
   });
 
   it("falls back to the dealer customer's assigned profile when quote profile is omitted", async () => {

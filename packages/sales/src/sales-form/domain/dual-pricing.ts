@@ -65,6 +65,7 @@ export type DualPricingSnapshot = DualPricingResult & {
       id: number | null;
       label: string | null;
       coefficient: number;
+      salesPercentage: number;
     };
   };
 };
@@ -82,6 +83,15 @@ function coefficientMultiplier(profile?: SalesFormPricingProfile | null) {
   return roundCurrency(1 / coefficientValue(profile));
 }
 
+function salesPercentageValue(profile?: SalesFormPricingProfile | null) {
+  const value = Number(profile?.salesPercentage ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function salesPercentageMultiplier(profile?: SalesFormPricingProfile | null) {
+  return 1 + salesPercentageValue(profile) / 100;
+}
+
 function normalizeLine(line: DualPricingLineInput, multiplier: number) {
   const qty = Number(line.qty ?? 0);
   const baseUnitPrice = Number(line.unitPrice ?? 0);
@@ -96,17 +106,31 @@ function normalizeLine(line: DualPricingLineInput, multiplier: number) {
   };
 }
 
+function normalizeDealerLine(
+  line: ReturnType<typeof normalizeLine>,
+  multiplier: number,
+) {
+  const unitPrice = roundCurrency(Number(line.unitPrice || 0) * multiplier);
+  const lineTotal = roundCurrency(Number(line.qty || 0) * unitPrice);
+
+  return {
+    ...line,
+    unitPrice,
+    lineTotal,
+  };
+}
+
 export function calculateDualSalesFormPricing(
   input: DualPricingInput,
 ): DualPricingResult {
   const internalMultiplier = coefficientMultiplier(input.internalProfile);
-  const dealerMultiplier = coefficientMultiplier(input.dealerProfile);
+  const dealerMultiplier = salesPercentageMultiplier(input.dealerProfile);
 
   const internalLines = (input.lineItems || []).map((line) =>
     normalizeLine(line, internalMultiplier),
   );
-  const dealerLines = (input.lineItems || []).map((line) =>
-    normalizeLine(line, dealerMultiplier),
+  const dealerLines = internalLines.map((line) =>
+    normalizeDealerLine(line, dealerMultiplier),
   );
 
   return {
@@ -169,6 +193,7 @@ export function buildDualSalesFormPricingSnapshot(
         id: input.dealerProfile?.id ?? null,
         label: input.dealerProfile?.label ?? null,
         coefficient: coefficientValue(input.dealerProfile),
+        salesPercentage: salesPercentageValue(input.dealerProfile),
       },
     },
   };

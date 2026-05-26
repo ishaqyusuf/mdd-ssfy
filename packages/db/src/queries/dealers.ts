@@ -1709,6 +1709,23 @@ function pricingCoefficientMultiplier(
   return roundCurrency(1 / pricingCoefficient(profile));
 }
 
+function pricingSalesPercentage(
+  profile?: {
+    salesPercentage?: number | null;
+  } | null,
+) {
+  const value = Number(profile?.salesPercentage ?? 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function pricingSalesPercentageMultiplier(
+  profile?: {
+    salesPercentage?: number | null;
+  } | null,
+) {
+  return 1 + pricingSalesPercentage(profile) / 100;
+}
+
 function baseUnitPriceFromDealerLine(line: DealerPortalQuoteLineItemInput) {
   const explicitUnitPrice = Number(line.unitPrice ?? 0);
   if (Number.isFinite(explicitUnitPrice) && explicitUnitPrice > 0) {
@@ -1976,13 +1993,15 @@ export function calculateDealerQuotePricing({
     id?: number | null;
     title?: string | null;
     coefficient?: number | null;
+    salesPercentage?: number | null;
   } | null;
   createdAt?: string | Date | null;
 }) {
   const internalCoefficient = pricingCoefficient(internalProfile);
   const dealerCoefficient = pricingCoefficient(dealerProfile);
+  const dealerSalesPercentage = pricingSalesPercentage(dealerProfile);
   const internalMultiplier = pricingCoefficientMultiplier(internalProfile);
-  const dealerMultiplier = pricingCoefficientMultiplier(dealerProfile);
+  const dealerMultiplier = pricingSalesPercentageMultiplier(dealerProfile);
   const snapshotCreatedAt =
     createdAt instanceof Date
       ? createdAt.toISOString()
@@ -1992,7 +2011,7 @@ export function calculateDealerQuotePricing({
     const qty = Number(line.qty ?? 0);
     const baseUnitPrice = baseUnitPriceFromDealerLine(line);
     const internalUnitPrice = roundCurrency(baseUnitPrice * internalMultiplier);
-    const dealerUnitPrice = roundCurrency(baseUnitPrice * dealerMultiplier);
+    const dealerUnitPrice = roundCurrency(internalUnitPrice * dealerMultiplier);
 
     return {
       uid: line.uid,
@@ -2030,6 +2049,7 @@ export function calculateDealerQuotePricing({
         id: dealerProfile?.id ?? null,
         label: dealerProfile?.title ?? null,
         coefficient: dealerCoefficient,
+        salesPercentage: dealerSalesPercentage,
       },
     },
     lines,

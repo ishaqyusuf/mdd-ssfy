@@ -141,7 +141,7 @@ describe("sales form composer", () => {
     expect(payload.lineItems[0]?.title).toBe("Garage");
   });
 
-  it("keeps dealership customer-profile coefficient pricing explicit and separate from internal coefficient", () => {
+  it("keeps dealership customer-profile percentage pricing explicit and separate from internal coefficient", () => {
     const snapshot = composeSalesFormPricingSnapshot({
       config: {
         surface: "dealership",
@@ -155,7 +155,8 @@ describe("sales form composer", () => {
           dealerProfile: {
             id: 20,
             label: "Retail",
-            coefficient: 0.56,
+            coefficient: 99,
+            salesPercentage: 20,
           },
         },
       },
@@ -180,13 +181,14 @@ describe("sales form composer", () => {
     expect(snapshot.profiles.dealer).toEqual({
       id: 20,
       label: "Retail",
-      coefficient: 0.56,
+      coefficient: 99,
+      salesPercentage: 20,
     });
     expect(snapshot.internalPricing.grandTotal).toBe(327.8);
-    expect(snapshot.dealerPricing.grandTotal).toBe(393.8);
+    expect(snapshot.dealerPricing.grandTotal).toBe(393.36);
     expect(snapshot.lines[0]).toMatchObject({
       internalUnitPrice: 149,
-      dealerUnitPrice: 179,
+      dealerUnitPrice: 178.8,
     });
   });
 
@@ -202,7 +204,8 @@ describe("sales form composer", () => {
       dealerProfile: {
         id: 20,
         title: "Retail",
-        coefficient: 0.56,
+        coefficient: 99,
+        salesPercentage: 20,
       },
       lineItems: [
         {
@@ -218,6 +221,6 @@ describe("sales form composer", () => {
     expect(snapshot.profiles.internal.label).toBe("Office");
     expect(snapshot.profiles.dealer.label).toBe("Retail");
     expect(snapshot.internalPricing.grandTotal).toBe(327.8);
-    expect(snapshot.dealerPricing.grandTotal).toBe(393.8);
+    expect(snapshot.dealerPricing.grandTotal).toBe(393.36);
   });
 });

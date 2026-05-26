@@ -24,7 +24,7 @@ type DealerQuoteSummaryPanelProps = {
   dealerSubTotal?: number | null;
   grossProfit?: number | null;
   marginPercent?: number | null;
-  dealerCoefficient?: number | null;
+  dealerSalesPercentage?: number | null;
   taxTotal?: number | null;
   grandTotal?: number | null;
   taxCode?: string | null;
@@ -142,8 +142,8 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
               value={`${formatPercent(props.marginPercent)}%`}
             />
             <MarginRow
-              label="Dealer coefficient"
-              value={formatPercent(props.dealerCoefficient)}
+              label="Sales percentage"
+              value={`${formatPercent(props.dealerSalesPercentage)}%`}
             />
           </div>
         ) : null}

@@ -255,7 +255,9 @@ export function DealerQuoteComposer({
       dealerSubtotal,
       grossProfit,
       marginPercent: dealerSubtotal ? (grossProfit / dealerSubtotal) * 100 : 0,
-      dealerCoefficient: Number(pricing.profiles.dealer.coefficient || 1),
+      dealerSalesPercentage: Number(
+        pricing.profiles.dealer.salesPercentage || 0,
+      ),
     };
   }, [pricing]);
   const itemOptions = useMemo(
@@ -357,7 +359,7 @@ export function DealerQuoteComposer({
             dealerSubTotal={margin.dealerSubtotal}
             grossProfit={margin.grossProfit}
             marginPercent={margin.marginPercent}
-            dealerCoefficient={margin.dealerCoefficient}
+            dealerSalesPercentage={margin.dealerSalesPercentage}
             paymentTerm={record.form.paymentTerm}
             po={record.form.po}
             showMargin={showMargin}

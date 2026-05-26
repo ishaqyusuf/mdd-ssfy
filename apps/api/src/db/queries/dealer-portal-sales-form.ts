@@ -161,6 +161,7 @@ export async function saveDealerPortalQuote(
                   id: true,
                   title: true,
                   coefficient: true,
+                  salesPercentage: true,
                 },
               },
             },
@@ -177,6 +178,7 @@ export async function saveDealerPortalQuote(
               id?: number | null;
               title?: string | null;
               coefficient?: number | null;
+              salesPercentage?: number | null;
             } | null;
           } | null;
         } | null

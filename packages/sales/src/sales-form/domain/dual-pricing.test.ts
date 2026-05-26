@@ -6,7 +6,7 @@ import {
 } from "./dual-pricing";
 
 describe("dual sales form pricing", () => {
-  it("keeps internal and dealer totals separate", () => {
+  it("keeps internal and dealer percentage totals separate", () => {
     const result = calculateDualSalesFormPricing({
       taxRate: 10,
       internalProfile: {
@@ -15,7 +15,8 @@ describe("dual sales form pricing", () => {
       },
       dealerProfile: {
         id: 2,
-        coefficient: 0.56,
+        coefficient: 99,
+        salesPercentage: 20,
       },
       lineItems: [
         {
@@ -33,11 +34,11 @@ describe("dual sales form pricing", () => {
     expect(result.lines[0]).toMatchObject({
       internalUnitPrice: 149,
       internalLineTotal: 298,
-      dealerUnitPrice: 179,
-      dealerLineTotal: 358,
+      dealerUnitPrice: 178.8,
+      dealerLineTotal: 357.6,
     });
     expect(result.internalPricing.grandTotal).toBe(327.8);
-    expect(result.dealerPricing.grandTotal).toBe(393.8);
+    expect(result.dealerPricing.grandTotal).toBe(393.36);
   });
 
   it("falls back to coefficient 1 for missing profiles", () => {
@@ -55,7 +56,7 @@ describe("dual sales form pricing", () => {
     expect(result.lines[0]?.dealerLineTotal).toBe(42);
   });
 
-  it("builds an explicit reusable snapshot with internal and dealer coefficients", () => {
+  it("builds an explicit reusable snapshot with internal coefficient and dealer percentage", () => {
     const snapshot = buildDualSalesFormPricingSnapshot({
       createdAt: "2026-05-18T00:00:00.000Z",
       internalProfile: {
@@ -66,7 +67,8 @@ describe("dual sales form pricing", () => {
       dealerProfile: {
         id: 20,
         label: "Retail",
-        coefficient: 0.56,
+        coefficient: 99,
+        salesPercentage: 20,
       },
       lineItems: [
         {
@@ -88,9 +90,10 @@ describe("dual sales form pricing", () => {
     expect(snapshot.profiles.dealer).toEqual({
       id: 20,
       label: "Retail",
-      coefficient: 0.56,
+      coefficient: 99,
+      salesPercentage: 20,
     });
     expect(snapshot.internalPricing.grandTotal).toBe(74.5);
-    expect(snapshot.dealerPricing.grandTotal).toBe(89.5);
+    expect(snapshot.dealerPricing.grandTotal).toBe(89.4);
   });
 });
