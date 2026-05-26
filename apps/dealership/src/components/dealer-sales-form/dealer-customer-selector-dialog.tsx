@@ -84,6 +84,14 @@ export function DealerCustomerSelectorDialog(
       businessName: customer.businessName,
       email: customer.email,
       phoneNo: customer.phoneNo,
+      address: customer.address,
+      formattedAddress: customer.formattedAddress,
+      address1: customer.address1,
+      address2: customer.address2,
+      city: customer.city,
+      state: customer.state,
+      zip_code: customer.zip_code,
+      country: customer.country,
       customerTypeId: customer.customerTypeId,
     });
     props.onOpenChange(false);

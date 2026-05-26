@@ -143,6 +143,14 @@ function createDealerQuoteTestDb(options: {
   activeDppCount?: number;
   collidingOrderIds?: string[];
   dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
+  customerTypeId?: number | null;
+  dealerProfile?: {
+    id: number;
+    title: string;
+    coefficient?: number | null;
+    salesPercentage?: number | null;
+    defaultProfile?: boolean | null;
+  } | null;
   salesSettingsMeta?: Record<string, unknown> | null;
   shelfProducts?: Array<{
     id: number;
@@ -151,6 +159,13 @@ function createDealerQuoteTestDb(options: {
   }>;
 }) {
   const collidingOrderIds = new Set(options.collidingOrderIds || []);
+  const dealerProfile = options.dealerProfile ?? {
+    id: 30,
+    title: "Retail",
+    coefficient: 1.2,
+    salesPercentage: 20,
+    defaultProfile: true,
+  };
   let createdOrderData: Record<string, unknown> | null = null;
   let updatedOrderData: Record<string, unknown> | null = null;
   let createdItemData: Array<Record<string, unknown>> = [];
@@ -160,7 +175,7 @@ function createDealerQuoteTestDb(options: {
     customers: {
       findFirst: async () => ({
         id: 20,
-        customerTypeId: null,
+        customerTypeId: options.customerTypeId ?? null,
       }),
     },
     customerTypes: {
@@ -171,6 +186,13 @@ function createDealerQuoteTestDb(options: {
             title: "Dealer Standard",
             coefficient: 1,
           };
+        }
+        if (where.dealerOwnerId === 10 && dealerProfile) {
+          if (where.id && where.id !== dealerProfile.id) return null;
+          if (where.defaultProfile && !dealerProfile.defaultProfile) {
+            return null;
+          }
+          return dealerProfile;
         }
         return null;
       },
@@ -1035,78 +1057,82 @@ describe("dealer portal isolation", () => {
     ]);
   });
 
-  it("prices quote with the dealer primary customer profile", async () => {
-    let createdOrderData: Record<string, unknown> | null = null;
-    const tx = {
-      customers: {
-        findFirst: async () => ({
-          id: 20,
-          customerTypeId: null,
-        }),
+  it("saves quotes with the selected dealer customer profile", async () => {
+    const testDb = createDealerQuoteTestDb({
+      activeDppCount: 0,
+      dealerProfile: {
+        id: 45,
+        title: "Retail customer",
+        coefficient: 0.5,
+        salesPercentage: 50,
+        defaultProfile: false,
       },
-      customerTypes: {
-        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
-          where.dealerOwnerId === null
-            ? {
-                id: 1,
-                title: "Dealer Standard",
-                coefficient: 1,
-              }
-            : null,
-      },
-      dealerAuth: {
-        findUnique: async () => ({
-          dealer: {
-            customerTypeId: 30,
-            profile: {
-              id: 30,
-              title: "Retail",
-              coefficient: 1.2,
-            },
-          },
-        }),
-      },
-      salesOrders: {
-        count: async () => 0,
-        create: async ({ data }: { data: Record<string, unknown> }) => {
-          createdOrderData = data;
-          return {
-            id: 55,
-            orderId: data.orderId,
-            slug: data.slug,
-          };
-        },
-      },
-      salesOrderItems: {
-        deleteMany: async () => ({ count: 0 }),
-        createMany: async () => ({ count: 1 }),
-      },
-    };
-    const db = {
-      $transaction: async (callback: (transaction: typeof tx) => unknown) =>
-        callback(tx),
-    };
-
-    await saveDealerPortalQuote(db as any, 10, {
-      customerId: 20,
-      customerProfileId: 99,
-      taxRate: 0,
-      lineItems: [
-        {
-          uid: "line-1",
-          title: "Door",
-          qty: 1,
-          unitPrice: 100,
-        },
-      ],
     });
 
-    expect(createdOrderData).toMatchObject({
-      dealerSalesProfileId: 30,
+    await saveDealerPortalQuote(
+      testDb.db as any,
+      10,
+      dealerQuoteInput({
+        customerProfileId: 45,
+      }),
+    );
+
+    expect(testDb.getCreatedOrderData()).toMatchObject({
+      dealerSalesProfileId: 45,
       grandTotal: 100,
     });
-    const savedOrderData = createdOrderData as unknown as Record<string, any>;
-    expect(savedOrderData.meta.dealerPricing.summary.grandTotal).toBe(83);
+    const savedOrderData = testDb.getCreatedOrderData() as Record<string, any>;
+    expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
+    expect(savedOrderData.meta.dealerPricing.profileId).toBe(45);
+    expect(savedOrderData.meta.dealerPricing.summary.grandTotal).toBe(200);
+  });
+
+  it("falls back to the dealer customer's assigned profile when quote profile is omitted", async () => {
+    const testDb = createDealerQuoteTestDb({
+      activeDppCount: 0,
+      customerTypeId: 45,
+      dealerProfile: {
+        id: 45,
+        title: "Builder customer",
+        coefficient: 0.8,
+        salesPercentage: 25,
+        defaultProfile: false,
+      },
+    });
+
+    await saveDealerPortalQuote(testDb.db as any, 10, dealerQuoteInput());
+
+    expect(testDb.getCreatedOrderData()).toMatchObject({
+      dealerSalesProfileId: 45,
+    });
+    const savedOrderData = testDb.getCreatedOrderData() as Record<string, any>;
+    expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
+  });
+
+  it("rejects quote profiles not owned by the active dealer", async () => {
+    const testDb = createDealerQuoteTestDb({
+      activeDppCount: 0,
+      dealerProfile: {
+        id: 45,
+        title: "Retail customer",
+        coefficient: 0.5,
+        salesPercentage: 50,
+        defaultProfile: true,
+      },
+    });
+
+    await expect(
+      saveDealerPortalQuote(
+        testDb.db as any,
+        10,
+        dealerQuoteInput({
+          customerProfileId: 99,
+        }),
+      ),
+    ).rejects.toThrow(
+      "Dealer customer profile is required before saving a quote.",
+    );
+    expect(testDb.getCreatedOrderData()).toBeNull();
   });
 
   it("scopes dealer document lists to the active dealer and strips document metadata", async () => {

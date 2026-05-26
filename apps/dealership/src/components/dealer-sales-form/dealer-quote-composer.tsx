@@ -101,9 +101,6 @@ export function DealerQuoteComposer({
   const profilesQuery = useQuery(
     trpc.dealerPortal.salesProfiles.queryOptions(),
   );
-  const primaryProfileQuery = useQuery(
-    trpc.dealerPortal.primarySalesProfile.queryOptions(),
-  );
   const taxProfilesQuery = useQuery(
     trpc.dealerPortal.taxProfiles.queryOptions(),
   );
@@ -162,8 +159,6 @@ export function DealerQuoteComposer({
 
   const customers = (customersQuery.data ?? []) as DealerSalesFormCustomer[];
   const profiles = (profilesQuery.data ?? []) as DealerSalesFormProfile[];
-  const primaryProfile =
-    (primaryProfileQuery.data as DealerSalesFormProfile | null) || null;
   const taxOptions = useMemo(
     () => normalizeSalesFormTaxOptions(taxProfilesQuery.data || []),
     [taxProfilesQuery.data],
@@ -182,17 +177,30 @@ export function DealerQuoteComposer({
     (selectedCustomerOverride?.id === customerId
       ? selectedCustomerOverride
       : null);
-  const selectedProfile = primaryProfile;
+  const defaultProfile =
+    profiles.find((profile) => profile.defaultProfile) || null;
+  const selectedCustomerProfile =
+    profiles.find(
+      (profile) => profile.id === selectedCustomer?.customerTypeId,
+    ) || null;
+  const selectedProfile =
+    profiles.find((profile) => profile.id === record?.form.customerProfileId) ||
+    selectedCustomerProfile ||
+    defaultProfile ||
+    null;
 
   useEffect(() => {
     if (!record?.form.customerId || record.form.customerProfileId) return;
-    if (!selectedProfile?.id) return;
-    form.setCustomer(record.form.customerId, selectedProfile.id);
+    const nextProfileId =
+      selectedCustomer?.customerTypeId || defaultProfile?.id || null;
+    if (!nextProfileId) return;
+    form.setCustomer(record.form.customerId, nextProfileId);
   }, [
+    defaultProfile?.id,
     form.setCustomer,
     record?.form.customerId,
     record?.form.customerProfileId,
-    selectedProfile?.id,
+    selectedCustomer?.customerTypeId,
   ]);
 
   const salesFormData = useDealerSalesFormData({
@@ -267,7 +275,6 @@ export function DealerQuoteComposer({
   const isInitialLoading =
     customersQuery.isPending ||
     profilesQuery.isPending ||
-    primaryProfileQuery.isPending ||
     taxProfilesQuery.isPending ||
     internalProfileQuery.isPending ||
     isEditQuoteLoading;
@@ -371,7 +378,7 @@ export function DealerQuoteComposer({
             }
             onPaymentTermChange={(paymentTerm) => form.setMeta({ paymentTerm })}
             onPoChange={(po) => form.setMeta({ po })}
-            onProfileChange={() => undefined}
+            onProfileChange={form.setCustomerProfile}
             onShowMarginChange={setShowMargin}
             onTaxCodeChange={(taxCode) => {
               form.setMeta({ taxCode });
@@ -392,7 +399,11 @@ export function DealerQuoteComposer({
             onOpenChange={setCustomerSelectorOpen}
             onSelectCustomer={(customer) => {
               setSelectedCustomerOverride(customer);
-              form.setCustomer(customer.id, selectedProfile?.id || null);
+              const customerProfile =
+                profiles.find(
+                  (profile) => profile.id === customer.customerTypeId,
+                ) || defaultProfile;
+              form.setCustomer(customer.id, customerProfile?.id || null);
               if (!editingQuoteId) {
                 void setQuoteCustomerParams({
                   selectedCustomerId: customer.id,

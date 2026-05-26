@@ -653,6 +653,7 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 			},
 			payload: {
 				printType: "order",
+				skipPdfAttachment: false,
 				salesIds: [response.order.salesId],
 			},
 		});

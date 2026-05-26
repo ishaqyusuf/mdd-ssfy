@@ -735,9 +735,10 @@ export async function getDealerPortalCustomers(db: Database, dealerId: number) {
       },
     })
     .then((customers) =>
-      customers.map((customer) =>
-        sanitizeDealerScopedCustomerProfile(customer, dealerId),
-      ),
+      customers.map((customer) => ({
+        ...sanitizeDealerScopedCustomerProfile(customer, dealerId),
+        ...getDealerCustomerAddressMeta(customer.meta),
+      })),
     );
 }
 
@@ -2123,30 +2124,40 @@ export async function saveDealerPortalQuote(
       throw new Error("Dealer customer could not be found.");
     }
 
-    const [dealerAccount, internalProfile] = await Promise.all([
-      tx.dealerAuth.findUnique({
-        where: {
-          id: dealerId,
-        },
-        select: {
-          dealer: {
-            select: {
-              customerTypeId: true,
-              profile: {
-                select: {
-                  id: true,
-                  title: true,
-                  coefficient: true,
-                },
-              },
+    const requestedDealerProfileId =
+      input.customerProfileId || customer.customerTypeId || null;
+    const [dealerProfile, internalProfile] = await Promise.all([
+      requestedDealerProfileId
+        ? tx.customerTypes.findFirst({
+            where: {
+              id: requestedDealerProfileId,
+              dealerOwnerId: dealerId,
+              deletedAt: null,
             },
-          },
-        },
-      }),
+            select: {
+              id: true,
+              title: true,
+              coefficient: true,
+              salesPercentage: true,
+            },
+          })
+        : tx.customerTypes.findFirst({
+            where: {
+              dealerOwnerId: dealerId,
+              defaultProfile: true,
+              deletedAt: null,
+            },
+            orderBy: [{ id: "asc" }],
+            select: {
+              id: true,
+              title: true,
+              coefficient: true,
+              salesPercentage: true,
+            },
+          }),
       getDealerPortalInternalSalesProfile(tx),
     ]);
 
-    const dealerProfile = dealerAccount?.dealer?.profile || null;
     if (!dealerProfile) {
       throw new Error(
         "Dealer customer profile is required before saving a quote.",

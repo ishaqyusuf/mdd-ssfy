@@ -75,7 +75,9 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
       <DealerCustomerCard
         customer={props.customer}
         profiles={props.profiles}
-        profileValue={props.customerProfileId ? String(props.customerProfileId) : "none"}
+        profileValue={
+          props.customerProfileId ? String(props.customerProfileId) : "none"
+        }
         onChangeCustomer={props.onChangeCustomer}
         onProfileChange={props.onProfileChange}
       />

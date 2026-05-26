@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
 import {
   Select,
   SelectContent,
@@ -9,8 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@gnd/ui/select";
-import { Building2, Mail, MapPin, Phone, UserRound } from "lucide-react";
-import { useMemo } from "react";
+import { Building2, Mail, MapPin, Phone, UserRound, Users } from "lucide-react";
+import { useMemo, type ReactNode } from "react";
 import type { DealerSalesFormCustomer, DealerSalesFormProfile } from "./types";
 
 type DealerCustomerCardProps = {
@@ -66,8 +65,8 @@ function ContactRow({
   children,
   icon,
 }: {
-  children: React.ReactNode;
-  icon: React.ReactNode;
+  children: ReactNode;
+  icon: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
@@ -108,7 +107,7 @@ export function DealerCustomerCard({
           type="button"
           variant="outline"
         >
-          <Icons.Users className="size-3.5" />
+          <Users className="size-3.5" />
           Change
         </Button>
       </div>
