@@ -28,6 +28,12 @@ const salesTabs: {
         icon: "production",
         rules: [_perm.is("editOrders")],
     },
+    {
+        href: "/sales-book/shelf-items",
+        label: "Shelf Items",
+        icon: "products",
+        rules: [_perm.is("editOrders")],
+    },
 ];
 
 export function SalesTabs() {

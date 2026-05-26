@@ -8,6 +8,7 @@ interface Props {
     unitPrice?: number;
     title?: string;
     img?: string;
+    enabled?: boolean;
 }
 export async function updateShelfItemAction(id, data: Props) {
     await prisma.dykeShelfProducts.update({
@@ -15,12 +16,20 @@ export async function updateShelfItemAction(id, data: Props) {
             id,
         },
         data: {
-            unitPrice: Number.isInteger(data.unitPrice)
-                ? data.unitPrice
-                : undefined,
+            unitPrice:
+                data.unitPrice != null &&
+                Number.isFinite(Number(data.unitPrice))
+                    ? Number(data.unitPrice)
+                    : undefined,
             title: data.title || undefined,
             img: data.img || undefined,
+            deletedAt:
+                typeof data.enabled === "boolean"
+                    ? data.enabled
+                        ? null
+                        : new Date()
+                    : undefined,
         },
     });
-    revalidateTag(Tags.shelfProducts);
+    revalidateTag(Tags.shelfProducts, "max");
 }
