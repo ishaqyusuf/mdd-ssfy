@@ -10,8 +10,17 @@ export type DealerSalesFormCustomer = {
   businessName?: string | null;
   email?: string | null;
   phoneNo?: string | null;
+  address?: string | null;
+  formattedAddress?: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  country?: string | null;
   customerTypeId?: number | null;
   createdAt?: Date | string | null;
+  profile?: DealerSalesFormProfile | null;
 };
 
 export type DealerSalesFormProfile = {

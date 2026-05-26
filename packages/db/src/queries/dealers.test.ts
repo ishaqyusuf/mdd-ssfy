@@ -8,6 +8,7 @@ import {
   getDealerPortalCustomerOverview,
   getDealerPortalSalesProfiles,
   getDealerPortalSalesList,
+  deleteDealerPortalCustomer,
   saveDealerPortalQuote,
   saveDealerPortalCustomer,
   saveDealerPortalSalesProfile,
@@ -765,6 +766,51 @@ describe("dealer portal isolation", () => {
     });
   });
 
+  it("soft-deletes only a customer owned by the dealer", async () => {
+    let capturedArgs: {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    } | null = null;
+    const db = {
+      customers: {
+        updateMany: async (args: {
+          where: Record<string, unknown>;
+          data: Record<string, unknown>;
+        }) => {
+          capturedArgs = args;
+          return { count: 1 };
+        },
+      },
+    };
+
+    await expect(
+      deleteDealerPortalCustomer(db as any, 10, 55),
+    ).resolves.toEqual({ id: 55 });
+    expect(capturedArgs).not.toBeNull();
+    const args = capturedArgs as unknown as {
+      where: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+    expect(args.where).toEqual({
+      id: 55,
+      dealerOwnerId: 10,
+      deletedAt: null,
+    });
+    expect(args.data.deletedAt).toBeInstanceOf(Date);
+  });
+
+  it("rejects deleting a missing or unowned dealer customer", async () => {
+    const db = {
+      customers: {
+        updateMany: async () => ({ count: 0 }),
+      },
+    };
+
+    await expect(deleteDealerPortalCustomer(db as any, 10, 55)).rejects.toThrow(
+      "Dealer customer could not be found.",
+    );
+  });
+
   it("lists only the active dealer's percentage sales profiles", async () => {
     let capturedWhere: Record<string, unknown> | null = null;
     const profiles = await getDealerPortalSalesProfiles(
@@ -1060,9 +1106,7 @@ describe("dealer portal isolation", () => {
       grandTotal: 100,
     });
     const savedOrderData = createdOrderData as unknown as Record<string, any>;
-    expect(
-      savedOrderData.meta.dealerPricing.summary.grandTotal,
-    ).toBe(83);
+    expect(savedOrderData.meta.dealerPricing.summary.grandTotal).toBe(83);
   });
 
   it("scopes dealer document lists to the active dealer and strips document metadata", async () => {

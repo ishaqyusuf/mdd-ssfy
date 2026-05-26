@@ -4,6 +4,7 @@ import { getCustomerWallet } from "@gnd/sales/wallet";
 import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
+	type SalesPdfToken,
 	tryTokenize,
 } from "@gnd/utils/tokenizer";
 import { addDays } from "date-fns";
@@ -52,6 +53,7 @@ const resolvedSchema = z.object({
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
 	paymentLink: z.string().optional().nullable(),
+	pdfLink: z.string().optional().nullable(),
 	sales: z.array(
 		z.object({
 			orderId: z.string(),
@@ -176,6 +178,23 @@ async function buildPaymentLink(db: Db, sales: LoadedSale[]) {
 	return paymentToken ? `${appUrl}/checkout/${paymentToken}/v2` : null;
 }
 
+function buildPdfLink(sales: LoadedSale[], type: "order" | "quote") {
+	const appUrl = getAppUrl();
+	if (!appUrl) return null;
+
+	const pdfToken = tryTokenize({
+		salesIds: sales.map((sale) => sale.id),
+		expiry: addDays(new Date(), LINK_TTL_DAYS).toISOString(),
+		mode: type,
+	} satisfies SalesPdfToken);
+
+	return pdfToken
+		? `${appUrl}/api/download/sales?token=${encodeURIComponent(
+				pdfToken,
+			)}&preview=false`
+		: null;
+}
+
 async function buildPdfAttachment(
 	db: Db,
 	sales: LoadedSale[],
@@ -230,6 +249,7 @@ async function buildComposedSalesDocumentEmailData(
 
 	const type = input.printType === "quote" ? "quote" : "order";
 	const paymentLink = await buildPaymentLink(db, sales);
+	const pdfLink = buildPdfLink(sales, type);
 	const pdfAttachment = isProd
 		? null
 		: await buildPdfAttachment(db, sales, type);
@@ -247,6 +267,7 @@ async function buildComposedSalesDocumentEmailData(
 		subject: input.subject.trim(),
 		message: normalizeText(input.message),
 		paymentLink,
+		pdfLink,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,
@@ -291,6 +312,7 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			salesNo: data.sales.map((sale) => sale.orderId),
 			emailSubject: data.subject,
 			hasPaymentLink: Boolean(data.paymentLink),
+			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
 		};
 
@@ -323,6 +345,7 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 				customerName: data.customerName,
 				message: data.message || undefined,
 				paymentLink: data.paymentLink || undefined,
+				pdfLink: data.pdfLink || undefined,
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

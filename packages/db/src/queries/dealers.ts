@@ -1319,6 +1319,29 @@ export async function saveDealerPortalCustomer(
   });
 }
 
+export async function deleteDealerPortalCustomer(
+  db: Database,
+  dealerId: number,
+  id: number,
+) {
+  const result = await db.customers.updateMany({
+    where: {
+      id,
+      dealerOwnerId: dealerId,
+      deletedAt: null,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  if (result.count === 0) {
+    throw new Error("Dealer customer could not be found.");
+  }
+
+  return { id };
+}
+
 export async function getDealerPortalSalesProfiles(
   db: Database,
   dealerId: number,

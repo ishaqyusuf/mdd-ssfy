@@ -30,6 +30,7 @@ import {
   getDealerPortalSettings,
   requestDealerPortalQuoteOrder,
   convertDealerPortalQuoteToOrder,
+  deleteDealerPortalCustomer,
   saveDealerPortalCustomer,
   saveDealerPortalSalesProfile,
   saveDealerPortalSettings,
@@ -103,6 +104,11 @@ export const dealerPortalRouter = createTRPCRouter({
     .input(dealerPortalCustomerSchema)
     .mutation(({ ctx, input }) => {
       return saveDealerPortalCustomer(ctx.db, ctx.dealer.id, input);
+    }),
+  deleteCustomer: dealerProtectedProcedure
+    .input(dealerPortalCustomerLookupSchema)
+    .mutation(({ ctx, input }) => {
+      return deleteDealerPortalCustomer(ctx.db, ctx.dealer.id, input.id);
     }),
   salesProfiles: dealerProtectedProcedure.query(({ ctx }) => {
     return getDealerPortalSalesProfiles(ctx.db, ctx.dealer.id);

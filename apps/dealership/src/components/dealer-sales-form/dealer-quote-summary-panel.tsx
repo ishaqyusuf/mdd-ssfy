@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  SalesFormCustomerOverviewCard,
   SalesFormInvoiceDetailsPanel,
   SalesFormPricingOverview,
-  buildSalesFormProfileSelectOptions,
   buildSalesFormSelectOptions,
   salesFormDeliveryOptions,
   salesFormPaymentMethods,
@@ -14,6 +12,7 @@ import {
 import { Button } from "@gnd/ui/button";
 import { Switch } from "@gnd/ui/switch";
 import { Save } from "lucide-react";
+import { DealerCustomerCard } from "./dealer-customer-card";
 import type { DealerSalesFormCustomer, DealerSalesFormProfile } from "./types";
 
 type DealerQuoteSummaryPanelProps = {
@@ -65,33 +64,20 @@ function formatPercent(value?: number | null) {
 }
 
 export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
-  const profileOptions = buildSalesFormProfileSelectOptions(props.profiles);
   const paymentTermOptions = buildSalesFormSelectOptions(salesFormPaymentTerms);
   const deliveryOptions = buildSalesFormSelectOptions(salesFormDeliveryOptions);
   const paymentMethodOptions = buildSalesFormSelectOptions(
     salesFormPaymentMethods,
   );
-  const customerName =
-    props.customer?.businessName ||
-    props.customer?.name ||
-    props.customer?.email;
 
   return (
     <div className="flex flex-col gap-5">
-      <SalesFormCustomerOverviewCard
-        customerName={customerName}
-        customerInitials={customerName?.slice(0, 2)}
-        accountNumber={props.customer?.id}
-        profileOptions={profileOptions}
-        profileValue={
-          props.customerProfileId ? String(props.customerProfileId) : "none"
-        }
-        billingFallback="Dealer billing address"
-        shippingFallback="Dealer shipping address"
+      <DealerCustomerCard
+        customer={props.customer}
+        profiles={props.profiles}
+        profileValue={props.customerProfileId ? String(props.customerProfileId) : "none"}
         onChangeCustomer={props.onChangeCustomer}
-        onProfileChange={(value) =>
-          props.onProfileChange(value === "none" ? null : Number(value || 0))
-        }
+        onProfileChange={props.onProfileChange}
       />
       <SalesFormInvoiceDetailsPanel
         deliveryOption={props.deliveryOption || "pickup"}

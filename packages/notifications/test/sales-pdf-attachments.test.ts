@@ -107,6 +107,7 @@ describe("sales PDF email attachments", () => {
 				subject: "Invoice ready",
 				message: "Please review your invoice.",
 				paymentLink: null,
+				pdfLink: "https://example.com/api/download/sales?token=pdf-token",
 				pdfAttachment: null,
 				sales: [sale],
 			} as never,
@@ -118,6 +119,7 @@ describe("sales PDF email attachments", () => {
 		expect(email?.attachments).toBeUndefined();
 		expect(email?.data).toMatchObject({
 			subject: "Invoice ready",
+			pdfLink: "https://example.com/api/download/sales?token=pdf-token",
 		});
 	});
 

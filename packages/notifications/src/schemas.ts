@@ -1083,6 +1083,7 @@ export const composedSalesDocumentEmailTags = actityTagsSchema.extend({
 	salesNo: z.array(z.string()).optional(),
 	emailSubject: z.string(),
 	hasPaymentLink: z.boolean().optional(),
+	hasPdfLink: z.boolean().optional(),
 	hasPdfAttachment: z.boolean().optional(),
 });
 export type ComposedSalesDocumentEmailTags = z.infer<

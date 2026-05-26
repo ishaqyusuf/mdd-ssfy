@@ -21,6 +21,7 @@ type Props = {
 	customerName: string;
 	message?: string;
 	paymentLink?: string;
+	pdfLink?: string;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -41,6 +42,7 @@ export default function ComposedSalesDocumentEmail({
 	customerName,
 	message,
 	paymentLink,
+	pdfLink,
 	sales,
 }: Props) {
 	const themeClasses = getEmailThemeClasses();
@@ -184,6 +186,20 @@ export default function ComposedSalesDocumentEmail({
 							</Section>
 						))}
 					</Section>
+
+					{pdfLink ? (
+						<Section className="mb-[22px]">
+							<Text
+								className={`m-0 mb-[12px] text-[14px] ${themeClasses.text}`}
+								style={{ color: lightStyles.text.color }}
+							>
+								Download a PDF copy of this document for your records.
+							</Text>
+							<Button href={pdfLink} variant="secondary">
+								Download PDF
+							</Button>
+						</Section>
+					) : null}
 
 					{paymentLink && totalDue > 0 ? (
 						<Section className="mb-[22px]">
