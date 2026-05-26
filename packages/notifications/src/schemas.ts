@@ -1104,7 +1104,7 @@ export const simpleSalesDocumentEmailSchema = z.object({
 	salesNos: z.array(z.string()).optional().nullable(),
 	customerEmail: z.string().email().optional().nullable(),
 	note: z.string().optional().nullable(),
-	skipPdfAttachment: z.boolean().optional().nullable(),
+	skipPdfAttachment: z.boolean().optional().nullable().default(true),
 });
 export type SendSalesEmailPayloadInput = z.infer<
 	typeof simpleSalesDocumentEmailSchema

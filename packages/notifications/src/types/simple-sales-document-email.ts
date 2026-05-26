@@ -205,7 +205,8 @@ async function buildSalesDocumentEmailData(
 					pdfToken,
 				)}&preview=false`
 			: null;
-	const pdfAttachment = input.skipPdfAttachment
+	const skipPdfAttachment = input.skipPdfAttachment !== false;
+	const pdfAttachment = skipPdfAttachment
 		? null
 		: await (async () => {
 				try {

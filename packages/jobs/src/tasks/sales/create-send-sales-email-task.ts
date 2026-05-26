@@ -191,6 +191,7 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 						emailType: props.emailType,
 						printType: props.printType,
 						salesIds,
+						skipPdfAttachment: true,
 					},
 				});
 			}
