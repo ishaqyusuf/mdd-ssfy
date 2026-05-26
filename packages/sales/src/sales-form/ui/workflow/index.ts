@@ -177,6 +177,7 @@ export {
   type ShelfItemRow,
   type ShelfProductOption,
   type ShelfProductRecord,
+  type ShelfProductSearchIndexRecord,
   type ShelfRowDraft,
   type ShelfSectionDraft,
   type WorkflowComponentRecord,

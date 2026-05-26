@@ -44,6 +44,11 @@ export type ShelfInlineItemsEditorProps = {
 	formatMoney: (value?: number | null) => string | null;
 	onSectionsChange: (sections: ShelfSectionDraft[]) => void;
 	headerSlot?: ReactNode;
+	onProductSearchChange?: (query: string) => void;
+	isSearchingProducts?: boolean;
+	onResolveProductDetails?: (
+		product: ShelfProductOption,
+	) => Promise<ShelfProductOption | null>;
 };
 
 function roundCurrency(value: unknown) {
@@ -75,6 +80,12 @@ function productCategoryPath(
 	product: ShelfProductOption | null | undefined,
 	categories: ShelfCategoryRecord[],
 ) {
+	const apiPath = Array.isArray(product?.categoryPath)
+		? product.categoryPath
+				.map((entry) => Number(entry?.id || 0))
+				.filter((id) => id > 0)
+		: [];
+	if (apiPath.length) return uniquePositiveNumbers(apiPath);
 	const categoryId = Number(product?.categoryId || 0) || null;
 	const productParentId = Number(product?.parentCategoryId || 0) || null;
 	const category = categories.find(
@@ -100,6 +111,27 @@ function categoryBreadcrumb(
 		})
 		.filter(Boolean)
 		.join(" > ");
+}
+
+function productBreadcrumb(
+	product: ShelfProductOption | null | undefined,
+	categories: ShelfCategoryRecord[],
+) {
+	const apiPath = Array.isArray(product?.categoryPath)
+		? product.categoryPath
+				.map((entry) => String(entry?.name || "").trim())
+				.filter(Boolean)
+		: [];
+	if (apiPath.length) return apiPath.join(" > ");
+	const namedPath = [
+		String(product?.parentCategoryName || "").trim(),
+		String(product?.categoryName || "").trim(),
+	].filter(Boolean);
+	if (namedPath.length) return namedPath.join(" > ");
+	return categoryBreadcrumb(
+		productCategoryPath(product, categories),
+		categories,
+	);
 }
 
 function rowCategoryIds(
@@ -306,6 +338,10 @@ function ShelfInlineProductCell(props: {
 	categories: ShelfCategoryRecord[];
 	formatMoney: (value?: number | null) => string | null;
 	onSelectProduct: (product: ShelfProductOption | null) => void;
+	onProductSearchChange?: (query: string) => void;
+	isSearchingProducts?: boolean;
+	isLoadingProduct?: boolean;
+	productLoadError?: string | null;
 }) {
 	const [open, setOpen] = useState(false);
 	const selectedProduct = props.products.find(
@@ -320,18 +356,12 @@ function ShelfInlineProductCell(props: {
 	}, [selectedProduct?.title, props.row.description]);
 
 	const categoryIds = rowCategoryIds(props.row, selectedProduct);
-	const breadcrumb = categoryBreadcrumb(categoryIds, props.categories);
+	const breadcrumb = selectedProduct
+		? productBreadcrumb(selectedProduct, props.categories)
+		: categoryBreadcrumb(categoryIds, props.categories);
 	const filteredProducts = useMemo(() => {
-		const normalized = inputValue.trim().toLowerCase();
-		if (!normalized) return props.products.slice(0, 50);
-		return props.products
-			.filter((product) =>
-				String(product?.title || "")
-					.toLowerCase()
-					.includes(normalized),
-			)
-			.slice(0, 50);
-	}, [inputValue, props.products]);
+		return props.products.slice(0, 50);
+	}, [props.products]);
 
 	return (
 		<div className="space-y-1">
@@ -349,7 +379,10 @@ function ShelfInlineProductCell(props: {
 					setOpen(false);
 				}}
 				inputValue={inputValue}
-				onInputValueChange={setInputValue}
+				onInputValueChange={(value) => {
+					setInputValue(value);
+					props.onProductSearchChange?.(value);
+				}}
 				manualFiltering
 				className="w-full"
 				autoHighlight
@@ -358,7 +391,10 @@ function ShelfInlineProductCell(props: {
 					<ComboboxInput
 						className="h-8 min-w-20 pr-7"
 						placeholder="Search product..."
-						onFocus={() => setOpen(true)}
+						onFocus={() => {
+							setOpen(true);
+							if (!inputValue.trim()) props.onProductSearchChange?.("");
+						}}
 					/>
 					{props.row.productId ? (
 						<ComboboxTrigger
@@ -366,6 +402,7 @@ function ShelfInlineProductCell(props: {
 								event.preventDefault();
 								props.onSelectProduct(null);
 								setInputValue("");
+								props.onProductSearchChange?.("");
 								setOpen(true);
 							}}
 							className="absolute right-2 top-2"
@@ -379,13 +416,11 @@ function ShelfInlineProductCell(props: {
 					)}
 				</ComboboxAnchor>
 				<ComboboxContent className="relative max-h-[320px] overflow-y-auto overflow-x-hidden">
-					<ComboboxEmpty>No product found</ComboboxEmpty>
+					<ComboboxEmpty>
+						{props.isSearchingProducts ? "Searching..." : "No product found"}
+					</ComboboxEmpty>
 					{filteredProducts.map((product) => {
-						const productPath = productCategoryPath(product, props.categories);
-						const productBreadcrumb = categoryBreadcrumb(
-							productPath,
-							props.categories,
-						);
+						const breadcrumbText = productBreadcrumb(product, props.categories);
 						return (
 							<ComboboxItem
 								key={`shelf-inline-product-${product.id}`}
@@ -400,9 +435,7 @@ function ShelfInlineProductCell(props: {
 										<span>
 											{props.formatMoney(product.unitPrice) || "$0.00"}
 										</span>
-										{productBreadcrumb ? (
-											<span>{productBreadcrumb}</span>
-										) : null}
+										{breadcrumbText ? <span>{breadcrumbText}</span> : null}
 									</div>
 								</div>
 							</ComboboxItem>
@@ -415,12 +448,28 @@ function ShelfInlineProductCell(props: {
 					{breadcrumb}
 				</p>
 			) : null}
+			{props.isLoadingProduct ? (
+				<p className="px-1 text-[11px] text-muted-foreground">
+					Loading product details...
+				</p>
+			) : null}
+			{props.productLoadError ? (
+				<p className="px-1 text-[11px] text-destructive">
+					{props.productLoadError}
+				</p>
+			) : null}
 		</div>
 	);
 }
 
 export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 	const canEditPricing = props.canEditPricing !== false;
+	const [loadingProductRowUid, setLoadingProductRowUid] = useState<
+		string | null
+	>(null);
+	const [productErrorsByRowUid, setProductErrorsByRowUid] = useState<
+		Record<string, string>
+	>({});
 	const entries = props.sections.flatMap((section, sectionIndex) =>
 		(section.rows || []).map((row, rowIndex) => ({
 			section,
@@ -434,14 +483,41 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 		props.onSectionsChange(replaceSectionRow(props.sections, entry, row));
 	}
 
-	function selectEntryProduct(
+	async function selectEntryProduct(
 		entry: InlineRowEntry,
 		product: ShelfProductOption | null,
 	) {
-		const nextRow = product
+		setProductErrorsByRowUid((prev) => {
+			const next = { ...prev };
+			delete next[entry.row.uid];
+			return next;
+		});
+		let resolvedProduct = product;
+		if (product && props.onResolveProductDetails) {
+			setLoadingProductRowUid(entry.row.uid);
+			try {
+				resolvedProduct = await props.onResolveProductDetails(product);
+			} catch {
+				setProductErrorsByRowUid((prev) => ({
+					...prev,
+					[entry.row.uid]: "Could not load product details.",
+				}));
+				setLoadingProductRowUid(null);
+				return;
+			}
+			setLoadingProductRowUid(null);
+			if (!resolvedProduct) {
+				setProductErrorsByRowUid((prev) => ({
+					...prev,
+					[entry.row.uid]: "Could not load product details.",
+				}));
+				return;
+			}
+		}
+		const nextRow = resolvedProduct
 			? productRowPatch({
 					row: entry.row,
-					product,
+					product: resolvedProduct,
 					categories: props.categories,
 					profileCoefficient: props.profileCoefficient,
 				})
@@ -490,7 +566,15 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 										categories={props.categories}
 										formatMoney={props.formatMoney}
 										onSelectProduct={(product) =>
-											selectEntryProduct(entry, product)
+											void selectEntryProduct(entry, product)
+										}
+										onProductSearchChange={props.onProductSearchChange}
+										isSearchingProducts={props.isSearchingProducts}
+										isLoadingProduct={
+											loadingProductRowUid === entry.row.uid
+										}
+										productLoadError={
+											productErrorsByRowUid[entry.row.uid] || null
 										}
 									/>
 								</td>

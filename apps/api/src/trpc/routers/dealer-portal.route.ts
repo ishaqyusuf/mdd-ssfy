@@ -38,10 +38,14 @@ import { saveDealerPortalQuote } from "@api/db/queries/dealer-portal-sales-form"
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import {
   getNewSalesFormShelfCategoriesSchema,
+  getNewSalesFormShelfProductDetailsSchema,
+  getNewSalesFormShelfProductIndexSchema,
   getNewSalesFormShelfProductsSchema,
 } from "@api/schemas/new-sales-form";
 import {
   getNewSalesFormShelfCategories,
+  getNewSalesFormShelfProductDetails,
+  getNewSalesFormShelfProductIndex,
   getNewSalesFormShelfProducts,
 } from "@api/db/queries/new-sales-form";
 import {
@@ -156,6 +160,35 @@ export const dealerPortalRouter = createTRPCRouter({
       const routeData = await getNewSalesFormStepRouting(ctx, {});
       const visibility = deriveDealerWorkflowVisibility(routeData);
       const products = await getNewSalesFormShelfProducts(ctx, input);
+      return products.filter((product) =>
+        isDealerShelfProductAllowed(visibility, product),
+      );
+    }),
+  workflowShelfProductIndex: dealerProtectedProcedure
+    .input(getNewSalesFormShelfProductIndexSchema)
+    .query(async ({ ctx, input }) => {
+      const routeData = await getNewSalesFormStepRouting(ctx, {});
+      const visibility = deriveDealerWorkflowVisibility(routeData);
+      if (visibility.shelfCategoryVisibility.mode !== "allowlist") {
+        return getNewSalesFormShelfProductIndex(ctx, input);
+      }
+      const products = await getNewSalesFormShelfProducts(ctx, {
+        categoryIds: visibility.shelfCategoryVisibility.categoryIds,
+      });
+      return products
+        .filter((product) => isDealerShelfProductAllowed(visibility, product))
+        .map((product) => ({
+          id: product.id,
+          title: product.title,
+          unitPrice: product.unitPrice,
+        }));
+    }),
+  workflowShelfProductDetails: dealerProtectedProcedure
+    .input(getNewSalesFormShelfProductDetailsSchema)
+    .query(async ({ ctx, input }) => {
+      const routeData = await getNewSalesFormStepRouting(ctx, {});
+      const visibility = deriveDealerWorkflowVisibility(routeData);
+      const products = await getNewSalesFormShelfProductDetails(ctx, input);
       return products.filter((product) =>
         isDealerShelfProductAllowed(visibility, product),
       );

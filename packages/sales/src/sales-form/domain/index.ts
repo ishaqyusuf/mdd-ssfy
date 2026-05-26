@@ -91,3 +91,9 @@ export {
 	type DualPricingResult,
 	type SalesFormPricingProfile,
 } from "./dual-pricing";
+export {
+	normalizeShelfProductSearchQuery,
+	searchShelfProductIndex,
+	type ShelfProductSearchIndexItem,
+	type ShelfProductSearchOptions,
+} from "./shelf-product-search";

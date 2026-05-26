@@ -7,17 +7,22 @@ import {
 	getNewSalesFormSchema,
 	getNewSalesFormStepRoutingSchema,
 	getNewSalesFormShelfCategoriesSchema,
+	getNewSalesFormShelfProductDetailsSchema,
+	getNewSalesFormShelfProductIndexSchema,
 	getNewSalesFormShelfProductsSchema,
 	recalculateNewSalesFormSchema,
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
 	searchNewSalesCustomersSchema,
+	searchNewSalesFormShelfProductsSchema,
 	resolveNewSalesCustomerSchema,
 	type BootstrapNewSalesFormSchema,
 	type DeleteNewSalesFormLineItemSchema,
 	type GetNewSalesFormSchema,
 	type GetNewSalesFormStepRoutingSchema,
 	type GetNewSalesFormShelfCategoriesSchema,
+	type GetNewSalesFormShelfProductDetailsSchema,
+	type GetNewSalesFormShelfProductIndexSchema,
 	type GetNewSalesFormShelfProductsSchema,
 	type NewSalesFormLineItem,
 	type NewSalesFormExtraCost,
@@ -27,6 +32,7 @@ import {
 	type SaveDraftNewSalesFormSchema,
 	type SaveFinalNewSalesFormSchema,
 	type SearchNewSalesCustomersSchema,
+	type SearchNewSalesFormShelfProductsSchema,
 	type ResolveNewSalesCustomerSchema,
 } from "@api/schemas/new-sales-form";
 import { getSalesCustomer } from "@api/db/queries/customer";
@@ -121,6 +127,48 @@ function roundCurrency(value: number) {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function uniquePositiveNumbers(values: Array<unknown>) {
+	return values
+		.map((value) => Number(value || 0))
+		.filter((value, index, list) => value > 0 && list.indexOf(value) === index);
+}
+
+function legacyShelfCategoryIds(shelf: any) {
+	const meta = safeRecord(shelf?.meta);
+	if (Array.isArray(meta.categoryIds)) {
+		return uniquePositiveNumbers(meta.categoryIds);
+	}
+	const categoryUid = String(meta.categoryUid || "").trim();
+	if (categoryUid) {
+		return uniquePositiveNumbers(categoryUid.split("-"));
+	}
+	return uniquePositiveNumbers([meta.shelfParentCategoryId, shelf?.categoryId]);
+}
+
+function legacyShelfMeta(shelf: any, index: number) {
+	const meta = safeRecord(shelf?.meta);
+	const categoryIds = legacyShelfCategoryIds(shelf);
+	const lineUid =
+		String(meta.lineUid || meta.sectionUid || "").trim() ||
+		`shelf-line-${index + 1}`;
+	const productUid =
+		String(meta.productUid || meta.productRowUid || shelf?.uid || "").trim() ||
+		`shelf-product-${index + 1}`;
+	return {
+		...meta,
+		categoryIds,
+		categoryUid: categoryIds.join("-"),
+		lineUid,
+		productUid,
+		itemIndex: Number(meta.itemIndex ?? index),
+		basePrice: Number(meta.basePrice ?? shelf?.basePrice ?? 0),
+		salesPrice: Number(
+			meta.salesPrice ?? shelf?.salesPrice ?? shelf?.unitPrice ?? 0,
+		),
+		customPrice: meta.customPrice ?? shelf?.customPrice ?? null,
+	};
+}
+
 function normalizeSalesFormTitle(value?: string | null) {
 	return String(value || "")
 		.trim()
@@ -208,7 +256,9 @@ function mergePersistedFormSteps(
 				...(safeRecord(step.meta) || {}),
 			},
 			step:
-				safeRecord(step.step).id || safeRecord(step.step).title || safeRecord(step.step).uid
+				safeRecord(step.step).id ||
+				safeRecord(step.step).title ||
+				safeRecord(step.step).uid
 					? {
 							...(safeRecord(dbMatch?.step) || {}),
 							...(safeRecord(step.step) || {}),
@@ -219,7 +269,8 @@ function mergePersistedFormSteps(
 }
 
 function rowText(row: Record<string, unknown>, key: "moulding" | "service") {
-	if (key === "service") return String(row.service || row.description || "").trim();
+	if (key === "service")
+		return String(row.service || row.description || "").trim();
 	return String(row.title || row.description || "").trim();
 }
 
@@ -265,7 +316,9 @@ function mergePersistedDoorRows(persistedRows: unknown, dbRows: unknown) {
 	const database = Array.isArray(dbRows) ? dbRows : [];
 	return database.map((dbRow: Record<string, unknown>, index) => {
 		const dbId = Number(dbRow?.id || 0);
-		const dbDimension = String(dbRow?.dimension || "").trim().toLowerCase();
+		const dbDimension = String(dbRow?.dimension || "")
+			.trim()
+			.toLowerCase();
 		const dbStepProductId = Number(dbRow?.stepProductId || 0);
 		const persistedMatch =
 			persisted.find(
@@ -446,12 +499,12 @@ async function generateSalesIdentity(
 
 function toBootstrapPayload(
 	order: {
-			id: number;
-			slug: string;
-			orderId: string;
-			inventoryStatus: string | null;
-			type: string | null;
-			status: string | null;
+		id: number;
+		slug: string;
+		orderId: string;
+		inventoryStatus: string | null;
+		type: string | null;
+		status: string | null;
 		customerId: number | null;
 		customerProfileId: number | null;
 		billingAddressId: number | null;
@@ -725,13 +778,12 @@ function toBootstrapPayload(
 			);
 			const mergedLine = {
 				...line,
-				title:
-					groupedLine
-						? dbTitle || normalizedItemTypeTitle || persistedTitle
-						: dbTitle &&
-							  (!persistedTitle || persistedTitle === persistedDescription)
-							? dbTitle
-							: persistedTitle || dbTitle,
+				title: groupedLine
+					? dbTitle || normalizedItemTypeTitle || persistedTitle
+					: dbTitle &&
+							(!persistedTitle || persistedTitle === persistedDescription)
+						? dbTitle
+						: persistedTitle || dbTitle,
 				meta: mergedMeta,
 				formSteps: mergePersistedFormSteps(
 					line.formSteps as Array<Record<string, unknown>> | undefined,
@@ -1559,6 +1611,208 @@ export async function getNewSalesFormShelfProducts(
 	});
 }
 
+export async function getNewSalesFormShelfProductIndex(
+	ctx: TRPCContext,
+	input: GetNewSalesFormShelfProductIndexSchema,
+) {
+	getNewSalesFormShelfProductIndexSchema.parse(input);
+	return ctx.db.dykeShelfProducts.findMany({
+		where: {
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			title: true,
+			unitPrice: true,
+		},
+		orderBy: [{ title: "asc" }],
+	});
+}
+
+function shelfCategoryPathForProduct(
+	product: {
+		categoryId?: number | null;
+		parentCategoryId?: number | null;
+	},
+	categories: Array<{
+		id?: number | null;
+		name?: string | null;
+		categoryId?: number | null;
+		parentCategoryId?: number | null;
+	}>,
+) {
+	const byId = new Map(
+		categories
+			.map((category) => [Number(category?.id || 0), category] as const)
+			.filter(([id]) => id > 0),
+	);
+	const child = byId.get(Number(product.categoryId || 0));
+	const parentId =
+		Number(product.parentCategoryId || 0) ||
+		Number(child?.parentCategoryId || 0) ||
+		Number(child?.categoryId || 0) ||
+		0;
+	return [byId.get(parentId), child]
+		.filter(
+			(category, index, list) =>
+				category &&
+				Number(category.id || 0) > 0 &&
+				list.findIndex(
+					(entry) => Number(entry?.id || 0) === Number(category.id || 0),
+				) === index,
+		)
+		.map((category) => ({
+			id: category?.id,
+			name: category?.name,
+		}));
+}
+
+export async function getNewSalesFormShelfProductDetails(
+	ctx: TRPCContext,
+	input: GetNewSalesFormShelfProductDetailsSchema,
+) {
+	const payload = getNewSalesFormShelfProductDetailsSchema.parse(input);
+	const ids = payload.ids.filter(
+		(id, index, list) => id > 0 && list.indexOf(id) === index,
+	);
+	if (!ids.length) return [];
+	const products = await ctx.db.dykeShelfProducts.findMany({
+		where: {
+			deletedAt: null,
+			id: {
+				in: ids,
+			},
+		},
+		select: {
+			id: true,
+			title: true,
+			img: true,
+			unitPrice: true,
+			categoryId: true,
+			parentCategoryId: true,
+		},
+		orderBy: [{ title: "asc" }],
+	});
+	const categoryIds = Array.from(
+		new Set(
+			products
+				.flatMap((product) => [
+					Number(product?.parentCategoryId || 0),
+					Number(product?.categoryId || 0),
+				])
+				.filter((id) => id > 0),
+		),
+	);
+	const categories = categoryIds.length
+		? await ctx.db.dykeShelfCategories.findMany({
+				where: {
+					deletedAt: null,
+					id: {
+						in: categoryIds,
+					},
+				},
+				select: {
+					id: true,
+					name: true,
+					type: true,
+					categoryId: true,
+					parentCategoryId: true,
+				},
+			})
+		: [];
+	return products.map((product) => ({
+		...product,
+		categoryPath: shelfCategoryPathForProduct(product, categories),
+	}));
+}
+
+export async function searchNewSalesFormShelfProducts(
+	ctx: TRPCContext,
+	input: SearchNewSalesFormShelfProductsSchema,
+) {
+	const payload = searchNewSalesFormShelfProductsSchema.parse(input);
+	const query = payload.query.trim();
+	const limit = query ? payload.limit : Math.min(payload.limit, 5);
+	const productSelect = {
+		id: true,
+		title: true,
+		img: true,
+		unitPrice: true,
+		categoryId: true,
+		parentCategoryId: true,
+	} as const;
+	const rows = await ctx.db.dykeShelfProducts.findMany({
+		where: {
+			deletedAt: null,
+			...(query
+				? {
+						title: {
+							contains: query,
+						},
+					}
+				: {}),
+		},
+		select: productSelect,
+		orderBy: [{ title: "asc" }],
+		take: limit,
+	});
+	const rowIds = new Set(rows.map((row) => Number(row?.id || 0)));
+	const selectedIds = payload.selectedIds.filter(
+		(id, index, list) =>
+			id > 0 && list.indexOf(id) === index && !rowIds.has(id),
+	);
+	const selectedRows = selectedIds.length
+		? await ctx.db.dykeShelfProducts.findMany({
+				where: {
+					deletedAt: null,
+					id: {
+						in: selectedIds,
+					},
+				},
+				select: productSelect,
+				orderBy: [{ title: "asc" }],
+			})
+		: [];
+	const products = [...rows, ...selectedRows].filter(
+		(product, index, list) =>
+			Number(product?.id || 0) > 0 &&
+			list.findIndex(
+				(entry) => Number(entry?.id || 0) === Number(product?.id || 0),
+			) === index,
+	);
+	const categoryIds = Array.from(
+		new Set(
+			products
+				.flatMap((product) => [
+					Number(product?.parentCategoryId || 0),
+					Number(product?.categoryId || 0),
+				])
+				.filter((id) => id > 0),
+		),
+	);
+	const categories = categoryIds.length
+		? await ctx.db.dykeShelfCategories.findMany({
+				where: {
+					deletedAt: null,
+					id: {
+						in: categoryIds,
+					},
+				},
+				select: {
+					id: true,
+					name: true,
+					type: true,
+					categoryId: true,
+					parentCategoryId: true,
+				},
+			})
+		: [];
+	return products.map((product) => ({
+		...product,
+		categoryPath: shelfCategoryPathForProduct(product, categories),
+	}));
+}
+
 export async function recalculateNewSalesForm(
 	ctx: TRPCContext,
 	input: RecalculateNewSalesFormSchema,
@@ -1942,9 +2196,7 @@ async function saveNewSalesFormInternal(
 					meta: itemMeta as any,
 					deletedAt: null,
 				};
-				const existingSalesItemId = Number(
-					row.salesItemId || line.id || 0,
-				);
+				const existingSalesItemId = Number(row.salesItemId || line.id || 0);
 				const createdItem =
 					existingSalesItemId > 0
 						? await tx.salesOrderItems.update({
@@ -1992,16 +2244,25 @@ async function saveNewSalesFormInternal(
 				const shelfItems = legacyLine.kind ? [] : line.shelfItems || [];
 				if (shelfItems.length) {
 					const shelfRows = shelfItems
-						.map((shelf) => ({
-							salesOrderItemId: createdItem.id,
-							categoryId: Number(shelf.categoryId || 0),
-							productId: shelf.productId || null,
-							description: shelf.description || null,
-							qty: Number(shelf.qty || 0),
-							unitPrice: Math.round(Number(shelf.unitPrice || 0)),
-							totalPrice: Math.round(Number(shelf.totalPrice || 0)),
-							meta: safeRecord(shelf.meta) as any,
-						}))
+						.map((shelf, index) => {
+							const meta = legacyShelfMeta(shelf, index);
+							const categoryIds = Array.isArray(meta.categoryIds)
+								? meta.categoryIds
+								: [];
+							const categoryId =
+								Number(shelf.categoryId || 0) ||
+								Number(categoryIds[categoryIds.length - 1] || 0);
+							return {
+								salesOrderItemId: createdItem.id,
+								categoryId,
+								productId: shelf.productId || null,
+								description: shelf.description || null,
+								qty: Number(shelf.qty || 0),
+								unitPrice: Math.round(Number(shelf.unitPrice || 0)),
+								totalPrice: Math.round(Number(shelf.totalPrice || 0)),
+								meta: meta as any,
+							};
+						})
 						.filter((shelf) => shelf.categoryId > 0);
 					if (shelfRows.length) {
 						await tx.dykeSalesShelfItem.createMany({
@@ -2036,8 +2297,7 @@ async function saveNewSalesFormInternal(
 										moulding: {
 											...safeRecord(
 												safeRecord(
-													safeRecord(line.housePackageTool?.meta)
-														.priceTags,
+													safeRecord(line.housePackageTool?.meta).priceTags,
 												).moulding,
 											),
 											addon: Number(row.addon || 0),

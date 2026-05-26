@@ -6,11 +6,12 @@ import type {
   SalesFormWorkflowStepComponentInput,
 } from "@gnd/sales/sales-form";
 import { createWorkflowComponentImageResolver } from "@gnd/sales/sales-form";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 export function useDealerSalesFormWorkflowData(): SalesFormWorkflowDataSource {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const resolveImageSrc = useMemo(
     () =>
       createWorkflowComponentImageResolver(
@@ -62,6 +63,29 @@ export function useDealerSalesFormWorkflowData(): SalesFormWorkflowDataSource {
             },
           ),
         ),
+      useShelfProductIndex: (input) =>
+        useQuery(
+          trpc.dealerPortal.workflowShelfProductIndex.queryOptions(
+            {},
+            {
+              enabled: input?.enabled !== false,
+              refetchOnWindowFocus: false,
+              staleTime: 1000 * 60 * 30,
+              gcTime: 1000 * 60 * 60,
+            },
+          ),
+        ),
+      getShelfProductDetails: (input) =>
+        queryClient.fetchQuery(
+          trpc.dealerPortal.workflowShelfProductDetails.queryOptions(
+            { ids: input.ids },
+            {
+              refetchOnWindowFocus: false,
+              staleTime: 1000 * 60 * 30,
+              gcTime: 1000 * 60 * 60,
+            },
+          ),
+        ),
       useDoorSuppliers: (input) =>
         useQuery(
           trpc.dealerPortal.workflowDoorSuppliers.queryOptions(
@@ -73,6 +97,6 @@ export function useDealerSalesFormWorkflowData(): SalesFormWorkflowDataSource {
         ),
       resolveImageSrc,
     }),
-    [resolveImageSrc, trpc],
+    [queryClient, resolveImageSrc, trpc],
   );
 }

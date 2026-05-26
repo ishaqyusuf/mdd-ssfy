@@ -2,10 +2,13 @@ import { describe, expect, it, mock } from "bun:test";
 import { tasks } from "@trigger.dev/sdk/v3";
 import {
 	getNewSalesFormShelfCategories,
+	getNewSalesFormShelfProductDetails,
+	getNewSalesFormShelfProductIndex,
 	getNewSalesFormShelfProducts,
 	getNewSalesForm,
 	saveDraftNewSalesForm,
 	saveFinalNewSalesForm,
+	searchNewSalesFormShelfProducts,
 } from "./new-sales-form";
 
 (tasks as any).trigger = mock(async () => ({ id: "test-trigger-run" }));
@@ -95,6 +98,7 @@ function createMockContext() {
 			{
 				id: 1002,
 				title: "Mortise Lock",
+				img: undefined,
 				unitPrice: 42,
 				categoryId: 12,
 				parentCategoryId: 10,
@@ -506,8 +510,10 @@ function createMockContext() {
 		},
 		dykeShelfCategories: {
 			findMany: async ({ where, select, orderBy }: any) => {
+				const inIds = where?.id?.in || null;
 				const rows = state.shelfCategories.filter((row) => {
 					if (where?.deletedAt === null && row.deletedAt != null) return false;
+					if (inIds && !inIds.includes(row.id)) return false;
 					return true;
 				});
 				const sorted = [...rows].sort((a, b) => {
@@ -531,14 +537,28 @@ function createMockContext() {
 			},
 		},
 		dykeShelfProducts: {
-			findMany: async ({ where, select, orderBy }: any) => {
+			findMany: async ({ where, select, orderBy, take }: any) => {
 				const inCategoryIds = where?.OR?.[0]?.categoryId?.in || [];
 				const inParentCategoryIds = where?.OR?.[1]?.parentCategoryId?.in || [];
+				const inIds = where?.id?.in || null;
+				const titleContains = String(where?.title?.contains || "")
+					.trim()
+					.toLowerCase();
 				const rows = state.shelfProducts.filter((row) => {
 					if (where?.deletedAt === null && row.deletedAt != null) return false;
+					if (inIds && !inIds.includes(row.id)) return false;
 					if (
+						where?.OR &&
 						!inCategoryIds.includes(row.categoryId) &&
 						!inParentCategoryIds.includes(row.parentCategoryId)
+					) {
+						return false;
+					}
+					if (
+						titleContains &&
+						!String(row.title || "")
+							.toLowerCase()
+							.includes(titleContains)
 					) {
 						return false;
 					}
@@ -554,7 +574,8 @@ function createMockContext() {
 					}
 					return 0;
 				});
-				return sorted.map((row) => {
+				const limited = Number(take || 0) > 0 ? sorted.slice(0, take) : sorted;
+				return limited.map((row) => {
 					if (!select) return row;
 					const picked: Record<string, unknown> = {};
 					Object.keys(select).forEach((key) => {
@@ -590,6 +611,115 @@ describe("new-sales-form relational parity", () => {
 
 		const none = await getNewSalesFormShelfProducts(ctx, { categoryIds: [] });
 		expect(none).toEqual([]);
+	});
+
+	it("loads cached shelf product index separately from full product details", async () => {
+		const { ctx } = createMockContext();
+
+		const index = await getNewSalesFormShelfProductIndex(ctx, {});
+		expect(index).toEqual([
+			{ id: 1001, title: "Ball Bearing Hinge", unitPrice: 24.5 },
+			{ id: 1002, title: "Mortise Lock", unitPrice: 42 },
+		]);
+
+		const details = await getNewSalesFormShelfProductDetails(ctx, {
+			ids: [1002],
+		});
+		expect(details).toEqual([
+			{
+				id: 1002,
+				title: "Mortise Lock",
+				unitPrice: 42,
+				categoryId: 12,
+				parentCategoryId: 10,
+				categoryPath: [
+					{ id: 10, name: "Door Hardware" },
+					{ id: 12, name: "Locks" },
+				],
+			},
+		]);
+	});
+
+	it("searches shelf products independently with empty defaults and selected hydration", async () => {
+		const { ctx, state } = createMockContext();
+		state.shelfProducts.push(
+			{
+				id: 1004,
+				title: "Alpha Pull",
+				unitPrice: 15,
+				categoryId: 11,
+				parentCategoryId: 10,
+				deletedAt: null,
+			},
+			{
+				id: 1005,
+				title: "Beta Pull",
+				unitPrice: 16,
+				categoryId: 11,
+				parentCategoryId: 10,
+				deletedAt: null,
+			},
+			{
+				id: 1006,
+				title: "Cabinet Latch",
+				unitPrice: 18,
+				categoryId: 12,
+				parentCategoryId: 10,
+				deletedAt: null,
+			},
+			{
+				id: 1007,
+				title: "Door Stop",
+				unitPrice: 9,
+				categoryId: 12,
+				parentCategoryId: 10,
+				deletedAt: null,
+			},
+			{
+				id: 1008,
+				title: "Zeta Rail",
+				unitPrice: 20,
+				categoryId: 12,
+				parentCategoryId: 10,
+				deletedAt: null,
+			},
+			{
+				id: 1009,
+				title: "Flush Bolt",
+				unitPrice: 22,
+				categoryId: 12,
+				parentCategoryId: 10,
+				deletedAt: null,
+			},
+		);
+
+		const defaultProducts = await searchNewSalesFormShelfProducts(ctx, {
+			query: "",
+			selectedIds: [],
+			limit: 5,
+		});
+		expect(defaultProducts.map((product) => product.id)).toEqual([
+			1004, 1001, 1005, 1006, 1007,
+		]);
+		expect(defaultProducts[0]?.categoryPath).toEqual([
+			{ id: 10, name: "Door Hardware" },
+			{ id: 11, name: "Hinges" },
+		]);
+
+		const withSelected = await searchNewSalesFormShelfProducts(ctx, {
+			query: "",
+			selectedIds: [1008],
+			limit: 5,
+		});
+		expect(withSelected.map((product) => product.id)).toContain(1008);
+		expect(withSelected.length).toBe(6);
+
+		const searched = await searchNewSalesFormShelfProducts(ctx, {
+			query: "flush",
+			selectedIds: [],
+			limit: 20,
+		});
+		expect(searched.map((product) => product.id)).toEqual([1009]);
 	});
 
 	it("hydrates payment method from legacy sales order meta on edit", async () => {
@@ -946,14 +1076,13 @@ describe("new-sales-form relational parity", () => {
 		expect(thirdLoaded.lineItems).toHaveLength(1);
 		expect(thirdLoaded.lineItems[0]?.shelfItems).toHaveLength(1);
 		expect(state.shelfItems).toHaveLength(3);
-		expect(state.shelfItems.filter((row) => row.deletedAt == null)).toHaveLength(
-			1,
-		);
+		expect(
+			state.shelfItems.filter((row) => row.deletedAt == null),
+		).toHaveLength(1);
 		expect(
 			state.shelfItems.filter(
 				(row) =>
-					row.salesOrderItemId === secondItem.id &&
-					row.deletedAt == null,
+					row.salesOrderItemId === secondItem.id && row.deletedAt == null,
 			),
 		).toHaveLength(1);
 		expect(
@@ -1615,7 +1744,12 @@ describe("new-sales-form relational parity", () => {
 							qty: 2,
 							unitPrice: 24.5,
 							totalPrice: 49,
-							meta: { source: "comparison-fixture" },
+							meta: {
+								source: "comparison-fixture",
+								categoryIds: [10, 11],
+								sectionUid: "shelf-section-a",
+								productRowUid: "shelf-row-a",
+							},
 						},
 					],
 					housePackageTool: {
@@ -1704,6 +1838,13 @@ describe("new-sales-form relational parity", () => {
 			qty: 2,
 			unitPrice: 25,
 			totalPrice: 49,
+			meta: {
+				categoryIds: [10, 11],
+				categoryUid: "10-11",
+				lineUid: "shelf-section-a",
+				productUid: "shelf-row-a",
+				itemIndex: 0,
+			},
 		});
 
 		expect(state.hpts).toHaveLength(1);

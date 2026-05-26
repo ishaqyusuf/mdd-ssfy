@@ -41,6 +41,9 @@ Optional hooks:
 - `useCustomerProfiles`
 - `useShelfCategories`
 - `useShelfProducts`
+- `useShelfProductIndex`
+- `getShelfProductDetails`
+- `useShelfProductSearch` as a fallback for hosts that have not adopted the cached index flow
 - `useDoorSuppliers`
 - `resolveImageSrc`
 - `renderMouldingCalculator`
@@ -69,6 +72,13 @@ package provides the Door tab shell and supplier-selection patching, while the
 host owns supplier create/update/delete mutations. Moulding calculators are
 host-owned through `dataSource.renderMouldingCalculator` so app-specific
 measurement tools do not leak into the shared package.
+
+Shelf item search should use `useShelfProductIndex` for a cached lightweight
+`id`/`title`/`unitPrice` list, run package-local search against that list, and
+call `getShelfProductDetails` only after the user selects a product. This keeps
+keystrokes local while preserving server-owned product/category detail at the
+moment a shelf row is patched. `useShelfProductSearch` remains a compatibility
+fallback only.
 
 Host adapters should prefer package helpers for portable normalization and
 composition:

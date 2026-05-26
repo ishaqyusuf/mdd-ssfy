@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
@@ -43,6 +43,7 @@ import {
 	normalizeSalesFormTitle as normalizeTitle,
 	resolveComponentPriceByDeps,
 	resolveDoorTierPricing,
+	searchShelfProductIndex,
 	summarizeDoors,
 } from "../../domain";
 import {
@@ -156,6 +157,7 @@ export function SalesFormWorkflowPanel<
 	const [componentSearch, setComponentSearch] = useState("");
 	const [includeCustomComponents, setIncludeCustomComponents] = useState(false);
 	const [shelfUiVersion, setShelfUiVersion] = useState<"v1" | "v2">("v2");
+	const [shelfProductSearch, setShelfProductSearch] = useState("");
 	const [doorSectionTabByLine, setDoorSectionTabByLine] = useState<
 		Record<string, DoorStepPanelTab>
 	>({});
@@ -228,16 +230,45 @@ export function SalesFormWorkflowPanel<
 		[activeLine?.shelfItems],
 	);
 	const shelfCategoriesQuery = dataSource.useShelfCategories?.();
-	const shelfProductCategoryIds = useMemo(() => {
-		const categoryIds = (shelfCategoriesQuery?.data || [])
-			.map((category) => Number(category?.id || 0))
-			.filter((id) => id > 0);
-		return categoryIds.length ? categoryIds : activeShelfCategoryIds;
-	}, [activeShelfCategoryIds, shelfCategoriesQuery?.data]);
 	const shelfProductsQuery = dataSource.useShelfProducts?.({
-		categoryIds: shelfProductCategoryIds,
-		enabled: shelfProductCategoryIds.length > 0,
+		categoryIds: activeShelfCategoryIds,
+		enabled: shelfUiVersion === "v1" && activeShelfCategoryIds.length > 0,
 	});
+	const hasShelfProductIndex = Boolean(dataSource.useShelfProductIndex);
+	const shelfProductIndexQuery = dataSource.useShelfProductIndex?.({
+		enabled: shelfUiVersion === "v2",
+	});
+	const selectedShelfProductIds = useMemo(
+		() =>
+			Array.from(
+				new Set(
+					(activeLine?.shelfItems || [])
+						.map((row) => Number(row?.productId || 0))
+						.filter((id) => id > 0),
+				),
+			),
+		[activeLine?.shelfItems],
+	);
+	const shelfProductSearchQuery = dataSource.useShelfProductSearch?.({
+		query: shelfProductSearch,
+		selectedIds: selectedShelfProductIds,
+		enabled: shelfUiVersion === "v2" && !hasShelfProductIndex,
+		limit: shelfProductSearch.trim() ? 20 : 5,
+	});
+	const resolveShelfProductDetails = useCallback(
+		async (product: ShelfProductOption) => {
+			const productId = Number(product?.id || 0);
+			if (!productId || !dataSource.getShelfProductDetails) return product;
+			const details = await dataSource.getShelfProductDetails({
+				ids: [productId],
+			});
+			return (
+				(details.find((entry) => Number(entry?.id || 0) === productId) ||
+					null) as ShelfProductOption | null
+			);
+		},
+		[dataSource],
+	);
 	const doorSuppliersQuery = dataSource.useDoorSuppliers?.({
 		enabled: Boolean(dataSource.useDoorSuppliers),
 	});
@@ -256,10 +287,24 @@ export function SalesFormWorkflowPanel<
 		}
 		return bucket;
 	}, [shelfProductsQuery?.data]);
-	const shelfProducts = useMemo(
-		() => (shelfProductsQuery?.data || []) as ShelfProductOption[],
-		[shelfProductsQuery?.data],
-	);
+	const shelfProducts = useMemo(() => {
+		if (shelfProductIndexQuery?.data) {
+			return searchShelfProductIndex(
+				shelfProductIndexQuery.data as ShelfProductOption[],
+				shelfProductSearch,
+				{
+					limit: shelfProductSearch.trim() ? 20 : 5,
+					selectedIds: selectedShelfProductIds,
+				},
+			) as ShelfProductOption[];
+		}
+		return (shelfProductSearchQuery?.data || []) as ShelfProductOption[];
+	}, [
+		selectedShelfProductIds,
+		shelfProductIndexQuery?.data,
+		shelfProductSearch,
+		shelfProductSearchQuery?.data,
+	]);
 	const activeProfileCoefficient = useMemo(() => {
 		const selectedProfileId = Number(record?.form?.customerProfileId || 0);
 		if (!selectedProfileId) return 1;
@@ -1310,6 +1355,14 @@ export function SalesFormWorkflowPanel<
 								canEditPricing={workflowCapabilities.canEditLinePricing}
 								formatMoney={(value) => moneyIfPositive(value) || null}
 								headerSlot={versionToggle}
+								onProductSearchChange={setShelfProductSearch}
+								isSearchingProducts={Boolean(
+									shelfProductIndexQuery?.isPending ||
+										shelfProductIndexQuery?.isFetching ||
+										shelfProductSearchQuery?.isPending ||
+										shelfProductSearchQuery?.isFetching,
+								)}
+								onResolveProductDetails={resolveShelfProductDetails}
 								onSectionsChange={updateShelfSections}
 							/>
 						);
@@ -1946,12 +1999,13 @@ function DefaultShelfPanel(props: {
 											categoryIds: nextCategoryIds,
 											parentCategoryId: nextCategoryIds[0] ?? null,
 											categoryId: nextCategoryIds.length
-												? nextCategoryIds[nextCategoryIds.length - 1]
+												? (nextCategoryIds[nextCategoryIds.length - 1] ?? null)
 												: null,
 											rows: (section?.rows || []).map((row: ShelfRowDraft) => ({
 												...row,
 												categoryId: nextCategoryIds.length
-													? nextCategoryIds[nextCategoryIds.length - 1]
+													? (nextCategoryIds[nextCategoryIds.length - 1] ??
+														null)
 													: null,
 												productId: null,
 												description: "",

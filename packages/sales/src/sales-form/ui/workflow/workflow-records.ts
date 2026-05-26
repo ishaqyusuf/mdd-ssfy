@@ -114,8 +114,25 @@ export type ShelfItemRow = {
 };
 
 export type ShelfProductRecord = {
+	id?: number | null;
+	title?: string | null;
+	unitPrice?: number | null;
+	img?: string | null;
 	categoryId?: number | null;
 	parentCategoryId?: number | null;
+	categoryName?: string | null;
+	parentCategoryName?: string | null;
+	categoryPath?: Array<{
+		id?: number | null;
+		name?: string | null;
+	}>;
+	[key: string]: unknown;
+};
+
+export type ShelfProductSearchIndexRecord = {
+	id?: number | null;
+	title?: string | null;
+	unitPrice?: number | null;
 	[key: string]: unknown;
 };
 
@@ -203,12 +220,7 @@ export type ShelfSectionDraft = {
 	[key: string]: unknown;
 };
 
-export type ShelfProductOption = ShelfProductRecord & {
-	id?: number | null;
-	title?: string | null;
-	unitPrice?: number | null;
-	img?: string | null;
-};
+export type ShelfProductOption = ShelfProductRecord;
 
 export type CustomerProfileRecord = {
 	id?: number | null;

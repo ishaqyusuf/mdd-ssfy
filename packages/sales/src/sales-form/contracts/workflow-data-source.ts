@@ -4,6 +4,7 @@ import type {
 	MouldingRow,
 	ServiceRow,
 	ShelfCategoryRecord,
+	ShelfProductSearchIndexRecord,
 	ShelfSectionDraft,
 	ShelfProductRecord,
 	WorkflowComponentRecord,
@@ -47,6 +48,18 @@ export type SalesFormWorkflowDataSource = {
 	useShelfProducts?: (input: {
 		categoryIds: number[];
 		enabled?: boolean;
+	}) => SalesFormWorkflowQueryResult<ShelfProductRecord[]>;
+	useShelfProductIndex?: (input?: {
+		enabled?: boolean;
+	}) => SalesFormWorkflowQueryResult<ShelfProductSearchIndexRecord[]>;
+	getShelfProductDetails?: (input: {
+		ids: number[];
+	}) => Promise<ShelfProductRecord[]>;
+	useShelfProductSearch?: (input: {
+		query?: string | null;
+		selectedIds?: number[];
+		enabled?: boolean;
+		limit?: number;
 	}) => SalesFormWorkflowQueryResult<ShelfProductRecord[]>;
 	useDoorSuppliers?: (input?: {
 		enabled?: boolean;

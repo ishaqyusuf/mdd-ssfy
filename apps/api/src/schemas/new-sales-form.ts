@@ -80,6 +80,27 @@ export type GetNewSalesFormShelfProductsSchema = z.infer<
   typeof getNewSalesFormShelfProductsSchema
 >;
 
+export const getNewSalesFormShelfProductIndexSchema = z.object({});
+export type GetNewSalesFormShelfProductIndexSchema = z.infer<
+  typeof getNewSalesFormShelfProductIndexSchema
+>;
+
+export const getNewSalesFormShelfProductDetailsSchema = z.object({
+  ids: z.array(z.number().int().positive()).max(100).default([]),
+});
+export type GetNewSalesFormShelfProductDetailsSchema = z.infer<
+  typeof getNewSalesFormShelfProductDetailsSchema
+>;
+
+export const searchNewSalesFormShelfProductsSchema = z.object({
+  query: z.string().trim().max(100).default(""),
+  selectedIds: z.array(z.number().int().positive()).max(100).default([]),
+  limit: z.number().int().positive().max(50).default(5),
+});
+export type SearchNewSalesFormShelfProductsSchema = z.infer<
+  typeof searchNewSalesFormShelfProductsSchema
+>;
+
 export const saveDraftNewSalesFormSchema = z.object({
   type: newSalesFormTypeSchema,
   slug: z.string().optional().nullable(),

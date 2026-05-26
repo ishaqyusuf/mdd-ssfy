@@ -2,6 +2,15 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-05-26
+
+- Implemented cached shelf product search for the shared new sales form workflow.
+  - added a lightweight shelf product index endpoint and full product-detail endpoint for `www`, plus dealer-protected equivalents that preserve dealer shelf visibility filtering
+  - added a pure package search library for local shelf product matching/ranking, so shelf search no longer needs a server round trip on every keystroke when the host provides the cached index
+  - updated the shared shelf inline editor to fetch full product detail only after selection before patching the row, with row-level loading/error handling
+  - wired `www` and dealership workflow data sources to cache the index and detail lookups through TanStack Query
+  - validation note: focused shelf search/API tests passed, `@gnd/dealership` typecheck passed, and `bun run test:new-sales-form-migration` passed with the existing tolerated unrelated `www` typecheck baseline
+
 ## 2026-05-25
 
 - Implemented dealer dual pricing tier support and dealer-facing margin visibility.
