@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { openLink } from "@/lib/open-link";
+import { middleTruncate } from "@/lib/truncate-middle";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { Button } from "@gnd/ui/button";
@@ -83,7 +84,7 @@ function Row({
 	return (
 		<div className="flex items-start justify-between gap-3 border-b border-border/40 py-1.5 last:border-b-0">
 			<p className="text-sm text-muted-foreground">{label}</p>
-			<div className="max-w-[65%] text-right text-sm font-medium leading-5">
+			<div className="min-w-0 max-w-[65%] text-right text-sm font-medium leading-5">
 				{value ?? "—"}
 			</div>
 		</div>
@@ -118,6 +119,7 @@ export function SalesOverviewOverviewTabV2() {
 		| (SalesOverviewData & OverviewTabData)
 		| null
 		| undefined;
+	const customerEmail = overviewData?.email;
 
 	return (
 		<div className="space-y-3 p-1">
@@ -143,7 +145,19 @@ export function SalesOverviewOverviewTabV2() {
 						<Row label="Phone" value={overviewData?.customerPhone} />
 					</div>
 					<div>
-						<Row label="Email" value={overviewData?.email} />
+						<Row
+							label="Email"
+							value={
+								customerEmail ? (
+									<span
+										className="block min-w-0 max-w-full overflow-hidden whitespace-nowrap"
+										title={customerEmail}
+									>
+										{middleTruncate(customerEmail)}
+									</span>
+								) : null
+							}
+						/>
 						<Row
 							label="Type"
 							value={overviewData?.isBusiness ? "Business" : "Regular"}

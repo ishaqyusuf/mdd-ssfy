@@ -11,6 +11,7 @@ import {
 	type useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
 import { openLink } from "@/lib/open-link";
+import { middleTruncate } from "@/lib/truncate-middle";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
@@ -108,6 +109,7 @@ export function SalesOverviewOverviewTab() {
 	const deliveryStatus = data?.status?.delivery?.status ?? "pending";
 	const deliveryStatusColor = data?.status?.delivery?.color ?? "warmGray";
 	const dispatchCount = data?.dispatchList?.length ?? 0;
+	const customerEmail = data?.email;
 	const addresses = [
 		data?.addressData?.billing,
 		data?.addressData?.shipping,
@@ -171,14 +173,19 @@ export function SalesOverviewOverviewTab() {
 									</DataSkeleton>
 								</div>
 
-								{data?.email ? (
-									<div className="flex items-start gap-2">
-										<Icons.Mail className="mt-0.5 h-4 w-4 text-muted-foreground" />
+								{customerEmail ? (
+									<div className="flex min-w-0 items-start gap-2">
+										<Icons.Mail className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
 										<DataSkeleton
-											className="text-sm"
+											className="min-w-0 text-sm"
 											placeholder="customer@example.com"
 										>
-											<span>{data.email}</span>
+											<span
+												className="block min-w-0 max-w-full overflow-hidden whitespace-nowrap"
+												title={customerEmail}
+											>
+												{middleTruncate(customerEmail)}
+											</span>
 										</DataSkeleton>
 									</div>
 								) : null}
