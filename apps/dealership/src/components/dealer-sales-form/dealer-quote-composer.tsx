@@ -6,12 +6,20 @@ import {
   SalesFormHeaderActions,
   SalesFormShell,
   buildSalesFormTaxSelectOptions,
-  composeDealerSalesFormQuotePricingSnapshot,
+  composeDealerSalesFormQuotePricing,
   composeDealerSalesFormQuoteSaveInput,
   normalizeSalesFormTaxOptions,
   resolveSalesFormTaxRateByCode,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@gnd/ui/dialog";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -80,6 +88,16 @@ function lineItemPickerLabel(
     : `Item ${index + 1}`;
 }
 
+function finiteNumber(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function pricingChanged(saved?: number | null, current?: number | null) {
+  if (saved == null || current == null) return false;
+  return Math.abs(Number(saved) - Number(current)) > 0.0001;
+}
+
 export function DealerQuoteComposer({
   quoteId = null,
   mode,
@@ -95,6 +113,12 @@ export function DealerQuoteComposer({
   });
   const [customerSelectorOpen, setCustomerSelectorOpen] = useState(false);
   const [showMargin, setShowMargin] = useState(false);
+  const [pricingView, setPricingView] = useState<"internal" | "dealer">(
+    "dealer",
+  );
+  const [pricingSnapshotChoice, setPricingSnapshotChoice] = useState<
+    "saved" | "current" | null
+  >(null);
   const [selectedCustomerOverride, setSelectedCustomerOverride] =
     useState<DealerSalesFormCustomer | null>(null);
   const customersQuery = useQuery(trpc.dealerPortal.customers.queryOptions());
@@ -155,6 +179,7 @@ export function DealerQuoteComposer({
   useEffect(() => {
     if (editingQuoteId && !quoteQuery.data) return;
     form.hydrateQuote(editingQuoteId ? quoteQuery.data : null);
+    setPricingSnapshotChoice(null);
   }, [editingQuoteId, form.hydrateQuote, quoteQuery.data]);
 
   const customers = (customersQuery.data ?? []) as DealerSalesFormCustomer[];
@@ -188,6 +213,66 @@ export function DealerQuoteComposer({
     selectedCustomerProfile ||
     defaultProfile ||
     null;
+  const loadedPricingContext = (quoteQuery.data as any)?.pricingContext || null;
+  const loadedDealerProfileId = finiteNumber(
+    loadedPricingContext?.dealer?.dealerCustomerProfileId,
+  );
+  const selectedProfileId = finiteNumber(record?.form.customerProfileId);
+  const profileChangedFromLoaded =
+    Boolean(loadedDealerProfileId && selectedProfileId) &&
+    loadedDealerProfileId !== selectedProfileId;
+  const savedSalesCoefficient = finiteNumber(
+    loadedPricingContext?.internal?.savedCoefficient,
+  );
+  const currentSalesCoefficient =
+    finiteNumber(loadedPricingContext?.internal?.currentCoefficient) ??
+    finiteNumber(internalProfile?.coefficient);
+  const savedDealerSalesPercentage = finiteNumber(
+    loadedPricingContext?.dealer?.savedSalesPercentage,
+  );
+  const currentDealerSalesPercentage =
+    finiteNumber(loadedPricingContext?.dealer?.currentSalesPercentage) ??
+    finiteNumber(selectedProfile?.salesPercentage);
+  const hasPricingSnapshotChange =
+    Boolean(editingQuoteId && !profileChangedFromLoaded) &&
+    (Boolean(loadedPricingContext?.internal?.hasChanged) ||
+      Boolean(loadedPricingContext?.dealer?.hasChanged) ||
+      pricingChanged(savedSalesCoefficient, currentSalesCoefficient) ||
+      pricingChanged(savedDealerSalesPercentage, currentDealerSalesPercentage));
+  const useSavedPricingSnapshot =
+    hasPricingSnapshotChange && pricingSnapshotChoice !== "current";
+  const effectiveSalesCoefficient =
+    useSavedPricingSnapshot && savedSalesCoefficient != null
+      ? savedSalesCoefficient
+      : currentSalesCoefficient;
+  const effectiveDealerSalesPercentage =
+    useSavedPricingSnapshot && savedDealerSalesPercentage != null
+      ? savedDealerSalesPercentage
+      : currentDealerSalesPercentage;
+  const effectiveInternalProfile = useMemo(
+    () =>
+      internalProfile
+        ? {
+            ...internalProfile,
+            coefficient:
+              effectiveSalesCoefficient ?? internalProfile.coefficient ?? null,
+          }
+        : internalProfile,
+    [effectiveSalesCoefficient, internalProfile],
+  );
+  const effectiveDealerProfile = useMemo(
+    () =>
+      selectedProfile
+        ? {
+            ...selectedProfile,
+            salesPercentage:
+              effectiveDealerSalesPercentage ??
+              selectedProfile.salesPercentage ??
+              null,
+          }
+        : selectedProfile,
+    [effectiveDealerSalesPercentage, selectedProfile],
+  );
 
   useEffect(() => {
     if (!record?.form.customerId || record.form.customerProfileId) return;
@@ -231,21 +316,35 @@ export function DealerQuoteComposer({
   ]);
   const pricing = useMemo(
     () =>
-      composeDealerSalesFormQuotePricingSnapshot({
+      composeDealerSalesFormQuotePricing({
         taxRate: selectedTaxRate,
         lineItems: record?.lineItems || [],
-        dealerProfile: selectedProfile,
-        internalProfile,
+        dealerProfile: effectiveDealerProfile,
+        internalProfile: effectiveInternalProfile,
       }),
-    [internalProfile, record?.lineItems, selectedProfile, selectedTaxRate],
+    [
+      effectiveDealerProfile,
+      effectiveInternalProfile,
+      record?.lineItems,
+      selectedTaxRate,
+    ],
   );
-  const dealerLineTotalsByUid = useMemo(
+  const lineTotalsByUid = useMemo(
     () =>
       Object.fromEntries(
-        pricing.lines.map((line) => [line.uid, line.dealerLineTotal]),
+        pricing.lines.map((line) => [
+          line.uid,
+          pricingView === "internal"
+            ? line.internalLineTotal
+            : line.dealerLineTotal,
+        ]),
       ),
-    [pricing.lines],
+    [pricing.lines, pricingView],
   );
+  const activePricing =
+    pricingView === "internal"
+      ? pricing.internalPricing
+      : pricing.dealerPricing;
   const margin = useMemo(() => {
     const internalSubtotal = Number(pricing.internalPricing.subTotal || 0);
     const dealerSubtotal = Number(pricing.dealerPricing.subTotal || 0);
@@ -308,7 +407,11 @@ export function DealerQuoteComposer({
       record,
       id: editingQuoteId,
       customerProfileId: selectedProfile.id,
-      lineTotalsByUid: dealerLineTotalsByUid,
+      lineTotalsByUid,
+      pricingContext: {
+        salesCoefficient: effectiveSalesCoefficient,
+        dealerSalesPercentage: effectiveDealerSalesPercentage,
+      },
     });
     if (!payload) return;
     saveQuote.mutate(payload);
@@ -324,7 +427,7 @@ export function DealerQuoteComposer({
       state={form.state}
       data={salesFormData}
       actions={actions}
-      grandTotal={pricing.dealerPricing.grandTotal}
+      grandTotal={activePricing.grandTotal}
       isSaved={Boolean(editingQuoteId)}
       isSaving={saveQuote.isPending || quoteQuery.isFetching}
       mobileSummaryOpen={form.state.editor.showMobileSummary}
@@ -344,7 +447,10 @@ export function DealerQuoteComposer({
             onAddLineItem={actions.addLineItem}
             onRemoveLineItem={actions.removeLineItem}
             onUpdateLineItem={actions.updateLineItem}
-            lineTotalsByUid={dealerLineTotalsByUid}
+            lineTotalsByUid={lineTotalsByUid}
+            pricingView={pricingView}
+            profileCoefficient={effectiveSalesCoefficient}
+            dealerSalesPercentage={effectiveDealerSalesPercentage}
           />
         ),
         SummaryPanel: (
@@ -354,12 +460,13 @@ export function DealerQuoteComposer({
             customerProfileId={selectedProfile?.id ?? null}
             deliveryOption={record.form.deliveryOption}
             goodUntil={record.form.goodUntil}
-            grandTotal={pricing.dealerPricing.grandTotal}
+            grandTotal={activePricing.grandTotal}
             internalSubTotal={margin.internalSubtotal}
             dealerSubTotal={margin.dealerSubtotal}
             grossProfit={margin.grossProfit}
             marginPercent={margin.marginPercent}
             dealerSalesPercentage={margin.dealerSalesPercentage}
+            pricingView={pricingView}
             paymentTerm={record.form.paymentTerm}
             po={record.form.po}
             showMargin={showMargin}
@@ -380,7 +487,11 @@ export function DealerQuoteComposer({
             }
             onPaymentTermChange={(paymentTerm) => form.setMeta({ paymentTerm })}
             onPoChange={(po) => form.setMeta({ po })}
-            onProfileChange={form.setCustomerProfile}
+            onProfileChange={(profileId) => {
+              setPricingSnapshotChoice("current");
+              form.setCustomerProfile(profileId);
+            }}
+            onPricingViewChange={setPricingView}
             onShowMarginChange={setShowMargin}
             onTaxCodeChange={(taxCode) => {
               form.setMeta({ taxCode });
@@ -389,8 +500,8 @@ export function DealerQuoteComposer({
               );
             }}
             onSave={save}
-            subTotal={pricing.dealerPricing.subTotal}
-            taxTotal={pricing.dealerPricing.taxTotal}
+            subTotal={activePricing.subTotal}
+            taxTotal={activePricing.taxTotal}
           />
         ),
         CustomerSelectorDialog: (
@@ -474,6 +585,60 @@ export function DealerQuoteComposer({
         permissions={permissions}
         type="quote"
       />
+      <Dialog
+        open={hasPricingSnapshotChange && pricingSnapshotChoice == null}
+        onOpenChange={(open) => {
+          if (!open) setPricingSnapshotChoice("saved");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Pricing profile changed</DialogTitle>
+            <DialogDescription>
+              This quote was saved with older pricing values. Keep the saved
+              values for this quote, or update the estimate to the current
+              profile values.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm">
+            {pricingChanged(savedSalesCoefficient, currentSalesCoefficient) ? (
+              <div className="flex justify-between gap-4">
+                <span>Internal coefficient</span>
+                <span className="font-medium">
+                  {savedSalesCoefficient} to {currentSalesCoefficient}
+                </span>
+              </div>
+            ) : null}
+            {pricingChanged(
+              savedDealerSalesPercentage,
+              currentDealerSalesPercentage,
+            ) ? (
+              <div className="flex justify-between gap-4">
+                <span>Dealer percentage</span>
+                <span className="font-medium">
+                  {savedDealerSalesPercentage}% to{" "}
+                  {currentDealerSalesPercentage}%
+                </span>
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPricingSnapshotChoice("saved")}
+            >
+              Keep saved
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setPricingSnapshotChoice("current")}
+            >
+              Update estimate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SalesFormShell>
   );
 }

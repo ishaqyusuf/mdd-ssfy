@@ -155,7 +155,7 @@ async function newSalesFormAction(
         status: "Active",
         meta: {
             // sales_profile: ctx.defaultProfile?.title,
-            sales_percentage: ctx.defaultProfile?.coefficient,
+            salesCoefficient: ctx.defaultProfile?.coefficient,
         },
         salesRepId: session?.id,
         salesRep: {
@@ -181,7 +181,7 @@ async function newSalesFormAction(
             // form.meta.sales_profile =
             // customer.profile?.title || ctx.defaultProfile?.title;
             form.customerProfileId = ctx.defaultProfile?.id;
-            form.meta.sales_percentage =
+            form.meta.salesCoefficient =
                 customer.profile?.coefficient || ctx?.settings?.sales_margin;
             const addr = {
                 ...(customer.addressBooks?.[0] || {}),

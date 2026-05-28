@@ -19,6 +19,8 @@ export type ResolveWorkflowVisibleComponentsInput = {
 	overrides: Map<string, Partial<WorkflowComponentRecord>>;
 	includeCustomComponents: boolean;
 	profileCoefficient: number;
+	pricingView?: "internal" | "dealer";
+	dealerSalesPercentage?: number | null;
 };
 
 export function resolveWorkflowVisibleComponents({
@@ -28,6 +30,8 @@ export function resolveWorkflowVisibleComponents({
 	overrides,
 	includeCustomComponents,
 	profileCoefficient,
+	pricingView = "internal",
+	dealerSalesPercentage = 0,
 }: ResolveWorkflowVisibleComponentsInput): WorkflowComponentRecord[] {
 	const selectedByStepUid = buildSelectedByStepUid(steps);
 	const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(steps);
@@ -68,17 +72,21 @@ export function resolveWorkflowVisibleComponents({
 				override?.salesPrice == null
 					? (price.salesPrice ?? component?.salesPrice)
 					: override?.salesPrice;
+			const internalSalesPrice = profileAdjustedSalesPrice(
+				resolvedSalesPrice,
+				resolvedBasePrice,
+				profileCoefficient,
+			);
+			const dealerMultiplier =
+				pricingView === "dealer"
+					? 1 + Number(dealerSalesPercentage || 0) / 100
+					: 1;
 
 			return {
 				...component,
 				...(override || {}),
-				salesPrice: profileAdjustedSalesPrice(
-					resolvedSalesPrice,
-					resolvedBasePrice,
-					profileCoefficient,
-				),
+				salesPrice: Number((internalSalesPrice * dealerMultiplier).toFixed(2)),
 				basePrice: Number(resolvedBasePrice ?? 0),
 			};
 		});
 }
-

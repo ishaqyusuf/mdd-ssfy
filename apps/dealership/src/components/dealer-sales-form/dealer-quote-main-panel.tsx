@@ -9,6 +9,9 @@ import type { DealerSalesFormRecord } from "./types";
 
 type DealerQuoteMainPanelProps = {
 	record: DealerSalesFormRecord;
+	pricingView?: "internal" | "dealer";
+	profileCoefficient?: number | null;
+	dealerSalesPercentage?: number | null;
 	onAddLineItem: () => void;
 	onRemoveLineItem: (uid: string) => void;
 	onUpdateLineItem: (
@@ -30,9 +33,12 @@ export function DealerQuoteMainPanel(props: DealerQuoteMainPanelProps) {
 					dataSource={workflowDataSource}
 					workflowCapabilities={workflowCapabilities}
 					pricing={{
+						activeView: props.pricingView || "dealer",
+						dealerSalesPercentage: props.dealerSalesPercentage,
 						lineTotalMode: workflowCapabilities.canEditLinePricing
 							? "editable"
 							: "readonly",
+						profileCoefficient: props.profileCoefficient,
 						getLineDisplayTotal: (line) =>
 							props.lineTotalsByUid?.[line.uid] ??
 							Number(line.qty || 0) * Number(line.unitPrice || 0),

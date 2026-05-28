@@ -124,7 +124,9 @@ export type SalesMeta = {
     discount;
     deliveryCost;
     sales_profile;
-    sales_percentage;
+    salesCoefficient?: number | null;
+    /** @deprecated use salesCoefficient; kept only for reading old order meta. */
+    sales_percentage?: number | null;
     po;
     mockupPercentage: number;
     rep;

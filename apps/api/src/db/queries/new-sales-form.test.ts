@@ -51,6 +51,13 @@ function createMockContext() {
         email: "ada@example.com",
       },
     ],
+    customerTypes: [
+      {
+        id: 7,
+        title: "Builder",
+        coefficient: 0.72,
+      },
+    ],
     products: [
       {
         id: 501,
@@ -393,6 +400,18 @@ function createMockContext() {
         };
         state.salesTaxes.push(row);
         return row;
+      },
+    },
+    customerTypes: {
+      findFirst: async ({ where, select }: any) => {
+        const profile =
+          state.customerTypes.find((row) => row.id === where?.id) || null;
+        if (!profile || !select) return profile;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (profile as any)[key]]),
+        );
       },
     },
   };
@@ -931,7 +950,7 @@ describe("new-sales-form relational parity", () => {
         taxTotal: 0,
         grandTotal: 0,
       },
-      extraCosts: [{ id: null, label: "Labor", type: "Labor", amount: 0 }],
+      extraCosts: [{ id: null, label: "Labor", type: "Labor" as const, amount: 0 }],
       lineItems: [
         {
           id: null,
@@ -1057,7 +1076,7 @@ describe("new-sales-form relational parity", () => {
         taxTotal: 0,
         grandTotal: 0,
       },
-      extraCosts: [{ id: null, label: "Labor", type: "Labor", amount: 0 }],
+      extraCosts: [{ id: null, label: "Labor", type: "Labor" as const, amount: 0 }],
       lineItems: [
         {
           id: overrides.lineId ?? null,
@@ -2133,6 +2152,9 @@ describe("new-sales-form relational parity", () => {
       tax: 7.5,
     });
     expect(state.orders[0]?.customerProfileId).toBe(7);
+    expect(state.orders[0]?.meta).toMatchObject({
+      salesCoefficient: 0.72,
+    });
     expect(state.orders[0]?.taxPercentage).toBe(7.5);
     expect(state.orders[0]?.amountDue).toBe(saved.summary.grandTotal);
 

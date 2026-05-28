@@ -150,6 +150,15 @@ export type DealerPortalSalesDocumentSchema = z.infer<
   typeof dealerPortalSalesDocumentSchema
 >;
 
+export const dealerPortalPrintDocumentSchema = z.object({
+  id: z.number(),
+  mode: z.enum(["quote", "invoice"]),
+  pricingMode: z.enum(["customer", "internal"]),
+});
+export type DealerPortalPrintDocumentSchema = z.infer<
+  typeof dealerPortalPrintDocumentSchema
+>;
+
 export const dealerPortalSalesLineItemSchema = salesFormPortableLineItemSchema;
 export type DealerPortalSalesLineItemSchema = z.infer<
   typeof dealerPortalSalesLineItemSchema
@@ -159,6 +168,13 @@ export const dealerPortalSaveQuoteSchema = z.object({
   id: z.number().optional().nullable(),
   customerId: z.number(),
   customerProfileId: z.number().optional().nullable(),
+  pricingContext: z
+    .object({
+      salesCoefficient: z.number().positive().optional().nullable(),
+      dealerSalesPercentage: z.number().optional().nullable(),
+    })
+    .optional()
+    .nullable(),
   po: z.string().optional().nullable(),
   paymentTerm: z.string().optional().nullable(),
   goodUntil: z.string().optional().nullable(),

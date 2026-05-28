@@ -52,7 +52,9 @@ export type ISalesOrderMeta = {
     ccc_percentage;
     labor_cost;
     discount;
-    sales_percentage;
+    salesCoefficient?: number | null;
+    /** @deprecated use salesCoefficient; kept only for reading old order meta. */
+    sales_percentage?: number | null;
     po;
     // manual_estimate: Boolean;
     mockupPercentage: number;

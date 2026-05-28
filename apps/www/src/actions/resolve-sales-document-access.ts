@@ -11,6 +11,7 @@ import type { PrintMode } from "@gnd/sales/print/types";
 export async function resolveSalesDocumentAccessAction(input: {
 	salesIds: number[];
 	mode: PrintMode;
+	pricingMode?: "customer" | "internal" | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
@@ -20,6 +21,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 		db,
 		salesIds: input.salesIds,
 		mode: input.mode,
+		pricingMode: input.pricingMode ?? null,
 		dispatchId: input.dispatchId ?? null,
 		templateId: input.templateId ?? null,
 		baseUrl: input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
@@ -30,6 +32,7 @@ export async function resolveSalesDocumentAccessAction(input: {
 export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 	salesIds: number[];
 	mode: PrintMode;
+	pricingMode?: "customer" | "internal" | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
@@ -38,6 +41,7 @@ export async function resolveSalesDocumentHtmlPreviewAccessAction(input: {
 		db,
 		salesIds: input.salesIds,
 		mode: input.mode,
+		pricingMode: input.pricingMode ?? null,
 		dispatchId: input.dispatchId ?? null,
 		templateId: input.templateId ?? null,
 		baseUrl: input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,

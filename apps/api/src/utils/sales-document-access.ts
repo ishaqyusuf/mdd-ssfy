@@ -12,7 +12,7 @@ import {
 	resolveCurrentSalesDocument,
 	salesPrintDataToPrintDocumentData,
 } from "@gnd/sales/pdf-system";
-import type { getPrintDocumentData } from "@gnd/sales/print";
+import type { PrintPricingMode, getPrintDocumentData } from "@gnd/sales/print";
 import type { PrintMode } from "@gnd/sales/print/types";
 import {
 	type SalesDocumentAccessToken,
@@ -62,6 +62,7 @@ export type ResolveSalesDocumentAccessInput = {
 	db: Db;
 	salesIds: number[];
 	mode: PrintMode;
+	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
@@ -72,6 +73,7 @@ export type ResolveSalesDocumentHtmlPreviewAccessInput = {
 	db: Db;
 	salesIds: number[];
 	mode: PrintMode;
+	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
@@ -139,13 +141,18 @@ type SnapshotAccessLookup = {
 
 export function buildSalesDocumentTypeKey(input: {
 	mode: PrintMode;
+	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 }) {
 	const baseType = SALES_DOCUMENT_BASE_TYPES[input.mode];
-	if (input.mode === "packing-slip" && input.dispatchId) {
-		return `${baseType}:dispatch:${input.dispatchId}`;
+	const parts: string[] = [baseType];
+	if (input.pricingMode) {
+		parts.push(`pricing:${input.pricingMode}`);
 	}
-	return baseType;
+	if (input.mode === "packing-slip" && input.dispatchId) {
+		parts.push(`dispatch:${input.dispatchId}`);
+	}
+	return parts.join(":");
 }
 
 function buildSalesDocumentScopeKey(input: {
@@ -243,15 +250,21 @@ function buildTemplateSearchParam(templateId?: string | null) {
 		: `&templateId=${encodeURIComponent(template)}`;
 }
 
+function buildPricingModeSearchParam(pricingMode?: PrintPricingMode | null) {
+	return pricingMode ? `&pricingMode=${encodeURIComponent(pricingMode)}` : "";
+}
+
 function buildPublicTokenSalesDocumentUrls(input: {
 	publicToken: string;
 	baseUrl?: string | null;
 	templateId?: string | null;
+	pricingMode?: PrintPricingMode | null;
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
 	const templateParam = buildTemplateSearchParam(input.templateId);
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?pt=${encodeURIComponent(input.publicToken)}${templateParam}`;
-	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?pt=${encodeURIComponent(input.publicToken)}&preview=false${templateParam}`;
+	const pricingModeParam = buildPricingModeSearchParam(input.pricingMode);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?pt=${encodeURIComponent(input.publicToken)}${templateParam}${pricingModeParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?pt=${encodeURIComponent(input.publicToken)}&preview=false${templateParam}${pricingModeParam}`;
 	return { previewUrl, downloadUrl };
 }
 
@@ -259,11 +272,13 @@ function buildSalesDocumentAccessUrls(input: {
 	accessToken: string;
 	baseUrl?: string | null;
 	templateId?: string | null;
+	pricingMode?: PrintPricingMode | null;
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
 	const templateParam = buildTemplateSearchParam(input.templateId);
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?accessToken=${encodeURIComponent(input.accessToken)}${templateParam}`;
-	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&preview=false${templateParam}`;
+	const pricingModeParam = buildPricingModeSearchParam(input.pricingMode);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?accessToken=${encodeURIComponent(input.accessToken)}${templateParam}${pricingModeParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?accessToken=${encodeURIComponent(input.accessToken)}&preview=false${templateParam}${pricingModeParam}`;
 	return { previewUrl, downloadUrl };
 }
 
@@ -271,11 +286,13 @@ function buildLegacySalesDocumentPreviewUrls(input: {
 	token: string;
 	baseUrl?: string | null;
 	templateId?: string | null;
+	pricingMode?: PrintPricingMode | null;
 }) {
 	const baseUrl = resolveBaseUrl(input.baseUrl);
 	const templateParam = buildTemplateSearchParam(input.templateId);
-	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}${templateParam}`;
-	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false${templateParam}`;
+	const pricingModeParam = buildPricingModeSearchParam(input.pricingMode);
+	const previewUrl = `${baseUrl}${SALES_DOCUMENT_PREVIEW_PATH}?token=${encodeURIComponent(input.token)}${templateParam}${pricingModeParam}`;
+	const downloadUrl = `${baseUrl}${SALES_DOCUMENT_DOWNLOAD_PATH}?token=${encodeURIComponent(input.token)}&preview=false${templateParam}${pricingModeParam}`;
 	return { previewUrl, downloadUrl };
 }
 
@@ -483,6 +500,8 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 		await createOrRefreshSalesPrintData(input.db, {
 			salesOrderId,
 			mode: input.mode,
+			pricingMode: input.pricingMode ?? null,
+			documentType: buildSalesDocumentTypeKey(input),
 			dispatchId: input.dispatchId ?? null,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
 			reason: "html_preview_access",
@@ -499,6 +518,7 @@ export async function resolveSalesDocumentHtmlPreviewAccess(
 		token: accessToken,
 		baseUrl: input.baseUrl,
 		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		pricingMode: input.pricingMode ?? null,
 	});
 
 	return {
@@ -601,6 +621,7 @@ async function createSalesPdfSnapshot(input: {
 	db: Db;
 	salesOrderId: number;
 	mode: PrintMode;
+	pricingMode?: PrintPricingMode | null;
 	documentType: string;
 	dispatchId?: number | null;
 	templateId?: string | null;
@@ -632,6 +653,7 @@ async function createSalesPdfSnapshot(input: {
 		sourceUpdatedAt,
 		meta: {
 			mode: input.mode,
+			pricingMode: input.pricingMode ?? null,
 			dispatchId: input.dispatchId ?? null,
 			scopeKey: buildSalesDocumentScopeKey(input),
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
@@ -656,10 +678,12 @@ async function createSalesPdfSnapshot(input: {
 			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			pricingMode: input.pricingMode ?? null,
 		});
 		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
 			salesOrderId: input.salesOrderId,
 			mode: input.mode,
+			pricingMode: input.pricingMode ?? null,
 			documentType: input.documentType,
 			dispatchId: input.dispatchId ?? null,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
@@ -791,6 +815,7 @@ export async function resolveSalesDocumentAccess(
 			token: accessToken,
 			baseUrl: input.baseUrl,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			pricingMode: input.pricingMode ?? null,
 		});
 		return {
 			kind: "legacy",
@@ -821,6 +846,7 @@ export async function resolveSalesDocumentAccess(
 			token: accessToken,
 			baseUrl: input.baseUrl,
 			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			pricingMode: input.pricingMode ?? null,
 		});
 		return {
 			kind: "legacy",
@@ -888,6 +914,7 @@ export async function resolveSalesDocumentAccess(
 				publicToken: publicToken.token,
 				baseUrl: input.baseUrl,
 				templateId: meta.templateId || input.templateId || DEFAULT_TEMPLATE_ID,
+				pricingMode: input.pricingMode ?? null,
 			});
 			return {
 				kind: "snapshot",
@@ -952,6 +979,7 @@ export async function resolveSalesDocumentAccess(
 		db: input.db,
 		salesOrderId,
 		mode: input.mode,
+		pricingMode: input.pricingMode ?? null,
 		documentType,
 		dispatchId: input.dispatchId ?? null,
 		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
@@ -969,6 +997,7 @@ export async function resolveSalesDocumentAccess(
 		publicToken: publicToken.token,
 		baseUrl: input.baseUrl,
 		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+		pricingMode: input.pricingMode ?? null,
 	});
 
 	return {
@@ -1176,6 +1205,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 	token?: string | null;
 	accessToken?: string | null;
 	snapshotId?: string | null;
+	pricingMode?: PrintPricingMode | null;
 	templateId?: string | null;
 	baseUrl?: string | null;
 }) {
@@ -1192,6 +1222,13 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const documentType = input.pricingMode
+			? buildSalesDocumentTypeKey({
+					mode,
+					pricingMode: input.pricingMode,
+					dispatchId: meta.dispatchId ?? null,
+				})
+			: snapshot.documentType;
 		const isStale = await isSalesSnapshotStale({
 			db: input.db,
 			snapshot,
@@ -1200,7 +1237,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
 			salesOrderId: snapshot.salesOrderId,
 			mode,
-			documentType: snapshot.documentType,
+			pricingMode: input.pricingMode ?? null,
+			documentType,
 			dispatchId: meta.dispatchId ?? null,
 			templateId,
 			reason: "html_preview",
@@ -1216,6 +1254,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			publicToken: input.publicToken,
 			baseUrl: input.baseUrl,
 			templateId,
+			pricingMode: input.pricingMode ?? null,
 		});
 		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
 
@@ -1231,7 +1270,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
-			documentType: snapshot.documentType,
+			documentType,
 			snapshotId: snapshot.id,
 			generationStatus: snapshot.generationStatus,
 			generatedAt: dateToIso(snapshot.generatedAt),
@@ -1254,6 +1293,13 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const documentType = input.pricingMode
+			? buildSalesDocumentTypeKey({
+					mode,
+					pricingMode: input.pricingMode,
+					dispatchId: meta.dispatchId ?? null,
+				})
+			: snapshot.documentType;
 		const isStale = await isSalesSnapshotStale({
 			db: input.db,
 			snapshot,
@@ -1262,7 +1308,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
 			salesOrderId: snapshot.salesOrderId,
 			mode,
-			documentType: snapshot.documentType,
+			pricingMode: input.pricingMode ?? null,
+			documentType,
 			dispatchId: meta.dispatchId ?? null,
 			templateId,
 			reason: "html_preview",
@@ -1286,6 +1333,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
 			templateId,
+			pricingMode: input.pricingMode ?? null,
 		});
 		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
 
@@ -1301,7 +1349,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
-			documentType: snapshot.documentType,
+			documentType,
 			snapshotId: snapshot.id,
 			generationStatus: snapshot.generationStatus,
 			generatedAt: dateToIso(snapshot.generatedAt),
@@ -1325,6 +1373,13 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const meta = getSnapshotMeta(snapshot.meta);
 		const mode = meta.mode;
 		if (!mode) return null;
+		const documentType = input.pricingMode
+			? buildSalesDocumentTypeKey({
+					mode,
+					pricingMode: input.pricingMode,
+					dispatchId: meta.dispatchId ?? null,
+				})
+			: snapshot.documentType;
 		const isStale = await isSalesSnapshotStale({
 			db: input.db,
 			snapshot,
@@ -1333,7 +1388,8 @@ export async function resolveSalesDocumentPreviewData(input: {
 		const printDataResult = await createOrRefreshSalesPrintData(input.db, {
 			salesOrderId: snapshot.salesOrderId,
 			mode,
-			documentType: snapshot.documentType,
+			pricingMode: input.pricingMode ?? null,
+			documentType,
 			dispatchId: meta.dispatchId ?? null,
 			templateId,
 			reason: "html_preview",
@@ -1357,6 +1413,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			publicToken: publicToken.token,
 			baseUrl: input.baseUrl,
 			templateId,
+			pricingMode: input.pricingMode ?? null,
 		});
 		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
 
@@ -1372,7 +1429,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			salesOrderId: snapshot.salesOrderId,
 			customerEmail: recipient.customerEmail,
 			customerName: recipient.customerName,
-			documentType: snapshot.documentType,
+			documentType,
 			snapshotId: snapshot.id,
 			generationStatus: snapshot.generationStatus,
 			generatedAt: dateToIso(snapshot.generatedAt),
@@ -1413,8 +1470,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 						await createOrRefreshSalesPrintData(input.db, {
 							salesOrderId: singleSalesOrderId,
 							mode,
+							pricingMode: input.pricingMode ?? null,
 							documentType: buildSalesDocumentTypeKey({
 								mode,
+								pricingMode: input.pricingMode ?? null,
 								dispatchId: payload.dispatchId ?? null,
 							}),
 							dispatchId: payload.dispatchId ?? null,
@@ -1426,8 +1485,10 @@ export async function resolveSalesDocumentPreviewData(input: {
 			: await createOrRefreshBatchSalesPrintData(input.db, {
 					salesOrderIds: payload.salesIds,
 					mode,
+					pricingMode: input.pricingMode ?? null,
 					documentType: buildSalesDocumentTypeKey({
 						mode,
+						pricingMode: input.pricingMode ?? null,
 						dispatchId: payload.dispatchId ?? null,
 					}),
 					dispatchId: payload.dispatchId ?? null,
@@ -1442,6 +1503,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 		token: input.token,
 		baseUrl: input.baseUrl,
 		templateId,
+		pricingMode: input.pricingMode ?? null,
 	});
 	const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
 
@@ -1464,6 +1526,7 @@ export async function resolveSalesDocumentPreviewData(input: {
 			payload.salesIds.length === 1
 				? buildSalesDocumentTypeKey({
 						mode,
+						pricingMode: input.pricingMode ?? null,
 						dispatchId: payload.dispatchId ?? null,
 					})
 				: null,

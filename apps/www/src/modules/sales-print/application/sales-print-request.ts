@@ -26,6 +26,7 @@ export interface SalesPrintRequestParams {
 	preview: boolean;
 	templateId: string;
 	mode: PrintMode;
+	pricingMode: "customer" | "internal" | null;
 }
 
 export interface SalesPrintRequestInfo {
@@ -71,6 +72,7 @@ export function parseSalesPrintRequest(
 		templateId:
 			readStringParam(rawParams.templateId) || DEFAULT_SALES_PRINT_TEMPLATE_ID,
 		mode: normalizeSalesPrintMode(readStringParam(rawParams.mode)),
+		pricingMode: normalizePricingMode(readStringParam(rawParams.pricingMode)),
 	};
 	const locatorTypes = getPresentLocatorTypes(params);
 	const locatorType = locatorTypes[0] ?? "none";
@@ -82,7 +84,10 @@ export function parseSalesPrintRequest(
 				: undefined;
 	const isValid = !invalidReason;
 	const renderMode: SalesPrintRenderMode =
-		isValid && locatorType === "access-token" && !params.preview
+		isValid &&
+		locatorType === "access-token" &&
+		!params.preview &&
+		!params.pricingMode
 			? "stored-pdf"
 			: "rendered-pdf";
 
@@ -127,4 +132,8 @@ function readBooleanParam(value: SalesPrintRawParams[string]) {
 		return value[0] === "true";
 	}
 	return value === "true";
+}
+
+function normalizePricingMode(value?: string | null) {
+	return value === "customer" || value === "internal" ? value : null;
 }

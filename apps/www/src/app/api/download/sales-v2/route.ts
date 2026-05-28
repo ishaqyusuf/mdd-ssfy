@@ -70,6 +70,7 @@ async function renderSnapshotPdfFallback(input: {
 	requestUrl: URL;
 	preview: boolean;
 	templateId?: string | null;
+	pricingMode?: "customer" | "internal" | null;
 	publicToken?: string | null;
 	accessToken?: string | null;
 	snapshotId?: string | null;
@@ -80,6 +81,7 @@ async function renderSnapshotPdfFallback(input: {
 		accessToken: input.accessToken,
 		snapshotId: input.snapshotId,
 		templateId: input.templateId,
+		pricingMode: input.pricingMode ?? null,
 		baseUrl: input.requestUrl.origin,
 	});
 	if (!documentData) return null;
@@ -143,7 +145,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "public-token") {
-		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+		if (!params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
 			const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
 				db,
 				publicToken: params.pt,
@@ -162,6 +164,7 @@ export async function GET(req: NextRequest) {
 			requestUrl,
 			preview: params.preview,
 			templateId: params.templateId,
+			pricingMode: params.pricingMode,
 			publicToken: params.pt,
 		});
 		if (fallbackResponse) return fallbackResponse;
@@ -169,7 +172,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "access-token") {
-		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+		if (!params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
 			const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
 				db,
 				accessToken: params.accessToken,
@@ -188,6 +191,7 @@ export async function GET(req: NextRequest) {
 			requestUrl,
 			preview: params.preview,
 			templateId: params.templateId,
+			pricingMode: params.pricingMode,
 			accessToken: params.accessToken,
 		});
 		if (fallbackResponse) return fallbackResponse;
@@ -195,7 +199,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "snapshot-id") {
-		if (!isSalesPdfSnapshotArtifactsDisabled()) {
+		if (!params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
 			const snapshotLookup = await getSalesSnapshotDocumentById({
 				db,
 				snapshotId: params.snapshotId,
@@ -214,6 +218,7 @@ export async function GET(req: NextRequest) {
 			requestUrl,
 			preview: params.preview,
 			templateId: params.templateId,
+			pricingMode: params.pricingMode,
 			snapshotId: params.snapshotId,
 		});
 		if (fallbackResponse) return fallbackResponse;
@@ -230,8 +235,10 @@ export async function GET(req: NextRequest) {
 	const documentData = await createOrRefreshBatchSalesPrintData(db, {
 		salesOrderIds: payload.salesIds,
 		mode,
+		pricingMode: params.pricingMode,
 		documentType: buildSalesPrintDocumentTypeKey({
 			mode,
+			pricingMode: params.pricingMode,
 			dispatchId: payload.dispatchId ?? null,
 		}),
 		dispatchId: payload.dispatchId ?? null,

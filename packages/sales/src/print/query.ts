@@ -90,6 +90,7 @@ export function buildPrintSalesInclude(mode: PrintMode) {
 		billingAddress: { where: excludeDeletedWhere },
 		shippingAddress: { where: excludeDeletedWhere },
 		salesRep: { where: excludeDeletedWhere },
+		dealerSale: true,
 		...(needsFinancials ? financialInclude : {}),
 		...(needsPacking ? packingInclude : {}),
 	} satisfies Prisma.SalesOrdersInclude;

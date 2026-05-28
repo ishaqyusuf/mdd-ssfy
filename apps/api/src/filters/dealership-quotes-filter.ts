@@ -69,11 +69,14 @@ export async function getDealershipQuotesFilter(
 			orderId: true,
 			status: true,
 			deliveryOption: true,
-			dealerSalesProfileId: true,
-			dealerSalesProfile: {
+			dealerSale: {
 				select: {
-					id: true,
-					title: true,
+					dealerCustomerProfile: {
+						select: {
+							id: true,
+							title: true,
+						},
+					},
 				},
 			},
 			customer: {
@@ -138,15 +141,15 @@ export async function getDealershipQuotesFilter(
 			"Sales Profile",
 			toOptions(
 				quotes.map((quote) =>
-					quote.dealerSalesProfile
-						? `${quote.dealerSalesProfile.id}:${quote.dealerSalesProfile.title}`
+					quote.dealerSale?.dealerCustomerProfile
+						? `${quote.dealerSale.dealerCustomerProfile.id}:${quote.dealerSale.dealerCustomerProfile.title}`
 						: null,
 				),
 			).map((option) => {
 				const [id, ...labelParts] = option.value.split(":");
 				return {
 					label: labelParts.join(":") || option.label,
-					value: id,
+					value: id || option.value,
 				};
 			}),
 		),

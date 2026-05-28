@@ -3,6 +3,7 @@ import {
 	getPrintDocumentData,
 	resolveSalesCompanyAddress,
 } from "../../print/get-print-document-data";
+import type { PrintPricingMode } from "../../print/dealer-pricing-surface";
 import type { CompanyAddress, PrintMode, PrintPage } from "../../print/types";
 import { isSalesSourceStale } from "./source-freshness";
 
@@ -57,6 +58,7 @@ type SalesPrintDataRow = Omit<
 export type ResolveCurrentSalesPrintDataInput = {
 	salesOrderId: number;
 	mode: PrintMode;
+	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 	templateId?: string | null;
 	documentType?: string | null;
@@ -79,13 +81,18 @@ export type ExpireCurrentSalesPrintDataInput = {
 
 export function buildSalesPrintDocumentTypeKey(input: {
 	mode: PrintMode;
+	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 }) {
 	const baseType = SALES_PRINT_DOCUMENT_BASE_TYPES[input.mode];
-	if (input.mode === "packing-slip" && input.dispatchId) {
-		return `${baseType}:dispatch:${input.dispatchId}`;
+	const parts: string[] = [baseType];
+	if (input.pricingMode) {
+		parts.push(`pricing:${input.pricingMode}`);
 	}
-	return baseType;
+	if (input.mode === "packing-slip" && input.dispatchId) {
+		parts.push(`dispatch:${input.dispatchId}`);
+	}
+	return parts.join(":");
 }
 
 export function buildSalesPrintDocumentScopeKey(input: {
@@ -171,6 +178,7 @@ export async function resolveCurrentSalesPrintData(
 		input.documentType ||
 		buildSalesPrintDocumentTypeKey({
 			mode: input.mode,
+			pricingMode: input.pricingMode ?? null,
 			dispatchId: input.dispatchId ?? null,
 		});
 	const current = await findSalesPrintData(db, {
@@ -207,6 +215,7 @@ export async function createOrRefreshSalesPrintData(
 		input.documentType ||
 		buildSalesPrintDocumentTypeKey({
 			mode: input.mode,
+			pricingMode: input.pricingMode ?? null,
 			dispatchId: input.dispatchId ?? null,
 		});
 	const current = await findSalesPrintData(db, {
@@ -261,6 +270,7 @@ export async function createOrRefreshSalesPrintData(
 		const documentData = await loadPrintDocumentData(db, {
 			ids: [input.salesOrderId],
 			mode: input.mode,
+			pricingMode: input.pricingMode ?? undefined,
 			dispatchId: input.dispatchId ?? null,
 		});
 		logSalesPrintCache("getPrintDocumentData", {

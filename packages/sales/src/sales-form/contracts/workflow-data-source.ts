@@ -188,6 +188,9 @@ export type SalesFormWorkflowRecord<TLine extends WorkflowLineItemRecord> = {
 export type SalesFormWorkflowPricingSurface<
 	TLine extends WorkflowLineItemRecord,
 > = {
+	activeView?: "internal" | "dealer";
+	dealerSalesPercentage?: number | null;
 	lineTotalMode?: "editable" | "readonly";
+	profileCoefficient?: number | null;
 	getLineDisplayTotal?: (line: TLine) => number;
 };

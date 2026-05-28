@@ -99,6 +99,23 @@ describe("legacy sales form metadata", () => {
 		});
 	});
 
+	it("migrates legacy sales_percentage to salesCoefficient without re-saving the old key", () => {
+		const meta = projectSalesFormMetaToLegacyMeta({
+			existingMeta: {
+				sales_percentage: 0.72,
+			},
+			form: {
+				po: "PO-789",
+			},
+		});
+
+		expect(meta).toMatchObject({
+			salesCoefficient: 0.72,
+			po: "PO-789",
+		});
+		expect(meta).not.toHaveProperty("sales_percentage");
+	});
+
 	it("matches the legacy net-term payment due date calculation", () => {
 		expect(
 			calculateLegacyPaymentDueDate("Net 30", "2026-02-01T00:00:00.000Z"),

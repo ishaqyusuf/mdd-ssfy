@@ -31,4 +31,26 @@ describe("workflow visible components", () => {
 		expect(components[0]?.salesPrice).toBe(5);
 		expect(components[0]?.basePrice).toBe(10);
 	});
+
+	it("applies dealer percentage when resolving dealer view component prices", () => {
+		const components = resolveWorkflowVisibleComponents({
+			components: [
+				{
+					uid: "dealer-visible",
+					title: "Dealer Visible",
+					salesPrice: 20,
+					basePrice: 10,
+				},
+			],
+			steps: [],
+			activeStep: null,
+			overrides: new Map(),
+			includeCustomComponents: true,
+			profileCoefficient: 2,
+			pricingView: "dealer",
+			dealerSalesPercentage: 20,
+		});
+
+		expect(components[0]?.salesPrice).toBe(6);
+	});
 });

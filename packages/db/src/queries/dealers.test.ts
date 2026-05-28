@@ -172,6 +172,7 @@ function createDealerQuoteTestDb(options: {
   let createdOrderData: Record<string, unknown> | null = null;
   let updatedOrderData: Record<string, unknown> | null = null;
   let createdItemData: Array<Record<string, unknown>> = [];
+  let dealerSalesData: Record<string, unknown> | null = null;
   let sequenceCountWhere: Record<string, unknown> | null = null;
 
   const tx = {
@@ -274,6 +275,14 @@ function createDealerQuoteTestDb(options: {
         return { count: data.length };
       },
     },
+    dealerSales: {
+      upsert: async ({ create, update }: Record<string, any>) => {
+        dealerSalesData = dealerSalesData
+          ? { ...dealerSalesData, ...update }
+          : create;
+        return dealerSalesData;
+      },
+    },
   };
 
   const db = {
@@ -285,6 +294,7 @@ function createDealerQuoteTestDb(options: {
     db,
     getCreatedOrderData: () => createdOrderData,
     getCreatedItemData: () => createdItemData,
+    getDealerSalesData: () => dealerSalesData,
     getUpdatedOrderData: () => updatedOrderData,
     getSequenceCountWhere: () => sequenceCountWhere,
   };
@@ -616,9 +626,7 @@ describe("dealer portal DPP identities", () => {
       salesOrders: {
         findFirst: async () => ({
           id: 55,
-          meta: {
-            source: "dealer_portal",
-          },
+          meta: {},
         }),
         count: async ({ where }: { where: Record<string, unknown> }) => {
           if (typeof where.orderId === "string") return 0;
@@ -655,7 +663,6 @@ describe("dealer portal DPP identities", () => {
       type: "order",
       status: "New",
       meta: {
-        source: "dealer_portal",
         convertedFromDealerQuoteId: 55,
       },
     });
@@ -913,12 +920,13 @@ describe("dealer portal isolation", () => {
               customerId: 20,
               customerProfileId: 30,
               dealerSalesProfileId: 40,
-              meta: {
-                dealerPricing: {
-                  summary: {
-                    grandTotal: 150,
-                  },
-                },
+              meta: {},
+              dealerSale: {
+                customerId: 20,
+                dealerCustomerProfileId: 40,
+                dealerSalesPercentage: 50,
+                grandTotal: 150,
+                dueAmount: 150,
               },
               customer: {
                 id: 20,
@@ -938,10 +946,6 @@ describe("dealer portal isolation", () => {
                   meta: {
                     uid: "line-1",
                     title: "Entry Door",
-                    internalUnitPrice: 100,
-                    internalLineTotal: 100,
-                    dealerUnitPrice: 150,
-                    dealerLineTotal: 150,
                   },
                 },
               ],
@@ -988,12 +992,14 @@ describe("dealer portal isolation", () => {
             customerId: 20,
             customerProfileId: 30,
             dealerSalesProfileId: 40,
+            dealerSale: {
+              customerId: 20,
+              dealerCustomerProfileId: 40,
+              dealerSalesPercentage: 50,
+              grandTotal: 150,
+              dueAmount: 150,
+            },
             meta: {
-              dealerPricing: {
-                summary: {
-                  grandTotal: 150,
-                },
-              },
               newSalesForm: {
                 form: {
                   customerId: 20,
@@ -1086,8 +1092,14 @@ describe("dealer portal isolation", () => {
     });
     const savedOrderData = testDb.getCreatedOrderData() as Record<string, any>;
     expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
-    expect(savedOrderData.meta.dealerPricing.profileId).toBe(45);
-    expect(savedOrderData.meta.dealerPricing.summary.grandTotal).toBe(150);
+    expect(savedOrderData.meta).not.toHaveProperty("dealerPricing");
+    expect(savedOrderData.meta).not.toHaveProperty("pricingSnapshot");
+    expect(testDb.getDealerSalesData()).toMatchObject({
+      dealerCustomerProfileId: 45,
+      dealerSalesPercentage: 50,
+      grandTotal: 150,
+      dueAmount: 150,
+    });
   });
 
   it("falls back to the dealer customer's assigned profile when quote profile is omitted", async () => {
@@ -1154,17 +1166,10 @@ describe("dealer portal isolation", () => {
                 type: "quote",
                 grandTotal: 100,
                 amountDue: 100,
-                meta: {
-                  internalPricing: {
-                    summary: {
-                      grandTotal: 100,
-                    },
-                  },
-                  dealerPricing: {
-                    summary: {
-                      grandTotal: 150,
-                    },
-                  },
+                meta: {},
+                dealerSale: {
+                  grandTotal: 150,
+                  dueAmount: 150,
                 },
                 invoiceStatus: null,
                 createdAt: new Date("2026-05-18T00:00:00.000Z"),
@@ -1220,16 +1225,20 @@ describe("dealer portal isolation", () => {
     expect(capturedWhere).toMatchObject({
       dealerAuthId: 10,
       deletedAt: null,
-      customerId: 20,
+      dealerSale: {
+        is: {
+          customerId: 20,
+          dealerCustomerProfileId: 45,
+          dueAmount: {
+            gt: 0,
+          },
+        },
+      },
       type: {
         not: "quote",
       },
       deliveryOption: "delivery",
-      dealerSalesProfileId: 45,
       invoiceStatus: "pending",
-      amountDue: {
-        gt: 0,
-      },
     });
   });
 

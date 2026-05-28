@@ -72,11 +72,14 @@ export async function getDealershipOrdersFilter(
 			status: true,
 			deliveryOption: true,
 			invoiceStatus: true,
-			dealerSalesProfileId: true,
-			dealerSalesProfile: {
+			dealerSale: {
 				select: {
-					id: true,
-					title: true,
+					dealerCustomerProfile: {
+						select: {
+							id: true,
+							title: true,
+						},
+					},
 				},
 			},
 			customer: {
@@ -141,15 +144,15 @@ export async function getDealershipOrdersFilter(
 			"Sales Profile",
 			toOptions(
 				orders.map((order) =>
-					order.dealerSalesProfile
-						? `${order.dealerSalesProfile.id}:${order.dealerSalesProfile.title}`
+					order.dealerSale?.dealerCustomerProfile
+						? `${order.dealerSale.dealerCustomerProfile.id}:${order.dealerSale.dealerCustomerProfile.title}`
 						: null,
 				),
 			).map((option) => {
 				const [id, ...labelParts] = option.value.split(":");
 				return {
 					label: labelParts.join(":") || option.label,
-					value: id,
+					value: id || option.value,
 				};
 			}),
 		),

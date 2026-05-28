@@ -1,11 +1,15 @@
 "use client";
 
+import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { Item as ItemUi } from "@gnd/ui/namespace";
+import { DropdownMenu, Item as ItemUi } from "@gnd/ui/namespace";
+import { toast } from "@gnd/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FileText } from "lucide-react";
+import { FileText, MoreHorizontal, Printer } from "lucide-react";
 
 export type Item = RouterOutputs["dealerPortal"]["orders"]["data"][number];
 type Column = ColumnDef<Item>;
@@ -32,6 +36,66 @@ function customerName(item: Item) {
 		item.customer?.name ||
 		item.customer?.email ||
 		"-"
+	);
+}
+
+function OrderActions({ item }: { item: Item }) {
+	const trpc = useTRPC();
+	const printDocument = useMutation(
+		trpc.dealerPortal.printDocument.mutationOptions({
+			onSuccess: (result) => {
+				window.open(result.previewUrl, "_blank", "noopener,noreferrer");
+			},
+			onError: (error) => {
+				toast({
+					title: "Could not open print preview.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+
+	return (
+		<div className="flex justify-end">
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild>
+					<Button size="sm" type="button" variant="ghost">
+						<MoreHorizontal className="size-4" />
+					</Button>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end" className="w-[190px]">
+					<DropdownMenu.Item
+						disabled={printDocument.isPending}
+						onSelect={(event) => {
+							event.preventDefault();
+							printDocument.mutate({
+								id: item.id,
+								mode: "invoice",
+								pricingMode: "customer",
+							});
+						}}
+					>
+						<Printer className="mr-2 size-4" />
+						Print customer
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						disabled={printDocument.isPending}
+						onSelect={(event) => {
+							event.preventDefault();
+							printDocument.mutate({
+								id: item.id,
+								mode: "invoice",
+								pricingMode: "internal",
+							});
+						}}
+					>
+						<Printer className="mr-2 size-4" />
+						Print internal
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
+		</div>
 	);
 }
 
@@ -97,6 +161,11 @@ export const columns: Column[] = [
 				{date(item.createdAt)}
 			</span>
 		),
+	},
+	{
+		header: "",
+		accessorKey: "actions",
+		cell: ({ row: { original: item } }) => <OrderActions item={item} />,
 	},
 ];
 

@@ -70,6 +70,7 @@ model SalesOrders {
     commisions        SalesCommision[]
     customer          Customers?                       @relation(fields: [customerId], references: [id])
     dealerAuth        DealerAuth?                      @relation(fields: [dealerAuthId], references: [id])
+    dealerSale        DealerSales?
     deliveries        OrderDelivery[]
     doors             DykeSalesDoors[]
     formSteps         DykeStepForm[]
@@ -110,6 +111,27 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model DealerSales {
+    id                      Int           @unique @default(autoincrement())
+    salesOrderId            Int           @unique
+    dealerAuthId            Int
+    customerId              Int
+    dealerCustomerProfileId Int
+    dealerSalesPercentage   Float
+    grandTotal              Float
+    dueAmount               Float
+    createdAt               DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt               DateTime?     @updatedAt
+    salesOrder              SalesOrders   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    dealerAuth              DealerAuth    @relation(fields: [dealerAuthId], references: [id])
+    customer                Customers     @relation(fields: [customerId], references: [id])
+    dealerCustomerProfile   CustomerTypes @relation(name: "dealerSaleCustomerProfile", fields: [dealerCustomerProfileId], references: [id])
+
+    @@index([dealerAuthId])
+    @@index([customerId])
+    @@index([dealerCustomerProfileId])
 }
 
 model OrderProductionGate {

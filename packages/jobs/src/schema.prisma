@@ -675,6 +675,7 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
     productionGate    OrderProductionGate?
+    dealerSale        DealerSales?
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -691,6 +692,27 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model DealerSales {
+    id                      Int           @unique @default(autoincrement())
+    salesOrderId            Int           @unique
+    dealerAuthId            Int
+    customerId              Int
+    dealerCustomerProfileId Int
+    dealerSalesPercentage   Float
+    grandTotal              Float
+    dueAmount               Float
+    createdAt               DateTime?     @default(now()) @db.Timestamp(0)
+    updatedAt               DateTime?     @updatedAt
+    salesOrder              SalesOrders   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    dealerAuth              DealerAuth    @relation(fields: [dealerAuthId], references: [id])
+    customer                Customers     @relation(fields: [customerId], references: [id])
+    dealerCustomerProfile   CustomerTypes @relation(name: "dealerSaleCustomerProfile", fields: [dealerCustomerProfileId], references: [id])
+
+    @@index([dealerAuthId])
+    @@index([customerId])
+    @@index([dealerCustomerProfileId])
 }
 
 model OrderProductionGate {
@@ -3714,6 +3736,7 @@ model Customers {
     createdAt      DateTime?             @default(now()) @db.Timestamp(0)
     updatedAt      DateTime?             @updatedAt
     salesOrders    SalesOrders[]
+    dealerSales    DealerSales[]
     profile        CustomerTypes?        @relation(fields: [customerTypeId], references: [id])
     addressBooks   AddressBooks[]        @relation(name: "addressBooks")
     taxProfiles    CustomerTaxProfiles[]
@@ -3768,6 +3791,7 @@ model DealerAuth {
     ownedCustomers           Customers[]           @relation(name: "dealerOwnedCustomers")
     salesProfiles            CustomerTypes[]       @relation(name: "dealerSalesProfiles")
     salesOrders              SalesOrders[]
+    dealerSales              DealerSales[]
     statusHistory            DealerStatusHistory[]
     token                    DealerToken[]
     primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
@@ -3824,6 +3848,7 @@ model CustomerTypes {
     sales     SalesOrders[]
     dealerOwner DealerAuth?   @relation(name: "dealerSalesProfiles", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     dealerSales SalesOrders[] @relation(name: "dealerSalesProfile")
+    dealerSaleProfiles DealerSales[] @relation(name: "dealerSaleCustomerProfile")
 
     @@index([dealerOwnerId])
 }
@@ -4788,4 +4813,3 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
-

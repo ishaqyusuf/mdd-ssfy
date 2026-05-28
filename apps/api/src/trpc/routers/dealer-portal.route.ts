@@ -3,6 +3,7 @@ import {
   dealerPortalCustomersListSchema,
   dealerPortalCustomerLookupSchema,
   dealerPortalCustomerSchema,
+  dealerPortalPrintDocumentSchema,
   dealerPortalRequestQuoteOrderSchema,
   dealerPortalSaveQuoteSchema,
   dealerPortalSalesDocumentSchema,
@@ -65,6 +66,8 @@ import {
 } from "@api/utils/dealer-workflow-visibility";
 import { NotificationService } from "@gnd/notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { TRPCError } from "@trpc/server";
+import { resolveSalesDocumentHtmlPreviewAccess } from "@api/utils/sales-document-access";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
 const dealerWorkflowStepComponentsSchema = z.object({
@@ -234,6 +237,31 @@ export const dealerPortalRouter = createTRPCRouter({
     .input(dealerPortalSalesDocumentSchema)
     .query(({ ctx, input }) => {
       return getDealerPortalSalesDocument(ctx.db, ctx.dealer.id, input.id);
+    }),
+  printDocument: dealerProtectedProcedure
+    .input(dealerPortalPrintDocumentSchema)
+    .mutation(async ({ ctx, input }) => {
+      const sale = await ctx.db.salesOrders.findFirst({
+        where: {
+          id: input.id,
+          dealerAuthId: ctx.dealer.id,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+      if (!sale) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      return resolveSalesDocumentHtmlPreviewAccess({
+        db: ctx.db,
+        salesIds: [sale.id],
+        mode: input.mode,
+        pricingMode: input.pricingMode,
+        baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
+      });
     }),
   saveQuote: dealerProtectedProcedure
     .input(dealerPortalSaveQuoteSchema)

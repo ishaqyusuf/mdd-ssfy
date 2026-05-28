@@ -25,6 +25,7 @@ type DealerQuoteSummaryPanelProps = {
   grossProfit?: number | null;
   marginPercent?: number | null;
   dealerSalesPercentage?: number | null;
+  pricingView?: "internal" | "dealer";
   taxTotal?: number | null;
   grandTotal?: number | null;
   taxCode?: string | null;
@@ -40,6 +41,7 @@ type DealerQuoteSummaryPanelProps = {
   showMargin?: boolean;
   onChangeCustomer: () => void;
   onProfileChange: (customerProfileId: number | null) => void;
+  onPricingViewChange: (pricingView: "internal" | "dealer") => void;
   onShowMarginChange: (showMargin: boolean) => void;
   onTaxCodeChange: (taxCode: string | null) => void;
   onPoChange: (value: string) => void;
@@ -110,6 +112,24 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
           props.onTaxCodeChange(value === "none" ? null : value)
         }
       />
+      <div className="rounded-xl border bg-card p-4">
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant={props.pricingView === "internal" ? "default" : "outline"}
+            onClick={() => props.onPricingViewChange("internal")}
+          >
+            Internal
+          </Button>
+          <Button
+            type="button"
+            variant={props.pricingView === "dealer" ? "default" : "outline"}
+            onClick={() => props.onPricingViewChange("dealer")}
+          >
+            Customer
+          </Button>
+        </div>
+      </div>
       <div className="rounded-xl border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div>

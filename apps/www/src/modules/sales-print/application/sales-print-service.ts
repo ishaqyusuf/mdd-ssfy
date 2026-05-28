@@ -29,6 +29,7 @@ export type SalesPrintRequestMode = PrintMode | IOrderPrintMode;
 export interface SalesPrintRequest {
     salesIds: number[];
     mode?: SalesPrintRequestMode;
+    pricingMode?: "customer" | "internal" | null;
     dispatchId?: number | null;
     templateId?: string | null;
     baseUrl?: string | null;
@@ -46,6 +47,7 @@ type SalesPrintDependencies = {
     resolveAccess(input: {
         salesIds: number[];
         mode: PrintMode;
+        pricingMode?: "customer" | "internal" | null;
         dispatchId?: number | null;
         templateId?: string | null;
         baseUrl?: string | null;
@@ -54,6 +56,7 @@ type SalesPrintDependencies = {
     resolveHtmlPreviewAccess(input: {
         salesIds: number[];
         mode: PrintMode;
+        pricingMode?: "customer" | "internal" | null;
         dispatchId?: number | null;
         templateId?: string | null;
         baseUrl?: string | null;
@@ -126,6 +129,7 @@ export function buildSalesPrintViewerUrl(
         preview?: boolean;
         templateId?: string | null;
         mode?: PrintMode;
+        pricingMode?: "customer" | "internal" | null;
         origin?: string;
     },
 ) {
@@ -136,11 +140,13 @@ export function buildSalesDocumentPreviewUrl(
     access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
     options?: {
         templateId?: string | null;
+        pricingMode?: "customer" | "internal" | null;
         origin?: string;
     },
 ) {
     return buildSalesDocumentRouteUrl(PREVIEW_PAGE_PATH, access, {
         templateId: options?.templateId,
+        pricingMode: options?.pricingMode ?? null,
         origin: options?.origin,
     });
 }
@@ -154,6 +160,7 @@ export function buildSalesDocumentRouteFromQuery(input: {
     preview?: boolean;
     templateId?: string | null;
     mode?: PrintMode;
+    pricingMode?: "customer" | "internal" | null;
     origin?: string;
 }) {
     const path = input.path || PRINT_VIEWER_PATH;
@@ -171,6 +178,9 @@ export function buildSalesDocumentRouteFromQuery(input: {
     }
     if (input.mode) {
         url.searchParams.set("mode", input.mode);
+    }
+    if (input.pricingMode) {
+        url.searchParams.set("pricingMode", input.pricingMode);
     }
 
     const templateId = input.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;
@@ -215,6 +225,7 @@ export async function resolveSalesPrintAccess(
         templateId,
         baseUrl,
         forceRegenerate: request.forceRegenerate ?? false,
+        pricingMode: request.pricingMode ?? null,
     });
 
     const inflight = inflightAccessRequests.get(accessKey);
@@ -224,6 +235,7 @@ export async function resolveSalesPrintAccess(
         .resolveAccess({
             salesIds: request.salesIds,
             mode,
+            pricingMode: request.pricingMode ?? null,
             dispatchId: request.dispatchId ?? null,
             templateId,
             baseUrl,
@@ -250,6 +262,7 @@ export async function resolveSalesHtmlPreviewAccess(
         dispatchId: request.dispatchId ?? null,
         templateId,
         baseUrl,
+        pricingMode: request.pricingMode ?? null,
     });
 
     const inflight = inflightHtmlPreviewRequests.get(accessKey);
@@ -259,6 +272,7 @@ export async function resolveSalesHtmlPreviewAccess(
         .resolveHtmlPreviewAccess({
             salesIds: request.salesIds,
             mode,
+            pricingMode: request.pricingMode ?? null,
             dispatchId: request.dispatchId ?? null,
             templateId,
             baseUrl,
@@ -301,6 +315,7 @@ export async function openSalesPrintDocument(
             preview: false,
             templateId: request.templateId,
             mode,
+            pricingMode: request.pricingMode ?? null,
         });
 
         if (shouldUseAttachmentOverlay) {
@@ -383,6 +398,7 @@ export async function prepareSalesPrintPreview(
     const access = await resolveSalesPrintAccess(request, dependencies);
     return buildSalesDocumentPreviewUrl(access, {
         templateId: request.templateId,
+        pricingMode: request.pricingMode ?? null,
     });
 }
 
@@ -393,6 +409,7 @@ export async function prepareSalesHtmlPreview(
     const access = await resolveSalesHtmlPreviewAccess(request, dependencies);
     return buildSalesDocumentPreviewUrl(access, {
         templateId: request.templateId,
+        pricingMode: request.pricingMode ?? null,
     });
 }
 
@@ -425,6 +442,7 @@ function buildSalesDocumentRouteUrl(
         preview?: boolean;
         templateId?: string | null;
         mode?: PrintMode;
+        pricingMode?: "customer" | "internal" | null;
         origin?: string;
     },
 ) {
@@ -444,6 +462,9 @@ function buildSalesDocumentRouteUrl(
     }
     if (options?.mode) {
         url.searchParams.set("mode", options.mode);
+    }
+    if (options?.pricingMode) {
+        url.searchParams.set("pricingMode", options.pricingMode);
     }
 
     const templateId = options?.templateId ?? DEFAULT_SALES_PRINT_TEMPLATE_ID;

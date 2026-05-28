@@ -37,6 +37,7 @@ interface PrintSalesV2Props {
 	preview?: boolean;
 	templateId?: string;
 	mode?: PrintMode;
+	pricingMode?: "customer" | "internal" | null;
 	className?: string;
 	printRequest?: SalesPrintRequestInfo;
 	onPrintReady?: () => void;
@@ -55,6 +56,7 @@ export function PrintSalesV2({
 	preview,
 	templateId,
 	mode,
+	pricingMode,
 	className,
 	printRequest,
 	onPrintReady,
@@ -82,6 +84,7 @@ export function PrintSalesV2({
 			preview={preview}
 			templateId={templateId}
 			mode={mode}
+			pricingMode={pricingMode}
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}
@@ -98,6 +101,7 @@ function PrintSalesV2FromFilters({
 	preview,
 	templateId,
 	mode,
+	pricingMode,
 	className,
 	onPrintReady,
 	onPrintError,
@@ -112,6 +116,7 @@ function PrintSalesV2FromFilters({
 		preview: preview ?? filters.preview,
 		templateId: templateId ?? filters.templateId,
 		mode: mode ?? filters.mode,
+		pricingMode,
 	});
 
 	return (
@@ -169,6 +174,7 @@ function PrintSalesV2Resolved({
 			snapshotId={params.snapshotId}
 			preview={params.preview}
 			templateId={params.templateId}
+			pricingMode={params.pricingMode}
 			className={className}
 			onPrintReady={onPrintReady}
 			onPrintError={onPrintError}

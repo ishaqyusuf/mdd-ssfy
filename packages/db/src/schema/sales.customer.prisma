@@ -16,6 +16,7 @@ model Customers {
     createdAt      DateTime?             @default(now()) @db.Timestamp(0)
     updatedAt      DateTime?             @updatedAt
     salesOrders    SalesOrders[]
+    dealerSales    DealerSales[]
     profile        CustomerTypes?        @relation(fields: [customerTypeId], references: [id])
     addressBooks   AddressBooks[]        @relation(name: "addressBooks")
     taxProfiles    CustomerTaxProfiles[]
@@ -70,6 +71,7 @@ model DealerAuth {
     ownedCustomers           Customers[]           @relation(name: "dealerOwnedCustomers")
     salesProfiles            CustomerTypes[]       @relation(name: "dealerSalesProfiles")
     salesOrders              SalesOrders[]
+    dealerSales              DealerSales[]
     statusHistory            DealerStatusHistory[]
     token                    DealerToken[]
     primaryBillingAddress    AddressBooks?         @relation(name: "primaryBillingAddress", fields: [primaryBillingAddressId], references: [id])
@@ -126,6 +128,7 @@ model CustomerTypes {
     sales     SalesOrders[]
     dealerOwner DealerAuth?   @relation(name: "dealerSalesProfiles", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     dealerSales SalesOrders[] @relation(name: "dealerSalesProfile")
+    dealerSaleProfiles DealerSales[] @relation(name: "dealerSaleCustomerProfile")
 
     @@index([dealerOwnerId])
 }

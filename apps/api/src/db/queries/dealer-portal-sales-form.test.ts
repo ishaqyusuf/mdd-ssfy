@@ -71,6 +71,7 @@ function createDealerPortalSalesFormContext(
   const state = {
     orders: [] as DealerOrderRow[],
     items: [] as SalesOrderItemRow[],
+    dealerSales: [] as Row[],
     nextOrderId: 1,
     createdOrderData: null as Row | null,
     updatedOrderData: null as Row | null,
@@ -256,6 +257,23 @@ function createDealerPortalSalesFormContext(
         return { count: data.length };
       },
     },
+    dealerSales: {
+      upsert: async ({ where, create, update }: any) => {
+        const existing = state.dealerSales.find(
+          (row) => row.salesOrderId === where?.salesOrderId,
+        );
+        if (existing) {
+          Object.assign(existing, update);
+          return existing;
+        }
+        const row = {
+          id: state.dealerSales.length + 1,
+          ...create,
+        };
+        state.dealerSales.push(row);
+        return row;
+      },
+    },
   };
   const db = {
     $transaction: async (callback: (transaction: typeof tx) => unknown) =>
@@ -289,18 +307,23 @@ describe("dealer portal sales form DPP identities", () => {
       salesRepId: 700,
     });
     expect(state.createdOrderData?.meta).toMatchObject({
-      pricingSnapshot: {
-        profiles: {
-          dealer: {
-            salesPercentage: 20,
-          },
-        },
-      },
-      dealerPricing: {
-        summary: {
-          grandTotal: 109.2,
-        },
-      },
+      salesCoefficient: 1.1,
+    });
+    expect(state.createdOrderData?.meta).not.toHaveProperty("source");
+    expect(state.createdOrderData?.meta).not.toHaveProperty("pricingSnapshot");
+    expect(state.createdOrderData?.meta).not.toHaveProperty("dealerPricing");
+    expect(state.createdOrderData?.meta).not.toHaveProperty("internalPricing");
+    expect(state.createdOrderData?.meta).not.toHaveProperty(
+      "dealerSalesPercentage",
+    );
+    expect(state.dealerSales[0]).toMatchObject({
+      salesOrderId: 1,
+      dealerAuthId: 10,
+      customerId: 20,
+      dealerCustomerProfileId: 30,
+      dealerSalesPercentage: 20,
+      grandTotal: 109.2,
+      dueAmount: 109.2,
     });
     expect(state.sequenceCountWhere).toMatchObject({
       dealerAuthId: {
@@ -323,6 +346,34 @@ describe("dealer portal sales form DPP identities", () => {
 
     expect(saved.orderId).toBe("00003DPP");
     expect(saved.slug).toBe("quote-00003dpp");
+  });
+
+  it("uses explicit pricing context when keeping saved profile snapshots", async () => {
+    const { ctx, state } = createDealerPortalSalesFormContext();
+
+    await saveDealerPortalQuote(
+      ctx,
+      10,
+      dealerQuoteInput({
+        pricingContext: {
+          salesCoefficient: 1.25,
+          dealerSalesPercentage: 35,
+        },
+      }),
+    );
+
+    expect(state.createdOrderData?.meta).toMatchObject({
+      salesCoefficient: 1.25,
+    });
+    expect(state.items[0]).toMatchObject({
+      rate: 80,
+      total: 80,
+    });
+    expect(state.dealerSales[0]).toMatchObject({
+      dealerSalesPercentage: 35,
+      grandTotal: 108,
+      dueAmount: 108,
+    });
   });
 
   it("preserves an existing dealer quote order id on edit", async () => {

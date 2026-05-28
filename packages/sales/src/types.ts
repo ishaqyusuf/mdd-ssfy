@@ -1,12 +1,12 @@
 import type { db, Prisma, SalesStat } from "@gnd/db";
-import {
+import type {
   composeSalesItemControl,
   getSaleInformation,
   PrintInvoice,
 } from "./exports";
-import { RenturnTypeAsync } from "@gnd/utils";
+import type { RenturnTypeAsync } from "@gnd/utils";
 import { DISPATCH_ITEM_PACKING_STATUS } from "./utils/constants";
-import { CSSProperties } from "react";
+import type { CSSProperties } from "react";
 export type StepMeta = {
   custom: boolean;
   priceStepDeps: string[];
@@ -76,7 +76,9 @@ export type SalesMeta = {
   discount;
   deliveryCost;
   sales_profile;
-  sales_percentage;
+  salesCoefficient?: number | null;
+  /** @deprecated use salesCoefficient; kept only for reading old order meta. */
+  sales_percentage?: number | null;
   po;
   mockupPercentage: number;
   rep;

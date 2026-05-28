@@ -5,11 +5,11 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { Item as ItemUi } from "@gnd/ui/namespace";
+import { DropdownMenu, Item as ItemUi } from "@gnd/ui/namespace";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FileText } from "lucide-react";
+import { FileText, MoreHorizontal, Printer } from "lucide-react";
 import Link from "next/link";
 
 export type Item = RouterOutputs["dealerPortal"]["quotes"]["data"][number];
@@ -50,6 +50,20 @@ function requestStatusLabel(status?: string | null) {
 function QuoteActions({ item }: { item: Item }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const printDocument = useMutation(
+		trpc.dealerPortal.printDocument.mutationOptions({
+			onSuccess: (result) => {
+				window.open(result.previewUrl, "_blank", "noopener,noreferrer");
+			},
+			onError: (error) => {
+				toast({
+					title: "Could not open print preview.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 	const requestOrder = useMutation(
 		trpc.dealerPortal.requestQuoteOrder.mutationOptions({
 			onSuccess: async () => {
@@ -87,9 +101,47 @@ function QuoteActions({ item }: { item: Item }) {
 
 	return (
 		<div className="flex justify-end gap-2">
-			<Button asChild size="sm" variant="ghost">
-				<Link href={`/quotes/${item.id}/edit`}>Edit</Link>
-			</Button>
+			<DropdownMenu.Root>
+				<DropdownMenu.Trigger asChild>
+					<Button size="sm" type="button" variant="ghost">
+						<MoreHorizontal className="size-4" />
+					</Button>
+				</DropdownMenu.Trigger>
+				<DropdownMenu.Content align="end" className="w-[190px]">
+					<DropdownMenu.Item asChild>
+						<Link href={`/quotes/${item.id}/edit`}>Edit</Link>
+					</DropdownMenu.Item>
+					<DropdownMenu.Separator />
+					<DropdownMenu.Item
+						disabled={printDocument.isPending}
+						onSelect={(event) => {
+							event.preventDefault();
+							printDocument.mutate({
+								id: item.id,
+								mode: "quote",
+								pricingMode: "customer",
+							});
+						}}
+					>
+						<Printer className="mr-2 size-4" />
+						Print customer
+					</DropdownMenu.Item>
+					<DropdownMenu.Item
+						disabled={printDocument.isPending}
+						onSelect={(event) => {
+							event.preventDefault();
+							printDocument.mutate({
+								id: item.id,
+								mode: "quote",
+								pricingMode: "internal",
+							});
+						}}
+					>
+						<Printer className="mr-2 size-4" />
+						Print internal
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
 			<Button
 				disabled={requestOrder.isPending || isPendingRequest || isClosedRequest}
 				onClick={() => requestOrder.mutate({ id: item.id })}

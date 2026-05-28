@@ -100,6 +100,22 @@ export type DealerSalesFormQuoteSource = {
   taxCode?: string | null;
   taxRate?: number | null;
   lineItems?: unknown;
+  pricingContext?: DealerSalesFormQuotePricingContext | null;
+};
+
+export type DealerSalesFormQuotePricingContext = {
+  internal?: {
+    customerProfileId?: number | null;
+    savedCoefficient?: number | null;
+    currentCoefficient?: number | null;
+    hasChanged?: boolean | null;
+  } | null;
+  dealer?: {
+    dealerCustomerProfileId?: number | null;
+    savedSalesPercentage?: number | null;
+    currentSalesPercentage?: number | null;
+    hasChanged?: boolean | null;
+  } | null;
 };
 
 export type DealerSalesFormQuoteLineItemRecord = SalesFormLineItemRecord & {
@@ -141,6 +157,10 @@ export type DealerSalesFormQuoteSaveInput = {
   id?: number | null;
   customerId: number;
   customerProfileId?: number | null;
+  pricingContext?: {
+    salesCoefficient?: number | null;
+    dealerSalesPercentage?: number | null;
+  } | null;
   po?: string | null;
   paymentTerm?: string | null;
   goodUntil?: string | null;
@@ -383,6 +403,10 @@ export function composeDealerSalesFormQuoteSaveInput(input: {
   id?: number | null;
   customerProfileId?: number | null;
   lineTotalsByUid?: Record<string, number | undefined>;
+  pricingContext?: {
+    salesCoefficient?: number | null;
+    dealerSalesPercentage?: number | null;
+  } | null;
 }): DealerSalesFormQuoteSaveInput | null {
   const customerId = input.record.form.customerId;
   if (!customerId) return null;
@@ -392,6 +416,7 @@ export function composeDealerSalesFormQuoteSaveInput(input: {
     customerId,
     customerProfileId:
       input.customerProfileId ?? input.record.form.customerProfileId ?? null,
+    pricingContext: input.pricingContext ?? null,
     deliveryOption: input.record.form.deliveryOption || "pickup",
     goodUntil: input.record.form.goodUntil || null,
     paymentMethod: input.record.form.paymentMethod || null,
@@ -425,7 +450,7 @@ export function composeDealerSalesFormQuoteSaveInput(input: {
   };
 }
 
-export function composeDealerSalesFormQuotePricingSnapshot(
+export function composeDealerSalesFormQuotePricing(
   input: ComposeDealerSalesFormQuotePricingSnapshotInput,
 ): DualPricingSnapshot {
   return composeSalesFormPricingSnapshot({
@@ -445,3 +470,7 @@ export function composeDealerSalesFormQuotePricingSnapshot(
     createdAt: input.createdAt,
   }) as DualPricingSnapshot;
 }
+
+/** @deprecated use composeDealerSalesFormQuotePricing. */
+export const composeDealerSalesFormQuotePricingSnapshot =
+  composeDealerSalesFormQuotePricing;

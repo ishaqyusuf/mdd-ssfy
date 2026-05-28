@@ -3,6 +3,7 @@ export { getPrintDocumentData, resolveSalesCompanyAddress } from "./get-print-do
 export { buildCustomerNameLines } from "./compose/customer-name-lines";
 export { printSalesV2Schema } from "./schema";
 export type { PrintSalesV2Input } from "./schema";
+export type { PrintPricingMode } from "./dealer-pricing-surface";
 
 export type {
   PrintMode,

@@ -1,6 +1,7 @@
 "use client";
 
 import { Avatar } from "@/components/avatar";
+import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
 import {
@@ -12,21 +13,15 @@ import {
 } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
-import { endOfDay, formatISO, startOfDay, subDays } from "date-fns";
 import { WidgetListSkeleton } from "./widget-skeleton";
 
 export function SalesRepLeaderboardWidget() {
 	const trpc = useTRPC();
-	const from = formatISO(startOfDay(subDays(new Date(), 29)), {
-		representation: "date",
-	});
-	const to = formatISO(endOfDay(new Date()), {
-		representation: "date",
-	});
+	const { params } = useSalesDashboardParams();
 	const { data, isLoading } = useQuery(
 		trpc.salesDashboard.getSalesRepLeaderboard.queryOptions({
-			from,
-			to,
+			from: params.from,
+			to: params.to,
 		}),
 	);
 	if (isLoading)
@@ -51,7 +46,9 @@ export function SalesRepLeaderboardWidget() {
 		<Card className="shadow-none sm:shadow-sm">
 			<CardHeader className="px-3 py-3 sm:p-6">
 				<CardTitle>Sales Rep Leaderboard</CardTitle>
-				<CardDescription>Top performers in the last 30 days.</CardDescription>
+				<CardDescription>
+					Top performers for the selected date range.
+				</CardDescription>
 			</CardHeader>
 			<CardContent className="px-3 pb-3 sm:p-6 sm:pt-0">
 				<ul className="bullet-none max-h-[280px] cursor-pointer divide-y overflow-auto scrollbar-hide sm:max-h-[420px]">
@@ -63,8 +60,8 @@ export function SalesRepLeaderboardWidget() {
 							onClick={() => {
 								openLink("/sales-book/accounting", {
 									salesRepId: rep.id,
-									from,
-									to,
+									from: params.from,
+									to: params.to,
 								});
 							}}
 						>

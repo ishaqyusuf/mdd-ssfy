@@ -23,6 +23,7 @@ export interface RenderedPdfPrintViewerProps {
 	snapshotId: string;
 	preview: boolean;
 	templateId: string;
+	pricingMode?: "customer" | "internal" | null;
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
@@ -39,6 +40,7 @@ export function RenderedPdfPrintViewer({
 	snapshotId,
 	preview,
 	templateId,
+	pricingMode,
 	className,
 	onPrintReady,
 	onPrintError,
@@ -56,6 +58,7 @@ export function RenderedPdfPrintViewer({
 			snapshotId: snapshotId || undefined,
 			preview,
 			templateId,
+			pricingMode: pricingMode ?? undefined,
 			baseUrl,
 		}),
 	);

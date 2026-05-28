@@ -306,6 +306,10 @@ export function SalesFormWorkflowPanel<
 		shelfProductSearchQuery?.data,
 	]);
 	const activeProfileCoefficient = useMemo(() => {
+		const pricingCoefficient = Number(props.pricing?.profileCoefficient || 0);
+		if (Number.isFinite(pricingCoefficient) && pricingCoefficient > 0) {
+			return pricingCoefficient;
+		}
 		const selectedProfileId = Number(record?.form?.customerProfileId || 0);
 		if (!selectedProfileId) return 1;
 		const profile = (profilesQuery?.data || []).find(
@@ -313,7 +317,24 @@ export function SalesFormWorkflowPanel<
 		);
 		const coefficient = Number(profile?.coefficient || 0);
 		return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
-	}, [profilesQuery?.data, record?.form?.customerProfileId]);
+	}, [
+		profilesQuery?.data,
+		props.pricing?.profileCoefficient,
+		record?.form?.customerProfileId,
+	]);
+	const activePricingView = props.pricing?.activeView || "internal";
+	const activeDealerSalesPercentage = Number(
+		props.pricing?.dealerSalesPercentage || 0,
+	);
+	const activeSalesMultiplier = salesMultiplierForPricingView(
+		activeProfileCoefficient,
+		activePricingView,
+		activeDealerSalesPercentage,
+	);
+	const activeDisplayProfileCoefficient =
+		activeSalesMultiplier > 0
+			? Number((1 / activeSalesMultiplier).toFixed(4))
+			: activeProfileCoefficient;
 	const rootStepId = routeData?.rootStepUid
 		? routeData?.stepsByUid?.[routeData.rootStepUid]?.id
 		: null;
@@ -381,10 +402,14 @@ export function SalesFormWorkflowPanel<
 					activeSelectionState.selectedByStepUid,
 					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
+					activePricingView,
+					activeDealerSalesPercentage,
 				),
 			);
 	}, [
+		activeDealerSalesPercentage,
 		activeProfileCoefficient,
+		activePricingView,
 		activeSelectionState,
 		activeStep,
 		activeStepComponentOverrides,
@@ -412,10 +437,14 @@ export function SalesFormWorkflowPanel<
 					activeSelectionState.selectedByStepUid,
 					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
+					activePricingView,
+					activeDealerSalesPercentage,
 				),
 			);
 	}, [
+		activeDealerSalesPercentage,
 		activeProfileCoefficient,
+		activePricingView,
 		activeSelectionState,
 		activeStep,
 		activeStepComponentOverrides,
@@ -442,11 +471,15 @@ export function SalesFormWorkflowPanel<
 					activeSelectionState.selectedByStepUid,
 					activeSelectionState.selectedProdUidsByStepUid,
 					activeProfileCoefficient,
+					activePricingView,
+					activeDealerSalesPercentage,
 				),
 			);
 	}, [
+		activeDealerSalesPercentage,
 		activeDoorStep,
 		activeProfileCoefficient,
+		activePricingView,
 		activeSelectionState,
 		activeStep,
 		doorComponentsQuery.data,
@@ -516,7 +549,7 @@ export function SalesFormWorkflowPanel<
 				canEditUnitPrice={workflowCapabilities.canEditLinePricing}
 				displayTotal={
 					props.pricing?.getLineDisplayTotal?.(line) ??
-					getWorkflowLineDisplayTotal(line, activeProfileCoefficient)
+					getWorkflowLineDisplayTotal(line, activeDisplayProfileCoefficient)
 				}
 				onUpdate={update}
 			/>
@@ -633,7 +666,7 @@ export function SalesFormWorkflowPanel<
 				sharedDoorSurcharge,
 				noHandle,
 				hasSwing,
-				profileCoefficient: activeProfileCoefficient,
+				profileCoefficient: activeDisplayProfileCoefficient,
 			});
 			updateLine(line, next.linePatch as unknown as Partial<TLine>);
 		}
@@ -660,11 +693,7 @@ export function SalesFormWorkflowPanel<
 				size,
 				supplierUid: supplier.supplierUid,
 				supplierVariants: activeDoorComponent?.supplierVariants || [],
-				salesMultiplier:
-					Number.isFinite(activeProfileCoefficient) &&
-					activeProfileCoefficient > 0
-						? Number((1 / activeProfileCoefficient).toFixed(2))
-						: 1,
+				salesMultiplier: activeSalesMultiplier,
 				fallbackSalesPrice: activeDoorComponent?.salesPrice,
 				fallbackBasePrice: activeDoorComponent?.basePrice,
 			});
@@ -736,7 +765,7 @@ export function SalesFormWorkflowPanel<
 				noHandle={noHandle}
 				hasSwing={hasSwing}
 				sharedDoorSurcharge={sharedDoorSurcharge}
-				profileCoefficient={activeProfileCoefficient}
+				profileCoefficient={activeDisplayProfileCoefficient}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
 				canEditPricing={workflowCapabilities.canEditLinePricing}
 				formatMoney={(value) => moneyIfPositive(Number(value || 0)) || "$0.00"}
@@ -975,7 +1004,7 @@ export function SalesFormWorkflowPanel<
 		const serviceContext = buildWorkflowServiceRowsContext(line);
 		const shelfContext = buildWorkflowShelfSectionsContext(
 			line,
-			activeProfileCoefficient,
+			activeDisplayProfileCoefficient,
 		);
 		const activeDoorSupplier = getDoorSupplierMeta(activeItemStep);
 		const doorSupplierPanel = props.slots?.renderDoorSupplierPanel?.({
@@ -991,7 +1020,7 @@ export function SalesFormWorkflowPanel<
 					line,
 					stepIndex: activeIndex,
 					supplier,
-					profileCoefficient: activeProfileCoefficient,
+					profileCoefficient: activeDisplayProfileCoefficient,
 				});
 				if (!patch) return;
 				updateLine(line, patch as unknown as Partial<TLine>);
@@ -1295,7 +1324,7 @@ export function SalesFormWorkflowPanel<
 								line,
 								buildWorkflowShelfSectionsPatch({
 									sections,
-									profileCoefficient: activeProfileCoefficient,
+									profileCoefficient: activeDisplayProfileCoefficient,
 								}).linePatch as unknown as Partial<TLine>,
 							),
 					}) ||
@@ -1305,7 +1334,7 @@ export function SalesFormWorkflowPanel<
 								line,
 								buildWorkflowShelfSectionsPatch({
 									sections,
-									profileCoefficient: activeProfileCoefficient,
+									profileCoefficient: activeDisplayProfileCoefficient,
 								}).linePatch as unknown as Partial<TLine>,
 							);
 						const versionToggle =
@@ -1341,7 +1370,7 @@ export function SalesFormWorkflowPanel<
 									sections={shelfContext.sections}
 									categories={shelfCategoriesQuery?.data || []}
 									productsByCategory={shelfProductsByCategory}
-									profileCoefficient={activeProfileCoefficient}
+									profileCoefficient={activeDisplayProfileCoefficient}
 									canEditPricing={workflowCapabilities.canEditLinePricing}
 									onSectionsChange={updateShelfSections}
 								/>
@@ -1351,7 +1380,7 @@ export function SalesFormWorkflowPanel<
 								sections={shelfContext.sections}
 								categories={shelfCategoriesQuery?.data || []}
 								products={shelfProducts}
-								profileCoefficient={activeProfileCoefficient}
+								profileCoefficient={activeDisplayProfileCoefficient}
 								canEditPricing={workflowCapabilities.canEditLinePricing}
 								formatMoney={(value) => moneyIfPositive(value) || null}
 								headerSlot={versionToggle}
@@ -1471,7 +1500,7 @@ export function SalesFormWorkflowPanel<
 					}
 					getLineDisplayTotal={(line) =>
 						props.pricing?.getLineDisplayTotal?.(line) ??
-						getWorkflowLineDisplayTotal(line, activeProfileCoefficient)
+						getWorkflowLineDisplayTotal(line, activeDisplayProfileCoefficient)
 					}
 					onActivateLine={(line, isActive) =>
 						setActiveItem(isActive ? null : String(line.uid || ""))
@@ -1530,7 +1559,7 @@ export function SalesFormWorkflowPanel<
 							name: String(supplier?.name || ""),
 						}),
 					)}
-					profileCoefficient={activeProfileCoefficient}
+					profileCoefficient={activeDisplayProfileCoefficient}
 					routeConfig={doorSizeModalRouteConfig}
 					canEditPricing={workflowCapabilities.canEditLinePricing}
 					onSupplierChange={(supplierUid) => {
@@ -1551,7 +1580,7 @@ export function SalesFormWorkflowPanel<
 										name: supplier.name,
 									}
 								: null,
-							profileCoefficient: activeProfileCoefficient,
+							profileCoefficient: activeDisplayProfileCoefficient,
 						});
 						if (!patch) return;
 						updateLine(doorSizeModalLine, patch as unknown as Partial<TLine>);
@@ -1576,7 +1605,7 @@ export function SalesFormWorkflowPanel<
 							componentId: Number(doorSizeModal.component.id || 0),
 							rows,
 							sharedDoorSurcharge,
-							profileCoefficient: activeProfileCoefficient,
+							profileCoefficient: activeDisplayProfileCoefficient,
 						});
 						updateLine(
 							doorSizeModalLine,
@@ -1593,7 +1622,7 @@ export function SalesFormWorkflowPanel<
 									salesPrice: Number(
 										getHptDoorSalesUnitPrice(firstResolvedRow, {
 											sharedDoorSurcharge,
-											profileCoefficient: activeProfileCoefficient,
+											profileCoefficient: activeDisplayProfileCoefficient,
 										}) || 0,
 									),
 									basePrice: Number(firstResolvedRow?.meta?.baseUnitPrice || 0),
@@ -1644,7 +1673,7 @@ export function SalesFormWorkflowPanel<
 							stepIndex: doorSwapModalDoorStepIndex,
 							sourceComponent: doorSwapSourceComponent,
 							targetComponent: component,
-							profileCoefficient: activeProfileCoefficient,
+							profileCoefficient: activeDisplayProfileCoefficient,
 						});
 						if (!result) return;
 						updateLine(
@@ -1674,6 +1703,8 @@ function priceComponent(
 	selectedByStepUid: Record<string, string>,
 	selectedProdUidsByStepUid: Record<string, string[]>,
 	profileCoefficient: number,
+	pricingView: "internal" | "dealer" = "internal",
+	dealerSalesPercentage = 0,
 ) {
 	const override = overrides.get(String(component?.uid || ""));
 	const price = resolveComponentPriceByDeps(
@@ -1698,16 +1729,35 @@ function priceComponent(
 		override?.salesPrice == null
 			? (price.salesPrice ?? component?.salesPrice)
 			: override?.salesPrice;
+	const internalSalesPrice = profileAdjustedSalesPrice(
+		resolvedSalesPrice,
+		resolvedBasePrice,
+		profileCoefficient,
+	);
+	const dealerMultiplier =
+		pricingView === "dealer"
+			? 1 + Number(dealerSalesPercentage || 0) / 100
+			: 1;
 	return {
 		...component,
 		...(override || {}),
-		salesPrice: profileAdjustedSalesPrice(
-			resolvedSalesPrice,
-			resolvedBasePrice,
-			profileCoefficient,
-		),
+		salesPrice: Number((internalSalesPrice * dealerMultiplier).toFixed(2)),
 		basePrice: Number(resolvedBasePrice ?? 0),
 	};
+}
+
+function salesMultiplierForPricingView(
+	profileCoefficient: number,
+	pricingView: "internal" | "dealer",
+	dealerSalesPercentage: number,
+) {
+	const internalMultiplier =
+		Number.isFinite(profileCoefficient) && profileCoefficient > 0
+			? Number((1 / profileCoefficient).toFixed(2))
+			: 1;
+	const dealerMultiplier =
+		pricingView === "dealer" ? 1 + Number(dealerSalesPercentage || 0) / 100 : 1;
+	return Number((internalMultiplier * dealerMultiplier).toFixed(4));
 }
 
 function numericValue(value: unknown) {

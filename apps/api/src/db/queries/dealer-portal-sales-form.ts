@@ -5,7 +5,7 @@ import {
   getDealerPortalInternalSalesProfile,
   validateDealerPortalQuoteVisibility,
 } from "@gnd/db/queries";
-import { composeDealerSalesFormQuotePricingSnapshot } from "@gnd/sales/sales-form";
+import { composeDealerSalesFormQuotePricing } from "@gnd/sales/sales-form";
 
 type NormalizedDealerQuoteLineItem = {
   uid: string;
@@ -41,6 +41,16 @@ function safeRecordArray(value: unknown): Record<string, unknown>[] {
         )
         .map((item) => safeRecord(item))
     : [];
+}
+
+function finiteOptionalNumber(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function positiveOptionalNumber(value: unknown) {
+  const number = finiteOptionalNumber(value);
+  return number != null && number > 0 ? number : null;
 }
 
 function normalizeDealerQuoteLines(
@@ -188,25 +198,33 @@ export async function saveDealerPortalQuote(
         "Dealer customer profile is required before saving a quote.",
       );
     }
+    if (!dealerProfile.id) {
+      throw new Error("Dealer customer profile id is required.");
+    }
 
     const normalizedLines = normalizeDealerQuoteLines(input.lineItems);
     await validateDealerPortalQuoteVisibility(tx, normalizedLines);
 
-    const pricing = composeDealerSalesFormQuotePricingSnapshot({
+    const effectiveInternalProfile = {
+      ...internalProfile,
+      coefficient:
+        positiveOptionalNumber(input.pricingContext?.salesCoefficient) ??
+        internalProfile?.coefficient,
+    };
+    const effectiveDealerProfile = {
+      ...dealerProfile,
+      salesPercentage:
+        finiteOptionalNumber(input.pricingContext?.dealerSalesPercentage) ??
+        dealerProfile.salesPercentage,
+    };
+
+    const pricing = composeDealerSalesFormQuotePricing({
       taxRate: input.taxRate || 0,
       paymentMethod: input.paymentMethod,
-      internalProfile,
-      dealerProfile,
+      internalProfile: effectiveInternalProfile,
+      dealerProfile: effectiveDealerProfile,
       lineItems: normalizedLines,
     });
-    const pricingSnapshot = {
-      source: pricing.source,
-      createdAt: pricing.createdAt,
-      profiles: pricing.profiles,
-      lines: pricing.lines,
-      internalPricing: pricing.internalPricing,
-      dealerPricing: pricing.dealerPricing,
-    };
     const existing = input.id
       ? await tx.salesOrders.findFirst({
           where: {
@@ -248,26 +266,7 @@ export async function saveDealerPortalQuote(
       grandTotal: pricing.internalPricing.grandTotal,
       amountDue: pricing.internalPricing.grandTotal,
       meta: {
-        source: "dealer_portal",
-        pricingSnapshot,
-        dealerPricing: {
-          profileId: pricing.dealerProfileId,
-          summary: pricing.dealerPricing,
-          lines: pricing.lines.map((line) => ({
-            uid: line.uid,
-            unitPrice: line.dealerUnitPrice,
-            lineTotal: line.dealerLineTotal,
-          })),
-        },
-        internalPricing: {
-          profileId: pricing.internalProfileId,
-          summary: pricing.internalPricing,
-          lines: pricing.lines.map((line) => ({
-            uid: line.uid,
-            unitPrice: line.internalUnitPrice,
-            lineTotal: line.internalLineTotal,
-          })),
-        },
+        salesCoefficient: pricing.profiles.internal.coefficient,
         newSalesForm: {
           version: `${Date.now()}`,
           updatedAt: new Date().toISOString(),
@@ -333,13 +332,32 @@ export async function saveDealerPortalQuote(
           housePackageTool: line.housePackageTool,
           lineMeta: line.meta,
           tax: dealerLineIsTaxable(line),
-          internalUnitPrice: pricing.lines[index]?.internalUnitPrice,
-          internalLineTotal: pricing.lines[index]?.internalLineTotal,
-          dealerUnitPrice: pricing.lines[index]?.dealerUnitPrice,
-          dealerLineTotal: pricing.lines[index]?.dealerLineTotal,
         } as Prisma.InputJsonValue,
         dykeProduction: dealerLineIsProduceable(line),
       })),
+    });
+
+    await (tx as any).dealerSales.upsert({
+      where: {
+        salesOrderId: created.id,
+      },
+      create: {
+        salesOrderId: created.id,
+        dealerAuthId: dealerId,
+        customerId: customer.id,
+        dealerCustomerProfileId: dealerProfile.id,
+        dealerSalesPercentage: pricing.profiles.dealer.salesPercentage,
+        grandTotal: pricing.dealerPricing.grandTotal,
+        dueAmount: pricing.dealerPricing.grandTotal,
+      },
+      update: {
+        dealerAuthId: dealerId,
+        customerId: customer.id,
+        dealerCustomerProfileId: dealerProfile.id,
+        dealerSalesPercentage: pricing.profiles.dealer.salesPercentage,
+        grandTotal: pricing.dealerPricing.grandTotal,
+        dueAmount: pricing.dealerPricing.grandTotal,
+      },
     });
 
     return {

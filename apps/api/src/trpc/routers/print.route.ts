@@ -122,6 +122,7 @@ export const printRouter = createTRPCRouter({
 				snapshotId: z.string().optional(),
 				preview: z.boolean().optional().default(false),
 				templateId: z.string().optional().default("template-2"),
+				pricingMode: z.enum(["customer", "internal"]).optional(),
 				baseUrl: z.string().optional(),
 			}),
 		)
@@ -148,6 +149,7 @@ export const printRouter = createTRPCRouter({
 					accessToken: props.input.accessToken ?? null,
 					snapshotId: props.input.snapshotId ?? null,
 					templateId: props.input.templateId,
+					pricingMode: props.input.pricingMode ?? null,
 					baseUrl:
 						props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 				});

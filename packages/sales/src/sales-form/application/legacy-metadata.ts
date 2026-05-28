@@ -140,6 +140,10 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 	paymentMethodReviewDismissed?: boolean | null;
 }) {
 	const existingMeta = safeRecord(input.existingMeta);
+	const {
+		sales_percentage: legacySalesPercentage,
+		...existingMetaWithoutDeprecated
+	} = existingMeta;
 	const form = input.form || {};
 	const summary = input.summary || {};
 	const delivery = firstDefined(
@@ -154,9 +158,17 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		input.paymentMethodReviewDismissed,
 		existingMeta.paymentMethodReviewDismissed as boolean | null | undefined,
 	);
+	const salesCoefficient = firstDefined(
+		form.salesCoefficient as number | string | null | undefined,
+		existingMeta.salesCoefficient as number | string | null | undefined,
+		legacySalesPercentage as number | string | null | undefined,
+	);
 
 	return {
-		...existingMeta,
+		...existingMetaWithoutDeprecated,
+		...(salesCoefficient == null
+			? {}
+			: { salesCoefficient: finiteNumber(salesCoefficient) }),
 		ccc: finiteNumber(summary.ccc),
 		ccc_percentage: finiteNumber(
 			input.cccPercentage ?? existingMeta.ccc_percentage,

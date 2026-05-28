@@ -109,6 +109,11 @@ function safeRecord(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
+function finiteOptionalNumber(value: unknown) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function resolvePersistedPaymentMethod(
   container: NewSalesFormContainer,
   persisted?: NewSalesFormPersistedMeta,
@@ -1992,6 +1997,20 @@ async function saveNewSalesFormInternal(
           "This form changed elsewhere. Reload the latest version before saving.",
       });
     }
+    const salesProfile = payload.meta.customerProfileId
+      ? await tx.customerTypes.findFirst({
+          where: {
+            id: payload.meta.customerProfileId,
+          },
+          select: {
+            coefficient: true,
+          },
+        })
+      : null;
+    const salesCoefficient =
+      finiteOptionalNumber(salesProfile?.coefficient) ??
+      finiteOptionalNumber(currentMeta.salesCoefficient) ??
+      finiteOptionalNumber(currentMeta.sales_percentage);
 
     const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
     const nextCreatedAt = resolveOrderCreatedAt(
@@ -2013,7 +2032,13 @@ async function saveNewSalesFormInternal(
     };
     const legacyMeta = projectSalesFormMetaToLegacyMeta({
       existingMeta: currentMeta,
-      form: nextFormMeta,
+      form:
+        salesCoefficient == null
+          ? nextFormMeta
+          : {
+              ...nextFormMeta,
+              salesCoefficient,
+            },
       summary,
       extraCosts: payload.extraCosts,
       cccPercentage: settings.cccPercentage,
