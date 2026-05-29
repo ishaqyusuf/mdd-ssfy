@@ -14,6 +14,7 @@ import { composeServiceSections } from "./compose/service-sections";
 import { composeShelfSections } from "./compose/shelf-sections";
 import { getModeConfig } from "./constants";
 import { resolveDealerPrintPricingSurface } from "./dealer-pricing-surface";
+import { parsePrintModes } from "./modes";
 import { type PrintSalesData, buildPrintSalesInclude } from "./query";
 import type { PrintSalesV2Input } from "./schema";
 import type {
@@ -38,25 +39,17 @@ export async function getPrintData(
 		include: Prisma.SalesOrdersInclude;
 	}) => Promise<PrintSalesData[]>;
 
+	const modes = parsePrintModes(input.mode);
 	const [sales, setting] = await Promise.all([
 		findPrintSales({
 			where: { id: { in: input.ids } },
-			include: buildPrintSalesInclude(input.mode),
+			include: buildPrintSalesInclude(modes),
 		}),
 		getSalesSetting(db),
 	]);
 
-	// order-packing generates both invoice + packing-slip per sale
-	const jobs: { sale: PrintSalesData; mode: PrintMode }[] = sales.flatMap(
-		(s) => {
-			if (input.mode === "order-packing") {
-				return [
-					{ sale: s, mode: "invoice" as PrintMode },
-					{ sale: s, mode: "packing-slip" as PrintMode },
-				];
-			}
-			return [{ sale: s, mode: input.mode }];
-		},
+	const jobs: { sale: PrintSalesData; mode: PrintMode }[] = sales.flatMap((s) =>
+		modes.map((mode) => ({ sale: s, mode })),
 	);
 
 	const pages = await Promise.all(
@@ -131,8 +124,7 @@ async function composeSigningData(
 		return null;
 	}
 
-	const completionActivity =
-		await getDispatchCompletedActivity(db, dispatchId);
+	const completionActivity = await getDispatchCompletedActivity(db, dispatchId);
 	const completionNote =
 		completionActivity || (await getDispatchCompletetionNotes(db, dispatchId));
 	const dispatch = await db.orderDelivery.findFirst({

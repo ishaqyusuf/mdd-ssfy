@@ -58,6 +58,13 @@ export function TopProductsWidget() {
 			</CardHeader>
 			<CardContent className="px-3 pb-3 sm:p-6 sm:pt-0">
 				<ul className="bullet-none max-h-[280px] cursor-pointer divide-y overflow-auto scrollbar-hide sm:max-h-[420px]">
+					{data?.length ? null : (
+						<li className="flex h-[114px] items-center justify-center px-4 text-center">
+							<p className="text-sm text-muted-foreground">
+								No top selling products found for this period.
+							</p>
+						</li>
+					)}
 					{data?.map((product) => {
 						return (
 							<li

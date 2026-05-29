@@ -203,6 +203,18 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		dealerProfileUpdated(input: Input<"dealer_profile_updated">) {
+			const { recipients, author, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("dealer_profile_updated", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+			});
+		},
 		employeeAccessRevoked(input: Input<"employee_access_revoked">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

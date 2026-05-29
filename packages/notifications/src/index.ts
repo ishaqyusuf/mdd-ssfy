@@ -31,6 +31,7 @@ import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { dealerMagicLoginLink } from "./types/dealer-magic-login-link";
 import { dealerOnboarding } from "./types/dealer-onboarding";
 import { dealerPasswordReset } from "./types/dealer-password-reset";
+import { dealerProfileUpdated } from "./types/dealer-profile-updated";
 import { dealerSalesRequest } from "./types/dealer-sales-request";
 import { employeeAccessRevoked } from "./types/employee-access-revoked";
 import { employeeDocumentReview } from "./types/employee-document-review";
@@ -99,6 +100,7 @@ const handlers = {
 	sales_customer_payment_received: salesCustomerPaymentReceived,
 	sales_customer_payment_failed: salesCustomerPaymentFailed,
 	dealer_onboarding: dealerOnboarding,
+	dealer_profile_updated: dealerProfileUpdated,
 	auth_new_device_login: authNewDeviceLogin,
 	dealer_magic_login_link: dealerMagicLoginLink,
 	dealer_password_reset: dealerPasswordReset,

@@ -60,6 +60,7 @@ export type {
   SalesFormWorkflowActions,
   SalesFormWorkflowDataSource,
   SalesFormWorkflowEditorState,
+  SalesFormWorkflowPricingLabels,
   SalesFormWorkflowPricingSurface,
   SalesFormWorkflowQueryResult,
   SalesFormWorkflowRecord,

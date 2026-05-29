@@ -29,6 +29,7 @@ import {
   rowsForDoorComponent,
 } from "../door-utils";
 import {
+  type DoorPriceBreakdownContext,
   DoorPriceCell,
   formatDoorSizeTitle,
   updateDoorRowBasePrice,
@@ -83,6 +84,10 @@ interface DoorSizeQtyDialogProps {
   }>;
   onSupplierChange?: (supplierUid: string | null) => void;
   profileCoefficient?: number | null;
+  priceBreakdown?: DoorPriceBreakdownContext | null;
+  pricingLabels?: {
+    doorPrice?: string;
+  };
   routeConfig?: {
     noHandle?: boolean;
     hasSwing?: boolean;
@@ -257,6 +262,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                       <DoorPriceCell
                         row={row}
                         profileCoefficient={props.profileCoefficient}
+                        priceBreakdown={props.priceBreakdown}
                         readOnly={!props.canEditPricing}
                         onSave={async (nextBase) => {
                           await saveBasePrice(row, nextBase);
@@ -375,7 +381,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                       Size
                     </th>
                     <th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
-                      Price
+                      {props.pricingLabels?.doorPrice || "Price"}
                     </th>
                     {props.routeConfig?.hasSwing ? (
                       <th className="sticky top-0 z-10 bg-slate-50 px-4 py-3 shadow-sm">
@@ -418,6 +424,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
                         <DoorPriceCell
                           row={row}
                           profileCoefficient={props.profileCoefficient}
+                          priceBreakdown={props.priceBreakdown}
                           readOnly={!props.canEditPricing}
                           onSave={async (nextBase) => {
                             await saveBasePrice(row, nextBase);

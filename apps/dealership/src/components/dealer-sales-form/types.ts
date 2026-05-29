@@ -19,8 +19,12 @@ export type DealerSalesFormCustomer = {
   zip_code?: string | null;
   country?: string | null;
   customerTypeId?: number | null;
+  taxCode?: string | null;
+  taxProfileId?: number | null;
   createdAt?: Date | string | null;
   profile?: DealerSalesFormProfile | null;
+  ordersCount?: number | null;
+  quotesCount?: number | null;
 };
 
 export type DealerSalesFormProfile = {

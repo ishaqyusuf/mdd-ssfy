@@ -12,7 +12,6 @@ import {
 	type SalesPrintStageDetails,
 	buildSalesPdfDownloadUrlFromQuery,
 } from "@/modules/sales-print/application/sales-print-service";
-import type { PrintMode } from "@gnd/sales/print/types";
 import dynamic from "next/dynamic";
 import type { SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -36,7 +35,7 @@ interface PrintSalesV2Props {
 	snapshotId?: string;
 	preview?: boolean;
 	templateId?: string;
-	mode?: PrintMode;
+	mode?: string;
 	pricingMode?: "customer" | "internal" | null;
 	className?: string;
 	printRequest?: SalesPrintRequestInfo;

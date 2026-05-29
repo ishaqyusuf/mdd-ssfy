@@ -113,6 +113,37 @@ export async function applySalesPaymentProcessorPayment(
 	return response;
 }
 
+type SalesPaymentPayrollCandidate = {
+	id: number;
+	amount: number | string | null;
+	order: {
+		id: number;
+		salesRep?: { id: number | null } | null;
+	} | null;
+};
+
+export async function createSalesPaymentPayrollIfAvailable(
+	tx: Parameters<typeof createPayrollAction>[1],
+	salesPayment: SalesPaymentPayrollCandidate,
+) {
+	const salesRepId = salesPayment.order?.salesRep?.id;
+	if (!salesPayment.order?.id || salesRepId == null) {
+		return false;
+	}
+
+	await createPayrollAction(
+		{
+			orderId: salesPayment.order.id,
+			userId: salesRepId,
+			salesPaymentId: salesPayment.id,
+			salesAmount: Number(salesPayment.amount || 0),
+		},
+		tx,
+	);
+
+	return true;
+}
+
 async function applySalesPayment(
 	ctx: TRPCContext & { userId: number },
 	props: SalesPaymentProcessorApplyPaymentInput,
@@ -160,22 +191,14 @@ async function applySalesPayment(
 				| (typeof paymentWrite.salesPayment & {
 						order: {
 							id: number;
-							salesRep: { id: number };
+							salesRep: { id: number } | null;
 						};
 				  })
 				| null;
 			if (!salesPayment) continue;
 
 			await updateSalesDueAmount(orderId, tx);
-			await createPayrollAction(
-				{
-					orderId: salesPayment.order.id,
-					userId: salesPayment.order.salesRep.id,
-					salesPaymentId: salesPayment.id,
-					salesAmount: salesPayment.amount,
-				},
-				tx,
-			);
+			await createSalesPaymentPayrollIfAvailable(tx, salesPayment);
 
 			appliedSalesIds.push(order.id);
 			appliedSales.push({

@@ -594,7 +594,7 @@ export function NewSalesForm(props: Props) {
             !record || lastHydratedLoadKeyRef.current !== loadKey;
         if (!shouldHydrate) return;
         lastHydratedLoadKeyRef.current = loadKey;
-        hydrate(loadData);
+        hydrate(loadData as NewSalesFormRecord);
     }, [loadData, hydrate, record, props.mode, props.type]);
 
     const payload = useMemo(() => {
@@ -1044,7 +1044,7 @@ export function NewSalesForm(props: Props) {
             lineItems: recoverySnapshot.payload.lineItems,
             extraCosts: recoverySnapshot.payload.extraCosts,
             summary: recoverySnapshot.payload.summary,
-        });
+        } as NewSalesFormRecord);
         setRecoverySnapshot(null);
         toast({
             title: "Local recovery restored",

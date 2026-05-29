@@ -26,6 +26,8 @@ function createMockContext() {
     documentSnapshots: [] as any[],
     printData: [] as any[],
     salesTaxes: [] as any[],
+    dealerAuth: [] as any[],
+    dealerSales: [] as any[],
     users: [
       {
         id: 77,
@@ -192,6 +194,16 @@ function createMockContext() {
       ...order,
       extraCosts: state.extraCosts.filter((c) => c.orderId === order.id),
       customer: state.customers.find((c) => c.id === order.customerId) || null,
+      dealerAuth:
+        state.dealerAuth.find((dealer) => dealer.id === order.dealerAuthId) ||
+        null,
+      dealerSale:
+        state.dealerSales.find((dealerSale) => dealerSale.salesOrderId === order.id) ||
+        null,
+      dealerSalesProfile:
+        state.customerTypes.find(
+          (profile) => profile.id === order.dealerSalesProfileId,
+        ) || null,
       items,
     };
   }
@@ -847,6 +859,176 @@ describe("new-sales-form relational parity", () => {
       "2026-02-28T12:00:00.000Z",
     );
     expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
+  });
+
+  it("returns no dealer profile card for non-dealer sales documents", async () => {
+    const { ctx, state } = createMockContext();
+
+    state.orders.push({
+      id: state.ids.order++,
+      orderId: "QUOTE-STANDARD",
+      slug: "standard-quote",
+      type: "quote",
+      status: "Draft",
+      deletedAt: null,
+      createdAt: new Date("2026-02-20T12:00:00.000Z"),
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      customerId: 100,
+      customerProfileId: null,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      paymentDueDate: null,
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 100,
+      tax: 0,
+      grandTotal: 100,
+      payments: [],
+      meta: {},
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "quote",
+      slug: "standard-quote",
+    });
+
+    expect(loaded.dealerProfileCard).toBeNull();
+  });
+
+  it("returns dealer name and dealer customer profile for dealer-owned quotes", async () => {
+    const { ctx, state } = createMockContext();
+
+    state.dealerAuth.push({
+      id: 55,
+      email: "dealer@example.com",
+      name: "Dealer Owner",
+      companyName: "Prime Dealer Co",
+      dealer: {
+        name: "Dealer Contact",
+        businessName: "Dealer Business",
+      },
+    });
+
+    state.orders.push({
+      id: state.ids.order++,
+      orderId: "QUOTE-DEALER",
+      slug: "dealer-quote",
+      type: "quote",
+      status: "Draft",
+      deletedAt: null,
+      createdAt: new Date("2026-02-20T12:00:00.000Z"),
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      customerId: 100,
+      customerProfileId: 7,
+      dealerAuthId: 55,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      paymentDueDate: null,
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 100,
+      tax: 0,
+      grandTotal: 125,
+      payments: [],
+      meta: {},
+    });
+    state.dealerSales.push({
+      salesOrderId: 1,
+      dealerCustomerProfile: {
+        id: 99,
+        title: "Dealer Gold",
+        salesPercentage: 25,
+        coefficient: 1,
+      },
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "quote",
+      slug: "dealer-quote",
+    });
+
+    expect(loaded.dealerProfileCard).toEqual({
+      dealerId: 55,
+      dealerName: "Prime Dealer Co",
+      email: "dealer@example.com",
+      profile: {
+        id: 99,
+        title: "Dealer Gold",
+        salesPercentage: 25,
+        coefficient: 1,
+      },
+    });
+  });
+
+  it("falls back to the sales order dealer profile when DealerSales is missing", async () => {
+    const { ctx, state } = createMockContext();
+
+    state.dealerAuth.push({
+      id: 56,
+      email: "fallback@example.com",
+      name: "Fallback Dealer",
+      companyName: null,
+      dealer: {
+        name: "Fallback Contact",
+        businessName: "Fallback Business",
+      },
+    });
+    state.customerTypes.push({
+      id: 88,
+      title: "Fallback Tier",
+      salesPercentage: 18,
+      coefficient: 0.9,
+    });
+    state.orders.push({
+      id: state.ids.order++,
+      orderId: "QUOTE-DEALER-FALLBACK",
+      slug: "dealer-quote-fallback",
+      type: "quote",
+      status: "Draft",
+      deletedAt: null,
+      createdAt: new Date("2026-02-20T12:00:00.000Z"),
+      updatedAt: new Date("2026-02-24T12:00:00.000Z"),
+      customerId: 100,
+      customerProfileId: 7,
+      dealerAuthId: 56,
+      dealerSalesProfileId: 88,
+      billingAddressId: null,
+      shippingAddressId: null,
+      paymentTerm: "None",
+      paymentDueDate: null,
+      goodUntil: null,
+      prodDueDate: null,
+      deliveryOption: "pickup",
+      taxPercentage: 0,
+      subTotal: 100,
+      tax: 0,
+      grandTotal: 118,
+      payments: [],
+      meta: {},
+    });
+
+    const loaded = await getNewSalesForm(ctx, {
+      type: "quote",
+      slug: "dealer-quote-fallback",
+    });
+
+    expect(loaded.dealerProfileCard).toMatchObject({
+      dealerId: 56,
+      dealerName: "Fallback Business",
+      email: "fallback@example.com",
+      profile: {
+        id: 88,
+        title: "Fallback Tier",
+        salesPercentage: 18,
+        coefficient: 0.9,
+      },
+    });
   });
 
   it("writes legacy root metadata and date columns on save", async () => {

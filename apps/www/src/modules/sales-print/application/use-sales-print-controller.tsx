@@ -21,6 +21,7 @@ type ToastUpdateInput = Parameters<ReturnType<typeof toast>["update"]>[0];
 type SalesPrintRegenerateResult = Awaited<
 	ReturnType<typeof regenerateSalesPrintDocument>
 >;
+const PRINT_SUCCESS_TOAST_DURATION = 10000;
 
 export type SalesPrintControllerActionInput = {
 	salesIds: number[];
@@ -43,7 +44,7 @@ function getTerminalStageDuration(
 	details?: SalesPrintStageDetails,
 ) {
 	if (stage === "print-dialog-called") {
-		return details?.printedFromSnapshot ? 10000 : 2500;
+		return PRINT_SUCCESS_TOAST_DURATION;
 	}
 	if (
 		stage === "resolve-access-error" ||
@@ -89,12 +90,13 @@ export function useSalesPrintController() {
 
 	const dismissToastAfter = useCallback(
 		(activeToast: ReturnType<typeof toast> | null, delayMs: number) => {
-			if (!activeToast) return;
+			if (!activeToast) return null;
 			const timer = setTimeout(() => {
 				activeToast.dismiss();
 				dismissTimersRef.current.delete(timer);
 			}, delayMs);
 			dismissTimersRef.current.add(timer);
+			return timer;
 		},
 		[],
 	);
@@ -118,14 +120,21 @@ export function useSalesPrintController() {
 				: null;
 			let latestPrintHref: string | null = null;
 			let printedFromSnapshot = false;
+			let activeDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
 			const updateToast = (
 				update: ToastUpdateInput,
 				dismissAfterMs?: number | null,
 			) => {
+				if (activeDismissTimer) {
+					clearTimeout(activeDismissTimer);
+					dismissTimersRef.current.delete(activeDismissTimer);
+					activeDismissTimer = null;
+				}
 				activeToast?.update(update);
 				if (dismissAfterMs != null) {
-					dismissToastAfter(activeToast, dismissAfterMs);
+					activeDismissTimer =
+						dismissToastAfter(activeToast, dismissAfterMs) ?? null;
 				}
 			};
 
@@ -138,6 +147,8 @@ export function useSalesPrintController() {
 					description: "Generating a fresh PDF snapshot for this document.",
 					variant: "spinner",
 					duration: Number.POSITIVE_INFINITY,
+					action: undefined,
+					footer: undefined,
 				} as ToastUpdateInput);
 
 				try {
@@ -185,6 +196,50 @@ export function useSalesPrintController() {
 					</ToastAction>
 				) : undefined;
 
+			const reprint = async () => {
+				if (isPrintingRef.current) return;
+				isPrintingRef.current = true;
+				setIsPrinting(true);
+				updateToast({
+					title: "Re-printing...",
+					description: "Sending the same document back to the print viewer.",
+					variant: "spinner",
+					duration: Number.POSITIVE_INFINITY,
+					action: undefined,
+					footer: undefined,
+				} as ToastUpdateInput);
+
+				try {
+					await openSalesPrintDocument({
+						salesIds: input.salesIds,
+						mode: input.mode,
+						dispatchId: input.dispatchId ?? null,
+						templateId: input.templateId ?? null,
+						baseUrl: input.baseUrl ?? null,
+						openInNewTab: false,
+						onPrintStage,
+						onPrintReady,
+						onPrintError,
+					} satisfies SalesPrintRequest);
+				} catch (error) {
+					onAccessError(error);
+				} finally {
+					isPrintingRef.current = false;
+					setIsPrinting(false);
+				}
+			};
+
+			const getReprintAction = () => (
+				<ToastAction
+					altText="Re-print"
+					onClick={() => {
+						void reprint();
+					}}
+				>
+					Re-print
+				</ToastAction>
+			);
+
 			const onPrintStage = (
 				stage: SalesPrintStage,
 				details?: SalesPrintStageDetails,
@@ -215,8 +270,8 @@ export function useSalesPrintController() {
 								: "spinner",
 						duration: terminalDuration ?? Number.POSITIVE_INFINITY,
 						action:
-							printedFromSnapshot ? (
-								getSnapshotAction()
+							stage === "print-dialog-called" ? (
+								getReprintAction()
 							) : isErrorStage(stage) && latestPrintHref ? (
 								<ToastAction
 									altText="Open print view"
@@ -227,6 +282,10 @@ export function useSalesPrintController() {
 									Open
 								</ToastAction>
 							) : undefined,
+						footer:
+							stage === "print-dialog-called" && printedFromSnapshot
+								? getSnapshotAction()
+								: undefined,
 					} as ToastUpdateInput,
 					terminalDuration,
 				);
@@ -240,10 +299,11 @@ export function useSalesPrintController() {
 							description:
 								"The print dialog opened from the stored PDF snapshot.",
 							variant: "success",
-							duration: 10000,
-							action: getSnapshotAction(),
+							duration: PRINT_SUCCESS_TOAST_DURATION,
+							action: getReprintAction(),
+							footer: getSnapshotAction(),
 						} as ToastUpdateInput,
-						10000,
+						PRINT_SUCCESS_TOAST_DURATION,
 					);
 					return;
 				}
@@ -253,9 +313,11 @@ export function useSalesPrintController() {
 						title: "Print dialog opened",
 						description: "Choose a printer to finish printing.",
 						variant: "success",
-						duration: 2500,
+						duration: PRINT_SUCCESS_TOAST_DURATION,
+						action: getReprintAction(),
+						footer: undefined,
 					} as ToastUpdateInput,
-					2500,
+					PRINT_SUCCESS_TOAST_DURATION,
 				);
 			};
 
@@ -266,6 +328,7 @@ export function useSalesPrintController() {
 						description: buildErrorDescription(error, "Please try again."),
 						variant: "error",
 						duration: 8000,
+						footer: undefined,
 						action: latestPrintHref ? (
 							<ToastAction
 								altText="Open print view"
@@ -288,6 +351,8 @@ export function useSalesPrintController() {
 						description: buildErrorDescription(error, "Please try again."),
 						variant: "error",
 						duration: 3500,
+						action: undefined,
+						footer: undefined,
 					} as ToastUpdateInput,
 					3500,
 				);

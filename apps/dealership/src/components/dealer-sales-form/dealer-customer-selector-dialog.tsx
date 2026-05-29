@@ -23,6 +23,23 @@ type DealerCustomerSelectorDialogProps = {
   onSelectCustomer: (customer: DealerSalesFormCustomer) => void;
 };
 
+function percent(value?: number | null) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0));
+}
+
+function profileLabel(customer: DealerSalesFormCustomer) {
+  if (!customer.profile) return "No profile";
+
+  const title = customer.profile.title || `Profile #${customer.profile.id}`;
+  return `${title} (${percent(customer.profile.salesPercentage)}%)`;
+}
+
+function countLabel(value?: number | null) {
+  return new Intl.NumberFormat("en-US").format(Number(value || 0));
+}
+
 export function DealerCustomerSelectorDialog(
   props: DealerCustomerSelectorDialogProps,
 ) {
@@ -64,7 +81,13 @@ export function DealerCustomerSelectorDialog(
     if (!normalizedQuery) return recentCustomers;
     return props.customers
       .filter((customer) =>
-        [customer.name, customer.businessName, customer.email, customer.phoneNo]
+        [
+          customer.name,
+          customer.businessName,
+          customer.email,
+          customer.phoneNo,
+          customer.profile?.title,
+        ]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()
@@ -93,6 +116,8 @@ export function DealerCustomerSelectorDialog(
       zip_code: customer.zip_code,
       country: customer.country,
       customerTypeId: customer.customerTypeId,
+      taxCode: customer.taxCode,
+      taxProfileId: customer.taxProfileId,
     });
     props.onOpenChange(false);
     setSearchQuery("");
@@ -218,6 +243,17 @@ export function DealerCustomerSelectorDialog(
                         {customer.phoneNo ? (
                           <span>{customer.phoneNo}</span>
                         ) : null}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-medium">
+                        <span className="rounded-md border bg-muted/40 px-2 py-1 text-muted-foreground">
+                          Profile: {profileLabel(customer)}
+                        </span>
+                        <span className="rounded-md border bg-background px-2 py-1 text-muted-foreground">
+                          Sales: {countLabel(customer.ordersCount)}
+                        </span>
+                        <span className="rounded-md border bg-background px-2 py-1 text-muted-foreground">
+                          Quotes: {countLabel(customer.quotesCount)}
+                        </span>
                       </div>
                     </div>
                   </button>

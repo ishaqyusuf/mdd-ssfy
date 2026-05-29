@@ -191,7 +191,7 @@ describe("getPrintData", () => {
 			settings: {
 				findFirst: async () => null,
 			},
-		} as any;
+		} as unknown as Parameters<typeof getPrintData>[0];
 
 		const result = await getPrintData(db, {
 			ids: [1],
@@ -223,4 +223,34 @@ describe("getPrintData", () => {
 		);
 	});
 
+	it("supports comma-separated invoice and packing slip modes from one sales fetch", async () => {
+		let findManyCalls = 0;
+		const db = {
+			salesOrders: {
+				findMany: async () => {
+					findManyCalls += 1;
+					return [createSale()];
+				},
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+			dispatchCompletedActivity: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice,packing-slip",
+			dispatchId: null,
+		});
+
+		expect(findManyCalls).toBe(1);
+		expect(result.pages).toHaveLength(2);
+		expect(result.pages.map((page) => page.config.mode)).toEqual([
+			"invoice",
+			"packing-slip",
+		]);
+	});
 });

@@ -2,6 +2,14 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-05-28
+
+- Implemented dealership-level defaults for tax group, sales profile, and fulfillment mode.
+  - dealer company settings now saves/loads `DealerAuth.meta.defaultTaxCode`, `defaultCustomerProfileId`, and `defaultFulfillmentMode`, with dealer-scoped profile validation and tax-code validation
+  - dealer customer schemas/forms now include `taxCode`, prefill new customers from dealership defaults, preserve saved customer values on edit, and persist/clear customer tax through active `CustomerTaxProfiles`
+  - dealer quote creation now falls back from blank customer tax/profile/fulfillment to dealership defaults while preserving explicit quote or customer choices, including scoped profile resolution for saves
+  - validation note: focused dealer settings/customer tests passed, focused dealer portal sales-form tests passed, dealership typecheck passed, and `git diff --check` passed
+
 ## 2026-05-26
 
 - Implemented cached shelf product search for the shared new sales form workflow.

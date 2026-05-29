@@ -5,6 +5,7 @@ import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import {
 	SalesFormCreditLimitMeter,
 	SalesFormCustomerOverviewCard,
+	SalesFormDealerProfileCard,
 	SalesFormInvoiceDetailsPanel,
 	SalesFormPricingOverview,
 	buildSalesFormProfileSelectOptions,
@@ -359,6 +360,7 @@ export function InvoiceOverviewPanel(props: Props) {
 	}
 
 	if (!record) return null;
+	const dealerProfileCard = (record as any).dealerProfileCard || null;
 
 	return (
 		<section className="space-y-6">
@@ -368,6 +370,13 @@ export function InvoiceOverviewPanel(props: Props) {
 				onOpenChange={setIsCustomerSelectorOpen}
 				type={props.type}
 			/>
+			{dealerProfileCard ? (
+				<SalesFormDealerProfileCard
+					dealerEmail={dealerProfileCard.email}
+					dealerName={dealerProfileCard.dealerName}
+					profile={dealerProfileCard.profile}
+				/>
+			) : null}
 			<SalesFormCustomerOverviewCard
 				accountNumber={record.form.customerId}
 				billingFallback={`Billing Address ID: ${record.form.billingAddressId ?? "N/A"}`}

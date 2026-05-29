@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
         },
     ).catch(() => null);
     const response = NextResponse.redirect(getLoginUrl(request));
-    const setCookie = authSignOutResponse?.headers.get("set-cookie");
-    if (setCookie) {
+    const setCookieHeaders = getSetCookieHeaders(authSignOutResponse?.headers);
+    for (const setCookie of setCookieHeaders) {
         response.headers.append("set-cookie", setCookie);
     }
 
@@ -42,6 +42,55 @@ export async function GET(request: NextRequest) {
     }
 
     return response;
+}
+
+function getSetCookieHeaders(headers?: Headers) {
+    if (!headers) return [];
+
+    const getSetCookie = (
+        headers as Headers & { getSetCookie?: () => string[] }
+    ).getSetCookie?.();
+    if (getSetCookie?.length) return getSetCookie;
+
+    return splitSetCookieHeader(headers.get("set-cookie"));
+}
+
+function splitSetCookieHeader(setCookie: string | null) {
+    if (!setCookie) return [];
+
+    const result: string[] = [];
+    let start = 0;
+    let index = 0;
+
+    while (index < setCookie.length) {
+        if (setCookie[index] === ",") {
+            let next = index + 1;
+            while (setCookie[next] === " ") next++;
+            while (
+                next < setCookie.length &&
+                setCookie[next] !== "=" &&
+                setCookie[next] !== ";" &&
+                setCookie[next] !== ","
+            ) {
+                next++;
+            }
+
+            if (setCookie[next] === "=") {
+                const part = setCookie.slice(start, index).trim();
+                if (part) result.push(part);
+                start = index + 1;
+                while (setCookie[start] === " ") start++;
+                index = start;
+                continue;
+            }
+        }
+
+        index++;
+    }
+
+    const last = setCookie.slice(start).trim();
+    if (last) result.push(last);
+    return result;
 }
 
 export const POST = GET;

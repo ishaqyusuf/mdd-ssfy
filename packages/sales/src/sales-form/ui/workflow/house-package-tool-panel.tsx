@@ -56,6 +56,11 @@ export type HousePackageToolPanelProps = {
 	profileCoefficient: number;
 	canSwapDoor: boolean;
 	canEditPricing: boolean;
+	pricingLabels?: {
+		doorPrice?: string;
+		addonPrice?: string;
+		customPrice?: string;
+	};
 	formatMoney: (value: unknown) => string;
 	componentLabel: (value?: string | null) => string;
 	resolveImageSrc: (value?: string | null) => string | null;
@@ -90,6 +95,11 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 	const rowsForComponent = props.focusedRows.map(clearUnpricedDoorRowQty);
 	const priceInputClassName = "h-8 w-24 text-right text-xs";
 	const showDoorTabs = props.selectedDoorComponents.length > 1;
+	const pricingLabels = {
+		doorPrice: props.pricingLabels?.doorPrice || "Door Price",
+		addonPrice: props.pricingLabels?.addonPrice || "Addon Price",
+		customPrice: props.pricingLabels?.customPrice || "Custom Price",
+	};
 
 	return (
 		<section className="mt-4 space-y-3">
@@ -430,7 +440,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																</span>
 															</div>
 															<div className="flex justify-between">
-																<span>Door Price</span>
+																<span>{pricingLabels.doorPrice}</span>
 																<span className="font-semibold">
 																	{props.formatMoney(
 																		getHptDoorSalesUnitPrice(row, {
@@ -497,7 +507,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																</span>
 															</div>
 															<div className="flex items-center justify-between gap-3">
-																<span>Addon Price</span>
+																<span>{pricingLabels.addonPrice}</span>
 																{props.canEditPricing ? (
 																	<Input
 																		type="number"
@@ -519,7 +529,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 																)}
 															</div>
 															<div className="flex items-center justify-between gap-3">
-																<span>Custom Price</span>
+																<span>{pricingLabels.customPrice}</span>
 																{props.canEditPricing ? (
 																	<Input
 																		type="number"

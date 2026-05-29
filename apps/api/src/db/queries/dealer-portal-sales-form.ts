@@ -53,6 +53,38 @@ function positiveOptionalNumber(value: unknown) {
   return number != null && number > 0 ? number : null;
 }
 
+const dealerFulfillmentModes = new Set(["pickup", "delivery", "ship"]);
+
+function normalizeDealerDefaultFulfillmentMode(value: unknown) {
+  return typeof value === "string" && dealerFulfillmentModes.has(value)
+    ? value
+    : null;
+}
+
+function getObjectMeta(meta: unknown): Record<string, unknown> {
+  return meta && typeof meta === "object" && !Array.isArray(meta)
+    ? (meta as Record<string, unknown>)
+    : {};
+}
+
+function getDealerDefaultsFromMeta(meta: unknown) {
+  const objectMeta = getObjectMeta(meta);
+  const defaultCustomerProfileId = Number(objectMeta.defaultCustomerProfileId);
+  return {
+    defaultTaxCode:
+      typeof objectMeta.defaultTaxCode === "string" &&
+      objectMeta.defaultTaxCode.trim()
+        ? objectMeta.defaultTaxCode.trim()
+        : null,
+    defaultCustomerProfileId: Number.isFinite(defaultCustomerProfileId)
+      ? defaultCustomerProfileId
+      : null,
+    defaultFulfillmentMode: normalizeDealerDefaultFulfillmentMode(
+      objectMeta.defaultFulfillmentMode,
+    ),
+  };
+}
+
 function normalizeDealerQuoteLines(
   lineItems: DealerPortalSaveQuoteSchema["lineItems"],
 ): NormalizedDealerQuoteLineItem[] {
@@ -148,6 +180,21 @@ export async function saveDealerPortalQuote(
       select: {
         id: true,
         customerTypeId: true,
+        taxProfiles: {
+          where: {
+            deletedAt: null,
+          },
+          take: 1,
+          select: {
+            taxCode: true,
+            tax: {
+              select: {
+                taxCode: true,
+                percentage: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -163,6 +210,7 @@ export async function saveDealerPortalQuote(
         },
         select: {
           salesRepId: true,
+          meta: true,
           dealer: {
             select: {
               customerTypeId: true,
@@ -180,19 +228,64 @@ export async function saveDealerPortalQuote(
       } as any),
     ]);
 
+    const dealerDefaults = getDealerDefaultsFromMeta(
+      (dealerAccount as { meta?: unknown } | null)?.meta,
+    );
+    const requestedDealerProfileId =
+      input.customerProfileId ||
+      customer.customerTypeId ||
+      dealerDefaults.defaultCustomerProfileId ||
+      null;
+    const requestedDealerProfile = requestedDealerProfileId
+      ? await tx.customerTypes.findFirst({
+          where: {
+            id: requestedDealerProfileId,
+            dealerOwnerId: dealerId,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            title: true,
+            coefficient: true,
+            salesPercentage: true,
+          },
+        })
+      : null;
+    const defaultDealerProfile = requestedDealerProfile
+      ? null
+      : await tx.customerTypes.findFirst({
+          where: {
+            dealerOwnerId: dealerId,
+            defaultProfile: true,
+            deletedAt: null,
+          },
+          orderBy: [{ id: "asc" }],
+          select: {
+            id: true,
+            title: true,
+            coefficient: true,
+            salesPercentage: true,
+          },
+        });
+    const firstDealerProfile =
+      requestedDealerProfile || defaultDealerProfile
+        ? null
+        : await tx.customerTypes.findFirst({
+            where: {
+              dealerOwnerId: dealerId,
+              deletedAt: null,
+            },
+            orderBy: [{ id: "asc" }],
+            select: {
+              id: true,
+              title: true,
+              coefficient: true,
+              salesPercentage: true,
+            },
+          });
     const dealerProfile =
-      (
-        dealerAccount as {
-          dealer?: {
-            profile?: {
-              id?: number | null;
-              title?: string | null;
-              coefficient?: number | null;
-              salesPercentage?: number | null;
-            } | null;
-          } | null;
-        } | null
-      )?.dealer?.profile || null;
+      requestedDealerProfile ||
+      (input.customerProfileId ? null : defaultDealerProfile || firstDealerProfile);
     if (!dealerProfile) {
       throw new Error(
         "Dealer customer profile is required before saving a quote.",
@@ -204,6 +297,40 @@ export async function saveDealerPortalQuote(
 
     const normalizedLines = normalizeDealerQuoteLines(input.lineItems);
     await validateDealerPortalQuoteVisibility(tx, normalizedLines);
+    const customerTaxCode =
+      customer.taxProfiles?.[0]?.taxCode ||
+      customer.taxProfiles?.[0]?.tax?.taxCode ||
+      null;
+    const effectiveTaxCode =
+      input.taxCode === undefined
+        ? customerTaxCode || dealerDefaults.defaultTaxCode
+        : input.taxCode || null;
+    const customerTaxRate =
+      customer.taxProfiles?.[0]?.tax?.percentage == null
+        ? null
+        : Number(customer.taxProfiles[0].tax.percentage);
+    const taxRateFromCode =
+      effectiveTaxCode && customerTaxRate == null
+        ? await tx.taxes
+            .findFirst({
+              where: {
+                taxCode: effectiveTaxCode,
+                deletedAt: null,
+              },
+              select: {
+                percentage: true,
+              },
+            })
+            .then((tax) =>
+              tax?.percentage == null ? null : Number(tax.percentage),
+            )
+        : customerTaxRate;
+    const effectiveTaxRate =
+      effectiveTaxCode && taxRateFromCode != null
+        ? taxRateFromCode
+        : Number(input.taxRate || 0);
+    const effectiveDeliveryOption =
+      input.deliveryOption || dealerDefaults.defaultFulfillmentMode || "pickup";
 
     const effectiveInternalProfile = {
       ...internalProfile,
@@ -219,7 +346,7 @@ export async function saveDealerPortalQuote(
     };
 
     const pricing = composeDealerSalesFormQuotePricing({
-      taxRate: input.taxRate || 0,
+      taxRate: effectiveTaxRate,
       paymentMethod: input.paymentMethod,
       internalProfile: effectiveInternalProfile,
       dealerProfile: effectiveDealerProfile,
@@ -280,9 +407,9 @@ export async function saveDealerPortalQuote(
             po: input.po || null,
             paymentTerm: input.paymentTerm || "None",
             goodUntil: input.goodUntil || null,
-            deliveryOption: input.deliveryOption || "pickup",
+            deliveryOption: effectiveDeliveryOption,
             paymentMethod: input.paymentMethod || null,
-            taxCode: input.taxCode || null,
+            taxCode: effectiveTaxCode || null,
           },
         },
       } as Prisma.InputJsonValue,

@@ -5,6 +5,7 @@ import {
 	createDealerSalesFormWorkflowCapabilities,
 } from "@gnd/sales/sales-form";
 import { useDealerSalesFormWorkflowData } from "./adapters/use-sales-form-workflow-data";
+import { dealerPricingTerms } from "./dealer-pricing-terms";
 import type { DealerSalesFormRecord } from "./types";
 
 type DealerQuoteMainPanelProps = {
@@ -39,6 +40,15 @@ export function DealerQuoteMainPanel(props: DealerQuoteMainPanelProps) {
 							? "editable"
 							: "readonly",
 						profileCoefficient: props.profileCoefficient,
+						labels: {
+							doorPrice: dealerPricingTerms.doorSalesPrice,
+							addonPrice: dealerPricingTerms.salesPriceAddOn,
+							customPrice: dealerPricingTerms.customSalesPrice,
+							priceBreakdown: dealerPricingTerms.priceBreakdown,
+							costPrice: dealerPricingTerms.costView,
+							salesPrice: dealerPricingTerms.salesPriceView,
+							margin: dealerPricingTerms.margin,
+						},
 						getLineDisplayTotal: (line) =>
 							props.lineTotalsByUid?.[line.uid] ??
 							Number(line.qty || 0) * Number(line.unitPrice || 0),

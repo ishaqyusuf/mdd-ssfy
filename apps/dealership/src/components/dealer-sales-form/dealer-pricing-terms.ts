@@ -1,0 +1,15 @@
+export const dealerPricingTerms = {
+  costView: "Cost",
+  salesPriceView: "Sales Price",
+  costSubtotal: "Cost Subtotal",
+  salesPriceSubtotal: "Sales Price Subtotal",
+  salesPriceMarkup: "Sales Price Markup",
+  showProfit: "Show Profit",
+  profitDescription: "Cost vs sales price",
+  costCoefficient: "Cost coefficient",
+  priceBreakdown: "Price breakdown",
+  doorSalesPrice: "Door Sales Price",
+  salesPriceAddOn: "Sales Price Add-on",
+  customSalesPrice: "Custom Sales Price",
+  margin: "Margin",
+} as const;

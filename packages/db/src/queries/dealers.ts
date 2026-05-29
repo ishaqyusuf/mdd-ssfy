@@ -51,6 +51,8 @@ export type DealerCustomerFormInput = {
   lat?: number | null;
   lng?: number | null;
   customerTypeId?: number | null;
+  taxCode?: string | null;
+  taxProfileId?: number | null;
 };
 
 export type DealerSalesProfileFormInput = {
@@ -71,6 +73,9 @@ export type DealerSettingsFormInput = {
   city?: string | null;
   state?: string | null;
   country?: string | null;
+  defaultTaxCode?: string | null;
+  defaultCustomerProfileId?: number | null;
+  defaultFulfillmentMode?: "pickup" | "delivery" | "ship" | null;
 };
 
 export type DealerPortalQuoteLineItemInput = {
@@ -103,6 +108,32 @@ export type DealerPortalSaveQuoteInput = {
   taxRate?: number | null;
   lineItems: DealerPortalQuoteLineItemInput[];
 };
+
+const dealerFulfillmentModes = new Set(["pickup", "delivery", "ship"]);
+
+function normalizeDealerDefaultFulfillmentMode(value: unknown) {
+  return typeof value === "string" && dealerFulfillmentModes.has(value)
+    ? (value as "pickup" | "delivery" | "ship")
+    : null;
+}
+
+function getDealerDefaultsFromMeta(meta: unknown) {
+  const objectMeta = getObjectMeta(meta);
+  const defaultCustomerProfileId = Number(objectMeta.defaultCustomerProfileId);
+  return {
+    defaultTaxCode:
+      typeof objectMeta.defaultTaxCode === "string" &&
+      objectMeta.defaultTaxCode.trim()
+        ? objectMeta.defaultTaxCode.trim()
+        : null,
+    defaultCustomerProfileId: Number.isFinite(defaultCustomerProfileId)
+      ? defaultCustomerProfileId
+      : null,
+    defaultFulfillmentMode: normalizeDealerDefaultFulfillmentMode(
+      objectMeta.defaultFulfillmentMode,
+    ),
+  };
+}
 
 export type DealerPortalSalesListInput = {
   cursor?: number | null;
@@ -172,6 +203,37 @@ function buildDealerAddressMeta(input: DealerCustomerFormInput) {
     country: input.country?.trim() || null,
     lat: input.lat ?? null,
     lng: input.lng ?? null,
+  };
+}
+
+function getDealerCustomerTaxProfile<
+  T extends {
+    taxProfiles?: Array<{
+      id?: number | null;
+      taxCode?: string | null;
+      tax?: {
+        title?: string | null;
+        taxCode?: string | null;
+        percentage?: number | string | null;
+      } | null;
+    }> | null;
+  },
+>(customer: T) {
+  const [taxProfile] = customer.taxProfiles || [];
+  return {
+    taxCode: taxProfile?.taxCode || taxProfile?.tax?.taxCode || null,
+    taxProfileId: taxProfile?.id || null,
+    taxProfile: taxProfile
+      ? {
+          id: taxProfile.id || null,
+          taxCode: taxProfile.taxCode || taxProfile.tax?.taxCode || null,
+          title: taxProfile.tax?.title || null,
+          percentage:
+            taxProfile.tax?.percentage == null
+              ? null
+              : Number(taxProfile.tax.percentage),
+        }
+      : null,
   };
 }
 
@@ -331,6 +393,17 @@ export async function updateDealerSalesProfile(
           email: true,
           name: true,
           companyName: true,
+          dealer: {
+            select: {
+              customerTypeId: true,
+              profile: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
+            },
+          },
         },
       }),
       tx.customerTypes.findFirst({
@@ -341,6 +414,7 @@ export async function updateDealerSalesProfile(
         },
         select: {
           id: true,
+          title: true,
         },
       }),
     ]);
@@ -352,6 +426,9 @@ export async function updateDealerSalesProfile(
     if (!profile) {
       throw new Error("Sales profile could not be found.");
     }
+
+    const previousProfile = dealer.dealer?.profile || null;
+    const profileChanged = previousProfile?.id !== profile.id;
 
     if (dealer.dealerId) {
       await tx.customers.update({
@@ -367,6 +444,11 @@ export async function updateDealerSalesProfile(
         dealerId: dealer.id,
         customerId: dealer.dealerId,
         customerProfileId: profile.id,
+        dealerName: dealer.companyName || dealer.name || dealer.email,
+        dealerEmail: dealer.email,
+        previousProfileName: previousProfile?.title || null,
+        newProfileName: profile.title,
+        profileChanged,
       };
     }
 
@@ -399,6 +481,11 @@ export async function updateDealerSalesProfile(
       dealerId: dealer.id,
       customerId: customer.id,
       customerProfileId: profile.id,
+      dealerName: dealer.companyName || dealer.name || dealer.email,
+      dealerEmail: dealer.email,
+      previousProfileName: null,
+      newProfileName: profile.title,
+      profileChanged: true,
     };
   });
 }
@@ -707,43 +794,108 @@ export async function getDealerPortalDashboard(db: Database, dealerId: number) {
 }
 
 export async function getDealerPortalCustomers(db: Database, dealerId: number) {
-  return db.customers
-    .findMany({
-      where: {
-        dealerOwnerId: dealerId,
-        deletedAt: null,
+  const customers = await db.customers.findMany({
+    where: {
+      dealerOwnerId: dealerId,
+      deletedAt: null,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 100,
+    select: {
+      id: true,
+      name: true,
+      businessName: true,
+      email: true,
+      phoneNo: true,
+      address: true,
+      meta: true,
+      customerTypeId: true,
+      createdAt: true,
+      profile: {
+        select: {
+          id: true,
+          title: true,
+          coefficient: true,
+          salesPercentage: true,
+          dealerOwnerId: true,
+        },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 100,
-      select: {
-        id: true,
-        name: true,
-        businessName: true,
-        email: true,
-        phoneNo: true,
-        address: true,
-        meta: true,
-        customerTypeId: true,
-        createdAt: true,
-        profile: {
-          select: {
-            id: true,
-            title: true,
-            coefficient: true,
-            salesPercentage: true,
-            dealerOwnerId: true,
+      taxProfiles: {
+        where: {
+          deletedAt: null,
+        },
+        take: 1,
+        select: {
+          id: true,
+          taxCode: true,
+          tax: {
+            select: {
+              title: true,
+              taxCode: true,
+              percentage: true,
+            },
           },
         },
       },
-    })
-    .then((customers) =>
-      customers.map((customer) => ({
-        ...sanitizeDealerScopedCustomerProfile(customer, dealerId),
-        ...getDealerCustomerAddressMeta(customer.meta),
-      })),
-    );
+    },
+  });
+  const salesCountsByCustomer = await getDealerSalesCountsByCustomer(
+    db,
+    dealerId,
+    customers.map((customer) => customer.id),
+  );
+
+  return customers.map((customer) => ({
+    ...sanitizeDealerScopedCustomerProfile(customer, dealerId),
+    ...getDealerCustomerAddressMeta(customer.meta),
+    ...getDealerCustomerTaxProfile(customer),
+    ordersCount: salesCountsByCustomer.get(customer.id)?.ordersCount || 0,
+    quotesCount: salesCountsByCustomer.get(customer.id)?.quotesCount || 0,
+  }));
+}
+
+async function getDealerSalesCountsByCustomer(
+  db: Database,
+  dealerId: number,
+  customerIds: number[],
+) {
+  const salesCounts = customerIds.length
+    ? await db.salesOrders.groupBy({
+        by: ["customerId", "type"],
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          customerId: {
+            in: customerIds,
+          },
+          type: {
+            in: ["order", "quote"],
+          },
+        },
+        _count: {
+          _all: true,
+        },
+      })
+    : [];
+  const salesCountsByCustomer = new Map<
+    number,
+    { ordersCount: number; quotesCount: number }
+  >();
+
+  for (const countRow of salesCounts) {
+    if (!countRow.customerId) continue;
+    const current = salesCountsByCustomer.get(countRow.customerId) || {
+      ordersCount: 0,
+      quotesCount: 0,
+    };
+    if (countRow.type === "order") current.ordersCount = countRow._count._all;
+    if (countRow.type === "quote") current.quotesCount = countRow._count._all;
+    salesCountsByCustomer.set(countRow.customerId, current);
+  }
+
+  return salesCountsByCustomer;
 }
 
 export async function getDealerPortalCustomer(
@@ -771,6 +923,23 @@ export async function getDealerPortalCustomer(
           dealerOwnerId: true,
         },
       },
+      taxProfiles: {
+        where: {
+          deletedAt: null,
+        },
+        take: 1,
+        select: {
+          id: true,
+          taxCode: true,
+          tax: {
+            select: {
+              title: true,
+              taxCode: true,
+              percentage: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -787,6 +956,7 @@ export async function getDealerPortalCustomer(
   return {
     ...safeCustomer,
     ...getDealerCustomerAddressMeta(customer.meta),
+    ...getDealerCustomerTaxProfile(customer),
   };
 }
 
@@ -818,6 +988,23 @@ export async function getDealerPortalCustomerOverview(
           coefficient: true,
           salesPercentage: true,
           dealerOwnerId: true,
+        },
+      },
+      taxProfiles: {
+        where: {
+          deletedAt: null,
+        },
+        take: 1,
+        select: {
+          id: true,
+          taxCode: true,
+          tax: {
+            select: {
+              title: true,
+              taxCode: true,
+              percentage: true,
+            },
+          },
         },
       },
     },
@@ -861,6 +1048,7 @@ export async function getDealerPortalCustomerOverview(
   return {
     ...safeCustomer,
     ...getDealerCustomerAddressMeta(customer.meta),
+    ...getDealerCustomerTaxProfile(customer),
     ...counts,
   };
 }
@@ -1205,49 +1393,39 @@ export async function getDealerPortalCustomersList(
             dealerOwnerId: true,
           },
         },
+        taxProfiles: {
+          where: {
+            deletedAt: null,
+          },
+          take: 1,
+          select: {
+            id: true,
+            taxCode: true,
+            tax: {
+              select: {
+                title: true,
+                taxCode: true,
+                percentage: true,
+              },
+            },
+          },
+        },
       },
     }),
     db.customers.count({ where }),
   ]);
   const customerIds = customers.map((customer) => customer.id);
-  const salesCounts = customerIds.length
-    ? await db.salesOrders.groupBy({
-        by: ["customerId", "type"],
-        where: {
-          dealerAuthId: dealerId,
-          deletedAt: null,
-          customerId: {
-            in: customerIds,
-          },
-          type: {
-            in: ["order", "quote"],
-          },
-        },
-        _count: {
-          _all: true,
-        },
-      })
-    : [];
-  const salesCountsByCustomer = new Map<
-    number,
-    { ordersCount: number; quotesCount: number }
-  >();
-
-  for (const countRow of salesCounts) {
-    if (!countRow.customerId) continue;
-    const current = salesCountsByCustomer.get(countRow.customerId) || {
-      ordersCount: 0,
-      quotesCount: 0,
-    };
-    if (countRow.type === "order") current.ordersCount = countRow._count._all;
-    if (countRow.type === "quote") current.quotesCount = countRow._count._all;
-    salesCountsByCustomer.set(countRow.customerId, current);
-  }
+  const salesCountsByCustomer = await getDealerSalesCountsByCustomer(
+    db,
+    dealerId,
+    customerIds,
+  );
   const nextCursor = cursor + customers.length;
 
   return {
     data: customers.map((customer) => ({
       ...sanitizeDealerScopedCustomerProfile(customer, dealerId),
+      ...getDealerCustomerTaxProfile(customer),
       ordersCount: salesCountsByCustomer.get(customer.id)?.ordersCount || 0,
       quotesCount: salesCountsByCustomer.get(customer.id)?.quotesCount || 0,
     })),
@@ -1264,7 +1442,22 @@ export async function saveDealerPortalCustomer(
   dealerId: number,
   input: DealerCustomerFormInput,
 ) {
-  const customerTypeId = input.customerTypeId || null;
+  let customerTypeId = input.customerTypeId || null;
+  let taxCode = input.taxCode?.trim() || null;
+
+  if (!input.id && (!customerTypeId || !taxCode)) {
+    const dealer = await (db as any).dealerAuth?.findUnique?.({
+      where: {
+        id: dealerId,
+      },
+      select: {
+        meta: true,
+      },
+    });
+    const defaults = getDealerDefaultsFromMeta(dealer?.meta);
+    customerTypeId = customerTypeId || defaults.defaultCustomerProfileId;
+    taxCode = taxCode || defaults.defaultTaxCode;
+  }
 
   if (customerTypeId) {
     const profile = await db.customerTypes.findFirst({
@@ -1280,6 +1473,22 @@ export async function saveDealerPortalCustomer(
 
     if (!profile) {
       throw new Error("Customer profile could not be found.");
+    }
+  }
+
+  if (taxCode) {
+    const tax = await db.taxes.findFirst({
+      where: {
+        taxCode,
+        deletedAt: null,
+      },
+      select: {
+        taxCode: true,
+      },
+    });
+
+    if (!tax) {
+      throw new Error("Tax group could not be found.");
     }
   }
 
@@ -1305,44 +1514,100 @@ export async function saveDealerPortalCustomer(
     dealerOwnerId: dealerId,
   };
 
-  if (input.id) {
-    const existing = await db.customers.findFirst({
-      where: {
-        id: input.id,
-        dealerOwnerId: dealerId,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-        meta: true,
-      },
-    });
+  return db.$transaction(async (tx) => {
+    const saveCustomerTaxProfile = async (customerId: number) => {
+      const existingTaxProfile = await tx.customerTaxProfiles.findFirst({
+        where: {
+          customerId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          taxCode: true,
+        },
+      });
 
-    if (!existing) {
-      throw new Error("Dealer customer could not be found.");
+      if (!taxCode) {
+        if (existingTaxProfile) {
+          await tx.customerTaxProfiles.update({
+            where: {
+              id: existingTaxProfile.id,
+            },
+            data: {
+              deletedAt: new Date(),
+            },
+          });
+        }
+        return;
+      }
+
+      if (existingTaxProfile) {
+        if (existingTaxProfile.taxCode !== taxCode) {
+          await tx.customerTaxProfiles.update({
+            where: {
+              id: existingTaxProfile.id,
+            },
+            data: {
+              taxCode,
+            },
+          });
+        }
+        return;
+      }
+
+      await tx.customerTaxProfiles.create({
+        data: {
+          customerId,
+          taxCode,
+        },
+      });
+    };
+
+    if (input.id) {
+      const existing = await tx.customers.findFirst({
+        where: {
+          id: input.id,
+          dealerOwnerId: dealerId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          meta: true,
+        },
+      });
+
+      if (!existing) {
+        throw new Error("Dealer customer could not be found.");
+      }
+
+      const customer = await tx.customers.update({
+        where: {
+          id: input.id,
+        },
+        data: {
+          ...baseData,
+          meta: {
+            ...getObjectMeta(existing.meta),
+            dealerAddress: addressMeta,
+          },
+        },
+      });
+
+      await saveCustomerTaxProfile(customer.id);
+      return customer;
     }
 
-    return db.customers.update({
-      where: {
-        id: input.id,
-      },
+    const customer = await tx.customers.create({
       data: {
         ...baseData,
         meta: {
-          ...getObjectMeta(existing.meta),
           dealerAddress: addressMeta,
         },
       },
     });
-  }
 
-  return db.customers.create({
-    data: {
-      ...baseData,
-      meta: {
-        dealerAddress: addressMeta,
-      },
-    },
+    await saveCustomerTaxProfile(customer.id);
+    return customer;
   });
 }
 
@@ -2246,6 +2511,21 @@ export async function saveDealerPortalQuote(
       select: {
         id: true,
         customerTypeId: true,
+        taxProfiles: {
+          where: {
+            deletedAt: null,
+          },
+          take: 1,
+          select: {
+            taxCode: true,
+            tax: {
+              select: {
+                taxCode: true,
+                percentage: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -2253,39 +2533,102 @@ export async function saveDealerPortalQuote(
       throw new Error("Dealer customer could not be found.");
     }
 
+    const dealerAccount = await tx.dealerAuth.findUnique({
+      where: {
+        id: dealerId,
+      },
+      select: {
+        meta: true,
+      },
+    } as any);
+    const dealerDefaults = getDealerDefaultsFromMeta(
+      (dealerAccount as { meta?: unknown } | null)?.meta,
+    );
     const requestedDealerProfileId =
-      input.customerProfileId || customer.customerTypeId || null;
-    const [dealerProfile, internalProfile] = await Promise.all([
-      requestedDealerProfileId
-        ? tx.customerTypes.findFirst({
-            where: {
-              id: requestedDealerProfileId,
-              dealerOwnerId: dealerId,
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              title: true,
-              coefficient: true,
-              salesPercentage: true,
-            },
-          })
-        : tx.customerTypes.findFirst({
-            where: {
-              dealerOwnerId: dealerId,
-              defaultProfile: true,
-              deletedAt: null,
-            },
-            orderBy: [{ id: "asc" }],
-            select: {
-              id: true,
-              title: true,
-              coefficient: true,
-              salesPercentage: true,
-            },
-          }),
-      getDealerPortalInternalSalesProfile(tx),
-    ]);
+      input.customerProfileId ||
+      customer.customerTypeId ||
+      dealerDefaults.defaultCustomerProfileId ||
+      null;
+    const [requestedDealerProfile, defaultDealerProfile, firstDealerProfile, internalProfile] =
+      await Promise.all([
+        requestedDealerProfileId
+          ? tx.customerTypes.findFirst({
+              where: {
+                id: requestedDealerProfileId,
+                dealerOwnerId: dealerId,
+                deletedAt: null,
+              },
+              select: {
+                id: true,
+                title: true,
+                coefficient: true,
+                salesPercentage: true,
+              },
+            })
+          : null,
+        tx.customerTypes.findFirst({
+          where: {
+            dealerOwnerId: dealerId,
+            defaultProfile: true,
+            deletedAt: null,
+          },
+          orderBy: [{ id: "asc" }],
+          select: {
+            id: true,
+            title: true,
+            coefficient: true,
+            salesPercentage: true,
+          },
+        }),
+        tx.customerTypes.findFirst({
+          where: {
+            dealerOwnerId: dealerId,
+            deletedAt: null,
+          },
+          orderBy: [{ id: "asc" }],
+          select: {
+            id: true,
+            title: true,
+            coefficient: true,
+            salesPercentage: true,
+          },
+        }),
+        getDealerPortalInternalSalesProfile(tx),
+      ]);
+    const dealerProfile =
+      requestedDealerProfile ||
+      (input.customerProfileId ? null : defaultDealerProfile || firstDealerProfile);
+    const customerTaxProfile = getDealerCustomerTaxProfile(customer);
+    const effectiveTaxCode =
+      input.taxCode === undefined
+        ? customerTaxProfile.taxCode || dealerDefaults.defaultTaxCode
+        : input.taxCode || null;
+    const taxProfileRate =
+      customer.taxProfiles?.[0]?.tax?.percentage == null
+        ? null
+        : Number(customer.taxProfiles[0].tax.percentage);
+    const defaultTaxRate =
+      effectiveTaxCode && taxProfileRate == null
+        ? await tx.taxes
+            .findFirst({
+              where: {
+                taxCode: effectiveTaxCode,
+                deletedAt: null,
+              },
+              select: {
+                percentage: true,
+              },
+            })
+            .then((tax) =>
+              tax?.percentage == null ? null : Number(tax.percentage),
+            )
+        : taxProfileRate;
+    const effectiveTaxRate =
+      effectiveTaxCode && defaultTaxRate != null
+        ? defaultTaxRate
+        : Number(input.taxRate || 0);
+    const effectiveDeliveryOption =
+      input.deliveryOption || dealerDefaults.defaultFulfillmentMode || "pickup";
 
     if (!dealerProfile) {
       throw new Error(
@@ -2346,7 +2689,7 @@ export async function saveDealerPortalQuote(
     };
 
     const pricing = calculateDealerQuotePricing({
-      taxRate: input.taxRate || 0,
+      taxRate: effectiveTaxRate,
       internalProfile: effectiveInternalProfile,
       dealerProfile: effectiveDealerProfile,
       lineItems: normalizedLines,
@@ -2403,9 +2746,9 @@ export async function saveDealerPortalQuote(
             po: input.po || null,
             paymentTerm: input.paymentTerm || "None",
             goodUntil: input.goodUntil || null,
-            deliveryOption: input.deliveryOption || "pickup",
+            deliveryOption: effectiveDeliveryOption,
             paymentMethod: input.paymentMethod || null,
-            taxCode: input.taxCode || null,
+            taxCode: effectiveTaxCode || null,
           },
         },
       } as Prisma.InputJsonValue,
@@ -3162,6 +3505,16 @@ export async function getDealerPortalSettings(db: Database, dealerId: number) {
       companyName: true,
       phoneNo: true,
       meta: true,
+      dealer: {
+        select: {
+          profile: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
       primaryBillingAddress: {
         select: {
           id: true,
@@ -3203,6 +3556,48 @@ export async function saveDealerPortalSettings(
       !Array.isArray(dealer.meta)
         ? dealer.meta
         : {};
+    const defaultCustomerProfileId = input.defaultCustomerProfileId || null;
+    const defaultTaxCode = input.defaultTaxCode?.trim() || null;
+    const defaultFulfillmentMode = normalizeDealerDefaultFulfillmentMode(
+      input.defaultFulfillmentMode,
+    );
+
+    if (input.defaultCustomerProfileId && !defaultCustomerProfileId) {
+      throw new Error("Default customer profile is invalid.");
+    }
+
+    if (defaultCustomerProfileId) {
+      const profile = await tx.customerTypes.findFirst({
+        where: {
+          id: defaultCustomerProfileId,
+          dealerOwnerId: dealerId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!profile) {
+        throw new Error("Default customer profile could not be found.");
+      }
+    }
+
+    if (defaultTaxCode) {
+      const tax = await tx.taxes.findFirst({
+        where: {
+          taxCode: defaultTaxCode,
+          deletedAt: null,
+        },
+        select: {
+          taxCode: true,
+        },
+      });
+
+      if (!tax) {
+        throw new Error("Default tax group could not be found.");
+      }
+    }
 
     const addressData = {
       name: input.companyName?.trim() || input.name?.trim() || null,
@@ -3248,6 +3643,9 @@ export async function saveDealerPortalSettings(
         meta: {
           ...currentMeta,
           logoUrl: input.logoUrl?.trim() || null,
+          defaultTaxCode,
+          defaultCustomerProfileId,
+          defaultFulfillmentMode,
         },
       },
       select: {

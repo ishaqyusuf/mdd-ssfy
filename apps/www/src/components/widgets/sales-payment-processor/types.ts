@@ -1,4 +1,3 @@
-import type { PrintMode } from "@gnd/sales/print/types";
 import type { ButtonProps } from "@gnd/ui/button";
 import type { ReactNode } from "react";
 
@@ -17,7 +16,7 @@ export type PendingAppliedPaymentCheck = {
 };
 
 export type PendingPrintRequest = {
-	mode: PrintMode;
+	mode: string;
 	salesIds: number[];
 	windowRef: Window | null;
 };

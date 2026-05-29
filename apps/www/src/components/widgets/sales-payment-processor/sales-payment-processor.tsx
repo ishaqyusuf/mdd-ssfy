@@ -1,10 +1,7 @@
 import { Env } from "@/components/env";
 import { _qc, _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
-import {
-	buildSalesPrintViewerUrl,
-	resolveSalesPrintAccess,
-} from "@/modules/sales-print/application/sales-print-service";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import { salesPaymentMethods } from "@/utils/constants";
 import { formatDate } from "@/utils/format";
@@ -51,6 +48,8 @@ import {
 	resolveDefaultPaymentMethod,
 } from "./utils";
 
+type SalesPrintExecutor = ReturnType<typeof useSalesPrintController>["print"];
+
 export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 	const [open, setOpened] = useState(false);
 	return (
@@ -80,49 +79,32 @@ export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 	);
 }
 
-async function resolvePendingPrintRequests(requests: PendingPrintRequest[]) {
-	const blockedUrls: string[] = [];
+async function resolvePendingPrintRequests(
+	requests: PendingPrintRequest[],
+	printSalesDocument: SalesPrintExecutor,
+) {
+	for (const request of requests) {
+		if (!request.salesIds.length) {
+			request.windowRef?.close();
+			continue;
+		}
 
-	await Promise.all(
-		requests.map(async (request) => {
-			if (!request.salesIds.length) {
-				request.windowRef?.close();
-				return;
+		try {
+			if (request.windowRef && !request.windowRef.closed) {
+				request.windowRef.close();
 			}
 
-			try {
-				const access = await resolveSalesPrintAccess({
-					salesIds: request.salesIds,
-					mode: request.mode,
-				});
-				const href = buildSalesPrintViewerUrl(access, {
-					preview: false,
-					mode: request.mode,
-				});
-
-				if (request.windowRef && !request.windowRef.closed) {
-					request.windowRef.location.replace(href);
-					return;
-				}
-
-				const printWindow =
-					typeof window === "undefined"
-						? null
-						: window.open(href, "_blank", "noopener,noreferrer");
-
-				if (!printWindow) {
-					blockedUrls.push(href);
-				}
-			} catch (error) {
-				if (request.windowRef && !request.windowRef.closed) {
-					request.windowRef.close();
-				}
-				throw error;
+			await printSalesDocument({
+				salesIds: request.salesIds,
+				mode: request.mode,
+			});
+		} catch (error) {
+			if (request.windowRef && !request.windowRef.closed) {
+				request.windowRef.close();
 			}
-		}),
-	);
-
-	return blockedUrls;
+			throw error;
+		}
+	}
 }
 
 function closePendingPrintRequests(requests: PendingPrintRequest[]) {
@@ -137,6 +119,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const { selectedIds, setOpened } = props;
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const salesPrint = useSalesPrintController();
 	const accountNo = props.phoneNo ?? `cust-${props.customerId}`;
 	const { data, refetch } = useSuspenseQuery(
 		trpc.customers.getCustomerPayPortal.queryOptions({
@@ -327,37 +310,14 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 					pendingPrintRequestsRef.current.length
 						? pendingPrintRequestsRef.current
 						: getPrintableRequests(formData),
-				)
-					.then((blockedUrls) => {
-						if (!blockedUrls.length) return;
-
-						toast({
-							title: "Print popup blocked",
-							description:
-								"The payment was recorded. Click to open the print view.",
-							variant: "destructive",
-							footer: (
-								<ToastAction
-									altText="Open print"
-									onClick={() => {
-										for (const href of blockedUrls) {
-											window.open(href, "_blank", "noopener,noreferrer");
-										}
-									}}
-								>
-									Open print
-								</ToastAction>
-							),
-						});
-					})
-					.catch(() => {
-						toast({
-							title: "Unable to open print view",
-							description:
-								"The payment was recorded, but the print view failed.",
-							variant: "destructive",
-						});
+					salesPrint.print,
+				).catch(() => {
+					toast({
+						title: "Unable to open print view",
+						description: "The payment was recorded, but the print view failed.",
+						variant: "destructive",
 					});
+				});
 				pendingPrintRequestsRef.current = [];
 				setTerminalError(null);
 				setTerminalState("success");
@@ -389,6 +349,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		paymentStatus,
 		pm,
 		resetTerminalFlow,
+		salesPrint.print,
 		setOpened,
 		terminalState,
 	]);

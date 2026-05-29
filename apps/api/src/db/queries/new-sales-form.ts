@@ -77,6 +77,13 @@ type NewSalesFormSettings = {
   customerProfileId: number | null;
 };
 
+type DealerProfileCardProfile = {
+  id: number | null;
+  title: string | null;
+  salesPercentage: number | null;
+  coefficient: number | null;
+};
+
 function safeMeta(meta: unknown): NewSalesFormContainer {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
     return {};
@@ -112,6 +119,56 @@ function safeRecord(value: unknown): Record<string, unknown> {
 function finiteOptionalNumber(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function resolveDealerProfileCard(order: {
+    dealerAuth?: {
+      id?: number | null;
+      email?: string | null;
+      name?: string | null;
+      companyName?: string | null;
+    dealer?: {
+      name?: string | null;
+      businessName?: string | null;
+    } | null;
+  } | null;
+  dealerSale?: {
+    dealerCustomerProfile?: Partial<DealerProfileCardProfile> | null;
+  } | null;
+  dealerSalesProfile?: Partial<DealerProfileCardProfile> | null;
+}) {
+  const dealer = order.dealerAuth;
+  if (!dealer?.id) return null;
+
+  const dealerName =
+    dealer.companyName ||
+    dealer.dealer?.businessName ||
+    dealer.name ||
+    dealer.dealer?.name ||
+    dealer.email ||
+    null;
+
+  return {
+    dealerId: dealer.id,
+    dealerName,
+    email: dealer.email || null,
+    profile: normalizeDealerProfileCardProfile(
+      order.dealerSale?.dealerCustomerProfile || order.dealerSalesProfile,
+    ),
+  };
+}
+
+function normalizeDealerProfileCardProfile(
+  profile?: Partial<DealerProfileCardProfile> | null,
+) {
+  if (!profile?.id) return null;
+  return {
+    id: profile.id,
+    title: profile.title || null,
+    salesPercentage:
+      profile.salesPercentage == null ? null : Number(profile.salesPercentage),
+    coefficient: profile.coefficient == null ? null : Number(profile.coefficient),
+  };
 }
 
 function resolvePersistedPaymentMethod(
@@ -616,6 +673,30 @@ function toBootstrapPayload(
       phoneNo: string | null;
       email: string | null;
     } | null;
+    dealerAuth?: {
+      id: number;
+      email: string | null;
+      name: string | null;
+      companyName: string | null;
+      dealer: {
+        name: string | null;
+        businessName: string | null;
+      } | null;
+    } | null;
+    dealerSale?: {
+      dealerCustomerProfile: {
+        id: number;
+        title: string | null;
+        salesPercentage: number | null;
+        coefficient: number | null;
+      } | null;
+    } | null;
+    dealerSalesProfile?: {
+      id: number;
+      title: string | null;
+      salesPercentage: number | null;
+      coefficient: number | null;
+    } | null;
     meta: unknown;
     payments?: { amount: number | null; status?: string | null }[];
   },
@@ -863,6 +944,7 @@ function toBootstrapPayload(
       order.updatedAt?.toISOString() ||
       new Date().toISOString(),
     customer: order.customer,
+    dealerProfileCard: resolveDealerProfileCard(order),
     settings,
     paymentTotal,
     paymentCount: order.payments?.length || 0,
@@ -952,6 +1034,7 @@ export async function bootstrapNewSalesForm(
     version: `new-${Date.now()}-${generateRandomString(6)}`,
     updatedAt: now,
     customer: selectedCustomer,
+    dealerProfileCard: null,
     settings,
     form: {
       customerId: input.customerId || null,
@@ -1056,6 +1139,40 @@ export async function getNewSalesForm(
             businessName: true,
             phoneNo: true,
             email: true,
+          },
+        },
+        dealerAuth: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            companyName: true,
+            dealer: {
+              select: {
+                name: true,
+                businessName: true,
+              },
+            },
+          },
+        },
+        dealerSale: {
+          select: {
+            dealerCustomerProfile: {
+              select: {
+                id: true,
+                title: true,
+                salesPercentage: true,
+                coefficient: true,
+              },
+            },
+          },
+        },
+        dealerSalesProfile: {
+          select: {
+            id: true,
+            title: true,
+            salesPercentage: true,
+            coefficient: true,
           },
         },
         items: {

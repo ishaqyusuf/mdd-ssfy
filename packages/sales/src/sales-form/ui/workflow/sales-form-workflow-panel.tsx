@@ -335,6 +335,15 @@ export function SalesFormWorkflowPanel<
 		activeSalesMultiplier > 0
 			? Number((1 / activeSalesMultiplier).toFixed(4))
 			: activeProfileCoefficient;
+	const dealerDoorPriceBreakdown = {
+		enabled:
+			workflowCapabilities.isDealershipMode &&
+			(props.pricing?.showDealerPriceBreakdown ?? true),
+		internalProfileCoefficient: activeProfileCoefficient,
+		dealerSalesPercentage: activeDealerSalesPercentage,
+		labels: props.pricing?.labels,
+	};
+	const pricingLabels = props.pricing?.labels;
 	const rootStepId = routeData?.rootStepUid
 		? routeData?.stepsByUid?.[routeData.rootStepUid]?.id
 		: null;
@@ -768,6 +777,7 @@ export function SalesFormWorkflowPanel<
 				profileCoefficient={activeDisplayProfileCoefficient}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
 				canEditPricing={workflowCapabilities.canEditLinePricing}
+				pricingLabels={pricingLabels}
 				formatMoney={(value) => moneyIfPositive(Number(value || 0)) || "$0.00"}
 				componentLabel={componentLabel}
 				resolveImageSrc={(src) =>
@@ -1560,6 +1570,8 @@ export function SalesFormWorkflowPanel<
 						}),
 					)}
 					profileCoefficient={activeDisplayProfileCoefficient}
+					priceBreakdown={dealerDoorPriceBreakdown}
+					pricingLabels={pricingLabels}
 					routeConfig={doorSizeModalRouteConfig}
 					canEditPricing={workflowCapabilities.canEditLinePricing}
 					onSupplierChange={(supplierUid) => {

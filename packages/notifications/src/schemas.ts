@@ -237,6 +237,28 @@ export const dealerOnboardingTags = actityTagsSchema.extend({
 });
 export type DealerOnboardingTags = z.infer<typeof dealerOnboardingTags>;
 
+export const dealerProfileUpdatedSchema = z.object({
+	dealerId: z.number(),
+	dealerName: z.string(),
+	dealerEmail: z.string().email(),
+	previousProfileName: z.string().optional().nullable(),
+	newProfileName: z.string(),
+	effectiveAt: z.string(),
+	dealershipUrl: z.string().url().optional().nullable(),
+});
+export type DealerProfileUpdatedInput = z.infer<
+	typeof dealerProfileUpdatedSchema
+>;
+export const dealerProfileUpdatedTags = actityTagsSchema.extend({
+	dealerId: z.number(),
+	dealerEmail: z.string().email(),
+	previousProfileName: z.string().optional().nullable(),
+	newProfileName: z.string(),
+});
+export type DealerProfileUpdatedTags = z.infer<
+	typeof dealerProfileUpdatedTags
+>;
+
 export const authNewDeviceLoginSchema = z.object({
 	accountName: z.string().optional().nullable(),
 	accountEmail: z.string().email(),
@@ -708,6 +730,7 @@ export type NotificationTypes = {
 	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
 	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
 	dealer_onboarding: DealerOnboardingInput;
+	dealer_profile_updated: DealerProfileUpdatedInput;
 	auth_new_device_login: AuthNewDeviceLoginInput;
 	dealer_magic_login_link: DealerMagicLoginLinkInput;
 	dealer_password_reset: DealerPasswordResetInput;
@@ -1399,6 +1422,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("dealer_onboarding"),
 		payload: dealerOnboardingSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("dealer_profile_updated"),
+		payload: dealerProfileUpdatedSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("auth_new_device_login"),

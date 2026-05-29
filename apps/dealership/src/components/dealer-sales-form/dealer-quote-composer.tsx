@@ -24,7 +24,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryStates } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useSalesFormActions } from "./adapters/use-sales-form-actions";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
@@ -32,6 +32,7 @@ import { useDealerSalesFormData } from "./adapters/use-sales-form-data";
 import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
 import { useDealerSalesFormState } from "./adapters/use-sales-form-state";
 import { DealerCustomerSelectorDialog } from "./dealer-customer-selector-dialog";
+import { dealerPricingTerms } from "./dealer-pricing-terms";
 import { DealerQuoteMainPanel } from "./dealer-quote-main-panel";
 import { DealerQuoteSkeleton } from "./dealer-quote-skeleton";
 import { DealerQuoteSummaryPanel } from "./dealer-quote-summary-panel";
@@ -98,6 +99,37 @@ function pricingChanged(saved?: number | null, current?: number | null) {
   return Math.abs(Number(saved) - Number(current)) > 0.0001;
 }
 
+function getDealerSettingsDefaults(meta: unknown) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    return {
+      defaultTaxCode: null,
+      defaultCustomerProfileId: null,
+      defaultFulfillmentMode: null,
+    };
+  }
+  const settings = meta as {
+    defaultTaxCode?: unknown;
+    defaultCustomerProfileId?: unknown;
+    defaultFulfillmentMode?: unknown;
+  };
+  const defaultCustomerProfileId = Number(settings.defaultCustomerProfileId);
+  return {
+    defaultTaxCode:
+      typeof settings.defaultTaxCode === "string" &&
+      settings.defaultTaxCode.trim()
+        ? settings.defaultTaxCode.trim()
+        : null,
+    defaultCustomerProfileId: Number.isFinite(defaultCustomerProfileId)
+      ? defaultCustomerProfileId
+      : null,
+    defaultFulfillmentMode:
+      typeof settings.defaultFulfillmentMode === "string" &&
+      settings.defaultFulfillmentMode.trim()
+        ? settings.defaultFulfillmentMode.trim()
+        : null,
+  };
+}
+
 export function DealerQuoteComposer({
   quoteId = null,
   mode,
@@ -121,6 +153,9 @@ export function DealerQuoteComposer({
   >(null);
   const [selectedCustomerOverride, setSelectedCustomerOverride] =
     useState<DealerSalesFormCustomer | null>(null);
+  const defaultTaxCodeRef = useRef<string | null>(null);
+  const defaultTaxCodeCapturedRef = useRef(false);
+  const taxDefaultCustomerIdRef = useRef<number | null>(null);
   const customersQuery = useQuery(trpc.dealerPortal.customers.queryOptions());
   const profilesQuery = useQuery(
     trpc.dealerPortal.salesProfiles.queryOptions(),
@@ -128,6 +163,8 @@ export function DealerQuoteComposer({
   const taxProfilesQuery = useQuery(
     trpc.dealerPortal.taxProfiles.queryOptions(),
   );
+  const settingsQuery = useQuery(trpc.dealerPortal.settings.queryOptions());
+  const dealerQuery = useQuery(trpc.dealerPortal.me.queryOptions());
   const internalProfileQuery = useQuery(
     trpc.dealerPortal.internalSalesProfile.queryOptions(),
   );
@@ -192,8 +229,17 @@ export function DealerQuoteComposer({
     () => buildSalesFormTaxSelectOptions(taxOptions),
     [taxOptions],
   );
+  const dealerDefaults = getDealerSettingsDefaults(settingsQuery.data?.meta);
   const internalProfile =
     (internalProfileQuery.data as DealerInternalSalesFormProfile | null) ||
+    null;
+  const dealer = dealerQuery.data;
+  const dealerName =
+    dealer?.companyName ||
+    dealer?.dealer?.businessName ||
+    dealer?.name ||
+    dealer?.dealer?.name ||
+    dealer?.email ||
     null;
   const record = form.record;
   const customerId = record?.form.customerId || null;
@@ -203,7 +249,12 @@ export function DealerQuoteComposer({
       ? selectedCustomerOverride
       : null);
   const defaultProfile =
-    profiles.find((profile) => profile.defaultProfile) || null;
+    profiles.find(
+      (profile) => profile.id === dealerDefaults.defaultCustomerProfileId,
+    ) ||
+    profiles.find((profile) => profile.defaultProfile) ||
+    profiles[0] ||
+    null;
   const selectedCustomerProfile =
     profiles.find(
       (profile) => profile.id === selectedCustomer?.customerTypeId,
@@ -277,11 +328,15 @@ export function DealerQuoteComposer({
   useEffect(() => {
     if (!record?.form.customerId || record.form.customerProfileId) return;
     const nextProfileId =
-      selectedCustomer?.customerTypeId || defaultProfile?.id || null;
+      selectedCustomer?.customerTypeId ||
+      dealerDefaults.defaultCustomerProfileId ||
+      defaultProfile?.id ||
+      null;
     if (!nextProfileId) return;
     form.setCustomer(record.form.customerId, nextProfileId);
   }, [
     defaultProfile?.id,
+    dealerDefaults.defaultCustomerProfileId,
     form.setCustomer,
     record?.form.customerId,
     record?.form.customerProfileId,
@@ -296,6 +351,7 @@ export function DealerQuoteComposer({
       customersQuery.isPending ||
       profilesQuery.isPending ||
       taxProfilesQuery.isPending ||
+      settingsQuery.isPending ||
       internalProfileQuery.isPending,
   });
   const selectedTaxCode = record?.form.taxCode ?? null;
@@ -377,8 +433,61 @@ export function DealerQuoteComposer({
     customersQuery.isPending ||
     profilesQuery.isPending ||
     taxProfilesQuery.isPending ||
+    settingsQuery.isPending ||
     internalProfileQuery.isPending ||
     isEditQuoteLoading;
+
+  useEffect(() => {
+    if (defaultTaxCodeCapturedRef.current) return;
+    if (!record || settingsQuery.isPending || isEditQuoteLoading) return;
+    defaultTaxCodeRef.current = dealerDefaults.defaultTaxCode;
+    defaultTaxCodeCapturedRef.current = true;
+  }, [
+    dealerDefaults.defaultTaxCode,
+    isEditQuoteLoading,
+    record,
+    settingsQuery.isPending,
+  ]);
+
+  useEffect(() => {
+    if (!record || editingQuoteId || form.state.dirty) return;
+    const defaultFulfillmentMode = dealerDefaults.defaultFulfillmentMode;
+    if (!defaultFulfillmentMode || record.form.deliveryOption !== "pickup") {
+      return;
+    }
+    form.setMeta({ deliveryOption: defaultFulfillmentMode });
+  }, [
+    dealerDefaults.defaultFulfillmentMode,
+    editingQuoteId,
+    form.setMeta,
+    form.state.dirty,
+    record,
+  ]);
+
+  useEffect(() => {
+    if (!record?.form.customerId || record.form.taxCode) return;
+    if (taxDefaultCustomerIdRef.current === record.form.customerId) return;
+    const nextTaxCode =
+      selectedCustomer?.taxCode || dealerDefaults.defaultTaxCode || null;
+    if (!nextTaxCode) return;
+    taxDefaultCustomerIdRef.current = record.form.customerId;
+    form.setMeta({ taxCode: nextTaxCode });
+    form.setTaxRate(resolveSalesFormTaxRateByCode(taxOptions, nextTaxCode));
+  }, [
+    dealerDefaults.defaultTaxCode,
+    form.setMeta,
+    form.setTaxRate,
+    record?.form.customerId,
+    record?.form.taxCode,
+    selectedCustomer?.taxCode,
+    taxOptions,
+  ]);
+
+  function applyTaxCode(taxCode?: string | null) {
+    const nextTaxCode = taxCode || null;
+    form.setMeta({ taxCode: nextTaxCode });
+    form.setTaxRate(resolveSalesFormTaxRateByCode(taxOptions, nextTaxCode));
+  }
 
   function resetComposer() {
     form.reset();
@@ -455,8 +564,11 @@ export function DealerQuoteComposer({
         ),
         SummaryPanel: (
           <DealerQuoteSummaryPanel
+            dealerEmail={dealer?.email || null}
+            dealerName={dealerName}
             customer={selectedCustomer}
             profiles={selectedProfile ? [selectedProfile] : profiles}
+            internalProfile={internalProfile}
             customerProfileId={selectedProfile?.id ?? null}
             deliveryOption={record.form.deliveryOption}
             goodUntil={record.form.goodUntil}
@@ -476,6 +588,7 @@ export function DealerQuoteComposer({
             isFetching={quoteQuery.isFetching}
             isSaving={saveQuote.isPending}
             canSave={Boolean(customerId && selectedProfile?.id)}
+            showDealerProfileCard={process.env.NODE_ENV !== "production"}
             onChangeCustomer={() => setCustomerSelectorOpen(true)}
             onDeliveryOptionChange={(deliveryOption) =>
               form.setMeta({ deliveryOption })
@@ -517,6 +630,8 @@ export function DealerQuoteComposer({
                   (profile) => profile.id === customer.customerTypeId,
                 ) || defaultProfile;
               form.setCustomer(customer.id, customerProfile?.id || null);
+              taxDefaultCustomerIdRef.current = customer.id;
+              applyTaxCode(customer.taxCode || defaultTaxCodeRef.current);
               if (!editingQuoteId) {
                 void setQuoteCustomerParams({
                   selectedCustomerId: customer.id,
@@ -603,7 +718,7 @@ export function DealerQuoteComposer({
           <div className="space-y-2 text-sm">
             {pricingChanged(savedSalesCoefficient, currentSalesCoefficient) ? (
               <div className="flex justify-between gap-4">
-                <span>Internal coefficient</span>
+                <span>{dealerPricingTerms.costCoefficient}</span>
                 <span className="font-medium">
                   {savedSalesCoefficient} to {currentSalesCoefficient}
                 </span>
@@ -614,7 +729,7 @@ export function DealerQuoteComposer({
               currentDealerSalesPercentage,
             ) ? (
               <div className="flex justify-between gap-4">
-                <span>Dealer percentage</span>
+                <span>{dealerPricingTerms.salesPriceMarkup}</span>
                 <span className="font-medium">
                   {savedDealerSalesPercentage}% to{" "}
                   {currentDealerSalesPercentage}%

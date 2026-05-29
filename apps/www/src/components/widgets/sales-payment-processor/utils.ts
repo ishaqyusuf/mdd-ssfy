@@ -34,7 +34,7 @@ export function resolveDefaultPaymentMethod(
 	return (
 		normalizePaymentMethod(selectedPaymentMethod) ||
 		normalizePaymentMethod(firstPaymentMethod) ||
-		"terminal"
+		"credit-card"
 	);
 }
 
@@ -44,6 +44,15 @@ export function buildPrintRequests(input: {
 	shouldPrintPackingSlip?: boolean | null;
 }): PendingPrintRequest[] {
 	const requests: PendingPrintRequest[] = [];
+
+	if (input.shouldPrintInvoice && input.shouldPrintPackingSlip) {
+		requests.push({
+			mode: "invoice,packing-slip",
+			salesIds: input.salesIds,
+			windowRef: null,
+		});
+		return requests;
+	}
 
 	if (input.shouldPrintInvoice) {
 		requests.push({

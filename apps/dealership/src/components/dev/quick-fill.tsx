@@ -8,9 +8,13 @@ import type { DealerPortalCustomerSchema } from "@api/schemas/dealer";
 
 type CustomerQuickFillProps = {
 	defaultProfileId?: number | null;
+	defaultTaxCode?: string | null;
 };
 
-export function CustomerQuickFill({ defaultProfileId }: CustomerQuickFillProps) {
+export function CustomerQuickFill({
+	defaultProfileId,
+	defaultTaxCode,
+}: CustomerQuickFillProps) {
 	const form = useFormContext<DealerPortalCustomerSchema>();
 
 	if (process.env.NODE_ENV === "production") return null;
@@ -27,6 +31,7 @@ export function CustomerQuickFill({ defaultProfileId }: CustomerQuickFillProps) 
 			phoneNo: faker.phone.number(),
 			address: faker.location.streetAddress({ useFullAddress: true }),
 			customerTypeId: current.customerTypeId || defaultProfileId || null,
+			taxCode: current.taxCode || defaultTaxCode || null,
 		});
 	}
 

@@ -192,5 +192,17 @@ export type SalesFormWorkflowPricingSurface<
 	dealerSalesPercentage?: number | null;
 	lineTotalMode?: "editable" | "readonly";
 	profileCoefficient?: number | null;
+	showDealerPriceBreakdown?: boolean;
+	labels?: SalesFormWorkflowPricingLabels;
 	getLineDisplayTotal?: (line: TLine) => number;
+};
+
+export type SalesFormWorkflowPricingLabels = {
+	doorPrice?: string;
+	addonPrice?: string;
+	customPrice?: string;
+	priceBreakdown?: string;
+	costPrice?: string;
+	salesPrice?: string;
+	margin?: string;
 };

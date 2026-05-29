@@ -1,6 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
+import { salesFormDeliveryOptions } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,10 +15,41 @@ function getSettingLogoUrl(meta: unknown) {
 	return typeof value === "string" ? value : "";
 }
 
+function getSettingDefaults(meta: unknown) {
+	if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+		return {
+			defaultTaxCode: "",
+			defaultCustomerProfileId: "",
+			defaultFulfillmentMode: "pickup",
+		};
+	}
+	const defaults = meta as {
+		defaultTaxCode?: unknown;
+		defaultCustomerProfileId?: unknown;
+		defaultFulfillmentMode?: unknown;
+	};
+	return {
+		defaultTaxCode:
+			typeof defaults.defaultTaxCode === "string"
+				? defaults.defaultTaxCode
+				: "",
+		defaultCustomerProfileId:
+			typeof defaults.defaultCustomerProfileId === "number"
+				? String(defaults.defaultCustomerProfileId)
+				: "",
+		defaultFulfillmentMode:
+			typeof defaults.defaultFulfillmentMode === "string"
+				? defaults.defaultFulfillmentMode
+				: "pickup",
+	};
+}
+
 export function DealerSettings() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const settingsQuery = useQuery(trpc.dealerPortal.settings.queryOptions());
+	const profilesQuery = useQuery(trpc.dealerPortal.salesProfiles.queryOptions());
+	const taxProfilesQuery = useQuery(trpc.dealerPortal.taxProfiles.queryOptions());
 	const saveSettings = useMutation(
 		trpc.dealerPortal.saveSettings.mutationOptions({
 			onSuccess: async () => {
@@ -42,6 +74,9 @@ export function DealerSettings() {
 	function onSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const form = new FormData(event.currentTarget);
+		const defaultCustomerProfileId = Number(
+			form.get("defaultCustomerProfileId") || 0,
+		);
 
 		saveSettings.mutate({
 			name: String(form.get("name") || ""),
@@ -53,11 +88,21 @@ export function DealerSettings() {
 			city: String(form.get("city") || ""),
 			state: String(form.get("state") || ""),
 			country: String(form.get("country") || ""),
+			defaultTaxCode: String(form.get("defaultTaxCode") || "") || null,
+			defaultCustomerProfileId: defaultCustomerProfileId || null,
+			defaultFulfillmentMode: String(form.get("defaultFulfillmentMode") || "") as
+				| "pickup"
+				| "delivery"
+				| "ship",
 		});
 	}
 
 	const settings = settingsQuery.data;
 	const logoUrl = getSettingLogoUrl(settings?.meta);
+	const defaults = getSettingDefaults(settings?.meta);
+	const dealershipProfileName = settings?.dealer?.profile?.title || null;
+	const profiles = profilesQuery.data ?? [];
+	const taxProfiles = taxProfilesQuery.data ?? [];
 
 	return (
 		<section className="rounded-lg border bg-background p-4">
@@ -106,6 +151,13 @@ export function DealerSettings() {
 					</div>
 				) : null}
 
+				<div className="rounded-md border bg-muted/20 p-3">
+					<p className="text-sm font-medium">GND dealership profile</p>
+					<p className="mt-1 text-sm text-muted-foreground">
+						{dealershipProfileName || "No dealership profile assigned"}
+					</p>
+				</div>
+
 				<div className="grid gap-3 md:grid-cols-2">
 					<Field
 						defaultValue={settings?.primaryBillingAddress?.address1 || ""}
@@ -134,8 +186,63 @@ export function DealerSettings() {
 					/>
 				</div>
 
+				<div className="grid gap-3 md:grid-cols-3">
+					<label className="space-y-2">
+						<span className="text-sm font-medium">Default tax group</span>
+						<select
+							className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+							defaultValue={defaults.defaultTaxCode}
+							name="defaultTaxCode"
+						>
+							<option value="">Tax Exempt</option>
+							{taxProfiles.map((tax) => (
+								<option key={tax.taxCode} value={tax.taxCode}>
+									{tax.title}
+									{Number(tax.percentage || 0) > 0
+										? ` (${tax.percentage}%)`
+										: ""}
+								</option>
+							))}
+						</select>
+					</label>
+					<label className="space-y-2">
+						<span className="text-sm font-medium">Default profile</span>
+						<select
+							className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+							defaultValue={defaults.defaultCustomerProfileId}
+							name="defaultCustomerProfileId"
+						>
+							<option value="">No default</option>
+							{profiles.map((profile) => (
+								<option key={profile.id} value={profile.id}>
+									{profile.title}
+								</option>
+							))}
+						</select>
+					</label>
+					<label className="space-y-2">
+						<span className="text-sm font-medium">Fulfillment mode</span>
+						<select
+							className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+							defaultValue={defaults.defaultFulfillmentMode}
+							name="defaultFulfillmentMode"
+						>
+							{salesFormDeliveryOptions.map((mode) => (
+								<option key={mode} value={mode}>
+									{mode}
+								</option>
+							))}
+						</select>
+					</label>
+				</div>
+
 				<Button
-					disabled={saveSettings.isPending || settingsQuery.isPending}
+					disabled={
+						saveSettings.isPending ||
+						settingsQuery.isPending ||
+						profilesQuery.isPending ||
+						taxProfilesQuery.isPending
+					}
 					type="submit"
 				>
 					<Building2 className="mr-2 size-4" />

@@ -24,7 +24,7 @@ const PREVIEW_PAGE_PATH = "p/sales-document-v2";
 const DOWNLOAD_ROUTE_PATH = "api/download/sales-v2";
 
 type SalesType = "order" | "quote";
-export type SalesPrintRequestMode = PrintMode | IOrderPrintMode;
+export type SalesPrintRequestMode = PrintMode | IOrderPrintMode | string;
 
 export interface SalesPrintRequest {
     salesIds: number[];
@@ -128,7 +128,7 @@ export function buildSalesPrintViewerUrl(
     options?: {
         preview?: boolean;
         templateId?: string | null;
-        mode?: PrintMode;
+        mode?: string;
         pricingMode?: "customer" | "internal" | null;
         origin?: string;
     },
@@ -159,7 +159,7 @@ export function buildSalesDocumentRouteFromQuery(input: {
     snapshotId?: string;
     preview?: boolean;
     templateId?: string | null;
-    mode?: PrintMode;
+    mode?: string;
     pricingMode?: "customer" | "internal" | null;
     origin?: string;
 }) {
@@ -441,7 +441,7 @@ function buildSalesDocumentRouteUrl(
     options?: {
         preview?: boolean;
         templateId?: string | null;
-        mode?: PrintMode;
+        mode?: string;
         pricingMode?: "customer" | "internal" | null;
         origin?: string;
     },

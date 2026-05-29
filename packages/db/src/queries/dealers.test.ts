@@ -6,11 +6,14 @@ import {
   getDealerPortalSalesDocument,
   getDealerPortalSalesDocuments,
   getDealerPortalCustomerOverview,
+  getDealerPortalCustomers,
+  getDealerPortalSettings,
   getDealerPortalSalesProfiles,
   getDealerPortalSalesList,
   deleteDealerPortalCustomer,
   saveDealerPortalQuote,
   saveDealerPortalCustomer,
+  saveDealerPortalSettings,
   saveDealerPortalSalesProfile,
   updateDealerSalesProfile,
 } from "./dealers";
@@ -154,6 +157,8 @@ function createDealerQuoteTestDb(options: {
     salesPercentage?: number | null;
     defaultProfile?: boolean | null;
   } | null;
+  dealerMeta?: Record<string, unknown> | null;
+  customerTaxCode?: string | null;
   salesSettingsMeta?: Record<string, unknown> | null;
   shelfProducts?: Array<{
     id: number;
@@ -180,6 +185,17 @@ function createDealerQuoteTestDb(options: {
       findFirst: async () => ({
         id: 20,
         customerTypeId: options.customerTypeId ?? null,
+        taxProfiles: options.customerTaxCode
+          ? [
+              {
+                taxCode: options.customerTaxCode,
+                tax: {
+                  taxCode: options.customerTaxCode,
+                  percentage: options.customerTaxCode === "FL" ? 6 : 8,
+                },
+              },
+            ]
+          : [],
       }),
     },
     customerTypes: {
@@ -203,6 +219,7 @@ function createDealerQuoteTestDb(options: {
     },
     dealerAuth: {
       findUnique: async () => ({
+        meta: options.dealerMeta || {},
         dealer: {
           customerTypeId: 30,
           profile: {
@@ -218,6 +235,13 @@ function createDealerQuoteTestDb(options: {
         options.salesSettingsMeta === undefined
           ? null
           : { meta: options.salesSettingsMeta },
+    },
+    taxes: {
+      findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+        if (where.taxCode === "FL") return { taxCode: "FL", percentage: 6 };
+        if (where.taxCode === "TX") return { taxCode: "TX", percentage: 8 };
+        return null;
+      },
     },
     dykeShelfProducts: {
       findMany: async ({ where }: { where: { id?: { in?: number[] } } }) => {
@@ -681,10 +705,17 @@ describe("dealer portal isolation", () => {
           email: "dealer@example.com",
           name: "Dealer",
           companyName: null,
+          dealer: {
+            customerTypeId: 25,
+            profile: {
+              id: 25,
+              title: "Standard",
+            },
+          },
         }),
       },
       customerTypes: {
-        findFirst: async () => ({ id: 30 }),
+        findFirst: async () => ({ id: 30, title: "Preferred" }),
       },
       customers: {
         update: async (args: Record<string, unknown>) => {
@@ -703,6 +734,11 @@ describe("dealer portal isolation", () => {
       dealerId: 10,
       customerId: 20,
       customerProfileId: 30,
+      dealerName: "Dealer",
+      dealerEmail: "dealer@example.com",
+      previousProfileName: "Standard",
+      newProfileName: "Preferred",
+      profileChanged: true,
     });
     expect(updates[0]).toEqual({
       where: { id: 20 },
@@ -722,6 +758,7 @@ describe("dealer portal isolation", () => {
           email: "dealer@example.com",
           name: "Dealer",
           companyName: "Dealer Co",
+          dealer: null,
         }),
         update: async (args: Record<string, unknown>) => {
           dealerUpdates.push(args);
@@ -729,7 +766,7 @@ describe("dealer portal isolation", () => {
         },
       },
       customerTypes: {
-        findFirst: async () => ({ id: 30 }),
+        findFirst: async () => ({ id: 30, title: "Preferred" }),
       },
       customers: {
         create: async (args: Record<string, unknown>) => {
@@ -748,6 +785,11 @@ describe("dealer portal isolation", () => {
       dealerId: 10,
       customerId: 40,
       customerProfileId: 30,
+      dealerName: "Dealer Co",
+      dealerEmail: "dealer@example.com",
+      previousProfileName: null,
+      newProfileName: "Preferred",
+      profileChanged: true,
     });
     expect(customerCreates[0]).toEqual({
       data: {
@@ -765,6 +807,48 @@ describe("dealer portal isolation", () => {
     expect(dealerUpdates[0]).toEqual({
       where: { id: 10 },
       data: { dealerId: 40 },
+    });
+  });
+
+  it("marks linked dealer profile updates as unchanged when the profile is already assigned", async () => {
+    const db = {
+      $transaction: async (callback: (tx: unknown) => unknown) => callback(db),
+      dealerAuth: {
+        findFirst: async () => ({
+          id: 10,
+          dealerId: 20,
+          email: "dealer@example.com",
+          name: "Dealer",
+          companyName: null,
+          dealer: {
+            customerTypeId: 30,
+            profile: {
+              id: 30,
+              title: "Preferred",
+            },
+          },
+        }),
+      },
+      customerTypes: {
+        findFirst: async () => ({ id: 30, title: "Preferred" }),
+      },
+      customers: {
+        update: async () => ({ id: 20 }),
+      },
+    };
+
+    const result = await updateDealerSalesProfile(db as any, {
+      dealerId: 10,
+      customerProfileId: 30,
+    });
+
+    expect(result).toMatchObject({
+      dealerId: 10,
+      customerId: 20,
+      customerProfileId: 30,
+      previousProfileName: "Preferred",
+      newProfileName: "Preferred",
+      profileChanged: false,
     });
   });
 
@@ -795,6 +879,277 @@ describe("dealer portal isolation", () => {
       id: 99,
       dealerOwnerId: 10,
       deletedAt: null,
+    });
+  });
+
+  it("saves a dealer customer default tax group", async () => {
+    let capturedTaxWhere: Record<string, unknown> | null = null;
+    let createdTaxProfile: Record<string, unknown> | null = null;
+
+    const db = {
+      taxes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) => {
+          capturedTaxWhere = where;
+          return { taxCode: "TX" };
+        },
+      },
+      $transaction: async (callback: (tx: any) => Promise<unknown>) =>
+        callback({
+          customers: {
+            create: async () => ({ id: 50 }),
+          },
+          customerTaxProfiles: {
+            findFirst: async () => null,
+            create: async ({ data }: { data: Record<string, unknown> }) => {
+              createdTaxProfile = data;
+              return { id: 70, ...data };
+            },
+          },
+        }),
+    };
+
+    const customer = await saveDealerPortalCustomer(db as any, 10, {
+      name: "Taxed Buyer",
+      taxCode: "TX",
+    });
+
+    expect(customer).toMatchObject({ id: 50 });
+    expect(capturedTaxWhere).toMatchObject({
+      taxCode: "TX",
+      deletedAt: null,
+    });
+    expect(createdTaxProfile).toMatchObject({
+      customerId: 50,
+      taxCode: "TX",
+    });
+  });
+
+  it("saves and loads dealer defaults from company settings", async () => {
+    let savedMeta: Record<string, unknown> | null = null;
+    const db = {
+      dealerAuth: {
+        findUnique: async ({ select }: { select?: Record<string, unknown> }) => {
+          const dealer = {
+            id: 10,
+            email: "dealer@example.com",
+            name: "Dealer",
+            companyName: "Dealer Co",
+            phoneNo: "555-111-2222",
+            meta: {
+              logoUrl: "https://example.com/old.png",
+            },
+            primaryBillingAddressId: 1,
+            primaryBillingAddress: {
+              id: 1,
+              address1: "1 Old St",
+              address2: null,
+              city: "Orlando",
+              state: "FL",
+              country: "US",
+            },
+          };
+          if (select?.primaryBillingAddress) return dealer;
+          return {
+            id: dealer.id,
+            meta: dealer.meta,
+            primaryBillingAddressId: dealer.primaryBillingAddressId,
+          };
+        },
+        update: async ({ data }: { data: Record<string, any> }) => {
+          savedMeta = data.meta;
+          return {
+            id: 10,
+            email: "dealer@example.com",
+            name: data.name,
+            companyName: data.companyName,
+            phoneNo: data.phoneNo,
+            meta: data.meta,
+          };
+        },
+      },
+      customerTypes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.id === 45 && where.dealerOwnerId === 10 ? { id: 45 } : null,
+      },
+      taxes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.taxCode === "FL" ? { taxCode: "FL" } : null,
+      },
+      addressBooks: {
+        update: async () => ({ id: 1 }),
+      },
+      $transaction: async (callback: (tx: any) => unknown) => callback(db),
+    };
+
+    await saveDealerPortalSettings(db as any, 10, {
+      name: "Dealer",
+      companyName: "Dealer Co",
+      phoneNo: "555-111-2222",
+      logoUrl: "https://example.com/logo.png",
+      defaultCustomerProfileId: 45,
+      defaultTaxCode: "FL",
+      defaultFulfillmentMode: "delivery",
+    });
+
+    expect(savedMeta).toMatchObject({
+      logoUrl: "https://example.com/logo.png",
+      defaultCustomerProfileId: 45,
+      defaultTaxCode: "FL",
+      defaultFulfillmentMode: "delivery",
+    });
+    const settings = await getDealerPortalSettings(db as any, 10);
+    expect(settings?.meta).toMatchObject({
+      logoUrl: "https://example.com/old.png",
+    });
+  });
+
+  it("rejects dealer defaults outside the active dealer scope", async () => {
+    const baseDb = {
+      dealerAuth: {
+        findUnique: async () => ({
+          id: 10,
+          meta: {},
+          primaryBillingAddressId: 1,
+        }),
+      },
+      addressBooks: {
+        update: async () => ({ id: 1 }),
+      },
+      customerTypes: {
+        findFirst: async () => null,
+      },
+      taxes: {
+        findFirst: async () => ({ taxCode: "FL" }),
+      },
+      $transaction: async (callback: (tx: any) => unknown) => callback(baseDb),
+    };
+
+    await expect(
+      saveDealerPortalSettings(baseDb as any, 10, {
+        defaultCustomerProfileId: 99,
+      }),
+    ).rejects.toThrow("Default customer profile could not be found.");
+  });
+
+  it("rejects unknown default tax groups", async () => {
+    const baseDb = {
+      dealerAuth: {
+        findUnique: async () => ({
+          id: 10,
+          meta: {},
+          primaryBillingAddressId: 1,
+        }),
+      },
+      addressBooks: {
+        update: async () => ({ id: 1 }),
+      },
+      customerTypes: {
+        findFirst: async () => ({ id: 45 }),
+      },
+      taxes: {
+        findFirst: async () => null,
+      },
+      $transaction: async (callback: (tx: any) => unknown) => callback(baseDb),
+    };
+
+    await expect(
+      saveDealerPortalSettings(baseDb as any, 10, {
+        defaultTaxCode: "BAD",
+      }),
+    ).rejects.toThrow("Default tax group could not be found.");
+  });
+
+  it("uses dealer defaults when creating a customer with blank profile and tax", async () => {
+    let createdCustomer: Record<string, unknown> | null = null;
+    let createdTaxProfile: Record<string, unknown> | null = null;
+    const db = {
+      dealerAuth: {
+        findUnique: async () => ({
+          meta: {
+            defaultCustomerProfileId: 45,
+            defaultTaxCode: "FL",
+          },
+        }),
+      },
+      customerTypes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.id === 45 && where.dealerOwnerId === 10 ? { id: 45 } : null,
+      },
+      taxes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.taxCode === "FL" ? { taxCode: "FL" } : null,
+      },
+      customers: {
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          createdCustomer = data;
+          return { id: 20, ...data };
+        },
+      },
+      customerTaxProfiles: {
+        findFirst: async () => null,
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          createdTaxProfile = data;
+          return { id: 1, ...data };
+        },
+      },
+      $transaction: async (callback: (tx: any) => unknown) => callback(db),
+    };
+
+    await saveDealerPortalCustomer(db as any, 10, {
+      name: "Defaulted Customer",
+    });
+
+    expect(createdCustomer).toMatchObject({
+      customerTypeId: 45,
+      dealerOwnerId: 10,
+    });
+    expect(createdTaxProfile).toEqual({
+      customerId: 20,
+      taxCode: "FL",
+    });
+  });
+
+  it("preserves explicit customer profile and tax values on edit", async () => {
+    let updatedCustomer: Record<string, unknown> | null = null;
+    let updatedTaxProfile: Record<string, unknown> | null = null;
+    const db = {
+      customerTypes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.id === 46 && where.dealerOwnerId === 10 ? { id: 46 } : null,
+      },
+      taxes: {
+        findFirst: async ({ where }: { where: Record<string, unknown> }) =>
+          where.taxCode === "TX" ? { taxCode: "TX" } : null,
+      },
+      customers: {
+        findFirst: async () => ({ id: 20, meta: {} }),
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          updatedCustomer = data;
+          return { id: 20, ...data };
+        },
+      },
+      customerTaxProfiles: {
+        findFirst: async () => ({ id: 5, taxCode: "FL" }),
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          updatedTaxProfile = data;
+          return { id: 5, ...data };
+        },
+      },
+      $transaction: async (callback: (tx: any) => unknown) => callback(db),
+    };
+
+    await saveDealerPortalCustomer(db as any, 10, {
+      id: 20,
+      name: "Explicit Customer",
+      customerTypeId: 46,
+      taxCode: "TX",
+    });
+
+    expect(updatedCustomer).toMatchObject({
+      customerTypeId: 46,
+    });
+    expect(updatedTaxProfile).toEqual({
+      taxCode: "TX",
     });
   });
 
@@ -1124,6 +1479,67 @@ describe("dealer portal isolation", () => {
     expect(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
   });
 
+  it("falls back to dealership default profile, tax, and fulfillment on quote save", async () => {
+    const testDb = createDealerQuoteTestDb({
+      activeDppCount: 0,
+      customerTypeId: null,
+      dealerMeta: {
+        defaultCustomerProfileId: 45,
+        defaultTaxCode: "FL",
+        defaultFulfillmentMode: "delivery",
+      },
+      dealerProfile: {
+        id: 45,
+        title: "Dealer Default",
+        coefficient: 0.8,
+        salesPercentage: 25,
+        defaultProfile: true,
+      },
+    });
+
+    await saveDealerPortalQuote(testDb.db as any, 10, dealerQuoteInput());
+
+    const savedOrderData = testDb.getCreatedOrderData() as Record<string, any>;
+    expect(savedOrderData).toMatchObject({
+      dealerSalesProfileId: 45,
+      taxPercentage: 6,
+    });
+    expect(savedOrderData.meta.newSalesForm.form).toMatchObject({
+      customerProfileId: 45,
+      taxCode: "FL",
+      deliveryOption: "delivery",
+    });
+  });
+
+  it("keeps explicit quote customer tax and fulfillment over dealership defaults", async () => {
+    const testDb = createDealerQuoteTestDb({
+      activeDppCount: 0,
+      customerTaxCode: "TX",
+      dealerMeta: {
+        defaultTaxCode: "FL",
+        defaultFulfillmentMode: "delivery",
+      },
+    });
+
+    await saveDealerPortalQuote(
+      testDb.db as any,
+      10,
+      dealerQuoteInput({
+        taxCode: "TX",
+        deliveryOption: "ship",
+      }),
+    );
+
+    const savedOrderData = testDb.getCreatedOrderData() as Record<string, any>;
+    expect(savedOrderData).toMatchObject({
+      taxPercentage: 8,
+    });
+    expect(savedOrderData.meta.newSalesForm.form).toMatchObject({
+      taxCode: "TX",
+      deliveryOption: "ship",
+    });
+  });
+
   it("rejects quote profiles not owned by the active dealer", async () => {
     const testDb = createDealerQuoteTestDb({
       activeDppCount: 0,
@@ -1309,6 +1725,98 @@ describe("dealer portal isolation", () => {
       quotesCount: 2,
     });
     expect("meta" in overview).toBe(false);
+  });
+
+  it("loads dealer customers with scoped sales and quote counts", async () => {
+    let capturedCustomerWhere: Record<string, unknown> | null = null;
+    let capturedSalesWhere: Record<string, unknown> | null = null;
+
+    const customers = await getDealerPortalCustomers(
+      {
+        customers: {
+          findMany: async ({ where }: { where: Record<string, unknown> }) => {
+            capturedCustomerWhere = where;
+            return [
+              {
+                id: 20,
+                name: "Jane Customer",
+                businessName: "Jane Co",
+                email: "jane@example.com",
+                phoneNo: "555-000-0000",
+                address: "100 Main St",
+                meta: {
+                  dealerAddress: {
+                    formattedAddress: "100 Main St, Dallas, TX",
+                    city: "Dallas",
+                    state: "TX",
+                  },
+                },
+                customerTypeId: 45,
+                createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                profile: {
+                  id: 45,
+                  title: "Retail",
+                  coefficient: 1,
+                  salesPercentage: 20,
+                  dealerOwnerId: 10,
+                },
+                taxProfiles: [
+                  {
+                    id: 60,
+                    taxCode: "TX",
+                    tax: {
+                      taxCode: "TX",
+                      title: "Texas",
+                      percentage: 8.25,
+                    },
+                  },
+                ],
+              },
+            ];
+          },
+        },
+        salesOrders: {
+          groupBy: async ({ where }: { where: Record<string, unknown> }) => {
+            capturedSalesWhere = where;
+            return [
+              { customerId: 20, type: "quote", _count: { _all: 3 } },
+              { customerId: 20, type: "order", _count: { _all: 2 } },
+            ];
+          },
+        },
+      } as any,
+      10,
+    );
+
+    expect(capturedCustomerWhere).toMatchObject({
+      dealerOwnerId: 10,
+      deletedAt: null,
+    });
+    expect(capturedSalesWhere).toMatchObject({
+      dealerAuthId: 10,
+      deletedAt: null,
+      customerId: {
+        in: [20],
+      },
+      type: {
+        in: ["order", "quote"],
+      },
+    });
+    const customer = customers[0];
+    expect(customer).toMatchObject({
+      id: 20,
+      formattedAddress: "100 Main St, Dallas, TX",
+      ordersCount: 2,
+      quotesCount: 3,
+      taxCode: "TX",
+      taxProfileId: 60,
+      profile: {
+        id: 45,
+        title: "Retail",
+        salesPercentage: 20,
+      },
+    });
+    expect("dealerOwnerId" in (customer?.profile || {})).toBe(false);
   });
 
   it("rejects another dealer's customer overview", async () => {

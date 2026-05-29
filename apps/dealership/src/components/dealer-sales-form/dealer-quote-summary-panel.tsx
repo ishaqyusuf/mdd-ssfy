@@ -2,6 +2,7 @@
 
 import {
   SalesFormInvoiceDetailsPanel,
+  SalesFormDealerProfileCard,
   SalesFormPricingOverview,
   buildSalesFormSelectOptions,
   salesFormDeliveryOptions,
@@ -13,11 +14,19 @@ import { Button } from "@gnd/ui/button";
 import { Switch } from "@gnd/ui/switch";
 import { Save } from "lucide-react";
 import { DealerCustomerCard } from "./dealer-customer-card";
-import type { DealerSalesFormCustomer, DealerSalesFormProfile } from "./types";
+import { dealerPricingTerms } from "./dealer-pricing-terms";
+import type {
+  DealerInternalSalesFormProfile,
+  DealerSalesFormCustomer,
+  DealerSalesFormProfile,
+} from "./types";
 
 type DealerQuoteSummaryPanelProps = {
+  dealerName?: string | null;
+  dealerEmail?: string | null;
   customer?: DealerSalesFormCustomer | null;
   profiles: DealerSalesFormProfile[];
+  internalProfile?: DealerInternalSalesFormProfile | null;
   customerProfileId?: number | null;
   subTotal?: number | null;
   internalSubTotal?: number | null;
@@ -38,6 +47,7 @@ type DealerQuoteSummaryPanelProps = {
   isFetching?: boolean;
   canSave?: boolean;
   isEditing?: boolean;
+  showDealerProfileCard?: boolean;
   showMargin?: boolean;
   onChangeCustomer: () => void;
   onProfileChange: (customerProfileId: number | null) => void;
@@ -74,6 +84,17 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
 
   return (
     <div className="flex flex-col gap-5">
+      {props.showDealerProfileCard ? (
+        <SalesFormDealerProfileCard
+          dealerEmail={props.dealerEmail}
+          dealerName={props.dealerName}
+          internalProfile={props.internalProfile}
+          profile={props.profiles.find(
+            (profile) => profile.id === props.customerProfileId,
+          )}
+          showInternalProfile
+        />
+      ) : null}
       <DealerCustomerCard
         customer={props.customer}
         profiles={props.profiles}
@@ -119,23 +140,25 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
             variant={props.pricingView === "internal" ? "default" : "outline"}
             onClick={() => props.onPricingViewChange("internal")}
           >
-            Internal
+            {dealerPricingTerms.costView}
           </Button>
           <Button
             type="button"
             variant={props.pricingView === "dealer" ? "default" : "outline"}
             onClick={() => props.onPricingViewChange("dealer")}
           >
-            Customer
+            {dealerPricingTerms.salesPriceView}
           </Button>
         </div>
       </div>
       <div className="rounded-xl border bg-card p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold">Show margin</div>
+            <div className="text-sm font-semibold">
+              {dealerPricingTerms.showProfit}
+            </div>
             <div className="text-xs text-muted-foreground">
-              Dealer profit view
+              {dealerPricingTerms.profitDescription}
             </div>
           </div>
           <Switch
@@ -146,11 +169,11 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
         {props.showMargin ? (
           <div className="mt-4 space-y-2 border-t pt-3 text-sm">
             <MarginRow
-              label="GND subtotal"
+              label={dealerPricingTerms.costSubtotal}
               value={formatCurrency(props.internalSubTotal)}
             />
             <MarginRow
-              label="Dealer subtotal"
+              label={dealerPricingTerms.salesPriceSubtotal}
               value={formatCurrency(props.dealerSubTotal)}
             />
             <MarginRow
@@ -162,7 +185,7 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
               value={`${formatPercent(props.marginPercent)}%`}
             />
             <MarginRow
-              label="Sales percentage"
+              label={dealerPricingTerms.salesPriceMarkup}
               value={`${formatPercent(props.dealerSalesPercentage)}%`}
             />
           </div>

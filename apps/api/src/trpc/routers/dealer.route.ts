@@ -58,7 +58,21 @@ export const dealerRouter = createTRPCRouter({
   updateSalesProfile: protectedProcedure
     .input(updateDealerSalesProfileSchema)
     .mutation(async ({ ctx, input }) => {
-      return updateDealerSalesProfile(ctx.db, input);
+      const result = await updateDealerSalesProfile(ctx.db, input);
+
+      if (result.profileChanged) {
+        await new NotificationService(tasks, ctx).channel.dealerProfileUpdated({
+          dealerId: result.dealerId,
+          dealerName: result.dealerName,
+          dealerEmail: result.dealerEmail,
+          previousProfileName: result.previousProfileName,
+          newProfileName: result.newProfileName,
+          effectiveAt: new Date().toISOString(),
+          dealershipUrl: getDealershipUrl(),
+        });
+      }
+
+      return result;
     }),
   createAccount: protectedProcedure
     .input(createDealerAccountSchema)

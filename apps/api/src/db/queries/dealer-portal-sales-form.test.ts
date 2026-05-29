@@ -66,6 +66,9 @@ function createDealerPortalSalesFormContext(
     existingQuote?: { id: number; orderId: string; slug: string } | null;
     dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
     collidingOrderIds?: string[];
+    customerTypeId?: number | null;
+    customerTaxCode?: string | null;
+    dealerMeta?: Record<string, unknown> | null;
   } = {},
 ) {
   const state = {
@@ -107,17 +110,39 @@ function createDealerPortalSalesFormContext(
     {
       id: 20,
       dealerOwnerId: 10,
-      customerTypeId: 30,
+      customerTypeId:
+        options.customerTypeId === undefined ? 30 : options.customerTypeId,
+      taxProfiles: options.customerTaxCode
+        ? [
+            {
+              taxCode: options.customerTaxCode,
+              tax: {
+                taxCode: options.customerTaxCode,
+                percentage: options.customerTaxCode === "TX" ? 8 : 6,
+              },
+            },
+          ]
+        : [],
       deletedAt: null,
     },
   ];
   const customerTypes = [
     {
       id: 30,
-      dealerOwnerId: null,
+      dealerOwnerId: 10,
       deletedAt: null,
       title: "Dealer Standard",
       coefficient: 1.1,
+      salesPercentage: 20,
+    },
+    {
+      id: 40,
+      dealerOwnerId: 10,
+      deletedAt: null,
+      defaultProfile: true,
+      title: "Dealer Default",
+      coefficient: 1.1,
+      salesPercentage: 25,
     },
     {
       id: 1,
@@ -132,6 +157,7 @@ function createDealerPortalSalesFormContext(
     {
       id: 10,
       salesRepId: 700,
+      meta: options.dealerMeta || {},
       dealer: {
         customerTypeId: 30,
         profile: {
@@ -177,6 +203,20 @@ function createDealerPortalSalesFormContext(
             }
             return true;
           }) || null,
+          select,
+        ),
+    },
+    taxes: {
+      findFirst: async ({ where, select }: QueryArgs) =>
+        pickSelected(
+          where?.taxCode === "FL" || where?.taxCode === "TX"
+            ? {
+                taxCode: where?.taxCode,
+                title: where?.taxCode === "TX" ? "Texas" : "Florida",
+                percentage: where?.taxCode === "TX" ? 8 : 6,
+                deletedAt: null,
+              }
+            : null,
           select,
         ),
     },
@@ -307,7 +347,7 @@ describe("dealer portal sales form DPP identities", () => {
       salesRepId: 700,
     });
     expect(state.createdOrderData?.meta).toMatchObject({
-      salesCoefficient: 1.1,
+      salesCoefficient: 1,
     });
     expect(state.createdOrderData?.meta).not.toHaveProperty("source");
     expect(state.createdOrderData?.meta).not.toHaveProperty("pricingSnapshot");
@@ -322,8 +362,8 @@ describe("dealer portal sales form DPP identities", () => {
       customerId: 20,
       dealerCustomerProfileId: 30,
       dealerSalesPercentage: 20,
-      grandTotal: 109.2,
-      dueAmount: 109.2,
+      grandTotal: 120,
+      dueAmount: 120,
     });
     expect(state.sequenceCountWhere).toMatchObject({
       dealerAuthId: {
@@ -373,6 +413,79 @@ describe("dealer portal sales form DPP identities", () => {
       dealerSalesPercentage: 35,
       grandTotal: 108,
       dueAmount: 108,
+    });
+  });
+
+  it("uses dealership defaults when customer profile, tax, and fulfillment are blank", async () => {
+    const { ctx, state } = createDealerPortalSalesFormContext({
+      customerTypeId: null,
+      dealerMeta: {
+        defaultCustomerProfileId: 40,
+        defaultTaxCode: "FL",
+        defaultFulfillmentMode: "delivery",
+      },
+    });
+
+    await saveDealerPortalQuote(
+      ctx,
+      10,
+      dealerQuoteInput({ customerProfileId: undefined }),
+    );
+
+    expect(state.createdOrderData).toMatchObject({
+      dealerSalesProfileId: 40,
+      taxPercentage: 6,
+    });
+    expect((state.createdOrderData?.meta as any).newSalesForm.form).toMatchObject({
+      customerProfileId: 40,
+      taxCode: "FL",
+      deliveryOption: "delivery",
+    });
+  });
+
+  it("uses customer tax before dealership default tax", async () => {
+    const { ctx, state } = createDealerPortalSalesFormContext({
+      customerTaxCode: "TX",
+      dealerMeta: {
+        defaultTaxCode: "FL",
+        defaultFulfillmentMode: "delivery",
+      },
+    });
+
+    await saveDealerPortalQuote(ctx, 10, dealerQuoteInput());
+
+    expect(state.createdOrderData).toMatchObject({
+      taxPercentage: 8,
+    });
+    expect((state.createdOrderData?.meta as any).newSalesForm.form).toMatchObject({
+      taxCode: "TX",
+      deliveryOption: "delivery",
+    });
+  });
+
+  it("keeps explicit quote tax and fulfillment over dealership defaults", async () => {
+    const { ctx, state } = createDealerPortalSalesFormContext({
+      dealerMeta: {
+        defaultTaxCode: "FL",
+        defaultFulfillmentMode: "delivery",
+      },
+    });
+
+    await saveDealerPortalQuote(
+      ctx,
+      10,
+      dealerQuoteInput({
+        taxCode: "TX",
+        deliveryOption: "ship",
+      }),
+    );
+
+    expect(state.createdOrderData).toMatchObject({
+      taxPercentage: 8,
+    });
+    expect((state.createdOrderData?.meta as any).newSalesForm.form).toMatchObject({
+      taxCode: "TX",
+      deliveryOption: "ship",
     });
   });
 

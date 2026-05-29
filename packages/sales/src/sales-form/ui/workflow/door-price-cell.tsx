@@ -1,6 +1,11 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@gnd/ui/hover-card";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
@@ -37,11 +42,96 @@ function firstFiniteNumber(...values: Array<number | null | undefined>) {
   return null;
 }
 
+function firstPositiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const candidate = Number(value);
+    if (Number.isFinite(candidate) && candidate > 0) return candidate;
+  }
+  return null;
+}
+
 function currency(value?: number | null) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
   }).format(Number(value || 0));
+}
+
+function roundCurrency(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+export type DoorPriceBreakdownContext = {
+  enabled?: boolean;
+  internalProfileCoefficient?: number | null;
+  dealerSalesPercentage?: number | null;
+  displayUnitPrice?: number | null;
+  labels?: DoorPriceBreakdownLabels;
+};
+
+export type DoorPriceBreakdownLabels = {
+  priceBreakdown?: string;
+  costPrice?: string;
+  salesPrice?: string;
+  margin?: string;
+};
+
+export type DoorPriceBreakdown = {
+  internalUnitPrice: number;
+  dealerUnitPrice: number;
+  marginAmount: number;
+  marginPercent: number;
+};
+
+export function resolveDoorPriceBreakdown(
+  row: DoorPriceRow,
+  context?: DoorPriceBreakdownContext | null,
+): DoorPriceBreakdown | null {
+  if (!context?.enabled || row.meta?.priceMissing) return null;
+
+  const baseUnit = firstFiniteNumber(row.meta?.baseUnitPrice);
+  const dealerMultiplier = 1 + toNumber(context.dealerSalesPercentage, 0) / 100;
+  const dealerUnitFromRow = firstPositiveNumber(
+    context.displayUnitPrice,
+    row.meta?.doorSalesUnitPrice,
+    row.jambSizePrice,
+    row.unitPrice,
+  );
+  const internalUnitFromBase =
+    baseUnit != null && baseUnit > 0
+      ? profileAdjustedDoorSalesPrice(
+          null,
+          baseUnit,
+          context.internalProfileCoefficient,
+        )
+      : null;
+  const dealerUnitPrice =
+    dealerUnitFromRow != null
+      ? roundCurrency(dealerUnitFromRow)
+      : internalUnitFromBase != null
+        ? roundCurrency(internalUnitFromBase * dealerMultiplier)
+        : baseUnit === 0
+          ? 0
+          : null;
+
+  if (dealerUnitPrice == null) return null;
+
+  const internalUnitPrice =
+    internalUnitFromBase != null
+      ? internalUnitFromBase
+      : dealerMultiplier > 0
+        ? roundCurrency(dealerUnitPrice / dealerMultiplier)
+        : dealerUnitPrice;
+  const marginAmount = roundCurrency(dealerUnitPrice - internalUnitPrice);
+
+  return {
+    internalUnitPrice,
+    dealerUnitPrice,
+    marginAmount,
+    marginPercent: dealerUnitPrice
+      ? (marginAmount / dealerUnitPrice) * 100
+      : 0,
+  };
 }
 
 function calcDoorRow<T extends DoorPriceRow>(row: T): T {
@@ -112,11 +202,13 @@ export function DoorPriceCell({
   row,
   onSave,
   profileCoefficient,
+  priceBreakdown,
   readOnly = false,
 }: {
   row: DoorPriceRow;
   onSave: (nextBase: number) => void | Promise<void>;
   profileCoefficient?: number | null;
+  priceBreakdown?: DoorPriceBreakdownContext | null;
   readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -131,6 +223,25 @@ export function DoorPriceCell({
   const displayDoorPrice = getHptDoorSalesUnitPrice(row, {
     profileCoefficient,
   });
+  const breakdown = resolveDoorPriceBreakdown(row, {
+    ...priceBreakdown,
+    displayUnitPrice: displayDoorPrice,
+  });
+  const breakdownLabels = {
+    priceBreakdown:
+      priceBreakdown?.labels?.priceBreakdown || "Price breakdown",
+    costPrice: priceBreakdown?.labels?.costPrice || "Cost price (internal)",
+    salesPrice:
+      priceBreakdown?.labels?.salesPrice || "Sales price (dealer)",
+    margin: priceBreakdown?.labels?.margin || "Margin",
+  };
+  const readOnlyPrice = (
+    <div className="flex h-8 w-full min-w-[92px] items-center justify-end px-2 text-right">
+      <span className="block text-sm font-semibold text-foreground">
+        {isMissingPrice ? "Missing" : currency(displayDoorPrice)}
+      </span>
+    </div>
+  );
 
   useEffect(() => {
     setDraft(
@@ -141,12 +252,45 @@ export function DoorPriceCell({
   }, [baseUnit, hasStoredBasePrice, isMissingPrice, open]);
 
   if (readOnly) {
+    if (!breakdown) return readOnlyPrice;
+
     return (
-      <div className="flex h-8 w-full min-w-[92px] items-center justify-end px-2 text-right">
-        <span className="block text-sm font-semibold text-foreground">
-          {isMissingPrice ? "Missing" : currency(displayDoorPrice)}
-        </span>
-      </div>
+      <HoverCard openDelay={150} closeDelay={100}>
+        <HoverCardTrigger asChild>{readOnlyPrice}</HoverCardTrigger>
+        <HoverCardContent align="end" className="w-64 space-y-3 p-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              {breakdownLabels.priceBreakdown}
+            </p>
+          </div>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">
+                {breakdownLabels.costPrice}
+              </span>
+              <span className="font-semibold text-foreground">
+                {currency(breakdown.internalUnitPrice)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">
+                {breakdownLabels.salesPrice}
+              </span>
+              <span className="font-semibold text-foreground">
+                {currency(breakdown.dealerUnitPrice)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t pt-2">
+              <span className="text-muted-foreground">
+                {breakdownLabels.margin}
+              </span>
+              <span className="font-semibold text-foreground">
+                {`${currency(breakdown.marginAmount)} (${breakdown.marginPercent.toFixed(1)}%)`}
+              </span>
+            </div>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
     );
   }
 

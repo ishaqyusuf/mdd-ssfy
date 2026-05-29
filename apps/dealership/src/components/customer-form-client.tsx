@@ -65,6 +65,8 @@ type CustomerFormRecord = {
   lat?: number | null;
   lng?: number | null;
   customerTypeId: number | null;
+  taxCode?: string | null;
+  taxProfileId?: number | null;
 } | null;
 
 type CustomerFormSavedRecord = {
@@ -74,10 +76,16 @@ type CustomerFormSavedRecord = {
   email?: string | null;
   phoneNo?: string | null;
   customerTypeId?: number | null;
+  taxCode?: string | null;
+  taxProfileId?: number | null;
 };
 
 function getCustomerDefaultValues(
   customer?: CustomerFormRecord,
+  defaults?: {
+    customerTypeId?: number | null;
+    taxCode?: string | null;
+  },
 ): DealerPortalCustomerSchema {
   return {
     id: customer?.id || null,
@@ -95,7 +103,9 @@ function getCustomerDefaultValues(
     country: customer?.country || "",
     lat: customer?.lat ?? null,
     lng: customer?.lng ?? null,
-    customerTypeId: customer?.customerTypeId || null,
+    customerTypeId: customer?.customerTypeId || defaults?.customerTypeId || null,
+    taxCode: customer?.taxCode || defaults?.taxCode || null,
+    taxProfileId: customer?.taxProfileId || null,
   };
 }
 
@@ -190,6 +200,35 @@ type SalesProfileOption = {
     salesPercentage?: number | null;
   };
 };
+
+type TaxGroupOption = {
+  id: string;
+  label: string;
+};
+
+function getDealerSettingsDefaults(meta: unknown) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
+    return {
+      customerTypeId: null,
+      taxCode: null,
+    };
+  }
+  const settings = meta as {
+    defaultCustomerProfileId?: unknown;
+    defaultTaxCode?: unknown;
+  };
+  const defaultCustomerProfileId = Number(settings.defaultCustomerProfileId);
+  return {
+    customerTypeId: Number.isFinite(defaultCustomerProfileId)
+      ? defaultCustomerProfileId
+      : null,
+    taxCode:
+      typeof settings.defaultTaxCode === "string" &&
+      settings.defaultTaxCode.trim()
+        ? settings.defaultTaxCode.trim()
+        : null,
+  };
+}
 
 function resolvePlaceId(prediction?: PlacePrediction) {
   const placePrediction = prediction?.placePrediction;
@@ -350,8 +389,13 @@ export function CustomerFormClient({
   const profilesQuery = useQuery(
     trpc.dealerPortal.salesProfiles.queryOptions(),
   );
+  const taxProfilesQuery = useQuery(
+    trpc.dealerPortal.taxProfiles.queryOptions(),
+  );
+  const settingsQuery = useQuery(trpc.dealerPortal.settings.queryOptions());
+  const dealerDefaults = getDealerSettingsDefaults(settingsQuery.data?.meta);
   const form = useZodForm(dealerPortalCustomerSchema, {
-    defaultValues: getCustomerDefaultValues(customer ?? null),
+    defaultValues: getCustomerDefaultValues(customer ?? null, dealerDefaults),
   });
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
   const [profileTitle, setProfileTitle] = useState("");
@@ -393,13 +437,43 @@ export function CustomerFormClient({
   );
 
   useEffect(() => {
-    form.reset(getCustomerDefaultValues(customer ?? null));
-  }, [customer, form]);
+    if (!customer && form.formState.isDirty) return;
+    form.reset(getCustomerDefaultValues(customer ?? null, dealerDefaults));
+  }, [
+    customer,
+    dealerDefaults.customerTypeId,
+    dealerDefaults.taxCode,
+    form,
+    form.formState.isDirty,
+  ]);
 
   const profiles = profilesQuery.data ?? [];
   const selectedProfile = profiles.find(
     (profile) => profile.id === form.watch("customerTypeId"),
   );
+  const selectedTaxCode = form.watch("taxCode") || null;
+  const taxOptions: TaxGroupOption[] = [
+    {
+      id: "none",
+      label: "Tax Exempt",
+    },
+    ...(taxProfilesQuery.data || []).map((tax) => {
+      const percentage = new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 2,
+      }).format(Number(tax.percentage || 0));
+
+      return {
+        id: String(tax.taxCode || ""),
+        label:
+          Number(tax.percentage || 0) > 0
+            ? `${tax.title || tax.taxCode} (${percentage}%)`
+            : String(tax.title || tax.taxCode || "Tax"),
+      };
+    }),
+  ].filter((option) => option.id);
+  const selectedTaxOption =
+    taxOptions.find((option) => option.id === (selectedTaxCode || "none")) ||
+    taxOptions[0];
   const profileOptions: SalesProfileOption[] = profiles.flatMap((profile) => {
     if (!profile.id) return [];
 
@@ -490,7 +564,10 @@ export function CustomerFormClient({
   const actions = (
     <>
       {cancelAction}
-      <CustomerQuickFill defaultProfileId={profiles[0]?.id ?? null} />
+      <CustomerQuickFill
+        defaultProfileId={dealerDefaults.customerTypeId ?? profiles[0]?.id ?? null}
+        defaultTaxCode={dealerDefaults.taxCode}
+      />
       <Button disabled={saveCustomer.isPending} form={formId} type="submit">
         {saveCustomer.isPending ? "Saving..." : "Save customer"}
       </Button>
@@ -630,6 +707,31 @@ export function CustomerFormClient({
                             )}
                             searchPlaceholder="Search sales profiles"
                             selectedItem={selectedProfileOption}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="taxCode"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Tax group</FormLabel>
+                          <ComboboxDropdown
+                            contentInPlace={mode === "modal"}
+                            emptyResults="No tax group found"
+                            isLoading={taxProfilesQuery.isPending}
+                            items={taxOptions}
+                            onSelect={(option) => {
+                              field.onChange(
+                                option.id === "none" ? null : option.id,
+                              );
+                            }}
+                            placeholder="Select tax group"
+                            popoverProps={{ align: "start" }}
+                            searchPlaceholder="Search tax groups"
+                            selectedItem={selectedTaxOption}
                           />
                           <FormMessage />
                         </FormItem>

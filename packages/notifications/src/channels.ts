@@ -63,6 +63,7 @@ export const channelNames = [
 	"dispatch_packing_delay",
 	"sales_dispatch_duplicate_alert",
 	"dealer_onboarding",
+	"dealer_profile_updated",
 	"auth_new_device_login",
 	"dealer_magic_login_link",
 	"dealer_password_reset",
@@ -252,6 +253,13 @@ export const channelsConfig: Partial<{
 		name: "Dealer Sales Request",
 		description: "Send when a dealer asks a sales rep to approve a quote as an order.",
 		priority: 4,
+		category: "Sales",
+	},
+	dealer_profile_updated: {
+		name: "Dealer Profile Updated",
+		description:
+			"Send when a dealer's assigned GND dealership profile is assigned or updated.",
+		priority: 5,
 		category: "Sales",
 	},
 	sales_payment_recorded: {

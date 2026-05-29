@@ -1,3 +1,8 @@
+import {
+	getPrintModeRequestKey,
+	normalizePrintMode,
+	parsePrintModes,
+} from "@gnd/sales/print/modes";
 import type { PrintMode } from "@gnd/sales/print/types";
 
 export const DEFAULT_SALES_PRINT_TEMPLATE_ID = "template-2";
@@ -26,6 +31,7 @@ export interface SalesPrintRequestParams {
 	preview: boolean;
 	templateId: string;
 	mode: PrintMode;
+	modes: PrintMode[];
 	pricingMode: "customer" | "internal" | null;
 }
 
@@ -41,23 +47,7 @@ export function normalizeSalesPrintMode(
 	mode?: string | null,
 	salesType: "order" | "quote" = "order",
 ): PrintMode {
-	switch (mode) {
-		case "invoice":
-			return "invoice";
-		case "quote":
-			return "quote";
-		case "production":
-			return "production";
-		case "packing list":
-		case "packing-slip":
-			return "packing-slip";
-		case "order-packing":
-			return "order-packing";
-		case "order":
-			return "invoice";
-		default:
-			return salesType === "quote" ? "quote" : "invoice";
-	}
+	return normalizePrintMode(mode, salesType);
 }
 
 export function parseSalesPrintRequest(
@@ -71,7 +61,8 @@ export function parseSalesPrintRequest(
 		preview: readBooleanParam(rawParams.preview),
 		templateId:
 			readStringParam(rawParams.templateId) || DEFAULT_SALES_PRINT_TEMPLATE_ID,
-		mode: normalizeSalesPrintMode(readStringParam(rawParams.mode)),
+		mode: getPrintModeRequestKey(readStringParam(rawParams.mode)),
+		modes: parsePrintModes(readStringParam(rawParams.mode)),
 		pricingMode: normalizePricingMode(readStringParam(rawParams.pricingMode)),
 	};
 	const locatorTypes = getPresentLocatorTypes(params);

@@ -82,6 +82,8 @@ export const dealerPortalCustomerSchema = z.object({
   lat: z.number().optional().nullable(),
   lng: z.number().optional().nullable(),
   customerTypeId: z.number().optional().nullable(),
+  taxCode: z.string().optional().nullable(),
+  taxProfileId: z.number().optional().nullable(),
 });
 export type DealerPortalCustomerSchema = z.infer<
   typeof dealerPortalCustomerSchema
@@ -220,6 +222,12 @@ export const dealerPortalSettingsSchema = z.object({
   city: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
+  defaultTaxCode: z.string().optional().nullable(),
+  defaultCustomerProfileId: z.number().optional().nullable(),
+  defaultFulfillmentMode: z
+    .enum(["pickup", "delivery", "ship"])
+    .optional()
+    .nullable(),
 });
 export type DealerPortalSettingsSchema = z.infer<
   typeof dealerPortalSettingsSchema

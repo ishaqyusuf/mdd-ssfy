@@ -79,7 +79,18 @@ describe("sales print service", () => {
 		expect(resolveSalesPrintMode("order")).toBe("invoice");
 		expect(resolveSalesPrintMode("packing list")).toBe("packing-slip");
 		expect(resolveSalesPrintMode("order-packing")).toBe("order-packing");
+		expect(resolveSalesPrintMode("invoice,packing-slip")).toBe("order-packing");
 		expect(resolveSalesPrintMode(undefined, "quote")).toBe("quote");
+	});
+
+	it("parses comma-separated mode params into combined print mode metadata", () => {
+		const request = parseSalesPrintRequest({
+			accessToken: "access-123",
+			mode: "invoice,packing-slip",
+		});
+
+		expect(request.params.mode).toBe("order-packing");
+		expect(request.params.modes).toEqual(["invoice", "packing-slip"]);
 	});
 
 	it("builds viewer urls from shared query inputs", () => {
@@ -93,6 +104,18 @@ describe("sales print service", () => {
 			}),
 		).toBe(
 			"https://app.example.com/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice",
+		);
+
+		expect(
+			buildSalesDocumentRouteFromQuery({
+				accessToken: "access-123",
+				preview: false,
+				mode: "invoice,packing-slip",
+				templateId: "template-2",
+				origin: "https://app.example.com",
+			}),
+		).toBe(
+			"https://app.example.com/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=invoice%2Cpacking-slip",
 		);
 
 		expect(

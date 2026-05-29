@@ -1,4 +1,5 @@
 import type { Prisma } from "@gnd/db";
+import { parsePrintModes } from "./modes";
 import type { PrintMode } from "./types";
 
 const excludeDeletedWhere = { deletedAt: null } as const;
@@ -76,10 +77,14 @@ function buildItemsInclude() {
 	} satisfies Prisma.SalesOrderItemsInclude;
 }
 
-export function buildPrintSalesInclude(mode: PrintMode) {
+export function buildPrintSalesInclude(mode: PrintMode | PrintMode[] | string) {
+	const modes = Array.isArray(mode) ? mode : parsePrintModes(mode);
 	const needsFinancials =
-		mode === "invoice" || mode === "quote" || mode === "order-packing";
-	const needsPacking = mode === "packing-slip" || mode === "order-packing";
+		modes.includes("invoice") ||
+		modes.includes("quote") ||
+		modes.includes("order-packing");
+	const needsPacking =
+		modes.includes("packing-slip") || modes.includes("order-packing");
 
 	return {
 		items: {
@@ -96,7 +101,19 @@ export function buildPrintSalesInclude(mode: PrintMode) {
 	} satisfies Prisma.SalesOrdersInclude;
 }
 
-export const PrintSalesInclude = buildPrintSalesInclude("order-packing");
+export const PrintSalesInclude = {
+	items: {
+		where: excludeDeletedWhere,
+		include: buildItemsInclude(),
+	},
+	customer: { where: excludeDeletedWhere },
+	billingAddress: { where: excludeDeletedWhere },
+	shippingAddress: { where: excludeDeletedWhere },
+	salesRep: { where: excludeDeletedWhere },
+	dealerSale: true,
+	...financialInclude,
+	...packingInclude,
+} satisfies Prisma.SalesOrdersInclude;
 
 export type PrintSalesData = Prisma.SalesOrdersGetPayload<{
 	include: typeof PrintSalesInclude;

@@ -2,6 +2,11 @@ export { SalesFormCustomerOverviewCard } from "./customer-overview-card";
 export type { SalesFormCustomerOverviewCardProps } from "./customer-overview-card";
 export { SalesFormCreditLimitMeter } from "./credit-limit-meter";
 export type { SalesFormCreditLimitMeterProps } from "./credit-limit-meter";
+export { SalesFormDealerProfileCard } from "./dealer-profile-card";
+export type {
+	SalesFormDealerProfileCardProfile,
+	SalesFormDealerProfileCardProps,
+} from "./dealer-profile-card";
 export { formatSalesFormCurrency } from "./format";
 export { SalesFormInvoiceDetailsPanel } from "./invoice-details-panel";
 export type { SalesFormInvoiceDetailsPanelProps } from "./invoice-details-panel";
