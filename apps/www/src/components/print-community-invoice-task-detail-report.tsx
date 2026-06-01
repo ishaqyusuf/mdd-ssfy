@@ -1,19 +1,21 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { useCommunityInvoicePrintFilter } from "@/hooks/use-community-invoice-print-filter";
+import { useTRPC } from "@/trpc/client";
 import { CommunityInvoiceTaskDetailPdfDocument, PDFViewer } from "@gnd/pdf";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 export function PrintCommunityInvoiceTaskDetailReport() {
+	const trpc = useTRPC();
 	const { filters } = useCommunityInvoicePrintFilter();
 	const { data } = useSuspenseQuery(
-		_trpc.print.communityInvoiceTaskDetailReport.queryOptions({
+		trpc.print.communityInvoiceTaskDetailReport.queryOptions({
 			token: filters.token ?? "",
 			preview: filters.preview ?? false,
 		}),
 	);
+	const printData = data as any;
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
 
 	useEffect(() => {
@@ -24,11 +26,11 @@ export function PrintCommunityInvoiceTaskDetailReport() {
 		return () => window.clearTimeout(timer);
 	}, [filters.preview]);
 
-	if (!data) return null;
+	if (!printData) return null;
 
 	return (
-		<PDFViewer ref={viewerRef} className="flex h-screen w-full flex-col">
-			<CommunityInvoiceTaskDetailPdfDocument data={data} title={data.title} />
+		<PDFViewer ref={viewerRef as any} className="flex h-screen w-full flex-col">
+			<CommunityInvoiceTaskDetailPdfDocument data={printData} title={printData.title} />
 		</PDFViewer>
 	);
 }

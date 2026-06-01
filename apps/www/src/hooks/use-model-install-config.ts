@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useCommunityInstallCostParams } from "./use-community-install-cost-params";
 import { useTRPC } from "@/trpc/client";
-import { _trpc } from "@/components/static-trpc";
 
 const zeroCacheQueryOptions = {
     staleTime: 0,
@@ -93,6 +92,7 @@ export const useCreateBuilderModelInstallsContext = (
         typeof useCreateModelInstallConfigContext
     >,
 ) => {
+    const trpc = useTRPC();
     const { params, dataV2, isPending, setParams } = modelInstallConfigCtx;
     const [builderTaskIntallCosts, setBuilderTaskInstallCosts] = useState<
         Record<
@@ -109,7 +109,7 @@ export const useCreateBuilderModelInstallsContext = (
         isPending: modelDataPending,
         error: modelDataError,
     } = useQuery(
-        _trpc.community.getModelInstallTasksByBuilderTask.queryOptions(
+        trpc.community.getModelInstallTasksByBuilderTask.queryOptions(
             {
                 builderTaskId: params.selectedBuilderTaskId!,
                 modelId: params.editCommunityModelInstallCostId!,

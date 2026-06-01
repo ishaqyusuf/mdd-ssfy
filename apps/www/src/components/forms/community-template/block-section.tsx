@@ -8,10 +8,10 @@ import {
     useTemplateSchemaBlock,
     useTemplateSchemaContext,
 } from "./context";
+import { useTRPC } from "@/trpc/client";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { reorderList } from "@gnd/utils";
 import { useMutation } from "@gnd/ui/tanstack";
-import { _trpc } from "@/components/static-trpc";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
 import { cn } from "@gnd/ui/cn";
@@ -89,6 +89,7 @@ function FormCard(props: Props) {
     );
 }
 function FormContent({}) {
+    const trpc = useTRPC();
     const blk = useTemplateSchemaBlock();
 
     const ctx = useTemplateSchemaContext();
@@ -96,7 +97,7 @@ function FormContent({}) {
 
     const { fields, swap } = blk;
     const { mutate, isPending: savingSort } = useMutation(
-        _trpc.community.updateRecordsIndicesIndices.mutationOptions({
+        trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
         }),
     );
@@ -161,4 +162,3 @@ export interface SchemaBlockInputProps {
     onInputUpdated?;
     children?;
 }
-

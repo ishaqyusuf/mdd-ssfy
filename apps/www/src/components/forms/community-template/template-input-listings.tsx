@@ -1,4 +1,4 @@
-import { _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { Suspense } from "react";
 import {
@@ -27,12 +27,13 @@ export function TemplateInputListings() {
     );
 }
 function Content() {
+    const trpc = useTRPC();
     const ctx = useTemplateSchemaInputContext();
     const { mutate, isPending } = useMutation(
-        _trpc.community.saveTemplateInputListing.mutationOptions({}),
+        trpc.community.saveTemplateInputListing.mutationOptions({}),
     );
     const { data: listings } = useSuspenseQuery(
-        _trpc.community.getTemplateInputListings.queryOptions({
+        trpc.community.getTemplateInputListings.queryOptions({
             inputInventoryId: ctx.input?.inv.id,
         }),
     );
@@ -62,4 +63,3 @@ function Content() {
         </div>
     );
 }
-

@@ -1,7 +1,7 @@
 import {
-    invalidateQuery,
     RouteInput,
     Routes,
+    useInvalidateQuery,
 } from "@/hooks/use-invalidate-query";
 import { useTRPC } from "@/trpc/client";
 import { cn } from "@gnd/ui/cn";
@@ -20,6 +20,7 @@ interface Props<R extends Routes> {
     size?: "xs" | "sm" | "lg";
 }
 export function DeleteButton<R extends Routes>(props: Props<R>) {
+    const { invalidateQuery } = useInvalidateQuery();
     const [ns, proc] = props.route.split(".") as [string, string];
 
     const [confirm, setConfirm] = useState(false);
@@ -93,4 +94,3 @@ export function DeleteButton<R extends Routes>(props: Props<R>) {
         </SubmitButton>
     );
 }
-

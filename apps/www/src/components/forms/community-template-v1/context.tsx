@@ -3,8 +3,12 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { UseFormReturn, useForm } from "react-hook-form";
 import { useTRPC } from "@/trpc/client";
-import { useSuspenseQuery, useMutation, useQuery } from "@gnd/ui/tanstack";
-import { _qc, _trpc } from "@/components/static-trpc";
+import {
+    useSuspenseQuery,
+    useMutation,
+    useQuery,
+    useQueryClient,
+} from "@gnd/ui/tanstack";
 import { HomeTemplateDesign } from "@/types/community";
 import { useAuth } from "@/hooks/use-auth";
 import { transformCommunityTemplate } from "@/lib/community/community-template";
@@ -60,6 +64,7 @@ interface ProviderProps {
 
 export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
     const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const auth = useAuth();
     const [suggestionsRequested, setSuggestionsRequested] = useState(false);
     const [autocompleteEnabled, setAutocompleteEnabledState] = useState(() => {
@@ -105,18 +110,18 @@ export function CommunityTemplateV1Provider({ slug, children }: ProviderProps) {
     });
 
     const { mutate: saveTemplate, isPending: isSaving } = useMutation(
-        _trpc.community.saveCommunityModelLegacy.mutationOptions({
+        trpc.community.saveCommunityModelLegacy.mutationOptions({
             onSuccess() {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.print.modelTemplate.queryKey({}),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.print.modelTemplate.queryKey({}),
                 });
-                _qc.invalidateQueries({
+                queryClient.invalidateQueries({
                     queryKey:
                         trpc.community.getCommunityTemplateLegacy.queryKey({
                             slug,
                         }),
                 });
-                _qc.invalidateQueries({
+                queryClient.invalidateQueries({
                     queryKey: trpc.community.getCommunityTemplateHistory.queryKey({
                         slug,
                     }),

@@ -1,7 +1,7 @@
-import { GlobalModals } from "@/components/modals/global-modals";
-import { GlobalSheets } from "@/components/sheets/global-sheets";
+import { GlobalModalsProvider } from "@/components/modals/global-modals-provider";
+import { GlobalSheetsProvider } from "@/components/sheets/global-sheets-provider";
 import { SidebarContent } from "@/components/sidebar-content";
-import { TaskNotification } from "@/components/task-notification";
+import { TaskNotificationProvider } from "@/components/task-notification-provider";
 import { HydrateClient } from "@/trpc/server";
 import { Suspense } from "react";
 
@@ -27,9 +27,9 @@ export default async function Layout({ children }) {
                 </SidebarContent>
 
                 <Suspense>
-                    <GlobalSheets />
-                    <GlobalModals />
-                    <TaskNotification />
+                    <GlobalSheetsProvider />
+                    <GlobalModalsProvider />
+                    <TaskNotificationProvider />
                     <SalesQuickAction />
                     <SalesNav />
                     <TransactionOverviewModal />

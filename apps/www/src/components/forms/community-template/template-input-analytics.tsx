@@ -1,11 +1,12 @@
 import { useForm } from "react-hook-form";
 import { SchemaBlockInputProps } from "./block-section";
 import { useMutation } from "@gnd/ui/tanstack";
-import { _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { Form } from "@gnd/ui/form";
 import { useTemplateSchemaBlock } from "./context";
 
 export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
+    const trpc = useTRPC();
     const { input } = props;
     const block = useTemplateSchemaBlock();
     const valueOptions = block.blockInput?.inputConfigs?.filter(
@@ -24,7 +25,7 @@ export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
         });
     };
     const { isPending, mutate } = useMutation(
-        _trpc.community.updateCommunityBlockInputAnalytics.mutationOptions({
+        trpc.community.updateCommunityBlockInputAnalytics.mutationOptions({
             onSuccess(data, variables, context) {
                 props.onInputUpdated(form.getValues());
             },
@@ -68,4 +69,3 @@ export function TemplateInputAnalytics(props: SchemaBlockInputProps) {
         </div>
     );
 }
-

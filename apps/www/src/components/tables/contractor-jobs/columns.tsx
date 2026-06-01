@@ -3,7 +3,7 @@ import { Avatar } from "@/components/avatar";
 import { DeleteButton } from "@/components/delete-button";
 import { EditButton } from "@/components/edit-button";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
-import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobRole } from "@/hooks/use-job-role";
 import { useTRPC } from "@/trpc/client";
@@ -150,31 +150,34 @@ export const workersColumn: Column[] = [
 
 function isLockedWorkerJob(item: JobItem) {
 	return (
-		item.status === "Approved" || item.status === "Paid" || !!item.payment?.id
+		item.status === "Approved" ||
+		String(item.status) === "Paid" ||
+		!!item.payment?.id
 	);
 }
 
 function StatusActionsDropdown({ item }: ItemProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const isPaid = item.status === "Paid" || !!item.payment?.id;
+	const isPaid = String(item.status) === "Paid" || !!item.payment?.id;
 
 	const reviewMutation = useMutation(
 		trpc.jobs.jobReview.mutationOptions({
-			onSuccess(_, variables) {
-				queryClient.invalidateQueries({
-					queryKey: trpc.jobs.getJobs.pathKey(),
-				});
-				toast({
-					title:
-						variables.action === "submit"
-							? "Job marked as submitted"
-							: variables.action === "approve"
-								? "Job approved"
-								: "Job rejected",
-					variant: variables.action === "reject" ? "destructive" : "success",
-				});
-			},
+				onSuccess(_, variables) {
+					const action = (variables as any)?.action;
+					queryClient.invalidateQueries({
+						queryKey: trpc.jobs.getJobs.pathKey(),
+					});
+					toast({
+						title:
+							action === "submit"
+								? "Job marked as submitted"
+								: action === "approve"
+									? "Job approved"
+									: "Job rejected",
+						variant: action === "reject" ? "destructive" : "success",
+					});
+				},
 			onError() {
 				toast({
 					title: "Failed to update job status.",
@@ -246,6 +249,7 @@ function StatusActionsDropdown({ item }: ItemProps) {
 }
 
 function Actions({ item }: ItemProps) {
+	const { invalidateInfiniteQueries } = useInvalidateQuery();
 	const { setParams } = useJobFormParams();
 	const isAdmin = useJobRole().isAdmin;
 	const isLocked = !isAdmin && isLockedWorkerJob(item);

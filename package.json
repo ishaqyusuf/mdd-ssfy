@@ -45,7 +45,7 @@
     "mobile-jobs": "turbo dev --parallel  --filter @gnd/expo-app --filter @gnd/www --filter @gnd/site --filter @gnd/jobs",
     "mobile-jobs:terminal": "bun run terminal mobile-jobs",
     "terminal": "bash ./scripts/open-bun-script-terminal.sh",
-    "kill:ports": "for port in 1355 3000 3003 3004 3005 3006 3501 4100 4200 4300 5556; do lsof -ti tcp:$port | xargs kill -9 2>/dev/null || true; done",
+    "kill:ports": "for port in 3000 3003 3004 3005 3006 3501 4100 4200 4300 5556; do lsof -ti tcp:$port | xargs kill -9 2>/dev/null || true; done",
     "dev": "turbo dev --parallel",
     "web": "turbo dev --parallel --filter @gnd/web",
     "www": "turbo dev --parallel --filter @gnd/www",

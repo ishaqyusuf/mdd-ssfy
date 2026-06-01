@@ -2,9 +2,9 @@ import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Icons } from "@gnd/ui/icons";
+import { useTRPC } from "@/trpc/client";
 import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
-import { useMutation } from "@gnd/ui/tanstack";
-import { _invalidate, _qc, _trpc } from "@/components/static-trpc";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 
 import { selectOptions, uniqueList } from "@gnd/utils";
 import { labelIdOptions } from "@/lib/utils";
@@ -16,21 +16,23 @@ interface CreateProps {
     title?: string;
 }
 export function AddInput() {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const blk = useTemplateSchemaBlock();
     const temp = useTemplateSchemaContext();
     const { blockInputs } = temp;
     const { modelEditMode, printMode, templateEditMode } = temp;
 
     const { mutate } = useMutation(
-        _trpc.inventories.saveCommunityInput.mutationOptions({
+        trpc.inventories.saveCommunityInput.mutationOptions({
             onSuccess(data, variables, context) {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getCommunityBlockSchema.queryKey({
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getCommunityBlockSchema.queryKey({
                         id: blk.blockId,
                     }),
                 });
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getBlockInputs.queryKey({}),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getBlockInputs.queryKey({}),
                 });
             },
         })
@@ -118,4 +120,3 @@ export function AddInput() {
         </Menu>
     );
 }
-

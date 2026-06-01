@@ -8,111 +8,138 @@ import { TableSkeleton } from "@/components/tables/skeleton";
 import { DataTable } from "@/components/tables/sales-dispatch/data-table";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { loadDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
-import { batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { AdminDispatchHeader } from "@/components/dispatch-admin/admin-dispatch-header";
 import PageShell from "@/components/page-shell";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import {
-	DispatchSummaryCards,
-	DispatchSummaryCardsSkeleton,
+    DispatchSummaryCards,
+    DispatchSummaryCardsSkeleton,
 } from "@/components/dispatch-admin/dispatch-summary-cards";
 import {
-	DriverWorkloadCard,
-	DriverWorkloadSkeleton,
+    DriverWorkloadCard,
+    DriverWorkloadSkeleton,
 } from "@/components/dispatch-admin/driver-workload-card";
 import { DispatchOverdueBanner } from "@/components/dispatch-admin/dispatch-overdue-banner";
 import {
-	DispatchCalendarView,
-	DispatchCalendarSkeleton,
+    DispatchCalendarView,
+    DispatchCalendarSkeleton,
 } from "@/components/dispatch-admin/dispatch-calendar-view";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Admin Dispatch Dashboard | GND",
-	});
+    return constructMetadata({
+        title: "Admin Dispatch Dashboard | GND",
+    });
 }
 
 type Props = {
-	searchParams: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: Props) {
-	const searchParams = await props.searchParams;
-	const filter = loadDispatchFilterParams(searchParams);
-	const view = filter.view ?? "table";
+    const searchParams = await props.searchParams;
+    const queryClient = getQueryClient();
+    const filter = loadDispatchFilterParams(searchParams);
+    const view = filter.view ?? "table";
+    const { view: _view, ...dispatchFilter } = filter;
 
-	batchPrefetch([
-		trpc.dispatch.index.infiniteQueryOptions({
-			...(filter as any),
-		}),
-		trpc.dispatch.dispatchSummary.queryOptions(),
-	]);
+    if (view === "calendar") {
+        await queryClient.fetchQuery(
+            trpc.dispatch.exportDispatches.queryOptions(dispatchFilter as any),
+        );
+    } else {
+        await Promise.all([
+            queryClient.fetchInfiniteQuery(
+                trpc.dispatch.index.infiniteQueryOptions(dispatchFilter as any),
+            ),
+            queryClient.fetchQuery(
+                trpc.hrm.getEmployees.queryOptions({
+                    can: ["viewDelivery"],
+                    cannot: ["editOrders"],
+                }),
+            ),
+        ]);
+    }
 
-	return (
-		<PageShell>
-			<AuthGuard
-				rules={[_perm.some("editOrders", "editDelivery")]}
-				Fallback={
-					<div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
-						You do not have permission to access dispatch admin.
-					</div>
-				}
-			>
-				<PageTitle>Admin Dispatch Dashboard</PageTitle>
-				<div className="flex flex-col gap-6">
-					{/* Summary KPI Cards */}
-					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-						<ErrorBoundary errorComponent={ErrorFallback}>
-							<Suspense fallback={<DispatchSummaryCardsSkeleton />}>
-								<DispatchSummaryCards />
-							</Suspense>
-						</ErrorBoundary>
-					</div>
+    return (
+        <PageShell>
+            <HydrateClient>
+                <AuthGuard
+                    rules={[_perm.some("editOrders", "editDelivery")]}
+                    Fallback={
+                        <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
+                            You do not have permission to access dispatch admin.
+                        </div>
+                    }
+                >
+                    <PageTitle>Admin Dispatch Dashboard</PageTitle>
+                    <div className="flex flex-col gap-6">
+                        {/* Summary KPI Cards */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                            <ErrorBoundary errorComponent={ErrorFallback}>
+                                <Suspense
+                                    fallback={<DispatchSummaryCardsSkeleton />}
+                                >
+                                    <DispatchSummaryCards />
+                                </Suspense>
+                            </ErrorBoundary>
+                        </div>
 
-					{/* Overdue alert banner */}
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={null}>
-							<DispatchOverdueBanner />
-						</Suspense>
-					</ErrorBoundary>
+                        {/* Overdue alert banner */}
+                        <ErrorBoundary errorComponent={ErrorFallback}>
+                            <Suspense fallback={null}>
+                                <DispatchOverdueBanner />
+                            </Suspense>
+                        </ErrorBoundary>
 
-					{/* Header with Filters + Admin Actions */}
-					<AdminDispatchHeader />
+                        {/* Header with Filters + Admin Actions */}
+                        <AdminDispatchHeader />
 
-					{/* Main Content */}
-					{view === "calendar" ? (
-						/* Calendar View */
-						<ErrorBoundary errorComponent={ErrorFallback}>
-							<Suspense fallback={<DispatchCalendarSkeleton />}>
-								<DispatchCalendarView />
-							</Suspense>
-						</ErrorBoundary>
-					) : (
-						/* Table View: Table + Sidebar */
-						<div className="flex gap-6 items-start">
-							{/* Dispatch Table */}
-							<div className="flex-1 min-w-0">
-								<ErrorBoundary errorComponent={ErrorFallback}>
-									<Suspense fallback={<TableSkeleton />}>
-										<DataTable />
-									</Suspense>
-								</ErrorBoundary>
-							</div>
+                        {/* Main Content */}
+                        {view === "calendar" ? (
+                            /* Calendar View */
+                            <ErrorBoundary errorComponent={ErrorFallback}>
+                                <Suspense
+                                    fallback={<DispatchCalendarSkeleton />}
+                                >
+                                    <DispatchCalendarView />
+                                </Suspense>
+                            </ErrorBoundary>
+                        ) : (
+                            /* Table View: Table + Sidebar */
+                            <div className="flex gap-6 items-start">
+                                {/* Dispatch Table */}
+                                <div className="flex-1 min-w-0">
+                                    <ErrorBoundary
+                                        errorComponent={ErrorFallback}
+                                    >
+                                        <Suspense fallback={<TableSkeleton />}>
+                                            <DataTable />
+                                        </Suspense>
+                                    </ErrorBoundary>
+                                </div>
 
-							{/* Driver Workload Sidebar */}
-							<div className="hidden xl:block w-64 shrink-0">
-								<ErrorBoundary errorComponent={ErrorFallback}>
-									<Suspense fallback={<DriverWorkloadSkeleton />}>
-										<DriverWorkloadCard />
-									</Suspense>
-								</ErrorBoundary>
-							</div>
-						</div>
-					)}
-				</div>
-			</AuthGuard>
-		</PageShell>
-	);
+                                {/* Driver Workload Sidebar */}
+                                <div className="hidden xl:block w-64 shrink-0">
+                                    <ErrorBoundary
+                                        errorComponent={ErrorFallback}
+                                    >
+                                        <Suspense
+                                            fallback={
+                                                <DriverWorkloadSkeleton />
+                                            }
+                                        >
+                                            <DriverWorkloadCard />
+                                        </Suspense>
+                                    </ErrorBoundary>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </AuthGuard>
+            </HydrateClient>
+        </PageShell>
+    );
 }

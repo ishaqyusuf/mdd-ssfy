@@ -1,7 +1,7 @@
 import { Icons } from "@gnd/ui/icons";
 import { SearchInput } from "@/components/search-input";
-import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useTRPC } from "@/trpc/client";
 import { getInitials } from "@gnd/utils";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -50,8 +50,9 @@ function getInsuranceMeta(status: InsuranceRequirement) {
 }
 
 export function UserSelectStep() {
+	const trpc = useTRPC();
 	const { data, isPending } = useQuery(
-		_trpc.hrm.getEmployees.queryOptions({
+		trpc.hrm.getEmployees.queryOptions({
 			roles: ["1099 Contractor", "Punchout"],
 			size: 500,
 		}),

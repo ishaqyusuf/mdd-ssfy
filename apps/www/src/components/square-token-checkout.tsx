@@ -3,7 +3,7 @@
 import { Icons } from "@gnd/ui/icons";
 
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
-import { _trpc } from "./static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { Card } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
@@ -16,8 +16,9 @@ interface Props {
     token: string;
 }
 export function SquareTokenCheckout(props: Props) {
-    const { data, error } = useSuspenseQuery(
-        _trpc.checkout.initializeCheckout.queryOptions(
+    const trpc = useTRPC();
+    const { data: checkoutData, error } = useSuspenseQuery(
+        trpc.checkout.initializeCheckout.queryOptions(
             {
                 token: props.token,
             },
@@ -26,6 +27,7 @@ export function SquareTokenCheckout(props: Props) {
             },
         ),
     );
+    const data = checkoutData as any;
     const paymentId = data?.payload?.paymentId;
     const walletId = data?.payload?.walletId;
     const {
@@ -34,7 +36,7 @@ export function SquareTokenCheckout(props: Props) {
         error: verifyError,
         mutate,
     } = useMutation(
-        _trpc.checkout.verifyPayment.mutationOptions({
+        trpc.checkout.verifyPayment.mutationOptions({
             onSuccess(data) {
                 console.log({ data });
             },
@@ -56,12 +58,13 @@ export function SquareTokenCheckout(props: Props) {
             },
         }),
     );
+    const verification = verifyData as any;
     // const {
     //     mutateAsync: verifyPayment,
     //     data: verifyData,
     //     error: verifyError,
     //     isPending,
-    // } = useMutation(_trpc.checkout.verifyPayment.mutationOptions());
+    // } = useMutation(trpc.checkout.verifyPayment.mutationOptions());
     useEffect(() => {
         if (paymentId && walletId && !isVerifying)
             mutate({ paymentId, attempts: 1, walletId });
@@ -73,7 +76,7 @@ export function SquareTokenCheckout(props: Props) {
                 title: "Payment Token Validated",
                 description: "You can proceed to complete your payment.",
             };
-        if (verifyData?.status === "error") {
+        if (verification?.status === "error") {
             return {
                 title: "Payment Verification Failed",
                 description:
@@ -84,21 +87,21 @@ export function SquareTokenCheckout(props: Props) {
         return {
             title:
                 "Payment " +
-                (verifyData?.status === "COMPLETED"
+                (verification?.status === "COMPLETED"
                     ? "Successful"
-                    : verifyData?.status === "FAILED"
+                    : verification?.status === "FAILED"
                       ? "Failed"
                       : "Pending"),
             description:
-                verifyData?.status === "COMPLETED"
+                verification?.status === "COMPLETED"
                     ? "Your payment has been completed successfully."
-                    : verifyData?.status === "FAILED"
+                    : verification?.status === "FAILED"
                       ? "Your payment has failed. Please try again."
                       : "Your payment is being processed. Please wait.",
         };
-    }, [paymentId, verifyData, data, verifyError]);
+    }, [paymentId, verification, data, verifyError]);
     const { mutate: createCheckout, isPending: isProcessing } = useMutation(
-        _trpc.checkout.createSalesCheckoutLink.mutationOptions({
+        trpc.checkout.createSalesCheckoutLink.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {
                 if (data.paymentLink) {
                     openLink(data.paymentLink);

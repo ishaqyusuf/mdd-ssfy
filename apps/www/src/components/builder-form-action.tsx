@@ -2,20 +2,20 @@ import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useTRPC } from "@/trpc/client";
 import type { BuilderFormSchema } from "@community/schema";
 import { SubmitButton } from "@gnd/ui/submit-button";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useFormContext } from "react-hook-form";
-import { _qc } from "./static-trpc";
 
 export function BuilderFormAction() {
 	const form = useFormContext<BuilderFormSchema>();
 	const { setParams, openBuilderId, onClose } = useBuilderParams();
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const { mutate: saveBuilder, isPending } = useMutation(
 		trpc.community.saveBuilder.mutationOptions({
 			onSuccess(data, variables, onMutateResult, context) {
 				if (variables) {
 					const builderId = Number(variables.id || data.id || 0);
-					_qc.invalidateQueries({
+					queryClient.invalidateQueries({
 						queryKey: trpc.community.getBuilderForm.queryKey({
 							builderId,
 						}),

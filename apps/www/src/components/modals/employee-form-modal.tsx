@@ -24,7 +24,7 @@ import {
     usePermissionsList,
     useRolesList,
 } from "@/hooks/use-data-list";
-import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import {
@@ -47,13 +47,14 @@ function getEmployeeFormDefaults() {
         password: "Millwork",
         profileId: null,
         permissionIds: [] as number[],
-        roleId: "",
-        organizationId: "",
+        roleId: 0,
+        organizationId: 0,
     };
 }
 
 export function EmployeeFormModal({}) {
     const { setParams, params, opened } = useEmployeeParams();
+    const { invalidateInfiniteQueries } = useInvalidateQuery();
     const form = useZodForm(employeeFormSchema, {
         defaultValues: getEmployeeFormDefaults(),
     });
@@ -80,7 +81,7 @@ export function EmployeeFormModal({}) {
         () =>
             roles.map((role) => ({
                 ...role,
-                id: String(role.id),
+                id: role.id,
             })),
         [roles],
     );
@@ -88,7 +89,7 @@ export function EmployeeFormModal({}) {
         () =>
             profiles.map((profile) => ({
                 ...profile,
-                id: String(profile.id),
+                id: profile.id,
             })),
         [profiles],
     );
@@ -96,12 +97,12 @@ export function EmployeeFormModal({}) {
         () =>
             organizations.map((organization) => ({
                 ...organization,
-                id: String(organization.id),
+                id: organization.id,
             })),
         [organizations],
     );
-    const defaultRoleId = roleOptions[0]?.id ?? "";
-    const defaultOrganizationId = organizationOptions[0]?.id ?? "";
+    const defaultRoleId = roleOptions[0]?.id ?? 0;
+    const defaultOrganizationId = organizationOptions[0]?.id ?? 0;
     const selectedPermissionIds = form.watch("permissionIds") || [];
     const q = useQuery(
         trpc.hrm.getEmployeeForm.queryOptions(
@@ -125,9 +126,9 @@ export function EmployeeFormModal({}) {
                 email: q.data.email ?? "",
                 phoneNo: q.data.phoneNo ?? "",
                 username: q.data.username ?? "",
-                roleId: String(q.data.roleId),
-                organizationId: String(q.data.organizationId),
-                profileId: q.data.profileId ? String(q.data.profileId) : null,
+                roleId: q.data.roleId,
+                organizationId: q.data.organizationId,
+                profileId: q.data.profileId,
             });
             return;
         }

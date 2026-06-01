@@ -6,7 +6,7 @@ import { Menu } from "@gnd/ui/custom/menu";
 import { ResetSalesControl, UpdateSalesControl } from "@sales/schema";
 import { useDispatch } from "./context";
 import { useMutation } from "@tanstack/react-query";
-import { invalidateQuery } from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 
 interface Props {
 	dispatch;
@@ -16,6 +16,7 @@ export function DispatchListMenu({ dispatch }: Props) {
 	const changeDueDate = () => {};
 	const auth = useAuth();
 	const ctx = useDispatch();
+	const { invalidateQuery } = useInvalidateQuery();
 	const { trigger } = useTaskTrigger({
 		silent: true,
 		onSuccess() {

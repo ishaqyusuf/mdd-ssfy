@@ -25,14 +25,16 @@ export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
 	const queryClient = getQueryClient();
 	const filter = loadCommunityTemplateFilterParams(searchParams);
-	const templateFilters = await queryClient.fetchQuery(
-		trpc.filters.communityTemplateFilters.queryOptions(),
-	);
-	await queryClient.fetchInfiniteQuery(
-		trpc.community.getCommunityTemplates.infiniteQueryOptions({
-			...filter,
-		}) as any,
-	);
+	const [templateFilters, _initialTemplates] = await Promise.all([
+		queryClient.fetchQuery(
+			trpc.filters.communityTemplateFilters.queryOptions(),
+		),
+		queryClient.fetchInfiniteQuery(
+			trpc.community.getCommunityTemplates.infiniteQueryOptions({
+				...filter,
+			}) as any,
+		),
+	]);
 	return (
 		<PageShell>
 			<HydrateClient>

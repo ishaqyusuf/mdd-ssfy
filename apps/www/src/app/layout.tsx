@@ -15,7 +15,6 @@ import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { Providers } from "./providers";
 import { Suspense } from "react";
-import { StaticTrpc } from "@/components/static-trpc";
 
 export async function generateMetadata({}) {
     return constructMetadata({
@@ -31,14 +30,13 @@ export default async function RootLayout({
     const prodDB = env.DATABASE_URL?.includes("pscale");
     return (
         <html lang="en" suppressHydrationWarning>
-            <SpeedInsights />
+            {env.NODE_ENV === "production" ? <SpeedInsights /> : null}
             <body>
                 <div className="print:hidden">
                     <Toaster />
                     <MiddayToast />
                     <Suspense>
                         <Providers>
-                            <StaticTrpc />
                             {children}
                             {env.NODE_ENV !== "production" ? (
                                 <div className="fixed bottom-1 left-1 z-[9999] flex items-center gap-2 print:hidden">

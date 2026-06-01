@@ -12,96 +12,104 @@ import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/icons";
 import { GetEmployeesSchema } from "@api/schemas/hrm";
+import { useQuery } from "@gnd/ui/tanstack";
 import { useRouter } from "next/navigation";
 interface Props {
-	defaultFilters?: GetEmployeesSchema;
+    defaultFilters?: GetEmployeesSchema;
 }
 export function DataTable(props: Props) {
-	const trpc = useTRPC();
-	// const { rowSelection, setRowSelection } = useEmployeeStore();
-	const { filters, hasFilters, setFilters } = useEmployeeFilterParams();
-	const {
-		data,
-		ref: loadMoreRef,
-		hasNextPage,
-		isFetching,
-	} = useTableData({
-		filter: {
-			...filters,
-			...(props.defaultFilters || {}),
-		},
-		route: trpc.hrm.getEmployees,
-	});
-	const router = useRouter();
-	const tableScroll = useTableScroll({
-		useColumnWidths: true,
-		startFromColumn: 2,
-	});
-	const { setParams } = useEmployeeParams();
-	if (hasFilters && !data?.length) {
-		return <NoResults setFilter={setFilters} />;
-	}
+    const trpc = useTRPC();
+    // const { rowSelection, setRowSelection } = useEmployeeStore();
+    const { filters, hasFilters, setFilters } = useEmployeeFilterParams();
+    const {
+        data,
+        ref: loadMoreRef,
+        hasNextPage,
+        isFetching,
+    } = useTableData({
+        filter: {
+            ...filters,
+            ...(props.defaultFilters || {}),
+        },
+        route: trpc.hrm.getEmployees,
+    });
+    const router = useRouter();
+    const tableScroll = useTableScroll({
+        useColumnWidths: true,
+        startFromColumn: 2,
+    });
+    const { setParams } = useEmployeeParams();
+    if (hasFilters && !data?.length) {
+        return <NoResults setFilter={setFilters} />;
+    }
 
-	if (!data?.length && !isFetching) {
-		if (filters.accessStatus === "revoked") {
-			return <EmptyState label="revoked access" />;
-		}
-		return (
-			<EmptyState
-				label="employee"
-				CreateButton={
-					<Button asChild size="sm">
-						<Link href="/">
-							<Icons.add className="mr-2 size-4" />
-							<span>New</span>
-						</Link>
-					</Button>
-				}
-				onCreate={(e) => {}}
-			/>
-		);
-	}
-	return (
-		<Table.Provider
-			args={[
-				{
-					columns,
-					mobileColumn,
-					data,
-					props: {
-						loadMoreRef,
-						hasNextPage,
-					},
-					tableScroll,
-					// rowSelection,
-					// setRowSelection,
-					tableMeta: {
-						hidePagination: true,
-						rowClick(id, rowData) {
-							router.push(`/hrm/employees/v2/${rowData.id}`);
-							// setParams({
-							//     employeeViewId: rowData.id,
-							// });
-						},
-					},
-				},
-			]}
-		>
-			<div className="flex flex-col gap-4 w-full">
-				<div
-					// ref={tableScroll.containerRef}
-					className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
-				>
-					<Table>
-						<Table.TableHeader />
-						<Table.Body>
-							<Table.TableRow />
-						</Table.Body>
-					</Table>
-				</div>
-				<Table.LoadMore />
-				{/* <BatchActions /> */}
-			</div>
-		</Table.Provider>
-	);
+    const organizationProfile = useQuery(
+        trpc.orgs.getOrganizationProfile.queryOptions(),
+    );
+
+    if (!data?.length && !isFetching) {
+        if (filters.accessStatus === "revoked") {
+            return <EmptyState label="revoked access" />;
+        }
+        return (
+            <EmptyState
+                label="employee"
+                CreateButton={
+                    <Button asChild size="sm">
+                        <Link href="/">
+                            <Icons.add className="mr-2 size-4" />
+                            <span>New</span>
+                        </Link>
+                    </Button>
+                }
+                onCreate={(e) => {}}
+            />
+        );
+    }
+    return (
+        <Table.Provider
+            args={[
+                {
+                    columns,
+                    mobileColumn,
+                    data,
+                    props: {
+                        loadMoreRef,
+                        hasNextPage,
+                    },
+                    tableScroll,
+                    // rowSelection,
+                    // setRowSelection,
+                    tableMeta: {
+                        hidePagination: true,
+                        extras: {
+                            orgs: organizationProfile.data?.orgs,
+                        },
+                        rowClick(id, rowData) {
+                            router.push(`/hrm/employees/v2/${rowData.id}`);
+                            // setParams({
+                            //     employeeViewId: rowData.id,
+                            // });
+                        },
+                    },
+                },
+            ]}
+        >
+            <div className="flex flex-col gap-4 w-full">
+                <div
+                    // ref={tableScroll.containerRef}
+                    className="overflow-x-auto overscroll-x-none md:border-l md:border-r border-border scrollbar-hide"
+                >
+                    <Table>
+                        <Table.TableHeader />
+                        <Table.Body>
+                            <Table.TableRow />
+                        </Table.Body>
+                    </Table>
+                </div>
+                <Table.LoadMore />
+                {/* <BatchActions /> */}
+            </div>
+        </Table.Provider>
+    );
 }

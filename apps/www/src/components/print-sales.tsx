@@ -1,6 +1,6 @@
 "use client";
 
-import { _trpc } from "./static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useSalesPrintFilter } from "@/hooks/use-sales-print-filter";
@@ -8,6 +8,7 @@ import { PDFViewer } from "@gnd/pdf";
 import { SalesPdfTemplate } from "@gnd/pdf/sales";
 
 export function PrintSales() {
+    const trpc = useTRPC();
     const { filters, setFilters } = useSalesPrintFilter();
     // filters.slugs.
     const {
@@ -15,7 +16,7 @@ export function PrintSales() {
         error,
         isPending,
     } = useSuspenseQuery(
-        _trpc.print.sales.queryOptions({
+        trpc.print.sales.queryOptions({
             ...filters,
         }),
     );
@@ -47,4 +48,3 @@ export function PrintSales() {
         </>
     );
 }
-

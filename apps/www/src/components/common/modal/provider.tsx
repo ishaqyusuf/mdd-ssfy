@@ -1,9 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { ReactNode, createContext, useContext, useState } from "react";
 
 import { useTransition } from "@/utils/use-safe-transistion";
-import Modal, { openSecondaryPane } from ".";
+
+const Modal = dynamic(() => import("."), {
+    loading: () => null,
+});
 
 export interface ModalContextProps {
     openModal: (content: ReactNode, type?: ModalType) => void;

@@ -11,45 +11,39 @@ import type { SearchParams } from "nuqs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Sales Customers V2 | GND",
-	});
+    return constructMetadata({
+        title: "Sales Customers V2 | GND",
+    });
 }
 
 type Props = {
-	searchParams: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 
 export default async function SalesCustomersV2Page(props: Props) {
-	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
-	const filter = loadCustomerFilterParams(searchParams);
-	const [initialSummaryData, _initialCustomerRows] = await Promise.all([
-		queryClient.fetchQuery(
-			trpc.customers.getCustomerDirectoryV2Summary.queryOptions({}),
-		),
-		queryClient.fetchInfiniteQuery(
-			trpc.sales.customersIndex.infiniteQueryOptions(filter) as any,
-		),
-	]);
+    const searchParams = await props.searchParams;
+    const queryClient = getQueryClient();
+    const filter = loadCustomerFilterParams(searchParams);
+    await queryClient.fetchInfiniteQuery(
+        trpc.sales.customersIndex.infiniteQueryOptions(filter) as any,
+    );
 
-	return (
-		<PageShell>
-			<HydrateClient>
-				<PageTitle>Sales Customers V2</PageTitle>
-				<AuthGuard
-					Fallback={
-						<div className="rounded-xl border p-6 text-sm text-muted-foreground">
-							You do not have access to this customer v2 workspace.
-						</div>
-					}
-					rules={[_role.is("Super Admin")]}
-				>
-					<CustomerDirectoryV2Page
-						initialSummaryData={initialSummaryData as any}
-					/>
-				</AuthGuard>
-			</HydrateClient>
-		</PageShell>
-	);
+    return (
+        <PageShell>
+            <HydrateClient>
+                <PageTitle>Sales Customers V2</PageTitle>
+                <AuthGuard
+                    Fallback={
+                        <div className="rounded-xl border p-6 text-sm text-muted-foreground">
+                            You do not have access to this customer v2
+                            workspace.
+                        </div>
+                    }
+                    rules={[_role.is("Super Admin")]}
+                >
+                    <CustomerDirectoryV2Page />
+                </AuthGuard>
+            </HydrateClient>
+        </PageShell>
+    );
 }

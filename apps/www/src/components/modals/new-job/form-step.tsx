@@ -1,5 +1,4 @@
 import { Icons } from "@gnd/ui/icons";
-import { _trpc } from "@/components/static-trpc";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
@@ -22,6 +21,19 @@ import { AdminJobFormContent } from "./admin-job-form-content";
 import { InstallTasksList } from "./install-tasks-list";
 import { JobSubmitButton } from "./job-submit-button";
 import { StepTitle } from "./step-title";
+
+type JobFormDefaults = Partial<JobFormSchema> & {
+	builderTaskId?: number | null;
+	unit?: JobFormSchema["unit"] & {
+		lotBlock?: string | null;
+		modelName?: string | null;
+		projectAddon?: number | null;
+		projectTitle?: string | null;
+	};
+	user?: JobFormSchema["user"] & {
+		name?: string | null;
+	};
+};
 
 export function FormStep() {
 	const { ...params } = useJobFormParams();
@@ -65,15 +77,17 @@ export function FormStep() {
 	);
 }
 function FormContent() {
+	const trpc = useTRPC();
 	const { defaultValues, markAsComplete, setMarkAsComplete, state } =
 		useJobFormContext();
 	const { setParams: setJobFormParams, ...params } = useJobFormParams();
 	const { formType } = useJobStepInfo();
 	const { setParams: setBuilderParams } = useBuilderParams();
 	const { data: projects } = useQuery(
-		_trpc.community.projectsList.queryOptions(),
+		trpc.community.projectsList.queryOptions(),
 	);
-	const resolvedDefaultValues = (defaultValues || {}) as Partial<JobFormSchema>;
+	const typedDefaultValues = defaultValues as JobFormDefaults | undefined;
+	const resolvedDefaultValues = (typedDefaultValues || {}) as Partial<JobFormSchema>;
 	const form = useZodForm(jobFormSchema, {
 		defaultValues: {
 			...resolvedDefaultValues,
@@ -85,7 +99,7 @@ function FormContent() {
 						}
 					: undefined,
 			user: {
-				id: params.userId ?? defaultValues?.user?.id,
+				id: params.userId ?? typedDefaultValues?.user?.id,
 			},
 			modelId: params.modelId ?? undefined,
 			builderTaskId:
@@ -99,16 +113,16 @@ function FormContent() {
 			},
 		},
 	});
-	if (!defaultValues) return null;
+	if (!typedDefaultValues) return null;
 
 	//
 	const maxPotentialValue =
-		defaultValues.job.tasks?.reduce(
+		typedDefaultValues.job?.tasks?.reduce(
 			(sum, task) => sum + (task.rate || 0) * (task.maxQty || 0),
 			0,
 		) || 0;
 	const builderTaskQuantities =
-		defaultValues.job.tasks?.reduce(
+		typedDefaultValues.job?.tasks?.reduce(
 			(acc, task) => {
 				acc[task.id] = task.qty || 0;
 				return acc;
@@ -117,15 +131,15 @@ function FormContent() {
 		) || 0;
 	const addonPercentage =
 		Number(form.watch("job.meta.addonPercent")) ||
-		Number(defaultValues.job?.meta?.addonPercent) ||
+		Number(typedDefaultValues.job?.meta?.addonPercent) ||
 		0;
 	const addonValue = percentageValue(
-		Number(defaultValues.unit?.projectAddon) || 0,
+		Number(typedDefaultValues.unit?.projectAddon) || 0,
 		addonPercentage,
 	);
 	const isAdminMode = formType === "assign";
 	const isSubmitMode = formType === "submit";
-	const selectedProject = projects?.find(
+	const selectedProject = (projects as Array<{ id: number; builderId?: number | null }> | undefined)?.find(
 		(project) => project.id === params.projectId,
 	);
 	const builderId = selectedProject?.builderId;
@@ -190,18 +204,18 @@ function FormContent() {
 				<div className="flex flex-wrap gap-2 text-xs">
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
 						<Icons.User className="size-3" />{" "}
-						{defaultValues?.user?.name || "Unknown User"}
+						{typedDefaultValues.user?.name || "Unknown User"}
 					</span>
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
 						<Icons.Building2 className="size-3" />{" "}
 						{params.builderTaskId === -1
 							? "Custom"
-							: defaultValues?.unit?.projectTitle || "Unknown Project"}
+							: typedDefaultValues.unit?.projectTitle || "Unknown Project"}
 					</span>
 					{params.builderTaskId === -1 ? null : (
 						<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
 							<Icons.Home className="size-3" />
-							{`${defaultValues?.unit?.modelName} ${defaultValues?.unit?.lotBlock}`}
+							{`${typedDefaultValues.unit?.modelName} ${typedDefaultValues.unit?.lotBlock}`}
 						</span>
 					)}
 				</div>

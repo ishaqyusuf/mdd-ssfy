@@ -1,9 +1,6 @@
 import { Icons } from "@gnd/ui/icons";
 import { useNotificationChannelContext } from "@/contexts/notification-channel-context";
-import {
-    invalidateInfiniteQueries,
-    invalidateQuery,
-} from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { SubmitButton } from "@gnd/ui/submit-button";
@@ -13,6 +10,7 @@ import { useState } from "react";
 interface Props {}
 export function ChannelRoles(props: Props) {
     const { roles, selectedEvent } = useNotificationChannelContext();
+    const { invalidateInfiniteQueries, invalidateQuery } = useInvalidateQuery();
     const handleRemoveUserFromEvent = (userId: number) => {
         // Implement the logic to remove the user from the event's subscribers
         // This might involve calling an API endpoint to update the notification channel's subscriber list
@@ -100,4 +98,3 @@ export function ChannelRoles(props: Props) {
         </>
     );
 }
-

@@ -1,10 +1,10 @@
 import { Icons } from "@gnd/ui/icons";
-import { _trpc } from "@/components/static-trpc";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { SearchInput } from "@/components/search-input";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobRole } from "@/hooks/use-job-role";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useSearch } from "@gnd/ui/hooks/use-search";
@@ -12,13 +12,14 @@ import { useQuery } from "@tanstack/react-query";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function TaskSelectStep({}) {
+    const trpc = useTRPC();
     const { setParams, ...params } = useJobFormParams();
     const { setParams: setBuilderParams } = useBuilderParams();
     const { isAdmin } = useJobRole();
     const { state } = useJobFormContext();
     const canLoadTasks = !!params.projectId;
     const { data, isPending } = useQuery(
-        _trpc.community.getBuilderTasksForProject.queryOptions(
+        trpc.community.getBuilderTasksForProject.queryOptions(
             {
                 projectId: params.projectId!,
                 homeId: params.unitId || -1,
@@ -29,7 +30,7 @@ export function TaskSelectStep({}) {
         ),
     );
     const { data: projects } = useQuery(
-        _trpc.community.projectsList.queryOptions(),
+        trpc.community.projectsList.queryOptions(),
     );
 
     const tasks = data || [];

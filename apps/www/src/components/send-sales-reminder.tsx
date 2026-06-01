@@ -1,9 +1,9 @@
 import { getCustomerWalletId } from "@/actions/get-customer-wallet-id";
 import { generateToken } from "@/actions/token-action";
-import { _trpc } from "@/components/static-trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useZodForm } from "@/hooks/use-zod-form";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
@@ -13,7 +13,9 @@ import { Label } from "@gnd/ui/label";
 import { AlertDialog, InputGroup, Item } from "@gnd/ui/namespace";
 import { useQuery } from "@gnd/ui/tanstack";
 import { formatMoney, sum, uniqueList } from "@gnd/utils";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import type { SalesPrintModes } from "@sales/constants";
+import type { SalesType } from "@sales/types";
 import { sendSalesEmail } from "@sales/utils/email";
 import {
 	type ReminderPayPlan,
@@ -24,6 +26,8 @@ import type { ReactNode } from "react";
 import { useEffect, useState, useTransition } from "react";
 import { useFieldArray } from "react-hook-form";
 import z from "zod";
+
+type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
 interface Props {
 	children?: ReactNode;
@@ -62,6 +66,7 @@ const defaultValues: z.infer<typeof reminderSchema> = {
 };
 
 export function SendSalesReminder({ children, salesIds }: Props) {
+	const trpc = useTRPC();
 	const [opened, setOpened] = useState(false);
 	const form = useZodForm(reminderSchema, {
 		defaultValues,
@@ -84,7 +89,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
 	});
 	const watchedSales = form.watch("sales");
 	const { data, isPending } = useQuery(
-		_trpc.sales.getOrders.queryOptions(
+		trpc.sales.getOrders.queryOptions(
 			{
 				salesIds,
 			},
@@ -99,11 +104,12 @@ export function SendSalesReminder({ children, salesIds }: Props) {
 
 	useEffect(() => {
 		if (!data || isPending) return;
+		const rows = data.data as SalesOrder[];
 
 		form.reset({
 			sales: uniqueList(
-				data.data.map((sale) => {
-					const common = data.data.filter((entry) =>
+				rows.map((sale) => {
+					const common = rows.filter((entry) =>
 						sale.email ? entry.email === sale.email : entry.id === sale.id,
 					);
 					const dueAmount = sum(common, "due");
@@ -116,12 +122,12 @@ export function SendSalesReminder({ children, salesIds }: Props) {
 						payPlan: "full" as const,
 						percentage: null,
 						preferredAmount: dueAmount,
-						email: sale.email,
-						customerName: sale.displayName,
-						includePaymentLink: true,
-						type: sale.type,
-						accountNo: common.find((entry) => !!entry.accountNo)?.accountNo,
-					};
+							email: sale.email,
+							customerName: sale.displayName,
+							includePaymentLink: true,
+							type: sale.type || "order",
+							accountNo: common.find((entry) => !!entry.accountNo)?.accountNo,
+						};
 				}),
 				"email",
 			),
@@ -187,7 +193,7 @@ export function SendSalesReminder({ children, salesIds }: Props) {
 								? sale.preferredAmount
 								: null,
 							percentage: sale.includePaymentLink ? sale.percentage : null,
-							type: sale.type,
+							type: (sale.type || "order") as SalesType,
 							customer: {
 								name: sale.customerName || "Customer",
 								email: sale.email,

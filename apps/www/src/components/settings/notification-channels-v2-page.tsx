@@ -1,9 +1,6 @@
 "use client";
 
-import {
-	invalidateQueries,
-	invalidateQuery,
-} from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
 import { useTRPC } from "@/trpc/client";
 import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
@@ -69,6 +66,7 @@ const DELIVERY_METHODS: Array<{
 
 export function NotificationChannelsV2Page() {
 	const trpc = useTRPC();
+	const { invalidateQueries, invalidateQuery } = useInvalidateQuery();
 	const { openNotificationChannelId, setParams } =
 		useNotificationChannelParams();
 	const [search, setSearch] = useState("");

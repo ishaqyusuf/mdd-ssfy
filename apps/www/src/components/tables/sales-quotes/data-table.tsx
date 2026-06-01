@@ -4,11 +4,11 @@ import { useTRPC } from "@/trpc/client";
 import {
     // createTableContext,
     Table,
+    useTable,
     useTableData,
 } from "@gnd/ui/data-table";
 import { columns, mobileColumn } from "./columns";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
-import { BatchActions } from "./batch-actions";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 // import { useSalesOrdersStore } from "@/store/sales-orders";
@@ -17,6 +17,14 @@ import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { Button } from "@gnd/ui/button";
 import Link from "next/link";
 import { Icons } from "@gnd/ui/icons";
+import dynamic from "next/dynamic";
+
+const BatchActions = dynamic(
+    () => import("./batch-actions").then((mod) => mod.BatchActions),
+    {
+        ssr: false,
+    },
+);
 
 interface Props {
     defaultFilters?: SalesQueryParamsSchema;
@@ -100,8 +108,14 @@ export function DataTable(props: Props) {
                     </Table>
                 </div>
                 <Table.LoadMore />
-                <BatchActions />
+                <BatchActionsGate />
             </div>
         </Table.Provider>
     );
+}
+
+function BatchActionsGate() {
+    const table = useTable();
+
+    return table.selectedRows?.length ? <BatchActions /> : null;
 }

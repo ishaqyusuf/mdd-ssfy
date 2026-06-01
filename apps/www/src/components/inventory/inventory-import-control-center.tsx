@@ -2,6 +2,7 @@
 
 import ConfirmBtn from "@/components/confirm-button";
 import { DataTable } from "@/components/tables/inventory-import/data-table";
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -13,6 +14,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Strategy = "optimized" | "handcrafted";
 type ScopeMode = "active" | "all";
+type RunFullImportInput = {
+    categoryId?: number;
+    scope?: ScopeMode;
+    strategy?: Strategy;
+    compare?: boolean;
+    reset?: boolean;
+    source?: "event" | "job" | "manual";
+};
 
 function StatCard({
     title,
@@ -38,10 +47,12 @@ function CheckRow({
     label,
     ok,
     detail,
+    pending,
 }: {
     label: string;
     ok: boolean;
     detail: string;
+    pending?: boolean;
 }) {
     return (
         <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
@@ -50,15 +61,17 @@ function CheckRow({
                 <div className="text-sm text-muted-foreground">{detail}</div>
             </div>
             <Badge
-                variant={ok ? "secondary" : "destructive"}
+                variant={pending ? "outline" : ok ? "secondary" : "destructive"}
                 className="shrink-0 gap-1"
             >
-                {ok ? (
+                {pending ? (
+                    <Icons.Clock className="size-3.5" />
+                ) : ok ? (
                     <Icons.CheckCircle className="size-3.5" />
                 ) : (
                     <Icons.Clock className="size-3.5" />
                 )}
-                {ok ? "Healthy" : "Needs Attention"}
+                {pending ? "Checking" : ok ? "Healthy" : "Needs Attention"}
             </Badge>
         </div>
     );
@@ -72,6 +85,7 @@ export function InventoryImportControlCenter() {
     const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
     const [currentRunId, setCurrentRunId] = useState<string | null>(null);
     const [currentRunLabel, setCurrentRunLabel] = useState<string | null>(null);
+    const idleQueryEnabled = useIdleQueryEnabled(1000);
 
     const imports = useQuery(
         trpc.inventories.inventoryImports.queryOptions({
@@ -80,17 +94,35 @@ export function InventoryImportControlCenter() {
         }),
     );
     const totalProducts = useQuery(
-        trpc.inventories.inventorySummary.queryOptions({
-            type: "total_products",
-        }),
+        trpc.inventories.inventorySummary.queryOptions(
+            {
+                type: "total_products",
+            },
+            {
+                enabled: idleQueryEnabled,
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
+            },
+        ),
     );
     const categories = useQuery(
-        trpc.inventories.inventorySummary.queryOptions({
-            type: "categories",
-        }),
+        trpc.inventories.inventorySummary.queryOptions(
+            {
+                type: "categories",
+            },
+            {
+                enabled: idleQueryEnabled,
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
+            },
+        ),
     );
     const kindReview = useQuery(
-        trpc.inventories.inventoryProductKindReview.queryOptions(),
+        trpc.inventories.inventoryProductKindReview.queryOptions(undefined, {
+            enabled: idleQueryEnabled,
+            refetchOnWindowFocus: false,
+            staleTime: 60 * 1000,
+        }),
     );
     const runStatus = useQuery({
         ...trpc.taskTrigger.status.queryOptions({
@@ -146,21 +178,22 @@ export function InventoryImportControlCenter() {
     const runFullImport = useMutation(
         trpc.inventories.runFullImport.mutationOptions({
             onSuccess: async (data, variables) => {
+                const input = (variables ?? {}) as RunFullImportInput;
                 setCurrentRunId(data.id);
                 setCurrentRunLabel(
-                    variables.compare
+                    input.compare
                         ? "System Check"
-                        : variables.reset
+                        : input.reset
                           ? "Full Refresh"
                           : "Update Inventory",
                 );
                 setLastRunSummary(
-                    `${variables.compare ? "System check" : variables.reset ? "Full refresh" : "Inventory update"} queued for ${variables.scope} scope using ${variables.strategy}.`,
+                    `${input.compare ? "System check" : input.reset ? "Full refresh" : "Inventory update"} queued for ${input.scope ?? "active"} scope using ${input.strategy ?? strategy}.`,
                 );
                 toast({
-                    title: variables.compare
+                    title: input.compare
                         ? "System check queued"
-                        : variables.reset
+                        : input.reset
                           ? "Full refresh queued"
                           : "Inventory update queued",
                     variant: "success",
@@ -273,11 +306,17 @@ export function InventoryImportControlCenter() {
             },
             {
                 label: "Kind classification review",
-                ok: (kindReview.data?.mismatched || 0) === 0,
+                pending: !idleQueryEnabled || kindReview.isPending,
+                ok:
+                    Boolean(idleQueryEnabled) &&
+                    !kindReview.isPending &&
+                    (kindReview.data?.summary?.mismatched || 0) === 0,
                 detail:
-                    (kindReview.data?.mismatched || 0) === 0
-                        ? "Current inventory/component kinds match the pricing heuristic."
-                        : `${kindReview.data?.mismatched || 0} records still differ from the suggested kind.`,
+                    !idleQueryEnabled || kindReview.isPending
+                        ? "Classification review will load after the import table is ready."
+                        : (kindReview.data?.summary?.mismatched || 0) === 0
+                          ? "Current inventory/component kinds match the pricing heuristic."
+                          : `${kindReview.data?.summary?.mismatched || 0} records still differ from the suggested kind.`,
             },
             {
                 label: "Import strategy",
@@ -289,7 +328,9 @@ export function InventoryImportControlCenter() {
             },
         ],
         [
-            kindReview.data?.mismatched,
+            idleQueryEnabled,
+            kindReview.isPending,
+            kindReview.data?.summary?.mismatched,
             pendingCount,
             scopeMeta?.staleCustomImported,
             scopeMeta?.staleImportedCategories,
@@ -327,16 +368,30 @@ export function InventoryImportControlCenter() {
                 />
                 <StatCard
                     title="Inventory Records"
-                    value={totalProducts.data?.value || 0}
+                    value={
+                        !idleQueryEnabled || totalProducts.isPending
+                            ? "..."
+                            : totalProducts.data?.value || 0
+                    }
                     subtitle={String(
-                        totalProducts.data?.subtitle ||
-                            "Current inventory count",
+                        !idleQueryEnabled || totalProducts.isPending
+                            ? "Loading current inventory count"
+                            : totalProducts.data?.subtitle ||
+                                  "Current inventory count",
                     )}
                 />
                 <StatCard
                     title="Categories"
-                    value={categories.data?.value || 0}
-                    subtitle="Active inventory categories"
+                    value={
+                        !idleQueryEnabled || categories.isPending
+                            ? "..."
+                            : categories.data?.value || 0
+                    }
+                    subtitle={
+                        !idleQueryEnabled || categories.isPending
+                            ? "Loading active category count"
+                            : "Active inventory categories"
+                    }
                 />
             </div>
 

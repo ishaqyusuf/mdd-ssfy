@@ -5,11 +5,15 @@ import { DataTable } from "@/components/tables/contractor-jobs/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
 import { useSession } from "@/lib/auth/client";
 
-export function WorkerJobsList() {
-    const { data: session, status } = useSession();
-    const userId = Number(session?.user?.id || 0);
+type Props = {
+    userId?: number;
+};
 
-    if (status === "loading") {
+export function WorkerJobsList({ userId: initialUserId }: Props) {
+    const { data: session, status } = useSession();
+    const userId = initialUserId || Number(session?.user?.id || 0);
+
+    if (!initialUserId && status === "loading") {
         return <TableSkeleton />;
     }
 

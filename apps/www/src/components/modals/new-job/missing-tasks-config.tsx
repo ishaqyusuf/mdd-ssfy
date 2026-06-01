@@ -7,9 +7,16 @@ import { Button } from "@gnd/ui/button";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import { JobSubmitButton } from "./job-submit-button";
+import type { JobFormSchema } from "@community/schema";
+
+type JobFormDefaults = Partial<JobFormSchema> & {
+	builderTaskId?: number | null;
+	user?: JobFormSchema["user"];
+};
 
 export function MissingTasksConfig({ form }) {
 	const { defaultValues } = useJobFormContext();
+	const typedDefaultValues = defaultValues as JobFormDefaults | undefined;
 	const { isAdmin } = useJobRole();
 	const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
 	const { setParams: setJobFormParams, ...jobFormParams } = useJobFormParams();
@@ -29,9 +36,9 @@ export function MissingTasksConfig({ form }) {
 	const handleConfigureTask = () => {
 		if (!jobFormParams.modelId) return;
 		const jobBuilderTaskId =
-			defaultValues?.builderTaskId || jobFormParams.builderTaskId || null;
+			typedDefaultValues?.builderTaskId || jobFormParams.builderTaskId || null;
 		const contractorId =
-			jobFormParams.userId ?? defaultValues?.user?.id ?? null;
+			jobFormParams.userId ?? typedDefaultValues?.user?.id ?? null;
 		setInstallCostParams({
 			editCommunityModelInstallCostId: jobFormParams.modelId,
 			mode: "v2",
@@ -54,9 +61,9 @@ export function MissingTasksConfig({ form }) {
 				Task Configuration Missing
 			</h3>
 			<p className="text-sm text-amber-700 dark:text-amber-400 max-w-sm mb-8 leading-relaxed">
-				The task <strong>"{defaultValues?.job?.subtitle}"</strong> for{" "}
-				<strong>{defaultValues?.job?.title}</strong> has not been configured in
-				the global Install Costs yet.
+				The task <strong>"{typedDefaultValues?.job?.subtitle}"</strong> for{" "}
+				<strong>{typedDefaultValues?.job?.title}</strong> has not been
+				configured in the global Install Costs yet.
 			</p>
 
 			<div className="w-full max-w-sm space-y-4">

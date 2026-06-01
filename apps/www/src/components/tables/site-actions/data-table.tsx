@@ -6,7 +6,6 @@ import { Table, useTableData } from "@gnd/ui/data-table";
 import { useTRPC } from "@/trpc/client";
 import { columns, mobileColumn } from "./columns";
 import { useSiteActionFilterParams } from "@/hooks/use-site-action-filter-params";
-import { _trpc } from "@/components/static-trpc";
 import { cn } from "@gnd/ui/cn";
 import { getColorFromName } from "@gnd/utils/colors";
 import { timeAgo } from "@gnd/utils/dayjs";
@@ -48,7 +47,7 @@ export function DataTable({}) {
             // ...(props.defaultFilters || {}),
             // bin: props.bin,
         },
-        route: _trpc.siteActions.index,
+        route: trpc.siteActions.index,
     });
     return (
         <Table.Provider

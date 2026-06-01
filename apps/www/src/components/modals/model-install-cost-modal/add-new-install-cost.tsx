@@ -1,5 +1,4 @@
 import { Icons } from "@gnd/ui/icons";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useAuth } from "@/hooks/use-auth";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
@@ -8,7 +7,7 @@ import { Button } from "@gnd/ui/button";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Input } from "@gnd/ui/input";
 import { Item } from "@gnd/ui/namespace";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,6 +15,7 @@ export function AddNewInstallCost() {
     const [showCreateCost, setShowCreateCost] = useState(false);
     const auth = useAuth();
     const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const { ...params } = useCommunityInstallCostParams();
     const { data, selectedBuilderTask } = useBuilderModelInstallsContext();
     const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
@@ -63,12 +63,12 @@ export function AddNewInstallCost() {
     };
     const { mutate: updateCommunityModelInstallTask, isPending: isUpdating } =
         useMutation(
-            useTRPC().community.updateCommunityModelInstallTask.mutationOptions(
+            trpc.community.updateCommunityModelInstallTask.mutationOptions(
                 {
                     onSuccess() {
-                        _qc.invalidateQueries({
+                        queryClient.invalidateQueries({
                             queryKey:
-                                _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                                trpc.community.getModelInstallTasksByBuilderTask.queryKey(
                                     {
                                         builderTaskId:
                                             params.selectedBuilderTaskId!,
@@ -89,9 +89,9 @@ export function AddNewInstallCost() {
         useMutation(
             trpc.community.updateInstallCostRate.mutationOptions({
                 onSuccess(createdRate) {
-                    _qc.invalidateQueries({
+                    queryClient.invalidateQueries({
                         queryKey:
-                            _trpc.community.getInstallCostRatesSuggestions.queryKey(
+                            trpc.community.getInstallCostRatesSuggestions.queryKey(
                                 {
                                     builderTaskId: params.selectedBuilderTaskId!,
                                     modelId:
@@ -99,9 +99,9 @@ export function AddNewInstallCost() {
                                 },
                             ),
                     });
-                    _qc.invalidateQueries({
+                    queryClient.invalidateQueries({
                         queryKey:
-                            _trpc.community.getCommunityInstallCostRates.queryKey(),
+                            trpc.community.getCommunityInstallCostRates.queryKey(),
                     });
                     updateCommunityModelInstallTask({
                         builderTaskId: params.selectedBuilderTaskId,

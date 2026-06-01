@@ -1,6 +1,13 @@
-import { Button } from "@gnd/ui/button";
+"use client";
+
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
-import { DropdownMenu } from "@gnd/ui/namespace";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { Separator } from "@gnd/ui/separator";
 import Link from "next/link";
@@ -17,25 +24,26 @@ export function CreateSalesBtn({ quote = false }) {
                 </Link>
             </Button>
             <Separator orientation="vertical" />
-            <DropdownMenu.Root>
-                <DropdownMenu.Trigger asChild>
-                    <Button>
-                        <Icons.MoreHoriz className="size-4" />
-                    </Button>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content className="w-[200px]" align="end">
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    aria-label="More create options"
+                    className={buttonVariants({ size: "default" })}
+                >
+                    <Icons.MoreHoriz className="size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[200px]" align="end">
                     {hrefs.map((href) => (
-                        <DropdownMenu.Item key={href} asChild>
+                        <DropdownMenuItem key={href} asChild>
                             <Link
                                 href={`/sales-book/create-${href}`}
                                 className="capitalize"
                             >
                                 New {href}
                             </Link>
-                        </DropdownMenu.Item>
+                        </DropdownMenuItem>
                     ))}
-                </DropdownMenu.Content>
-            </DropdownMenu.Root>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </ButtonGroup>
     );
 }

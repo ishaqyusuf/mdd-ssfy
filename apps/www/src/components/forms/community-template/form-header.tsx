@@ -3,19 +3,21 @@
 import Btn from "@/components/_v1/btn";
 import { InstallCostBtn } from "@/components/install-cost-btn";
 import { ModelTemplateSetting } from "@/components/model-template-setting";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { openLink } from "@/lib/open-link";
 import { useCommunityModelStore } from "@/store/community-model";
+import { useTRPC } from "@/trpc/client";
 import { extractCommunityFormValueData } from "@community/utils/template-form";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import Link from "next/link";
 import { useTemplateSchemaContext } from "./context";
 
 export function FormHeader() {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const store = useCommunityModelStore();
 	const ctx = useTemplateSchemaContext();
 	const auth = useAuth();
@@ -24,7 +26,7 @@ export function FormHeader() {
 	if (!templateId) return null;
 
 	const { isPending, mutate } = useMutation(
-		_trpc.community.saveCommunityModel.mutationOptions({
+		trpc.community.saveCommunityModel.mutationOptions({
 			meta: {
 				toastTitle: {
 					error: "Something went wrong",
@@ -33,8 +35,8 @@ export function FormHeader() {
 				},
 			},
 			onSuccess(data, variables, context) {
-				_qc.invalidateQueries({
-					queryKey: _trpc.print.modelTemplate.queryKey({}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.print.modelTemplate.queryKey({}),
 				});
 			},
 		}),

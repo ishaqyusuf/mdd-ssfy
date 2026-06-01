@@ -186,13 +186,19 @@ export function DispatchCalendarView() {
     const days = Array.from({ length: 7 }, (_, i) => addDays(startDay, i));
 
     const { data } = useSuspenseQuery(
-        trpc.dispatch.exportDispatches.queryOptions({
-            tab: filters.tab,
-            status: filters.status,
-            q: filters.q,
-            driversId: filters.driversId,
-            scheduleDate: filters.scheduleDate as string[] | null,
-        } as any),
+        trpc.dispatch.exportDispatches.queryOptions(
+            {
+                tab: filters.tab,
+                status: filters.status,
+                q: filters.q,
+                driversId: filters.driversId,
+                scheduleDate: filters.scheduleDate as string[] | null,
+            } as any,
+            {
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
+            },
+        ),
     );
 
     const allItems: DispatchItem[] = (data ?? []).map((row) => ({
@@ -318,4 +324,3 @@ export function DispatchCalendarSkeleton() {
         </Card>
     );
 }
-

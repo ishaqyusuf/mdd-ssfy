@@ -5,7 +5,7 @@ import { TableSkeleton } from "@/components/tables/skeleton";
 import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { resolveSalesVisibility } from "@/lib/sales-visibility";
-import { HydrateClient, getQueryClient, prefetch, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
@@ -14,38 +14,36 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props) {
-	return constructMetadata({
-		title: "Sales | GND",
-	});
+    return constructMetadata({
+        title: "Sales | GND",
+    });
 }
 
 export default async function Page(props) {
-	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
-	const { filter, salesManager } = await resolveSalesVisibility(
-		loadOrderFilterParams(searchParams),
-	);
-	const initialFilterList = await queryClient.fetchQuery(
-		trpc.filters.salesOrders.queryOptions({
-			salesManager,
-		}),
-	);
-	prefetch(
-		trpc.sales.getOrders.infiniteQueryOptions({
-			...filter,
-		}),
-	);
-	return (
-		<PageShell>
-			<HydrateClient>
-				<PageTitle>Sales</PageTitle>
-				<OrderHeader initialFilterList={initialFilterList} />
-				<ErrorBoundary errorComponent={ErrorFallbackSales}>
-					<Suspense fallback={<TableSkeleton />}>
-						<DataTable />
-					</Suspense>
-				</ErrorBoundary>
-			</HydrateClient>
-		</PageShell>
-	);
+    const searchParams = await props.searchParams;
+    const { filter, salesManager } = await resolveSalesVisibility(
+        loadOrderFilterParams(searchParams),
+    );
+    batchPrefetch([
+        trpc.sales.getOrders.infiniteQueryOptions(filter as any, {
+            getNextPageParam: ({ meta }: { meta?: { cursor?: unknown } }) =>
+                meta?.cursor,
+        }) as any,
+        trpc.filters.salesOrders.queryOptions({
+            salesManager,
+        }),
+    ]);
+    return (
+        <PageShell>
+            <HydrateClient>
+                <PageTitle>Sales</PageTitle>
+                <OrderHeader />
+                <ErrorBoundary errorComponent={ErrorFallbackSales}>
+                    <Suspense fallback={<TableSkeleton />}>
+                        <DataTable />
+                    </Suspense>
+                </ErrorBoundary>
+            </HydrateClient>
+        </PageShell>
+    );
 }

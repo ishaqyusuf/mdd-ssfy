@@ -8,20 +8,22 @@ import { Popover } from "@gnd/ui/namespace";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useEffect, useState } from "react";
 import { useTemplateSchemaContext } from "./context";
 import { FormDebugBtn } from "@/components/form-debug-btn";
-import { _qc, _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 
 export function NewBlockAction() {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const c = useTemplateSchemaContext();
     const [formOpen, onFormOpenChange] = useState(false);
     const { isPending, mutate } = useMutation(
-        _trpc.community.createCommunityTemplateBlock.mutationOptions({
+        trpc.community.createCommunityTemplateBlock.mutationOptions({
             onSuccess(data, variables, context) {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getCommunitySchema.queryKey({}),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getCommunitySchema.queryKey({}),
                 });
             },
             onError(error, variables, context) {},
@@ -82,4 +84,3 @@ export function NewBlockAction() {
         </Popover.Root>
     );
 }
-

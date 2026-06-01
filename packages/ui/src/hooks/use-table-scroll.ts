@@ -1,12 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 
 interface UseTableScrollOptions {
   scrollAmount?: number;
   useColumnWidths?: boolean;
   startFromColumn?: number;
+}
+
+function isTextInputTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+
+  return (
+    target.isContentEditable ||
+    target.tagName === "INPUT" ||
+    target.tagName === "TEXTAREA" ||
+    target.tagName === "SELECT"
+  );
 }
 
 export function useTableScroll(options: UseTableScrollOptions = {}) {
@@ -45,6 +55,50 @@ export function useTableScroll(options: UseTableScrollOptions = {}) {
     return positions;
   }, []);
 
+  const getColumnIndexForScrollLeft = useCallback(
+    (allColumnPositions: number[], currentScrollLeft: number) => {
+      const container = containerRef.current;
+      if (!container) return startFromColumn;
+
+      const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+      if (currentScrollLeft <= 10) {
+        return startFromColumn;
+      }
+
+      if (currentScrollLeft >= maxScrollLeft - 10) {
+        return allColumnPositions.length - 1;
+      }
+
+      let accumulatedDistance = 0;
+      let detectedColumn = startFromColumn;
+
+      for (let i = startFromColumn; i < allColumnPositions.length - 1; i++) {
+        const columnStart = allColumnPositions[i] ?? 0;
+        const columnEnd = allColumnPositions[i + 1] ?? 0;
+        const columnWidth = columnEnd - columnStart;
+        const nextDistance = accumulatedDistance + columnWidth;
+
+        if (
+          Math.abs(currentScrollLeft - accumulatedDistance) <=
+          Math.abs(currentScrollLeft - nextDistance)
+        ) {
+          detectedColumn = i;
+          break;
+        }
+
+        accumulatedDistance = nextDistance;
+        detectedColumn = i + 1;
+      }
+
+      return Math.max(
+        startFromColumn,
+        Math.min(detectedColumn, allColumnPositions.length - 1),
+      );
+    },
+    [startFromColumn],
+  );
+
   const syncColumnIndex = useCallback(() => {
     const container = containerRef.current;
     if (!container || !useColumnWidths || isScrollingProgrammatically.current)
@@ -53,46 +107,11 @@ export function useTableScroll(options: UseTableScrollOptions = {}) {
     const allColumnPositions = getColumnPositions();
     if (allColumnPositions.length === 0) return;
 
-    const currentScrollLeft = container.scrollLeft;
-    const maxScrollLeft = container.scrollWidth - container.clientWidth;
-
-    // Fast edge case detection
-    if (currentScrollLeft <= 10) {
-      currentColumnIndex.current = startFromColumn;
-      return;
-    }
-    if (currentScrollLeft >= maxScrollLeft - 10) {
-      currentColumnIndex.current = allColumnPositions.length - 1;
-      return;
-    }
-
-    // Optimized column detection - find closest target position
-    let accumulatedDistance = 0;
-    let detectedColumn = startFromColumn;
-
-    for (let i = startFromColumn; i < allColumnPositions.length - 1; i++) {
-      const columnStart = allColumnPositions[i] ?? 0;
-      const columnEnd = allColumnPositions[i + 1] ?? 0;
-      const columnWidth = columnEnd - columnStart;
-      const nextDistance = accumulatedDistance + columnWidth;
-
-      if (
-        Math.abs(currentScrollLeft - accumulatedDistance) <=
-        Math.abs(currentScrollLeft - nextDistance)
-      ) {
-        detectedColumn = i;
-        break;
-      }
-
-      accumulatedDistance = nextDistance;
-      detectedColumn = i + 1;
-    }
-
-    currentColumnIndex.current = Math.max(
-      startFromColumn,
-      Math.min(detectedColumn, allColumnPositions.length - 1),
+    currentColumnIndex.current = getColumnIndexForScrollLeft(
+      allColumnPositions,
+      container.scrollLeft,
     );
-  }, [useColumnWidths, startFromColumn, getColumnPositions]);
+  }, [useColumnWidths, getColumnPositions, getColumnIndexForScrollLeft]);
 
   const checkScrollability = useCallback(() => {
     const container = containerRef.current;
@@ -101,27 +120,44 @@ export function useTableScroll(options: UseTableScrollOptions = {}) {
     const { scrollWidth, clientWidth } = container;
     const isScrollableTable = scrollWidth > clientWidth;
 
-    if (useColumnWidths) {
-      syncColumnIndex();
+    setIsScrollable(isScrollableTable);
 
+    if (!isScrollableTable) {
+      currentColumnIndex.current = startFromColumn;
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    if (useColumnWidths) {
       const allColumnPositions = getColumnPositions();
       const maxColumnIndex = allColumnPositions.length - 1;
+
+      if (!isScrollingProgrammatically.current) {
+        currentColumnIndex.current = getColumnIndexForScrollLeft(
+          allColumnPositions,
+          container.scrollLeft,
+        );
+      }
 
       const newCanScrollLeft =
         currentColumnIndex.current > startFromColumn ||
         container.scrollLeft > 10;
       const newCanScrollRight = currentColumnIndex.current < maxColumnIndex;
 
-      setIsScrollable(isScrollableTable);
       setCanScrollLeft(newCanScrollLeft);
       setCanScrollRight(newCanScrollRight);
     } else {
       const { scrollLeft } = container;
-      setIsScrollable(isScrollableTable);
       setCanScrollLeft(scrollLeft > 0);
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
     }
-  }, [useColumnWidths, startFromColumn, getColumnPositions, syncColumnIndex]);
+  }, [
+    useColumnWidths,
+    startFromColumn,
+    getColumnPositions,
+    getColumnIndexForScrollLeft,
+  ]);
 
   const scrollLeft = useCallback(
     (smooth = true) => {
@@ -314,21 +350,28 @@ export function useTableScroll(options: UseTableScrollOptions = {}) {
     };
   }, [checkScrollability, startFromColumn]);
 
-  useHotkeys(
-    "ArrowLeft, ArrowRight",
-    (event) => {
+  useEffect(() => {
+    if (!isScrollable) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isTextInputTarget(event.target)) return;
+
       if (event.key === "ArrowLeft" && canScrollLeft) {
+        event.preventDefault();
         scrollLeft();
       }
       if (event.key === "ArrowRight" && canScrollRight) {
+        event.preventDefault();
         scrollRight();
       }
-    },
-    {
-      enabled: isScrollable,
-      preventDefault: true,
-    },
-  );
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [canScrollLeft, canScrollRight, isScrollable, scrollLeft, scrollRight]);
 
   return {
     containerRef,

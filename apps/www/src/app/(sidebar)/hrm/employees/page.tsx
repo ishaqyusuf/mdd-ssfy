@@ -25,14 +25,16 @@ export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
 	const queryClient = getQueryClient();
 	const filter = loadEmployeeFilterParams(searchParams);
-	const [initialFilterList, _initialEmployeeRows] = await Promise.all([
-		queryClient.fetchQuery(trpc.filters.employee.queryOptions()),
-		queryClient.fetchInfiniteQuery(
-			trpc.hrm.getEmployees.infiniteQueryOptions({
-				...filter,
-			}) as any,
-		),
-	]);
+	const [initialFilterList, _initialEmployeeRows, _organizationProfile] =
+		await Promise.all([
+			queryClient.fetchQuery(trpc.filters.employee.queryOptions()),
+			queryClient.fetchInfiniteQuery(
+				trpc.hrm.getEmployees.infiniteQueryOptions({
+					...filter,
+				}) as any,
+			),
+			queryClient.fetchQuery(trpc.orgs.getOrganizationProfile.queryOptions()),
+		]);
 	return (
 		<PageShell>
 			<HydrateClient>

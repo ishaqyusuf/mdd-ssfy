@@ -7,8 +7,7 @@ import {
 import { useTRPC } from "@/trpc/client";
 import { Table } from "@gnd/ui/namespace";
 import { SubmitButton } from "@gnd/ui/submit-button";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { _qc, _trpc } from "../static-trpc";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { InstallCostLine } from "./install-cost-line";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -57,12 +56,13 @@ export default function CommunityInstallCostRate() {
 }
 
 function LegacyImport({ costs = [] }) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const { mutate: handleImport, isPending: isImporting } = useMutation(
-        useTRPC().community.importLegacyInstallCosts.mutationOptions({
+        trpc.community.importLegacyInstallCosts.mutationOptions({
             onSuccess() {
-                _qc.invalidateQueries({
-                    queryKey:
-                        _trpc.community.getCommunityInstallCostRates.queryKey(),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getCommunityInstallCostRates.queryKey(),
                 });
             },
             meta: {
@@ -115,4 +115,3 @@ function LegacyImport({ costs = [] }) {
         </div>
     );
 }
-

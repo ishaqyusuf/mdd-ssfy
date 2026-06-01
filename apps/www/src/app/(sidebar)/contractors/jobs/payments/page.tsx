@@ -24,7 +24,7 @@ export default async function ContractorsPaymentsPage(props: Props) {
 	const filter = loadContractorPayoutFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
 
-	const [initialFilterList, _initialPayouts, _dashboard] = await Promise.all([
+	const [initialFilterList, _initialPayouts] = await Promise.all([
 		queryClient.fetchQuery(trpc.filters.contractorPayout.queryOptions()),
 		queryClient.fetchInfiniteQuery(
 			trpc.jobs.contractorPayouts.infiniteQueryOptions({
@@ -32,7 +32,6 @@ export default async function ContractorsPaymentsPage(props: Props) {
 				sort,
 			}) as any,
 		),
-		queryClient.fetchQuery(trpc.jobs.paymentDashboard.queryOptions({})),
 	]);
 
 	return (

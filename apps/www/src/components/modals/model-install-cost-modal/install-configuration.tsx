@@ -1,9 +1,9 @@
 import { Icons } from "@gnd/ui/icons";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { useBuilderModelInstallsContext } from "@/hooks/use-model-install-config";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { useTRPC } from "@/trpc/client";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
     AlertDialog,
@@ -21,15 +21,21 @@ import { InputGroup, Item } from "@gnd/ui/namespace";
 import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import NumberFlow from "@number-flow/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useDebouncedCallback } from "use-debounce";
 
 type InstallTaskRow =
     RouterOutputs["community"]["getModelInstallTasksByBuilderTask"]["tasks"][number];
+type SortableInstallTaskRow = InstallTaskRow & {
+    id: number;
+    modelInstallTaskId: InstallTaskRow["id"];
+};
 
 export function InstallConfiguration() {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const { tasks, params } = useBuilderModelInstallsContext();
     const { setParams } = useCommunityInstallCostParams();
     const { setParams: setJobParams } = useJobParams();
@@ -61,11 +67,11 @@ export function InstallConfiguration() {
 
     const { mutate: reorderInstallCosts, isPending: isReordering } =
         useMutation(
-            _trpc.community.reorderBuilderTaskInstallCosts.mutationOptions({
+            trpc.community.reorderBuilderTaskInstallCosts.mutationOptions({
                 onSuccess() {
-                    _qc.invalidateQueries({
+                    queryClient.invalidateQueries({
                         queryKey:
-                            _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                            trpc.community.getModelInstallTasksByBuilderTask.queryKey(
                                 {
                                     builderTaskId: params.selectedBuilderTaskId!,
                                     modelId: params.editCommunityModelInstallCostId!,
@@ -116,10 +122,20 @@ export function InstallConfiguration() {
                 value={orderedTasks.map((task) => ({
                     ...task,
                     id: task.builderTaskInstallCostId!,
-                }))}
+                    modelInstallTaskId: task.id,
+                })) satisfies SortableInstallTaskRow[]}
                 onValueChange={(nextTasks) => {
                     setOrderedTasks(
-                        nextTasks.map(({ id: _id, ...task }) => task),
+                        nextTasks.map(
+                            ({
+                                id: _sortableId,
+                                modelInstallTaskId,
+                                ...task
+                            }) => ({
+                                ...task,
+                                id: modelInstallTaskId,
+                            }),
+                        ),
                     );
                     if (!params.selectedBuilderTaskId) return;
                     reorderInstallCosts({
@@ -158,13 +174,15 @@ function Line({
     task: InstallTaskRow;
     isReordering?: boolean;
 }) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const [status, setStatus] = useState(task.status);
     const [maxQty, setMaxQty] = useState(task?.qty || "");
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const { modelId, setBuilderTaskInstallCosts, selectedBuilderTask, data } =
         useBuilderModelInstallsContext();
     const { mutate, isPending, isError } = useMutation(
-        _trpc.community.updateCommunityModelInstallTask.mutationOptions({
+        trpc.community.updateCommunityModelInstallTask.mutationOptions({
             onSuccess(data, variables, onMutateResult, context) {
                 setBuilderTaskInstallCosts((prev) => ({
                     ...prev,
@@ -177,14 +195,14 @@ function Line({
                         ).toFixed(2),
                     },
                 }));
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getModelBuilderTasks.queryKey({
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getModelBuilderTasks.queryKey({
                         modelId: modelId!,
                     }),
                 });
-                _qc.invalidateQueries({
+                queryClient.invalidateQueries({
                     queryKey:
-                        _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                        trpc.community.getModelInstallTasksByBuilderTask.queryKey(
                             {
                                 builderTaskId: task.builderTaskId,
                                 modelId: modelId!,
@@ -202,11 +220,11 @@ function Line({
         }),
     );
     const { mutate: deleteCost, isPending: isDeleting } = useMutation(
-        _trpc.community.deleteCommunityModelInstallCost.mutationOptions({
+        trpc.community.deleteCommunityModelInstallCost.mutationOptions({
             onSuccess() {
-                _qc.invalidateQueries({
+                queryClient.invalidateQueries({
                     queryKey:
-                        _trpc.community.getModelInstallTasksByBuilderTask.queryKey(
+                        trpc.community.getModelInstallTasksByBuilderTask.queryKey(
                             {
                                 builderTaskId: task.builderTaskId,
                                 modelId: modelId!,

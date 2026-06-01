@@ -106,12 +106,13 @@ export function DealersAdminPage() {
 
     const profilesQuery = useQuery(trpc.dealer.salesProfiles.queryOptions());
 
-    const candidateQuery = useQuery(
-        trpc.dealer.searchCustomerCandidates.queryOptions({
+    const candidateQuery = useQuery({
+        ...trpc.dealer.searchCustomerCandidates.queryOptions({
             query: debouncedCustomerSearch || null,
             take: 10,
         }),
-    );
+        enabled: open && mode === "existing",
+    });
 
     const createDealer = useMutation(
         trpc.dealer.createAccount.mutationOptions({
@@ -145,7 +146,11 @@ export function DealersAdminPage() {
     const updateSalesProfile = useMutation(
         trpc.dealer.updateSalesProfile.mutationOptions({
             onMutate: (variables) => {
-                setUpdatingProfileDealerId(variables.dealerId);
+                setUpdatingProfileDealerId(
+                    variables && "dealerId" in variables
+                        ? variables.dealerId
+                        : null,
+                );
             },
             onSuccess: async () => {
                 await queryClient.invalidateQueries({

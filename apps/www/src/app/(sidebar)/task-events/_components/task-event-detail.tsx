@@ -1,8 +1,8 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
+import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
@@ -70,6 +70,7 @@ type TaskHistoryMeta = {
 
 export function TaskEventDetail({ eventName }: Props) {
 	const auth = useAuth();
+	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [status, setStatus] = useState<"active" | "inactive">("active");
 	const [filter, setFilter] = useState<Record<string, unknown>>({});
@@ -90,16 +91,16 @@ export function TaskEventDetail({ eventName }: Props) {
 	);
 
 	const { data, isPending, refetch } = useQuery(
-		_trpc.taskEvents.get.queryOptions({ eventName }),
+		trpc.taskEvents.get.queryOptions({ eventName }),
 	);
 
 	const historyQuery = useQuery(
-		_trpc.taskEvents.history.queryOptions({ eventName }),
+		trpc.taskEvents.history.queryOptions({ eventName }),
 	);
 	const refetchHistory = historyQuery.refetch;
 
 	const runStatusQuery = useQuery(
-		_trpc.taskEvents.runStatus.queryOptions(
+		trpc.taskEvents.runStatus.queryOptions(
 			{
 				runId: runId || "pending",
 			},
@@ -132,7 +133,7 @@ export function TaskEventDetail({ eventName }: Props) {
 				refetchHistory(),
 				refetch(),
 				queryClient.invalidateQueries({
-					queryKey: _trpc.taskEvents.list.queryKey(),
+					queryKey: trpc.taskEvents.list.queryKey(),
 				}),
 			]);
 		})();
@@ -146,7 +147,7 @@ export function TaskEventDetail({ eventName }: Props) {
 	]);
 
 	const saveMutation = useMutation(
-		_trpc.taskEvents.update.mutationOptions({
+		trpc.taskEvents.update.mutationOptions({
 			onSuccess: async () => {
 				toast({
 					variant: "success",
@@ -156,7 +157,7 @@ export function TaskEventDetail({ eventName }: Props) {
 					refetch(),
 					historyQuery.refetch(),
 					queryClient.invalidateQueries({
-						queryKey: _trpc.taskEvents.list.queryKey(),
+						queryKey: trpc.taskEvents.list.queryKey(),
 					}),
 				]);
 			},
@@ -164,7 +165,7 @@ export function TaskEventDetail({ eventName }: Props) {
 	);
 
 	const runNowMutation = useMutation(
-		_trpc.taskEvents.runNow.mutationOptions({
+		trpc.taskEvents.runNow.mutationOptions({
 			onSuccess: async (result) => {
 				setRunId(result.id);
 				setSyncedRunId(null);
@@ -179,7 +180,7 @@ export function TaskEventDetail({ eventName }: Props) {
 	);
 
 	const runTestMutation = useMutation(
-		_trpc.taskEvents.runTest.mutationOptions({
+		trpc.taskEvents.runTest.mutationOptions({
 			onSuccess: async (result) => {
 				setRunId(result.id);
 				setSyncedRunId(null);
@@ -315,7 +316,7 @@ export function TaskEventDetail({ eventName }: Props) {
 							<SearchFilter
 								filterSchema={salesFilterParamsSchema}
 								placeholder="Search Order Information..."
-								trpcRoute={_trpc.filters.salesOrders}
+								trpcRoute={trpc.filters.salesOrders}
 								trpQueryOptions={{
 									salesManager: auth?.can?.viewSalesManager,
 								}}

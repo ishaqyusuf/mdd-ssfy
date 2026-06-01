@@ -3,7 +3,6 @@ import { Avatar } from "@/components/avatar";
 import Link from "@/components/link";
 
 import { useAuth } from "@/hooks/use-auth";
-import { useLinks } from "@/hooks/use-sidebar";
 import { Button } from "@gnd/ui/button";
 import {
 	DropdownMenu,
@@ -24,10 +23,9 @@ import {
 import { Fragment } from "react";
 import { Icon } from "@gnd/ui/icons";
 
-export function UserNav() {
+export function UserNav({ links }: { links: any }) {
 	// const { data: session } = useSession();
 	const auth = useAuth();
-	const links = useLinks();
 	return (
 		<DropdownMenu>
 			<TooltipProvider disableHoverableContent>
@@ -50,7 +48,7 @@ export function UserNav() {
 				</Tooltip>
 			</TooltipProvider>
 
-			<DropdownMenuContent className="w-56" align="end" forceMount>
+			<DropdownMenuContent className="w-56" align="end">
 				<DropdownMenuLabel className="font-normal">
 					<div className="flex flex-col space-y-1">
 						<p className="text-sm font-medium leading-none">{auth?.name}</p>

@@ -2,7 +2,7 @@ import { parseAsInteger, parseAsJson, useQueryStates } from "nuqs";
 import { z } from "zod";
 import { useJobFormParams } from "./use-job-form-params";
 import { useCommunityInstallCostParams } from "./use-community-install-cost-params";
-import { invalidateQueries } from "./use-invalidate-query";
+import { useInvalidateQuery } from "./use-invalidate-query";
 
 const builderJobPayloadSchema = z.object({
     step: z.number().nullable().optional(),
@@ -18,6 +18,7 @@ const builderJobPayloadSchema = z.object({
 export type BuilderJobPayload = z.infer<typeof builderJobPayloadSchema>;
 
 export function useBuilderParams(options?: { shallow: boolean }) {
+    const { invalidateQueries } = useInvalidateQuery();
     const { setParams: setJobFormParams } = useJobFormParams();
     const { setParams: setInstallCostParams } = useCommunityInstallCostParams();
     const [params, setParams] = useQueryStates(

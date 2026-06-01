@@ -12,6 +12,14 @@ import type React from "react";
 import type { UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
 
+type JobFormDefaults = Partial<JobFormSchema> & {
+	builderTaskId?: number | null;
+	unit?: JobFormSchema["unit"] & {
+		projectAddon?: number | null;
+	};
+	user?: JobFormSchema["user"];
+};
+
 interface Props {
 	// className?: string;
 	submitAsTaskRequest?: boolean;
@@ -32,8 +40,9 @@ export function JobSubmitButton({
 	const { formType } = useJobStepInfo();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const typedDefaultValues = defaultValues as JobFormDefaults | undefined;
 	const isConfigRequestedStatus =
-		String(defaultValues?.job?.status || "").toLowerCase() ===
+		String(typedDefaultValues?.job?.status || "").toLowerCase() ===
 		"config requested";
 	const isSubmitMode = formType === "submit";
 	const { mutate: saveJob, isPending: isSaving } = useMutation(
@@ -48,7 +57,7 @@ export function JobSubmitButton({
 					}),
 				]);
 				await setParams(null);
-				if (args?.requestTaskConfig) {
+				if ((args as Partial<JobFormSchema> | undefined)?.requestTaskConfig) {
 					toast.success("Configuration requested and job saved.", {
 						description:
 							"Admin will review it and notify you when this job is ready.",
@@ -86,7 +95,7 @@ export function JobSubmitButton({
 						id:
 							normalizedValues.user?.id ??
 							userId ??
-							defaultValues?.user?.id ??
+							typedDefaultValues?.user?.id ??
 							null,
 					};
 					normalizedValues.unit = isCustom
@@ -105,13 +114,13 @@ export function JobSubmitButton({
 					normalizedValues.modelId = isCustom
 						? undefined
 						: (normalizedValues.modelId ?? modelId ?? 0);
-					const defaultMeta = defaultValues?.job?.meta || {};
+					const defaultMeta = typedDefaultValues?.job?.meta || {};
 					const addonPercent =
 						Number(normalizedValues.job?.meta?.addonPercent) ||
 						Number(defaultMeta?.addonPercent) ||
 						0;
 					const projectAddon =
-						Number(defaultValues?.unit?.projectAddon || 0) || 0;
+						Number(typedDefaultValues?.unit?.projectAddon || 0) || 0;
 					const addon = percentageValue(projectAddon, addonPercent) || 0;
 					const taskTotal = sum(
 						(normalizedValues.job?.tasks || []).map(

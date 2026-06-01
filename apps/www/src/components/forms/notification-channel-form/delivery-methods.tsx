@@ -1,9 +1,5 @@
 import { useNotificationChannelContext } from "@/contexts/notification-channel-context";
-import {
-    invalidateInfiniteQueries,
-    invalidateQueries,
-    invalidateQuery,
-} from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { useTRPC } from "@/trpc/client";
 import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
@@ -12,6 +8,7 @@ import { useState } from "react";
 
 export function DeliveryMethods() {
     const { selectedEvent } = useNotificationChannelContext();
+    const { invalidateInfiniteQueries, invalidateQuery } = useInvalidateQuery();
     type Event = keyof typeof selectedEvent;
     type MethodKeys = Extract<
         Event,

@@ -33,7 +33,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@gnd/ui/use-toast";
 import { Suspense } from "react";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
-import { _trpc } from "@/components/static-trpc";
 
 export function PayPortalTab({}) {
     return (

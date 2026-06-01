@@ -12,7 +12,10 @@ import { cn } from "@gnd/ui/cn";
 export function DispatchOverdueBanner() {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(
-        trpc.dispatch.dispatchSummary.queryOptions(),
+        trpc.dispatch.dispatchSummary.queryOptions(undefined, {
+            refetchOnWindowFocus: false,
+            staleTime: 60 * 1000,
+        }),
     );
     const { setFilters } = useDispatchFilterParams();
 
@@ -27,7 +30,10 @@ export function DispatchOverdueBanner() {
             )}
         >
             <div className="flex items-center gap-2">
-                <Icons.AlertTriangle size={16} className="text-orange-500 shrink-0" />
+                <Icons.AlertTriangle
+                    size={16}
+                    className="text-orange-500 shrink-0"
+                />
                 <span className="text-sm font-medium text-orange-800 dark:text-orange-300">
                     <Badge variant="destructive" className="mr-2 tabular-nums">
                         {count}
@@ -58,4 +64,3 @@ export function DispatchOverdueBanner() {
         </div>
     );
 }
-

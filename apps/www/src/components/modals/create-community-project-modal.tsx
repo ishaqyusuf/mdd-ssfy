@@ -3,15 +3,16 @@ import { CustomModal, CustomModalContent } from "./custom-modal";
 import { useQuery } from "@gnd/ui/tanstack";
 
 import { useCommunityProjectParams } from "@/hooks/use-community-project-params";
-import { _trpc } from "../static-trpc";
+import { useTRPC } from "@/trpc/client";
 
 export function CreateCommunityProjectModal({}) {
+    const trpc = useTRPC();
     const { setParams, opened, openCommunityProjectId } =
         useCommunityProjectParams();
     // const opened = createModelCost;
 
     const { data, isPending } = useQuery(
-        _trpc.community.getProjectForm.queryOptions(
+        trpc.community.getProjectForm.queryOptions(
             {
                 projectId: openCommunityProjectId!,
             },
@@ -33,4 +34,3 @@ export function CreateCommunityProjectModal({}) {
         </CustomModal>
     );
 }
-

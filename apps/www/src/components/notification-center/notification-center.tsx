@@ -1,5 +1,6 @@
 "use client";
 
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
@@ -27,10 +28,15 @@ import { NotificationItem } from "./notification-item";
 
 export function NotificationCenter() {
 	const [isOpen, setOpen] = useState(false);
+	const [activeTab, setActiveTab] = useState("inbox");
 	const router = useRouter();
 	const pathname = usePathname();
+	const idleQueryEnabled = useIdleQueryEnabled(1500);
 	const { hasUnseenNotifications, notifications, archived, isLoading } =
-		useNotifications();
+		useNotifications({
+			enabled: isOpen || idleQueryEnabled,
+			includeArchive: isOpen && activeTab === "archive",
+		});
 	const unreadNotifications = notifications; // Main notifications (unread/read)
 	const archivedNotifications = archived; // Archived notifications
 	useEffect(() => {
@@ -171,7 +177,7 @@ export function NotificationCenter() {
 	};
 
 	return (
-		<Popover>
+		<Popover open={isOpen} onOpenChange={setOpen}>
 			<Popover.Trigger asChild>
 				<Button
 					variant="outline"
@@ -190,7 +196,7 @@ export function NotificationCenter() {
 				sideOffset={10}
 			>
 				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Tabs defaultValue="inbox">
+					<Tabs value={activeTab} onValueChange={setActiveTab}>
 						<Tabs.List className="w-full justify-between bg-transparent border-b-[1px] rounded-none py-6">
 							<div className="flex">
 								<Tabs.Trigger value="inbox" className="font-normal">

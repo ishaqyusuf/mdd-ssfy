@@ -19,7 +19,6 @@ import { labelValueOptions } from "@gnd/utils";
 import FormDate from "../common/controls/form-date";
 import { FormDebugBtn } from "../form-debug-btn";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
-import { _trpc } from "../static-trpc";
 
 interface Props {
     data?;
@@ -77,7 +76,7 @@ export function WorkOrderForm({ data }: Props) {
             onSuccess(data, variables, context) {
                 qc.invalidateQueries({
                     queryKey:
-                        _trpc.customerService.getCustomerServices.infiniteQueryKey(),
+                        trpc.customerService.getCustomerServices.infiniteQueryKey(),
                 });
                 setParams(null);
                 toast({
@@ -219,4 +218,3 @@ export function WorkOrderForm({ data }: Props) {
         </Form>
     );
 }
-

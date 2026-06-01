@@ -4,8 +4,7 @@ import { useTRPC } from "@/trpc/client";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { builderFormSchema } from "@community/schema";
 import { SubmitButton } from "@gnd/ui/submit-button";
-import { useMutation } from "@tanstack/react-query";
-import { _qc, _trpc } from "./static-trpc";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { InputField } from "@gnd/ui/controls-2/input-field";
 import { CheckboxField } from "@gnd/ui/controls-2/checkbox-field";
 import { Separator } from "@gnd/ui/separator";
@@ -155,15 +154,17 @@ export function BuilderForm(props: BuilderFormProps) {
 }
 
 function UpgradeRequiredNotice() {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const { openBuilderId: builderId } = useBuilderParams();
     const onClose = () => {};
 
     const { mutate: handleLegacyUpdate, isPending: isUpgrading } = useMutation(
-        useTRPC().community.upgradeBuilderToV2.mutationOptions({
+        trpc.community.upgradeBuilderToV2.mutationOptions({
             onSuccess() {
                 // Optionally, you can add a success message or refresh the data here
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getBuilderForm.queryKey({
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getBuilderForm.queryKey({
                         builderId: builderId!,
                     }),
                 });
@@ -219,4 +220,3 @@ function UpgradeRequiredNotice() {
         </div>
     );
 }
-

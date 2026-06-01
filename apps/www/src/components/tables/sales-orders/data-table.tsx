@@ -8,16 +8,23 @@ import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { NoResults } from "@gnd/ui/custom/no-results";
-import { Table, useTableData } from "@gnd/ui/data-table";
+import { Table, useTable, useTableData } from "@gnd/ui/data-table";
 import { useTableScroll } from "@gnd/ui/hooks/use-table-scroll";
 import { Icons } from "@gnd/ui/icons";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 
 import { salesPriorityRowClassName } from "@/components/sales-priority-control";
 import { salesInboundRowClassName } from "./columns";
 import { TableSkeleton } from "../skeleton";
-import { BatchActions } from "./batch-actions";
 import { columns, mobileColumn } from "./columns";
+
+const BatchActions = dynamic(
+    () => import("./batch-actions").then((mod) => mod.BatchActions),
+    {
+        ssr: false,
+    },
+);
 
 interface Props {
     defaultFilters?: RouterInputs["sales"]["getOrders"];
@@ -108,8 +115,12 @@ export function DataTable(props: Props) {
                         },
                         rowClassName(row) {
                             return [
-                                salesPriorityRowClassName(row.original?.priority),
-                                salesInboundRowClassName(row.original?.inboundStatus),
+                                salesPriorityRowClassName(
+                                    row.original?.priority,
+                                ),
+                                salesInboundRowClassName(
+                                    row.original?.inboundStatus,
+                                ),
                             ]
                                 .filter(Boolean)
                                 .join(" ");
@@ -136,8 +147,14 @@ export function DataTable(props: Props) {
                     </Table>
                 </div>
                 <Table.LoadMore />
-                <BatchActions />
+                <BatchActionsGate />
             </div>
         </Table.Provider>
     );
+}
+
+function BatchActionsGate() {
+    const table = useTable();
+
+    return table.selectedRows?.length ? <BatchActions /> : null;
 }

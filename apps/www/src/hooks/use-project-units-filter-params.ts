@@ -1,5 +1,10 @@
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsString, parseAsArrayOf } from "nuqs/server";
+import {
+    createLoader,
+    parseAsArrayOf,
+    parseAsString,
+    parseAsStringEnum,
+} from "nuqs/server";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<
     RouterInputs["community"]["getProjectUnits"],
@@ -10,10 +15,29 @@ export const projectUnitFilterParams = {
     q: parseAsString,
     builderSlug: parseAsString,
     projectSlug: parseAsString,
-    template: parseAsString,
+    template: parseAsStringEnum(["configured", "not configured"]),
     dateRange: parseAsArrayOf(parseAsString),
-    installation: parseAsString,
-    production: parseAsString,
+    installation: parseAsStringEnum([
+        "has installation",
+        "no installation",
+        "Submitted",
+        "No Submission",
+    ]),
+    production: parseAsStringEnum([
+        "started",
+        "queued",
+        "idle",
+        "completed",
+        "sort",
+    ]),
+    invoice: parseAsStringEnum(["no payment", "has payment"]),
+    installCost: parseAsStringEnum([
+        "configured",
+        "part configured",
+        "not configured",
+        "has install cost",
+        "no install cost",
+    ]),
 } satisfies Partial<Record<FilterKeys, any>>;
 
 export function useProjectUnitFilterParams() {

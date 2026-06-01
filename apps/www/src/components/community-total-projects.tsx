@@ -4,7 +4,6 @@ import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
 import NumberFlow from "@number-flow/react";
-import { _path, _pathIs } from "./static-trpc";
 import { SummaryCardLink } from "./summary-card-link";
 
 export function CommunityTotalProjects() {
@@ -26,4 +25,3 @@ export function CommunityTotalProjects() {
         />
     );
 }
-

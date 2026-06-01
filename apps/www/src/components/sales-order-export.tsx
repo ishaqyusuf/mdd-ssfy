@@ -1,20 +1,29 @@
 "use client";
 
-import { OrderSearchFilter } from "./sales-order-search-filter";
 import { Button } from "@gnd/ui/button";
-import Link from "next/link";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import dayjs from "dayjs";
-import { utils, writeFile } from "xlsx";
-import { formatDate } from "@gnd/utils/dayjs";
-import { formatMoney } from "@gnd/utils";
 import { env } from "@/env.mjs";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useMemo } from "react";
+
+type ExportOrderRow = {
+    createdAt: string | Date;
+    orderId: string | number;
+    salesRep?: string | null;
+    poNo?: string | null;
+    invoice?: {
+        total?: number | null;
+        paid?: number | null;
+        pending?: number | null;
+    } | null;
+    displayName?: string | null;
+    customerPhone?: string | null;
+    address?: string | null;
+};
 
 export function SalesOrderExport() {
     const { hasFilters, filters } = useOrderFilterParams();
@@ -48,12 +57,24 @@ export function SalesOrderExport() {
             const {
                 data: { data },
             } = await refetch();
+            const [
+                { default: dayjs },
+                { utils, writeFile },
+                { formatDate },
+                { formatMoney },
+            ] = await Promise.all([
+                import("dayjs"),
+                import("xlsx"),
+                import("@gnd/utils/dayjs"),
+                import("@gnd/utils"),
+            ]);
             // console.log(result);
             let title = `sales-report-export-${dayjs().format("DD-MM-YYYY")}`;
             let worksheetname = "";
             const workbook = utils.book_new();
+            const rows = data as ExportOrderRow[];
             const worksheet = utils?.json_to_sheet(
-                data.map((d, di) => ({
+                rows.map((d, di) => ({
                     Sn: `${di + 1}.`,
                     Date: formatDate(d.createdAt),
                     "Order #": {

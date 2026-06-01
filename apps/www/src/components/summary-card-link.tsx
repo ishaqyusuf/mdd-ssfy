@@ -1,15 +1,16 @@
-import { useMemo } from "react";
-import { _path, _pathIs } from "./static-trpc";
 import { InventorySummary, SummaryProps } from "./inventory-summary";
 import Link from "next/link";
 import { cn } from "@gnd/ui/cn";
+import { usePathname } from "next/navigation";
 interface Props {
     path: string;
     summaryProps: SummaryProps;
 }
 
 export function SummaryCardLink(props: Props) {
-    const isSelected = useMemo(() => _pathIs(props.path), [_path]);
+    const pathname = usePathname();
+    const normalizedPath = `/${props.path.split("/").filter(Boolean).join("/")}`;
+    const isSelected = pathname === normalizedPath;
 
     return (
         <Link
@@ -29,4 +30,3 @@ export function SummaryCardLink(props: Props) {
         </Link>
     );
 }
-

@@ -15,40 +15,39 @@ import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props) {
-	return constructMetadata({
-		title: "Job | GND",
-	});
+    return constructMetadata({
+        title: "Job | GND",
+    });
 }
 type Props = {
-	searchParams: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 export default async function Page(props: Props) {
-	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
-	const filter = loadJobFilterParams(searchParams);
-	const [initialFilterList, _initialJobs, _initialKpis] = await Promise.all([
-		queryClient.fetchQuery(trpc.filters.job.queryOptions()),
-		queryClient.fetchInfiniteQuery(
-			trpc.jobs.getJobs.infiniteQueryOptions({
-				...filter,
-			}) as any,
-		),
-		queryClient.fetchQuery(trpc.jobs.getKpis.queryOptions({})),
-	]);
-	return (
-		<PageShell>
-			<HydrateClient>
-				<div className="flex flex-col gap-6 pt-6">
-					<PageTitle>Job</PageTitle>
-					<JobsKpiWidget />
-					<JobHeader initialFilterList={initialFilterList as any} />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<DataTable columnSet="admin" />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
-			</HydrateClient>
-		</PageShell>
-	);
+    const searchParams = await props.searchParams;
+    const queryClient = getQueryClient();
+    const filter = loadJobFilterParams(searchParams);
+    const [initialFilterList, _initialJobs] = await Promise.all([
+        queryClient.fetchQuery(trpc.filters.job.queryOptions()),
+        queryClient.fetchInfiniteQuery(
+            trpc.jobs.getJobs.infiniteQueryOptions({
+                ...filter,
+            }) as any,
+        ),
+    ]);
+    return (
+        <PageShell>
+            <HydrateClient>
+                <div className="flex flex-col gap-6 pt-6">
+                    <PageTitle>Job</PageTitle>
+                    <JobsKpiWidget />
+                    <JobHeader initialFilterList={initialFilterList as any} />
+                    <ErrorBoundary errorComponent={ErrorFallback}>
+                        <Suspense fallback={<TableSkeleton />}>
+                            <DataTable columnSet="admin" />
+                        </Suspense>
+                    </ErrorBoundary>
+                </div>
+            </HydrateClient>
+        </PageShell>
+    );
 }

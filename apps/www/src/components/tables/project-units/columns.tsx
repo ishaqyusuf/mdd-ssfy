@@ -3,10 +3,10 @@ import { useHomeModal } from "@/app-deps/(v1)/(loggedIn)/community/units/home-mo
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { AuthGuard } from "@/components/auth-guard";
 import { _perm } from "@/components/sidebar-links";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { useAuth } from "@/hooks/use-auth";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { openLink } from "@/lib/open-link";
+import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -19,7 +19,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { colorsObject } from "@gnd/utils/colors";
 import { isCommunityUnitRestrictedAccess } from "@gnd/utils/constants";
 import { formatDate } from "@gnd/utils/dayjs";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useProjectUnitsPrintFlow } from "./print-flow";
@@ -330,15 +330,17 @@ export const communityUnitColumns: Column[] = [
 ];
 
 function Actions({ item }: ItemProps) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const auth = useAuth();
 	const ctx = useHomeModal();
 	const isCommunityUnit = isCommunityUnitRestrictedAccess(auth.can);
 	const { startPrint } = useProjectUnitsPrintFlow();
 	const { mutateAsync } = useMutation(
-		_trpc.community.deleteUnits.mutationOptions({
+		trpc.community.deleteUnits.mutationOptions({
 			onSuccess(data, variables, onMutateResult, context) {
-				_qc.invalidateQueries({
-					queryKey: _trpc.community.getProjectUnits.infiniteQueryKey(),
+				queryClient.invalidateQueries({
+					queryKey: trpc.community.getProjectUnits.infiniteQueryKey(),
 				});
 			},
 		}),
@@ -361,8 +363,8 @@ function Actions({ item }: ItemProps) {
 			title: "Updated",
 			variant: "success",
 		});
-		_qc.invalidateQueries({
-			queryKey: _trpc.community.getProjectUnits.infiniteQueryKey(),
+		queryClient.invalidateQueries({
+			queryKey: trpc.community.getProjectUnits.infiniteQueryKey(),
 		});
 	};
 	return (

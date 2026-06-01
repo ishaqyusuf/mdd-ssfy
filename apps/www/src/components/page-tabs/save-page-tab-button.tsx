@@ -46,7 +46,10 @@ export function SavePageTabButton({
 		() => queryFromActiveFilters(searchParams, filters),
 		[searchParams, filters],
 	);
-	const { data: tabs } = useQuery(trpc.pageTabs.list.queryOptions({ page }));
+	const { data: tabs } = useQuery({
+		...trpc.pageTabs.list.queryOptions({ page }),
+		enabled: Boolean(query),
+	});
 	const isAlreadySaved = tabs?.some((tab) => tab.query === query);
 	const canSave = Boolean(query) && !isAlreadySaved;
 

@@ -1,4 +1,4 @@
-import { NewSalesForm } from "@/components/forms/new-sales-form/new-sales-form";
+import { LazyNewSalesForm } from "@/components/forms/new-sales-form/lazy-new-sales-form";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { unstable_noStore } from "next/cache";
@@ -10,35 +10,35 @@ import type { SearchParams } from "nuqs";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Create Quote - gndprodesk.com",
-	});
+    return constructMetadata({
+        title: "Create Quote - gndprodesk.com",
+    });
 }
 
 type Props = {
-	searchParams: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: Props) {
-	unstable_noStore();
-	const searchParams = await props.searchParams;
-	const customerId = normalizeSalesFormInitialCustomerId(
-		searchParams.selectedCustomerId,
-	);
-	const queryClient = getQueryClient();
-	await queryClient.fetchQuery(
-		trpc.newSalesForm.bootstrap.queryOptions({
-			type: "quote",
-			customerId,
-		}),
-	);
+    unstable_noStore();
+    const searchParams = await props.searchParams;
+    const customerId = normalizeSalesFormInitialCustomerId(
+        searchParams.selectedCustomerId,
+    );
+    const queryClient = getQueryClient();
+    await queryClient.fetchQuery(
+        trpc.newSalesForm.bootstrap.queryOptions({
+            type: "quote",
+            customerId,
+        }),
+    );
 
-	return (
-		<PageShell>
-			<HydrateClient>
-				<PageTitle>Create Quote</PageTitle>
-				<NewSalesForm mode="create" type="quote" />
-			</HydrateClient>
-		</PageShell>
-	);
+    return (
+        <PageShell>
+            <HydrateClient>
+                <PageTitle>Create Quote</PageTitle>
+                <LazyNewSalesForm mode="create" type="quote" />
+            </HydrateClient>
+        </PageShell>
+    );
 }

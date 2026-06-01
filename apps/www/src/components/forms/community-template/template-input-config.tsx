@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { SchemaBlockInputProps } from "./block-section";
 import { useMutation } from "@gnd/ui/tanstack";
-import { _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { Form } from "@gnd/ui/form";
 import { Label } from "@gnd/ui/label";
 import { Button } from "@gnd/ui/button";
@@ -13,6 +13,7 @@ import { labelIdOptions } from "@/lib/utils";
 import { FormInput } from "@gnd/ui/controls/form-input";
 
 export function TemplateInputConfig(props: SchemaBlockInputProps) {
+    const trpc = useTRPC();
     const { input } = props;
     const block = useTemplateSchemaBlock();
     const valueOptions = block.blockInput?.inputConfigs?.filter(
@@ -35,7 +36,7 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
         });
     };
     const { isPending, mutate } = useMutation(
-        _trpc.community.updateCommunityBlockInput.mutationOptions({
+        trpc.community.updateCommunityBlockInput.mutationOptions({
             onSuccess(data, variables, context) {
                 props.onInputUpdated(form.getValues());
             },
@@ -118,4 +119,3 @@ export function TemplateInputConfig(props: SchemaBlockInputProps) {
         </div>
     );
 }
-

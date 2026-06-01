@@ -2,46 +2,28 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
-import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
 import type { PageFilterData } from "@api/type";
-import { useQuery } from "@gnd/ui/tanstack";
-import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
+import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
 
 type Props = {
-	initialFilterList?: PageFilterData[];
+    initialFilterList?: PageFilterData[];
 };
 
 export function OrderSearchFilter({ initialFilterList }: Props) {
-	return (
-		<SearchFilterProvider
-			args={[
-				{
-					filterSchema: salesFilterParamsSchema,
-				},
-			]}
-		>
-			<Content initialFilterList={initialFilterList} />
-		</SearchFilterProvider>
-	);
-}
+    const auth = useAuth();
+    const trpc = useTRPC();
 
-function Content({ initialFilterList }: Props) {
-	const auth = useAuth();
-	const trpc = useTRPC();
-	const { data: trpcFilterData } = useQuery({
-		...trpc.filters.salesOrders.queryOptions({
-			salesManager: auth?.can?.viewSalesManager,
-		}),
-		initialData: initialFilterList as RouterOutputs["filters"]["salesOrders"],
-	});
-
-	return (
-		<SearchFilterTRPC
-			commitMode="submit"
-			placeholder="Search order information..."
-			filterList={trpcFilterData}
-		/>
-	);
+    return (
+        <SearchFilter
+            commitMode="submit"
+            filterSchema={salesFilterParamsSchema}
+            initialFilterList={initialFilterList}
+            placeholder="Search order information..."
+            trpcRoute={trpc.filters.salesOrders}
+            trpQueryOptions={{
+                salesManager: auth?.can?.viewSalesManager,
+            }}
+        />
+    );
 }

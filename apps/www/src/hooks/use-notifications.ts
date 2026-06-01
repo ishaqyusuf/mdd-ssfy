@@ -7,14 +7,19 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useUserNotificationAccount } from "./use-user-notification-account";
 
-function useNotificationFeed(status: Array<"unread" | "read" | "archived">) {
+type RawNotificationItems = Parameters<typeof transformNotifications>[0];
+
+function useNotificationFeed(
+	status: Array<"unread" | "read" | "archived">,
+	enabled = true,
+) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const {
 		data: notificationAccount,
 		isLoading: notificationAccountLoading,
 		error: notificationAccountError,
-	} = useUserNotificationAccount();
+	} = useUserNotificationAccount(enabled);
 	const contactIds = notificationAccount?.id ? [notificationAccount.id] : [];
 
 	const query = useInfiniteQuery(
@@ -26,7 +31,7 @@ function useNotificationFeed(status: Array<"unread" | "read" | "archived">) {
 				status,
 			},
 			{
-				enabled: auth.enabled && contactIds.length > 0,
+				enabled: enabled && auth.enabled && contactIds.length > 0,
 				getNextPageParam: (lastPage) => lastPage?.meta?.cursor,
 			},
 		),
@@ -34,7 +39,7 @@ function useNotificationFeed(status: Array<"unread" | "read" | "archived">) {
 
 	const notifications = useMemo(() => {
 		const items = query.data?.pages.flatMap((page) => page?.data ?? []) ?? [];
-		return transformNotifications(items);
+		return transformNotifications(items as RawNotificationItems);
 	}, [query.data]);
 
 	return {
@@ -45,10 +50,19 @@ function useNotificationFeed(status: Array<"unread" | "read" | "archived">) {
 	};
 }
 
-export function useNotifications() {
+export function useNotifications({
+	enabled = true,
+	includeArchive = true,
+}: {
+	enabled?: boolean;
+	includeArchive?: boolean;
+} = {}) {
 	const auth = useAuth();
-	const inboxQuery = useNotificationFeed(["unread", "read"]);
-	const archivedQuery = useNotificationFeed(["archived"]);
+	const inboxQuery = useNotificationFeed(["unread", "read"], enabled);
+	const archivedQuery = useNotificationFeed(
+		["archived"],
+		enabled && includeArchive,
+	);
 
 	const hasUnseenNotifications = useMemo(
 		() =>
@@ -60,16 +74,17 @@ export function useNotifications() {
 
 	return {
 		isLoading:
-			auth.isPending ||
-			inboxQuery.notificationAccountLoading ||
-			inboxQuery.isPending ||
-			archivedQuery.isPending,
+			enabled &&
+			(auth.isPending ||
+				inboxQuery.notificationAccountLoading ||
+				inboxQuery.isPending ||
+				(includeArchive && archivedQuery.isPending)),
 		error:
 			inboxQuery.notificationAccountError ??
 			inboxQuery.error ??
 			archivedQuery.error,
 		notifications: inboxQuery.notifications,
-		archived: archivedQuery.notifications,
+		archived: includeArchive ? archivedQuery.notifications : [],
 		hasUnseenNotifications,
 		markMessageAsRead: (_messageId: number) => {},
 		inbox: {

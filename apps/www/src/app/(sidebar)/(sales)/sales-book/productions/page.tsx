@@ -20,15 +20,19 @@ export default async function Page(props) {
 	const searchParams = await props.searchParams;
 	const queryClient = getQueryClient();
 	const filter = loadSalesProductionFilterParams(searchParams);
-	const [initialDashboardData, initialFilterList] = await Promise.all([
-		queryClient.fetchQuery(trpc.sales.productionDashboard.queryOptions()),
-		queryClient.fetchQuery(trpc.filters.salesProductions.queryOptions()),
-	]);
-
-	await queryClient.fetchInfiniteQuery(
-		// biome-ignore lint/suspicious/noExplicitAny: shared tRPC infinite query options are not fully typed in this repo yet.
-		trpc.sales.productions.infiniteQueryOptions(filter) as any,
-	);
+	const [initialDashboardData, initialFilterList, _initialProductionRows] =
+		await Promise.all([
+			queryClient.fetchQuery(
+				trpc.sales.productionDashboard.queryOptions(),
+			),
+			queryClient.fetchQuery(
+				trpc.filters.salesProductions.queryOptions(),
+			),
+			queryClient.fetchInfiniteQuery(
+				// biome-ignore lint/suspicious/noExplicitAny: shared tRPC infinite query options are not fully typed in this repo yet.
+				trpc.sales.productions.infiniteQueryOptions(filter) as any,
+			),
+		]);
 
 	return (
 		<PageShell className="">

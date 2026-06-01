@@ -12,9 +12,8 @@ import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { handleNumberInput } from "@gnd/utils";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller } from "react-hook-form";
-import { _qc, _trpc } from "../static-trpc";
 import { useState } from "react";
 
 export function InstallCostLine({
@@ -53,6 +52,9 @@ export function InstallCostLine({
 }
 
 function Form({ rate }) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
+    const ctx = useCommunityInstallCostRateContext();
     const form = useZodForm(communityInstallCostRateSchema, {
         defaultValues: {
             ...rate,
@@ -60,12 +62,11 @@ function Form({ rate }) {
         },
     });
     const { mutate: handleUpdate, isPending: isUpdating } = useMutation(
-        useTRPC().community.updateInstallCostRate.mutationOptions({
+        trpc.community.updateInstallCostRate.mutationOptions({
             onSuccess() {
                 ctx?.setEditIndex(null);
-                _qc.invalidateQueries({
-                    queryKey:
-                        _trpc.community.getCommunityInstallCostRates.queryKey(),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getCommunityInstallCostRates.queryKey(),
                 });
             },
             meta: {
@@ -79,10 +80,9 @@ function Form({ rate }) {
         }),
     );
     const { data: unitsList } = useQuery(
-        useTRPC().community.getInstallCostRateUnits.queryOptions(),
+        trpc.community.getInstallCostRateUnits.queryOptions(),
     );
     const [customUnit, setCustomUnit] = useState("");
-    const ctx = useCommunityInstallCostRateContext();
     return (
         <Table.Row className="bg-primary/5 hover:bg-primary/5 border-l-4 border-l-primary">
             <Table.Cell>
@@ -180,4 +180,3 @@ function Form({ rate }) {
         </Table.Row>
     );
 }
-

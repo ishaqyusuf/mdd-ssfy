@@ -6,8 +6,8 @@ import { useState } from "react";
 import { Tabs } from "@gnd/ui/custom/tabs";
 import { TemplateInputListings } from "./template-input-listings";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
-import { _qc, _trpc } from "@/components/static-trpc";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useTemplateSchemaBlock } from "./context";
 import { TemplateInputAnalytics } from "./template-input-analytics";
 
@@ -31,13 +31,15 @@ export function BlockInputConfig({ onInputUpdated, data }) {
     );
 }
 function Content({ onInputUpdated, data }) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const [tab, setTab] = useState("config");
     const ctx = useTemplateSchemaBlock();
     const { mutate, isPending } = useMutation(
-        _trpc.community.deleteInputSchema.mutationOptions({
+        trpc.community.deleteInputSchema.mutationOptions({
             onSuccess() {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getCommunityBlockSchema.queryKey({
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getCommunityBlockSchema.queryKey({
                         id: ctx.blockId,
                     }),
                 });
@@ -88,4 +90,3 @@ function Content({ onInputUpdated, data }) {
         </Tabs>
     );
 }
-

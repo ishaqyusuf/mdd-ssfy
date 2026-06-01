@@ -18,10 +18,10 @@ import { Input } from "@gnd/ui/input";
 import { Separator } from "@gnd/ui/separator";
 import { useMutation, useSuspenseQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import { useTRPC } from "@/trpc/client";
 import { resolveReminderPlanLabel } from "@sales/utils/reminder-pay-plan";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { _trpc } from "./static-trpc";
 
 interface Props {
 	token: string;
@@ -35,14 +35,16 @@ const currencyFormatter = new Intl.NumberFormat("en-US", {
 const maxVerificationAttempts = 2;
 
 export function SquareTokenCheckoutV2({ token }: Props) {
-	const { data } = useSuspenseQuery(
-		_trpc.checkout.initializeCheckout.queryOptions(
+	const trpc = useTRPC();
+	const { data: checkoutData } = useSuspenseQuery(
+		trpc.checkout.initializeCheckout.queryOptions(
 			{ token },
 			{
 				enabled: !!token,
 			},
-		),
+			),
 	);
+	const data = checkoutData as any;
 	const [verificationAttempt, setVerificationAttempt] = useState(0);
 	const [flexibleAmount, setFlexibleAmount] = useState("");
 	const payload = data?.payload;
@@ -54,8 +56,8 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		data: verificationData,
 		isPending: isVerifying,
 		mutate: verifyPayment,
-	} = useMutation(
-		_trpc.checkout.verifyPayment.mutationOptions({
+		} = useMutation(
+		trpc.checkout.verifyPayment.mutationOptions({
 			onError(_error) {
 				toast({
 					title: "Verification delayed",
@@ -65,9 +67,10 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 			},
 		}),
 	);
+	const verification = verificationData as any;
 
 	const { isPending: isCreatingCheckout, mutate: createCheckout } = useMutation(
-		_trpc.checkout.createSalesCheckoutLink.mutationOptions({
+		trpc.checkout.createSalesCheckoutLink.mutationOptions({
 			onSuccess(result) {
 				if (!result.paymentLink) {
 					toast({
@@ -103,7 +106,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 
 	useEffect(() => {
 		if (!paymentId || !walletId) return;
-		if (verificationData?.status !== "PENDING") return;
+		if (verification?.status !== "PENDING") return;
 		if (verificationAttempt >= maxVerificationAttempts) return;
 		if (isVerifying) return;
 
@@ -122,7 +125,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		isVerifying,
 		paymentId,
 		verificationAttempt,
-		verificationData?.status,
+		verification?.status,
 		verifyPayment,
 		walletId,
 	]);
@@ -154,7 +157,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		hasOrders,
 		hasPaymentId: !!paymentId,
 		isInvalidToken,
-		verifyStatus: verificationData?.status,
+		verifyStatus: verification?.status,
 	});
 	const flexibleAmountValue = Number(flexibleAmount);
 	const isFlexibleAmountValid =
@@ -415,13 +418,13 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<StatusPanel state={state.name} />
-						{state.name === "paid" && verificationData?.invoiceDownloadUrl ? (
+							{state.name === "paid" && verification?.invoiceDownloadUrl ? (
 							<Button
 								asChild
 								variant="outline"
 								className="w-full"
 							>
-								<a href={verificationData.invoiceDownloadUrl}>Download invoice</a>
+									<a href={verification.invoiceDownloadUrl}>Download invoice</a>
 							</Button>
 						) : null}
 						<Separator />

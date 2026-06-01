@@ -26,3 +26,11 @@ This directory is the durable project memory for the GND monorepo. It stores the
 ## Compatibility Notes
 - Legacy flat files such as `brain/tasks.md`, `brain/architecture.md`, `brain/vision.md`, and `brain/roadmap.md` now act as compatibility pointers into this structure.
 - Existing feature plans and runbooks remain valid at their current paths until explicitly reorganized.
+
+
+## Important Project References
+- `midday`: `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
+- `gnd`: `/Users/M1PRO/Documents/code/_turbo/gnd`
+- `school-clerk`: `/Users/M1PRO/Documents/code/school-clerk`
+- `halaal-coperative`: `/Users/M1PRO/Documents/code/halaal-coperative`
+- `plot-keys`: `/Users/M1PRO/Documents/code/plot-keys`

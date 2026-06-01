@@ -4,6 +4,7 @@ import { Icons } from "@gnd/ui/icons";
 
 import { ContractorPayoutsHeader } from "@/components/contractor-payouts-header";
 import { DataTable } from "@/components/tables/contractor-payouts/data-table";
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -16,9 +17,9 @@ import {
 } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
-import { format } from "date-fns";
 import Link from "next/link";
 import type { PageFilterData } from "@api/type";
+import type { ComponentType } from "react";
 
 function formatCurrency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
@@ -33,11 +34,16 @@ export function PaymentsHistoryView({
     initialFilterList?: PageFilterData[];
 }) {
     const trpc = useTRPC();
+    const dashboardQueryEnabled = useIdleQueryEnabled();
     const { data, isPending } = useQuery(
-        trpc.jobs.paymentDashboard.queryOptions({}),
+        trpc.jobs.paymentDashboard.queryOptions(
+            {},
+            {
+                enabled: dashboardQueryEnabled,
+                refetchOnWindowFocus: false,
+            },
+        ),
     );
-
-    const recentPayments = data?.recentPayments || [];
 
     return (
         <div className="flex flex-col gap-6">
@@ -168,7 +174,7 @@ function MetricCard({
 }: {
     label: string;
     value: string;
-    icon: typeof Wallet;
+    icon: ComponentType<{ className?: string }>;
     isPending?: boolean;
 }) {
     return (

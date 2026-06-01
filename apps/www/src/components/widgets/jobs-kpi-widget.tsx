@@ -2,15 +2,10 @@
 
 import { Icons } from "@gnd/ui/icons";
 import { useJobsKpi } from "@/hooks/use-jobs-kpi";
-import { useSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
-import { useTRPC } from "@/trpc/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
-import { useQuery } from "@gnd/ui/tanstack";
 
 export function JobsKpiWidget() {
-    const { params } = useSalesDashboardParams();
-
     const {
         totalCustomJobs,
         totalCustomJobsAmount,

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
 
-import { ProductionWorkerDashboardV2 } from "@/components/production-v2/shared";
+import { LazyProductionWorkerDashboardV2 } from "@/components/production-v2/lazy-boards";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 
 import PageShell from "@/components/page-shell";
@@ -17,31 +17,22 @@ export const metadata: Metadata = {
 export default async function Page() {
     unstable_noStore();
     const queryClient = getQueryClient();
-    await Promise.all([
-        queryClient.fetchQuery(
-            trpc.sales.productionDashboardV2.queryOptions({
-                scope: "worker",
-                production: "pending",
-                productionDueDate: null,
-                q: null,
-            }),
-        ),
-        queryClient.fetchInfiniteQuery(
-            trpc.sales.productionsV2.infiniteQueryOptions({
-                scope: "worker",
-                production: "pending",
-                show: null,
-                productionDueDate: null,
-                q: null,
-            }) as any,
-        ),
-    ]);
+    await queryClient.fetchInfiniteQuery(
+        trpc.sales.productionsV2.infiniteQueryOptions({
+            scope: "worker",
+            production: "pending",
+            show: null,
+            productionDueDate: null,
+            q: null,
+            size: 20,
+        }) as any,
+    );
 
     return (
         <PageShell>
             <HydrateClient>
                 <PageTitle>Production</PageTitle>
-                <ProductionWorkerDashboardV2 />
+                <LazyProductionWorkerDashboardV2 />
             </HydrateClient>
         </PageShell>
     );

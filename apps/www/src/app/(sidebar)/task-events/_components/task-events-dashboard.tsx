@@ -1,6 +1,6 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
@@ -9,7 +9,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 export function TaskEventsDashboard() {
-	const { data, isPending } = useQuery(_trpc.taskEvents.list.queryOptions());
+	const trpc = useTRPC();
+	const { data, isPending } = useQuery(trpc.taskEvents.list.queryOptions());
 	const [search, setSearch] = useState("");
 
 	if (isPending) {

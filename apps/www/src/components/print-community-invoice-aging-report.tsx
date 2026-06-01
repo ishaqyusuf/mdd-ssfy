@@ -1,19 +1,21 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { useCommunityInvoiceAgingPrintFilter } from "@/hooks/use-community-invoice-aging-print-filter";
+import { useTRPC } from "@/trpc/client";
 import { CommunityInvoiceAgingPdfDocument, PDFViewer } from "@gnd/pdf";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
 export function PrintCommunityInvoiceAgingReport() {
+	const trpc = useTRPC();
 	const { filters } = useCommunityInvoiceAgingPrintFilter();
 	const { data } = useSuspenseQuery(
-		_trpc.print.communityInvoiceAgingReport.queryOptions({
+		trpc.print.communityInvoiceAgingReport.queryOptions({
 			token: filters.token ?? "",
 			preview: filters.preview ?? false,
 		}),
 	);
+	const printData = data as any;
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
 
 	useEffect(() => {
@@ -24,11 +26,11 @@ export function PrintCommunityInvoiceAgingReport() {
 		return () => window.clearTimeout(timer);
 	}, [filters.preview]);
 
-	if (!data) return null;
+	if (!printData) return null;
 
 	return (
-		<PDFViewer ref={viewerRef} className="flex h-screen w-full flex-col">
-			<CommunityInvoiceAgingPdfDocument data={data} title={data.title} />
+		<PDFViewer ref={viewerRef as any} className="flex h-screen w-full flex-col">
+			<CommunityInvoiceAgingPdfDocument data={printData} title={printData.title} />
 		</PDFViewer>
 	);
 }

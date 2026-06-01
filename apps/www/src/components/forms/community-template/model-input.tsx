@@ -5,8 +5,8 @@ import {
     useTemplateSchemaContext,
     useTemplateSchemaBlock,
 } from "./context";
-import { useMutation, useQuery } from "@gnd/ui/tanstack";
-import { _qc, _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { useEffect, useMemo, useState } from "react";
 import { cn, labelIdOptions } from "@/lib/utils";
 import { QuantityInput } from "@gnd/ui/quantity-input";
@@ -16,6 +16,8 @@ import { Input } from "@gnd/ui/input";
 import { Button } from "@gnd/ui/button";
 
 export function ModelInput() {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const ctx = useTemplateSchemaContext();
     const { modelEditMode, printMode, templateEditMode } = ctx;
     const { _blockId } = useTemplateSchemaBlock();
@@ -25,7 +27,7 @@ export function ModelInput() {
     const store = useCommunityModelStore();
     const isNumber = input.inputType === "number";
     const { data: listings, isPending } = useQuery(
-        _trpc.community.getTemplateInputListings.queryOptions(
+        trpc.community.getTemplateInputListings.queryOptions(
             {
                 inputInventoryId: input.inv.id,
             },
@@ -35,17 +37,17 @@ export function ModelInput() {
         ),
     );
     const { mutate } = useMutation(
-        _trpc.community.saveTemplateInputListing.mutationOptions({
+        trpc.community.saveTemplateInputListing.mutationOptions({
             onSuccess(data, variables, context) {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getTemplateInputListings.queryKey(
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getTemplateInputListings.queryKey(
                         {
                             inputInventoryId: input.inv.id,
                         },
                     ),
                 });
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getBlockInputs.queryKey({}),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getBlockInputs.queryKey({}),
                 });
                 setSelection(data);
                 setValueId(+data.id);
@@ -138,4 +140,3 @@ export function ModelInput() {
         />
     );
 }
-

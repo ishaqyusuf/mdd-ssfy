@@ -1,10 +1,10 @@
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
-import { _trpc } from "@/components/static-trpc";
 import { Skeletons } from "@gnd/ui/custom/skeletons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { InputGroup } from "@gnd/ui/namespace";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useTRPC } from "@/trpc/client";
 import { Spinner } from "@gnd/ui/spinner";
 import { generateRandomString } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
@@ -42,6 +42,7 @@ type CustomerProfile = {
 
 export function SalesCustomerInput() {
     const zus = useFormDataStore();
+    const trpc = useTRPC();
     const md = zus.metaData;
 
     const {
@@ -49,7 +50,7 @@ export function SalesCustomerInput() {
         isPending,
         isEnabled,
     } = useQuery(
-        _trpc.customers.getSalesCustomer.queryOptions(
+        trpc.customers.getSalesCustomer.queryOptions(
             {
                 billingId: md.billing.id,
                 customerId: md.customer.id,
@@ -357,6 +358,7 @@ function ProfileSection({
 function SearchCustomer() {
     const [q, setSearch] = useState("");
     const zus = useFormDataStore();
+    const trpc = useTRPC();
     const md = zus.metaData;
 
     const { setParams } = useCreateCustomerParams();
@@ -367,7 +369,7 @@ function SearchCustomer() {
         isPending,
         isEnabled,
     } = useQuery(
-        _trpc.customers.customerInfoSearch.queryOptions(
+        trpc.customers.customerInfoSearch.queryOptions(
             {
                 type: "customer",
                 q: debouncedQuery,

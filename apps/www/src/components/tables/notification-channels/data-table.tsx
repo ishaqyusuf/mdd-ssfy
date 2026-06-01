@@ -1,8 +1,7 @@
 "use client";
 
-import { _trpc } from "@/components/static-trpc";
 import { createTableContext, Table, useTableData } from "@gnd/ui/data-table";
-import { columns, ListItem, mobileColumn } from "./columns";
+import { columns, ListItem, mobileColumn, type Item } from "./columns";
 
 import { NoResults } from "@gnd/ui/custom/no-results";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
@@ -13,11 +12,13 @@ import { Icons } from "@gnd/ui/icons";
 
 import { useNotificationChannelFilterParams } from "@/hooks/use-notification-channel-filter-params";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
+import { useTRPC } from "@/trpc/client";
 import { GetNotificationChannelsSchema } from "@notifications/schemas";
 interface Props {
     defaultFilters?: GetNotificationChannelsSchema;
 }
 export function DataTable(props: Props) {
+    const trpc = useTRPC();
     // const { rowSelection, setRowSelection } = useNotificationChannelStore();
     const { filters, hasFilters, setFilters } =
         useNotificationChannelFilterParams();
@@ -31,7 +32,7 @@ export function DataTable(props: Props) {
             ...filters,
             ...(props.defaultFilters || {}),
         },
-        route: _trpc.notes.getNotificationChannels,
+        route: trpc.notes.getNotificationChannels,
     });
     const tableScroll = useTableScroll({
         useColumnWidths: true,
@@ -93,7 +94,7 @@ export function DataTable(props: Props) {
                                 <Table.TableRow />
                             </Table.Body>
                         </Table> */}
-                        {data?.map((row) => (
+                        {(data as Item[] | undefined)?.map((row) => (
                             <ListItem key={row.id} item={row} />
                         ))}
                     </div>
@@ -104,4 +105,3 @@ export function DataTable(props: Props) {
         </Table.Provider>
     );
 }
-

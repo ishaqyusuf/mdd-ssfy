@@ -16,418 +16,453 @@ import { Button } from "@gnd/ui/button";
 import { useEmployeeParams } from "@/hooks/use-employee-params";
 import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery } from "@gnd/ui/tanstack";
+import { useMutation } from "@gnd/ui/tanstack";
 import { triggerTask } from "@/actions/trigger-task";
 import { Item } from "@gnd/ui/namespace";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import { useTable } from "@gnd/ui/data-table";
 import { useProfilesList, useRolesList } from "@/hooks/use-data-list";
 import { useState } from "react";
-import { invalidateInfiniteQueries } from "@/hooks/use-invalidate-query";
+import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { EditButton } from "@/components/edit-button";
 import { AlertDialog } from "@gnd/ui/namespace";
 import { useAuth } from "@/hooks/use-auth";
 
 export type Item = RouterOutputs["hrm"]["getEmployees"]["data"][number];
+type OrganizationProfile = RouterOutputs["orgs"]["getOrganizationProfile"];
 interface ItemProps {
-	item: Item;
+    item: Item;
+}
+interface TableExtra {
+    orgs?: OrganizationProfile["orgs"];
 }
 type Column = ColumnDef<Item>;
 export const columns: Column[] = [
-	{
-		header: "#",
-		accessorKey: "uid",
-		cell: ({ row: { original: item } }) => (
-			<div>
-				<Item.Description className="font-bold">{item.uid}</Item.Description>
-				<Item.Description className="font-mono$">{item.date}</Item.Description>
-			</div>
-		),
-	},
-	{
-		header: "Name",
-		accessorKey: "name",
+    {
+        header: "#",
+        accessorKey: "uid",
+        cell: ({ row: { original: item } }) => (
+            <div>
+                <Item.Description className="font-bold">
+                    {item.uid}
+                </Item.Description>
+                <Item.Description className="font-mono$">
+                    {item.date}
+                </Item.Description>
+            </div>
+        ),
+    },
+    {
+        header: "Name",
+        accessorKey: "name",
 
-		cell: ({ row: { original: item } }) => (
-			<div>
-				<Item.Title className="">{item.name}</Item.Title>
-				<Item.Description className="font-mono$">
-					{item.username}
-				</Item.Description>
-			</div>
-		),
-	},
-	{
-		header: "Role",
-		accessorKey: "role",
-		meta: {
-			preventDefault: true,
-		},
-		cell: ({ row: { original: item } }) => <Role item={item} />,
-	},
-	{
-		header: "Office",
-		accessorKey: "Office",
-		meta: {
-			// preventDefault: true,
-			className: "",
-		},
-		cell: ({ row: { original: item } }) => <Office item={item} />,
-	},
-	{
-		header: "Profile",
-		accessorKey: "profile",
-		meta: {
-			preventDefault: true,
-		} as ColumnMeta,
-		cell: ({ row: { original: item } }) => <Profile item={item} />,
-	},
-	{
-		header: "Specific Permissions",
-		accessorKey: "specificPermissionCount",
-		cell: ({ row: { original: item } }) => (
-			<Badge variant="outline">
-				{item.specificPermissionCount || 0} permissions
-			</Badge>
-		),
-	},
-	{
-		header: "",
-		accessorKey: "actions",
-		meta: {
-			className: "flex-1",
-		},
-		cell: ({ row: { original: item } }) => {
-			return <Action item={item} />;
-		},
-	},
+        cell: ({ row: { original: item } }) => (
+            <div>
+                <Item.Title className="">{item.name}</Item.Title>
+                <Item.Description className="font-mono$">
+                    {item.username}
+                </Item.Description>
+            </div>
+        ),
+    },
+    {
+        header: "Role",
+        accessorKey: "role",
+        meta: {
+            preventDefault: true,
+        },
+        cell: ({ row: { original: item } }) => <Role item={item} />,
+    },
+    {
+        header: "Office",
+        accessorKey: "Office",
+        meta: {
+            // preventDefault: true,
+            className: "",
+        },
+        cell: ({ row: { original: item } }) => <Office item={item} />,
+    },
+    {
+        header: "Profile",
+        accessorKey: "profile",
+        meta: {
+            preventDefault: true,
+        } as ColumnMeta,
+        cell: ({ row: { original: item } }) => <Profile item={item} />,
+    },
+    {
+        header: "Specific Permissions",
+        accessorKey: "specificPermissionCount",
+        cell: ({ row: { original: item } }) => (
+            <Badge variant="outline">
+                {item.specificPermissionCount || 0} permissions
+            </Badge>
+        ),
+    },
+    {
+        header: "",
+        accessorKey: "actions",
+        meta: {
+            className: "flex-1",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <Action item={item} />;
+        },
+    },
 ];
 function Office({ item }: { item: Item }) {
-	const { data } = useQuery(_trpc.orgs.getOrganizationProfile.queryOptions());
-	return (
-		<Menu Icon={null} variant="secondary" label={item?.org?.name || "Not Set"}>
-			{data?.orgs?.map((org) => (
-				<Menu.Item key={org.id}>{org.name}</Menu.Item>
-			))}
-		</Menu>
-	);
+    const ctx = useTable();
+    const extras = ctx.tableMeta?.extras as TableExtra | undefined;
+    const orgs = extras?.orgs;
+
+    return (
+        <Menu
+            Icon={null}
+            variant="secondary"
+            label={item?.org?.name || "Not Set"}
+        >
+            {orgs?.map((org) => (
+                <Menu.Item key={org.id}>{org.name}</Menu.Item>
+            ))}
+        </Menu>
+    );
 }
 function Action({ item, mobile = false }: { item: Item; mobile?: boolean }) {
-	const { setParams } = useEmployeeParams();
-	const trpc = useTRPC();
-	const toast = useLoadingToast();
-	const auth = useAuth();
-	const canRevokeEmployee = auth.roleTitle?.toLowerCase() === "super admin";
-	const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
-	const isRevoked = item.accessStatus === "revoked";
-	const submitAction = useMutation(
-		trpc.hrm.resetEmployeePassword.mutationOptions({
-			async onSuccess(data, variables, context) {
-				// if(isDev)
-				// await triggerTask({
-				//     taskName: "send-password-reset-to-default-email",
-				//     payload: {},
-				// });
-				toast.success("Password Reset Successfully");
-			},
-			onError(error, variables, context) {
-				toast.error("Unable to complete");
-			},
-		}),
-	);
-	const revokeAction = useMutation(
-		trpc.hrm.revokeEmployee.mutationOptions({
-			onSuccess() {
-				invalidateInfiniteQueries("hrm.getEmployees");
-				setConfirmRevokeOpen(false);
-				toast.success("Employee access revoked");
-			},
-			onError(error) {
-				toast.error(error.message || "Unable to revoke employee access");
-			},
-		}),
-	);
-	const restoreAction = useMutation(
-		trpc.hrm.restoreEmployeeAccess.mutationOptions({
-			onSuccess() {
-				invalidateInfiniteQueries("hrm.getEmployees");
-				toast.success("Employee access restored");
-			},
-			onError(error) {
-				toast.error(error.message || "Unable to restore employee access");
-			},
-		}),
-	);
-	function onSubmit() {
-		submitAction.mutate({
-			userId: item.id,
-		});
-		toast.loading("Resetting password");
-	}
-	return (
-		<>
-			<div
-				className="relative z-10 flex items-center gap-2"
-				onClick={(event) => event.stopPropagation()}
-			>
-				{!isRevoked && !mobile ? (
-					<EditButton
-						onClick={(e) => {
-							setParams({
-								editEmployeeId: item.id,
-							});
-						}}
-					/>
-				) : null}
-				<div>
-					<Menu noSize Icon={Icons.MoreHorizontal}>
-						{isRevoked ? (
-							canRevokeEmployee ? (
-								<Menu.Item
-									Icon={Icons.RotateCcw}
-									onClick={() => {
-										restoreAction.mutate({
-											userId: item.id,
-										});
-									}}
-								>
-									Restore Access
-								</Menu.Item>
-							) : null
-						) : (
-							<>
-								{mobile ? (
-									<Menu.Item
-										Icon={Icons.Edit}
-										onClick={() => {
-											setParams({
-												editEmployeeId: item.id,
-											});
-										}}
-									>
-										Edit Employee
-									</Menu.Item>
-								) : null}
-								<Menu.Item
-									onClick={(e) => {
-										onSubmit();
-									}}
-									icon="packingList"
-								>
-									Reset Password
-								</Menu.Item>
-								{canRevokeEmployee ? (
-									<Menu.Item
-										Icon={Icons.LockKeyhole}
-										className="text-destructive focus:text-destructive"
-										onClick={() => {
-											setConfirmRevokeOpen(true);
-										}}
-									>
-										Revoke Access
-									</Menu.Item>
-								) : null}
-							</>
-						)}
-						{isRevoked && !canRevokeEmployee ? (
-							<Menu.Item disabled>No actions available</Menu.Item>
-						) : null}
-					</Menu>
-				</div>
-			</div>
-			<AlertDialog open={confirmRevokeOpen} onOpenChange={setConfirmRevokeOpen}>
-				<AlertDialog.Content>
-					<AlertDialog.Header>
-						<AlertDialog.Title>Revoke Employee Access</AlertDialog.Title>
-						<AlertDialog.Description>
-							Revoke access for {item.name}? They will be signed out and removed
-							from active employee lists. Historical records will remain.
-						</AlertDialog.Description>
-					</AlertDialog.Header>
-					<AlertDialog.Footer>
-						<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-						<AlertDialog.Action
-							onClick={() => {
-								revokeAction.mutate({
-									userId: item.id,
-								});
-							}}
-						>
-							Revoke Access
-						</AlertDialog.Action>
-					</AlertDialog.Footer>
-				</AlertDialog.Content>
-			</AlertDialog>
-		</>
-	);
+    const { setParams } = useEmployeeParams();
+    const trpc = useTRPC();
+    const { invalidateInfiniteQueries } = useInvalidateQuery();
+    const toast = useLoadingToast();
+    const auth = useAuth();
+    const canRevokeEmployee = auth.roleTitle?.toLowerCase() === "super admin";
+    const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
+    const isRevoked = item.accessStatus === "revoked";
+    const submitAction = useMutation(
+        trpc.hrm.resetEmployeePassword.mutationOptions({
+            async onSuccess(data, variables, context) {
+                // if(isDev)
+                // await triggerTask({
+                //     taskName: "send-password-reset-to-default-email",
+                //     payload: {},
+                // });
+                toast.success("Password Reset Successfully");
+            },
+            onError(error, variables, context) {
+                toast.error("Unable to complete");
+            },
+        }),
+    );
+    const revokeAction = useMutation(
+        trpc.hrm.revokeEmployee.mutationOptions({
+            onSuccess() {
+                invalidateInfiniteQueries("hrm.getEmployees");
+                setConfirmRevokeOpen(false);
+                toast.success("Employee access revoked");
+            },
+            onError(error) {
+                toast.error(
+                    error.message || "Unable to revoke employee access",
+                );
+            },
+        }),
+    );
+    const restoreAction = useMutation(
+        trpc.hrm.restoreEmployeeAccess.mutationOptions({
+            onSuccess() {
+                invalidateInfiniteQueries("hrm.getEmployees");
+                toast.success("Employee access restored");
+            },
+            onError(error) {
+                toast.error(
+                    error.message || "Unable to restore employee access",
+                );
+            },
+        }),
+    );
+    function onSubmit() {
+        submitAction.mutate({
+            userId: item.id,
+        });
+        toast.loading("Resetting password");
+    }
+    return (
+        <>
+            <div
+                className="relative z-10 flex items-center gap-2"
+                onClick={(event) => event.stopPropagation()}
+            >
+                {!isRevoked && !mobile ? (
+                    <EditButton
+                        onClick={(e) => {
+                            setParams({
+                                editEmployeeId: item.id,
+                            });
+                        }}
+                    />
+                ) : null}
+                <div>
+                    <Menu noSize Icon={Icons.MoreHorizontal}>
+                        {isRevoked ? (
+                            canRevokeEmployee ? (
+                                <Menu.Item
+                                    Icon={Icons.RotateCcw}
+                                    onClick={() => {
+                                        restoreAction.mutate({
+                                            userId: item.id,
+                                        });
+                                    }}
+                                >
+                                    Restore Access
+                                </Menu.Item>
+                            ) : null
+                        ) : (
+                            <>
+                                {mobile ? (
+                                    <Menu.Item
+                                        Icon={Icons.Edit}
+                                        onClick={() => {
+                                            setParams({
+                                                editEmployeeId: item.id,
+                                            });
+                                        }}
+                                    >
+                                        Edit Employee
+                                    </Menu.Item>
+                                ) : null}
+                                <Menu.Item
+                                    onClick={(e) => {
+                                        onSubmit();
+                                    }}
+                                    icon="packingList"
+                                >
+                                    Reset Password
+                                </Menu.Item>
+                                {canRevokeEmployee ? (
+                                    <Menu.Item
+                                        Icon={Icons.LockKeyhole}
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => {
+                                            setConfirmRevokeOpen(true);
+                                        }}
+                                    >
+                                        Revoke Access
+                                    </Menu.Item>
+                                ) : null}
+                            </>
+                        )}
+                        {isRevoked && !canRevokeEmployee ? (
+                            <Menu.Item disabled>No actions available</Menu.Item>
+                        ) : null}
+                    </Menu>
+                </div>
+            </div>
+            <AlertDialog
+                open={confirmRevokeOpen}
+                onOpenChange={setConfirmRevokeOpen}
+            >
+                <AlertDialog.Content>
+                    <AlertDialog.Header>
+                        <AlertDialog.Title>
+                            Revoke Employee Access
+                        </AlertDialog.Title>
+                        <AlertDialog.Description>
+                            Revoke access for {item.name}? They will be signed
+                            out and removed from active employee lists.
+                            Historical records will remain.
+                        </AlertDialog.Description>
+                    </AlertDialog.Header>
+                    <AlertDialog.Footer>
+                        <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+                        <AlertDialog.Action
+                            onClick={() => {
+                                revokeAction.mutate({
+                                    userId: item.id,
+                                });
+                            }}
+                        >
+                            Revoke Access
+                        </AlertDialog.Action>
+                    </AlertDialog.Footer>
+                </AlertDialog.Content>
+            </AlertDialog>
+        </>
+    );
 }
 function Profile({ item }: { item: Item }) {
-	const ctx = useTable();
-	// const roles = ctx.tableMeta?.filterData?.find(
-	//     (a) => a.value == "employeeProfileId",
-	// )?.options;
-	const [open, setOpen] = useState(false);
-	const profiles = useProfilesList(open);
-	const { mutate: updateProfile, isPending } = useMutation(
-		useTRPC().hrm.updateEmployeeProfile.mutationOptions({
-			onSuccess(data, variables, context) {
-				invalidateInfiniteQueries("hrm.getEmployees");
-			},
-			meta: {
-				toastTitle: {
-					error: "Unable to complete",
-					loading: "Processing...",
-					success: "Done!.",
-				},
-			},
-		}),
-	);
-	// const loader = useLoadingToast();
-	// async function updateProfile(profileId) {
-	//     loader.loading("Updating...");
-	//     await updateEmployeeProfile(item.id, profileId);
-	//     // ctx?.table?.reset();
-	//     loader.success("Updated.");
-	// }
-	return (
-		<AuthGuard
-			rules={[_perm.is("editRole")]}
-			Fallback={
-				<Badge variant="secondary">{item.profile?.name || "not set"}</Badge>
-			}
-		>
-			<Menu
-				label={item.profile?.name || "Select Profile"}
-				Icon={null}
-				variant={item?.profile?.id ? "secondary" : "destructive"}
-				hoverVariant="default"
-				triggerSize="xs"
-			>
-				<Menu.Item
-					onClick={(e) =>
-						updateProfile({
-							userId: item.id,
-						})
-					}
-				>
-					Non
-				</Menu.Item>
-				{profiles?.map((profile) => (
-					<Menu.Item
-						onClick={(e) =>
-							updateProfile({
-								userId: item.id,
-								profileId: profile.id,
-							})
-						}
-						key={profile.id}
-					>
-						{profile?.name}
-					</Menu.Item>
-				))}
-			</Menu>
-		</AuthGuard>
-	);
+    const ctx = useTable();
+    // const roles = ctx.tableMeta?.filterData?.find(
+    //     (a) => a.value == "employeeProfileId",
+    // )?.options;
+    const [open, setOpen] = useState(false);
+    const profiles = useProfilesList(open);
+    const { invalidateInfiniteQueries } = useInvalidateQuery();
+    const { mutate: updateProfile, isPending } = useMutation(
+        useTRPC().hrm.updateEmployeeProfile.mutationOptions({
+            onSuccess(data, variables, context) {
+                invalidateInfiniteQueries("hrm.getEmployees");
+            },
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        }),
+    );
+    // const loader = useLoadingToast();
+    // async function updateProfile(profileId) {
+    //     loader.loading("Updating...");
+    //     await updateEmployeeProfile(item.id, profileId);
+    //     // ctx?.table?.reset();
+    //     loader.success("Updated.");
+    // }
+    return (
+        <AuthGuard
+            rules={[_perm.is("editRole")]}
+            Fallback={
+                <Badge variant="secondary">
+                    {item.profile?.name || "not set"}
+                </Badge>
+            }
+        >
+            <Menu
+                label={item.profile?.name || "Select Profile"}
+                Icon={null}
+                variant={item?.profile?.id ? "secondary" : "destructive"}
+                hoverVariant="default"
+                triggerSize="xs"
+            >
+                <Menu.Item
+                    onClick={(e) =>
+                        updateProfile({
+                            userId: item.id,
+                        })
+                    }
+                >
+                    Non
+                </Menu.Item>
+                {profiles?.map((profile) => (
+                    <Menu.Item
+                        onClick={(e) =>
+                            updateProfile({
+                                userId: item.id,
+                                profileId: profile.id,
+                            })
+                        }
+                        key={profile.id}
+                    >
+                        {profile?.name}
+                    </Menu.Item>
+                ))}
+            </Menu>
+        </AuthGuard>
+    );
 }
 function Role({ item }: { item: Item }) {
-	const ctx = useTable();
-	// const roles = ctx.tableMeta?.filterData?.find(
-	//     (a) => a.value == "roleId",
-	// )?.options;
-	const [opened, setOpened] = useState(false);
-	const roles = useRolesList(opened);
-	const { mutate: updateRole, isPending } = useMutation(
-		useTRPC().hrm.updateEmployeeRole.mutationOptions({
-			onSuccess(data, variables, context) {
-				invalidateInfiniteQueries("hrm.getEmployees");
-			},
-			meta: {
-				toastTitle: {
-					error: "Unable to complete",
-					loading: "Processing...",
-					success: "Done!.",
-				},
-			},
-		}),
-	);
-	return (
-		<AuthGuard
-			rules={[_perm.is("editRole")]}
-			Fallback={<Badge variant="secondary">{item.role}</Badge>}
-		>
-			<Menu
-				open={opened}
-				onOpenChanged={setOpened}
-				label={item.role || "Role not set"}
-				Icon={null}
-				variant={item?.role ? "secondary" : "destructive"}
-				hoverVariant="default"
-				triggerSize="xs"
-				className="h-[40vh] overflow-auto"
-			>
-				{roles?.map((role) => (
-					<Menu.Item
-						onClick={(e) =>
-							updateRole({
-								userId: item.id,
-								roleId: role.id,
-							})
-						}
-						key={role.id}
-					>
-						{role?.name}
-					</Menu.Item>
-				))}
-			</Menu>
-		</AuthGuard>
-	);
+    const ctx = useTable();
+    // const roles = ctx.tableMeta?.filterData?.find(
+    //     (a) => a.value == "roleId",
+    // )?.options;
+    const [opened, setOpened] = useState(false);
+    const roles = useRolesList(opened);
+    const { invalidateInfiniteQueries } = useInvalidateQuery();
+    const { mutate: updateRole, isPending } = useMutation(
+        useTRPC().hrm.updateEmployeeRole.mutationOptions({
+            onSuccess(data, variables, context) {
+                invalidateInfiniteQueries("hrm.getEmployees");
+            },
+            meta: {
+                toastTitle: {
+                    error: "Unable to complete",
+                    loading: "Processing...",
+                    success: "Done!.",
+                },
+            },
+        }),
+    );
+    return (
+        <AuthGuard
+            rules={[_perm.is("editRole")]}
+            Fallback={<Badge variant="secondary">{item.role}</Badge>}
+        >
+            <Menu
+                open={opened}
+                onOpenChanged={setOpened}
+                label={item.role || "Role not set"}
+                Icon={null}
+                variant={item?.role ? "secondary" : "destructive"}
+                hoverVariant="default"
+                triggerSize="xs"
+                className="h-[40vh] overflow-auto"
+            >
+                {roles?.map((role) => (
+                    <Menu.Item
+                        onClick={(e) =>
+                            updateRole({
+                                userId: item.id,
+                                roleId: role.id,
+                            })
+                        }
+                        key={role.id}
+                    >
+                        {role?.name}
+                    </Menu.Item>
+                ))}
+            </Menu>
+        </AuthGuard>
+    );
 }
 export const mobileColumn: ColumnDef<Item>[] = [
-	{
-		header: "",
-		accessorKey: "row",
-		meta: {
-			className: "flex-1 p-0",
-		},
-		cell: ({ row: { original: item } }) => {
-			return <ItemCard item={item} />;
-		},
-	},
+    {
+        header: "",
+        accessorKey: "row",
+        meta: {
+            className: "flex-1 p-0",
+        },
+        cell: ({ row: { original: item } }) => {
+            return <ItemCard item={item} />;
+        },
+    },
 ];
 function ItemCard({ item }: ItemProps) {
-	return (
-		<div className="flex flex-col gap-3 border-b bg-background p-4">
-			<div className="flex items-start justify-between gap-3">
-				<div className="min-w-0">
-					<TCell.Primary>{item.name}</TCell.Primary>
-					<TCell.Secondary>{item.username || item.email}</TCell.Secondary>
-				</div>
-				<Action item={item} mobile />
-			</div>
-			<div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-				<div className="min-w-0">
-					<div className="font-medium text-foreground">{item.uid}</div>
-					<div>{item.date}</div>
-				</div>
-				<div className="min-w-0 text-right">
-					<div className="font-medium text-foreground">
-						{item.accessStatus === "revoked" ? "Revoked" : "Active"}
-					</div>
-					<div>
-						{item.revokedDate ? `Since ${item.revokedDate}` : item.email}
-					</div>
-				</div>
-			</div>
-			<div className="flex flex-wrap items-center gap-2">
-				{item.role && <Badge variant="secondary">{item.role}</Badge>}
-				{item.profile?.name && (
-					<Badge variant="outline">{item.profile.name}</Badge>
-				)}
-				<Badge variant="outline">
-					{item.specificPermissionCount || 0} permissions
-				</Badge>
-			</div>
-		</div>
-	);
+    return (
+        <div className="flex flex-col gap-3 border-b bg-background p-4">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <TCell.Primary>{item.name}</TCell.Primary>
+                    <TCell.Secondary>
+                        {item.username || item.email}
+                    </TCell.Secondary>
+                </div>
+                <Action item={item} mobile />
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                <div className="min-w-0">
+                    <div className="font-medium text-foreground">
+                        {item.uid}
+                    </div>
+                    <div>{item.date}</div>
+                </div>
+                <div className="min-w-0 text-right">
+                    <div className="font-medium text-foreground">
+                        {item.accessStatus === "revoked" ? "Revoked" : "Active"}
+                    </div>
+                    <div>
+                        {item.revokedDate
+                            ? `Since ${item.revokedDate}`
+                            : item.email}
+                    </div>
+                </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+                {item.role && <Badge variant="secondary">{item.role}</Badge>}
+                {item.profile?.name && (
+                    <Badge variant="outline">{item.profile.name}</Badge>
+                )}
+                <Badge variant="outline">
+                    {item.specificPermissionCount || 0} permissions
+                </Badge>
+            </div>
+        </div>
+    );
 }

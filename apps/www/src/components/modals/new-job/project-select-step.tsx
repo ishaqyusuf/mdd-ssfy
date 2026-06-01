@@ -1,8 +1,8 @@
 import { Icons } from "@gnd/ui/icons";
-import { _trpc } from "@/components/static-trpc";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobStepInfo } from "@/hooks/use-job-step-info";
+import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { SearchInput } from "@/components/search-input";
@@ -10,12 +10,13 @@ import { Skeleton } from "@gnd/ui/skeleton";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
 export function ProjectSelectStep({}) {
+	const trpc = useTRPC();
 	const { setParams, ...params } = useJobFormParams();
 	const { state } = useJobFormContext();
 	const { stepCount } = useJobStepInfo();
 	const [query, setQuery] = useState("");
 	const { data, isPending } = useQuery(
-		_trpc.community.projectsList.queryOptions(null, {
+		trpc.community.projectsList.queryOptions(null, {
 			staleTime: 1000 * 60 * 5,
 		}),
 	);

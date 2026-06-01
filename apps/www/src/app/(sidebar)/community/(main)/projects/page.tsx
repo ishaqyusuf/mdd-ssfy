@@ -15,51 +15,44 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Community Projects | GND",
-	});
+    return constructMetadata({
+        title: "Community Projects | GND",
+    });
 }
 
 type Props = {
-	searchParams: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: Props) {
-	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
-	const filter = loadCommunityProjectFilterParams(searchParams);
+    const searchParams = await props.searchParams;
+    const queryClient = getQueryClient();
+    const filter = loadCommunityProjectFilterParams(searchParams);
 
-	await queryClient.fetchInfiniteQuery(
-		trpc.community.getCommunityProjects.infiniteQueryOptions({
-			...filter,
-		}) as any,
-	);
-	await queryClient.fetchQuery(
-		trpc.community.communityProjectsOverview.queryOptions({
-			builderId: filter.builderId ?? undefined,
-			refNo: (filter as any).refNo ?? undefined,
-			status: (filter as any).status ?? undefined,
-		}),
-	);
+    await queryClient.fetchInfiniteQuery(
+        trpc.community.getCommunityProjects.infiniteQueryOptions({
+            ...filter,
+        }),
+    );
 
-	return (
-		<PageShell>
-			<PageTitle>Projects</PageTitle>
-			<HydrateClient>
-				<div className="flex flex-col gap-6">
-					<CommunityProjectHeader />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<CommunityProjectsAnalyticsCards />
-						</Suspense>
-					</ErrorBoundary>
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<DataTable />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
-			</HydrateClient>
-		</PageShell>
-	);
+    return (
+        <PageShell>
+            <PageTitle>Projects</PageTitle>
+            <HydrateClient>
+                <div className="flex flex-col gap-6">
+                    <CommunityProjectHeader />
+                    <ErrorBoundary errorComponent={ErrorFallback}>
+                        <Suspense fallback={<TableSkeleton />}>
+                            <CommunityProjectsAnalyticsCards />
+                        </Suspense>
+                    </ErrorBoundary>
+                    <ErrorBoundary errorComponent={ErrorFallback}>
+                        <Suspense fallback={<TableSkeleton />}>
+                            <DataTable />
+                        </Suspense>
+                    </ErrorBoundary>
+                </div>
+            </HydrateClient>
+        </PageShell>
+    );
 }

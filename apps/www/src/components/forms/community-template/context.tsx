@@ -1,4 +1,3 @@
-import { _trpc } from "@/components/static-trpc";
 import { useTRPC } from "@/trpc/client";
 import { RouterOutputs } from "@api/trpc/routers/_app";
 import {
@@ -87,9 +86,10 @@ interface SchemaBlockProps {
 }
 export const createTemplateSchemaBlock = (props: SchemaBlockProps) => {
     const schm = useTemplateSchemaContext();
+    const trpc = useTRPC();
     const { communityTemplate } = schm;
     const { data: blockInput } = useSuspenseQuery(
-        _trpc.community.getCommunityBlockSchema.queryOptions(
+        trpc.community.getCommunityBlockSchema.queryOptions(
             {
                 id: props.blockId,
             },
@@ -203,4 +203,3 @@ export const useTemplateSchemaInputContext = () => {
     }
     return context;
 };
-

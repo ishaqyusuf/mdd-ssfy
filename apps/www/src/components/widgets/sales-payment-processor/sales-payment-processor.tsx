@@ -1,5 +1,4 @@
 import { Env } from "@/components/env";
-import { _qc, _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
@@ -302,8 +301,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			case "completed": {
 				const isTerminalPayment =
 					pm === "terminal" || terminalState === "success";
-				_qc.invalidateQueries({
-					queryKey: _trpc.sales.getOrders.infiniteQueryKey({}),
+				queryClient.invalidateQueries({
+					queryKey: trpc.sales.getOrders.infiniteQueryKey({}),
 				});
 				const formData = form.getValues();
 				void resolvePendingPrintRequests(
@@ -348,10 +347,12 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		getPrintableRequests,
 		paymentStatus,
 		pm,
+		queryClient,
 		resetTerminalFlow,
 		salesPrint.print,
 		setOpened,
 		terminalState,
+		trpc,
 	]);
 	useEffect(() => {
 		if (!salesFields?.length) return;

@@ -48,7 +48,7 @@ export function TRPCReactProvider(
                     //     process.env.NODE_ENV === "production"
                     //         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
                     //         : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
-                    transformer: superjson,
+                    transformer: superjson as any,
                     headers() {
                         const id = authUserIdRef.current;
                         if (!id) {

@@ -17,11 +17,14 @@ export async function generateMetadata() {
 export default async function SalesDealersPage() {
 	const queryClient = getQueryClient();
 
-	await queryClient.prefetchQuery(
-		trpc.dealer.list.queryOptions({
-			size: 50,
-		}),
-	);
+	await Promise.all([
+		queryClient.fetchQuery(
+			trpc.dealer.list.queryOptions({
+				size: 50,
+			}),
+		),
+		queryClient.fetchQuery(trpc.dealer.salesProfiles.queryOptions()),
+	]);
 
 	return (
 		<PageShell>

@@ -7,6 +7,7 @@ import {
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
 
@@ -28,6 +29,7 @@ type SignInResult = {
 type AuthContextValue = {
     data: AppSession | null;
     status: SessionStatus;
+    hydrate: (session: AppSession | null) => void;
     update: () => Promise<AppSession | null>;
 };
 
@@ -42,10 +44,18 @@ type SessionProviderProps = {
 export function SessionProvider({ children }: SessionProviderProps) {
     const [data, setData] = useState<AppSession | null>(null);
     const [status, setStatus] = useState<SessionStatus>("loading");
+    const hydratedRef = useRef(false);
+
+    const hydrate = useCallback((nextSession: AppSession | null) => {
+        hydratedRef.current = true;
+        setData(nextSession);
+        setStatus(nextSession ? "authenticated" : "unauthenticated");
+    }, []);
 
     const update = useCallback(async () => {
         setStatus((current) => (current === "loading" ? current : "loading"));
         const nextSession = await fetchSession();
+        hydratedRef.current = true;
         setData(nextSession);
         setStatus(nextSession ? "authenticated" : "unauthenticated");
         return nextSession;
@@ -53,25 +63,31 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
     useEffect(() => {
         let active = true;
+        const timer = window.setTimeout(() => {
+            if (hydratedRef.current) return;
 
-        fetchSession().then((nextSession) => {
-            if (!active) return;
-            setData(nextSession);
-            setStatus(nextSession ? "authenticated" : "unauthenticated");
-        });
+            fetchSession().then((nextSession) => {
+                if (!active) return;
+                hydratedRef.current = true;
+                setData(nextSession);
+                setStatus(nextSession ? "authenticated" : "unauthenticated");
+            });
+        }, 100);
 
         return () => {
             active = false;
+            window.clearTimeout(timer);
         };
     }, []);
 
     const value = useMemo(
         () => ({
             data,
+            hydrate,
             status,
             update,
         }),
-        [data, status, update],
+        [data, hydrate, status, update],
     );
 
     return (
@@ -85,9 +101,21 @@ export function useSession(_options?: unknown) {
 
     return {
         data: null,
+        hydrate: () => {},
         status: "unauthenticated" as SessionStatus,
         update: async () => null,
     };
+}
+
+export function SessionHydrator({ session }: { session: AppSession | null }) {
+    const context = useContext(AuthContext);
+    const hydrate = context?.hydrate;
+
+    useEffect(() => {
+        hydrate?.(session);
+    }, [hydrate, session]);
+
+    return null;
 }
 
 export async function signIn(provider: string, options: SignInOptions = {}) {

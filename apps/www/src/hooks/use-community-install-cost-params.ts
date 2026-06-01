@@ -6,9 +6,10 @@ import {
     useQueryStates,
 } from "nuqs";
 import { useJobFormParams } from "./use-job-form-params";
-import { invalidateInfiniteQueries } from "./use-invalidate-query";
+import { useInvalidateQuery } from "./use-invalidate-query";
 
 export function useCommunityInstallCostParams() {
+    const { invalidateInfiniteQueries } = useInvalidateQuery();
     const { setParams: setJobFormParams } = useJobFormParams();
     const [params, setParams] = useQueryStates({
         // createModelCost: parseAsBoolean,

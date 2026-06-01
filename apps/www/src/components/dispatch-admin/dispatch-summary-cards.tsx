@@ -71,7 +71,10 @@ export function DispatchSummaryCardsSkeleton() {
 export function DispatchSummaryCards() {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(
-        trpc.dispatch.dispatchSummary.queryOptions(),
+        trpc.dispatch.dispatchSummary.queryOptions(undefined, {
+            refetchOnWindowFocus: false,
+            staleTime: 60 * 1000,
+        }),
     );
     const { setFilters } = useDispatchFilterParams();
 
@@ -96,9 +99,7 @@ export function DispatchSummaryCards() {
                 label="In Progress"
                 icon={<Icons.Truck size={18} />}
                 color="#60a5fad9"
-                onClick={() =>
-                    setFilters({ tab: null, status: "in progress" })
-                }
+                onClick={() => setFilters({ tab: null, status: "in progress" })}
             />
             <SummaryCard
                 count={data.byStatus.packed}
@@ -119,9 +120,7 @@ export function DispatchSummaryCards() {
                 label="Cancelled"
                 icon={<Icons.XCircle size={18} />}
                 color="#f87171d9"
-                onClick={() =>
-                    setFilters({ tab: null, status: "cancelled" })
-                }
+                onClick={() => setFilters({ tab: null, status: "cancelled" })}
             />
             <SummaryCard
                 count={data.overdue}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useModelTemplatePrintFilterParams } from "@/hooks/use-model-template-print-filter-params";
-import { _trpc } from "./static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { PDFViewer } from "@community/index";
 import { useEffect, useRef, useState } from "react";
@@ -9,11 +9,12 @@ import { PdfTemplate } from "@community/index";
 import { PrintLoading } from "./print-loading";
 
 export function PrintModelTemplate() {
+    const trpc = useTRPC();
     const { filters, setFilters } = useModelTemplatePrintFilterParams();
     const [mounted, setMounted] = useState(false);
     // filters.slugs.
     const { data: printData, isPending } = useSuspenseQuery(
-        _trpc.print.modelTemplate.queryOptions({
+        trpc.print.modelTemplate.queryOptions({
             ...filters,
         })
     );

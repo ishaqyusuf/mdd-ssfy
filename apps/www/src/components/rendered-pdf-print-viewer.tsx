@@ -14,7 +14,7 @@ import type { SyntheticEvent } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { PrintUnavailable } from "./print-sales-v2";
-import { _trpc } from "./static-trpc";
+import { useTRPC } from "@/trpc/client";
 
 export interface RenderedPdfPrintViewerProps {
 	pt: string;
@@ -46,12 +46,13 @@ export function RenderedPdfPrintViewer({
 	onPrintError,
 	onPrintStage,
 }: RenderedPdfPrintViewerProps) {
+	const trpc = useTRPC();
 	const baseUrl = getBaseUrl();
 	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
 	const printedRef = useRef(false);
 	onPrintStage?.("print-data-query-start");
 	const { data } = useSuspenseQuery(
-		_trpc.print.salesV2.queryOptions({
+		trpc.print.salesV2.queryOptions({
 			pt: pt || undefined,
 			token: token || undefined,
 			accessToken: accessToken || undefined,
@@ -62,11 +63,13 @@ export function RenderedPdfPrintViewer({
 			baseUrl,
 		}),
 	);
+	const printData = data as any;
+	const Viewer = PDFViewer as any;
 	useEffect(() => {
 		onPrintStage?.("print-data-query-done", {
-			href: data?.previewUrl,
+			href: printData?.previewUrl,
 		});
-	}, [data?.previewUrl, onPrintStage]);
+	}, [printData?.previewUrl, onPrintStage]);
 	const handleViewerLoad = useCallback(
 		async (event: SyntheticEvent<HTMLIFrameElement>) => {
 			const iframe = event.currentTarget;
@@ -91,33 +94,33 @@ export function RenderedPdfPrintViewer({
 		[onPrintError, onPrintReady, onPrintStage, preview],
 	);
 
-	if (!data) {
+	if (!printData) {
 		return (
 			<PrintUnavailable reason="The print document did not return any data." />
 		);
 	}
 
 	const packingSlipPage =
-		data.pages.find((page) => page.config.mode === "packing-slip") || null;
+		printData.pages.find((page) => page.config.mode === "packing-slip") || null;
 
 	return (
 		<>
-			<PDFViewer
-				ref={viewerRef}
+			<Viewer
+				ref={viewerRef as any}
 				onLoad={handleViewerLoad}
 				className={cn("flex h-screen w-full flex-col", className)}
 			>
 				<SalesPdfDocument
-					pages={data.pages}
-					templateId={data.templateId}
-					title={data.title}
-					companyAddress={data.companyAddress}
-					watermark={data.watermark ?? undefined}
+					pages={printData.pages}
+					templateId={printData.templateId}
+					title={printData.title}
+					companyAddress={printData.companyAddress}
+					watermark={printData.watermark ?? undefined}
 					baseUrl={baseUrl}
-					previewUrl={data.previewUrl}
-					qrCodeDataUrl={data.qrCodeDataUrl}
+					previewUrl={printData.previewUrl}
+					qrCodeDataUrl={printData.qrCodeDataUrl}
 				/>
-			</PDFViewer>
+			</Viewer>
 			<PackingSlipSignFab
 				page={packingSlipPage}
 				pt={pt}

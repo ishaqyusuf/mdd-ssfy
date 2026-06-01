@@ -8,10 +8,10 @@ import {
 } from "./context";
 import { EmptyState } from "@gnd/ui/custom/empty-state";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
+import { useTRPC } from "@/trpc/client";
 import { reorderList } from "@gnd/utils";
 import { useFieldArray } from "react-hook-form";
 import { useMutation } from "@gnd/ui/tanstack";
-import { _trpc } from "@/components/static-trpc";
 import { SchemaBlock } from "./block-section";
 import * as Sortable from "@gnd/ui/sortable-2";
 import { closestCorners } from "@dnd-kit/core";
@@ -30,6 +30,7 @@ export function CommunityTemplateForm({ children, ...props }: Props) {
     );
 }
 function Content() {
+    const trpc = useTRPC();
     const ctx = useTemplateSchemaContext();
     const inv = useInventoryParams();
     // useAfterState(inv.productId, () => {
@@ -56,7 +57,7 @@ function Content() {
         });
     };
     const { mutate, isPending: savingSort } = useMutation(
-        _trpc.community.updateRecordsIndicesIndices.mutationOptions({
+        trpc.community.updateRecordsIndicesIndices.mutationOptions({
             meta: null,
         })
     );
@@ -86,4 +87,3 @@ function Content() {
         </div>
     );
 }
-

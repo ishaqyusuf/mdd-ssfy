@@ -89,7 +89,7 @@ export function Header() {
                 <SalesRepRequestBadge />
                 <TestEmailModeButton />
                 <NotificationCenter />
-                <UserNav />
+                <UserNav links={linkModules} />
             </header>
             <div className="h-[70px] md:hidden" />
             <div className="dark:bg-muted" id="pageTab"></div>
@@ -119,7 +119,7 @@ export function Header() {
                 <div className="mx-4 flex gap-4 " id="navRightSlot"></div>
                 <div className="inline-flex gap-4" id="actionNav"></div>
                 <NotificationCenter />
-                <UserNav />
+                <UserNav links={linkModules} />
             </div>
             <div className="dark:bg-muted" id="pageTab"></div>
             <div className="overflow-auto" id="tab"></div>

@@ -17,46 +17,43 @@ import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-	return constructMetadata({
-		title: "Unit Productions | GND",
-	});
+    return constructMetadata({
+        title: "Unit Productions | GND",
+    });
 }
 
 type Props = {
-	searchParams: Promise<SearchParams>;
+    searchParams: Promise<SearchParams>;
 };
 
 export default async function CommunityProductionsPage(props: Props) {
-	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
-	const filter = loadUnitProductionFilterParams(searchParams);
-	const { sort } = loadSortParams(searchParams);
+    const searchParams = await props.searchParams;
+    const queryClient = getQueryClient();
+    const filter = loadUnitProductionFilterParams(searchParams);
+    const { sort } = loadSortParams(searchParams);
 
-	await queryClient.fetchInfiniteQuery(
-		trpc.community.getUnitProductions.infiniteQueryOptions({
-			...(filter as any),
-			sort,
-		}) as any,
-	);
-	await queryClient.fetchQuery(
-		trpc.community.getUnitProductionSummary.queryOptions(filter),
-	);
+    await queryClient.fetchInfiniteQuery(
+        trpc.community.getUnitProductions.infiniteQueryOptions({
+            ...(filter as any),
+            sort,
+        }) as any,
+    );
 
-	return (
-		<PageShell>
-			<HydrateClient>
-				<div className="flex flex-col gap-6">
-					<PageTitle>Unit Productions</PageTitle>
-					<UnitProductionSummaryWidgets />
-					<UnitProductionsHeader />
-					<OpenUnitProductionSheet />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<DataTable />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
-			</HydrateClient>
-		</PageShell>
-	);
+    return (
+        <PageShell>
+            <HydrateClient>
+                <div className="flex flex-col gap-6">
+                    <PageTitle>Unit Productions</PageTitle>
+                    <UnitProductionSummaryWidgets />
+                    <UnitProductionsHeader />
+                    <OpenUnitProductionSheet />
+                    <ErrorBoundary errorComponent={ErrorFallback}>
+                        <Suspense fallback={<TableSkeleton />}>
+                            <DataTable />
+                        </Suspense>
+                    </ErrorBoundary>
+                </div>
+            </HydrateClient>
+        </PageShell>
+    );
 }

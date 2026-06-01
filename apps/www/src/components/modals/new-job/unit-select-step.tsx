@@ -1,6 +1,5 @@
 import { Icons } from "@gnd/ui/icons";
 import { SearchInput } from "@/components/search-input";
-import { _trpc } from "@/components/static-trpc";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useTRPC } from "@/trpc/client";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -32,7 +31,7 @@ export function UnitSelectStep() {
 	const trpc = useTRPC();
 	const safeProjectId = Number(params.projectId || 0);
 	const { data, isPending } = useQuery(
-		_trpc.community.getProjectUnitsWithJobStats.queryOptions(
+		trpc.community.getProjectUnitsWithJobStats.queryOptions(
 			{
 				projectId: safeProjectId,
 			},

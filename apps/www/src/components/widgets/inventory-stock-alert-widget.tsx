@@ -1,5 +1,6 @@
 "use client";
 
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { Icons } from "@gnd/ui/icons";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -15,10 +16,15 @@ import { useQuery } from "@gnd/ui/tanstack";
 
 export function InventoryStockAlertWidget() {
     const trpc = useTRPC();
+    const idleQueryEnabled = useIdleQueryEnabled(1000);
     const { data, isLoading } = useQuery(
-        trpc.inventories.lowStockSummary.queryOptions(),
+        trpc.inventories.lowStockSummary.queryOptions(undefined, {
+            enabled: idleQueryEnabled,
+            refetchOnWindowFocus: false,
+            staleTime: 60 * 1000,
+        }),
     );
-    if (isLoading) {
+    if (!idleQueryEnabled || isLoading) {
         return <InventoryStockAlertWidgetSkeleton />;
     }
     if (!data?.total) {

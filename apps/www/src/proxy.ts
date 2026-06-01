@@ -74,9 +74,9 @@ export default async function proxy(req: NextRequest) {
 
 async function getAuth(req: NextRequest) {
     try {
-        const response = await fetch(new URL("/api/auth-session", req.url), {
+        const response = await fetch(getAuthSessionUrl(req), {
             method: "GET",
-            headers: req.headers,
+            headers: getAuthSessionHeaders(req),
             cache: "no-store",
         });
 
@@ -89,6 +89,59 @@ async function getAuth(req: NextRequest) {
     }
 
     return null;
+}
+
+function getAuthSessionUrl(req: NextRequest) {
+    const requestUrl = new URL(req.url);
+    const forwardedHost =
+        req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "";
+
+    if (
+        requestUrl.protocol === "https:" &&
+        (isLocalDevHost(requestUrl.hostname) || isLocalDevHost(forwardedHost))
+    ) {
+        const appPort = process.env.PORTLESS_APP_PORT ?? process.env.PORT ?? "3000";
+        return new URL("/api/auth-session", `http://127.0.0.1:${appPort}`);
+    }
+
+    return new URL("/api/auth-session", requestUrl);
+}
+
+function isLocalDevHost(hostname: string) {
+    const host = hostname.split(":")[0];
+
+    return (
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "::1" ||
+        host.endsWith(".localhost") ||
+        host.endsWith(".test")
+    );
+}
+
+function getAuthSessionHeaders(req: NextRequest) {
+    const headers = new Headers();
+    const forwardedHost =
+        req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    const forwardedProto =
+        req.headers.get("x-forwarded-proto") ??
+        req.nextUrl.protocol.replace(":", "");
+
+    for (const key of [
+        "accept",
+        "accept-language",
+        "authorization",
+        "cookie",
+        "user-agent",
+    ]) {
+        const value = req.headers.get(key);
+        if (value) headers.set(key, value);
+    }
+
+    if (forwardedHost) headers.set("x-forwarded-host", forwardedHost);
+    if (forwardedProto) headers.set("x-forwarded-proto", forwardedProto);
+
+    return headers;
 }
 
 function getDefaultLink(auth) {

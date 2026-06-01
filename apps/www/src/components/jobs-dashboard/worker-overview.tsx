@@ -7,22 +7,23 @@ import {
     useGuardedOpenJobState,
 } from "@/components/guarded-open-job-sheet";
 import { InsuranceWarningBanner } from "@/components/insurance-warning-banner";
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
 import { formatDate } from "@gnd/utils/dayjs";
 import { useSession } from "@/lib/auth/client";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo } from "react";
-import {
-    Area,
-    AreaChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-} from "recharts";
+
+const WorkerOverviewEarningsChart = dynamic(() =>
+    import("./worker-overview-earnings-chart").then(
+        (mod) => mod.WorkerOverviewEarningsChart,
+    ),
+);
 
 function formatCurrency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
@@ -35,12 +36,15 @@ function formatCurrency(value?: number | null) {
 export function WorkerOverview() {
     const trpc = useTRPC();
     const { data: session, status } = useSession();
-    const enabled = status === "authenticated";
+    const idleQueryEnabled = useIdleQueryEnabled(1000);
+    const enabled = status === "authenticated" && idleQueryEnabled;
     const { data: jobAnalytics } = useQuery(
         trpc.jobs.getJobAnalytics.queryOptions(
             {},
             {
                 enabled,
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
             },
         ),
     );
@@ -49,9 +53,13 @@ export function WorkerOverview() {
             {},
             {
                 enabled,
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
             },
         ),
     );
+    const isAnalyticsPending =
+        !idleQueryEnabled || !jobAnalytics || !earningAnalytics;
     const guardedOpenJobState = useGuardedOpenJobState();
 
     const chartData = useMemo(() => {
@@ -67,21 +75,36 @@ export function WorkerOverview() {
         {
             icon: Icons.BriefcaseBusiness,
             label: "Completed Jobs",
-            value: String(jobAnalytics?.completed || 0),
+            value: (
+                <MetricValue
+                    isPending={isAnalyticsPending}
+                    value={jobAnalytics?.completed}
+                />
+            ),
             accent: "border-sky-200 bg-[linear-gradient(135deg,rgba(224,242,254,0.95),rgba(255,255,255,1))] text-sky-900",
             iconClass: "bg-sky-500 text-white",
         },
         {
             icon: Icons.Clock3,
             label: "Pending Review",
-            value: String(jobAnalytics?.inProgress || 0),
+            value: (
+                <MetricValue
+                    isPending={isAnalyticsPending}
+                    value={jobAnalytics?.inProgress}
+                />
+            ),
             accent: "border-amber-200 bg-[linear-gradient(135deg,rgba(254,243,199,0.92),rgba(255,255,255,1))] text-amber-950",
             iconClass: "bg-amber-500 text-white",
         },
         {
             icon: Icons.BadgeDollarSign,
             label: "Paid Jobs",
-            value: String(jobAnalytics?.paid || 0),
+            value: (
+                <MetricValue
+                    isPending={isAnalyticsPending}
+                    value={jobAnalytics?.paid}
+                />
+            ),
             accent: "border-emerald-200 bg-[linear-gradient(135deg,rgba(220,252,231,0.95),rgba(255,255,255,1))] text-emerald-950",
             iconClass: "bg-emerald-500 text-white",
         },
@@ -126,8 +149,12 @@ export function WorkerOverview() {
                                             This Month
                                         </p>
                                         <p className="mt-2 text-3xl font-semibold text-white">
-                                            {formatCurrency(
-                                                earningAnalytics?.earning,
+                                            {isAnalyticsPending ? (
+                                                <Skeleton className="h-9 w-32 bg-white/20" />
+                                            ) : (
+                                                formatCurrency(
+                                                    earningAnalytics?.earning,
+                                                )
                                             )}
                                         </p>
                                         <p className="mt-1 text-xs text-slate-200">
@@ -218,65 +245,20 @@ export function WorkerOverview() {
                                 vs last month
                             </p>
                             <p className="mt-1 text-2xl font-semibold text-slate-900">
-                                {earningAnalytics?.percentageVsLastMonth ?? 0}%
+                                {isAnalyticsPending ? (
+                                    <Skeleton className="ml-auto h-8 w-16" />
+                                ) : (
+                                    `${earningAnalytics?.percentageVsLastMonth ?? 0}%`
+                                )}
                             </p>
                         </div>
                     </CardHeader>
                     <CardContent className="h-80 pt-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient
-                                        id="worker-overview-earnings"
-                                        x1="0"
-                                        y1="0"
-                                        x2="0"
-                                        y2="1"
-                                    >
-                                        <stop
-                                            offset="0%"
-                                            stopColor="#0ea5e9"
-                                            stopOpacity={0.35}
-                                        />
-                                        <stop
-                                            offset="100%"
-                                            stopColor="#0ea5e9"
-                                            stopOpacity={0.03}
-                                        />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid
-                                    vertical={false}
-                                    stroke="#e2e8f0"
-                                    strokeDasharray="3 3"
-                                />
-                                <XAxis
-                                    dataKey="label"
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tick={{ fill: "#64748b", fontSize: 12 }}
-                                />
-                                <Tooltip
-                                    cursor={{
-                                        stroke: "#0ea5e9",
-                                        strokeDasharray: "4 4",
-                                    }}
-                                    contentStyle={{
-                                        borderRadius: 16,
-                                        border: "1px solid #e2e8f0",
-                                        boxShadow:
-                                            "0 10px 30px rgba(15, 23, 42, 0.08)",
-                                    }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#0f172a"
-                                    strokeWidth={3}
-                                    fill="url(#worker-overview-earnings)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        {isAnalyticsPending ? (
+                            <ChartSkeleton />
+                        ) : (
+                            <WorkerOverviewEarningsChart data={chartData} />
+                        )}
                     </CardContent>
                 </Card>
 
@@ -345,6 +327,33 @@ export function WorkerOverview() {
                     </Card>
                 </div>
             </section>
+        </div>
+    );
+}
+
+function MetricValue({
+    isPending,
+    value,
+}: {
+    isPending: boolean;
+    value?: number | null;
+}) {
+    if (isPending) {
+        return <Skeleton className="h-9 w-16" />;
+    }
+
+    return <>{value ?? 0}</>;
+}
+
+function ChartSkeleton() {
+    return (
+        <div className="flex h-full flex-col justify-end gap-3">
+            <Skeleton className="h-20 w-full rounded-2xl" />
+            <div className="grid grid-cols-7 gap-2">
+                {Array.from({ length: 7 }).map((_, index) => (
+                    <Skeleton key={index} className="h-3 rounded-full" />
+                ))}
+            </div>
         </div>
     );
 }

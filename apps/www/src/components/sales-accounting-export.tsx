@@ -3,6 +3,8 @@
 import { env } from "@/env.mjs";
 import { useSalesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
 import { useSalesAccountingStore } from "@/store/saless-account-store";
+import { useTRPC } from "@/trpc/client";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
@@ -11,9 +13,9 @@ import { formatMoney } from "@gnd/utils";
 import { formatDate } from "@gnd/utils/dayjs";
 import dayjs from "dayjs";
 import { useMemo } from "react";
-import { _trpc } from "./static-trpc";
 
 export function SalesAccountingExport() {
+	const trpc = useTRPC();
 	const { filters, hasFilters } = useSalesAccountingFilterParams();
 	const { rowSelection } = useSalesAccountingStore();
 	const selectedIds = useMemo(() => {
@@ -21,14 +23,15 @@ export function SalesAccountingExport() {
 			.filter(([, isSelected]) => isSelected)
 			.map(([id]) => +id);
 	}, [rowSelection]);
+	const exportFilters = {
+		...filters,
+		// salesIds: selectedIds.length ? selectedIds : undefined,
+		size: 999,
+	} as RouterInputs["sales"]["getSalesAccountings"];
 
 	const { refetch } = useQuery(
-		_trpc.sales.getSalesAccountings.queryOptions(
-			{
-				...filters,
-				// salesIds: selectedIds.length ? selectedIds : undefined,
-				size: 999,
-			},
+		trpc.sales.getSalesAccountings.queryOptions(
+			exportFilters,
 			{
 				enabled: false,
 			},

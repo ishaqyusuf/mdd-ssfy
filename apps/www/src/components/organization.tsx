@@ -2,6 +2,8 @@ import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import { useAuth } from "@/hooks/use-auth";
 import { useZodForm } from "@/hooks/use-zod-form";
+import { useTRPC } from "@/trpc/client";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import {
 	Command,
@@ -18,11 +20,10 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Input } from "@gnd/ui/input";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import z from "zod";
-import { _qc, _trpc } from "./static-trpc";
 import { SubmitButton } from "./submit-button";
 
 const orgSchema = z.object({
@@ -33,9 +34,11 @@ const defaultValues = {
 	name: "",
 	opened: false,
 };
-type Org = { id: number; name: string; employeesCount: number };
+type Org = RouterOutputs["orgs"]["getOrganizationProfile"]["orgs"][number];
 
 export function Organization() {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const auth = useAuth();
 	const isSuperAdmin = auth.roleTitle === "Super Admin";
 
@@ -43,8 +46,7 @@ export function Organization() {
 	const [editingOrg, setEditingOrg] = useState<Org | null>(null);
 
 	const { data: profile } = useQuery(
-		// @ts-ignore
-		_trpc.orgs.getOrganizationProfile.queryOptions(undefined, {
+		trpc.orgs.getOrganizationProfile.queryOptions(undefined, {
 			// Mock data for demonstration
 			// initialData: {
 			//     orgs: [
@@ -67,17 +69,16 @@ export function Organization() {
 		},
 	);
 	const invalidateOrgs = () => {
-		// @ts-ignore
-		_qc.invalidateQueries({
-			queryKey: _trpc.orgs.getOrganizationProfile.queryKey(undefined),
+		queryClient.invalidateQueries({
+			queryKey: trpc.orgs.getOrganizationProfile.queryKey(undefined),
 		});
 	};
 
 	const { mutate: createOrg, isPending: isCreating } = useMutation(
-		_trpc.orgs.createOrganizationProfile.mutationOptions({
+		trpc.orgs.createOrganizationProfile.mutationOptions({
 			onSuccess(data, variables, onMutateResult, context) {
-				_qc.invalidateQueries({
-					queryKey: _trpc.orgs.getOrganizationProfile.queryKey(undefined),
+				queryClient.invalidateQueries({
+					queryKey: trpc.orgs.getOrganizationProfile.queryKey(undefined),
 				});
 				form.reset(defaultValues);
 			},
@@ -92,33 +93,6 @@ export function Organization() {
 		}),
 	);
 
-	// const { mutate: updateOrg, isPending: isUpdating } = useMutation(
-	//   // @ts-ignore
-	//   _trpc.orgs.updateOrganization.mutationOptions({
-	//     onSuccess: () => {
-	//       invalidateOrgs();
-	//       setView("list");
-	//     },
-	//     meta: { toast: { success: "Organization updated!" } },
-	//   })
-	// );
-
-	const { mutate: deleteOrg } = useMutation(
-		// @ts-ignore
-		_trpc.orgs.deleteOrganization.mutationOptions({
-			onSuccess: invalidateOrgs,
-			meta: { toast: { success: "Office deleted!" } },
-		}),
-	);
-
-	const { mutate: setPrimary } = useMutation(
-		// @ts-ignore
-		_trpc.orgs.setPrimaryOrganization.mutationOptions({
-			onSuccess: invalidateOrgs,
-			meta: { toast: { success: "Switched Office!" } },
-		}),
-	);
-
 	// const form = useZodForm(orgSchema);
 
 	if (!isSuperAdmin) return null;
@@ -127,15 +101,11 @@ export function Organization() {
 	// );
 
 	const handleSwitch = (orgId: number) => {
-		// @ts-ignore
-		setPrimary({ id: orgId });
 		// closePopover();
 	};
 
 	const handleDelete = (orgId: number) => {
 		if (window.confirm("Are you sure? This action cannot be undone.")) {
-			// @ts-ignore
-			deleteOrg({ id: orgId });
 		}
 	};
 
@@ -176,7 +146,7 @@ export function Organization() {
 									</div>
 								</div>
 								<div className="flex items-center ml-2">
-									{(org.id === auth?.orgId || org.primary) && (
+									{org.primary && (
 										<Icons.ShieldCheck className="h-4 w-4 text-green-500" />
 									)}
 									<DropdownMenu>
@@ -198,7 +168,7 @@ export function Organization() {
 												onSelect={() => {
 													setEditingOrg(org);
 													form.reset({
-														name: org.name,
+														name: org.name || "",
 													});
 													setView("edit");
 												}}

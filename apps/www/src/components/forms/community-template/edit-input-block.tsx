@@ -1,8 +1,8 @@
-import { _qc, _trpc } from "@/components/static-trpc";
 import { useZodForm } from "@/hooks/use-zod-form";
+import { useTRPC } from "@/trpc/client";
 import { saveCommunityInputSchema } from "@community/community-template-schemas";
 import { Form } from "@gnd/ui/form";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { useTemplateSchemaBlock, useTemplateSchemaContext } from "./context";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { SubmitButton } from "@/components/submit-button";
@@ -12,6 +12,8 @@ interface Props {
     uid: string;
 }
 export function EditInputBlock(props: Props) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     // return <Suspense fallback={<Skeletons.Card/>}>
     //     <BlockForm {{...props}}/>
     // </Suspense>
@@ -28,10 +30,10 @@ export function EditInputBlock(props: Props) {
         },
     });
     const { mutate, isPending } = useMutation(
-        _trpc.inventories.saveCommunityInput.mutationOptions({
+        trpc.inventories.saveCommunityInput.mutationOptions({
             onSuccess() {
-                _qc.invalidateQueries({
-                    queryKey: _trpc.community.getCommunitySchema.queryKey({}),
+                queryClient.invalidateQueries({
+                    queryKey: trpc.community.getCommunitySchema.queryKey({}),
                 });
             },
         })
@@ -47,7 +49,7 @@ export function EditInputBlock(props: Props) {
         mutate(data);
     };
     const { mutate: deleteInventoryInput, isPending: isDeleting } = useMutation(
-        _trpc.community.deleteInputInventoryBlock.mutationOptions({
+        trpc.community.deleteInputInventoryBlock.mutationOptions({
             onSuccess(data, variables, context) {},
             onError(error, variables, context) {},
         })
@@ -84,4 +86,3 @@ export function EditInputBlock(props: Props) {
         </div>
     );
 }
-

@@ -9,13 +9,14 @@ import { formatMoney, percentageValue } from "@gnd/utils";
 import { Label } from "@gnd/ui/label";
 import { InputGroup } from "@gnd/ui/namespace";
 import { useQuery } from "@tanstack/react-query";
-import { _trpc } from "@/components/static-trpc";
+import { useTRPC } from "@/trpc/client";
 import { useEffect } from "react";
 
 interface Props {
     salesIds: number[];
 }
 export function PaymentLinkMenuAction(props: Props) {
+    const trpc = useTRPC();
     const form = useZodForm(
         z.object({
             amount: z.number(),
@@ -34,7 +35,7 @@ export function PaymentLinkMenuAction(props: Props) {
     );
     const { opened, percentage, totalAmount } = form.watch();
     const { data } = useQuery(
-        _trpc.sales.getOrders.queryOptions(
+        trpc.sales.getOrders.queryOptions(
             {
                 salesIds: props.salesIds,
             },
@@ -118,4 +119,3 @@ export function PaymentLinkMenuAction(props: Props) {
         </div>
     );
 }
-

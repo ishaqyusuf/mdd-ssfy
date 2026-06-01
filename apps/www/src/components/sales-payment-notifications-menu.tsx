@@ -2,8 +2,8 @@
 
 import { Icons } from "@gnd/ui/icons";
 
-import { _trpc } from "@/components/static-trpc";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { DropdownMenu, InputGroup } from "@gnd/ui/namespace";
 import { useQuery } from "@gnd/ui/tanstack";
@@ -18,7 +18,10 @@ import {
 	reminderPresetPayPlans,
 	resolveReminderAmount,
 } from "@sales/utils/reminder-pay-plan";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { type ComponentProps, type ReactNode, useMemo, useState } from "react";
+
+type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
 type Props = {
 	align?: ComponentProps<typeof DropdownMenu.Content>["align"];
@@ -45,13 +48,14 @@ export function SalesPaymentNotificationsMenu({
 	salesIds,
 	type,
 }: Props) {
+	const trpc = useTRPC();
 	const [open, setOpen] = useState(false);
 	const [customOpen, setCustomOpen] = useState(false);
 	const [customAmount, setCustomAmount] = useState("");
 	const saleId =
 		salesIds.length === 1 ? (saleOverride?.id ?? salesIds[0]) : null;
 	const { data, isPending } = useQuery(
-		_trpc.sales.getOrders.queryOptions(
+		trpc.sales.getOrders.queryOptions(
 			{
 				salesIds: saleId ? [saleId] : [],
 			},
@@ -74,7 +78,7 @@ export function SalesPaymentNotificationsMenu({
 		},
 	});
 
-	const sale = saleOverride ?? data?.data?.[0];
+	const sale = saleOverride ?? (data?.data?.[0] as SalesOrder | undefined);
 	const dueAmount = Number(sale?.due || 0);
 	const isSingleSale = salesIds.length === 1;
 	const hasEmail = !saleId || isPending || !!sale?.email;

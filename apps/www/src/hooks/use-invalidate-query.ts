@@ -1,15 +1,14 @@
-import { _qc, _trpc } from "@/components/static-trpc";
 import { RouterInputs } from "@api/trpc/routers/_app";
-
-type TRPCClient = typeof _trpc;
+import { useQueryClient } from "@gnd/ui/tanstack";
+import { useTRPC } from "@/trpc/client";
 
 export type Routes = {
-    [NS in keyof TRPCClient]: TRPCClient[NS] extends Record<string, any>
+    [NS in keyof RouterInputs]: RouterInputs[NS] extends Record<string, any>
         ? {
-              [P in keyof TRPCClient[NS]]: `${NS & string}.${P & string}`;
-          }[keyof TRPCClient[NS]]
+              [P in keyof RouterInputs[NS]]: `${NS & string}.${P & string}`;
+          }[keyof RouterInputs[NS]]
         : never;
-}[keyof TRPCClient];
+}[keyof RouterInputs];
 export type SplitRoute<R extends Routes> = R extends `${infer NS}.${infer P}`
     ? [NS & keyof RouterInputs, P & keyof RouterInputs[NS & keyof RouterInputs]]
     : never;
@@ -23,35 +22,43 @@ export type RouteInput<R extends Routes> =
             : never
         : never;
 
-export function invalidateQueries(...routes: Routes[]) {
-    routes.forEach((route) => {
-        const [ns, proc] = route.split(".") as [keyof typeof _trpc, string];
+export function useInvalidateQuery() {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
 
-        _qc.invalidateQueries({
-            queryKey: (_trpc as any)[ns][proc].queryKey(),
+    function getProcedure(route: Routes) {
+        const [ns, proc] = route.split(".") as [string, string];
+
+        return (trpc as any)[ns][proc];
+    }
+
+    function invalidateQueries(...routes: Routes[]) {
+        routes.forEach((route) => {
+            queryClient.invalidateQueries({
+                queryKey: getProcedure(route).queryKey(),
+            });
         });
-    });
-}
-export function invalidateQuery<R extends Routes>(
-    route: R,
-    input?: RouteInput<R>,
-) {
-    const [ns, proc] = route.split(".") as [keyof typeof _trpc, string];
+    }
 
-    _qc.invalidateQueries({
-        queryKey: (_trpc as any)[ns][proc].queryKey(input),
-    });
-}
-
-export function invalidateInfiniteQueries(...routes: Routes[]) {
-    routes.forEach((route) => {
-        const [ns, proc] = route.split(".") as [keyof typeof _trpc, string];
-
-        _qc.invalidateQueries({
-            queryKey: (_trpc as any)[ns][proc].infiniteQueryKey(),
+    function invalidateQuery<R extends Routes>(route: R, input?: RouteInput<R>) {
+        queryClient.invalidateQueries({
+            queryKey: getProcedure(route).queryKey(input),
         });
-    });
+    }
+
+    function invalidateInfiniteQueries(...routes: Routes[]) {
+        routes.forEach((route) => {
+            queryClient.invalidateQueries({
+                queryKey: getProcedure(route).infiniteQueryKey(),
+            });
+        });
+    }
+
+    return {
+        invalidateInfiniteQueries,
+        invalidateQueries,
+        invalidateQuery,
+    };
 }
 
 // invalidateQueries("hrm.getEmployees", "hrm.getProfiles");
-
