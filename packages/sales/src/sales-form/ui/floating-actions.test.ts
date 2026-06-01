@@ -41,6 +41,7 @@ describe("sales form floating actions gates", () => {
 			overview: false,
 			preview: false,
 			print: false,
+			downloadPdf: false,
 			moreMenu: false,
 		});
 	});
@@ -56,6 +57,7 @@ describe("sales form floating actions gates", () => {
 				hasOverviewAction: true,
 				hasPreviewAction: true,
 				hasPrintAction: true,
+				hasDownloadPdfAction: true,
 				capabilities: {
 					printing: true,
 					internalOverview: true,
@@ -74,6 +76,7 @@ describe("sales form floating actions gates", () => {
 			overview: true,
 			preview: true,
 			print: true,
+			downloadPdf: true,
 			moreMenu: true,
 		});
 	});
@@ -87,6 +90,7 @@ describe("sales form floating actions gates", () => {
 				hasOverviewAction: true,
 				hasPreviewAction: true,
 				hasPrintAction: true,
+				hasDownloadPdfAction: true,
 				capabilities: {
 					payments: false,
 					printing: false,
@@ -103,6 +107,7 @@ describe("sales form floating actions gates", () => {
 			overview: false,
 			preview: false,
 			print: false,
+			downloadPdf: false,
 		});
 	});
 });

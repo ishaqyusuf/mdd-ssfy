@@ -10,6 +10,7 @@ import { zhInitializeState } from "@/app-deps/(clean-code)/(sales)/sales-book/(f
 import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import Button from "@/components/common/button";
+import { Button as UiButton } from "@gnd/ui/button";
 
 import type { CreateSalesHistorySchemaTask } from "@jobs/schema";
 import { toast } from "@gnd/ui/use-toast";
@@ -18,7 +19,7 @@ import { useRouter } from "next/navigation";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useTRPC } from "@/trpc/client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useInStockStatusPrompt } from "./in-stock-status-dialog";
 
@@ -44,11 +45,18 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
         trpc.notes.saveInboundNote.mutationOptions(),
     );
     const [isSaving, setIsSaving] = useState(false);
+    const [saveOptionsOpen, setSaveOptionsOpen] = useState(false);
+    const [saveCountdown, setSaveCountdown] = useState(3);
     const saveLockRef = useRef(false);
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+        null,
+    );
     const { inStockStatusDialog, promptForInboundStatus } =
         useInStockStatusPrompt();
     async function save(action: "new" | "close" | "default" = "default") {
         if (saveLockRef.current || isSaving) return;
+        setSaveOptionsOpen(false);
         saveLockRef.current = true;
         setIsSaving(true);
         const { kvFormItem, kvStepForm, metaData, sequence } = zus;
@@ -165,6 +173,41 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
             setIsSaving(false);
         }
     }
+
+    function clearSaveOptionTimers() {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+            saveTimeoutRef.current = null;
+        }
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+            countdownIntervalRef.current = null;
+        }
+    }
+
+    function showSaveOptions() {
+        if (isSaving) return;
+        clearSaveOptionTimers();
+        setSaveCountdown(3);
+        setSaveOptionsOpen(true);
+        countdownIntervalRef.current = setInterval(() => {
+            setSaveCountdown((current) => Math.max(1, current - 1));
+        }, 1000);
+        saveTimeoutRef.current = setTimeout(() => {
+            clearSaveOptionTimers();
+            void save();
+        }, 3000);
+    }
+
+    function chooseSaveOption(action: "close" | "default") {
+        clearSaveOptionTimers();
+        void save(action);
+    }
+
+    useEffect(() => {
+        return () => clearSaveOptionTimers();
+    }, []);
+
     async function refetchData({
         salesNo,
         salesId,
@@ -183,19 +226,60 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
         zus.init(zhInitializeState(data));
     }
     const saveControl = type === "button" ? (
-        <Button
-            icon="save"
-            size="sm"
-            type="button"
-            action={save}
-            variant="default"
-            disabled={isSaving}
-            className={className}
-            aria-label={iconOnly ? "Save" : undefined}
-            title={iconOnly ? "Save" : undefined}
-        >
-            {iconOnly ? null : <span className="">Save</span>}
-        </Button>
+        <div className="relative flex items-center">
+            <div
+                className={[
+                    "transition-all duration-200 ease-out",
+                    saveOptionsOpen
+                        ? "pointer-events-none w-0 scale-95 opacity-0"
+                        : iconOnly
+                          ? "w-8 scale-100 opacity-100"
+                          : "w-auto scale-100 opacity-100",
+                ].join(" ")}
+            >
+                <Button
+                    icon="save"
+                    size="sm"
+                    type="button"
+                    action={showSaveOptions}
+                    variant="default"
+                    disabled={isSaving}
+                    className={className}
+                    aria-label={iconOnly ? "Save" : undefined}
+                    title={iconOnly ? "Save" : undefined}
+                >
+                    {iconOnly ? null : <span className="">Save</span>}
+                </Button>
+            </div>
+            <div
+                className={[
+                    "flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
+                    saveOptionsOpen
+                        ? "ml-1 max-w-56 scale-100 opacity-100"
+                        : "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
+                ].join(" ")}
+            >
+                <UiButton
+                    type="button"
+                    size="sm"
+                    disabled={isSaving}
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => chooseSaveOption("default")}
+                >
+                    {isSaving ? "Saving..." : `Save (${saveCountdown})`}
+                </UiButton>
+                <UiButton
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => chooseSaveOption("close")}
+                >
+                    Save & Close
+                </UiButton>
+            </div>
+        </div>
     ) : and ? (
         <Menu.Item Icon={Icons.save} onClick={(e) => save(and)} disabled={isSaving}>
             Save & {and}

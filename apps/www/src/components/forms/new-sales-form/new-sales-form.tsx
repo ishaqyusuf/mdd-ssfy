@@ -1289,6 +1289,56 @@ export function NewSalesForm(props: Props) {
         });
     }
 
+    async function handleDownloadPdf() {
+        await runWithManualSaveLock(async () => {
+            if (!record) return;
+            if (!validateBeforeSave()) return;
+            if (saveStatus === "stale") {
+                toast({
+                    title: "PDF unavailable",
+                    description:
+                        "Reload latest data before downloading this form.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            let salesId = record.salesId;
+            let shouldRegeneratePdf = false;
+
+            if (dirty) {
+                const resp = await autosave.flush("manual-flush");
+                if (!resp?.salesId) {
+                    toast({
+                        title: "Unable to prepare PDF",
+                        description: "Save the latest changes before downloading.",
+                        variant: "destructive",
+                    });
+                    return;
+                }
+                await handlePostSaveSuccess(resp);
+                salesId = resp.salesId;
+                shouldRegeneratePdf = true;
+            }
+
+            if (!salesId) {
+                toast({
+                    title: "Unable to prepare PDF",
+                    description: "Save this form before downloading.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            await salesPrint.downloadPdf({
+                salesIds: [salesId],
+                mode: props.type === "order" ? "invoice" : "quote",
+                forceRegenerate: shouldRegeneratePdf,
+                salesType: props.type,
+            });
+        });
+    }
+
     async function handlePreview() {
         if (isPreviewing) return;
         await runWithManualSaveLock(async () => {
@@ -1610,12 +1660,15 @@ export function NewSalesForm(props: Props) {
                             capabilities={salesFormCapabilities}
                             permissions={salesFormPermissions}
                             isPrinting={salesPrint.isPrinting}
+                            isDownloading={salesPrint.isDownloading}
                             isPreviewing={isPreviewing}
                             onAddItem={() => addLineItem()}
                             onSaveDraft={saveDraftNow}
+                            onSaveClose={saveClose}
                             onOpenOverview={handleOpenOverview}
                             onPreview={() => void handlePreview()}
                             onPrint={(event) => void handlePrint(event)}
+                            onDownloadPdf={() => void handleDownloadPdf()}
                             paymentAction={paymentAction}
                             paymentMenuAction={paymentMenuAction}
                             enableSavedRecordActions

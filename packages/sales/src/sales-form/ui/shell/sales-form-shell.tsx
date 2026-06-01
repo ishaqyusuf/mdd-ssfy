@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@gnd/ui/button";
+import { useEffect, useRef, useState } from "react";
 import type { SalesFormComposition } from "../../contracts";
 import { SalesFormSummarySidebar } from "../summary/invoice-summary-sidebar";
 
@@ -12,6 +13,108 @@ function currency(value?: number | null) {
 }
 
 export type SalesFormShellProps = SalesFormComposition;
+
+function MobileCountdownSave({
+	disabled,
+	isSaving,
+	label,
+	onSave,
+	onSaveClose,
+}: {
+	disabled?: boolean;
+	isSaving?: boolean;
+	label: string;
+	onSave?: () => Promise<void> | void;
+	onSaveClose?: () => Promise<void> | void;
+}) {
+	const [optionsOpen, setOptionsOpen] = useState(false);
+	const [countdown, setCountdown] = useState(3);
+	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+	const clearTimers = () => {
+		if (timeoutRef.current) {
+			clearTimeout(timeoutRef.current);
+			timeoutRef.current = null;
+		}
+		if (intervalRef.current) {
+			clearInterval(intervalRef.current);
+			intervalRef.current = null;
+		}
+	};
+
+	const runSave = (mode: "save" | "close") => {
+		clearTimers();
+		setOptionsOpen(false);
+		if (mode === "close") {
+			void onSaveClose?.();
+			return;
+		}
+		void onSave?.();
+	};
+
+	const openOptions = () => {
+		if (disabled || isSaving) return;
+		clearTimers();
+		setCountdown(3);
+		setOptionsOpen(true);
+		intervalRef.current = setInterval(() => {
+			setCountdown((current) => Math.max(1, current - 1));
+		}, 1000);
+		timeoutRef.current = setTimeout(() => runSave("save"), 3000);
+	};
+
+	useEffect(() => clearTimers, []);
+
+	return (
+		<div className="flex shrink-0 items-center justify-end overflow-hidden">
+			<div
+				className={[
+					"transition-all duration-200 ease-out",
+					optionsOpen
+						? "pointer-events-none max-w-0 scale-95 opacity-0"
+						: "max-w-28 scale-100 opacity-100",
+				].join(" ")}
+			>
+				<Button
+					className="h-11 px-4"
+					onClick={openOptions}
+					disabled={disabled || isSaving}
+				>
+					{isSaving ? "Saving..." : label}
+				</Button>
+			</div>
+			<div
+				className={[
+					"flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
+					optionsOpen
+						? "ml-1 max-w-64 scale-100 opacity-100"
+						: "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
+				].join(" ")}
+			>
+				<Button
+					type="button"
+					size="sm"
+					disabled={disabled || isSaving}
+					className="h-10 rounded-full px-3 text-xs"
+					onClick={() => runSave("save")}
+				>
+					{isSaving ? "Saving..." : `Save (${countdown})`}
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={disabled || isSaving || !onSaveClose}
+					className="h-10 rounded-full px-3 text-xs"
+					onClick={() => runSave("close")}
+				>
+					Save & Close
+				</Button>
+			</div>
+		</div>
+	);
+}
 
 export function SalesFormShell(props: SalesFormShellProps) {
 	const slots = props.slots || {};
@@ -93,13 +196,13 @@ export function SalesFormShell(props: SalesFormShellProps) {
 										{currency(props.grandTotal)}
 									</span>
 								</button>
-								<Button
-									className="h-11 px-4"
-									onClick={() => void props.onSaveDraft?.()}
-									disabled={props.isSaving || !props.permissions.canSaveDraft}
-								>
-									{mobileSaveLabel}
-								</Button>
+								<MobileCountdownSave
+									label={mobileSaveLabel}
+									isSaving={props.isSaving}
+									disabled={!props.permissions.canSaveDraft}
+									onSave={props.onSaveDraft}
+									onSaveClose={props.onSaveClose}
+								/>
 							</div>
 						</div>
 					) : null}

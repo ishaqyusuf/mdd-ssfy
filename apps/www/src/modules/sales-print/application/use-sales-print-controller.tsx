@@ -429,6 +429,7 @@ export function useSalesPrintController() {
 					dispatchId: input.dispatchId ?? null,
 					templateId: input.templateId ?? null,
 					baseUrl: input.baseUrl ?? null,
+					forceRegenerate: input.forceRegenerate ?? false,
 				});
 				downloadToast.update({
 					title: "PDF download started",

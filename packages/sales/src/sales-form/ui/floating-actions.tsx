@@ -14,6 +14,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import type { SalesFormCapabilities, SalesFormPermissions } from "../contracts";
 
@@ -27,6 +28,7 @@ export type SalesFormFloatingActionsVisibilityInput = {
 	hasOverviewAction?: boolean;
 	hasPreviewAction?: boolean;
 	hasPrintAction?: boolean;
+	hasDownloadPdfAction?: boolean;
 	capabilities?: Partial<SalesFormCapabilities>;
 	permissions?: Partial<SalesFormPermissions>;
 };
@@ -39,6 +41,7 @@ export type SalesFormFloatingActionsVisibility = {
 	overview: boolean;
 	preview: boolean;
 	print: boolean;
+	downloadPdf: boolean;
 	moreMenu: boolean;
 };
 
@@ -47,13 +50,16 @@ export type SalesFormFloatingActionsProps = {
 	isSaving?: boolean;
 	isPreviewing?: boolean;
 	isPrinting?: boolean;
+	isDownloading?: boolean;
 	capabilities?: Partial<SalesFormCapabilities>;
 	permissions?: Partial<SalesFormPermissions>;
 	onAddItem?: () => void;
 	onSaveDraft?: () => Promise<void> | void;
+	onSaveClose?: () => Promise<void> | void;
 	onOpenOverview?: () => void;
 	onPreview?: () => Promise<void> | void;
 	onPrint?: (event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
+	onDownloadPdf?: () => Promise<void> | void;
 	paymentAction?: ReactNode;
 	paymentMenuAction?: ReactNode;
 	enableSavedRecordActions?: boolean;
@@ -91,6 +97,11 @@ export function resolveSalesFormFloatingActionsVisibility(
 		input.capabilities?.printing === true &&
 		input.permissions?.canPrint === true &&
 		Boolean(input.hasPrintAction);
+	const downloadPdf =
+		isSaved &&
+		input.capabilities?.printing === true &&
+		input.permissions?.canPrint === true &&
+		Boolean(input.hasDownloadPdfAction);
 
 	return {
 		addItem: canAddItem,
@@ -100,7 +111,8 @@ export function resolveSalesFormFloatingActionsVisibility(
 		overview,
 		preview,
 		print,
-		moreMenu: payment || savedRecord || overview || preview || print,
+		downloadPdf,
+		moreMenu: payment || savedRecord || overview || preview || print || downloadPdf,
 	};
 }
 
@@ -121,6 +133,113 @@ function FloatingActionTooltip({
 	);
 }
 
+function FloatingSaveChoice({
+	isSaving,
+	onSaveDraft,
+	onSaveClose,
+}: {
+	isSaving?: boolean;
+	onSaveDraft?: () => Promise<void> | void;
+	onSaveClose?: () => Promise<void> | void;
+}) {
+	const [optionsOpen, setOptionsOpen] = useState(false);
+	const [countdown, setCountdown] = useState(3);
+	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+	const clearTimers = () => {
+		if (timeoutRef.current) {
+			clearTimeout(timeoutRef.current);
+			timeoutRef.current = null;
+		}
+		if (intervalRef.current) {
+			clearInterval(intervalRef.current);
+			intervalRef.current = null;
+		}
+	};
+
+	const runSave = (mode: "draft" | "close") => {
+		clearTimers();
+		setOptionsOpen(false);
+		if (mode === "close") {
+			void onSaveClose?.();
+			return;
+		}
+		void onSaveDraft?.();
+	};
+
+	const openOptions = () => {
+		if (isSaving) return;
+		clearTimers();
+		setCountdown(3);
+		setOptionsOpen(true);
+		intervalRef.current = setInterval(() => {
+			setCountdown((current) => Math.max(1, current - 1));
+		}, 1000);
+		timeoutRef.current = setTimeout(() => runSave("draft"), 3000);
+	};
+
+	useEffect(() => clearTimers, []);
+
+	return (
+		<div className="relative flex items-center">
+			<div
+				className={[
+					"transition-all duration-200 ease-out",
+					optionsOpen
+						? "pointer-events-none w-0 scale-95 opacity-0"
+						: "w-8 scale-100 opacity-100",
+				].join(" ")}
+			>
+				<FloatingActionTooltip label={isSaving ? "Saving" : "Save"}>
+					<Button
+						type="button"
+						size="icon"
+						onClick={openOptions}
+						disabled={isSaving}
+						className="size-8 rounded-full p-0"
+						aria-label={isSaving ? "Saving" : "Save"}
+					>
+						{isSaving ? (
+							<Icons.Loader2 className="size-3.5 animate-spin" />
+						) : (
+							<Icons.Save className="size-3.5" />
+						)}
+					</Button>
+				</FloatingActionTooltip>
+			</div>
+			<div
+				className={[
+					"flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
+					optionsOpen
+						? "ml-1 max-w-56 scale-100 opacity-100"
+						: "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
+				].join(" ")}
+			>
+				<Button
+					type="button"
+					size="sm"
+					disabled={isSaving}
+					className="h-8 rounded-full px-3 text-xs"
+					onClick={() => runSave("draft")}
+				>
+					{isSaving ? "Saving..." : `Save (${countdown})`}
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={isSaving || !onSaveClose}
+					className="h-8 rounded-full px-3 text-xs"
+					onClick={() => runSave("close")}
+				>
+					Save & Close
+				</Button>
+			</div>
+		</div>
+	);
+}
+
 export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 	const visibility = resolveSalesFormFloatingActionsVisibility({
 		isSaved: props.isSaved,
@@ -132,6 +251,7 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 		hasOverviewAction: Boolean(props.onOpenOverview),
 		hasPreviewAction: Boolean(props.onPreview),
 		hasPrintAction: Boolean(props.onPrint),
+		hasDownloadPdfAction: Boolean(props.onDownloadPdf),
 		capabilities: props.capabilities,
 		permissions: props.permissions,
 	});
@@ -145,6 +265,7 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 		hasOverviewAction: Boolean(props.onOpenOverview),
 		hasPreviewAction: Boolean(props.onPreview),
 		hasPrintAction: Boolean(props.onPrint),
+		hasDownloadPdfAction: Boolean(props.onDownloadPdf),
 		capabilities: props.capabilities,
 		permissions: props.permissions,
 	});
@@ -153,7 +274,8 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 		visibility.savedRecord ||
 		visibility.overview ||
 		visibility.preview ||
-		visibility.print;
+		visibility.print ||
+		visibility.downloadPdf;
 
 	if (!visibility.addItem && !visibility.saveDraft && !showSavedActions) {
 		return null;
@@ -239,6 +361,27 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 									</Button>
 								</FloatingActionTooltip>
 							) : null}
+							{visibility.downloadPdf ? (
+								<FloatingActionTooltip
+									label={props.isDownloading ? "Preparing PDF" : "PDF"}
+								>
+									<Button
+										type="button"
+										size="icon"
+										variant="outline"
+										onClick={() => void props.onDownloadPdf?.()}
+										disabled={props.isDownloading}
+										className="size-8 rounded-full"
+										aria-label={props.isDownloading ? "Preparing PDF" : "PDF"}
+									>
+										{props.isDownloading ? (
+											<Icons.Loader2 className="size-3.5 animate-spin" />
+										) : (
+											<Icons.FileText className="size-3.5" />
+										)}
+									</Button>
+								</FloatingActionTooltip>
+							) : null}
 						</div>
 					) : null}
 
@@ -298,27 +441,32 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 										{props.isPrinting ? "Preparing..." : "Print"}
 									</DropdownMenuItem>
 								) : null}
+								{menuVisibility.downloadPdf ? (
+									<DropdownMenuItem
+										disabled={props.isDownloading}
+										onSelect={(event) => {
+											event.preventDefault();
+											void props.onDownloadPdf?.();
+										}}
+									>
+										{props.isDownloading ? (
+											<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+										) : (
+											<Icons.FileText className="mr-2 size-4" />
+										)}
+										{props.isDownloading ? "Preparing..." : "PDF"}
+									</DropdownMenuItem>
+								) : null}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					) : null}
 
 					{visibility.saveDraft ? (
-						<FloatingActionTooltip label={props.isSaving ? "Saving" : "Save"}>
-							<Button
-								type="button"
-								size="icon"
-								onClick={() => void props.onSaveDraft?.()}
-								disabled={props.isSaving}
-								className="size-8 rounded-full p-0"
-								aria-label={props.isSaving ? "Saving" : "Save"}
-							>
-								{props.isSaving ? (
-									<Icons.Loader2 className="size-3.5 animate-spin" />
-								) : (
-									<Icons.Save className="size-3.5" />
-								)}
-							</Button>
-						</FloatingActionTooltip>
+						<FloatingSaveChoice
+							isSaving={props.isSaving}
+							onSaveDraft={props.onSaveDraft}
+							onSaveClose={props.onSaveClose}
+						/>
 					) : null}
 				</div>
 			</TooltipProvider>
