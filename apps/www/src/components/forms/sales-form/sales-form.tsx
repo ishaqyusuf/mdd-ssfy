@@ -156,6 +156,15 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 		});
 	};
 
+	const downloadPdf = async () => {
+		if (!previewId) return;
+		await salesPrint.downloadPdf({
+			salesIds: [previewId],
+			mode: isOrder ? "invoice" : "quote",
+			salesType: isOrder ? "order" : "quote",
+		});
+	};
+
 	const overview = () => {
 		overviewQuery.open2(
 			zus.metaData?.salesId,
@@ -256,6 +265,23 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 										<Icons.Loader2 className="size-3.5 animate-spin" />
 									) : (
 										<Icons.Printer className="size-3.5" />
+									)}
+								</Button>
+							</TooltipIcon>
+							<TooltipIcon label={salesPrint.isDownloading ? "Preparing PDF" : "PDF"}>
+								<Button
+									type="button"
+									size="icon"
+									variant="outline"
+									onClick={() => void downloadPdf()}
+									disabled={salesPrint.isDownloading}
+									className="size-8 rounded-full"
+									aria-label={salesPrint.isDownloading ? "Preparing PDF" : "PDF"}
+								>
+									{salesPrint.isDownloading ? (
+										<Icons.Loader2 className="size-3.5 animate-spin" />
+									) : (
+										<Icons.FileText className="size-3.5" />
 									)}
 								</Button>
 							</TooltipIcon>
@@ -365,6 +391,20 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 											<Icons.Printer className="mr-2 size-4" />
 										)}
 										{salesPrint.isPrinting ? "Preparing..." : "Print"}
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										disabled={salesPrint.isDownloading}
+										onSelect={(event) => {
+											event.preventDefault();
+											void downloadPdf();
+										}}
+									>
+										{salesPrint.isDownloading ? (
+											<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+										) : (
+											<Icons.FileText className="mr-2 size-4" />
+										)}
+										{salesPrint.isDownloading ? "Preparing..." : "PDF"}
 									</DropdownMenuItem>
 									<DropdownMenuItem onSelect={overview}>
 										<Icons.ExternalLink className="mr-2 size-4" />
