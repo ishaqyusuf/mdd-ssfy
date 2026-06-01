@@ -2,31 +2,18 @@ import { CustomerServiceHeader } from "@/components/customer-service-header";
 import { ErrorFallback } from "@/components/error-fallback";
 import { DataTable } from "@/components/tables/customer-service/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
+import { LazyWorkOrderFilterChart } from "@/components/lazy-work-order-filter-chart";
 import { WorkOrderSummaryWidgets } from "@/components/work-order-summary-widgets";
 import { loadCustomerServiceFilterParams } from "@/hooks/use-customer-service-filter-params";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import nextDynamic from "next/dynamic";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
-
-const WorkOrderFilterChart = nextDynamic(
-    () =>
-        import("@/components/work-order-filter-chart").then(
-            (mod) => mod.WorkOrderFilterChart,
-        ),
-    {
-        ssr: false,
-        loading: () => (
-            <div className="h-[80px] w-full rounded-md bg-muted/30" />
-        ),
-    },
-);
 
 export async function generateMetadata(props) {
     return constructMetadata({
@@ -60,7 +47,7 @@ export default async function Page(props: Props) {
                     <PageTitle>Customer Service</PageTitle>
                     <CustomerServiceHeader />
                     <WorkOrderSummaryWidgets />
-                    <WorkOrderFilterChart />
+                    <LazyWorkOrderFilterChart />
                     <ErrorBoundary errorComponent={ErrorFallback}>
                         <Suspense fallback={<TableSkeleton />}>
                             <DataTable />
