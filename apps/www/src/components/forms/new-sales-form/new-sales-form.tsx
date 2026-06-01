@@ -1665,6 +1665,7 @@ export function NewSalesForm(props: Props) {
                             onAddItem={() => addLineItem()}
                             onSaveDraft={saveDraftNow}
                             onSaveClose={saveClose}
+                            onSaveNew={saveNew}
                             onOpenOverview={handleOpenOverview}
                             onPreview={() => void handlePreview()}
                             onPrint={(event) => void handlePrint(event)}

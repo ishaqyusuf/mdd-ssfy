@@ -56,6 +56,7 @@ export type SalesFormFloatingActionsProps = {
 	onAddItem?: () => void;
 	onSaveDraft?: () => Promise<void> | void;
 	onSaveClose?: () => Promise<void> | void;
+	onSaveNew?: () => Promise<void> | void;
 	onOpenOverview?: () => void;
 	onPreview?: () => Promise<void> | void;
 	onPrint?: (event?: MouseEvent<HTMLButtonElement>) => Promise<void> | void;
@@ -137,10 +138,12 @@ function FloatingSaveChoice({
 	isSaving,
 	onSaveDraft,
 	onSaveClose,
+	onSaveNew,
 }: {
 	isSaving?: boolean;
 	onSaveDraft?: () => Promise<void> | void;
 	onSaveClose?: () => Promise<void> | void;
+	onSaveNew?: () => Promise<void> | void;
 }) {
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [countdown, setCountdown] = useState(3);
@@ -158,14 +161,23 @@ function FloatingSaveChoice({
 		}
 	};
 
-	const runSave = (mode: "draft" | "close") => {
+	const runSave = (mode: "draft" | "close" | "new") => {
 		clearTimers();
 		setOptionsOpen(false);
 		if (mode === "close") {
 			void onSaveClose?.();
 			return;
 		}
+		if (mode === "new") {
+			void onSaveNew?.();
+			return;
+		}
 		void onSaveDraft?.();
+	};
+
+	const cancelOptions = () => {
+		clearTimers();
+		setOptionsOpen(false);
 	};
 
 	const openOptions = () => {
@@ -212,7 +224,7 @@ function FloatingSaveChoice({
 				className={[
 					"flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
 					optionsOpen
-						? "ml-1 max-w-56 scale-100 opacity-100"
+						? "ml-1 max-w-[30rem] scale-100 opacity-100"
 						: "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
 				].join(" ")}
 			>
@@ -234,6 +246,26 @@ function FloatingSaveChoice({
 					onClick={() => runSave("close")}
 				>
 					Save & Close
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={isSaving || !onSaveNew}
+					className="h-8 rounded-full px-3 text-xs"
+					onClick={() => runSave("new")}
+				>
+					Save & New
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="ghost"
+					disabled={isSaving}
+					className="h-8 rounded-full px-3 text-xs"
+					onClick={cancelOptions}
+				>
+					Cancel
 				</Button>
 			</div>
 		</div>
@@ -466,6 +498,7 @@ export function SalesFormFloatingActions(props: SalesFormFloatingActionsProps) {
 							isSaving={props.isSaving}
 							onSaveDraft={props.onSaveDraft}
 							onSaveClose={props.onSaveClose}
+							onSaveNew={props.onSaveNew}
 						/>
 					) : null}
 				</div>

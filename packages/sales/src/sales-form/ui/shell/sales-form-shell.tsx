@@ -20,12 +20,14 @@ function MobileCountdownSave({
 	label,
 	onSave,
 	onSaveClose,
+	onSaveNew,
 }: {
 	disabled?: boolean;
 	isSaving?: boolean;
 	label: string;
 	onSave?: () => Promise<void> | void;
 	onSaveClose?: () => Promise<void> | void;
+	onSaveNew?: () => Promise<void> | void;
 }) {
 	const [optionsOpen, setOptionsOpen] = useState(false);
 	const [countdown, setCountdown] = useState(3);
@@ -43,14 +45,23 @@ function MobileCountdownSave({
 		}
 	};
 
-	const runSave = (mode: "save" | "close") => {
+	const runSave = (mode: "save" | "close" | "new") => {
 		clearTimers();
 		setOptionsOpen(false);
 		if (mode === "close") {
 			void onSaveClose?.();
 			return;
 		}
+		if (mode === "new") {
+			void onSaveNew?.();
+			return;
+		}
 		void onSave?.();
+	};
+
+	const cancelOptions = () => {
+		clearTimers();
+		setOptionsOpen(false);
 	};
 
 	const openOptions = () => {
@@ -88,7 +99,7 @@ function MobileCountdownSave({
 				className={[
 					"flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
 					optionsOpen
-						? "ml-1 max-w-64 scale-100 opacity-100"
+						? "ml-1 max-w-[32rem] scale-100 opacity-100"
 						: "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
 				].join(" ")}
 			>
@@ -110,6 +121,26 @@ function MobileCountdownSave({
 					onClick={() => runSave("close")}
 				>
 					Save & Close
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="outline"
+					disabled={disabled || isSaving || !onSaveNew}
+					className="h-10 rounded-full px-3 text-xs"
+					onClick={() => runSave("new")}
+				>
+					Save & New
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					variant="ghost"
+					disabled={disabled || isSaving}
+					className="h-10 rounded-full px-3 text-xs"
+					onClick={cancelOptions}
+				>
+					Cancel
 				</Button>
 			</div>
 		</div>
@@ -202,6 +233,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 									disabled={!props.permissions.canSaveDraft}
 									onSave={props.onSaveDraft}
 									onSaveClose={props.onSaveClose}
+									onSaveNew={props.onSaveNew}
 								/>
 							</div>
 						</div>

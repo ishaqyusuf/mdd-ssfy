@@ -199,9 +199,14 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
         }, 3000);
     }
 
-    function chooseSaveOption(action: "close" | "default") {
+    function chooseSaveOption(action: "close" | "default" | "new") {
         clearSaveOptionTimers();
         void save(action);
+    }
+
+    function cancelSaveOptions() {
+        clearSaveOptionTimers();
+        setSaveOptionsOpen(false);
     }
 
     useEffect(() => {
@@ -255,7 +260,7 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
                 className={[
                     "flex items-center gap-1 overflow-hidden transition-all duration-200 ease-out",
                     saveOptionsOpen
-                        ? "ml-1 max-w-56 scale-100 opacity-100"
+                        ? "ml-1 max-w-[30rem] scale-100 opacity-100"
                         : "pointer-events-none ml-0 max-w-0 scale-95 opacity-0",
                 ].join(" ")}
             >
@@ -277,6 +282,26 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
                     onClick={() => chooseSaveOption("close")}
                 >
                     Save & Close
+                </UiButton>
+                <UiButton
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={() => chooseSaveOption("new")}
+                >
+                    Save & New
+                </UiButton>
+                <UiButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={isSaving}
+                    className="h-8 rounded-full px-3 text-xs"
+                    onClick={cancelSaveOptions}
+                >
+                    Cancel
                 </UiButton>
             </div>
         </div>
