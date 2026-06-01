@@ -9,11 +9,7 @@ import {
 } from "@/components/tables-2/core";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
-import {
-    NON_REORDERABLE_COLUMNS,
-    SORT_FIELD_MAPS,
-    STICKY_COLUMNS,
-} from "@/utils/table-configs";
+import { SORT_FIELD_MAPS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Icons } from "@gnd/ui/icons";
