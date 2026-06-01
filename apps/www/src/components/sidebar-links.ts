@@ -331,6 +331,7 @@ export const linkModules = [
                 .access(_perm.is("editOrders"))
                 .childPaths(
                     "sales-book/create-order",
+                    "sales-book/orders/v2",
                     "sales-book/edit-order",
                     "sales-book/edit-order/slug",
                     "sales-book/shelf-items",
