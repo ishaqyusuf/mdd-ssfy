@@ -17,6 +17,7 @@ import { FieldGroup } from "@gnd/ui/field";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -120,6 +121,20 @@ function formatSalesProfileOption(profile: {
   return `${profile.title || "Untitled profile"} (${percentage}%)`;
 }
 
+function formatExampleCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatExamplePercent(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 function getCustomerDisplayName(customer?: CustomerFormRecord) {
   return (
     customer?.businessName ||
@@ -194,7 +209,8 @@ type PredictionItem = PlacePrediction & {
 type SalesProfileOption = {
   id: string;
   label: string;
-  profile: {
+  action?: "create" | "none";
+  profile?: {
     id: number;
     title?: string | null;
     salesPercentage?: number | null;
@@ -474,24 +490,45 @@ export function CustomerFormClient({
   const selectedTaxOption =
     taxOptions.find((option) => option.id === (selectedTaxCode || "none")) ||
     taxOptions[0];
-  const profileOptions: SalesProfileOption[] = profiles.flatMap((profile) => {
-    if (!profile.id) return [];
+  const profileOptions: SalesProfileOption[] = [
+    {
+      id: "__create__",
+      label: "Create",
+      action: "create",
+    },
+    {
+      id: "none",
+      label: "None",
+      action: "none",
+    },
+    ...profiles.flatMap((profile) => {
+      if (!profile.id) return [];
 
-    return [
-      {
-        id: String(profile.id),
-        label: formatSalesProfileOption(profile),
-        profile: {
-          id: profile.id,
-          title: profile.title,
-          salesPercentage: profile.salesPercentage,
+      return [
+        {
+          id: String(profile.id),
+          label: formatSalesProfileOption(profile),
+          profile: {
+            id: profile.id,
+            title: profile.title,
+            salesPercentage: profile.salesPercentage,
+          },
         },
-      },
-    ];
-  });
+      ];
+    }),
+  ];
   const selectedProfileOption = selectedProfile
-    ? profileOptions.find((option) => option.profile.id === selectedProfile.id)
-    : undefined;
+    ? profileOptions.find((option) => option.profile?.id === selectedProfile.id)
+    : profileOptions.find((option) => option.action === "none");
+  const inlinePercentageValue =
+    profilePercentage.trim() === "" ? 0 : Number(profilePercentage);
+  const inlineExamplePercentage = Number.isFinite(inlinePercentageValue)
+    ? inlinePercentageValue
+    : 0;
+  const inlineExampleBasePrice = 80;
+  const inlineExampleAdjustedPrice =
+    inlineExampleBasePrice * (1 + inlineExamplePercentage / 100);
+  const inlinePercentageDescription = `Dealer customer pricing applies this percentage after GND pricing. Example: ${formatExampleCurrency(inlineExampleBasePrice)} + ${formatExamplePercent(inlineExamplePercentage)}% = ${formatExampleCurrency(inlineExampleAdjustedPrice)}.`;
   const saveProfile = useMutation(
     trpc.dealerPortal.saveSalesProfile.mutationOptions({
       onSuccess: async (savedProfile) => {
@@ -666,7 +703,7 @@ export function CustomerFormClient({
                       name="businessName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Business name</FormLabel>
+                          <FormLabel>Business name (Optional)</FormLabel>
                           <InputGroup className="h-11 bg-background">
                             <FormControl>
                               <InputGroup.Input
@@ -695,6 +732,16 @@ export function CustomerFormClient({
                             items={profileOptions}
                             onCreate={openProfileCreator}
                             onSelect={(option) => {
+                              if (option.action === "create") {
+                                openProfileCreator();
+                                return;
+                              }
+
+                              if (option.action === "none") {
+                                field.onChange(null);
+                                return;
+                              }
+
                               field.onChange(Number(option.id));
                             }}
                             placeholder="Select sales profile"
@@ -923,6 +970,9 @@ export function CustomerFormClient({
                           type="number"
                           value={profilePercentage}
                         />
+                        <FormDescription>
+                          {inlinePercentageDescription}
+                        </FormDescription>
                       </div>
                     </div>
                     <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end">

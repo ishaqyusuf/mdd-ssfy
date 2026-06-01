@@ -143,7 +143,7 @@ export function DealerCustomers() {
           />
           <Field
             defaultValue={editingCustomer?.businessName || ""}
-            label="Business name"
+            label="Business name (Optional)"
             name="businessName"
           />
           <Field
