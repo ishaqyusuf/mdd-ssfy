@@ -2,12 +2,13 @@
 
 import { authClient } from "@/lib/auth-client";
 import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
+import { Button } from "@gnd/ui/button";
 import {
   createNavLink,
   createNavModule,
   createNavSection,
 } from "@gnd/site-nav/types";
-import type { IconKeys } from "@gnd/ui/icons";
+import { Icons, type IconKeys } from "@gnd/ui/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
@@ -110,7 +111,17 @@ export function DealershipShell({
                 </p>
               </div>
             }
-            right={<ThemeToggle />}
+            right={
+              <div className="flex items-center gap-2">
+                <Button asChild size="sm">
+                  <Link href="/quotes/new">
+                    <Icons.Add className="size-4 md:mr-2" />
+                    <span className="hidden md:inline">New Quote</span>
+                  </Link>
+                </Button>
+                <ThemeToggle />
+              </div>
+            }
           />
           <main
             className={
