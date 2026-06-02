@@ -20,7 +20,12 @@ export type AllTableSettings = {
 export const TABLE_SETTINGS_COOKIE = "gnd-table-settings";
 
 export const defaultHiddenColumns: Record<TableId, string[]> = {
-    "sales-orders": ["address", "amountDue", "deliveryOption", "salesRepName"],
+    "sales-orders": [
+        "amountDue",
+        "productionLabel",
+        "fulfillmentLabel",
+        "salesRepName",
+    ],
 };
 
 export function getDefaultColumnVisibility(tableId: TableId): VisibilityState {
@@ -48,7 +53,10 @@ export function mergeWithDefaults(
     const defaults = getDefaultTableSettings(tableId);
 
     return {
-        columns: saved?.columns ?? defaults.columns,
+        columns: {
+            ...defaults.columns,
+            ...saved?.columns,
+        },
         sizing: saved?.sizing ?? defaults.sizing,
         order: saved?.order ?? defaults.order,
     };

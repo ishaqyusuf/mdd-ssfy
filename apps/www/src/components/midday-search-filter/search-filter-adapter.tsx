@@ -6,7 +6,7 @@ import {
 } from "@/hooks/use-search-filter";
 import type { PageFilterData } from "@api/type";
 import { useQuery } from "@gnd/ui/tanstack";
-import type { FilterCommitMode, FilterDefinition } from "./filter-definitions";
+import type { FilterDefinition } from "./filter-definitions";
 import { SearchFilterTRPC } from "./search-filter-trpc";
 
 type SearchFilterAdapterProps = {
@@ -17,7 +17,6 @@ type SearchFilterAdapterProps = {
 	trpQueryOptions?: unknown;
 	initialFilterList?: Array<PageFilterData | FilterDefinition>;
 	placeholder?: string;
-	commitMode?: FilterCommitMode;
 	debounceMs?: number;
 	searchKey?: string;
 };
@@ -46,7 +45,6 @@ function SearchFilterAdapterContent({
 	trpQueryOptions,
 	initialFilterList,
 	placeholder = "Search ...",
-	commitMode = "debounced",
 	debounceMs,
 	searchKey,
 }: Omit<SearchFilterAdapterProps, "filterSchema">) {
@@ -60,7 +58,6 @@ function SearchFilterAdapterContent({
 
 	return (
 		<SearchFilterTRPC
-			commitMode={commitMode}
 			debounceMs={debounceMs}
 			placeholder={placeholder}
 			filterList={

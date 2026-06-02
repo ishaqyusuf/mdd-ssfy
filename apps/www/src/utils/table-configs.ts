@@ -7,7 +7,7 @@ import type { TableId } from "@/utils/table-settings";
 export const STICKY_COLUMNS: Record<TableId, StickyColumnConfig[]> = {
     "sales-orders": [
         { id: "select", width: 50 },
-        { id: "orderId", width: 180 },
+        { id: "orderId", width: 220 },
     ],
 };
 

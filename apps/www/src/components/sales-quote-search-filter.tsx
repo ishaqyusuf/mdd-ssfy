@@ -16,7 +16,6 @@ export function SalesQuoteSearchFilter({ initialFilterList }: Props) {
 
     return (
         <SearchFilter
-            commitMode="submit"
             filterSchema={salesFilterParamsSchema}
             initialFilterList={initialFilterList}
             placeholder="Search quote information..."

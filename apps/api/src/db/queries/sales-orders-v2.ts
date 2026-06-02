@@ -5,6 +5,11 @@ import type { TRPCContext } from "@api/trpc/init";
 import { transformSalesFilterQuery } from "@api/utils/sales";
 import { SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
+import {
+  isControlReadV2Enabled,
+  withSalesControl,
+  withSalesListControl,
+} from "@gnd/sales";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
@@ -14,6 +19,7 @@ import {
   salesPrioritySchema,
 } from "@sales/priority";
 import { z } from "zod";
+import { salesNotesCount } from "./sales";
 
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 const ordersV2ProductionStatus = [
@@ -113,7 +119,32 @@ function toFulfillmentLabel(status?: string | null) {
     .join(" ");
 }
 
-function normalizeOrderRow(row: Parameters<typeof salesOrderDto>[0]) {
+type LifecycleQtySnapshot = {
+  total?: number | string | null;
+  qty?: number | string | null;
+};
+
+type ControlAwareOrderRow = ReturnType<typeof normalizeOrderRow> & {
+  control?: {
+    productionStatus?: string | null;
+    dispatchStatus?: string | null;
+    packed?: LifecycleQtySnapshot | null;
+    pendingPacking?: LifecycleQtySnapshot | null;
+    pendingDispatch?: LifecycleQtySnapshot | null;
+    packables?: LifecycleQtySnapshot | null;
+  };
+  statistic?: {
+    packed?: LifecycleQtySnapshot | null;
+    pendingPacking?: LifecycleQtySnapshot | null;
+    pendingDispatch?: LifecycleQtySnapshot | null;
+    packables?: LifecycleQtySnapshot | null;
+  };
+};
+
+function normalizeOrderRow(
+  row: Parameters<typeof salesOrderDto>[0],
+  noteCount = 0,
+) {
   const dto = salesOrderDto(row, false);
   const productionState = dto.status?.production?.status || "pending";
   const fulfillmentState = dto.deliveryStatus || "pending";
@@ -131,6 +162,7 @@ function normalizeOrderRow(row: Parameters<typeof salesOrderDto>[0]) {
     orderId: dto.orderId,
     createdAt: dto.createdAt,
     salesDate: dto.salesDate,
+    displayName: dto.displayName || "Unknown customer",
     customerName: dto.displayName || "Unknown customer",
     customerPhone: dto.customerPhone || "-",
     customerId: dto.customerId,
@@ -138,7 +170,11 @@ function normalizeOrderRow(row: Parameters<typeof salesOrderDto>[0]) {
     accountNo: dto.accountNo,
     address: dto.address || "No address",
     salesRepName: dto.salesRep || "Unassigned",
+    salesRepInitial: dto.salesRepInitial || "",
     poNo: dto.poNo || "-",
+    inboundStatus: dto.inboundStatus || null,
+    isDealerSale: dto.isDealerSale,
+    noteCount,
     deliveryOption: dto.deliveryOption || "pickup",
     priority: normalizeSalesPriority(row.priority),
     priorityLabel: getSalesPriorityLabel(row.priority),
@@ -156,6 +192,41 @@ function normalizeOrderRow(row: Parameters<typeof salesOrderDto>[0]) {
     ),
     fulfillmentState,
     fulfillmentLabel: toFulfillmentLabel(fulfillmentState),
+    status: lifecycleStatus.status,
+    statusLabel: lifecycleStatus.label,
+    statusTone: lifecycleStatus.tone,
+  };
+}
+
+function applyControlAwareLifecycle(row: ControlAwareOrderRow) {
+  const control = row.control;
+  const statistic = row.statistic;
+  const productionStatus =
+    control?.productionStatus && control.productionStatus !== "unknown"
+      ? control.productionStatus
+      : row.productionState;
+  const fulfillmentStatus =
+    control?.dispatchStatus && control.dispatchStatus !== "unknown"
+      ? control.dispatchStatus
+      : row.fulfillmentState;
+  const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
+    orderStatus: row.orderStatus,
+    legacyProductionStatus: row.prodStatus,
+    productionStatus,
+    fulfillmentStatus,
+    hasProductionWork: productionStatus === "N/A" ? false : undefined,
+    packed: control?.packed || statistic?.packed,
+    pendingPacking: control?.pendingPacking || statistic?.pendingPacking,
+    pendingDispatch: control?.pendingDispatch || statistic?.pendingDispatch,
+    packables: control?.packables || statistic?.packables,
+  });
+
+  return {
+    ...row,
+    productionState: productionStatus,
+    productionLabel: toProductionLabel(productionStatus),
+    fulfillmentState: fulfillmentStatus,
+    fulfillmentLabel: toFulfillmentLabel(fulfillmentStatus),
     status: lifecycleStatus.status,
     statusLabel: lifecycleStatus.label,
     statusTone: lifecycleStatus.tone,
@@ -212,7 +283,22 @@ export async function getOrdersV2(ctx: TRPCContext, query: GetOrdersV2Schema) {
     include: SalesListInclude,
   });
 
-  const data = rows.map(normalizeOrderRow);
+  const noteCounts = await salesNotesCount(
+    rows.map((sale) => ({
+      id: sale.id,
+      orderId: sale.orderId,
+    })),
+    db,
+  );
+  const normalizedRows = rows.map((row) =>
+    normalizeOrderRow(row, noteCounts[row.id.toString()]?.noteCount ?? 0),
+  );
+  const rowsWithControl = isControlReadV2Enabled()
+    ? await withSalesListControl(normalizedRows, db)
+    : await withSalesControl(normalizedRows, db);
+  const data = rowsWithControl.map((row) =>
+    applyControlAwareLifecycle(row as ControlAwareOrderRow),
+  );
   return response(data);
 }
 

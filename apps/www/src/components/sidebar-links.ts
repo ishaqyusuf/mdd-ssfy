@@ -204,9 +204,17 @@ export const validateLinks = ({
     userId;
 }) => {
     const validateAccess = (al) => validateRules(al, can, userId, role);
+    const isSuperAdmin = validateRules(
+        [_role.is("Super Admin")],
+        can,
+        userId,
+        role,
+    );
     return linkModules.map((lm) => {
         lm.sections = lm.sections.map((s) => {
             s.links = s.links.map((lnk) => {
+                if (lnk.name === "Sales")
+                    lnk.href = `/sales-book/orders${isSuperAdmin ? "/v2" : ""}`;
                 const valid = validateAccess(lnk.access);
                 // lnk.show = valid;
                 // if(!valid)return

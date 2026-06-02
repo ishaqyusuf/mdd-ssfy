@@ -1,17 +1,30 @@
 "use client";
 
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
+import { SalesMenu } from "@/components/sales-menu";
+import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
+import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
+import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-status";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
-import { HoverCard } from "@gnd/ui/namespace";
+import { useQueryClient } from "@gnd/ui/tanstack";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
+import { useRef, useState } from "react";
 
 export type SalesOrder = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
 
@@ -28,6 +41,71 @@ function paymentHint(item: SalesOrder) {
     if (item.amountDue > 0)
         return `Due ${formatCurrency.format(item.amountDue)}`;
     return "Paid";
+}
+
+function normalizeInboundStatus(status?: string | null) {
+    const value = String(status || "")
+        .trim()
+        .toUpperCase();
+
+    if (
+        value === "AVAILABLE" ||
+        value === "ORDERED" ||
+        value === "PENDING ORDER"
+    ) {
+        return value;
+    }
+
+    return null;
+}
+
+function getInboundToneClass(status?: string | null) {
+    switch (normalizeInboundStatus(status)) {
+        case "AVAILABLE":
+            return "border-emerald-200 bg-emerald-50 text-emerald-700";
+        case "ORDERED":
+            return "border-blue-200 bg-blue-50 text-blue-700";
+        case "PENDING ORDER":
+            return "border-amber-300 bg-amber-50 text-amber-800";
+        default:
+            return "border-slate-200 bg-slate-50 text-slate-600";
+    }
+}
+
+export function salesInboundRowClassName(status?: string | null) {
+    return normalizeInboundStatus(status) === "PENDING ORDER"
+        ? "bg-amber-50/60 hover:bg-amber-100/70"
+        : "";
+}
+
+function SalesInboundBadge({ item }: { item: SalesOrder }) {
+    const status = normalizeInboundStatus(item.inboundStatus);
+    if (!status) return <span className="text-muted-foreground">-</span>;
+
+    return (
+        <Badge
+            variant="outline"
+            className={cn(
+                "rounded-full text-[11px] font-semibold uppercase whitespace-nowrap",
+                getInboundToneClass(status),
+            )}
+        >
+            {status}
+        </Badge>
+    );
+}
+
+function DealerSaleBadge({ item }: { item: SalesOrder }) {
+    if (!item.isDealerSale) return null;
+
+    return (
+        <Badge
+            variant="outline"
+            className="rounded-full border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyan-700"
+        >
+            Dealer
+        </Badge>
+    );
 }
 
 const selectColumn: Column = {
@@ -62,9 +140,9 @@ const orderIdColumn: Column = {
     id: "orderId",
     header: "Order #",
     accessorKey: "orderId",
-    size: 180,
-    minSize: 150,
-    maxSize: 260,
+    size: 220,
+    minSize: 180,
+    maxSize: 320,
     enableResizing: true,
     meta: {
         sticky: true,
@@ -72,14 +150,35 @@ const orderIdColumn: Column = {
         headerLabel: "Order #",
         sortField: "orderId",
         className:
-            "w-[180px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+            "w-[220px] min-w-[180px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
     },
     cell: ({ row }) => (
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
             <span className="truncate font-mono text-sm font-medium uppercase">
                 {row.original.orderId}
             </span>
+            <DealerSaleBadge item={row.original} />
             <SalesPriorityBadge priority={row.original.priority} />
+            {row.original.salesRepInitial &&
+            !row.original.orderId
+                ?.toUpperCase()
+                .endsWith(row.original.salesRepInitial) ? (
+                <Badge
+                    className="h-5 shrink-0 rounded-full px-1.5 text-[10px] font-semibold uppercase"
+                    variant="secondary"
+                >
+                    {row.original.salesRepInitial}
+                </Badge>
+            ) : null}
+            {row.original.noteCount ? (
+                <Badge
+                    className="h-5 shrink-0 gap-1 rounded-full px-1.5 text-[10px]"
+                    variant="secondary"
+                >
+                    <Icons.StickyNote className="size-3" />
+                    <span>{row.original.noteCount}</span>
+                </Badge>
+            ) : null}
         </div>
     ),
 };
@@ -146,9 +245,10 @@ const customerColumn: Column = {
         className: "w-[240px] min-w-[180px]",
     },
     cell: ({ row }) => (
-        <span className="truncate font-medium uppercase">
-            {row.original.customerName}
-        </span>
+        <TextWithTooltip
+            className="max-w-full truncate font-medium uppercase"
+            text={row.original.customerName}
+        />
     ),
 };
 
@@ -166,9 +266,10 @@ const phoneColumn: Column = {
         className: "w-[150px] min-w-[120px]",
     },
     cell: ({ row }) => (
-        <span className="truncate text-muted-foreground">
-            {row.original.customerPhone || "-"}
-        </span>
+        <TextWithTooltip
+            className="max-w-full truncate text-muted-foreground"
+            text={row.original.customerPhone || "-"}
+        />
     ),
 };
 
@@ -192,6 +293,22 @@ const poColumn: Column = {
     ),
 };
 
+const inboundColumn: Column = {
+    id: "inboundStatus",
+    header: "Inbound",
+    accessorKey: "inboundStatus",
+    size: 130,
+    minSize: 110,
+    maxSize: 180,
+    enableResizing: true,
+    meta: {
+        skeleton: { type: "badge", width: "w-24" },
+        headerLabel: "Inbound",
+        className: "w-[130px] min-w-[110px]",
+    },
+    cell: ({ row }) => <SalesInboundBadge item={row.original} />,
+};
+
 const invoiceTotalColumn: Column = {
     id: "invoiceTotal",
     header: "Invoice",
@@ -206,16 +323,7 @@ const invoiceTotalColumn: Column = {
         sortField: "grandTotal",
         className: "w-[140px] min-w-[110px] text-right",
     },
-    cell: ({ row }) => (
-        <span
-            className={cn(
-                "block truncate text-right font-mono font-medium",
-                amountTone(row.original),
-            )}
-        >
-            {formatCurrency.format(row.original.invoiceTotal)}
-        </span>
-    ),
+    cell: ({ row }) => <InvoiceCell item={row.original} />,
 };
 
 const amountDueColumn: Column = {
@@ -335,18 +443,19 @@ const addressColumn: Column = {
         className: "w-[260px] min-w-[180px]",
     },
     cell: ({ row }) => (
-        <span className="truncate text-muted-foreground">
-            {row.original.address}
-        </span>
+        <TextWithTooltip
+            className="max-w-full truncate text-muted-foreground"
+            text={row.original.address}
+        />
     ),
 };
 
 const actionsColumn: Column = {
     id: "actions",
     header: "Actions",
-    size: 96,
-    minSize: 96,
-    maxSize: 96,
+    size: 144,
+    minSize: 144,
+    maxSize: 144,
     enableResizing: false,
     enableHiding: false,
     enableSorting: false,
@@ -354,7 +463,7 @@ const actionsColumn: Column = {
         skeleton: { type: "icon" },
         headerLabel: "Actions",
         className:
-            "w-[96px] min-w-[96px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+            "w-[144px] min-w-[144px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
     },
     cell: ({ row }) => <ActionCell item={row.original} />,
 };
@@ -362,102 +471,154 @@ const actionsColumn: Column = {
 export const columns: Column[] = [
     selectColumn,
     orderIdColumn,
-    statusColumn,
     salesDateColumn,
+    poColumn,
+    inboundColumn,
     customerColumn,
     phoneColumn,
-    poColumn,
+    addressColumn,
     invoiceTotalColumn,
-    amountDueColumn,
     deliveryColumn,
+    statusColumn,
+    amountDueColumn,
     productionColumn,
     fulfillmentColumn,
     salesRepColumn,
-    addressColumn,
     actionsColumn,
 ];
 
+function InvoiceCell({ item }: { item: SalesOrder }) {
+    const [opened, setOpened] = useState(false);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const pending = item.amountDue;
+    const total = item.invoiceTotal;
+    const paid = Math.max(total - pending, 0);
+    const hasPendingBalance = pending > 0;
+
+    if (!hasPendingBalance) {
+        return (
+            <span
+                className={cn(
+                    "block truncate text-right font-mono font-medium",
+                    amountTone(item),
+                )}
+            >
+                {formatCurrency.format(total)}
+            </span>
+        );
+    }
+
+    return (
+        <div className="relative z-10 text-right">
+            <SalesPaymentProcessor
+                phoneNo={item.accountNo || item.customerPhone}
+                selectedIds={[item.id]}
+                customerId={item.customerId}
+            >
+                <button
+                    ref={buttonRef}
+                    type="button"
+                    className="hidden"
+                    onClick={(event) => event.stopPropagation()}
+                />
+            </SalesPaymentProcessor>
+            <TooltipProvider delayDuration={70}>
+                <Tooltip open={opened} onOpenChange={setOpened}>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            className={cn(
+                                "block w-full truncate text-right font-mono font-medium",
+                                amountTone(item),
+                            )}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }}
+                        >
+                            {formatCurrency.format(total)}
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                        align="end"
+                        side="left"
+                        sideOffset={10}
+                        className="relative z-[999] w-52 space-y-3 px-3 py-2 text-xs"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}
+                    >
+                        <div className="space-y-2">
+                            <InvoiceBreakdownLine
+                                label="Pending"
+                                value={pending}
+                            />
+                            <InvoiceBreakdownLine label="Paid" value={paid} />
+                            <InvoiceBreakdownLine label="Total" value={total} />
+                        </div>
+                        <Button
+                            className="w-full"
+                            disabled={!item.due}
+                            size="sm"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                setOpened(false);
+                                buttonRef.current?.click();
+                            }}
+                        >
+                            Apply Payment
+                        </Button>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </div>
+    );
+}
+
+function InvoiceBreakdownLine({
+    label,
+    value,
+}: {
+    label: string;
+    value: number;
+}) {
+    return (
+        <div className="flex items-center justify-between gap-4">
+            <span className="font-medium text-muted-foreground">{label}</span>
+            <span className="font-mono font-medium">
+                {formatCurrency.format(value)}
+            </span>
+        </div>
+    );
+}
+
 function ActionCell({ item }: { item: SalesOrder }) {
+    const trpc = useTRPC();
+    const queryClient = useQueryClient();
     const overviewQuery = useSalesOverviewQuery();
 
     return (
         <div className="relative z-10 flex items-center justify-end gap-1">
-            <HoverCard.Root openDelay={120} closeDelay={80}>
-                <HoverCard.Trigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <Icons.Eye className="size-4" />
-                        <span className="sr-only">Preview order</span>
-                    </Button>
-                </HoverCard.Trigger>
-                <HoverCard.Content
-                    align="end"
-                    side="left"
-                    sideOffset={10}
-                    className="w-[300px] rounded-md border border-border bg-background p-4 shadow-xl"
+            <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+                <Link
+                    href={`/sales-book/edit-order/${item.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Edit"
+                    aria-label={`Edit ${item.orderId || item.slug}`}
+                    onClick={(event) => event.stopPropagation()}
                 >
-                    <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                                <p className="truncate text-sm font-semibold">
-                                    {item.customerName}
-                                </p>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                    {item.orderId}
-                                </p>
-                            </div>
-                            <Badge
-                                className={cn(
-                                    "whitespace-nowrap border-0",
-                                    getSalesOrderLifecycleStatusBadgeClassName(
-                                        item.status,
-                                    ),
-                                )}
-                            >
-                                {item.statusLabel}
-                            </Badge>
-                        </div>
-
-                        <div className="space-y-2.5 text-sm">
-                            <OverviewLine
-                                label="Amount"
-                                value={formatCurrency.format(item.invoiceTotal)}
-                                valueClassName={amountTone(item)}
-                            />
-                            <OverviewLine
-                                label="Payment"
-                                value={paymentHint(item)}
-                            />
-                            <OverviewLine
-                                label="Phone"
-                                value={item.customerPhone || "-"}
-                            />
-                            <OverviewLine
-                                label="Sales rep"
-                                value={item.salesRepName}
-                            />
-                            <OverviewLine
-                                label="Production"
-                                value={item.productionLabel}
-                            />
-                            <OverviewLine
-                                label="Fulfillment"
-                                value={item.fulfillmentLabel}
-                            />
-                        </div>
-
-                        <div className="border-t border-border pt-3">
-                            <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                                {item.address}
-                            </p>
-                        </div>
-                    </div>
-                </HoverCard.Content>
-            </HoverCard.Root>
+                    <Icons.Edit className="size-4" />
+                    <span className="sr-only">Edit order</span>
+                </Link>
+            </Button>
 
             <Button
                 variant="ghost"
@@ -471,32 +632,47 @@ function ActionCell({ item }: { item: SalesOrder }) {
                 <Icons.ArrowUpRight className="size-4" />
                 <span className="sr-only">Open order</span>
             </Button>
-        </div>
-    );
-}
-
-function OverviewLine({
-    label,
-    value,
-    valueClassName,
-}: {
-    label: string;
-    value: string;
-    valueClassName?: string;
-}) {
-    return (
-        <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                {label}
-            </span>
-            <span
-                className={cn(
-                    "truncate text-right font-medium",
-                    valueClassName,
-                )}
+            <SalesMenu
+                id={item.id}
+                slug={item.slug}
+                type="order"
+                orderNo={item.orderId}
+                customerEmail={item.email}
+                customerName={item.customerName}
+                trigger={
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <Icons.MoreHoriz className="size-4" />
+                        <span className="sr-only">More order actions</span>
+                    </Button>
+                }
+                contentClassName="min-w-52"
             >
-                {value}
-            </span>
+                <SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
+                <SalesMenu.SalesEmailMenuItems />
+                <SalesMenu.SalesPrintMenuItems />
+                <SalesMenu.Copy />
+                <SalesMenu.Move />
+                <SalesMenu.Separator />
+                <SalesMenu.Delete
+                    onDeleted={async () => {
+                        await Promise.all([
+                            queryClient.invalidateQueries({
+                                queryKey:
+                                    trpc.sales.getOrdersV2.infiniteQueryKey(),
+                            }),
+                            queryClient.invalidateQueries({
+                                queryKey:
+                                    trpc.sales.getOrdersV2Summary.queryKey(),
+                            }),
+                        ]);
+                    }}
+                />
+            </SalesMenu>
         </div>
     );
 }

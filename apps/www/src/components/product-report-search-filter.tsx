@@ -14,7 +14,6 @@ export function ProductReportSearchFilter({ initialFilterList }: Props) {
 
     return (
         <SearchFilter
-            commitMode="debounced"
             debounceMs={300}
             filterSchema={productReportFilterParams}
             initialFilterList={initialFilterList}

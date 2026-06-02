@@ -23,11 +23,11 @@ import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { BottomBar } from "./bottom-bar";
-import { columns } from "./columns";
+import { columns, salesInboundRowClassName } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { DataTableHeader } from "./table-header";
 
-const NON_CLICKABLE_COLUMNS = new Set(["select", "actions"]);
+const NON_CLICKABLE_COLUMNS = new Set(["select", "invoiceTotal", "actions"]);
 const COLUMN_IDS = getColumnIds(columns);
 const ROW_HEIGHT = 57;
 
@@ -135,6 +135,11 @@ export function DataTable({ initialSettings }: Props) {
         },
         [overviewQuery],
     );
+    const rowClassName = useCallback(
+        (row: (typeof rows)[number]) =>
+            salesInboundRowClassName(row.original.inboundStatus),
+        [],
+    );
 
     const showBottomBar = Object.keys(rowSelection).length > 0;
 
@@ -204,6 +209,7 @@ export function DataTable({ initialSettings }: Props) {
                                             isSelected={
                                                 rowSelection[row.id] ?? false
                                             }
+                                            rowClassName={rowClassName}
                                         />
                                     );
                                 })}
@@ -226,4 +232,3 @@ export function DataTable({ initialSettings }: Props) {
         </div>
     );
 }
-

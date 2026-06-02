@@ -19,7 +19,6 @@ export function EmployeeHeader({ initialFilterList }: Props) {
 				placeholder="Search Employees..."
 				trpcRoute={trpc.filters.employee}
 				initialFilterList={initialFilterList}
-				commitMode="submit"
 			/>
 			<div className="flex justify-end">
 				<OpenEmployeeSheet />

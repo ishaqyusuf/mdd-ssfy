@@ -34,7 +34,6 @@ function Content() {
 	return (
 		<>
 			<SearchFilterTRPC
-				commitMode="submit"
 				placeholder="Search customers"
 				filterList={trpcFilterData}
 			/>

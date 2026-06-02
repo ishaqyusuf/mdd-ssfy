@@ -1,10 +1,10 @@
 "use client";
 
-import { useSalesOrdersStore } from "@/store/sales-orders";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Icons } from "@gnd/ui/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { useSalesOrdersStore } from "@/store/sales-orders";
 
 export function SalesOrdersV2ColumnVisibility() {
     const { columns } = useSalesOrdersStore();

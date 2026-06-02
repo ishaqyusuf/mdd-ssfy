@@ -16,7 +16,6 @@ export function OrderSearchFilter({ initialFilterList }: Props) {
 
     return (
         <SearchFilter
-            commitMode="submit"
             filterSchema={salesFilterParamsSchema}
             initialFilterList={initialFilterList}
             placeholder="Search order information..."

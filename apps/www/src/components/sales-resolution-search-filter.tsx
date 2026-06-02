@@ -33,7 +33,6 @@ function Content({ initialFilterList }: Props) {
 	return (
 		<>
 			<SearchFilterTRPC
-				commitMode="submit"
 				placeholder={"Search Order Information"}
 				filterList={trpcFilterData}
 			/>

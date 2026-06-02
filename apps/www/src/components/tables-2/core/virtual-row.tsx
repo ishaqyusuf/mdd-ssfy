@@ -29,6 +29,7 @@ interface VirtualRowProps<TData> {
     columnVisibility?: VisibilityState;
     isSelected?: boolean;
     isExporting?: boolean;
+    rowClassName?: (row: Row<TData>) => string;
 }
 
 function VirtualRowInner<TData>({
@@ -39,6 +40,7 @@ function VirtualRowInner<TData>({
     getStickyStyle,
     getStickyClassName,
     nonClickableColumns = new Set(["select", "actions"]),
+    rowClassName,
 }: VirtualRowProps<TData>) {
     const cells = row.getVisibleCells();
     const lastCellId = cells[cells.length - 1]?.column.id ?? "";
@@ -56,6 +58,7 @@ function VirtualRowInner<TData>({
                 "hover:bg-[#F2F1EF] hover:dark:bg-secondary",
                 "flex items-center border-0",
                 "absolute left-0 top-0 w-full min-w-full",
+                rowClassName?.(row),
             )}
             style={{
                 height: rowHeight,

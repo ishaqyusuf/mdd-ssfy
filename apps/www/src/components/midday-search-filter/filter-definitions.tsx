@@ -5,8 +5,6 @@ import type { IconKeys } from "@gnd/ui/icons";
 import type { ComponentType, ReactNode } from "react";
 import { searchIcons } from "./search-utils";
 
-export type FilterCommitMode = "debounced" | "immediate" | "submit";
-
 export type FilterOption = {
 	label: string;
 	subLabel?: string;
@@ -48,7 +46,6 @@ export type FilterDefinition = {
 	icon?: IconKeys;
 	options?: FilterOption[];
 	optionSource?: "server-prefetched" | "lazy-client" | "static";
-	commitMode?: FilterCommitMode;
 	debounceMs?: number;
 	renderControl?: ComponentType<FilterControlProps>;
 	renderChip?: ComponentType<FilterChipProps>;
@@ -59,7 +56,6 @@ type CreateFilterConfigInput = {
 	search?: {
 		key?: string;
 		placeholder?: string;
-		commitMode?: FilterCommitMode;
 		debounceMs?: number;
 	};
 	filters?: FilterDefinition[];

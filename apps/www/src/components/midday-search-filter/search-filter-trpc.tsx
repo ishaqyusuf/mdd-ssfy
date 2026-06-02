@@ -33,7 +33,6 @@ import { PageTabs } from "../page-tabs";
 import { SavePageTabButton } from "../page-tabs/save-page-tab-button";
 import { SelectTag } from "../select-tag";
 import {
-    type FilterCommitMode,
     type FilterDefinition,
     buildOptionLabelLookup,
     normalizeFilterDefinitions,
@@ -55,7 +54,6 @@ interface Props {
     filterList?: Array<PageFilterData | FilterDefinition>;
     SearchTips?: ReactNode;
     searchKey?: string;
-    commitMode?: FilterCommitMode;
     debounceMs?: number;
 }
 
@@ -80,7 +78,6 @@ export function SearchFilterTRPC({
     filterList,
     SearchTips,
     searchKey: searchKeyProp,
-    commitMode = "debounced",
     debounceMs = 400,
 }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
@@ -115,12 +112,14 @@ export function SearchFilterTRPC({
     );
     const debouncedPrompt = useDebounce(prompt, debounceMs);
     const hasMounted = useRef(false);
+    const hasPendingDebouncedSearch = useRef(false);
     const nonSearchDefinitions = definitions.filter(
         (definition) => !isSearchKey(definition.key),
     );
 
     useEffect(() => {
         const nextPrompt = typeof searchValue === "string" ? searchValue : "";
+        hasPendingDebouncedSearch.current = false;
 
         setPrompt((currentPrompt) =>
             currentPrompt === nextPrompt ? currentPrompt : nextPrompt,
@@ -128,19 +127,22 @@ export function SearchFilterTRPC({
     }, [searchValue]);
 
     useEffect(() => {
-        if (commitMode !== "debounced") return;
-
         if (!hasMounted.current) {
             hasMounted.current = true;
             return;
         }
 
+        if (!hasPendingDebouncedSearch.current) return;
+        if (debouncedPrompt !== prompt) return;
+
+        hasPendingDebouncedSearch.current = false;
         setSearch(debouncedPrompt.length > 0 ? debouncedPrompt : null);
-    }, [commitMode, debouncedPrompt, setSearch]);
+    }, [debouncedPrompt, prompt, setSearch]);
 
     useHotkeys(
         "esc",
         () => {
+            hasPendingDebouncedSearch.current = false;
             setPrompt("");
             clearAll();
             setIsOpen(false);
@@ -175,18 +177,18 @@ export function SearchFilterTRPC({
         const value = evt.target.value;
         setPrompt(value);
 
-        if (commitMode === "immediate") {
-            setSearch(value.length > 0 ? value : null);
+        if (!value) {
+            hasPendingDebouncedSearch.current = false;
+            setSearch(null);
             return;
         }
 
-        if (!value) {
-            setSearch(null);
-        }
+        hasPendingDebouncedSearch.current = true;
     };
 
     const handleSubmit = (evt?: React.FormEvent) => {
         evt?.preventDefault();
+        hasPendingDebouncedSearch.current = false;
         setSearch(prompt.length > 0 ? prompt : null);
     };
 
@@ -238,12 +240,14 @@ export function SearchFilterTRPC({
                         setFilters(obj);
 
                         if (Object.keys(obj).some((key) => isSearchKey(key))) {
+                            hasPendingDebouncedSearch.current = false;
                             setPrompt("");
                         }
                     }}
                     onClearAll={() => {
-                        clearAll();
+                        hasPendingDebouncedSearch.current = false;
                         setPrompt("");
+                        clearAll();
                     }}
                     filters={filters}
                     definitions={definitions}

@@ -201,6 +201,7 @@ function renderHeaderContent<TData>(
     const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
     const sortField =
         meta?.sortField ?? SORT_FIELD_MAPS["sales-orders"][columnId];
+    const isRightAligned = meta?.className?.split(/\s+/).includes("text-right");
 
     if (columnId === "select") {
         return (
@@ -255,7 +256,13 @@ function renderHeaderContent<TData>(
 
     if (sortField) {
         return (
-            <div className="w-full overflow-hidden">
+            <div
+                className={
+                    isRightAligned
+                        ? "flex w-full justify-end overflow-hidden"
+                        : "w-full overflow-hidden"
+                }
+            >
                 <SortButton
                     label={
                         meta?.headerLabel ??
@@ -271,7 +278,13 @@ function renderHeaderContent<TData>(
     }
 
     return (
-        <span className="truncate text-muted-foreground">
+        <span
+            className={
+                isRightAligned
+                    ? "block w-full truncate text-right text-muted-foreground"
+                    : "truncate text-muted-foreground"
+            }
+        >
             {meta?.headerLabel ?? getHeaderLabel(header.column.columnDef)}
         </span>
     );

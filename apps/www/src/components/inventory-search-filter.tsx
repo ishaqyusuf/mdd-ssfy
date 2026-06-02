@@ -33,7 +33,6 @@ function Content() {
 	return (
 		<>
 			<SearchFilterTRPC
-				commitMode="debounced"
 				debounceMs={300}
 				placeholder={"Search Inventories"}
 				filterList={trpcFilterData}

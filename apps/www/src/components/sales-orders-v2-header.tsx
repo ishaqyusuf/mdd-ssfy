@@ -52,7 +52,6 @@ function SalesOrdersV2SearchFilterContent() {
 
 	return (
 		<SearchFilterTRPC
-			commitMode="submit"
 			placeholder="Search order number, customer, phone, address, or P.O..."
 			filterList={trpcFilterData}
 		/>
