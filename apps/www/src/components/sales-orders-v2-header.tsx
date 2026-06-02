@@ -12,6 +12,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import Link from "next/link";
 import { CreateSalesBtn } from "./create-sales-btn";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
+import { SalesOrdersV2ColumnVisibility } from "./sales-orders-v2-column-visibility";
 
 export function SalesOrdersV2Header() {
 	return (
@@ -28,6 +29,7 @@ export function SalesOrdersV2Header() {
 				</SearchFilterProvider>
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
+				<SalesOrdersV2ColumnVisibility />
 				<Button asChild size="sm" variant="outline">
 					<Link href="/sales-book/orders">
 						<Icons.ArrowUpRight className="mr-2 size-4" />
