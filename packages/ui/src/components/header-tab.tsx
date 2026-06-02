@@ -122,7 +122,7 @@ function HeaderTabRoot({
     <nav
       aria-label={ariaLabel}
       className={cn(
-        "flex min-h-12 w-full items-center gap-1.5 overflow-x-auto border-b bg-muted/30 px-4 py-1.5 shadow-[inset_0_1px_0_hsl(var(--background))] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden",
+        "flex min-h-12 h-12 w-full items-center gap-1.5 overflow-x-auto border-b bg-muted/30 px-4 py-1.5 shadow-[inset_0_1px_0_hsl(var(--background))] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden",
         className,
       )}
       {...props}

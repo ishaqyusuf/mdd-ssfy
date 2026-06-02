@@ -5,8 +5,8 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-    // https://expo.dev/artifacts/eas/5JvtaSZHhYgbLXgTCsF8c.apk
-    const appId = "Lapzmc2oAJVCe7NDDV3iA";
+    // https://expo.dev/artifacts/eas/8M2oGUT7d6UwmUJr9ahjrh.apk
+    const appId = "8M2oGUT7d6UwmUJr9ahjrh";
     const versionNumber = "1.0.305";
     const fileUrl =
         searchParams.get("url") ??
@@ -101,4 +101,3 @@ export async function ___GET() {
         },
     });
 }
-

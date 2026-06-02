@@ -77,7 +77,7 @@ function NavLayoutClient({ children, pageTabDefaults }) {
                         />
                     </div>
                 </SiteNav.Sidebar>
-                <SiteNav.Shell className="pb-8">
+                <SiteNav.Shell className="">
                     <Header />
                     <div className="">{children}</div>
                 </SiteNav.Shell>
@@ -85,3 +85,4 @@ function NavLayoutClient({ children, pageTabDefaults }) {
         </SiteNav.Provider>
     );
 }
+

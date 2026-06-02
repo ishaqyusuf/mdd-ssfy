@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { buildPrintRequests, resolveDefaultPaymentMethod } from "./utils";
 
 describe("sales payment processor utils", () => {
-	it("uses the selected order payment method when available", () => {
+	it("uses the selected sale payment method when available", () => {
 		expect(
 			resolveDefaultPaymentMethod(
 				[
@@ -14,7 +14,19 @@ describe("sales payment processor utils", () => {
 		).toBe("credit-card");
 	});
 
-	it("falls back to the first order payment method", () => {
+	it("uses the first selected sale payment method", () => {
+		expect(
+			resolveDefaultPaymentMethod(
+				[
+					{ id: 1, paymentMethod: "Check" },
+					{ id: 2, paymentMethod: "Credit Card" },
+				],
+				[2, 1],
+			),
+		).toBe("credit-card");
+	});
+
+	it("defaults to credit card when the selected sale has no payment method", () => {
 		expect(
 			resolveDefaultPaymentMethod(
 				[
@@ -23,7 +35,7 @@ describe("sales payment processor utils", () => {
 				],
 				[2],
 			),
-		).toBe("check");
+		).toBe("credit-card");
 	});
 
 	it("defaults to credit card when no order payment method exists", () => {

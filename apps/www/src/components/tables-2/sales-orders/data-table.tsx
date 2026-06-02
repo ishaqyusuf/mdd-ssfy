@@ -2,24 +2,28 @@
 
 import { VirtualRow } from "@/components/tables-2/core";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
+import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
+import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { STICKY_COLUMNS, SUMMARY_GRID_HEIGHTS } from "@/utils/table-configs";
 import { getColumnIds, type TableSettings } from "@/utils/table-settings";
+import { closestCenter, DndContext } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import { AnimatePresence } from "framer-motion";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { BottomBar } from "./bottom-bar";
-import { columns, type SalesOrder } from "./columns";
+import { columns } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { DataTableHeader } from "./table-header";
 
@@ -37,9 +41,11 @@ export function DataTable({ initialSettings }: Props) {
     const { filters, hasFilters } = useSalesOrdersV2FilterParams();
     const overviewQuery = useSalesOverviewQuery();
     const parentRef = useRef<HTMLDivElement>(null);
-    const [rowSelection, setRowSelection] = useState<Record<string, boolean>>(
-        {},
-    );
+    const { rowSelection, setRowSelection, setColumns } = useSalesOrdersStore();
+
+    useScrollHeader(parentRef, {
+        extraOffset: SUMMARY_GRID_HEIGHTS["sales-orders"],
+    });
 
     const {
         columnVisibility,
@@ -55,7 +61,10 @@ export function DataTable({ initialSettings }: Props) {
     });
 
     const infiniteQueryOptions = trpc.sales.getOrdersV2.infiniteQueryOptions(
-        filters,
+        {
+            ...filters,
+            sort: params.sort,
+        },
         {
             getNextPageParam: ({ meta }) =>
                 (meta as { cursor?: string | number | null } | undefined)
@@ -67,15 +76,8 @@ export function DataTable({ initialSettings }: Props) {
         useSuspenseInfiniteQuery(infiniteQueryOptions);
 
     const tableData = useMemo(() => {
-        const rows = data?.pages.flatMap((page) => page?.data ?? []) ?? [];
-        const [sortColumn, sortValue] = params.sort?.[0]?.split(".") ?? [];
-
-        if (!sortColumn || !sortValue) return rows;
-
-        return [...rows].sort((a, b) =>
-            compareSalesOrders(a, b, sortColumn, sortValue),
-        );
-    }, [data, params.sort]);
+        return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
+    }, [data]);
 
     const table = useReactTable({
         data: tableData,
@@ -101,6 +103,7 @@ export function DataTable({ initialSettings }: Props) {
         table,
         stickyColumns: STICKY_COLUMNS["sales-orders"],
     });
+    const { sensors, handleDragEnd } = useTableDnd(table);
     const tableScroll = useTableScroll({
         useColumnWidths: true,
         startFromColumn: 2,
@@ -112,6 +115,10 @@ export function DataTable({ initialSettings }: Props) {
         estimateSize: () => ROW_HEIGHT,
         overscan: 10,
     });
+
+    useEffect(() => {
+        setColumns(table.getAllLeafColumns());
+    }, [columnVisibility, setColumns, table]);
 
     useInfiniteScroll<HTMLDivElement>({
         scrollRef: parentRef,
@@ -151,101 +158,72 @@ export function DataTable({ initialSettings }: Props) {
                     }}
                     className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
                     style={{
-                        height: "calc(100vh - 350px)",
+                        height: "calc(100vh - 350px + var(--header-offset, 0px))",
                     }}
                 >
-                    <Table className="w-full min-w-full">
-                        <DataTableHeader
-                            table={table}
-                            tableScroll={tableScroll}
-                        />
+                    <DndContext
+                        id="sales-orders-table-dnd"
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <Table className="w-full min-w-full">
+                            <DataTableHeader
+                                table={table}
+                                tableScroll={tableScroll}
+                            />
 
-                        <TableBody
-                            className="block border-l-0 border-r-0"
-                            style={{
-                                height: `${rowVirtualizer.getTotalSize()}px`,
-                                position: "relative",
-                            }}
-                        >
-                            {virtualItems.map((virtualRow: VirtualItem) => {
-                                const row = rows[virtualRow.index];
-                                if (!row) return null;
+                            <TableBody
+                                className="block border-l-0 border-r-0"
+                                style={{
+                                    height: `${rowVirtualizer.getTotalSize()}px`,
+                                    position: "relative",
+                                }}
+                            >
+                                {virtualItems.map((virtualRow: VirtualItem) => {
+                                    const row = rows[virtualRow.index];
+                                    if (!row) return null;
 
-                                return (
-                                    <VirtualRow
-                                        key={row.id}
-                                        row={row}
-                                        virtualStart={virtualRow.start}
-                                        rowHeight={ROW_HEIGHT}
-                                        getStickyStyle={getStickyStyle}
-                                        getStickyClassName={getStickyClassName}
-                                        nonClickableColumns={
-                                            NON_CLICKABLE_COLUMNS
-                                        }
-                                        onCellClick={handleCellClick}
-                                        columnSizing={columnSizing}
-                                        columnOrder={columnOrder}
-                                        columnVisibility={columnVisibility}
-                                        isSelected={
-                                            rowSelection[row.id] ?? false
-                                        }
-                                    />
-                                );
-                            })}
-                        </TableBody>
-                    </Table>
+                                    return (
+                                        <VirtualRow
+                                            key={row.id}
+                                            row={row}
+                                            virtualStart={virtualRow.start}
+                                            rowHeight={ROW_HEIGHT}
+                                            getStickyStyle={getStickyStyle}
+                                            getStickyClassName={
+                                                getStickyClassName
+                                            }
+                                            nonClickableColumns={
+                                                NON_CLICKABLE_COLUMNS
+                                            }
+                                            onCellClick={handleCellClick}
+                                            columnSizing={columnSizing}
+                                            columnOrder={columnOrder}
+                                            columnVisibility={columnVisibility}
+                                            isSelected={
+                                                rowSelection[row.id] ?? false
+                                            }
+                                        />
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </DndContext>
+                    <div
+                        style={{
+                            height: "var(--header-offset, 0px)",
+                            flexShrink: 0,
+                        }}
+                        aria-hidden
+                    />
                 </div>
             </div>
 
             <AnimatePresence>
-                {showBottomBar && (
-                    <BottomBar
-                        selectedCount={Object.keys(rowSelection).length}
-                        onDeselect={() => table.resetRowSelection()}
-                    />
-                )}
+                {showBottomBar && <BottomBar data={tableData} />}
             </AnimatePresence>
         </div>
     );
 }
 
-function compareSalesOrders(
-    a: SalesOrder,
-    b: SalesOrder,
-    sortColumn: string,
-    sortValue: string,
-) {
-    const direction = sortValue === "desc" ? -1 : 1;
-    const left = getSortValue(a, sortColumn);
-    const right = getSortValue(b, sortColumn);
-
-    if (typeof left === "number" && typeof right === "number") {
-        return (left - right) * direction;
-    }
-
-    return String(left ?? "").localeCompare(String(right ?? "")) * direction;
-}
-
-function getSortValue(item: SalesOrder, sortColumn: string) {
-    switch (sortColumn) {
-        case "grandTotal":
-            return item.invoiceTotal;
-        case "amountDue":
-            return item.amountDue;
-        case "createdAt":
-            return item.salesDate;
-        case "prodStatus":
-            return item.productionLabel;
-        case "deliveredAt":
-            return item.fulfillmentLabel;
-        case "salesRepName":
-            return item.salesRepName;
-        case "customerName":
-            return item.customerName;
-        case "status":
-            return item.statusLabel;
-        case "orderId":
-        default:
-            return item.orderId;
-    }
-}

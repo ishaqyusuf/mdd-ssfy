@@ -24,18 +24,12 @@ export function resolveDefaultPaymentMethod(
 	sales: { id: number; paymentMethod?: string | null }[],
 	selectedIds: number[],
 ) {
-	const selectedPaymentMethod = sales.find((sale) =>
-		selectedIds.includes(sale.id),
-	)?.paymentMethod;
-	const firstPaymentMethod = sales.find(
-		(sale) => sale.paymentMethod,
-	)?.paymentMethod;
+	const selectedSalesById = new Map(sales.map((sale) => [sale.id, sale]));
+	const selectedPaymentMethod = selectedIds
+		.map((id) => selectedSalesById.get(id)?.paymentMethod)
+		.find((paymentMethod) => normalizePaymentMethod(paymentMethod));
 
-	return (
-		normalizePaymentMethod(selectedPaymentMethod) ||
-		normalizePaymentMethod(firstPaymentMethod) ||
-		"credit-card"
-	);
+	return normalizePaymentMethod(selectedPaymentMethod) || "credit-card";
 }
 
 export function buildPrintRequests(input: {

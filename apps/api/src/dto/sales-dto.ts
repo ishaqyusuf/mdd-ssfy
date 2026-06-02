@@ -85,6 +85,29 @@ export function salesQuoteDto(data: Item, bin?: boolean) {
     ...commonListData(data, bin),
   };
 }
+function resolveSalesPaymentMethod(meta: unknown) {
+  const record =
+    meta && typeof meta === "object" && !Array.isArray(meta)
+      ? (meta as SalesMeta & Record<string, unknown>)
+      : null;
+  const newSalesForm =
+    record?.newSalesForm &&
+    typeof record.newSalesForm === "object" &&
+    !Array.isArray(record.newSalesForm)
+      ? (record.newSalesForm as Record<string, unknown>)
+      : null;
+  const form =
+    newSalesForm?.form &&
+    typeof newSalesForm.form === "object" &&
+    !Array.isArray(newSalesForm.form)
+      ? (newSalesForm.form as Record<string, unknown>)
+      : null;
+  const paymentMethod = form?.paymentMethod;
+  const legacyPaymentMethod = record?.payment_option || record?.paymentOption;
+
+  if (typeof paymentMethod === "string") return paymentMethod;
+  return typeof legacyPaymentMethod === "string" ? legacyPaymentMethod : null;
+}
 function getAddressDto(
   data: Item["shippingAddress"],
   customer: Item["customer"],
@@ -119,6 +142,7 @@ function commonListData(data: Item, bin?: boolean) {
   const paid = sum([data.grandTotal! - data.amountDue!]);
   const creditCardFee = toNumber(meta?.ccc);
   const creditCardFeePercentage = toNumber(meta?.ccc_percentage);
+  const paymentMethod = resolveSalesPaymentMethod(meta);
   _cost("Sub total", data.subTotal);
   data.extraCosts.map((e) => {
     _cost(e.label, e.totalAmount || e.amount);
@@ -172,6 +196,7 @@ function commonListData(data: Item, bin?: boolean) {
     salesRep: data.salesRep?.name,
     salesRepInitial: getNameInitials(data.salesRep?.name!),
     poNo: meta?.po,
+    paymentMethod,
     priority: normalizeSalesPriority(data.priority),
     priorityLabel: getSalesPriorityLabel(data.priority),
     deliveryOption: data?.deliveryOption,

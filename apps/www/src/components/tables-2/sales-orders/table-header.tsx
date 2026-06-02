@@ -7,15 +7,26 @@ import {
     type TableScrollState,
     getHeaderLabel,
 } from "@/components/tables-2/core";
+import { DraggableHeader } from "@/components/tables-2/draggable-header";
+import { ResizeHandle } from "@/components/tables-2/resize-handle";
+import { HorizontalPagination } from "@/components/horizontal-pagination";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
-import { SORT_FIELD_MAPS, STICKY_COLUMNS } from "@/utils/table-configs";
+import {
+    NON_REORDERABLE_COLUMNS,
+    SORT_FIELD_MAPS,
+    STICKY_COLUMNS,
+} from "@/utils/table-configs";
+import {
+    horizontalListSortingStrategy,
+    SortableContext,
+} from "@dnd-kit/sortable";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
-import { Icons } from "@gnd/ui/icons";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
 import type { Header, Table } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { useMemo } from "react";
 
 interface Props<TData> {
     table?: Table<TData>;
@@ -34,6 +45,17 @@ export function DataTableHeader<TData>({
         loading,
         stickyColumns: STICKY_COLUMNS["sales-orders"],
     });
+    const sortableColumnIds = useMemo(() => {
+        if (!table) return [];
+
+        return table
+            .getAllLeafColumns()
+            .filter(
+                (column) =>
+                    !NON_REORDERABLE_COLUMNS["sales-orders"].has(column.id),
+            )
+            .map((column) => column.id);
+    }, [table]);
 
     if (!table) return null;
 
@@ -44,89 +66,123 @@ export function DataTableHeader<TData>({
                     key={headerGroup.id}
                     className="flex h-[45px] min-w-full items-center !border-b-0 hover:bg-transparent"
                 >
-                    {headerGroup.headers.map((header, headerIndex, headers) => {
-                        const columnId = header.column.id;
-                        const meta = header.column.columnDef.meta as
-                            | TableColumnMeta
-                            | undefined;
-                        const isSticky = meta?.sticky ?? false;
-                        const isActions = columnId === "actions";
+                    <SortableContext
+                        items={sortableColumnIds}
+                        strategy={horizontalListSortingStrategy}
+                    >
+                        {headerGroup.headers.map(
+                            (header, headerIndex, headers) => {
+                                const columnId = header.column.id;
+                                const meta = header.column.columnDef.meta as
+                                    | TableColumnMeta
+                                    | undefined;
+                                const isSticky = meta?.sticky ?? false;
+                                const isActions = columnId === "actions";
+                                const canReorder =
+                                    !NON_REORDERABLE_COLUMNS[
+                                        "sales-orders"
+                                    ].has(columnId);
 
-                        if (!isVisible(columnId)) return null;
+                                if (!isVisible(columnId)) return null;
 
-                        const hasNonStickyVisible = headers.some((item) => {
-                            if (item.column.id === "actions") return false;
-                            if (!isVisible(item.column.id)) return false;
+                                const hasNonStickyVisible = headers.some(
+                                    (item) => {
+                                        if (item.column.id === "actions")
+                                            return false;
+                                        if (!isVisible(item.column.id))
+                                            return false;
 
-                            const itemMeta = item.column.columnDef.meta as
-                                | TableColumnMeta
-                                | undefined;
+                                        const itemMeta = item.column.columnDef
+                                            .meta as
+                                            | TableColumnMeta
+                                            | undefined;
 
-                            return !(itemMeta?.sticky ?? false);
-                        });
-                        const actionsFullWidth =
-                            isActions && !hasNonStickyVisible;
-                        const isLastBeforeActions =
-                            headerIndex === headers.length - 2 &&
-                            headers[headers.length - 1]?.column.id ===
-                                "actions";
-                        const shouldFlex =
-                            (isLastBeforeActions && !isSticky) ||
-                            actionsFullWidth;
+                                        return !(itemMeta?.sticky ?? false);
+                                    },
+                                );
+                                const actionsFullWidth =
+                                    isActions && !hasNonStickyVisible;
+                                const isLastBeforeActions =
+                                    headerIndex === headers.length - 2 &&
+                                    headers[headers.length - 1]?.column.id ===
+                                        "actions";
+                                const shouldFlex =
+                                    (isLastBeforeActions && !isSticky) ||
+                                    actionsFullWidth;
 
-                        const headerStyle = {
-                            width: actionsFullWidth
-                                ? undefined
-                                : header.getSize(),
-                            minWidth: actionsFullWidth
-                                ? undefined
-                                : isSticky
-                                  ? header.getSize()
-                                  : header.column.columnDef.minSize,
-                            maxWidth: actionsFullWidth
-                                ? undefined
-                                : isSticky
-                                  ? header.getSize()
-                                  : header.column.columnDef.maxSize,
-                            ...(!actionsFullWidth && getStickyStyle(columnId)),
-                            ...(shouldFlex && { flex: 1 }),
-                        };
+                                const headerStyle = {
+                                    width: actionsFullWidth
+                                        ? undefined
+                                        : header.getSize(),
+                                    minWidth: actionsFullWidth
+                                        ? undefined
+                                        : isSticky
+                                          ? header.getSize()
+                                          : header.column.columnDef.minSize,
+                                    maxWidth: actionsFullWidth
+                                        ? undefined
+                                        : isSticky
+                                          ? header.getSize()
+                                          : header.column.columnDef.maxSize,
+                                    ...(!actionsFullWidth &&
+                                        getStickyStyle(columnId)),
+                                    ...(shouldFlex && { flex: 1 }),
+                                };
 
-                        const stickyClass = getStickyClassName(
-                            columnId,
-                            "group/header relative h-full px-4 border-t border-border flex items-center",
-                        );
-                        const finalClassName = isActions
-                            ? actionsFullWidth
-                                ? ACTIONS_FULL_WIDTH_HEADER_CLASS
-                                : ACTIONS_STICKY_HEADER_CLASS
-                            : `${stickyClass} bg-background z-10`;
+                                if (!canReorder) {
+                                    const stickyClass = getStickyClassName(
+                                        columnId,
+                                        "group/header relative h-full px-4 border-t border-border flex items-center",
+                                    );
+                                    const finalClassName = isActions
+                                        ? actionsFullWidth
+                                            ? ACTIONS_FULL_WIDTH_HEADER_CLASS
+                                            : ACTIONS_STICKY_HEADER_CLASS
+                                        : `${stickyClass} bg-background z-10`;
 
-                        return (
-                            <TableHead
-                                key={header.id}
-                                className={finalClassName}
-                                style={headerStyle}
-                            >
-                                {renderHeaderContent(
-                                    header,
-                                    columnId,
-                                    sortColumn,
-                                    sortValue,
-                                    createSortQuery,
-                                    table,
-                                    tableScroll,
-                                )}
-                                {header.column.getCanResize() && (
-                                    <div
-                                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize touch-none select-none bg-transparent hover:bg-border"
-                                        onMouseDown={header.getResizeHandler()}
-                                        onTouchStart={header.getResizeHandler()}
-                                    />
-                                )}
-                            </TableHead>
-                        );
-                    })}
+                                    return (
+                                        <TableHead
+                                            key={header.id}
+                                            className={finalClassName}
+                                            style={headerStyle}
+                                        >
+                                            {renderHeaderContent(
+                                                header,
+                                                columnId,
+                                                sortColumn,
+                                                sortValue,
+                                                createSortQuery,
+                                                table,
+                                                tableScroll,
+                                            )}
+                                            <ResizeHandle header={header} />
+                                        </TableHead>
+                                    );
+                                }
+
+                                return (
+                                    <DraggableHeader
+                                        key={header.id}
+                                        id={columnId}
+                                        style={headerStyle}
+                                    >
+                                        <div className="flex min-w-0 flex-1 items-center overflow-hidden">
+                                            {renderHeaderContent(
+                                                header,
+                                                columnId,
+                                                sortColumn,
+                                                sortValue,
+                                                createSortQuery,
+                                                table,
+                                                tableScroll,
+                                            )}
+                                        </div>
+                                        <ResizeHandle header={header} />
+                                    </DraggableHeader>
+                                );
+                            },
+                        )}
+                    </SortableContext>
                 </TableRow>
             ))}
         </TableHeader>
@@ -185,34 +241,13 @@ function renderHeaderContent<TData>(
                     onSort={createSortQuery}
                 />
                 {tableScroll?.isScrollable && (
-                    <div className="hidden shrink-0 items-center gap-1 md:flex">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7"
-                            disabled={!tableScroll.canScrollLeft}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                tableScroll.scrollLeft();
-                            }}
-                        >
-                            <Icons.ChevronLeft className="size-3.5" />
-                            <span className="sr-only">Scroll left</span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7"
-                            disabled={!tableScroll.canScrollRight}
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                tableScroll.scrollRight();
-                            }}
-                        >
-                            <Icons.ChevronRight className="size-3.5" />
-                            <span className="sr-only">Scroll right</span>
-                        </Button>
-                    </div>
+                    <HorizontalPagination
+                        canScrollLeft={tableScroll.canScrollLeft}
+                        canScrollRight={tableScroll.canScrollRight}
+                        onScrollLeft={tableScroll.scrollLeft}
+                        onScrollRight={tableScroll.scrollRight}
+                        className="hidden shrink-0 md:flex"
+                    />
                 )}
             </div>
         );
