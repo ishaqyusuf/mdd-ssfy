@@ -95,6 +95,7 @@ function VirtualRowInner<TData>({
                         key={cell.id}
                         className={cn(
                             "flex h-full items-center border-b border-border",
+                            cells.length - 1 !== cellIndex && "border-r",
                             cellClassName,
                             isActions && "justify-center",
                         )}

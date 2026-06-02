@@ -49,6 +49,10 @@ function NavLayoutClient({ children, pageTabDefaults }) {
         refetchOnWindowFocus: false,
         staleTime: Number.POSITIVE_INFINITY,
     });
+    const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
+    const navDefaults = isSuperAdmin
+        ? { ...defaults, "/sales-book/orders": "/sales-book/orders/v2" }
+        : defaults;
 
     return (
         <SiteNav.Provider
@@ -59,7 +63,7 @@ function NavLayoutClient({ children, pageTabDefaults }) {
                 role: auth.role,
                 userId: auth.id,
                 permissions: auth.can,
-                defaultHrefByPath: defaults,
+                defaultHrefByPath: navDefaults,
             })}
         >
             <div className="relative ">
@@ -85,4 +89,3 @@ function NavLayoutClient({ children, pageTabDefaults }) {
         </SiteNav.Provider>
     );
 }
-
