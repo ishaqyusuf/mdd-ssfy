@@ -35,7 +35,10 @@ type Props = {
 
 export default async function SalesOrdersV2Page(props: Props) {
     const searchParams = await props.searchParams;
-    const filter = loadSalesOrdersV2FilterParams(searchParams);
+    const filter = {
+        ...loadSalesOrdersV2FilterParams(searchParams),
+        showing: "all sales" as const,
+    };
     const { sort } = loadSortParams(searchParams);
     const initialSettings = await getInitialTableSettings("sales-orders");
 

@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
+import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
 import { newSalesHelper } from "@/lib/sales";
 import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
@@ -14,6 +15,7 @@ import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
+import type { UpdateSalesControl } from "@sales/schema";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
@@ -299,6 +301,10 @@ function SalesMenuRoot({
 
 type ActionProps = {
 	disabled?: boolean;
+};
+
+type MarkAsProps = ActionProps & {
+	asSubmenu?: boolean;
 };
 
 type EmailOptions = {
@@ -766,6 +772,157 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 	);
 }
 
+function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
+	const { state, actions } = useSalesMenuContext();
+	const auth = useAuth();
+	const loader = useLoadingToast();
+	const trpc = useTRPC();
+	const sq = useSalesQueryClient();
+	const salesIds = state.salesIds;
+	const isDisabled = disabled || !salesIds.length;
+	const createDispatchMutation = useMutation(
+		trpc.dispatch.createDispatch.mutationOptions(),
+	);
+	const invalidateOrders = async () => {
+		await Promise.all([
+			sq.invalidate.salesList(),
+			sq.invalidate.productionOverview(),
+			sq.invalidate.saleOverview(),
+			sq.qc.invalidateQueries({
+				queryKey: trpc.sales.getOrdersV2.infiniteQueryKey(),
+			}),
+			sq.qc.invalidateQueries({
+				queryKey: trpc.sales.getOrdersV2Summary.queryKey(),
+			}),
+		]);
+	};
+	const salesControlTask = useTaskTrigger({
+		successToast: "Sales control updated",
+		errorToast: "Unable to update sales control",
+		executingToast: "Updating sales control...",
+		monitor: true,
+		onStarted() {
+			void invalidateOrders();
+		},
+		onSuccess() {
+			void invalidateOrders();
+		},
+	});
+
+	if (state.type !== "order") {
+		return null;
+	}
+
+	const getTaskMeta = (salesId: number) => ({
+		salesId,
+		authorId: Number(auth.id || 0),
+		authorName: auth.name || "System",
+	});
+
+	const resolveDispatchId = async (salesId: number) => {
+		const deliveryInfo = await sq.qc.fetchQuery(
+			trpc.dispatch.salesDeliveryInfo.queryOptions({ salesId }),
+		);
+		const existingDispatch = [...(deliveryInfo?.deliveries || [])]
+			.sort((left, right) => {
+				const leftTime = left.dueDate ? new Date(left.dueDate).getTime() : 0;
+				const rightTime = right.dueDate ? new Date(right.dueDate).getTime() : 0;
+				return rightTime - leftTime;
+			})
+			.find((dispatch) => {
+				const status = String(dispatch.status || "").toLowerCase();
+				return (
+					status !== "completed" &&
+					status !== "cancelled" &&
+					status !== "delivered"
+				);
+			});
+
+		if (existingDispatch?.id) {
+			return existingDispatch.id;
+		}
+
+		const createdDispatch = await createDispatchMutation.mutateAsync({
+			salesId,
+			deliveryMode: deliveryInfo?.deliveryOption || "delivery",
+			dueDate: new Date(),
+			status: "queue",
+		});
+
+		return createdDispatch.id;
+	};
+
+	const markProductionCompleted = async () => {
+		actions.closeMenu();
+		loader.loading("Marking as production completed...");
+		try {
+			for (const salesId of salesIds) {
+				salesControlTask.trigger({
+					taskName: "update-sales-control",
+					payload: {
+						meta: getTaskMeta(salesId),
+						submitAll: {},
+					} as UpdateSalesControl,
+				});
+			}
+			await invalidateOrders();
+			loader.success("Production completion task started");
+		} catch {
+			loader.error("Unable to mark production completed");
+		}
+	};
+
+	const markFulfilled = async () => {
+		actions.closeMenu();
+		loader.loading("Marking as fulfilled...");
+		try {
+			for (const salesId of salesIds) {
+				const dispatchId = await resolveDispatchId(salesId);
+				salesControlTask.trigger({
+					taskName: "update-sales-control",
+					payload: {
+						meta: getTaskMeta(salesId),
+						markAsCompleted: {
+							dispatchId,
+							receivedBy: auth.name || "System",
+							receivedDate: new Date(),
+						},
+					} as UpdateSalesControl,
+				});
+			}
+			await invalidateOrders();
+			loader.success("Fulfillment task started");
+		} catch {
+			loader.error("Unable to mark fulfilled");
+		}
+	};
+
+	const items = (
+		<>
+			<SalesMenuItem disabled={isDisabled} onSelect={markProductionCompleted}>
+				Production completed
+			</SalesMenuItem>
+			<SalesMenuItem disabled={isDisabled} onSelect={markFulfilled}>
+				Fulfilled
+			</SalesMenuItem>
+		</>
+	);
+
+	if (!asSubmenu) {
+		return items;
+	}
+
+	return (
+		<SalesMenuSub>
+			<SalesMenuSubTrigger disabled={isDisabled}>
+				<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
+				Mark as
+			</SalesMenuSubTrigger>
+			<SalesMenuSubContent>{items}</SalesMenuSubContent>
+		</SalesMenuSub>
+	);
+}
+
 function SalesMenuItem(props: ComponentProps<typeof DropdownMenu.Item>) {
 	return <DropdownMenu.Item {...props} />;
 }
@@ -856,6 +1013,7 @@ export const SalesMenu = Object.assign(SalesMenuRoot, {
 	PaymentNotifications: SalesMenuPaymentNotifications,
 	SalesEmailMenuItems: SalesMenuSalesEmailMenuItems,
 	QuoteEmailMenuItems: SalesMenuQuoteEmailMenuItems,
+	MarkAs: SalesMenuMarkAs,
 	Delete: SalesMenuDelete,
 	Item: SalesMenuItem,
 	Separator: SalesMenuSeparator,

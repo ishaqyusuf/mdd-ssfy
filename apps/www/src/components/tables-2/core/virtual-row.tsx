@@ -29,6 +29,7 @@ interface VirtualRowProps<TData> {
     columnVisibility?: VisibilityState;
     isSelected?: boolean;
     isExporting?: boolean;
+    showColumnDividers?: boolean;
     rowClassName?: (row: Row<TData>) => string;
 }
 
@@ -40,6 +41,7 @@ function VirtualRowInner<TData>({
     getStickyStyle,
     getStickyClassName,
     nonClickableColumns = new Set(["select", "actions"]),
+    showColumnDividers = false,
     rowClassName,
 }: VirtualRowProps<TData>) {
     const cells = row.getVisibleCells();
@@ -95,7 +97,9 @@ function VirtualRowInner<TData>({
                         key={cell.id}
                         className={cn(
                             "flex h-full items-center border-b border-border",
-                            cells.length - 1 !== cellIndex && "border-r",
+                            showColumnDividers &&
+                                cells.length - 1 !== cellIndex &&
+                                "border-r",
                             cellClassName,
                             isActions && "justify-center",
                         )}
@@ -132,6 +136,7 @@ function arePropsEqual<TData>(
         prevProps.columnSizing === nextProps.columnSizing &&
         prevProps.columnOrder === nextProps.columnOrder &&
         prevProps.columnVisibility === nextProps.columnVisibility &&
+        prevProps.showColumnDividers === nextProps.showColumnDividers &&
         prevProps.row.original === nextProps.row.original
     );
 }

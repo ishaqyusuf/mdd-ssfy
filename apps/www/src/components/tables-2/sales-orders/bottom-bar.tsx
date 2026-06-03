@@ -104,6 +104,8 @@ export function BottomBar({ data }: Props) {
                             }
                         >
                             <SalesMenu.SalesPrintMenuItems />
+                            <SalesMenu.Separator />
+                            <SalesMenu.MarkAs />
                         </SalesMenu>
 
                         <SalesPaymentNotificationsMenu

@@ -12,12 +12,14 @@ type RenderSalesPdfBufferInput = {
 	watermark?: string;
 	logoUrl?: string;
 	previewUrl?: string;
+	qrCodeDataUrl?: string;
 	config?: Partial<SalesTemplateConfig>;
 	title?: string;
 };
 
 export async function renderSalesPdfBuffer(input: RenderSalesPdfBufferInput) {
-	const qrCodeDataUrl = await generateQrCodeDataUrl(input.previewUrl);
+	const qrCodeDataUrl =
+		input.qrCodeDataUrl ?? (await generateQrCodeDataUrl(input.previewUrl));
 	return renderToBuffer(
 		<SalesPdfDocument
 			pages={input.pages}

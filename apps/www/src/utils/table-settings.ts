@@ -11,6 +11,7 @@ export interface TableSettings {
     columns: VisibilityState;
     sizing: ColumnSizingState;
     order: ColumnOrderState;
+    showColumnDividers?: boolean;
 }
 
 export type AllTableSettings = {
@@ -59,6 +60,7 @@ export function mergeWithDefaults(
         },
         sizing: saved?.sizing ?? defaults.sizing,
         order: saved?.order ?? defaults.order,
+        showColumnDividers: saved?.showColumnDividers,
     };
 }
 

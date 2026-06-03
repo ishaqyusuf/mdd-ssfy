@@ -54,11 +54,17 @@ export function DataTable({ initialSettings }: Props) {
         setColumnSizing,
         columnOrder,
         setColumnOrder,
+        showColumnDividers,
+        setShowColumnDividers,
     } = useTableSettings({
         tableId: "sales-orders",
         initialSettings,
         columnIds: COLUMN_IDS,
+        showColumnDividers: true,
     });
+    const bindShowColumnDividers = useSalesOrdersStore(
+        (state) => state.bindShowColumnDividers,
+    );
 
     const infiniteQueryOptions = trpc.sales.getOrdersV2.infiniteQueryOptions(
         {
@@ -120,6 +126,10 @@ export function DataTable({ initialSettings }: Props) {
         setColumns(table.getAllLeafColumns());
     }, [columnVisibility, setColumns, table]);
 
+    useEffect(() => {
+        bindShowColumnDividers(showColumnDividers, setShowColumnDividers);
+    }, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
+
     useInfiniteScroll<HTMLDivElement>({
         scrollRef: parentRef,
         rowVirtualizer,
@@ -176,6 +186,7 @@ export function DataTable({ initialSettings }: Props) {
                             <DataTableHeader
                                 table={table}
                                 tableScroll={tableScroll}
+                                showColumnDividers={showColumnDividers}
                             />
 
                             <TableBody
@@ -206,6 +217,9 @@ export function DataTable({ initialSettings }: Props) {
                                             columnSizing={columnSizing}
                                             columnOrder={columnOrder}
                                             columnVisibility={columnVisibility}
+                                            showColumnDividers={
+                                                showColumnDividers
+                                            }
                                             isSelected={
                                                 rowSelection[row.id] ?? false
                                             }

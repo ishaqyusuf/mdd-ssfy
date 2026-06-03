@@ -27,6 +27,7 @@ export type LinkItem = {
     name;
     title;
     href?;
+    skipDefaultHref?: boolean;
     paths?: string[];
     level?;
     show?: boolean;
@@ -71,6 +72,7 @@ const _link = (
         title: name?.split("-").join(" "),
         icon,
         href,
+        skipDefaultHref: false,
         subLinks,
         access,
         index: -1,
@@ -91,6 +93,10 @@ const _link = (
         },
         childPaths(...paths) {
             res.paths = paths?.map((p) => (p?.startsWith("/") ? p : `/${p}`));
+            return ctx;
+        },
+        skipDefaultHref() {
+            res.skipDefaultHref = true;
             return ctx;
         },
         subLinks(...subLinks: LinkItem[]) {
@@ -321,9 +327,9 @@ export const linkModules = [
                 _subLink("Bin", "/sales-book/orders/bin").access(
                     _role.is("Super Admin"),
                 ).data,
-                _subLink("Orders V2", "/sales-book/orders/v2").access(
-                    _role.is("Super Admin"),
-                ).data,
+                _subLink("Orders - Legacy", "/sales-book/orders")
+                    .skipDefaultHref()
+                    .access(_role.is("Super Admin")).data,
                 _subLink("Create Order", "/sales-book/create-order").data, //.access(_role.is("Super Admin")).data,
                 _subLink("Create Quote", "/sales-book/create-quote").data, //.access(_role.is("Super Admin")).data,
                 _subLink("Shelf Items", "/sales-book/shelf-items").data,

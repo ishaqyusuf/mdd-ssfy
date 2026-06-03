@@ -632,112 +632,14 @@ export async function getSalesOrderFilters(
   ].filter(Boolean);
   return resp as FilterData[];
 }
-export async function getSalesOrderFiltersV2(ctx: TRPCContext) {
+export async function getSalesOrderFiltersV2(
+  ctx: TRPCContext,
+  isSalesManager?,
+) {
   type T = keyof GetOrdersV2Schema;
   type FilterData = PageFilterData<T>;
 
-  const sales = await ctx.db.salesOrders.findMany({
-    where: { type: "order" as SalesType },
-    select: {
-      orderId: true,
-      meta: true,
-      customer: {
-        select: {
-          businessName: true,
-          name: true,
-          phoneNo: true,
-        },
-      },
-      billingAddress: {
-        select: {
-          phoneNo: true,
-        },
-      },
-    },
-  });
-
-  const customerNames = [
-    ...new Set(
-      sales
-        .flatMap((s) => [s.customer?.name, s.customer?.businessName])
-        .filter(Boolean),
-    ),
-  ];
-  const phones = [
-    ...new Set(
-      sales
-        .flatMap((s) => [s.customer?.phoneNo, s.billingAddress?.phoneNo])
-        .filter(Boolean),
-    ),
-  ];
-  const pos = [
-    ...new Set(sales.map((s) => (s.meta as any)?.po).filter(Boolean)),
-  ];
-  const orderNos = [...new Set(sales.map((s) => s.orderId).filter(Boolean))];
-
-  const resp = [
-    searchFilter,
-    dateRangeFilter<T>("dateRange", "Order date"),
-    optionFilter<T>(
-      "customerName",
-      "Customer",
-      uniqueList(
-        sortList(
-          customerNames
-            .map((label) => label?.trim())
-            .map((label) => ({
-              label,
-              value: label,
-            })),
-          "value",
-        ),
-        "value",
-      ),
-    ),
-    optionFilter<T>(
-      "phone",
-      "Phone",
-      phones.map((phone) => ({ label: phone, value: phone })),
-    ),
-    optionFilter<T>(
-      "po",
-      "P.O",
-      pos.map((po) => ({ label: po, value: po })),
-    ),
-    optionFilter<T>(
-      "orderNo",
-      "Order #",
-      orderNos.map((no) => ({ label: no, value: no })),
-    ),
-    optionFilter<T>(
-      "invoiceStatus",
-      "Invoice",
-      [
-        { label: "Paid", value: "paid" },
-        { label: "Outstanding", value: "outstanding" },
-      ],
-    ),
-    optionFilter<T>(
-      "production",
-      "Production",
-      [
-        { label: "Pending", value: "pending" },
-        { label: "In Progress", value: "in progress" },
-        { label: "Completed", value: "completed" },
-      ],
-    ),
-    optionFilter<T>(
-      "priority",
-      "Priority",
-      SALES_PRIORITY_OPTIONS.map((priority) => ({
-        label: priority.label,
-        value: priority.value,
-        color: priority.color,
-      })),
-    ),
-  ] satisfies FilterData[];
-
-  return resp;
+  return getSalesOrderFilters(ctx, isSalesManager) as Promise<FilterData[]>;
 }
 export async function getResolutionFilters(ctx: TRPCContext) {
   const baseFilters = await getSalesOrderFilters(ctx);

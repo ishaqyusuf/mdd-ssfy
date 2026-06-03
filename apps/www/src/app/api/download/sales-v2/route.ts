@@ -94,6 +94,7 @@ async function renderSnapshotPdfFallback(input: {
 		logoUrl: documentData.logoUrl ?? undefined,
 		baseUrl: input.requestUrl.origin,
 		previewUrl: documentData.previewUrl,
+		qrCodeDataUrl: documentData.qrCodeDataUrl,
 	});
 
 	return createPdfResponse({

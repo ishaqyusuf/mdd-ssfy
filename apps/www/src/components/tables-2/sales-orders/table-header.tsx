@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { cn } from "@gnd/ui/cn";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
 import type { Header, Table } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp } from "lucide-react";
@@ -32,12 +33,14 @@ interface Props<TData> {
     table?: Table<TData>;
     loading?: boolean;
     tableScroll?: TableScrollState;
+    showColumnDividers?: boolean;
 }
 
 export function DataTableHeader<TData>({
     table,
     loading,
     tableScroll,
+    showColumnDividers = false,
 }: Props<TData>) {
     const { sortColumn, sortValue, createSortQuery } = useSortQuery();
     const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
@@ -84,6 +87,14 @@ export function DataTableHeader<TData>({
                                     ].has(columnId);
 
                                 if (!isVisible(columnId)) return null;
+
+                                const nextVisibleHeader = headers
+                                    .slice(headerIndex + 1)
+                                    .find((item) => isVisible(item.column.id));
+                                const showRightDivider =
+                                    showColumnDividers &&
+                                    Boolean(nextVisibleHeader) &&
+                                    nextVisibleHeader?.column.id !== "actions";
 
                                 const hasNonStickyVisible = headers.some(
                                     (item) => {
@@ -132,12 +143,23 @@ export function DataTableHeader<TData>({
                                 if (!canReorder) {
                                     const stickyClass = getStickyClassName(
                                         columnId,
-                                        "group/header relative h-full px-4 border-t border-border flex items-center",
+                                        cn(
+                                            "group/header relative h-full px-4 border-t border-border flex items-center",
+                                            showRightDivider && "border-r",
+                                        ),
                                     );
                                     const finalClassName = isActions
                                         ? actionsFullWidth
-                                            ? ACTIONS_FULL_WIDTH_HEADER_CLASS
-                                            : ACTIONS_STICKY_HEADER_CLASS
+                                            ? cn(
+                                                  ACTIONS_FULL_WIDTH_HEADER_CLASS,
+                                                  showRightDivider &&
+                                                      "border-r",
+                                              )
+                                            : cn(
+                                                  ACTIONS_STICKY_HEADER_CLASS,
+                                                  showRightDivider &&
+                                                      "border-r",
+                                              )
                                         : `${stickyClass} bg-background z-10`;
 
                                     return (
@@ -165,6 +187,9 @@ export function DataTableHeader<TData>({
                                         key={header.id}
                                         id={columnId}
                                         style={headerStyle}
+                                        className={cn(
+                                            showRightDivider && "border-r",
+                                        )}
                                     >
                                         <div className="flex min-w-0 flex-1 items-center overflow-hidden">
                                             {renderHeaderContent(

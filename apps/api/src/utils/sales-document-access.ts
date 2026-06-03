@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { networkInterfaces } from "node:os";
 import type { Db, Prisma } from "@gnd/db";
+import { buildShortUrl, findOrCreateShortLinkForTarget } from "@gnd/db/queries";
 import { buildOwnerDocumentFolder } from "@gnd/documents";
 import { generateQrCodeDataUrl, renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
@@ -38,6 +40,7 @@ const DEFAULT_TEMPLATE_ID = "template-2";
 const DEFAULT_LINK_TTL_DAYS = 7;
 const SALES_DOCUMENT_DOWNLOAD_PATH = "/api/download/sales-v2";
 const SALES_DOCUMENT_PREVIEW_PATH = "/p/sales-document-v2";
+const SALES_DOCUMENT_QR_SHORT_LINK_SOURCE_TYPE = "sales-document-preview-qr";
 
 const SALES_DOCUMENT_BASE_TYPES = {
 	invoice: "invoice_pdf",
@@ -252,6 +255,69 @@ function buildTemplateSearchParam(templateId?: string | null) {
 
 function buildPricingModeSearchParam(pricingMode?: PrintPricingMode | null) {
 	return pricingMode ? `&pricingMode=${encodeURIComponent(pricingMode)}` : "";
+}
+
+function hashShortLinkValue(value: string) {
+	return createHash("sha256").update(value).digest("base64url").slice(0, 16);
+}
+
+function buildQrShortLinkSourceId(input: {
+	locator: string;
+	templateId?: string | null;
+	pricingMode?: PrintPricingMode | null;
+	previewUrl: string;
+}) {
+	const templateId = input.templateId || DEFAULT_TEMPLATE_ID;
+	const pricingMode = input.pricingMode || "default";
+	const urlHash = hashShortLinkValue(input.previewUrl);
+	return `${input.locator}:${templateId}:${pricingMode}:${urlHash}`;
+}
+
+async function generateShortSalesDocumentQrCodeDataUrl(input: {
+	db: Db;
+	previewUrl: string;
+	baseUrl?: string | null;
+	title?: string | null;
+	expiresAt?: Date | string | null;
+	locator: string;
+	templateId?: string | null;
+	pricingMode?: PrintPricingMode | null;
+}) {
+	const sourceId = buildQrShortLinkSourceId({
+		locator: input.locator,
+		templateId: input.templateId,
+		pricingMode: input.pricingMode,
+		previewUrl: input.previewUrl,
+	});
+
+	try {
+		const shortLink = await findOrCreateShortLinkForTarget(input.db, {
+			targetUrl: input.previewUrl,
+			title: input.title ? `${input.title} QR` : "Sales document QR",
+			sourceType: SALES_DOCUMENT_QR_SHORT_LINK_SOURCE_TYPE,
+			sourceId,
+			expiresAt: input.expiresAt ?? null,
+			meta: {
+				kind: "sales_document_preview_qr",
+				locator: input.locator,
+				templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+				pricingMode: input.pricingMode ?? null,
+				previewUrlHash: hashShortLinkValue(input.previewUrl),
+			},
+		});
+
+		return generateQrCodeDataUrl(
+			buildShortUrl(shortLink.slug, resolveBaseUrl(input.baseUrl)),
+		);
+	} catch (error) {
+		logSalesDocumentAccess("shortQrFallback", {
+			locator: input.locator,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			pricingMode: input.pricingMode ?? null,
+			error: error instanceof Error ? error.message : "Unknown error",
+		});
+		return generateQrCodeDataUrl(input.previewUrl);
+	}
 }
 
 function buildPublicTokenSalesDocumentUrls(input: {
@@ -695,6 +761,16 @@ async function createSalesPdfSnapshot(input: {
 		);
 
 		const title = documentData.title || `sales-${input.salesOrderId}`;
+		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
+			db: input.db,
+			previewUrl: accessUrls.previewUrl,
+			baseUrl: input.baseUrl,
+			title,
+			expiresAt,
+			locator: `snapshot:${pending.id}`,
+			templateId: input.templateId || DEFAULT_TEMPLATE_ID,
+			pricingMode: input.pricingMode ?? null,
+		});
 		const renderStart = Date.now();
 		const buffer = await renderSalesPdfBuffer({
 			pages: documentData.pages,
@@ -704,6 +780,7 @@ async function createSalesPdfSnapshot(input: {
 			logoUrl: documentData.logoUrl ?? undefined,
 			baseUrl: resolveBaseUrl(input.baseUrl),
 			previewUrl: accessUrls.previewUrl,
+			qrCodeDataUrl,
 		});
 		logSalesDocumentAccess("renderSalesPdfBuffer", {
 			salesOrderId: input.salesOrderId,
@@ -1256,7 +1333,16 @@ export async function resolveSalesDocumentPreviewData(input: {
 			templateId,
 			pricingMode: input.pricingMode ?? null,
 		});
-		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
+		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
+			db: input.db,
+			previewUrl: urls.previewUrl,
+			baseUrl: input.baseUrl,
+			title: documentData.title,
+			expiresAt: meta.expiresAt ?? null,
+			locator: `snapshot:${snapshot.id}`,
+			templateId,
+			pricingMode: input.pricingMode ?? null,
+		});
 
 		return {
 			pages: documentData.pages,
@@ -1335,7 +1421,16 @@ export async function resolveSalesDocumentPreviewData(input: {
 			templateId,
 			pricingMode: input.pricingMode ?? null,
 		});
-		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
+		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
+			db: input.db,
+			previewUrl: urls.previewUrl,
+			baseUrl: input.baseUrl,
+			title: documentData.title,
+			expiresAt: meta.expiresAt ?? null,
+			locator: `snapshot:${snapshot.id}`,
+			templateId,
+			pricingMode: input.pricingMode ?? null,
+		});
 
 		return {
 			pages: documentData.pages,
@@ -1415,7 +1510,16 @@ export async function resolveSalesDocumentPreviewData(input: {
 			templateId,
 			pricingMode: input.pricingMode ?? null,
 		});
-		const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
+		const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
+			db: input.db,
+			previewUrl: urls.previewUrl,
+			baseUrl: input.baseUrl,
+			title: documentData.title,
+			expiresAt: meta.expiresAt ?? null,
+			locator: `snapshot:${snapshot.id}`,
+			templateId,
+			pricingMode: input.pricingMode ?? null,
+		});
 
 		return {
 			pages: documentData.pages,
@@ -1505,7 +1609,16 @@ export async function resolveSalesDocumentPreviewData(input: {
 		templateId,
 		pricingMode: input.pricingMode ?? null,
 	});
-	const qrCodeDataUrl = await generateQrCodeDataUrl(urls.previewUrl);
+	const qrCodeDataUrl = await generateShortSalesDocumentQrCodeDataUrl({
+		db: input.db,
+		previewUrl: urls.previewUrl,
+		baseUrl: input.baseUrl,
+		title: documentData.title,
+		expiresAt: payload.expiry,
+		locator: `legacy:${hashShortLinkValue(urls.previewUrl)}`,
+		templateId,
+		pricingMode: input.pricingMode ?? null,
+	});
 
 	return {
 		pages: documentData.pages,

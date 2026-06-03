@@ -11,6 +11,7 @@ export type LinkItem = {
 	title;
 	href?;
 	targetHref?: string;
+	skipDefaultHref?: boolean;
 	paths?: string[];
 	level?;
 	show?: boolean;
@@ -71,6 +72,7 @@ export const createNavLink = (
 		icon,
 		href,
 		targetHref: href,
+		skipDefaultHref: false,
 		subLinks,
 		access,
 		index: -1,
@@ -91,6 +93,10 @@ export const createNavLink = (
 		},
 		childPaths(...paths) {
 			res.paths = paths?.map((p) => (p?.startsWith("/") ? p : `/${p}`));
+			return ctx;
+		},
+		skipDefaultHref() {
+			res.skipDefaultHref = true;
 			return ctx;
 		},
 	};

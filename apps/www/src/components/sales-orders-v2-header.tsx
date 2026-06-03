@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { salesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import {
 	SearchFilterProvider,
@@ -43,11 +44,14 @@ export function SalesOrdersV2Header() {
 }
 
 function SalesOrdersV2SearchFilterContent() {
+	const auth = useAuth();
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
 	const { data: trpcFilterData } = useQuery({
 		enabled: shouldFetch,
-		...trpc.filters.salesOrdersV2.queryOptions(),
+		...trpc.filters.salesOrdersV2.queryOptions({
+			salesManager: auth?.can?.viewSalesManager,
+		}),
 	});
 
 	return (

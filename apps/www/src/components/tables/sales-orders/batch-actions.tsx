@@ -47,6 +47,18 @@ export function BatchActions() {
 					>
 						<SalesMenu.SalesPrintMenuItems />
 					</SalesMenu>
+					<SalesMenu
+						type="order"
+						salesIds={salesIds}
+						trigger={
+							<Button variant="ghost">
+								<Icons.CheckCheck className="mr-2 size-4" />
+								Mark as
+							</Button>
+						}
+					>
+						<SalesMenu.MarkAs asSubmenu={false} />
+					</SalesMenu>
 					<SalesPaymentNotificationsMenu
 						type="order"
 						salesIds={salesIds}

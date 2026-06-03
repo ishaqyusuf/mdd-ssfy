@@ -21,6 +21,7 @@ interface UseTableSettingsProps {
     tableId: TableId;
     initialSettings?: Partial<TableSettings>;
     columnIds?: string[];
+    showColumnDividers?: boolean;
 }
 
 interface UseTableSettingsReturn {
@@ -30,12 +31,15 @@ interface UseTableSettingsReturn {
     setColumnSizing: Dispatch<SetStateAction<ColumnSizingState>>;
     columnOrder: ColumnOrderState;
     setColumnOrder: Dispatch<SetStateAction<ColumnOrderState>>;
+    showColumnDividers: boolean;
+    setShowColumnDividers: Dispatch<SetStateAction<boolean>>;
 }
 
 export function useTableSettings({
     tableId,
     initialSettings,
     columnIds,
+    showColumnDividers: defaultShowColumnDividers,
 }: UseTableSettingsProps): UseTableSettingsReturn {
     const settings = mergeWithDefaults(initialSettings, tableId);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(
@@ -49,6 +53,9 @@ export function useTableSettings({
             ? normalizeColumnOrder(settings.order, columnIds)
             : settings.order,
     );
+    const [showColumnDividers, setShowColumnDividers] = useState<boolean>(
+        defaultShowColumnDividers ?? settings.showColumnDividers ?? false,
+    );
     const isInitialMount = useRef(true);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -57,6 +64,7 @@ export function useTableSettings({
             visibility: VisibilityState,
             sizing: ColumnSizingState,
             order: ColumnOrderState,
+            columnDividers: boolean,
         ) => {
             if (debounceRef.current) {
                 clearTimeout(debounceRef.current);
@@ -84,6 +92,7 @@ export function useTableSettings({
                     columns: visibility,
                     sizing,
                     order,
+                    showColumnDividers: columnDividers,
                 };
 
                 await updateTableSettingsAction({
@@ -101,8 +110,19 @@ export function useTableSettings({
             return;
         }
 
-        persistSettings(columnVisibility, columnSizing, columnOrder);
-    }, [columnVisibility, columnSizing, columnOrder, persistSettings]);
+        persistSettings(
+            columnVisibility,
+            columnSizing,
+            columnOrder,
+            showColumnDividers,
+        );
+    }, [
+        columnVisibility,
+        columnSizing,
+        columnOrder,
+        showColumnDividers,
+        persistSettings,
+    ]);
 
     useEffect(() => {
         return () => {
@@ -119,5 +139,7 @@ export function useTableSettings({
         setColumnSizing,
         columnOrder,
         setColumnOrder,
+        showColumnDividers,
+        setShowColumnDividers,
     };
 }

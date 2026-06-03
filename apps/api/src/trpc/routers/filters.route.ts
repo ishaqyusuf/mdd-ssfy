@@ -91,9 +91,18 @@ export const filterRouters = createTRPCRouter({
     .query(async (props) =>
       getSalesOrderFilters(props.ctx, !!props.input!?.salesManager),
     ),
-  salesOrdersV2: publicProcedure.query(async (props) =>
-    getSalesOrderFiltersV2(props.ctx),
-  ),
+  salesOrdersV2: publicProcedure
+    .input(
+      z
+        .object({
+          salesManager: z.boolean().optional().nullable(),
+        })
+        .optional()
+        .nullable(),
+    )
+    .query(async (props) =>
+      getSalesOrderFiltersV2(props.ctx, !!props.input!?.salesManager),
+    ),
   salesQuotes: publicProcedure
     .input(
       z

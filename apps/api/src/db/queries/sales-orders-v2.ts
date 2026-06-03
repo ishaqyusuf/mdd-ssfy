@@ -6,6 +6,13 @@ import { transformSalesFilterQuery } from "@api/utils/sales";
 import { SalesListInclude } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
 import {
+  INVOICE_FILTER_OPTIONS,
+  PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
+  PRODUCTION_FILTER_OPTIONS,
+  PRODUCTION_STATUS,
+  SALES_DISPATCH_FILTER_OPTIONS,
+} from "@gnd/utils/constants";
+import {
   isControlReadV2Enabled,
   withSalesControl,
   withSalesListControl,
@@ -18,27 +25,36 @@ import {
   normalizeSalesPriority,
   salesPrioritySchema,
 } from "@sales/priority";
+import { SALES_HAS_FILTER_OPTIONS } from "@sales/filter-constants";
 import { z } from "zod";
 import { salesNotesCount } from "./sales";
 
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
-const ordersV2ProductionStatus = [
-  "pending",
-  "in progress",
-  "completed",
-] as const;
 
 const ordersV2FilterShape = {
   q: z.string().optional().nullable(),
   dateRange: z.array(z.string()).optional().nullable(),
   customerName: z.string().optional().nullable(),
+  "customer.name": z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   po: z.string().optional().nullable(),
   orderNo: z.string().optional().nullable(),
+  salesNo: z.string().optional().nullable(),
   sort: z.array(z.string()).optional().nullable(),
   invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
-  production: z.enum(ordersV2ProductionStatus).optional().nullable(),
+  invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
+  production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
+  "production.status": z.enum(PRODUCTION_STATUS).optional().nullable(),
+  "production.assignment": z
+    .enum(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS)
+    .optional()
+    .nullable(),
+  "dispatch.status": z.enum(SALES_DISPATCH_FILTER_OPTIONS).optional().nullable(),
   priority: salesPrioritySchema.optional().nullable(),
+  "sales.priority": salesPrioritySchema.optional().nullable(),
+  "sales.rep": z.string().optional().nullable(),
+  has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
+  showing: z.enum(["all sales"]).optional().nullable(),
 };
 
 export const getOrdersV2Schema = z
@@ -70,16 +86,23 @@ function toLegacyOrdersQuery(
     salesType: "order",
     q: query.q,
     dateRange: query.dateRange,
-    "customer.name": query.customerName,
+    "customer.name": query["customer.name"] ?? query.customerName,
     phone: query.phone,
     po: query.po,
-    salesNo: query.orderNo,
+    salesNo: query.salesNo ?? query.orderNo,
     invoice:
-      query.invoiceStatus === "outstanding"
+      query.invoice ??
+      (query.invoiceStatus === "outstanding"
         ? "pending"
-        : (query.invoiceStatus ?? undefined),
+        : (query.invoiceStatus ?? undefined)),
     production: query.production,
-    "sales.priority": query.priority,
+    "production.status": query["production.status"],
+    "production.assignment": query["production.assignment"],
+    "dispatch.status": query["dispatch.status"],
+    "sales.priority": query["sales.priority"] ?? query.priority,
+    "sales.rep": query["sales.rep"],
+    has: query.has,
+    showing: query.showing ?? undefined,
   };
 
   transformSalesFilterQuery(legacyQuery as SalesQueryParamsSchema);

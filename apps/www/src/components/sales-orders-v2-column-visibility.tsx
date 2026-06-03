@@ -7,7 +7,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 
 export function SalesOrdersV2ColumnVisibility() {
-    const { columns } = useSalesOrdersStore();
+    const { columns, showColumnDividers, setShowColumnDividers } =
+        useSalesOrdersStore();
 
     return (
         <Popover>
@@ -17,8 +18,28 @@ export function SalesOrdersV2ColumnVisibility() {
                 </Button>
             </PopoverTrigger>
 
-            <PopoverContent className="w-[200px] p-0" align="end" sideOffset={8}>
+            <PopoverContent
+                className="w-[220px] p-0"
+                align="end"
+                sideOffset={8}
+            >
                 <div className="flex flex-col p-4 space-y-2 max-h-[450px] overflow-auto">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="sales-orders-column-dividers"
+                            checked={showColumnDividers}
+                            onCheckedChange={(checked) =>
+                                setShowColumnDividers(checked === true)
+                            }
+                        />
+                        <label
+                            htmlFor="sales-orders-column-dividers"
+                            className="text-sm peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                            Column dividers
+                        </label>
+                    </div>
+                    <div className="my-1 border-t border-border" />
                     {columns
                         .filter(
                             (column) =>

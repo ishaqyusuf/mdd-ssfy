@@ -48,6 +48,7 @@ export function SalesOrderMoreActionsMenu({
                 uuid={item.uuid ?? undefined}
             />
             <SalesMenu.SalesEmailMenuItems />
+            <SalesMenu.MarkAs />
             <SalesMenu.SalesPrintMenuItems />
             <SalesMenu.Copy />
             <SalesMenu.Move />

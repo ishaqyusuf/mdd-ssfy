@@ -100,5 +100,9 @@ function applyDefaultTargets(
 
 function applyDefaultTarget(link, defaultHrefByPath: Record<string, string>) {
 	if (!link?.href) return;
+	if (link.skipDefaultHref) {
+		link.targetHref = link.targetHref || link.href;
+		return;
+	}
 	link.targetHref = defaultHrefByPath[link.href] || link.href;
 }

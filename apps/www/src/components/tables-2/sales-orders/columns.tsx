@@ -654,6 +654,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
             >
                 <SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
                 <SalesMenu.SalesEmailMenuItems />
+                <SalesMenu.MarkAs />
                 <SalesMenu.SalesPrintMenuItems />
                 <SalesMenu.Copy />
                 <SalesMenu.Move />
