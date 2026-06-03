@@ -3692,6 +3692,13 @@ function getOrderStatusPresentation(item: ProductionListItem) {
             "Open",
     ).toLowerCase();
 
+    if (item.completed) {
+        return {
+            label: "Completed",
+            className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        };
+    }
+
     if (status.includes("past due") || status.includes("overdue")) {
         return {
             label:
@@ -3726,13 +3733,6 @@ function getOrderStatusPresentation(item: ProductionListItem) {
         return {
             label: item.status?.production?.scoreStatus || "In Progress",
             className: "border-blue-200 bg-blue-50 text-blue-700",
-        };
-    }
-
-    if (item.completed) {
-        return {
-            label: "Completed",
-            className: "border-emerald-200 bg-emerald-50 text-emerald-700",
         };
     }
 

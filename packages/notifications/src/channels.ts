@@ -35,6 +35,7 @@ export const channelNames = [
 	"composed_sales_document_email",
 	"simple_sales_document_email",
 	"simple_sales_email_reminder",
+	"customer_statement",
 	"sales_reminder_schedule_admin_notification",
 	"sales_daily_payment_report",
 	"sales_dispatch_assigned",
@@ -359,6 +360,12 @@ export const channelsConfig: Partial<{
 		name: "Simple Sales Email Reminder",
 		description:
 			"Send reminder email from minimal sales input and enrich payload server-side.",
+		priority: 5,
+		category: "Sales",
+	},
+	customer_statement: {
+		name: "Customer Statement",
+		description: "Send a customer account statement with open invoice balances.",
 		priority: 5,
 		category: "Sales",
 	},

@@ -5,7 +5,7 @@ import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useTRPC } from "@/trpc/client";
 import { HeaderTab } from "@gnd/ui/header-tab";
 import { useQueryClient } from "@gnd/ui/tanstack";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { _perm, validateRules, type Access } from "./sidebar-links";
 
@@ -46,6 +46,7 @@ const salesTabs: {
 
 export function SalesTabs() {
     const auth = useAuth();
+    const pathname = usePathname();
     const router = useRouter();
     const trpc = useTRPC();
     const queryClient = useQueryClient();
@@ -57,8 +58,10 @@ export function SalesTabs() {
             : validateRules(tab.rules, auth.can, auth.id, auth.role),
     );
     const visibleTabHrefs = visibleTabs.map((tab) => tab.href).join("|");
+    const hideSalesTabs = pathname.startsWith("/sales-book/orders/v2");
 
     useEffect(() => {
+        if (hideSalesTabs) return;
         if (!auth.enabled || auth.isPending) return;
 
         const canViewOrders = visibleTabHrefs.includes("/sales-book/orders");
@@ -92,11 +95,14 @@ export function SalesTabs() {
         auth.enabled,
         auth.isPending,
         filterKey,
+        hideSalesTabs,
         queryClient,
         router,
         trpc,
         visibleTabHrefs,
     ]);
+
+    if (hideSalesTabs) return null;
 
     if (!auth.enabled || auth.isPending) return null;
 
@@ -115,4 +121,3 @@ export function SalesTabs() {
         </HeaderTab>
     );
 }
-

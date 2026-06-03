@@ -185,7 +185,8 @@ async function getProductionListAction(
 	const sorted = sortProductionListByPriority(
 		data.map((item) =>
 			transformProductionList(item, {
-				useAssignmentCompletion: !!query.workerId,
+				useAssignmentCompletion:
+					!!query.workerId || !!query["production.status"],
 			}),
 		),
 	);
@@ -251,6 +252,7 @@ const select = (whereAssignments?) =>
 				lhQty: true,
 				rhQty: true,
 				qtyAssigned: true,
+				completedAt: true,
 				dueDate: true,
 				assignedTo: {
 					select: {
@@ -299,9 +301,16 @@ function transformProductionList(
 				return productionQty?.itemTotal || fallbackQty?.itemTotal || 0;
 			}),
 	);
-	const completed = options?.useAssignmentCompletion
-		? totalAssigned === totalCompleted
-		: totalProductionQty > 0 && totalCompleted >= totalProductionQty;
+	const completed = isProductionCompleted({
+		productionStat: stats.prodCompleted,
+		totalAssigned,
+		totalCompleted,
+		totalProductionQty,
+		assignmentCompleted:
+			item.assignments.length > 0 &&
+			item.assignments.every((assignment) => !!assignment.completedAt),
+		useAssignmentCompletion: options?.useAssignmentCompletion,
+	});
 	// if (completed) alert.date = null;
 
 	return {
@@ -327,6 +336,40 @@ function transformProductionList(
 		stats,
 		status: overallStatus(item.stat),
 	};
+}
+
+export function isProductionCompleted({
+	productionStat,
+	totalAssigned,
+	totalCompleted,
+	totalProductionQty,
+	assignmentCompleted,
+	useAssignmentCompletion,
+}: {
+	productionStat?: {
+		total?: number | null;
+		percentage?: number | null;
+	} | null;
+	totalAssigned: number;
+	totalCompleted: number;
+	totalProductionQty: number;
+	assignmentCompleted?: boolean;
+	useAssignmentCompletion?: boolean;
+}) {
+	const productionStatCompleted =
+		Number(productionStat?.total || 0) > 0 &&
+		Number(productionStat?.percentage || 0) === 100;
+	const assignmentQtyCompleted =
+		totalAssigned > 0 && totalCompleted >= totalAssigned;
+	const productionQtyCompleted =
+		totalProductionQty > 0 && totalCompleted >= totalProductionQty;
+
+	return (
+		productionStatCompleted ||
+		(useAssignmentCompletion
+			? assignmentQtyCompleted || !!assignmentCompleted
+			: productionQtyCompleted)
+	);
 }
 
 function filterCompletedProductions<

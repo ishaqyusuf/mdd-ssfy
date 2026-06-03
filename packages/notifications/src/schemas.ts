@@ -223,6 +223,38 @@ export type SalesCustomerPaymentFailedTags = z.infer<
 	typeof salesCustomerPaymentFailedTags
 >;
 
+const customerStatementLineSchema = z.object({
+	salesId: z.number(),
+	orderNo: z.string(),
+	date: z.string(),
+	invoice: z.number(),
+	paid: z.number(),
+	pending: z.number(),
+	customer: z.string(),
+	phone: z.string().optional().nullable(),
+	address: z.string().optional().nullable(),
+});
+export type CustomerStatementLineInput = z.infer<
+	typeof customerStatementLineSchema
+>;
+export const customerStatementSchema = z.object({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	statementTotal: z.number(),
+	accountNo: z.string().optional().nullable(),
+	message: z.string().optional().nullable(),
+	lines: z.array(customerStatementLineSchema).min(1),
+});
+export type CustomerStatementInput = z.infer<typeof customerStatementSchema>;
+export const customerStatementTags = actityTagsSchema.extend({
+	customerEmail: z.string().email(),
+	customerName: z.string(),
+	accountNo: z.string().optional().nullable(),
+	orderNos: z.array(z.string()).min(1),
+	statementTotal: z.number(),
+});
+export type CustomerStatementTags = z.infer<typeof customerStatementTags>;
+
 export const dealerOnboardingSchema = z.object({
 	dealerId: z.number(),
 	dealerName: z.string(),
@@ -729,6 +761,7 @@ export type NotificationTypes = {
 	sales_payment_refunded: SalesPaymentRefundedInput;
 	sales_customer_payment_received: SalesCustomerPaymentReceivedInput;
 	sales_customer_payment_failed: SalesCustomerPaymentFailedInput;
+	customer_statement: CustomerStatementInput;
 	dealer_onboarding: DealerOnboardingInput;
 	dealer_profile_updated: DealerProfileUpdatedInput;
 	auth_new_device_login: AuthNewDeviceLoginInput;
@@ -1586,6 +1619,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("simple_sales_email_reminder"),
 		payload: simpleSalesEmailReminderSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("customer_statement"),
+		payload: customerStatementSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("sales_reminder_schedule_admin_notification"),

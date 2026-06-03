@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 
-import { sortProductionListByPriority } from "./sales-production";
+import {
+	isProductionCompleted,
+	sortProductionListByPriority,
+} from "./sales-production";
 
 describe("sales production priority sorting", () => {
 	it("sorts production queue by priority before due date", () => {
@@ -26,5 +29,42 @@ describe("sales production priority sorting", () => {
 		]);
 
 		expect(sorted.map((item) => item.orderId)).toEqual(["SOONER", "LATER"]);
+	});
+});
+
+describe("sales production completion detection", () => {
+	it("treats a fully completed production stat as completed", () => {
+		expect(
+			isProductionCompleted({
+				productionStat: { total: 4, percentage: 100 },
+				totalAssigned: 4,
+				totalCompleted: 0,
+				totalProductionQty: 4,
+			}),
+		).toBe(true);
+	});
+
+	it("treats fully submitted due assignments as completed", () => {
+		expect(
+			isProductionCompleted({
+				productionStat: { total: 4, percentage: 50 },
+				totalAssigned: 2,
+				totalCompleted: 2,
+				totalProductionQty: 4,
+				useAssignmentCompletion: true,
+			}),
+		).toBe(true);
+	});
+
+	it("does not let partial assignment submissions count as completed", () => {
+		expect(
+			isProductionCompleted({
+				productionStat: { total: 4, percentage: 50 },
+				totalAssigned: 4,
+				totalCompleted: 2,
+				totalProductionQty: 4,
+				useAssignmentCompletion: true,
+			}),
+		).toBe(false);
 	});
 });
