@@ -98,3 +98,9 @@ export const upsertCustomerSchema = z
 		}
 	});
 export type UpsertCustomerSchema = z.infer<typeof upsertCustomerSchema>;
+
+export const updateCustomerEmailSchema = z.object({
+	customerId: z.number(),
+	email: z.string().email("Please enter a valid email address."),
+});
+export type UpdateCustomerEmailSchema = z.infer<typeof updateCustomerEmailSchema>;

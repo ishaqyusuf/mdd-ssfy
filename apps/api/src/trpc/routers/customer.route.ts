@@ -6,6 +6,7 @@ import {
 	getCustomerOverviewV2Schema,
 	searchCustomersSchema,
 	upsertCustomerSchema,
+	updateCustomerEmailSchema,
 } from "@api/schemas/customer";
 import {
 	createOrUpdateCustomer,
@@ -21,6 +22,7 @@ import {
 	getSalesCustomer,
 	getSalesCustomerSchema,
 	searchCustomers,
+	updateCustomerEmail,
 } from "@api/db/queries/customer";
 import type { CustomerProfileMeta } from "@sales/types";
 
@@ -99,5 +101,10 @@ export const customerRouter = createTRPCRouter({
 		.input(upsertCustomerSchema)
 		.mutation(async (props) => {
 			return createOrUpdateCustomerAddress(props.ctx, props.input);
+		}),
+	updateCustomerEmail: publicProcedure
+		.input(updateCustomerEmailSchema)
+		.mutation(async (props) => {
+			return updateCustomerEmail(props.ctx, props.input);
 		}),
 });

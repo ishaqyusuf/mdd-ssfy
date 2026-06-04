@@ -25,6 +25,13 @@ import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Skeleton } from "@gnd/ui/skeleton";
 import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormMessage,
+} from "@gnd/ui/form";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -33,10 +40,14 @@ import {
 	TableHeader,
 	TableRow,
 } from "@gnd/ui/table";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 import type { PermissionScope } from "@/types/auth";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -349,9 +360,21 @@ function CustomerStatementsReportDialog({
 				<DialogHeader className="shrink-0 border-b bg-muted/20 px-5 py-4">
 					<div className="flex items-start justify-between gap-4">
 						<div className="flex min-w-0 items-start gap-3">
-							<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
-								<Icons.FileText className="size-5" />
-							</div>
+							{activeTab === "statement-overview" ? (
+								<Button
+									aria-label="Back to customer statements"
+									className="size-10 shrink-0 rounded-md"
+									onClick={backToList}
+									size="icon"
+									variant="outline"
+								>
+									<Icons.ChevronLeft className="size-5" />
+								</Button>
+							) : (
+								<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+									<Icons.FileText className="size-5" />
+								</div>
+							)}
 							<div className="min-w-0">
 								<div className="flex flex-wrap items-center gap-2">
 									<DialogTitle className="text-base">
@@ -363,12 +386,29 @@ function CustomerStatementsReportDialog({
 										{activeTab === "statement-overview" ? "Review" : "Reports"}
 									</Badge>
 								</div>
-								<DialogDescription className="mt-1">
-									{activeTab === "statement-overview"
-										? detail?.customer.displayName
-											? `${detail.customer.displayName} account statement`
-											: "Review pending orders, choose statement rows, and send."
-										: "Customers with outstanding order balances."}
+								<DialogDescription className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+									{activeTab === "statement-overview" ? (
+										<>
+											<span>
+												{detail?.customer.displayName
+													? `${detail.customer.displayName} account statement`
+													: "Loading customer statement..."}
+											</span>
+											{detail?.customer.email ? (
+												<span>{detail.customer.email}</span>
+											) : null}
+											{detail?.customer.phoneNo ? (
+												<span>{detail.customer.phoneNo}</span>
+											) : null}
+											{detail?.customer.accountNo ? (
+												<Badge variant="outline">
+													{detail.customer.accountNo}
+												</Badge>
+											) : null}
+										</>
+									) : (
+										<span>Customers with outstanding order balances.</span>
+									)}
 								</DialogDescription>
 							</div>
 						</div>
@@ -395,7 +435,6 @@ function CustomerStatementsReportDialog({
 					) : (
 						<StatementOverview
 							allLinesSelected={allLinesSelected}
-							backToList={backToList}
 							detail={detail}
 							hasPartialSelection={hasPartialSelection}
 							isPending={detailQuery.isPending}
@@ -553,7 +592,6 @@ function CustomerStatementsReportDialog({
 
 function StatementOverview({
 	allLinesSelected,
-	backToList,
 	detail,
 	hasPartialSelection,
 	isPending,
@@ -566,7 +604,6 @@ function StatementOverview({
 	toggleLine,
 }: {
 	allLinesSelected: boolean;
-	backToList: () => void;
 	detail: CustomerStatementDetail | undefined;
 	hasPartialSelection: boolean;
 	isPending: boolean;
@@ -584,16 +621,6 @@ function StatementOverview({
 	return (
 		<>
 			<div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
-				<Button
-					variant="ghost"
-					size="sm"
-					className="gap-2"
-					onClick={backToList}
-				>
-					<Icons.ChevronLeft className="size-4" />
-					Back to statements
-				</Button>
-
 				{isPending ? (
 					<div className="space-y-4">
 						<Skeleton className="h-24 w-full rounded-md" />
@@ -601,6 +628,9 @@ function StatementOverview({
 					</div>
 				) : detail ? (
 					<>
+						{!customer?.email && customer?.id ? (
+							<UpdateCustomerEmailForm customerId={customer.id} />
+						) : null}
 						<div className="grid gap-3 rounded-md border bg-muted/20 p-4 md:grid-cols-[1fr_auto]">
 							<div>
 								<div className="text-xs uppercase text-muted-foreground">
@@ -818,4 +848,79 @@ function formatNullableDate(value?: string | null) {
 		day: "numeric",
 		year: "numeric",
 	}).format(date);
+}
+
+const updateEmailSchema = z.object({
+	email: z.string().email("Please enter a valid email address."),
+});
+
+function UpdateCustomerEmailForm({
+	customerId,
+}: {
+	customerId: number;
+}) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const form = useForm<z.infer<typeof updateEmailSchema>>({
+		resolver: zodResolver(updateEmailSchema),
+		defaultValues: { email: "" },
+	});
+
+	const updateMutation = useMutation(
+		trpc.customers.updateCustomerEmail.mutationOptions({
+			onSuccess: () => {
+				toast.success("Email address updated successfully.");
+				queryClient.invalidateQueries();
+			},
+			onError: (error) => {
+				toast.error(error.message || "Failed to update email address.");
+			},
+		})
+	);
+
+	const onSubmit = form.handleSubmit((data) => {
+		updateMutation.mutate({ customerId, email: data.email });
+	});
+
+	return (
+		<Form {...form}>
+			<form
+				onSubmit={onSubmit}
+				className="mb-4 flex items-start gap-4 rounded-md border border-amber-200 bg-amber-50 p-4"
+			>
+				<div className="flex-1">
+					<div className="mb-2 text-sm font-medium text-amber-800">
+						Customer email is missing. Please provide one to send the statement.
+					</div>
+					<FormField
+						control={form.control}
+						name="email"
+						render={({ field }) => (
+							<FormItem>
+								<FormControl>
+									<Input
+										placeholder="Enter customer email address..."
+										className="bg-white"
+										disabled={updateMutation.isPending}
+										{...field}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
+				</div>
+				<Button
+					type="submit"
+					className="mt-[28px]"
+					disabled={updateMutation.isPending}
+				>
+					{updateMutation.isPending ? (
+						<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+					) : null}
+					Save email
+				</Button>
+			</form>
+		</Form>
+	);
 }

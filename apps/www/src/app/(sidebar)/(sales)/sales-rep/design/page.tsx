@@ -1,4 +1,5 @@
 import PageShell from "@/components/page-shell";
+import { Avatar, AvatarFallback } from "@gnd/ui/avatar";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -6,6 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { Icons } from "@gnd/ui/icons";
+import { Progress } from "@gnd/ui/progress";
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@gnd/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
 
 export const dynamic = "force-dynamic";
 
@@ -113,10 +124,10 @@ const recentSales = [
 ] as const;
 
 const pipeline = [
-    { label: "New Requests", value: 18, color: "bg-orange-500" },
-    { label: "Quotes Sent", value: 32, color: "bg-zinc-900 dark:bg-zinc-100" },
-    { label: "Awaiting Payment", value: 11, color: "bg-amber-400" },
-    { label: "Ready For Production", value: 24, color: "bg-emerald-500" },
+    { label: "New Requests", value: 18, color: "bg-chart-1" },
+    { label: "Quotes Sent", value: 32, color: "bg-chart-2" },
+    { label: "Awaiting Payment", value: 11, color: "bg-chart-3" },
+    { label: "Ready For Production", value: 24, color: "bg-chart-4" },
 ] as const;
 
 const topCustomers = [
@@ -134,11 +145,11 @@ export async function generateMetadata() {
 // Inline target: apps/www/src/app/(sidebar)/(sales)/sales-rep/design/page.tsx
 export default function SalesRepDesignPage() {
     return (
-        <PageShell className="bg-[#f7f7f5] p-0 text-foreground dark:bg-background">
+        <PageShell className="bg-muted/40 p-0 text-foreground">
             <div className="min-h-[calc(100dvh-70px)] px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-6">
-                <div className="mx-auto max-w-[1540px] overflow-hidden rounded-[18px] border border-border/70 bg-background shadow-sm">
+                <div className="mx-auto max-w-[1540px] overflow-hidden rounded-2xl border border-border bg-background shadow-sm">
                     <SalesRepDesignTopbar />
-                    <main className="space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+                    <main className="flex flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
                         <SalesRepHero />
                         <SalesRepMetricGrid />
                         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(340px,0.75fr)]">
@@ -156,9 +167,9 @@ export default function SalesRepDesignPage() {
 // Inline target: apps/www/src/components/sales-rep/sales-rep-design-topbar.tsx
 function SalesRepDesignTopbar() {
     return (
-        <div className="flex min-h-[72px] items-center justify-between gap-4 border-b border-border/70 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-h-[72px] items-center justify-between gap-4 border-b border-border px-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-zinc-950 text-sm font-semibold text-white">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">
                     G
                 </div>
                 <div className="min-w-0">
@@ -176,21 +187,18 @@ function SalesRepDesignTopbar() {
                     aria-label="Open notifications"
                     className="rounded-lg"
                 >
-                    <Icons.notification className="size-4" />
+                    <Icons.notification data-icon="inline-start" />
                 </Button>
                 <Button
                     size="sm"
                     variant="outline"
                     className="hidden rounded-lg sm:inline-flex"
                 >
-                    <Icons.Filter className="size-4" />
+                    <Icons.Filter data-icon="inline-start" />
                     Filter
                 </Button>
-                <Button
-                    size="sm"
-                    className="rounded-lg bg-zinc-950 text-white hover:bg-zinc-800"
-                >
-                    <Icons.add className="size-4" />
+                <Button size="sm" className="rounded-lg">
+                    <Icons.add data-icon="inline-start" />
                     Create Sale
                 </Button>
             </div>
@@ -228,7 +236,7 @@ function SalesRepHero() {
 // Inline target: apps/www/src/components/sales-rep/sales-rep-hero-pill.tsx
 function HeroPill({ label, value }: { label: string; value: string }) {
     return (
-        <div className="rounded-lg border border-border/70 bg-card px-4 py-2 shadow-xs">
+        <div className="rounded-lg border border-border bg-card px-4 py-2 shadow-xs">
             <p className="text-[11px] font-medium uppercase text-muted-foreground">
                 {label}
             </p>
@@ -253,8 +261,8 @@ function SalesRepMetricCard({ metric }: { metric: (typeof metrics)[number] }) {
     const Icon = metric.icon;
 
     return (
-        <Card className="overflow-hidden rounded-xl border-border/70 bg-card shadow-none">
-            <CardContent className="p-4">
+        <Card className="overflow-hidden rounded-xl border-border bg-card shadow-none">
+            <CardHeader className="p-4 pb-0">
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -271,21 +279,23 @@ function SalesRepMetricCard({ metric }: { metric: (typeof metrics)[number] }) {
                         </p>
                     </div>
                     <div className="flex flex-col items-end gap-3">
-                        <span
-                            className={cn(
-                                "rounded-md px-2 py-1 text-xs font-medium",
+                        <Badge
+                            variant={
                                 metric.tone === "positive"
-                                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                    : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300",
-                            )}
+                                    ? "default"
+                                    : "destructive"
+                            }
+                            className="rounded-md"
                         >
                             {metric.change}
-                        </span>
-                        <span className="flex size-9 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-300">
-                            <Icon className="size-4" />
+                        </Badge>
+                        <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <Icon />
                         </span>
                     </div>
                 </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
                 <MiniBars values={metric.chart} tone={metric.tone} />
             </CardContent>
         </Card>
@@ -299,11 +309,11 @@ function SalesRepPerformancePanel() {
     );
 
     return (
-        <Card className="rounded-xl border-border/70 shadow-none">
+        <Card className="rounded-xl border-border shadow-none">
             <CardHeader className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
                 <div>
                     <div className="flex items-center gap-3">
-                        <span className="flex size-10 items-center justify-center rounded-xl border border-orange-200 bg-orange-50 text-orange-600 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-300">
+                        <span className="flex size-10 items-center justify-center rounded-xl border border-border bg-primary/10 text-primary">
                             <Icons.salesDashboard className="size-5" />
                         </span>
                         <div>
@@ -312,57 +322,61 @@ function SalesRepPerformancePanel() {
                             </CardTitle>
                             <p className="text-3xl font-semibold tracking-normal">
                                 $147,908
-                                <span className="ml-2 rounded-md bg-emerald-50 px-2 py-1 align-middle text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                                <Badge className="ml-2 rounded-md align-middle">
                                     +12%
-                                </span>
+                                </Badge>
                             </p>
                         </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-4 text-sm">
                         <LegendDot
-                            color="bg-orange-500"
+                            color="bg-chart-1"
                             label="Orders"
                             value="$104,321"
                         />
                         <LegendDot
-                            color="bg-orange-100"
+                            color="bg-chart-2"
                             label="Quotes"
                             value="$42,241"
                         />
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <ToggleGroup
+                    type="single"
+                    defaultValue="1M"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg border border-border"
+                >
                     {["1D", "1W", "1M", "6M", "1Y"].map((range) => (
-                        <button
-                            className={cn(
-                                "h-9 rounded-lg px-3 text-sm text-muted-foreground transition-colors hover:bg-muted",
-                                range === "1M" &&
-                                    "border bg-background font-medium text-foreground shadow-xs",
-                            )}
+                        <ToggleGroupItem
+                            aria-label={`Show ${range} performance`}
                             key={range}
-                            type="button"
+                            value={range}
                         >
                             {range}
-                        </button>
+                        </ToggleGroupItem>
                     ))}
-                </div>
+                </ToggleGroup>
             </CardHeader>
 
             <CardContent className="px-4 pb-5 sm:px-5">
                 <div className="relative h-[320px] rounded-lg">
-                    <div className="absolute left-0 top-1 z-10 rounded-lg bg-zinc-950 px-4 py-3 text-white shadow-lg">
-                        <p className="text-sm text-zinc-400">June, 2026</p>
-                        <div className="mt-2 space-y-1 text-sm">
+                    <div className="absolute left-0 top-1 z-10 rounded-lg border border-border bg-popover px-4 py-3 text-popover-foreground shadow-lg">
+                        <p className="text-sm text-muted-foreground">
+                            June, 2026
+                        </p>
+                        <div className="mt-2 flex flex-col gap-1 text-sm">
                             <p>
-                                <span className="mr-2 inline-block size-2 rounded-full bg-orange-500" />
+                                <span className="mr-2 inline-block size-2 rounded-full bg-chart-1" />
                                 Orders{" "}
                                 <span className="ml-6 font-medium">
                                     $18,266
                                 </span>
                             </p>
                             <p>
-                                <span className="mr-2 inline-block size-2 rounded-full bg-orange-100" />
+                                <span className="mr-2 inline-block size-2 rounded-full bg-chart-2" />
                                 Quotes{" "}
                                 <span className="ml-7 font-medium">$9,356</span>
                             </p>
@@ -380,8 +394,8 @@ function SalesRepPerformancePanel() {
                                         className={cn(
                                             "w-5 rounded-t-lg",
                                             item.active
-                                                ? "bg-orange-500"
-                                                : "bg-[repeating-linear-gradient(135deg,#f3f3f1_0,#f3f3f1_8px,#e8e8e5_8px,#e8e8e5_10px)] dark:bg-muted",
+                                                ? "bg-primary"
+                                                : "bg-muted",
                                         )}
                                         style={{
                                             height: `${(item.sales / max) * 100}%`,
@@ -391,8 +405,8 @@ function SalesRepPerformancePanel() {
                                         className={cn(
                                             "w-5 rounded-t-lg",
                                             item.active
-                                                ? "bg-orange-100 dark:bg-orange-950"
-                                                : "bg-[repeating-linear-gradient(135deg,#fafafa_0,#fafafa_8px,#ececea_8px,#ececea_10px)] dark:bg-muted/60",
+                                                ? "bg-primary/20"
+                                                : "bg-muted/60",
                                         )}
                                         style={{
                                             height: `${(item.quotes / max) * 100}%`,
@@ -422,7 +436,7 @@ function SalesRepPipelinePanel() {
     const total = pipeline.reduce((sum, item) => sum + item.value, 0);
 
     return (
-        <Card className="rounded-xl border-border/70 shadow-none">
+        <Card className="rounded-xl border-border shadow-none">
             <CardHeader className="p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-3">
                     <div>
@@ -438,9 +452,9 @@ function SalesRepPipelinePanel() {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-5 p-4 pt-0 sm:p-5 sm:pt-0">
-                <div className="relative mx-auto flex aspect-square max-w-[240px] items-center justify-center rounded-full border-[22px] border-orange-100 dark:border-orange-950">
-                    <div className="absolute inset-[-22px] rounded-full border-[22px] border-r-orange-500 border-t-orange-500 border-b-transparent border-l-transparent" />
+            <CardContent className="flex flex-col gap-5 p-4 pt-0 sm:p-5 sm:pt-0">
+                <div className="relative mx-auto flex aspect-square max-w-[240px] items-center justify-center rounded-full border-[22px] border-muted">
+                    <div className="absolute inset-[-22px] rounded-full border-[22px] border-r-primary border-t-primary border-b-transparent border-l-transparent" />
                     <div className="relative text-center">
                         <p className="text-4xl font-semibold tracking-normal">
                             {rep.attainment}
@@ -451,9 +465,9 @@ function SalesRepPipelinePanel() {
                     </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                     {pipeline.map((item) => (
-                        <div className="space-y-1.5" key={item.label}>
+                        <div className="flex flex-col gap-1.5" key={item.label}>
                             <div className="flex items-center justify-between text-sm">
                                 <span className="flex items-center gap-2 text-muted-foreground">
                                     <span
@@ -468,24 +482,17 @@ function SalesRepPipelinePanel() {
                                     {item.value}
                                 </span>
                             </div>
-                            <div className="h-2 rounded-full bg-muted">
-                                <div
-                                    className={cn(
-                                        "h-full rounded-full",
-                                        item.color,
-                                    )}
-                                    style={{
-                                        width: `${(item.value / total) * 100}%`,
-                                    }}
-                                />
-                            </div>
+                            <Progress
+                                value={(item.value / total) * 100}
+                                className="h-2"
+                            />
                         </div>
                     ))}
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-muted/30 p-4">
+                <div className="rounded-xl border border-border bg-muted/30 p-4">
                     <p className="text-sm font-medium">Top customers</p>
-                    <div className="mt-3 space-y-3">
+                    <div className="mt-3 flex flex-col gap-3">
                         {topCustomers.map((customer) => (
                             <div
                                 className="flex items-center justify-between gap-3"
@@ -514,7 +521,7 @@ function SalesRepPipelinePanel() {
 // Inline target: apps/www/src/components/sales-rep/sales-rep-table-section.tsx
 function SalesRepTableSection() {
     return (
-        <Card className="rounded-xl border-border/70 shadow-none">
+        <Card className="rounded-xl border-border shadow-none">
             <CardHeader className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
                 <div>
                     <CardTitle className="text-xl font-semibold tracking-normal">
@@ -526,79 +533,75 @@ function SalesRepTableSection() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" size="sm" className="rounded-lg">
-                        <Icons.chart className="size-4" />
+                        <Icons.chart data-icon="inline-start" />
                         Table View
                     </Button>
                     <Button variant="outline" size="sm" className="rounded-lg">
-                        <Icons.Filter className="size-4" />
+                        <Icons.Filter data-icon="inline-start" />
                         Filter
                     </Button>
-                    <Button
-                        size="sm"
-                        className="rounded-lg bg-zinc-950 text-white hover:bg-zinc-800"
-                    >
-                        <Icons.Export className="size-4" />
+                    <Button size="sm" className="rounded-lg">
+                        <Icons.Export data-icon="inline-start" />
                         Export
                     </Button>
                 </div>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[760px] text-sm">
-                        <thead>
-                            <tr className="border-y bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-                                <th className="px-5 py-3 font-medium">Order</th>
-                                <th className="px-5 py-3 font-medium">
+                    <Table className="min-w-[760px]">
+                        <TableHeader className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                            <TableRow>
+                                <TableHead className="px-5 py-3 font-medium">
+                                    Order
+                                </TableHead>
+                                <TableHead className="px-5 py-3 font-medium">
                                     Customer
-                                </th>
-                                <th className="px-5 py-3 font-medium">
+                                </TableHead>
+                                <TableHead className="px-5 py-3 font-medium">
                                     Product
-                                </th>
-                                <th className="px-5 py-3 font-medium">
+                                </TableHead>
+                                <TableHead className="px-5 py-3 font-medium">
                                     Status
-                                </th>
-                                <th className="px-5 py-3 text-right font-medium">
+                                </TableHead>
+                                <TableHead className="px-5 py-3 text-right font-medium">
                                     Amount
-                                </th>
-                                <th className="px-5 py-3 text-right font-medium">
+                                </TableHead>
+                                <TableHead className="px-5 py-3 text-right font-medium">
                                     Commission
-                                </th>
-                                <th className="px-5 py-3 text-right font-medium">
+                                </TableHead>
+                                <TableHead className="px-5 py-3 text-right font-medium">
                                     Date
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {recentSales.map((sale) => (
-                                <tr
-                                    className="border-b transition-colors last:border-b-0 hover:bg-muted/30"
-                                    key={sale.id}
-                                >
-                                    <td className="px-5 py-4 font-medium">
+                                <TableRow key={sale.id}>
+                                    <TableCell className="px-5 py-4 font-medium">
                                         {sale.id}
-                                    </td>
-                                    <td className="px-5 py-4">
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4">
                                         {sale.customer}
-                                    </td>
-                                    <td className="px-5 py-4 text-muted-foreground">
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 text-muted-foreground">
                                         {sale.product}
-                                    </td>
-                                    <td className="px-5 py-4">
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4">
                                         <StatusBadge status={sale.status} />
-                                    </td>
-                                    <td className="px-5 py-4 text-right font-medium">
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 text-right font-medium">
                                         {sale.amount}
-                                    </td>
-                                    <td className="px-5 py-4 text-right text-muted-foreground">
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 text-right text-muted-foreground">
                                         {sale.commission}
-                                    </td>
-                                    <td className="px-5 py-4 text-right text-muted-foreground">
+                                    </TableCell>
+                                    <TableCell className="px-5 py-4 text-right text-muted-foreground">
                                         {sale.date}
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
             </CardContent>
         </Card>
@@ -612,37 +615,27 @@ function StatusBadge({
     status: (typeof recentSales)[number]["status"];
 }) {
     const variants = {
-        Approved:
-            "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-        Pending:
-            "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-        Paid: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-        Quote: "bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
-    };
+        Approved: "default",
+        Pending: "secondary",
+        Paid: "outline",
+        Quote: "secondary",
+    } as const;
 
     return (
-        <span
-            className={cn(
-                "inline-flex rounded-md px-2 py-1 text-xs font-medium",
-                variants[status],
-            )}
-        >
+        <Badge variant={variants[status]} className="rounded-md">
             {status}
-        </span>
+        </Badge>
     );
 }
 
 // Inline target: apps/www/src/components/sales-rep/rep-avatar.tsx
 function RepAvatar({ className }: { className?: string }) {
     return (
-        <span
-            className={cn(
-                "flex shrink-0 items-center justify-center rounded-xl bg-zinc-950 font-semibold text-white",
-                className,
-            )}
-        >
-            {rep.initials}
-        </span>
+        <Avatar className={cn("rounded-xl", className)}>
+            <AvatarFallback className="rounded-xl bg-primary text-primary-foreground">
+                {rep.initials}
+            </AvatarFallback>
+        </Avatar>
     );
 }
 
@@ -680,10 +673,11 @@ function MiniBars({
             {values.map((value, index) => (
                 <span
                     className={cn(
-                        "w-4 rounded-t-md",
-                        tone === "positive"
-                            ? "bg-orange-500/20 last:bg-orange-500"
-                            : "bg-rose-500/15 last:bg-rose-500",
+                        "w-4 rounded-t-md bg-primary/20",
+                        index === values.length - 1 &&
+                            (tone === "positive"
+                                ? "bg-primary"
+                                : "bg-destructive"),
                     )}
                     key={`${value}-${index}`}
                     style={{ height: `${(value / max) * 100}%` }}

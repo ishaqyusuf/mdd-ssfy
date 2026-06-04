@@ -64,6 +64,18 @@ export const customerStatement: NotificationHandler = {
 			tags: payload,
 		};
 	},
+	createDirectEmailContact(data: CustomerStatementInput): import("../base").UserData {
+		return {
+			id: data.customerId || 0,
+			profileId: 0,
+			name: data.customerName,
+			email: data.customerEmail,
+			role: "customer",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		};
+	},
 	createEmail(data, _author, _user, args) {
 		return {
 			...args,

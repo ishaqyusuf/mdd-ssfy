@@ -7,6 +7,7 @@ import type {
 	GetCustomers,
 	SearchCustomersSchema,
 	UpsertCustomerSchema,
+	UpdateCustomerEmailSchema,
 } from "@api/schemas/customer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
@@ -1568,4 +1569,24 @@ function resolvePendingSalePaymentMethod(meta: unknown) {
 
 	if (typeof paymentMethod === "string") return paymentMethod;
 	return typeof legacyPaymentMethod === "string" ? legacyPaymentMethod : null;
+}
+
+export async function updateCustomerEmail(
+	ctx: TRPCContext,
+	input: UpdateCustomerEmailSchema,
+) {
+	const customer = await ctx.db.customers.findUnique({
+		where: { id: input.customerId },
+	});
+	if (!customer) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Customer not found.",
+		});
+	}
+	const updated = await ctx.db.customers.update({
+		where: { id: input.customerId },
+		data: { email: input.email },
+	});
+	return updated;
 }
