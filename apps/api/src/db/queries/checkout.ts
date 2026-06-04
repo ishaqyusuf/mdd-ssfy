@@ -671,6 +671,7 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 export const createSalesCheckoutLinkSchema = z.object({
 	token: z.string(),
 	amount: z.number().positive().optional().nullable(),
+	selectedSalesIds: z.array(z.number()).optional().nullable(),
 });
 export type CreateSalesCheckoutLinkSchema = z.infer<
 	typeof createSalesCheckoutLinkSchema
@@ -687,7 +688,10 @@ export async function createSalesCheckoutLink(
 	const payload = checkoutData.payload;
 
 	return db.$transaction(async (tx) => {
-		const sales = checkoutData?.sales;
+		const selectedSalesIds = new Set(data.selectedSalesIds || []);
+		const sales = selectedSalesIds.size
+			? checkoutData?.sales?.filter((sale) => selectedSalesIds.has(sale.id))
+			: checkoutData?.sales;
 		if (!sales?.length) {
 			throw new Error("No payable sales found for checkout");
 		}
@@ -719,26 +723,27 @@ export async function createSalesCheckoutLink(
 		}
 
 		const cust = sales.find((a) => !!a.email && !!a.displayName);
-		const phone = checkoutData?.sales
-			?.map((a) => a.customerPhone)
-			?.filter(Boolean)?.[0];
+		const phone = sales?.map((a) => a.customerPhone)?.filter(Boolean)?.[0];
 		const phoneNo = normalizeBuyerPhoneNumber(phone);
 		const pendingCheckout = await createPendingLegacySalesCheckout(tx, {
 			amount,
-			orders: checkoutData.sales.map((order) => ({
+			orders: sales.map((order) => ({
 				id: order.id,
 				orderId: order.orderId,
 				amountDue: order.due,
 				customerId: order.customerId,
-				salesRepId: order.salesRepId,
+				salesRepId: order.salesRepId || 0,
 				accountNo: order.accountNo,
 				customerPhone: order.customerPhone,
 				email: order.email,
 				displayName: order.displayName,
-				address: cust?.address,
+				address: cust?.address || null,
 			})),
 			paymentMethod: "link" as SalesPaymentMethods,
-			tokenPayload: payload,
+			tokenPayload: {
+				...payload,
+				salesIds: sales.map((order) => order.id),
+			},
 		});
 		const redirectUrl = `${getAppUrl()}/checkout/${pendingCheckout.redirectToken}/v2`;
 		const buyerEmail = cust?.email;
@@ -747,7 +752,7 @@ export async function createSalesCheckoutLink(
 				idempotencyKey: new Date().toISOString(),
 				quickPay: {
 					locationId: SQUARE_LOCATION_ID,
-					name: squareSalesNote(checkoutData.sales.map((a) => a.orderId)),
+					name: squareSalesNote(sales.map((a) => a.orderId)),
 					priceMoney: {
 						amount: BigInt(Math.round(amount * 100)),
 						currency: "USD",
@@ -968,11 +973,7 @@ export async function verifyPayment(
 		"notifications" in result ? result.notifications || [] : [];
 	let invoiceDownloadUrl: string | null = null;
 	if (result.status === "COMPLETED") {
-		await sendPaymentSystemNotifications(
-			tasks,
-			ctx,
-			notifications,
-		);
+		await sendPaymentSystemNotifications(tasks, ctx, notifications);
 		if (
 			"customerReceiptSales" in result &&
 			result.customerReceiptSales?.length

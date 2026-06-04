@@ -6,6 +6,7 @@ import { openLink } from "@/lib/open-link";
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Card,
 	CardContent,
@@ -21,7 +22,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { useTRPC } from "@/trpc/client";
 import { resolveReminderPlanLabel } from "@sales/utils/reminder-pay-plan";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Props {
 	token: string;
@@ -42,11 +43,12 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 			{
 				enabled: !!token,
 			},
-			),
+		),
 	);
 	const data = checkoutData as any;
 	const [verificationAttempt, setVerificationAttempt] = useState(0);
 	const [flexibleAmount, setFlexibleAmount] = useState("");
+	const [selectedSalesIds, setSelectedSalesIds] = useState<number[]>([]);
 	const payload = data?.payload;
 	const paymentId = payload?.paymentId;
 	const walletId = payload?.walletId;
@@ -56,7 +58,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 		data: verificationData,
 		isPending: isVerifying,
 		mutate: verifyPayment,
-		} = useMutation(
+	} = useMutation(
 		trpc.checkout.verifyPayment.mutationOptions({
 			onError(_error) {
 				toast({
@@ -131,8 +133,26 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 	]);
 
 	const orders = data?.sales ?? [];
-	const totalDue = orders.reduce((sum, order) => sum + Number(order.due ?? 0), 0);
-	const amountDue = payload?.amount ?? totalDue;
+	const selectedSalesIdSet = useMemo(
+		() => new Set(selectedSalesIds),
+		[selectedSalesIds],
+	);
+	const selectedOrders = useMemo(
+		() => orders.filter((order) => selectedSalesIdSet.has(order.id)),
+		[orders, selectedSalesIdSet],
+	);
+	const totalDue = orders.reduce(
+		(sum, order) => sum + Number(order.due ?? 0),
+		0,
+	);
+	const selectedTotalDue = selectedOrders.reduce(
+		(sum, order) => sum + Number(order.due ?? 0),
+		0,
+	);
+	const amountDue =
+		payload?.payPlan === "custom" && payload?.amount
+			? payload.amount
+			: selectedTotalDue;
 	const paymentPlanLabel = resolveReminderPlanLabel({
 		payPlan: payload?.payPlan,
 		percentage: payload?.percentage,
@@ -146,6 +166,11 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 			: "Amount due";
 	const merchantName = data?.customerName || "gnd";
 	const hasOrders = orders.length > 0;
+	const hasSelectedOrders = selectedOrders.length > 0;
+	const allOrdersSelected =
+		orders.length > 0 && selectedSalesIds.length === orders.length;
+	const hasPartialSelection =
+		selectedSalesIds.length > 0 && selectedSalesIds.length < orders.length;
 	const isInvalidToken =
 		!hasOrders &&
 		!payload?.paymentId &&
@@ -163,13 +188,31 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 	const isFlexibleAmountValid =
 		Number.isFinite(flexibleAmountValue) &&
 		flexibleAmountValue > 0 &&
-		flexibleAmountValue <= totalDue;
+		flexibleAmountValue <= selectedTotalDue;
+
+	useEffect(() => {
+		if (!orders.length) return;
+		setSelectedSalesIds(orders.map((order) => order.id));
+	}, [orders]);
 
 	const handleStartPayment = () => {
 		createCheckout({
 			token,
+			selectedSalesIds,
 			amount: isFlexiblePayPlan ? flexibleAmountValue : undefined,
 		});
+	};
+
+	const toggleOrder = (salesId: number, checked: boolean) => {
+		setSelectedSalesIds((current) =>
+			checked
+				? Array.from(new Set([...current, salesId]))
+				: current.filter((id) => id !== salesId),
+		);
+	};
+
+	const toggleAllOrders = (checked: boolean) => {
+		setSelectedSalesIds(checked ? orders.map((order) => order.id) : []);
 	};
 
 	const handleRetryVerification = () => {
@@ -260,7 +303,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 								</p>
 								<p className="mt-1 text-sm text-slate-600">
 									Enter any amount between {currencyFormatter.format(0.01)} and{" "}
-									{currencyFormatter.format(totalDue)}.
+									{currencyFormatter.format(selectedTotalDue)}.
 								</p>
 							</div>
 							<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -271,7 +314,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 									onChange={(event) => setFlexibleAmount(event.target.value)}
 								/>
 								<div className="text-sm font-medium text-slate-700">
-									Max: {currencyFormatter.format(totalDue)}
+									Max selected: {currencyFormatter.format(selectedTotalDue)}
 								</div>
 							</div>
 						</div>
@@ -305,12 +348,24 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 								Order summary
 							</h3>
 							<span className="text-sm text-slate-500">
-								{orders.length} {orders.length === 1 ? "order" : "orders"}
+								{selectedOrders.length} of {orders.length} selected
 							</span>
 						</div>
 
 						<div className="overflow-hidden rounded-2xl border border-slate-200">
-							<div className="grid grid-cols-[1.2fr_0.7fr_0.7fr] bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+							<div className="grid grid-cols-[44px_1.2fr_0.7fr_0.7fr] items-center bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+								<Checkbox
+									checked={
+										allOrdersSelected
+											? true
+											: hasPartialSelection
+												? "indeterminate"
+												: false
+									}
+									onCheckedChange={(checked) =>
+										toggleAllOrders(checked === true)
+									}
+								/>
 								<span>Order</span>
 								<span>Sales rep</span>
 								<span className="text-right">Due</span>
@@ -320,8 +375,14 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 									{orders.map((order) => (
 										<div
 											key={order.id}
-											className="grid grid-cols-[1.2fr_0.7fr_0.7fr] items-center px-4 py-4 text-sm"
+											className="grid grid-cols-[44px_1.2fr_0.7fr_0.7fr] items-center px-4 py-4 text-sm"
 										>
+											<Checkbox
+												checked={selectedSalesIdSet.has(order.id)}
+												onCheckedChange={(checked) =>
+													toggleOrder(order.id, checked === true)
+												}
+											/>
 											<div>
 												<p className="font-medium text-slate-900">
 													{order.orderId}
@@ -359,6 +420,7 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 							onClick={handleStartPayment}
 							disabled={
 								isCreatingCheckout ||
+								!hasSelectedOrders ||
 								(isFlexiblePayPlan && !isFlexibleAmountValid)
 							}
 							className="bg-slate-950 text-white hover:bg-slate-800"
@@ -418,13 +480,9 @@ export function SquareTokenCheckoutV2({ token }: Props) {
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<StatusPanel state={state.name} />
-							{state.name === "paid" && verification?.invoiceDownloadUrl ? (
-							<Button
-								asChild
-								variant="outline"
-								className="w-full"
-							>
-									<a href={verification.invoiceDownloadUrl}>Download invoice</a>
+						{state.name === "paid" && verification?.invoiceDownloadUrl ? (
+							<Button asChild variant="outline" className="w-full">
+								<a href={verification.invoiceDownloadUrl}>Download invoice</a>
 							</Button>
 						) : null}
 						<Separator />

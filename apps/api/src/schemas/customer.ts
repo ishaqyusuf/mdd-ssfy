@@ -2,11 +2,11 @@ import { paginationSchema } from "@gnd/utils/schema";
 import { z } from "zod";
 
 function hasText(value?: string | null) {
-  return String(value || "").trim().length > 0;
+	return String(value || "").trim().length > 0;
 }
 
 export const searchCustomersSchema = z.object({
-  query: z.string().optional(),
+	query: z.string().optional(),
 });
 
 export type SearchCustomersSchema = z.infer<typeof searchCustomersSchema>;
@@ -16,78 +16,85 @@ export type GetCustomers = z.infer<typeof getCustomersSchema>;
 
 export const getCustomerDirectoryV2SummarySchema = z.object({});
 export type GetCustomerDirectoryV2SummarySchema = z.infer<
-  typeof getCustomerDirectoryV2SummarySchema
+	typeof getCustomerDirectoryV2SummarySchema
 >;
 
 export const getCustomerStatementReportSchema = z.object({});
 export type GetCustomerStatementReportSchema = z.infer<
-  typeof getCustomerStatementReportSchema
+	typeof getCustomerStatementReportSchema
+>;
+
+export const getCustomerStatementDetailSchema = z.object({
+	customerId: z.number(),
+});
+export type GetCustomerStatementDetailSchema = z.infer<
+	typeof getCustomerStatementDetailSchema
 >;
 
 export const getCustomerOverviewV2Schema = z.object({
-  accountNo: z.string(),
+	accountNo: z.string(),
 });
 export type GetCustomerOverviewV2Schema = z.infer<
-  typeof getCustomerOverviewV2Schema
+	typeof getCustomerOverviewV2Schema
 >;
 
 export const upsertCustomerSchema = z
-  .object({
-    profileId: z.string().optional().nullable(),
-    id: z.number().optional(),
-    customerId: z.number().optional(),
-    addressOnly: z.boolean().nullable().optional(),
-    phoneNo: z.string().optional(),
-    phoneNo2: z.string().optional(),
-    route: z.string().optional(),
-    email: z.string().optional(),
-    address1: z.string().optional().nullable(),
-    formattedAddress: z.string().optional().nullable(),
-    address2: z.string().optional(),
-    name: z.string().optional(),
-    businessName: z.string().optional(),
-    addressId: z.number().optional(),
-    zip_code: z.string().optional(),
-    lat: z.number().optional().nullable(),
-    lng: z.number().optional().nullable(),
-    placeId: z.string().optional().nullable(),
-    taxCode: z.string().optional(),
-    country: z.string().optional(),
-    state: z.string().optional(),
-    city: z.string().optional(),
-    taxProfileId: z.number().optional(),
-    netTerm: z.string().optional(),
-    customerType: z.enum(["Personal", "Business"]).optional(),
-    existingCustomers: z.array(z.any()).nullable().optional().default(undefined),
-  })
-  .superRefine((data, ctx) => {
-    if (data.addressOnly) return;
-    if (!data.profileId)
-      ctx.addIssue({
-        path: ["profileId"],
-        message: "Profile is required!",
-        code: "custom",
-      });
-    if (data.customerType === "Personal" && !hasText(data.name)) {
-      ctx.addIssue({
-        path: ["name"],
-        message: "Name is required for Individual customers",
-        code: "custom",
-      });
-    }
-    if (data.existingCustomers?.length) {
-      ctx.addIssue({
-        path: ["existingCustomers"],
-        message: "Resolve conflict customer",
-        code: "custom",
-      });
-    }
-    if (data.customerType === "Business" && !hasText(data.businessName)) {
-      ctx.addIssue({
-        path: ["businessName"],
-        message: "Business Name is required for Business customers",
-        code: "custom",
-      });
-    }
-  });
+	.object({
+		profileId: z.string().optional().nullable(),
+		id: z.number().optional(),
+		customerId: z.number().optional(),
+		addressOnly: z.boolean().nullable().optional(),
+		phoneNo: z.string().optional(),
+		phoneNo2: z.string().optional(),
+		route: z.string().optional(),
+		email: z.string().optional(),
+		address1: z.string().optional().nullable(),
+		formattedAddress: z.string().optional().nullable(),
+		address2: z.string().optional(),
+		name: z.string().optional(),
+		businessName: z.string().optional(),
+		addressId: z.number().optional(),
+		zip_code: z.string().optional(),
+		lat: z.number().optional().nullable(),
+		lng: z.number().optional().nullable(),
+		placeId: z.string().optional().nullable(),
+		taxCode: z.string().optional(),
+		country: z.string().optional(),
+		state: z.string().optional(),
+		city: z.string().optional(),
+		taxProfileId: z.number().optional(),
+		netTerm: z.string().optional(),
+		customerType: z.enum(["Personal", "Business"]).optional(),
+		existingCustomers: z.array(z.any()).nullable().optional(),
+	})
+	.superRefine((data, ctx) => {
+		if (data.addressOnly) return;
+		if (!data.profileId)
+			ctx.addIssue({
+				path: ["profileId"],
+				message: "Profile is required!",
+				code: "custom",
+			});
+		if (data.customerType === "Personal" && !hasText(data.name)) {
+			ctx.addIssue({
+				path: ["name"],
+				message: "Name is required for Individual customers",
+				code: "custom",
+			});
+		}
+		if (data.existingCustomers?.length) {
+			ctx.addIssue({
+				path: ["existingCustomers"],
+				message: "Resolve conflict customer",
+				code: "custom",
+			});
+		}
+		if (data.customerType === "Business" && !hasText(data.businessName)) {
+			ctx.addIssue({
+				path: ["businessName"],
+				message: "Business Name is required for Business customers",
+				code: "custom",
+			});
+		}
+	});
 export type UpsertCustomerSchema = z.infer<typeof upsertCustomerSchema>;

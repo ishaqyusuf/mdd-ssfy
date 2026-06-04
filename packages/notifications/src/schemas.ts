@@ -241,14 +241,17 @@ export const customerStatementSchema = z.object({
 	customerEmail: z.string().email(),
 	customerName: z.string(),
 	statementTotal: z.number(),
+	customerId: z.number().optional().nullable(),
 	accountNo: z.string().optional().nullable(),
 	message: z.string().optional().nullable(),
+	paymentLink: z.string().url().optional().nullable(),
 	lines: z.array(customerStatementLineSchema).min(1),
 });
 export type CustomerStatementInput = z.infer<typeof customerStatementSchema>;
 export const customerStatementTags = actityTagsSchema.extend({
 	customerEmail: z.string().email(),
 	customerName: z.string(),
+	customerId: z.number().optional().nullable(),
 	accountNo: z.string().optional().nullable(),
 	orderNos: z.array(z.string()).min(1),
 	statementTotal: z.number(),
@@ -287,9 +290,7 @@ export const dealerProfileUpdatedTags = actityTagsSchema.extend({
 	previousProfileName: z.string().optional().nullable(),
 	newProfileName: z.string(),
 });
-export type DealerProfileUpdatedTags = z.infer<
-	typeof dealerProfileUpdatedTags
->;
+export type DealerProfileUpdatedTags = z.infer<typeof dealerProfileUpdatedTags>;
 
 export const authNewDeviceLoginSchema = z.object({
 	accountName: z.string().optional().nullable(),

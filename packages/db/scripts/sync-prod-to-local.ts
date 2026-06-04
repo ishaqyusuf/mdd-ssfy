@@ -12,6 +12,7 @@ Options:
   --source-url <url>                Override production MySQL URL
   --target-url <url>                Override local MySQL URL
   --state-file <path>               Override cursor state file
+  --initial-cursor-value <value>     Floor for fresh/stale cursors (default: 2026-05-04 23:59:59.999)
   --reset-cursor                    Ignore saved cursor for the selected table(s)
   --read-batch-size <number>        Source read batch size (default: 10000)
   --write-batch-size <number>       Local upsert batch size (default: 500)
@@ -70,6 +71,9 @@ function createProgressReporter(startedAt: number) {
 		const elapsed = formatElapsed(startedAt);
 
 		switch (event.type) {
+			case "manifest:start":
+				console.log(`[${elapsed}] Inspecting source schema...`);
+				break;
 			case "manifest":
 				console.log(`[${elapsed}] Found ${event.tableCount} table${event.tableCount === 1 ? "" : "s"} to inspect.`);
 				break;
@@ -110,6 +114,9 @@ try {
 
 	console.log(`${options.dryRun ? "Dry running" : "Syncing"} production DB to local...`);
 	console.log(`State file: ${options.stateFile}`);
+	if (options.initialCursorValue) {
+		console.log(`Initial cursor floor: ${options.initialCursorValue}`);
+	}
 	if (options.table) {
 		console.log(`Table filter: ${options.table}`);
 	}

@@ -1,5 +1,8 @@
 // @ts-expect-error packages/db typecheck does not include Bun test types.
 import { describe, expect, test } from "bun:test";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import {
 	assertSafeConnections,
 	buildCursorExpression,
@@ -11,6 +14,7 @@ import {
 	parseArgs,
 	parseEnvFile,
 	quoteIdent,
+	resolveOptions,
 } from "./local-sync";
 
 describe("local db sync helpers", () => {
@@ -79,8 +83,22 @@ describe("local db sync helpers", () => {
 	test("builds deterministic keyset where clause with composite keys", () => {
 		const where = buildKeysetWhereClause(["a", "b"], { a: 7, b: "x" });
 
-		expect(where.sql).toBe("WHERE (`a` > ?) OR (`a` = ? AND `b` > ?)");
+		expect(where.sql).toBe("WHERE ((`a` > ?) OR (`a` = ? AND `b` > ?))");
 		expect(where.params).toEqual([7, 7, "x"]);
+	});
+
+	test("keeps cursor floor on keyset fallback scans", () => {
+		const where = buildKeysetWhereClause(
+			["a", "b"],
+			{ a: 7, b: "x" },
+			buildCursorExpression(["updatedAt", "createdAt"]),
+			"2026-05-04 23:59:59.999",
+		);
+
+		expect(where.sql).toBe(
+			"WHERE COALESCE(`updatedAt`, `createdAt`, '1000-01-01 00:00:00.000') > ? AND ((`a` > ?) OR (`a` = ? AND `b` > ?))",
+		);
+		expect(where.params).toEqual(["2026-05-04 23:59:59.999", 7, 7, "x"]);
 	});
 
 	test("builds multi-row upsert SQL", () => {
@@ -124,6 +142,9 @@ describe("local db sync helpers", () => {
 			table: "Users",
 			readBatchSize: 250,
 		});
+		expect(parseArgs(["--initial-cursor-value", "2026-05-04 23:59:59.999"])).toMatchObject({
+			initialCursorValue: "2026-05-04 23:59:59.999",
+		});
 		expect(parseArgs(["--reset-cursor"])).toMatchObject({
 			resetCursor: true,
 		});
@@ -131,5 +152,38 @@ describe("local db sync helpers", () => {
 			DATABASE_URL: "mysql://root@localhost/db",
 			OTHER: "value",
 		});
+	});
+
+	test("does not use generic .env.local DATABASE_URL as local sync target", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
+
+		try {
+			await writeFile(`${cwd}/.env.local`, "DATABASE_URL='mysql://root@localhost/gnd-prisma2'\n", "utf8");
+
+			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod"], cwd);
+
+			expect(options.targetUrl).toBe("mysql://root@127.0.0.1:3307/gnd-prisma2");
+			expect(options.initialCursorValue).toBe("2026-05-04 23:59:59.999");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("uses explicit local sync target from env files", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
+
+		try {
+			await writeFile(
+				`${cwd}/.env.local`,
+				"DATABASE_URL='mysql://root@localhost/app-db'\nLOCAL_DATABASE_URL='mysql://root@localhost:3308/import-db'\n",
+				"utf8",
+			);
+
+			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod"], cwd);
+
+			expect(options.targetUrl).toBe("mysql://root@localhost:3308/import-db");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
 	});
 });

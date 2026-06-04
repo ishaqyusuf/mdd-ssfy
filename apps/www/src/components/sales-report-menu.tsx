@@ -1,14 +1,17 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
+	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
@@ -32,10 +35,14 @@ import {
 } from "@gnd/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { PermissionScope } from "@/types/auth";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+
+type CustomerStatementDetail =
+	RouterOutputs["customers"]["getCustomerStatementDetail"];
 
 const reportMenuItems = [
 	{
@@ -55,32 +62,31 @@ type Props = {
 
 export function SalesReportMenu({ variant = "header" }: Props) {
 	const auth = useAuth();
-	const pathname = usePathname();
-	const router = useRouter();
-	const searchParams = useSearchParams();
-	const [customerStatementsOpen, setCustomerStatementsOpen] = useState(false);
+	const [reportParams, setReportParams] = useQueryStates({
+		report: parseAsString,
+		statementCustomerId: parseAsInteger,
+		statementStatus: parseAsString,
+	});
 	const allowedReportMenuItems = reportMenuItems.filter(
 		(item) => auth.can?.[item.permission],
 	);
 	const canViewReports = allowedReportMenuItems.length > 0;
-	const requestedReport = searchParams.get("report");
-
-	useEffect(() => {
-		if (requestedReport === "customer-statements") {
-			setCustomerStatementsOpen(true);
-		}
-	}, [requestedReport]);
+	const customerStatementsOpen = reportParams.report === "customer-statements";
 
 	const setCustomerStatementsReportOpen = (open: boolean) => {
-		setCustomerStatementsOpen(open);
-		if (!open && requestedReport === "customer-statements") {
-			const params = new URLSearchParams(searchParams.toString());
-			params.delete("report");
-			const queryString = params.toString();
-			router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-				scroll: false,
+		if (open) {
+			setReportParams({
+				report: "customer-statements",
+				statementCustomerId: null,
+				statementStatus: null,
 			});
+			return;
 		}
+		setReportParams({
+			report: null,
+			statementCustomerId: null,
+			statementStatus: null,
+		});
 	};
 
 	if (!canViewReports) {
@@ -125,7 +131,7 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 					))}
 					<DropdownMenuItem
 						className="gap-2"
-						onSelect={() => setCustomerStatementsOpen(true)}
+						onSelect={() => setCustomerStatementsReportOpen(true)}
 					>
 						<Icons.FileText className="size-4 shrink-0" />
 						<span className="flex-1">Customer Statements</span>
@@ -136,6 +142,8 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 			<CustomerStatementsReportDialog
 				open={customerStatementsOpen}
 				onOpenChange={setCustomerStatementsReportOpen}
+				params={reportParams}
+				setParams={setReportParams}
 			/>
 		</>
 	);
@@ -144,12 +152,34 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 function CustomerStatementsReportDialog({
 	open,
 	onOpenChange,
+	params,
+	setParams,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	params: {
+		report: string | null;
+		statementCustomerId: number | null;
+		statementStatus: string | null;
+	};
+	setParams: (
+		params: {
+			report?: string | null;
+			statementCustomerId?: number | null;
+			statementStatus?: string | null;
+		} | null,
+	) => void;
 }) {
 	const trpc = useTRPC();
 	const [search, setSearch] = useState("");
+	const [selectedSalesIds, setSelectedSalesIds] = useState<number[]>([]);
+	const sentReturnTimeoutRef = useRef<number | null>(null);
+	const selectedCustomerId = params.statementCustomerId;
+	const statementStatus = params.statementStatus;
+	const activeTab = selectedCustomerId
+		? "statement-overview"
+		: "statement-list";
+
 	const reportQuery = useQuery(
 		trpc.customers.getCustomerStatementReport.queryOptions(
 			{},
@@ -159,6 +189,42 @@ function CustomerStatementsReportDialog({
 			},
 		),
 	);
+	const detailQuery = useQuery(
+		trpc.customers.getCustomerStatementDetail.queryOptions(
+			{
+				customerId: selectedCustomerId || 0,
+			},
+			{
+				enabled: open && !!selectedCustomerId,
+				staleTime: 30_000,
+			},
+		),
+	);
+	const statementTrigger = useNotificationTrigger({
+		executingToast: "Sending customer statement...",
+		taskTitle: "Sending customer statement",
+		taskDescription:
+			"We will keep watching this statement email until it finishes.",
+		successToast: "Customer statement sent.",
+		errorToast: "Unable to send customer statement.",
+		onStarted() {
+			setParams({
+				statementStatus: "sending",
+			});
+		},
+		onSuccess() {
+			setParams({
+				statementStatus: "sent",
+			});
+			reportQuery.refetch();
+			detailQuery.refetch();
+		},
+		onError() {
+			setParams({
+				statementStatus: "overview",
+			});
+		},
+	});
 	const customers = reportQuery.data?.customers || [];
 	const filteredCustomers = useMemo(() => {
 		const term = search.trim().toLowerCase();
@@ -185,133 +251,532 @@ function CustomerStatementsReportDialog({
 		(total, customer) => total + customer.dueAmount,
 		0,
 	);
+	const detail = detailQuery.data;
+	const statementLines = detail?.lines || [];
+	const selectedLineSet = useMemo(
+		() => new Set(selectedSalesIds),
+		[selectedSalesIds],
+	);
+	const selectedLines = useMemo(
+		() => statementLines.filter((line) => selectedLineSet.has(line.salesId)),
+		[statementLines, selectedLineSet],
+	);
+	const selectedTotal = selectedLines.reduce(
+		(total, line) => total + Number(line.pending || 0),
+		0,
+	);
+	const allLinesSelected =
+		statementLines.length > 0 &&
+		selectedSalesIds.length === statementLines.length;
+	const hasPartialSelection =
+		selectedSalesIds.length > 0 &&
+		selectedSalesIds.length < statementLines.length;
+
+	useEffect(() => {
+		if (!open || !selectedCustomerId || !statementLines.length) return;
+		setSelectedSalesIds(statementLines.map((line) => line.salesId));
+	}, [open, selectedCustomerId, statementLines]);
+
+	useEffect(() => {
+		if (!open || statementStatus !== "sent") return;
+
+		if (sentReturnTimeoutRef.current) {
+			window.clearTimeout(sentReturnTimeoutRef.current);
+		}
+		sentReturnTimeoutRef.current = window.setTimeout(() => {
+			setParams({
+				statementCustomerId: null,
+				statementStatus: null,
+			});
+		}, 1500);
+
+		return () => {
+			if (sentReturnTimeoutRef.current) {
+				window.clearTimeout(sentReturnTimeoutRef.current);
+				sentReturnTimeoutRef.current = null;
+			}
+		};
+	}, [open, setParams, statementStatus]);
+
+	const openCustomerStatement = (customerId: number | null) => {
+		if (!customerId) return;
+		setParams({
+			report: "customer-statements",
+			statementCustomerId: customerId,
+			statementStatus: "overview",
+		});
+	};
+
+	const backToList = () => {
+		setParams({
+			statementCustomerId: null,
+			statementStatus: null,
+		});
+	};
+
+	const toggleAllLines = (checked: boolean) => {
+		setSelectedSalesIds(
+			checked ? statementLines.map((line) => line.salesId) : [],
+		);
+	};
+
+	const toggleLine = (salesId: number, checked: boolean) => {
+		setSelectedSalesIds((current) =>
+			checked
+				? Array.from(new Set([...current, salesId]))
+				: current.filter((id) => id !== salesId),
+		);
+	};
+
+	const sendStatement = () => {
+		if (!detail?.customer.email || !selectedLines.length) return;
+
+		const customerName = detail.customer.displayName || "Customer";
+		statementTrigger.customerStatement({
+			customerId: detail.customer.id,
+			accountNo: detail.customer.accountNo,
+			customerEmail: detail.customer.email,
+			customerName,
+			statementTotal: selectedTotal,
+			message: `Good Morning ${customerName.split(" ")[0] || customerName}, please see below Statement for the account.`,
+			lines: selectedLines,
+		});
+	};
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-[min(96vw,900px)] p-0">
-				<DialogHeader className="border-b px-5 py-4">
-					<DialogTitle>Customer Statements</DialogTitle>
-					<DialogDescription>
-						Customers with outstanding order balances.
-					</DialogDescription>
+			<DialogContent className="flex h-[min(88vh,760px)] max-w-[min(96vw,1040px)] flex-col overflow-hidden p-0">
+				<DialogHeader className="shrink-0 border-b bg-muted/20 px-5 py-4">
+					<div className="flex items-start justify-between gap-4">
+						<div className="flex min-w-0 items-start gap-3">
+							<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+								<Icons.FileText className="size-5" />
+							</div>
+							<div className="min-w-0">
+								<div className="flex flex-wrap items-center gap-2">
+									<DialogTitle className="text-base">
+										{activeTab === "statement-overview"
+											? "Statement overview"
+											: "Customer Statements"}
+									</DialogTitle>
+									<Badge variant="outline">
+										{activeTab === "statement-overview" ? "Review" : "Reports"}
+									</Badge>
+								</div>
+								<DialogDescription className="mt-1">
+									{activeTab === "statement-overview"
+										? detail?.customer.displayName
+											? `${detail.customer.displayName} account statement`
+											: "Review pending orders, choose statement rows, and send."
+										: "Customers with outstanding order balances."}
+								</DialogDescription>
+							</div>
+						</div>
+						<div className="hidden shrink-0 text-right sm:block">
+							<div className="text-xs text-muted-foreground">
+								{activeTab === "statement-overview"
+									? `${selectedLines.length} selected`
+									: `${filteredCustomers.length} customers`}
+							</div>
+							<div className="text-lg font-semibold">
+								{formatCurrency(
+									activeTab === "statement-overview"
+										? selectedTotal
+										: filteredDueAmount,
+								)}
+							</div>
+						</div>
+					</div>
 				</DialogHeader>
 
-				<div className="space-y-4 px-5 py-4">
-					<div className="grid gap-3 sm:grid-cols-3">
-						<ReportMetric
-							label="Customers"
-							value={filteredCustomers.length}
-							isPending={reportQuery.isPending}
+				{activeTab === "statement-overview" ? (
+					statementStatus === "sending" || statementStatus === "sent" ? (
+						<StatementSendState status={statementStatus} />
+					) : (
+						<StatementOverview
+							allLinesSelected={allLinesSelected}
+							backToList={backToList}
+							detail={detail}
+							hasPartialSelection={hasPartialSelection}
+							isPending={detailQuery.isPending}
+							isSending={statementTrigger.isActionPending}
+							onSend={sendStatement}
+							selectedLineSet={selectedLineSet}
+							selectedLinesCount={selectedLines.length}
+							selectedTotal={selectedTotal}
+							toggleAllLines={toggleAllLines}
+							toggleLine={toggleLine}
 						/>
-						<ReportMetric
-							label="Due orders"
-							value={filteredDueOrders}
-							isPending={reportQuery.isPending}
-						/>
-						<ReportMetric
-							label="Due amount"
-							value={formatCurrency(filteredDueAmount)}
-							isPending={reportQuery.isPending}
-						/>
-					</div>
+					)
+				) : (
+					<div className="flex min-h-0 flex-1 flex-col gap-4 px-5 py-4">
+						<div className="grid gap-3 sm:grid-cols-3">
+							<ReportMetric
+								label="Customers"
+								value={filteredCustomers.length}
+								isPending={reportQuery.isPending}
+							/>
+							<ReportMetric
+								label="Due orders"
+								value={filteredDueOrders}
+								isPending={reportQuery.isPending}
+							/>
+							<ReportMetric
+								label="Due amount"
+								value={formatCurrency(filteredDueAmount)}
+								isPending={reportQuery.isPending}
+							/>
+						</div>
 
-					<div className="relative">
-						<Icons.Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-						<Input
-							className="pl-9"
-							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Search customer statements..."
-							value={search}
-						/>
-					</div>
+						<div className="relative">
+							<Icons.Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+							<Input
+								className="pl-9"
+								onChange={(event) => setSearch(event.target.value)}
+								placeholder="Search customer statements..."
+								value={search}
+							/>
+						</div>
 
-					<div className="max-h-[60vh] overflow-auto rounded-md border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Customer name</TableHead>
-									<TableHead className="text-right">Due orders</TableHead>
-									<TableHead className="text-right">Due amount</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{reportQuery.isPending ? (
-									Array.from({ length: 6 }).map((_, index) => (
-										<TableRow key={index}>
-											<TableCell>
-												<Skeleton className="h-4 w-48 rounded-md" />
-											</TableCell>
-											<TableCell>
-												<Skeleton className="ml-auto h-4 w-16 rounded-md" />
-											</TableCell>
-											<TableCell>
-												<Skeleton className="ml-auto h-4 w-24 rounded-md" />
+						<div className="min-h-0 flex-1 overflow-auto rounded-md border">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Customer name</TableHead>
+										<TableHead className="text-right">Due orders</TableHead>
+										<TableHead className="text-right">Due amount</TableHead>
+										<TableHead>Last sent</TableHead>
+										<TableHead className="w-12" />
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{reportQuery.isPending ? (
+										Array.from({ length: 6 }).map((_, index) => (
+											<TableRow key={index}>
+												<TableCell>
+													<Skeleton className="h-4 w-48 rounded-md" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="ml-auto h-4 w-16 rounded-md" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="ml-auto h-4 w-24 rounded-md" />
+												</TableCell>
+												<TableCell>
+													<Skeleton className="h-4 w-24 rounded-md" />
+												</TableCell>
+												<TableCell />
+											</TableRow>
+										))
+									) : filteredCustomers.length ? (
+										filteredCustomers.map((customer, index) => (
+											<TableRow
+												key={`${customer.accountNo}-${customer.customerName}-${index}`}
+												className={cn(
+													customer.customerId &&
+														"cursor-pointer hover:bg-muted/50",
+												)}
+												onClick={() =>
+													openCustomerStatement(customer.customerId)
+												}
+											>
+												<TableCell>
+													<div className="flex flex-col gap-1">
+														<span className="font-medium">
+															{customer.customerName}
+														</span>
+														<div className="flex flex-wrap gap-2">
+															{customer.accountNo ? (
+																<Badge variant="outline">
+																	{customer.accountNo}
+																</Badge>
+															) : null}
+															{customer.customerEmail ? (
+																<span className="text-xs text-muted-foreground">
+																	{customer.customerEmail}
+																</span>
+															) : null}
+														</div>
+													</div>
+												</TableCell>
+												<TableCell className="text-right">
+													{customer.dueOrders}
+												</TableCell>
+												<TableCell className="text-right font-medium">
+													{formatCurrency(customer.dueAmount)}
+												</TableCell>
+												<TableCell>
+													{formatNullableDate(customer.lastSentAt)}
+												</TableCell>
+												<TableCell className="text-right">
+													{customer.customerId ? (
+														<Icons.ChevronRight className="ml-auto size-4 text-muted-foreground" />
+													) : null}
+												</TableCell>
+											</TableRow>
+										))
+									) : (
+										<TableRow>
+											<TableCell
+												colSpan={5}
+												className="h-32 text-center text-muted-foreground"
+											>
+												{search.trim()
+													? "No customer statements match your search."
+													: "No customer statements due."}
 											</TableCell>
 										</TableRow>
-									))
-								) : filteredCustomers.length ? (
-									filteredCustomers.map((customer, index) => (
-										<TableRow
-											key={`${customer.accountNo}-${customer.customerName}-${index}`}
-										>
-											<TableCell>
-												<div className="flex flex-col gap-1">
-													<span className="font-medium">
-														{customer.customerName}
-													</span>
-													<div className="flex flex-wrap gap-2">
-														{customer.accountNo ? (
-															<Badge variant="outline">
-																{customer.accountNo}
-															</Badge>
-														) : null}
-														{customer.customerEmail ? (
-															<span className="text-xs text-muted-foreground">
-																{customer.customerEmail}
-															</span>
-														) : null}
-													</div>
-												</div>
+									)}
+								</TableBody>
+								{!reportQuery.isPending && filteredCustomers.length ? (
+									<TableFooter>
+										<TableRow>
+											<TableCell>TOTAL:</TableCell>
+											<TableCell className="text-right">
+												{filteredDueOrders}
 											</TableCell>
 											<TableCell className="text-right">
-												{customer.dueOrders}
+												{formatCurrency(filteredDueAmount)}
 											</TableCell>
-											<TableCell className="text-right font-medium">
-												{formatCurrency(customer.dueAmount)}
-											</TableCell>
+											<TableCell colSpan={2} />
 										</TableRow>
-									))
-								) : (
-									<TableRow>
-										<TableCell
-											colSpan={3}
-											className="h-32 text-center text-muted-foreground"
-										>
-											{search.trim()
-												? "No customer statements match your search."
-												: "No customer statements due."}
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-							{!reportQuery.isPending && filteredCustomers.length ? (
-								<TableFooter>
-									<TableRow>
-										<TableCell>TOTAL:</TableCell>
-										<TableCell className="text-right">
-											{filteredDueOrders}
-										</TableCell>
-										<TableCell className="text-right">
-											{formatCurrency(filteredDueAmount)}
-										</TableCell>
-									</TableRow>
-								</TableFooter>
-							) : null}
-						</Table>
+									</TableFooter>
+								) : null}
+							</Table>
+						</div>
 					</div>
-				</div>
+				)}
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+function StatementOverview({
+	allLinesSelected,
+	backToList,
+	detail,
+	hasPartialSelection,
+	isPending,
+	isSending,
+	onSend,
+	selectedLineSet,
+	selectedLinesCount,
+	selectedTotal,
+	toggleAllLines,
+	toggleLine,
+}: {
+	allLinesSelected: boolean;
+	backToList: () => void;
+	detail: CustomerStatementDetail | undefined;
+	hasPartialSelection: boolean;
+	isPending: boolean;
+	isSending: boolean;
+	onSend: () => void;
+	selectedLineSet: Set<number>;
+	selectedLinesCount: number;
+	selectedTotal: number;
+	toggleAllLines: (checked: boolean) => void;
+	toggleLine: (salesId: number, checked: boolean) => void;
+}) {
+	const customer = detail?.customer;
+	const lines = detail?.lines || [];
+
+	return (
+		<>
+			<div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="gap-2"
+					onClick={backToList}
+				>
+					<Icons.ChevronLeft className="size-4" />
+					Back to statements
+				</Button>
+
+				{isPending ? (
+					<div className="space-y-4">
+						<Skeleton className="h-24 w-full rounded-md" />
+						<Skeleton className="h-56 w-full rounded-md" />
+					</div>
+				) : detail ? (
+					<>
+						<div className="grid gap-3 rounded-md border bg-muted/20 p-4 md:grid-cols-[1fr_auto]">
+							<div>
+								<div className="text-xs uppercase text-muted-foreground">
+									Customer
+								</div>
+								<div className="mt-1 text-xl font-semibold">
+									{customer?.displayName}
+								</div>
+								<div className="mt-2 flex flex-wrap gap-2 text-sm text-muted-foreground">
+									{customer?.email ? <span>{customer.email}</span> : null}
+									{customer?.phoneNo ? <span>{customer.phoneNo}</span> : null}
+									{customer?.accountNo ? (
+										<Badge variant="outline">{customer.accountNo}</Badge>
+									) : null}
+								</div>
+								{customer?.address ? (
+									<div className="mt-2 text-sm text-muted-foreground">
+										{customer.address}
+									</div>
+								) : null}
+							</div>
+							<div className="grid gap-2 text-right">
+								<div>
+									<div className="text-xs text-muted-foreground">Total due</div>
+									<div className="text-2xl font-semibold">
+										{formatCurrency(detail.statementTotal)}
+									</div>
+								</div>
+								<div className="text-xs text-muted-foreground">
+									Last sent: {formatNullableDate(customer?.lastSentAt)}
+								</div>
+							</div>
+						</div>
+
+						<div className="overflow-auto rounded-md border">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-12">
+											<Checkbox
+												checked={
+													allLinesSelected
+														? true
+														: hasPartialSelection
+															? "indeterminate"
+															: false
+												}
+												onCheckedChange={(checked) =>
+													toggleAllLines(checked === true)
+												}
+											/>
+										</TableHead>
+										<TableHead>Order #</TableHead>
+										<TableHead>Date</TableHead>
+										<TableHead>Address</TableHead>
+										<TableHead className="text-right">Invoice</TableHead>
+										<TableHead className="text-right">Paid</TableHead>
+										<TableHead className="text-right">Pending</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{lines.length ? (
+										lines.map((line) => (
+											<TableRow key={line.salesId}>
+												<TableCell>
+													<Checkbox
+														checked={selectedLineSet.has(line.salesId)}
+														onCheckedChange={(checked) =>
+															toggleLine(line.salesId, checked === true)
+														}
+													/>
+												</TableCell>
+												<TableCell className="font-medium">
+													{line.orderNo}
+												</TableCell>
+												<TableCell>{line.date}</TableCell>
+												<TableCell className="max-w-64 truncate">
+													{line.address || "-"}
+												</TableCell>
+												<TableCell className="text-right">
+													{formatCurrency(line.invoice)}
+												</TableCell>
+												<TableCell className="text-right">
+													{formatCurrency(line.paid)}
+												</TableCell>
+												<TableCell className="text-right font-medium">
+													{formatCurrency(line.pending)}
+												</TableCell>
+											</TableRow>
+										))
+									) : (
+										<TableRow>
+											<TableCell
+												colSpan={7}
+												className="h-28 text-center text-muted-foreground"
+											>
+												No pending payment orders.
+											</TableCell>
+										</TableRow>
+									)}
+								</TableBody>
+							</Table>
+						</div>
+					</>
+				) : (
+					<div className="rounded-md border p-8 text-center text-muted-foreground">
+						Unable to load this customer statement.
+					</div>
+				)}
+			</div>
+
+			<DialogFooter className="shrink-0 items-center justify-between border-t px-5 py-4 sm:justify-between">
+				<div>
+					<div className="text-xs text-muted-foreground">
+						{selectedLinesCount} selected order
+						{selectedLinesCount === 1 ? "" : "s"}
+					</div>
+					<div className="text-lg font-semibold">
+						{formatCurrency(selectedTotal)}
+					</div>
+				</div>
+				<Button
+					disabled={
+						isSending ||
+						isPending ||
+						!customer?.email ||
+						selectedLinesCount === 0 ||
+						selectedTotal <= 0
+					}
+					onClick={onSend}
+				>
+					{isSending ? (
+						<>
+							<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+							Sending
+						</>
+					) : (
+						<>
+							<Icons.Send className="mr-2 size-4" />
+							Send statement
+						</>
+					)}
+				</Button>
+			</DialogFooter>
+		</>
+	);
+}
+
+function StatementSendState({ status }: { status: string | null }) {
+	const isSent = status === "sent";
+
+	return (
+		<div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+			<div
+				className={cn(
+					"mb-5 flex size-16 items-center justify-center rounded-full border",
+					isSent
+						? "border-emerald-200 bg-emerald-50 text-emerald-700"
+						: "border-sky-200 bg-sky-50 text-sky-700",
+				)}
+			>
+				{isSent ? (
+					<Icons.CheckCircle2 className="size-8" />
+				) : (
+					<Icons.Loader2 className="size-8 animate-spin" />
+				)}
+			</div>
+			<div className="text-xl font-semibold">
+				{isSent ? "Statement sent" : "Sending statement"}
+			</div>
+			<p className="mt-2 max-w-sm text-sm text-muted-foreground">
+				{isSent
+					? "The customer statement email is on its way. Returning to the statement list."
+					: "Preparing the selected orders and secure payment link for this customer."}
+			</p>
+		</div>
 	);
 }
 
@@ -341,4 +806,16 @@ function formatCurrency(value: number) {
 		style: "currency",
 		currency: "USD",
 	}).format(value || 0);
+}
+
+function formatNullableDate(value?: string | null) {
+	if (!value) return "Never";
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "Never";
+
+	return Intl.DateTimeFormat("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	}).format(date);
 }

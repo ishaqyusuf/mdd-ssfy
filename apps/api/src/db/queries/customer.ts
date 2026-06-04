@@ -1,6 +1,7 @@
 import { whereCustomer, whereSales } from "@api/prisma-where";
 import type {
 	GetCustomerDirectoryV2SummarySchema,
+	GetCustomerStatementDetailSchema,
 	GetCustomerStatementReportSchema,
 	GetCustomerOverviewV2Schema,
 	GetCustomers,
@@ -11,12 +12,19 @@ import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
+import { getAppUrl } from "@gnd/utils/envs";
 import { composeQueryData } from "@gnd/utils/query-response";
+import {
+	type SalesPaymentTokenSchema,
+	tryTokenize,
+} from "@gnd/utils/tokenizer";
 import type { SalesQueryParamsSchema } from "@sales/schema";
 import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 import { salesAddressLines } from "@sales/utils/utils";
 import { getCustomerWallet } from "@sales/wallet";
 import { TRPCError } from "@trpc/server";
+import { serializeTagValue } from "@notifications/tag-values";
+import { addDays, format } from "date-fns";
 import { z } from "zod";
 
 function buildCustomerLookupWhere(
@@ -185,7 +193,7 @@ async function getCustomerRecentActivity(ctx: TRPCContext, accountNo: string) {
 					? `Open balance $${Number(sale.amountDue || 0).toFixed(2)}`
 					: "Order currently paid in full",
 		amount: Number(sale.grandTotal || 0),
-		date: sale.createdAt.toISOString(),
+		date: (sale.createdAt || new Date()).toISOString(),
 		status: sale.type,
 		orderId: sale.orderId,
 	}));
@@ -230,7 +238,7 @@ async function getCustomerRecentActivity(ctx: TRPCContext, accountNo: string) {
 						transaction.paymentMethod ||
 						"Account-level transaction",
 				amount: paymentTotal,
-				date: transaction.createdAt.toISOString(),
+				date: (transaction.createdAt || new Date()).toISOString(),
 				status: transaction.status || null,
 				orderId: relatedOrderIds[0] || null,
 			};
@@ -737,14 +745,24 @@ export async function getCustomerStatementReport(
 		},
 	});
 
+	const customerIds = Array.from(
+		new Set(rows.map((row) => row.customerId).filter(Boolean) as number[]),
+	);
+	const lastSentByCustomerId = await getLastCustomerStatementSentAtByCustomerId(
+		ctx,
+		customerIds,
+	);
+
 	const customerMap = new Map<
 		string,
 		{
+			customerId: number | null;
 			customerName: string;
 			customerEmail: string | null;
 			accountNo: string | null;
 			dueOrders: number;
 			dueAmount: number;
+			lastSentAt: string | null;
 		}
 	>();
 
@@ -754,7 +772,8 @@ export async function getCustomerStatementReport(
 			row.customer?.businessName ||
 			row.customer?.name ||
 			"Unnamed customer";
-		const customerEmail = row.billingAddress?.email || row.customer?.email || null;
+		const customerEmail =
+			row.billingAddress?.email || row.customer?.email || null;
 		const accountNo =
 			row.billingAddress?.phoneNo ||
 			row.customer?.phoneNo ||
@@ -775,11 +794,15 @@ export async function getCustomerStatementReport(
 		}
 
 		customerMap.set(key, {
+			customerId: row.customerId || null,
 			customerName,
 			customerEmail,
 			accountNo,
 			dueOrders: 1,
 			dueAmount: Number(row.amountDue || 0),
+			lastSentAt: row.customerId
+				? lastSentByCustomerId.get(row.customerId)?.toISOString() || null
+				: null,
 		});
 	}
 
@@ -792,6 +815,237 @@ export async function getCustomerStatementReport(
 			(total, row) => total + Number(row.amountDue || 0),
 			0,
 		),
+	};
+}
+
+async function getLastCustomerStatementSentAtByCustomerId(
+	ctx: TRPCContext,
+	customerIds: number[],
+) {
+	const result = new Map<number, Date>();
+	if (!customerIds.length) return result;
+
+	const activities = await ctx.db.notePad.findMany({
+		where: {
+			deletedAt: null,
+			tags: {
+				some: {
+					deletedAt: null,
+					tagName: "channel",
+					tagValue: serializeTagValue("customer_statement"),
+				},
+			},
+		},
+		orderBy: {
+			createdAt: "desc",
+		},
+		take: 500,
+		select: {
+			createdAt: true,
+			tags: {
+				where: {
+					deletedAt: null,
+					tagName: {
+						in: ["customerId"],
+					},
+				},
+				select: {
+					tagName: true,
+					tagValue: true,
+				},
+			},
+		},
+	});
+	const wanted = new Set(customerIds);
+
+	for (const activity of activities) {
+		const customerId = Number(
+			activity.tags.find((tag) => tag.tagName === "customerId")?.tagValue,
+		);
+		if (
+			!wanted.has(customerId) ||
+			result.has(customerId) ||
+			!activity.createdAt
+		) {
+			continue;
+		}
+		result.set(customerId, activity.createdAt);
+		if (result.size === wanted.size) break;
+	}
+
+	return result;
+}
+
+function formatStatementDate(value?: Date | string | null) {
+	if (!value) return "-";
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return "-";
+	return format(date, "MM/dd/yy");
+}
+
+export async function getCustomerStatementDetail(
+	ctx: TRPCContext,
+	query: GetCustomerStatementDetailSchema,
+) {
+	const customer = await ctx.db.customers.findUnique({
+		where: {
+			id: query.customerId,
+		},
+		select: {
+			id: true,
+			name: true,
+			businessName: true,
+			email: true,
+			phoneNo: true,
+			phoneNo2: true,
+			address: true,
+			addressBooks: {
+				where: {
+					deletedAt: null,
+				},
+				orderBy: [
+					{
+						isPrimary: "desc",
+					},
+					{
+						createdAt: "desc",
+					},
+				],
+				take: 1,
+				select: {
+					address1: true,
+					address2: true,
+					city: true,
+					state: true,
+					phoneNo: true,
+					email: true,
+				},
+			},
+		},
+	});
+
+	if (!customer) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Customer not found.",
+		});
+	}
+
+	const orders = await ctx.db.salesOrders.findMany({
+		where: {
+			deletedAt: null,
+			type: "order",
+			customerId: query.customerId,
+			amountDue: {
+				gt: 0,
+			},
+		},
+		orderBy: {
+			createdAt: "asc",
+		},
+		select: {
+			id: true,
+			orderId: true,
+			createdAt: true,
+			grandTotal: true,
+			amountDue: true,
+			billingAddress: {
+				select: {
+					name: true,
+					phoneNo: true,
+					email: true,
+					address1: true,
+					address2: true,
+					city: true,
+					state: true,
+				},
+			},
+			shippingAddress: {
+				select: {
+					name: true,
+					phoneNo: true,
+					address1: true,
+				},
+			},
+		},
+	});
+
+	const accountNo = customer.phoneNo || `cust-${customer.id}`;
+	const wallet = await getCustomerWallet(ctx.db, accountNo);
+	const paymentToken =
+		wallet?.id && orders.length
+			? tryTokenize({
+					salesIds: orders.map((order) => order.id),
+					expiry: addDays(new Date(), 7).toISOString(),
+					payPlan: "full",
+					walletId: wallet.id,
+					amount: null,
+				} satisfies SalesPaymentTokenSchema)
+			: null;
+	const lastSentAt = (
+		await getLastCustomerStatementSentAtByCustomerId(ctx, [customer.id])
+	).get(customer.id);
+	const primaryAddress = customer.addressBooks[0] || null;
+	const customerName = customer.businessName || customer.name || "Customer";
+	const customerEmail = customer.email || primaryAddress?.email || "";
+	const customerAddress =
+		[
+			primaryAddress?.address1 || customer.address,
+			primaryAddress?.address2,
+			primaryAddress?.city,
+			primaryAddress?.state,
+		]
+			.filter(Boolean)
+			.join(", ") || null;
+	const lines = orders.map((order) => {
+		const invoice = Number(order.grandTotal || 0);
+		const pending = Number(order.amountDue || 0);
+		const paid = Math.max(invoice - pending, 0);
+
+		return {
+			salesId: order.id,
+			orderNo: order.orderId,
+			date: formatStatementDate(order.createdAt),
+			invoice,
+			paid,
+			pending,
+			customer:
+				order.billingAddress?.name ||
+				order.shippingAddress?.name ||
+				customerName,
+			phone:
+				order.billingAddress?.phoneNo ||
+				order.shippingAddress?.phoneNo ||
+				customer.phoneNo ||
+				customer.phoneNo2 ||
+				null,
+			address:
+				order.billingAddress?.address1 ||
+				order.shippingAddress?.address1 ||
+				customerAddress,
+		};
+	});
+	const statementTotal = lines.reduce((total, line) => total + line.pending, 0);
+
+	return {
+		customer: {
+			id: customer.id,
+			name: customer.name,
+			businessName: customer.businessName,
+			displayName: customerName,
+			email: customerEmail,
+			phoneNo: customer.phoneNo,
+			phoneNo2: customer.phoneNo2,
+			address: customerAddress,
+			accountNo,
+			lastSentAt: lastSentAt?.toISOString() || null,
+		},
+		statementTotal,
+		paymentLink:
+			paymentToken && getAppUrl()
+				? `${getAppUrl()}/checkout/${paymentToken}/v2`
+				: null,
+		lines,
 	};
 }
 
