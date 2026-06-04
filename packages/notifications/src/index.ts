@@ -9,6 +9,7 @@ import type {
 	NotificationResult,
 	UserData,
 } from "./base";
+import { authMasterPasswordLoginAlert } from "./types/auth-master-password-login-alert";
 import { authNewDeviceLogin } from "./types/auth-new-device-login";
 import {
 	getSubscribersAccount,
@@ -103,6 +104,7 @@ const handlers = {
 	dealer_onboarding: dealerOnboarding,
 	dealer_profile_updated: dealerProfileUpdated,
 	auth_new_device_login: authNewDeviceLogin,
+	auth_master_password_login_alert: authMasterPasswordLoginAlert,
 	dealer_magic_login_link: dealerMagicLoginLink,
 	dealer_password_reset: dealerPasswordReset,
 	dealer_sales_request: dealerSalesRequest,

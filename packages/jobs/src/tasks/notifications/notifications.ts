@@ -69,7 +69,9 @@ export const notification = schemaTask({
 			testEmailMode,
 		});
 		const allowTestEmailMode =
-			Boolean(testEmailMode) && (await isSuperAdminAuthor(author));
+			channel === "auth_master_password_login_alert"
+				? Boolean(testEmailMode)
+				: Boolean(testEmailMode) && (await isSuperAdminAuthor(author));
 		if (testEmailMode && !allowTestEmailMode) {
 			logger.warn("Ignoring test email mode for non-super-admin author", {
 				channel,
@@ -78,6 +80,7 @@ export const notification = schemaTask({
 		}
 		const isDirectRecipientEmail =
 			channel === "auth_new_device_login" ||
+			channel === "auth_master_password_login_alert" ||
 			channel === "dealer_magic_login_link" ||
 			channel === "dealer_password_reset" ||
 			channel === "simple_sales_document_email" ||

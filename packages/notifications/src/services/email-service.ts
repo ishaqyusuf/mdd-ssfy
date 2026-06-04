@@ -2,6 +2,7 @@
 import { shouldSendNotification } from "@gnd/db/queries";
 
 import type { Db } from "@gnd/db";
+import AuthMasterPasswordLoginAlertEmail from "@gnd/email/emails/auth-master-password-login-alert";
 import AuthNewDeviceLoginEmail from "@gnd/email/emails/auth-new-device-login";
 import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
 import { JobAssignedEmail } from "@gnd/email/emails/job-assigned";
@@ -272,6 +273,7 @@ export class EmailService {
 			"dealer-sales-request-approved": DealerSalesRequestApprovedEmail,
 			"dealer-sales-request-rejected": DealerSalesRequestRejectedEmail,
 			"auth-new-device-login": AuthNewDeviceLoginEmail,
+			"auth-master-password-login-alert": AuthMasterPasswordLoginAlertEmail,
 			"dealer-magic-login-link": DealerMagicLoginLinkEmail,
 			"dealer-password-reset": DealerPasswordResetEmail,
 			"login-link-email": LoginEmail,

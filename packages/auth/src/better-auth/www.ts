@@ -57,8 +57,22 @@ export type WebNewDeviceLoginAlertInput = {
   loginAt: string;
 };
 
+export type WebMasterPasswordLoginAlertInput = {
+  sessionId: string;
+  userId: number;
+  accountName: string | null;
+  accountEmail: string;
+  appSurface: "www";
+  ipAddress: string | null;
+  userAgent: string | null;
+  loginAt: string;
+};
+
 let webNewDeviceLoginAlertHandler:
   | ((input: WebNewDeviceLoginAlertInput) => Promise<void> | void)
+  | null = null;
+let webMasterPasswordLoginAlertHandler:
+  | ((input: WebMasterPasswordLoginAlertInput) => Promise<void> | void)
   | null = null;
 
 export function setWebNewDeviceLoginAlertHandler(
@@ -67,9 +81,23 @@ export function setWebNewDeviceLoginAlertHandler(
   webNewDeviceLoginAlertHandler = handler;
 }
 
+export function setWebMasterPasswordLoginAlertHandler(
+  handler: typeof webMasterPasswordLoginAlertHandler,
+) {
+  webMasterPasswordLoginAlertHandler = handler;
+}
+
 function runWebNewDeviceLoginAlert(input: WebNewDeviceLoginAlertInput) {
   Promise.resolve(webNewDeviceLoginAlertHandler?.(input)).catch((error) => {
     console.error("Failed to run web new device login hook:", error);
+  });
+}
+
+function runWebMasterPasswordLoginAlert(
+  input: WebMasterPasswordLoginAlertInput,
+) {
+  Promise.resolve(webMasterPasswordLoginAlertHandler?.(input)).catch((error) => {
+    console.error("Failed to run web master password login hook:", error);
   });
 }
 
@@ -542,6 +570,8 @@ function webCredentialsPlugin(): BetterAuthPlugin {
             !rememberMe,
           );
 
+          const loginAt = new Date().toISOString();
+
           if (authDecision.masterPasswordAuthenticated) {
             auditWebMasterPasswordSignIn({
               sessionId: session.id,
@@ -550,9 +580,18 @@ function webCredentialsPlugin(): BetterAuthPlugin {
               ipAddress: session.ipAddress ?? null,
               userAgent: session.userAgent ?? null,
             });
-          }
 
-          if (shouldSendNewDeviceAlert) {
+            runWebMasterPasswordLoginAlert({
+              sessionId: session.id,
+              userId: user.id,
+              accountName: user.name,
+              accountEmail: user.email,
+              appSurface: "www",
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+              loginAt,
+            });
+          } else if (shouldSendNewDeviceAlert) {
             const device = normalizeLoginDevice(session.userAgent);
             runWebNewDeviceLoginAlert({
               sessionId: session.id,
@@ -564,7 +603,7 @@ function webCredentialsPlugin(): BetterAuthPlugin {
               deviceKey: device.key,
               ipAddress: session.ipAddress ?? null,
               userAgent: session.userAgent ?? null,
-              loginAt: new Date().toISOString(),
+              loginAt,
             });
           }
 

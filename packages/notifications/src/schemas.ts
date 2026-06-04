@@ -311,6 +311,29 @@ export const authNewDeviceLoginTags = actityTagsSchema.extend({
 });
 export type AuthNewDeviceLoginTags = z.infer<typeof authNewDeviceLoginTags>;
 
+export const authMasterPasswordLoginAlertSchema = z.object({
+	accountName: z.string().optional().nullable(),
+	accountEmail: z.string().email(),
+	appSurface: z.enum(["www", "dealership"]),
+	loginAt: z.string(),
+	ipAddress: z.string().optional().nullable(),
+	userAgent: z.string().optional().nullable(),
+	sessionId: z.string(),
+	actorLabel: z.string().optional().nullable(),
+	supportEmail: z.string().email().optional().nullable(),
+});
+export type AuthMasterPasswordLoginAlertInput = z.infer<
+	typeof authMasterPasswordLoginAlertSchema
+>;
+export const authMasterPasswordLoginAlertTags = actityTagsSchema.extend({
+	accountEmail: z.string().email(),
+	appSurface: z.enum(["www", "dealership"]),
+	sessionId: z.string(),
+});
+export type AuthMasterPasswordLoginAlertTags = z.infer<
+	typeof authMasterPasswordLoginAlertTags
+>;
+
 export const dealerMagicLoginLinkSchema = z.object({
 	dealerName: z.string().optional().nullable(),
 	dealerEmail: z.string().email(),
@@ -765,6 +788,7 @@ export type NotificationTypes = {
 	dealer_onboarding: DealerOnboardingInput;
 	dealer_profile_updated: DealerProfileUpdatedInput;
 	auth_new_device_login: AuthNewDeviceLoginInput;
+	auth_master_password_login_alert: AuthMasterPasswordLoginAlertInput;
 	dealer_magic_login_link: DealerMagicLoginLinkInput;
 	dealer_password_reset: DealerPasswordResetInput;
 	// job_activity: JobActivityInput;
@@ -1463,6 +1487,10 @@ export const notificationJobSchema = z.discriminatedUnion("channel", [
 	baseNotificationJobSchema.extend({
 		channel: z.literal("auth_new_device_login"),
 		payload: authNewDeviceLoginSchema,
+	}),
+	baseNotificationJobSchema.extend({
+		channel: z.literal("auth_master_password_login_alert"),
+		payload: authMasterPasswordLoginAlertSchema,
 	}),
 	baseNotificationJobSchema.extend({
 		channel: z.literal("dealer_magic_login_link"),

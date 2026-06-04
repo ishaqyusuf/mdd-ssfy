@@ -22,6 +22,17 @@ export type DealerNewDeviceLoginAlertInput = {
 	userAgent: string | null;
 };
 
+export type DealerMasterPasswordLoginAlertInput = {
+	sessionId: string;
+	userId: string;
+	accountName: string | null;
+	accountEmail: string;
+	appSurface: "dealership";
+	ipAddress: string | null;
+	userAgent: string | null;
+	loginAt: string;
+};
+
 export type DealerAuthEmailInput = {
 	accountName: string | null;
 	accountEmail: string;
@@ -31,6 +42,9 @@ export type DealerAuthEmailInput = {
 
 let dealerNewDeviceLoginAlertHandler:
 	| ((input: DealerNewDeviceLoginAlertInput) => Promise<void> | void)
+	| null = null;
+let dealerMasterPasswordLoginAlertHandler:
+	| ((input: DealerMasterPasswordLoginAlertInput) => Promise<void> | void)
 	| null = null;
 let dealerMagicLoginLinkHandler:
 	| ((input: DealerAuthEmailInput) => Promise<void> | void)
@@ -43,6 +57,12 @@ export function setDealerNewDeviceLoginAlertHandler(
 	handler: typeof dealerNewDeviceLoginAlertHandler,
 ) {
 	dealerNewDeviceLoginAlertHandler = handler;
+}
+
+export function setDealerMasterPasswordLoginAlertHandler(
+	handler: typeof dealerMasterPasswordLoginAlertHandler,
+) {
+	dealerMasterPasswordLoginAlertHandler = handler;
 }
 
 export function setDealerMagicLoginLinkHandler(
@@ -61,6 +81,16 @@ function runDealerNewDeviceLoginAlert(input: DealerNewDeviceLoginAlertInput) {
 	Promise.resolve(dealerNewDeviceLoginAlertHandler?.(input)).catch((error) => {
 		console.error("Failed to run dealer new device login hook:", error);
 	});
+}
+
+function runDealerMasterPasswordLoginAlert(
+	input: DealerMasterPasswordLoginAlertInput,
+) {
+	Promise.resolve(dealerMasterPasswordLoginAlertHandler?.(input)).catch(
+		(error) => {
+			console.error("Failed to run dealer master password login hook:", error);
+		},
+	);
 }
 
 async function runDealerMagicLoginLink(input: DealerAuthEmailInput) {
@@ -189,13 +219,15 @@ function dealerMasterPasswordPlugin(): BetterAuthPlugin {
 						user: user.user,
 					});
 
-					runDealerNewDeviceLoginAlert({
+					runDealerMasterPasswordLoginAlert({
 						sessionId: session.id,
 						userId: session.userId,
 						accountName: user.user.name ?? null,
 						accountEmail: user.user.email,
+						appSurface: "dealership",
 						ipAddress: session.ipAddress ?? null,
 						userAgent: session.userAgent ?? null,
+						loginAt: new Date().toISOString(),
 					});
 
 					if (ctx.body.callbackURL) {

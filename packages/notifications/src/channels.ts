@@ -66,6 +66,7 @@ export const channelNames = [
 	"dealer_onboarding",
 	"dealer_profile_updated",
 	"auth_new_device_login",
+	"auth_master_password_login_alert",
 	"dealer_magic_login_link",
 	"dealer_password_reset",
 ] as const;
@@ -297,6 +298,12 @@ export const channelsConfig: Partial<{
 		name: "New Device Login",
 		description: "Send when an account signs in from a new browser or device.",
 		priority: 8,
+		category: "Security",
+	},
+	auth_master_password_login_alert: {
+		name: "Master Password Login Alert",
+		description: "Send when an account is accessed with a master password.",
+		priority: 9,
 		category: "Security",
 	},
 	dealer_magic_login_link: {
