@@ -14,6 +14,7 @@ export type LinkItem = {
 	skipDefaultHref?: boolean;
 	paths?: string[];
 	level?;
+	meta?: boolean;
 	show?: boolean;
 	globalIndex?;
 	index?;
@@ -73,6 +74,7 @@ export const createNavLink = (
 		href,
 		targetHref: href,
 		skipDefaultHref: false,
+		meta: false,
 		subLinks,
 		access,
 		index: -1,
@@ -97,6 +99,10 @@ export const createNavLink = (
 		},
 		skipDefaultHref() {
 			res.skipDefaultHref = true;
+			return ctx;
+		},
+		meta() {
+			res.meta = true;
 			return ctx;
 		},
 	};
