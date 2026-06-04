@@ -73,6 +73,7 @@ const _link = (
         icon,
         href,
         skipDefaultHref: false,
+        meta: false,
         subLinks,
         access,
         index: -1,
@@ -97,6 +98,10 @@ const _link = (
         },
         skipDefaultHref() {
             res.skipDefaultHref = true;
+            return ctx;
+        },
+        meta() {
+            res.meta = true;
             return ctx;
         },
         subLinks(...subLinks: LinkItem[]) {
@@ -330,9 +335,19 @@ export const linkModules = [
                 _subLink("Orders - Legacy", "/sales-book/orders")
                     .skipDefaultHref()
                     .access(_role.is("Super Admin")).data,
-                _subLink("Create Order", "/sales-book/create-order").data, //.access(_role.is("Super Admin")).data,
-                _subLink("Create Quote", "/sales-book/create-quote").data, //.access(_role.is("Super Admin")).data,
-                _subLink("Shelf Items", "/sales-book/shelf-items").data,
+                _subLink("Create Order", "/sales-book/create-order").access(
+                    _perm.is("editOrders"),
+                ).data,
+                _subLink("Create Quote", "/sales-book/create-quote").access(
+                    _perm.is("editOrders"),
+                ).data,
+                _subLink("Shelf Items", "/sales-book/shelf-items").access(
+                    _perm.is("editOrders"),
+                ).data,
+                _subLink("Edit Order", "/sales-book/edit-order")
+                    .access(_perm.is("editOrders"))
+                    .childPaths("sales-book/edit-order", "sales-form/edit-order")
+                    .meta().data,
                 _subLink(
                     "Create Order (Experimental)",
                     "/sales-form/create-order",
@@ -342,16 +357,9 @@ export const linkModules = [
                     "/sales-form/create-quote",
                 ).access(_role.is("Super Admin")).data,
             ])
-                .access(_perm.is("editOrders"))
+                .access(_perm.in("editOrders", "viewOrders"))
                 .childPaths(
-                    "sales-book/create-order",
                     "sales-book/orders/v2",
-                    "sales-book/edit-order",
-                    "sales-book/edit-order/slug",
-                    "sales-book/shelf-items",
-                    "sales-form/create-order",
-                    "sales-form/edit-order",
-                    "sales-form/edit-order/slug",
                     // "sales-book/orders/sales-statistics",
                 ).data,
             _link("Quotes", "quotes", "/sales-book/quotes")
@@ -706,6 +714,16 @@ export function getLinkModules(_linkModules = linkModules) {
             hasAccess?: boolean;
         };
     } = {};
+    const setLinkMapEntry = (
+        href: string | undefined,
+        entry: (typeof linksNameMap)[string],
+    ) => {
+        if (!href) return;
+        if (linksNameMap[href]?.hasAccess && entry.hasAccess === false) {
+            return;
+        }
+        linksNameMap[href] = entry;
+    };
     let __defaultLink = null;
     const __rankedLinks: { rank: number; href: string }[] = [];
     const modules = _linkModules.map((m, mi) => {
@@ -721,11 +739,11 @@ export function getLinkModules(_linkModules = linkModules) {
             s.links = s.links.map((l, li) => {
                 if (l.show) {
                     if (l.href) {
-                        linksNameMap[l.href] = {
+                        setLinkMapEntry(l.href, {
                             name: l.name,
                             module: m.name,
                             hasAccess: l.show,
-                        };
+                        });
                         if (!defaultLink) defaultLink = l.href;
                         if (l.level)
                             rankedLinks.push({
@@ -739,19 +757,19 @@ export function getLinkModules(_linkModules = linkModules) {
                     moduleLinks++;
                 }
                 if (l.href) {
-                    linksNameMap[l.href] = {
+                    setLinkMapEntry(l.href, {
                         name: l.name,
                         module: m.name,
                         hasAccess: l.show,
-                    };
+                    });
                 }
                 l?.paths?.map((p) => {
-                    linksNameMap[p] = {
+                    setLinkMapEntry(p, {
                         name: l.name,
                         module: m.name,
                         match: "part",
                         hasAccess: l.show,
-                    };
+                    });
                 });
 
                 if (l?.subLinks?.length)
@@ -764,18 +782,18 @@ export function getLinkModules(_linkModules = linkModules) {
                                     href: sl.href,
                                 });
                         }
-                        linksNameMap[sl.href] = {
+                        setLinkMapEntry(sl.href, {
                             name: l.name,
                             module: m.name,
                             hasAccess: sl.show,
-                        };
+                        });
                         sl?.paths?.map((p) => {
-                            linksNameMap[p] = {
+                            setLinkMapEntry(p, {
                                 name: sl.name ?? l.name,
                                 module: m.name,
                                 match: "part",
                                 hasAccess: sl.show,
-                            };
+                            });
                         });
                         return sl;
                     });

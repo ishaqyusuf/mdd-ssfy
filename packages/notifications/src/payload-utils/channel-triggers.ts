@@ -369,6 +369,19 @@ export function createNotificationChannelTriggers(
 				recipients: resolvedRecipients,
 			});
 		},
+		customerStatement(input: Input<"customer_statement">) {
+			const { recipients, author, testEmailMode, ...payload } = input;
+			const resolvedRecipients = resolveRecipients(
+				recipients,
+				getStoredRecipients(),
+			);
+			return options.send("customer_statement", {
+				payload,
+				author,
+				recipients: resolvedRecipients,
+				testEmailMode,
+			});
+		},
 		salesInfo(input: Input<"sales_info">) {
 			const { recipients, author, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(

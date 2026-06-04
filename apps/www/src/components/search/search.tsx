@@ -105,6 +105,22 @@ const QUICK_LINKS: {
 		icon: "edit",
 		rules: [_perm.is("editEstimates")],
 	},
+	{
+		id: "payment-report",
+		title: "Payment Report",
+		subtitle: "Open the sales daily payment report",
+		href: "/task-events/sales-daily-payment-report-schedule",
+		icon: "ChartSpline",
+		rules: [_perm.is("generateSalesPaymentReport")],
+	},
+	{
+		id: "customer-statements-report",
+		title: "Customer Statements",
+		subtitle: "Review customers with outstanding statement balances",
+		href: "/sales-book/customers?report=customer-statements",
+		icon: "FileText",
+		rules: [_perm.is("generateSalesPaymentReport")],
+	},
 ];
 
 const formatGroupName = (name: string): string => {
@@ -277,6 +293,16 @@ export function Search() {
 			validateRules(item.rules, auth.can, auth.id, auth.role),
 		);
 	}, [auth.can, auth.enabled, auth.id, auth.isPending, auth.role]);
+	const matchingQuickLinks = useMemo(() => {
+		const term = searchValue.trim().toLowerCase();
+		if (!term) return [];
+
+		return quickLinks.filter((item) =>
+			[item.id, item.title, item.subtitle]
+				.map((value) => value.toLowerCase())
+				.some((value) => value.includes(term)),
+		);
+	}, [quickLinks, searchValue]);
 
 	const openHref = (href: string) => {
 		setOpen();
@@ -286,7 +312,7 @@ export function Search() {
 	return (
 		<Command
 			shouldFilter={false}
-			className="search-container relative h-full w-full overflow-hidden border border-border bg-background p-0 backdrop-blur-lg backdrop-filter dark:border-[#2C2C2C] dark:bg-[#151515]/[99]"
+			className="search-container relative flex h-full w-full flex-col overflow-hidden border border-border bg-background p-0 backdrop-blur-lg backdrop-filter dark:bg-[#0C0C0C]/[99]"
 		>
 			<div className="border-b border-border relative">
 				<div className="flex items-center">
@@ -338,10 +364,23 @@ export function Search() {
 						</CommandGroup>
 					) : null}
 
-					{!isLoading && combinedData.length === 0 && searchValue.trim() ? (
-						<CommandEmpty>
-							No results found for "{searchValue}".
-						</CommandEmpty>
+					{searchValue.trim() && matchingQuickLinks.length ? (
+						<CommandGroup heading="Quick links">
+							{matchingQuickLinks.map((item) => (
+								<QuickLinkItemDisplay
+									key={item.id}
+									item={item}
+									onSelect={openHref}
+								/>
+							))}
+						</CommandGroup>
+					) : null}
+
+					{!isLoading &&
+					combinedData.length === 0 &&
+					matchingQuickLinks.length === 0 &&
+					searchValue.trim() ? (
+						<CommandEmpty>No results found for "{searchValue}".</CommandEmpty>
 					) : null}
 
 					{!isLoading && searchValue.trim()

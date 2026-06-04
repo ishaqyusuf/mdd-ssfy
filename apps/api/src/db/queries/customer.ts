@@ -1,6 +1,7 @@
 import { whereCustomer, whereSales } from "@api/prisma-where";
 import type {
 	GetCustomerDirectoryV2SummarySchema,
+	GetCustomerStatementReportSchema,
 	GetCustomerOverviewV2Schema,
 	GetCustomers,
 	SearchCustomersSchema,
@@ -698,6 +699,102 @@ export async function getCustomerDirectoryV2Summary(
 	};
 }
 
+export async function getCustomerStatementReport(
+	ctx: TRPCContext,
+	_query: GetCustomerStatementReportSchema,
+) {
+	const rows = await ctx.db.salesOrders.findMany({
+		where: {
+			deletedAt: null,
+			type: "order",
+			amountDue: {
+				gt: 0,
+			},
+		},
+		orderBy: {
+			amountDue: "desc",
+		},
+		select: {
+			id: true,
+			amountDue: true,
+			customerId: true,
+			billingAddress: {
+				select: {
+					name: true,
+					email: true,
+					phoneNo: true,
+				},
+			},
+			customer: {
+				select: {
+					id: true,
+					name: true,
+					businessName: true,
+					email: true,
+					phoneNo: true,
+				},
+			},
+		},
+	});
+
+	const customerMap = new Map<
+		string,
+		{
+			customerName: string;
+			customerEmail: string | null;
+			accountNo: string | null;
+			dueOrders: number;
+			dueAmount: number;
+		}
+	>();
+
+	for (const row of rows) {
+		const customerName =
+			row.billingAddress?.name ||
+			row.customer?.businessName ||
+			row.customer?.name ||
+			"Unnamed customer";
+		const customerEmail = row.billingAddress?.email || row.customer?.email || null;
+		const accountNo =
+			row.billingAddress?.phoneNo ||
+			row.customer?.phoneNo ||
+			(row.customerId ? `cust-${row.customerId}` : null);
+		const key = row.customerId
+			? `customer-${row.customerId}`
+			: customerEmail
+				? `email-${customerEmail}`
+				: accountNo
+					? `account-${accountNo}`
+					: `order-${row.id}`;
+		const current = customerMap.get(key);
+
+		if (current) {
+			current.dueOrders += 1;
+			current.dueAmount += Number(row.amountDue || 0);
+			continue;
+		}
+
+		customerMap.set(key, {
+			customerName,
+			customerEmail,
+			accountNo,
+			dueOrders: 1,
+			dueAmount: Number(row.amountDue || 0),
+		});
+	}
+
+	return {
+		customers: [...customerMap.values()].sort(
+			(a, b) => b.dueAmount - a.dueAmount,
+		),
+		totalDueOrders: rows.length,
+		totalDueAmount: rows.reduce(
+			(total, row) => total + Number(row.amountDue || 0),
+			0,
+		),
+	};
+}
+
 export async function getCustomerOverviewV2(
 	ctx: TRPCContext,
 	query: GetCustomerOverviewV2Schema,
@@ -1169,6 +1266,8 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 				select: {
 					name: true,
 					email: true,
+					phoneNo: true,
+					address1: true,
 				},
 			},
 			customer: {
@@ -1176,15 +1275,20 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 					name: true,
 					businessName: true,
 					email: true,
+					phoneNo: true,
+					address: true,
 				},
 			},
 		},
 	});
 	return ls.map(({ customer, billingAddress: bAddr, ...rest }) => ({
 		...rest,
+		paidAmount: Number(rest.grandTotal || 0) - Number(rest.amountDue || 0),
 		paymentMethod: resolvePendingSalePaymentMethod(rest.meta),
 		customerName: bAddr?.name || customer?.businessName || customer?.name,
 		customerEmail: bAddr?.email || customer?.email, // || customer?.name,
+		customerPhone: bAddr?.phoneNo || customer?.phoneNo || null,
+		customerAddress: bAddr?.address1 || customer?.address || null,
 	}));
 }
 

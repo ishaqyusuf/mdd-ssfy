@@ -9,6 +9,7 @@ import { JobPaymentSentEmail } from "@gnd/email/emails/job-payment-sent";
 import { JobRejectedEmail } from "@gnd/email/emails/job-rejected";
 import { JobTaskConfigureRequestEmail } from "@gnd/email/emails/job-task-configure-request";
 import ComposedSalesDocumentEmail from "@gnd/email/emails/composed-sales-document-email";
+import CustomerStatementEmail from "@gnd/email/emails/customer-statement";
 import DealerMagicLoginLinkEmail from "@gnd/email/emails/dealer-magic-login-link";
 import DealerOnboardingEmail from "@gnd/email/emails/dealer-onboarding";
 import DealerPasswordResetEmail from "@gnd/email/emails/dealer-password-reset";
@@ -256,6 +257,7 @@ export class EmailService {
 			"sales-rep-online-payment-received": SalesRepOnlinePaymentReceived,
 			"sales-customer-payment-received": SalesCustomerPaymentReceivedEmail,
 			"sales-customer-payment-failed": SalesCustomerPaymentFailedEmail,
+			"customer-statement": CustomerStatementEmail,
 			"job-assigned": JobAssignedEmail,
 			"job-approved": JobApprovedEmail,
 			"job-payment-sent": JobPaymentSentEmail,

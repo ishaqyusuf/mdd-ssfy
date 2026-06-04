@@ -6,6 +6,7 @@ import {
     ProductionItemNotes,
     ProductionOrderNotes,
 } from "@/components/production-v2/production-notes";
+import { ProductionV2OrderFeedSkeleton } from "@/components/production-v2/skeleton";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
@@ -627,48 +628,45 @@ function ProductionV2Board({
                                 {selectedItems.length > 1 ? "s" : ""} selected
                             </div>
                         ) : null}
-                        {boardQuery.isPending
-                            ? Array.from({ length: 4 }).map((_, index) => (
-                                  <Skeleton
-                                      key={index.toString()}
-                                      className="h-24 rounded-2xl"
-                                  />
-                              ))
-                            : items.map((item) => (
-                                  <ProductionOrderCard
-                                      key={item.id}
-                                      scope={scope}
-                                      item={item}
-                                      isExpanded={
-                                          expandedOrderId === item.orderId
-                                      }
-                                      onToggle={() =>
-                                          void setFilters({
-                                              order:
-                                                  expandedOrderId ===
-                                                  item.orderId
-                                                      ? null
-                                                      : item.orderId,
-                                          })
-                                      }
-                                      isSelected={selectedIds.includes(item.id)}
-                                      onSelectionChange={(checked) =>
-                                          setSelectedIds((current) =>
-                                              checked
-                                                  ? Array.from(
-                                                        new Set([
-                                                            ...current,
-                                                            item.id,
-                                                        ]),
-                                                    )
-                                                  : current.filter(
-                                                        (id) => id !== item.id,
-                                                    ),
-                                          )
-                                      }
-                                      assignOptions={assignOptions}
-                                  />
-                              ))}
+                        {boardQuery.isPending ? (
+                            <ProductionV2OrderFeedSkeleton rows={4} />
+                        ) : (
+                            items.map((item) => (
+                                <ProductionOrderCard
+                                    key={item.id}
+                                    scope={scope}
+                                    item={item}
+                                    isExpanded={
+                                        expandedOrderId === item.orderId
+                                    }
+                                    onToggle={() =>
+                                        void setFilters({
+                                            order:
+                                                expandedOrderId ===
+                                                item.orderId
+                                                    ? null
+                                                    : item.orderId,
+                                        })
+                                    }
+                                    isSelected={selectedIds.includes(item.id)}
+                                    onSelectionChange={(checked) =>
+                                        setSelectedIds((current) =>
+                                            checked
+                                                ? Array.from(
+                                                      new Set([
+                                                          ...current,
+                                                          item.id,
+                                                      ]),
+                                                  )
+                                                : current.filter(
+                                                      (id) => id !== item.id,
+                                                  ),
+                                        )
+                                    }
+                                    assignOptions={assignOptions}
+                                />
+                            ))
+                        )}
                         {!boardQuery.isPending && !items.length ? (
                             <div className="rounded-2xl border border-dashed p-10 text-center text-sm text-muted-foreground">
                                 No production orders match the current filters.

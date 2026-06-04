@@ -1,6 +1,7 @@
 import { createTRPCRouter, publicProcedure } from "../init";
 import {
   getCustomerDirectoryV2SummarySchema,
+  getCustomerStatementReportSchema,
   getCustomerOverviewV2Schema,
   searchCustomersSchema,
   upsertCustomerSchema,
@@ -11,6 +12,7 @@ import {
   customerInfoSearch,
   customerInfoSearchSchema,
   getCustomerDirectoryV2Summary,
+  getCustomerStatementReport,
   getCustomerPayPortal,
   getCustomerPayPortalSchema,
   getCustomerOverviewV2,
@@ -46,6 +48,11 @@ export const customerRouter = createTRPCRouter({
     .input(getCustomerDirectoryV2SummarySchema)
     .query(async (props) => {
       return getCustomerDirectoryV2Summary(props.ctx, props.input);
+    }),
+  getCustomerStatementReport: publicProcedure
+    .input(getCustomerStatementReportSchema)
+    .query(async (props) => {
+      return getCustomerStatementReport(props.ctx, props.input);
     }),
   getCustomerOverviewV2: publicProcedure
     .input(getCustomerOverviewV2Schema)

@@ -24,6 +24,7 @@ type CliOptions = {
 	month: string | null;
 	allMonths: boolean;
 	outRoot: string;
+	limitPerType: number | null;
 };
 
 type DbSalesRecord = SalesAuditRecordBase & {
@@ -58,6 +59,7 @@ function usage() {
 			"  --month=YYYY-MM    Month batch to run. Default: 2026-05",
 			"  --all-months       Run every grouped month for the year",
 			"  --out-root=PATH    Report root. Default: brain/reports/sales-form-parity",
+			"  --limit-per-type=N Run the latest N orders and latest N quotes from the selected months",
 		].join("\n"),
 	);
 }
@@ -78,6 +80,7 @@ function parseArgs(argv: string[]): CliOptions {
 		month: "2026-05",
 		allMonths: false,
 		outRoot: DEFAULT_OUT_ROOT,
+		limitPerType: null,
 	};
 
 	for (let i = 0; i < argv.length; i += 1) {
@@ -118,6 +121,15 @@ function parseArgs(argv: string[]): CliOptions {
 			if (!arg.includes("=")) i += 1;
 			continue;
 		}
+		if (arg == "--limit-per-type" || arg.startsWith("--limit-per-type=")) {
+			const value = Number(readArgValue(argv, i, "--limit-per-type"));
+			if (!Number.isInteger(value) || value < 1) {
+				throw new Error(`Invalid --limit-per-type value: ${value}`);
+			}
+			options.limitPerType = value;
+			if (!arg.includes("=")) i += 1;
+			continue;
+		}
 		throw new Error(`Unknown argument: ${arg}`);
 	}
 
@@ -138,6 +150,18 @@ function yearRange(year: number) {
 		gte: new Date(`${year}-01-01T00:00:00.000Z`),
 		lt: new Date(`${year + 1}-01-01T00:00:00.000Z`),
 	};
+}
+
+function redactDatabaseUrl(value: string | undefined) {
+	if (!value) return "<unset>";
+	try {
+		const url = new URL(value);
+		url.username = url.username ? "<redacted>" : "";
+		url.password = url.password ? "<redacted>" : "";
+		return url.toString();
+	} catch {
+		return "<redacted>";
+	}
 }
 
 function buildLineItems(order: DbSalesRecord) {
@@ -233,6 +257,34 @@ function selectRunRecords(records: DbSalesRecord[], options: CliOptions) {
 			: [];
 	const selected: DbSalesRecord[] = [];
 
+	if (options.limitPerType) {
+		const orders: DbSalesRecord[] = [];
+		const quotes: DbSalesRecord[] = [];
+
+		for (const month of months) {
+			const group = grouped[month];
+			if (!group) continue;
+			for (const order of group.order) {
+				if (orders.length < options.limitPerType) orders.push(order);
+			}
+			for (const quote of group.quote) {
+				if (quotes.length < options.limitPerType) quotes.push(quote);
+			}
+			if (
+				orders.length >= options.limitPerType &&
+				quotes.length >= options.limitPerType
+			) {
+				break;
+			}
+		}
+
+		return {
+			grouped,
+			months,
+			selected: alternateLatestOrderQuote({ order: orders, quote: quotes }),
+		};
+	}
+
 	for (const month of months) {
 		const group = grouped[month];
 		if (!group) continue;
@@ -274,6 +326,7 @@ function markdownSummary(input: {
 		`- Finished: ${input.finishedAt}`,
 		`- Year inventory: ${input.options.year}`,
 		`- Selected months: ${input.selectedMonths.join(", ") || "none"}`,
+		`- Limit per type: ${input.options.limitPerType ?? "none"}`,
 		`- Manifest records: ${input.manifestTotal}`,
 		`- Cases run: ${input.totalRun}`,
 		`- Passed: ${input.counts.pass}`,
@@ -405,10 +458,10 @@ async function main() {
 			counts,
 			totalRun: selected.length,
 			firstFailures,
-			command: `DATABASE_URL='${process.env.DATABASE_URL}' bun ${process.argv
-				.slice(1)
-				.join(" ")}`,
-		});
+		command: `DATABASE_URL='${redactDatabaseUrl(process.env.DATABASE_URL)}' bun ${process.argv
+			.slice(1)
+			.join(" ")}`,
+	});
 		await writeFile(path.join(reportDir, "summary.md"), summary, "utf8");
 
 		console.log(summary);

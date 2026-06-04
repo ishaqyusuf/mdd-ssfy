@@ -126,6 +126,27 @@ input.midday {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+.global-search-list {
+    height: min(450px, var(--search-list-height, 450px));
+    overscroll-behavior: contain;
+    transition: height 100ms ease;
+}
+
+.desktop-search .global-search-list {
+    height: 450px;
+}
+
+.desktop-search .search-container {
+    border: none;
+    border-bottom: 0.5px solid hsl(var(--border));
+}
+
+.desktop-search .search-footer {
+    border-left: 0;
+    border-right: 0;
+}
+
 .dark .dotted-bg {
     background-image: radial-gradient(
         circle at 1px 1px,

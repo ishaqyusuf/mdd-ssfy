@@ -36,7 +36,7 @@ export const NavItem = ({
 	const hasChildren = item.subLinks && item.subLinks.length > 0;
 	const [isHovered, setIsHovered] = useState(false);
 	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const childLinks = item.subLinks ?? [];
+	const childLinks = (item.subLinks ?? []).filter((child) => !child.meta);
 
 	const hasActiveChild = hasChildren
 		? childLinks.some((child) => isPathInLink(normalizedPathName, child))

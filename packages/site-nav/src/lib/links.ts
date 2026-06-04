@@ -71,6 +71,16 @@ export function getLinkModules(linkModules: NavModule[]) {
       hasAccess?: boolean;
     };
   } = {};
+  const setLinkMapEntry = (
+    href: string | undefined,
+    entry: (typeof linksNameMap)[string],
+  ) => {
+    if (!href) return;
+    if (linksNameMap[href]?.hasAccess && entry.hasAccess === false) {
+      return;
+    }
+    linksNameMap[href] = entry;
+  };
   let __defaultLink = null;
   let __rankedLinks: { rank: number; href: string }[] = [];
   const modules = linkModules.map((m, mi) => {
@@ -85,11 +95,11 @@ export function getLinkModules(linkModules: NavModule[]) {
       s.links = s.links.map((l, li) => {
         if (l.show) {
           if (l.href) {
-            linksNameMap[l.href] = {
+            setLinkMapEntry(l.href, {
               name: l.name,
               module: m.name,
               hasAccess: l.show,
-            };
+            });
             if (!defaultLink) defaultLink = l.href;
             if (l.level)
               rankedLinks.push({
@@ -103,43 +113,43 @@ export function getLinkModules(linkModules: NavModule[]) {
           moduleLinks++;
         }
         if (l.href) {
-          linksNameMap[l.href] = {
+          setLinkMapEntry(l.href, {
             name: l.name,
             module: m.name,
             hasAccess: l.show,
-          };
+          });
         }
         l?.paths?.map((p) => {
-          linksNameMap[p] = {
+          setLinkMapEntry(p, {
             name: l.name,
             module: m.name,
             match: "part",
             hasAccess: l.show,
-          };
+          });
         });
 
         if (l?.subLinks?.length)
           l.subLinks = l.subLinks.map((sl, sli) => {
             if (sl.href && sl.show) {
               if (!defaultLink) defaultLink = sl.href;
-              if (sl.level)
+            if (sl.level)
                 rankedLinks.push({
                   rank: sl.level,
                   href: sl.href,
                 });
             }
-            linksNameMap[sl.href] = {
+            setLinkMapEntry(sl.href, {
               name: l.name,
               module: m.name,
               hasAccess: sl.show,
-            };
+            });
             sl?.paths?.map((p) => {
-              linksNameMap[p] = {
+              setLinkMapEntry(p, {
                 name: sl.name ?? l.name,
                 module: m.name,
                 match: "part",
                 hasAccess: sl.show,
-              };
+              });
             });
             return sl;
           });

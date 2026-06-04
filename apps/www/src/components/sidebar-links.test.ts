@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { _role, validateRules } from "./sidebar-links";
+import { getLinkModules, _role, validateLinks, validateRules } from "./sidebar-links";
 
 describe("sidebar role access", () => {
     test("matches roles without case, dash, or underscore sensitivity", () => {
@@ -25,5 +25,34 @@ describe("sidebar role access", () => {
         expect(
             validateRules([_role.is("Super Admin")], {}, null, "Sales"),
         ).toBe(false);
+    });
+
+    test("allows admins with viewOrders to open the sales orders page", () => {
+        const links = getLinkModules(
+            validateLinks({
+                role: { name: "Admin" },
+                can: { viewOrders: true } as any,
+                userId: "admin-1",
+            }),
+        );
+
+        expect(links.linksNameMap["/sales-book/orders"]?.hasAccess).toBe(true);
+    });
+
+    test("keeps create and edit order routes limited to editOrders", () => {
+        const links = getLinkModules(
+            validateLinks({
+                role: { name: "Admin" },
+                can: { viewOrders: true } as any,
+                userId: "admin-1",
+            }),
+        );
+
+        expect(links.linksNameMap["/sales-book/create-order"]?.hasAccess).toBe(
+            false,
+        );
+        expect(links.linksNameMap["/sales-book/edit-order"]?.hasAccess).toBe(
+            false,
+        );
     });
 });

@@ -27,6 +27,7 @@ import { communityUnitProductionCompleted } from "./types/community-unit-product
 import { communityUnitProductionStarted } from "./types/community-unit-production-started";
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
 import { composedSalesDocumentEmail } from "./types/composed-sales-document-email";
+import { customerStatement } from "./types/customer-statement";
 import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { dealerMagicLoginLink } from "./types/dealer-magic-login-link";
 import { dealerOnboarding } from "./types/dealer-onboarding";
@@ -144,6 +145,7 @@ const handlers = {
 	composed_sales_document_email: composedSalesDocumentEmail,
 	simple_sales_document_email: simpleSalesDocumentEmail,
 	simple_sales_email_reminder: simpleSalesEmailReminder,
+	customer_statement: customerStatement,
 	sales_reminder_schedule_admin_notification:
 		salesReminderScheduleAdminNotification,
 	sales_info: salesInfo,

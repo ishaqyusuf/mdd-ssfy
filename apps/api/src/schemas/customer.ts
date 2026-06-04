@@ -19,6 +19,11 @@ export type GetCustomerDirectoryV2SummarySchema = z.infer<
   typeof getCustomerDirectoryV2SummarySchema
 >;
 
+export const getCustomerStatementReportSchema = z.object({});
+export type GetCustomerStatementReportSchema = z.infer<
+  typeof getCustomerStatementReportSchema
+>;
+
 export const getCustomerOverviewV2Schema = z.object({
   accountNo: z.string(),
 });

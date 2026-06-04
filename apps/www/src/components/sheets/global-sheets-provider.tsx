@@ -1,9 +1,8 @@
 "use client";
 
-import { useSearchStore } from "@/store/search";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useHotkeys } from "react-hotkeys-hook";
+import { SearchModal } from "../search/search-modal";
 
 const GlobalSheets = dynamic(
 	() => import("./global-sheets").then((mod) => mod.GlobalSheets),
@@ -11,10 +10,6 @@ const GlobalSheets = dynamic(
 		ssr: false,
 	},
 );
-const SearchModal = dynamic(() =>
-	import("../search/search-modal").then((mod) => mod.SearchModal),
-);
-
 const SHEET_QUERY_KEYS = [
 	"viewRoles",
 	"viewInboundId",
@@ -39,19 +34,8 @@ export function GlobalSheetsProvider() {
 
 	return (
 		<>
-			<SearchModalGate />
+			<SearchModal />
 			{hasOpenSheet ? <GlobalSheets /> : null}
 		</>
 	);
-}
-
-function SearchModalGate() {
-	const { isOpen, setOpen } = useSearchStore();
-
-	useHotkeys("meta+k", () => setOpen(), {
-		enableOnFormTags: true,
-		enabled: !isOpen,
-	});
-
-	return isOpen ? <SearchModal /> : null;
 }
