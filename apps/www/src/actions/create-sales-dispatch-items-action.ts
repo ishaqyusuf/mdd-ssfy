@@ -1,13 +1,11 @@
 "use server";
 
 import { prisma } from "@/db";
-import { getDispatchControlType } from "@/utils/sales-utils";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
 import { createSalesDispatchItemsSchema } from "./schema";
-import { updateSalesItemStats } from "./update-sales-item-stat";
-import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function createSalesDispatchItems(
     data: z.infer<typeof createSalesDispatchItemsSchema>,
@@ -37,23 +35,6 @@ export const createSalesDispatchItemsAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const dispatch = await createSalesDispatchItems(input, tx);
-            const res = await Promise.all(
-                Object.values(input.items).map(async (item) => {
-                    return await updateSalesItemStats(
-                        {
-                            uid: item.itemUid,
-                            salesId: input.orderId,
-                            type: getDispatchControlType(input.status),
-                            itemTotal: item.totalItemQty,
-                            qty: item.qty,
-                        },
-                        tx,
-                    );
-                }),
-            );
-            await updateSalesStatAction({
-                salesId: input.orderId,
-                types: [getDispatchControlType(input.status)],
-            });
+            await resetSalesAction(tx as any, input.orderId);
         });
     });

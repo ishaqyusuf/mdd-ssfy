@@ -5,6 +5,7 @@ import { parseSalesPrintRequest } from "./sales-print-request";
 import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
+	downloadSalesPrintDocument,
 	openSalesPrintDocument,
 	prepareSalesHtmlPreview,
 	regenerateSalesPrintDocument,
@@ -170,6 +171,84 @@ describe("sales print service", () => {
 				preview: true,
 			}),
 		).toBe("/api/download/sales-v2?accessToken=access-123&preview=true");
+	});
+
+	it("downloads legacy batch PDFs through a same-origin blob URL", async () => {
+		const originalFetch = globalThis.fetch;
+		const originalWindow = globalThis.window;
+		const originalDocument = globalThis.document;
+		const originalCreateObjectUrl = globalThis.URL.createObjectURL;
+		const originalRevokeObjectUrl = globalThis.URL.revokeObjectURL;
+		let fetchedUrl: string | null = null;
+		let clickedHref: string | null = null;
+		let clickedDownload: string | null = null;
+		const link = {
+			href: "",
+			download: "",
+			rel: "",
+			style: {},
+			click() {
+				clickedHref = this.href;
+				clickedDownload = this.download;
+			},
+			remove() {},
+		};
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "legacy",
+			generated: false,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: null,
+			accessToken: "legacy-123",
+			expiresAt: null,
+			previewUrl:
+				"https://wrong.example.com/p/sales-document-v2?token=legacy-123",
+			downloadUrl:
+				"https://wrong.example.com/api/download/sales-v2?token=legacy-123",
+		};
+
+		globalThis.window = { location: { origin: "https://app.example.com" } };
+		globalThis.document = {
+			createElement: () => link,
+			body: {
+				appendChild() {},
+			},
+		};
+		globalThis.URL.createObjectURL = () => "blob:pdf-123";
+		globalThis.URL.revokeObjectURL = () => undefined;
+		globalThis.fetch = async (url) => {
+			fetchedUrl = String(url);
+			return new Response(new Blob(["pdf"]), {
+				status: 200,
+				headers: {
+					"Content-Disposition": 'attachment; filename="batch.pdf"',
+				},
+			});
+		};
+
+		try {
+			await downloadSalesPrintDocument(
+				{ salesIds: [42, 43], mode: "invoice" },
+				{
+					resolveAccess: async () => response,
+					resolveHtmlPreviewAccess: async () => response,
+					openLink: () => undefined,
+					getBaseUrl: () => "https://wrong.example.com",
+				},
+			);
+		} finally {
+			globalThis.fetch = originalFetch;
+			globalThis.window = originalWindow;
+			globalThis.document = originalDocument;
+			globalThis.URL.createObjectURL = originalCreateObjectUrl;
+			globalThis.URL.revokeObjectURL = originalRevokeObjectUrl;
+		}
+
+		expect(fetchedUrl).toBe(
+			"https://app.example.com/api/download/sales-v2?token=legacy-123&preview=false",
+		);
+		expect(clickedHref).toBe("blob:pdf-123");
+		expect(clickedDownload).toBe("batch.pdf");
 	});
 
 	it("deduplicates concurrent access resolution for the same document request", async () => {

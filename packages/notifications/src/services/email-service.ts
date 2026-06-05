@@ -25,7 +25,7 @@ import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 import { render } from "@gnd/email/render";
-import { getRecipient, getTestEmails } from "@gnd/utils/envs";
+import { getRecipient, getTestEmails, shouldSkipEmail } from "@gnd/utils/envs";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
@@ -77,6 +77,10 @@ export class EmailService {
 		data: Record<string, any>;
 		from?: string;
 	}) {
+		if (shouldSkipEmail()) {
+			return;
+		}
+
 		const emailTemplate = this.#getTemplate(template);
 		const html = await render(emailTemplate(data as any));
 
@@ -103,6 +107,14 @@ export class EmailService {
 			return {
 				sent: 0,
 				skipped: 0,
+				failed: 0,
+			};
+		}
+
+		if (shouldSkipEmail()) {
+			return {
+				sent: 0,
+				skipped: emails.length,
 				failed: 0,
 			};
 		}

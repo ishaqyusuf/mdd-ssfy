@@ -375,7 +375,12 @@ export async function downloadSalesPrintDocument(
     dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
     const access = await resolveSalesPrintAccess(request, dependencies);
-    downloadSilently(access.downloadUrl);
+    const href = buildSalesDocumentRouteUrl(DOWNLOAD_ROUTE_PATH, access, {
+        preview: false,
+        templateId: request.templateId,
+        pricingMode: request.pricingMode ?? null,
+    });
+    await downloadSilently(href);
 }
 
 export async function regenerateSalesPrintDocument(
@@ -479,9 +484,19 @@ function buildSalesDocumentRouteUrl(
     return `${url.pathname}${url.search}`;
 }
 
-function downloadSilently(url: string) {
+async function downloadSilently(url: string) {
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Unable to download PDF (${response.status}).`);
+    }
+
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
+    link.href = objectUrl;
+    link.download =
+        getDownloadFilename(response.headers.get("Content-Disposition")) ||
+        "sales-document.pdf";
     link.rel = "noopener";
     link.style.display = "none";
     document.body.appendChild(link);
@@ -489,7 +504,24 @@ function downloadSilently(url: string) {
 
     setTimeout(() => {
         link.remove();
+        URL.revokeObjectURL?.(objectUrl);
     }, 1_000);
+}
+
+function getDownloadFilename(contentDisposition?: string | null) {
+    if (!contentDisposition) return null;
+
+    const encodedMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+    if (encodedMatch?.[1]) {
+        try {
+            return decodeURIComponent(encodedMatch[1]);
+        } catch {
+            return encodedMatch[1];
+        }
+    }
+
+    const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+    return filenameMatch?.[1] || null;
 }
 
 function getSalesPrintViewerTitle(mode: PrintMode) {

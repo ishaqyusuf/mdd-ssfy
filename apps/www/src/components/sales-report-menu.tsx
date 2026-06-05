@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { downloadCustomerStatementPdf } from "@/lib/customer-statement-print";
 import { useTRPC } from "@/trpc/client";
+import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-status";
 import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -41,6 +42,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@gnd/ui/table";
+import { Label } from "@gnd/ui/label";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
@@ -185,6 +187,8 @@ function CustomerStatementsReportDialog({
 	const trpc = useTRPC();
 	const [search, setSearch] = useState("");
 	const [selectedSalesIds, setSelectedSalesIds] = useState<number[]>([]);
+	const [includeSalesInvoicesInPdf, setIncludeSalesInvoicesInPdf] =
+		useState(false);
 	const [isDownloadingStatementPdf, setIsDownloadingStatementPdf] =
 		useState(false);
 	const sentReturnTimeoutRef = useRef<number | null>(null);
@@ -375,6 +379,7 @@ function CustomerStatementsReportDialog({
 			await downloadCustomerStatementPdf({
 				customerId: detail.customer.id,
 				salesIds: selectedSalesIds,
+				includeSalesInvoicesInPdf,
 				templateId: "template-1",
 			});
 			toast.success("PDF downloaded", {
@@ -478,8 +483,12 @@ function CustomerStatementsReportDialog({
 							isPending={detailQuery.isPending}
 							isDownloadingPdf={isDownloadingStatementPdf}
 							isSending={statementTrigger.isActionPending}
+							includeSalesInvoicesInPdf={includeSalesInvoicesInPdf}
 							onDownloadPdf={downloadStatementPdf}
 							onSend={sendStatement}
+							onIncludeSalesInvoicesInPdfChange={
+								setIncludeSalesInvoicesInPdf
+							}
 							selectedLineSet={selectedLineSet}
 							selectedLinesCount={selectedLines.length}
 							selectedTotal={selectedTotal}
@@ -519,7 +528,7 @@ function CustomerStatementsReportDialog({
 
 						<div className="min-h-0 flex-1 overflow-auto rounded-md border">
 							<Table>
-								<TableHeader>
+								<TableHeader className="bg-muted/60 [&_th]:h-10 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:text-muted-foreground">
 									<TableRow>
 										<TableHead>Customer name</TableHead>
 										<TableHead className="text-right">Due orders</TableHead>
@@ -634,10 +643,12 @@ function StatementOverview({
 	allLinesSelected,
 	detail,
 	hasPartialSelection,
+	includeSalesInvoicesInPdf,
 	isPending,
 	isDownloadingPdf,
 	isSending,
 	onDownloadPdf,
+	onIncludeSalesInvoicesInPdfChange,
 	onSend,
 	selectedLineSet,
 	selectedLinesCount,
@@ -648,10 +659,12 @@ function StatementOverview({
 	allLinesSelected: boolean;
 	detail: CustomerStatementDetail | undefined;
 	hasPartialSelection: boolean;
+	includeSalesInvoicesInPdf: boolean;
 	isPending: boolean;
 	isDownloadingPdf: boolean;
 	isSending: boolean;
 	onDownloadPdf: () => void;
+	onIncludeSalesInvoicesInPdfChange: (checked: boolean) => void;
 	onSend: () => void;
 	selectedLineSet: Set<number>;
 	selectedLinesCount: number;
@@ -711,7 +724,7 @@ function StatementOverview({
 
 						<div className="overflow-auto rounded-md border">
 							<Table>
-								<TableHeader>
+								<TableHeader className="bg-muted/60 [&_th]:h-10 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:text-muted-foreground">
 									<TableRow>
 										<TableHead className="w-12">
 											<Checkbox
@@ -729,6 +742,7 @@ function StatementOverview({
 										</TableHead>
 										<TableHead>Order #</TableHead>
 										<TableHead>Date</TableHead>
+										<TableHead>Status</TableHead>
 										<TableHead>Address</TableHead>
 										<TableHead className="text-right">Invoice</TableHead>
 										<TableHead className="text-right">Paid</TableHead>
@@ -751,6 +765,18 @@ function StatementOverview({
 													{line.orderNo}
 												</TableCell>
 												<TableCell>{line.date}</TableCell>
+												<TableCell>
+													<Badge
+														className={cn(
+															"border-0 whitespace-nowrap",
+															getSalesOrderLifecycleStatusBadgeClassName(
+																line.status,
+															),
+														)}
+													>
+														{line.statusLabel}
+													</Badge>
+												</TableCell>
 												<TableCell className="max-w-64 truncate">
 													{line.address || "-"}
 												</TableCell>
@@ -768,7 +794,7 @@ function StatementOverview({
 									) : (
 										<TableRow>
 											<TableCell
-												colSpan={7}
+												colSpan={8}
 												className="h-28 text-center text-muted-foreground"
 											>
 												No pending payment orders.
@@ -796,7 +822,24 @@ function StatementOverview({
 						{formatCurrency(selectedTotal)}
 					</div>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex flex-wrap items-center justify-end gap-3">
+					<div className="flex items-center gap-2">
+						<Checkbox
+							id="include-sales-invoices-in-pdf"
+							checked={includeSalesInvoicesInPdf}
+							className="size-4 rounded-[4px] border-input shadow-xs transition-shadow outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 data-[state=checked]:border-primary"
+							disabled={isDownloadingPdf || isSending || isPending}
+							onCheckedChange={(checked) =>
+								onIncludeSalesInvoicesInPdfChange(checked === true)
+							}
+						/>
+						<Label
+							htmlFor="include-sales-invoices-in-pdf"
+							className="cursor-pointer text-sm font-normal text-muted-foreground"
+						>
+							Include sales invoices in PDF
+						</Label>
+					</div>
 					<Button
 						disabled={
 							isDownloadingPdf ||

@@ -1,18 +1,15 @@
 import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { resetSalesAction } from "@sales/sales-control/actions";
 
 import { excludeDeleted } from "../utils/db-utils";
 import { Qty } from "./dto/sales-item-dto";
-import {
-    salesAssignmentCreated,
-    updateSalesProgressDta,
-} from "./sales-progress.dta";
 import { DispatchItemPackingStatus } from "@sales/types";
 
 export async function createItemAssignmentDta(
     data: Prisma.OrderItemProductionAssignmentsCreateInput,
-    produceable
+    produceable,
 ) {
     if (!data.qtyAssigned) data.qtyAssigned = sum([data.lhQty, data.rhQty]);
     if (!data.assignedTo?.connect?.id) data.assignedTo = undefined;
@@ -20,13 +17,12 @@ export async function createItemAssignmentDta(
     const assignment = await prisma.orderItemProductionAssignments.create({
         data,
     });
-    if (produceable)
-        await salesAssignmentCreated(data.order.connect.id, data.qtyAssigned);
+    await resetSalesAction(prisma as any, data.order.connect.id);
     return assignment;
 }
 export async function deleteAssignmentDta(
     assignmentId,
-    produceable
+    produceable,
     // deliverable
 ) {
     const a = await prisma.orderItemProductionAssignments.update({
@@ -66,10 +62,6 @@ export async function deleteAssignmentDta(
             },
         },
     });
-    if (produceable)
-        await updateSalesProgressDta(a.orderId, "prodAssigned", {
-            minusScore: a.qtyAssigned,
-        });
     const submissions = a.submissions;
     if (submissions.length) {
         const submissionIds = submissions.map((s) => s.id);
@@ -81,8 +73,7 @@ export async function deleteAssignmentDta(
                 deletedAt: new Date(),
             },
         });
-        const deliveries = a.submissions.map((s) => s.itemDeliveries).flat();
-        const resp = await prisma.orderItemDelivery.updateMany({
+        await prisma.orderItemDelivery.updateMany({
             where: {
                 orderProductionSubmissionId: {
                     in: submissionIds,
@@ -92,26 +83,17 @@ export async function deleteAssignmentDta(
                 deletedAt: new Date(),
             },
         });
-        if (produceable)
-            await updateSalesProgressDta(a.orderId, "prodCompleted", {
-                minusScore: sum(submissions.map((s) => s.qty)),
-            });
-        await updateSalesProgressDta(a.orderId, "dispatchCompleted", {
-            minusScore: sum(deliveries.map((s) => s.qty)),
-        });
     }
+    await resetSalesAction(prisma as any, a.orderId);
 }
 export async function submitAssignmentDta(
     data: Prisma.OrderProductionSubmissionsCreateInput,
-    produceable
+    produceable,
 ) {
     const c = await prisma.orderProductionSubmissions.create({
         data,
     });
-    if (produceable)
-        await updateSalesProgressDta(c.salesOrderId, "prodCompleted", {
-            plusScore: c.qty,
-        });
+    await resetSalesAction(prisma as any, c.salesOrderId);
     return c;
 }
 export async function deleteAssignmentSubmissionDta(submitId, produceable) {
@@ -123,14 +105,11 @@ export async function deleteAssignmentSubmissionDta(submitId, produceable) {
             deletedAt: new Date(),
         },
     });
-    if (produceable)
-        await updateSalesProgressDta(submission.salesOrderId, "prodCompleted", {
-            minusScore: submission.qty,
-        });
+    await resetSalesAction(prisma as any, submission.salesOrderId);
 }
 export async function updateAssignmentDta(
     id,
-    data: Prisma.OrderItemProductionAssignmentsUpdateInput
+    data: Prisma.OrderItemProductionAssignmentsUpdateInput,
 ) {
     return await prisma.orderItemProductionAssignments.update({
         where: { id },
@@ -170,6 +149,6 @@ export async function quickCreateAssignmentDta({
                 },
             },
         },
-        produceable
+        produceable,
     );
 }

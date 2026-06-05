@@ -9,7 +9,12 @@ export function useSalesQueryClient() {
             queryKey,
         });
     const invalidate = {
-        salesList: () => _invalidate(trpc.sales.getOrders.infiniteQueryKey()),
+        salesList: () =>
+            Promise.all([
+                _invalidate(trpc.sales.getOrders.infiniteQueryKey()),
+                _invalidate(trpc.sales.getOrdersV2.infiniteQueryKey()),
+                _invalidate(trpc.sales.getOrdersV2Summary.queryKey()),
+            ]),
         quoteList: () => _invalidate(trpc.sales.quotes.infiniteQueryKey()),
         productionOverview: () =>
             _invalidate(trpc.sales.productionOverview.queryKey()),
@@ -28,7 +33,7 @@ export function useSalesQueryClient() {
             events.assignmentUpdated();
         },
         quoteCreated: () => {
-            invalidate.salesList();
+            invalidate.quoteList();
         },
         salesCreated: () => {
             invalidate.salesList();
@@ -55,4 +60,3 @@ export function useSalesQueryClient() {
         invalidate,
     };
 }
-

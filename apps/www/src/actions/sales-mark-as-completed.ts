@@ -3,7 +3,7 @@
 import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { QtyControlType } from "@gnd/utils/sales";
-import { updateSalesStatAction } from "./update-sales-stat";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 
 import { SalesDispatchStatus } from "@api/type";
@@ -85,23 +85,21 @@ export async function markSalesProductionAsCompleted(id) {
     });
 }
 async function markSalesAsCompleted(id, types: QtyControlType[]) {
-    await prisma.qtyControl.updateMany({
-        where: {
-            type: {
-                in: types,
+    await prisma.$transaction(async (tx: typeof prisma) => {
+        await tx.qtyControl.updateMany({
+            where: {
+                type: {
+                    in: types,
+                },
+                itemControl: {
+                    salesId: id,
+                },
             },
-            itemControl: {
-                salesId: id,
+            data: {
+                autoComplete: true,
             },
-        },
-        data: {
-            autoComplete: true,
-        },
-    });
-    await updateSalesStatAction({
-        salesId: id,
-        types,
+        });
+        await resetSalesAction(tx as any, id);
     });
     // authorName
 }
-

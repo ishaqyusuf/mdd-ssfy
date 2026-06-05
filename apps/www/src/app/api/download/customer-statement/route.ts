@@ -1,6 +1,11 @@
+import { DEFAULT_SALES_PRINT_TEMPLATE_ID } from "@/modules/sales-print/application/sales-print-request";
 import { getCustomerStatementPrintData } from "@gnd/api/db/queries/customer-statement-print";
 import { db } from "@gnd/db";
-import { renderCustomerStatementPdfBuffer } from "@gnd/pdf/customer-statement";
+import {
+	renderCustomerStatementPdfBuffer,
+	renderCustomerStatementWithSalesInvoicesPdfBuffer,
+} from "@gnd/pdf/customer-statement";
+import { getPrintDocumentData } from "@gnd/sales/print";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
@@ -41,6 +46,9 @@ export async function GET(req: NextRequest) {
 	const token = requestUrl.searchParams.get("token");
 	const preview = requestUrl.searchParams.get("preview") === "true";
 	const templateId = requestUrl.searchParams.get("templateId") || "template-1";
+	const salesTemplateId =
+		requestUrl.searchParams.get("salesTemplateId") ||
+		DEFAULT_SALES_PRINT_TEMPLATE_ID;
 
 	if (!token) {
 		return NextResponse.json(
@@ -61,14 +69,37 @@ export async function GET(req: NextRequest) {
 		? new Date().toISOString().slice(0, 10)
 		: printedDate.toISOString().slice(0, 10);
 	const title = `Statement_${statementData.customer.displayName}_${dateLabel}`;
-	const buffer = await renderCustomerStatementPdfBuffer({
-		data: statementData,
-		templateId: payload.templateId || templateId,
-		baseUrl: requestUrl.origin,
-		logoUrl: statementData.logoUrl,
-		watermarkText: "Customer Statement",
-		title,
-	});
+	const selectedSalesIds = statementData.lines.map((line) => line.salesId);
+	const resolvedTemplateId = payload.templateId || templateId;
+	let buffer: Buffer;
+
+	if (payload.includeSalesInvoicesInPdf) {
+		const invoiceDocumentData = await getPrintDocumentData(db, {
+			ids: selectedSalesIds,
+			mode: "invoice",
+		});
+		buffer = await renderCustomerStatementWithSalesInvoicesPdfBuffer({
+			data: statementData,
+			templateId: resolvedTemplateId,
+			baseUrl: requestUrl.origin,
+			logoUrl: statementData.logoUrl,
+			watermarkText: "Customer Statement",
+			title,
+			invoicePages: invoiceDocumentData.pages,
+			invoiceCompanyAddress: invoiceDocumentData.companyAddress,
+			invoiceTemplateId: salesTemplateId,
+			invoiceLogoUrl: invoiceDocumentData.logoUrl,
+		});
+	} else {
+		buffer = await renderCustomerStatementPdfBuffer({
+			data: statementData,
+			templateId: resolvedTemplateId,
+			baseUrl: requestUrl.origin,
+			logoUrl: statementData.logoUrl,
+			watermarkText: "Customer Statement",
+			title,
+		});
+	}
 
 	return createPdfResponse({
 		buffer,

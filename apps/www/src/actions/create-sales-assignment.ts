@@ -3,16 +3,15 @@
 import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
 import { createAssignmentSchema } from "./schema";
-import { updateSalesItemStats } from "./update-sales-item-stat";
-import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function createSalesAssignment(
     data: z.infer<typeof createAssignmentSchema>,
-    tx: typeof prisma = prisma
+    tx: typeof prisma = prisma,
 ) {
     const assignment = await tx.orderItemProductionAssignments.create({
         data: {
@@ -81,25 +80,7 @@ export const createSalesAssignmentAction = actionClient
 export const _createSalesAssignmentAction = async (input) => {
     const resp = await prisma.$transaction(async (tx: typeof prisma) => {
         const assignment = await createSalesAssignment(input, tx);
-        await updateSalesItemStats(
-            {
-                uid: input.itemUid,
-                salesId: input.salesId,
-                type: "prodAssigned",
-                itemTotal: input.itemsTotal,
-                qty: {
-                    ...input.qty,
-                },
-            },
-            tx
-        );
-        await updateSalesStatAction(
-            {
-                salesId: input.salesId,
-                types: ["prodAssigned"],
-            },
-            tx
-        );
+        await resetSalesAction(tx as any, input.salesId);
         return {
             assignmentId: assignment.id,
         };

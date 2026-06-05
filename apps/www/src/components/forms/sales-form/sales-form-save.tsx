@@ -98,6 +98,7 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
             );
 
             const s = resp?.data?.sales;
+            const savedSalesType = resp.salesType || metaData.type;
             tsk.triggerWithAuth("create-sales-history", {
                 salesNo: resp.salesNo,
                 salesType: resp.salesType,
@@ -114,8 +115,11 @@ export function SalesFormSave({ type = "button", and, className, iconOnly }: Pro
                 resp.salesId,
                 zus.metaData?.extraCosts,
             );
-            sq?.invalidate.salesList();
-            sq?.invalidate.quoteList();
+            if (savedSalesType === "quote") {
+                await sq.invalidate.quoteList();
+            } else {
+                await sq.invalidate.salesList();
+            }
             if (resp.salesId) zus.dotUpdate("metaData.id", resp.salesId);
             if (resp.salesNo) zus.dotUpdate("metaData.salesId", resp.salesNo);
             if (inboundStatus && resp.salesId && resp.salesNo) {

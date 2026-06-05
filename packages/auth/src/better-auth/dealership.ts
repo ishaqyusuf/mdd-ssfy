@@ -139,6 +139,7 @@ function getTrustedOrigins() {
 			[
 				getDealershipBaseUrl(),
 				...localDealershipOrigins,
+				process.env.PORTLESS_URL,
 				process.env.NEXT_PUBLIC_DEALERSHIP_URL,
 				process.env.NEXT_PUBLIC_APP_URL,
 				process.env.BETTER_AUTH_TRUSTED_ORIGINS,

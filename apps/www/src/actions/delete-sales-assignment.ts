@@ -1,12 +1,10 @@
 "use server";
 
 import { prisma } from "@/db";
-import { negativeQty } from "@/utils/sales-control-util";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
-import { updateSalesItemStats } from "./update-sales-item-stat";
-import { updateSalesStatAction } from "./update-sales-stat";
 
 const deleteSalesAssignmentSchema = z.object({
     assignmentId: z.number(),
@@ -42,26 +40,7 @@ export const deleteSalesAssignmentAction = actionClient
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const assignment = await deleteSalesAssignment(input, tx);
-            await updateSalesItemStats(
-                {
-                    uid: input.itemUid,
-                    salesId: assignment.orderId,
-                    type: "prodAssigned",
-                    qty: negativeQty({
-                        lh: assignment.lhQty,
-                        rh: assignment.rhQty,
-                        qty: assignment.qtyAssigned,
-                    }),
-                },
-                tx,
-            );
-            await updateSalesStatAction(
-                {
-                    salesId: assignment.orderId,
-                    types: ["prodAssigned"],
-                },
-                tx,
-            );
+            await resetSalesAction(tx as any, assignment.orderId);
         });
         return resp;
     });

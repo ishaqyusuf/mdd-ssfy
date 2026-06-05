@@ -32,9 +32,13 @@ interface TableSkeletonProps<TData> {
     className?: string;
 }
 
-const HEADER_BACKGROUND_CLASS = "bg-slate-100/90 dark:bg-slate-900/70";
+const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
 const HEADER_TEXT_CLASS =
     "text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-300";
+const HEADER_CELL_BACKGROUND_STYLE = {
+    backgroundColor:
+        "color-mix(in oklab, var(--sidebar-accent) 88%, var(--foreground))",
+};
 
 export function TableSkeleton<TData>({
     columns,
@@ -170,6 +174,7 @@ export function TableSkeleton<TData>({
                                         key={columnId}
                                         className={headerClassName}
                                         style={{
+                                            ...HEADER_CELL_BACKGROUND_STYLE,
                                             width,
                                             minWidth,
                                             maxWidth,

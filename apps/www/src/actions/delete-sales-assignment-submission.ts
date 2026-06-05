@@ -1,17 +1,11 @@
 "use server";
 
 import { Prisma, prisma } from "@/db";
-import {
-    negativeQty,
-    qtyMatrixSum,
-    transformQtyHandle,
-} from "@/utils/sales-control-util";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
 import { deleteSalesAssignmentSubmissionSchema } from "./schema";
-import { updateSalesItemStats } from "./update-sales-item-stat";
-import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function deleteSalesAssignmentSubmission(
     data: z.infer<typeof deleteSalesAssignmentSubmissionSchema>,
@@ -74,47 +68,8 @@ export const deleteSalesAssignmentSubmissionAction = actionClient
     })
     .action(async ({ parsedInput: input }) => {
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
-            const submissions = await deleteSalesAssignmentSubmission(
-                input,
-                tx,
-            );
-
-            await Promise.all(
-                submissions.map(async (item, index) => {
-                    let commonItems = submissions.filter(
-                        (i) => i.assignment.id == item.assignment?.id,
-                    );
-                    const assignment = commonItems?.[0]?.assignment;
-                    if (item.id != commonItems[0]?.id) return;
-
-                    // const itemUid = item.assignment.salesItemControlUid;
-                    let submitQty = qtyMatrixSum(
-                        ...commonItems.map(transformQtyHandle),
-                    );
-                    if (submitQty?.qty > assignment.qtyAssigned)
-                        submitQty = {
-                            lh: assignment.lhQty,
-                            rh: assignment.rhQty,
-                            qty: assignment.qtyAssigned,
-                        };
-                    await updateSalesItemStats(
-                        {
-                            uid: input.itemUid,
-                            salesId: input.salesId,
-                            type: "prodCompleted",
-                            qty: negativeQty(submitQty),
-                        },
-                        tx,
-                    );
-                }),
-            );
-            await updateSalesStatAction(
-                {
-                    salesId: input.salesId,
-                    types: ["prodCompleted"],
-                },
-                tx,
-            );
+            await deleteSalesAssignmentSubmission(input, tx);
+            await resetSalesAction(tx as any, input.salesId);
             return {};
         });
         return resp;

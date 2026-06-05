@@ -2,6 +2,7 @@
 
 import { env } from "@/env.mjs";
 import { resend } from "@/lib/resend";
+import { shouldSkipEmail } from "@gnd/utils/envs";
 // import { Resend } from "resend";
 
 interface Props {
@@ -14,6 +15,10 @@ interface Props {
 //
 
 export async function _email({ from, user, subject, react }: Props) {
+    if (shouldSkipEmail()) {
+        return;
+    }
+
     const isProd = env.NEXT_PUBLIC_NODE_ENV === "production";
 
     // return;

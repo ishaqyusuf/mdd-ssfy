@@ -27,6 +27,7 @@ function downloadBlob(blob: Blob, filename: string) {
 export async function downloadCustomerStatementPdf(input: {
 	customerId: number;
 	salesIds: number[];
+	includeSalesInvoicesInPdf?: boolean;
 	templateId?: string;
 }) {
 	if (!input.customerId || !input.salesIds.length) return;
@@ -34,6 +35,7 @@ export async function downloadCustomerStatementPdf(input: {
 	const token = await generateToken({
 		customerId: input.customerId,
 		salesIds: input.salesIds,
+		includeSalesInvoicesInPdf: input.includeSalesInvoicesInPdf ?? false,
 		templateId: input.templateId || "template-1",
 		expiry: addDays(new Date(), 7).toISOString(),
 	});

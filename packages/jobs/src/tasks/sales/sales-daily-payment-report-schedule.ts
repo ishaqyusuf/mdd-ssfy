@@ -14,7 +14,7 @@ import {
 	buildDailyPaymentsReport,
 } from "@gnd/sales/payment-system";
 import { getSettingAction } from "@gnd/settings";
-import { getEmailUrl, getRecipient } from "@gnd/utils/envs";
+import { getEmailUrl, getRecipient, shouldSkipEmail } from "@gnd/utils/envs";
 import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 import { put } from "@vercel/blob";
 import { nanoid } from "nanoid";
@@ -441,6 +441,7 @@ async function sendReportEmail(input: {
 	runType: RunType;
 }) {
 	if (!input.recipients.length) return { sent: 0, failed: 0 };
+	if (shouldSkipEmail()) return { sent: 0, failed: 0 };
 
 	const resendApiKey = process.env.RESEND_API_KEY;
 	if (!resendApiKey) {

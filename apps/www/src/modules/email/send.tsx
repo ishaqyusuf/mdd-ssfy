@@ -1,6 +1,7 @@
 "use server";
 
 import { resend } from "@/lib/resend";
+import { shouldSkipEmail } from "@gnd/utils/envs";
 import { processAttachments } from "./attachments";
 import { transformEmail } from "./transform";
 export interface EmailProps {
@@ -28,6 +29,13 @@ export async function sendEmail(props: EmailProps) {
             props,
             error: errors?.map((e) => e.error).join("\n"), //"Unable to process attachment",
         };
+    if (shouldSkipEmail()) {
+        return {
+            error: null,
+            success: "Skipped",
+            attachments,
+        };
+    }
     const to = toEmail(props.to);
     const html = `
             <div>${body}</div>

@@ -70,6 +70,11 @@ export function getDevEmail() {
   return process.env.DEV_EMAIL?.trim() || null;
 }
 
+export function shouldSkipEmail() {
+  const value = String(process.env.SKIP_EMAIL || "").trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes";
+}
+
 export function getRecipient(email: string | string[]): string | string[] {
   const isDev = process.env.NODE_ENV === "development";
   const testEmails = getTestEmails();

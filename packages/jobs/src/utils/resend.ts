@@ -1,14 +1,21 @@
 import { render } from "@gnd/email/render";
-import { getRecipient } from "@gnd/utils/envs";
+import { getRecipient, shouldSkipEmail } from "@gnd/utils/envs";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
 // import { logger } from "@trigger.dev/core";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-if (!resendApiKey) {
-	throw new Error("RESEND_API_KEY is not configured");
+let resend: Resend | null = null;
+
+function getResendClient() {
+	const resendApiKey = process.env.RESEND_API_KEY;
+	if (!resendApiKey) {
+		throw new Error("RESEND_API_KEY is not configured");
+	}
+
+	resend ??= new Resend(resendApiKey);
+	return resend;
 }
-export const resend = new Resend(resendApiKey);
+
 interface SendEmailProps {
 	subject: string;
 	from: string;
@@ -29,8 +36,12 @@ export async function sendEmail({
 	errorLog,
 	successLog,
 }: SendEmailProps) {
+	if (shouldSkipEmail()) {
+		return;
+	}
+
 	const toEmail = getRecipient(to);
-	const response = await resend.emails.send({
+	const response = await getResendClient().emails.send({
 		subject,
 		from,
 		to: toEmail,

@@ -67,6 +67,7 @@ export const customerStatementPdfToken = z.object({
 	customerId: z.number(),
 	salesIds: z.array(z.number()).min(1),
 	expiry: z.string(),
+	includeSalesInvoicesInPdf: z.boolean().optional().nullable(),
 	templateId: z.string().optional().nullable(),
 });
 export type CustomerStatementPdfToken = z.infer<

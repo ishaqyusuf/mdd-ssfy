@@ -11,6 +11,7 @@ import type {
 } from "@api/schemas/customer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
+import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
@@ -948,6 +949,8 @@ export async function getCustomerStatementDetail(
 			id: true,
 			orderId: true,
 			createdAt: true,
+			status: true,
+			prodStatus: true,
 			grandTotal: true,
 			amountDue: true,
 			billingAddress: {
@@ -1002,11 +1005,17 @@ export async function getCustomerStatementDetail(
 		const invoice = Number(order.grandTotal || 0);
 		const pending = Number(order.amountDue || 0);
 		const paid = Math.max(invoice - pending, 0);
+		const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
+			orderStatus: order.status,
+			legacyProductionStatus: order.prodStatus,
+		});
 
 		return {
 			salesId: order.id,
 			orderNo: order.orderId,
 			date: formatStatementDate(order.createdAt),
+			status: lifecycleStatus.status,
+			statusLabel: lifecycleStatus.label,
 			invoice,
 			paid,
 			pending,

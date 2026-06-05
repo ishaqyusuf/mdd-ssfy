@@ -3,13 +3,12 @@
 import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
+import { resetSalesAction } from "@sales/sales-control/actions";
 import z from "zod";
 
 import { createPayrollAction } from "./create-payroll";
 import { actionClient } from "./safe-action";
 import { createSubmissionSchema } from "./schema";
-import { updateSalesItemStats } from "./update-sales-item-stat";
-import { updateSalesStatAction } from "./update-sales-stat";
 
 export async function submitSalesAssignment(
     data: z.infer<typeof createSubmissionSchema>,
@@ -75,24 +74,7 @@ export const submitSalesAssignmentAction = actionClient
         if (!input.qty.qty) input.qty.qty = sum([input.qty.lh, input.qty.rh]);
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const submission = await submitSalesAssignment(input, tx);
-            await updateSalesItemStats(
-                {
-                    uid: input.itemUid,
-                    salesId: input.salesId,
-                    type: "prodCompleted",
-                    qty: {
-                        ...input.qty,
-                    },
-                },
-                tx,
-            );
-            await updateSalesStatAction(
-                {
-                    salesId: input.salesId,
-                    types: ["prodCompleted"],
-                },
-                tx,
-            );
+            await resetSalesAction(tx as any, input.salesId);
             return {
                 submissionId: submission.id,
             };

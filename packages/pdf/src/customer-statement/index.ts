@@ -1,5 +1,8 @@
 export { CustomerStatementPdfDocument } from "./document";
-export { renderCustomerStatementPdfBuffer } from "./render";
+export {
+	renderCustomerStatementPdfBuffer,
+	renderCustomerStatementWithSalesInvoicesPdfBuffer,
+} from "./render";
 export type {
 	CustomerStatementPdfData,
 	CustomerStatementPdfLine,
