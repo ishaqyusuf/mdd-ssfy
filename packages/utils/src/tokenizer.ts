@@ -63,6 +63,15 @@ export const communityInvoiceTaskDetailPdfToken = z.object({
 export type CommunityInvoiceTaskDetailPdfToken = z.infer<
 	typeof communityInvoiceTaskDetailPdfToken
 >;
+export const customerStatementPdfToken = z.object({
+	customerId: z.number(),
+	salesIds: z.array(z.number()).min(1),
+	expiry: z.string(),
+	templateId: z.string().optional().nullable(),
+});
+export type CustomerStatementPdfToken = z.infer<
+	typeof customerStatementPdfToken
+>;
 export const salesPaymentTokenSchema = z.object({
 	salesIds: z.array(z.number()),
 	expiry: z.string(),
@@ -93,6 +102,7 @@ export const tokenSchemas = {
 	payoutPdfToken,
 	communityInvoiceAgingPdfToken,
 	communityInvoiceTaskDetailPdfToken,
+	customerStatementPdfToken,
 	salesPaymentTokenSchema,
 	quoteAcceptanceTokenSchema,
 } as const;
@@ -108,6 +118,7 @@ type KnownToken =
 	| PayoutPdfToken
 	| CommunityInvoiceAgingPdfToken
 	| CommunityInvoiceTaskDetailPdfToken
+	| CustomerStatementPdfToken
 	| SalesPaymentTokenSchema
 	| QuoteAcceptanceTokenSchema;
 export function tokenize<T extends KnownToken>(data: T) {

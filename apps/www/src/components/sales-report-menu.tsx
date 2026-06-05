@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
+import { downloadCustomerStatementPdf } from "@/lib/customer-statement-print";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
@@ -184,6 +185,8 @@ function CustomerStatementsReportDialog({
 	const trpc = useTRPC();
 	const [search, setSearch] = useState("");
 	const [selectedSalesIds, setSelectedSalesIds] = useState<number[]>([]);
+	const [isDownloadingStatementPdf, setIsDownloadingStatementPdf] =
+		useState(false);
 	const sentReturnTimeoutRef = useRef<number | null>(null);
 	const selectedCustomerId = params.statementCustomerId;
 	const statementStatus = params.statementStatus;
@@ -354,6 +357,41 @@ function CustomerStatementsReportDialog({
 		});
 	};
 
+	const downloadStatementPdf = async () => {
+		if (
+			isDownloadingStatementPdf ||
+			statementTrigger.isActionPending ||
+			!detail?.customer.id ||
+			!selectedSalesIds.length
+		) {
+			return;
+		}
+		setIsDownloadingStatementPdf(true);
+		const downloadToast = toast.loading("Preparing PDF...", {
+			description: "Generating the latest customer statement.",
+		});
+
+		try {
+			await downloadCustomerStatementPdf({
+				customerId: detail.customer.id,
+				salesIds: selectedSalesIds,
+				templateId: "template-1",
+			});
+			toast.success("PDF downloaded", {
+				id: downloadToast,
+				description: "The customer statement is ready in your downloads.",
+			});
+		} catch (error) {
+			toast.error("Unable to download statement PDF.", {
+				id: downloadToast,
+				description:
+					error instanceof Error ? error.message : "Please try again.",
+			});
+		} finally {
+			setIsDownloadingStatementPdf(false);
+		}
+	};
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="flex h-[min(88vh,760px)] max-w-[min(96vw,1040px)] flex-col overflow-hidden p-0">
@@ -438,7 +476,9 @@ function CustomerStatementsReportDialog({
 							detail={detail}
 							hasPartialSelection={hasPartialSelection}
 							isPending={detailQuery.isPending}
+							isDownloadingPdf={isDownloadingStatementPdf}
 							isSending={statementTrigger.isActionPending}
+							onDownloadPdf={downloadStatementPdf}
 							onSend={sendStatement}
 							selectedLineSet={selectedLineSet}
 							selectedLinesCount={selectedLines.length}
@@ -595,7 +635,9 @@ function StatementOverview({
 	detail,
 	hasPartialSelection,
 	isPending,
+	isDownloadingPdf,
 	isSending,
+	onDownloadPdf,
 	onSend,
 	selectedLineSet,
 	selectedLinesCount,
@@ -607,7 +649,9 @@ function StatementOverview({
 	detail: CustomerStatementDetail | undefined;
 	hasPartialSelection: boolean;
 	isPending: boolean;
+	isDownloadingPdf: boolean;
 	isSending: boolean;
+	onDownloadPdf: () => void;
 	onSend: () => void;
 	selectedLineSet: Set<number>;
 	selectedLinesCount: number;
@@ -752,28 +796,54 @@ function StatementOverview({
 						{formatCurrency(selectedTotal)}
 					</div>
 				</div>
-				<Button
-					disabled={
-						isSending ||
-						isPending ||
-						!customer?.email ||
-						selectedLinesCount === 0 ||
-						selectedTotal <= 0
-					}
-					onClick={onSend}
-				>
-					{isSending ? (
-						<>
-							<Icons.Loader2 className="mr-2 size-4 animate-spin" />
-							Sending
-						</>
-					) : (
-						<>
-							<Icons.Send className="mr-2 size-4" />
-							Send statement
-						</>
-					)}
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button
+						disabled={
+							isDownloadingPdf ||
+							isSending ||
+							isPending ||
+							selectedLinesCount === 0 ||
+							selectedTotal <= 0
+						}
+						onClick={onDownloadPdf}
+						variant="outline"
+					>
+						{isDownloadingPdf ? (
+							<>
+								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+								Preparing PDF
+							</>
+						) : (
+							<>
+								<Icons.FileText className="mr-2 size-4" />
+								PDF
+							</>
+						)}
+					</Button>
+					<Button
+						disabled={
+							isSending ||
+							isDownloadingPdf ||
+							isPending ||
+							!customer?.email ||
+							selectedLinesCount === 0 ||
+							selectedTotal <= 0
+						}
+						onClick={onSend}
+					>
+						{isSending ? (
+							<>
+								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+								Sending
+							</>
+						) : (
+							<>
+								<Icons.Send className="mr-2 size-4" />
+								Send statement
+							</>
+						)}
+					</Button>
+				</div>
 			</DialogFooter>
 		</>
 	);

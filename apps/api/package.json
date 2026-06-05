@@ -17,6 +17,7 @@
 	},
 	"exports": {
 		"./trpc/routers/_app": "./src/trpc/routers/_app.ts",
+		"./db/queries/customer-statement-print": "./src/db/queries/customer-statement-print.ts",
 		"./utils/sales-document-access": "./src/utils/sales-document-access.ts",
 		"./utils/sales-document-snapshot-policy": "./src/utils/sales-document-snapshot-policy.ts",
 		"./utils/sales-document-warm": "./src/utils/sales-document-warm.ts"

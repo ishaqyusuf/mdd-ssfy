@@ -30,6 +30,86 @@ describe("sales production priority sorting", () => {
 
 		expect(sorted.map((item) => item.orderId)).toEqual(["SOONER", "LATER"]);
 	});
+
+	it("sorts by soonest due date with missing due dates last", () => {
+		const sorted = sortProductionListByPriority(
+			[
+				{ orderId: "NO-DATE", priority: "CRITICAL", dueDate: null },
+				{ orderId: "LATER", priority: "LOW", dueDate: "2026-05-18" },
+				{ orderId: "SOONER", priority: "NORMAL", dueDate: "2026-05-15" },
+			],
+			"dueDateAsc",
+		);
+
+		expect(sorted.map((item) => item.orderId)).toEqual([
+			"SOONER",
+			"LATER",
+			"NO-DATE",
+		]);
+	});
+
+	it("sorts by latest due date with missing due dates last", () => {
+		const sorted = sortProductionListByPriority(
+			[
+				{ orderId: "NO-DATE", priority: "CRITICAL", dueDate: null },
+				{ orderId: "LATER", priority: "LOW", dueDate: "2026-05-18" },
+				{ orderId: "SOONER", priority: "NORMAL", dueDate: "2026-05-15" },
+			],
+			"dueDateDesc",
+		);
+
+		expect(sorted.map((item) => item.orderId)).toEqual([
+			"LATER",
+			"SOONER",
+			"NO-DATE",
+		]);
+	});
+
+	it("uses priority as the tie-breaker for matching due dates", () => {
+		const sorted = sortProductionListByPriority(
+			[
+				{ orderId: "LOW", priority: "LOW", dueDate: "2026-05-15" },
+				{ orderId: "CRITICAL", priority: "CRITICAL", dueDate: "2026-05-15" },
+			],
+			"dueDateAsc",
+		);
+
+		expect(sorted.map((item) => item.orderId)).toEqual(["CRITICAL", "LOW"]);
+	});
+
+	it("sorts newest orders first with id as a stable tie-breaker", () => {
+		const sorted = sortProductionListByPriority(
+			[
+				{ id: 10, orderId: "OLDER", createdAt: "2026-05-14" },
+				{ id: 12, orderId: "NEWER", createdAt: "2026-05-16" },
+				{ id: 11, orderId: "SAME-DAY-HIGHER-ID", createdAt: "2026-05-14" },
+			],
+			"newest",
+		);
+
+		expect(sorted.map((item) => item.orderId)).toEqual([
+			"NEWER",
+			"SAME-DAY-HIGHER-ID",
+			"OLDER",
+		]);
+	});
+
+	it("sorts oldest orders first with id as a stable tie-breaker", () => {
+		const sorted = sortProductionListByPriority(
+			[
+				{ id: 12, orderId: "NEWER", createdAt: "2026-05-16" },
+				{ id: 11, orderId: "SAME-DAY-HIGHER-ID", createdAt: "2026-05-14" },
+				{ id: 10, orderId: "OLDER", createdAt: "2026-05-14" },
+			],
+			"oldest",
+		);
+
+		expect(sorted.map((item) => item.orderId)).toEqual([
+			"OLDER",
+			"SAME-DAY-HIGHER-ID",
+			"NEWER",
+		]);
+	});
 });
 
 describe("sales production completion detection", () => {

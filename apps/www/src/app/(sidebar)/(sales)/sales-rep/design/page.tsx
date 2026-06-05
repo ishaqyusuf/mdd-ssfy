@@ -1,4 +1,6 @@
 import PageShell from "@/components/page-shell";
+import { SalesRepMiniChart } from "@/components/sales-rep/sales-rep-mini-chart";
+import { SalesRepPerformanceChart } from "@/components/sales-rep/sales-rep-performance-chart";
 import { Avatar, AvatarFallback } from "@gnd/ui/avatar";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { Badge } from "@gnd/ui/badge";
@@ -296,7 +298,8 @@ function SalesRepMetricCard({ metric }: { metric: (typeof metrics)[number] }) {
                 </div>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-                <MiniBars values={metric.chart} tone={metric.tone} />
+                {/* Inline target: apps/www/src/components/sales-rep/sales-rep-mini-chart.tsx */}
+                <SalesRepMiniChart values={metric.chart} tone={metric.tone} />
             </CardContent>
         </Card>
     );
@@ -304,10 +307,6 @@ function SalesRepMetricCard({ metric }: { metric: (typeof metrics)[number] }) {
 
 // Inline target: apps/www/src/components/sales-rep/sales-rep-performance-panel.tsx
 function SalesRepPerformancePanel() {
-    const max = Math.max(
-        ...monthlyPerformance.flatMap((item) => [item.sales, item.quotes]),
-    );
-
     return (
         <Card className="rounded-xl border-border shadow-none">
             <CardHeader className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
@@ -328,17 +327,19 @@ function SalesRepPerformancePanel() {
                             </p>
                         </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                        <LegendDot
-                            color="bg-chart-1"
-                            label="Orders"
-                            value="$104,321"
-                        />
-                        <LegendDot
-                            color="bg-chart-2"
-                            label="Quotes"
-                            value="$42,241"
-                        />
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        <span>
+                            Orders{" "}
+                            <span className="font-medium text-foreground">
+                                $104,321
+                            </span>
+                        </span>
+                        <span>
+                            Quotes{" "}
+                            <span className="font-medium text-foreground">
+                                $42,241
+                            </span>
+                        </span>
                     </div>
                 </div>
 
@@ -362,70 +363,8 @@ function SalesRepPerformancePanel() {
             </CardHeader>
 
             <CardContent className="px-4 pb-5 sm:px-5">
-                <div className="relative h-[320px] rounded-lg">
-                    <div className="absolute left-0 top-1 z-10 rounded-lg border border-border bg-popover px-4 py-3 text-popover-foreground shadow-lg">
-                        <p className="text-sm text-muted-foreground">
-                            June, 2026
-                        </p>
-                        <div className="mt-2 flex flex-col gap-1 text-sm">
-                            <p>
-                                <span className="mr-2 inline-block size-2 rounded-full bg-chart-1" />
-                                Orders{" "}
-                                <span className="ml-6 font-medium">
-                                    $18,266
-                                </span>
-                            </p>
-                            <p>
-                                <span className="mr-2 inline-block size-2 rounded-full bg-chart-2" />
-                                Quotes{" "}
-                                <span className="ml-7 font-medium">$9,356</span>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="grid h-full grid-cols-12 items-end gap-3 pt-16">
-                        {monthlyPerformance.map((item) => (
-                            <div
-                                className="flex min-w-0 flex-col items-center gap-3"
-                                key={item.month}
-                            >
-                                <div className="flex h-56 w-full max-w-16 items-end justify-center gap-1.5">
-                                    <div
-                                        className={cn(
-                                            "w-5 rounded-t-lg",
-                                            item.active
-                                                ? "bg-primary"
-                                                : "bg-muted",
-                                        )}
-                                        style={{
-                                            height: `${(item.sales / max) * 100}%`,
-                                        }}
-                                    />
-                                    <div
-                                        className={cn(
-                                            "w-5 rounded-t-lg",
-                                            item.active
-                                                ? "bg-primary/20"
-                                                : "bg-muted/60",
-                                        )}
-                                        style={{
-                                            height: `${(item.quotes / max) * 100}%`,
-                                        }}
-                                    />
-                                </div>
-                                <span
-                                    className={cn(
-                                        "text-sm text-muted-foreground",
-                                        item.active &&
-                                            "font-medium text-foreground",
-                                    )}
-                                >
-                                    {item.month}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                {/* Inline target: apps/www/src/components/sales-rep/sales-rep-performance-chart.tsx */}
+                <SalesRepPerformanceChart data={monthlyPerformance} />
             </CardContent>
         </Card>
     );
@@ -636,53 +575,5 @@ function RepAvatar({ className }: { className?: string }) {
                 {rep.initials}
             </AvatarFallback>
         </Avatar>
-    );
-}
-
-// Inline target: apps/www/src/components/sales-rep/legend-dot.tsx
-function LegendDot({
-    color,
-    label,
-    value,
-}: {
-    color: string;
-    label: string;
-    value: string;
-}) {
-    return (
-        <span className="inline-flex items-center gap-2">
-            <span className={cn("size-2.5 rounded-full", color)} />
-            <span className="text-muted-foreground">{label}</span>
-            <span className="font-medium">{value}</span>
-        </span>
-    );
-}
-
-// Inline target: apps/www/src/components/sales-rep/mini-bars.tsx
-function MiniBars({
-    values,
-    tone,
-}: {
-    values: readonly number[];
-    tone: "positive" | "negative";
-}) {
-    const max = Math.max(...values);
-
-    return (
-        <div className="mt-5 flex h-12 items-end gap-1.5">
-            {values.map((value, index) => (
-                <span
-                    className={cn(
-                        "w-4 rounded-t-md bg-primary/20",
-                        index === values.length - 1 &&
-                            (tone === "positive"
-                                ? "bg-primary"
-                                : "bg-destructive"),
-                    )}
-                    key={`${value}-${index}`}
-                    style={{ height: `${(value / max) * 100}%` }}
-                />
-            ))}
-        </div>
     );
 }

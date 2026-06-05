@@ -175,12 +175,7 @@ export function buildUpsertSql(table: string, columns: string[], keyColumns: str
 	const columnList = columns.map(quoteIdent).join(", ");
 	const rowPlaceholder = `(${columns.map(() => "?").join(", ")})`;
 	const placeholders = Array.from({ length: rowCount }, () => rowPlaceholder).join(", ");
-	const keySet = new Set(keyColumns);
-	const updateColumns = columns.filter((column) => !keySet.has(column));
-	const updates =
-		updateColumns.length > 0
-			? updateColumns.map((column) => `${quoteIdent(column)} = VALUES(${quoteIdent(column)})`).join(", ")
-				: `${quoteIdent(keyColumns[0] ?? columns[0]!)} = ${quoteIdent(keyColumns[0] ?? columns[0]!)}`;
+	const updates = columns.map((column) => `${quoteIdent(column)} = VALUES(${quoteIdent(column)})`).join(", ");
 
 	return `INSERT INTO ${quoteIdent(table)} (${columnList}) VALUES ${placeholders} ON DUPLICATE KEY UPDATE ${updates}`;
 }

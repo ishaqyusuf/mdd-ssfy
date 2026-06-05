@@ -18,9 +18,20 @@ import {
 } from "./utils/utils";
 import { whereSales } from "./utils/where-queries";
 
+export type ProductionListSort =
+	| "priority"
+	| "dueDateAsc"
+	| "dueDateDesc"
+	| "newest"
+	| "oldest";
+
+type SalesProductionListQuery = SalesProductionQueryParams & {
+	productionSort?: ProductionListSort | null;
+};
+
 export async function getSalesProductions(
 	db: Db,
-	query: SalesProductionQueryParams,
+	query: SalesProductionListQuery,
 ) {
 	const assignedToId = query.workerId || query.assignedToId;
 	const normalizedQuery = {
@@ -35,6 +46,7 @@ export async function getSalesProductions(
 				"production.assignedToId": assignedToId,
 				"production.status": "due today",
 				"sales.priority": query.priority || query["sales.priority"],
+				productionSort: query.productionSort,
 				size: 99,
 			}),
 		);
@@ -45,6 +57,7 @@ export async function getSalesProductions(
 				"production.assignedToId": assignedToId,
 				"production.status": "past due",
 				"sales.priority": query.priority || query["sales.priority"],
+				productionSort: query.productionSort,
 				size: 99,
 			}),
 		);
@@ -55,6 +68,7 @@ export async function getSalesProductions(
 				"production.assignedToId": assignedToId,
 				"production.status": "due tomorrow",
 				"sales.priority": query.priority || query["sales.priority"],
+				productionSort: query.productionSort,
 				size: 99,
 			}),
 		);
@@ -80,7 +94,7 @@ export async function getSalesProductions(
 
 export async function getSalesProductionDashboard(
 	db: Db,
-	query: SalesProductionQueryParams,
+	query: SalesProductionListQuery,
 ) {
 	const assignedToId = query.workerId || query.assignedToId;
 	const baseQuery: SalesProductionQueryParams = {
@@ -158,7 +172,10 @@ export async function getSalesProductionDashboard(
 
 async function getProductionListAction(
 	db: Db,
-	query: SalesQueryParamsSchema & { workerId?: number | null },
+	query: SalesQueryParamsSchema & {
+		workerId?: number | null;
+		productionSort?: ProductionListSort | null;
+	},
 ) {
 	const where = whereSales(query);
 
@@ -178,8 +195,13 @@ async function getProductionListAction(
 		db.salesOrders,
 	);
 	const requestedTake = Number(query.size || 20);
+	const start = Number(query.cursor || 0);
+	const shouldSortBeforePagination = !!query.productionSort;
+	const listQueryProps = shouldSortBeforePagination
+		? { ...queryProps, skip: undefined, take: undefined }
+		: queryProps;
 	const data = await db.salesOrders.findMany({
-		...queryProps,
+		...listQueryProps,
 		select: select(whereAssignments),
 	});
 	const sorted = sortProductionListByPriority(
@@ -189,34 +211,115 @@ async function getProductionListAction(
 					!!query.workerId || !!query["production.status"],
 			}),
 		),
+		query.productionSort,
 	);
 
-	return response(sorted.slice(0, requestedTake));
+	return response(
+		sorted.slice(
+			shouldSortBeforePagination ? start : 0,
+			(shouldSortBeforePagination ? start : 0) + requestedTake,
+		),
+	);
 }
 
 export function sortProductionListByPriority<
-	T extends { priority?: string | null; dueDate?: string | Date | null },
->(items: T[]) {
+	T extends {
+		id?: number | null;
+		priority?: string | null;
+		dueDate?: string | Date | null;
+		createdAt?: string | Date | null;
+	},
+>(items: T[], sort: ProductionListSort | null = "priority") {
+	const sortMode = sort || "priority";
 	return [...items].sort((a, b) => {
+		if (sortMode === "dueDateAsc") return compareDueDate(a, b);
+		if (sortMode === "dueDateDesc") return compareDueDateDesc(a, b);
+		if (sortMode === "newest") return compareCreatedAtDesc(a, b);
+		if (sortMode === "oldest") return compareCreatedAt(a, b);
+
 		const priorityRank =
 			getSalesPriorityRank(a.priority) - getSalesPriorityRank(b.priority);
 		if (priorityRank !== 0) return priorityRank;
 
-		const aDue = a.dueDate
-			? new Date(a.dueDate).getTime()
-			: Number.MAX_SAFE_INTEGER;
-		const bDue = b.dueDate
-			? new Date(b.dueDate).getTime()
-			: Number.MAX_SAFE_INTEGER;
-		return aDue - bDue;
+		return compareDueDate(a, b);
 	});
 }
+
+function compareDueDate<
+	T extends {
+		id?: number | null;
+		priority?: string | null;
+		dueDate?: string | Date | null;
+		createdAt?: string | Date | null;
+	},
+>(a: T, b: T) {
+	const dueDateRank = dateRank(a.dueDate) - dateRank(b.dueDate);
+	if (dueDateRank !== 0) return dueDateRank;
+
+	const priorityRank =
+		getSalesPriorityRank(a.priority) - getSalesPriorityRank(b.priority);
+	if (priorityRank !== 0) return priorityRank;
+
+	return compareCreatedAt(a, b);
+}
+
+function compareDueDateDesc<
+	T extends {
+		id?: number | null;
+		priority?: string | null;
+		dueDate?: string | Date | null;
+		createdAt?: string | Date | null;
+	},
+>(a: T, b: T) {
+	const dueDateRank = compareDateDesc(a.dueDate, b.dueDate);
+	if (dueDateRank !== 0) return dueDateRank;
+
+	const priorityRank =
+		getSalesPriorityRank(a.priority) - getSalesPriorityRank(b.priority);
+	if (priorityRank !== 0) return priorityRank;
+
+	return compareCreatedAt(a, b);
+}
+
+function compareCreatedAt<
+	T extends { id?: number | null; createdAt?: string | Date | null },
+>(a: T, b: T) {
+	const createdAtRank = dateRank(a.createdAt) - dateRank(b.createdAt);
+	if (createdAtRank !== 0) return createdAtRank;
+
+	return Number(a.id || 0) - Number(b.id || 0);
+}
+
+function compareCreatedAtDesc<
+	T extends { id?: number | null; createdAt?: string | Date | null },
+>(a: T, b: T) {
+	const createdAtRank = compareDateDesc(a.createdAt, b.createdAt);
+	if (createdAtRank !== 0) return createdAtRank;
+
+	return Number(b.id || 0) - Number(a.id || 0);
+}
+
+function dateRank(date?: string | Date | null) {
+	return date ? new Date(date).getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function compareDateDesc(
+	left?: string | Date | null,
+	right?: string | Date | null,
+) {
+	if (!left && !right) return 0;
+	if (!left) return 1;
+	if (!right) return -1;
+	return new Date(right).getTime() - new Date(left).getTime();
+}
+
 const select = (whereAssignments?) =>
 	({
 		customer: true,
 		billingAddress: true,
 		id: true,
 		orderId: true,
+		createdAt: true,
 		priority: true,
 		salesRep: {
 			select: { name: true },
@@ -333,6 +436,7 @@ function transformProductionList(
 			.join(" & "),
 		uuid: item.orderId,
 		id: item.id,
+		createdAt: item.createdAt,
 		stats,
 		status: overallStatus(item.stat),
 	};

@@ -651,6 +651,7 @@ model SalesOrders {
     commisions        SalesCommision[]
     customer          Customers?                       @relation(fields: [customerId], references: [id])
     dealerAuth        DealerAuth?                      @relation(fields: [dealerAuthId], references: [id])
+    dealerSale        DealerSales?
     deliveries        OrderDelivery[]
     doors             DykeSalesDoors[]
     formSteps         DykeStepForm[]
@@ -675,7 +676,6 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
     productionGate    OrderProductionGate?
-    dealerSale        DealerSales?
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -4813,3 +4813,4 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
+

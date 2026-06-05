@@ -14,6 +14,7 @@ export async function getProductionListV2(
 		...filters,
 		workerId: resolvedWorkerId,
 		production: filters.production || "pending",
+		productionSort: filters.productionSort || "priority",
 		size: filters.size || 50,
 	});
 }

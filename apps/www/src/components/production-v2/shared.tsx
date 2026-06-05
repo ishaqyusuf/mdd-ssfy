@@ -61,6 +61,7 @@ import {
     SALES_PRIORITY_VALUES,
     type SalesPriorityValue,
 } from "@sales/priority";
+import type { ProductionV2Sort } from "@sales/production-v2";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
@@ -122,6 +123,14 @@ type CalendarItem = {
 type ActivityCountNode = {
     children?: ActivityCountNode[];
 };
+
+const PRODUCTION_V2_SORT_VALUES = [
+    "priority",
+    "dueDateAsc",
+    "dueDateDesc",
+    "newest",
+    "oldest",
+] as const satisfies readonly ProductionV2Sort[];
 
 type ProductionDetail = {
     orderId: string;
@@ -201,6 +210,7 @@ const productionV2FilterParams = {
     date: parseAsString,
     order: parseAsString,
     priority: parseAsStringLiteral(SALES_PRIORITY_VALUES),
+    productionSort: parseAsStringLiteral(PRODUCTION_V2_SORT_VALUES),
 };
 
 export function ProductionWorkerDashboardV2() {
@@ -241,6 +251,7 @@ function ProductionV2Board({
     const activeLabel = filters.label ?? "pending";
     const selectedDate = filters.date ?? null;
     const priority = filters.priority ?? null;
+    const productionSort = filters.productionSort ?? "priority";
     const expandedOrderId = filters.order ?? null;
     const deferredSearch = useDeferredValue(search);
     const { ref: loadMoreRef, inView } = useInView({
@@ -283,6 +294,7 @@ function ProductionV2Board({
                         : null,
                 productionDueDate: selectedDate,
                 priority,
+                productionSort,
                 q: deferredSearch || null,
                 size: 20,
             },
@@ -531,6 +543,38 @@ function ProductionV2Board({
                                 <SelectItem value="HIGH">High</SelectItem>
                                 <SelectItem value="NORMAL">Normal</SelectItem>
                                 <SelectItem value="LOW">Low</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select
+                            value={productionSort}
+                            onValueChange={(nextSort) =>
+                                void setFilters({
+                                    productionSort:
+                                        nextSort === "priority"
+                                            ? null
+                                            : (nextSort as ProductionV2Sort),
+                                })
+                            }
+                        >
+                            <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
+                                <SelectValue placeholder="Sort by" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="priority">
+                                    Priority
+                                </SelectItem>
+                                <SelectItem value="dueDateAsc">
+                                    Due date soonest
+                                </SelectItem>
+                                <SelectItem value="dueDateDesc">
+                                    Due date latest
+                                </SelectItem>
+                                <SelectItem value="newest">
+                                    Newest order
+                                </SelectItem>
+                                <SelectItem value="oldest">
+                                    Oldest order
+                                </SelectItem>
                             </SelectContent>
                         </Select>
                     </div>

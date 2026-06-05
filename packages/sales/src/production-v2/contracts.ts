@@ -3,10 +3,19 @@ import { z } from "zod";
 import { salesProductionQueryParamsSchema } from "../schema";
 
 export const productionV2ScopeSchema = z.enum(["worker", "admin"]);
+export const productionV2SortSchema = z.enum([
+	"priority",
+	"dueDateAsc",
+	"dueDateDesc",
+	"newest",
+	"oldest",
+]);
+export type ProductionV2Sort = z.infer<typeof productionV2SortSchema>;
 
 export const productionV2ListQuerySchema =
 	salesProductionQueryParamsSchema.extend({
 		scope: productionV2ScopeSchema,
+		productionSort: productionV2SortSchema.optional().nullable(),
 	});
 export type ProductionV2ListQuery = z.infer<typeof productionV2ListQuerySchema>;
 
