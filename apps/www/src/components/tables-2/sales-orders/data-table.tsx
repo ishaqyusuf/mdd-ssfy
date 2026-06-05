@@ -42,6 +42,9 @@ export function DataTable({ initialSettings }: Props) {
     const overviewQuery = useSalesOverviewQuery();
     const parentRef = useRef<HTMLDivElement>(null);
     const { rowSelection, setRowSelection, setColumns } = useSalesOrdersStore();
+    const setIsTableScrolled = useSalesOrdersStore(
+        (state) => state.setIsTableScrolled,
+    );
 
     useScrollHeader(parentRef, {
         extraOffset: SUMMARY_GRID_HEIGHTS["sales-orders"],
@@ -129,6 +132,42 @@ export function DataTable({ initialSettings }: Props) {
     useEffect(() => {
         bindShowColumnDividers(showColumnDividers, setShowColumnDividers);
     }, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
+
+    useEffect(() => {
+        const scrollElement = parentRef.current;
+        if (!scrollElement) return;
+
+        let raf: number | null = null;
+        const updateScrollState = () => {
+            if (raf !== null) {
+                cancelAnimationFrame(raf);
+            }
+
+            raf = requestAnimationFrame(() => {
+                setIsTableScrolled(scrollElement.scrollTop > 0);
+                raf = null;
+            });
+        };
+
+        updateScrollState();
+        scrollElement.addEventListener("scroll", updateScrollState, {
+            passive: true,
+        });
+
+        return () => {
+            scrollElement.removeEventListener("scroll", updateScrollState);
+            if (raf !== null) {
+                cancelAnimationFrame(raf);
+            }
+            setIsTableScrolled(false);
+        };
+    }, [setIsTableScrolled]);
+
+    useEffect(() => {
+        if (tableData.length === 0) {
+            setIsTableScrolled(false);
+        }
+    }, [setIsTableScrolled, tableData.length]);
 
     useInfiniteScroll<HTMLDivElement>({
         scrollRef: parentRef,

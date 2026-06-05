@@ -7,6 +7,8 @@ interface SalesOrdersState {
     setColumns: (columns: Column<unknown, unknown>[]) => void;
     setRowSelection: (updater: Updater<RowSelectionState>) => void;
     rowSelection: Record<string, boolean>;
+    isTableScrolled: boolean;
+    setIsTableScrolled: (isTableScrolled: boolean) => void;
     showColumnDividers: boolean;
     setShowColumnDividers: (updater: SetStateAction<boolean>) => void;
     bindShowColumnDividers: (
@@ -20,8 +22,10 @@ interface SalesOrdersState {
 export const useSalesOrdersStore = create<SalesOrdersState>((set) => ({
     columns: [],
     rowSelection: {},
+    isTableScrolled: false,
     showColumnDividers: false,
     setColumns: (columns) => set({ columns }),
+    setIsTableScrolled: (isTableScrolled) => set({ isTableScrolled }),
     setRowSelection: (updater: Updater<RowSelectionState>) =>
         set((state) => {
             return {

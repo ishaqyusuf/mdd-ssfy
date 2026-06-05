@@ -2,7 +2,9 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
+import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
+import { cn } from "@gnd/ui/cn";
 import { HeaderTab } from "@gnd/ui/header-tab";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import { usePathname, useRouter } from "next/navigation";
@@ -44,7 +46,19 @@ const salesTabs: {
     },
 ];
 
-export function SalesTabs() {
+type SalesTabsProps = {
+    portal?: boolean;
+    compact?: boolean;
+    className?: string;
+    hideWhenOrdersV2Scrolled?: boolean;
+};
+
+export function SalesTabs({
+    portal = true,
+    compact = false,
+    className,
+    hideWhenOrdersV2Scrolled = false,
+}: SalesTabsProps) {
     const auth = useAuth();
     const pathname = usePathname();
     const router = useRouter();
@@ -58,7 +72,12 @@ export function SalesTabs() {
             : validateRules(tab.rules, auth.can, auth.id, auth.role),
     );
     const visibleTabHrefs = visibleTabs.map((tab) => tab.href).join("|");
-    const hideSalesTabs = pathname.startsWith("/sales-book/orders/v2");
+    const isOrdersV2 = pathname.startsWith("/sales-book/orders/v2");
+    const isOrdersV2TableScrolled = useSalesOrdersStore(
+        (state) => state.isTableScrolled,
+    );
+    const hideSalesTabs =
+        hideWhenOrdersV2Scrolled && isOrdersV2 && isOrdersV2TableScrolled;
 
     useEffect(() => {
         if (hideSalesTabs) return;
@@ -102,14 +121,23 @@ export function SalesTabs() {
         visibleTabHrefs,
     ]);
 
-    if (hideSalesTabs) return null;
-
     if (!auth.enabled || auth.isPending) return null;
 
     if (!visibleTabs.length) return null;
 
     return (
-        <HeaderTab aria-label="Sales sections">
+        <HeaderTab
+            aria-label="Sales sections"
+            portal={portal}
+            className={cn(
+                "transition-[height,min-height,opacity,border-color,padding] duration-200 ease-out",
+                compact &&
+                    "h-9 min-h-9 rounded-md border bg-muted/35 px-1 py-1 shadow-none sm:px-1 [&_a]:h-7 [&_a]:gap-1.5 [&_a]:px-2 [&_a]:text-xs [&_a_span:first-child]:size-5 [&_svg]:size-3",
+                hideSalesTabs &&
+                    "pointer-events-none h-0 min-h-0 overflow-hidden border-transparent py-0 opacity-0",
+                className,
+            )}
+        >
             {visibleTabs.map((tab) => (
                 <HeaderTab.Tab
                     key={tab.href}

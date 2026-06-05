@@ -56,6 +56,8 @@ interface Props {
     SearchTips?: ReactNode;
     searchKey?: string;
     debounceMs?: number;
+    afterSearch?: ReactNode;
+    pageTabs?: ReactNode;
 }
 
 function CalendarSkeleton() {
@@ -81,6 +83,8 @@ export function SearchFilterTRPC({
     SearchTips,
     searchKey: searchKeyProp,
     debounceMs = 400,
+    afterSearch,
+    pageTabs,
 }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
     const {
@@ -237,6 +241,7 @@ export function SearchFilterTRPC({
                         </Button>
                     </DropdownMenuTrigger>
                 </form>
+                {afterSearch}
                 <FilterList
                     loading={loading}
                     onRemove={(obj) => {
@@ -262,7 +267,7 @@ export function SearchFilterTRPC({
                     optionLookup={optionLookup}
                 />
             </div>
-            <PageTabs portal />
+            {pageTabs === undefined ? <PageTabs portal /> : pageTabs}
             <DropdownMenuContent
                 className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
                 sideOffset={4}

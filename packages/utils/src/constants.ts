@@ -156,6 +156,7 @@ export const PERMISSIONS = [
 	"viewSalesResolution",
 	"editSalesResolution",
 	"generateSalesPaymentReport",
+	"generateSalesStatementReport",
 ] as const;
 export const PERMISSION_NAMES_PASCAL = [
 	"Project",
@@ -244,6 +245,7 @@ type Action = "edit" | "view";
 export const EXTRA_PERMISSION_SCOPES = [
 	"submitCustomJob",
 	"generateSalesPaymentReport",
+	"generateSalesStatementReport",
 ] as const;
 export type ExtraPermissionScope = (typeof EXTRA_PERMISSION_SCOPES)[number];
 export type PermissionScope = `${Action}${PascalResource}` | ExtraPermissionScope;
@@ -276,6 +278,9 @@ function normalizePermissionName(permission: string) {
 	}
 	if (normalized === "generateSalesPaymentReport") {
 		return ["generateSalesPaymentReport"];
+	}
+	if (normalized === "generateSalesStatementReport") {
+		return ["generateSalesStatementReport"];
 	}
 	return [normalized];
 }

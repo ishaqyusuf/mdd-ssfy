@@ -84,8 +84,11 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 	const allowedReportMenuItems = reportMenuItems.filter(
 		(item) => auth.can?.[item.permission],
 	);
-	const canViewReports = allowedReportMenuItems.length > 0;
-	const customerStatementsOpen = reportParams.report === "customer-statements";
+	const canViewCustomerStatements = !!auth.can?.generateSalesStatementReport;
+	const canViewReports =
+		allowedReportMenuItems.length > 0 || canViewCustomerStatements;
+	const customerStatementsOpen =
+		canViewCustomerStatements && reportParams.report === "customer-statements";
 
 	const setCustomerStatementsReportOpen = (open: boolean) => {
 		if (open) {
@@ -143,14 +146,16 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 							</Link>
 						</DropdownMenuItem>
 					))}
-					<DropdownMenuItem
-						className="gap-2"
-						onSelect={() => setCustomerStatementsReportOpen(true)}
-					>
-						<Icons.FileText className="size-4 shrink-0" />
-						<span className="flex-1">Customer Statements</span>
-						<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-					</DropdownMenuItem>
+					{canViewCustomerStatements ? (
+						<DropdownMenuItem
+							className="gap-2"
+							onSelect={() => setCustomerStatementsReportOpen(true)}
+						>
+							<Icons.FileText className="size-4 shrink-0" />
+							<span className="flex-1">Customer Statements</span>
+							<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+						</DropdownMenuItem>
+					) : null}
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<CustomerStatementsReportDialog

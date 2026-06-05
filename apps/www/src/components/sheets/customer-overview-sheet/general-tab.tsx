@@ -5,6 +5,7 @@ import { Icons } from "@gnd/ui/icons";
 import Link from "@/components/link";
 import { Avatar } from "@/components/avatar";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
+import { useAuth } from "@/hooks/use-auth";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -48,6 +49,7 @@ type StatementLine = {
 };
 
 export function GeneralTab({ setCustomerName }: Props) {
+	const auth = useAuth();
 	const query = useCustomerOverviewQuery();
 	const trpc = useTRPC();
 	const overviewOpen = useSalesOverviewOpen();
@@ -74,7 +76,10 @@ export function GeneralTab({ setCustomerName }: Props) {
 		(total, line) => total + line.pending,
 		0,
 	);
-	const canGenerateStatement = !overviewQuery.isPending && statementTotal > 0;
+	const canGenerateStatement =
+		!!auth.can?.generateSalesStatementReport &&
+		!overviewQuery.isPending &&
+		statementTotal > 0;
 
 	const openStatementReport = () => {
 		if (!data?.customer.id) return;

@@ -6,6 +6,8 @@ import {
 	SearchFilterProvider,
 	useSearchFilterContext,
 } from "@/hooks/use-search-filter";
+import { cn } from "@/lib/utils";
+import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -13,6 +15,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import Link from "next/link";
 import { CreateSalesBtn } from "./create-sales-btn";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
+import { SalesTabs } from "./sales-tabs";
 import { SalesOrdersV2ColumnVisibility } from "./sales-orders-v2-column-visibility";
 
 export function SalesOrdersV2Header() {
@@ -47,6 +50,9 @@ function SalesOrdersV2SearchFilterContent() {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
+	const isTableScrolled = useSalesOrdersStore(
+		(state) => state.isTableScrolled,
+	);
 	const { data: trpcFilterData } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.salesOrdersV2.queryOptions({
@@ -58,6 +64,24 @@ function SalesOrdersV2SearchFilterContent() {
 		<SearchFilterTRPC
 			placeholder="Search order number, customer, phone, address, or P.O..."
 			filterList={trpcFilterData}
+			afterSearch={<SalesOrdersV2InlineTabs visible={isTableScrolled} />}
+			pageTabs={null}
 		/>
+	);
+}
+
+function SalesOrdersV2InlineTabs({ visible }: { visible: boolean }) {
+	return (
+		<div
+			aria-hidden={!visible}
+			className={cn(
+				"min-w-0 flex-1 overflow-hidden transition-[max-width,opacity,transform] duration-200 ease-out lg:flex-none",
+				visible
+					? "max-w-full translate-y-0 opacity-100 lg:max-w-[520px]"
+					: "pointer-events-none max-w-0 -translate-y-1 opacity-0",
+			)}
+		>
+			<SalesTabs portal={false} compact />
+		</div>
 	);
 }

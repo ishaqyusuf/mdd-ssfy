@@ -10,6 +10,34 @@ import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { notFound } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 
+function resolvePdfBaseUrl(requestUrl: URL) {
+	const configuredBaseUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+	if (!configuredBaseUrl) return requestUrl.origin;
+
+	try {
+		const configuredUrl = new URL(configuredBaseUrl);
+		const configuredIsLocalhost = ["localhost", "127.0.0.1"].includes(
+			configuredUrl.hostname,
+		);
+		const requestIsLocalhost = ["localhost", "127.0.0.1"].includes(
+			requestUrl.hostname,
+		);
+
+		if (
+			configuredIsLocalhost &&
+			requestIsLocalhost &&
+			!configuredUrl.port &&
+			requestUrl.port
+		) {
+			return requestUrl.origin;
+		}
+
+		return configuredUrl.origin;
+	} catch {
+		return requestUrl.origin;
+	}
+}
+
 function sanitizeFilename(value: string) {
 	return value
 		.replace(/[^\w\-]+/g, "_")
@@ -46,6 +74,7 @@ export async function GET(req: NextRequest) {
 	const token = requestUrl.searchParams.get("token");
 	const preview = requestUrl.searchParams.get("preview") === "true";
 	const templateId = requestUrl.searchParams.get("templateId") || "template-1";
+	const pdfBaseUrl = resolvePdfBaseUrl(requestUrl);
 	const salesTemplateId =
 		requestUrl.searchParams.get("salesTemplateId") ||
 		DEFAULT_SALES_PRINT_TEMPLATE_ID;
@@ -81,7 +110,7 @@ export async function GET(req: NextRequest) {
 		buffer = await renderCustomerStatementWithSalesInvoicesPdfBuffer({
 			data: statementData,
 			templateId: resolvedTemplateId,
-			baseUrl: requestUrl.origin,
+			baseUrl: pdfBaseUrl,
 			logoUrl: statementData.logoUrl,
 			watermarkText: "Customer Statement",
 			title,
@@ -94,7 +123,7 @@ export async function GET(req: NextRequest) {
 		buffer = await renderCustomerStatementPdfBuffer({
 			data: statementData,
 			templateId: resolvedTemplateId,
-			baseUrl: requestUrl.origin,
+			baseUrl: pdfBaseUrl,
 			logoUrl: statementData.logoUrl,
 			watermarkText: "Customer Statement",
 			title,

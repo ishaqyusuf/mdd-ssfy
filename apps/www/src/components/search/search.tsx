@@ -119,7 +119,7 @@ const QUICK_LINKS: {
 		subtitle: "Review customers with outstanding statement balances",
 		href: "/sales-book/customers?report=customer-statements",
 		icon: "FileText",
-		rules: [_perm.is("generateSalesPaymentReport")],
+		rules: [_perm.is("generateSalesStatementReport")],
 	},
 ];
 

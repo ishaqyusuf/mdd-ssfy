@@ -28,6 +28,18 @@ import { TRPCError } from "@trpc/server";
 import { serializeTagValue } from "@notifications/tag-values";
 import { addDays, format } from "date-fns";
 import { z } from "zod";
+import { auth } from "./user";
+
+async function assertCanGenerateSalesStatementReport(ctx: TRPCContext) {
+	const session = await auth(ctx);
+
+	if (!session.can?.generateSalesStatementReport) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have permission to access customer statements.",
+		});
+	}
+}
 
 function buildCustomerLookupWhere(
 	accountNo: string,
@@ -713,6 +725,8 @@ export async function getCustomerStatementReport(
 	ctx: TRPCContext,
 	_query: GetCustomerStatementReportSchema,
 ) {
+	await assertCanGenerateSalesStatementReport(ctx);
+
 	const rows = await ctx.db.salesOrders.findMany({
 		where: {
 			deletedAt: null,
@@ -889,6 +903,8 @@ export async function getCustomerStatementDetail(
 	ctx: TRPCContext,
 	query: GetCustomerStatementDetailSchema,
 ) {
+	await assertCanGenerateSalesStatementReport(ctx);
+
 	const customer = await ctx.db.customers.findUnique({
 		where: {
 			id: query.customerId,

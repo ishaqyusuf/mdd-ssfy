@@ -6,7 +6,7 @@ export default async function Layout({ children }) {
         <>
             {children}
             <SalesNav />
-            <SalesTabs />
+            <SalesTabs hideWhenOrdersV2Scrolled />
         </>
     );
 }

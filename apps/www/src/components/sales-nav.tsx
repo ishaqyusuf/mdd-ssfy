@@ -55,7 +55,15 @@ export function SalesNav() {
 	}
 
 	return (
-		<AuthGuard rules={[_perm.in("editOrders", "generateSalesPaymentReport")]}>
+		<AuthGuard
+			rules={[
+				_perm.in(
+					"editOrders",
+					"generateSalesPaymentReport",
+					"generateSalesStatementReport",
+				),
+			]}
+		>
 			<Portal nodeId={"navRightSlot"}>
 				<NavigationMenu>
 					<NavigationMenu.List className="gap-1.5">
