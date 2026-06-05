@@ -20,7 +20,14 @@ export function StatementTableBlock({
 	data: CustomerStatementPdfData;
 }) {
 	return (
-		<View style={{ borderWidth: 1, borderColor: BORDER, borderRadius: 5 }}>
+		<View
+			style={{
+				borderWidth: 1,
+				borderColor: BORDER,
+				borderRadius: 5,
+				marginBottom: 8,
+			}}
+		>
 			<View
 				style={{
 					flexDirection: "row",

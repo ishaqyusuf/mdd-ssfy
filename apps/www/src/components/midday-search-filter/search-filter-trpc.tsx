@@ -52,6 +52,7 @@ interface Props {
     defaultSearch?: Record<string, unknown>;
     placeholder?: string;
     filterList?: Array<PageFilterData | FilterDefinition>;
+    loading?: boolean;
     SearchTips?: ReactNode;
     searchKey?: string;
     debounceMs?: number;
@@ -76,6 +77,7 @@ function CalendarSkeleton() {
 export function SearchFilterTRPC({
     placeholder,
     filterList,
+    loading,
     SearchTips,
     searchKey: searchKeyProp,
     debounceMs = 400,
@@ -236,6 +238,7 @@ export function SearchFilterTRPC({
                     </DropdownMenuTrigger>
                 </form>
                 <FilterList
+                    loading={loading}
                     onRemove={(obj) => {
                         setFilters(obj);
 
@@ -267,104 +270,128 @@ export function SearchFilterTRPC({
                 side="bottom"
                 align="end"
             >
-                {nonSearchDefinitions.map((definition) => (
-                    <DropdownMenuGroup key={definition.key}>
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                                <Icon
-                                    name={
-                                        (definition.icon ||
-                                            searchIcons[definition.key] ||
-                                            "Search") as never
-                                    }
-                                    className="mr-2 size-4"
-                                />
-                                <span className="capitalize">
-                                    {definition.label}
-                                </span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuPortal>
-                                <DropdownMenuSubContent
-                                    sideOffset={14}
-                                    alignOffset={-4}
-                                    className="p-0"
-                                >
-                                    {definition.renderControl ? (
-                                        <definition.renderControl
-                                            definition={definition}
-                                            value={filters?.[definition.key]}
-                                            filters={filters}
-                                            setFilter={setFilters}
-                                            toggleOption={optionSelected}
-                                        />
-                                    ) : definition.type === "date-range" ||
-                                      definition.type === "date" ? (
-                                        <CalendarFilter filter={definition} />
-                                    ) : (definition.options?.length ?? 0) >
-                                      20 ? (
-                                        <SelectTag
-                                            headless
-                                            data={definition.options?.map(
-                                                (option) => ({
-                                                    ...option,
-                                                    id: option.value,
-                                                }),
-                                            )}
-                                            renderListItem={({ item }) => (
-                                                <div className="flex items-center gap-2">
-                                                    <FilterOptionColor
-                                                        color={
-                                                            (item as any).color
-                                                        }
-                                                    />
-                                                    <span className="line-clamp-1">
-                                                        {item.label}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            onChange={(selected) => {
-                                                optionSelected(definition.key, {
-                                                    label: selected.label,
-                                                    value: selected.id,
-                                                    color: (selected as any)
-                                                        .color,
-                                                });
-                                            }}
-                                        />
-                                    ) : (
-                                        definition.options?.map((option) => (
-                                            <DropdownMenuCheckboxItem
-                                                checked={isOptionSelected(
-                                                    definition.key,
-                                                    option.value,
+                {loading ? (
+                    <FilterMenuSkeleton />
+                ) : (
+                    nonSearchDefinitions.map((definition) => (
+                        <DropdownMenuGroup key={definition.key}>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                    <Icon
+                                        name={
+                                            (definition.icon ||
+                                                searchIcons[definition.key] ||
+                                                "Search") as never
+                                        }
+                                        className="mr-2 size-4"
+                                    />
+                                    <span className="capitalize">
+                                        {definition.label}
+                                    </span>
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuPortal>
+                                    <DropdownMenuSubContent
+                                        sideOffset={14}
+                                        alignOffset={-4}
+                                        className="p-0"
+                                    >
+                                        {definition.renderControl ? (
+                                            <definition.renderControl
+                                                definition={definition}
+                                                value={filters?.[definition.key]}
+                                                filters={filters}
+                                                setFilter={setFilters}
+                                                toggleOption={optionSelected}
+                                            />
+                                        ) : definition.type === "date-range" ||
+                                          definition.type === "date" ? (
+                                            <CalendarFilter filter={definition} />
+                                        ) : (definition.options?.length ?? 0) >
+                                          20 ? (
+                                            <SelectTag
+                                                headless
+                                                data={definition.options?.map(
+                                                    (option) => ({
+                                                        ...option,
+                                                        id: option.value,
+                                                    }),
                                                 )}
-                                                onSelect={(event) =>
-                                                    event.preventDefault()
-                                                }
-                                                onCheckedChange={() => {
+                                                renderListItem={({ item }) => (
+                                                    <div className="flex items-center gap-2">
+                                                        <FilterOptionColor
+                                                            color={
+                                                                (item as any)
+                                                                    .color
+                                                            }
+                                                        />
+                                                        <span className="line-clamp-1">
+                                                            {item.label}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                onChange={(selected) => {
                                                     optionSelected(
                                                         definition.key,
-                                                        option,
+                                                        {
+                                                            label: selected.label,
+                                                            value: selected.id,
+                                                            color: (selected as any)
+                                                                .color,
+                                                        },
                                                     );
                                                 }}
-                                                key={option.value}
-                                            >
-                                                <span className="flex items-center gap-2">
-                                                    <FilterOptionColor
-                                                        color={option.color}
-                                                    />
-                                                    <span>{option.label}</span>
-                                                </span>
-                                            </DropdownMenuCheckboxItem>
-                                        ))
-                                    )}
-                                </DropdownMenuSubContent>
-                            </DropdownMenuPortal>
-                        </DropdownMenuSub>
-                    </DropdownMenuGroup>
-                ))}
+                                            />
+                                        ) : (
+                                            definition.options?.map((option) => (
+                                                <DropdownMenuCheckboxItem
+                                                    checked={isOptionSelected(
+                                                        definition.key,
+                                                        option.value,
+                                                    )}
+                                                    onSelect={(event) =>
+                                                        event.preventDefault()
+                                                    }
+                                                    onCheckedChange={() => {
+                                                        optionSelected(
+                                                            definition.key,
+                                                            option,
+                                                        );
+                                                    }}
+                                                    key={option.value}
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <FilterOptionColor
+                                                            color={option.color}
+                                                        />
+                                                        <span>{option.label}</span>
+                                                    </span>
+                                                </DropdownMenuCheckboxItem>
+                                            ))
+                                        )}
+                                    </DropdownMenuSubContent>
+                                </DropdownMenuPortal>
+                            </DropdownMenuSub>
+                        </DropdownMenuGroup>
+                    ))
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
+    );
+}
+
+function FilterMenuSkeleton() {
+    return (
+        <div className="grid gap-1 p-1.5" aria-label="Loading filters">
+            {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                    key={index}
+                    className="flex h-8 items-center gap-2 rounded-sm px-2"
+                >
+                    <div className="size-4 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+                </div>
+            ))}
+        </div>
     );
 }
 

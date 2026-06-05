@@ -93,14 +93,14 @@ export function FilterList({
 		<div className="w-full min-w-0 overflow-x-auto pb-1">
 			<ul className="flex w-max min-w-full gap-2 lg:min-w-0 lg:flex-wrap">
 				{loading && (
-					<div className="flex gap-2">
-						<li key="1">
+					<>
+						<li>
 							<Skeleton className="h-8 w-[100px] rounded-full" />
 						</li>
-						<li key="2">
+						<li>
 							<Skeleton className="h-8 w-[100px] rounded-full" />
 						</li>
-					</div>
+					</>
 				)}
 
 				{!loading &&

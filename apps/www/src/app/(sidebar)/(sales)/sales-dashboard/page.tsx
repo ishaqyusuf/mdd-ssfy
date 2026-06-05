@@ -1,5 +1,6 @@
 import { ChartSelectors } from "@/components/charts/chart-selectors";
 import PageShell from "@/components/page-shell";
+import { SalesNav } from "@/components/sales-nav";
 import { SalesKpiWidgets } from "@/components/widgets/sales-kpi-widget";
 import { resolveSalesDashboardParams } from "@/hooks/use-sales-dashboard-params";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
@@ -36,6 +37,7 @@ export default async function SalesDashboardPage(props) {
                     </div>
 
                     <DashboardDeferredSections />
+                    <SalesNav />
                 </div>
             </HydrateClient>
         </PageShell>

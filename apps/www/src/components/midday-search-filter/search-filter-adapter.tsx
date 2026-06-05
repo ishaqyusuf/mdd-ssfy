@@ -50,7 +50,7 @@ function SearchFilterAdapterContent({
 }: Omit<SearchFilterAdapterProps, "filterSchema">) {
 	const { shouldFetch } = useSearchFilterContext();
 	const queryOptions = trpcRoute.queryOptions(trpQueryOptions);
-	const { data: trpcFilterData } = useQuery({
+	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...queryOptions,
 		initialData: initialFilterList,
@@ -59,6 +59,7 @@ function SearchFilterAdapterContent({
 	return (
 		<SearchFilterTRPC
 			debounceMs={debounceMs}
+			loading={shouldFetch && isFetching}
 			placeholder={placeholder}
 			filterList={
 				(trpcFilterData ?? initialFilterList) as Array<

@@ -32,6 +32,10 @@ interface TableSkeletonProps<TData> {
     className?: string;
 }
 
+const HEADER_BACKGROUND_CLASS = "bg-slate-100/90 dark:bg-slate-900/70";
+const HEADER_TEXT_CLASS =
+    "text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-300";
+
 export function TableSkeleton<TData>({
     columns,
     rowCount = 40,
@@ -115,7 +119,12 @@ export function TableSkeleton<TData>({
                         isEmpty && "pointer-events-none opacity-20 blur-[7px]",
                     )}
                 >
-                    <TableHeader className="sticky top-0 z-20 block border-0 bg-background">
+                    <TableHeader
+                        className={cn(
+                            "sticky top-0 z-20 block border-0",
+                            HEADER_BACKGROUND_CLASS,
+                        )}
+                    >
                         <TableRow className="flex h-[45px] items-center !border-b-0 hover:bg-transparent">
                             {visibleColumns.map((column) => {
                                 const columnId = getColumnId(column);
@@ -141,10 +150,20 @@ export function TableSkeleton<TData>({
                                     "group/header relative h-full px-4 border-t border-border flex items-center",
                                 );
                                 const headerClassName = isActions
-                                    ? "group/header relative h-full px-4 border-t border-border flex items-center justify-center md:sticky md:right-0 bg-background z-10"
+                                    ? cn(
+                                          "group/header relative h-full px-4 border-t border-border flex items-center justify-center md:sticky md:right-0 z-10",
+                                          HEADER_BACKGROUND_CLASS,
+                                      )
                                     : sticky
-                                      ? `${stickyClass} bg-background z-10`
-                                      : stickyClass;
+                                      ? cn(
+                                            stickyClass,
+                                            HEADER_BACKGROUND_CLASS,
+                                            "z-10",
+                                        )
+                                      : cn(
+                                            stickyClass,
+                                            HEADER_BACKGROUND_CLASS,
+                                        );
 
                                 return (
                                     <TableHead
@@ -171,7 +190,9 @@ export function TableSkeleton<TData>({
                                         {columnId === "select" ? (
                                             <Skeleton className="h-4 w-4" />
                                         ) : (
-                                            <span className="text-muted-foreground">
+                                            <span
+                                                className={HEADER_TEXT_CLASS}
+                                            >
                                                 {getHeaderLabel(column)}
                                             </span>
                                         )}

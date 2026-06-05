@@ -9,6 +9,8 @@ import {
 	WatermarkPage,
 } from "./blocks";
 
+const FOOTER_RESERVED_HEIGHT = 92;
+
 export function Template1({
 	data,
 	baseUrl,
@@ -28,7 +30,7 @@ export function Template1({
 			style={{
 				paddingTop: 26,
 				paddingHorizontal: 28,
-				paddingBottom: 66,
+				paddingBottom: FOOTER_RESERVED_HEIGHT,
 				fontFamily: "Inter",
 				fontSize: 9,
 				color: "#0f172a",

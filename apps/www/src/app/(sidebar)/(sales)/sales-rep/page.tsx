@@ -10,6 +10,7 @@ import {
 import { SummaryCardSkeleton } from "@/components/summary-card";
 import { SalesRepDealerRequests } from "@/components/sales-rep-dealer-requests";
 import { SalesRepRequestCountBadge } from "@/components/sales-rep-request-badge";
+import { SalesNav } from "@/components/sales-nav";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { Badge } from "@gnd/ui/badge";
@@ -237,6 +238,7 @@ export default async function SalesRepProfile(props: {
                         </Tabs>
                     </div>
                 </div>
+                <SalesNav />
             </HydrateClient>
         </PageShell>
     );

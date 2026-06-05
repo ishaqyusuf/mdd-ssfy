@@ -36,6 +36,10 @@ interface Props<TData> {
     showColumnDividers?: boolean;
 }
 
+const HEADER_BACKGROUND_CLASS = "bg-slate-100/90 dark:bg-slate-900/70";
+const HEADER_TEXT_CLASS =
+    "text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-300";
+
 export function DataTableHeader<TData>({
     table,
     loading,
@@ -63,7 +67,12 @@ export function DataTableHeader<TData>({
     if (!table) return null;
 
     return (
-        <TableHeader className="sticky top-0 z-20 block w-full border-0 bg-background">
+        <TableHeader
+            className={cn(
+                "sticky top-0 z-20 block w-full border-0",
+                HEADER_BACKGROUND_CLASS,
+            )}
+        >
             {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow
                     key={headerGroup.id}
@@ -152,15 +161,21 @@ export function DataTableHeader<TData>({
                                         ? actionsFullWidth
                                             ? cn(
                                                   ACTIONS_FULL_WIDTH_HEADER_CLASS,
+                                                  HEADER_BACKGROUND_CLASS,
                                                   showRightDivider &&
                                                       "border-r",
                                               )
                                             : cn(
                                                   ACTIONS_STICKY_HEADER_CLASS,
+                                                  HEADER_BACKGROUND_CLASS,
                                                   showRightDivider &&
                                                       "border-r",
                                               )
-                                        : `${stickyClass} bg-background z-10`;
+                                        : cn(
+                                              stickyClass,
+                                              HEADER_BACKGROUND_CLASS,
+                                              "z-10",
+                                          );
 
                                     return (
                                         <TableHead
@@ -188,6 +203,7 @@ export function DataTableHeader<TData>({
                                         id={columnId}
                                         style={headerStyle}
                                         className={cn(
+                                            HEADER_BACKGROUND_CLASS,
                                             showRightDivider && "border-r",
                                         )}
                                     >
@@ -247,7 +263,7 @@ function renderHeaderContent<TData>(
 
     if (columnId === "actions") {
         return (
-            <span className="w-full text-center text-muted-foreground">
+            <span className={cn("w-full text-center", HEADER_TEXT_CLASS)}>
                 Actions
             </span>
         );
@@ -304,11 +320,12 @@ function renderHeaderContent<TData>(
 
     return (
         <span
-            className={
+            className={cn(
+                HEADER_TEXT_CLASS,
                 isRightAligned
-                    ? "block w-full truncate text-right text-muted-foreground"
-                    : "truncate text-muted-foreground"
-            }
+                    ? "block w-full truncate text-right"
+                    : "truncate",
+            )}
         >
             {meta?.headerLabel ?? getHeaderLabel(header.column.columnDef)}
         </span>
@@ -330,7 +347,11 @@ function SortButton({
 }) {
     return (
         <Button
-            className="min-w-0 max-w-full gap-2 p-0 hover:bg-transparent"
+            className={cn(
+                "min-w-0 max-w-full gap-2 p-0 hover:bg-transparent",
+                HEADER_TEXT_CLASS,
+                "hover:text-slate-900 dark:hover:text-slate-100",
+            )}
             variant="ghost"
             onClick={(event) => {
                 event.stopPropagation();
