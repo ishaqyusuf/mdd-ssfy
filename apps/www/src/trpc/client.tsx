@@ -1,6 +1,5 @@
 "use client";
 
-import { getBaseUrl } from "@/lib/base-url";
 import { generateRandomString } from "@/lib/utils";
 import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 import type { QueryClient } from "@gnd/ui/tanstack";
@@ -33,6 +32,7 @@ function getQueryClient() {
 export function TRPCReactProvider(
     props: Readonly<{
         children: React.ReactNode;
+        serverTrpcUrl?: string;
     }>,
 ) {
     const queryClient = getQueryClient();
@@ -43,7 +43,7 @@ export function TRPCReactProvider(
         createTRPCClient<AppRouter>({
             links: [
                 httpBatchLink({
-                    url: `${getBaseUrl()}/api/trpc`,
+                    url: getTrpcUrl(props.serverTrpcUrl),
                     // url:
                     //     process.env.NODE_ENV === "production"
                     //         ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
@@ -76,4 +76,19 @@ export function TRPCReactProvider(
             </TRPCProvider>
         </QueryClientProvider>
     );
+}
+
+function getTrpcUrl(serverTrpcUrl?: string) {
+    if (typeof window !== "undefined") {
+        return "/api/trpc";
+    }
+
+    if (serverTrpcUrl) {
+        return serverTrpcUrl;
+    }
+
+    return `${(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
+        /\/$/,
+        "",
+    )}/api/trpc`;
 }

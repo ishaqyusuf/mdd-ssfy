@@ -9,15 +9,16 @@ import type { ReactNode } from "react";
 
 type Props = {
     children: ReactNode;
+    serverTrpcUrl: string;
 };
-export function Providers({ children }: Props) {
+export function Providers({ children, serverTrpcUrl }: Props) {
     return (
         <SessionProvider
             refetchOnWindowFocus={false}
             refetchWhenOffline={false}
         >
             <NuqsAdapter>
-                <TRPCReactProvider>
+                <TRPCReactProvider serverTrpcUrl={serverTrpcUrl}>
                     <ModalProvider>
                         <ThemeProvider attribute="class" defaultTheme="light">
                             {children}

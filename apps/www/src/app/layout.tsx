@@ -14,6 +14,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { Providers } from "./providers";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 
 export async function generateMetadata({}) {
@@ -28,6 +29,8 @@ export default async function RootLayout({
     children: React.ReactNode;
 }) {
     const prodDB = env.DATABASE_URL?.includes("pscale");
+    const serverTrpcUrl = getServerTrpcUrl(await headers());
+
     return (
         <html lang="en" suppressHydrationWarning>
             {env.NODE_ENV === "production" ? <SpeedInsights /> : null}
@@ -36,7 +39,7 @@ export default async function RootLayout({
                     <Toaster />
                     <MiddayToast />
                     <Suspense>
-                        <Providers>
+                        <Providers serverTrpcUrl={serverTrpcUrl}>
                             {children}
                             {env.NODE_ENV !== "production" ? (
                                 <div className="fixed bottom-1 left-1 z-[9999] flex items-center gap-2 print:hidden">
@@ -54,5 +57,40 @@ export default async function RootLayout({
                 </div>
             </body>
         </html>
+    );
+}
+
+function getServerTrpcUrl(headersList: { get(name: string): string | null }) {
+    const forwardedHost =
+        headersList.get("x-forwarded-host") ?? headersList.get("host");
+    const forwardedProto = headersList.get("x-forwarded-proto") ?? "http";
+
+    if (forwardedHost) {
+        const host = forwardedHost.split(",")[0]?.trim();
+        const protocol = forwardedProto.split(",")[0]?.trim() || "http";
+
+        if (host && protocol === "https" && isLocalDevHost(host)) {
+            const port =
+                process.env.PORTLESS_APP_PORT ?? process.env.PORT ?? "3000";
+            return `http://127.0.0.1:${port}/api/trpc`;
+        }
+
+        if (host) {
+            return `${protocol}://${host}/api/trpc`;
+        }
+    }
+
+    return `${env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")}/api/trpc`;
+}
+
+function isLocalDevHost(hostname: string) {
+    const host = hostname.split(":")[0];
+
+    return (
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "::1" ||
+        host.endsWith(".localhost") ||
+        host.endsWith(".test")
     );
 }
