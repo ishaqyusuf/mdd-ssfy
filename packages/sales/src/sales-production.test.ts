@@ -1,11 +1,36 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	getSalesProductions,
 	isProductionCompleted,
 	sortProductionListByPriority,
 } from "./sales-production";
 
 describe("sales production priority sorting", () => {
+	it("keeps database pagination when a production sort is requested", async () => {
+		const findManyCalls: any[] = [];
+		const db = {
+			salesOrders: {
+				count: async () => 1000,
+				findMany: async (args: any) => {
+					findManyCalls.push(args);
+					return [];
+				},
+			},
+		};
+
+		await getSalesProductions(db as any, {
+			production: "pending",
+			productionSort: "priority",
+			size: 20,
+			cursor: "40",
+		} as any);
+
+		expect(findManyCalls).toHaveLength(1);
+		expect(findManyCalls[0].take).toBe(20);
+		expect(findManyCalls[0].skip).toBe(40);
+	});
+
 	it("sorts production queue by priority before due date", () => {
 		const sorted = sortProductionListByPriority([
 			{ orderId: "NORMAL-DUE-FIRST", priority: "NORMAL", dueDate: "2026-05-14" },

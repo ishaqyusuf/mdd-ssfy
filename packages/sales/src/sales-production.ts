@@ -195,13 +195,8 @@ async function getProductionListAction(
 		db.salesOrders,
 	);
 	const requestedTake = Number(query.size || 20);
-	const start = Number(query.cursor || 0);
-	const shouldSortBeforePagination = !!query.productionSort;
-	const listQueryProps = shouldSortBeforePagination
-		? { ...queryProps, skip: undefined, take: undefined }
-		: queryProps;
 	const data = await db.salesOrders.findMany({
-		...listQueryProps,
+		...queryProps,
 		select: select(whereAssignments),
 	});
 	const sorted = sortProductionListByPriority(
@@ -214,12 +209,7 @@ async function getProductionListAction(
 		query.productionSort,
 	);
 
-	return response(
-		sorted.slice(
-			shouldSortBeforePagination ? start : 0,
-			(shouldSortBeforePagination ? start : 0) + requestedTake,
-		),
-	);
+	return response(sorted.slice(0, requestedTake));
 }
 
 export function sortProductionListByPriority<
