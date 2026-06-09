@@ -4,18 +4,18 @@ import { useQueryClient } from "@gnd/ui/tanstack";
 export function useSalesQueryClient() {
     const qc = useQueryClient();
     const trpc = useTRPC();
-    const _invalidate = (queryKey) =>
+    const _invalidate = (queryKey: readonly unknown[]) =>
         qc.invalidateQueries({
             queryKey,
         });
     const invalidate = {
         salesList: () =>
             Promise.all([
-                _invalidate(trpc.sales.getOrders.infiniteQueryKey()),
-                _invalidate(trpc.sales.getOrdersV2.infiniteQueryKey()),
-                _invalidate(trpc.sales.getOrdersV2Summary.queryKey()),
+                _invalidate(trpc.sales.getOrders.pathKey()),
+                _invalidate(trpc.sales.getOrdersV2.pathKey()),
+                _invalidate(trpc.sales.getOrdersV2Summary.pathKey()),
             ]),
-        quoteList: () => _invalidate(trpc.sales.quotes.infiniteQueryKey()),
+        quoteList: () => _invalidate(trpc.sales.quotes.pathKey()),
         productionOverview: () =>
             _invalidate(trpc.sales.productionOverview.queryKey()),
         saleOverview: () => _invalidate(trpc.sales.getSaleOverview.queryKey()),

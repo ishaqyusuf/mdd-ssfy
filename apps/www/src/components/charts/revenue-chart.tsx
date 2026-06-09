@@ -93,8 +93,7 @@ export function RevenueChart() {
 						const rawDate = payload?.payload?.rawDate || payload?.payload?.date;
 						if (!rawDate) return;
 						openLink("/sales-book/accounting", {
-							from: rawDate,
-							to: rawDate,
+							dateRange: `${rawDate},${rawDate}`,
 						});
 					}}
 				/>

@@ -67,8 +67,7 @@ export function SalesRepLeaderboardWidget() {
 								onClick={() => {
 									openLink("/sales-book/accounting", {
 										salesRepId: rep.id,
-										from: params.from,
-										to: params.to,
+										dateRange: `${params.from},${params.to}`,
 									});
 								}}
 							>

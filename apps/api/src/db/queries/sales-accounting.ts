@@ -12,6 +12,36 @@ import {
 import type { SalesPaymentMeta, SalesType } from "@sales/types";
 import { z } from "zod";
 import { padStart } from "lodash";
+import { endOfDay, format, isValid, parse, startOfDay } from "date-fns";
+
+const dateOnlyParamFormat = "yyyy-MM-dd";
+
+function parseDateOnlyParam(value?: string | null) {
+  if (!value) return null;
+
+  const parsed = parse(value, dateOnlyParamFormat, new Date());
+  return isValid(parsed) && format(parsed, dateOnlyParamFormat) === value
+    ? parsed
+    : null;
+}
+
+function transformAccountingDateFilter(
+  dateParts?: Array<string | null | undefined> | null,
+) {
+  const [fromStr, toStr] = dateParts || [];
+  const hasFrom = typeof fromStr === "string" && fromStr.trim().length > 0;
+  const query = hasFrom ? (transformFilterDateToQuery(dateParts) as any) : null;
+  const from = parseDateOnlyParam(fromStr);
+  const to = parseDateOnlyParam(toStr);
+
+  if (!from && !to) return query;
+
+  return {
+    ...(query || {}),
+    gte: from ? startOfDay(from) : query?.gte,
+    lte: to ? endOfDay(to) : query?.lte,
+  };
+}
 
 export const getSalesAccountingsSchema = z
   .object({
@@ -223,15 +253,16 @@ function whereSalesAccountings(query: GetSalesAccountingsSchema) {
     switch (k as keyof GetSalesAccountingsSchema) {
       case "dateRange":
         where.push({
-          createdAt: transformFilterDateToQuery(query.dateRange),
+          createdAt: transformAccountingDateFilter(query.dateRange),
         });
         break;
       case "from":
       case "to":
+        if (k === "to" && query.from) break;
         if (query.dateRange?.length) break;
         if (query.from || query.to) {
           where.push({
-            createdAt: transformFilterDateToQuery([query.from, query.to]),
+            createdAt: transformAccountingDateFilter([query.from, query.to]),
           });
         }
         break;

@@ -187,9 +187,9 @@ function SalesMenuRoot({
 						});
 					}
 					if (as === "order") {
-						sq.invalidate.salesList();
+						await sq.invalidate.salesList();
 					} else {
-						sq.invalidate.quoteList();
+						await sq.invalidate.quoteList();
 					}
 					setOpen(false);
 				} catch {
@@ -231,8 +231,10 @@ function SalesMenuRoot({
 							),
 						});
 					}
-					sq.invalidate.salesList();
-					sq.invalidate.quoteList();
+					await Promise.all([
+						sq.invalidate.salesList(),
+						sq.invalidate.quoteList(),
+					]);
 					setOpen(false);
 				} catch {
 					loader.error("Unable to complete");
