@@ -48,9 +48,7 @@ function SummaryTab({}) {
     const profiles = setting.salesProfiles();
     const taxList = setting.taxList();
     const displaySubTotal =
-        (md.pricing?.grandTotal || 0) -
-        (md.pricing?.taxValue || 0) -
-        (md.pricing?.ccc || 0);
+        (md.pricing?.grandTotal || 0) - (md.pricing?.taxValue || 0);
     const isOrder = md?.type === "order";
     const shouldReviewPaymentMethod =
         isOrder &&
@@ -245,7 +243,7 @@ function SummaryTab({}) {
                             value={<AnimatedNumber value={md.pricing?.taxValue || 0} />}
                         />
                         <SummaryStat
-                            label="CCC"
+                            label="Estimated CCC"
                             value={<AnimatedNumber value={md.pricing?.ccc || 0} />}
                         />
                     </div>
@@ -393,7 +391,7 @@ function SummaryTab({}) {
                         label={
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-slate-600">
-                                    Payment Method
+                                    Payment Method Estimate
                                 </span>
                                 <Select
                                     name="metaData.paymentMethod"

@@ -14,6 +14,7 @@ import { recordLegacySalesPayment } from "./record-legacy-sales-payment";
 
 export interface ApplyLegacySalesCheckoutSettlementInput {
 	amount: number;
+	salesAmount?: number | null;
 	checkoutId: string;
 	paymentMethod: SalesPaymentMethods;
 	squarePaymentId: string;
@@ -22,6 +23,7 @@ export interface ApplyLegacySalesCheckoutSettlementInput {
 	transactionStatus: CustomerTransanctionStatus;
 	paymentStatus: SalesPaymentStatus;
 	walletId: number;
+	transactionMeta?: Record<string, unknown> | null;
 	orders: Array<
 		Pick<
 			SalesCheckoutOrderSummary,
@@ -40,23 +42,31 @@ export async function applyLegacySalesCheckoutSettlement(
 	db: Db | TransactionClient,
 	input: ApplyLegacySalesCheckoutSettlementInput,
 ) {
-	let balance = input.amount;
+	let balance = input.salesAmount ?? input.amount;
+	let customerTransactionId: number | null = null;
 	const notificationsByEmail = new Map<string, SalesCheckoutNotificationSeed>();
 
 	for (const order of input.orders) {
 		const payAmount = balance > order.amountDue ? order.amountDue : balance;
 		balance -= payAmount;
+		if (payAmount <= 0) continue;
 
 		const paymentWrite = await recordLegacySalesPayment(db, {
 			amount: payAmount,
+			transactionAmount:
+				customerTransactionId == null ? input.amount : undefined,
 			walletId: input.walletId,
 			paymentMethod: input.paymentMethod,
 			salesId: order.id,
+			customerTransactionId,
 			transactionType: input.transactionType,
 			squarePaymentId: input.squarePaymentId,
 			transactionStatus: input.transactionStatus,
 			paymentStatus: input.paymentStatus,
+			transactionMeta:
+				customerTransactionId == null ? input.transactionMeta : undefined,
 		});
+		customerTransactionId = paymentWrite.customerTransactionId;
 		const salesPayment = paymentWrite.salesPayment as
 			| {
 					id: number;

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { buildPrintRequests, resolveDefaultPaymentMethod } from "./utils";
+import {
+	buildPrintRequests,
+	calculatePaymentChannelChargePreview,
+	resolveDefaultPaymentMethod,
+} from "./utils";
 
 describe("sales payment processor utils", () => {
 	it("uses the selected sale payment method when available", () => {
@@ -58,5 +62,34 @@ describe("sales payment processor utils", () => {
 				windowRef: null,
 			},
 		]);
+	});
+
+	it("previews ccc for online/card payment channels", () => {
+		expect(
+			calculatePaymentChannelChargePreview({
+				paymentMethod: "link",
+				amount: 500,
+				cccPercentage: 3.5,
+			}),
+		).toMatchObject({
+			applies: true,
+			baseAmount: 500,
+			feeAmount: 17.5,
+			chargeAmount: 517.5,
+		});
+	});
+
+	it("does not preview ccc for cash payments", () => {
+		expect(
+			calculatePaymentChannelChargePreview({
+				paymentMethod: "cash",
+				amount: 500,
+				cccPercentage: 3.5,
+			}),
+		).toMatchObject({
+			applies: false,
+			feeAmount: 0,
+			chargeAmount: 500,
+		});
 	});
 });

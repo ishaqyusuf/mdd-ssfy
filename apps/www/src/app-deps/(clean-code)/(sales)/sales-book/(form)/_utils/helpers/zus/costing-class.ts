@@ -367,7 +367,6 @@ export class CostingClass {
                 flatLaborCost,
                 extraCosts,
                 subGrandTot,
-                estimate.ccc || 0,
             ]),
         );
         const labor = this.getLaborCosts();

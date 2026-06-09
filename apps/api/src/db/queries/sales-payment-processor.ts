@@ -4,7 +4,11 @@ import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-war
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import { NotificationService } from "@gnd/notifications/services/triggers";
 import { buildSalesCustomerPaymentReceivedPayload } from "@gnd/notifications/types/sales-customer-payment-utils";
-import { recordLegacySalesPayment } from "@gnd/sales/payment-system";
+import {
+	buildPaymentChannelChargeMeta,
+	calculatePaymentChannelCharge,
+	recordLegacySalesPayment,
+} from "@gnd/sales/payment-system";
 import {
 	salesPaymentProcessorApplyPaymentSchema,
 	salesPaymentProcessorCancelTerminalPaymentSchema,
@@ -42,6 +46,36 @@ export {
 	salesPaymentProcessorSendPaymentLinkSchema,
 	salesPaymentProcessorTerminalStatusSchema,
 };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+function finiteNumber(value: unknown): number | null {
+	const numberValue = Number(value);
+	return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function resolveSalesCccPercentage(
+	sales: Array<{ meta?: unknown }>,
+	fallback = 3.5,
+) {
+	for (const sale of sales) {
+		const meta = asRecord(sale.meta);
+		const newSalesForm = asRecord(meta?.newSalesForm);
+		const settings = asRecord(newSalesForm?.settings);
+		const summary = asRecord(newSalesForm?.summary);
+		const value =
+			finiteNumber(meta?.ccc_percentage) ??
+			finiteNumber(meta?.cccPercentage) ??
+			finiteNumber(settings?.cccPercentage) ??
+			finiteNumber(summary?.cccPercentage);
+		if (value != null) return value;
+	}
+	return fallback;
+}
 
 export async function applySalesPaymentProcessorPayment(
 	ctx: TRPCContext & { userId: number },
@@ -152,9 +186,35 @@ async function applySalesPayment(
 	const wallet = await getCustomerWallet(ctx.db, props.accountNo);
 	if (!wallet) throw new Error("Customer not found.");
 	const pendingSalesData = await getCustomerPendingSales(ctx, props.accountNo);
+	const selectedOrders = (props.salesIds || [])
+		.map((orderId) => pendingSalesData.find((item) => item.id === orderId))
+		.filter(
+			(
+				order,
+			): order is NonNullable<(typeof pendingSalesData)[number]> =>
+				Boolean(order),
+		);
+	const selectedBalance = selectedOrders.reduce(
+		(total, order) => total + Number(order?.amountDue || 0),
+		0,
+	);
+	const paymentPrincipalAmount = Math.min(
+		Number(props.amount || 0),
+		selectedBalance,
+	);
+	const paymentCharge = calculatePaymentChannelCharge({
+		paymentMethod: props.paymentMethod,
+		paymentAmount: paymentPrincipalAmount,
+		cccPercentage: resolveSalesCccPercentage(selectedOrders),
+	});
+	const paymentChargeMeta = {
+		...buildPaymentChannelChargeMeta(paymentCharge),
+		cccPercentage: paymentCharge.percentage,
+	};
 
 	return ctx.db.$transaction(async (tx) => {
-		let balance = +props.amount;
+		let balance = paymentPrincipalAmount;
+		let customerTransactionId: number | null = null;
 		const appliedSalesIds: number[] = [];
 		const appliedSales: {
 			salesId: number;
@@ -177,16 +237,24 @@ async function applySalesPayment(
 			balance -= payAmount;
 			const paymentWrite = await recordLegacySalesPayment(tx, {
 				amount: payAmount,
+				transactionAmount:
+					customerTransactionId == null
+						? paymentCharge.chargeAmount
+						: undefined,
 				authorId: ctx.userId,
 				walletId: wallet.id,
 				paymentMethod: props.paymentMethod,
 				salesId: order.id,
+				customerTransactionId,
 				transactionType: "transaction" as CustomerTransactionType,
 				checkNo: props.checkNo,
 				squarePaymentId: props.terminalPaymentSession?.squarePaymentId,
 				transactionStatus: "success" as CustomerTransanctionStatus,
 				paymentStatus: "success" as SalesPaymentStatus,
+				transactionMeta:
+					customerTransactionId == null ? paymentChargeMeta : undefined,
 			});
+			customerTransactionId = paymentWrite.customerTransactionId;
 			const salesPayment = paymentWrite.salesPayment as
 				| (typeof paymentWrite.salesPayment & {
 						order: {
@@ -226,10 +294,38 @@ async function createTerminalPayment(
 	props: SalesPaymentProcessorApplyPaymentInput,
 ) {
 	if (!props.deviceId) throw new Error("Square terminal device is required.");
+	const pendingSalesData = props.accountNo
+		? await getCustomerPendingSales(ctx, props.accountNo)
+		: [];
+	const selectedOrders = (props.salesIds || [])
+		.map((orderId) => pendingSalesData.find((item) => item.id === orderId))
+		.filter(
+			(
+				order,
+			): order is NonNullable<(typeof pendingSalesData)[number]> =>
+				Boolean(order),
+		);
+	const selectedBalance = selectedOrders.reduce(
+		(total, order) => total + Number(order.amountDue || 0),
+		0,
+	);
+	const paymentPrincipalAmount =
+		selectedBalance > 0
+			? Math.min(Number(props.amount || 0), selectedBalance)
+			: Number(props.amount || 0);
+	const paymentCharge = calculatePaymentChannelCharge({
+		paymentMethod: "terminal" as SalesPaymentMethods,
+		paymentAmount: paymentPrincipalAmount,
+		cccPercentage: resolveSalesCccPercentage(selectedOrders),
+	});
+	const paymentChargeMeta = {
+		...buildPaymentChannelChargeMeta(paymentCharge),
+		cccPercentage: paymentCharge.percentage,
+	};
 	const checkout = await createSquareTerminalCheckout({
 		deviceId: props.deviceId,
 		allowTipping: props.enableTip || undefined,
-		amount: props.amount,
+		amount: paymentCharge.chargeAmount,
 		orderIds: props?.orderNos || undefined,
 	});
 	if (!checkout?.id) throw new Error("Square checkout did not return an id.");
@@ -239,8 +335,9 @@ async function createTerminalPayment(
 		data: {
 			paymentId: checkout.id,
 			squareOrderId: checkout.squareOrderId,
-			amount: props.amount,
+			amount: paymentCharge.chargeAmount,
 			paymentMethod: "terminal" as SalesPaymentMethods,
+			meta: paymentChargeMeta,
 			createdBy: {
 				connect: {
 					id: ctx.userId,

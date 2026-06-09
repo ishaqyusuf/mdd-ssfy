@@ -43,6 +43,7 @@ import type {
 } from "./types";
 import {
 	buildPrintRequests,
+	calculatePaymentChannelChargePreview,
 	formatPaymentAmount,
 	resolveDefaultPaymentMethod,
 } from "./utils";
@@ -672,6 +673,10 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const selectedPaymentMethodLabel =
 		salesPaymentMethods.find((method) => method.value === pm)?.label ||
 		"Payment";
+	const paymentChargePreview = calculatePaymentChannelChargePreview({
+		paymentMethod: pm,
+		amount: selectedAmount,
+	});
 	const backToPaymentForm = () => {
 		resetTerminalFlow({
 			clearSession: terminalPaymentSession?.status !== "COMPLETED",
@@ -849,6 +854,41 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 										</span>
 									</div>
 								)}
+							</section>
+
+							<section className="grid gap-2">
+								<div className="flex items-center justify-between gap-3">
+									<h3 className="text-sm font-medium">Payment breakdown</h3>
+									<span className="text-xs text-muted-foreground">
+										{selectedPaymentMethodLabel}
+									</span>
+								</div>
+								<div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
+									<div className="flex items-center justify-between gap-3">
+										<span className="text-muted-foreground">
+											Sales payment
+										</span>
+										<span className="font-medium tabular-nums">
+											{formatPaymentAmount(paymentChargePreview.baseAmount)}
+										</span>
+									</div>
+									{paymentChargePreview.applies ? (
+										<div className="mt-1 flex items-center justify-between gap-3">
+											<span className="text-muted-foreground">
+												C.C.C {paymentChargePreview.percentage}%
+											</span>
+											<span className="font-medium tabular-nums">
+												{formatPaymentAmount(paymentChargePreview.feeAmount)}
+											</span>
+										</div>
+									) : null}
+									<div className="mt-2 flex items-center justify-between gap-3 border-t pt-2 font-semibold">
+										<span>Amount to charge</span>
+										<span className="tabular-nums">
+											{formatPaymentAmount(paymentChargePreview.chargeAmount)}
+										</span>
+									</div>
+								</div>
 							</section>
 
 							<section className="grid gap-3">
@@ -1104,7 +1144,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 							<div className="absolute inset-0 bg-background">
 								<PaymentStatusOverlay
 									state={terminalState}
-									amount={selectedAmount}
+									amount={paymentChargePreview.chargeAmount}
 									methodLabel={selectedPaymentMethodLabel}
 									terminalName={
 										pm === "terminal" ? selectedTerminal?.label : undefined

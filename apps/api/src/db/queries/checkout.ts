@@ -10,6 +10,8 @@ import {
 	type PaymentSystemNotificationEvent,
 	type SalesCheckoutSuccessNotificationPayload,
 	applyLegacySalesCheckoutSettlement,
+	buildPaymentChannelChargeMeta,
+	calculatePaymentChannelCharge,
 	createPendingLegacySalesCheckout,
 	linkLegacySalesCheckoutSquareOrder,
 	resolveSalesCheckoutToken,
@@ -61,6 +63,45 @@ function normalizeBuyerPhoneNumber(phoneNo?: string | null): string | null {
 	if (digits.length === 10) return `+1${digits}`;
 	if (digits.length >= 8 && digits.length <= 15) return `+${digits}`;
 	return null;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+function finiteNumber(value: unknown): number | null {
+	const numberValue = Number(value);
+	return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function resolveSalesCccPercentage(
+	sales: Array<{ meta?: unknown }>,
+	fallback = 3.5,
+) {
+	for (const sale of sales) {
+		const meta = asRecord(sale.meta);
+		const newSalesForm = asRecord(meta?.newSalesForm);
+		const settings = asRecord(newSalesForm?.settings);
+		const summary = asRecord(newSalesForm?.summary);
+		const value =
+			finiteNumber(meta?.ccc_percentage) ??
+			finiteNumber(meta?.cccPercentage) ??
+			finiteNumber(settings?.cccPercentage) ??
+			finiteNumber(summary?.cccPercentage);
+		if (value != null) return value;
+	}
+	return fallback;
+}
+
+function readPaymentSalesAmount(meta: unknown, fallback: number) {
+	const record = asRecord(meta);
+	return (
+		finiteNumber(record?.salesAmount) ??
+		finiteNumber(record?.paymentSalesAmount) ??
+		fallback
+	);
 }
 
 function resolveQuoteAcceptanceToken(token: string) {
@@ -721,12 +762,18 @@ export async function createSalesCheckoutLink(
 		if (amount > totalDue) {
 			throw new Error("Amount cannot exceed the outstanding balance");
 		}
+		const paymentCharge = calculatePaymentChannelCharge({
+			paymentMethod: "link" as SalesPaymentMethods,
+			paymentAmount: amount,
+			cccPercentage: resolveSalesCccPercentage(sales),
+		});
+		const paymentChargeMeta = buildPaymentChannelChargeMeta(paymentCharge);
 
 		const cust = sales.find((a) => !!a.email && !!a.displayName);
 		const phone = sales?.map((a) => a.customerPhone)?.filter(Boolean)?.[0];
 		const phoneNo = normalizeBuyerPhoneNumber(phone);
 		const pendingCheckout = await createPendingLegacySalesCheckout(tx, {
-			amount,
+			amount: paymentCharge.chargeAmount,
 			orders: sales.map((order) => ({
 				id: order.id,
 				orderId: order.orderId,
@@ -740,6 +787,10 @@ export async function createSalesCheckoutLink(
 				address: cust?.address || null,
 			})),
 			paymentMethod: "link" as SalesPaymentMethods,
+			meta: {
+				...paymentChargeMeta,
+				cccPercentage: paymentCharge.percentage,
+			},
 			tokenPayload: {
 				...payload,
 				salesIds: sales.map((order) => order.id),
@@ -754,7 +805,7 @@ export async function createSalesCheckoutLink(
 					locationId: SQUARE_LOCATION_ID,
 					name: squareSalesNote(sales.map((a) => a.orderId)),
 					priceMoney: {
-						amount: BigInt(Math.round(amount * 100)),
+						amount: BigInt(Math.round(paymentCharge.chargeAmount * 100)),
 						currency: "USD",
 					},
 				},
@@ -938,6 +989,11 @@ export async function verifyPayment(
 							})),
 							tip: resp.tip,
 							amount: resp.amount,
+							salesAmount: readPaymentSalesAmount(
+								squarePayment.meta,
+								resp.amount,
+							),
+							transactionMeta: asRecord(squarePayment.meta),
 							authorId:
 								squarePayment.createdBy?.id ||
 								settledOrders[0]?.salesRepId ||
@@ -1044,6 +1100,8 @@ export async function paymentSuccess(
 		squarePaymentId;
 		walletId;
 		amount;
+		salesAmount?;
+		transactionMeta?;
 		tip;
 		orders: { id; customerId; amountDue; salesRepId }[];
 		authorId?;
@@ -1053,6 +1111,7 @@ export async function paymentSuccess(
 ) {
 	const settlement = await applyLegacySalesCheckoutSettlement(tx, {
 		amount: p.amount,
+		salesAmount: p.salesAmount,
 		checkoutId: p.checkoutId,
 		paymentMethod: "link" as SalesPaymentMethods,
 		squarePaymentId: p.squarePaymentId,
@@ -1061,6 +1120,7 @@ export async function paymentSuccess(
 		transactionStatus: "success" as CustomerTransanctionStatus,
 		paymentStatus: "success" as SalesPaymentStatus,
 		walletId: p.walletId,
+		transactionMeta: p.transactionMeta,
 		orders: p.orders,
 		onPaymentApplied: async ({
 			orderId,

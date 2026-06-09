@@ -11,6 +11,7 @@ import { mirrorPostedLegacySalesPayment } from "../infrastructure";
 
 export interface RecordLegacySalesPaymentInput {
 	amount: number;
+	transactionAmount?: number | null;
 	authorId?: number | null;
 	customerTransactionId?: number | null;
 	walletId: number;
@@ -115,7 +116,7 @@ export async function recordLegacySalesPayment(
 
 	const transaction = await db.customerTransaction.create({
 		data: {
-			amount: input.amount,
+			amount: input.transactionAmount ?? input.amount,
 			wallet: {
 				connect: {
 					id: input.walletId,

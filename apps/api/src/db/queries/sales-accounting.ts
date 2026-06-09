@@ -123,6 +123,7 @@ export async function getSalesAccountings(
       new Set(item.salesPayments?.map((s) => s.order?.salesRep?.name))
     );
     const meta = (item.meta || {}) as any as CustomerTransactionMeta;
+    const paymentMeta = meta as any;
     const spMeta = item.salesPayments?.[0]?.meta as any as SalesPaymentMeta;
     // meta.checkNo
     const spStatus = item?.salesPayments?.[0]?.status;
@@ -147,6 +148,10 @@ export async function getSalesAccountings(
       // status: ,
       createdAt: item.createdAt,
       amount,
+      salesAmount: paymentMeta?.salesAmount ?? amount,
+      cccAmount: paymentMeta?.feeAmount ?? 0,
+      customerChargeAmount: paymentMeta?.customerChargeAmount ?? item.amount,
+      paymentCharges: paymentMeta?.paymentCharges ?? [],
       paymentMethod,
       description,
       ordersCount,

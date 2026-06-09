@@ -67,6 +67,31 @@ export function buildPrintRequests(input: {
 	return requests;
 }
 
+export function calculatePaymentChannelChargePreview(input: {
+	paymentMethod?: string | null;
+	amount?: number | string | null;
+	cccPercentage?: number | string | null;
+}) {
+	const normalizedMethod = normalizePaymentMethod(input.paymentMethod);
+	const baseAmount = Math.round(Number(input.amount || 0) * 100) / 100;
+	const percentage = Math.max(0, Number(input.cccPercentage ?? 3.5));
+	const applies =
+		normalizedMethod === "credit-card" ||
+		normalizedMethod === "link" ||
+		normalizedMethod === "terminal";
+	const feeAmount = applies
+		? Math.round(((baseAmount * percentage) / 100) * 100) / 100
+		: 0;
+
+	return {
+		applies,
+		baseAmount,
+		percentage,
+		feeAmount,
+		chargeAmount: Math.round((baseAmount + feeAmount) * 100) / 100,
+	};
+}
+
 export function formatElapsedTime(seconds?: number | null) {
 	if (seconds == null) return "00:00";
 	const minutes = Math.floor(seconds / 60);

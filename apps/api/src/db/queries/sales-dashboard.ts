@@ -1,7 +1,15 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { Prisma } from "@gnd/db";
 import type { SalesType } from "@sales/types";
-import { eachDayOfInterval, format, parseISO, subDays } from "date-fns";
+import {
+  eachDayOfInterval,
+  endOfDay,
+  format,
+  isValid,
+  parse,
+  startOfDay,
+  subDays,
+} from "date-fns";
 import { getSales } from "./sales";
 import { overallStatus } from "@api/utils/sales";
 
@@ -10,16 +18,39 @@ type Filter = {
   to?: string;
 };
 
+const dashboardDateParamFormat = "yyyy-MM-dd";
+
+export function parseSalesDashboardDateParam(value?: string | null) {
+  if (!value) return null;
+
+  const parsed = parse(value, dashboardDateParamFormat, new Date());
+  return isValid(parsed) ? parsed : null;
+}
+
+export function formatSalesDashboardDate(date: Date) {
+  return format(date, dashboardDateParamFormat);
+}
+
+export function getSalesDashboardCreatedAtRange(filter: Filter) {
+  const from = parseSalesDashboardDateParam(filter.from);
+  const to = parseSalesDashboardDateParam(filter.to);
+
+  if (!from && !to) return undefined;
+
+  return {
+    gte: from ? startOfDay(from) : undefined,
+    lte: to ? endOfDay(to) : undefined,
+  };
+}
+
 const getWhereClause = (filter: Filter, type?: SalesType) => {
   const where: Prisma.SalesOrdersWhereInput = {};
   if (type) {
     where.type = type;
   }
-  if (filter.from && filter.to) {
-    where.createdAt = {
-      gte: parseISO(filter.from),
-      lte: parseISO(filter.to),
-    };
+  const createdAt = getSalesDashboardCreatedAtRange(filter);
+  if (createdAt) {
+    where.createdAt = createdAt;
   }
   return where;
 };
@@ -72,14 +103,15 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
     },
   });
 
+  const createdAtRange = getSalesDashboardCreatedAtRange(filter);
   const interval = eachDayOfInterval({
-    start: filter.from ? parseISO(filter.from) : subDays(new Date(), 30),
-    end: filter.to ? parseISO(filter.to) : new Date(),
+    start: createdAtRange?.gte ?? startOfDay(subDays(new Date(), 30)),
+    end: createdAtRange?.lte ?? endOfDay(new Date()),
   });
 
   const dailyRevenue = sales.reduce(
     (acc, sale) => {
-      const date = format(sale.createdAt!, "yyyy-MM-dd");
+      const date = formatSalesDashboardDate(sale.createdAt!);
       acc[date] = (acc[date] || 0) + (sale.grandTotal ?? 0);
       return acc;
     },
@@ -88,8 +120,8 @@ export async function getRevenueOverTime(ctx: TRPCContext, filter: Filter) {
 
   const ret = interval.map((day) => ({
     date: format(day, "MMM d"),
-    rawDate: format(day, "yyyy-MM-dd"),
-    revenue: dailyRevenue[format(day, "yyyy-MM-dd")] || 0,
+    rawDate: formatSalesDashboardDate(day),
+    revenue: dailyRevenue[formatSalesDashboardDate(day)] || 0,
   }));
   return ret.filter((d, i) =>
     ret.filter((a, ai) => ai <= i).some((b) => b.revenue),

@@ -18,6 +18,10 @@ Tracks queued work that is important but not currently in the top execution slic
 - Created Date: 2026-05-15
 
 ## Next Up
+- [ ] 2026-06-09 mobile sales invoice form feature: add a sales invoice form flow to the mobile app, covering invoice creation/editing, customer/order context, line-item entry, save/submit behavior, and parity with the web sales invoice workflow where applicable (Expo + API + UI + Validation)
+- [ ] June 5, 2026 sales backlog: promote Sales Orders V2 from super-admin/default-route gating to the general Sales orders experience, including navigation/default tab behavior and legacy fallback review (UI + Validation)
+- [ ] June 5, 2026 sales backlog: make the Sales Payment Link checkout orders list independently scrollable when many orders are attached, so the right-side summary/payment card remains visible while reviewing orders (UI + Validation)
+- [ ] June 5, 2026 sales backlog: fix new sales form door select pricing so customer/profile-selected doors display calculated sales price on initial open/edit load instead of cost price or `0.00`; verify tier-change repricing still works after the initial hydration fix (UI + Validation)
 - [ ] Community unit-invoice reporting Phase 2: build `Task-Level Invoice Detail Report` on top of the shared invoice-report architecture and printable PDF route pattern (`brain/features/community-unit-invoice-reporting.md`) (API + UI + Print + Validation)
 - [ ] Community unit-invoice reporting Phase 3: add `Unit Invoice Summary`, `Payment Register`, `Builder Payables`, `Project Payables`, and `Chargeback / Exception` reports using the same filter-aware report contract and print/export architecture (`brain/features/community-unit-invoice-reporting.md`) (API + UI + Print + Validation + Architecture)
 - [ ] Install cost sorting rollout: sort relational install-cost rows by `builderTask.taskIndex` with `builderTask.createdAt` fallback in API responses, then align web admin, web jobs form, and Expo/mobile jobs form rendering to the same canonical order (`brain/features/install-cost-sorting.md`) (API + UI + Validation)

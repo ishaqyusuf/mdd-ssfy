@@ -13,6 +13,7 @@ export interface CreatePendingLegacySalesCheckoutInput {
 	orders: SalesCheckoutOrderSummary[];
 	paymentMethod: SalesPaymentMethods;
 	tokenPayload: SalesCheckoutTokenPayload;
+	meta?: Record<string, unknown> | null;
 }
 
 export async function createPendingLegacySalesCheckout(
@@ -32,12 +33,14 @@ export async function createPendingLegacySalesCheckout(
 			},
 			amount: input.amount,
 			paymentMethod: input.paymentMethod,
+			meta: input.meta || undefined,
 			tip: 0,
 			checkout: {
 				create: {
 					orderId: input.orders[0]?.id,
 					paymentType: input.paymentMethod,
 					amount: input.amount,
+					meta: input.meta || undefined,
 				},
 			},
 		},

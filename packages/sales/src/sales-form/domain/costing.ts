@@ -273,7 +273,7 @@ export function calculateSalesFormSummary(
 			adjustedSubTotal,
 			taxRate: normalizedTaxRate,
 			taxTotal,
-			grandTotal: roundCurrency(grandBeforeCcc + ccc),
+			grandTotal: grandBeforeCcc,
 			discount,
 			discountPct,
 			percentDiscountValue,

@@ -3,7 +3,9 @@
 import { Icons } from "@gnd/ui/icons";
 
 import {
-    chartPeriodOptions,
+    formatSalesDashboardDateParam,
+    getSalesDashboardPeriodOptions,
+    parseSalesDashboardDateParam,
     useSalesDashboardParams,
 } from "@/hooks/use-sales-dashboard-params";
 import { Button } from "@gnd/ui/button";
@@ -16,10 +18,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@gnd/ui/select";
-import { formatISO } from "date-fns";
 import { formatDateRange } from "little-date";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
 const Calendar = dynamic(
@@ -32,6 +33,12 @@ const Calendar = dynamic(
 export function ChartSelectors() {
     const { params, setParams } = useSalesDashboardParams();
     const [isWideCalendar, setIsWideCalendar] = useState(false);
+    const chartPeriodOptions = useMemo(
+        () => getSalesDashboardPeriodOptions(),
+        [],
+    );
+    const selectedFrom = parseSalesDashboardDateParam(params.from);
+    const selectedTo = parseSalesDashboardDateParam(params.to);
 
     useEffect(() => {
         const query = window.matchMedia("(min-width: 768px)");
@@ -48,11 +55,9 @@ export function ChartSelectors() {
     ) => {
         const newRange = {
             from: range?.from
-                ? formatISO(range.from, { representation: "date" })
+                ? formatSalesDashboardDateParam(range.from)
                 : params.from,
-            to: range?.to
-                ? formatISO(range.to, { representation: "date" })
-                : params.to,
+            to: range?.to ? formatSalesDashboardDateParam(range.to) : params.to,
             period: period || params.period,
         };
         setParams(newRange);
@@ -98,10 +103,10 @@ export function ChartSelectors() {
                             className="w-full min-w-0 justify-start gap-2 text-left font-medium sm:w-auto"
                         >
                             <span className="min-w-0 flex-1 truncate">
-                                {params.from && params.to
+                                {selectedFrom && selectedTo
                                     ? formatDateRange(
-                                          new Date(params.from),
-                                          new Date(params.to),
+                                          selectedFrom,
+                                          selectedTo,
                                           {
                                               includeTime: false,
                                           },
@@ -150,14 +155,12 @@ export function ChartSelectors() {
                             mode="range"
                             numberOfMonths={isWideCalendar ? 2 : 1}
                             selected={{
-                                from: params.from
-                                    ? new Date(params.from)
-                                    : undefined,
-                                to: params.to ? new Date(params.to) : undefined,
+                                from: selectedFrom,
+                                to: selectedTo,
                             }}
                             defaultMonth={
-                                params.from
-                                    ? new Date(params.from)
+                                selectedFrom
+                                    ? selectedFrom
                                     : new Date(
                                           new Date().setMonth(
                                               new Date().getMonth() - 1,
