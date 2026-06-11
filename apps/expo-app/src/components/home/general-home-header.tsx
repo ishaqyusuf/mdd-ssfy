@@ -67,7 +67,7 @@ export function GeneralHomeHeader({
   const avatarLetter = (rawName[0] || "D").toUpperCase();
 
   return (
-    <View className={cn("border-b border-border bg-card p-4", className)}>
+    <View className={cn("bg-background p-4", className)}>
       <View className={cn("flex-row items-center gap-2", contentClassName)}>
         <View className="flex-row items-center gap-3">
           <View className="h-11 w-11 items-center justify-center rounded-full border-2 border-border bg-muted">

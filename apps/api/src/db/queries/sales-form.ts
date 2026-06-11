@@ -1,6 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { txContext } from "@api/utils/db";
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 import { generateRandomString, sum, type RenturnTypeAsync } from "@gnd/utils";
 import { composeQuery } from "@gnd/utils/query-response";
 import type { DykeStepMeta, Prisma, StepComponentMeta } from "@sales/types";
@@ -41,7 +42,7 @@ export async function getSuppliers(
 }
 export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
   const { db } = ctx;
-  return db.$transaction(async (tx) => {
+  const result = await db.$transaction(async (tx) => {
     const supplierData = await getSuppliers(txContext(ctx, tx), {});
     let stepId = supplierData?.id;
     if (!stepId)
@@ -75,6 +76,7 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
       return {
         uid: dp.uid,
         name: dp.name,
+        stepId: dp.dykeStepId,
       };
     }
     const dp = await tx.dykeStepProducts.create({
@@ -98,8 +100,14 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
     return {
       uid: dp.uid,
       name: dp.name,
+      stepId,
     };
   });
+  await queueDykeStepToInventorySync({
+    stepId: result.stepId,
+    source: "event",
+  });
+  return result;
 }
 
 export const deleteSupplierSchema = z.object({
@@ -123,6 +131,10 @@ export async function deleteSupplier(
     componentId: dp.id,
     componentUid: dp.uid,
     routing: true,
+  });
+  await queueDykeStepToInventorySync({
+    stepId: dp.dykeStepId,
+    source: "event",
   });
 }
 

@@ -8,7 +8,7 @@ export default function DashboardExampleScreen() {
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="flex-row items-center px-5 pt-14 pb-4 bg-background/95 border-b border-border sticky top-0 z-10">
+      <View className="flex-row items-center bg-background px-5 pb-4 pt-14 sticky top-0 z-10">
         <View className="flex-row items-center gap-3">
           <View className="relative">
             <View className="h-11 w-11 rounded-full bg-muted items-center justify-center border-2 border-card shadow-sm overflow-hidden">

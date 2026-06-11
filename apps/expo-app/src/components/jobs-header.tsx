@@ -15,7 +15,7 @@ export function JobsHeader() {
 
   return (
     <View style={{ paddingTop: insets.top }}>
-      <View className="bg-background border-b">
+      <View className="bg-background">
         <View className="flex-row items-center justify-between px-4 py-3">
           <TouchableOpacity
             onPress={() => navigation.goBack()}

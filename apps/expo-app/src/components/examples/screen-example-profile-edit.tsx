@@ -22,7 +22,7 @@ export default function ProfileExampleScreen() {
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-14 pb-4 border-b border-border bg-background z-10">
+      <View className="flex-row items-center justify-between bg-background px-4 pb-4 pt-14 z-10">
         <Pressable
           onPress={onBack}
           className="h-10 w-10 items-center justify-center rounded-full active:bg-secondary"

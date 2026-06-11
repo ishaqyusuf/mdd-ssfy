@@ -92,7 +92,7 @@ export function DispatchListScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <View className="border-b border-border bg-card px-4 pb-3 pt-12">
+      <View className="bg-background px-4 pb-3 pt-12">
         <View className="flex-row items-center gap-3">
           <Pressable
             onPress={() => router.back()}

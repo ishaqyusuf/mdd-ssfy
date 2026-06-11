@@ -5,6 +5,7 @@ import {
   SalesIncludeAll,
 } from "./utils/utils";
 import { SalesType } from "./types";
+import { queueSalesInventoryLineItemsSync } from "./sales-inventory-sync-job";
 
 interface Props {
   db: Db;
@@ -226,5 +227,12 @@ export async function copySales(props: Props) {
         error: error.message,
       };
     });
+  if (!response.error && response.id) {
+    await queueSalesInventoryLineItemsSync({
+      salesOrderId: response.id,
+      source: "old-form",
+      triggeredByUserId: props.author?.id ?? null,
+    });
+  }
   return response;
 }

@@ -35,6 +35,8 @@ import {
   variantFormSchema,
 } from "@gnd/inventory/schema";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
+import { getSalesInventoryOverview } from "@gnd/sales/sales-inventory-overview";
+import { backfillSalesInventoryLineItemsSchemaTask } from "@gnd/jobs/schema";
 import {
   approveBulkStockAllocation,
   approveStockAllocation,
@@ -77,6 +79,7 @@ import {
   backfillInventoryProductKinds,
   deleteInventorySupplier,
   pendingStockAllocations,
+  queueDykeStepToInventorySync,
   rejectStockAllocation,
   reportInboundItemIssue,
   resolveInboundItemIssue,
@@ -87,7 +90,6 @@ import {
   syncInventorySuppliersFromDyke,
   updateDykeComponentPricing,
 } from "@gnd/inventory";
-import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@gnd/inventory/inventory-import";
 import { idSchema } from "@api/schemas/common";
@@ -475,7 +477,7 @@ export const inventoriesRouter = createTRPCRouter({
         routing: true,
       });
       if (result.stepId) {
-        await tasks.trigger("sync-dyke-step-to-inventory", {
+        await queueDykeStepToInventorySync({
           stepId: result.stepId,
           source: "event",
         });
@@ -491,7 +493,7 @@ export const inventoriesRouter = createTRPCRouter({
         componentUid: props.input.stepProductUid,
       });
       if (props.input.triggerInventorySync !== false) {
-        await tasks.trigger("sync-dyke-step-to-inventory", {
+        await queueDykeStepToInventorySync({
           stepId: props.input.stepId,
           source: "event",
         });
@@ -539,6 +541,23 @@ export const inventoriesRouter = createTRPCRouter({
     .mutation(async (props) => {
       return saveSupplierVariantForm(props.ctx.db, props.input);
     }),
+  backfillSalesInventorySync: protectedProcedure
+    .input(backfillSalesInventoryLineItemsSchemaTask)
+    .mutation(async (props) => {
+      return tasks.trigger("backfill-sales-inventory-line-items", {
+        ...props.input,
+        triggeredByUserId: props.ctx.userId ?? props.input.triggeredByUserId,
+      });
+    }),
+  salesInventoryOverview: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return getSalesInventoryOverview(props.ctx.db, props.input);
+    }),
   repairSalesInventorySync: protectedProcedure
     .input(
       z.object({
@@ -546,9 +565,10 @@ export const inventoriesRouter = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
-      return syncSalesInventoryLineItems(props.ctx.db, {
+      return tasks.trigger("sync-sales-inventory-line-items", {
         salesOrderId: props.input.salesOrderId,
         source: "repair",
+        triggeredByUserId: props.ctx.userId ?? null,
       });
     }),
   dykeUpdateFromInventory: publicProcedure

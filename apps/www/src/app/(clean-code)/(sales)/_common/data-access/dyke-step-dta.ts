@@ -1,5 +1,6 @@
 import { prisma } from "@/db";
 import { generateRandomString } from "@/lib/utils";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 
 // export async function getCustomStepProductForm
 export async function createCustomStepProductDta({
@@ -44,6 +45,10 @@ export async function createCustomStepProductDta({
             dykeStepId
         );
     }
+    await queueDykeStepToInventorySync({
+        stepId: dykeStepId,
+        source: "event",
+    });
     return {
         pricing,
         prod,
@@ -63,7 +68,7 @@ export async function createPricingDta(
     price,
     stepId
 ) {
-    return await prisma.dykePricingSystem.create({
+    const pricing = await prisma.dykePricingSystem.create({
         data: {
             stepProductUid,
             dependenciesUid,
@@ -75,9 +80,22 @@ export async function createPricingDta(
             },
         },
     });
+    await queueDykeStepToInventorySync({
+        stepId,
+        source: "event",
+    });
+    return pricing;
 }
 export async function deletePricingDta(id) {
     if (!id) return;
+    const pricing = await prisma.dykePricingSystem.findUnique({
+        where: {
+            id,
+        },
+        select: {
+            dykeStepId: true,
+        },
+    });
     await prisma.dykePricingSystem.updateMany({
         where: {
             id,
@@ -85,6 +103,10 @@ export async function deletePricingDta(id) {
         data: {
             deletedAt: new Date(),
         },
+    });
+    await queueDykeStepToInventorySync({
+        stepId: pricing?.dykeStepId,
+        source: "event",
     });
 }
 export async function findCustomStepProductDta(title) {

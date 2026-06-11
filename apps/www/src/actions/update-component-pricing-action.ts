@@ -5,6 +5,7 @@ import { prisma } from "@/db";
 import { actionClient } from "./safe-action";
 import { updateComponentPricingSchema } from "./schema";
 import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 
 export const updateComponentPricingAction = actionClient
     .schema(updateComponentPricingSchema)
@@ -57,5 +58,9 @@ export const updateComponentPricingAction = actionClient
         await invalidateSalesWorkflowForStepComponent({
             stepId: input.stepId,
             componentUid: input.stepProductUid,
+        });
+        await queueDykeStepToInventorySync({
+            stepId: input.stepId,
+            source: "event",
         });
     });

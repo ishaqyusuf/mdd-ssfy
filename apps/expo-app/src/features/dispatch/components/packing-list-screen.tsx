@@ -173,7 +173,7 @@ export function PackingListScreen({
 	return (
 		<SafeArea>
 			<View className="flex-1 bg-background">
-				<View className="border-b border-border bg-card px-4 pb-4 pt-3">
+				<View className="bg-background px-4 pb-4 pt-3">
 					<View className="flex-row items-center gap-3">
 						<Pressable
 							onPress={() => router.back()}

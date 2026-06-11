@@ -58,7 +58,7 @@ export function CreateDeliveryStack({
 
   return (
     <View className="absolute inset-0 z-50 bg-background">
-      <View className="border-b border-border bg-card/90 px-4 pb-4 pt-4">
+      <View className="bg-background px-4 pb-4 pt-4">
         <View className="flex-row items-center gap-3">
           <Pressable
             onPress={handleClose}

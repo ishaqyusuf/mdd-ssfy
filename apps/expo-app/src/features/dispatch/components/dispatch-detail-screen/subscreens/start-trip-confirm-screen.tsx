@@ -46,7 +46,7 @@ export function StartTripConfirmScreen({
   return (
     <View className="absolute inset-0 z-[60] bg-background">
       <View>
-        <View className="sticky top-0 z-10 flex-row items-center justify-between border-b border-border bg-card/95 px-4 py-3">
+        <View className="sticky top-0 z-10 flex-row items-center justify-between bg-background px-4 py-3">
           <Pressable
             onPress={onClose}
             className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"

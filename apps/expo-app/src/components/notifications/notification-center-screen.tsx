@@ -225,7 +225,7 @@ export function NotificationCenterScreen() {
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between border-b border-border px-4 py-3">
+        <View className="flex-row items-center justify-between bg-background px-4 py-3">
           <BackBtn />
           <Text className="text-base font-bold text-foreground">
             Notifications

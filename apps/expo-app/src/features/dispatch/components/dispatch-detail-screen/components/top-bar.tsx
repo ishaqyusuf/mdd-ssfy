@@ -6,7 +6,7 @@ export function DispatchDetailTopBar() {
   const vm = useDispatchDetailScreen();
 
   return (
-    <View className="border-b border-border bg-card px-4 pb-3">
+    <View className="bg-background px-4 pb-3">
       <View className="flex-row items-center justify-between">
         <Pressable
           onPress={vm.onBack}
@@ -24,4 +24,3 @@ export function DispatchDetailTopBar() {
     </View>
   );
 }
-

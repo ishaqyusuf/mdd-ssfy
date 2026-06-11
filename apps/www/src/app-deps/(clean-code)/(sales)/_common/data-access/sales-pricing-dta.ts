@@ -2,6 +2,7 @@ import { AsyncFnType } from "@/app/(clean-code)/type";
 import { prisma, Prisma } from "@/db";
 
 import { DykeProductMeta } from "../../types";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 
 export type GetPricingList = AsyncFnType<typeof getPricingListDta>;
 export async function getPricingListDta(
@@ -26,6 +27,22 @@ export async function getComponentPricingListByUidDta(stepProductUid) {
 export async function updateComponentPricingsDta(
     data: Partial<Prisma.DykePricingSystemCreateManyInput>[],
 ) {
+    const inputStepIds = data
+        .map((item) => Number(item.dykeStepId || 0))
+        .filter(Boolean);
+    const pricingIds = data.map((item) => Number(item.id || 0)).filter(Boolean);
+    const existingPricings = pricingIds.length
+        ? await prisma.dykePricingSystem.findMany({
+              where: {
+                  id: {
+                      in: pricingIds,
+                  },
+              },
+              select: {
+                  dykeStepId: true,
+              },
+          })
+        : [];
     const updateByPrice: { [price in string]: number[] } = {};
     const deleteIds = [];
     data.map((p) => {
@@ -51,6 +68,20 @@ export async function updateComponentPricingsDta(
                 deletedAt: new Date(),
             },
         });
+    const stepIds = Array.from(
+        new Set([
+            ...inputStepIds,
+            ...existingPricings.map((pricing) => pricing.dykeStepId),
+        ]),
+    ).filter(Boolean);
+    await Promise.all(
+        stepIds.map((stepId) =>
+            queueDykeStepToInventorySync({
+                stepId,
+                source: "event",
+            }),
+        ),
+    );
 }
 export async function saveComponentPricingsDta(
     data: Prisma.DykePricingSystemCreateManyInput[],
@@ -65,14 +96,37 @@ export async function saveComponentPricingsDta(
         });
     }
     await updateComponentPricingsDta(data.filter((d) => d.id));
+    const stepIds = Array.from(
+        new Set(newData.map((item) => Number(item.dykeStepId || 0))),
+    ).filter(Boolean);
+    await Promise.all(
+        stepIds.map((stepId) =>
+            queueDykeStepToInventorySync({
+                stepId,
+                source: "event",
+            }),
+        ),
+    );
     return {
         status: "success",
     };
 }
 export async function saveHarvestedDta(ls) {
-    return await prisma.dykePricingSystem.createMany({
+    const result = await prisma.dykePricingSystem.createMany({
         data: ls,
     });
+    const stepIds = Array.from(
+        new Set(ls.map((item) => Number(item.dykeStepId || 0))),
+    ).filter(Boolean);
+    await Promise.all(
+        stepIds.map((stepId) =>
+            queueDykeStepToInventorySync({
+                stepId,
+                source: "event",
+            }),
+        ),
+    );
+    return result;
 }
 export async function harvestSalesPricingDta() {
     const steps = await prisma.dykeStepProducts.findMany({

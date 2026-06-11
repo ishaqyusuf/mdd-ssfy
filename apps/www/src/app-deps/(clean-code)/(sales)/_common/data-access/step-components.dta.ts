@@ -4,6 +4,7 @@ import { generateRandomString } from "@/lib/utils";
 import { StepComponentForm, StepComponentMeta } from "../../types";
 import { revalidatePath } from "next/cache";
 import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 
 export interface LoadStepComponentsProps {
     stepId?: number;
@@ -87,6 +88,10 @@ export async function updateStepComponentDta(id, data) {
         componentUid: component.uid,
         routing: true,
     });
+    await queueDykeStepToInventorySync({
+        stepId: component.dykeStepId,
+        source: "event",
+    });
     return component;
 }
 export async function createStepComponentDta(data: StepComponentForm) {
@@ -119,6 +124,10 @@ export async function createStepComponentDta(data: StepComponentForm) {
         componentId: component.id,
         componentUid: component.uid,
         routing: true,
+    });
+    await queueDykeStepToInventorySync({
+        stepId: data.stepId,
+        source: "event",
     });
     return component;
 }

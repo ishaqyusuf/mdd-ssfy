@@ -143,7 +143,7 @@ export function JobAnalyticsScreen() {
 
 function Header() {
   return (
-    <View className="flex-row items-center   px-4 py-4 bg-background border-b border-border z-10">
+    <View className="flex-row items-center bg-background px-4 py-4 z-10">
       <View className="flex-row items-center gap-3">
         {/* User Avatar */}
         <View className="relative">

@@ -37,7 +37,7 @@ const Avatar = ({
 export default function JobOverviewExampleScreen() {
   return (
     <SafeArea>
-      <View className="flex-row items-center justify-between px-6 py-4 border-b border-border bg-background">
+      <View className="flex-row items-center justify-between bg-background px-6 py-4">
         <View className="flex-row items-center gap-4">
           <TouchableOpacity className="size-10 rounded-full bg-card items-center justify-center border border-border">
             <Icon

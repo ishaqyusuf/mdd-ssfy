@@ -1,7 +1,6 @@
 import { SalesFormFields } from "@/app-deps/(clean-code)/(sales)/types";
-import { prisma } from "@/db";
 import { SaveQuery, SaveSalesClass } from "./save-sales-class";
-import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
+import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 
 export async function saveSalesFormDta(
     form: SalesFormFields,
@@ -13,13 +12,9 @@ export async function saveSalesFormDta(
     const result = worker.result();
 
     if (!result?.data?.error && result?.salesId) {
-        void prisma.$transaction((tx) =>
-            syncSalesInventoryLineItems(tx as any, {
-                salesOrderId: result.salesId,
-                source: "old-form",
-            })
-        ).catch((error) => {
-            console.error("Unable to sync sales inventory line items", error);
+        await queueSalesInventoryLineItemsSync({
+            salesOrderId: result.salesId,
+            source: "old-form",
         });
     }
 

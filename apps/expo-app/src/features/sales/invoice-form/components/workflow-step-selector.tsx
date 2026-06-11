@@ -672,7 +672,7 @@ export function WorkflowStepSelector({
           : "absolute inset-0 z-50 bg-background"
       }
     >
-      <View className="border-b border-border bg-background px-4 pb-3 pt-4">
+      <View className="bg-background px-4 pb-3 pt-4">
         {inline ? null : (
           <View className="flex-row items-center gap-3">
             <Pressable

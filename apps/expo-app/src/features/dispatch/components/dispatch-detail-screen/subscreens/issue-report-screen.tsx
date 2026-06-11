@@ -44,7 +44,7 @@ export function IssueReportScreen({
   return (
     <View className="absolute inset-0 z-[70] bg-background">
       <View>
-        <View className="sticky top-0 z-10 border-b border-border bg-background/95">
+        <View className="sticky top-0 z-10 bg-background">
           <View className="flex-row items-center gap-3 px-4 py-4">
             <Pressable
               onPress={onClose}

@@ -53,6 +53,7 @@ export const taskNames = [
 	"send-storefront-promotional-email",
 	"send-storefront-shipping-confirmation-email",
 	"send-storefront-win-back-email",
+	"backfill-sales-inventory-line-items",
 	"sync-sales-inventory-line-items",
 	"warm-sales-document-snapshot",
 	"sync-dyke-step-to-inventory",
@@ -198,6 +199,20 @@ export const syncSalesInventoryLineItemsSchemaTask = z.object({
 });
 export type SyncSalesInventoryLineItemsSchemaTask = z.infer<
 	typeof syncSalesInventoryLineItemsSchemaTask
+>;
+
+export const backfillSalesInventoryLineItemsSchemaTask = z.object({
+	salesOrderIds: z.array(z.number()).optional(),
+	cursorId: z.number().optional().nullable(),
+	batchSize: z.number().min(1).max(200).optional().default(50),
+	includeAlreadySynced: z.boolean().optional().default(false),
+	source: z
+		.enum(["old-form", "new-form", "manual", "repair"])
+		.default("repair"),
+	triggeredByUserId: z.number().optional().nullable(),
+});
+export type BackfillSalesInventoryLineItemsSchemaTask = z.infer<
+	typeof backfillSalesInventoryLineItemsSchemaTask
 >;
 
 export const syncDykeStepToInventorySchemaTask = z.object({

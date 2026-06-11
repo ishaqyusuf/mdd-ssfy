@@ -29,6 +29,7 @@
   "dependencies": {
     "@gnd/db": "workspace:*",
     "@gnd/utils": "workspace:*",
+    "@trigger.dev/sdk": "3.3.17",
     "zod": "catalog:"
   },
   "devDependencies": {

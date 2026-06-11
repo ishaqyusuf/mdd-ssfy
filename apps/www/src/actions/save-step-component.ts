@@ -10,6 +10,7 @@ import {
     getStepComponents,
     invalidateSalesWorkflowForStepComponent,
 } from "@api/db/queries/sales-form";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 
 export const saveStepComponent = actionClient
     .schema(stepComponentSchema)
@@ -57,6 +58,10 @@ export const saveStepComponent = actionClient
             componentId: component.id,
             componentUid: component.uid,
             routing: true,
+        });
+        await queueDykeStepToInventorySync({
+            stepId,
+            source: "event",
         });
         return (
             await getStepComponents(

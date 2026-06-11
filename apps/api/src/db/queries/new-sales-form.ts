@@ -52,7 +52,7 @@ import {
   readLegacySalesFormMeta,
 } from "@gnd/sales/sales-form";
 import { generateSalesSlug } from "@gnd/sales/utils";
-import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
+import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -440,27 +440,6 @@ function mergeGroupedLineMeta(
     );
   }
   return merged;
-}
-
-function supportsInventorySync(
-  db: unknown,
-): db is Parameters<typeof syncSalesInventoryLineItems>[0] {
-  const candidate = db as {
-    salesOrders?: { findFirstOrThrow?: unknown };
-    lineItem?: {
-      findUnique?: unknown;
-      create?: unknown;
-      update?: unknown;
-      updateMany?: unknown;
-    };
-  } | null;
-  return Boolean(
-    candidate &&
-    typeof candidate.salesOrders?.findFirstOrThrow === "function" &&
-    typeof candidate.lineItem?.findUnique === "function" &&
-    typeof candidate.lineItem?.create === "function" &&
-    typeof candidate.lineItem?.update === "function",
-  );
 }
 
 function deriveNewSalesFormSettings(
@@ -2707,13 +2686,6 @@ async function saveNewSalesFormInternal(
       });
     }
 
-    if (supportsInventorySync(tx)) {
-      await syncSalesInventoryLineItems(tx, {
-        salesOrderId: currentId,
-        source: "new-form",
-      });
-    }
-
     return {
       salesId: currentId,
       slug: order.slug,
@@ -2742,6 +2714,11 @@ export async function saveDraftNewSalesForm(
 ) {
   const payload = saveDraftNewSalesFormSchema.parse(input);
   const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
+  await queueSalesInventoryLineItemsSync({
+    salesOrderId: result.salesId,
+    source: "new-form",
+    triggeredByUserId: ctx.userId ?? null,
+  });
   const isQuote = result.type === "quote";
   await expireCurrentSalesDocumentSnapshots({
     db: ctx.db,
@@ -2776,6 +2753,11 @@ export async function saveFinalNewSalesForm(
 ) {
   const payload = saveFinalNewSalesFormSchema.parse(input);
   const result = await saveNewSalesFormInternal(ctx, payload, "Active");
+  await queueSalesInventoryLineItemsSync({
+    salesOrderId: result.salesId,
+    source: "new-form",
+    triggeredByUserId: ctx.userId ?? null,
+  });
   const isQuote = result.type === "quote";
   await expireCurrentSalesDocumentSnapshots({
     db: ctx.db,

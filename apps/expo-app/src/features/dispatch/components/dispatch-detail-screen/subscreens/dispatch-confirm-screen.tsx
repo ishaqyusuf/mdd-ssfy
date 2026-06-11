@@ -52,7 +52,7 @@ export function DispatchConfirmScreen({
   return (
     <View className="absolute inset-0 z-50 bg-background">
       <View>
-        <View className="border-b border-border bg-card/90 px-4 py-3">
+        <View className="bg-background px-4 py-3">
           <View className="flex-row items-center">
             <Pressable
               onPress={onClose}

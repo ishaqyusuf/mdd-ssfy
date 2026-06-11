@@ -4,6 +4,7 @@ import { ComponentPrice, DykeStepForm, prisma, Prisma } from "@/db";
 import { DykeFormStepMeta, StepComponentMeta, StepMeta } from "../../types";
 import { notDeleted } from "../utils/db-utils";
 import { invalidateSalesWorkflowForStep } from "@api/db/queries/sales-form";
+import { queueDykeStepToInventorySync } from "@gnd/inventory";
 
 export async function getSalesFormStepByIdDta(id) {
     const step = await prisma.dykeSteps.findUnique({
@@ -128,6 +129,16 @@ export async function getStepsForRoutingDta() {
         });
 }
 export async function deleteStepProductsByUidDta(uids: string[]) {
+    const components = await prisma.dykeStepProducts.findMany({
+        where: {
+            uid: {
+                in: uids,
+            },
+        },
+        select: {
+            dykeStepId: true,
+        },
+    });
     await prisma.dykeStepProducts.updateMany({
         where: {
             uid: {
@@ -138,6 +149,17 @@ export async function deleteStepProductsByUidDta(uids: string[]) {
             deletedAt: new Date(),
         },
     });
+    const stepIds = Array.from(
+        new Set(components.map((component) => component.dykeStepId)),
+    ).filter(Boolean);
+    await Promise.all(
+        stepIds.map((stepId) =>
+            queueDykeStepToInventorySync({
+                stepId,
+                source: "event",
+            }),
+        ),
+    );
 }
 export async function getComponentDta(id) {
     return await prisma.dykeStepProducts.findUniqueOrThrow({
@@ -164,6 +186,10 @@ export async function updateStepComponentMetaDta(id, meta) {
     const data = await prisma.dykeStepProducts.update({
         where: { id },
         data: { meta },
+    });
+    await queueDykeStepToInventorySync({
+        stepId: data.dykeStepId,
+        source: "event",
     });
 }
 export async function updateStepMetaDta(id, meta) {

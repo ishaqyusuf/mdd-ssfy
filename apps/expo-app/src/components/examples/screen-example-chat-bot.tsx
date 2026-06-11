@@ -231,7 +231,7 @@ export function JobAdminScreen() {
       <WebStyles />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border bg-background/95 z-10">
+      <View className="flex-row items-center justify-between bg-background px-4 py-3 z-10">
         <View className="flex-row items-center gap-3">
           <View className="bg-primary/10 p-2 rounded-lg">
             <Sparkles size={20} className="text-primary" />

@@ -12,7 +12,7 @@ import { SafeArea } from "../safe-area";
 import { JobAdminNavs } from "./job-admin-navs";
 
 const Header = () => (
-  <View className="flex-row items-center justify-between px-6 py-4 border-b border-border bg-background">
+  <View className="flex-row items-center justify-between bg-background px-6 py-4">
     <View className="flex-row items-center gap-3">
       {/* Avatar: Initials Only */}
       <View className="h-11 w-11 rounded-full bg-muted items-center justify-center border border-border relative">

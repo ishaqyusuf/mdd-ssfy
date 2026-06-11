@@ -79,6 +79,8 @@ const InitialLayout = () => {
   const canAccessDispatchOrDriver =
     currentSection?.isDispatch || currentSection?.isDriver;
   const hasAnySection = sections.length > 0 || isAdmin;
+  const navigationTheme =
+    colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
 
   return (
     <>
@@ -87,7 +89,18 @@ const InitialLayout = () => {
         <StaticRouter />
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
-        <Stack>
+        <Stack
+          screenOptions={{
+            headerShadowVisible: false,
+            headerStyle: {
+              backgroundColor: navigationTheme.colors.background,
+            },
+            headerTintColor: navigationTheme.colors.text,
+            headerTitleStyle: {
+              color: navigationTheme.colors.text,
+            },
+          }}
+        >
           <Stack.Protected guard={!token}>
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           </Stack.Protected>

@@ -71,7 +71,7 @@ export function PackingSlipScreen({
 }: Props) {
   return (
     <View className="absolute inset-0 z-40 bg-background">
-      <View className="border-b border-border bg-card px-4 pb-3">
+      <View className="bg-background px-4 pb-3">
         <View className="flex-row items-center justify-between">
           <Pressable
             onPress={onClose}

@@ -727,6 +727,7 @@
       "dependencies": {
         "@gnd/db": "workspace:*",
         "@gnd/utils": "workspace:*",
+        "@trigger.dev/sdk": "3.3.17",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -833,6 +834,7 @@
         "@gnd/ui": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@react-pdf/renderer": "^4.3.0",
+        "@trigger.dev/sdk": "3.3.17",
         "date-fns": "^4.1.0",
         "jose": "^6.0.11",
         "lodash": "^4.17.21",

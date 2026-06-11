@@ -88,7 +88,7 @@ export default function SettingsExampleScreen({
 	return (
 		<View className="flex-1 bg-background">
 			{/* Header */}
-			<View className="flex-row items-center justify-between px-4 pt-14 pb-4 border-b border-border bg-background">
+			<View className="flex-row items-center justify-between bg-background px-4 pb-4 pt-14">
 				<BackBtn />
 
 				<Text className="text-lg font-bold text-foreground">Settings</Text>

@@ -167,7 +167,7 @@ export default function DocumentsScreen() {
 
 	return (
 		<View className="flex-1 bg-background">
-			<View className="border-b border-border bg-background px-4 pb-4 pt-14">
+			<View className="bg-background px-4 pb-4 pt-14">
 				<View className="flex-row items-center justify-between">
 					<BackBtn />
 					<Text className="text-lg font-bold text-foreground">Documents</Text>
