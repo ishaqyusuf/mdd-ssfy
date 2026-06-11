@@ -1,5 +1,9 @@
 import { Icon } from "@/components/ui/icon";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const ISSUE_REPORT_KEYBOARD_BOTTOM_OFFSET = 128;
+const ISSUE_REPORT_FOOTER_PADDING = 152;
 
 type IssueReason = {
   key: string;
@@ -55,13 +59,17 @@ export function IssueReportScreen({
         </View>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={ISSUE_REPORT_KEYBOARD_BOTTOM_OFFSET}
+        disableScrollOnKeyboardHide
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 24,
-          paddingBottom: 112,
+          paddingBottom: ISSUE_REPORT_FOOTER_PADDING,
         }}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
       >
         <View className="mb-6">
           <Text className="text-sm text-muted-foreground">
@@ -141,7 +149,7 @@ export function IssueReportScreen({
             textAlignVertical="top"
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View
         style={{

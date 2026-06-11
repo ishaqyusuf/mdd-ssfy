@@ -1,11 +1,13 @@
 import { Icon } from "@/components/ui/icon";
+import { BottomSheetKeyboardAwareScrollView } from "@/components/ui/bottom-sheet-keyboard-aware-scroll-view";
 import { Modal as SheetModal } from "@/components/ui/modal";
 import { resolveItemImage } from "../lib/resolve-item-image";
 import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Image } from "expo-image";
 import type { RefObject } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
+
+const SALES_REQUEST_PACKING_KEYBOARD_BOTTOM_OFFSET = 96;
 
 type UnpackableItem = {
   uid: string;
@@ -70,7 +72,12 @@ export function SalesRequestPackingModal({
       onDismiss={onDismiss}
     >
       <View className="flex-1">
-        <BottomSheetScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+        <BottomSheetKeyboardAwareScrollView
+          bottomOffset={SALES_REQUEST_PACKING_KEYBOARD_BOTTOM_OFFSET}
+          disableScrollOnKeyboardHide
+          contentContainerStyle={{ padding: 16, paddingBottom: 112 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <View className="rounded-2xl border border-border bg-card p-4">
             <Text className="text-base font-semibold leading-6 text-foreground">
               Confirm the items currently available for packing.
@@ -235,7 +242,7 @@ export function SalesRequestPackingModal({
               );
             })}
           </View>
-        </BottomSheetScrollView>
+        </BottomSheetKeyboardAwareScrollView>
 
         <View className="border-t border-border bg-background px-4 pb-4 pt-3">
           <Text className="mb-2 text-sm text-muted-foreground">

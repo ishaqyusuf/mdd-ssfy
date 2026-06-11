@@ -1,6 +1,10 @@
 import { Icon } from "@/components/ui/icon";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const CREATE_DELIVERY_KEYBOARD_BOTTOM_OFFSET = 96;
+const CREATE_DELIVERY_FOOTER_PADDING = 136;
 
 type Driver = {
   id: number;
@@ -73,14 +77,18 @@ export function CreateDeliveryStack({
         </View>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={CREATE_DELIVERY_KEYBOARD_BOTTOM_OFFSET}
+        disableScrollOnKeyboardHide
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 16,
-          paddingBottom: 112,
+          paddingBottom: CREATE_DELIVERY_FOOTER_PADDING,
         }}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
       >
         <Text className="mb-2 text-xs font-semibold text-muted-foreground">
           Delivery Mode
@@ -195,7 +203,7 @@ export function CreateDeliveryStack({
             })}
           </View>
         </ScrollView>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-background px-4 pb-5 pt-3">
         <View className="flex-row gap-2">

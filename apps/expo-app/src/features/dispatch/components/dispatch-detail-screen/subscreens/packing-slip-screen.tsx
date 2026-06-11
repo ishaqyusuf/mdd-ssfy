@@ -4,7 +4,11 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { getPackTargetQty } from "../lib/packing-qty";
 import { resolveItemImage } from "../lib/resolve-item-image";
 import { Image } from "expo-image";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const PACKING_SLIP_KEYBOARD_BOTTOM_OFFSET = 132;
+const PACKING_SLIP_FOOTER_PADDING = 176;
 
 type Props = {
   insetsBottom: number;
@@ -84,15 +88,18 @@ export function PackingSlipScreen({
         </View>
       </View>
 
-      <ScrollView
+      <KeyboardAwareScrollView
+        bottomOffset={PACKING_SLIP_KEYBOARD_BOTTOM_OFFSET}
+        disableScrollOnKeyboardHide
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingHorizontal: 16,
           paddingTop: 16,
-          paddingBottom: 176,
+          paddingBottom: PACKING_SLIP_FOOTER_PADDING,
         }}
         nestedScrollEnabled
         showsVerticalScrollIndicator
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       >
         <View className="mb-5 rounded-2xl border border-primary/15 bg-primary/5 p-4">
@@ -378,7 +385,7 @@ export function PackingSlipScreen({
             </View>
           );
         })}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <BlurView
         intensity={90}

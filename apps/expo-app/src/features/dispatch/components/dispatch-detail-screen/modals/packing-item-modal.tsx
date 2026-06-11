@@ -1,9 +1,11 @@
 import { DispatchPackingForm } from "../../dispatch-packing-form";
 import { DispatchPackingHistory } from "../../dispatch-packing-history";
+import { BottomSheetKeyboardAwareScrollView } from "@/components/ui/bottom-sheet-keyboard-aware-scroll-view";
 import { Modal as SheetModal } from "@/components/ui/modal";
 import { Toast } from "@/components/ui/toast";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Text } from "react-native";
+
+const PACKING_ITEM_KEYBOARD_BOTTOM_OFFSET = 96;
 
 type Props = {
   modalRef: any;
@@ -39,8 +41,11 @@ export function PackingItemModal({
       snapPoints={snapPoints}
       onDismiss={onDismiss}
     >
-      <BottomSheetScrollView
+      <BottomSheetKeyboardAwareScrollView
+        bottomOffset={PACKING_ITEM_KEYBOARD_BOTTOM_OFFSET}
+        disableScrollOnKeyboardHide
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        keyboardShouldPersistTaps="handled"
       >
         {!!selectedItem && (
           <>
@@ -76,7 +81,7 @@ export function PackingItemModal({
             <DispatchPackingHistory history={selectedItem.packingHistory || []} />
           </>
         )}
-      </BottomSheetScrollView>
+      </BottomSheetKeyboardAwareScrollView>
     </SheetModal>
   );
 }

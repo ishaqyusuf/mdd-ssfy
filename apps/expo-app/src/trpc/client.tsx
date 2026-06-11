@@ -38,7 +38,6 @@ export function TRPCReactProvider(
   }>,
 ) {
   const queryClient = getQueryClient();
-  console.log("base url", getBaseUrl());
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
       links: [

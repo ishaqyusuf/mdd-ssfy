@@ -7,6 +7,29 @@ const getPortlessAppPort = () =>
   process.env.PORTLESS_APP_PORT ??
   DEFAULT_PORTLESS_APP_PORT;
 
+const getDebuggerHostname = () => {
+  const debuggerHost = Constants.expoConfig?.hostUri;
+  return debuggerHost?.split(":")[0] ?? null;
+};
+
+const localHostnames = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
+
+const resolveReachableLocalUrl = (value: string) => {
+  const trimmed = value.replace(/\/$/, "");
+  const debuggerHostname = getDebuggerHostname();
+  if (!debuggerHostname) return trimmed;
+
+  try {
+    const url = new URL(trimmed);
+    if (!localHostnames.has(url.hostname)) return trimmed;
+
+    url.hostname = debuggerHostname;
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return trimmed;
+  }
+};
+
 /**
  * Extend this function when going to production by
  * setting the baseUrl to your production API URL.
@@ -24,8 +47,7 @@ export const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_APP_VARIANT === "preview")
     return process.env.EXPO_PUBLIC_BASE_URL;
 
-  const debuggerHost = Constants.expoConfig?.hostUri;
-  const localhost = debuggerHost?.split(":")[0];
+  const localhost = getDebuggerHostname();
 
   if (!localhost) {
     // return "https://turbo.t3.gg";
@@ -38,7 +60,7 @@ export const getBaseUrl = () => {
 };
 export const getWebUrl = () => {
   if (process.env.EXPO_PUBLIC_WEB_URL) {
-    return process.env.EXPO_PUBLIC_WEB_URL.replace(/\/$/, "");
+    return resolveReachableLocalUrl(process.env.EXPO_PUBLIC_WEB_URL);
   }
 
   if (
@@ -48,8 +70,7 @@ export const getWebUrl = () => {
     return process.env.EXPO_PUBLIC_BASE_URL.replace(/\/$/, "");
   }
 
-  const debuggerHost = Constants.expoConfig?.hostUri;
-  const localhost = debuggerHost?.split(":")[0];
+  const localhost = getDebuggerHostname();
 
   if (!localhost) {
     // return "https://turbo.t3.gg";

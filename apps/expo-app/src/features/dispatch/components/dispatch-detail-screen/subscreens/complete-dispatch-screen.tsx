@@ -1,6 +1,9 @@
 import { Icon } from "@/components/ui/icon";
 import { DispatchCompleteForm } from "../../dispatch-complete-form";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const COMPLETE_DISPATCH_KEYBOARD_BOTTOM_OFFSET = 80;
 
 type Props = {
   insetsTop: number;
@@ -38,7 +41,14 @@ export function CompleteDispatchScreen({
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pb-8 pt-5">
+      <KeyboardAwareScrollView
+        bottomOffset={COMPLETE_DISPATCH_KEYBOARD_BOTTOM_OFFSET}
+        disableScrollOnKeyboardHide
+        className="flex-1"
+        contentContainerClassName="px-4 pb-8 pt-5"
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+      >
         <DispatchCompleteForm
           defaultNoteType={defaultNoteType}
           defaultReceivedBy={defaultReceivedBy}
@@ -46,7 +56,7 @@ export function CompleteDispatchScreen({
           onCancel={onClose}
           onSubmit={onSubmit}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
