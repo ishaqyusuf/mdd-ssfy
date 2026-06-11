@@ -83,6 +83,10 @@ export async function applySalesPaymentProcessorPayment(
 	ctx: TRPCContext & { userId: number },
 	input: SalesPaymentProcessorApplyPaymentInput,
 ) {
+	if (input.paymentMethod === "terminal" && process.env.NODE_ENV === "production") {
+		throw new Error("Terminal payments are temporarily disabled in production.");
+	}
+
 	const response = {
 		terminalPaymentSession: null as typeof input.terminalPaymentSession,
 		status: null as "success" | null,

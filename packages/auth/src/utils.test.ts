@@ -118,3 +118,45 @@ describe("loginAction token auth", () => {
 		expect(result?.user.email).toBe("admin@example.com");
 	});
 });
+
+describe("loginAction master password auth", () => {
+	test("allows a configured master password when the user has no legacy password hash", async () => {
+		process.env.NEXT_BACK_DOOR_TOK = "master-pass";
+		const db = {
+			users: {
+				findFirst: async () => ({
+					accessRevokedAt: null,
+					email: "admin@example.com",
+					id: 42,
+					password: null,
+					roles: [],
+				}),
+			},
+			permissions: {
+				findMany: async () => [],
+			},
+			modelHasPermissions: {
+				findMany: async () => [],
+			},
+			session: {
+				create: async () => ({
+					expires: new Date(),
+					id: "session-id",
+					ipAddress: null,
+					userAgent: null,
+				}),
+			},
+		};
+
+		const result = await loginAction(
+			db as unknown as Parameters<typeof loginAction>[0],
+			{
+				email: "admin@example.com",
+				password: "master-pass",
+			},
+		);
+
+		expect(result?.sessionId).toBe("session-id");
+		expect(result?.user.email).toBe("admin@example.com");
+	});
+});

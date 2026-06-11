@@ -152,6 +152,11 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			accountNo,
 		}),
 	);
+	const terminalPaymentsEnabled =
+		data?.terminalPaymentsEnabled !== false && process.env.NODE_ENV !== "production";
+	const availableSalesPaymentMethods = salesPaymentMethods.filter(
+		(method) => terminalPaymentsEnabled || method.value !== "terminal",
+	);
 	const form = useZodForm(formSchema, {
 		defaultValues: {},
 	});
@@ -181,7 +186,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	useEffect(() => {
 		console.log(data.error);
 
-		if (data.error.terminal) {
+		if (terminalPaymentsEnabled && data.error.terminal) {
 			toast({
 				title: "Unable to load PoS",
 				variant: "destructive",
@@ -204,6 +209,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		const formResetKey = [
 			accountNo,
 			data?.lastTerminalId ?? "",
+			data?.recentPaymentMethod ?? "",
+			terminalPaymentsEnabled ? "terminal:on" : "terminal:off",
 			selectedIdsKey,
 			pendingSalesResetKey,
 		].join("|");
@@ -214,10 +221,14 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		const paymentMethod = resolveDefaultPaymentMethod(
 			data.pendingSales,
 			selectedIds,
+			{
+				recentPaymentMethod: data.recentPaymentMethod,
+				terminalEnabled: terminalPaymentsEnabled,
+			},
 		);
 
 		form.reset({
-			deviceId: data?.lastTerminalId,
+			deviceId: terminalPaymentsEnabled ? data?.lastTerminalId : undefined,
 			terminalPaymentSession: null,
 			notifyCustomer: false,
 			useWallet: false,
@@ -241,6 +252,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		refetch,
 		selectedIds,
 		selectedIdsKey,
+		terminalPaymentsEnabled,
 	]);
 	const { fields: salesFields, update: updateSalesField } = useFieldArray({
 		control: form.control,
@@ -1230,7 +1242,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 															<Select.Value placeholder="Payment Method" />
 														</Select.Trigger>
 														<Select.Content>
-															{salesPaymentMethods.map((s) => (
+															{availableSalesPaymentMethods.map((s) => (
 																<Select.Item key={s.value} value={s.value}>
 																	{s.label}
 																</Select.Item>

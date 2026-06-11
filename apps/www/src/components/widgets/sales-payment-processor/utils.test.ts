@@ -31,7 +31,7 @@ describe("sales payment processor utils", () => {
 		).toBe("credit-card");
 	});
 
-	it("defaults to credit card when the selected sale has no payment method", () => {
+	it("uses another order payment method when the selected sale has none", () => {
 		expect(
 			resolveDefaultPaymentMethod(
 				[
@@ -40,13 +40,37 @@ describe("sales payment processor utils", () => {
 				],
 				[2],
 			),
-		).toBe("credit-card");
+		).toBe("check");
 	});
 
-	it("defaults to credit card when no order payment method exists", () => {
+	it("uses the recent customer payment method when no order payment method exists", () => {
+		expect(
+			resolveDefaultPaymentMethod([{ id: 1, paymentMethod: null }], [1], {
+				recentPaymentMethod: "Check",
+			}),
+		).toBe("check");
+	});
+
+	it("defaults to credit card when no order or recent payment method exists", () => {
 		expect(
 			resolveDefaultPaymentMethod([{ id: 1, paymentMethod: null }], [1]),
 		).toBe("credit-card");
+	});
+
+	it("skips terminal defaults when terminal payments are disabled", () => {
+		expect(
+			resolveDefaultPaymentMethod(
+				[
+					{ id: 1, paymentMethod: "Terminal Payment" },
+					{ id: 2, paymentMethod: "Cash" },
+				],
+				[1],
+				{
+					recentPaymentMethod: "Terminal Payment",
+					terminalEnabled: false,
+				},
+			),
+		).toBe("cash");
 	});
 
 	it("combines invoice and packing slip print selections into one request", () => {

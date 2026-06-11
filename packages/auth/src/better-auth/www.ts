@@ -49,6 +49,11 @@ export type WebAppSession = {
   rememberMe?: boolean;
 };
 
+export type WebMobileAuthSession = WebAppSession & {
+  sessionId: string;
+  token: string;
+};
+
 export type WebNewDeviceLoginAlertInput = {
   sessionId: string;
   userId: number;
@@ -173,6 +178,15 @@ function getWebGoogleProvider() {
 
 function normalizeRememberMe(value: unknown) {
   return value === true || value === "true" || value === "on";
+}
+
+function getBearerToken(headers?: Headers | null) {
+  const authorization = headers?.get("authorization") ?? "";
+  const [scheme, token] = authorization.split(" ");
+
+  if (scheme?.toLowerCase() !== "bearer" || !token) return null;
+
+  return token;
 }
 
 function normalizeEmail(value: string) {
@@ -498,6 +512,20 @@ function auditWebMasterPasswordSignIn(input: {
   });
 }
 
+export function toMobileAuthSession(
+  token: string,
+  session: WebAppSession,
+): WebMobileAuthSession | null {
+  const sessionId = session.activeSession?.id;
+  if (!sessionId) return null;
+
+  return {
+    ...session,
+    sessionId,
+    token,
+  };
+}
+
 async function buildPermissions(user: Users & { roles: Array<any> }) {
   const _role = user.roles[0]?.role;
   const rolePermissions = await db.permissions.findMany({
@@ -694,6 +722,177 @@ function webCredentialsPlugin(): BetterAuthPlugin {
             url: ctx.body.callbackURL,
             user: parseUserOutput(ctx.context.options, authUser),
           });
+        },
+      ),
+      webMobileSignIn: createAuthEndpoint(
+        "/www-mobile-sign-in",
+        {
+          method: "POST",
+          body: z.object({
+            callbackURL: z.string().optional(),
+            email: z.string().email().optional(),
+            password: z.string().optional(),
+            rememberMe: z.union([z.boolean(), z.string()]).optional(),
+            token: z.string().optional(),
+          }),
+        },
+        async (ctx) => {
+          const legacyLogin = await findLegacyUser(ctx.body);
+          if (!legacyLogin) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Invalid email or password.",
+            });
+          }
+
+          const { tokenAuthenticated, user } = legacyLogin;
+          const authUser = await upsertWebAuthUser(user);
+          const credentialAccount = await findCredentialAccount(authUser.id);
+          const password =
+            typeof ctx.body.password === "string" ? ctx.body.password : "";
+          const authDecision = await resolveWebLegacyCredentialSignIn({
+            authUserId: authUser.id,
+            callbackURL: ctx.body.callbackURL,
+            clearLegacyPassword: (legacyUserId) =>
+              db.users.update({
+                where: { id: legacyUserId },
+                data: { password: null },
+              }),
+            createPasswordMigrationToken,
+            credentialAccount,
+            ensureCredentialAccount,
+            legacyPasswordHash: user.password,
+            legacyUserId: user.id,
+            password,
+            tokenAuthenticated,
+            verifyCredentialPassword: (input) =>
+              ctx.context.password.verify(input),
+          });
+
+          if (authDecision.requiresPasswordMigration) {
+            return ctx.json({
+              redirect: false,
+              requiresPasswordMigration: true,
+              url: authDecision.url,
+            });
+          }
+
+          if (!authDecision.authenticated) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Invalid email or password.",
+            });
+          }
+
+          const previousSessions = await db.webAuthSession.findMany({
+            where: { userId: authUser.id },
+            select: {
+              id: true,
+              userAgent: true,
+            },
+          });
+          const shouldSendNewDeviceAlert = isNewLoginDevice(
+            ctx.headers?.get("user-agent") ?? null,
+            previousSessions,
+          );
+          const rememberMe = normalizeRememberMe(ctx.body.rememberMe);
+          const session = await ctx.context.internalAdapter.createSession(
+            authUser.id,
+            !rememberMe,
+          );
+
+          if (!session) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Failed to create session.",
+            });
+          }
+
+          const loginAt = new Date().toISOString();
+
+          if (authDecision.masterPasswordAuthenticated) {
+            auditWebMasterPasswordSignIn({
+              sessionId: session.id,
+              userId: user.id,
+              accountEmail: user.email,
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+            });
+
+            runWebMasterPasswordLoginAlert({
+              sessionId: session.id,
+              userId: user.id,
+              accountName: user.name,
+              accountEmail: user.email,
+              appSurface: "www",
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+              loginAt,
+            });
+          } else if (shouldSendNewDeviceAlert) {
+            const device = normalizeLoginDevice(session.userAgent);
+            runWebNewDeviceLoginAlert({
+              sessionId: session.id,
+              userId: user.id,
+              accountName: user.name,
+              accountEmail: user.email,
+              appSurface: "www",
+              deviceLabel: device.label,
+              deviceKey: device.key,
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+              loginAt,
+            });
+          }
+
+          const appSession = await buildWebAppSession({
+            session,
+            user: authUser,
+          } as WebAuthSession);
+          const mobileSession = appSession
+            ? toMobileAuthSession(session.token, appSession)
+            : null;
+
+          if (!mobileSession) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Failed to create session.",
+            });
+          }
+
+          return ctx.json(mobileSession);
+        },
+      ),
+      webMobileSession: createAuthEndpoint(
+        "/www-mobile-session",
+        {
+          method: "GET",
+        },
+        async (ctx) => {
+          const token = getBearerToken(ctx.headers);
+          const session = token
+            ? await buildWebAppSessionByToken(token)
+            : null;
+
+          if (!session) {
+            throw new APIError("UNAUTHORIZED", {
+              message: "Invalid session.",
+            });
+          }
+
+          return ctx.json(session);
+        },
+      ),
+      webMobileSignOut: createAuthEndpoint(
+        "/www-mobile-sign-out",
+        {
+          method: "POST",
+        },
+        async (ctx) => {
+          const token = getBearerToken(ctx.headers);
+          if (token) {
+            await db.webAuthSession.deleteMany({
+              where: { token },
+            });
+          }
+
+          return ctx.json({ status: true });
         },
       ),
       webCompletePasswordMigration: createAuthEndpoint(
@@ -1006,6 +1205,33 @@ export async function getWebAuthSession(headers: Headers) {
   });
 
   return buildWebAppSession(authSession);
+}
+
+export async function buildWebAppSessionByToken(
+  token: string,
+): Promise<WebMobileAuthSession | null> {
+  const session = await db.webAuthSession.findUnique({
+    where: { token },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!session) return null;
+
+  if (session.expiresAt.getTime() <= Date.now()) {
+    await db.webAuthSession.deleteMany({
+      where: { id: session.id },
+    });
+    return null;
+  }
+
+  const appSession = await buildWebAppSession({
+    session,
+    user: session.user,
+  } as WebAuthSession);
+
+  return appSession ? toMobileAuthSession(token, appSession) : null;
 }
 
 export async function buildWebAppSession(

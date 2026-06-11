@@ -6,8 +6,8 @@
     "clean": "rm -rf .turbo node_modules",
     "with-env": "dotenv -o -e ../../.env.local -e .env.local --",
     "with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --",
-    "dev": "bun run with-env trigger dev",
-    "deploy": "bun run prisma.ts && bun run with-env:prod trigger deploy",
+    "dev": "bun run with-env bun ../../scripts/with-trigger-profile.mjs -- trigger dev",
+    "deploy": "bun run prisma.ts && bun run with-env:prod bun ../../scripts/with-trigger-profile.mjs -- trigger deploy",
     "typecheck": "tsc --noEmit"
   },
   "exports": {

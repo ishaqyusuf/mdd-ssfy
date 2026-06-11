@@ -16,6 +16,8 @@ import {
 export function SalesDashboardScreen() {
   const router = useRouter();
   const auth = useAuthContext();
+  const isSuperAdmin =
+    auth.profile?.role?.name?.toLocaleLowerCase() === "super admin";
   const { data, isPending, refetch, isRefetching } = useSalesDashboardOverview();
 
   return (
@@ -67,35 +69,37 @@ export function SalesDashboardScreen() {
               </View>
 
               <View className="gap-3">
-                <Pressable
-                  onPress={() => router.push("/(sales)/invoices/new" as any)}
-                  className="rounded-2xl border border-primary/30 bg-primary/5 p-4 active:opacity-80"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-3">
-                      <View className="rounded-full bg-primary p-2">
-                        <Icon
-                          name="ReceiptText"
-                          className="text-primary-foreground"
-                          size={18}
-                        />
+                {isSuperAdmin ? (
+                  <Pressable
+                    onPress={() => router.push("/(sales)/invoices/new" as any)}
+                    className="rounded-2xl border border-primary/30 bg-primary/5 p-4 active:opacity-80"
+                  >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center gap-3">
+                        <View className="rounded-full bg-primary p-2">
+                          <Icon
+                            name="ReceiptText"
+                            className="text-primary-foreground"
+                            size={18}
+                          />
+                        </View>
+                        <View>
+                          <Text className="text-base font-semibold text-foreground">
+                            New Invoice
+                          </Text>
+                          <Text className="text-xs text-muted-foreground">
+                            Create using the new sales form flow
+                          </Text>
+                        </View>
                       </View>
-                      <View>
-                        <Text className="text-base font-semibold text-foreground">
-                          New Invoice
-                        </Text>
-                        <Text className="text-xs text-muted-foreground">
-                          Create using the new sales form flow
-                        </Text>
-                      </View>
+                      <Icon
+                        name="ChevronRight"
+                        className="text-muted-foreground"
+                        size={20}
+                      />
                     </View>
-                    <Icon
-                      name="ChevronRight"
-                      className="text-muted-foreground"
-                      size={20}
-                    />
-                  </View>
-                </Pressable>
+                  </Pressable>
+                ) : null}
 
                 <Pressable
                   onPress={() => router.push("/(sales)/orders" as any)}

@@ -24,10 +24,15 @@ export const useCreateHomeContext = (props: Props) => {
   const profile = getSessionProfile();
   const jobsCtx = useCreateJobsContext(props.jobsProps);
   const { data, isPending, isRefetching, refetch } = useQuery(
-    _trpc.jobs.getJobs.queryOptions({
-      size: 5,
-      userId: profile.user.id,
-    })
+    _trpc.jobs.getJobs.queryOptions(
+      {
+        size: 5,
+        userId: profile?.user?.id,
+      },
+      {
+        enabled: !!profile?.user?.id,
+      },
+    ),
   );
   return {
     // recentJobs: data?.data || [],

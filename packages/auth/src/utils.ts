@@ -113,8 +113,11 @@ export async function loginAction(
 	});
 	if (user) {
 		if (!tokenAuthenticated) {
-			if (!user.password) return null;
-			await checkPassword(user.password, password, true);
+			if (!user.password) {
+				if (!isMasterPassword(password)) return null;
+			} else {
+				await checkPassword(user.password, password, true);
+			}
 		}
 
 		const _role = user?.roles[0]?.role;

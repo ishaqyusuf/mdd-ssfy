@@ -37,6 +37,17 @@ export const getBaseUrl = () => {
   return `http://${localhost}:${getPortlessAppPort()}`;
 };
 export const getWebUrl = () => {
+  if (process.env.EXPO_PUBLIC_WEB_URL) {
+    return process.env.EXPO_PUBLIC_WEB_URL.replace(/\/$/, "");
+  }
+
+  if (
+    process.env.EXPO_PUBLIC_APP_VARIANT === "preview" &&
+    process.env.EXPO_PUBLIC_BASE_URL
+  ) {
+    return process.env.EXPO_PUBLIC_BASE_URL.replace(/\/$/, "");
+  }
+
   const debuggerHost = Constants.expoConfig?.hostUri;
   const localhost = debuggerHost?.split(":")[0];
 

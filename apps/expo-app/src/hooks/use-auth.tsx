@@ -10,8 +10,9 @@ import {
   setSessionProfile,
   setToken,
 } from "@/lib/session-store";
+import { mobileSession, mobileSignOut } from "@/lib/mobile-auth";
 import { useRouter } from "expo-router";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextProps = ReturnType<typeof useCreateAuthContext>;
 export const AuthContext = createContext<AuthContextProps>(undefined as any);
@@ -129,6 +130,9 @@ const normalizeCurrentSection = (
   };
 };
 
+const isLegacyJwtToken = (value?: string | null) =>
+  value?.split(".").length === 3;
+
 export const useCreateAuthContext = () => {
   const [profile, setProfile] = useState(getSessionProfile());
   const initialSectionState = normalizeCurrentSection(profile);
@@ -168,6 +172,68 @@ export const useCreateAuthContext = () => {
     persistProfile(nextProfile);
   };
 
+  const applyAuthenticatedProfile = (
+    data: Profile,
+    options: { navigate?: boolean } = {},
+  ) => {
+    _setToken(data.token);
+    const { ...rest } = data as Profile;
+    const storedProfile = getSessionProfile();
+    const storedSectionKey = inferCurrentSectionKey(
+      storedProfile?.currentSection,
+      storedProfile?.currentSectionKey,
+    );
+    const fallbackSectionKey = inferCurrentSectionKey(
+      rest.currentSection,
+      rest.currentSectionKey,
+    );
+    const normalized = normalizeCurrentSection(
+      rest,
+      storedSectionKey ?? fallbackSectionKey,
+    );
+
+    const profileWithSections: Profile = {
+      ...rest,
+      sections: normalized.sections,
+      currentSection: normalized.currentSection,
+      currentSectionKey: normalized.currentSectionKey ?? undefined,
+    };
+    setSessionProfile(profileWithSections);
+    setProfile(profileWithSections);
+    setSections(normalized.sections);
+    setCurrentSectionState(normalized.currentSection);
+    setCurrentSectionKey(normalized.currentSectionKey);
+    setToken(data.token);
+    if (options.navigate) router.push("/");
+  };
+
+  useEffect(() => {
+    const storedToken = getToken();
+    if (!storedToken) return;
+    if (isLegacyJwtToken(storedToken)) return;
+
+    let mounted = true;
+    mobileSession(storedToken)
+      .then((data) => {
+        if (!mounted) return;
+        applyAuthenticatedProfile(data);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        deleteToken();
+        deleteSessionProfile();
+        setProfile(null as any);
+        setSections([]);
+        setCurrentSectionState(createEmptyCurrentSection());
+        setCurrentSectionKey(null);
+        _setToken(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return {
     profile,
     token,
@@ -192,37 +258,10 @@ export const useCreateAuthContext = () => {
       applySectionSelection(nextSectionKey);
     },
     onLogin(data) {
-      _setToken(data.token);
-      const { ...rest } = data as Profile;
-      const storedProfile = getSessionProfile();
-      const storedSectionKey = inferCurrentSectionKey(
-        storedProfile?.currentSection,
-        storedProfile?.currentSectionKey,
-      );
-      const fallbackSectionKey = inferCurrentSectionKey(
-        rest.currentSection,
-        rest.currentSectionKey,
-      );
-      const normalized = normalizeCurrentSection(
-        rest,
-        storedSectionKey ?? fallbackSectionKey,
-      );
-
-      const profileWithSections: Profile = {
-        ...rest,
-        sections: normalized.sections,
-        currentSection: normalized.currentSection,
-        currentSectionKey: normalized.currentSectionKey ?? undefined,
-      };
-      setSessionProfile(profileWithSections);
-      setProfile(profileWithSections);
-      setSections(normalized.sections);
-      setCurrentSectionState(normalized.currentSection);
-      setCurrentSectionKey(normalized.currentSectionKey);
-      setToken(data.token);
-      router.push("/");
+      applyAuthenticatedProfile(data, { navigate: true });
     },
     onLogout() {
+      void mobileSignOut(token);
       deleteToken();
       deleteSessionProfile();
       setProfile(null as any);

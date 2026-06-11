@@ -4,7 +4,7 @@ import { Modal, useModal } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo, useState } from "react";
-import { PanResponder, Pressable, View } from "react-native";
+import { PanResponder, Pressable, TextInput, View } from "react-native";
 import { createDefaultLineItems } from "../mock-data";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type { NewSalesFormLineItem } from "../types";
@@ -12,13 +12,19 @@ import { WorkflowStepSelector } from "./workflow-step-selector";
 
 export function ItemsStep() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const { ref: itemsSheetRef, present: presentItemsSheet, dismiss: dismissItemsSheet } =
-    useModal();
+  const {
+    ref: itemsSheetRef,
+    present: presentItemsSheet,
+    dismiss: dismissItemsSheet,
+  } = useModal();
   const lineItems = useInvoiceFormStore((state) => state.lineItems);
   const salesId = useInvoiceFormStore((state) => state.salesId);
   const slug = useInvoiceFormStore((state) => state.slug);
   const actions = useInvoiceFormStore((state) => state.actions);
-  const itemSections = useMemo(() => buildInvoiceItemSections(lineItems), [lineItems]);
+  const itemSections = useMemo(
+    () => buildInvoiceItemSections(lineItems),
+    [lineItems],
+  );
   const activeSection = itemSections[activeIndex] || null;
   const activeWorkflowLine =
     activeSection?.lines.find((line) => isWorkflowSectionLine(line)) || null;
@@ -28,6 +34,11 @@ export function ItemsStep() {
     return createDefaultLineItems()[0] || null;
   }, [lineItems, salesId, slug]);
   const visibleWorkflowLine = activeWorkflowLine || defaultCreateWorkflowLine;
+  const invoiceDescriptionLine =
+    visibleWorkflowLine || activeSection?.lines[0] || null;
+  const invoiceDescriptionValue = normalizeInvoiceItemDescription(
+    invoiceDescriptionLine?.description,
+  );
   const hasMultipleItems = itemSections.length > 1;
   const canGoPrevious = hasMultipleItems && activeIndex > 0;
   const canGoNext = hasMultipleItems && activeIndex < itemSections.length - 1;
@@ -41,7 +52,9 @@ export function ItemsStep() {
   }, [itemSections.length]);
 
   useEffect(() => {
-    const firstWorkflowIndex = itemSections.findIndex((section) => section.hasWorkflow);
+    const firstWorkflowIndex = itemSections.findIndex(
+      (section) => section.hasWorkflow,
+    );
     if (firstWorkflowIndex < 0) return;
     if (itemSections[activeIndex]?.hasWorkflow) return;
     setActiveIndex(firstWorkflowIndex);
@@ -62,9 +75,7 @@ export function ItemsStep() {
 
   const goNext = () => {
     if (!canGoNext) return;
-    setActiveIndex((current) =>
-      Math.min(itemSections.length - 1, current + 1),
-    );
+    setActiveIndex((current) => Math.min(itemSections.length - 1, current + 1));
   };
 
   const panResponder = useMemo(
@@ -104,10 +115,7 @@ export function ItemsStep() {
   return (
     <View className="relative gap-4 pb-20">
       {activeSection || visibleWorkflowLine ? (
-        <View
-          className="relative min-h-[640px]"
-          {...panResponder.panHandlers}
-        >
+        <View className="relative min-h-[640px]" {...panResponder.panHandlers}>
           {hasMultipleItems ? (
             <Pressable
               onPress={goPrevious}
@@ -118,6 +126,33 @@ export function ItemsStep() {
             </Pressable>
           ) : null}
           <View className="w-full">
+            {invoiceDescriptionLine ? (
+              <View className="px-4 pb-2 pt-1">
+                <TextInput
+                  value={invoiceDescriptionValue}
+                  placeholder={`Item ${activeIndex + 1}`}
+                  placeholderTextColor="#8A8A8A"
+                  onChangeText={(description) => {
+                    if (
+                      !lineItems.some(
+                        (line) => line.uid === invoiceDescriptionLine.uid,
+                      )
+                    ) {
+                      actions.addOrUpdateLineItem({
+                        ...invoiceDescriptionLine,
+                        description,
+                      });
+                      return;
+                    }
+                    actions.setLineDescription(
+                      invoiceDescriptionLine.uid,
+                      description,
+                    );
+                  }}
+                  className="min-h-11 border-b border-border px-0 text-base font-semibold text-foreground"
+                />
+              </View>
+            ) : null}
             {visibleWorkflowLine ? (
               <WorkflowStepSelector
                 line={visibleWorkflowLine}
@@ -138,14 +173,21 @@ export function ItemsStep() {
         </View>
       ) : (
         <View className="items-center rounded-2xl border border-dashed border-border bg-card p-8">
-          <Icon name="ReceiptText" className="text-muted-foreground" size={28} />
+          <Icon
+            name="ReceiptText"
+            className="text-muted-foreground"
+            size={28}
+          />
           <Text className="mt-3 text-sm font-bold text-foreground">
             No invoice items yet
           </Text>
           <Text className="mt-1 text-center text-xs text-muted-foreground">
             Add an item to start the invoice.
           </Text>
-          <Button className="mt-4 h-11 rounded-xl px-4" onPress={actions.openSelector}>
+          <Button
+            className="mt-4 h-11 rounded-xl px-4"
+            onPress={actions.openSelector}
+          >
             <Icon name="Plus" className="text-primary-foreground" size={16} />
             <Text>Add item</Text>
           </Button>
@@ -164,7 +206,9 @@ export function ItemsStep() {
         title="Invoice items"
         snapPoints={["65%", "90%"]}
       >
-        <BottomSheetScrollView contentContainerStyle={{ padding: 16, paddingBottom: 96 }}>
+        <BottomSheetScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 96 }}
+        >
           <View className="gap-2">
             {itemSections.map((section, index) => {
               const selected = index === activeIndex;
@@ -186,10 +230,16 @@ export function ItemsStep() {
                     />
                   </View>
                   <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="text-sm font-bold text-foreground">
-                      {section.title || `Section ${index + 1}`}
+                    <Text
+                      numberOfLines={1}
+                      className="text-sm font-bold text-foreground"
+                    >
+                      {getInvoiceItemDisplayTitle(section, index)}
                     </Text>
-                    <Text numberOfLines={1} className="mt-0.5 text-xs text-muted-foreground">
+                    <Text
+                      numberOfLines={1}
+                      className="mt-0.5 text-xs text-muted-foreground"
+                    >
                       Invoice item {index + 1}
                     </Text>
                   </View>
@@ -249,7 +299,8 @@ function buildInvoiceItemSections(
     .map((section) => ({
       ...section,
       hasWorkflow:
-        section.hasWorkflow || section.lines.some((line) => isWorkflowSectionLine(line)),
+        section.hasWorkflow ||
+        section.lines.some((line) => isWorkflowSectionLine(line)),
       total: Number(section.total.toFixed(2)),
     }))
     .sort((a, b) => Number(b.hasWorkflow) - Number(a.hasWorkflow));
@@ -264,7 +315,18 @@ function getInvoiceItemSectionKey(line: NewSalesFormLineItem) {
 function getInvoiceItemSectionTitle(line: NewSalesFormLineItem) {
   const category = String(line.meta?.category || "").trim();
   if (category && !isWorkflowSectionLine(line)) return category;
-  return String(line.title || line.description || "Invoice item");
+  const description = String(line.description || "").trim();
+  if (description) return description;
+  if (isWorkflowSectionLine(line)) return "";
+  return String(line.title || "Invoice item");
+}
+
+function getInvoiceItemDisplayTitle(
+  section: InvoiceItemSection,
+  index: number,
+) {
+  const title = String(section.title || "").trim();
+  return title || `Item ${index + 1}`;
 }
 
 function isWorkflowSectionLine(line: NewSalesFormLineItem) {
@@ -272,4 +334,9 @@ function isWorkflowSectionLine(line: NewSalesFormLineItem) {
     Boolean(line.meta?.workflowComponentUid) ||
     (Array.isArray(line.formSteps) && line.formSteps.length > 0)
   );
+}
+
+function normalizeInvoiceItemDescription(value?: string | null) {
+  const description = String(value || "");
+  return description.trim() === "WF-ITEM" ? "" : description;
 }

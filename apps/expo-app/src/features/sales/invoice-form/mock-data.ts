@@ -65,7 +65,10 @@ export const invoiceMobileWorkflowRouteData: WorkflowRouteData = {
   },
   composedRouter: {
     "workflow-door-package": {
-      routeSequence: [{ uid: "mobile-door-style" }, { uid: "mobile-line-item" }],
+      routeSequence: [
+        { uid: "mobile-door-style" },
+        { uid: "mobile-line-item" },
+      ],
     },
     "workflow-moulding-package": {
       routeSequence: [
@@ -291,7 +294,10 @@ export const invoiceSelectableItems: InvoiceSelectableItem[] = [
   },
 ];
 
-export const invoiceWorkflowStepComponents: Record<string, WorkflowComponentRecord[]> = {
+export const invoiceWorkflowStepComponents: Record<
+  string,
+  WorkflowComponentRecord[]
+> = {
   "mobile-item-type": [
     {
       id: 1101,
@@ -412,7 +418,9 @@ export function createLineItem(
     return createWorkflowLineItem(item, qty, routeData, profileCoefficient);
   }
 
-  const baseUnitPrice = Number(item.basePrice ?? item.unitPrice ?? item.salesPrice ?? 0);
+  const baseUnitPrice = Number(
+    item.basePrice ?? item.unitPrice ?? item.salesPrice ?? 0,
+  );
   const shelfProduct: ShelfProductOption | null = item.productId
     ? {
         id: item.productId,
@@ -559,7 +567,7 @@ function createBlankWorkflowLineItem(): NewSalesFormLineItem {
   return {
     uid: `workflow-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     title: "New Line",
-    description: "WF-ITEM",
+    description: "",
     qty: 1,
     unitPrice: 0,
     lineTotal: 0,

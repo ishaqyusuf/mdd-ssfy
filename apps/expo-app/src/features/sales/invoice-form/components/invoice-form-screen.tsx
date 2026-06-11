@@ -10,12 +10,11 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
-  PanResponder,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   View,
-  type GestureResponderHandlers,
 } from "react-native";
 import { useInvoiceFormActions } from "../api/use-invoice-form-actions";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
@@ -122,12 +121,9 @@ export function InvoiceFormScreen({
   const recordQuery = useInvoiceFormRecord({ mode, slug, type });
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<InvoiceFormRecoverySnapshot | null>(null);
-  const [customerSelectorOpen, setCustomerSelectorOpen] = useState(
-    () => mode === "create",
-  );
-  const [salesDetailsOpen, setSalesDetailsOpen] = useState(false);
   const hydratedVersionRef = useRef<string | null>(null);
   const recoveryReadRef = useRef<string | null>(null);
+  const initialCustomerRouteOpenedRef = useRef(false);
 
   const headerTitle = useMemo(
     () =>
@@ -138,18 +134,6 @@ export function InvoiceFormScreen({
         slug: recoverySlug || slug || null,
       }),
     [orderId, recoverySalesId, recoverySlug, slug, type],
-  );
-
-  const customerSwipeResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) =>
-          gesture.dx < -24 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
-        onPanResponderRelease: (_, gesture) => {
-          if (gesture.dx < -72) router.back();
-        },
-      }),
-    [router],
   );
 
   const recoverySavedAt = useMemo(() => {
@@ -205,10 +189,10 @@ export function InvoiceFormScreen({
   }, [actions, recoveryType, type]);
 
   useEffect(() => {
-    if (mode !== "create") return;
-    if (customerId && customer) return;
-    setCustomerSelectorOpen(true);
-  }, [customer, customerId, mode]);
+    if (mode !== "create" || initialCustomerRouteOpenedRef.current) return;
+    initialCustomerRouteOpenedRef.current = true;
+    router.push("/(sales)/invoices/customer-selector" as any);
+  }, [mode, router]);
 
   useEffect(() => {
     const record = recordQuery.data;
@@ -444,17 +428,18 @@ export function InvoiceFormScreen({
     }
   };
 
-  const handleCustomerSelected = useCallback(() => {
-    setCustomerSelectorOpen(false);
-    actions.setStep("items");
-  }, [actions]);
-
   return (
     <SafeArea>
-      <View className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        className="flex-1 bg-background"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
         <InvoiceFormHeader
           title={headerTitle}
-          onOpenDetails={() => setSalesDetailsOpen(true)}
+          onOpenDetails={() =>
+            router.push("/(sales)/invoices/sales-details" as any)
+          }
         />
         {recordQuery.isPending ? (
           <View className="flex-1 items-center justify-center">
@@ -466,11 +451,13 @@ export function InvoiceFormScreen({
         ) : (
           <ScrollView
             className="flex-1"
+            automaticallyAdjustKeyboardInsets
+            keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{
               paddingHorizontal: 0,
               paddingTop: 4,
-              paddingBottom: 28,
+              paddingBottom: 112,
             }}
           >
             {recoverySnapshot ? (
@@ -525,25 +512,6 @@ export function InvoiceFormScreen({
             onClose={actions.closeWorkflowSelector}
           />
         ) : null}
-        <CustomerSelectorModal
-          visible={customerSelectorOpen}
-          panHandlers={customerSwipeResponder.panHandlers}
-          onClose={() => router.back()}
-          onCustomerSelected={handleCustomerSelected}
-        />
-        <SalesDetailsModal
-          visible={salesDetailsOpen}
-          onClose={() => setSalesDetailsOpen(false)}
-          type={type}
-          customer={customer}
-          meta={recoveryMeta}
-          summary={recoverySummary}
-          orderId={orderId}
-          salesId={recoverySalesId}
-          slug={recoverySlug || slug || null}
-          status={status}
-          saveStatus={saveStatus}
-        />
         {isSaving ? (
           <View className="absolute inset-0 items-center justify-center bg-background/30">
             <View className="items-center gap-2 rounded-2xl border border-border bg-card p-4">
@@ -554,59 +522,47 @@ export function InvoiceFormScreen({
             </View>
           </View>
         ) : null}
+      </KeyboardAvoidingView>
+    </SafeArea>
+  );
+}
+
+export function CustomerSelectorScreen({
+  onClose,
+  onCustomerSelected,
+}: {
+  onClose: () => void;
+  onCustomerSelected: () => void;
+}) {
+  return (
+    <SafeArea>
+      <View className="flex-1 bg-background">
+        <View className="relative h-14 flex-row items-center justify-between px-3">
+          <Pressable
+            onPress={onClose}
+            className="h-11 w-11 items-center justify-center active:opacity-60"
+          >
+            <Icon name="ChevronLeft" className="text-foreground" size={24} />
+          </Pressable>
+          <View className="pointer-events-none absolute inset-x-14 items-center">
+            <Text className="text-base font-semibold text-foreground">
+              Select customer
+            </Text>
+          </View>
+          <View className="h-11 w-11" />
+        </View>
+        <CustomerStep onCustomerSelected={onCustomerSelected} />
+        <View className="px-4 pb-4 pt-3">
+          <Text className="text-center text-xs text-muted-foreground">
+            Customer is required before adding invoice items.
+          </Text>
+        </View>
       </View>
     </SafeArea>
   );
 }
 
-function CustomerSelectorModal({
-  visible,
-  panHandlers,
-  onClose,
-  onCustomerSelected,
-}: {
-  visible: boolean;
-  panHandlers: GestureResponderHandlers;
-  onClose: () => void;
-  onCustomerSelected: () => void;
-}) {
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <SafeArea>
-        <View className="flex-1 bg-background" {...panHandlers}>
-          <View className="relative h-14 flex-row items-center justify-between px-3">
-            <Pressable
-              onPress={onClose}
-              className="h-11 w-11 items-center justify-center active:opacity-60"
-            >
-              <Icon name="ChevronLeft" className="text-foreground" size={24} />
-            </Pressable>
-            <View className="pointer-events-none absolute inset-x-14 items-center">
-              <Text className="text-base font-semibold text-foreground">
-                Select customer
-              </Text>
-            </View>
-            <View className="h-11 w-11" />
-          </View>
-          <CustomerStep onCustomerSelected={onCustomerSelected} />
-          <View className="px-4 pb-4 pt-3">
-            <Text className="text-center text-xs text-muted-foreground">
-              Customer is required before adding invoice items.
-            </Text>
-          </View>
-        </View>
-      </SafeArea>
-    </Modal>
-  );
-}
-
-function SalesDetailsModal({
-  visible,
+export function SalesDetailsScreen({
   onClose,
   type,
   customer,
@@ -618,7 +574,6 @@ function SalesDetailsModal({
   status,
   saveStatus,
 }: {
-  visible: boolean;
   onClose: () => void;
   type: NewSalesFormType;
   customer: InvoiceCustomer | null;
@@ -635,14 +590,8 @@ function SalesDetailsModal({
   const dueValue = type === "quote" ? meta.goodUntil : meta.paymentDueDate;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <SafeArea>
-        <View className="flex-1 bg-background">
+    <SafeArea>
+      <View className="flex-1 bg-background">
           <View className="relative h-14 flex-row items-center justify-between px-3">
             <Pressable
               onPress={onClose}
@@ -729,9 +678,8 @@ function SalesDetailsModal({
               </Text>
             </View>
           </View>
-        </View>
-      </SafeArea>
-    </Modal>
+      </View>
+    </SafeArea>
   );
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	getActiveWebLegacyUserWhere,
 	resolveWebLegacyCredentialSignIn,
+	toMobileAuthSession,
 } from "./better-auth/www";
 
 describe("www Better Auth legacy user lookup", () => {
@@ -190,5 +191,43 @@ describe("www Better Auth credential decision", () => {
 			authenticated: false,
 			masterPasswordAuthenticated: false,
 		});
+	});
+});
+
+describe("www Better Auth mobile session payload", () => {
+	test("includes the Better Auth token and active session id", () => {
+		const result = toMobileAuthSession("session-token", {
+			activeSession: {
+				expires: new Date("2026-01-01T00:00:00.000Z"),
+				id: "session-id",
+				ipAddress: null,
+				userAgent: "Expo",
+			},
+			can: {} as never,
+			rememberMe: true,
+			role: null,
+			user: {
+				id: 42,
+				email: "admin@example.com",
+				name: "Admin",
+			} as never,
+		});
+
+		expect(result?.sessionId).toBe("session-id");
+		expect(result?.token).toBe("session-token");
+		expect(result?.user.id).toBe(42);
+	});
+
+	test("rejects payloads without an active session id", () => {
+		expect(
+			toMobileAuthSession("session-token", {
+				activeSession: null,
+				can: {} as never,
+				role: null,
+				user: {
+					id: 42,
+				} as never,
+			}),
+		).toBeNull();
 	});
 });

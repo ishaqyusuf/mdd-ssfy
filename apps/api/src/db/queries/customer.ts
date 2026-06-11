@@ -1484,32 +1484,71 @@ export async function getCustomerPayPortal(
 	query: GetCustomerPayPortalSchema,
 ) {
 	const { db } = ctx;
+	const terminalPaymentsEnabled = process.env.NODE_ENV !== "production";
 	const pendingSales = await getCustomerPendingSales(ctx, query.accountNo);
 	const wallet = await getCustomerWallet(db, query.accountNo);
 	const totalPayable = sum(pendingSales, "amountDue");
-	const lastTerminalId = (
-		await db.squarePayments.findFirst({
+	const recentPaymentMethod = (
+		await db.customerTransaction.findFirst({
 			where: {
-				terminalId: {
+				deletedAt: null,
+				paymentMethod: {
 					not: null,
 				},
-				createdById: ctx.userId,
+				OR: [
+					{
+						status: null,
+					},
+					{
+						status: {
+							notIn: ["CANCELED", "cancelled", "canceled"],
+						},
+					},
+				],
+				salesPayments: {
+					some: {
+						deletedAt: null,
+						order: buildCustomerSalesFilter(query.accountNo, "order"),
+					},
+				},
 			},
 			orderBy: {
 				createdAt: "desc",
 			},
 			select: {
-				terminalId: true,
+				paymentMethod: true,
 			},
-		})?.[0]
-	)?.terminalId;
-	const { terminals, errors: terminalError } = await getSquareDevices();
+		})
+	)?.paymentMethod;
+	const lastTerminalId = terminalPaymentsEnabled
+		? (
+				await db.squarePayments.findFirst({
+					where: {
+						terminalId: {
+							not: null,
+						},
+						createdById: ctx.userId,
+					},
+					orderBy: {
+						createdAt: "desc",
+					},
+					select: {
+						terminalId: true,
+					},
+				})
+			)?.terminalId
+		: null;
+	const { terminals, errors: terminalError } = terminalPaymentsEnabled
+		? await getSquareDevices()
+		: { terminals: [], errors: null };
 	// const byLocations = await fetchDevicesByLocations();
 	// return {};
 	return {
 		pendingSales,
+		recentPaymentMethod,
 		totalPayable,
 		terminals,
+		terminalPaymentsEnabled,
 		error: {
 			terminal: terminalError,
 		},

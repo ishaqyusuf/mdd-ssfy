@@ -44,18 +44,21 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput as RNTextInput,
   View,
+  type ScrollViewProps,
   type TextInputProps,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceWorkflowStepComponents } from "../api/use-invoice-workflow-step-components";
 import { parseCurrencyInput } from "../lib/format";
+import { useInvoiceFormModalStore } from "../store/use-invoice-form-modal-store";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type { NewSalesFormLineItem } from "../types";
 
@@ -86,6 +89,7 @@ function TextInput({
         classes.includes("ml-2") ? styles.ml2 : null,
         classes.includes("flex-1") ? styles.flex1 : null,
         classes.includes("text-right") ? styles.textRight : null,
+        classes.includes("text-center") ? styles.textCenter : null,
         classes.includes("text-xs") ? styles.textXs : null,
         classes.includes("text-base") ? styles.textBase : null,
         classes.includes("font-bold") ? styles.bold : null,
@@ -107,8 +111,8 @@ export function WorkflowStepSelector({
 }) {
   const inline = presentation === "inline";
   const currentLine =
-    useInvoiceFormStore(
-      (state) => state.lineItems.find((item) => item.uid === line.uid),
+    useInvoiceFormStore((state) =>
+      state.lineItems.find((item) => item.uid === line.uid),
     ) || line;
   const steps = useMemo(() => getWorkflowSteps(currentLine), [currentLine]);
   const [activeStepIndex, setActiveStepIndex] = useState(() =>
@@ -130,13 +134,19 @@ export function WorkflowStepSelector({
     isLoadingDoorSuppliers,
     stepComponentsQuery,
     refetchStepComponents,
-  } =
-    useInvoiceWorkflowStepComponents(activeStep);
+  } = useInvoiceWorkflowStepComponents(activeStep);
   const customerProfileId = useInvoiceFormStore(
     (state) => state.meta.customerProfileId,
   );
   const { getProfileCoefficient } = useInvoiceFormProfiles();
   const actions = useInvoiceFormStore((state) => state.actions);
+  const router = useRouter();
+  const setDoorSizePicker = useInvoiceFormModalStore(
+    (state) => state.actions.setDoorSizePicker,
+  );
+  const clearDoorSizePicker = useInvoiceFormModalStore(
+    (state) => state.actions.clearDoorSizePicker,
+  );
   const activeStepTitle = activeStep?.step?.title || activeStep?.title || "";
   const activeStepUid = String(activeStep?.step?.uid || activeStep?.uid || "");
   const rootStepUid = String(workflowRouteData?.rootStepUid || "");
@@ -149,7 +159,8 @@ export function WorkflowStepSelector({
   const activeMouldingStep =
     isMouldingItem(currentLine) &&
     activeStepTitle.trim().toLowerCase() === "moulding";
-  const activeHousePackageToolStep = isHousePackageToolStepTitle(activeStepTitle);
+  const activeHousePackageToolStep =
+    isHousePackageToolStepTitle(activeStepTitle);
   const activeRedirectDisabledStep = activeStep
     ? isRedirectDisabledStep(activeStep)
     : false;
@@ -293,6 +304,7 @@ export function WorkflowStepSelector({
   const handleSelect = (component: WorkflowComponentRecord) => {
     if (doorStep) {
       setDoorSizeComponent(component);
+      router.push("/(sales)/invoices/door-size" as any);
       return;
     }
     if (activeMouldingStep) {
@@ -360,7 +372,9 @@ export function WorkflowStepSelector({
             firstResolvedRow.unitPrice || doorSizeComponent.salesPrice || 0,
           ),
           basePrice: Number(
-            firstResolvedRow.meta?.baseUnitPrice || doorSizeComponent.basePrice || 0,
+            firstResolvedRow.meta?.baseUnitPrice ||
+              doorSizeComponent.basePrice ||
+              0,
           ),
         }
       : doorSizeComponent;
@@ -388,8 +402,11 @@ export function WorkflowStepSelector({
         ...(currentLine.meta || {}),
         ...(((doorPatch.linePatch as Partial<NewSalesFormLineItem>).meta ||
           {}) as Record<string, unknown>),
-        ...(((selectionResult?.linePatch as Partial<NewSalesFormLineItem> | undefined)
-          ?.meta || {}) as Record<string, unknown>),
+        ...(((
+          selectionResult?.linePatch as
+            | Partial<NewSalesFormLineItem>
+            | undefined
+        )?.meta || {}) as Record<string, unknown>),
         workflowDoorRouteConfig: doorRouteFlags,
       },
       ...buildWorkflowLinePricingPatch(
@@ -401,6 +418,7 @@ export function WorkflowStepSelector({
       setActiveStepIndex(selectionResult.activeStepIndex);
     }
     setDoorSizeComponent(null);
+    clearDoorSizePicker();
   };
 
   const handleDoorSupplierChange = (
@@ -416,6 +434,42 @@ export function WorkflowStepSelector({
     if (!patch) return;
     actions.patchLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
   };
+
+  useEffect(() => {
+    if (!doorSizeComponent) {
+      clearDoorSizePicker();
+      return;
+    }
+    setDoorSizePicker({
+      component: doorSizeComponent,
+      rows: doorSizeRows,
+      supplierName: doorSizeSupplier.supplierName,
+      supplierUid: doorSizeSupplier.supplierUid,
+      suppliers: doorSuppliers,
+      isLoadingSuppliers: isLoadingDoorSuppliers,
+      noHandle: Boolean(doorSizeRouteConfig?.noHandle),
+      disabled: !workflowRouteData,
+      onSupplierChange: handleDoorSupplierChange,
+      onChangeRow: handleDoorSizeRowChange,
+      onOk: () => handleApplyDoorSizes({ advance: false }),
+      onNextStep: () => handleApplyDoorSizes({ advance: true }),
+      onClose: () => {
+        setDoorSizeComponent(null);
+        clearDoorSizePicker();
+      },
+    });
+  }, [
+    clearDoorSizePicker,
+    doorSizeComponent,
+    doorSizeRows,
+    doorSizeSupplier.supplierName,
+    doorSizeSupplier.supplierUid,
+    doorSuppliers,
+    isLoadingDoorSuppliers,
+    setDoorSizePicker,
+    workflowRouteData,
+    doorSizeRouteConfig?.noHandle,
+  ]);
 
   const openMouldingQtyPicker = (component: WorkflowComponentRecord) => {
     const mouldingContext = buildWorkflowMouldingRowsContext(currentLine);
@@ -561,7 +615,11 @@ export function WorkflowStepSelector({
             }`}
           >
             {selected ? (
-              <Icon name="Check" className="text-primary-foreground" size={15} />
+              <Icon
+                name="Check"
+                className="text-primary-foreground"
+                size={15}
+              />
             ) : null}
           </View>
           <View className="aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted">
@@ -573,15 +631,25 @@ export function WorkflowStepSelector({
               />
             ) : (
               <View className="h-full w-full items-center justify-center">
-                <Icon name="FileText" className="text-muted-foreground" size={16} />
+                <Icon
+                  name="FileText"
+                  className="text-muted-foreground"
+                  size={16}
+                />
               </View>
             )}
           </View>
           <View className="min-w-0">
-            <Text numberOfLines={2} className="text-sm font-bold text-foreground">
+            <Text
+              numberOfLines={2}
+              className="text-sm font-bold text-foreground"
+            >
               {componentLabel(item.title || item.uid || "Component")}
             </Text>
-            <Text numberOfLines={1} className="mt-0.5 text-xs text-muted-foreground">
+            <Text
+              numberOfLines={1}
+              className="mt-0.5 text-xs text-muted-foreground"
+            >
               {item.uid || `Component ${item.id || ""}`}
             </Text>
           </View>
@@ -605,24 +673,27 @@ export function WorkflowStepSelector({
       }
     >
       <View className="border-b border-border bg-background px-4 pb-3 pt-4">
-        <View className="flex-row items-center gap-3">
-          {inline ? null : (
+        {inline ? null : (
+          <View className="flex-row items-center gap-3">
             <Pressable
               onPress={onClose}
               className="h-11 w-11 items-center justify-center rounded-full active:bg-muted"
             >
               <Icon name="X" className="text-foreground" size={20} />
             </Pressable>
-          )}
-          <View className="min-w-0 flex-1">
-            <Text numberOfLines={1} className="text-xl font-bold text-foreground">
-              {inline ? "Item steps" : "Configure item"}
-            </Text>
-            <Text numberOfLines={1} className="text-xs text-muted-foreground">
-              {currentLine.title}
-            </Text>
+            <View className="min-w-0 flex-1">
+              <Text
+                numberOfLines={1}
+                className="text-xl font-bold text-foreground"
+              >
+                Configure item
+              </Text>
+              <Text numberOfLines={1} className="text-xs text-muted-foreground">
+                {currentLine.title}
+              </Text>
+            </View>
           </View>
-        </View>
+        )}
 
         <WorkflowStepPills
           steps={steps}
@@ -708,24 +779,6 @@ export function WorkflowStepSelector({
             )}
           </View>
         </View>
-      ) : null}
-      {doorSizeComponent ? (
-        <DoorSizePickerOverlay
-          component={doorSizeComponent}
-          rows={doorSizeRows}
-          supplierName={doorSizeSupplier.supplierName}
-          supplierUid={doorSizeSupplier.supplierUid}
-          suppliers={doorSuppliers}
-          isLoadingSuppliers={isLoadingDoorSuppliers}
-          noHandle={Boolean(doorSizeRouteConfig?.noHandle)}
-          hasSwing={doorSizeRouteConfig?.hasSwing !== false}
-          disabled={!workflowRouteData}
-          onSupplierChange={handleDoorSupplierChange}
-          onChangeRow={handleDoorSizeRowChange}
-          onOk={() => handleApplyDoorSizes({ advance: false })}
-          onNextStep={() => handleApplyDoorSizes({ advance: true })}
-          onClose={() => setDoorSizeComponent(null)}
-        />
       ) : null}
       {mouldingQtyComponent ? (
         <MouldingQtyOverlay
@@ -883,7 +936,8 @@ function resolveWorkflowSelectorNotice({
     return {
       icon: "DoorOpen",
       title: activeStepTitle || "House package tool",
-      description: "Door quantities and sizes are edited on the invoice line item.",
+      description:
+        "Door quantities and sizes are edited on the invoice line item.",
     };
   }
 
@@ -920,7 +974,9 @@ function WorkflowSelectorNotice({
         </View>
         <View className="min-w-0 flex-1">
           <Text className="text-sm font-bold text-foreground">{title}</Text>
-          <Text className="mt-1 text-xs text-muted-foreground">{description}</Text>
+          <Text className="mt-1 text-xs text-muted-foreground">
+            {description}
+          </Text>
         </View>
       </View>
     </View>
@@ -941,7 +997,39 @@ function ComponentListSkeleton() {
   );
 }
 
-function DoorSizePickerOverlay({
+function feetInchToInches(value: string) {
+  const [feetPart, inchPart = "0"] = value.split("-");
+  const feet = Number(feetPart || 0);
+  const inches = Number(inchPart || 0);
+  if (!Number.isFinite(feet) || !Number.isFinite(inches)) return "";
+  return `${feet * 12 + inches}"`;
+}
+
+function formatDoorSizeTitle(size?: string | null) {
+  const [width, height] = String(size || "").split(" x ");
+  const widthIn = width ? feetInchToInches(width.trim()) : "";
+  const heightIn = height ? feetInchToInches(height.trim()) : "";
+  if (!widthIn || !heightIn) return String(size || "--");
+  return `${widthIn} x ${heightIn}`;
+}
+
+function isDoorRowPriceMissing(row?: DoorStoredRow | null) {
+  return Boolean(row?.meta?.priceMissing);
+}
+
+const DOOR_SIZE_KEYBOARD_BOTTOM_OFFSET = 88;
+
+function renderDoorSizeKeyboardAwareScrollView(props: ScrollViewProps) {
+  return (
+    <KeyboardAwareScrollView
+      {...props}
+      bottomOffset={DOOR_SIZE_KEYBOARD_BOTTOM_OFFSET}
+      disableScrollOnKeyboardHide
+    />
+  );
+}
+
+export function DoorSizePickerScreen({
   component,
   rows,
   supplierUid,
@@ -949,7 +1037,6 @@ function DoorSizePickerOverlay({
   suppliers,
   isLoadingSuppliers,
   noHandle,
-  hasSwing,
   disabled,
   onSupplierChange,
   onChangeRow,
@@ -961,10 +1048,13 @@ function DoorSizePickerOverlay({
   rows: DoorStoredRow[];
   supplierUid?: string | null;
   supplierName?: string | null;
-  suppliers?: Array<{ id?: number | null; uid?: string | null; name?: string | null }>;
+  suppliers?: Array<{
+    id?: number | null;
+    uid?: string | null;
+    name?: string | null;
+  }>;
   isLoadingSuppliers?: boolean;
   noHandle?: boolean;
-  hasSwing?: boolean;
   disabled?: boolean;
   onSupplierChange?: (
     supplier: { uid?: string | null; name?: string | null } | null,
@@ -974,7 +1064,10 @@ function DoorSizePickerOverlay({
   onNextStep: () => void;
   onClose: () => void;
 }) {
-  const totalQty = rows.reduce((sum, row) => sum + Number(row.totalQty || 0), 0);
+  const totalQty = rows.reduce(
+    (sum, row) => sum + Number(row.totalQty || 0),
+    0,
+  );
   const totalPrice = rows.reduce(
     (sum, row) => sum + Number(row.lineTotal || 0),
     0,
@@ -983,120 +1076,131 @@ function DoorSizePickerOverlay({
   const title = componentLabel(component.title || component.uid || "Door");
 
   return (
-    <Modal
-      visible
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <SafeArea>
-        <KeyboardAvoidingView
-          className="flex-1 bg-background"
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <View className="relative h-14 flex-row items-center justify-between px-3 pt-1">
-            <Pressable
-              onPress={onClose}
-              className="h-11 w-11 items-center justify-center active:opacity-60"
-            >
-              <Icon name="X" className="text-foreground" size={22} />
-            </Pressable>
-            <View className="pointer-events-none absolute inset-x-14 items-center pt-1">
-              <Text className="text-base font-semibold text-foreground">
-                Door sizes
+    <SafeArea>
+      <View className="flex-1 bg-background">
+        <View className="relative h-14 flex-row items-center justify-between px-3 pt-1">
+          <Pressable
+            onPress={onClose}
+            className="h-11 w-11 items-center justify-center active:opacity-60"
+          >
+            <Icon name="X" className="text-foreground" size={22} />
+          </Pressable>
+          <View className="pointer-events-none absolute inset-x-14 items-center pt-1">
+            <Text className="text-base font-semibold text-foreground">
+              Door sizes
+            </Text>
+          </View>
+          <View className="h-11 w-11" />
+        </View>
+        <View className="px-4 pb-3">
+          <View className="flex-row items-center gap-3 py-3">
+            {imageUri ? (
+              <Image
+                source={{ uri: imageUri }}
+                className="h-16 w-16 rounded-lg bg-muted"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="h-16 w-16 items-center justify-center rounded-lg bg-muted">
+                <Icon
+                  name="DoorOpen"
+                  className="text-muted-foreground"
+                  size={24}
+                />
+              </View>
+            )}
+            <View className="min-w-0 flex-1">
+              <Text
+                numberOfLines={2}
+                className="text-lg font-semibold text-foreground"
+              >
+                {title}
+              </Text>
+              <Text className="mt-1 text-xs text-muted-foreground">
+                {totalQty} doors - {moneyIfPositive(totalPrice) || "$0.00"}
+              </Text>
+              <Text
+                numberOfLines={1}
+                className="mt-0.5 text-[11px] text-muted-foreground"
+              >
+                Supplier: {supplierName || "GND MILLWORK"}
               </Text>
             </View>
-            <View className="h-11 w-11" />
           </View>
-          <FlatList
+          {isLoadingSuppliers || suppliers?.length ? (
+            <View className="py-2">
+              <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
+                Supplier
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                className="mt-2"
+                contentContainerStyle={{ gap: 6, paddingRight: 16 }}
+              >
+                <SupplierChip
+                  title="GND MILLWORK"
+                  selected={!supplierUid}
+                  disabled={disabled}
+                  onPress={() => onSupplierChange?.(null)}
+                />
+                {(suppliers || []).map((supplier) => (
+                  <SupplierChip
+                    key={`door-supplier-${supplier.uid || supplier.id}`}
+                    title={String(supplier.name || "Supplier")}
+                    selected={
+                      String(supplier.uid || "") === String(supplierUid || "")
+                    }
+                    disabled={disabled}
+                    onPress={() =>
+                      onSupplierChange?.({
+                        uid: supplier.uid || null,
+                        name: supplier.name || null,
+                      })
+                    }
+                  />
+                ))}
+                {isLoadingSuppliers ? (
+                  <Text className="self-center text-xs text-muted-foreground">
+                    Loading suppliers...
+                  </Text>
+                ) : null}
+              </ScrollView>
+            </View>
+          ) : null}
+          <View className="mt-3 flex-row items-center border-b border-border/60 pb-2">
+            <Text className="min-w-0 flex-1 text-[10px] font-semibold uppercase text-muted-foreground">
+              Size
+            </Text>
+            {noHandle ? (
+              <Text className="ml-3 w-16 text-center text-[10px] font-semibold uppercase text-muted-foreground">
+                Qty
+              </Text>
+            ) : (
+              <>
+                <Text className="ml-3 w-14 text-center text-[10px] font-semibold uppercase text-muted-foreground">
+                  LH
+                </Text>
+                <Text className="ml-2 w-14 text-center text-[10px] font-semibold uppercase text-muted-foreground">
+                  RH
+                </Text>
+              </>
+            )}
+            <Text className="ml-4 w-24 text-right text-[10px] font-semibold uppercase text-muted-foreground">
+              Total
+            </Text>
+          </View>
+        </View>
+        <FlatList
+          className="flex-1"
           data={rows}
           keyExtractor={(row, index) =>
             `${row.stepProductId || component.id || "door"}:${row.dimension || index}`
           }
+          keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 18 }}
-          ListHeaderComponent={
-            <View className="pb-3">
-              <View className="flex-row items-center gap-3 py-3">
-                {imageUri ? (
-                  <Image
-                    source={{ uri: imageUri }}
-                    className="h-16 w-16 rounded-lg bg-muted"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="h-16 w-16 items-center justify-center rounded-lg bg-muted">
-                    <Icon
-                      name="DoorOpen"
-                      className="text-muted-foreground"
-                      size={24}
-                    />
-                  </View>
-                )}
-                <View className="min-w-0 flex-1">
-                  <Text
-                    numberOfLines={2}
-                    className="text-lg font-semibold text-foreground"
-                  >
-                    {title}
-                  </Text>
-                  <Text className="mt-1 text-xs text-muted-foreground">
-                    {totalQty} doors - {moneyIfPositive(totalPrice) || "$0.00"}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    className="mt-0.5 text-[11px] text-muted-foreground"
-                  >
-                    Supplier: {supplierName || "GND MILLWORK"}
-                  </Text>
-                </View>
-              </View>
-              {isLoadingSuppliers || suppliers?.length ? (
-                <View className="py-2">
-                  <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
-                    Supplier
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    className="mt-2"
-                    contentContainerStyle={{ gap: 6, paddingRight: 16 }}
-                  >
-                    <SupplierChip
-                      title="GND MILLWORK"
-                      selected={!supplierUid}
-                      disabled={disabled}
-                      onPress={() => onSupplierChange?.(null)}
-                    />
-                    {(suppliers || []).map((supplier) => (
-                      <SupplierChip
-                        key={`door-supplier-${supplier.uid || supplier.id}`}
-                        title={String(supplier.name || "Supplier")}
-                        selected={
-                          String(supplier.uid || "") === String(supplierUid || "")
-                        }
-                        disabled={disabled}
-                        onPress={() =>
-                          onSupplierChange?.({
-                            uid: supplier.uid || null,
-                            name: supplier.name || null,
-                          })
-                        }
-                      />
-                    ))}
-                    {isLoadingSuppliers ? (
-                      <Text className="self-center text-xs text-muted-foreground">
-                        Loading suppliers...
-                      </Text>
-                    ) : null}
-                  </ScrollView>
-                </View>
-              ) : null}
-              <Text className="mt-3 text-[10px] font-semibold uppercase text-muted-foreground">
-                Sizes
-              </Text>
-            </View>
-          }
+          renderScrollComponent={renderDoorSizeKeyboardAwareScrollView}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
           ListEmptyComponent={
             <View className="py-12">
               <Text className="text-center text-sm font-bold text-foreground">
@@ -1110,151 +1214,123 @@ function DoorSizePickerOverlay({
           renderItem={({ item: row, index }) => {
             const lhQty = Number(row.lhQty || 0);
             const rhQty = Number(row.rhQty || 0);
+            const priceMissing = isDoorRowPriceMissing(row);
             return (
-              <View className="border-b border-border/40 py-3">
-                <View className="flex-row gap-2">
-                  <View className="min-w-0 flex-1 gap-1">
-                    <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
-                      Size
-                    </Text>
-                    <TextInput
-                      value={String(row.dimension || "")}
-                      editable={!disabled}
-                      onChangeText={(dimension) =>
-                        onChangeRow(index, { dimension })
-                      }
-                      className="h-10 rounded-lg bg-muted/60 px-2 text-xs font-bold text-foreground"
-                    />
-                  </View>
-                  {hasSwing === false ? null : (
-                    <View className="w-20 gap-1">
-                      <Text className="text-[10px] font-semibold uppercase text-muted-foreground">
-                        Swing
-                      </Text>
-                      <TextInput
-                        value={String(row.swing || "")}
-                        editable={!disabled}
-                        onChangeText={(swing) => onChangeRow(index, { swing })}
-                        placeholder="LH"
-                        placeholderTextColor="#8A8A8A"
-                        className="h-10 rounded-lg bg-muted/60 px-2 text-xs font-bold text-foreground"
+              <View className="min-h-12 flex-row items-center border-b border-border/40 py-2">
+                <View className="min-w-0 flex-1 pr-3">
+                  <Text
+                    numberOfLines={1}
+                    className="text-sm font-semibold text-foreground"
+                  >
+                    {formatDoorSizeTitle(row.dimension)}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    className="mt-0.5 text-[11px] font-semibold text-muted-foreground"
+                  >
+                    {priceMissing
+                      ? "--"
+                      : moneyIfPositive(row.unitPrice) || "$0.00"}
+                  </Text>
+                </View>
+                {noHandle ? (
+                  <View className="ml-3 w-16">
+                    {priceMissing ? null : (
+                      <DoorSizeNumberField
+                        value={row.totalQty}
+                        disabled={disabled}
+                        onChange={(totalQty) =>
+                          onChangeRow(index, {
+                            totalQty,
+                            lhQty: 0,
+                            rhQty: 0,
+                          })
+                        }
                       />
+                    )}
+                  </View>
+                ) : (
+                  <>
+                    <View className="ml-3 w-14">
+                      {priceMissing ? null : (
+                        <DoorSizeNumberField
+                          value={row.lhQty}
+                          disabled={disabled}
+                          onChange={(nextLhQty) =>
+                            onChangeRow(index, {
+                              lhQty: nextLhQty,
+                              totalQty: nextLhQty + rhQty,
+                            })
+                          }
+                        />
+                      )}
                     </View>
-                  )}
-                </View>
-                <View className="mt-3 flex-row gap-2">
-                  {noHandle ? null : (
-                    <>
-                      <DoorSizeNumberField
-                        label="LH"
-                        value={row.lhQty}
-                        disabled={disabled}
-                        onChange={(nextLhQty) =>
-                          onChangeRow(index, {
-                            lhQty: nextLhQty,
-                            totalQty: nextLhQty + rhQty,
-                          })
-                        }
-                      />
-                      <DoorSizeNumberField
-                        label="RH"
-                        value={row.rhQty}
-                        disabled={disabled}
-                        onChange={(nextRhQty) =>
-                          onChangeRow(index, {
-                            rhQty: nextRhQty,
-                            totalQty: lhQty + nextRhQty,
-                          })
-                        }
-                      />
-                    </>
-                  )}
-                  <DoorSizeNumberField
-                    label={noHandle ? "Qty" : "Total"}
-                    value={row.totalQty}
-                    disabled={disabled}
-                    onChange={(totalQty) =>
-                      onChangeRow(
-                        index,
-                        noHandle
-                          ? { totalQty, lhQty: 0, rhQty: 0 }
-                          : { totalQty },
-                      )
-                    }
-                  />
-                </View>
-                <View className="mt-3 flex-row gap-2">
-                  <DoorSizeNumberField
-                    label="Add-on"
-                    value={row.addon ?? ""}
-                    disabled={disabled}
-                    onChange={(addon) => onChangeRow(index, { addon })}
-                  />
-                  <DoorSizeNumberField
-                    label="Custom"
-                    value={row.customPrice ?? ""}
-                    disabled={disabled}
-                    onChange={(customPrice) => onChangeRow(index, { customPrice })}
-                  />
-                  <View className="w-24 justify-end pb-1">
-                    <Text className="text-right text-xs font-bold text-foreground">
-                      {moneyIfPositive(row.lineTotal) || "$0.00"}
-                    </Text>
-                  </View>
-                </View>
+                    <View className="ml-2 w-14">
+                      {priceMissing ? null : (
+                        <DoorSizeNumberField
+                          value={row.rhQty}
+                          disabled={disabled}
+                          onChange={(nextRhQty) =>
+                            onChangeRow(index, {
+                              rhQty: nextRhQty,
+                              totalQty: lhQty + nextRhQty,
+                            })
+                          }
+                        />
+                      )}
+                    </View>
+                  </>
+                )}
+                <Text className="ml-4 w-24 text-right text-base font-extrabold text-foreground">
+                  {moneyIfPositive(row.lineTotal) || "$0.00"}
+                </Text>
               </View>
             );
           }}
-          />
-          <View className="bg-background px-4 pb-4 pt-3">
-            <View className="flex-row gap-2">
-              <Button
-                className="h-11 flex-1 rounded-lg"
-                disabled={disabled}
-                onPress={onNextStep}
-              >
-                <Text>Next step</Text>
-              </Button>
-              <Button
-                variant="ghost"
-                className="h-11 flex-1"
-                disabled={disabled}
-                onPress={onOk}
-              >
-                <Text>OK</Text>
-              </Button>
-            </View>
+        />
+        <View className="bg-background px-4 pb-4 pt-3">
+          <View className="flex-row gap-2">
+            <Button
+              className="h-11 flex-1 rounded-lg"
+              disabled={disabled}
+              onPress={onNextStep}
+            >
+              <Text>Next step</Text>
+            </Button>
+            <Button
+              variant="ghost"
+              className="h-11 flex-1"
+              disabled={disabled}
+              onPress={onOk}
+            >
+              <Text>OK</Text>
+            </Button>
           </View>
-        </KeyboardAvoidingView>
-      </SafeArea>
-    </Modal>
+        </View>
+      </View>
+    </SafeArea>
   );
 }
 
 function DoorSizeNumberField({
-  label,
   value,
   disabled,
   onChange,
 }: {
-  label: string;
   value?: number | string | null;
   disabled?: boolean;
   onChange: (value: number) => void;
 }) {
+  const displayValue = Number(value || 0) > 0 ? String(Number(value || 0)) : "";
   return (
-    <View className="min-w-0 flex-1 gap-1">
-      <Text className="text-[10px] font-bold uppercase text-muted-foreground">
-        {label}
-      </Text>
-      <TextInput
-        value={String(value ?? 0)}
-        keyboardType="decimal-pad"
-        editable={!disabled}
-        onChangeText={(nextValue) => onChange(parseCurrencyInput(nextValue))}
-        className="h-10 rounded-lg bg-muted/60 px-2 text-xs font-bold text-foreground"
-      />
-    </View>
+    <TextInput
+      value={displayValue}
+      placeholder="0"
+      keyboardType="decimal-pad"
+      editable={!disabled}
+      onChangeText={(nextValue) => onChange(parseCurrencyInput(nextValue))}
+      className="h-10 flex-1 rounded-lg bg-muted/60 px-1 text-center text-xs font-bold text-foreground"
+    />
   );
 }
 
@@ -1274,7 +1350,11 @@ function MouldingQtyOverlay({
   onClose: () => void;
 }) {
   return (
-    <View className="absolute inset-0 z-50 justify-end bg-black/40">
+    <KeyboardAvoidingView
+      className="absolute inset-0 z-50 justify-end bg-black/40"
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
       <Pressable className="flex-1" onPress={onClose} />
       <View className="rounded-t-3xl border border-border bg-background">
         <View className="border-b border-border px-4 py-3">
@@ -1283,7 +1363,10 @@ function MouldingQtyOverlay({
               <Icon name="Hash" className="text-primary" size={18} />
             </View>
             <View className="min-w-0 flex-1">
-              <Text numberOfLines={1} className="text-base font-bold text-foreground">
+              <Text
+                numberOfLines={1}
+                className="text-base font-bold text-foreground"
+              >
                 {componentLabel(component.title || component.uid || "Moulding")}
               </Text>
               <Text className="text-xs text-muted-foreground">
@@ -1311,10 +1394,7 @@ function MouldingQtyOverlay({
         </View>
         <View className="border-t border-border px-4 pb-4 pt-3">
           <View className="flex-row gap-2">
-            <Button
-              className="h-11 flex-1 rounded-xl"
-              onPress={onNextStep}
-            >
+            <Button className="h-11 flex-1 rounded-xl" onPress={onNextStep}>
               <Text>Next step</Text>
             </Button>
             <Button
@@ -1327,7 +1407,7 @@ function MouldingQtyOverlay({
           </View>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1412,6 +1492,9 @@ const styles = StyleSheet.create({
   },
   textRight: {
     textAlign: "right",
+  },
+  textCenter: {
+    textAlign: "center",
   },
   bold: {
     fontWeight: "700",

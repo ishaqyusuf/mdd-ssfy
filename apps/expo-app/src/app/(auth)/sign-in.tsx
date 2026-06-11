@@ -15,10 +15,10 @@ import { useZodForm } from "@/components/use-zod-form";
 import { signInSchema } from "@/lib/schemas/auth";
 import { Input } from "@/components/ui/input-2";
 import { useMutation } from "@tanstack/react-query";
-import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Icon } from "@/components/ui/icon";
+import { mobileSignIn } from "@/lib/mobile-auth";
 
 import { SafeArea } from "@/components/safe-area";
 
@@ -33,23 +33,25 @@ export default function SignIn() {
   const testEmails = process.env.EXPO_PUBLIC_EMAIL?.split(",");
   const auth = useAuthContext();
 
-  const { mutate: loginMutation, isPending } = useMutation(
-    _trpc.user.login.mutationOptions({
-      onSuccess(data) {
-        auth.onLogin(data);
+  const { mutate: loginMutation, isPending } = useMutation({
+    mutationFn: mobileSignIn,
+    onSuccess(data) {
+      auth.onLogin(data);
+    },
+    onError(error) {
+      Alert.alert(
+        "Sign In Failed",
+        error instanceof Error ? error.message : "Unable to signin",
+      );
+    },
+    meta: {
+      toastTitle: {
+        error: "Unable to complete",
+        loading: "Processing...",
+        success: "Done!.",
       },
-      onError(error) {
-        Alert.alert("Sign In Failed", "Unable to signin");
-      },
-      meta: {
-        toastTitle: {
-          error: "Unable to complete",
-          loading: "Processing...",
-          success: "Done!.",
-        },
-      },
-    }),
-  );
+    },
+  });
   const signIn = async (data) => {
     loginMutation(data);
   };

@@ -15,7 +15,13 @@ export function normalizePaymentMethod(value?: string | null) {
 		.replaceAll(" ", "-");
 
 	return (
-		salesPaymentMethods.find((method) => method.value === normalized)?.value ||
+		salesPaymentMethods.find((method) => {
+			const normalizedLabel = method.label
+				.toLowerCase()
+				.replaceAll("_", "-")
+				.replaceAll(" ", "-");
+			return method.value === normalized || normalizedLabel === normalized;
+		})?.value ||
 		null
 	);
 }
@@ -23,13 +29,35 @@ export function normalizePaymentMethod(value?: string | null) {
 export function resolveDefaultPaymentMethod(
 	sales: { id: number; paymentMethod?: string | null }[],
 	selectedIds: number[],
+	options?: {
+		recentPaymentMethod?: string | null;
+		terminalEnabled?: boolean;
+	},
 ) {
+	const isAllowed = (paymentMethod?: string | null) => {
+		const normalized = normalizePaymentMethod(paymentMethod);
+		if (!normalized) return null;
+		if (normalized === "terminal" && options?.terminalEnabled === false) {
+			return null;
+		}
+		return normalized;
+	};
 	const selectedSalesById = new Map(sales.map((sale) => [sale.id, sale]));
-	const selectedPaymentMethod = selectedIds
-		.map((id) => selectedSalesById.get(id)?.paymentMethod)
-		.find((paymentMethod) => normalizePaymentMethod(paymentMethod));
+	const selectedPaymentMethod = selectedIds.length
+		? selectedIds
+				.map((id) => selectedSalesById.get(id)?.paymentMethod)
+				.find((paymentMethod) => isAllowed(paymentMethod))
+		: null;
+	const orderPaymentMethod = sales
+		.map((sale) => sale.paymentMethod)
+		.find((paymentMethod) => isAllowed(paymentMethod));
 
-	return normalizePaymentMethod(selectedPaymentMethod) || "credit-card";
+	return (
+		isAllowed(selectedPaymentMethod) ||
+		isAllowed(orderPaymentMethod) ||
+		isAllowed(options?.recentPaymentMethod) ||
+		"credit-card"
+	);
 }
 
 export function buildPrintRequests(input: {

@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { db, type Database } from "@gnd/db";
 import type { getActiveDealerByAuthUserId } from "@gnd/db/queries";
+import { buildWebAppSessionByToken } from "@gnd/auth/better-auth/www";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
@@ -24,14 +25,22 @@ export const createTRPCContext = async (
   const header = c.req.header();
   const isApp = header["x-trpc-source"] === "app";
   const auth = isApp
-    ? header["x-app-authorization"]
+    ? (header["x-app-authorization"] ?? header["authorization"] ?? "")
     : (header["authorization"] ?? "");
 
   let [token, userId] = auth?.split(" ")?.[1]?.split("|") || [];
   if (!userId && token) {
-    const payload = verify(token, process.env.JWT_SECRET!);
-
-    userId = (payload as any).userId;
+    const webSession = await buildWebAppSessionByToken(token);
+    if (webSession?.user?.id) {
+      userId = webSession.user.id;
+    } else {
+      try {
+        const payload = verify(token, process.env.JWT_SECRET!);
+        userId = (payload as any).userId;
+      } catch {
+        userId = undefined;
+      }
+    }
   }
 
   const parsedUserId =

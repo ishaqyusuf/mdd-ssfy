@@ -39,8 +39,17 @@ export interface Profile {
     phoneNo: string;
   };
 }
-export const getSessionProfile = () =>
-  JSON.parse(SecureStore.getItem(profileKey)!) as Profile;
+export const getSessionProfile = (): Profile | null => {
+  const value = SecureStore.getItem(profileKey);
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as Profile;
+  } catch {
+    deleteSessionProfile();
+    return null;
+  }
+};
 export const setSessionProfile = (data: Profile) =>
   SecureStore.setItem(profileKey, JSON.stringify(data));
 
