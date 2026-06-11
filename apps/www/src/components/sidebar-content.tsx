@@ -49,10 +49,10 @@ function NavLayoutClient({ children, pageTabDefaults }) {
         refetchOnWindowFocus: false,
         staleTime: Number.POSITIVE_INFINITY,
     });
-    const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
-    const navDefaults = isSuperAdmin
-        ? { ...defaults, "/sales-book/orders": "/sales-book/orders/v2" }
-        : defaults;
+    const navDefaults = {
+        ...defaults,
+        "/sales-book/orders": "/sales-book/orders/v2",
+    };
 
     return (
         <SiteNav.Provider

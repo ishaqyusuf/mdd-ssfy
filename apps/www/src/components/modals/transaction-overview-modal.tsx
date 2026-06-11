@@ -33,6 +33,7 @@ import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 export function TransactionOverviewModal({}) {
     const ctx = useTransactionOverviewModal();
     const txData = useAsyncMemo(async () => {
+        if (!ctx.transactionId) return null;
         return await getCustomerTransactionOverviewAction(ctx.transactionId);
     }, [ctx.transactionId]);
     const loader = useLoadingToast();
@@ -50,6 +51,7 @@ export function TransactionOverviewModal({}) {
         }
     }
     const salesOverview = useSalesOverviewQuery();
+    const applicationRows = txData?.sales || [];
     return (
         <DataSkeletonProvider
             value={
@@ -65,7 +67,84 @@ export function TransactionOverviewModal({}) {
                 <DialogContent className="min-w-max max-w-xl">
                     <DialogTitle>Transaction Detail</DialogTitle>
                     <DialogDescription></DialogDescription>
-                    <div className="">
+                    <div className="space-y-4">
+                        <div className="grid gap-3 rounded-lg border p-3 text-sm md:grid-cols-3">
+                            <div>
+                                <p className="text-xs uppercase text-muted-foreground">
+                                    Payment #
+                                </p>
+                                <p className="font-medium">{txData?.paymentNo || "-"}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase text-muted-foreground">
+                                    Method
+                                </p>
+                                <p className="font-medium">
+                                    {txData?.paymentMethod || "Account transaction"}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs uppercase text-muted-foreground">
+                                    Applied invoices
+                                </p>
+                                <p className="font-medium">
+                                    {txData?.orderIds || "Wallet / account-level activity"}
+                                </p>
+                            </div>
+                        </div>
+                        <Table className="table-sm">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Invoice</TableHead>
+                                    <TableHead>Applied</TableHead>
+                                    <TableHead>Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {applicationRows.length ? (
+                                    applicationRows.map((payment, i) => (
+                                        <TableRow
+                                            key={`${payment.order?.id || "payment"}-${i}`}
+                                            onClick={() => {
+                                                if (payment.order?.orderId) {
+                                                    salesOverview.open2(
+                                                        payment.order.orderId,
+                                                        "sales",
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <TableCell>
+                                                #{payment.order?.orderId || "-"}
+                                            </TableCell>
+                                            <TableCell className="font-mono">
+                                                $
+                                                {Number(payment.amount || 0).toLocaleString(
+                                                    undefined,
+                                                    {
+                                                        maximumFractionDigits: 2,
+                                                        minimumFractionDigits: 2,
+                                                    },
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <TCell.Status status={payment.status} />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={3}
+                                            className="text-muted-foreground text-sm"
+                                        >
+                                            No invoice application is linked to this
+                                            transaction.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                         <Table className="table-sm">
                             <TableHeader>
                                 <TableRow>

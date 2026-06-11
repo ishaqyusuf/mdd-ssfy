@@ -16,7 +16,10 @@ import { sum } from "@gnd/utils";
 export type GetSalesCustomerTx = AsyncFnType<
     typeof getCustomerTransactionsAction
 >;
-export type CustomerTransactionType = "wallet" | "transaction";
+export type CustomerTransactionType =
+    | "wallet"
+    | "transaction"
+    | "pay-with-wallet";
 export async function getCustomerTransactionsAction(query: SearchParamsType) {
     if (query?.["sales.having"]) {
         const counts = await __getPaymentCountBySales();

@@ -28,21 +28,23 @@ export function InvoiceFormFooter({
   const isReview = step === "review";
 
   return (
-    <View className="border-t border-border bg-card px-4 pb-4 pt-3">
+    <View className="bg-background px-4 pb-4 pt-2">
       {validationError ? (
-        <View className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
-          <Text className="text-xs font-semibold text-red-700">{validationError}</Text>
+        <View className="mb-3 bg-red-50 px-3 py-2">
+          <Text className="text-xs font-semibold text-red-700">
+            {validationError}
+          </Text>
         </View>
       ) : null}
       <View className="flex-row items-center gap-2">
         {canGoBack ? (
-          <Button variant="outline" className="h-11 rounded-xl px-4" onPress={onBack}>
+          <Button variant="ghost" className="h-11 px-3" onPress={onBack}>
             <Text>Back</Text>
           </Button>
         ) : null}
         <Button
-          variant="outline"
-          className="h-11 flex-1 rounded-xl px-3"
+          variant="ghost"
+          className="h-11 flex-1 px-3"
           disabled={isSaving}
           onPress={onSaveDraft}
         >
@@ -50,7 +52,7 @@ export function InvoiceFormFooter({
           <Text>{isSaving ? "Saving..." : "Save Draft"}</Text>
         </Button>
         <Button
-          className="h-11 flex-1 rounded-xl px-3"
+          className="h-11 flex-1 rounded-lg px-3"
           disabled={isSaving}
           onPress={isReview ? onSaveFinal : onContinue}
         >

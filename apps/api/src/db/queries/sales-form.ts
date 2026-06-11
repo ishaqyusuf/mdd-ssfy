@@ -15,7 +15,7 @@ export const getSuppliersSchema = z.object({});
 export type GetSuppliersSchema = z.infer<typeof getSuppliersSchema>;
 export async function getSuppliers(
   ctx: TRPCContext,
-  query: GetSuppliersSchema
+  query: GetSuppliersSchema,
 ) {
   const { db } = ctx;
   const step = await db.dykeSteps.findFirst({
@@ -109,7 +109,7 @@ export type DeleteSupplierSchema = z.infer<typeof deleteSupplierSchema>;
 
 export async function deleteSupplier(
   ctx: TRPCContext,
-  data: DeleteSupplierSchema
+  data: DeleteSupplierSchema,
 ) {
   const { db } = ctx;
   const dp = await db.dykeStepProducts.update({
@@ -134,7 +134,7 @@ export type UpdateStepMetaSchema = z.infer<typeof updateStepMetaSchema>;
 
 export async function updateStepMeta(
   ctx: TRPCContext,
-  data: UpdateStepMetaSchema
+  data: UpdateStepMetaSchema,
 ) {
   const step = await ctx.db.dykeSteps.update({
     where: {
@@ -173,10 +173,16 @@ export async function invalidateSalesWorkflowForStepComponent(input: {
 }) {
   await Promise.all([
     salesWorkflowCache.invalidateStepComponentsForStep(input.stepId),
-    salesWorkflowCache.invalidateStepComponentsForComponentId(input.componentId),
-    salesWorkflowCache.invalidateStepComponentsForComponentUid(input.componentUid),
+    salesWorkflowCache.invalidateStepComponentsForComponentId(
+      input.componentId,
+    ),
+    salesWorkflowCache.invalidateStepComponentsForComponentUid(
+      input.componentUid,
+    ),
     salesWorkflowCache.invalidateStepComponentsForFamily(input.stepTitle),
-    input.routing ? salesWorkflowCache.invalidateStepRouting() : Promise.resolve(),
+    input.routing
+      ? salesWorkflowCache.invalidateStepRouting()
+      : Promise.resolve(),
   ]);
 }
 
@@ -192,11 +198,10 @@ export type GetStepComponentsSchema = z.infer<typeof getStepComponentsSchema>;
 
 export async function getStepComponents(
   ctx: TRPCContext,
-  query: GetStepComponentsSchema
+  query: GetStepComponentsSchema,
 ) {
-  const cached = await salesWorkflowCache.getStepComponents<StepComponentData[]>(
-    query,
-  );
+  const cached =
+    await salesWorkflowCache.getStepComponents<StepComponentData[]>(query);
   if (cached) return cached;
 
   const result = await fetchStepComponentsFromDb(ctx, query);
@@ -206,7 +211,7 @@ export async function getStepComponents(
 
 async function fetchStepComponentsFromDb(
   ctx: TRPCContext,
-  query: GetStepComponentsSchema
+  query: GetStepComponentsSchema,
 ) {
   const whereCount = {
     where: {
@@ -245,7 +250,9 @@ async function fetchStepComponentsFromDb(
     where: {
       deletedAt: null,
       stepProductUid: {
-        in: stepProducts.map((sp) => sp.uid).filter(Boolean),
+        in: stepProducts
+          .map((sp) => sp.uid)
+          .filter((uid): uid is string => Boolean(uid)),
       },
     },
     select: {
@@ -273,13 +280,15 @@ async function fetchStepComponentsFromDb(
     dtoStepComponent(stepProduct, pricingByComponentUid),
   );
   const filtered = result.filter(
-    (r, i) => result.findIndex((s) => s.title == r.title) == i
+    (r, i) => result.findIndex((s) => s.title == r.title) == i,
   );
   return result.sort((a, b) => {
-    if (b.statistics !== a.statistics) {
-      return b.statistics - a.statistics; // higher statistics first
+    const aStatistics = Number(a.statistics || 0);
+    const bStatistics = Number(b.statistics || 0);
+    if (bStatistics !== aStatistics) {
+      return bStatistics - aStatistics; // higher statistics first
     }
-    return a.title!.localeCompare(b.title!); // then by title
+    return String(a.title || "").localeCompare(String(b.title || "")); // then by title
   });
   // return stepProducts.map((s) => ({
   //   ...s,
@@ -368,16 +377,17 @@ export function dtoStepComponent(
     ...component
   } = data;
   let meta: StepComponentMeta = component.meta as any;
+  const componentUid = component.uid || "";
   const stepMeta = (step?.meta || {}) as Record<string, any>;
   const priceStepDeps = Array.isArray(stepMeta?.priceStepDeps)
     ? stepMeta.priceStepDeps
         .map((uid: unknown) => String(uid || ""))
         .filter(Boolean)
     : [];
-  const pricing = pricingByComponentUid[component.uid] || {};
-  const defaultPrice = Number(pricing?.[component.uid]?.price);
+  const pricing = pricingByComponentUid[componentUid] || {};
+  const defaultPrice = Number(pricing?.[componentUid]?.price);
   return {
-    uid: component.uid,
+    uid: componentUid,
     sortIndex,
     id: component.id,
     title: component.name || door?.title || product?.title,
@@ -427,7 +437,7 @@ export type GetMultiLineComponentsSchema = z.infer<
 
 export async function getMultiLineComponents(
   ctx: TRPCContext,
-  query: GetMultiLineComponentsSchema
+  query: GetMultiLineComponentsSchema,
 ) {
   const { db } = ctx;
   const components = await db.dykeStepProducts.findMany({

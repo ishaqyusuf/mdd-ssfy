@@ -3,31 +3,35 @@
 import { Button } from "@gnd/ui/button";
 import { ButtonGroup } from "@gnd/ui/button-group";
 import { cn } from "@gnd/ui/cn";
-import { Tabs } from "@gnd/ui/namespace";
 import Portal from "@gnd/ui/custom/portal";
 import { Separator } from "@gnd/ui/separator";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
 
+const salesCustomTabs = [
+    { key: "orders", href: "/sales-book/orders/v2", label: "Sales" },
+    { key: "quotes", href: "/sales-book/quotes", label: "quotes" },
+];
+
 export function SalesCustomTab({}) {
     const path = usePathname();
     return (
         <Portal noDelay nodeId="filterSlot">
             <ButtonGroup>
-                {["orders", "quotes"].map((a, i) => (
-                    <Fragment key={a}>
+                {salesCustomTabs.map((tab, i) => (
+                    <Fragment key={tab.key}>
                         <Button
                             asChild
                             className={cn(
                                 "capitalize",
-                                path.includes(a) && "bg-green-600",
+                                path.includes(tab.key) && "bg-green-600",
                             )}
-                            variant={path.includes(a) ? "default" : "outline"}
+                            variant={
+                                path.includes(tab.key) ? "default" : "outline"
+                            }
                         >
-                            <Link href={`/sales-book/${a}`} key={a}>
-                                {i == 0 ? "Sales" : a}
-                            </Link>
+                            <Link href={tab.href}>{tab.label}</Link>
                         </Button>
                         {i != 0 || (
                             <Separator orientation="vertical"></Separator>
@@ -59,4 +63,3 @@ export function SalesCustomTab({}) {
         </Portal>
     );
 }
-

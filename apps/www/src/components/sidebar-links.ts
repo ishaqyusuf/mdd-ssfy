@@ -215,17 +215,11 @@ export const validateLinks = ({
     userId;
 }) => {
     const validateAccess = (al) => validateRules(al, can, userId, role);
-    const isSuperAdmin = validateRules(
-        [_role.is("Super Admin")],
-        can,
-        userId,
-        role,
-    );
     return linkModules.map((lm) => {
         lm.sections = lm.sections.map((s) => {
             s.links = s.links.map((lnk) => {
                 if (lnk.name === "Sales")
-                    lnk.href = `/sales-book/orders${isSuperAdmin ? "/v2" : ""}`;
+                    lnk.href = "/sales-book/orders/v2";
                 const valid = validateAccess(lnk.access);
                 // lnk.show = valid;
                 // if(!valid)return
@@ -328,13 +322,13 @@ export const linkModules = [
             //     _perm.in("editOrders"),
             // ).data,
 
-            _link("Sales", "orders", "/sales-book/orders", [
+            _link("Sales", "orders", "/sales-book/orders/v2", [
                 _subLink("Bin", "/sales-book/orders/bin").access(
                     _role.is("Super Admin"),
                 ).data,
                 _subLink("Orders - Legacy", "/sales-book/orders")
                     .skipDefaultHref()
-                    .access(_role.is("Super Admin")).data,
+                    .data,
                 _subLink("Create Order", "/sales-book/create-order").access(
                     _perm.is("editOrders"),
                 ).data,

@@ -273,6 +273,9 @@ async function applySalesPayment(
 					paymentStatus: "success" as SalesPaymentStatus,
 					transactionMeta: {
 						source: "wallet-balance-payment",
+						destinationSalesId: order.id,
+						destinationOrderId: order.orderId,
+						walletAppliedAmount: walletPayAmount,
 					},
 				});
 				const salesPayment = paymentWrite.salesPayment as
@@ -340,12 +343,14 @@ async function applySalesPayment(
 			appliedSalesIds.push(order.id);
 			appliedSales.push({
 				salesId: order.id,
+				orderId: order.orderId,
 				amountApplied: orderAppliedAmount,
 				remainingDue: amountDue,
 			});
 		}
 
 		if (walletCreditAmount > 0) {
+			const selectedOrderIds = selectedOrders.map((order) => order.orderId);
 			await createLegacyWalletCreditTransaction(tx, {
 				amount: walletCreditAmount,
 				authorId: ctx.userId,
@@ -353,7 +358,9 @@ async function applySalesPayment(
 					...paymentChargeMeta,
 					source: "sales-overpayment",
 					selectedSalesIds: props.salesIds || [],
+					selectedOrderIds,
 					selectedBalance,
+					appliedSales,
 				},
 				note: `Overpayment credit from sales payment`,
 				paymentMethod: props.paymentMethod,

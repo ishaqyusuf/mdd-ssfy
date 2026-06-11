@@ -19,7 +19,7 @@ const salesTabs: {
     primary?: boolean;
 }[] = [
     {
-        href: "/sales-book/orders",
+        href: "/sales-book/orders/v2",
         label: "Orders",
         icon: "orders",
         rules: [_perm.is("editOrders")],
@@ -83,7 +83,7 @@ export function SalesTabs({
         if (hideSalesTabs) return;
         if (!auth.enabled || auth.isPending) return;
 
-        const canViewOrders = visibleTabHrefs.includes("/sales-book/orders");
+        const canViewOrders = visibleTabHrefs.includes("/sales-book/orders/v2");
         const canViewQuotes = visibleTabHrefs.includes("/sales-book/quotes");
         const infiniteOptions = {
             getNextPageParam: ({ meta }: { meta?: { cursor?: unknown } }) =>
@@ -92,13 +92,7 @@ export function SalesTabs({
         const parsedFilters = JSON.parse(filterKey);
 
         if (canViewOrders) {
-            router.prefetch("/sales-book/orders");
-            void queryClient.prefetchInfiniteQuery(
-                trpc.sales.getOrders.infiniteQueryOptions(
-                    parsedFilters,
-                    infiniteOptions,
-                ) as any,
-            );
+            router.prefetch("/sales-book/orders/v2");
         }
 
         if (canViewQuotes) {

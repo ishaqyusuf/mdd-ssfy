@@ -14,7 +14,6 @@ import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { Dialog, Field, InputGroup, Item, Select } from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
-import { Separator } from "@gnd/ui/separator";
 import { Spinner } from "@gnd/ui/spinner";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { ToastAction } from "@gnd/ui/toast";
@@ -70,7 +69,7 @@ export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 					</Button>
 				)}
 			</Dialog.Trigger>
-			<Dialog.Content className="w-[min(94vw,560px)] gap-0 overflow-hidden p-0">
+			<Dialog.Content className="max-h-[90vh] w-[min(94vw,560px)] gap-0 overflow-hidden p-0">
 				<Suspense fallback={<PaymentProcessorSkeleton />}>
 					<Content setOpened={setOpened} {...props} />
 				</Suspense>
@@ -771,6 +770,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	return (
 		<Form {...form}>
 			<form
+				className="flex max-h-[90vh] flex-col"
 				onSubmit={form.handleSubmit(
 					(formData: z.infer<typeof formSchema>) => {
 						if (sendLink) {
@@ -784,8 +784,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 					},
 				)}
 			>
-				<div className="grid gap-0">
-					<div className="border-b bg-muted/30 px-6 py-5">
+				<div className="flex min-h-0 flex-col">
+					<div className="shrink-0 border-b bg-muted/30 px-6 py-5">
 						<Dialog.Header className="space-y-3">
 							<div className="flex items-start gap-3 pr-8">
 								<div className="flex size-10 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
@@ -811,10 +811,10 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						</Dialog.Header>
 					</div>
 
-					<div className="relative">
+					<div className="relative min-h-0 flex-1 overflow-y-auto">
 						<div
 							className={cn(
-								"grid gap-5 p-6",
+								"grid gap-5 p-6 pb-0",
 								isTerminalFlowActive && "invisible pointer-events-none",
 							)}
 						>
@@ -1164,9 +1164,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								)}
 							</section>
 
-							<Separator />
-
-							<div className="flex items-center gap-3">
+							<div className="sticky bottom-0 z-20 -mx-6 flex items-center gap-3 border-t bg-background/95 px-6 py-4 shadow-[0_-8px_20px_rgba(15,23,42,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85">
 								{hasActiveTerminalCheckout ? (
 									<>
 										<Spinner />

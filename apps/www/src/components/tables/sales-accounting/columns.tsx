@@ -11,7 +11,9 @@ import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 
 import Money from "@/components/_v1/money";
+import { useTransactionOverviewModal } from "@/hooks/use-tx-overview-modal";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Button } from "@gnd/ui/button";
 
 export type Item =
     RouterOutputs["sales"]["getSalesAccountings"]["data"][number];
@@ -235,21 +237,26 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
             </>
         ),
     },
-    // {
-    //     header: "Order #",
-    //     accessorKey: "orderId",
-    //     meta: {
-    //         // preventDefault: true,
-    //     } as ColumnMeta,
-    //     cell: ({ row: { original: item } }) => (
-    //         <TCell.Secondary>
-    //             <TextWithTooltip
-    //                 className="max-w-[100px] xl:max-w-[200px]"
-    //                 text={item.orderIds || "-"}
-    //             />
-    //         </TCell.Secondary>
-    //     ),
-    // },
+    {
+        header: "Order #",
+        accessorKey: "orderId",
+        meta: {
+            // preventDefault: true,
+        } as ColumnMeta,
+        cell: ({ row: { original: item } }) => (
+            <TCell.Secondary>
+                <TextWithTooltip
+                    className="max-w-[100px] xl:max-w-[200px]"
+                    text={item.orderIds || "Wallet activity"}
+                />
+                {item.ordersCount > 1 ? (
+                    <Badge variant="outline" className="mt-1 text-[10px] uppercase">
+                        Applied to {item.ordersCount} invoices
+                    </Badge>
+                ) : null}
+            </TCell.Secondary>
+        ),
+    },
     // {
     //     header: "Sales Rep",
     //     accessorKey: "salesRep",
@@ -287,10 +294,26 @@ export const customerTransactionsColumn: ColumnDef<Item>[] = [
             className: "flex-1",
         },
         cell: ({ row: { original: item } }) => {
-            return <div>{/* <Action item={item} /> */}</div>;
+            return <CustomerTransactionAction item={item} />;
         },
     },
 ];
+function CustomerTransactionAction({ item }: { item: Item }) {
+    const modal = useTransactionOverviewModal();
+
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 px-2 text-xs"
+            onClick={() => modal.viewTx(item.id)}
+        >
+            <Icons.ReceiptText className="size-3.5" />
+            View
+        </Button>
+    );
+}
 function Action({ item }: { item: Item }) {
     return (
         <>

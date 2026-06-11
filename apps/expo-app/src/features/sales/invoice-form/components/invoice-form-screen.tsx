@@ -1,5 +1,6 @@
 import { SafeArea } from "@/components/safe-area";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import {
   getDefaultSalesFormCustomerProfile,
@@ -7,7 +8,15 @@ import {
 } from "@gnd/sales/sales-form-core";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, ScrollView, View } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  View,
+  type GestureResponderHandlers,
+} from "react-native";
 import { useInvoiceFormActions } from "../api/use-invoice-form-actions";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormRecord } from "../api/use-invoice-form-record";
@@ -22,34 +31,32 @@ import {
   type InvoiceFormRecoverySnapshot,
   writeInvoiceFormRecoverySnapshot,
 } from "../lib/local-recovery";
+import { formatMoney } from "../lib/format";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
-import type { InvoiceFormMode, InvoiceFormStep, NewSalesFormType } from "../types";
-import { CostsStep } from "./costs-step";
+import type {
+  InvoiceCustomer,
+  InvoiceFormMode,
+  NewSalesFormMeta,
+  NewSalesFormSummary,
+  NewSalesFormType,
+} from "../types";
 import { CustomerStep } from "./customer-step";
-import { DetailsStep } from "./details-step";
 import { InvoiceFormFooter } from "./invoice-form-footer";
 import { InvoiceFormHeader } from "./invoice-form-header";
-import { InvoiceStepTrack } from "./invoice-step-track";
 import { ItemSelector } from "./item-selector";
 import { ItemsStep } from "./items-step";
-import { ReviewStep } from "./review-step";
 import { WorkflowStepSelector } from "./workflow-step-selector";
 
-function getHeaderCopy(
-  step: InvoiceFormStep,
-  type: NewSalesFormType,
-): { title: string; subtitle: string } {
-  const noun = type === "quote" ? "Quote" : "Invoice";
-  const lowerNoun = noun.toLowerCase();
-  const title = step === "review" ? `Review ${lowerNoun}` : `New ${noun}`;
-  const subtitles: Record<InvoiceFormStep, string> = {
-    customer: "Customer",
-    details: `${noun} details`,
-    items: "Line items",
-    costs: "Costs and totals",
-    review: "Final check before creating",
-  };
-  return { title, subtitle: subtitles[step] };
+function getShellTitle(input: {
+  type: NewSalesFormType;
+  orderId?: string | null;
+  salesId?: number | null;
+  slug?: string | null;
+}) {
+  if (input.orderId) return input.orderId;
+  if (input.salesId) return `Sales #${input.salesId}`;
+  if (input.slug) return input.slug;
+  return input.type === "quote" ? "Quote" : "Invoice";
 }
 
 export function InvoiceFormScreen({
@@ -61,7 +68,6 @@ export function InvoiceFormScreen({
   slug?: string;
   type?: NewSalesFormType;
 }) {
-  const step = useInvoiceFormStore((state) => state.step);
   const saveStatus = useInvoiceFormStore((state) => state.saveStatus);
   const validationError = useInvoiceFormStore((state) => state.validationError);
   const selectorOpen = useInvoiceFormStore((state) => state.selectorOpen);
@@ -70,9 +76,11 @@ export function InvoiceFormScreen({
   );
   const workflowSelectorLine = useInvoiceFormStore(
     (state) =>
-      state.lineItems.find((item) => item.uid === workflowSelectorLineUid) || null,
+      state.lineItems.find((item) => item.uid === workflowSelectorLineUid) ||
+      null,
   );
   const customerId = useInvoiceFormStore((state) => state.meta.customerId);
+  const customer = useInvoiceFormStore((state) => state.customer);
   const customerProfileId = useInvoiceFormStore(
     (state) => state.meta.customerProfileId,
   );
@@ -94,6 +102,8 @@ export function InvoiceFormScreen({
   const recoveryLineItems = useInvoiceFormStore((state) => state.lineItems);
   const recoveryExtraCosts = useInvoiceFormStore((state) => state.extraCosts);
   const recoverySummary = useInvoiceFormStore((state) => state.summary);
+  const orderId = useInvoiceFormStore((state) => state.orderId);
+  const status = useInvoiceFormStore((state) => state.status);
   const recoveryInventoryStatus = useInvoiceFormStore(
     (state) => state.inventoryStatus,
   );
@@ -112,19 +122,35 @@ export function InvoiceFormScreen({
   const recordQuery = useInvoiceFormRecord({ mode, slug, type });
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<InvoiceFormRecoverySnapshot | null>(null);
+  const [customerSelectorOpen, setCustomerSelectorOpen] = useState(
+    () => mode === "create",
+  );
+  const [salesDetailsOpen, setSalesDetailsOpen] = useState(false);
   const hydratedVersionRef = useRef<string | null>(null);
   const recoveryReadRef = useRef<string | null>(null);
 
-  const headerCopy = useMemo(() => {
-    const current = getHeaderCopy(step, type);
-    if (mode !== "edit") return current;
-    const noun = type === "quote" ? "Quote" : "Invoice";
-    return {
-      ...current,
-      title: step === "review" ? `Review ${noun.toLowerCase()}` : `Edit ${noun}`,
-      subtitle: slug ? `Editing ${slug}` : current.subtitle,
-    };
-  }, [mode, slug, step, type]);
+  const headerTitle = useMemo(
+    () =>
+      getShellTitle({
+        type,
+        orderId,
+        salesId: recoverySalesId,
+        slug: recoverySlug || slug || null,
+      }),
+    [orderId, recoverySalesId, recoverySlug, slug, type],
+  );
+
+  const customerSwipeResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          gesture.dx < -24 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx < -72) router.back();
+        },
+      }),
+    [router],
+  );
 
   const recoverySavedAt = useMemo(() => {
     if (!recoverySnapshot?.savedAt) return "";
@@ -177,6 +203,12 @@ export function InvoiceFormScreen({
     if (recoveryType === type) return;
     actions.setFormType(type);
   }, [actions, recoveryType, type]);
+
+  useEffect(() => {
+    if (mode !== "create") return;
+    if (customerId && customer) return;
+    setCustomerSelectorOpen(true);
+  }, [customer, customerId, mode]);
 
   useEffect(() => {
     const record = recordQuery.data;
@@ -236,7 +268,8 @@ export function InvoiceFormScreen({
         : "";
       if (
         serverFingerprint &&
-        createInvoiceFormPayloadFingerprint(snapshot.payload) === serverFingerprint
+        createInvoiceFormPayloadFingerprint(snapshot.payload) ===
+          serverFingerprint
       ) {
         setRecoverySnapshot(null);
         return;
@@ -313,7 +346,10 @@ export function InvoiceFormScreen({
     actions.applyCustomerProfileMeta(
       {
         customerProfileId: nextProfileId,
-        paymentTerm: resolveSalesFormProfilePaymentTerm(profileMeta, paymentTerm),
+        paymentTerm: resolveSalesFormProfilePaymentTerm(
+          profileMeta,
+          paymentTerm,
+        ),
       },
       {
         previousProfileCoefficient: null,
@@ -408,23 +444,18 @@ export function InvoiceFormScreen({
     }
   };
 
-  const renderedStep = (() => {
-    if (step === "customer") return <CustomerStep />;
-    if (step === "details") return <DetailsStep />;
-    if (step === "items") return <ItemsStep />;
-    if (step === "costs") return <CostsStep />;
-    return <ReviewStep />;
-  })();
+  const handleCustomerSelected = useCallback(() => {
+    setCustomerSelectorOpen(false);
+    actions.setStep("items");
+  }, [actions]);
 
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
         <InvoiceFormHeader
-          title={headerCopy.title}
-          subtitle={headerCopy.subtitle}
-          status={step === "review" && saveStatus === "saved" ? "ready" : saveStatus}
+          title={headerTitle}
+          onOpenDetails={() => setSalesDetailsOpen(true)}
         />
-        <InvoiceStepTrack step={step} />
         {recordQuery.isPending ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator />
@@ -436,14 +467,14 @@ export function InvoiceFormScreen({
           <ScrollView
             className="flex-1"
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={
-              step === "items"
-                ? { paddingHorizontal: 0, paddingTop: 8, paddingBottom: 28 }
-                : { padding: 16, paddingBottom: 28 }
-            }
+            contentContainerStyle={{
+              paddingHorizontal: 0,
+              paddingTop: 4,
+              paddingBottom: 28,
+            }}
           >
             {recoverySnapshot ? (
-              <View className="mb-4 gap-3 rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <View className="mx-4 mb-4 gap-3 bg-amber-50 p-3">
                 <Text className="text-sm font-semibold text-amber-950">
                   Unsaved local edits were found
                 </Text>
@@ -469,12 +500,12 @@ export function InvoiceFormScreen({
                 </View>
               </View>
             ) : null}
-            {renderedStep}
+            <ItemsStep />
           </ScrollView>
         )}
         <InvoiceFormFooter
-          step={step}
-          canGoBack={step !== "customer"}
+          step="review"
+          canGoBack={false}
           isSaving={isSaving}
           validationError={validationError}
           onBack={actions.prevStep}
@@ -494,6 +525,25 @@ export function InvoiceFormScreen({
             onClose={actions.closeWorkflowSelector}
           />
         ) : null}
+        <CustomerSelectorModal
+          visible={customerSelectorOpen}
+          panHandlers={customerSwipeResponder.panHandlers}
+          onClose={() => router.back()}
+          onCustomerSelected={handleCustomerSelected}
+        />
+        <SalesDetailsModal
+          visible={salesDetailsOpen}
+          onClose={() => setSalesDetailsOpen(false)}
+          type={type}
+          customer={customer}
+          meta={recoveryMeta}
+          summary={recoverySummary}
+          orderId={orderId}
+          salesId={recoverySalesId}
+          slug={recoverySlug || slug || null}
+          status={status}
+          saveStatus={saveStatus}
+        />
         {isSaving ? (
           <View className="absolute inset-0 items-center justify-center bg-background/30">
             <View className="items-center gap-2 rounded-2xl border border-border bg-card p-4">
@@ -506,5 +556,212 @@ export function InvoiceFormScreen({
         ) : null}
       </View>
     </SafeArea>
+  );
+}
+
+function CustomerSelectorModal({
+  visible,
+  panHandlers,
+  onClose,
+  onCustomerSelected,
+}: {
+  visible: boolean;
+  panHandlers: GestureResponderHandlers;
+  onClose: () => void;
+  onCustomerSelected: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <SafeArea>
+        <View className="flex-1 bg-background" {...panHandlers}>
+          <View className="relative h-14 flex-row items-center justify-between px-3">
+            <Pressable
+              onPress={onClose}
+              className="h-11 w-11 items-center justify-center active:opacity-60"
+            >
+              <Icon name="ChevronLeft" className="text-foreground" size={24} />
+            </Pressable>
+            <View className="pointer-events-none absolute inset-x-14 items-center">
+              <Text className="text-base font-semibold text-foreground">
+                Select customer
+              </Text>
+            </View>
+            <View className="h-11 w-11" />
+          </View>
+          <CustomerStep onCustomerSelected={onCustomerSelected} />
+          <View className="px-4 pb-4 pt-3">
+            <Text className="text-center text-xs text-muted-foreground">
+              Customer is required before adding invoice items.
+            </Text>
+          </View>
+        </View>
+      </SafeArea>
+    </Modal>
+  );
+}
+
+function SalesDetailsModal({
+  visible,
+  onClose,
+  type,
+  customer,
+  meta,
+  summary,
+  orderId,
+  salesId,
+  slug,
+  status,
+  saveStatus,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  type: NewSalesFormType;
+  customer: InvoiceCustomer | null;
+  meta: NewSalesFormMeta;
+  summary: NewSalesFormSummary;
+  orderId?: string | null;
+  salesId?: number | null;
+  slug?: string | null;
+  status?: string | null;
+  saveStatus?: string | null;
+}) {
+  const noun = type === "quote" ? "Quote" : "Invoice";
+  const dueLabel = type === "quote" ? "Good until" : "Due date";
+  const dueValue = type === "quote" ? meta.goodUntil : meta.paymentDueDate;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <SafeArea>
+        <View className="flex-1 bg-background">
+          <View className="relative h-14 flex-row items-center justify-between px-3">
+            <Pressable
+              onPress={onClose}
+              className="h-11 w-11 items-center justify-center active:opacity-60"
+            >
+              <Icon name="X" className="text-foreground" size={22} />
+            </Pressable>
+            <View className="pointer-events-none absolute inset-x-14 items-center">
+              <Text className="text-base font-semibold text-foreground">
+                Sales details
+              </Text>
+            </View>
+            <View className="h-11 w-11" />
+          </View>
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          >
+            <SectionTitle title="Customer" />
+            {customer ? (
+              <View className="pb-5">
+                <Text className="text-xl font-semibold text-foreground">
+                  {customer.name}
+                </Text>
+                <Text className="mt-1 text-sm text-muted-foreground">
+                  {customer.contact || customer.email || customer.phone}
+                </Text>
+                <DetailLine label="Phone" value={customer.phone} />
+                <DetailLine label="Email" value={customer.email} />
+                <DetailLine label="Billing" value={customer.billingAddress} />
+                <DetailLine label="Shipping" value={customer.shippingAddress} />
+              </View>
+            ) : (
+              <Text className="pb-5 text-sm text-muted-foreground">
+                No customer selected.
+              </Text>
+            )}
+
+            <SectionTitle title={`${noun} details`} />
+            <View className="pb-5">
+              <DetailLine label="Sales #" value={orderId || slug || salesId} />
+              <DetailLine
+                label="Status"
+                value={status || saveStatus || "Draft"}
+              />
+              <DetailLine label="Invoice date" value={meta.createdAt} />
+              <DetailLine label={dueLabel} value={dueValue} />
+              <DetailLine label="Payment term" value={meta.paymentTerm} />
+              <DetailLine label="Payment method" value={meta.paymentMethod} />
+              <DetailLine label="Delivery" value={meta.deliveryOption} />
+              <DetailLine label="PO" value={meta.po} />
+              <DetailLine label="Tax code" value={meta.taxCode} />
+              <DetailLine label="Notes" value={meta.notes} multiline />
+            </View>
+
+            <SectionTitle title="Totals" />
+            <View>
+              <DetailLine
+                label="Subtotal"
+                value={formatMoney(summary.subTotal)}
+              />
+              <DetailLine
+                label="Discount"
+                value={formatMoney(-(summary.discount || 0))}
+              />
+              <DetailLine
+                label="Delivery"
+                value={formatMoney(summary.delivery || 0)}
+              />
+              <DetailLine
+                label="Labor"
+                value={formatMoney(summary.labor || 0)}
+              />
+              <DetailLine label="Tax" value={formatMoney(summary.taxTotal)} />
+            </View>
+          </ScrollView>
+          <View className="bg-background px-4 pb-4 pt-3">
+            <View className="flex-row items-end justify-between gap-4">
+              <Text className="text-xs font-semibold uppercase text-muted-foreground">
+                Grand total
+              </Text>
+              <Text className="text-2xl font-bold text-foreground">
+                {formatMoney(summary.grandTotal)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </SafeArea>
+    </Modal>
+  );
+}
+
+function SectionTitle({ title }: { title: string }) {
+  return (
+    <Text className="mb-3 mt-5 text-[11px] font-semibold uppercase text-muted-foreground">
+      {title}
+    </Text>
+  );
+}
+
+function DetailLine({
+  label,
+  value,
+  multiline,
+}: {
+  label: string;
+  value?: string | number | null;
+  multiline?: boolean;
+}) {
+  const resolved = value == null || value === "" ? "-" : String(value);
+  return (
+    <View className="flex-row gap-4 py-2">
+      <Text className="w-28 text-sm text-muted-foreground">{label}</Text>
+      <Text
+        numberOfLines={multiline ? undefined : 2}
+        className="min-w-0 flex-1 text-right text-sm font-medium text-foreground"
+      >
+        {resolved}
+      </Text>
+    </View>
   );
 }
