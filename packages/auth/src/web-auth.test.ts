@@ -3,8 +3,8 @@ import { describe, expect, test } from "bun:test";
 import {
 	getActiveWebLegacyUserWhere,
 	resolveWebLegacyCredentialSignIn,
-	toMobileAuthSession,
 } from "./better-auth/www";
+import { toMobileAuthSession } from "./better-auth/www-session";
 
 describe("www Better Auth legacy user lookup", () => {
 	test("limits master-capable login to active internal users", () => {

@@ -56,7 +56,8 @@ export type PaymentMethods =
     | "cash"
     | "zelle"
     | "credit-card"
-    | "wire";
+    | "wire"
+    | "wallet";
 export const paymentMethods = [
     "link",
     "terminal",
@@ -65,6 +66,7 @@ export const paymentMethods = [
     "zelle",
     "credit-card",
     "wire",
+    "wallet",
 ] as const;
 export const salesHaving = [
     "Single Payment",

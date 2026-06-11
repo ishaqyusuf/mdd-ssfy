@@ -1,4 +1,5 @@
 import { Env } from "@/components/env";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
@@ -48,6 +49,13 @@ import {
 } from "./utils";
 
 type SalesPrintExecutor = ReturnType<typeof useSalesPrintController>["print"];
+type PaymentMethod = NonNullable<z.infer<typeof formSchema>["paymentMethod"]>;
+type ExternalPaymentMethod = Exclude<PaymentMethod, "wallet">;
+
+const walletPaymentMethodOption = {
+	label: "Wallet",
+	value: "wallet",
+} as const;
 
 export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 	const [open, setOpened] = useState(false);
@@ -145,6 +153,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const { selectedIds, setOpened } = props;
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const salesQueryClient = useSalesQueryClient();
 	const salesPrint = useSalesPrintController();
 	const accountNo = props.phoneNo ?? `cust-${props.customerId}`;
 	const { data, refetch } = useSuspenseQuery(
@@ -163,6 +172,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const pendingPrintRequestsRef = useRef<PendingPrintRequest[]>([]);
 	const pendingAppliedPaymentCheckRef =
 		useRef<PendingAppliedPaymentCheck | null>(null);
+	const lastExternalPaymentMethodRef =
+		useRef<ExternalPaymentMethod>("credit-card");
 	const lastSubmittedAmountRef = useRef<number | null>(null);
 	const lastSubmittedPaymentMethodRef =
 		useRef<z.infer<typeof formSchema>["paymentMethod"] | null>(null);
@@ -347,9 +358,6 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			case "completed": {
 				const isTerminalPayment =
 					pm === "terminal" || terminalState === "success";
-				queryClient.invalidateQueries({
-					queryKey: trpc.sales.getOrders.infiniteQueryKey({}),
-				});
 				const formData = form.getValues();
 				void resolvePendingPrintRequests(
 					pendingPrintRequestsRef.current.length
@@ -393,12 +401,10 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		getPrintableRequests,
 		paymentStatus,
 		pm,
-		queryClient,
 		resetTerminalFlow,
 		salesPrint.print,
 		setOpened,
 		terminalState,
-		trpc,
 	]);
 	useEffect(() => {
 		if (!salesFields?.length) return;
@@ -457,6 +463,9 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						setWaitSeconds(0);
 					}, 2000);
 				} else {
+					if (data?.status === "success") {
+						salesQueryClient.salesPaymentUpdated();
+					}
 					form.setValue("paymentStatus", "completed");
 					if (terminalState === "recording") {
 						setTerminalState("success");
@@ -733,19 +742,14 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 
 	const [sendingLink, startTransition] = useTransition();
 
-	const sendLink = pm === "link" && !linkProcessed;
 	const selectedSalesCount =
 		wSales?.filter((sale) => sale.selected).length ?? 0;
-	const submitLabel = sendLink ? "Send link" : "Apply payment";
 	const selectedTerminal = data?.terminals?.find(
 		(terminal) => terminal?.value === deviceId,
 	);
 	const isTerminalFlowActive = terminalState !== "form";
 	const hasActiveTerminalCheckout =
 		!!terminalPaymentSession && terminalPaymentSession.status !== "COMPLETED";
-	const selectedPaymentMethodLabel =
-		salesPaymentMethods.find((method) => method.value === pm)?.label ||
-		"Payment";
 	const selectedBalanceAmount = Number(amount || 0);
 	const walletBalanceAmount = Number(data?.walletBalance || 0);
 	const cccPercentage = resolveCccPercentageFromSales(
@@ -772,8 +776,57 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		useWallet,
 		cccPercentage,
 	});
+	const payFullWithWallet =
+		!!useWallet &&
+		selectedBalanceAmount > 0 &&
+		paymentChargePreview.walletApplied >= selectedBalanceAmount &&
+		paymentChargePreview.externalAmount <= 0;
+	const paymentMethodOptions = payFullWithWallet
+		? [...availableSalesPaymentMethods, walletPaymentMethodOption]
+		: availableSalesPaymentMethods;
+	const effectivePaymentMethod = payFullWithWallet
+		? walletPaymentMethodOption.value
+		: pm;
+	const selectedPaymentMethodLabel =
+		paymentMethodOptions.find(
+			(method) => method.value === effectivePaymentMethod,
+		)?.label ||
+		"Payment";
+	const sendLink = effectivePaymentMethod === "link" && !linkProcessed;
+	const submitLabel = sendLink ? "Send link" : "Apply payment";
 	const paymentDisplayAmount =
 		paymentChargePreview.chargeAmount || paymentChargePreview.walletApplied;
+	useEffect(() => {
+		if (pm && pm !== "wallet") {
+			lastExternalPaymentMethodRef.current = pm as ExternalPaymentMethod;
+		}
+	}, [pm]);
+	useEffect(() => {
+		if (payFullWithWallet) {
+			if (pm !== "wallet") {
+				form.setValue("paymentMethod", "wallet", {
+					shouldDirty: true,
+					shouldValidate: true,
+				});
+			}
+			if (terminalPaymentSession) {
+				form.setValue("terminalPaymentSession", null);
+			}
+			if (terminalState !== "form") {
+				setTerminalError(null);
+				setTerminalState("form");
+				hasSubmittedCompletedTerminalRef.current = false;
+			}
+			return;
+		}
+
+		if (pm === "wallet") {
+			form.setValue("paymentMethod", lastExternalPaymentMethodRef.current, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+		}
+	}, [form, payFullWithWallet, pm, terminalPaymentSession, terminalState]);
 	const backToPaymentForm = () => {
 		resetTerminalFlow({
 			clearSession: terminalPaymentSession?.status !== "COMPLETED",
@@ -1152,7 +1205,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 									</Field>
 								</div>
 
-								{pm !== "link" || (
+								{effectivePaymentMethod !== "link" || (
 									<Field
 										orientation="horizontal"
 										className="rounded-md border border-amber-200 bg-amber-50/50 p-3"
@@ -1218,7 +1271,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 											<Field>
 												<Field.Content>
 													<Select.Root
-														value={pm || undefined}
+														value={effectivePaymentMethod || undefined}
+														disabled={payFullWithWallet}
 														onValueChange={(e) => {
 															form.setValue(
 																"paymentMethod",
@@ -1242,7 +1296,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 															<Select.Value placeholder="Payment Method" />
 														</Select.Trigger>
 														<Select.Content>
-															{availableSalesPaymentMethods.map((s) => (
+															{paymentMethodOptions.map((s) => (
 																<Select.Item key={s.value} value={s.value}>
 																	{s.label}
 																</Select.Item>
@@ -1251,7 +1305,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 													</Select.Root>
 												</Field.Content>
 											</Field>
-											{pm === "check" ? (
+											{effectivePaymentMethod === "check" ? (
 												<InputGroup>
 													<InputGroup.Addon align="inline-start">
 														<InputGroup.Text>Check No:</InputGroup.Text>
@@ -1262,7 +1316,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 														placeholder="eg., 12345"
 													/>
 												</InputGroup>
-											) : pm === "terminal" ? (
+											) : effectivePaymentMethod === "terminal" ? (
 												<Field>
 													<Field.Content>
 														<Select.Root
@@ -1333,7 +1387,9 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 									amount={paymentDisplayAmount}
 									methodLabel={selectedPaymentMethodLabel}
 									terminalName={
-										pm === "terminal" ? selectedTerminal?.label : undefined
+										effectivePaymentMethod === "terminal"
+											? selectedTerminal?.label
+											: undefined
 									}
 									elapsedSeconds={waitSeconds}
 									error={terminalError}

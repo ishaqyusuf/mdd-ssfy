@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { db, type Database } from "@gnd/db";
 import type { getActiveDealerByAuthUserId } from "@gnd/db/queries";
-import { buildWebAppSessionByToken } from "@gnd/auth/better-auth/www";
+import { buildWebAppSessionByToken } from "@gnd/auth/better-auth/www-session";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { withAuthPermission } from "./middleware/auth-permission";
