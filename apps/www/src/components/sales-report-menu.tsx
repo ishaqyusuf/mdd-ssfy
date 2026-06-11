@@ -74,7 +74,7 @@ type Props = {
 	variant?: "nav" | "header";
 };
 
-export function SalesReportMenu({ variant = "header" }: Props) {
+export function useSalesReportMenuState() {
 	const auth = useAuth();
 	const [reportParams, setReportParams] = useQueryStates({
 		report: parseAsString,
@@ -106,64 +106,117 @@ export function SalesReportMenu({ variant = "header" }: Props) {
 		});
 	};
 
-	if (!canViewReports) {
+	return {
+		allowedReportMenuItems,
+		canViewCustomerStatements,
+		canViewReports,
+		customerStatementsOpen,
+		reportParams,
+		setCustomerStatementsReportOpen,
+		setReportParams,
+	};
+}
+
+export type SalesReportMenuState = ReturnType<typeof useSalesReportMenuState>;
+
+export function SalesReportMenuContent({
+	state,
+}: {
+	state: SalesReportMenuState;
+}) {
+	return (
+		<>
+			{state.allowedReportMenuItems.map((item) => (
+				<DropdownMenuItem key={item.href} asChild>
+					<Link href={item.href} className="gap-2">
+						<Icons.ChartSpline className="size-4 shrink-0" />
+						<span className="flex-1">{item.label}</span>
+						<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+					</Link>
+				</DropdownMenuItem>
+			))}
+			{state.canViewCustomerStatements ? (
+				<DropdownMenuItem
+					className="gap-2"
+					onSelect={() => state.setCustomerStatementsReportOpen(true)}
+				>
+					<Icons.FileText className="size-4 shrink-0" />
+					<span className="flex-1">Customer Statements</span>
+					<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+				</DropdownMenuItem>
+			) : null}
+		</>
+	);
+}
+
+export function SalesReportMenuDialog({
+	state,
+}: {
+	state: SalesReportMenuState;
+}) {
+	return (
+		<CustomerStatementsReportDialog
+			open={state.customerStatementsOpen}
+			onOpenChange={state.setCustomerStatementsReportOpen}
+			params={state.reportParams}
+			setParams={state.setReportParams}
+		/>
+	);
+}
+
+export function SalesReportMenuDropdown({
+	state,
+	variant = "header",
+}: Props & {
+	state: SalesReportMenuState;
+}) {
+	if (!state.canViewReports) {
+		return null;
+	}
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				{variant === "nav" ? (
+					<button
+						type="button"
+						className={cn(
+							buttonVariants({
+								variant: "ghost",
+							}),
+							"gap-1.5",
+						)}
+					>
+						<Icons.ChartSpline className="size-4" />
+						Reports
+						<Icons.ChevronDown className="size-3.5" />
+					</button>
+				) : (
+					<Button type="button" variant="outline" size="sm" className="gap-2">
+						<Icons.ChartSpline className="size-4" />
+						<span className="hidden lg:inline">Reports</span>
+						<Icons.ChevronDown className="size-3.5" />
+					</Button>
+				)}
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end">
+				<SalesReportMenuContent state={state} />
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
+export function SalesReportMenu({ variant = "header" }: Props) {
+	const state = useSalesReportMenuState();
+
+	if (!state.canViewReports) {
 		return null;
 	}
 
 	return (
 		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					{variant === "nav" ? (
-						<button
-							type="button"
-							className={cn(
-								buttonVariants({
-									variant: "ghost",
-								}),
-								"gap-1.5",
-							)}
-						>
-							<Icons.ChartSpline className="size-4" />
-							Reports
-							<Icons.ChevronDown className="size-3.5" />
-						</button>
-					) : (
-						<Button type="button" variant="outline" size="sm" className="gap-2">
-							<Icons.ChartSpline className="size-4" />
-							<span className="hidden lg:inline">Reports</span>
-							<Icons.ChevronDown className="size-3.5" />
-						</Button>
-					)}
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					{allowedReportMenuItems.map((item) => (
-						<DropdownMenuItem key={item.href} asChild>
-							<Link href={item.href} className="gap-2">
-								<Icons.ChartSpline className="size-4 shrink-0" />
-								<span className="flex-1">{item.label}</span>
-								<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-							</Link>
-						</DropdownMenuItem>
-					))}
-					{canViewCustomerStatements ? (
-						<DropdownMenuItem
-							className="gap-2"
-							onSelect={() => setCustomerStatementsReportOpen(true)}
-						>
-							<Icons.FileText className="size-4 shrink-0" />
-							<span className="flex-1">Customer Statements</span>
-							<Icons.ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-						</DropdownMenuItem>
-					) : null}
-				</DropdownMenuContent>
-			</DropdownMenu>
-			<CustomerStatementsReportDialog
-				open={customerStatementsOpen}
-				onOpenChange={setCustomerStatementsReportOpen}
-				params={reportParams}
-				setParams={setReportParams}
-			/>
+			<SalesReportMenuDropdown state={state} variant={variant} />
+			<SalesReportMenuDialog state={state} />
 		</>
 	);
 }

@@ -154,15 +154,15 @@ describe("local db sync helpers", () => {
 		});
 	});
 
-	test("does not use generic .env.local DATABASE_URL as local sync target", async () => {
+	test("uses generic .env.local DATABASE_URL as local sync target", async () => {
 		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
 
 		try {
-			await writeFile(`${cwd}/.env.local`, "DATABASE_URL='mysql://root@localhost/gnd-prisma2'\n", "utf8");
+			await writeFile(`${cwd}/.env.local`, "DATABASE_URL='mysql://root@localhost:3306/gnd-prisma2'\n", "utf8");
 
 			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod"], cwd);
 
-			expect(options.targetUrl).toBe("mysql://root@127.0.0.1:3307/gnd-prisma2");
+			expect(options.targetUrl).toBe("mysql://root@localhost:3306/gnd-prisma2");
 			expect(options.initialCursorValue).toBe("2026-05-04 23:59:59.999");
 		} finally {
 			await rm(cwd, { recursive: true, force: true });

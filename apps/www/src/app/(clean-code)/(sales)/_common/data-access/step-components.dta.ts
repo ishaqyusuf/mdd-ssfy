@@ -3,6 +3,7 @@ import { generateRandomString } from "@/lib/utils";
 
 import { StepComponentForm, StepComponentMeta } from "../../types";
 import { revalidatePath } from "next/cache";
+import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
 
 export interface LoadStepComponentsProps {
     stepId?: number;
@@ -74,16 +75,23 @@ export async function getComponentsDta(props: LoadStepComponentsProps) {
 }
 
 export async function updateStepComponentDta(id, data) {
-    return await prisma.dykeStepProducts.update({
+    const component = await prisma.dykeStepProducts.update({
         where: { id },
         data: {
             ...data,
         },
     });
+    await invalidateSalesWorkflowForStepComponent({
+        stepId: component.dykeStepId,
+        componentId: component.id,
+        componentUid: component.uid,
+        routing: true,
+    });
+    return component;
 }
 export async function createStepComponentDta(data: StepComponentForm) {
     const meta = {} satisfies StepComponentMeta;
-    const c = data.id
+    const component = data.id
         ? await prisma.dykeStepProducts?.update({
               where: { id: data.id },
               data: {
@@ -92,7 +100,7 @@ export async function createStepComponentDta(data: StepComponentForm) {
                   productCode: data.productCode,
               },
           })
-        : prisma.dykeStepProducts.create({
+        : await prisma.dykeStepProducts.create({
               data: {
                   uid: generateRandomString(5),
                   custom: data.custom,
@@ -106,5 +114,11 @@ export async function createStepComponentDta(data: StepComponentForm) {
               },
           });
     revalidatePath(`step-components-${data?.stepId}`);
-    return c;
+    await invalidateSalesWorkflowForStepComponent({
+        stepId: data.stepId,
+        componentId: component.id,
+        componentUid: component.uid,
+        routing: true,
+    });
+    return component;
 }

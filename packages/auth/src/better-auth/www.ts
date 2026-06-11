@@ -4,7 +4,11 @@ import { generatePermissions } from "@gnd/utils/constants";
 import { compare } from "bcrypt-ts";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { APIError, createAuthEndpoint } from "better-auth/api";
+import {
+  APIError,
+  createAuthEndpoint,
+  createAuthMiddleware,
+} from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
@@ -28,6 +32,7 @@ const PASSWORD_MIGRATION_TOKEN_EXPIRES_IN_SECONDS = 60 * 15;
 const CREDENTIAL_PROVIDER_ID = "credential";
 const PASSWORD_MIGRATION_IDENTIFIER_PREFIX = "www-password-migration:";
 const RESET_PASSWORD_EXPIRY_HOURS = 1;
+const GOOGLE_PROVIDER_ID = "google";
 
 export type WebActiveSessionInfo = {
   id: string;
@@ -139,8 +144,55 @@ function getTrustedOrigins() {
   );
 }
 
+function getWebGoogleProvider() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) return null;
+
+  return {
+    clientId,
+    clientSecret,
+    disableImplicitSignUp: true,
+    prompt: "select_account" as const,
+    mapProfileToUser(profile: {
+      email?: string | null;
+      email_verified?: boolean;
+      name?: string | null;
+      picture?: string | null;
+    }) {
+      return {
+        email: profile.email?.toLowerCase() ?? null,
+        emailVerified: Boolean(profile.email_verified),
+        image: profile.picture ?? undefined,
+        name: profile.name ?? undefined,
+      };
+    },
+  };
+}
+
 function normalizeRememberMe(value: unknown) {
   return value === true || value === "true" || value === "on";
+}
+
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function isGoogleAuthPath(path?: string | null) {
+  return (
+    path?.includes("/callback/google") || path?.includes("/sign-in/social")
+  );
+}
+
+function getVerifiedSocialEmail(input: {
+  email?: unknown;
+  emailVerified?: unknown;
+}) {
+  if (typeof input.email !== "string" || !input.email.trim()) return null;
+  if (input.emailVerified !== true) return null;
+
+  return normalizeEmail(input.email);
 }
 
 function hashResetToken(token: string) {
@@ -217,6 +269,26 @@ async function upsertWebAuthUser(user: Users) {
   });
 }
 
+function buildWebAuthUserDataFromLegacyUser(
+  user: Users,
+  input?: {
+    image?: unknown;
+    name?: unknown;
+  },
+) {
+  return {
+    legacyUserId: user.id,
+    name:
+      user.name ||
+      (typeof input?.name === "string" && input.name.trim()
+        ? input.name
+        : user.email),
+    email: normalizeEmail(user.email),
+    emailVerified: true,
+    image: typeof input?.image === "string" ? input.image : null,
+  };
+}
+
 async function findCredentialAccount(authUserId: string) {
   return db.webAuthAccount.findFirst({
     where: {
@@ -247,6 +319,10 @@ async function ensureCredentialAccount(authUserId: string) {
       updatedAt: new Date(),
     },
   });
+}
+
+async function ensureWebSocialCredentialAccount(authUserId: string) {
+  await ensureCredentialAccount(authUserId);
 }
 
 function upsertCredentialPassword(authUserId: string, password: string) {
@@ -779,6 +855,8 @@ function webCredentialsPlugin(): BetterAuthPlugin {
   };
 }
 
+const webGoogleProvider = getWebGoogleProvider();
+
 export const webAuth = betterAuth({
   appName: "GND Workspace",
   baseURL: getWebBaseUrl(),
@@ -807,9 +885,115 @@ export const webAuth = betterAuth({
   },
   account: {
     modelName: "WebAuthAccount",
+    accountLinking: {
+      requireLocalEmailVerified: false,
+      trustedProviders: [GOOGLE_PROVIDER_ID],
+    },
   },
   verification: {
     modelName: "WebAuthVerification",
+  },
+  ...(webGoogleProvider
+    ? {
+        socialProviders: {
+          google: webGoogleProvider,
+        },
+      }
+    : {}),
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      if (!ctx.path.includes("/callback/google")) return;
+
+      const newSession = ctx.context.newSession as
+        | {
+            session?: {
+              id?: string;
+              ipAddress?: string | null;
+              userAgent?: string | null;
+            };
+            user?: {
+              id?: string;
+              email?: string | null;
+              name?: string | null;
+            };
+          }
+        | undefined;
+      const session = newSession?.session;
+      const authUser = newSession?.user;
+
+      if (!session?.id || !authUser?.id || !authUser.email) return;
+
+      const legacyUser = await getLegacyUserByAuthUserId(authUser.id);
+      if (!legacyUser) {
+        await db.webAuthSession.deleteMany({
+          where: { id: session.id },
+        });
+        return;
+      }
+
+      const previousSessions = await db.webAuthSession.findMany({
+        where: {
+          userId: authUser.id,
+          id: {
+            not: session.id,
+          },
+        },
+        select: {
+          id: true,
+          userAgent: true,
+        },
+      });
+      if (
+        !isNewLoginDevice(
+          session.userAgent ?? ctx.headers?.get("user-agent") ?? null,
+          previousSessions,
+        )
+      ) {
+        return;
+      }
+
+      const device = normalizeLoginDevice(session.userAgent);
+      runWebNewDeviceLoginAlert({
+        sessionId: session.id,
+        userId: legacyUser.id,
+        accountName: legacyUser.name,
+        accountEmail: legacyUser.email,
+        appSurface: "www",
+        deviceLabel: device.label,
+        deviceKey: device.key,
+        ipAddress: session.ipAddress ?? null,
+        userAgent: session.userAgent ?? null,
+        loginAt: new Date().toISOString(),
+      });
+    }),
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user, context) => {
+          if (!isGoogleAuthPath(context?.path)) return;
+
+          const email = getVerifiedSocialEmail(user);
+          if (!email) return false;
+
+          const legacyLogin = await findLegacyUser({ email });
+          if (!legacyLogin) return false;
+
+          return {
+            data: buildWebAuthUserDataFromLegacyUser(legacyLogin.user, user),
+          };
+        },
+      },
+    },
+    account: {
+      create: {
+        after: async (account) => {
+          if (account.providerId !== GOOGLE_PROVIDER_ID) return;
+
+          await ensureWebSocialCredentialAccount(account.userId);
+        },
+      },
+    },
   },
   plugins: [webCredentialsPlugin(), nextCookies()],
 });

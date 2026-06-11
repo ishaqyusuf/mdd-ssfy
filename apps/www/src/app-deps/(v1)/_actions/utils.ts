@@ -22,9 +22,13 @@ export async function getSessionPermissions() {
 export async function user() {
     const data = await getServerAuthSession();
     if (!data) return null;
-    // throw new Error();
-    // data.
-    return data.user;
+
+    return {
+        ...data.user,
+        role: data.role,
+        can: data.can,
+        permissions: data.can,
+    };
 }
 export const authUser = user;
 export async function userId() {

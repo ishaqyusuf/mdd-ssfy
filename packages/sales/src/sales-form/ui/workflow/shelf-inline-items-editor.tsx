@@ -14,7 +14,6 @@ import {
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { profileAdjustedDoorSalesPrice } from "./door-pricing";
 import {
 	createShelfProductDraft,
 	createShelfSectionDraft,
@@ -27,6 +26,12 @@ import {
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
 } from "./shelf-inputs";
+import {
+	buildShelfProductRowPatch,
+	clearShelfRowProduct,
+	patchShelfRowPrice,
+	patchShelfRowQty,
+} from "./shelf-row-products";
 
 type InlineRowEntry = {
 	section: ShelfSectionDraft;
@@ -148,100 +153,6 @@ function rowCategoryIds(
 		Number(row?.categoryId || 0),
 		Number(product?.categoryId || 0),
 	]);
-}
-
-function patchRowPrice(row: ShelfRowDraft, unitPrice: number) {
-	const nextPrice = roundCurrency(unitPrice);
-	const qty = Number(row?.qty ?? 1);
-	return {
-		...row,
-		customPrice: nextPrice,
-		unitPrice: nextPrice,
-		totalPrice: roundCurrency(qty * nextPrice),
-		meta: {
-			...(row?.meta || {}),
-			customPrice: nextPrice,
-			unitPrice: nextPrice,
-		},
-	};
-}
-
-function patchRowQty(row: ShelfRowDraft, qty: number) {
-	const nextQty = Number(qty || 0);
-	const unitPrice = getShelfRowDisplayUnitPrice(row);
-	return {
-		...row,
-		qty: nextQty,
-		totalPrice: roundCurrency(nextQty * unitPrice),
-	};
-}
-
-function clearRowProduct(row: ShelfRowDraft) {
-	return {
-		...row,
-		categoryId: null,
-		productId: null,
-		description: "",
-		basePrice: 0,
-		salesPrice: 0,
-		customPrice: null,
-		unitPrice: 0,
-		totalPrice: 0,
-		meta: {
-			...(row?.meta || {}),
-			categoryIds: [],
-			shelfParentCategoryId: null,
-			basePrice: 0,
-			salesPrice: 0,
-			customPrice: null,
-			unitPrice: 0,
-		},
-	};
-}
-
-function productRowPatch(input: {
-	row: ShelfRowDraft;
-	product: ShelfProductOption;
-	categories: ShelfCategoryRecord[];
-	profileCoefficient: number;
-}) {
-	const categoryIds = productCategoryPath(input.product, input.categories);
-	const categoryId =
-		Number(input.product?.categoryId || 0) ||
-		(categoryIds.length ? categoryIds[categoryIds.length - 1] : null) ||
-		null;
-	const parentCategoryId =
-		Number(input.product?.parentCategoryId || 0) ||
-		(categoryIds.length ? categoryIds[0] : null) ||
-		null;
-	const basePrice = Number(input.product?.unitPrice || 0);
-	const salesPrice = profileAdjustedDoorSalesPrice(
-		null,
-		basePrice,
-		input.profileCoefficient,
-	);
-	const unitPrice = salesPrice;
-	const qty = Number(input.row?.qty ?? 1);
-	return {
-		...input.row,
-		categoryId,
-		productId: Number(input.product?.id || 0) || null,
-		description: String(input.product?.title || ""),
-		basePrice,
-		salesPrice,
-		customPrice: null,
-		unitPrice,
-		totalPrice: roundCurrency(qty * unitPrice),
-		meta: {
-			...(input.row?.meta || {}),
-			categoryIds,
-			shelfParentCategoryId: parentCategoryId,
-			basePrice,
-			salesPrice,
-			customPrice: null,
-			unitPrice,
-		},
-	};
 }
 
 function replaceSectionRow(
@@ -515,13 +426,13 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 			}
 		}
 		const nextRow = resolvedProduct
-			? productRowPatch({
+			? buildShelfProductRowPatch({
 					row: entry.row,
 					product: resolvedProduct,
 					categories: props.categories,
 					profileCoefficient: props.profileCoefficient,
 				})
-			: clearRowProduct(entry.row);
+			: clearShelfRowProduct(entry.row);
 		props.onSectionsChange(
 			replaceRowAsOwnSection(props.sections, entry, nextRow),
 		);
@@ -588,7 +499,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											onChange={(event) =>
 												patchEntry(
 													entry,
-													patchRowPrice(
+													patchShelfRowPrice(
 														entry.row,
 														Number(event.target.value || 0),
 													),
@@ -612,7 +523,10 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 										onChange={(event) =>
 											patchEntry(
 												entry,
-												patchRowQty(entry.row, Number(event.target.value || 0)),
+												patchShelfRowQty(
+													entry.row,
+													Number(event.target.value || 0),
+												),
 											)
 										}
 										className="h-8 text-right"

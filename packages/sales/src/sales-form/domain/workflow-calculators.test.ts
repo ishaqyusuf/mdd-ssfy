@@ -255,6 +255,34 @@ describe("workflow-calculators domain", () => {
 		expect(summary.lineTotal).toBe(90);
 	});
 
+	it("ignores null custom shelf prices when applying profile pricing", () => {
+		const summary = summarizeShelfRows(
+			[
+				{
+					uid: "row-1",
+					productId: 101,
+					description: "Profile shelf row",
+					qty: 2,
+					basePrice: 100,
+					salesPrice: 25,
+					customPrice: null,
+					unitPrice: 25,
+					meta: {
+						basePrice: 100,
+						salesPrice: 25,
+						customPrice: null,
+						unitPrice: 25,
+					},
+				},
+			],
+			4,
+		);
+
+		expect(summary.rows[0].customPrice).toBeNull();
+		expect(summary.rows[0].unitPrice).toBe(25);
+		expect(summary.lineTotal).toBe(50);
+	});
+
 	it("groups flat shelf rows into old-form-style sections", () => {
 		const sections = buildShelfSections([
 			{

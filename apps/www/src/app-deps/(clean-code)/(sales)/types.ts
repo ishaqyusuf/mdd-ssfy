@@ -16,7 +16,7 @@ import type { HousePackageToolMeta } from "@sales/types";
 
 import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
 import { SalesPaymentMethods } from "@sales/constants";
-import { StepComponentData } from "@api/db/queries/sales-form";
+import type { StepComponentData } from "@api/db/queries/sales-form";
 
 export { HousePackageToolMeta };
 

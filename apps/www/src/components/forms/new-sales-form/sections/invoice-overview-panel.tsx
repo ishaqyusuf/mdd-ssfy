@@ -13,7 +13,9 @@ import {
 	buildSalesFormTaxSelectOptions,
 	getDefaultSalesFormCustomerProfile,
 	hasSalesFormSummaryDrift,
+	normalizeSalesFormPaymentTerm,
 	normalizeSalesFormTaxOptions,
+	resolveSalesFormProfilePaymentTerm,
 	resolveSalesFormTaxRateByCode,
 	salesFormDeliveryOptions,
 	salesFormPaymentMethods,
@@ -121,7 +123,7 @@ export function InvoiceOverviewPanel(props: Props) {
 			customerProfileId: data.profileId ?? customerProfileId,
 			billingAddressId: data.billing?.id ?? data.billingId ?? null,
 			shippingAddressId: data.shipping?.id ?? data.shippingId ?? null,
-			paymentTerm: (data.netTerm as string) || "None",
+			paymentTerm: normalizeSalesFormPaymentTerm(data.netTerm, paymentTerm),
 			taxCode: (data.taxCode as string) || null,
 		};
 		const changed =
@@ -321,8 +323,7 @@ export function InvoiceOverviewPanel(props: Props) {
 		const nextProfileId = Number(defaultProfile.id);
 		applyCustomerProfileMeta({
 			customerProfileId: nextProfileId,
-			paymentTerm:
-				profileMeta?.netTerm || profileMeta?.net || paymentTerm || "None",
+			paymentTerm: resolveSalesFormProfilePaymentTerm(profileMeta, paymentTerm),
 		}, nextProfileId);
 	}, [
 		customerProfileId,
@@ -354,8 +355,7 @@ export function InvoiceOverviewPanel(props: Props) {
 		const profileMeta = profile?.meta || {};
 		applyCustomerProfileMeta({
 			customerProfileId: selectedId,
-			paymentTerm:
-				profileMeta?.netTerm || profileMeta?.net || paymentTerm || "None",
+			paymentTerm: resolveSalesFormProfilePaymentTerm(profileMeta, paymentTerm),
 		}, selectedId);
 	}
 

@@ -13,6 +13,9 @@ import { magicLink } from "better-auth/plugins";
 import * as z from "zod";
 import { isMasterPassword } from "../utils";
 
+const CREDENTIAL_PROVIDER_ID = "credential";
+const GOOGLE_PROVIDER_ID = "google";
+
 export type DealerNewDeviceLoginAlertInput = {
 	sessionId: string;
 	userId: string;
@@ -151,12 +154,74 @@ function getTrustedOrigins() {
 	);
 }
 
+function getDealershipGoogleProvider() {
+	const clientId =
+		process.env.DEALERSHIP_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+	const clientSecret =
+		process.env.DEALERSHIP_GOOGLE_CLIENT_SECRET ||
+		process.env.GOOGLE_CLIENT_SECRET;
+
+	if (!clientId || !clientSecret) return null;
+
+	return {
+		clientId,
+		clientSecret,
+		disableImplicitSignUp: true,
+		prompt: "select_account" as const,
+		mapProfileToUser(profile: {
+			email?: string | null;
+			email_verified?: boolean;
+			name?: string | null;
+			picture?: string | null;
+		}) {
+			return {
+				email: profile.email?.toLowerCase() ?? null,
+				emailVerified: Boolean(profile.email_verified),
+				image: profile.picture ?? undefined,
+				name: profile.name ?? undefined,
+			};
+		},
+	};
+}
+
+function normalizeEmail(value: string) {
+	return value.trim().toLowerCase();
+}
+
+function isGoogleAuthPath(path?: string | null) {
+	return (
+		path?.includes("/callback/google") || path?.includes("/sign-in/social")
+	);
+}
+
+function getVerifiedSocialEmail(input: {
+	email?: unknown;
+	emailVerified?: unknown;
+}) {
+	if (typeof input.email !== "string" || !input.email.trim()) return null;
+	if (input.emailVerified !== true) return null;
+
+	return normalizeEmail(input.email);
+}
+
 export function getActiveDealerAuthUserWhere(email: string, authUserId?: string) {
 	return {
-		email: email.trim().toLowerCase(),
+		email: normalizeEmail(email),
 		authUserId: authUserId || {
 			not: null,
 		},
+		deletedAt: null,
+		OR: [{ restricted: false }, { restricted: null }],
+		status: {
+			in: ["active", "approved"],
+		},
+	};
+}
+
+export function getActiveDealerSocialAuthWhere(email: string) {
+	return {
+		email: normalizeEmail(email),
+		deletedAt: null,
 		OR: [{ restricted: false }, { restricted: null }],
 		status: {
 			in: ["active", "approved"],
@@ -174,6 +239,72 @@ async function getActiveDealerAuthUser(email: string, authUserId?: string) {
 			email: true,
 		},
 	});
+}
+
+async function getActiveDealerSocialAuthUser(email: string) {
+	return db.dealerAuth.findFirst({
+		where: getActiveDealerSocialAuthWhere(email),
+		select: {
+			id: true,
+			authUserId: true,
+			companyName: true,
+			name: true,
+			email: true,
+		},
+	});
+}
+
+async function ensureDealerCredentialAccount(authUserId: string) {
+	const existing = await db.dealerAuthAccount.findFirst({
+		where: {
+			userId: authUserId,
+			providerId: CREDENTIAL_PROVIDER_ID,
+		},
+	});
+
+	if (existing) {
+		return db.dealerAuthAccount.update({
+			where: {
+				id: existing.id,
+			},
+			data: {
+				accountId: authUserId,
+				updatedAt: new Date(),
+			},
+		});
+	}
+
+	return db.dealerAuthAccount.create({
+		data: {
+			id: crypto.randomUUID(),
+			accountId: authUserId,
+			providerId: CREDENTIAL_PROVIDER_ID,
+			userId: authUserId,
+			password: null,
+			createdAt: new Date(),
+			updatedAt: new Date(),
+		},
+	});
+}
+
+async function linkDealerAuthUser(authUserId: string, email: string) {
+	const dealer = await getActiveDealerSocialAuthUser(email);
+	if (!dealer) return null;
+	if (dealer.authUserId && dealer.authUserId !== authUserId) return null;
+
+	await db.dealerAuth.update({
+		where: {
+			id: dealer.id,
+		},
+		data: {
+			authUserId,
+			emailVerifiedAt: new Date(),
+		},
+	});
+
+	await ensureDealerCredentialAccount(authUserId);
+
+	return dealer;
 }
 
 function dealerMasterPasswordPlugin(): BetterAuthPlugin {
@@ -247,6 +378,8 @@ function dealerMasterPasswordPlugin(): BetterAuthPlugin {
 	};
 }
 
+const dealerGoogleProvider = getDealershipGoogleProvider();
+
 export const dealerAuth = betterAuth({
 	appName: "GND Dealership",
 	baseURL: getDealershipBaseUrl(),
@@ -263,6 +396,10 @@ export const dealerAuth = betterAuth({
 	},
 	account: {
 		modelName: "DealerAuthAccount",
+		accountLinking: {
+			requireLocalEmailVerified: false,
+			trustedProviders: [GOOGLE_PROVIDER_ID],
+		},
 	},
 	verification: {
 		modelName: "DealerAuthVerification",
@@ -271,7 +408,8 @@ export const dealerAuth = betterAuth({
 		after: createAuthMiddleware(async (ctx) => {
 			const isSessionCreatingAuthPath =
 				ctx.path.includes("/sign-in/email") ||
-				ctx.path.includes("/magic-link/verify");
+				ctx.path.includes("/magic-link/verify") ||
+				ctx.path.includes("/callback/google");
 			if (!isSessionCreatingAuthPath) return;
 
 			const newSession = ctx.context.newSession as
@@ -329,6 +467,56 @@ export const dealerAuth = betterAuth({
 				url: resetUrl.toString(),
 				expiresInSeconds: 60 * 60,
 			});
+		},
+	},
+	...(dealerGoogleProvider
+		? {
+				socialProviders: {
+					google: dealerGoogleProvider,
+				},
+			}
+		: {}),
+	databaseHooks: {
+		user: {
+			create: {
+				before: async (user, context) => {
+					if (!isGoogleAuthPath(context?.path)) return;
+
+					const email = getVerifiedSocialEmail(user);
+					if (!email) return false;
+
+					const dealer = await getActiveDealerSocialAuthUser(email);
+					if (!dealer || dealer.authUserId) return false;
+
+					return {
+						data: {
+							email: dealer.email,
+							emailVerified: true,
+							image: typeof user.image === "string" ? user.image : null,
+							name: dealer.companyName || dealer.name || user.name || dealer.email,
+						},
+					};
+				},
+			},
+		},
+		account: {
+			create: {
+				after: async (account) => {
+					if (account.providerId !== GOOGLE_PROVIDER_ID) return;
+
+					const authUser = await db.dealerAuthUser.findUnique({
+						where: {
+							id: account.userId,
+						},
+						select: {
+							email: true,
+						},
+					});
+					if (!authUser?.email) return;
+
+					await linkDealerAuthUser(account.userId, authUser.email);
+				},
+			},
 		},
 	},
 	plugins: [

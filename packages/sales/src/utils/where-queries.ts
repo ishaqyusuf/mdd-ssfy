@@ -232,6 +232,12 @@ export function whereSales(query: SalesQueryParamsSchema) {
         const searchQ = searchSales(v);
         if (searchQ) where.push(searchQ);
         break;
+      case "item":
+        if (typeof v === "string") {
+          const itemQ = buildSalesItemSearchWhere(v);
+          if (itemQ) where.push(itemQ);
+        }
+        break;
       case "salesNos":
         if (query.salesNos?.length)
           where.push({
@@ -690,55 +696,27 @@ export function whereSales(query: SalesQueryParamsSchema) {
     });
   return composeQuery(where);
 }
-function searchSales(params): Prisma.SalesOrdersWhereInput | null {
-  const inputQ = { contains: params || undefined } as any;
-  const parsedQ = parseSearchparams(params);
-  if (parsedQ) {
-    const _contains = {
-      contains: parsedQ.otherparams,
-    };
-    return {
-      items: {
-        some: {
-          OR: [
-            { description: params },
-            { description: parsedQ.otherparams },
-            {
-              salesDoors: {
-                some: {
-                  OR: [
-                    {
-                      stepProduct: {
-                        OR: [
-                          {
-                            name: _contains,
-                          },
-                          {
-                            door: {
-                              title: _contains,
-                            },
-                          },
-                          {
-                            product: {
-                              title: _contains,
-                            },
-                          },
-                        ],
-                      },
-                    },
-                    {
-                      dimension: parsedQ.size
-                        ? {
-                            contains: parsedQ.size,
-                          }
-                        : undefined,
-                    },
-                  ],
-                },
-              },
-            },
-            {
-              housePackageTool: {
+
+function buildSalesItemSearchWhere(
+  itemSearch: string,
+  originalParams = itemSearch,
+): Prisma.SalesOrdersWhereInput | null {
+  const parsedQ = parseItemSearchparams(itemSearch);
+  if (!parsedQ) return null;
+
+  const _contains = {
+    contains: parsedQ.otherparams,
+  };
+
+  return {
+    items: {
+      some: {
+        OR: [
+          { description: originalParams },
+          { description: parsedQ.otherparams },
+          {
+            salesDoors: {
+              some: {
                 OR: [
                   {
                     stepProduct: {
@@ -760,51 +738,91 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
                     },
                   },
                   {
-                    door: {
-                      OR: [
-                        {
-                          stepProducts: {
-                            some: {
-                              OR: [
-                                {
-                                  name: _contains,
-                                },
-                                {
-                                  door: {
-                                    title: _contains,
-                                  },
-                                },
-                                {
-                                  product: {
-                                    title: _contains,
-                                  },
-                                },
-                              ],
-                            },
-                          },
-                        },
-                        {
-                          title: {
-                            contains: parsedQ.otherparams,
-                          },
-                        },
-                      ],
-                    },
-                  },
-                  {
-                    molding: {
-                      title: {
-                        contains: parsedQ.otherparams,
-                      },
-                    },
+                    dimension: parsedQ.size
+                      ? {
+                          contains: parsedQ.size,
+                        }
+                      : undefined,
                   },
                 ],
               },
             },
-          ],
-        },
+          },
+          {
+            housePackageTool: {
+              OR: [
+                {
+                  stepProduct: {
+                    OR: [
+                      {
+                        name: _contains,
+                      },
+                      {
+                        door: {
+                          title: _contains,
+                        },
+                      },
+                      {
+                        product: {
+                          title: _contains,
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  door: {
+                    OR: [
+                      {
+                        stepProducts: {
+                          some: {
+                            OR: [
+                              {
+                                name: _contains,
+                              },
+                              {
+                                door: {
+                                  title: _contains,
+                                },
+                              },
+                              {
+                                product: {
+                                  title: _contains,
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      {
+                        title: {
+                          contains: parsedQ.otherparams,
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  molding: {
+                    title: {
+                      contains: parsedQ.otherparams,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
       },
-    };
+    },
+  };
+}
+
+function searchSales(params): Prisma.SalesOrdersWhereInput | null {
+  const inputQ = { contains: params || undefined } as any;
+  const parsedQ = parseSearchparams(params);
+  if (parsedQ) {
+    return buildSalesItemSearchWhere(parsedQ.originalparams, params);
   }
   if (params) {
     return {
@@ -858,6 +876,12 @@ export function parseSearchparams(_params) {
     // };
   }
   if (!itemSearch) return null;
+  return parseItemSearchparams(itemSearch);
+}
+
+function parseItemSearchparams(itemSearch: string) {
+  if (!itemSearch?.trim()) return null;
+
   const sizePattern = /\b(\d+-\d+)\s*x\s*(\d+-\d+)\b/;
   const match = itemSearch.match(sizePattern);
 

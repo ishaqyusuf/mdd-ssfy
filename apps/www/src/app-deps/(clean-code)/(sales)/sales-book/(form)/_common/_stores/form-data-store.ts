@@ -4,7 +4,7 @@ import { SalesFormZusData } from "../../../../types";
 import { FieldPath } from "react-hook-form";
 import { dotObject } from "@/app/(clean-code)/_common/utils/utils";
 import { deepCopy } from "@/lib/deep-copy";
-import { StepComponentData } from "@api/db/queries/sales-form";
+import type { StepComponentData } from "@api/db/queries/sales-form";
 export type ZusSales = SalesFormZusData & SalesFormZusAction;
 export type ZusComponent = StepComponentData;
 export type ZusStepFormData = ZusSales["kvStepForm"][number];

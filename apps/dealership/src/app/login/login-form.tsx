@@ -18,6 +18,7 @@ export function DealerLoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const [emailActionPending, setEmailActionPending] = useState<
     "magic-link" | "password-reset" | null
   >(null);
@@ -132,6 +133,33 @@ export function DealerLoginForm() {
     }
   }
 
+  async function signInWithGoogle() {
+    setError(null);
+    setNotice(null);
+    setGooglePending(true);
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+        errorCallbackURL: "/login?error=google",
+        requestSignUp: true,
+        disableRedirect: true,
+      });
+
+      if (result.error) {
+        setError(result.error.message || "Unable to start Google sign-in.");
+        return;
+      }
+
+      window.location.assign(result.data?.url || "/");
+    } catch {
+      setError("Unable to start Google sign-in. Please try again.");
+    } finally {
+      setGooglePending(false);
+    }
+  }
+
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
       <div className="space-y-2">
@@ -202,13 +230,32 @@ export function DealerLoginForm() {
           <p>{notice}</p>
         </div>
       ) : null}
-      <Button className="h-11 w-full" disabled={pending} type="submit">
+      <Button
+        className="h-11 w-full"
+        disabled={googlePending || pending}
+        type="submit"
+      >
         {pending ? "Signing in..." : "Continue to workspace"}
         <ArrowRight className="size-4" />
       </Button>
       <Button
         className="h-11 w-full"
-        disabled={emailActionPending !== null || pending}
+        disabled={emailActionPending !== null || googlePending || pending}
+        onClick={signInWithGoogle}
+        type="button"
+        variant="outline"
+      >
+        {googlePending ? "Opening Google..." : "Continue with Google"}
+        <span
+          aria-hidden="true"
+          className="inline-flex size-4 items-center justify-center text-sm font-semibold"
+        >
+          G
+        </span>
+      </Button>
+      <Button
+        className="h-11 w-full"
+        disabled={emailActionPending !== null || googlePending || pending}
         onClick={sendMagicLink}
         type="button"
         variant="outline"

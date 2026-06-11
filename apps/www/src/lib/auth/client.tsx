@@ -148,6 +148,12 @@ export async function signIn(provider: string, options: SignInOptions = {}) {
         typeof payload?.url === "string" && payload.url
             ? payload.url
             : callbackURL;
+    const errorMessage =
+        typeof payload?.message === "string" && payload.message
+            ? payload.message
+            : typeof payload?.error === "string" && payload.error
+              ? payload.error
+              : "login failed";
 
     if (response.ok) {
         if (
@@ -179,11 +185,79 @@ export async function signIn(provider: string, options: SignInOptions = {}) {
     }
 
     if (redirect) {
-        window.location.assign("/login/v2?error=login+failed");
+        const params = new URLSearchParams({
+            error: errorMessage,
+            status: String(response.status),
+        });
+
+        window.location.assign(`/login/v2?${params.toString()}`);
     }
 
     return {
-        error: payload?.message ?? "login failed",
+        error: errorMessage,
+        ok: false,
+        status: response.status,
+        url: null,
+    } satisfies SignInResult;
+}
+
+export async function signInWithGoogle(options: SignInOptions = {}) {
+    const callbackURL =
+        typeof options.callbackURL === "string"
+            ? options.callbackURL
+            : typeof options.callbackUrl === "string"
+              ? options.callbackUrl
+              : "/";
+    const redirect = options.redirect !== false;
+    const response = await fetch("/api/auth/sign-in/social", {
+        method: "POST",
+        headers: {
+            "content-type": "application/json",
+        },
+        body: JSON.stringify({
+            provider: "google",
+            callbackURL,
+            errorCallbackURL: "/login/v2?error=google",
+            requestSignUp: true,
+            disableRedirect: true,
+        }),
+    });
+    const payload = await response.json().catch(() => null);
+    const url =
+        typeof payload?.url === "string" && payload.url
+            ? payload.url
+            : callbackURL;
+    const errorMessage =
+        typeof payload?.message === "string" && payload.message
+            ? payload.message
+            : typeof payload?.error === "string" && payload.error
+              ? payload.error
+              : "google login failed";
+
+    if (response.ok) {
+        if (redirect) {
+            window.location.assign(url);
+        }
+
+        return {
+            error: null,
+            ok: true,
+            status: response.status,
+            url,
+        } satisfies SignInResult;
+    }
+
+    if (redirect) {
+        const params = new URLSearchParams({
+            error: errorMessage,
+            status: String(response.status),
+        });
+
+        window.location.assign(`/login/v2?${params.toString()}`);
+    }
+
+    return {
+        error: errorMessage,
         ok: false,
         status: response.status,
         url: null,

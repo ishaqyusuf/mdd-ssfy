@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-	applyMultiSelectStepMutation,
 	deriveMouldingRows,
 	getSelectedMouldingComponentsForLine,
 	sharedMouldingComponentPrice,
 	summarizeMouldingPersistRows,
 } from "../../domain";
+import { saveWorkflowMouldingSelectionWithQty as buildMouldingSelectionPatch } from "./workflow-moulding-actions";
 
 import type { SalesFormLineItemRecord } from "../../application";
 
@@ -196,52 +196,16 @@ export function useMouldingWorkflow(args: {
 		qtyInput: string,
 		activeStepTitle?: string | null,
 	) {
-		const nextQty = Math.max(1, Number(qtyInput || 0) || 1);
-		const nextSteps = [...steps];
-		const multiMutation = applyMultiSelectStepMutation({
-			steps: nextSteps,
-			currentStepIndex,
+		const nextPatch = buildMouldingSelectionPatch({
+			line,
+			steps,
+			stepIndex: currentStepIndex,
 			component,
 			visibleComponents,
-			selectedOverride: true,
-			activeStepTitle: activeStepTitle || "",
+			qty: qtyInput,
+			activeStepTitle,
 		});
-		const selectedComponents = Array.isArray(
-			multiMutation.steps[currentStepIndex]?.meta?.selectedComponents,
-		)
-			? multiMutation.steps[currentStepIndex].meta.selectedComponents
-			: [];
-		const existingRows = getMouldingRows(line);
-		const sharedComponentPrice = sharedMouldingComponentPrice(
-			multiMutation.steps || [],
-		);
-		const derivedRows = deriveMouldingRows({
-			selectedMouldings: selectedComponents,
-			existingRows,
-			sharedComponentPrice,
-		}).map((row) =>
-			String(row?.uid || "") === String(component?.uid || "")
-				? {
-						...row,
-						qty: nextQty,
-					}
-				: row,
-		);
-		const summary = summarizeMouldingPersistRows(
-			derivedRows,
-			sharedComponentPrice,
-		);
-		const nextPatch: Partial<SalesFormLineItemRecord> = {
-			formSteps: multiMutation.steps,
-			meta: {
-				...(line.meta || {}),
-				mouldingRows: summary.storedRows,
-			},
-			qty: summary.qtyTotal,
-			lineTotal: summary.total,
-			unitPrice: summary.unitPrice,
-		};
-		updateLineItem(String(line.uid || ""), nextPatch);
+		if (nextPatch) updateLineItem(String(line.uid || ""), nextPatch);
 		setMouldingSelectionPopover(closePopoverState());
 	}
 

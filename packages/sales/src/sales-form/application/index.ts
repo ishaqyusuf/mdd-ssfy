@@ -19,8 +19,10 @@ export {
 	normalizeSalesFormMeta,
 	repriceSalesFormLineItemsForProfile,
 	toSalesFormSaveDraftPayload,
+	validateSalesFormBeforeSave,
 	type SalesFormExtraCostRecord,
 	type SalesFormLineItemRecord,
 	type SalesFormMetaRecord,
+	type SalesFormSaveValidationResult,
 	type SalesFormSummaryRecord,
 } from "./record-normalization";

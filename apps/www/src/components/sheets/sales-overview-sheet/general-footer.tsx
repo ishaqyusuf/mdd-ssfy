@@ -66,11 +66,7 @@ export function GeneralFooter({}) {
 					customerName={data?.displayName}
 				>
 					<SalesMenu.Share />
-					{data?.type === "quote" ? (
-						<SalesMenu.QuotePrintMenuItems />
-					) : (
-						<SalesMenu.SalesPrintMenuItems />
-					)}
+					<SalesMenu.SalesPrintMenuItems />
 					<SalesMenu.Copy />
 					<SalesMenu.Move />
 					<SalesMenu.Separator />

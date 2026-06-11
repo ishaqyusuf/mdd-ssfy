@@ -224,6 +224,7 @@ export const salesQueryParamsSchema = z
 		customerId: z.number().optional().nullable(),
 		phone: z.string().optional().nullable(),
 		po: z.string().optional().nullable(),
+		item: z.string().optional().nullable(),
 		salesRepId: z.number().optional().nullable(),
 		"sales.rep": z.string().optional().nullable(),
 		showing: z.enum(["all sales", "my sales"]).optional().nullable(),

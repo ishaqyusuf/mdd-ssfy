@@ -92,6 +92,45 @@ export function calculatePaymentChannelChargePreview(input: {
 	};
 }
 
+export function calculatePaymentPlanPreview(input: {
+	paymentMethod?: string | null;
+	selectedBalance?: number | string | null;
+	externalAmount?: number | string | null;
+	walletBalance?: number | string | null;
+	useWallet?: boolean | null;
+	cccPercentage?: number | string | null;
+}) {
+	const selectedBalance =
+		Math.round(Number(input.selectedBalance || 0) * 100) / 100;
+	const walletBalance = Math.max(0, Number(input.walletBalance || 0));
+	const walletApplied = input.useWallet
+		? Math.round(Math.min(walletBalance, selectedBalance) * 100) / 100
+		: 0;
+	const remainingAfterWallet =
+		Math.round(Math.max(selectedBalance - walletApplied, 0) * 100) / 100;
+	const externalAmount =
+		input.paymentMethod === "wallet"
+			? 0
+			: Math.round(Number(input.externalAmount || 0) * 100) / 100;
+	const walletCreditAmount =
+		Math.round(Math.max(externalAmount - remainingAfterWallet, 0) * 100) /
+		100;
+	const charge = calculatePaymentChannelChargePreview({
+		amount: externalAmount,
+		cccPercentage: input.cccPercentage,
+		paymentMethod: input.paymentMethod,
+	});
+
+	return {
+		selectedBalance,
+		walletApplied,
+		remainingAfterWallet,
+		externalAmount,
+		walletCreditAmount,
+		...charge,
+	};
+}
+
 export function formatElapsedTime(seconds?: number | null) {
 	if (seconds == null) return "00:00";
 	const minutes = Math.floor(seconds / 60);

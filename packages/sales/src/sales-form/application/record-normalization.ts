@@ -8,6 +8,7 @@ import {
 	repriceSalesFormLineItemsByProfile,
 	summarizeMouldingPersistRows,
 	summarizeServiceRows,
+	summarizeShelfRows,
 } from "../domain";
 
 type SalesFormRecordLike = {
@@ -33,6 +34,7 @@ export type SalesFormLineItemRecord = Record<string, any> & {
 	qty?: number | null;
 	unitPrice?: number | null;
 	lineTotal?: number | null;
+	taxxable?: boolean | null;
 	meta?: Record<string, any> | null;
 	formSteps?: any[];
 	shelfItems?: any[];
@@ -49,6 +51,19 @@ export type SalesFormExtraCostRecord = Record<string, any> & {
 
 export type SalesFormMetaRecord = Record<string, any>;
 export type SalesFormSummaryRecord = Record<string, any>;
+export type SalesFormSaveValidationResult =
+	| {
+			valid: true;
+			code: null;
+			title: null;
+			message: null;
+	  }
+	| {
+			valid: false;
+			code: "customer_required" | "line_item_required";
+			title: string;
+			message: string;
+	  };
 
 function roundCurrency(value: number) {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -86,6 +101,27 @@ function getStoredServiceRows(line: SalesFormLineItemRecord) {
 		serviceRows?: Array<Record<string, unknown>>;
 	};
 	return Array.isArray(meta?.serviceRows) ? meta.serviceRows : [];
+}
+
+function deriveShelfLineTotalForSummary(shelfRows: any[]) {
+	const rowsWithStoredTotals = shelfRows.filter((row) => row?.totalPrice != null);
+	if (rowsWithStoredTotals.length) {
+		return roundCurrency(
+			rowsWithStoredTotals.reduce(
+				(sum, row) => sum + Number(row?.totalPrice || 0),
+				0,
+			),
+		);
+	}
+	return summarizeShelfRows(shelfRows).lineTotal;
+}
+
+function deriveShelfSummaryForNormalization(shelfRows: any[]) {
+	const summary = summarizeShelfRows(shelfRows);
+	return {
+		qty: summary.qtyTotal,
+		lineTotal: deriveShelfLineTotalForSummary(shelfRows),
+	};
 }
 
 function getItemTypeTitle(line: Partial<SalesFormLineItemRecord>) {
@@ -135,27 +171,71 @@ function getSaveLineTitle(
 }
 
 function deriveLineTotalForSummary(line: SalesFormLineItemRecord) {
+	return deriveLineSummaryForNormalization(line).lineTotal;
+}
+
+function deriveLineSummaryForNormalization(line: SalesFormLineItemRecord) {
 	const hptDoors = Array.isArray(line.housePackageTool?.doors)
 		? line.housePackageTool.doors
 		: [];
 
 	if (hptDoors.length) {
-		return Number(
-			normalizeHptLineForLegacy(line).housePackageTool?.totalPrice || 0,
-		);
+		const normalizedHpt = normalizeHptLineForLegacy(
+			line,
+			readWorkflowDoorRouteConfig(line),
+		).housePackageTool;
+		return {
+			qty: Number(normalizedHpt?.totalDoors || line.qty || 0),
+			lineTotal: Number(normalizedHpt?.totalPrice || 0),
+		};
 	}
 
 	const serviceRows = getStoredServiceRows(line);
 	if (serviceRows.length) {
-		return summarizeServiceRows(line.uid || "", serviceRows).lineTotal;
+		const summary = summarizeServiceRows(line.uid || "", serviceRows);
+		return {
+			qty: summary.qtyTotal,
+			lineTotal: summary.lineTotal,
+		};
 	}
 
 	const mouldingRows = getStoredMouldingRows(line);
 	if (mouldingRows.length) {
-		return summarizeMouldingPersistRows(mouldingRows, 0).total;
+		const summary = summarizeMouldingPersistRows(mouldingRows, 0);
+		return {
+			qty: summary.qtyTotal,
+			lineTotal: summary.total,
+		};
 	}
 
-	return Number(line.lineTotal || 0);
+	const shelfRows = Array.isArray(line.shelfItems) ? line.shelfItems : [];
+	if (shelfRows.length) {
+		return deriveShelfSummaryForNormalization(shelfRows);
+	}
+
+	return {
+		qty: Number(line.qty || 0),
+		lineTotal: Number(line.lineTotal || 0),
+	};
+}
+
+function readWorkflowDoorRouteConfig(line: SalesFormLineItemRecord) {
+	const config = line.meta?.workflowDoorRouteConfig;
+	if (!config || typeof config !== "object" || Array.isArray(config)) {
+		return {};
+	}
+	const routeConfig = config as {
+		noHandle?: unknown;
+		hasSwing?: unknown;
+	};
+	return {
+		...(typeof routeConfig.noHandle === "boolean"
+			? { noHandle: routeConfig.noHandle }
+			: {}),
+		...(typeof routeConfig.hasSwing === "boolean"
+			? { hasSwing: routeConfig.hasSwing }
+			: {}),
+	};
 }
 
 function deriveSummaryLineItems(lineItems: SalesFormLineItemRecord[]) {
@@ -196,8 +276,7 @@ export function normalizeSalesFormLineItem(
 	const qty = Number(line.qty ?? 0);
 	const unitPrice = Number(line.unitPrice ?? 0);
 	const computedTotal = roundCurrency(qty * unitPrice);
-
-	return {
+	const baseLine = {
 		id: line.id ?? null,
 		uid: line.uid || createSalesFormLineItemUid(index),
 		title: normalizeGroupedLineTitle(line),
@@ -205,10 +284,41 @@ export function normalizeSalesFormLineItem(
 		qty,
 		unitPrice,
 		lineTotal: roundCurrency(Number(line.lineTotal ?? computedTotal)),
+		taxxable: line.taxxable ?? null,
 		meta: line.meta ?? {},
 		formSteps: line.formSteps ?? [],
 		shelfItems: line.shelfItems ?? [],
 		housePackageTool: line.housePackageTool ?? null,
+	};
+	const normalizedHptLine =
+		Array.isArray(baseLine.housePackageTool?.doors) &&
+		baseLine.housePackageTool.doors.length > 0
+			? normalizeHptLineForLegacy(baseLine, readWorkflowDoorRouteConfig(baseLine))
+			: null;
+	if (normalizedHptLine) {
+		baseLine.housePackageTool = normalizedHptLine.housePackageTool;
+	}
+	const derivedSummary = deriveLineSummaryForNormalization(baseLine);
+	const hasDerivedLineTotal =
+		(Array.isArray(baseLine.housePackageTool?.doors) &&
+			baseLine.housePackageTool.doors.length > 0) ||
+		getStoredServiceRows(baseLine).length > 0 ||
+		getStoredMouldingRows(baseLine).length > 0 ||
+		(Array.isArray(baseLine.shelfItems) && baseLine.shelfItems.length > 0);
+	const lineTotal = hasDerivedLineTotal
+		? roundCurrency(derivedSummary.lineTotal)
+		: baseLine.lineTotal;
+	const nextQty = hasDerivedLineTotal ? Number(derivedSummary.qty || 0) : qty;
+	const nextUnitPrice =
+		hasDerivedLineTotal && nextQty > 0
+			? roundCurrency(lineTotal / nextQty)
+			: unitPrice;
+
+	return {
+		...baseLine,
+		qty: nextQty,
+		unitPrice: nextUnitPrice,
+		lineTotal,
 	};
 }
 
@@ -339,6 +449,7 @@ export function computeSalesFormSummary(
 		labor: summary.labor,
 		delivery: summary.delivery,
 		otherCosts: summary.otherCosts,
+		taxableSubTotal: summary.taxableSubTotal,
 		ccc: summary.ccc,
 	};
 }
@@ -390,8 +501,8 @@ export function hydrateSalesFormRecord<TRecord extends SalesFormRecordLike>(
 		lineItems,
 		extraCosts,
 		summary: {
-			...summary,
 			...record.summary,
+			...summary,
 		},
 	};
 }
@@ -430,4 +541,26 @@ export function toSalesFormSaveDraftPayload<
 		extraCosts,
 		summary,
 	};
+}
+
+export function validateSalesFormBeforeSave(
+	record?: Pick<SalesFormRecordLike, "form" | "lineItems"> | null,
+): SalesFormSaveValidationResult {
+	if (!record?.form?.customerId) {
+		return {
+			valid: false,
+			code: "customer_required",
+			title: "Customer required",
+			message: "Select a customer before saving.",
+		};
+	}
+	if (!record?.lineItems?.length) {
+		return {
+			valid: false,
+			code: "line_item_required",
+			title: "Line item required",
+			message: "Add at least one line item before saving.",
+		};
+	}
+	return { valid: true, code: null, title: null, message: null };
 }

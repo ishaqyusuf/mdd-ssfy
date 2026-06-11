@@ -3,7 +3,7 @@ import { SubmitButton } from "@/components/submit-button";
 
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
-import { saveSupplierSchema } from "@api/db/queries/sales-form";
+import { saveSupplierSchema } from "@api/schemas/sales-form";
 import { Button } from "@gnd/ui/button";
 import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
@@ -79,4 +79,3 @@ export function DoorSupplierForm({
         </Form>
     );
 }
-

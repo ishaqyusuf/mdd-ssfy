@@ -169,12 +169,27 @@ export function applyWorkflowComponentPriceOverride(input: {
 	);
 	const isTargetStep =
 		String(step?.prodUid || "") === String(input.component?.uid);
+	const totalSales = nextSelectedComponents.reduce(
+		(sum, entry) => sum + Number(entry?.salesPrice || 0),
+		0,
+	);
+	const totalBase = nextSelectedComponents.reduce(
+		(sum, entry) => sum + Number(entry?.basePrice || 0),
+		0,
+	);
+	const hasSelectedComponents = nextSelectedComponents.length > 0;
 	steps[input.stepIndex] = {
 		...step,
-		price: isTargetStep ? input.price : step?.price,
-		basePrice: isTargetStep
-			? (input.fallbackBasePrice ?? step?.basePrice ?? input.price)
-			: step?.basePrice,
+		price: hasSelectedComponents
+			? totalSales
+			: isTargetStep
+				? input.price
+				: step?.price,
+		basePrice: hasSelectedComponents
+			? totalBase
+			: isTargetStep
+				? (input.fallbackBasePrice ?? step?.basePrice ?? input.price)
+				: step?.basePrice,
 		meta: {
 			...(step.meta || {}),
 			selectedComponents: nextSelectedComponents,

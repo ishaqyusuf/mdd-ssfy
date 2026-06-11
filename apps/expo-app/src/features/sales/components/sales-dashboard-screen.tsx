@@ -68,6 +68,36 @@ export function SalesDashboardScreen() {
 
               <View className="gap-3">
                 <Pressable
+                  onPress={() => router.push("/(sales)/invoices/new" as any)}
+                  className="rounded-2xl border border-primary/30 bg-primary/5 p-4 active:opacity-80"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-3">
+                      <View className="rounded-full bg-primary p-2">
+                        <Icon
+                          name="ReceiptText"
+                          className="text-primary-foreground"
+                          size={18}
+                        />
+                      </View>
+                      <View>
+                        <Text className="text-base font-semibold text-foreground">
+                          New Invoice
+                        </Text>
+                        <Text className="text-xs text-muted-foreground">
+                          Create using the new sales form flow
+                        </Text>
+                      </View>
+                    </View>
+                    <Icon
+                      name="ChevronRight"
+                      className="text-muted-foreground"
+                      size={20}
+                    />
+                  </View>
+                </Pressable>
+
+                <Pressable
                   onPress={() => router.push("/(sales)/orders" as any)}
                   className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
                 >

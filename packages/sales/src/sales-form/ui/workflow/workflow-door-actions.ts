@@ -214,6 +214,13 @@ export function removeWorkflowSelectedComponent(input: {
 		value: "",
 		price: 0,
 		basePrice: 0,
+		meta: {
+			...(step.meta || {}),
+			redirectUid: null,
+			sectionOverride: null,
+			selectedProdUids: [],
+			selectedComponents: [],
+		},
 	};
 	return {
 		linePatch: {

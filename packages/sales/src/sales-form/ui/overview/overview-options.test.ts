@@ -3,7 +3,9 @@ import {
 	buildSalesFormProfileSelectOptions,
 	buildSalesFormTaxSelectOptions,
 	getDefaultSalesFormCustomerProfile,
+	normalizeSalesFormPaymentTerm,
 	normalizeSalesFormTaxOptions,
+	resolveSalesFormProfilePaymentTerm,
 	resolveSalesFormTaxRateByCode,
 } from "./overview-options";
 import { hasSalesFormSummaryDrift } from "./overview-summary";
@@ -33,6 +35,16 @@ describe("sales form overview options", () => {
 		]);
 		expect(resolveSalesFormTaxRateByCode(taxes, "TX")).toBe(8.25);
 	});
+
+	it("canonicalizes payment terms from customer and profile metadata", () => {
+		expect(normalizeSalesFormPaymentTerm("Due on receipt")).toBe(
+			"Due on Receipt",
+		);
+		expect(resolveSalesFormProfilePaymentTerm({ netTerm: "net 30" }, "None")).toBe(
+			"Net 30",
+		);
+		expect(resolveSalesFormProfilePaymentTerm({}, "net 15")).toBe("Net 15");
+	});
 });
 
 describe("sales form overview summary", () => {
@@ -52,4 +64,3 @@ describe("sales form overview summary", () => {
 		).toBe(true);
 	});
 });
-

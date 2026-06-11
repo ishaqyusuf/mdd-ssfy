@@ -25,6 +25,7 @@ export function emptyAuthSnapshot(): AuthSnapshot {
 }
 
 export function toAuthSnapshot(source?: SessionLike | null) {
+    // console.log("toAuthSnapshot", { source });
     if (!source?.user?.id) {
         return null;
     }
@@ -38,3 +39,4 @@ export function toAuthSnapshot(source?: SessionLike | null) {
         email: source.user.email ?? null,
     } satisfies AuthSnapshot;
 }
+

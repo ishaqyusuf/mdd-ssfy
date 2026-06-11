@@ -1,6 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
+import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import {
   bootstrapNewSalesFormSchema,
   deleteNewSalesFormLineItemSchema,
@@ -1307,6 +1308,12 @@ export async function getNewSalesFormStepRouting(
   input: GetNewSalesFormStepRoutingSchema,
 ) {
   getNewSalesFormStepRoutingSchema.parse(input);
+  return salesWorkflowCache.getOrSetStepRouting(() =>
+    fetchNewSalesFormStepRoutingFromDb(ctx),
+  );
+}
+
+async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
   const [setting, steps] = await Promise.all([
     ctx.db.settings.findFirst({
       where: {
@@ -2046,6 +2053,8 @@ async function saveNewSalesFormInternal(
   return ctx.db.$transaction(async (tx) => {
     const isNew = !(payload.salesId || payload.slug);
     let currentId = payload.salesId || null;
+    const persistedLineItemIds = new Map<string, number>();
+    const persistedExtraCosts: NewSalesFormExtraCost[] = [];
     let order = null as null | {
       id: number;
       slug: string;
@@ -2403,6 +2412,9 @@ async function saveNewSalesFormInternal(
                   id: true,
                 },
               });
+        if (!legacyLine.kind || legacyLine.primaryGroupItem) {
+          persistedLineItemIds.set(line.uid, createdItem.id);
+        }
 
         const formSteps =
           legacyLine.kind && !legacyLine.primaryGroupItem
@@ -2620,7 +2632,7 @@ async function saveNewSalesFormInternal(
 
       for (const cost of payload.extraCosts) {
         if (cost.id) {
-          await tx.salesExtraCosts.update({
+          const updatedCost = await tx.salesExtraCosts.update({
             where: { id: cost.id },
             data: {
               label: cost.label,
@@ -2628,10 +2640,17 @@ async function saveNewSalesFormInternal(
               type: cost.type as any,
               taxxable: cost.taxxable ?? false,
             },
+            select: {
+              id: true,
+            },
+          });
+          persistedExtraCosts.push({
+            ...cost,
+            id: updatedCost.id,
           });
           continue;
         }
-        await tx.salesExtraCosts.create({
+        const createdCost = await tx.salesExtraCosts.create({
           data: {
             orderId: currentId!,
             label: cost.label,
@@ -2639,9 +2658,37 @@ async function saveNewSalesFormInternal(
             type: cost.type as any,
             taxxable: cost.taxxable ?? false,
           },
+          select: {
+            id: true,
+          },
+        });
+        persistedExtraCosts.push({
+          ...cost,
+          id: createdCost.id,
         });
       }
     }
+
+    const hydratedLineItems = normalizedLines.map((line) => ({
+      ...line,
+      id: persistedLineItemIds.get(line.uid) ?? line.id ?? null,
+    }));
+    const hydratedExtraCosts = persistedExtraCosts.length
+      ? persistedExtraCosts
+      : payload.extraCosts;
+    nextMeta.newSalesForm = {
+      ...nextMeta.newSalesForm,
+      lineItems: hydratedLineItems,
+      extraCosts: hydratedExtraCosts,
+    };
+    await tx.salesOrders.update({
+      where: {
+        id: currentId,
+      },
+      data: {
+        meta: nextMeta as any,
+      },
+    });
 
     await tx.salesTaxes.deleteMany({
       where: {
@@ -2679,7 +2726,11 @@ async function saveNewSalesFormInternal(
       isNew,
       version: nextVersion,
       updatedAt: nextMeta.newSalesForm?.updatedAt,
+      form: nextFormMeta,
+      lineItems: hydratedLineItems,
+      extraCosts: hydratedExtraCosts,
       summary,
+      settings,
       status,
     };
   });
@@ -2766,6 +2817,8 @@ export async function deleteNewSalesFormLineItem(
     },
     select: {
       id: true,
+      salesOrderId: true,
+      meta: true,
     },
   });
   if (!line) {
@@ -2774,16 +2827,181 @@ export async function deleteNewSalesFormLineItem(
       message: "Line item not found.",
     });
   }
-  await ctx.db.salesOrderItems.update({
-    where: {
-      id: line.id,
-    },
-    data: {
-      deletedAt: new Date(),
-    },
+  const result = await ctx.db.$transaction(async (tx) => {
+    const deletedAt = new Date();
+    await tx.salesOrderItems.update({
+      where: {
+        id: line.id,
+      },
+      data: {
+        deletedAt,
+      },
+    });
+    await tx.dykeStepForm.updateMany({
+      where: {
+        salesId: line.salesOrderId,
+        salesItemId: line.id,
+        deletedAt: null,
+      },
+      data: {
+        deletedAt,
+      },
+    });
+    await tx.dykeSalesShelfItem.updateMany({
+      where: {
+        salesOrderItemId: line.id,
+        deletedAt: null,
+      },
+      data: {
+        deletedAt,
+      },
+    });
+    await tx.housePackageTools.updateMany({
+      where: {
+        salesOrderId: line.salesOrderId,
+        orderItemId: line.id,
+        deletedAt: null,
+      },
+      data: {
+        deletedAt,
+      },
+    });
+    await tx.dykeSalesDoors.updateMany({
+      where: {
+        salesOrderId: line.salesOrderId,
+        salesOrderItemId: line.id,
+        deletedAt: null,
+      },
+      data: {
+        deletedAt,
+      },
+    });
+
+    const order = await tx.salesOrders.findFirst({
+      where: {
+        id: line.salesOrderId,
+        deletedAt: null,
+      },
+      select: {
+        meta: true,
+        payments: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            amount: true,
+            status: true,
+          },
+        },
+      },
+    });
+    const container = safeMeta(order?.meta);
+    const persisted = container.newSalesForm;
+    const lineMeta = safeRecord(line.meta);
+    const lineUid = String(lineMeta.uid || "").trim();
+    const nextVersion = `${Date.now()}-${generateRandomString(8)}`;
+    const updatedAt = deletedAt.toISOString();
+    const nextLineItems = (persisted?.lineItems || []).filter((item: any) => {
+      if (Number(item?.id || 0) === line.id) return false;
+      if (lineUid && String(item?.uid || "") === lineUid) return false;
+      const meta = safeRecord(item?.meta);
+      if (Number(meta.salesItemId || meta.legacySalesItemId || 0) === line.id) {
+        return false;
+      }
+      const groupedRows = [
+        ...(((item as any)?.shelfItems || []) as any[]),
+        ...(((item as any)?.formSteps || []) as any[]),
+      ];
+      return !groupedRows.some((row) => {
+        const rowMeta = safeRecord(row?.meta);
+        return Number(row?.salesItemId || rowMeta.salesItemId || 0) === line.id;
+      });
+    });
+    const setting = await tx.settings.findFirst({
+      where: {
+        type: "sales-settings",
+      },
+      select: {
+        meta: true,
+      },
+    });
+    const settings = deriveNewSalesFormSettings(setting?.meta);
+    const nextSummary = persisted
+      ? recalculateSummary({
+          taxRate: Number(persisted.summary?.taxRate || 0),
+          paymentMethod: persisted.form?.paymentMethod || null,
+          cccPercentage: settings.cccPercentage,
+          lineItems: nextLineItems,
+          extraCosts: (persisted.extraCosts || []).map((cost) => ({
+            type: cost.type,
+            amount: Number(cost.amount || 0),
+            taxxable: cost.taxxable ?? false,
+          })),
+        })
+      : null;
+    const nextAmountDue = nextSummary
+      ? projectLegacyOrderPayments({
+          salesOrderId: line.salesOrderId,
+          grandTotal: nextSummary.grandTotal,
+          payments: order?.payments || [],
+        }).amountDue
+      : null;
+    const nextMeta: NewSalesFormContainer = persisted
+      ? {
+          ...container,
+          newSalesForm: {
+            ...persisted,
+            version: nextVersion,
+            updatedAt,
+            lineItems: nextLineItems,
+            summary: nextSummary,
+          },
+        }
+      : container;
+    await tx.salesOrders.update({
+      where: {
+        id: line.salesOrderId,
+      },
+      data: {
+        ...(nextSummary
+          ? {
+              subTotal: nextSummary.subTotal,
+              tax: nextSummary.taxTotal,
+              grandTotal: nextSummary.grandTotal,
+              amountDue: nextAmountDue,
+            }
+          : {}),
+        meta: nextMeta as any,
+      },
+    });
+    if (nextSummary) {
+      await tx.salesTaxes.deleteMany({
+        where: {
+          salesId: line.salesOrderId,
+        },
+      });
+      if (persisted?.form?.taxCode) {
+        await tx.salesTaxes.create({
+          data: {
+            salesId: line.salesOrderId,
+            taxCode: persisted.form.taxCode,
+            taxxable: nextSummary.taxableSubTotal,
+            tax: nextSummary.taxTotal,
+          },
+        });
+      }
+    }
+
+    return {
+      version: nextVersion,
+      updatedAt,
+      lineItems: nextLineItems,
+      ...(nextSummary ? { summary: nextSummary } : {}),
+    };
   });
   return {
     ok: true,
     lineItemId: payload.lineItemId,
+    ...result,
   };
 }

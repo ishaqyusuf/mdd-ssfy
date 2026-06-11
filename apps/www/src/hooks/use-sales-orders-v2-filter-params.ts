@@ -25,6 +25,7 @@ export const salesOrdersV2FilterParams = {
   "customer.name": parseAsString,
   phone: parseAsString,
   po: parseAsString,
+  item: parseAsString,
   orderNo: parseAsString,
   salesNo: parseAsString,
   invoiceStatus: parseAsStringLiteral(["paid", "outstanding"] as const),

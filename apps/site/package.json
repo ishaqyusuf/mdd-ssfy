@@ -37,7 +37,7 @@
 		"@mdx-js/react": "^3.0.0",
 		"@mdxeditor/editor": "^2.8.0",
 		"@next-auth/prisma-adapter": "^1.0.7",
-		"@next/mdx": "16.0.0-beta.0",
+		"@next/mdx": "16.2.9",
 		"@number-flow/react": "^0.5.7",
 		"@radix-ui/react-dialog": "^1.1.2",
 		"@radix-ui/react-slot": "^1.1.2",
@@ -73,7 +73,7 @@
 		"embla-carousel-autoplay": "^8.0.0-rc22",
 		"embla-carousel-react": "^8.0.0-rc22",
 		"eslint": "8.57.0",
-		"eslint-config-next": "^16.1.1",
+		"eslint-config-next": "^16.2.9",
 		"focus-trap-react": "^10.2.3",
 		"framer-motion": "^12.18.1",
 		"fs-extra": "^11.2.0",
@@ -139,8 +139,8 @@
 		"@types/mdx": "^2.0.11",
 		"@types/node": "^25.2.3",
 		"@types/qs": "^6.9.7",
-		"@types/react": "~19.1.0",
-		"@types/react-dom": "^19.1.9",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
 		"tailwindcss": "catalog:"
 	}
 }

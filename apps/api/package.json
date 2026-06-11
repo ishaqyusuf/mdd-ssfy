@@ -30,6 +30,7 @@
 		"@hono/zod-validator": "^0.7.0",
 		"@scalar/hono-api-reference": "^0.9.1",
 		"@gnd/auth": "workspace:*",
+		"@gnd/cache": "workspace:*",
 		"@gnd/community": "workspace:*",
 		"@gnd/db": "workspace:*",
 		"@gnd/dev-logger": "workspace:*",

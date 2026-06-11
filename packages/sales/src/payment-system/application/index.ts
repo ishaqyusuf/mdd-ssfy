@@ -2,6 +2,7 @@ export * from "./apply-legacy-sales-checkout-settlement";
 export * from "./create-pending-legacy-sales-checkout";
 export * from "./append-legacy-refund-sales-payment";
 export * from "./cancel-legacy-customer-transaction";
+export * from "./create-legacy-wallet-credit-transaction";
 export * from "./create-legacy-wallet-refund-transaction";
 export * from "./delete-legacy-sales-payment";
 export * from "./link-legacy-sales-checkout-square-order";

@@ -38,6 +38,7 @@ const ordersV2FilterShape = {
   "customer.name": z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   po: z.string().optional().nullable(),
+  item: z.string().optional().nullable(),
   orderNo: z.string().optional().nullable(),
   salesNo: z.string().optional().nullable(),
   sort: z.array(z.string()).optional().nullable(),
@@ -89,6 +90,7 @@ function toLegacyOrdersQuery(
     "customer.name": query["customer.name"] ?? query.customerName,
     phone: query.phone,
     po: query.po,
+    item: query.item,
     salesNo: query.salesNo ?? query.orderNo,
     invoice:
       query.invoice ??

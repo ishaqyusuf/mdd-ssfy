@@ -1,5 +1,6 @@
 // import { upsertInventoriesForDykeShelfProductsSchema } from "@api/db/queries/inventory";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
 import { z } from "zod";
 import {
   getInventoryCategoryByShelfId,
@@ -467,6 +468,12 @@ export const inventoriesRouter = createTRPCRouter({
     .input(dykeStepComponentSchema)
     .mutation(async (props) => {
       const result = await saveDykeStepComponent(props.ctx.db, props.input);
+      await invalidateSalesWorkflowForStepComponent({
+        stepId: result.stepId,
+        componentId: result.componentId,
+        componentUid: result.componentUid,
+        routing: true,
+      });
       if (result.stepId) {
         await tasks.trigger("sync-dyke-step-to-inventory", {
           stepId: result.stepId,
@@ -479,6 +486,10 @@ export const inventoriesRouter = createTRPCRouter({
     .input(updateDykeComponentPricingSchema)
     .mutation(async (props) => {
       const result = await updateDykeComponentPricing(props.ctx.db, props.input);
+      await invalidateSalesWorkflowForStepComponent({
+        stepId: props.input.stepId,
+        componentUid: props.input.stepProductUid,
+      });
       if (props.input.triggerInventorySync !== false) {
         await tasks.trigger("sync-dyke-step-to-inventory", {
           stepId: props.input.stepId,

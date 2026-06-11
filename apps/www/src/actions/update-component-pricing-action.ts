@@ -3,7 +3,8 @@
 import { prisma } from "@/db";
 
 import { actionClient } from "./safe-action";
-import { stepComponentSchema, updateComponentPricingSchema } from "./schema";
+import { updateComponentPricingSchema } from "./schema";
+import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
 
 export const updateComponentPricingAction = actionClient
     .schema(updateComponentPricingSchema)
@@ -44,7 +45,7 @@ export const updateComponentPricingAction = actionClient
             .map(({ id, ...rest }) => rest);
 
         if (newData.length) {
-            const resp = await prisma.dykePricingSystem.createMany({
+            await prisma.dykePricingSystem.createMany({
                 data: newData.map((d) => ({
                     ...d,
                     price: d.price,
@@ -53,4 +54,8 @@ export const updateComponentPricingAction = actionClient
                 })),
             });
         }
+        await invalidateSalesWorkflowForStepComponent({
+            stepId: input.stepId,
+            componentUid: input.stepProductUid,
+        });
     });

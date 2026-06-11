@@ -37,6 +37,37 @@ export const salesFormPaymentMethods = [
 	"Wire Transfer",
 ];
 
+export function normalizeSalesFormPaymentTerm(
+	value?: string | null,
+	fallback: string | null = "None",
+) {
+	const rawValue = String(value ?? "").trim();
+	if (rawValue) {
+		const canonical = salesFormPaymentTerms.find(
+			(term) => term.toLowerCase() === rawValue.toLowerCase(),
+		);
+		return canonical || rawValue;
+	}
+
+	const rawFallback = String(fallback ?? "").trim();
+	if (!rawFallback) return "None";
+	return (
+		salesFormPaymentTerms.find(
+			(term) => term.toLowerCase() === rawFallback.toLowerCase(),
+		) || rawFallback
+	);
+}
+
+export function resolveSalesFormProfilePaymentTerm(
+	meta?: Record<string, any> | null,
+	fallback?: string | null,
+) {
+	return normalizeSalesFormPaymentTerm(
+		meta?.netTerm ?? meta?.net ?? meta?.paymentTerm ?? null,
+		fallback,
+	);
+}
+
 export function buildSalesFormSelectOptions(
 	values: string[],
 ): SalesFormSelectOption[] {
@@ -116,4 +147,3 @@ export function getDefaultSalesFormCustomerProfile<
 		null
 	);
 }
-

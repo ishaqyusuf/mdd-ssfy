@@ -424,7 +424,7 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 		process.env.TARGET_DATABASE_URL ??
 		(await readFirstEnvValue(
 			[resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")],
-			["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL"],
+			["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"],
 		)) ??
 		DEFAULT_LOCAL_DATABASE_URL;
 

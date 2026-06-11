@@ -22,7 +22,7 @@ Options:
 
 Environment:
   PROD_DATABASE_URL or SOURCE_DATABASE_URL for production.
-  LOCAL_DATABASE_URL or TARGET_DATABASE_URL for local.
+  LOCAL_DATABASE_URL, TARGET_DATABASE_URL, or DATABASE_URL from .env.local for local.
 
 If env vars are not set, the script reads packages/db/.env.production for source
 and packages/db/.env.local for target. Without a local URL, it falls back to

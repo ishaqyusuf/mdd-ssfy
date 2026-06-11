@@ -7,6 +7,9 @@ import {
     resolveRedirectPath,
 } from "./lib/routing/redirect-engine";
 
+const AUTHENTICATED_FALLBACK_ROUTE = "/settings/profile";
+const AUTHENTICATED_SAFE_ROUTES = new Set([AUTHENTICATED_FALLBACK_ROUTE]);
+
 export const config = {
     matcher: [
         /*
@@ -56,8 +59,10 @@ export default async function proxy(req: NextRequest) {
                 ? safeReturnTo
                 : defaultLink;
         if (pathName === "/" || isLogin) {
-            if (preferredRedirect && preferredRedirect !== path) {
-                const url = new URL(preferredRedirect, req.url);
+            const redirectTarget = preferredRedirect ?? AUTHENTICATED_FALLBACK_ROUTE;
+
+            if (redirectTarget !== path) {
+                const url = new URL(redirectTarget, req.url);
                 return NextResponse.redirect(url);
             }
         } else if (!canAccessPath(auth, pathName)) {
@@ -150,6 +155,10 @@ function getDefaultLink(auth) {
 }
 
 function canAccessPath(auth: AuthSnapshot, pathName: string) {
+    if (AUTHENTICATED_SAFE_ROUTES.has(pathName)) {
+        return true;
+    }
+
     const { linksNameMap } = getAuthorizedLinks(auth);
     const exactMatch = linksNameMap[pathName];
     if (exactMatch) {

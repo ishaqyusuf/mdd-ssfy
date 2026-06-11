@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/db";
+import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
 
 interface Props {
     list: {
@@ -30,5 +31,12 @@ export async function updateComponentsSortingAction(data: Props) {
                 },
             });
         })
+    );
+    await Promise.all(
+        data.list.map((ls) =>
+            invalidateSalesWorkflowForStepComponent({
+                componentId: ls.componentId,
+            })
+        )
     );
 }

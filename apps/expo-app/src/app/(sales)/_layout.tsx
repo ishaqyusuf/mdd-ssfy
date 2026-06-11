@@ -4,6 +4,8 @@ export default function SalesLayout() {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="invoices/new" options={{ headerShown: false }} />
+      <Stack.Screen name="invoices/[slug]" options={{ headerShown: false }} />
       <Stack.Screen name="orders/index" options={{ headerShown: false }} />
       <Stack.Screen name="orders/[orderNo]" options={{ headerShown: false }} />
       <Stack.Screen

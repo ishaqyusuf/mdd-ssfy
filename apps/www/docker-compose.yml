@@ -31,5 +31,20 @@ services:
       mysql:
         condition: service_healthy
 
+  redis:
+    image: redis:7-alpine
+    container_name: gnd-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - gnd_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   gnd_mysql_data:
+  gnd_redis_data:

@@ -1,12 +1,14 @@
 "use client";
 
-import { signIn, useSession } from "@/lib/auth/client";
+import { signIn, signInWithGoogle, useSession } from "@/lib/auth/client";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
+import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import {
 	Form,
@@ -24,7 +26,7 @@ import { sendEmailLoginLink } from "@/app-deps/(v1)/_actions/auth";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTransition } from "@/utils/use-safe-transistion";
 import { Icons } from "@gnd/ui/icons";
-import { InputGroup } from "@gnd/ui/namespace";
+import { Input } from "@gnd/ui/input";
 import { toast } from "sonner";
 
 const loginSchema = z.object({
@@ -34,6 +36,11 @@ const loginSchema = z.object({
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginErrorInfo = {
+	title: string;
+	message: string;
+	details?: string;
+};
 
 export function LoginV2() {
 	const router = useRouter();
@@ -42,6 +49,9 @@ export function LoginV2() {
 	const [isPending, startTransition] = useTransition();
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isEmailLinkSubmitting, setIsEmailLinkSubmitting] = useState(false);
+	const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+	const [loginError, setLoginError] = useState<LoginErrorInfo | null>(null);
+	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
 	const callbackUrl =
 		getSafeCallbackUrl(searchParams.get("return_to")) ||
@@ -67,7 +77,9 @@ export function LoginV2() {
 		const error = searchParams.get("error");
 		if (!error) return;
 
-		toast.error(getLoginErrorMessage(error));
+		const nextError = getLoginErrorInfo(error, searchParams.get("status"));
+		setLoginError(nextError);
+		toast.error(nextError.message);
 	}, [searchParams]);
 
 	useEffect(() => {
@@ -77,11 +89,16 @@ export function LoginV2() {
 			token,
 			callbackUrl,
 			redirect: true,
+		}).catch((error) => {
+			const nextError = getLoginErrorInfo(error);
+			setLoginError(nextError);
+			toast.error(nextError.message);
 		});
 	}, [callbackUrl, token]);
 
 	const onSubmit = form.handleSubmit((values: LoginFormValues) => {
 		setIsSubmitting(true);
+		setLoginError(null);
 		startTransition(async () => {
 			try {
 				const result = await signIn("credentials", {
@@ -93,19 +110,19 @@ export function LoginV2() {
 				});
 
 				if (!result.ok) {
-					toast.error(result.error || "Invalid email or password.");
+					const nextError = getLoginErrorInfo(result.error, result.status);
+					setLoginError(nextError);
+					toast.error(nextError.message);
 					setIsSubmitting(false);
 					return;
 				}
 
 				window.location.assign(result.url || callbackUrl);
 			} catch (error) {
+				const nextError = getLoginErrorInfo(error);
+				setLoginError(nextError);
 				setIsSubmitting(false);
-				toast.error(
-					error instanceof Error
-						? error.message
-						: "Unable to sign in. Please try again.",
-				);
+				toast.error(nextError.message);
 			}
 		});
 	});
@@ -115,6 +132,7 @@ export function LoginV2() {
 		if (!hasValidEmail) return;
 
 		setIsEmailLinkSubmitting(true);
+		setLoginError(null);
 		try {
 			await sendEmailLoginLink({
 				email: form.getValues("email"),
@@ -129,6 +147,33 @@ export function LoginV2() {
 			);
 		} finally {
 			setIsEmailLinkSubmitting(false);
+		}
+	}
+
+	async function onGoogleSignIn() {
+		setIsGoogleSubmitting(true);
+		setLoginError(null);
+
+		try {
+			const result = await signInWithGoogle({
+				callbackUrl,
+				redirect: false,
+			});
+
+			if (!result.ok) {
+				const nextError = getLoginErrorInfo(result.error, result.status);
+				setLoginError(nextError);
+				toast.error(nextError.message);
+				setIsGoogleSubmitting(false);
+				return;
+			}
+
+			window.location.assign(result.url || callbackUrl);
+		} catch (error) {
+			const nextError = getLoginErrorInfo(error);
+			setLoginError(nextError);
+			setIsGoogleSubmitting(false);
+			toast.error(nextError.message);
 		}
 	}
 
@@ -190,28 +235,24 @@ export function LoginV2() {
 								</div>
 
 								<Form {...form}>
-									<form className="space-y-5" onSubmit={onSubmit}>
+									<form className="flex flex-col gap-5" onSubmit={onSubmit}>
 										<FormField
 											control={form.control}
 											name="email"
 											render={({ field }) => (
-												<FormItem className="space-y-2">
+												<FormItem className="flex flex-col gap-2">
 													<FormLabel className="text-slate-700">
 														Email
 													</FormLabel>
 													<FormControl>
-														<InputGroup className="h-12 rounded-2xl bg-slate-50">
-															<InputGroup.Addon align="inline-start">
-																<Icons.Mail className="text-slate-400" />
-															</InputGroup.Addon>
-															<InputGroup.Input
-																{...field}
-																type="email"
-																placeholder="you@gndmillwork.com"
-																autoComplete="email"
-																className="text-base text-slate-950 placeholder:text-slate-400"
-															/>
-														</InputGroup>
+														<Input
+															{...field}
+															type="email"
+															placeholder="you@gndmillwork.com"
+															autoComplete="email"
+															aria-invalid={!!form.formState.errors.email}
+															className="h-12 rounded-2xl border-slate-200 bg-slate-50 text-base text-slate-950 placeholder:text-slate-400"
+														/>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
@@ -249,7 +290,7 @@ export function LoginV2() {
 											control={form.control}
 											name="password"
 											render={({ field }) => (
-												<FormItem className="space-y-2">
+												<FormItem className="flex flex-col gap-2">
 													<div className="flex items-center justify-between gap-3">
 														<FormLabel className="text-slate-700">
 															Password
@@ -262,47 +303,107 @@ export function LoginV2() {
 														</Link>
 													</div>
 													<FormControl>
-														<InputGroup className="h-12 rounded-2xl bg-slate-50">
-															<InputGroup.Addon align="inline-start">
-																<Icons.LockKeyhole className="text-slate-400" />
-															</InputGroup.Addon>
-															<InputGroup.Input
+														<div className="relative">
+															<Input
 																{...field}
-																type="password"
+																type={isPasswordVisible ? "text" : "password"}
 																placeholder="Enter your password"
 																autoComplete="current-password"
-																className="text-base text-slate-950 placeholder:text-slate-400"
+																aria-invalid={!!form.formState.errors.password}
+																className="h-12 rounded-2xl border-slate-200 bg-slate-50 pr-12 text-base text-slate-950 placeholder:text-slate-400"
 															/>
-														</InputGroup>
+															<Button
+																type="button"
+																variant="ghost"
+																size="icon-sm"
+																className="absolute top-1/2 right-2 -translate-y-1/2 text-slate-500 hover:text-slate-950"
+																aria-label={
+																	isPasswordVisible
+																		? "Hide password"
+																		: "Show password"
+																}
+																aria-pressed={isPasswordVisible}
+																onClick={() =>
+																	setIsPasswordVisible((visible) => !visible)
+																}
+															>
+																{isPasswordVisible ? (
+																	<Icons.EyeOff />
+																) : (
+																	<Icons.Eye />
+																)}
+															</Button>
+														</div>
 													</FormControl>
 													<FormMessage />
 												</FormItem>
-											)}
+												)}
 										/>
+
+										{loginError ? (
+											<LoginErrorAlert error={loginError} />
+										) : null}
 
 										<SubmitButton
 											type="submit"
-											isSubmitting={isSubmitting || isPending}
+											isSubmitting={
+												isSubmitting || isPending || isGoogleSubmitting
+											}
 											className="h-12 w-full rounded-2xl bg-slate-950 text-sm font-semibold text-white hover:bg-slate-800"
 										>
 											Sign in
 										</SubmitButton>
 
-										<button
+										<Button
 											type="button"
+											variant="outline"
+											onClick={onGoogleSignIn}
+											disabled={
+												isGoogleSubmitting ||
+												isEmailLinkSubmitting ||
+												isSubmitting ||
+												isPending
+											}
+											className="h-12 w-full rounded-2xl border-slate-200 text-sm font-semibold text-slate-800"
+										>
+											{isGoogleSubmitting ? (
+												<Icons.Loader2
+													data-icon="inline-start"
+													className="animate-spin"
+												/>
+											) : (
+												<span
+													aria-hidden="true"
+													className="inline-flex size-4 items-center justify-center text-sm font-semibold"
+												>
+													G
+												</span>
+											)}
+											Continue with Google
+										</Button>
+
+										<Button
+											type="button"
+											variant="outline"
 											onClick={onSendEmailLink}
 											disabled={
-												isEmailLinkSubmitting || isSubmitting || isPending
+												isEmailLinkSubmitting ||
+												isGoogleSubmitting ||
+												isSubmitting ||
+												isPending
 											}
-											className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+											className="h-12 w-full rounded-2xl border-slate-200 text-sm font-semibold text-slate-800"
 										>
 											{isEmailLinkSubmitting ? (
-												<Icons.Loader2 className="size-4 animate-spin" />
+												<Icons.Loader2
+													data-icon="inline-start"
+													className="animate-spin"
+												/>
 											) : (
-												<Icons.Mail className="size-4" />
+												<Icons.Mail data-icon="inline-start" />
 											)}
 											Email me a login link
-										</button>
+										</Button>
 									</form>
 								</Form>
 
@@ -323,6 +424,21 @@ export function LoginV2() {
 	);
 }
 
+function LoginErrorAlert({ error }: { error: LoginErrorInfo }) {
+	return (
+		<Alert className="border-red-200 bg-red-50 text-red-950">
+			<Icons.AlertCircle className="size-4 text-red-600" />
+			<AlertTitle>{error.title}</AlertTitle>
+			<AlertDescription className="mt-1 space-y-1 text-sm text-red-800">
+				<p>{error.message}</p>
+				{error.details ? (
+					<p className="text-xs text-red-700">{error.details}</p>
+				) : null}
+			</AlertDescription>
+		</Alert>
+	);
+}
+
 function getSafeCallbackUrl(value: string | null) {
 	if (!value?.startsWith("/")) {
 		return null;
@@ -331,11 +447,50 @@ function getSafeCallbackUrl(value: string | null) {
 	return value;
 }
 
-function getLoginErrorMessage(error: string) {
-	const message = error.replace(/\+/g, " ");
-	if (message.toLowerCase() === "login failed") {
-		return "Invalid email or password.";
+function getLoginErrorInfo(
+	error: unknown,
+	status?: number | string | null,
+): LoginErrorInfo {
+	const rawMessage =
+		typeof error === "string"
+			? error
+			: error instanceof Error
+				? error.message
+				: null;
+	const message = decodeLoginError(rawMessage);
+	const normalized = message.toLowerCase();
+	const details =
+		status && Number(status) >= 400
+			? `Authentication service returned HTTP ${status}.`
+			: undefined;
+
+	if (
+		normalized === "login failed" ||
+		normalized.includes("invalid email") ||
+		normalized.includes("invalid password") ||
+		normalized.includes("unauthorized")
+	) {
+		return {
+			title: "Sign-in failed",
+			message:
+				"We could not match that email and password. Check the email, password, or configured master password and try again.",
+			details,
+		};
 	}
 
-	return message || "Unable to sign in. Please try again.";
+	return {
+		title: "Unable to sign in",
+		message: message || "The login request could not be completed.",
+		details,
+	};
+}
+
+function decodeLoginError(error?: string | null) {
+	if (!error) return "";
+
+	try {
+		return decodeURIComponent(error.replace(/\+/g, " "));
+	} catch {
+		return error.replace(/\+/g, " ");
+	}
 }

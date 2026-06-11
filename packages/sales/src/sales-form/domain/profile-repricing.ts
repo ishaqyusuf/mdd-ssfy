@@ -8,6 +8,7 @@ function roundCurrency(value: number) {
 }
 
 function toFinite(value: unknown): number | null {
+  if (value == null) return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
 }
@@ -143,6 +144,10 @@ export function repriceSalesFormLineItemsByProfile<
     const shelfItems = (line.shelfItems || []).map((row) => {
       const unitPrice = toFinite(row?.unitPrice) ?? 0;
       const qty = toFinite(row?.qty) ?? 0;
+      const customPrice = firstFinite(row, [
+        ["customPrice"],
+        ["meta", "customPrice"],
+      ]);
       const baseUnitPrice = firstFinite(row, [
         ["basePrice"],
         ["baseUnitPrice"],
@@ -151,14 +156,24 @@ export function repriceSalesFormLineItemsByProfile<
         ["meta", "priceData", "baseUnitCost"],
         ["meta", "priceData", "basePrice"],
       ]);
-      const nextUnitPrice =
+      const nextSalesPrice =
         baseUnitPrice != null
           ? roundCurrency(baseUnitPrice * nextMultiplier)
           : roundCurrency(unitPrice * ratio);
+      const nextUnitPrice =
+        customPrice != null ? roundCurrency(customPrice) : nextSalesPrice;
       return {
         ...row,
+        salesPrice: nextSalesPrice,
         unitPrice: nextUnitPrice,
         totalPrice: roundCurrency(qty * nextUnitPrice),
+        meta: {
+          ...(row?.meta || {}),
+          ...(baseUnitPrice == null ? {} : { basePrice: baseUnitPrice }),
+          salesPrice: nextSalesPrice,
+          unitPrice: nextUnitPrice,
+          customPrice: customPrice ?? null,
+        },
       };
     });
 
@@ -170,6 +185,7 @@ export function repriceSalesFormLineItemsByProfile<
     const sharedDoorSurcharge = computeHptSharedDoorSurcharge(
       repricedLineForSurcharge,
     );
+    const doorRouteConfig = readWorkflowDoorRouteConfig(line);
     const doors = existingDoors.map((door) => {
       const currentUnit = toFinite(door?.unitPrice) ?? 0;
       const baseUnitPrice = firstFinite(door, [
@@ -197,6 +213,7 @@ export function repriceSalesFormLineItemsByProfile<
         {
           sharedDoorSurcharge,
           salesMultiplier: nextMultiplier,
+          ...doorRouteConfig,
         },
       );
     });
@@ -256,4 +273,24 @@ export function repriceSalesFormLineItemsByProfile<
         : line.housePackageTool,
     } as TLine;
   });
+}
+
+function readWorkflowDoorRouteConfig(line: SalesFormProfileLineItemLike) {
+  const meta = (line as { meta?: Record<string, unknown> | null }).meta || {};
+  const config = meta.workflowDoorRouteConfig;
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return {};
+  }
+  const routeConfig = config as {
+    noHandle?: unknown;
+    hasSwing?: unknown;
+  };
+  return {
+    ...(typeof routeConfig.noHandle === "boolean"
+      ? { noHandle: routeConfig.noHandle }
+      : {}),
+    ...(typeof routeConfig.hasSwing === "boolean"
+      ? { hasSwing: routeConfig.hasSwing }
+      : {}),
+  };
 }

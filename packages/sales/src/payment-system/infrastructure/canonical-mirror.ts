@@ -378,6 +378,53 @@ export async function mirrorLegacyWalletRefundTransaction(
 	);
 }
 
+export async function mirrorLegacyWalletCreditTransaction(
+	db: MirrorDb,
+	input: {
+		amount: number;
+		customerTransactionId: number;
+		reason: string;
+		walletId: number;
+		meta?: Record<string, unknown> | null;
+	},
+) {
+	if (!(await hasTable(db, "PaymentLedgerEntry"))) return;
+
+	await db.$executeRaw(
+		Prisma.sql`
+      INSERT INTO PaymentLedgerEntry (
+        id,
+        entryType,
+        status,
+        amount,
+        currency,
+        occurredAt,
+        walletId,
+        customerTxId,
+        meta,
+        createdAt,
+        updatedAt
+      ) VALUES (
+        ${makeMirrorId("ledger")},
+        ${"adjustment_recorded"},
+        ${"posted"},
+        ${input.amount},
+        ${"USD"},
+        NOW(),
+        ${input.walletId},
+        ${input.customerTransactionId},
+        ${JSON.stringify({
+					...(input.meta || {}),
+					source: "legacy-wallet-credit",
+					reason: input.reason,
+				})},
+        NOW(),
+        NOW()
+      )
+    `,
+	);
+}
+
 export async function mirrorLegacySalesResolution(
 	db: MirrorDb,
 	input: {

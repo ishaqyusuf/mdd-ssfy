@@ -81,8 +81,11 @@ describe("profile-repricing domain", () => {
 
     const result = repriceSalesFormLineItemsByProfile(lineItems, 2, 4);
     const shelfLine = result[0] as any;
+    expect(shelfLine.shelfItems[0].salesPrice).toBe(10);
     expect(shelfLine.shelfItems[0].unitPrice).toBe(10);
     expect(shelfLine.shelfItems[0].totalPrice).toBe(20);
+    expect(shelfLine.shelfItems[0].meta.salesPrice).toBe(10);
+    expect(shelfLine.shelfItems[0].meta.unitPrice).toBe(10);
     expect(shelfLine.lineTotal).toBe(20);
     expect(shelfLine.unitPrice).toBe(20);
 
@@ -134,5 +137,82 @@ describe("profile-repricing domain", () => {
     const doorLine = result[1] as any;
     expect(doorLine.housePackageTool.doors[0].unitPrice).toBe(13);
     expect(doorLine.housePackageTool.doors[0].lineTotal).toBe(26);
+  });
+
+  it("preserves custom shelf prices while updating profile sales price metadata", () => {
+    const lineItems = [
+      {
+        qty: 2,
+        unitPrice: 45,
+        lineTotal: 90,
+        shelfItems: [
+          {
+            qty: 2,
+            basePrice: 100,
+            salesPrice: 50,
+            customPrice: 45,
+            unitPrice: 45,
+            totalPrice: 90,
+            meta: {
+              basePrice: 100,
+              salesPrice: 50,
+              customPrice: 45,
+              unitPrice: 45,
+            },
+          },
+        ],
+      },
+    ];
+
+    const result = repriceSalesFormLineItemsByProfile(lineItems, 2, 4);
+    const shelfLine = result[0] as any;
+    expect(shelfLine.shelfItems[0].salesPrice).toBe(25);
+    expect(shelfLine.shelfItems[0].customPrice).toBe(45);
+    expect(shelfLine.shelfItems[0].unitPrice).toBe(45);
+    expect(shelfLine.shelfItems[0].totalPrice).toBe(90);
+    expect(shelfLine.shelfItems[0].meta.salesPrice).toBe(25);
+    expect(shelfLine.shelfItems[0].meta.customPrice).toBe(45);
+    expect(shelfLine.shelfItems[0].meta.unitPrice).toBe(45);
+    expect(shelfLine.lineTotal).toBe(90);
+  });
+
+  it("preserves stored HPT no-handle route config during profile repricing", () => {
+    const lineItems = [
+      {
+        qty: 2,
+        unitPrice: 50,
+        lineTotal: 100,
+        meta: {
+          workflowDoorRouteConfig: {
+            noHandle: true,
+            hasSwing: false,
+          },
+        },
+        housePackageTool: {
+          totalDoors: 2,
+          totalPrice: 100,
+          doors: [
+            {
+              lhQty: 2,
+              rhQty: 3,
+              totalQty: 4,
+              unitPrice: 50,
+              lineTotal: 100,
+              swing: "LH",
+              meta: { baseUnitPrice: 100 },
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = repriceSalesFormLineItemsByProfile(lineItems, 2, 4);
+    const door = (result[0] as any).housePackageTool.doors[0];
+    expect(door.lhQty).toBe(0);
+    expect(door.rhQty).toBe(0);
+    expect(door.swing).toBe("");
+    expect(door.totalQty).toBe(4);
+    expect(door.unitPrice).toBe(25);
+    expect(door.lineTotal).toBe(100);
   });
 });

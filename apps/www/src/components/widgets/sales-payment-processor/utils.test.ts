@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildPrintRequests,
 	calculatePaymentChannelChargePreview,
+	calculatePaymentPlanPreview,
 	resolveDefaultPaymentMethod,
 } from "./utils";
 
@@ -90,6 +91,42 @@ describe("sales payment processor utils", () => {
 			applies: false,
 			feeAmount: 0,
 			chargeAmount: 500,
+		});
+	});
+
+	it("previews wallet applied before external card payment", () => {
+		expect(
+			calculatePaymentPlanPreview({
+				paymentMethod: "credit-card",
+				selectedBalance: 500,
+				walletBalance: 125,
+				useWallet: true,
+				externalAmount: 375,
+				cccPercentage: 3.5,
+			}),
+		).toMatchObject({
+			walletApplied: 125,
+			remainingAfterWallet: 375,
+			baseAmount: 375,
+			feeAmount: 13.13,
+			chargeAmount: 388.13,
+			walletCreditAmount: 0,
+		});
+	});
+
+	it("previews overpayment as wallet credit", () => {
+		expect(
+			calculatePaymentPlanPreview({
+				paymentMethod: "credit-card",
+				selectedBalance: 500,
+				externalAmount: 600,
+				cccPercentage: 3.5,
+			}),
+		).toMatchObject({
+			baseAmount: 600,
+			feeAmount: 21,
+			chargeAmount: 621,
+			walletCreditAmount: 100,
 		});
 	});
 });

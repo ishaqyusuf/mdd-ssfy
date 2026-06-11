@@ -1617,6 +1617,8 @@ export function SalesFormWorkflowPanel<
 							componentId: Number(doorSizeModal.component.id || 0),
 							rows,
 							sharedDoorSurcharge,
+							noHandle: Boolean(doorSizeModalRouteConfig?.noHandle),
+							hasSwing: doorSizeModalRouteConfig?.hasSwing !== false,
 							profileCoefficient: activeDisplayProfileCoefficient,
 						});
 						updateLine(

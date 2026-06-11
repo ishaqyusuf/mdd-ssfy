@@ -1,7 +1,10 @@
 import {
+	applyMultiSelectStepMutation,
 	compactStepValue,
+	deriveMouldingRows,
 	getSelectedProdUids,
 	normalizeSalesFormTitle as normalizeTitle,
+	sharedMouldingComponentPrice,
 	summarizeMouldingPersistRows,
 } from "../../domain";
 import { snapshotSelectedComponent } from "./component-utils";
@@ -20,6 +23,78 @@ export type WorkflowMouldingRemovalPatch = {
 	unitPrice: number;
 	formSteps?: WorkflowStepRecord[];
 };
+
+export type WorkflowMouldingSelectionPatch = {
+	formSteps: WorkflowStepRecord[];
+	meta: Record<string, unknown>;
+	qty: number;
+	lineTotal: number;
+	unitPrice: number;
+};
+
+function getMouldingRows(line: WorkflowLineItemRecord): MouldingRow[] {
+	const meta = line.meta as WorkflowLineItemRecord["meta"] & {
+		mouldingRows?: MouldingRow[];
+	};
+	return Array.isArray(meta?.mouldingRows) ? meta.mouldingRows : [];
+}
+
+export function saveWorkflowMouldingSelectionWithQty(input: {
+	line: WorkflowLineItemRecord;
+	steps: WorkflowStepRecord[];
+	stepIndex: number;
+	component: WorkflowComponentRecord;
+	visibleComponents: WorkflowComponentRecord[];
+	qty: number | string;
+	activeStepTitle?: string | null;
+}): WorkflowMouldingSelectionPatch | null {
+	const step = input.steps[input.stepIndex];
+	if (!step) return null;
+	const nextQty = Math.max(1, Number(input.qty || 0) || 1);
+	const multiMutation = applyMultiSelectStepMutation({
+		steps: [...input.steps],
+		currentStepIndex: input.stepIndex,
+		component: input.component,
+		visibleComponents: input.visibleComponents,
+		selectedOverride: true,
+		activeStepTitle: input.activeStepTitle || "",
+	});
+	const selectedComponents = Array.isArray(
+		multiMutation.steps[input.stepIndex]?.meta?.selectedComponents,
+	)
+		? (multiMutation.steps[input.stepIndex].meta
+				.selectedComponents as WorkflowComponentRecord[])
+		: [];
+	const sharedComponentPrice = sharedMouldingComponentPrice(
+		multiMutation.steps || [],
+	);
+	const derivedRows = deriveMouldingRows({
+		selectedMouldings: selectedComponents,
+		existingRows: getMouldingRows(input.line),
+		sharedComponentPrice,
+	}).map((row) =>
+		String(row?.uid || "") === String(input.component?.uid || "")
+			? {
+					...row,
+					qty: nextQty,
+				}
+			: row,
+	);
+	const summary = summarizeMouldingPersistRows(
+		derivedRows,
+		sharedComponentPrice,
+	);
+	return {
+		formSteps: multiMutation.steps,
+		meta: {
+			...(input.line.meta || {}),
+			mouldingRows: summary.storedRows,
+		},
+		qty: summary.qtyTotal,
+		lineTotal: summary.total,
+		unitPrice: summary.unitPrice,
+	};
+}
 
 export function removeWorkflowMouldingSelection(input: {
 	line: WorkflowLineItemRecord;

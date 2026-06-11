@@ -25,6 +25,7 @@ export const salesFilterParamsSchema = {
 	"customer.name": parseAsString,
 	phone: parseAsString,
 	po: parseAsString,
+	item: parseAsString,
 	"sales.rep": parseAsString,
 	orderNo: parseAsString,
 	"production.assignment": parseAsStringLiteral(PRODUCTION_ASSIGNMENT_FILTER_OPTIONS),

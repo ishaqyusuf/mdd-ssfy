@@ -3,6 +3,7 @@ import { ComponentPrice, DykeStepForm, prisma, Prisma } from "@/db";
 
 import { DykeFormStepMeta, StepComponentMeta, StepMeta } from "../../types";
 import { notDeleted } from "../utils/db-utils";
+import { invalidateSalesWorkflowForStep } from "@api/db/queries/sales-form";
  
 export async function getSalesFormStepByIdDta(id) {
     const step = await prisma.dykeSteps.findUnique({
@@ -170,5 +171,6 @@ export async function updateStepMetaDta(id, meta) {
         where: { id },
         data: { meta },
     });
+    await invalidateSalesWorkflowForStep(id);
     return data;
 }

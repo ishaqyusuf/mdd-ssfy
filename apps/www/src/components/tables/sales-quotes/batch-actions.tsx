@@ -40,7 +40,7 @@ export function BatchActions() {
 					</Button>
 				}
 			>
-				<SalesMenu.QuotePrintMenuItems />
+				<SalesMenu.SalesPrintMenuItems />
 			</SalesMenu>
 			<SalesMenu
 				type="quote"

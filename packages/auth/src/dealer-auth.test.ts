@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { getActiveDealerAuthUserWhere } from "./better-auth/dealership";
+import {
+	getActiveDealerAuthUserWhere,
+	getActiveDealerSocialAuthWhere,
+} from "./better-auth/dealership";
 
 describe("dealer auth lookup", () => {
 	test("treats null restricted as unrestricted for active linked dealers", () => {
@@ -9,6 +12,7 @@ describe("dealer auth lookup", () => {
 			authUserId: {
 				not: null,
 			},
+			deletedAt: null,
 			OR: [{ restricted: false }, { restricted: null }],
 			status: {
 				in: ["active", "approved"],
@@ -21,6 +25,18 @@ describe("dealer auth lookup", () => {
 			.toMatchObject({
 				email: "dealer@example.com",
 				authUserId: "auth-user-id",
+				deletedAt: null,
 			});
+	});
+
+	test("allows Google provisioning lookup before a dealer auth user exists", () => {
+		expect(getActiveDealerSocialAuthWhere(" Dealer@Example.com ")).toEqual({
+			email: "dealer@example.com",
+			deletedAt: null,
+			OR: [{ restricted: false }, { restricted: null }],
+			status: {
+				in: ["active", "approved"],
+			},
+		});
 	});
 });

@@ -1,10 +1,15 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { txContext } from "@api/utils/db";
+import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import { generateRandomString, sum, type RenturnTypeAsync } from "@gnd/utils";
 import { composeQuery } from "@gnd/utils/query-response";
 import type { DykeStepMeta, Prisma, StepComponentMeta } from "@sales/types";
 import { addDays } from "date-fns";
 import { z } from "zod";
+import {
+  saveSupplierSchema,
+  type SaveSupplierSchema,
+} from "@api/schemas/sales-form";
 
 export const getSuppliersSchema = z.object({});
 export type GetSuppliersSchema = z.infer<typeof getSuppliersSchema>;
@@ -34,11 +39,6 @@ export async function getSuppliers(
   });
   return step;
 }
-export const saveSupplierSchema = z.object({
-  name: z.string(),
-  id: z.number().optional().nullable(),
-});
-export type SaveSupplierSchema = z.infer<typeof saveSupplierSchema>;
 export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
   const { db } = ctx;
   return db.$transaction(async (tx) => {
@@ -66,6 +66,12 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
       await tx.$executeRaw`UPDATE DykeStepForm
           SET meta = JSON_SET(meta, '$.supplierName', ${dp.name})
           WHERE JSON_EXTRACT(meta, '$.supplierUid') = ${dp.uid};`;
+      await invalidateSalesWorkflowForStepComponent({
+        stepId: dp.dykeStepId,
+        componentId: dp.id,
+        componentUid: dp.uid,
+        routing: true,
+      });
       return {
         uid: dp.uid,
         name: dp.name,
@@ -82,6 +88,12 @@ export async function saveSupplier(ctx: TRPCContext, data: SaveSupplierSchema) {
           },
         },
       },
+    });
+    await invalidateSalesWorkflowForStepComponent({
+      stepId,
+      componentId: dp.id,
+      componentUid: dp.uid,
+      routing: true,
     });
     return {
       uid: dp.uid,
@@ -100,11 +112,17 @@ export async function deleteSupplier(
   data: DeleteSupplierSchema
 ) {
   const { db } = ctx;
-  await db.dykeStepProducts.update({
+  const dp = await db.dykeStepProducts.update({
     where: { id: data.id },
     data: {
       deletedAt: new Date(),
     },
+  });
+  await invalidateSalesWorkflowForStepComponent({
+    stepId: dp.dykeStepId,
+    componentId: dp.id,
+    componentUid: dp.uid,
+    routing: true,
   });
 }
 
@@ -118,7 +136,7 @@ export async function updateStepMeta(
   ctx: TRPCContext,
   data: UpdateStepMetaSchema
 ) {
-  return ctx.db.dykeSteps.update({
+  const step = await ctx.db.dykeSteps.update({
     where: {
       id: data.stepId,
     },
@@ -132,6 +150,34 @@ export async function updateStepMeta(
       meta: true,
     },
   });
+  await Promise.all([
+    salesWorkflowCache.invalidateStepComponentsForStep(data.stepId),
+    salesWorkflowCache.invalidateStepRouting(),
+  ]);
+  return step;
+}
+
+export async function invalidateSalesWorkflowForStep(stepId?: number | null) {
+  await Promise.all([
+    salesWorkflowCache.invalidateStepComponentsForStep(stepId),
+    salesWorkflowCache.invalidateStepRouting(),
+  ]);
+}
+
+export async function invalidateSalesWorkflowForStepComponent(input: {
+  stepId?: number | null;
+  componentId?: number | null;
+  componentUid?: string | null;
+  stepTitle?: string | null;
+  routing?: boolean;
+}) {
+  await Promise.all([
+    salesWorkflowCache.invalidateStepComponentsForStep(input.stepId),
+    salesWorkflowCache.invalidateStepComponentsForComponentId(input.componentId),
+    salesWorkflowCache.invalidateStepComponentsForComponentUid(input.componentUid),
+    salesWorkflowCache.invalidateStepComponentsForFamily(input.stepTitle),
+    input.routing ? salesWorkflowCache.invalidateStepRouting() : Promise.resolve(),
+  ]);
 }
 
 export const getStepComponentsSchema = z.object({
@@ -145,6 +191,20 @@ export const getStepComponentsSchema = z.object({
 export type GetStepComponentsSchema = z.infer<typeof getStepComponentsSchema>;
 
 export async function getStepComponents(
+  ctx: TRPCContext,
+  query: GetStepComponentsSchema
+) {
+  const cached = await salesWorkflowCache.getStepComponents<StepComponentData[]>(
+    query,
+  );
+  if (cached) return cached;
+
+  const result = await fetchStepComponentsFromDb(ctx, query);
+  await salesWorkflowCache.setStepComponents(query, result);
+  return result;
+}
+
+async function fetchStepComponentsFromDb(
   ctx: TRPCContext,
   query: GetStepComponentsSchema
 ) {

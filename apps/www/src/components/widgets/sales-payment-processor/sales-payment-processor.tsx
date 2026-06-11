@@ -43,7 +43,7 @@ import type {
 } from "./types";
 import {
 	buildPrintRequests,
-	calculatePaymentChannelChargePreview,
+	calculatePaymentPlanPreview,
 	formatPaymentAmount,
 	resolveDefaultPaymentMethod,
 } from "./utils";
@@ -115,6 +115,33 @@ function closePendingPrintRequests(requests: PendingPrintRequest[]) {
 	}
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+function finiteNumber(value: unknown): number | null {
+	const numberValue = Number(value);
+	return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function resolveCccPercentageFromSales(sales: Array<{ meta?: unknown }>) {
+	for (const sale of sales) {
+		const meta = asRecord(sale.meta);
+		const newSalesForm = asRecord(meta?.newSalesForm);
+		const settings = asRecord(newSalesForm?.settings);
+		const summary = asRecord(newSalesForm?.summary);
+		const value =
+			finiteNumber(meta?.ccc_percentage) ??
+			finiteNumber(meta?.cccPercentage) ??
+			finiteNumber(settings?.cccPercentage) ??
+			finiteNumber(summary?.cccPercentage);
+		if (value != null) return value;
+	}
+	return 3.5;
+}
+
 function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const { selectedIds, setOpened } = props;
 	const trpc = useTRPC();
@@ -132,6 +159,9 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const pendingPrintRequestsRef = useRef<PendingPrintRequest[]>([]);
 	const pendingAppliedPaymentCheckRef =
 		useRef<PendingAppliedPaymentCheck | null>(null);
+	const lastSubmittedAmountRef = useRef<number | null>(null);
+	const lastSubmittedPaymentMethodRef =
+		useRef<z.infer<typeof formSchema>["paymentMethod"] | null>(null);
 	const hasSubmittedCompletedTerminalRef = useRef(false);
 	const lastFormResetKeyRef = useRef<string | null>(null);
 	const [terminalState, setTerminalState] =
@@ -191,6 +221,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			deviceId: data?.lastTerminalId,
 			terminalPaymentSession: null,
 			notifyCustomer: false,
+			useWallet: false,
 			print: true,
 			printPackingSlip: false,
 			sales: data.pendingSales.map((s) => ({
@@ -229,6 +260,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		print,
 		printPackingSlip,
 		deviceId,
+		useWallet,
 	} = form.watch();
 	const getSelectedSalesIds = useCallback(
 		(formData: z.infer<typeof formSchema>) =>
@@ -266,6 +298,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			setTerminalState("form");
 			hasSubmittedCompletedTerminalRef.current = false;
 			pendingAppliedPaymentCheckRef.current = null;
+			lastSubmittedAmountRef.current = null;
+			lastSubmittedPaymentMethodRef.current = null;
 			form.setValue("paymentStatus", null);
 			if (clearSession) {
 				form.setValue("terminalPaymentSession", null);
@@ -488,24 +522,35 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			});
 			return;
 		}
-		if (formData?.editPrice && customAmount > Number(formData.amount || 0)) {
+		const externalAmount = Number(paymentChargePreview.externalAmount || 0);
+		if (
+			externalAmount <= 0 &&
+			(!formData.useWallet || paymentChargePreview.walletApplied <= 0)
+		) {
 			toast({
-				title: "Amount too high",
-				description: "Custom amount cannot exceed the selected balance.",
+				title: "Invalid amount",
+				description: "Enter an amount greater than zero.",
 				variant: "destructive",
 			});
 			return;
 		}
-		return formData?.editPrice ? customAmount : formData?.amount;
+		return externalAmount;
 	};
 	const initPayment = async (formData: z.infer<typeof formSchema>) => {
 		setMockStatus(null);
 		setTerminalError(null);
 		const amount = getAmount(formData);
-		if (!amount) return;
+		if (amount == null) return;
 		const selectedSalesIds = getSelectedSalesIds(formData);
 		const selectedOrderNos = getSelectedOrderNos(formData);
-		const isTerminalPayment = formData.paymentMethod === "terminal";
+		const walletOnly =
+			!!formData.useWallet &&
+			paymentChargePreview.walletApplied > 0 &&
+			amount <= 0;
+		const paymentMethod = walletOnly ? "wallet" : formData.paymentMethod;
+		const isTerminalPayment = paymentMethod === "terminal";
+		lastSubmittedAmountRef.current = amount;
+		lastSubmittedPaymentMethodRef.current = paymentMethod;
 		form.setValue("paymentStatus", "processing");
 		if (isTerminalPayment) {
 			const hasCompletedTerminalSession =
@@ -523,6 +568,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		makePayment.mutate({
 			...formData,
 			amount,
+			paymentMethod,
 			salesIds: selectedSalesIds,
 			orderNos: selectedOrderNos,
 		});
@@ -532,6 +578,15 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		const amount = getAmount(formData);
 		if (!amount) return;
 		startTransition(async () => {
+			if (formData.useWallet || paymentChargePreview.walletCreditAmount > 0) {
+				toast({
+					title: "Use direct payment",
+					description:
+						"Wallet application and overpayment credit are only available for direct payments right now.",
+					variant: "destructive",
+				});
+				return;
+			}
 			const sales = data?.pendingSales?.filter(
 				(s) => formData.sales.find((b) => b.id === s.id)?.selected,
 			);
@@ -589,6 +644,12 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						form.setValue("terminalPaymentSession.status", "COMPLETED");
 						makePayment.mutate({
 							...form.getValues(),
+							amount:
+								lastSubmittedAmountRef.current ??
+								Number(form.getValues("amount") || 0),
+							paymentMethod:
+								lastSubmittedPaymentMethodRef.current ||
+								form.getValues("paymentMethod"),
 						});
 						return null;
 					case "CANCELED":
@@ -637,6 +698,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		setTerminalError(null);
 		setTerminalState("form");
 		hasSubmittedCompletedTerminalRef.current = false;
+		lastSubmittedAmountRef.current = null;
+		lastSubmittedPaymentMethodRef.current = null;
 		form.setValue("terminalPaymentSession", null);
 		form.setValue("paymentStatus", "cancelled");
 		setTimeout(() => {
@@ -666,17 +729,40 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const selectedTerminal = data?.terminals?.find(
 		(terminal) => terminal?.value === deviceId,
 	);
-	const selectedAmount = editPrice ? form.getValues("_amount") : amount;
 	const isTerminalFlowActive = terminalState !== "form";
 	const hasActiveTerminalCheckout =
 		!!terminalPaymentSession && terminalPaymentSession.status !== "COMPLETED";
 	const selectedPaymentMethodLabel =
 		salesPaymentMethods.find((method) => method.value === pm)?.label ||
 		"Payment";
-	const paymentChargePreview = calculatePaymentChannelChargePreview({
+	const selectedBalanceAmount = Number(amount || 0);
+	const walletBalanceAmount = Number(data?.walletBalance || 0);
+	const cccPercentage = resolveCccPercentageFromSales(
+		data?.pendingSales?.filter((sale) =>
+			wSales?.find((field) => field.id === sale.id)?.selected,
+		) || [],
+	);
+	const walletAppliedPreview =
+		useWallet && walletBalanceAmount > 0
+			? Math.min(walletBalanceAmount, selectedBalanceAmount)
+			: 0;
+	const defaultExternalAmount = Math.max(
+		selectedBalanceAmount - walletAppliedPreview,
+		0,
+	);
+	const selectedAmount = editPrice
+		? form.getValues("_amount")
+		: defaultExternalAmount;
+	const paymentChargePreview = calculatePaymentPlanPreview({
 		paymentMethod: pm,
-		amount: selectedAmount,
+		selectedBalance: selectedBalanceAmount,
+		externalAmount: selectedAmount,
+		walletBalance: walletBalanceAmount,
+		useWallet,
+		cccPercentage,
 	});
+	const paymentDisplayAmount =
+		paymentChargePreview.chargeAmount || paymentChargePreview.walletApplied;
 	const backToPaymentForm = () => {
 		resetTerminalFlow({
 			clearSession: terminalPaymentSession?.status !== "COMPLETED",
@@ -792,6 +878,46 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								</ScrollArea>
 							</section>
 
+							<section className="grid gap-2">
+								<div className="flex items-center justify-between gap-3">
+									<h3 className="text-sm font-medium">Wallet</h3>
+									<span className="text-xs text-muted-foreground">
+										Available {formatPaymentAmount(walletBalanceAmount)}
+									</span>
+								</div>
+								<Field
+									orientation="horizontal"
+									className={cn(
+										"rounded-md border p-3",
+										useWallet && "border-emerald-200 bg-emerald-50/70",
+									)}
+								>
+									<Checkbox
+										checked={!!useWallet}
+										disabled={walletBalanceAmount <= 0}
+										onCheckedChange={(checked) =>
+											form.setValue("useWallet", !!checked, {
+												shouldDirty: true,
+												shouldValidate: true,
+											})
+										}
+										id="use-wallet"
+									/>
+									<Field.Content>
+										<Field.Label htmlFor="use-wallet" className="font-normal">
+											Use wallet balance
+										</Field.Label>
+										<Field.Description className="text-xs font-normal">
+											Apply up to{" "}
+											{formatPaymentAmount(
+												Math.min(walletBalanceAmount, selectedBalanceAmount),
+											)}{" "}
+											before collecting the remaining amount.
+										</Field.Description>
+									</Field.Content>
+								</Field>
+							</section>
+
 							<section className="grid gap-3">
 								<div className="flex items-center justify-between gap-3">
 									<h3 className="text-sm font-medium">Amount</h3>
@@ -824,11 +950,12 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 										<InputGroup>
 											<InputGroup.Input
 												{...form.register("_amount")}
-												placeholder="Custom amount"
+												placeholder="External amount"
 											/>
 											<InputGroup.Addon align="inline-end">
 												<InputGroup.Text>
-													of {formatPaymentAmount(amount)}
+													after wallet{" "}
+													{formatPaymentAmount(defaultExternalAmount)}
 												</InputGroup.Text>
 											</InputGroup.Addon>
 										</InputGroup>
@@ -847,10 +974,10 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								) : (
 									<div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
 										<span className="text-muted-foreground">
-											Selected balance
+											External amount
 										</span>
 										<span className="float-right font-medium tabular-nums">
-											{formatPaymentAmount(amount)}
+											{formatPaymentAmount(defaultExternalAmount)}
 										</span>
 									</div>
 								)}
@@ -866,7 +993,25 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								<div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
 									<div className="flex items-center justify-between gap-3">
 										<span className="text-muted-foreground">
-											Sales payment
+											Selected balance
+										</span>
+										<span className="font-medium tabular-nums">
+											{formatPaymentAmount(paymentChargePreview.selectedBalance)}
+										</span>
+									</div>
+									{paymentChargePreview.walletApplied > 0 ? (
+										<div className="mt-1 flex items-center justify-between gap-3">
+											<span className="text-muted-foreground">
+												Wallet applied
+											</span>
+											<span className="font-medium tabular-nums text-emerald-700">
+												-{formatPaymentAmount(paymentChargePreview.walletApplied)}
+											</span>
+										</div>
+									) : null}
+									<div className="mt-1 flex items-center justify-between gap-3">
+										<span className="text-muted-foreground">
+											External payment
 										</span>
 										<span className="font-medium tabular-nums">
 											{formatPaymentAmount(paymentChargePreview.baseAmount)}
@@ -882,6 +1027,18 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 											</span>
 										</div>
 									) : null}
+									{paymentChargePreview.walletCreditAmount > 0 ? (
+										<div className="mt-1 flex items-center justify-between gap-3">
+											<span className="text-muted-foreground">
+												Wallet credit after payment
+											</span>
+											<span className="font-medium tabular-nums text-emerald-700">
+												{formatPaymentAmount(
+													paymentChargePreview.walletCreditAmount,
+												)}
+											</span>
+										</div>
+									) : null}
 									<div className="mt-2 flex items-center justify-between gap-3 border-t pt-2 font-semibold">
 										<span>Amount to charge</span>
 										<span className="tabular-nums">
@@ -890,6 +1047,25 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 									</div>
 								</div>
 							</section>
+
+							{paymentChargePreview.walletCreditAmount > 0 ? (
+								<section className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
+									<div className="flex items-start gap-2">
+										<Icons.Wallet className="mt-0.5 size-4 shrink-0 text-emerald-700" />
+										<div className="grid gap-1">
+											<p className="font-medium">
+												Extra payment will be saved to the customer wallet.
+											</p>
+											<p className="text-xs text-emerald-800">
+												{formatPaymentAmount(
+													paymentChargePreview.walletCreditAmount,
+												)}{" "}
+												will be available for future orders.
+											</p>
+										</div>
+									</div>
+								</section>
+							) : null}
 
 							<section className="grid gap-3">
 								<h3 className="text-sm font-medium">Options</h3>
@@ -1144,7 +1320,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 							<div className="absolute inset-0 bg-background">
 								<PaymentStatusOverlay
 									state={terminalState}
-									amount={paymentChargePreview.chargeAmount}
+									amount={paymentDisplayAmount}
 									methodLabel={selectedPaymentMethodLabel}
 									terminalName={
 										pm === "terminal" ? selectedTerminal?.label : undefined

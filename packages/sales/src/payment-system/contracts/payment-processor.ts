@@ -28,10 +28,11 @@ export const salesPaymentProcessorApplyPaymentSchema = z
 		terminalPaymentSession: terminalPaymentSessionSchema,
 	})
 	.superRefine((data, ctx) => {
-		if (data?._amount && Number(data._amount) > data?.amount) {
+		const amount = Number(data?._amount ?? data.amount ?? 0);
+		if (!data.useWallet && amount <= 0) {
 			ctx.addIssue({
 				path: ["amount"],
-				message: "Amount cannot be higher than sales due",
+				message: "Amount must be greater than zero",
 				code: "custom",
 			});
 		}

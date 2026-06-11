@@ -232,6 +232,8 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 	componentId?: number | null;
 	rows: DoorStoredRow[];
 	sharedDoorSurcharge?: number | null;
+	noHandle?: boolean;
+	hasSwing?: boolean;
 	profileCoefficient?: number | null;
 }) {
 	const existingDoors = Array.isArray(input.line.housePackageTool?.doors)
@@ -246,6 +248,10 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 		safeRows,
 		Number(input.sharedDoorSurcharge || 0),
 		input.profileCoefficient,
+		{
+			noHandle: !!input.noHandle,
+			hasSwing: input.hasSwing !== false,
+		},
 	);
 	const nextDoors = [
 		...retainedDoors,

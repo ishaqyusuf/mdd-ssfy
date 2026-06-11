@@ -55,12 +55,12 @@ export function Header() {
             >
                 <SiteNav.MobileSidebar />
                 <div id="goBackSlot" />
-                <div className="flex items-center space-x-4 lg:space-x-0">
-                    <h1 className="font-bold" id="pageTitle"></h1>
+                <div className="flex min-w-0 items-center space-x-4 whitespace-nowrap lg:space-x-0">
+                    <h1 className="font-bold whitespace-nowrap" id="pageTitle"></h1>
                 </div>
                 <div
                     id="headerTitleSlot"
-                    className="hidden md:flex items-center space-x-1"
+                    className="hidden md:flex items-center space-x-1 whitespace-nowrap"
                 />
                 <div
                     id="headerNav"
@@ -101,12 +101,12 @@ export function Header() {
             <div className="md:m-0 z-50 px-6 border-b  h-(--header-height) flex gap-4 items-center desktop:sticky desktop:top-0 desktop:bg-background sticky md:statics top-0 backdrop-filter backdrop-blur-xl md:backdrop-filter md:backdrop-blur-none dark:bg-[#121212] bg-[#fff] bg-opacity-70 desktop:rounded-t-[10px]">
                 <SiteNav.MobileSidebar />
                 <div id="goBackSlot" />
-                <div className="flex items-center space-x-4 lg:space-x-0">
-                    <h1 className="font-bold" id="pageTitle"></h1>
+                <div className="flex min-w-0 items-center space-x-4 whitespace-nowrap lg:space-x-0">
+                    <h1 className="font-bold whitespace-nowrap" id="pageTitle"></h1>
                 </div>
                 <div
                     id="headerTitleSlot"
-                    className="flex items-center space-x-1"
+                    className="flex items-center space-x-1 whitespace-nowrap"
                 />
                 <div id="headerNav" className="flex items-center space-x-1" />
                 <div

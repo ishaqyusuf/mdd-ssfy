@@ -6,7 +6,10 @@ import { generateRandomString } from "@/lib/utils";
 import { actionClient } from "./safe-action";
 import { stepComponentSchema } from "./schema";
 import { revalidatePath } from "next/cache";
-import { getStepComponents } from "@api/db/queries/sales-form";
+import {
+    getStepComponents,
+    invalidateSalesWorkflowForStepComponent,
+} from "@api/db/queries/sales-form";
 
 export const saveStepComponent = actionClient
     .schema(stepComponentSchema)
@@ -49,6 +52,12 @@ export const saveStepComponent = actionClient
                   },
               });
         revalidatePath(`step-components-${stepId}`);
+        await invalidateSalesWorkflowForStepComponent({
+            stepId,
+            componentId: component.id,
+            componentUid: component.uid,
+            routing: true,
+        });
         return (
             await getStepComponents(
                 { db: prisma },

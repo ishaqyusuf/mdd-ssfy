@@ -12,7 +12,7 @@ import { Table } from "@gnd/ui/data-table";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
-import { saveSupplierSchema } from "@api/db/queries/sales-form";
+import { saveSupplierSchema } from "@api/schemas/sales-form";
 import { StepHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import { z } from "zod";
 import { cn } from "@gnd/ui/cn";
@@ -191,4 +191,3 @@ function LoadingSkeleton() {
         </div>
     );
 }
-

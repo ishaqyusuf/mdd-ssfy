@@ -939,12 +939,7 @@ function SalesMenuSalesPrintMenuItems({ disabled }: ActionProps) {
 }
 
 function SalesMenuQuotePrintMenuItems({ disabled }: ActionProps) {
-	return (
-		<>
-			<SalesMenuPrint disabled={disabled} />
-			<SalesMenuPDF disabled={disabled} />
-		</>
-	);
+	return <SalesMenuSalesPrintMenuItems disabled={disabled} />;
 }
 
 function SalesMenuSalesEmailMenuItems({ disabled }: ActionProps) {

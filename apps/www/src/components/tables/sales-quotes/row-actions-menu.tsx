@@ -42,7 +42,7 @@ export function QuoteRowActionsMenu({
                 uuid={item.uuid ?? undefined}
             />
             <SalesMenu.QuoteEmailMenuItems />
-            <SalesMenu.QuotePrintMenuItems />
+            <SalesMenu.SalesPrintMenuItems />
             <SalesMenu.Copy />
             <SalesMenu.Move />
             <SalesMenu.Separator />

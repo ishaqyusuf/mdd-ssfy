@@ -6,6 +6,7 @@ import type {
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData, SalesType } from "@api/type";
+import { salesFilterOptionsCache } from "@gnd/cache/sales-filter-options-cache";
 import {
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
@@ -189,6 +190,158 @@ const searchFilter = {
   type: "input",
   value: "q",
 } as PageFilterData<"q">;
+
+type SalesItemFilterOption = { label: string; value: string };
+
+const SALES_FILTER_OPTIONS_CACHE_TTL = 24 * 60 * 60;
+const SALES_ITEM_FILTER_OPTIONS_LIMIT = 1000;
+
+function normalizeItemName(value: unknown) {
+  if (typeof value !== "string") return null;
+
+  const normalized = value.trim().replace(/\s+/g, " ");
+  return normalized.length ? normalized : null;
+}
+
+function addItemName(names: Map<string, string>, value: unknown) {
+  const normalized = normalizeItemName(value);
+  if (!normalized) return;
+
+  const key = normalized.toLocaleLowerCase();
+  if (!names.has(key)) {
+    names.set(key, normalized);
+  }
+}
+
+function toItemNameOptions(names: Map<string, string>): SalesItemFilterOption[] {
+  return [...names.values()]
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, SALES_ITEM_FILTER_OPTIONS_LIMIT)
+    .map((value) => ({ label: value, value }));
+}
+
+async function fetchSalesItemOptions(
+  ctx: TRPCContext,
+  type: SalesType,
+): Promise<SalesItemFilterOption[]> {
+  const items = await ctx.db.salesOrderItems.findMany({
+    where: {
+      deletedAt: null,
+      salesOrder: {
+        deletedAt: null,
+        type,
+      },
+    },
+    select: {
+      salesDoors: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          stepProduct: {
+            select: {
+              name: true,
+              door: {
+                select: {
+                  title: true,
+                },
+              },
+              product: {
+                select: {
+                  title: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      housePackageTool: {
+        select: {
+          stepProduct: {
+            select: {
+              name: true,
+              door: {
+                select: {
+                  title: true,
+                },
+              },
+              product: {
+                select: {
+                  title: true,
+                },
+              },
+            },
+          },
+          door: {
+            select: {
+              title: true,
+              stepProducts: {
+                where: {
+                  deletedAt: null,
+                },
+                select: {
+                  name: true,
+                  door: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                  product: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          molding: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const names = new Map<string, string>();
+
+  for (const item of items) {
+    for (const door of item.salesDoors) {
+      addItemName(names, door.stepProduct?.name);
+      addItemName(names, door.stepProduct?.door?.title);
+      addItemName(names, door.stepProduct?.product?.title);
+    }
+
+    const housePackageTool = item.housePackageTool;
+    addItemName(names, housePackageTool?.stepProduct?.name);
+    addItemName(names, housePackageTool?.stepProduct?.door?.title);
+    addItemName(names, housePackageTool?.stepProduct?.product?.title);
+    addItemName(names, housePackageTool?.door?.title);
+    addItemName(names, housePackageTool?.molding?.title);
+
+    for (const stepProduct of housePackageTool?.door?.stepProducts ?? []) {
+      addItemName(names, stepProduct.name);
+      addItemName(names, stepProduct.door?.title);
+      addItemName(names, stepProduct.product?.title);
+    }
+  }
+
+  return toItemNameOptions(names);
+}
+
+async function getSalesItemOptions(
+  ctx: TRPCContext,
+  type: SalesType,
+): Promise<SalesItemFilterOption[]> {
+  return salesFilterOptionsCache.getOrSet(
+    `item-options:${type}`,
+    SALES_FILTER_OPTIONS_CACHE_TTL,
+    () => fetchSalesItemOptions(ctx, type),
+  );
+}
+
 export async function getCommunityTemplateFilters(ctx: TRPCContext) {
   type T = keyof CommunityTemplateQueryParams;
   type FilterData = PageFilterData<keyof CommunityTemplateQueryParams>;
@@ -500,30 +653,33 @@ export async function getSalesOrderFilters(
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
 
-  const sales = await ctx.db.salesOrders.findMany({
-    where: { type: "order" as SalesType },
-    select: {
-      orderId: true,
-      meta: true,
-      customer: {
-        select: {
-          businessName: true,
-          name: true,
-          phoneNo: true,
+  const [sales, itemOptions] = await Promise.all([
+    ctx.db.salesOrders.findMany({
+      where: { type: "order" as SalesType },
+      select: {
+        orderId: true,
+        meta: true,
+        customer: {
+          select: {
+            businessName: true,
+            name: true,
+            phoneNo: true,
+          },
+        },
+        billingAddress: {
+          select: {
+            phoneNo: true,
+          },
+        },
+        salesRep: {
+          select: {
+            name: true,
+          },
         },
       },
-      billingAddress: {
-        select: {
-          phoneNo: true,
-        },
-      },
-      salesRep: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
+    }),
+    getSalesItemOptions(ctx, "order" as SalesType),
+  ]);
   const customerNames = [
     ...new Set(
       sales
@@ -596,6 +752,7 @@ export async function getSalesOrderFilters(
       "Order #",
       orderNos.map((no) => ({ label: no, value: no })),
     ),
+    optionFilter<T>("item", "Item", itemOptions),
     optionFilter<T>(
       "dispatch.status",
       "Fullfilment",
@@ -722,32 +879,35 @@ export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
   type T = keyof SalesQueryParamsSchema;
   type FilterData = PageFilterData<T>;
 
-  const sales = await ctx.db.salesOrders.findMany({
-    where: {
-      type: "quote" as SalesType,
-    },
-    select: {
-      orderId: true,
-      meta: true,
-      customer: {
-        select: {
-          businessName: true,
-          name: true,
-          phoneNo: true,
+  const [sales, itemOptions] = await Promise.all([
+    ctx.db.salesOrders.findMany({
+      where: {
+        type: "quote" as SalesType,
+      },
+      select: {
+        orderId: true,
+        meta: true,
+        customer: {
+          select: {
+            businessName: true,
+            name: true,
+            phoneNo: true,
+          },
+        },
+        billingAddress: {
+          select: {
+            phoneNo: true,
+          },
+        },
+        salesRep: {
+          select: {
+            name: true,
+          },
         },
       },
-      billingAddress: {
-        select: {
-          phoneNo: true,
-        },
-      },
-      salesRep: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
+    }),
+    getSalesItemOptions(ctx, "quote" as SalesType),
+  ]);
 
   const customerNames = [
     ...new Set(
@@ -807,6 +967,7 @@ export async function getSalesQuoteFilter(ctx: TRPCContext, isSalesManager?) {
       "Quote #",
       orderNos.map((no) => ({ label: no, value: no })),
     ),
+    optionFilter<T>("item", "Item", itemOptions),
     optionFilter<T>(
       "has",
       "Has",

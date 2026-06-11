@@ -40,7 +40,6 @@ import {
 	getSuppliers,
 	getSuppliersSchema,
 	saveSupplier,
-	saveSupplierSchema,
 	updateStepMeta,
 	updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
@@ -69,6 +68,7 @@ import {
 	saveOrderProductionGateSchema,
 	startNewSalesSchema,
 } from "@api/schemas/sales";
+import { saveSupplierSchema } from "@api/schemas/sales-form";
 import { transformSalesFilterQuery } from "@api/utils/sales";
 import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import { generateRandomString, timeLog } from "@gnd/utils";

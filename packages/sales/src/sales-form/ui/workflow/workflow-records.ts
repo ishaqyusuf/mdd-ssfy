@@ -227,6 +227,65 @@ export type CustomerProfileRecord = {
 	coefficient?: number | null;
 };
 
+export function isWorkflowComponentSelected(
+	step: WorkflowStepRecord | null | undefined,
+	component: WorkflowComponentRecord | null | undefined,
+) {
+	const componentUid = String(component?.uid || "");
+	const componentId = Number(component?.id || 0);
+	if (!step || (!componentUid && !componentId)) return false;
+
+	if (componentUid) {
+		const selectedUids = Array.isArray(step.meta?.selectedProdUids)
+			? step.meta.selectedProdUids.map((uid) => String(uid || ""))
+			: [];
+		if (selectedUids.includes(componentUid)) return true;
+		if (String(step.prodUid || "") === componentUid) return true;
+		if (
+			step.meta?.selectedComponents?.some(
+				(selected) => String(selected?.uid || "") === componentUid,
+			)
+		) {
+			return true;
+		}
+	}
+
+	if (componentId && Number(step.componentId || 0) === componentId) return true;
+
+	const selectedValue = String(step.value || "").trim().toLowerCase();
+	const componentTitle = String(component?.title || "").trim().toLowerCase();
+	return Boolean(selectedValue && componentTitle && selectedValue === componentTitle);
+}
+
+export function hasWorkflowStepSelection(
+	step: WorkflowStepRecord | null | undefined,
+) {
+	return Boolean(
+		String(step?.value || step?.prodUid || "").trim() ||
+			step?.componentId ||
+			step?.meta?.selectedComponents?.length ||
+			step?.meta?.selectedProdUids?.length,
+	);
+}
+
+export function workflowStepSelectionLabel(
+	step: WorkflowStepRecord | null | undefined,
+) {
+	const selected = Array.isArray(step?.meta?.selectedComponents)
+		? step.meta.selectedComponents
+		: [];
+	if (selected.length) {
+		return (
+			selected
+				.map((component) => component.title || component.uid)
+				.filter(Boolean)
+				.join(", ") || "Selected"
+		);
+	}
+
+	return String(step?.value || step?.prodUid || step?.componentId || "Selected");
+}
+
 export function stepKey(lineUid: string, stepIndex: number) {
 	return `${lineUid}:${stepIndex}`;
 }

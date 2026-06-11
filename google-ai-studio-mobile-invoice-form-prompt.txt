@@ -1,0 +1,566 @@
+You are a senior React Native + Expo engineer working inside this repo:
+
+/Users/M1PRO/Documents/code/_turbo/gnd
+
+Build a complete working mobile invoice form for the Expo app at:
+
+apps/expo-app
+
+The implementation must be compatible with the existing newSalesForm backend feature and payload schema. Use dummy/mock data by default so the form works immediately without backend access, but structure hooks so they can switch to real tRPC calls later.
+
+EXISTING APP CONTEXT
+
+Stack:
+- Expo Router
+- React Native
+- NativeWind className styling
+- Zustand
+- TanStack React Query
+- tRPC via _trpc from @/components/static-trpc
+- Existing UI components:
+  - @/components/safe-area
+  - @/components/ui/icon
+  - @/components/ui/button
+  - @/components/ui/pressable
+  - @/components/ui/input-2
+  - @/components/ui/text
+- Sales route group already exists:
+  - apps/expo-app/src/app/(sales)/_layout.tsx
+  - apps/expo-app/src/features/sales/...
+
+Do not add new npm dependencies.
+
+REQUIRED RESULT
+
+Create a complete mobile invoice form flow with dummy data:
+
+1. Customer step
+2. Invoice details step
+3. Items step
+4. Item selector screen/modal component
+5. Costs/totals step
+6. Review step
+7. Draft save/final submit behavior using mock hooks
+8. Exact payload compatibility with newSalesForm.saveDraft and newSalesForm.saveFinal
+
+The UI must be mobile-native, not a desktop form:
+- Soft slate background
+- White bordered cards
+- Compact typography
+- Sticky bottom footer
+- Step tracker
+- Card-based line items
+- Full-screen item selector
+- Quantity steppers
+- Clear draft/save status
+
+IMPORTANT BACKEND COMPATIBILITY
+
+The generated form state must map exactly to this backend payload shape:
+
+type NewSalesFormType = "order" | "quote";
+
+type NewSalesFormMeta = {
+  customerId?: number | null;
+  customerProfileId?: number | null;
+  billingAddressId?: number | null;
+  shippingAddressId?: number | null;
+  paymentTerm?: string | null;
+  createdAt?: string | null;
+  paymentDueDate?: string | null;
+  goodUntil?: string | null;
+  prodDueDate?: string | null;
+  po?: string | null;
+  notes?: string | null;
+  deliveryOption?: string | null;
+  paymentMethod?: string | null;
+  taxCode?: string | null;
+};
+
+type NewSalesFormLineItem = {
+  id?: number | null;
+  uid: string;
+  title: string;
+  description?: string | null;
+  qty: number;
+  unitPrice: number;
+  lineTotal: number;
+  taxxable?: boolean | null;
+  meta?: Record<string, unknown> | null;
+  formSteps?: any[] | null;
+  shelfItems?: any[] | null;
+  housePackageTool?: any | null;
+};
+
+type NewSalesFormSummary = {
+  subTotal: number;
+  adjustedSubTotal?: number;
+  taxRate: number;
+  taxTotal: number;
+  grandTotal: number;
+  discount?: number;
+  discountPct?: number;
+  percentDiscountValue?: number;
+  labor?: number;
+  delivery?: number;
+  otherCosts?: number;
+  taxableSubTotal?: number;
+  ccc?: number;
+};
+
+type NewSalesFormExtraCostType =
+  | "Discount"
+  | "DiscountPercentage"
+  | "Labor"
+  | "FlatLabor"
+  | "CustomTaxxable"
+  | "CustomNonTaxxable"
+  | "Delivery"
+  | "EXT";
+
+type NewSalesFormExtraCost = {
+  id?: number | null;
+  label: string;
+  type: NewSalesFormExtraCostType;
+  amount: number;
+  taxxable?: boolean | null;
+};
+
+type SaveDraftNewSalesFormPayload = {
+  type: NewSalesFormType;
+  slug?: string | null;
+  salesId?: number | null;
+  inventoryStatus?: string | null;
+  version?: string | null;
+  autosave: boolean;
+  meta: NewSalesFormMeta;
+  lineItems: NewSalesFormLineItem[];
+  extraCosts: NewSalesFormExtraCost[];
+  summary: NewSalesFormSummary;
+};
+
+Important: keep the repo spelling taxxable with double x. Do not rename it to taxable.
+
+REAL TRPC ROUTES TO SUPPORT LATER
+
+Create hooks with a USE_MOCK_INVOICE_FORM = true constant. When false, the hook names should be ready to call these existing procedures:
+
+_trpc.newSalesForm.bootstrap
+_trpc.newSalesForm.get
+_trpc.newSalesForm.searchCustomers
+_trpc.newSalesForm.resolveCustomer
+_trpc.newSalesForm.searchShelfProducts
+_trpc.newSalesForm.getShelfProductDetails
+_trpc.newSalesForm.recalculate
+_trpc.newSalesForm.saveDraft
+_trpc.newSalesForm.saveFinal
+_trpc.newSalesForm.deleteLineItem
+
+For now, mock all API behavior locally.
+
+FILES TO CREATE
+
+Create this structure:
+
+apps/expo-app/src/app/(sales)/invoices/new.tsx
+apps/expo-app/src/app/(sales)/invoices/[slug].tsx
+
+apps/expo-app/src/features/sales/invoice-form/types.ts
+apps/expo-app/src/features/sales/invoice-form/mock-data.ts
+apps/expo-app/src/features/sales/invoice-form/lib/calculate-summary.ts
+apps/expo-app/src/features/sales/invoice-form/lib/format.ts
+apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+
+apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-actions.ts
+apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts
+
+apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx
+apps/expo-app/src/features/sales/invoice-form/components/invoice-form-header.tsx
+apps/expo-app/src/features/sales/invoice-form/components/invoice-step-track.tsx
+apps/expo-app/src/features/sales/invoice-form/components/invoice-form-footer.tsx
+apps/expo-app/src/features/sales/invoice-form/components/customer-step.tsx
+apps/expo-app/src/features/sales/invoice-form/components/details-step.tsx
+apps/expo-app/src/features/sales/invoice-form/components/items-step.tsx
+apps/expo-app/src/features/sales/invoice-form/components/item-selector.tsx
+apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx
+apps/expo-app/src/features/sales/invoice-form/components/costs-step.tsx
+apps/expo-app/src/features/sales/invoice-form/components/review-step.tsx
+
+Also update:
+
+apps/expo-app/src/app/(sales)/_layout.tsx
+
+Add stack screens for:
+- invoices/new
+- invoices/[slug]
+
+DUMMY DATA
+
+Include these customers:
+
+[
+  {
+    id: 101,
+    name: "Acme Builders",
+    contact: "David Chen",
+    phone: "(555) 123-4567",
+    email: "accounts@acmebuilders.com",
+    billingAddressId: 9001,
+    shippingAddressId: 9002,
+    billingAddress: "1400 Market St, Dallas, TX 75201",
+    shippingAddress: "2810 Jobsite Rd, Plano, TX 75024"
+  },
+  {
+    id: 102,
+    name: "Northline Homes",
+    contact: "Maya Patel",
+    phone: "(555) 232-0011",
+    email: "orders@northlinehomes.com",
+    billingAddressId: 9011,
+    shippingAddressId: 9012,
+    billingAddress: "800 Commerce Dr, Austin, TX 78701",
+    shippingAddress: "77 Framing Way, Round Rock, TX 78664"
+  },
+  {
+    id: 103,
+    name: "Sterling Renovations",
+    contact: "Luis Romero",
+    phone: "(555) 810-4420",
+    email: "billing@sterlingreno.com",
+    billingAddressId: 9021,
+    shippingAddressId: 9022,
+    billingAddress: "42 Oak Ave, Houston, TX 77002",
+    shippingAddress: "930 Remodel Ln, Katy, TX 77494"
+  }
+]
+
+Include these selectable products/services:
+
+[
+  {
+    uid: "prod-door-rh",
+    title: "Interior Door - RH",
+    sku: "DR-INT-RH",
+    category: "Doors",
+    unitPrice: 420,
+    taxxable: true,
+    status: "Available"
+  },
+  {
+    uid: "prod-ext-slab",
+    title: "Exterior Door Slab",
+    sku: "DR-EXT-SLAB",
+    category: "Doors",
+    unitPrice: 685,
+    taxxable: true,
+    status: "Low stock"
+  },
+  {
+    uid: "prod-casing",
+    title: "Casing Package",
+    sku: "MLD-CAS-07",
+    category: "Moulding",
+    unitPrice: 86.5,
+    taxxable: true,
+    status: "Available"
+  },
+  {
+    uid: "prod-hinge",
+    title: "Hinge Set",
+    sku: "HDW-HINGE-03",
+    category: "Hardware",
+    unitPrice: 24,
+    taxxable: true,
+    status: "Available"
+  },
+  {
+    uid: "svc-install",
+    title: "Install Labor",
+    sku: "LAB-INSTALL",
+    category: "Labor",
+    unitPrice: 351.33,
+    taxxable: false,
+    status: "Service"
+  }
+]
+
+Default selected items:
+- Interior Door - RH, qty 4
+- Casing Package, qty 12
+- Install Labor, qty 6
+
+Default extra costs:
+- Discount: $125, type "Discount", taxxable false
+- Delivery: $75, type "Delivery", taxxable true
+
+Default tax rate: 7.5
+
+SUMMARY CALCULATION
+
+Implement local calculateSummary compatible with backend meaning:
+
+- subTotal: sum of lineItems.lineTotal
+- discount: sum extraCosts where type is "Discount"
+- discountPct: sum extraCosts where type is "DiscountPercentage"
+- percentDiscountValue: subTotal * discountPct / 100
+- labor: sum "Labor" and "FlatLabor" costs
+- delivery: sum "Delivery"
+- otherCosts: all other custom/EXT costs
+- taxableSubTotal: taxable line totals + taxable delivery/custom costs - discounts, never below 0
+- taxTotal: taxableSubTotal * taxRate / 100
+- adjustedSubTotal: subTotal - discount - percentDiscountValue + labor + delivery + otherCosts
+- grandTotal: adjustedSubTotal + taxTotal
+- Round currency to 2 decimals.
+
+Remember line item field is taxxable.
+
+UI REQUIREMENTS
+
+Header:
+Reusable InvoiceFormHeader:
+- Back button
+- Title based on step
+- Subtitle
+- Save status pill: Draft, Saving, Saved, Error, Ready
+
+Step Track:
+Steps:
+["Customer", "Details", "Items", "Costs", "Review"]
+
+Show completed, active, upcoming states.
+
+Footer:
+Reusable sticky footer:
+- Back
+- Save Draft
+- Continue
+- Create Invoice on final step
+
+Customer Step:
+- Search input
+- Recent customer cards
+- Selected customer card
+- Set meta.customerId, meta.billingAddressId, meta.shippingAddressId
+
+Details Step:
+Fields:
+- invoice date -> meta.createdAt
+- due date -> meta.paymentDueDate
+- payment terms -> meta.paymentTerm
+- PO -> meta.po
+- delivery option -> meta.deliveryOption
+- payment method -> meta.paymentMethod
+- notes -> meta.notes
+- tax code -> meta.taxCode
+
+Use simple mobile inputs/buttons. Do not overbuild date pickers; plain text inputs are okay for dummy version.
+
+Items Step:
+- Show subtotal strip
+- Show line item cards
+- Each card:
+  - title
+  - SKU from meta.sku
+  - qty stepper
+  - unit price
+  - line total
+  - edit/remove icons
+- Button opens ItemSelector
+
+Item Selector Component:
+This is required.
+
+It should be a full-screen selector/modal-like component rendered inside the invoice form when open.
+
+It must include:
+- Header: close button, Select items, 2 selected
+- Search input
+- Category chips: All, Doors, Moulding, Labor, Hardware, Custom
+- Product rows with selected/unselected states
+- Selected rows show quantity stepper
+- Unselected rows show add button
+- Footer summary: selected count + subtotal
+- Buttons: Clear, Add to invoice
+- + Custom item action that adds a dummy custom line:
+  - title "Custom Item"
+  - unitPrice 100
+  - qty 1
+  - taxxable true
+  - meta { sku: "CUSTOM" }
+
+When adding products to invoice, convert product to NewSalesFormLineItem:
+
+{
+  uid: `${product.uid}-${Date.now()}`,
+  title: product.title,
+  description: product.sku,
+  qty,
+  unitPrice: product.unitPrice,
+  lineTotal: qty * product.unitPrice,
+  taxxable: product.taxxable,
+  meta: {
+    sku: product.sku,
+    category: product.category,
+    status: product.status,
+    sourceUid: product.uid
+  },
+  formSteps: [],
+  shelfItems: [],
+  housePackageTool: null
+}
+
+Costs Step:
+- Tax rate input
+- Discount input
+- Delivery input
+- Add custom taxable cost
+- Add custom non-taxable cost
+- Live totals card
+
+Review Step:
+Cards:
+- Customer
+- Invoice details
+- Items summary
+- Totals
+- Info strip: "PDF will be generated after submission. You can still edit this draft before sending."
+
+Final button creates payload with:
+
+{
+  type: "order",
+  slug,
+  salesId,
+  version,
+  autosave: false,
+  meta,
+  lineItems,
+  extraCosts,
+  summary
+}
+
+STORE REQUIREMENTS
+
+Use Zustand.
+
+Store should include:
+- step
+- type
+- slug
+- salesId
+- version
+- meta
+- customer
+- lineItems
+- extraCosts
+- summary
+- taxRate
+- dirty
+- saveStatus
+- lastSavedAt
+- selectorOpen
+
+Actions:
+- selectCustomer
+- updateMeta
+- setStep
+- nextStep
+- prevStep
+- openSelector
+- closeSelector
+- addOrUpdateLineItem
+- removeLineItem
+- setLineQty
+- updateExtraCost
+- recalculate
+- buildSavePayload
+- markSaved
+- markError
+- reset
+
+Whenever qty/unitPrice/extraCosts/taxRate changes, recalculate summary.
+
+MOCK API HOOKS
+
+Create:
+- useInvoiceFormActions
+- useInvoiceFormSearch
+
+useInvoiceFormActions returns:
+- saveDraft(payload)
+- saveFinal(payload)
+- recalculate(input)
+
+For mock mode:
+- wait 400ms
+- return payload with:
+  - slug: "order-draft-1001"
+  - salesId: 1001
+  - version: "mock-version-" + Date.now()
+
+useInvoiceFormSearch returns:
+- customers filtered by query
+- products filtered by query/category
+
+REACT NATIVE PERFORMANCE REQUIREMENTS
+
+- Do not render large selector results with ScrollView and .map if list can grow. Use FlatList.
+- Use stable keyExtractor.
+- Memoize row components where reasonable.
+- Keep TextInputs simple. Prefer defaultValue + onChangeText for basic text fields to reduce input lag.
+- Do not put heavy recalculation directly in every keystroke without state boundaries.
+- Use keyboardShouldPersistTaps="handled" on lists with inputs/buttons.
+- Keep touch targets at least 44px high.
+
+STYLING REQUIREMENTS
+
+Use NativeWind className.
+
+Visual language:
+- Background: bg-background or soft slate fallback
+- Cards: bg-card border border-border rounded-2xl
+- Buttons: existing Button
+- Icons: existing Icon
+- Text: readable high contrast
+- No gradients
+- No decorative blobs/orbs
+- No nested cards inside cards unless necessary
+- No desktop tables
+
+ROUTES
+
+apps/expo-app/src/app/(sales)/invoices/new.tsx:
+
+import { InvoiceFormScreen } from "@/features/sales/invoice-form/components/invoice-form-screen";
+
+export default function NewInvoiceRoute() {
+  return <InvoiceFormScreen mode="create" />;
+}
+
+apps/expo-app/src/app/(sales)/invoices/[slug].tsx:
+- read slug from useLocalSearchParams
+- render <InvoiceFormScreen mode="edit" slug={slug} />
+
+Update sales layout:
+- add stack screens:
+  - invoices/new
+  - invoices/[slug]
+
+DELIVERABLE FORMAT
+
+Return complete code for every file listed above.
+
+Do not skip files.
+Do not use placeholders like "implement later".
+Do not require backend connectivity.
+Do not add dependencies.
+Do not rename taxxable.
+Make the dummy flow fully usable:
+- select customer
+- edit details
+- open item selector
+- add/remove/update item quantities
+- edit costs
+- review
+- save draft
+- create invoice

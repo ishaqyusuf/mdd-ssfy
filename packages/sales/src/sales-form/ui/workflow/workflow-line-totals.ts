@@ -24,6 +24,25 @@ type WorkflowLineTotalRecord = Record<string, any> & {
 	} | null;
 };
 
+export function buildWorkflowLinePricingPatch(
+	line: WorkflowLineTotalRecord,
+	formSteps?: Array<{ price?: number | null } | null> | null,
+) {
+	if (Array.isArray(line.shelfItems) && line.shelfItems.length) return {};
+	if (line.housePackageTool?.doors?.length) return {};
+	if (!Array.isArray(formSteps)) return {};
+	const unitPrice = Number(
+		formSteps
+			.reduce((total, step) => total + Number(step?.price || 0), 0)
+			.toFixed(2),
+	);
+	const qty = Number(line.qty || 0);
+	return {
+		unitPrice,
+		lineTotal: Number((qty * unitPrice).toFixed(2)),
+	};
+}
+
 export function getWorkflowLineDisplayTotal(
 	line: WorkflowLineTotalRecord,
 	profileCoefficient = 1,

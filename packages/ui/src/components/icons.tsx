@@ -85,7 +85,7 @@ const Trash = hugeIcon("Trash");
 const Twitter = hugeIcon("NewTwitter");
 const User = hugeIcon("User");
 const X = hugeIcon("X");
-const EyeOff = hugeIcon("ViewOff");
+const EyeOff = hugeIcon("EyeOff");
 const Eye = hugeIcon("View");
 const Menu = hugeIcon("Menu");
 const Pencil = hugeIcon("Pencil");
@@ -1159,8 +1159,8 @@ const dynamicHugeIconAliases = {
   Edit3: "PencilEdit01Icon",
   Eye: "View",
   EyeIcon: "View",
-  EyeOff: "ViewOff",
-  EyeOffIcon: "ViewOff",
+  EyeOff: "EyeOff",
+  EyeOffIcon: "EyeOff",
   Factory: "Factory",
   FileBox: "File01Icon",
   FileClock: "FileSearchIcon",

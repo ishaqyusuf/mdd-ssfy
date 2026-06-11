@@ -1528,6 +1528,7 @@ model DealerAuthAccount {
     createdAt             DateTime
     updatedAt             DateTime
 
+    @@unique([providerId, accountId])
     @@index([userId])
 }
 
@@ -4813,4 +4814,3 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
-

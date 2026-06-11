@@ -64,6 +64,12 @@ export {
   ShelfProductCombobox,
 } from "./shelf-inputs";
 export {
+  buildShelfProductRowPatch,
+  clearShelfRowProduct,
+  patchShelfRowPrice,
+  patchShelfRowQty,
+} from "./shelf-row-products";
+export {
   ShelfSectionsPanel,
   type ShelfSectionsPanelProps,
 } from "./shelf-sections-panel";
@@ -99,7 +105,10 @@ export {
   type WorkflowLineListItem,
   type WorkflowLineListProps,
 } from "./workflow-line-list";
-export { getWorkflowLineDisplayTotal } from "./workflow-line-totals";
+export {
+  buildWorkflowLinePricingPatch,
+  getWorkflowLineDisplayTotal,
+} from "./workflow-line-totals";
 export {
   resolveWorkflowVisibleComponents,
   type ResolveWorkflowVisibleComponentsInput,
@@ -148,6 +157,8 @@ export {
 export {
   removeWorkflowMouldingSelection,
   type WorkflowMouldingRemovalPatch,
+  saveWorkflowMouldingSelectionWithQty,
+  type WorkflowMouldingSelectionPatch,
 } from "./workflow-moulding-actions";
 export {
   buildStepComponentOverrideMap,

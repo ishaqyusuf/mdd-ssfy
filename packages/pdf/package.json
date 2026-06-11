@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",
-    "@types/react": "~19.1.0",
+    "@types/react": "^19.2.17",
     "@types/qrcode": "^1.5.5",
     "react": "catalog:",
     "react-dom": "catalog:",

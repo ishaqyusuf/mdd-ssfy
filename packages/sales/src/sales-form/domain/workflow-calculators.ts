@@ -4,6 +4,7 @@ import { normalizeSalesFormTitle } from "./step-engine";
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
   for (const value of values) {
+    if (value == null) continue;
     const candidate = Number(value);
     if (Number.isFinite(candidate)) return candidate;
   }

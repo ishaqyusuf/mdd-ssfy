@@ -7,7 +7,9 @@ import { buildSalesCustomerPaymentReceivedPayload } from "@gnd/notifications/typ
 import {
 	buildPaymentChannelChargeMeta,
 	calculatePaymentChannelCharge,
+	createLegacyWalletCreditTransaction,
 	recordLegacySalesPayment,
+	roundMoney,
 } from "@gnd/sales/payment-system";
 import {
 	salesPaymentProcessorApplyPaymentSchema,
@@ -85,6 +87,9 @@ export async function applySalesPaymentProcessorPayment(
 		terminalPaymentSession: null as typeof input.terminalPaymentSession,
 		status: null as "success" | null,
 		appliedSalesIds: [] as number[],
+		walletAppliedAmount: 0,
+		walletCreditAmount: 0,
+		customerChargeAmount: 0,
 	};
 
 	if (
@@ -105,6 +110,9 @@ export async function applySalesPaymentProcessorPayment(
 
 	const result = await applySalesPayment(ctx, input);
 	response.appliedSalesIds = result.appliedSalesIds;
+	response.walletAppliedAmount = result.walletAppliedAmount;
+	response.walletCreditAmount = result.walletCreditAmount;
+	response.customerChargeAmount = result.paymentCharge.chargeAmount;
 	await sendPaymentSystemNotifications(
 		tasks,
 		ctx,
@@ -198,23 +206,39 @@ async function applySalesPayment(
 		(total, order) => total + Number(order?.amountDue || 0),
 		0,
 	);
-	const paymentPrincipalAmount = Math.min(
-		Number(props.amount || 0),
-		selectedBalance,
+	const requestedExternalAmount = roundMoney(Number(props.amount || 0));
+	const walletAppliedAmount =
+		props.useWallet || props.paymentMethod === "wallet"
+			? roundMoney(Math.min(Number(wallet.balance || 0), selectedBalance))
+			: 0;
+	const externalAmount =
+		props.paymentMethod === "wallet" ? 0 : Math.max(requestedExternalAmount, 0);
+	const remainingAfterWallet = roundMoney(
+		Math.max(selectedBalance - walletAppliedAmount, 0),
+	);
+	const externalPrincipalAmount = roundMoney(
+		Math.min(externalAmount, remainingAfterWallet),
+	);
+	const walletCreditAmount = roundMoney(
+		Math.max(externalAmount - externalPrincipalAmount, 0),
 	);
 	const paymentCharge = calculatePaymentChannelCharge({
 		paymentMethod: props.paymentMethod,
-		paymentAmount: paymentPrincipalAmount,
+		paymentAmount: externalAmount,
 		cccPercentage: resolveSalesCccPercentage(selectedOrders),
 	});
 	const paymentChargeMeta = {
 		...buildPaymentChannelChargeMeta(paymentCharge),
 		cccPercentage: paymentCharge.percentage,
+		externalAppliedAmount: externalPrincipalAmount,
+		walletAppliedAmount,
+		walletCreditAmount,
 	};
 
 	return ctx.db.$transaction(async (tx) => {
-		let balance = paymentPrincipalAmount;
-		let customerTransactionId: number | null = null;
+		let walletBalance = walletAppliedAmount;
+		let externalBalance = externalPrincipalAmount;
+		let externalCustomerTransactionId: number | null = null;
 		const appliedSalesIds: number[] = [];
 		const appliedSales: {
 			salesId: number;
@@ -228,53 +252,115 @@ async function applySalesPayment(
 		for (const orderId of props.salesIds || []) {
 			const order = pendingSalesData.find((item) => item.id === orderId);
 			if (!order) throw new Error("Order not found.");
-			if (balance <= 0) break;
 
-			const amountDue = Number(order.amountDue || 0);
-			const payAmount = balance > amountDue ? amountDue : balance;
-			if (payAmount <= 0) continue;
+			let amountDue = roundMoney(Number(order.amountDue || 0));
+			let orderAppliedAmount = 0;
 
-			balance -= payAmount;
-			const paymentWrite = await recordLegacySalesPayment(tx, {
-				amount: payAmount,
-				transactionAmount:
-					customerTransactionId == null
-						? paymentCharge.chargeAmount
-						: undefined,
-				authorId: ctx.userId,
-				walletId: wallet.id,
-				paymentMethod: props.paymentMethod,
-				salesId: order.id,
-				customerTransactionId,
-				transactionType: "transaction" as CustomerTransactionType,
-				checkNo: props.checkNo,
-				squarePaymentId: props.terminalPaymentSession?.squarePaymentId,
-				transactionStatus: "success" as CustomerTransanctionStatus,
-				paymentStatus: "success" as SalesPaymentStatus,
-				transactionMeta:
-					customerTransactionId == null ? paymentChargeMeta : undefined,
-			});
-			customerTransactionId = paymentWrite.customerTransactionId;
-			const salesPayment = paymentWrite.salesPayment as
-				| (typeof paymentWrite.salesPayment & {
-						order: {
-							id: number;
-							salesRep: { id: number } | null;
-						};
-				  })
-				| null;
-			if (!salesPayment) continue;
+			if (walletBalance > 0 && amountDue > 0) {
+				const walletPayAmount = roundMoney(Math.min(walletBalance, amountDue));
+				walletBalance = roundMoney(walletBalance - walletPayAmount);
+				amountDue = roundMoney(amountDue - walletPayAmount);
+				orderAppliedAmount = roundMoney(orderAppliedAmount + walletPayAmount);
+
+				const paymentWrite = await recordLegacySalesPayment(tx, {
+					amount: walletPayAmount,
+					authorId: ctx.userId,
+					walletId: wallet.id,
+					paymentMethod: "wallet" as SalesPaymentMethods,
+					salesId: order.id,
+					transactionType: "pay-with-wallet" as CustomerTransactionType,
+					transactionStatus: "success" as CustomerTransanctionStatus,
+					paymentStatus: "success" as SalesPaymentStatus,
+					transactionMeta: {
+						source: "wallet-balance-payment",
+					},
+				});
+				const salesPayment = paymentWrite.salesPayment as
+					| (typeof paymentWrite.salesPayment & {
+							order: {
+								id: number;
+								salesRep: { id: number } | null;
+							};
+					  })
+					| null;
+				if (salesPayment) {
+					await createSalesPaymentPayrollIfAvailable(tx, salesPayment);
+					events.push(...paymentWrite.events);
+				}
+			}
+
+			if (externalBalance > 0 && amountDue > 0) {
+				const externalPayAmount = roundMoney(
+					Math.min(externalBalance, amountDue),
+				);
+				externalBalance = roundMoney(externalBalance - externalPayAmount);
+				amountDue = roundMoney(amountDue - externalPayAmount);
+				orderAppliedAmount = roundMoney(orderAppliedAmount + externalPayAmount);
+
+				const paymentWrite = await recordLegacySalesPayment(tx, {
+					amount: externalPayAmount,
+					transactionAmount:
+						externalCustomerTransactionId == null
+							? paymentCharge.chargeAmount
+							: undefined,
+					authorId: ctx.userId,
+					walletId: wallet.id,
+					paymentMethod: props.paymentMethod,
+					salesId: order.id,
+					customerTransactionId: externalCustomerTransactionId,
+					transactionType: "transaction" as CustomerTransactionType,
+					checkNo: props.checkNo,
+					squarePaymentId: props.terminalPaymentSession?.squarePaymentId,
+					transactionStatus: "success" as CustomerTransanctionStatus,
+					paymentStatus: "success" as SalesPaymentStatus,
+					transactionMeta:
+						externalCustomerTransactionId == null
+							? paymentChargeMeta
+							: undefined,
+				});
+				externalCustomerTransactionId = paymentWrite.customerTransactionId;
+				const salesPayment = paymentWrite.salesPayment as
+					| (typeof paymentWrite.salesPayment & {
+							order: {
+								id: number;
+								salesRep: { id: number } | null;
+							};
+					  })
+					| null;
+				if (salesPayment) {
+					await createSalesPaymentPayrollIfAvailable(tx, salesPayment);
+					events.push(...paymentWrite.events);
+				}
+			}
+
+			if (orderAppliedAmount <= 0) continue;
 
 			await updateSalesDueAmount(orderId, tx);
-			await createSalesPaymentPayrollIfAvailable(tx, salesPayment);
 
 			appliedSalesIds.push(order.id);
 			appliedSales.push({
 				salesId: order.id,
-				amountApplied: payAmount,
-				remainingDue: Math.max(Number(order.amountDue || 0) - payAmount, 0),
+				amountApplied: orderAppliedAmount,
+				remainingDue: amountDue,
 			});
-			events.push(...paymentWrite.events);
+		}
+
+		if (walletCreditAmount > 0) {
+			await createLegacyWalletCreditTransaction(tx, {
+				amount: walletCreditAmount,
+				authorId: ctx.userId,
+				meta: {
+					...paymentChargeMeta,
+					source: "sales-overpayment",
+					selectedSalesIds: props.salesIds || [],
+					selectedBalance,
+				},
+				note: `Overpayment credit from sales payment`,
+				paymentMethod: props.paymentMethod,
+				reason: "sales-overpayment",
+				squarePaymentId: props.terminalPaymentSession?.squarePaymentId,
+				walletId: wallet.id,
+			});
 		}
 
 		return {
@@ -284,6 +370,9 @@ async function applySalesPayment(
 				(sum, sale) => sum + Number(sale.amountApplied || 0),
 				0,
 			),
+			walletAppliedAmount,
+			walletCreditAmount,
+			paymentCharge,
 			events,
 		};
 	});
@@ -309,18 +398,31 @@ async function createTerminalPayment(
 		(total, order) => total + Number(order.amountDue || 0),
 		0,
 	);
-	const paymentPrincipalAmount =
-		selectedBalance > 0
-			? Math.min(Number(props.amount || 0), selectedBalance)
-			: Number(props.amount || 0);
+	const wallet =
+		props.useWallet && props.accountNo
+			? await getCustomerWallet(ctx.db, props.accountNo)
+			: null;
+	const walletAppliedAmount = props.useWallet
+		? roundMoney(Math.min(Number(wallet?.balance || 0), selectedBalance))
+		: 0;
+	const remainingAfterWallet = roundMoney(
+		Math.max(selectedBalance - walletAppliedAmount, 0),
+	);
+	const externalAmount = roundMoney(Number(props.amount || 0));
+	if (externalAmount <= 0) {
+		throw new Error("Terminal payment amount must be greater than zero.");
+	}
 	const paymentCharge = calculatePaymentChannelCharge({
 		paymentMethod: "terminal" as SalesPaymentMethods,
-		paymentAmount: paymentPrincipalAmount,
+		paymentAmount: externalAmount,
 		cccPercentage: resolveSalesCccPercentage(selectedOrders),
 	});
 	const paymentChargeMeta = {
 		...buildPaymentChannelChargeMeta(paymentCharge),
 		cccPercentage: paymentCharge.percentage,
+		externalAppliedAmount: Math.min(externalAmount, remainingAfterWallet),
+		walletAppliedAmount,
+		walletCreditAmount: Math.max(externalAmount - remainingAfterWallet, 0),
 	};
 	const checkout = await createSquareTerminalCheckout({
 		deviceId: props.deviceId,

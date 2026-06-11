@@ -11,7 +11,9 @@ export function PageTitle({ children }) {
   }, [children]);
   if (!Element) return null;
   return createPortal(
-    <div className="text-lg capitalize xl:text-xl font-medium">{children}</div>,
+    <div className="whitespace-nowrap text-lg capitalize xl:text-xl font-medium">
+      {children}
+    </div>,
     Element
   ) as any;
 }

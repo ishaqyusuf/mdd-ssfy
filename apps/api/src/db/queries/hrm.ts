@@ -170,6 +170,18 @@ export async function getEmployees(
     // {},
     db.users,
   );
+  console.log("DEBUG", [
+    await ctx.db.modelHasRoles.count({
+      // select: {
+      //   modelId: true,
+      //   role: {
+      //     select: {
+      //       name: true,
+      //     },
+      //   },
+      // },
+    }),
+  ]);
   const data = await ctx.db.users.findMany({
     where,
     ...searchMeta,
@@ -218,6 +230,7 @@ export async function getEmployees(
       },
     },
   });
+  // console.log("Fetched employees", { count: data.length, data });
   const userPermissionCounts = data.length
     ? await ctx.db.modelHasPermissions.groupBy({
         by: ["modelId"],
