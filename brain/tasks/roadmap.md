@@ -11,4 +11,4 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Payment-system and resolution-system cutover
 - Jobs and notification reliability improvements
 - Expo sales, delivery, and dispatch workflow expansion
-- Inventory system contract and sync implementation
+- Inventory-backed sales fulfillment cutover (`brain/features/inventory-backed-sales-fulfillment.md`)

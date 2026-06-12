@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { buildInventorySyncComponentCandidatesForItem } from "./sync-sales-inventory-line-items";
+import {
+	buildInventorySyncComponentCandidatesForItem,
+	planComponentDemandState,
+} from "./sync-sales-inventory-line-items";
 
 const emptyItem = {
 	id: 10,
@@ -11,6 +14,54 @@ const emptyItem = {
 };
 
 describe("sync sales inventory line items", () => {
+	it("queues inbound demand only for unavailable quantity after suggested allocations", () => {
+		expect(
+			planComponentDemandState({
+				qtyRequired: 10,
+				committedAllocationQty: 0,
+				suggestedAllocationQty: 6,
+				qtyReceived: 0,
+			}),
+		).toEqual({
+			qtyAllocated: 0,
+			qtyInbound: 4,
+			qtyReceived: 0,
+			status: "partially_allocated",
+		});
+	});
+
+	it("does not queue inbound demand when available stock covers the requirement pending review", () => {
+		expect(
+			planComponentDemandState({
+				qtyRequired: 10,
+				committedAllocationQty: 0,
+				suggestedAllocationQty: 10,
+				qtyReceived: 0,
+			}),
+		).toEqual({
+			qtyAllocated: 0,
+			qtyInbound: 0,
+			qtyReceived: 0,
+			status: "partially_allocated",
+		});
+	});
+
+	it("keeps committed allocations as allocated quantity", () => {
+		expect(
+			planComponentDemandState({
+				qtyRequired: 10,
+				committedAllocationQty: 10,
+				suggestedAllocationQty: 10,
+				qtyReceived: 0,
+			}),
+		).toEqual({
+			qtyAllocated: 10,
+			qtyInbound: 0,
+			qtyReceived: 0,
+			status: "allocated",
+		});
+	});
+
 	it("extracts package-authored form step, shelf, HPT, and door candidates from item metadata", () => {
 		const candidates = buildInventorySyncComponentCandidatesForItem({
 			...emptyItem,

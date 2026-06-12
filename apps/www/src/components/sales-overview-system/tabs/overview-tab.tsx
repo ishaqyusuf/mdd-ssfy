@@ -12,6 +12,8 @@ import {
 } from "@/hooks/use-data-skeleton";
 import { openLink } from "@/lib/open-link";
 import { middleTruncate } from "@/lib/truncate-middle";
+import { buildSalesInventoryPrintViewerUrl } from "@/modules/sales-print/application/inventory-print-request";
+import { useTRPC } from "@/trpc/client";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
@@ -22,6 +24,7 @@ import { cn } from "@gnd/ui/cn";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { Progress } from "@gnd/ui/progress";
+import { useQuery } from "@gnd/ui/tanstack";
 
 import { DeliveryOption } from "../../sheets/sales-overview-sheet/delivery-option";
 import { SalesPO } from "../../sheets/sales-overview-sheet/inline-data-edit";
@@ -83,6 +86,163 @@ function SectionTitle({
 			<Icon className="h-4 w-4" />
 			{children}
 		</h3>
+	);
+}
+
+function formatInventoryQty(value: number | null | undefined) {
+	return Number(value || 0).toLocaleString(undefined, {
+		maximumFractionDigits: 2,
+	});
+}
+
+function formatInventoryReadiness(value: string | null | undefined) {
+	return value ? value.replaceAll("_", " ") : "not synced";
+}
+
+function getInventoryReadinessTone(value: string | null | undefined) {
+	switch (value) {
+		case "fulfilled":
+			return "border-blue-200 bg-blue-50 text-blue-700";
+		case "ready_for_production":
+			return "border-emerald-200 bg-emerald-50 text-emerald-700";
+		case "awaiting_inbound":
+			return "border-amber-200 bg-amber-50 text-amber-700";
+		case "allocation_review":
+			return "border-violet-200 bg-violet-50 text-violet-700";
+		default:
+			return "border-slate-200 bg-slate-50 text-slate-700";
+	}
+}
+
+function SalesInventoryHealthCard({ salesOrderId }: { salesOrderId?: number | null }) {
+	const trpc = useTRPC();
+	const inventoryQuery = useQuery(
+		trpc.inventories.salesInventoryOverview.queryOptions(
+			{
+				salesOrderId: Number(salesOrderId || 0),
+			},
+			{
+				enabled: !!salesOrderId,
+				staleTime: 60 * 1000,
+				refetchOnWindowFocus: false,
+			},
+		),
+	);
+	const overview = inventoryQuery.data;
+	const summary = overview?.summary;
+	const requiredQty = Number(summary?.qtyRequired || 0);
+	const allocatedQty = Number(summary?.qtyAllocated || 0);
+	const allocationPercent =
+		requiredQty > 0 ? Math.min(100, (allocatedQty / requiredQty) * 100) : 0;
+	const printUrl = salesOrderId
+		? buildSalesInventoryPrintViewerUrl({
+				salesIds: [salesOrderId],
+				mode: "production",
+			})
+		: null;
+
+	return (
+		<div>
+			<SectionTitle icon={Icons.Package}>INVENTORY HEALTH</SectionTitle>
+			<Card className="border-border/40">
+				<CardContent className="space-y-4 p-4">
+					<div className="flex items-center justify-between gap-3">
+						<div>
+							<DataSkeleton
+								className="text-sm font-medium"
+								placeholder="Inventory not synced"
+							>
+								<div className="text-sm font-medium">
+									{summary?.componentCount
+										? `${summary.componentCount} components synced`
+										: inventoryQuery.isLoading
+											? "Loading inventory health"
+											: "Inventory not synced"}
+								</div>
+							</DataSkeleton>
+							<p className="text-xs text-muted-foreground">
+								{formatInventoryQty(summary?.requiredComponentCount)} required
+								components across {formatInventoryQty(summary?.lineItemCount)}{" "}
+								line items
+							</p>
+						</div>
+						<Badge
+							variant="outline"
+							className={`capitalize ${getInventoryReadinessTone(summary?.readiness)}`}
+						>
+							{formatInventoryReadiness(summary?.readiness)}
+						</Badge>
+					</div>
+
+					<div>
+						<div className="mb-2 flex items-center justify-between text-sm">
+							<span>Allocation Progress</span>
+							<span className="font-medium">
+								{allocationPercent.toFixed(0)}%
+							</span>
+						</div>
+						<Progress value={allocationPercent} className="h-2" />
+					</div>
+
+					<div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+						<div className="rounded-md border p-3">
+							<div className="text-xs uppercase text-muted-foreground">
+								Required
+							</div>
+							<div className="font-semibold">
+								{formatInventoryQty(summary?.qtyRequired)}
+							</div>
+						</div>
+						<div className="rounded-md border p-3">
+							<div className="text-xs uppercase text-muted-foreground">
+								Allocated
+							</div>
+							<div className="font-semibold">
+								{formatInventoryQty(summary?.qtyAllocated)}
+							</div>
+						</div>
+						<div className="rounded-md border p-3">
+							<div className="text-xs uppercase text-muted-foreground">
+								Inbound
+							</div>
+							<div className="font-semibold">
+								{formatInventoryQty(summary?.qtyInbound)}
+							</div>
+						</div>
+						<div className="rounded-md border p-3">
+							<div className="text-xs uppercase text-muted-foreground">
+								Received
+							</div>
+							<div className="font-semibold">
+								{formatInventoryQty(summary?.qtyReceived)}
+							</div>
+						</div>
+					</div>
+
+					<div className="flex flex-wrap gap-2">
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							disabled={!printUrl || !summary?.componentCount}
+							onClick={() => {
+								if (!printUrl) return;
+								window.open(printUrl, "_blank", "noopener,noreferrer");
+							}}
+						>
+							<Icons.FileText className="mr-2 size-4" />
+							Print Inventory
+						</Button>
+						<Button asChild size="sm" variant="outline">
+							<a href="/inventory/backorders">
+								<Icons.ExternalLink className="mr-2 size-4" />
+								Backorders
+							</a>
+						</Button>
+					</div>
+				</CardContent>
+			</Card>
+		</div>
 	);
 }
 
@@ -495,6 +655,10 @@ export function SalesOverviewOverviewTab() {
 							</Card>
 						</div>
 					)}
+				</div>
+
+				<div className={cn(!isQuote || "hidden")}>
+					<SalesInventoryHealthCard salesOrderId={data?.id} />
 				</div>
 
 				<div className={cn(!isQuote || "hidden")}>

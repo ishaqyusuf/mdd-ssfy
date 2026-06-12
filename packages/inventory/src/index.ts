@@ -10,3 +10,4 @@ export * from "./application/jobs";
 export * from "./application/definitions";
 export * from "./application/pricing";
 export * from "./application/suppliers";
+export * from "./application/stock";

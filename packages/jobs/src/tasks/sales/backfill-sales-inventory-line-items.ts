@@ -36,6 +36,7 @@ export const backfillSalesInventoryLineItemsTask = schemaTask({
                 lineItems: {
                   none: {
                     deletedAt: null,
+                    lineItemType: "SALE",
                   },
                 },
               }),

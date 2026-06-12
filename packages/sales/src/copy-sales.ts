@@ -230,7 +230,7 @@ export async function copySales(props: Props) {
   if (!response.error && response.id) {
     await queueSalesInventoryLineItemsSync({
       salesOrderId: response.id,
-      source: "old-form",
+      source: "copy-sales",
       triggeredByUserId: props.author?.id ?? null,
     });
   }

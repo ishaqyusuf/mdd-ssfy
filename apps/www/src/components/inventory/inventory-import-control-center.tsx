@@ -124,6 +124,18 @@ export function InventoryImportControlCenter() {
             staleTime: 60 * 1000,
         }),
     );
+    const salesInventorySyncMonitor = useQuery(
+        trpc.inventories.salesInventorySyncMonitor.queryOptions(
+            {
+                sampleLimit: 5,
+            },
+            {
+                enabled: idleQueryEnabled,
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
+            },
+        ),
+    );
     const runStatus = useQuery({
         ...trpc.taskTrigger.status.queryOptions({
             runId: currentRunId || "pending",
@@ -172,6 +184,10 @@ export function InventoryImportControlCenter() {
                 queryKey:
                     trpc.inventories.inventoryProductKindReview.queryKey(),
             }),
+            queryClient.invalidateQueries({
+                queryKey:
+                    trpc.inventories.salesInventorySyncMonitor.queryKey(),
+            }),
         ]);
     }, [queryClient, trpc]);
 
@@ -207,9 +223,31 @@ export function InventoryImportControlCenter() {
             },
         }),
     );
+    const runSalesInventoryBackfill = useMutation(
+        trpc.inventories.backfillSalesInventorySync.mutationOptions({
+            onSuccess: async (data) => {
+                setCurrentRunId(data.id);
+                setCurrentRunLabel("Sales inventory backfill");
+                setLastRunSummary(
+                    "Sales inventory backfill queued for the next unsynced batch.",
+                );
+                toast({
+                    title: "Sales inventory backfill queued",
+                    variant: "success",
+                });
+            },
+            onError: () => {
+                toast({
+                    title: "Sales inventory backfill failed",
+                    variant: "destructive",
+                });
+            },
+        }),
+    );
 
     const isImportRunning =
         runFullImport.isPending ||
+        runSalesInventoryBackfill.isPending ||
         runStatus.data?.isQueued ||
         runStatus.data?.isExecuting ||
         false;
@@ -326,12 +364,31 @@ export function InventoryImportControlCenter() {
                         ? "Optimized strategy is selected as the default update path."
                         : "Handcrafted strategy is selected for this run. Use only when validating edge cases.",
             },
+            {
+                label: "Sales inventory sync coverage",
+                pending:
+                    !idleQueryEnabled || salesInventorySyncMonitor.isPending,
+                ok:
+                    Boolean(idleQueryEnabled) &&
+                    !salesInventorySyncMonitor.isPending &&
+                    salesInventorySyncMonitor.data?.status === "synced",
+                detail:
+                    !idleQueryEnabled || salesInventorySyncMonitor.isPending
+                        ? "Sales inventory sync monitor will load after the control center is ready."
+                        : salesInventorySyncMonitor.data?.status === "synced"
+                          ? "Every legacy sale has inventory-backed line items."
+                          : `${salesInventorySyncMonitor.data?.missingSalesCount || 0} sales still need backfill and ${salesInventorySyncMonitor.data?.failedRiskCount || 0} synced sales need review.`,
+            },
         ],
         [
             idleQueryEnabled,
             kindReview.isPending,
             kindReview.data?.summary?.mismatched,
             pendingCount,
+            salesInventorySyncMonitor.data?.failedRiskCount,
+            salesInventorySyncMonitor.data?.missingSalesCount,
+            salesInventorySyncMonitor.data?.status,
+            salesInventorySyncMonitor.isPending,
             scopeMeta?.staleCustomImported,
             scopeMeta?.staleImportedCategories,
             strategy,
@@ -381,6 +438,21 @@ export function InventoryImportControlCenter() {
                     )}
                 />
                 <StatCard
+                    title="Sales Sync"
+                    value={
+                        !idleQueryEnabled ||
+                        salesInventorySyncMonitor.isPending
+                            ? "..."
+                            : `${salesInventorySyncMonitor.data?.syncCoverageRate || 0}%`
+                    }
+                    subtitle={
+                        !idleQueryEnabled ||
+                        salesInventorySyncMonitor.isPending
+                            ? "Loading sales inventory coverage"
+                            : `${salesInventorySyncMonitor.data?.syncedSalesCount || 0}/${salesInventorySyncMonitor.data?.totalSalesCount || 0} synced • ${salesInventorySyncMonitor.data?.missingSalesCount || 0} missing`
+                    }
+                />
+                <StatCard
                     title="Categories"
                     value={
                         !idleQueryEnabled || categories.isPending
@@ -394,6 +466,149 @@ export function InventoryImportControlCenter() {
                     }
                 />
             </div>
+
+            <Card className="p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-1">
+                        <h3 className="font-semibold">
+                            Sales Inventory Sync Monitor
+                        </h3>
+                        <p className="max-w-3xl text-sm text-muted-foreground">
+                            Tracks how far legacy sales have been projected into
+                            inventory line items, components, allocations, and
+                            inbound demand. The default backfill action only
+                            targets missing inventory-backed sale lines.
+                        </p>
+                    </div>
+                    <Badge variant="outline" className="w-fit capitalize">
+                        {!idleQueryEnabled || salesInventorySyncMonitor.isPending
+                            ? "loading"
+                            : salesInventorySyncMonitor.data?.status.replace(
+                                  /_/g,
+                                  " ",
+                              )}
+                    </Badge>
+                </div>
+
+                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <StatCard
+                        title="Synced Sales"
+                        value={
+                            !idleQueryEnabled ||
+                            salesInventorySyncMonitor.isPending
+                                ? "..."
+                                : salesInventorySyncMonitor.data
+                                      ?.syncedSalesCount || 0
+                        }
+                        subtitle={`${salesInventorySyncMonitor.data?.skippedAlreadySyncedCount || 0} skipped by default backfill`}
+                    />
+                    <StatCard
+                        title="Missing Sales"
+                        value={
+                            !idleQueryEnabled ||
+                            salesInventorySyncMonitor.isPending
+                                ? "..."
+                                : salesInventorySyncMonitor.data
+                                      ?.missingSalesCount || 0
+                        }
+                        subtitle={
+                            salesInventorySyncMonitor.data?.backfillCursorId !=
+                            null
+                                ? `Next cursor ${salesInventorySyncMonitor.data.backfillCursorId}`
+                                : "No missing sales cursor"
+                        }
+                    />
+                    <StatCard
+                        title="Components"
+                        value={
+                            !idleQueryEnabled ||
+                            salesInventorySyncMonitor.isPending
+                                ? "..."
+                                : salesInventorySyncMonitor.data
+                                      ?.componentCount || 0
+                        }
+                        subtitle={`${salesInventorySyncMonitor.data?.requiredComponentCount || 0} required • ${salesInventorySyncMonitor.data?.pendingReviewComponentCount || 0} pending review`}
+                    />
+                    <StatCard
+                        title="Inbound"
+                        value={
+                            !idleQueryEnabled ||
+                            salesInventorySyncMonitor.isPending
+                                ? "..."
+                                : salesInventorySyncMonitor.data
+                                      ?.awaitingInboundComponentCount || 0
+                        }
+                        subtitle={`${salesInventorySyncMonitor.data?.allocatedComponentCount || 0} allocated • ${salesInventorySyncMonitor.data?.fulfilledComponentCount || 0} fulfilled`}
+                    />
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        disabled={
+                            isImportRunning ||
+                            !salesInventorySyncMonitor.data ||
+                            salesInventorySyncMonitor.data.missingSalesCount ===
+                                0
+                        }
+                        onClick={() =>
+                            runSalesInventoryBackfill.mutate({
+                                cursorId:
+                                    salesInventorySyncMonitor.data
+                                        ?.backfillCursorId ?? 0,
+                                batchSize: 50,
+                                includeAlreadySynced: false,
+                                source: "repair",
+                            })
+                        }
+                    >
+                        <Icons.Refresh className="mr-2 size-4" />
+                        Queue Next Backfill Batch
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={isImportRunning}
+                        onClick={() =>
+                            runSalesInventoryBackfill.mutate({
+                                cursorId: 0,
+                                batchSize: 50,
+                                includeAlreadySynced: true,
+                                source: "repair",
+                            })
+                        }
+                    >
+                        <Icons.Search className="mr-2 size-4" />
+                        Queue Review Batch
+                    </Button>
+                </div>
+
+                {salesInventorySyncMonitor.data?.missingSamples.length ? (
+                    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
+                        <div className="text-sm font-medium">
+                            Next missing sales
+                        </div>
+                        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                            {salesInventorySyncMonitor.data.missingSamples.map(
+                                (sale) => (
+                                    <div
+                                        key={sale.id}
+                                        className="rounded-md bg-background p-3 text-sm"
+                                    >
+                                        <div className="font-medium">
+                                            {sale.orderId}
+                                        </div>
+                                        <div className="text-muted-foreground">
+                                            {sale.status || "No status"} • ID{" "}
+                                            {sale.id}
+                                        </div>
+                                    </div>
+                                ),
+                            )}
+                        </div>
+                    </div>
+                ) : null}
+            </Card>
 
             <div className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
                 <Card className="p-5">

@@ -35,9 +35,21 @@ import {
   variantFormSchema,
 } from "@gnd/inventory/schema";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
-import { getSalesInventoryOverview } from "@gnd/sales/sales-inventory-overview";
-import { backfillSalesInventoryLineItemsSchemaTask } from "@gnd/jobs/schema";
 import {
+  allocateReceivedInboundToBackorders,
+  getSalesBackorderQueue,
+  getSalesFulfillmentPlan,
+  getSalesProductionPlan,
+  shipAvailableSalesInventory,
+} from "@gnd/sales/sales-fulfillment-plan";
+import { getSalesInventoryOverview } from "@gnd/sales/sales-inventory-overview";
+import { getSalesInventorySyncMonitor } from "@gnd/sales/sales-inventory-sync-monitor";
+import {
+  allocateReceivedInboundToBackordersSchemaTask,
+  backfillSalesInventoryLineItemsSchemaTask,
+} from "@gnd/jobs/schema";
+import {
+  adjustInventoryStock,
   approveBulkStockAllocation,
   approveStockAllocation,
   deleteInventories,
@@ -70,6 +82,7 @@ import {
   createInboundShipmentFromDemands,
   getInboundDemandQueue,
   getInboundShipmentDetail,
+  getSupplierReorderSuggestions,
   receiveInboundShipment,
   getDykeInventoryDriftReport,
   inventorySuppliers,
@@ -209,6 +222,9 @@ export const inventoriesRouter = createTRPCRouter({
     .query(async (props) => {
       return getInboundDemandQueue(props.ctx.db, props.input);
     }),
+  supplierReorderSuggestions: protectedProcedure.query(async (props) => {
+    return getSupplierReorderSuggestions(props.ctx.db);
+  }),
   inboundShipmentDetail: protectedProcedure
     .input(
       z.object({
@@ -339,9 +355,64 @@ export const inventoriesRouter = createTRPCRouter({
       })
     )
     .mutation(async (props) => {
-      return receiveInboundShipment(props.ctx.db, {
+      const result = await receiveInboundShipment(props.ctx.db, {
         ...props.input,
         authorName: String(props.ctx.userId),
+      });
+      let allocationJob: Awaited<ReturnType<typeof tasks.trigger>> | null = null;
+      if (result.lineItemComponentIds.length > 0) {
+        try {
+          allocationJob = await tasks.trigger(
+            "allocate-received-inbound-to-backorders",
+            {
+              lineItemComponentIds: result.lineItemComponentIds,
+              limit: Math.min(200, result.lineItemComponentIds.length),
+              authorName: String(props.ctx.userId ?? "Inventory"),
+              note: `Inbound shipment #${result.inboundId} received`,
+            },
+          );
+        } catch (error) {
+          console.warn("Failed to queue received inbound backorder allocation", {
+            inboundId: result.inboundId,
+            error,
+          });
+        }
+      }
+
+      return {
+        ...result,
+        allocationJob,
+      };
+    }),
+  adjustInventoryStock: protectedProcedure
+    .input(
+      z.object({
+        inventoryVariantId: z.number(),
+        inventoryStockId: z.number().optional().nullable(),
+        supplierId: z.number().optional().nullable(),
+        location: z.string().optional().nullable(),
+        unitPrice: z.number().optional().nullable(),
+        qty: z.number(),
+        mode: z.enum(["delta", "set"]).optional(),
+        reason: z.enum([
+          "correction",
+          "cycle_count",
+          "damage",
+          "return",
+          "consume",
+          "release",
+          "stock_in",
+          "stock_out",
+        ]),
+        reference: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+        authorName: z.string().optional().nullable(),
+      }),
+    )
+    .mutation(async (props) => {
+      return adjustInventoryStock(props.ctx.db, {
+        ...props.input,
+        authorName: props.input.authorName || String(props.ctx.userId ?? "Inventory"),
       });
     }),
   reportInboundItemIssue: protectedProcedure
@@ -557,6 +628,98 @@ export const inventoriesRouter = createTRPCRouter({
     )
     .query(async (props) => {
       return getSalesInventoryOverview(props.ctx.db, props.input);
+    }),
+  salesInventorySyncMonitor: protectedProcedure
+    .input(
+      z
+        .object({
+          sampleLimit: z.number().min(1).max(20).optional(),
+        })
+        .optional(),
+    )
+    .query(async (props) => {
+      return getSalesInventorySyncMonitor(props.ctx.db, props.input ?? {});
+    }),
+  salesFulfillmentPlan: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return getSalesFulfillmentPlan(props.ctx.db, props.input);
+    }),
+  salesBackorderQueue: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number().optional().nullable(),
+        inventoryVariantId: z.number().optional().nullable(),
+        statuses: z
+          .array(
+            z.enum([
+              "awaiting_inbound",
+              "backordered",
+              "ready_to_ship_remaining",
+            ]),
+          )
+          .optional()
+          .nullable(),
+        cursorId: z.number().optional().nullable(),
+        limit: z.number().min(1).max(200).optional(),
+      }),
+    )
+    .query(async (props) => {
+      return getSalesBackorderQueue(props.ctx.db, props.input);
+    }),
+  salesProductionPlan: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number().optional().nullable(),
+        inventoryVariantId: z.number().optional().nullable(),
+        supplierId: z.number().optional().nullable(),
+        readinesses: z
+          .array(
+            z.enum([
+              "ready_for_production",
+              "fulfilled",
+              "awaiting_inbound",
+              "allocation_review",
+              "blocked",
+            ]),
+          )
+          .optional()
+          .nullable(),
+        limit: z.number().min(1).max(500).optional(),
+      }),
+    )
+    .query(async (props) => {
+      return getSalesProductionPlan(props.ctx.db, props.input);
+    }),
+  shipAvailableSalesInventory: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number(),
+        lineItemIds: z.array(z.number()).optional(),
+        deliveryMode: z.string().optional().nullable(),
+        deliveredTo: z.string().optional().nullable(),
+        authorName: z.string().optional().nullable(),
+        note: z.string().optional().nullable(),
+      }),
+    )
+    .mutation(async (props) => {
+      return shipAvailableSalesInventory(props.ctx.db, {
+        ...props.input,
+        createdByUserId: props.ctx.userId ?? null,
+        authorName: props.input.authorName || String(props.ctx.userId ?? "Inventory"),
+      });
+    }),
+  allocateReceivedInboundToBackorders: protectedProcedure
+    .input(allocateReceivedInboundToBackordersSchemaTask)
+    .mutation(async (props) => {
+      return allocateReceivedInboundToBackorders(props.ctx.db, {
+        ...props.input,
+        authorName: String(props.ctx.userId ?? "Inventory"),
+      });
     }),
   repairSalesInventorySync: protectedProcedure
     .input(

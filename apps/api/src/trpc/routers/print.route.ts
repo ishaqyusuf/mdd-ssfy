@@ -16,12 +16,20 @@ import {
 	generatePrintData,
 	modelPrintSchema,
 } from "@community/generate-print-data";
+import {
+	getInventoryPrintDocumentData,
+	printSalesV2Schema,
+} from "@gnd/sales/print";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
 import { generateLegacyPrintData } from "@sales/print-legacy-format";
 import z from "zod";
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 const requireFromHere = createRequire(import.meta.url);
+const salesInventoryV2Schema = printSalesV2Schema.extend({
+	templateId: z.string().optional().default("template-2"),
+	preview: z.boolean().optional().default(false),
+});
 
 function humanizeSlug(value?: string | null) {
 	if (!value) return null;
@@ -161,6 +169,50 @@ export const printRouter = createTRPCRouter({
 				return data;
 			} catch (error) {
 				console.error("[sales-print] print-data-query-error", {
+					durationMs: Date.now() - startedAt,
+					error: error instanceof Error ? error.message : error,
+				});
+				throw error;
+			}
+		}),
+	salesInventoryV2: protectedProcedure
+		.input(salesInventoryV2Schema)
+		.query(async (props) => {
+			const startedAt = Date.now();
+			console.info("[sales-inventory-print] print-data-query-start", {
+				ids: props.input.ids,
+				mode: props.input.mode,
+			});
+			try {
+				const data = await getInventoryPrintDocumentData(
+					props.ctx.db,
+					props.input,
+				);
+				const previewParams = new URLSearchParams({
+					ids: props.input.ids.join(","),
+					mode: props.input.mode,
+					preview: "true",
+				});
+				if (props.input.templateId !== "template-2") {
+					previewParams.set("templateId", props.input.templateId);
+				}
+				const previewUrl = props.input.ids.length
+					? `/p/sales-inventory-v2?${previewParams.toString()}`
+					: "";
+				console.info("[sales-inventory-print] print-data-query-done", {
+					durationMs: Date.now() - startedAt,
+					pages: data.pages.length,
+					title: data.title,
+				});
+				return {
+					...data,
+					templateId: props.input.templateId,
+					watermark: null,
+					previewUrl,
+					qrCodeDataUrl: undefined,
+				};
+			} catch (error) {
+				console.error("[sales-inventory-print] print-data-query-error", {
 					durationMs: Date.now() - startedAt,
 					error: error instanceof Error ? error.message : error,
 				});

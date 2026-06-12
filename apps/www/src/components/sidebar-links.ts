@@ -650,6 +650,16 @@ export const linkModules = [
                           "/inventory/allocations",
                       ).access(_role.is("Super Admin")).data,
                       _link(
+                          "Backorders",
+                          "report",
+                          "/inventory/backorders",
+                      ).access(_role.is("Super Admin")).data,
+                      _link(
+                          "Production Plan",
+                          "report",
+                          "/inventory/production-plan",
+                      ).access(_role.is("Super Admin")).data,
+                      _link(
                           "Stock Movements",
                           "report",
                           "/inventory/stocks",

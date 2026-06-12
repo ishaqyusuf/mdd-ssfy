@@ -5,7 +5,7 @@ type DbLike = Db | TransactionClient;
 
 export type SyncSalesInventoryLineItemsInput = {
 	salesOrderId: number;
-	source?: "new-form" | "old-form" | "manual" | "repair";
+	source?: "new-form" | "old-form" | "copy-sales" | "manual" | "repair";
 	triggeredByUserId?: number | null;
 };
 
@@ -832,6 +832,47 @@ type ComponentDemandState = {
 		| "cancelled";
 };
 
+export function planComponentDemandState(input: {
+	qtyRequired: number;
+	committedAllocationQty: number;
+	suggestedAllocationQty: number;
+	qtyReceived: number;
+}): ComponentDemandState {
+	const qtyRequired = Math.max(0, Number(input.qtyRequired || 0));
+	const qtyAllocated = Math.max(0, Number(input.committedAllocationQty || 0));
+	const suggestedAllocationQty = Math.max(
+		qtyAllocated,
+		Number(input.suggestedAllocationQty || 0),
+	);
+	const qtyInbound = Math.max(0, qtyRequired - suggestedAllocationQty);
+	const qtyReceived = Math.max(0, Number(input.qtyReceived || 0));
+
+	let status: ComponentDemandState["status"] = "pending";
+	if (qtyRequired <= 0) {
+		status = "cancelled";
+	} else if (qtyReceived > 0 && qtyReceived < qtyInbound) {
+		status = "partially_received";
+	} else if (qtyReceived >= qtyInbound && qtyInbound > 0) {
+		status =
+			qtyAllocated + qtyReceived >= qtyRequired
+				? "fulfilled"
+				: "partially_received";
+	} else if (qtyAllocated >= qtyRequired && qtyInbound <= 0) {
+		status = "allocated";
+	} else if (suggestedAllocationQty > 0) {
+		status = "partially_allocated";
+	} else if (qtyInbound > 0) {
+		status = "inbound_required";
+	}
+
+	return {
+		qtyAllocated,
+		qtyInbound,
+		qtyReceived,
+		status,
+	};
+}
+
 async function syncComponentFulfillment(
 	db: DbLike,
 	input: {
@@ -1070,28 +1111,36 @@ async function syncComponentFulfillment(
 		},
 		0,
 	);
-
-	const qtyAllocated = committedAllocationQty;
-	const qtyInbound = Math.max(0, qtyRequired - qtyAllocated);
+	const suggestedAllocationQty = Array.from(desiredAllocations.values()).reduce(
+		(sum, qty) => sum + Number(qty || 0),
+		0,
+	);
 	const qtyReceived = existingInboundDemands.reduce(
 		(sum, demand) => sum + Number(demand.qtyReceived || 0),
 		0,
 	);
+	const demandState = planComponentDemandState({
+		qtyRequired,
+		committedAllocationQty,
+		suggestedAllocationQty,
+		qtyReceived,
+	});
 
 	const primaryInboundDemand = existingInboundDemands[0] || null;
 
-	if (qtyInbound > 0) {
+	if (demandState.qtyInbound > 0) {
 		if (primaryInboundDemand) {
 			await db.inboundDemand.update({
 				where: {
 					id: primaryInboundDemand.id,
 				},
 				data: {
-					qty: qtyInbound,
+					qty: demandState.qtyInbound,
 					status:
-						qtyReceived > 0 && qtyReceived < qtyInbound
+						demandState.qtyReceived > 0 &&
+						demandState.qtyReceived < demandState.qtyInbound
 							? "partially_received"
-							: qtyReceived >= qtyInbound
+							: demandState.qtyReceived >= demandState.qtyInbound
 								? "received"
 								: "pending",
 					deletedAt: null,
@@ -1102,7 +1151,7 @@ async function syncComponentFulfillment(
 				data: {
 					lineItemComponentId: input.lineItemComponentId,
 					inventoryVariantId: input.inventoryVariantId,
-					qty: qtyInbound,
+					qty: demandState.qtyInbound,
 					status: "pending",
 				},
 			});
@@ -1140,32 +1189,7 @@ async function syncComponentFulfillment(
 		}
 	}
 
-	let status: ComponentDemandState["status"] = "pending";
-	if (qtyRequired <= 0) {
-		status = "cancelled";
-	} else if (qtyAllocated >= qtyRequired && qtyInbound <= 0) {
-		status = "allocated";
-	} else if (qtyAllocated > 0 && qtyInbound > 0) {
-		status = "partially_allocated";
-	} else if (qtyInbound > 0) {
-		status = "inbound_required";
-	}
-	if (qtyReceived > 0 && qtyReceived < qtyInbound) {
-		status = "partially_received";
-	}
-	if (qtyReceived >= qtyInbound && qtyInbound > 0) {
-		status =
-			qtyAllocated + qtyReceived >= qtyRequired
-				? "fulfilled"
-				: "partially_received";
-	}
-
-	return {
-		qtyAllocated,
-		qtyInbound,
-		qtyReceived,
-		status,
-	};
+	return demandState;
 }
 
 export async function syncSalesInventoryLineItems(

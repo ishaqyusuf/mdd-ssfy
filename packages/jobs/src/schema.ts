@@ -53,6 +53,7 @@ export const taskNames = [
 	"send-storefront-promotional-email",
 	"send-storefront-shipping-confirmation-email",
 	"send-storefront-win-back-email",
+	"allocate-received-inbound-to-backorders",
 	"backfill-sales-inventory-line-items",
 	"sync-sales-inventory-line-items",
 	"warm-sales-document-snapshot",
@@ -193,7 +194,7 @@ export type SendStorefrontWelcomeEmailPayload = z.infer<
 export const syncSalesInventoryLineItemsSchemaTask = z.object({
 	salesOrderId: z.number(),
 	source: z
-		.enum(["old-form", "new-form", "manual", "repair"])
+		.enum(["old-form", "new-form", "copy-sales", "manual", "repair"])
 		.default("manual"),
 	triggeredByUserId: z.number().optional().nullable(),
 });
@@ -207,12 +208,24 @@ export const backfillSalesInventoryLineItemsSchemaTask = z.object({
 	batchSize: z.number().min(1).max(200).optional().default(50),
 	includeAlreadySynced: z.boolean().optional().default(false),
 	source: z
-		.enum(["old-form", "new-form", "manual", "repair"])
+		.enum(["old-form", "new-form", "copy-sales", "manual", "repair"])
 		.default("repair"),
 	triggeredByUserId: z.number().optional().nullable(),
 });
 export type BackfillSalesInventoryLineItemsSchemaTask = z.infer<
 	typeof backfillSalesInventoryLineItemsSchemaTask
+>;
+
+export const allocateReceivedInboundToBackordersSchemaTask = z.object({
+	salesOrderId: z.number().optional().nullable(),
+	lineItemComponentIds: z.array(z.number()).optional(),
+	inventoryVariantId: z.number().optional().nullable(),
+	limit: z.number().min(1).max(200).optional().default(50),
+	authorName: z.string().optional().nullable(),
+	note: z.string().optional().nullable(),
+});
+export type AllocateReceivedInboundToBackordersSchemaTask = z.infer<
+	typeof allocateReceivedInboundToBackordersSchemaTask
 >;
 
 export const syncDykeStepToInventorySchemaTask = z.object({

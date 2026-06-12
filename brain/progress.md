@@ -2,6 +2,22 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-06-12
+
+- Added a lower-model-ready implementation handoff for the first pending inventory task: full inventory-to-Dyke create/update/delete/archive sync.
+  - saved the handoff at `brain/handoffs/inventory-to-dyke-sync-handoff.md` and linked it from `brain/features/inventory-backed-sales-fulfillment.md`
+  - included current-state findings, strict guard rails, non-goals, implementation sequence, validation gates, known traps, source-file references, and completion criteria for DeepSeek/Gemini-style execution
+
+- Reviewed the requested inventory follow-up scope against existing code and expanded `brain/features/inventory-backed-sales-fulfillment.md` with a non-duplicative detailed execution plan.
+  - already in place: Dyke-to-inventory sync/import, partial inventory-to-Dyke title/image helper, inventory sales projection, allocation/inbound/backorder foundations, inventory print route/query/viewer, stock mode, low-stock alert, and stock operations pages
+  - still missing: full inventory-to-Dyke create/update/delete/archive sync, inventory variant price sync back to Dyke, production assignment/completion inventory lifecycle bridge, inventory-mode dispatch assign/pack/fulfill, Dyke-print parity proof for inventory print, item-level inventory dashboard, variants workspace, related sales/quotes tabs, and top-sales analytics
+  - cleaned stale backlog wording so already-started inventory/Dyke foundation work is not repeated as untouched backlog; the remaining backlog now points to the dashboard/analytics expansion that is still genuinely missing
+
+- Captured the inventory-backed sales fulfillment master model in `brain/features/inventory-backed-sales-fulfillment.md`.
+  - marked implemented foundations across sales inventory sync, Dyke/inventory structural sync, sync/backfill monitoring, fulfillment projection, allocation review, inbound receiving, production planning, backorder queue, ship-available partial shipment, stock operations, and inventory-backed print data
+  - called out the remaining gaps: explicit `SalesShipment` / `SalesShipmentLine` decision or implementation, hold-until-complete, dedicated partial shipment screen, production readiness gating, pricing drift reporting, repeat-receive/allocation guardrails, audit verification, print packet completion, reconciliation jobs, browser validation, and final source-of-truth cutover gates
+  - updated `brain/tasks/in-progress.md` and `brain/tasks/roadmap.md` so the active inventory workstream points at the new master model
+
 ## 2026-05-31
 
 - Continued the `apps/www` page-loading/navigation performance pass against the Midday-style route-hydration target.

@@ -23,4 +23,21 @@ describe("queueSalesInventoryLineItemsSync", () => {
       },
     );
   });
+
+  it("keeps copy sales as a distinct sync source", async () => {
+    await queueSalesInventoryLineItemsSync({
+      salesOrderId: 456,
+      source: "copy-sales",
+      triggeredByUserId: 88,
+    });
+
+    expect(tasks.trigger).toHaveBeenCalledWith(
+      "sync-sales-inventory-line-items",
+      {
+        salesOrderId: 456,
+        source: "copy-sales",
+        triggeredByUserId: 88,
+      },
+    );
+  });
 });

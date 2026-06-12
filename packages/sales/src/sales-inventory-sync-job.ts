@@ -3,6 +3,7 @@ import { tasks } from "@trigger.dev/sdk/v3";
 export type SalesInventorySyncSource =
   | "new-form"
   | "old-form"
+  | "copy-sales"
   | "manual"
   | "repair";
 

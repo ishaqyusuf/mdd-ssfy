@@ -83,9 +83,18 @@ export function InboundReceivingPage() {
             },
         ),
     );
+    const reorderSuggestionsQuery = useQuery(
+        trpc.inventories.supplierReorderSuggestions.queryOptions(undefined, {
+            refetchOnWindowFocus: false,
+            staleTime: 60 * 1000,
+        }),
+    );
     const shipments = shipmentsQuery.data ?? [];
     const suppliers = suppliersQuery.data ?? [];
     const demandQueue = demandQueueQuery.data ?? [];
+    const reorderSuggestions =
+        reorderSuggestionsQuery.data?.suggestions ?? [];
+    const reorderSummary = reorderSuggestionsQuery.data?.summary;
     const [selectedInboundId, setSelectedInboundId] = useState<number | null>(
         () => shipments[0]?.id ?? null,
     );
@@ -228,6 +237,9 @@ export function InboundReceivingPage() {
             }),
             queryClient.invalidateQueries({
                 queryKey: trpc.inventories.inboundDemandQueue.queryKey({}),
+            }),
+            queryClient.invalidateQueries({
+                queryKey: trpc.inventories.supplierReorderSuggestions.queryKey(),
             }),
             inboundId
                 ? queryClient.invalidateQueries({
@@ -768,6 +780,107 @@ export function InboundReceivingPage() {
                                 </label>
                             );
                         })}
+                    </div>
+                </Card>
+
+                <Card className="p-4 space-y-4">
+                    <div className="space-y-1">
+                        <h3 className="text-sm font-semibold">
+                            Reorder Suggestions
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                            Open inbound demand grouped by supplier and variant.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl border bg-slate-50 px-3 py-2">
+                            <p className="text-lg font-semibold text-slate-900">
+                                {Number(reorderSummary?.suggestionCount || 0)}
+                            </p>
+                            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                                Suggestions
+                            </p>
+                        </div>
+                        <div className="rounded-xl border bg-slate-50 px-3 py-2">
+                            <p className="text-lg font-semibold text-slate-900">
+                                {Number(reorderSummary?.suggestedOrderQty || 0)}
+                            </p>
+                            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+                                Suggested Qty
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        {reorderSuggestions.slice(0, 8).map((suggestion) => (
+                            <div
+                                key={`${suggestion.supplierId}-${suggestion.inventoryVariantId}`}
+                                className="rounded-xl border p-3"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-medium">
+                                            {suggestion.inventoryName ||
+                                                suggestion.sku ||
+                                                "Unknown item"}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {suggestion.supplierName}
+                                            {suggestion.supplierSku
+                                                ? ` • ${suggestion.supplierSku}`
+                                                : ""}
+                                        </p>
+                                    </div>
+                                    <Badge variant="outline">
+                                        {suggestion.demandCount} demand
+                                    </Badge>
+                                </div>
+                                <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-slate-500">
+                                    <div>
+                                        <p className="font-semibold text-slate-900">
+                                            {suggestion.openDemandQty}
+                                        </p>
+                                        <p>Open</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900">
+                                            {suggestion.suggestedOrderQty}
+                                        </p>
+                                        <p>Order</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-slate-900">
+                                            {suggestion.leadTimeDays ?? "-"}
+                                        </p>
+                                        <p>Lead days</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-3 w-full"
+                                    onClick={() => {
+                                        if (suggestion.supplierId) {
+                                            setSelectedSupplierId(
+                                                String(suggestion.supplierId),
+                                            );
+                                        }
+                                        setSelectedDemandIds(
+                                            suggestion.demandIds,
+                                        );
+                                    }}
+                                >
+                                    Stage Demand
+                                </Button>
+                            </div>
+                        ))}
+                        {!reorderSuggestions.length ? (
+                            <p className="text-sm text-slate-500">
+                                No reorder suggestions yet.
+                            </p>
+                        ) : null}
                     </div>
                 </Card>
 

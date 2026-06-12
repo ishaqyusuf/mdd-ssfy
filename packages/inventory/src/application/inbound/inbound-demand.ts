@@ -33,6 +33,74 @@ export type InboundDemandQueueInput = {
   saleId?: number | null;
 };
 
+export type SupplierReorderSuggestionDemandLike = {
+  id?: number | null;
+  qty?: number | null;
+  qtyReceived?: number | null;
+  inventoryVariantId: number;
+  inventoryVariant?: {
+    id?: number | null;
+    sku?: string | null;
+    uid?: string | null;
+    inventory?: {
+      id?: number | null;
+      name?: string | null;
+      defaultSupplier?: {
+        id?: number | null;
+        name?: string | null;
+      } | null;
+    } | null;
+    supplierVariants?: Array<{
+      supplierId?: number | null;
+      supplier?: {
+        id?: number | null;
+        name?: string | null;
+      } | null;
+      supplierSku?: string | null;
+      minOrderQty?: number | null;
+      leadTimeDays?: number | null;
+      preferred?: boolean | null;
+      active?: boolean | null;
+    }> | null;
+  } | null;
+  inboundShipmentItem?: {
+    inbound?: {
+      supplierId?: number | null;
+      supplier?: {
+        id?: number | null;
+        name?: string | null;
+      } | null;
+    } | null;
+  } | null;
+};
+
+export type SupplierReorderSuggestion = {
+  supplierId: number | null;
+  supplierName: string;
+  inventoryVariantId: number;
+  inventoryName: string | null;
+  sku: string | null;
+  supplierSku: string | null;
+  openDemandQty: number;
+  suggestedOrderQty: number;
+  minOrderQty: number | null;
+  leadTimeDays: number | null;
+  demandCount: number;
+  demandIds: number[];
+};
+
+export type SupplierReorderSuggestionsSummary = {
+  suggestionCount: number;
+  supplierCount: number;
+  openDemandQty: number;
+  suggestedOrderQty: number;
+};
+
+export type SupplierReorderSuggestionsResult = {
+  summary: SupplierReorderSuggestionsSummary;
+  suggestions: SupplierReorderSuggestion[];
+};
+
 export type InboundShipmentDetailInput = {
   inboundId: number;
 };
@@ -83,6 +151,247 @@ export type ReceiveInboundShipmentResult = {
   stockMovementCount: number;
   issueCount: number;
 };
+
+function positiveNumber(value?: number | null) {
+  return Math.max(0, Number(value || 0));
+}
+
+function getPreferredSupplierVariant(
+  demand: SupplierReorderSuggestionDemandLike,
+) {
+  const variants = demand.inventoryVariant?.supplierVariants || [];
+  return (
+    variants.find((variant) => variant.active !== false && variant.preferred) ||
+    variants.find((variant) => variant.active !== false) ||
+    variants[0] ||
+    null
+  );
+}
+
+function getSuggestionSupplier(demand: SupplierReorderSuggestionDemandLike) {
+  const inboundSupplier = demand.inboundShipmentItem?.inbound?.supplier;
+  if (inboundSupplier?.id) {
+    return {
+      id: inboundSupplier.id,
+      name: inboundSupplier.name || "Assigned supplier",
+    };
+  }
+
+  const supplierVariant = getPreferredSupplierVariant(demand);
+  if (supplierVariant?.supplierId || supplierVariant?.supplier?.id) {
+    return {
+      id: supplierVariant.supplierId ?? supplierVariant.supplier?.id ?? null,
+      name: supplierVariant.supplier?.name || "Preferred supplier",
+    };
+  }
+
+  const defaultSupplier = demand.inventoryVariant?.inventory?.defaultSupplier;
+  if (defaultSupplier?.id) {
+    return {
+      id: defaultSupplier.id,
+      name: defaultSupplier.name || "Default supplier",
+    };
+  }
+
+  return {
+    id: null,
+    name: "Unassigned supplier",
+  };
+}
+
+export function buildSupplierReorderSuggestions(
+  demands: SupplierReorderSuggestionDemandLike[],
+): SupplierReorderSuggestionsResult {
+  const groups = new Map<
+    string,
+    SupplierReorderSuggestion & {
+      _minOrderQtyCandidates: number[];
+      _leadTimeDaysCandidates: number[];
+    }
+  >();
+
+  for (const demand of demands) {
+    const openDemandQty = Math.max(
+      0,
+      positiveNumber(demand.qty) - positiveNumber(demand.qtyReceived),
+    );
+    if (openDemandQty <= 0) continue;
+
+    const supplier = getSuggestionSupplier(demand);
+    const supplierVariant = getPreferredSupplierVariant(demand);
+    const key = `${supplier.id ?? "unassigned"}:${demand.inventoryVariantId}`;
+    const current =
+      groups.get(key) ||
+      ({
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        inventoryVariantId: demand.inventoryVariantId,
+        inventoryName: demand.inventoryVariant?.inventory?.name ?? null,
+        sku:
+          demand.inventoryVariant?.sku ||
+          demand.inventoryVariant?.uid ||
+          null,
+        supplierSku: supplierVariant?.supplierSku ?? null,
+        openDemandQty: 0,
+        suggestedOrderQty: 0,
+        minOrderQty: null,
+        leadTimeDays: null,
+        demandCount: 0,
+        demandIds: [],
+        _minOrderQtyCandidates: [],
+        _leadTimeDaysCandidates: [],
+      } satisfies SupplierReorderSuggestion & {
+        _minOrderQtyCandidates: number[];
+        _leadTimeDaysCandidates: number[];
+      });
+
+    current.openDemandQty += openDemandQty;
+    current.demandCount += 1;
+    if (demand.id != null) current.demandIds.push(demand.id);
+    if (supplierVariant?.minOrderQty) {
+      current._minOrderQtyCandidates.push(Number(supplierVariant.minOrderQty));
+    }
+    if (supplierVariant?.leadTimeDays) {
+      current._leadTimeDaysCandidates.push(Number(supplierVariant.leadTimeDays));
+    }
+    groups.set(key, current);
+  }
+
+  const suggestions = Array.from(groups.values()).map((group) => {
+    const minOrderQty = group._minOrderQtyCandidates.length
+      ? Math.max(...group._minOrderQtyCandidates)
+      : null;
+    const leadTimeDays = group._leadTimeDaysCandidates.length
+      ? Math.max(...group._leadTimeDaysCandidates)
+      : null;
+    const suggestedOrderQty = Math.max(group.openDemandQty, minOrderQty || 0);
+
+    return {
+      supplierId: group.supplierId,
+      supplierName: group.supplierName,
+      inventoryVariantId: group.inventoryVariantId,
+      inventoryName: group.inventoryName,
+      sku: group.sku,
+      supplierSku: group.supplierSku,
+      openDemandQty: group.openDemandQty,
+      suggestedOrderQty,
+      minOrderQty,
+      leadTimeDays,
+      demandCount: group.demandCount,
+      demandIds: group.demandIds,
+    };
+  });
+
+  suggestions.sort((a, b) => {
+    if (a.supplierName !== b.supplierName) {
+      return a.supplierName.localeCompare(b.supplierName);
+    }
+    return (a.inventoryName || a.sku || "").localeCompare(
+      b.inventoryName || b.sku || "",
+    );
+  });
+
+  return {
+    summary: {
+      suggestionCount: suggestions.length,
+      supplierCount: new Set(suggestions.map((row) => row.supplierId)).size,
+      openDemandQty: suggestions.reduce(
+        (total, row) => total + row.openDemandQty,
+        0,
+      ),
+      suggestedOrderQty: suggestions.reduce(
+        (total, row) => total + row.suggestedOrderQty,
+        0,
+      ),
+    },
+    suggestions,
+  };
+}
+
+export async function getSupplierReorderSuggestions(
+  db: DbLike,
+): Promise<SupplierReorderSuggestionsResult> {
+  const demands = await db.inboundDemand.findMany({
+    where: {
+      deletedAt: null,
+      status: {
+        in: ["pending", "ordered", "partially_received"],
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+    select: {
+      id: true,
+      qty: true,
+      qtyReceived: true,
+      inventoryVariantId: true,
+      inventoryVariant: {
+        select: {
+          id: true,
+          sku: true,
+          uid: true,
+          inventory: {
+            select: {
+              id: true,
+              name: true,
+              defaultSupplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          supplierVariants: {
+            where: {
+              active: true,
+            },
+            select: {
+              supplierId: true,
+              supplierSku: true,
+              minOrderQty: true,
+              leadTimeDays: true,
+              preferred: true,
+              active: true,
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+            orderBy: [
+              {
+                preferred: "desc",
+              },
+              {
+                id: "asc",
+              },
+            ],
+          },
+        },
+      },
+      inboundShipmentItem: {
+        select: {
+          inbound: {
+            select: {
+              supplierId: true,
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return buildSupplierReorderSuggestions(demands);
+}
 
 export async function getInboundDemandQueue(
   db: DbLike,
@@ -819,6 +1128,8 @@ export async function receiveInboundShipment(
   let totalPlannedQty = 0;
   let totalReceivedQty = 0;
   let hasOpenIssues = false;
+  const touchedLineItemComponentIds = new Set<number>();
+  const touchedInventoryVariantIds = new Set<number>();
 
   for (const item of shipment.items) {
     const override = receivedQtyByItemId.get(item.id);
@@ -843,6 +1154,7 @@ export async function receiveInboundShipment(
     if (qtyReceived <= 0) continue;
 
     receivedItemCount += 1;
+    touchedInventoryVariantIds.add(item.inventoryVariantId);
 
     let stock: { id: number } | null = null;
     if (qtyGood > 0) {
@@ -936,6 +1248,7 @@ export async function receiveInboundShipment(
       });
 
       touchedComponentIds.add(demand.lineItemComponentId);
+      touchedLineItemComponentIds.add(demand.lineItemComponentId);
     }
 
     await db.inboundShipmentItem.update({
@@ -1012,5 +1325,7 @@ export async function receiveInboundShipment(
     receivedItemCount,
     stockMovementCount,
     issueCount,
+    lineItemComponentIds: Array.from(touchedLineItemComponentIds),
+    inventoryVariantIds: Array.from(touchedInventoryVariantIds),
   };
 }

@@ -66,10 +66,7 @@ Tracks queued work that is important but not currently in the top execution slic
 - [ ] Implement dispatch packing update flow with explicit submit action and success/failure feedback (UI + Validation)
 - [ ] Add Google autocomplete address feature to web sales form, including place selection mapping to form fields and submit-safe validation/fallback behavior (UI + Validation)
 - [ ] Add sales production due date support across the sales flow, including form entry/editing, persistence, and downstream production visibility/usage rules (Schema + API + UI + Validation)
-- [ ] Define sales inventory contract and ownership for Dyke sync, including source-of-truth fields and conflict-resolution rules (Schema)
-- [ ] Implement inventory Dyke sync pipeline for create/update/delete events with idempotency and retry safety (API + Validation)
-- [ ] Implement inventory CRUD management flows in sales module (create, update, delete) with audit-safe mutation paths (API + UI)
-- [ ] Implement inventory pricing management (base price, adjustments, effective pricing updates) with validation and role guards (API + UI + Validation)
+- [ ] Inventory dashboard expansion: build item-level dashboard, variants workspace, related sales/quotes tabs, top-sales analytics, stock movement timeline, and operational drilldowns on top of the inventory-backed fulfillment model (`brain/features/inventory-backed-sales-fulfillment.md`) (API + UI + Validation)
 
 ## Later
 - [ ] Expand integration/e2e coverage for jobs lifecycle and notification-driven navigation
