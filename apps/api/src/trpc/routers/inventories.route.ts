@@ -33,6 +33,7 @@ import {
   updateCategoryStockModeSchema,
   updateSubComponentSchema,
   variantFormSchema,
+  inventoryToDykeSyncPayloadSchema,
 } from "@gnd/inventory/schema";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
 import {
@@ -72,6 +73,8 @@ import {
   updateCategoryStockMode,
   dykeUpdateFromInventory,
   inventoryUpdateFromDyke,
+  syncInventoryToDyke,
+  queueInventoryToDykeSync,
   updateSubCategory,
   updateSubCategorySchema,
   updateVariantCost,
@@ -745,6 +748,25 @@ export const inventoriesRouter = createTRPCRouter({
     )
     .mutation(async (props) => {
       return dykeUpdateFromInventory(props.ctx.db, props.input);
+    }),
+  inventoryToDykeSyncCompare: protectedProcedure
+    .input(inventoryToDykeSyncPayloadSchema)
+    .mutation(async (props) => {
+      return syncInventoryToDyke(props.ctx.db, {
+        ...props.input,
+        mode: "compare",
+      });
+    }),
+  queueInventoryToDykeSync: protectedProcedure
+    .input(inventoryToDykeSyncPayloadSchema)
+    .mutation(async (props) => {
+      return queueInventoryToDykeSync({
+        inventoryCategoryId: props.input.inventoryCategoryId ?? null,
+        inventoryId: props.input.inventoryId ?? null,
+        inventoryVariantId: props.input.inventoryVariantId ?? null,
+        compare: props.input.mode === "compare",
+        source: props.input.source,
+      });
     }),
   getInventoryCategories: publicProcedure
     .input(getInventoryCategoriesSchema)

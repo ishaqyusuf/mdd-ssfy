@@ -58,6 +58,7 @@ export const taskNames = [
 	"sync-sales-inventory-line-items",
 	"warm-sales-document-snapshot",
 	"sync-dyke-step-to-inventory",
+	"sync-inventory-to-dyke",
 	"update-sales-control",
 	"attach-signed-dispatch-pdf",
 	"sales-commission",
@@ -458,3 +459,25 @@ export const markSalesAsCompletedSchema = z.object({
 	ids: z.array(z.number()),
 	authorName: z.string(),
 });
+
+export const syncInventoryToDykeSchemaTask = z.object({
+	inventoryCategoryId: z.number().optional().nullable(),
+	inventoryId: z.number().optional().nullable(),
+	inventoryVariantId: z.number().optional().nullable(),
+	mode: z.enum(["compare", "sync"]).optional().default("sync"),
+	source: z
+		.enum([
+			"inventory-form",
+			"category-form",
+			"variant-form",
+			"variant-price",
+			"supplier-variant",
+			"repair",
+		])
+		.optional()
+		.default("repair"),
+	triggeredByUserId: z.number().optional().nullable(),
+});
+export type SyncInventoryToDykeSchemaTask = z.infer<
+	typeof syncInventoryToDykeSchemaTask
+>;

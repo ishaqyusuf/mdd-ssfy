@@ -4,6 +4,34 @@
 
 ## 2026-06-12
 
+- Re-ran manual `brain-review-handoff` review for Pending 01 after checking the active fix handoff state.
+  - no submitted queue item exists, so no queue item was updated
+  - result remains `Needs Fix`; the existing fix handoff has not been implemented in the current worktree
+  - saved repeat review at `brain/reviews/2026-06-12-inventory-to-dyke-sync-pending-01-review-v2.md`
+  - gates: focused sync test passed with 20 tests / 41 assertions; `git diff --check` passed; `@gnd/inventory` typecheck still fails on known baseline `bun:test` declarations and `inbound-demand.ts`
+
+- Reviewed Pending 01 `Full inventory-to-Dyke sync for create/update/delete/archive` against `brain/handoffs/inventory-to-dyke-sync-handoff.md`.
+  - previous pricing skip, supplier pricing key, category archive result, and weak-test findings are fixed
+  - review remains `needs fix` because `updateVariantStatus(...)` does not queue inventory-to-Dyke sync and archived/deleted variants are not projected into `DykePricingSystem.deletedAt`
+  - saved review at `brain/reviews/2026-06-12-inventory-to-dyke-sync-pending-01-review.md` and fix handoff at `brain/handoffs/fixes/2026-06-12-inventory-to-dyke-sync-pending-01-fix-1.md`
+  - gates: focused sync test passed with 20 tests / 41 assertions; `git diff --check` passed; `@gnd/inventory` typecheck still fails on known baseline `bun:test` declarations and `inbound-demand.ts`
+
+- Refined `Inventory Pending 02 - Inventory Variant Supplier Price Sync To Dyke` with `brain-plan-handoff`.
+  - kept status `Proposed` and retained the existing roadmap task
+  - made the plan handoff-ready with explicit dependency on Pending 01, concrete generic/supplier pricing mapping rules, skip-result requirements, focused seeded-delegate tests, and Brain update requirements
+
+- Created Brain plans for `Pendings By Importance` items 2-15 from the inventory-backed sales fulfillment cutover list.
+  - each plan file uses a serial-numbered filename from `pending-02` through `pending-15`
+  - added one companion `Roadmap` task per plan in `brain/tasks/roadmap.md`, all with `Plan Status: Proposed`
+
+- Updated the inventory-to-Dyke handoff after the second fix review.
+  - added the remaining fix pass: pricing skips must return under `pricing.skipped`, supplier pricing must not create from guessed generated keys, category archive counts must be preserved in result/schema, and focused tests must use table-specific seeded delegates that actually exercise sync paths
+  - recorded validation state: focused test currently passes but does not prove the reviewed behavior; drift-report typecheck errors are gone, while broader inventory typecheck still has unrelated baseline/test-type noise
+
+- Updated the inventory-to-Dyke handoff after review of the completed implementation attempt.
+  - added the required fix pass: drift report typecheck failures, generic pricing dependency-key mapping, supplier pricing legacy-key preservation, category archive sync, drift step/category filter semantics, and focused test requirements
+  - clarified that the next agent should fix the existing worktree implementation rather than restart from the old baseline
+
 - Added a lower-model-ready implementation handoff for the first pending inventory task: full inventory-to-Dyke create/update/delete/archive sync.
   - saved the handoff at `brain/handoffs/inventory-to-dyke-sync-handoff.md` and linked it from `brain/features/inventory-backed-sales-fulfillment.md`
   - included current-state findings, strict guard rails, non-goals, implementation sequence, validation gates, known traps, source-file references, and completion criteria for DeepSeek/Gemini-style execution

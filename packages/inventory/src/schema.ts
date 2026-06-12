@@ -370,6 +370,73 @@ export type DykeInventoryDriftReport = z.infer<
   typeof dykeInventoryDriftReportSchema
 >;
 
+// ---- inventory-to-Dyke sync contracts ----
+
+export const inventoryToDykeSyncSourceSchema = z.enum([
+  "inventory-form",
+  "category-form",
+  "variant-form",
+  "variant-price",
+  "supplier-variant",
+  "repair",
+]);
+export type InventoryToDykeSyncSource = z.infer<
+  typeof inventoryToDykeSyncSourceSchema
+>;
+
+export const inventoryToDykeSyncPayloadSchema = z.object({
+  inventoryCategoryId: z.number().optional().nullable(),
+  inventoryId: z.number().optional().nullable(),
+  inventoryVariantId: z.number().optional().nullable(),
+  mode: z.enum(["compare", "sync"]).optional().default("sync"),
+  source: inventoryToDykeSyncSourceSchema.optional().default("repair"),
+  triggeredByUserId: z.number().optional().nullable(),
+});
+export type InventoryToDykeSyncPayload = z.infer<
+  typeof inventoryToDykeSyncPayloadSchema
+>;
+
+export const syncSkipSchema = z.object({
+  entity: z.enum(["category", "product", "variant", "pricing"]),
+  inventoryId: z.number().optional().nullable(),
+  inventoryVariantId: z.number().optional().nullable(),
+  uid: z.string().optional().nullable(),
+  reason: z.string(),
+});
+export type SyncSkip = z.infer<typeof syncSkipSchema>;
+
+export const inventoryToDykeSyncResultSchema = z.object({
+  mode: z.enum(["compare", "sync"]),
+  source: z.string(),
+  category: z.object({
+    created: z.number(),
+    updated: z.number(),
+    archived: z.number(),
+    skipped: z.array(syncSkipSchema),
+  }),
+  products: z.object({
+    created: z.number(),
+    updated: z.number(),
+    archived: z.number(),
+    skipped: z.array(syncSkipSchema),
+  }),
+  variants: z.object({
+    created: z.number(),
+    updated: z.number(),
+    archived: z.number(),
+    skipped: z.array(syncSkipSchema),
+  }),
+  pricing: z.object({
+    created: z.number(),
+    updated: z.number(),
+    archived: z.number(),
+    skipped: z.array(syncSkipSchema),
+  }),
+});
+export type InventoryToDykeSyncResult = z.infer<
+  typeof inventoryToDykeSyncResultSchema
+>;
+
 export const inventorySuppliersSchema = z.object({
   q: z.string().optional().nullable(),
 });

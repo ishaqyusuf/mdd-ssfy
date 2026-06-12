@@ -39,6 +39,7 @@ import { TABLE_NAMES } from "./application/import/strategies/handcrafted-importe
 import { z } from "zod";
 import { formatDate } from "@gnd/utils/dayjs";
 import type { StepMeta } from "./types";
+import { queueInventoryToDykeSync } from "./application/sync/inventory-to-dyke-sync-job";
 
 async function recomputeLineItemComponentFromAllocationState(
   db: Db,
@@ -1040,6 +1041,11 @@ export async function saveInventory(db: Db, data: InventoryForm) {
     }
   }
 
+  queueInventoryToDykeSync({
+    inventoryId,
+    source: "inventory-form",
+  }).catch(() => {});
+
   return { id: inventoryId, uid: inventoryUid };
 }
 export async function inventoryForm(db: Db, inventoryId) {
@@ -1283,7 +1289,7 @@ export async function saveSupplierVariantForm(
   };
 
   if (input.id) {
-    return db.supplierVariant.update({
+    const result = await db.supplierVariant.update({
       where: {
         id: input.id,
       },
@@ -1292,9 +1298,16 @@ export async function saveSupplierVariantForm(
         supplier: true,
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryVariantId: input.inventoryVariantId,
+      source: "supplier-variant",
+    }).catch(() => {});
+
+    return result;
   }
 
-  return db.supplierVariant.upsert({
+  const result = await db.supplierVariant.upsert({
     where: {
       supplierId_inventoryVariantId: {
         supplierId: input.supplierId,
@@ -1307,6 +1320,13 @@ export async function saveSupplierVariantForm(
       supplier: true,
     },
   });
+
+  queueInventoryToDykeSync({
+    inventoryVariantId: input.inventoryVariantId,
+    source: "supplier-variant",
+  }).catch(() => {});
+
+  return result;
 }
 
 export async function supplierVariantsByInventory(db: Db, inventoryId: number) {
@@ -2032,6 +2052,12 @@ export async function saveVariantForm(db: Db, data: VariantForm) {
         },
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryId: data.inventoryId,
+      inventoryVariantId: variant.id,
+      source: "variant-form",
+    }).catch(() => {});
   } else {
     const priceUpdate = data.price != data.oldPrice;
     await db.inventoryVariant.update({
@@ -2068,6 +2094,12 @@ export async function saveVariantForm(db: Db, data: VariantForm) {
             },
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryId: data.inventoryId,
+      inventoryVariantId: data.id ?? null,
+      source: "variant-form",
+    }).catch(() => {});
   }
 }
 export async function inventoryCategories(db: Db, query: InventoryCategories) {
@@ -2142,6 +2174,13 @@ export async function deleteInventories(db: Db, ids) {
       deletedAt: new Date(),
     },
   });
+
+  for (const id of ids) {
+    queueInventoryToDykeSync({
+      inventoryId: id,
+      source: "repair",
+    }).catch(() => {});
+  }
 }
 export async function deleteInventoryCategory(db: Db, id) {
   await db.inventoryCategory.update({
@@ -2152,6 +2191,11 @@ export async function deleteInventoryCategory(db: Db, id) {
       deletedAt: new Date(),
     },
   });
+
+  queueInventoryToDykeSync({
+    inventoryCategoryId: id,
+    source: "repair",
+  }).catch(() => {});
 }
 
 export async function saveInventoryCategoryForm(
@@ -2160,7 +2204,7 @@ export async function saveInventoryCategoryForm(
 ) {
   let id = data.id;
   if (!id) {
-    return await db.inventoryCategory.create({
+    const created = await db.inventoryCategory.create({
       data: {
         title: data.title,
         uid: generateRandomString(5),
@@ -2180,8 +2224,15 @@ export async function saveInventoryCategoryForm(
           : undefined,
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryCategoryId: created.id,
+      source: "category-form",
+    }).catch(() => {});
+
+    return created;
   } else {
-    return await db.inventoryCategory.update({
+    const updated = await db.inventoryCategory.update({
       where: {
         id: data.id!,
       },
@@ -2189,11 +2240,17 @@ export async function saveInventoryCategoryForm(
         title: data.title,
         ...({ productKind: data.productKind } as any),
         stockMode: data.stockMode || "unmonitored",
-        // uid: generateRandomString(5),
         enablePricing: data.enablePricing,
         description: data.description,
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryCategoryId: data.id ?? null,
+      source: "category-form",
+    }).catch(() => {});
+
+    return updated;
   }
 }
 export async function updateCategoryVariantAttribute(
@@ -2388,7 +2445,7 @@ export const updateVariantCostSchema = z.object({
 export type UpdateVariantCost = z.infer<typeof updateVariantCostSchema>;
 
 export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
-  if (data.variantId)
+  if (data.variantId) {
     await db.inventoryVariant.update({
       where: {
         id: data.variantId,
@@ -2425,8 +2482,14 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
         },
       },
     });
-  else
-    await db.inventoryVariant.create({
+
+    queueInventoryToDykeSync({
+      inventoryId: data.inventoryId,
+      inventoryVariantId: data.variantId,
+      source: "variant-price",
+    }).catch(() => {});
+  } else {
+    const created = await db.inventoryVariant.create({
       data: {
         inventoryId: data.inventoryId,
         uid: data.uid,
@@ -2462,6 +2525,13 @@ export async function updateVariantCost(db: Db, data: UpdateVariantCost) {
         status: "draft",
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryId: data.inventoryId,
+      inventoryVariantId: created.id,
+      source: "variant-price",
+    }).catch(() => {});
+  }
 }
 export const updateVariantStatusSchema = z
   .object({
@@ -2473,7 +2543,7 @@ export const updateVariantStatusSchema = z
   });
 export type UpdateVariantStatus = z.infer<typeof updateVariantStatusSchema>;
 export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {
-  if (data.variantId)
+  if (data.variantId) {
     await db.inventoryVariant.update({
       where: {
         id: data.variantId,
@@ -2482,8 +2552,14 @@ export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {
         status: data.status,
       },
     });
-  else
-    await db.inventoryVariant.create({
+
+    queueInventoryToDykeSync({
+      inventoryId: data.inventoryId,
+      inventoryVariantId: data.variantId,
+      source: "variant-form",
+    }).catch(() => {});
+  } else {
+    const created = await db.inventoryVariant.create({
       data: {
         inventoryId: data.inventoryId,
         uid: data.uid,
@@ -2500,4 +2576,11 @@ export async function updateVariantStatus(db: Db, data: UpdateVariantStatus) {
         status: data.status,
       },
     });
+
+    queueInventoryToDykeSync({
+      inventoryId: data.inventoryId,
+      inventoryVariantId: created.id,
+      source: "variant-form",
+    }).catch(() => {});
+  }
 }
