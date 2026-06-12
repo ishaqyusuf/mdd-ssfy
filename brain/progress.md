@@ -4,6 +4,24 @@
 
 ## 2026-06-12
 
+- Approved Pending 01 inventory-to-Dyke sync fix-2 after Codex review.
+  - Review: `brain/reviews/2026-06-12-inventory-to-dyke-sync-pending-01-review-v4.md`
+  - Queue item: `2026-06-12-gnd-pending-01-inventory-to-dyke-fix-1` marked approved
+  - Validation: focused sync tests pass (29 tests / 65 assertions), `git diff --check` clean, inventory typecheck still limited to known baseline caveats
+  - Broader inventory-backed fulfillment master task remains in progress for later slices
+
+- Completed Pending 01 inventory-to-Dyke sync fix (fix-2 handoff from `brain/handoffs/fixes/2026-06-12-inventory-to-dyke-sync-pending-01-fix-2.md`).
+  - Added focused regression tests proving `updateVariantStatus(...)` queues `sync-inventory-to-dyke` for both the update branch (`inventoryId`, `inventoryVariantId`, `source: "variant-form"`) and the create branch (with the created variant id)
+  - Added idempotency test: repeated archive sync reports `pricing.archived = 0` when active Dyke pricing rows are already gone
+  - The core implementation (variant archive soft-delete, draft variant skip, `updateVariantStatus` queue wiring) was already in place from the prior submission
+  - Checks: `bun test packages/inventory/src/application/sync/inventory-to-dyke-sync.test.ts` — 29 tests / 65 assertions, 0 failures; `git diff --check` clean
+  - `@gnd/inventory` typecheck still fails on known baseline issues: `bun:test` type declarations and `inbound-demand.ts: lineItemComponentIds` — no new errors from touched sync/inventory files
+
+- Fixed local dev `with-env` script resolution for `bun run mobile-jobs`.
+  - replaced ambiguous workspace `dotenv` calls with explicit `node ../../node_modules/dotenv-cli/cli.js` invocations across app/package scripts so local commands no longer resolve to a system Python `dotenv` executable
+  - verified `bun run mobile-jobs` reaches ready states for `@gnd/www`, `@gnd/site`, Expo Metro, and Trigger dev instead of failing with immediate SIGKILL exits
+  - stopped the validation dev stack and cleaned the portless proxy listener after the smoke run
+
 - Re-ran manual `brain-review-handoff` review for Pending 01 after checking the active fix handoff state.
   - no submitted queue item exists, so no queue item was updated
   - result remains `Needs Fix`; the existing fix handoff has not been implemented in the current worktree

@@ -6,6 +6,7 @@ import {
   buildLegacyDoorSupplierPricingKeys,
   parseDykeSupplierPricingKey,
 } from "../suppliers/suppliers";
+import { updateVariantStatus } from "../../inventory";
 import type { Db } from "@gnd/db";
 
 // ---- Queue helper tests ----
@@ -534,5 +535,468 @@ describe("syncInventoryToDyke pricing skip routing", () => {
       "ambiguous_generic_pricing_match",
     );
     expect(result.variants.skipped.length).toBe(0);
+  });
+});
+
+// ---- Variant archive tests (Pending 01 Fix) ----
+
+describe("syncInventoryToDyke variant archive", () => {
+  it("compare mode reports pricing.archived for archived variant without calling updateMany", async () => {
+    let updateManyCalled = false;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-arch-1",
+          status: "archived",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 700, dependenciesUid: "var-arch-1" },
+        ],
+        updateMany: async () => {
+          updateManyCalled = true;
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "compare",
+      source: "repair",
+    });
+
+    expect(result.pricing.archived).toBe(1);
+    expect(updateManyCalled).toBe(false);
+  });
+
+  it("sync mode soft-archives active generic pricing for dependenciesUid = variant.uid", async () => {
+    let archivedIds: number[] = [];
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-arch-2",
+          status: "archived",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 701, dependenciesUid: "var-arch-2" },
+        ],
+        updateMany: async (args: any) => {
+          archivedIds = args?.where?.id?.in ?? [];
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-form",
+    });
+
+    expect(result.pricing.archived).toBe(1);
+    expect(archivedIds).toContain(701);
+  });
+
+  it("archived variant does not create new pricing rows", async () => {
+    let createCalled = false;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-arch-3",
+          status: "archived",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [],
+        updateMany: async () => ({ count: 0 }),
+        create: async () => {
+          createCalled = true;
+          return { id: 999 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-form",
+    });
+
+    expect(result.pricing.created).toBe(0);
+    expect(result.pricing.archived).toBe(0);
+    expect(createCalled).toBe(false);
+  });
+
+  it("archived via deletedAt also triggers archive", async () => {
+    let archivedCount = 0;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-del-1",
+          status: "published",
+          deletedAt: new Date(),
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 702, dependenciesUid: "var-del-1" },
+        ],
+        updateMany: async () => {
+          archivedCount += 1;
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-form",
+    });
+
+    expect(result.pricing.archived).toBe(1);
+    expect(result.pricing.created).toBe(0);
+  });
+});
+
+// ---- Draft variant tests (Pending 01 Fix) ----
+
+describe("syncInventoryToDyke draft variant", () => {
+  it("draft variant does not create or update active pricing", async () => {
+    let createCalled = false;
+    let updateCalled = false;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-draft-1",
+          status: "draft",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: { id: 50, price: 100.0, costPrice: 90.0 },
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [],
+        create: async () => {
+          createCalled = true;
+          return { id: 999 };
+        },
+        updateMany: async () => {
+          updateCalled = true;
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-form",
+    });
+
+    expect(result.pricing.created).toBe(0);
+    expect(result.pricing.updated).toBe(0);
+    expect(createCalled).toBe(false);
+    expect(updateCalled).toBe(false);
+    expect(result.pricing.skipped.length).toBeGreaterThanOrEqual(1);
+    expect(result.pricing.skipped[0]!.reason).toBe("variant_not_published");
+  });
+});
+
+// ---- Supplier pricing archive tests (Pending 01 Fix) ----
+
+describe("syncInventoryToDyke supplier pricing archive", () => {
+  it("archives supplier pricing row matching preserved meta.pricingKey", async () => {
+    let archivedIds: number[] = [];
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-arch-sup-1",
+          status: "archived",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [
+            {
+              id: 1,
+              supplierId: 10,
+              costPrice: 80.0,
+              salesPrice: 90.0,
+              meta: { pricingKey: "36x80 & SUP1", size: "36x80" },
+              supplier: { uid: "SUP1", name: "Acme" },
+            },
+          ],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 800, dependenciesUid: "36x80 & SUP1" },
+        ],
+        updateMany: async (args: any) => {
+          archivedIds = args?.where?.id?.in ?? [];
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "supplier-variant",
+    });
+
+    expect(result.pricing.archived).toBeGreaterThanOrEqual(1);
+    expect(archivedIds).toContain(800);
+  });
+});
+
+// ---- updateVariantStatus queue tests (Fix 2) ----
+
+describe("updateVariantStatus queue", () => {
+  beforeEach(() => {
+    (tasks as any).trigger = mock(async () => ({ id: "test-run" }));
+  });
+
+  it("queues sync-inventory-to-dyke after updating an existing variant", async () => {
+    const db = {
+      inventoryVariant: {
+        update: async () => ({}),
+        create: async () => ({ id: 0 }),
+      },
+    } as unknown as Db;
+
+    await updateVariantStatus(db, {
+      status: "archived",
+      variantId: 42,
+      inventoryId: 99,
+      uid: "var-uid-1",
+    });
+
+    expect(tasks.trigger).toHaveBeenCalledTimes(1);
+    expect(tasks.trigger).toHaveBeenCalledWith("sync-inventory-to-dyke", {
+      inventoryCategoryId: null,
+      inventoryId: 99,
+      inventoryVariantId: 42,
+      mode: "sync",
+      source: "variant-form",
+    });
+  });
+
+  it("queues sync-inventory-to-dyke with created variant id after creating a new variant", async () => {
+    const db = {
+      inventoryVariant: {
+        update: async () => ({}),
+        create: async () => ({ id: 77 }),
+      },
+    } as unknown as Db;
+
+    await updateVariantStatus(db, {
+      status: "published",
+      variantId: null,
+      inventoryId: 99,
+      uid: "var-uid-new",
+    } as any);
+
+    expect(tasks.trigger).toHaveBeenCalledTimes(1);
+    expect(tasks.trigger).toHaveBeenCalledWith("sync-inventory-to-dyke", {
+      inventoryCategoryId: null,
+      inventoryId: 99,
+      inventoryVariantId: 77,
+      mode: "sync",
+      source: "variant-form",
+    });
+  });
+});
+
+// ---- Variant archive idempotency test (Fix 2) ----
+
+describe("syncInventoryToDyke variant archive idempotency", () => {
+  it("repeated archive sync reports zero when active rows are already gone", async () => {
+    // First sync: active rows exist, archive them
+    let firstSyncArchiveCount = 0;
+
+    const dbForFirstSync = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-arch-idem-1",
+          status: "archived",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 900, dependenciesUid: "var-arch-idem-1" },
+        ],
+        updateMany: async () => {
+          firstSyncArchiveCount += 1;
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const firstResult = await syncInventoryToDyke(dbForFirstSync, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-form",
+    });
+
+    expect(firstResult.pricing.archived).toBe(1);
+
+    // Second sync: pricing rows already archived, findMany returns empty
+    let secondSyncArchiveCount = 0;
+
+    const dbForSecondSync = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-arch-idem-1",
+          status: "archived",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [],
+        updateMany: async () => {
+          secondSyncArchiveCount += 1;
+          return { count: 0 };
+        },
+      },
+    } as unknown as Db;
+
+    const secondResult = await syncInventoryToDyke(dbForSecondSync, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-form",
+    });
+
+    expect(secondResult.pricing.archived).toBe(0);
+    expect(secondSyncArchiveCount).toBe(0);
   });
 });
