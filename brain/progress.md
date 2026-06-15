@@ -4,6 +4,13 @@
 
 ## 2026-06-15
 
+- Fixed `apps/www` production logout hardening.
+  - Changed `/signout` to call the Better Auth sign-out handler in-process instead of server-fetching the public `/api/auth/sign-out` URL.
+  - Preserved forwarded auth/request headers for the internal handler call and continued forwarding any Better Auth `Set-Cookie` response headers.
+  - Replaced generic cookie deletion fallback with secure-prefix-aware expiration for legacy NextAuth and Better Auth cookies so `__Secure-*` / `__Host-*` cookies are cleared correctly in production.
+  - Updated auth documentation: `brain/api/permissions.md`.
+  - Validation: focused Prettier check and `git diff --check` passed for the logout route; `@gnd/www` typecheck remains blocked by existing unrelated baseline errors, with no `/signout` route diagnostics surfaced by a focused grep.
+
 - Advanced Inventory Pending 15 browser validation readiness.
   - Static audit found inventory dispatch assign/pack/fulfill/release commands in the API but no dedicated web UI caller.
   - Added `/inventory/dispatch-mode` with `InventoryDispatchModePage`, exposing per-line assign, pack, fulfill, and release actions against the existing inventory dispatch tRPC procedures.

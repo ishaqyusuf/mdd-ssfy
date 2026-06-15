@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { webAuth } from "@/lib/auth/web-auth";
 
 const NEXT_AUTH_COOKIE_PREFIXES = [
     "next-auth.",
@@ -14,14 +15,15 @@ const BETTER_AUTH_COOKIE_PREFIXES = [
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-    const authSignOutResponse = await fetch(
-        new URL("/api/auth/sign-out", request.url),
-        {
-            method: "POST",
-            headers: request.headers,
-            cache: "no-store",
-        },
-    ).catch(() => null);
+    const authSignOutResponse = await webAuth
+        .handler(
+            new Request(new URL("/api/auth/sign-out", request.url), {
+                method: "POST",
+                headers: getAuthSignOutHeaders(request),
+                cache: "no-store",
+            }),
+        )
+        .catch(() => null);
     const response = NextResponse.redirect(getLoginUrl(request));
     const setCookieHeaders = getSetCookieHeaders(authSignOutResponse?.headers);
     for (const setCookie of setCookieHeaders) {
@@ -37,11 +39,47 @@ export async function GET(request: NextRequest) {
                 cookie.name.startsWith(prefix),
             )
         ) {
-            response.cookies.delete(cookie.name);
+            expireAuthCookie(response, cookie.name);
         }
     }
 
     return response;
+}
+
+function getAuthSignOutHeaders(request: NextRequest) {
+    const headers = new Headers();
+
+    for (const key of [
+        "accept",
+        "accept-language",
+        "authorization",
+        "cookie",
+        "host",
+        "origin",
+        "referer",
+        "user-agent",
+        "x-forwarded-host",
+        "x-forwarded-proto",
+    ]) {
+        const value = request.headers.get(key);
+        if (value) headers.set(key, value);
+    }
+
+    return headers;
+}
+
+function expireAuthCookie(response: NextResponse, name: string) {
+    const isSecurePrefix =
+        name.startsWith("__Secure-") || name.startsWith("__Host-");
+
+    response.cookies.set(name, "", {
+        expires: new Date(0),
+        httpOnly: true,
+        maxAge: 0,
+        path: "/",
+        sameSite: "lax",
+        secure: isSecurePrefix,
+    });
 }
 
 function getSetCookieHeaders(headers?: Headers) {

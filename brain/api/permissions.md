@@ -5,6 +5,7 @@ Tracks authentication and authorization patterns across API surfaces.
 
 ## Current Notes
 - Permission logic is implemented in API middleware and route-level orchestration.
+- `apps/www` logout uses `/signout` as the user-facing redirect route; it now invokes the Better Auth `/api/auth/sign-out` handler in-process and expires legacy NextAuth plus Better Auth cookies with secure-prefix-aware attributes so production logout does not depend on a server-side fetch to the public app host.
 - Login/session permission hydration now merges role permissions with any per-employee `ModelHasPermissions` overrides before building `can`.
 - Sales / dispatch permission surface now includes `viewPacking` for the warehouse pickup-packing tunnel at `/sales/packing-list`.
 - `viewPacking` grants access to the packing-list workspace itself.
