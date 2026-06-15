@@ -141,9 +141,9 @@ type SaveDraftNewSalesFormPayload = {
 
 Important: keep the repo spelling taxxable with double x. Do not rename it to taxable.
 
-REAL TRPC ROUTES TO SUPPORT LATER
+REAL TRPC ROUTES
 
-Create hooks with a USE_MOCK_INVOICE_FORM = true constant. When false, the hook names should be ready to call these existing procedures:
+Create hooks that call these existing procedures directly:
 
 _trpc.newSalesForm.bootstrap
 _trpc.newSalesForm.get
@@ -480,7 +480,7 @@ Actions:
 
 Whenever qty/unitPrice/extraCosts/taxRate changes, recalculate summary.
 
-MOCK API HOOKS
+API HOOKS
 
 Create:
 - useInvoiceFormActions
@@ -491,12 +491,8 @@ useInvoiceFormActions returns:
 - saveFinal(payload)
 - recalculate(input)
 
-For mock mode:
-- wait 400ms
-- return payload with:
-  - slug: "order-draft-1001"
-  - salesId: 1001
-  - version: "mock-version-" + Date.now()
+Use the real mobile tRPC procedures directly for draft saves, final saves,
+recalculation, lookup data, and search.
 
 useInvoiceFormSearch returns:
 - customers filtered by query

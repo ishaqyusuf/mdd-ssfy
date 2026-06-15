@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Hard-gate existing production start actions on inventory readiness.
@@ -52,8 +52,17 @@ Add a shared readiness guard used by existing production actions before producti
 - Mixed produceable/non-produceable orders need careful rules.
 
 ## Open Questions
-- TODO: Should supervisor override be supported?
+- Supervisor override is not implemented in this slice. Current policy is hard gate with no override until the business approves an audited override flow.
 
 ## Linked Task
 - Task Title: Inventory Pending 08 - Production Readiness Gates
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Completed Date: 2026-06-15
+- Added shared production readiness gate logic in `packages/sales/src/production-readiness-gate.ts`.
+- The gate repairs/refreshes inventory sale line projection through `syncSalesInventoryLineItems`, loads the existing inventory production plan, and blocks production start when required components are awaiting inbound, pending allocation review, blocked, or missing inventory components.
+- Wired `update-sales-control` so `createAssignments` and `submitAll` are gated before legacy production assignment/submission actions run.
+- Added `lineItemUids` scoping to `getSalesProductionPlan` so selected production starts can be checked by control UID.
+- Validation: `bun test packages/sales/src/sales-fulfillment-plan.test.ts packages/sales/src/production-readiness-gate.test.ts` passed with 16 tests and 49 assertions; import check for `packages/jobs/src/tasks/sales/update-sales-control.ts` passed.
+- Not run by default per Fast Bun discipline: broad package typecheck, build, browser validation, or dev server.

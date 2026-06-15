@@ -28,8 +28,8 @@
 		"sync:prod-to-local:dry-run": "bun scripts/sync-prod-to-local.ts --dry-run",
 		"sync:prod-to-local:table": "bun scripts/sync-prod-to-local.ts --table",
 		"studio": "bun run with-env prisma studio --port 5556",
-		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
-		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --"
+		"with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
 	},
 	"dependencies": {
 		"@prisma/client": "^6.18.0",

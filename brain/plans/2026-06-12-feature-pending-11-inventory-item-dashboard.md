@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Build an inventory item dashboard with variants, stock, movement history, inbound demand, allocations, sales, and quotes.
@@ -30,7 +30,7 @@ Add an item dashboard route or full-screen sheet backed by an item overview quer
 
 ## Affected Files Or Areas
 - `/inventory`
-- TODO: `/inventory/[id]` or item dashboard route
+- `/inventory/[id]`
 - `packages/inventory/src/inventory.ts`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - related sales/quotes query areas
@@ -52,8 +52,15 @@ Add an item dashboard route or full-screen sheet backed by an item overview quer
 - Movement history may need filtering by variant/location.
 
 ## Open Questions
-- TODO: Should dashboard be route, sheet, or both?
+- Resolved for this slice: dashboard is a dedicated `/inventory/[id]` route. A sheet can be added later if operators need faster table-side peeking.
 
 ## Linked Task
 - Task Title: Inventory Pending 11 - Inventory Item Dashboard
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/www/src/app/(sidebar)/inventory/[id]/page.tsx`, `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`, and `apps/www/src/components/tables/inventory-products/columns.tsx`.
+- Implemented a bounded item dashboard query with variants, stock rows, stock movement history, inbound demand, allocations, and related sales/quotes from inventory `LineItem` references.
+- Added `/inventory/[id]` and wired the existing inventory item eye action to open it without forcing edit mode.
+- Checks run: `bun test packages/inventory/src/inventory-item-dashboard.test.ts`; import smoke for `apps/api/src/trpc/routers/inventories.route.ts` and `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`.
+- Deferred: browser/manual validation remains part of Pending 15.

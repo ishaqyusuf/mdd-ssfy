@@ -10,10 +10,12 @@ import {
 	isControlWriteV2Enabled,
 	markAsCompletedTask,
 	packDispatchItemTask,
+	assertProductionReadinessForSale,
 	resolveLegacyUpdateSalesControlAction,
 	startDispatchTask,
 	submitAllTask,
 	submitDispatchTask,
+	syncInventoryProductionLifecycleForSale,
 	updateSalesControlSchema,
 	updateSubmissionsTask,
 } from "@gnd/sales";
@@ -74,6 +76,35 @@ function resolveActionHandler(input: UpdateSalesControl) {
 	}
 	const legacyAction = resolveLegacyActionCompat(input);
 	return legacyAction ? actionMaps[legacyAction] : null;
+}
+
+function shouldSyncInventoryProductionLifecycle(input: UpdateSalesControl) {
+	return Boolean(
+		input.createAssignments ||
+			input.submitAll ||
+			input.updateSubmissions ||
+			input.deleteSubmissions ||
+			input.deleteAssignments ||
+			input.markAsCompleted,
+	);
+}
+
+function getProductionReadinessGateLineUids(input: UpdateSalesControl) {
+	if (input.createAssignments?.selections?.length) {
+		return input.createAssignments.selections
+			.map((selection) => selection.uid)
+			.filter((uid): uid is string => Boolean(uid));
+	}
+	if (input.submitAll?.itemUids?.length) {
+		return input.submitAll.itemUids.filter((uid): uid is string =>
+			Boolean(uid),
+		);
+	}
+	return null;
+}
+
+function shouldGateProductionStart(input: UpdateSalesControl) {
+	return Boolean(input.createAssignments || input.submitAll);
 }
 
 async function sendDispatchPackedNotification(input: UpdateSalesControl) {
@@ -288,7 +319,22 @@ export const updateSalesControl = schemaTask({
 	run: async (input) => {
 		const action = resolveActionHandler(input as UpdateSalesControl);
 		if (action) {
+			if (shouldGateProductionStart(input as UpdateSalesControl)) {
+				await assertProductionReadinessForSale(db as any, {
+					salesOrderId: input.meta.salesId,
+					lineItemUids: getProductionReadinessGateLineUids(
+						input as UpdateSalesControl,
+					),
+					triggeredByUserId: input.meta.authorId,
+				});
+			}
 			const response = await action(db, input);
+			if (shouldSyncInventoryProductionLifecycle(input as UpdateSalesControl)) {
+				await syncInventoryProductionLifecycleForSale(
+					db as any,
+					input.meta.salesId,
+				);
+			}
 			if (input.packItems) {
 				await sendDispatchPackedNotification(input as UpdateSalesControl);
 			}

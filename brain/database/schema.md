@@ -41,6 +41,12 @@ Tracks important schema-level entities and ownership boundaries.
   - pickup packing now uses normal `OrderDelivery.status` transitions (`queue`, `completed`, `cancelled`) instead of requiring a dedicated live `packing queue` status
   - membership/history for the packing-list workflow is recorded through the `sales-packing-list` notification/activity channel
   - pickup packing signatures remain note-backed rather than adding a new `OrderDelivery` signature column; the active lookup still resolves by `deliveryId` tags from `NotePad`
+- Inventory shipment source-of-truth decision:
+  - `OrderDelivery` / `OrderItemDelivery` are canonical shipment records for the current inventory cutover phase; see `brain/decisions/ADR-008-inventory-shipment-record-source.md`
+  - inventory-origin shipments are distinguished by metadata such as `meta.source = "inventory_partial_shipment"` or `meta.source = "inventory_dispatch_mode"`
+  - `OrderItemDelivery.meta.lineItemId` links legacy shipment lines back to inventory `LineItem` when inventory mode writes the delivery
+  - `StockAllocation.status` remains the inventory reservation/pick/consume/release truth and should be reconciled against completed shipment lines
+  - do not add `SalesShipment` / `SalesShipmentLine` without a new ADR proving existing delivery tables plus metadata cannot meet the requirement
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

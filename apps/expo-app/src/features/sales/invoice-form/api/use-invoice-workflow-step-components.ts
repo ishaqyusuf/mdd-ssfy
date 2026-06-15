@@ -5,12 +5,6 @@ import type {
   WorkflowStepRecord,
 } from "@gnd/sales/sales-form-core";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import {
-  invoiceMobileWorkflowRouteData,
-  invoiceWorkflowStepComponents,
-} from "../mock-data";
-import { USE_MOCK_INVOICE_FORM } from "./config";
 
 type WorkflowComponentRow = WorkflowComponentRecord & Record<string, unknown>;
 type DoorSupplierRow = Record<string, unknown>;
@@ -18,7 +12,6 @@ type DoorSupplierRow = Record<string, unknown>;
 export function useInvoiceWorkflowStepComponents(step?: WorkflowStepRecord | null) {
   const stepId = Number(step?.stepId || step?.step?.id || 0);
   const stepTitle = String(step?.step?.title || step?.title || "");
-  const stepUid = String(step?.step?.uid || step?.uid || "");
   const hasStepLookup = Boolean(stepId) || Boolean(stepTitle.trim());
   const doorStep = stepTitle.trim().toLowerCase() === "door";
 
@@ -26,7 +19,7 @@ export function useInvoiceWorkflowStepComponents(step?: WorkflowStepRecord | nul
     _trpc.newSalesForm.getStepRouting.queryOptions(
       {},
       {
-        enabled: !USE_MOCK_INVOICE_FORM,
+        enabled: true,
         refetchOnWindowFocus: false,
       },
     ),
@@ -38,7 +31,7 @@ export function useInvoiceWorkflowStepComponents(step?: WorkflowStepRecord | nul
         stepTitle: stepId ? undefined : stepTitle || undefined,
       },
       {
-        enabled: !USE_MOCK_INVOICE_FORM && hasStepLookup,
+        enabled: hasStepLookup,
         refetchOnWindowFocus: false,
       },
     ),
@@ -47,42 +40,24 @@ export function useInvoiceWorkflowStepComponents(step?: WorkflowStepRecord | nul
     _trpc.sales.getSuppliers.queryOptions(
       {},
       {
-        enabled: !USE_MOCK_INVOICE_FORM && doorStep,
+        enabled: doorStep,
         refetchOnWindowFocus: false,
       },
     ),
   );
 
-  const mockComponents = useMemo(() => {
-    if (!USE_MOCK_INVOICE_FORM) return [];
-    const resolvedStepUid =
-      stepUid ||
-      (stepTitle.trim().toLowerCase() === "item type"
-        ? invoiceMobileWorkflowRouteData.rootStepUid || ""
-        : "");
-    return invoiceWorkflowStepComponents[resolvedStepUid] || [];
-  }, [stepTitle, stepUid]);
-
   return {
-    workflowRouteData: USE_MOCK_INVOICE_FORM
-      ? invoiceMobileWorkflowRouteData
-      : ((realWorkflowRoute.data as WorkflowRouteData | null | undefined) || null),
-    components: USE_MOCK_INVOICE_FORM
-      ? mockComponents
-      : listRows<WorkflowComponentRow>(realComponents.data).map(
-          mapWorkflowComponent,
-        ),
-    isLoadingComponents: USE_MOCK_INVOICE_FORM
-      ? false
-      : realWorkflowRoute.isPending || (hasStepLookup && realComponents.isPending),
-    doorSuppliers: USE_MOCK_INVOICE_FORM
-      ? []
-      : listRows<DoorSupplierRow>(
-          readStepProducts(realDoorSuppliers.data),
-        ).map(mapDoorSupplier),
-    isLoadingDoorSuppliers: USE_MOCK_INVOICE_FORM
-      ? false
-      : doorStep && realDoorSuppliers.isPending,
+    workflowRouteData:
+      (realWorkflowRoute.data as WorkflowRouteData | null | undefined) || null,
+    components: listRows<WorkflowComponentRow>(realComponents.data).map(
+      mapWorkflowComponent,
+    ),
+    isLoadingComponents:
+      realWorkflowRoute.isPending || (hasStepLookup && realComponents.isPending),
+    doorSuppliers: listRows<DoorSupplierRow>(
+      readStepProducts(realDoorSuppliers.data),
+    ).map(mapDoorSupplier),
+    isLoadingDoorSuppliers: doorStep && realDoorSuppliers.isPending,
     stepComponentsQuery: realComponents,
     refetchStepComponents: realComponents.refetch,
   };

@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Verify audit coverage for stock in/out, return, correction, consume, and release.
@@ -52,8 +52,17 @@ Create an audit matrix of all stock mutations, expected movement/audit action, r
 - Reason-code changes can affect reports.
 
 ## Open Questions
-- TODO: Should historical stock audit rows be backfilled?
+- Historical stock audit rows were not backfilled in this slice. The new report shows observed/partial/not-observed categories for the selected recent window.
 
 ## Linked Task
 - Task Title: Inventory Pending 14 - Stock Audit Verification
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Changed files: `packages/inventory/src/application/stock/stock-adjustment.ts`, `packages/inventory/src/application/stock/stock-adjustment.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, and `apps/www/src/components/inventory/inventory-stock-operations-page.tsx`.
+- Added `STOCK_AUDIT_MATRIX`, `getStockAuditExpectation(...)`, `buildStockAuditVerificationReport(...)`, and `getStockAuditVerificationReport(...)`.
+- Added protected tRPC route `inventories.stockAuditVerificationReport`.
+- Surfaced audit verification on the stock operations page with movement/log counts for stock in, stock out, return, correction, consume, and release.
+- Static scan found direct physical `InventoryStock.qty` writes in the expected receiving and manual stock-adjustment paths; receiving writes `stock_in` movement plus `inbound-received` inventory log, and manual adjustments write movement/log rows for each reason.
+- Checks run: `bun test packages/inventory/src/application/stock/stock-adjustment.test.ts`; import smoke for inventories router and stock operations page.
+- Deferred: browser/manual validation remains part of Pending 15; historical audit backfill remains a future data migration decision.

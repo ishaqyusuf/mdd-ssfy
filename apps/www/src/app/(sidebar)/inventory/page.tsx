@@ -1,8 +1,9 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { InventoryHeader } from "@/components/inventory-header";
+import { InventoryOperationsDashboard } from "@/components/inventory/inventory-operations-dashboard";
 import { DataTable } from "@/components/tables/inventory-products/data-table";
 import { TableSkeleton } from "@/components/tables/skeleton";
-import { InventoryStockAlertWidget } from "@/components/widgets/inventory-stock-alert-widget";
+import { InventoryTopSalesAnalytics } from "@/components/inventory/inventory-top-sales-analytics";
 import InventorySummaryWidgets from "@/components/widgets/inventory-summary-widgets";
 import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
@@ -42,7 +43,8 @@ export default async function Page(props: Props) {
 			<HydrateClient>
 				<div className="flex flex-col gap-6">
 					<InventorySummaryWidgets />
-					<InventoryStockAlertWidget />
+					<InventoryOperationsDashboard />
+					<InventoryTopSalesAnalytics />
 					<InventoryHeader />
 					<ErrorBoundary errorComponent={ErrorFallback}>
 						<Suspense fallback={<TableSkeleton />}>

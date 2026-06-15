@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Bridge `update-sales-control` production assignment and completion events into inventory line/component lifecycle projections.
@@ -52,8 +52,17 @@ Add a package-level bridge that runs after successful sales-control commands and
 - Existing legacy sales production data may be incomplete.
 
 ## Open Questions
-- TODO: Should production lifecycle fields be persisted or derived?
+- Resolved for this slice: persist the production lifecycle projection in `LineItem.meta.production` so stock/component fulfillment fields remain dedicated to physical inventory allocation, inbound, pick, consume, and release state.
 
 ## Linked Task
 - Task Title: Inventory Pending 03 - Production Assignment Completion Inventory Lifecycle Bridge
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Completed Date: 2026-06-15
+- Added a package-level production lifecycle bridge, `syncInventoryProductionLifecycleForSale`, that repairs/creates inventory sale lines through `syncSalesInventoryLineItems` and then recomputes production projection from persisted production assignments/submissions.
+- Wired the bridge into `update-sales-control` after successful production-related actions: assignment create, submit-all completion, submission update/delete, assignment delete, and mark-as-completed.
+- Inventory lines now store `meta.production` with `orderedQty`, `assignedQty`, `fulfilledQty`, `remainingQty`, `status`, and `updatedAt`.
+- Production fulfillment status remains separate from `LineItemComponents.status`, which continues to describe stock allocation/inbound/fulfillment.
+- Validation: `bun test packages/sales/src/inventory-production-lifecycle.test.ts` passed with 4 tests and 9 assertions; `bun -e` import check for `packages/jobs/src/tasks/sales/update-sales-control.ts` passed; scoped `git diff --check` passed.
+- Not run by default per Fast Bun discipline: broad package typecheck, build, browser validation, or dev server.

@@ -848,6 +848,1670 @@ export async function inventoryVariantStockForm(db: Db, inventoryId) {
     showAllPricedOnly,
   };
 }
+
+type InventoryItemDashboardSummaryInput = {
+  variants: Array<{
+    lowStockAlert?: number | null;
+    stocks?: Array<{
+      qty?: number | null;
+      price?: number | null;
+    }>;
+    stockMovements?: Array<unknown>;
+  }>;
+  inboundDemands?: Array<{
+    qty?: number | null;
+    qtyReceived?: number | null;
+    status?: string | null;
+  }>;
+  allocations?: Array<{
+    qty?: number | null;
+    status?: string | null;
+  }>;
+  relatedLineItems?: Array<{
+    lineItemType?: string | null;
+    sale?: {
+      type?: string | null;
+    } | null;
+  }>;
+};
+
+function isQuoteInventoryLine(
+  line: InventoryItemDashboardSummaryInput["relatedLineItems"][number],
+) {
+  const lineType = String(line.lineItemType || "").toLowerCase();
+  const saleType = String(line.sale?.type || "").toLowerCase();
+  return lineType === "quote" || saleType.includes("quote");
+}
+
+export function buildInventoryItemDashboardSummary(
+  input: InventoryItemDashboardSummaryInput,
+) {
+  const variantStocks = input.variants.map((variant) => {
+    const qty = (variant.stocks || []).reduce(
+      (total, stock) => total + Number(stock.qty || 0),
+      0,
+    );
+    const value = (variant.stocks || []).reduce(
+      (total, stock) =>
+        total + Number(stock.qty || 0) * Number(stock.price || 0),
+      0,
+    );
+    return {
+      qty,
+      value,
+      lowStockAlert: variant.lowStockAlert,
+      movementCount: variant.stockMovements?.length || 0,
+    };
+  });
+
+  const openInboundQty = (input.inboundDemands || []).reduce(
+    (total, demand) => {
+      if (["received", "cancelled"].includes(String(demand.status || ""))) {
+        return total;
+      }
+      return (
+        total +
+        Math.max(0, Number(demand.qty || 0) - Number(demand.qtyReceived || 0))
+      );
+    },
+    0,
+  );
+
+  const allocationQtyByStatus = (input.allocations || []).reduce(
+    (acc, allocation) => {
+      const status = String(allocation.status || "unknown");
+      acc[status] = (acc[status] || 0) + Number(allocation.qty || 0);
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const quoteCount = (input.relatedLineItems || []).filter((line) =>
+    isQuoteInventoryLine(line),
+  ).length;
+  const salesCount = (input.relatedLineItems || []).filter(
+    (line) => !isQuoteInventoryLine(line),
+  ).length;
+
+  return {
+    variantCount: input.variants.length,
+    totalStockQty: variantStocks.reduce((total, row) => total + row.qty, 0),
+    totalStockValue: variantStocks.reduce((total, row) => total + row.value, 0),
+    lowStockVariantCount: variantStocks.filter(
+      (row) => row.lowStockAlert != null && row.qty <= Number(row.lowStockAlert),
+    ).length,
+    movementCount: variantStocks.reduce(
+      (total, row) => total + row.movementCount,
+      0,
+    ),
+    openInboundQty,
+    allocationQtyByStatus,
+    activeAllocationQty: Object.entries(allocationQtyByStatus)
+      .filter(([status]) => !["cancelled", "released"].includes(status))
+      .reduce((total, [, qty]) => total + qty, 0),
+    salesCount,
+    quoteCount,
+  };
+}
+
+type InventoryOperationsVariantLike = {
+  id: number;
+  uid?: string | null;
+  sku?: string | null;
+  description?: string | null;
+  lowStockAlert?: number | null;
+  inventory?: {
+    id: number;
+    name?: string | null;
+    stockMode?: string | null;
+    inventoryCategory?: {
+      title?: string | null;
+      stockMode?: string | null;
+    } | null;
+    defaultSupplier?: {
+      id: number;
+      name: string;
+    } | null;
+  } | null;
+  stocks?: Array<{
+    qty?: number | null;
+  }>;
+  supplierVariants?: Array<{
+    preferred?: boolean | null;
+    supplier?: {
+      id: number;
+      name: string;
+    } | null;
+    leadTimeDays?: number | null;
+  }>;
+};
+
+type InventoryOperationsQuantityLike = {
+  qty?: number | null;
+  qtyReceived?: number | null;
+};
+
+function effectiveStockMode(variant: InventoryOperationsVariantLike) {
+  return (
+    variant.inventory?.inventoryCategory?.stockMode ||
+    variant.inventory?.stockMode ||
+    "unmonitored"
+  );
+}
+
+function variantStockQty(variant: InventoryOperationsVariantLike) {
+  return (variant.stocks || []).reduce(
+    (total, stock) => total + Number(stock.qty || 0),
+    0,
+  );
+}
+
+export function buildInventoryOperationsSummary(input: {
+  variants: InventoryOperationsVariantLike[];
+  openInboundDemands?: InventoryOperationsQuantityLike[];
+  pendingAllocations?: Array<{ qty?: number | null }>;
+  backorderLineIds?: number[];
+  productionBlockerComponentIds?: number[];
+}) {
+  const alerts = input.variants
+    .map((variant) => {
+      const stockQty = variantStockQty(variant);
+      const stockMode = effectiveStockMode(variant);
+      const preferredSupplier =
+        variant.supplierVariants?.find((supplier) => supplier.preferred) ||
+        variant.supplierVariants?.[0] ||
+        null;
+      return {
+        inventoryId: variant.inventory?.id ?? null,
+        inventoryName: variant.inventory?.name || "Unknown inventory",
+        categoryName: variant.inventory?.inventoryCategory?.title || null,
+        inventoryVariantId: variant.id,
+        variantSku: variant.sku,
+        variantUid: variant.uid,
+        variantDescription: variant.description,
+        stockMode,
+        stockQty,
+        lowStockAlert: variant.lowStockAlert ?? null,
+        supplierId:
+          preferredSupplier?.supplier?.id ||
+          variant.inventory?.defaultSupplier?.id ||
+          null,
+        supplierName:
+          preferredSupplier?.supplier?.name ||
+          variant.inventory?.defaultSupplier?.name ||
+          null,
+        leadTimeDays: preferredSupplier?.leadTimeDays ?? null,
+        isTracked: stockMode === "monitored",
+        isLowStock:
+          stockMode === "monitored" &&
+          variant.lowStockAlert != null &&
+          stockQty <= Number(variant.lowStockAlert),
+        isOutOfStock: stockMode === "monitored" && stockQty <= 0,
+      };
+    })
+    .filter((alert) => alert.isLowStock || alert.isOutOfStock)
+    .sort(
+      (a, b) =>
+        Number(b.isOutOfStock) - Number(a.isOutOfStock) ||
+        a.stockQty - b.stockQty ||
+        String(a.inventoryName).localeCompare(String(b.inventoryName)),
+    );
+
+  const trackedVariants = input.variants.filter(
+    (variant) => effectiveStockMode(variant) === "monitored",
+  );
+  const trackedItemIds = new Set(
+    trackedVariants
+      .map((variant) => variant.inventory?.id)
+      .filter((id): id is number => typeof id === "number"),
+  );
+  const allItemIds = new Set(
+    input.variants
+      .map((variant) => variant.inventory?.id)
+      .filter((id): id is number => typeof id === "number"),
+  );
+  const openInboundQty = (input.openInboundDemands || []).reduce(
+    (total, demand) =>
+      total +
+      Math.max(0, Number(demand.qty || 0) - Number(demand.qtyReceived || 0)),
+    0,
+  );
+  const pendingAllocationQty = (input.pendingAllocations || []).reduce(
+    (total, allocation) => total + Number(allocation.qty || 0),
+    0,
+  );
+
+  return {
+    summary: {
+      totalVariants: input.variants.length,
+      trackedVariants: trackedVariants.length,
+      untrackedVariants: input.variants.length - trackedVariants.length,
+      trackedItems: trackedItemIds.size,
+      untrackedItems: allItemIds.size - trackedItemIds.size,
+      lowStockVariants: alerts.filter((alert) => alert.isLowStock).length,
+      outOfStockVariants: alerts.filter((alert) => alert.isOutOfStock).length,
+      openInboundDemandCount: input.openInboundDemands?.length || 0,
+      openInboundQty,
+      pendingAllocationCount: input.pendingAllocations?.length || 0,
+      pendingAllocationQty,
+      backorderedLineCount: new Set(input.backorderLineIds || []).size,
+      productionBlockerCount: new Set(input.productionBlockerComponentIds || [])
+        .size,
+    },
+    alerts: alerts.slice(0, 10),
+    trackingPolicy: {
+      itemLevel: true,
+      variantOverride: false,
+      thresholdField: "InventoryVariant.lowStockAlert",
+      stockModeSource: "InventoryCategory.stockMode || Inventory.stockMode",
+    },
+  };
+}
+
+export async function inventoryOperationsSummary(db: Db) {
+  const [variants, openInboundDemands, pendingAllocations, backorderComponents, productionBlockers] =
+    await Promise.all([
+      db.inventoryVariant.findMany({
+        where: {
+          deletedAt: null,
+          inventory: {
+            deletedAt: null,
+            productKind: "inventory",
+            ...({ sourceCustom: false } as any),
+          },
+        },
+        take: 2000,
+        orderBy: {
+          id: "asc",
+        },
+        select: {
+          id: true,
+          uid: true,
+          sku: true,
+          description: true,
+          lowStockAlert: true,
+          inventory: {
+            select: {
+              id: true,
+              name: true,
+              stockMode: true,
+              inventoryCategory: {
+                select: {
+                  title: true,
+                  stockMode: true,
+                },
+              },
+              defaultSupplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          stocks: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              qty: true,
+            },
+          },
+          supplierVariants: {
+            where: {
+              deletedAt: null,
+              active: true,
+            },
+            orderBy: [
+              {
+                preferred: "desc",
+              },
+              {
+                id: "asc",
+              },
+            ],
+            take: 3,
+            select: {
+              preferred: true,
+              leadTimeDays: true,
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      db.inboundDemand.findMany({
+        where: {
+          deletedAt: null,
+          status: {
+            in: ["pending", "ordered", "partially_received"],
+          },
+        },
+        take: 2000,
+        select: {
+          qty: true,
+          qtyReceived: true,
+        },
+      }),
+      db.stockAllocation.findMany({
+        where: {
+          deletedAt: null,
+          status: "pending_review",
+        },
+        take: 2000,
+        select: {
+          qty: true,
+        },
+      }),
+      db.lineItemComponents.findMany({
+        where: {
+          inboundDemands: {
+            some: {
+              deletedAt: null,
+              status: {
+                in: ["pending", "ordered", "partially_received"],
+              },
+            },
+          },
+          parent: {
+            deletedAt: null,
+            lineItemType: "SALE",
+            sale: {
+              is: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
+        take: 2000,
+        select: {
+          lineItemId: true,
+        },
+      }),
+      db.lineItemComponents.findMany({
+        where: {
+          required: true,
+          status: {
+            in: [
+              "pending",
+              "partially_allocated",
+              "inbound_required",
+              "partially_received",
+            ],
+          },
+          parent: {
+            deletedAt: null,
+            lineItemType: "SALE",
+            sale: {
+              is: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
+        take: 2000,
+        select: {
+          id: true,
+        },
+      }),
+    ]);
+
+  return buildInventoryOperationsSummary({
+    variants,
+    openInboundDemands,
+    pendingAllocations,
+    backorderLineIds: backorderComponents.map((component) => component.lineItemId),
+    productionBlockerComponentIds: productionBlockers.map((component) => component.id),
+  });
+}
+
+export async function getInventoryItemDashboard(
+  db: Db,
+  input: { inventoryId: number },
+) {
+  const item = await db.inventory.findFirst({
+    where: {
+      id: input.inventoryId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      uid: true,
+      productKind: true,
+      stockMode: true,
+      status: true,
+      description: true,
+      sourceStepUid: true,
+      sourceComponentUid: true,
+      sourceCustom: true,
+      createdAt: true,
+      updatedAt: true,
+      inventoryCategory: {
+        select: {
+          id: true,
+          title: true,
+          productKind: true,
+          stockMode: true,
+          type: true,
+        },
+      },
+      defaultSupplier: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+      images: {
+        take: 1,
+        where: {
+          primary: true,
+        },
+        select: {
+          imageGallery: {
+            select: {
+              path: true,
+              provider: true,
+              bucket: true,
+            },
+          },
+        },
+      },
+      variants: {
+        where: {
+          deletedAt: null,
+        },
+        orderBy: {
+          id: "asc",
+        },
+        select: {
+          id: true,
+          uid: true,
+          sku: true,
+          description: true,
+          status: true,
+          lowStockAlert: true,
+          pricing: {
+            select: {
+              price: true,
+              costPrice: true,
+            },
+          },
+          attributes: {
+            where: {
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              inventoryCategoryVariantAttribute: {
+                select: {
+                  id: true,
+                  valuesInventoryCategory: {
+                    select: {
+                      title: true,
+                    },
+                  },
+                },
+              },
+              value: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          supplierVariants: {
+            where: {
+              deletedAt: null,
+              active: true,
+            },
+            take: 5,
+            orderBy: [
+              {
+                preferred: "desc",
+              },
+              {
+                id: "asc",
+              },
+            ],
+            select: {
+              id: true,
+              supplierSku: true,
+              costPrice: true,
+              salesPrice: true,
+              minOrderQty: true,
+              leadTimeDays: true,
+              preferred: true,
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          stocks: {
+            where: {
+              deletedAt: null,
+            },
+            orderBy: {
+              id: "asc",
+            },
+            select: {
+              id: true,
+              qty: true,
+              price: true,
+              location: true,
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              updatedAt: true,
+            },
+          },
+          stockMovements: {
+            where: {
+              deletedAt: null,
+            },
+            take: 10,
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              prevQty: true,
+              currentQty: true,
+              changeQty: true,
+              type: true,
+              status: true,
+              reference: true,
+              notes: true,
+              authorName: true,
+              createdAt: true,
+            },
+          },
+          inboundDemands: {
+            where: {
+              deletedAt: null,
+              status: {
+                not: "cancelled",
+              },
+            },
+            take: 20,
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              qty: true,
+              qtyReceived: true,
+              status: true,
+              notes: true,
+              createdAt: true,
+              inboundShipmentItem: {
+                select: {
+                  id: true,
+                  inbound: {
+                    select: {
+                      id: true,
+                      reference: true,
+                      status: true,
+                      expectedAt: true,
+                      supplier: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              lineItemComponent: {
+                select: {
+                  id: true,
+                  parent: {
+                    select: {
+                      id: true,
+                      title: true,
+                      sale: {
+                        select: {
+                          id: true,
+                          orderId: true,
+                          type: true,
+                          status: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          stockAllocations: {
+            where: {
+              deletedAt: null,
+              status: {
+                notIn: ["cancelled", "released"],
+              },
+            },
+            take: 20,
+            orderBy: {
+              createdAt: "desc",
+            },
+            select: {
+              id: true,
+              qty: true,
+              status: true,
+              notes: true,
+              createdAt: true,
+              inventoryStock: {
+                select: {
+                  id: true,
+                  location: true,
+                  qty: true,
+                },
+              },
+              lineItemComponent: {
+                select: {
+                  id: true,
+                  parent: {
+                    select: {
+                      id: true,
+                      title: true,
+                      sale: {
+                        select: {
+                          id: true,
+                          orderId: true,
+                          type: true,
+                          status: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      lineItems: {
+        where: {
+          deletedAt: null,
+          lineItemType: {
+            in: ["SALE", "QUOTE"],
+          },
+          sale: {
+            is: {
+              deletedAt: null,
+            },
+          },
+        },
+        take: 30,
+        orderBy: {
+          createdAt: "desc",
+        },
+        select: {
+          id: true,
+          uid: true,
+          title: true,
+          qty: true,
+          totalCost: true,
+          lineItemType: true,
+          createdAt: true,
+          sale: {
+            select: {
+              id: true,
+              orderId: true,
+              slug: true,
+              type: true,
+              status: true,
+              grandTotal: true,
+              amountDue: true,
+              createdAt: true,
+              customer: {
+                select: {
+                  id: true,
+                  name: true,
+                  businessName: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!item) return null;
+
+  const flattenedStocks = item.variants.flatMap((variant) =>
+    variant.stocks.map((stock) => ({
+      ...stock,
+      inventoryVariantId: variant.id,
+      variantSku: variant.sku,
+      variantDescription: variant.description,
+    })),
+  );
+  const flattenedMovements = item.variants.flatMap((variant) =>
+    variant.stockMovements.map((movement) => ({
+      ...movement,
+      inventoryVariantId: variant.id,
+      variantSku: variant.sku,
+    })),
+  );
+  const flattenedInboundDemands = item.variants.flatMap((variant) =>
+    variant.inboundDemands.map((demand) => ({
+      ...demand,
+      inventoryVariantId: variant.id,
+      variantSku: variant.sku,
+    })),
+  );
+  const flattenedAllocations = item.variants.flatMap((variant) =>
+    variant.stockAllocations.map((allocation) => ({
+      ...allocation,
+      inventoryVariantId: variant.id,
+      variantSku: variant.sku,
+    })),
+  );
+
+  const summary = buildInventoryItemDashboardSummary({
+    variants: item.variants,
+    inboundDemands: flattenedInboundDemands,
+    allocations: flattenedAllocations,
+    relatedLineItems: item.lineItems,
+  });
+
+  const relatedQuotes = item.lineItems.filter((line) =>
+    isQuoteInventoryLine(line),
+  );
+  const relatedSales = item.lineItems.filter(
+    (line) => !isQuoteInventoryLine(line),
+  );
+
+  return {
+    item: {
+      id: item.id,
+      name: item.name,
+      uid: item.uid,
+      productKind: item.productKind,
+      stockMode:
+        item.inventoryCategory?.stockMode || item.stockMode || "unmonitored",
+      status: item.status || "draft",
+      description: item.description,
+      sourceStepUid: item.sourceStepUid,
+      sourceComponentUid: item.sourceComponentUid,
+      sourceCustom: item.sourceCustom,
+      category: item.inventoryCategory,
+      defaultSupplier: item.defaultSupplier,
+      img: {
+        path: item.images?.[0]?.imageGallery?.path,
+        provider: item.images?.[0]?.imageGallery?.provider,
+        bucket: item.images?.[0]?.imageGallery?.bucket,
+      },
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    },
+    summary,
+    variants: item.variants.map((variant) => {
+      const stockQty = variant.stocks.reduce(
+        (total, stock) => total + Number(stock.qty || 0),
+        0,
+      );
+      return {
+        ...variant,
+        stockQty,
+        stockValue: variant.stocks.reduce(
+          (total, stock) =>
+            total + Number(stock.qty || 0) * Number(stock.price || 0),
+          0,
+        ),
+        isLowStock:
+          variant.lowStockAlert != null &&
+          stockQty <= Number(variant.lowStockAlert),
+      };
+    }),
+    stocks: flattenedStocks,
+    movements: flattenedMovements.slice(0, 20),
+    inboundDemands: flattenedInboundDemands,
+    allocations: flattenedAllocations,
+    relatedSales,
+    relatedQuotes,
+  };
+}
+
+export type InventoryVariantsWorkspaceQuery = {
+  q?: string | null;
+  inventoryId?: number | null;
+  categoryId?: number | null;
+  supplierId?: number | null;
+  status?: string | null;
+  stockMode?: string | null;
+  lowStock?: boolean | null;
+  cursorId?: number | null;
+  limit?: number | null;
+};
+
+export function buildInventoryVariantWorkspaceRow(variant: {
+  id: number;
+  uid?: string | null;
+  sku?: string | null;
+  description?: string | null;
+  status?: string | null;
+  lowStockAlert?: number | null;
+  inventory?: {
+    id: number;
+    name: string;
+    uid?: string | null;
+    status?: string | null;
+    stockMode?: string | null;
+    inventoryCategory?: {
+      id: number;
+      title: string;
+      stockMode?: string | null;
+    } | null;
+    defaultSupplier?: {
+      id: number;
+      name: string;
+    } | null;
+  };
+  pricing?: {
+    price?: number | null;
+    costPrice?: number | null;
+  } | null;
+  stocks?: Array<{
+    id: number;
+    qty?: number | null;
+    price?: number | null;
+    location?: string | null;
+    supplier?: {
+      id: number;
+      name: string;
+    } | null;
+  }>;
+  supplierVariants?: Array<{
+    id: number;
+    supplierSku?: string | null;
+    costPrice?: number | null;
+    salesPrice?: number | null;
+    leadTimeDays?: number | null;
+    preferred?: boolean | null;
+    supplier?: {
+      id: number;
+      name: string;
+    };
+  }>;
+  attributes?: Array<{
+    id: number;
+    value?: {
+      id: number;
+      name: string;
+    } | null;
+    inventoryCategoryVariantAttribute?: {
+      id: number;
+      valuesInventoryCategory?: {
+        title: string;
+      } | null;
+    } | null;
+  }>;
+}) {
+  const stockQty = (variant.stocks || []).reduce(
+    (total, stock) => total + Number(stock.qty || 0),
+    0,
+  );
+  const stockValue = (variant.stocks || []).reduce(
+    (total, stock) =>
+      total + Number(stock.qty || 0) * Number(stock.price || 0),
+    0,
+  );
+  const preferredSupplier =
+    (variant.supplierVariants || []).find((supplier) => supplier.preferred) ||
+    variant.supplierVariants?.[0] ||
+    null;
+  const stockMode =
+    variant.inventory?.inventoryCategory?.stockMode ||
+    variant.inventory?.stockMode ||
+    "unmonitored";
+
+  return {
+    id: variant.id,
+    uid: variant.uid,
+    sku: variant.sku,
+    description: variant.description,
+    status: variant.status || "draft",
+    lowStockAlert: variant.lowStockAlert,
+    stockQty,
+    stockValue,
+    isLowStock:
+      variant.lowStockAlert != null && stockQty <= Number(variant.lowStockAlert),
+    stockMode,
+    price: variant.pricing?.price ?? null,
+    costPrice: variant.pricing?.costPrice ?? null,
+    inventory: variant.inventory,
+    category: variant.inventory?.inventoryCategory || null,
+    preferredSupplier,
+    supplierCount: variant.supplierVariants?.length || 0,
+    suppliers: variant.supplierVariants || [],
+    stocks: variant.stocks || [],
+    attributes: variant.attributes || [],
+  };
+}
+
+export async function inventoryVariantsWorkspace(
+  db: Db,
+  query: InventoryVariantsWorkspaceQuery,
+) {
+  const limit = Math.min(Math.max(Number(query.limit || 50), 1), 100);
+  const where: Prisma.InventoryVariantWhereInput = {
+    deletedAt: null,
+    inventory: {
+      deletedAt: null,
+      productKind: "inventory",
+      ...({ sourceCustom: false } as any),
+    },
+  };
+  const and: Prisma.InventoryVariantWhereInput[] = [];
+
+  if (query.q?.trim()) {
+    const q = query.q.trim();
+    and.push({
+      OR: [
+        {
+          sku: {
+            contains: q,
+          },
+        },
+        {
+          uid: {
+            contains: q,
+          },
+        },
+        {
+          description: {
+            contains: q,
+          },
+        },
+        {
+          inventory: {
+            name: {
+              contains: q,
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  if (query.inventoryId) {
+    and.push({
+      inventoryId: query.inventoryId,
+    });
+  }
+
+  if (query.categoryId) {
+    and.push({
+      inventory: {
+        inventoryCategoryId: query.categoryId,
+      },
+    });
+  }
+
+  if (query.supplierId) {
+    and.push({
+      supplierVariants: {
+        some: {
+          deletedAt: null,
+          active: true,
+          supplierId: query.supplierId,
+        },
+      },
+    });
+  }
+
+  if (query.status) {
+    and.push({
+      status: query.status,
+    });
+  }
+
+  if (query.stockMode) {
+    and.push({
+      inventory: {
+        OR: [
+          {
+            stockMode: query.stockMode,
+          },
+          {
+            inventoryCategory: {
+              stockMode: query.stockMode,
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  if (query.cursorId) {
+    and.push({
+      id: {
+        gt: query.cursorId,
+      },
+    });
+  }
+
+  if (query.lowStock) {
+    and.push({
+      lowStockAlert: {
+        gt: 0,
+      },
+    });
+  }
+
+  if (and.length) {
+    where.AND = and;
+  }
+
+  const variants = await db.inventoryVariant.findMany({
+    where,
+    take: limit + 1,
+    orderBy: {
+      id: "asc",
+    },
+    select: {
+      id: true,
+      uid: true,
+      sku: true,
+      description: true,
+      status: true,
+      lowStockAlert: true,
+      inventory: {
+        select: {
+          id: true,
+          name: true,
+          uid: true,
+          status: true,
+          stockMode: true,
+          inventoryCategory: {
+            select: {
+              id: true,
+              title: true,
+              stockMode: true,
+            },
+          },
+          defaultSupplier: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      pricing: {
+        select: {
+          price: true,
+          costPrice: true,
+        },
+      },
+      stocks: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          qty: true,
+          price: true,
+          location: true,
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      supplierVariants: {
+        where: {
+          deletedAt: null,
+          active: true,
+        },
+        orderBy: [
+          {
+            preferred: "desc",
+          },
+          {
+            id: "asc",
+          },
+        ],
+        select: {
+          id: true,
+          supplierSku: true,
+          costPrice: true,
+          salesPrice: true,
+          leadTimeDays: true,
+          preferred: true,
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      attributes: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          value: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          inventoryCategoryVariantAttribute: {
+            select: {
+              id: true,
+              valuesInventoryCategory: {
+                select: {
+                  title: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const hasMore = variants.length > limit;
+  const rows = variants.slice(0, limit).map(buildInventoryVariantWorkspaceRow);
+  const data = query.lowStock ? rows.filter((row) => row.isLowStock) : rows;
+
+  return {
+    data,
+    meta: {
+      count: data.length,
+      hasMore,
+      cursor: hasMore ? variants[limit - 1]?.id : null,
+    },
+  };
+}
+
+export type InventoryTopSalesAnalyticsQuery = {
+  inventoryId?: number | null;
+  categoryId?: number | null;
+  supplierId?: number | null;
+  from?: Date | string | null;
+  to?: Date | string | null;
+  limit?: number | null;
+};
+
+type InventoryTopSalesInventoryLike = {
+  id?: number | null;
+  name?: string | null;
+  uid?: string | null;
+  inventoryCategory?: {
+    id?: number | null;
+    title?: string | null;
+  } | null;
+  defaultSupplier?: {
+    id?: number | null;
+    name?: string | null;
+  } | null;
+};
+
+type InventoryTopSalesVariantLike = {
+  id?: number | null;
+  uid?: string | null;
+  sku?: string | null;
+  description?: string | null;
+  inventory?: InventoryTopSalesInventoryLike | null;
+};
+
+export type InventoryTopSalesLineLike = {
+  id?: number | null;
+  saleId?: number | null;
+  qty?: number | null;
+  unitCost?: number | null;
+  totalCost?: number | null;
+  inventoryId?: number | null;
+  inventoryVariantId?: number | null;
+  inventory?: InventoryTopSalesInventoryLike | null;
+  variant?: InventoryTopSalesVariantLike | null;
+  price?: {
+    costPrice?: number | null;
+    unitCostPrice?: number | null;
+  } | null;
+};
+
+export type InventoryTopSalesAllocationLike = {
+  id?: number | null;
+  qty?: number | null;
+  inventoryVariantId?: number | null;
+  inventoryVariant?: InventoryTopSalesVariantLike | null;
+  lineItemComponent?: {
+    parent?: {
+      saleId?: number | null;
+    } | null;
+  } | null;
+};
+
+type InventoryTopSalesRow = {
+  key: string;
+  inventoryId: number | null;
+  inventoryName: string | null;
+  inventoryUid: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
+  supplierId: number | null;
+  supplierName: string | null;
+  inventoryVariantId: number | null;
+  variantSku: string | null;
+  variantUid: string | null;
+  variantDescription: string | null;
+  orderedQty: number;
+  shippedQty: number;
+  revenue: number;
+  costValue: number;
+  grossMargin: number;
+  lineCount: number;
+  saleIds: Set<number>;
+  revenueLineCount: number;
+  costLineCount: number;
+};
+
+function numberOrZero(value?: number | null) {
+  const numeric = Number(value || 0);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function roundMetric(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+function createTopSalesRow(
+  key: string,
+  inventory: InventoryTopSalesInventoryLike | null | undefined,
+  variant?: InventoryTopSalesVariantLike | null,
+): InventoryTopSalesRow {
+  return {
+    key,
+    inventoryId: inventory?.id ?? null,
+    inventoryName: inventory?.name ?? null,
+    inventoryUid: inventory?.uid ?? null,
+    categoryId: inventory?.inventoryCategory?.id ?? null,
+    categoryName: inventory?.inventoryCategory?.title ?? null,
+    supplierId: inventory?.defaultSupplier?.id ?? null,
+    supplierName: inventory?.defaultSupplier?.name ?? null,
+    inventoryVariantId: variant?.id ?? null,
+    variantSku: variant?.sku ?? null,
+    variantUid: variant?.uid ?? null,
+    variantDescription: variant?.description ?? null,
+    orderedQty: 0,
+    shippedQty: 0,
+    revenue: 0,
+    costValue: 0,
+    grossMargin: 0,
+    lineCount: 0,
+    saleIds: new Set<number>(),
+    revenueLineCount: 0,
+    costLineCount: 0,
+  };
+}
+
+function serializeTopSalesRow(row: InventoryTopSalesRow) {
+  return {
+    key: row.key,
+    inventoryId: row.inventoryId,
+    inventoryName: row.inventoryName,
+    inventoryUid: row.inventoryUid,
+    categoryId: row.categoryId,
+    categoryName: row.categoryName,
+    supplierId: row.supplierId,
+    supplierName: row.supplierName,
+    inventoryVariantId: row.inventoryVariantId,
+    variantSku: row.variantSku,
+    variantUid: row.variantUid,
+    variantDescription: row.variantDescription,
+    orderedQty: roundMetric(row.orderedQty),
+    shippedQty: roundMetric(row.shippedQty),
+    revenue: roundMetric(row.revenue),
+    costValue: roundMetric(row.costValue),
+    grossMargin: roundMetric(row.grossMargin),
+    lineCount: row.lineCount,
+    saleCount: row.saleIds.size,
+    revenueLineCount: row.revenueLineCount,
+    costLineCount: row.costLineCount,
+  };
+}
+
+export function buildInventoryTopSalesAnalytics(input: {
+  lineItems: InventoryTopSalesLineLike[];
+  allocations: InventoryTopSalesAllocationLike[];
+  limit?: number | null;
+}) {
+  const limit = Math.min(Math.max(Number(input.limit || 10), 1), 50);
+  const itemRows = new Map<string, InventoryTopSalesRow>();
+  const variantRows = new Map<string, InventoryTopSalesRow>();
+
+  function getItemRow(inventory: InventoryTopSalesInventoryLike | null | undefined) {
+    const inventoryId = inventory?.id ?? null;
+    const key = inventoryId ? `inventory:${inventoryId}` : "inventory:unknown";
+    if (!itemRows.has(key)) {
+      itemRows.set(key, createTopSalesRow(key, inventory));
+    }
+    return itemRows.get(key)!;
+  }
+
+  function getVariantRow(variant: InventoryTopSalesVariantLike | null | undefined) {
+    const inventory = variant?.inventory;
+    const inventoryId = inventory?.id ?? null;
+    const variantId = variant?.id ?? null;
+    const key =
+      inventoryId && variantId
+        ? `inventory:${inventoryId}:variant:${variantId}`
+        : `inventory:${inventoryId || "unknown"}:variant:${variantId || "unknown"}`;
+    if (!variantRows.has(key)) {
+      variantRows.set(key, createTopSalesRow(key, inventory, variant));
+    }
+    return variantRows.get(key)!;
+  }
+
+  for (const line of input.lineItems) {
+    const qty = numberOrZero(line.qty);
+    const revenue = line.totalCost != null
+      ? numberOrZero(line.totalCost)
+      : numberOrZero(line.unitCost) * qty;
+    const unitCost =
+      line.price?.unitCostPrice != null
+        ? numberOrZero(line.price.unitCostPrice)
+        : numberOrZero(line.price?.costPrice);
+    const costValue = unitCost > 0 ? unitCost * qty : 0;
+    const saleId = line.saleId ?? null;
+
+    const itemRow = getItemRow(line.inventory);
+    const variantRow = getVariantRow({
+      ...line.variant,
+      inventory: line.inventory,
+    });
+
+    for (const row of [itemRow, variantRow]) {
+      row.orderedQty += qty;
+      row.revenue += revenue;
+      row.costValue += costValue;
+      row.grossMargin += costValue > 0 ? revenue - costValue : 0;
+      row.lineCount += 1;
+      if (saleId) row.saleIds.add(saleId);
+      if (revenue > 0) row.revenueLineCount += 1;
+      if (costValue > 0) row.costLineCount += 1;
+    }
+  }
+
+  for (const allocation of input.allocations) {
+    const qty = numberOrZero(allocation.qty);
+    const variant = allocation.inventoryVariant;
+    const saleId = allocation.lineItemComponent?.parent?.saleId ?? null;
+    const itemRow = getItemRow(variant?.inventory);
+    const variantRow = getVariantRow(variant);
+
+    for (const row of [itemRow, variantRow]) {
+      row.shippedQty += qty;
+      if (saleId) row.saleIds.add(saleId);
+    }
+  }
+
+  const items = Array.from(itemRows.values()).map(serializeTopSalesRow);
+  const variants = Array.from(variantRows.values()).map(serializeTopSalesRow);
+  const byOrdered = <T extends { orderedQty: number; revenue: number }>(rows: T[]) =>
+    [...rows]
+      .sort((a, b) => b.orderedQty - a.orderedQty || b.revenue - a.revenue)
+      .slice(0, limit);
+  const byShipped = <T extends { shippedQty: number; orderedQty: number }>(rows: T[]) =>
+    [...rows]
+      .sort((a, b) => b.shippedQty - a.shippedQty || b.orderedQty - a.orderedQty)
+      .slice(0, limit);
+
+  return {
+    summary: {
+      inventoryBackedLineCount: input.lineItems.length,
+      consumedAllocationCount: input.allocations.length,
+      orderedQty: roundMetric(
+        items.reduce((total, row) => total + row.orderedQty, 0),
+      ),
+      shippedQty: roundMetric(
+        items.reduce((total, row) => total + row.shippedQty, 0),
+      ),
+      revenue: roundMetric(items.reduce((total, row) => total + row.revenue, 0)),
+      costValue: roundMetric(
+        items.reduce((total, row) => total + row.costValue, 0),
+      ),
+      grossMargin: roundMetric(
+        items.reduce((total, row) => total + row.grossMargin, 0),
+      ),
+      revenueReliableLineCount: items.reduce(
+        (total, row) => total + row.revenueLineCount,
+        0,
+      ),
+      costReliableLineCount: items.reduce(
+        (total, row) => total + row.costLineCount,
+        0,
+      ),
+    },
+    topItemsByOrderedQty: byOrdered(items),
+    topItemsByShippedQty: byShipped(items),
+    topVariantsByOrderedQty: byOrdered(variants),
+    topVariantsByShippedQty: byShipped(variants),
+    caveats: [
+      "Only inventory-backed sales line items are included.",
+      "Shipped quantity is based on consumed stock allocations.",
+      "Revenue and cost use persisted line/pricing snapshots and may exclude legacy-only or unmapped sales.",
+    ],
+  };
+}
+
+function parseAnalyticsDate(value?: Date | string | null) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+export async function inventoryTopSalesAnalytics(
+  db: Db,
+  query: InventoryTopSalesAnalyticsQuery = {},
+) {
+  const now = new Date();
+  const defaultFrom = new Date(now);
+  defaultFrom.setDate(defaultFrom.getDate() - 90);
+  const from = parseAnalyticsDate(query.from) || defaultFrom;
+  const to = parseAnalyticsDate(query.to) || now;
+  const limit = Math.min(Math.max(Number(query.limit || 10), 1), 50);
+
+  const inventoryWhere: Prisma.InventoryWhereInput = {
+    deletedAt: null,
+    productKind: "inventory",
+    ...({ sourceCustom: false } as any),
+  };
+  if (query.inventoryId) {
+    inventoryWhere.id = query.inventoryId;
+  }
+  if (query.categoryId) {
+    inventoryWhere.inventoryCategoryId = query.categoryId;
+  }
+  if (query.supplierId) {
+    inventoryWhere.defaultSupplierId = query.supplierId;
+  }
+
+  const lineItems = await db.lineItem.findMany({
+    where: {
+      deletedAt: null,
+      lineItemType: "SALE",
+      inventory: inventoryWhere,
+      sale: {
+        is: {
+          deletedAt: null,
+          createdAt: {
+            gte: from,
+            lte: to,
+          },
+        },
+      },
+    },
+    take: 2000,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      saleId: true,
+      qty: true,
+      unitCost: true,
+      totalCost: true,
+      inventoryId: true,
+      inventoryVariantId: true,
+      inventory: {
+        select: {
+          id: true,
+          name: true,
+          uid: true,
+          inventoryCategory: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          defaultSupplier: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      variant: {
+        select: {
+          id: true,
+          uid: true,
+          sku: true,
+          description: true,
+        },
+      },
+      price: {
+        select: {
+          costPrice: true,
+          unitCostPrice: true,
+        },
+      },
+    },
+  });
+
+  const allocationInventoryWhere: Prisma.InventoryWhereInput = {
+    deletedAt: null,
+    productKind: "inventory",
+    ...({ sourceCustom: false } as any),
+  };
+  if (query.inventoryId) {
+    allocationInventoryWhere.id = query.inventoryId;
+  }
+  if (query.categoryId) {
+    allocationInventoryWhere.inventoryCategoryId = query.categoryId;
+  }
+  if (query.supplierId) {
+    allocationInventoryWhere.defaultSupplierId = query.supplierId;
+  }
+
+  const allocations = await db.stockAllocation.findMany({
+    where: {
+      deletedAt: null,
+      status: "consumed",
+      inventoryVariant: {
+        inventory: allocationInventoryWhere,
+      },
+      lineItemComponent: {
+        parent: {
+          deletedAt: null,
+          lineItemType: "SALE",
+          sale: {
+            is: {
+              deletedAt: null,
+              createdAt: {
+                gte: from,
+                lte: to,
+              },
+            },
+          },
+        },
+      },
+    },
+    take: 2000,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      qty: true,
+      inventoryVariantId: true,
+      inventoryVariant: {
+        select: {
+          id: true,
+          uid: true,
+          sku: true,
+          description: true,
+          inventory: {
+            select: {
+              id: true,
+              name: true,
+              uid: true,
+              inventoryCategory: {
+                select: {
+                  id: true,
+                  title: true,
+                },
+              },
+              defaultSupplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      lineItemComponent: {
+        select: {
+          parent: {
+            select: {
+              saleId: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return {
+    ...buildInventoryTopSalesAnalytics({
+      lineItems,
+      allocations,
+      limit,
+    }),
+    period: {
+      from,
+      to,
+      defaultWindowDays: 90,
+    },
+  };
+}
 export async function lowStockSummary(db: Db) {
   const variants = await db.inventoryVariant.findMany({
     where: {

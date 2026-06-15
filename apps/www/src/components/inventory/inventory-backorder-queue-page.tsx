@@ -136,6 +136,12 @@ export function InventoryBackorderQueuePage() {
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-2">
+					<Button asChild type="button" variant="outline">
+						<Link href="/inventory/partial-shipments">
+							<Icons.Truck className="mr-2 size-4" />
+							Partial Shipments
+						</Link>
+					</Button>
 					<Button
 						type="button"
 						variant="outline"
@@ -240,6 +246,11 @@ export function InventoryBackorderQueuePage() {
 												{formatLabel(item.inventoryStatus)}
 											</Badge>
 										) : null}
+										{item.holdUntilComplete ? (
+											<Badge variant="outline" className="capitalize">
+												Hold until complete
+											</Badge>
+										) : null}
 									</div>
 									<div className="text-sm text-muted-foreground">
 										{item.customerName || "Unknown customer"} -{" "}
@@ -248,6 +259,7 @@ export function InventoryBackorderQueuePage() {
 									<div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
 										<span>Ordered {formatQty(item.orderedQty)}</span>
 										<span>Allocated {formatQty(item.allocatedQty)}</span>
+										<span>Available {formatQty(item.availableToShipQty)}</span>
 										<span>Picked {formatQty(item.pickedQty)}</span>
 										<span>Shipped {formatQty(item.shippedQty)}</span>
 										<span>Remaining {formatQty(item.remainingQty)}</span>
@@ -303,7 +315,8 @@ export function InventoryBackorderQueuePage() {
 										disabled={
 											shipAvailable.isPending ||
 											!item.salesOrderId ||
-											!item.lineItemId
+											!item.lineItemId ||
+											!item.canShipNow
 										}
 									>
 										<Icons.Truck className="mr-2 size-4" />

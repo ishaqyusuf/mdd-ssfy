@@ -14,8 +14,9 @@ import {
 	SelectValue,
 } from "@gnd/ui/select";
 import { Textarea } from "@gnd/ui/textarea";
-import { useMutation } from "@gnd/ui/tanstack";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import { Badge } from "@gnd/ui/badge";
 
 type StockAdjustmentInput = RouterInputs["inventories"]["adjustInventoryStock"];
 type StockAdjustmentReason = StockAdjustmentInput["reason"];
@@ -31,6 +32,12 @@ const reasonOptions: Array<{ label: string; value: StockAdjustmentReason }> = [
 	{ label: "Stock In", value: "stock_in" },
 	{ label: "Stock Out", value: "stock_out" },
 ];
+
+function auditStatusVariant(status?: string | null) {
+	if (status === "verified") return "default";
+	if (status === "partial") return "secondary";
+	return "outline";
+}
 
 function nullableNumber(value: string) {
 	if (!value.trim()) return null;
@@ -55,6 +62,9 @@ export function InventoryStockOperationsPage() {
 	const [reason, setReason] = useState<StockAdjustmentReason>("correction");
 	const [reference, setReference] = useState("");
 	const [notes, setNotes] = useState("");
+	const auditReport = useQuery(
+		trpc.inventories.stockAuditVerificationReport.queryOptions(undefined),
+	);
 
 	const adjustment = useMutation(
 		trpc.inventories.adjustInventoryStock.mutationOptions({
@@ -226,6 +236,74 @@ export function InventoryStockOperationsPage() {
 					>
 						{adjustment.isPending ? "Posting..." : "Post Adjustment"}
 					</Button>
+				</div>
+			</Card>
+
+			<Card className="p-4">
+				<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+					<div>
+						<h3 className="text-base font-semibold">Audit Verification</h3>
+						<div className="text-sm text-muted-foreground">
+							{auditReport.data
+								? `${auditReport.data.summary.verifiedCategories} of ${auditReport.data.summary.totalCategories} categories verified in recent audit rows.`
+								: "Checking recent stock movement and inventory log rows."}
+						</div>
+					</div>
+					{auditReport.data ? (
+						<div className="flex flex-wrap gap-2 text-sm">
+							<Badge variant="outline">
+								{auditReport.data.summary.movementCount} movements
+							</Badge>
+							<Badge variant="outline">
+								{auditReport.data.summary.logCount} logs
+							</Badge>
+						</div>
+					) : null}
+				</div>
+
+				<div className="mt-4 overflow-hidden rounded-md border">
+					{auditReport.data?.rows.map((row) => (
+						<div
+							key={row.category}
+							className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1fr_1fr_1fr_auto]"
+						>
+							<div>
+								<div className="font-medium capitalize">
+									{row.category.replaceAll("_", " ")}
+								</div>
+								<div className="text-xs text-muted-foreground">
+									Reason: {row.reason}
+								</div>
+							</div>
+							<div>
+								<div className="text-xs uppercase text-muted-foreground">
+									Movement
+								</div>
+								<div>
+									{row.movementCount} / {row.expectedMovementTypes.join(", ")}
+								</div>
+							</div>
+							<div>
+								<div className="text-xs uppercase text-muted-foreground">
+									Log
+								</div>
+								<div>{row.logCount} / {row.expectedLogActions.join(", ")}</div>
+							</div>
+							<div className="md:text-right">
+								<Badge
+									variant={auditStatusVariant(row.status)}
+									className="capitalize"
+								>
+									{row.status.replaceAll("_", " ")}
+								</Badge>
+							</div>
+						</div>
+					))}
+					{auditReport.isLoading ? (
+						<div className="p-4 text-sm text-muted-foreground">
+							Loading audit verification...
+						</div>
+					) : null}
 				</div>
 			</Card>
 		</div>

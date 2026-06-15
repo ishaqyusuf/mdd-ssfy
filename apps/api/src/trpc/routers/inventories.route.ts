@@ -38,16 +38,24 @@ import {
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
 import {
   allocateReceivedInboundToBackorders,
+  assignInventoryDispatchAllocations,
+  fulfillInventoryDispatch,
   getSalesBackorderQueue,
   getSalesFulfillmentPlan,
+  getSalesPartialShipmentQueue,
   getSalesProductionPlan,
+  packInventoryDispatchAllocations,
+  releaseInventoryDispatchAllocations,
+  setSalesInventoryLineFulfillmentHold,
   shipAvailableSalesInventory,
 } from "@gnd/sales/sales-fulfillment-plan";
+import { getInventoryReconciliationReport } from "@gnd/sales/inventory-reconciliation-report";
 import { getSalesInventoryOverview } from "@gnd/sales/sales-inventory-overview";
 import { getSalesInventorySyncMonitor } from "@gnd/sales/sales-inventory-sync-monitor";
 import {
   allocateReceivedInboundToBackordersSchemaTask,
   backfillSalesInventoryLineItemsSchemaTask,
+  inventoryReconciliationReportSchemaTask,
 } from "@gnd/jobs/schema";
 import {
   adjustInventoryStock,
@@ -60,9 +68,14 @@ import {
   getInventoryCategoryForm,
   inventoryCategories,
   inventoryForm,
+  getInventoryItemDashboard,
+  getStockAuditVerificationReport,
   inventoryList,
+  inventoryOperationsSummary,
   inventorySummary,
   inventorySummarySchema,
+  inventoryTopSalesAnalytics,
+  inventoryVariantsWorkspace,
   inventoryVariantStockForm,
   lowStockSummary,
   resetInventorySystem,
@@ -142,6 +155,28 @@ import {
 //   weightBasedFormSchema,
 //   zoneBasedFormSchema,
 // } from "@sales/shipping";
+const inventoryDispatchTransitionSchema = z.object({
+  salesOrderId: z.number().optional().nullable(),
+  lineItemIds: z.array(z.number()).optional(),
+  allocationIds: z.array(z.number()).optional(),
+  note: z.string().optional().nullable(),
+});
+
+const inventoryDispatchFulfillSchema = z.object({
+  salesOrderId: z.number(),
+  lineItemIds: z.array(z.number()).optional(),
+  deliveryMode: z.string().optional().nullable(),
+  deliveredTo: z.string().optional().nullable(),
+  authorName: z.string().optional().nullable(),
+  note: z.string().optional().nullable(),
+});
+
+const inventoryLineFulfillmentHoldSchema = z.object({
+  lineItemId: z.number(),
+  holdUntilComplete: z.boolean(),
+  note: z.string().optional().nullable(),
+});
+
 export const inventoriesRouter = createTRPCRouter({
   pendingAllocations: protectedProcedure
     .input(stockAllocationReviewSchema)
@@ -418,6 +453,18 @@ export const inventoriesRouter = createTRPCRouter({
         authorName: props.input.authorName || String(props.ctx.userId ?? "Inventory"),
       });
     }),
+  stockAuditVerificationReport: protectedProcedure
+    .input(
+      z
+        .object({
+          from: z.date().optional().nullable(),
+          to: z.date().optional().nullable(),
+        })
+        .optional(),
+    )
+    .query(async (props) => {
+      return getStockAuditVerificationReport(props.ctx.db, props.input ?? {});
+    }),
   reportInboundItemIssue: protectedProcedure
     .input(inboundItemIssueFormSchema)
     .mutation(async (props) => {
@@ -486,6 +533,9 @@ export const inventoriesRouter = createTRPCRouter({
     }),
   lowStockSummary: publicProcedure.query(async (props) => {
     return lowStockSummary(props.ctx.db);
+  }),
+  inventoryOperationsSummary: protectedProcedure.query(async (props) => {
+    return inventoryOperationsSummary(props.ctx.db);
   }),
   upsertShelfProducts: publicProcedure
     .input(upsertInventoriesForDykeShelfProductsSchema)
@@ -643,6 +693,16 @@ export const inventoriesRouter = createTRPCRouter({
     .query(async (props) => {
       return getSalesInventorySyncMonitor(props.ctx.db, props.input ?? {});
     }),
+  inventoryReconciliationReport: protectedProcedure
+    .input(inventoryReconciliationReportSchemaTask.optional())
+    .query(async (props) => {
+      return getInventoryReconciliationReport(props.ctx.db, props.input ?? {});
+    }),
+  runInventoryReconciliationReport: protectedProcedure
+    .input(inventoryReconciliationReportSchemaTask)
+    .mutation(async (props) => {
+      return tasks.trigger("run-inventory-reconciliation-report", props.input);
+    }),
   salesFulfillmentPlan: protectedProcedure
     .input(
       z.object({
@@ -673,6 +733,29 @@ export const inventoriesRouter = createTRPCRouter({
     )
     .query(async (props) => {
       return getSalesBackorderQueue(props.ctx.db, props.input);
+    }),
+  salesPartialShipmentQueue: protectedProcedure
+    .input(
+      z.object({
+        salesOrderId: z.number().optional().nullable(),
+        statuses: z
+          .array(
+            z.enum([
+              "available_now",
+              "held_until_complete",
+              "awaiting_inbound",
+              "backordered",
+              "ready_to_ship_remaining",
+            ]),
+          )
+          .optional()
+          .nullable(),
+        cursorId: z.number().optional().nullable(),
+        limit: z.number().min(1).max(200).optional(),
+      }),
+    )
+    .query(async (props) => {
+      return getSalesPartialShipmentQueue(props.ctx.db, props.input);
     }),
   salesProductionPlan: protectedProcedure
     .input(
@@ -714,6 +797,48 @@ export const inventoriesRouter = createTRPCRouter({
         ...props.input,
         createdByUserId: props.ctx.userId ?? null,
         authorName: props.input.authorName || String(props.ctx.userId ?? "Inventory"),
+      });
+    }),
+  setSalesInventoryLineFulfillmentHold: protectedProcedure
+    .input(inventoryLineFulfillmentHoldSchema)
+    .mutation(async (props) => {
+      return setSalesInventoryLineFulfillmentHold(props.ctx.db, {
+        ...props.input,
+        authorName: String(props.ctx.userId ?? "Inventory"),
+      });
+    }),
+  assignInventoryDispatchAllocations: protectedProcedure
+    .input(inventoryDispatchTransitionSchema)
+    .mutation(async (props) => {
+      return assignInventoryDispatchAllocations(props.ctx.db, {
+        ...props.input,
+        note: props.input.note || "Assigned by inventory dispatch mode.",
+      });
+    }),
+  packInventoryDispatchAllocations: protectedProcedure
+    .input(inventoryDispatchTransitionSchema)
+    .mutation(async (props) => {
+      return packInventoryDispatchAllocations(props.ctx.db, {
+        ...props.input,
+        note: props.input.note || "Picked by inventory dispatch mode.",
+      });
+    }),
+  fulfillInventoryDispatch: protectedProcedure
+    .input(inventoryDispatchFulfillSchema)
+    .mutation(async (props) => {
+      return fulfillInventoryDispatch(props.ctx.db, {
+        ...props.input,
+        createdByUserId: props.ctx.userId ?? null,
+        authorName: props.input.authorName || String(props.ctx.userId ?? "Inventory"),
+        note: props.input.note || "Fulfilled by inventory dispatch mode.",
+      });
+    }),
+  releaseInventoryDispatchAllocations: protectedProcedure
+    .input(inventoryDispatchTransitionSchema)
+    .mutation(async (props) => {
+      return releaseInventoryDispatchAllocations(props.ctx.db, {
+        ...props.input,
+        note: props.input.note || "Released by inventory dispatch mode.",
       });
     }),
   allocateReceivedInboundToBackorders: protectedProcedure
@@ -795,6 +920,48 @@ export const inventoriesRouter = createTRPCRouter({
     .input(inventoryListSchema)
     .query(async (props) => {
       return inventoryList(props.ctx.db, props.input);
+    }),
+  inventoryItemDashboard: protectedProcedure
+    .input(
+      z.object({
+        inventoryId: z.number(),
+      }),
+    )
+    .query(async (props) => {
+      return getInventoryItemDashboard(props.ctx.db, props.input);
+    }),
+  inventoryVariantsWorkspace: protectedProcedure
+    .input(
+      z.object({
+        q: z.string().optional().nullable(),
+        inventoryId: z.number().optional().nullable(),
+        categoryId: z.number().optional().nullable(),
+        supplierId: z.number().optional().nullable(),
+        status: z.string().optional().nullable(),
+        stockMode: z.string().optional().nullable(),
+        lowStock: z.boolean().optional().nullable(),
+        cursorId: z.number().optional().nullable(),
+        limit: z.number().min(1).max(100).optional().nullable(),
+      }),
+    )
+    .query(async (props) => {
+      return inventoryVariantsWorkspace(props.ctx.db, props.input);
+    }),
+  inventoryTopSalesAnalytics: protectedProcedure
+    .input(
+      z
+        .object({
+          inventoryId: z.number().optional().nullable(),
+          categoryId: z.number().optional().nullable(),
+          supplierId: z.number().optional().nullable(),
+          from: z.date().optional().nullable(),
+          to: z.date().optional().nullable(),
+          limit: z.number().min(1).max(50).optional().nullable(),
+        })
+        .optional(),
+    )
+    .query(async (props) => {
+      return inventoryTopSalesAnalytics(props.ctx.db, props.input ?? {});
     }),
   inventoryProductKindReview: protectedProcedure
     .input(inventoryProductKindReviewSchema)

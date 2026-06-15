@@ -1,11 +1,16 @@
 import type { Db } from "@gnd/db";
 import type { DykeInventoryDriftReport } from "../../schema";
+import { buildLegacyDoorSupplierPricingKeys } from "../suppliers/suppliers";
 
 export async function getDykeInventoryDriftReport(
   db: Db,
   input: DykeInventoryDriftReport,
 ) {
   const isNonEmptyString = (value: string | null): value is string => !!value;
+  const resolveGenericVariantPrice = (pricing: {
+    price?: number | null;
+    costPrice?: number | null;
+  }) => pricing.costPrice ?? pricing.price ?? null;
 
   // ---- Existing structural drift ----
   const components = await db.dykeStepProducts.findMany({
@@ -177,6 +182,8 @@ export async function getDykeInventoryDriftReport(
     dependenciesUid: string | null;
     dykePrice: number;
     expectedPrice: number | null;
+    reason?: string;
+    source?: "generic_variant" | "supplier_variant";
   }> = [];
 
   const inventoryPricingRows = await db.inventoryVariantPricing.findMany({
@@ -210,14 +217,53 @@ export async function getDykeInventoryDriftReport(
   for (const ip of inventoryPricingRows) {
     const variantUid = ip.inventoryVariant?.uid;
     const productUid = ip.inventoryVariant?.inventory?.uid;
-    const price = ip.price ?? ip.costPrice ?? null;
+    const price = resolveGenericVariantPrice(ip);
     if (variantUid && productUid && price != null) {
       variantPriceMap.set(variantUid, { price, variantUid, productUid });
     }
   }
 
-  if (variantPriceMap.size > 0) {
-    const variantUids = Array.from(variantPriceMap.keys());
+  const supplierVariantRows = await db.supplierVariant.findMany({
+    where: {
+      deletedAt: null,
+      active: true,
+      inventoryVariant: {
+        inventory: {
+          uid: { in: productUids },
+          deletedAt: null,
+        },
+      },
+    },
+    select: {
+      id: true,
+      costPrice: true,
+      salesPrice: true,
+      meta: true,
+      supplier: {
+        select: { uid: true },
+      },
+      inventoryVariant: {
+        select: {
+          uid: true,
+          inventory: {
+            select: { uid: true },
+          },
+          attributes: {
+            select: {
+              value: {
+                select: {
+                  uid: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (variantPriceMap.size > 0 || supplierVariantRows.length > 0) {
     const affectedDykePricings = await db.dykePricingSystem.findMany({
       where: {
         stepProductUid: { in: productUids },
@@ -243,6 +289,89 @@ export async function getDykeInventoryDriftReport(
           dependenciesUid: dp.dependenciesUid ?? null,
           dykePrice: dp.price,
           expectedPrice: expected.price,
+          source: "generic_variant",
+        });
+      }
+    }
+
+    for (const supplierVariant of supplierVariantRows) {
+      const productUid = supplierVariant.inventoryVariant?.inventory?.uid;
+      const supplierUid = supplierVariant.supplier?.uid;
+      const effectivePrice =
+        supplierVariant.salesPrice ?? supplierVariant.costPrice ?? null;
+
+      if (!productUid || !supplierUid || effectivePrice == null) continue;
+
+      const meta = supplierVariant.meta as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      const originalKey =
+        typeof meta?.pricingKey === "string" && meta.pricingKey.trim()
+          ? meta.pricingKey.trim()
+          : null;
+      const originalSize =
+        typeof meta?.size === "string" && meta.size.trim()
+          ? meta.size.trim()
+          : null;
+      const depValues = supplierVariant.inventoryVariant.attributes
+        .map((attribute) => attribute.value?.uid ?? attribute.value?.name)
+        .filter((value): value is string => !!value);
+      const candidateSet = new Set<string>();
+
+      if (originalKey) candidateSet.add(originalKey);
+      for (const key of buildLegacyDoorSupplierPricingKeys({
+        supplierUid,
+        size: originalSize,
+        depValues: depValues.length ? depValues : undefined,
+      })) {
+        candidateSet.add(key);
+      }
+
+      const candidateKeys = Array.from(candidateSet);
+      const matchingRows = affectedDykePricings.filter(
+        (pricing) =>
+          pricing.stepProductUid === productUid &&
+          candidateKeys.includes(pricing.dependenciesUid ?? ""),
+      );
+
+      if (matchingRows.length > 1) {
+        pricingMismatches.push({
+          dykePricingId: matchingRows[0]!.id,
+          stepProductUid: productUid,
+          dependenciesUid: originalKey,
+          dykePrice: matchingRows[0]!.price,
+          expectedPrice: effectivePrice,
+          reason: "ambiguous_supplier_pricing_match",
+          source: "supplier_variant",
+        });
+        continue;
+      }
+
+      if (matchingRows.length === 1) {
+        const match = matchingRows[0]!;
+        if (Math.abs(match.price - effectivePrice) > 0.001) {
+          pricingMismatches.push({
+            dykePricingId: match.id,
+            stepProductUid: productUid,
+            dependenciesUid: match.dependenciesUid ?? null,
+            dykePrice: match.price,
+            expectedPrice: effectivePrice,
+            source: "supplier_variant",
+          });
+        }
+        continue;
+      }
+
+      if (originalKey) {
+        pricingMismatches.push({
+          dykePricingId: 0,
+          stepProductUid: productUid,
+          dependenciesUid: originalKey,
+          dykePrice: 0,
+          expectedPrice: effectivePrice,
+          reason: "missing_supplier_dyke_pricing",
+          source: "supplier_variant",
         });
       }
     }

@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Add inventory-mode dispatch that assigns, packs, fulfills, consumes, and releases inventory allocations while preserving legacy dispatch compatibility.
@@ -54,8 +54,20 @@ Add a gated inventory dispatch mode backed by `SalesFulfillmentPlan` and `StockA
 - Mixed legacy/inventory-backed orders need clear fallback behavior.
 
 ## Open Questions
-- TODO: Should inventory dispatch mode be per sale, per dispatch batch, or per line?
+- Resolved for this slice: inventory dispatch mode supports sale-level, line-level, and allocation-level scoping. Fulfillment writes legacy `OrderDelivery` / `OrderItemDelivery` compatibility records until Pending 05 decides whether explicit shipment records should be added.
 
 ## Linked Task
 - Task Title: Inventory Pending 04 - Inventory Mode Dispatch Assign Pack Fulfill
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Completed Date: 2026-06-15
+- Added inventory dispatch allocation transition planning and commands:
+  - assign: `approved` -> `reserved`
+  - pack: `reserved` -> `picked`
+  - release: `approved` / `reserved` / `picked` -> `released`
+  - unsafe states such as `pending_review`, `consumed`, `released`, and `cancelled` are skipped with structured reasons.
+- Added picked-only inventory dispatch fulfillment that consumes only `picked` allocations and writes legacy completed `OrderDelivery` / `OrderItemDelivery` rows with `source: "inventory_dispatch_mode"`.
+- Added inventory router procedures for assign, pack, fulfill, and release inventory dispatch mode.
+- Validation: `bun test packages/sales/src/sales-fulfillment-plan.test.ts` passed with 15 tests and 44 assertions; import check for `apps/api/src/trpc/routers/inventories.route.ts` passed.
+- Not run by default per Fast Bun discipline: broad package typecheck, build, browser validation, or dev server.

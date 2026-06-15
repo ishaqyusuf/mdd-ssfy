@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Sync inventory variant price and supplier-variant price updates back to legacy Dyke pricing rows while preserving legacy sales compatibility and avoiding guessed or ambiguous pricing writes.
@@ -120,3 +120,12 @@ Do not invent new supplier key formats. Do not write supplier-specific prices in
 ## Linked Task
 - Task Title: Inventory Pending 02 - Inventory Variant Supplier Price Sync To Dyke
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Completed Date: 2026-06-15
+- Landed generic inventory variant pricing projection into `DykePricingSystem` with `InventoryVariant.uid` as `dependenciesUid`.
+- Generic variant sync now prefers inventory `costPrice` over stale `price`, matching the inventory edit paths used by `updateVariantCost` and `saveVariantForm`.
+- Supplier variant sync updates exact preserved/candidate legacy pricing rows, creates only from preserved `SupplierVariant.meta.pricingKey`, and skips unsafe missing/ambiguous cases under `result.pricing.skipped`.
+- Drift reporting now uses the same generic price precedence and includes supplier variant pricing drift based on preserved/generatable legacy keys.
+- Validation: `bun test packages/inventory/src/application/sync/inventory-to-dyke-sync.test.ts` passed with 34 tests and 81 assertions.
+- Not run by default per Fast Bun discipline: broad package typecheck, build, browser validation, or dev server.

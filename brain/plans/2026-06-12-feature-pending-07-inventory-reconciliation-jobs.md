@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Add reconciliation jobs for Dyke/inventory, sales-control/inventory, stock/allocation, and print parity drift.
@@ -54,8 +54,19 @@ Create dry-run-first reconciliation jobs with scoped repair options only after r
 - Long-running jobs need cursoring and bounded samples.
 
 ## Open Questions
-- TODO: Which drift domains should page/alert operators?
+- Resolved for this slice: expose the report through `inventories.inventoryReconciliationReport` and queue it with `inventories.runInventoryReconciliationReport`.
+- Deferred: browser/alert treatment belongs with Pending 15 inventory browser validation and the later operations dashboard work.
 
 ## Linked Task
 - Task Title: Inventory Pending 07 - Inventory Reconciliation Jobs
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Added a dry-run reconciliation report service in `packages/sales/src/inventory-reconciliation-report.ts`.
+- The report checks inventory-backed sales lines for missing component rows, completed delivery quantity vs consumed inventory allocation quantity, and component fulfillment status vs allocation/inbound state.
+- Each domain returns checked count, drift count, severity, samples, skipped count, skipped reasons, cursor, and has-more state.
+- Added Trigger task `run-inventory-reconciliation-report` with bounded limit/cursor payloads and no mutation or repair behavior.
+- Added protected tRPC query `inventories.inventoryReconciliationReport` and protected mutation `inventories.runInventoryReconciliationReport`.
+- Existing Dyke/inventory definition and pricing drift remains covered by `inventories.dykeInventoryDriftReport`; this slice adds the missing sales/stock reconciliation job surface beside it.
+- Repair actions were intentionally not added; repair remains explicit through existing sync/backfill endpoints after an operator reviews drift.
+- Focused validation: `bun test packages/sales/src/inventory-reconciliation-report.test.ts` and import smoke for the inventories router plus Trigger task.

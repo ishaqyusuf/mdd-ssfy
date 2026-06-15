@@ -3,8 +3,8 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
-		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --",
+		"with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --",
 		"dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-1355} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4100} TZ=UTC portless gnd-site next dev --turbopack",
 		"clean": "git clean -xdf .next .turbo node_modules",
 		"build": "bun run with-env:prod env next build --turbopack",

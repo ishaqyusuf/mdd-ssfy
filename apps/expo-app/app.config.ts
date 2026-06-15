@@ -1,6 +1,6 @@
 import { ExpoConfig } from "expo/config";
 
-export const UPDATE_VERSION = "2026.05.21.02";
+export const UPDATE_VERSION = "2026.06.15";
 
 const config: ExpoConfig = {
   name: "GND Millwork",
@@ -45,6 +45,8 @@ const config: ExpoConfig = {
 
   plugins: [
     "expo-router",
+    "expo-font",
+    "expo-web-browser",
     [
       "expo-splash-screen",
       {

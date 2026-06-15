@@ -56,6 +56,73 @@ function lineTitle(line: SalesFulfillmentLineProjection) {
 	return line.title || (line.id ? `Line item ${line.id}` : "Untitled line item");
 }
 
+function getBlockingComponents(line: SalesFulfillmentLineProjection) {
+	const required = line.components.filter((component) => component.required);
+	return required.length ? required : line.components;
+}
+
+function unitsAvailableFromComponents(
+	line: SalesFulfillmentLineProjection,
+	readQty: (component: SalesFulfillmentComponentProjection) => number,
+) {
+	const orderedQty = numberValue(line.orderedQty);
+	if (orderedQty <= 0) return 0;
+
+	const blockingComponents = getBlockingComponents(line);
+	if (!blockingComponents.length) return 0;
+
+	const availableUnits = blockingComponents.map((component) => {
+		const componentOrderedQty = numberValue(component.orderedQty);
+		const perUnitQty =
+			componentOrderedQty > 0 ? componentOrderedQty / orderedQty : 1;
+		if (perUnitQty <= 0) return orderedQty;
+
+		return Math.floor(numberValue(readQty(component)) / perUnitQty);
+	});
+
+	return Math.max(0, Math.min(orderedQty, ...availableUnits));
+}
+
+function inventoryPickedQty(line: SalesFulfillmentLineProjection) {
+	return Math.max(
+		numberValue(line.pickedQty),
+		unitsAvailableFromComponents(line, (component) => component.pickedQty),
+	);
+}
+
+function inventoryShippedQty(line: SalesFulfillmentLineProjection) {
+	return Math.max(
+		numberValue(line.shippedQty),
+		unitsAvailableFromComponents(line, (component) => component.shippedQty),
+	);
+}
+
+function inventoryBackorderedQty(line: SalesFulfillmentLineProjection) {
+	const orderedQty = numberValue(line.orderedQty);
+	const blockingComponents = getBlockingComponents(line);
+	const componentBackorderUnits = blockingComponents.length
+		? orderedQty -
+			unitsAvailableFromComponents(line, (component) =>
+				Math.max(component.allocatedQty, component.shippedQty),
+			)
+		: 0;
+
+	return Math.max(numberValue(line.backorderedQty), componentBackorderUnits, 0);
+}
+
+function inventoryLineStatus(line: SalesFulfillmentLineProjection) {
+	const orderedQty = numberValue(line.orderedQty);
+	const shippedQty = inventoryShippedQty(line);
+	const pickedQty = inventoryPickedQty(line);
+	const backorderedQty = inventoryBackorderedQty(line);
+
+	if (orderedQty > 0 && shippedQty >= orderedQty) return "fulfilled";
+	if (shippedQty > 0) return "partially_fulfilled";
+	if (pickedQty > 0 && backorderedQty <= 0) return "ready_to_ship_remaining";
+
+	return line.status;
+}
+
 function cell(
 	value: string | number | null,
 	colSpan: number,
@@ -106,6 +173,29 @@ function inventorySummaryHeaders(): CellHeader[] {
 		{ title: "Remaining", key: "remaining", colSpan: 1.5, align: "center" },
 		{ title: "Inventory Status", key: "status", colSpan: 3, align: "center" },
 	];
+}
+
+function getInventoryPrintPacketTitle(
+	lines: SalesFulfillmentLineProjection[],
+	mode: PrintMode,
+) {
+	if (mode === "production") return "Inventory Production BOM";
+	if (mode === "order-packing") return "Inventory Pick List";
+	if (mode === "packing-slip") return "Inventory Packing List";
+
+	const hasOpenBackorder = lines.some(
+		(line) =>
+			line.backorderedQty > 0 ||
+			line.components.some(
+				(component) =>
+					component.backorderedQty > 0 ||
+					component.inboundQty > component.receivedQty,
+			),
+	);
+
+	return hasOpenBackorder
+		? "Inventory Backorder Summary"
+		: "Inventory Customer Remaining Summary";
 }
 
 function buildProductionRows(
@@ -163,52 +253,64 @@ function buildProductionRows(
 }
 
 function buildPackingRows(lines: SalesFulfillmentLineProjection[]): LineItemRow[] {
-	return lines.map((line, index) => ({
-		cells: [
-			cell(index + 1, 1, "center", true),
-			cell(lineTitle(line), 6, "left", true),
-			cell(numberValue(line.orderedQty), 1.5, "center"),
-			cell(numberValue(line.pickedQty), 1.5, "center"),
-			cell(numberValue(line.shippedQty), 1.5, "center"),
-			cell(numberValue(line.remainingQty), 1.5, "center", true),
-			cell(numberValue(line.backorderedQty), 1.5, "center", true),
-			cell(formatStatus(line.status), 2, "center"),
-		],
-		componentDetails: line.components
-			.filter(
-				(component) =>
-					component.backorderedQty > 0 ||
-					component.inboundQty > component.receivedQty,
-			)
-			.map((component) => ({
-				label: componentName(component),
-				value: [
-					component.backorderedQty > 0
-						? `Backorder ${numberValue(component.backorderedQty)}`
-						: null,
-					component.inboundQty > 0
-						? `Inbound ${numberValue(component.receivedQty)} / ${numberValue(
-								component.inboundQty,
-							)}`
-						: null,
-				]
-					.filter(Boolean)
-					.join(" | "),
-			})),
-	}));
+	return lines.map((line, index) => {
+		const shippedQty = inventoryShippedQty(line);
+		const backorderedQty = inventoryBackorderedQty(line);
+		return {
+			cells: [
+				cell(index + 1, 1, "center", true),
+				cell(lineTitle(line), 6, "left", true),
+				cell(numberValue(line.orderedQty), 1.5, "center"),
+				cell(inventoryPickedQty(line), 1.5, "center"),
+				cell(shippedQty, 1.5, "center"),
+				cell(Math.max(0, numberValue(line.orderedQty) - shippedQty), 1.5, "center", true),
+				cell(backorderedQty, 1.5, "center", true),
+				cell(formatStatus(inventoryLineStatus(line)), 2, "center"),
+			],
+			componentDetails: line.components
+				.filter(
+					(component) =>
+						component.backorderedQty > 0 ||
+						component.inboundQty > component.receivedQty,
+				)
+				.map((component) => ({
+					label: componentName(component),
+					value: [
+						component.backorderedQty > 0
+							? `Backorder ${numberValue(component.backorderedQty)}`
+							: null,
+						component.inboundQty > 0
+							? `Inbound ${numberValue(component.receivedQty)} / ${numberValue(
+									component.inboundQty,
+								)}`
+							: null,
+					]
+						.filter(Boolean)
+						.join(" | "),
+				})),
+		};
+	});
 }
 
 function buildSummaryRows(lines: SalesFulfillmentLineProjection[]): LineItemRow[] {
-	return lines.map((line, index) => ({
-		cells: [
-			cell(index + 1, 1, "center", true),
-			cell(lineTitle(line), 6, "left", true),
-			cell(numberValue(line.orderedQty), 1.5, "center"),
-			cell(numberValue(line.allocatedQty), 1.5, "center"),
-			cell(numberValue(line.remainingQty), 1.5, "center", true),
-			cell(formatStatus(line.status), 3, "center"),
-		],
-	}));
+	return lines.map((line, index) => {
+		const shippedQty = inventoryShippedQty(line);
+		return {
+			cells: [
+				cell(index + 1, 1, "center", true),
+				cell(lineTitle(line), 6, "left", true),
+				cell(numberValue(line.orderedQty), 1.5, "center"),
+				cell(numberValue(line.allocatedQty), 1.5, "center"),
+				cell(
+					Math.max(0, numberValue(line.orderedQty) - shippedQty),
+					1.5,
+					"center",
+					true,
+				),
+				cell(formatStatus(inventoryLineStatus(line)), 3, "center"),
+			],
+		};
+	});
 }
 
 export function buildInventoryPrintSections(
@@ -220,11 +322,7 @@ export function buildInventoryPrintSections(
 	const section: LineItemSection = {
 		kind: "line-item",
 		index: 0,
-		title: isProduction
-			? "Inventory Production BOM"
-			: isPacking
-				? "Inventory Packing List"
-				: "Inventory Line Items",
+		title: getInventoryPrintPacketTitle(lines, mode),
 		headers: isProduction
 			? inventoryProductionHeaders()
 			: isPacking

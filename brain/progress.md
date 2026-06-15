@@ -2,6 +2,185 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-06-15
+
+- Advanced Inventory Pending 15 browser validation readiness.
+  - Static audit found inventory dispatch assign/pack/fulfill/release commands in the API but no dedicated web UI caller.
+  - Added `/inventory/dispatch-mode` with `InventoryDispatchModePage`, exposing per-line assign, pack, fulfill, and release actions against the existing inventory dispatch tRPC procedures.
+  - Linked dispatch mode from the `/inventory` operations dashboard.
+  - Added Dispatch Mode, Variants, and Partial Shipments to the Inventory sidebar module for Super Admins with focused access coverage for every authenticated inventory validation route.
+  - Added readiness report: `brain/reports/2026-06-15-inventory-browser-validation-readiness.md`
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-15-inventory-browser-validation.md`
+  - Validation: `bun test apps/www/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts` passed with 29 tests and 89 assertions; import checks for sidebar links, inventories router, dispatch-mode component, and operations dashboard component passed; scoped `git diff --check` and trailing-whitespace scans passed.
+  - Print validation: `bun test packages/sales/src/print/inventory-print-data.test.ts apps/www/src/modules/sales-print/application/inventory-print-request.test.ts apps/www/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts` passed with 36 tests and 105 assertions; import check for `print.route.ts`, `rendered-inventory-pdf-print-viewer.tsx`, and `inventory-print-request.ts` passed. Direct `SalesInventoryPrintViewerPage` import outside Next hit the expected `server-only` boundary, so route proof remains part of browser validation.
+  - Route matrix validation: added route-file existence coverage for the Pending 15 matrix, including `/p/sales-inventory-v2`; focused suite now passes with 37 tests and 115 assertions, and import check for sidebar links plus inventory/print routers passed.
+  - Added a concrete browser QA execution checklist to `brain/reports/2026-06-15-inventory-browser-validation-readiness.md`, covering preflight, route smoke, allocation review, inbound receiving, production readiness, backorder and partial shipment behavior, stock operations, dispatch mode, print parity, evidence format, and stop conditions.
+  - Added the Pending 15 browser evidence worksheet at `brain/reports/2026-06-15-inventory-browser-validation-evidence.md` so the final live validation pass has a structured place to record route smoke, workflow, print, fixture, screenshot/note, and completion-decision evidence.
+  - Browser validation started in the Codex in-app browser after explicit approval to ignore the fast Bun command-discipline gate; viewport was set to `1440x1000` and Dev Quick Login used Pablo Cruz / Super Admin.
+  - Route smoke passed for `/inventory`, `/inventory/variants`, `/inventory/allocations`, `/inventory/inbounds`, `/inventory/production-plan`, `/inventory/backorders`, `/inventory/partial-shipments`, `/inventory/stocks`, `/inventory/dispatch-mode`, and `/p/sales-inventory-v2`.
+  - Browser validation found an inventory print SSR regression: `/p/sales-inventory-v2` initially triggered `PDFViewer is a web specific API` during server render. Added a client-only dynamic wrapper for the inventory PDF viewer, then re-tested the route and confirmed it renders a blob-backed PDF iframe.
+  - Remaining Pending 15 browser validation is data-fixture gated: current local data has no pending allocation suggestions, no inbound shipments/demand, no partial-shipment lines, no dispatch lines, and no safe stock audit rows for mutating workflow proof.
+
+- Completed Inventory Pending 16 operations dashboard stock controls.
+  - Added `buildInventoryOperationsSummary(...)` and `inventoryOperationsSummary(...)` in `@gnd/inventory`.
+  - Added protected tRPC route `inventories.inventoryOperationsSummary`.
+  - Added `InventoryOperationsDashboard` on `/inventory` with tracked/untracked stock, low-stock, out-of-stock, open inbound, pending allocation, backordered line, and production blocker metrics.
+  - Replaced the old low-stock-only widget mount on `/inventory` with the operations dashboard and linked alerts into item dashboards, variants, stock operations, inbound, allocations, backorders, and production plan.
+  - Updated plan: `brain/plans/2026-06-15-feature-inventory-operations-dashboard-stock-controls.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/inventory/src/inventory-item-dashboard.test.ts` passed with 4 tests and 13 assertions; import check for the inventories router and operations dashboard component passed; scoped `git diff --check` passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 14 stock audit verification.
+  - Added `STOCK_AUDIT_MATRIX`, `getStockAuditExpectation(...)`, `buildStockAuditVerificationReport(...)`, and `getStockAuditVerificationReport(...)`.
+  - Added protected tRPC route `inventories.stockAuditVerificationReport`.
+  - Stock operations now shows recent audit evidence for stock in, stock out, return, correction, consume, and release.
+  - Static scan confirmed direct physical `InventoryStock.qty` writes are in the expected receiving and manual adjustment paths; receiving writes `stock_in` movement plus `inbound-received` log, while manual adjustments write movement/log rows for each reason.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-14-stock-audit-verification.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/inventory/src/application/stock/stock-adjustment.test.ts` passed with 6 tests and 12 assertions; import check for the inventories router and stock operations page passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 13 top-sales analytics by inventory item and variant.
+  - Added `inventoryTopSalesAnalytics(...)` and pure `buildInventoryTopSalesAnalytics(...)` in `@gnd/inventory`.
+  - Ordered quantity now aggregates from inventory-backed `LineItem` rows; shipped quantity aggregates from consumed `StockAllocation` rows.
+  - Added protected tRPC route `inventories.inventoryTopSalesAnalytics`.
+  - Added `InventoryTopSalesAnalytics` UI on `/inventory` and `/inventory/[id]` with item/variant rankings and revenue/cost reliability counts.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-13-top-sales-analytics-inventory-item-variant.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/inventory/src/inventory-item-dashboard.test.ts` passed with 3 tests and 9 assertions; import check for the inventories router, analytics component, item dashboard component, and variants workspace component passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 12 variants workspace.
+  - Replaced the `/inventory/variants` redirect with a real workspace.
+  - Added `inventoryVariantsWorkspace(...)` and `buildInventoryVariantWorkspaceRow(...)` in `@gnd/inventory`.
+  - Added protected tRPC route `inventories.inventoryVariantsWorkspace`.
+  - Added search and filters for item id, category id, supplier id, status, stock mode, and low-stock rows.
+  - Added variant rows with item/category, status, stock quantity/value, cost, price, supplier, attributes, and actions to item dashboard, edit flow, and stock operations.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-12-inventory-variants-workspace.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/inventory/src/inventory-item-dashboard.test.ts` passed with 2 tests and 4 assertions; import check for the inventories router, item dashboard component, and variants workspace component passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 11 item dashboard.
+  - Added `getInventoryItemDashboard(...)` and `buildInventoryItemDashboardSummary(...)` in `@gnd/inventory`.
+  - Added protected tRPC route `inventories.inventoryItemDashboard`.
+  - Added `/inventory/[id]` dashboard route with variants, stock, movement history, inbound demand, allocations, sales, and quotes sections.
+  - Wired the inventory products table eye action to the new dashboard route so viewing no longer forces edit mode.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-11-inventory-item-dashboard.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/inventory/src/inventory-item-dashboard.test.ts` passed with 1 test and 2 assertions; import check for the inventories router and dashboard component passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Fixed Expo Android runtime startup recursion around `get Dimensions`.
+  - Added a narrow Metro resolver guard in `apps/expo-app/metro.config.js` so NativeWind/react-native-css still rewrites app-level `react-native` imports for global `className`, but package-internal imports from `react-native-css` and `react-native` resolve to the native React Native package instead of looping back through `react-native-css/components`.
+  - Follow-up: tightened the Metro resolver so any `react-native` import that originates under `node_modules` resolves to the Expo app's own `react-native@0.81.5+f99a...` copy, preventing stale Bun symlink paths such as `react-native@0.81.5+87dd...` from initializing React Native DevTools a second time and throwing `property is not writable` for `__FUSEBOX_REACT_DEVTOOLS_DISPATCHER__`.
+  - Follow-up: extended the singleton resolver to `react`, `react-dom`, `react-native-css`, `react-native-css-interop`, and `react-native-safe-area-context`, and bypassed NativeWind wrapping inside React Native internals so `AppContainer` uses the raw RN `View` instead of a `react-native-css` hook wrapper.
+  - Validation: Metro config loads with CSS support; targeted resolver smoke delegates `react-native-css` internal `react-native` imports to the native resolver; `bun run with-env expo export --platform android --output-dir /private/tmp/gnd-expo-export` completed and emitted an Android Hermes bundle; temporary Metro on port `3511` returned `200` for the Android dev virtual entry bundle and was stopped afterward.
+  - Follow-up validation: targeted resolver smoke proves package origins, including old `react-native@0.81.5+87dd...` origins, resolve to the app `react-native@0.81.5+f99a...` entry; `bun run with-env expo export --platform android --output-dir /private/tmp/gnd-expo-export-rn-singleton` completed and emitted an Android Hermes bundle; temporary Metro on port `3511` returned `200` for the Android dev virtual entry bundle and was stopped afterward.
+  - Follow-up validation: `bun run with-env expo export --platform android --output-dir /private/tmp/gnd-expo-export-singletons` completed and emitted an Android Hermes bundle; temporary Metro on port `3511` returned `200` for the Android dev virtual entry bundle; the dev bundle no longer contains stale `react-native-css@3.0.1+db5...`, `react@19.1.0`, or `react-native@0.81.5+87dd...` paths.
+  - Follow-up: pinned the Expo app to SDK 54's expected React stack (`react`/`react-dom` `19.1.0`, `@types/react` `~19.1.10`), aligned Expo SDK 54 patch packages (`expo` `54.0.35`, `expo-router` `6.0.24`, `expo-dev-client` `6.0.21`, related Expo packages), and added the `expo-font` / `expo-web-browser` config plugins requested by `expo install`.
+  - Follow-up: extended the Metro singleton resolver to the duplicate Expo modules reported by `expo-doctor` (`expo`, `expo-constants`, `expo-font`, `expo-linking`, `@expo/vector-icons`) so package-origin imports use the app-level SDK copies.
+  - Final validation: `bunx expo-doctor` now passes SDK package-version checks, with only Bun isolated-store duplicate warnings remaining; `bun run with-env expo export --platform android --output-dir /private/tmp/gnd-expo-export-sdk54-aligned` completed and emitted an Android Hermes bundle; port `3501` Metro was restarted with a cleared cache and served the live Android dev bundle with HTTP 200, and the live bundle grep found no stale React/RN/Expo package markers.
+
+- Polished the Expo invoice form component grid image loading state.
+  - Replaced the inline component-grid image cell in `WorkflowStepSelector` with a small `ComponentGridImage` helper that shows the existing animated `Skeleton` over the image slot until `Image` load completion and falls back to the file icon on image errors.
+  - Validation: scoped `git diff --check` passed. `bunx tsc -p apps/expo-app/tsconfig.json --noEmit` still fails on broad pre-existing workspace errors across `apps/api`, `packages/sales`, `packages/ui`, and unrelated Expo files, with no touched-file error surfaced. `bunx biome check apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx` is blocked by pre-existing lint/format findings in the same large file (`as any`, hook dependency warnings, index-key skeleton loop, import/format drift).
+
+- Removed the Expo invoice form env-driven test/mock data-source switch.
+  - Deleted the invoice-form API config flag, removed the sample env entry and prompt scaffold references, and made the invoice form record/action/search/customer/tax/profile/workflow hooks call the real mobile tRPC procedures directly.
+  - Validation: static scan found no remaining invoice-form env/test flag references; `git diff --check` passed for the touched files. Broad Expo typecheck and focused Biome remain blocked by existing workspace baseline errors/formatting outside this behavior change.
+
+- Fixed the Expo invoice form initial customer selector back navigation.
+  - New invoice creation now replaces `/invoices/new` with the required customer selector instead of pushing it over the form, so native back swipe closes the create flow and returns to the previous screen.
+  - After customer selection, the selector replaces back to `/invoices/new` with a one-shot skip flag so the form does not auto-open the selector again.
+  - Validation: route-file Biome check passed; scoped `git diff --check` passed; touched-file TypeScript grep after broad Expo typecheck found no errors. Broad Expo typecheck still fails on existing workspace baseline errors outside these touched files.
+
+- Completed Inventory Pending 10 repeat receive / allocation auto-release guardrails.
+  - Added `planInboundReceiptDelta(...)` so inbound receipt handling calculates target good/issue totals and applies only newly received deltas.
+  - `receiveInboundShipment(...)` now treats identical receive retries as no-ops for stock, stock movements, inbound demand received quantities, and issue rows.
+  - Partial receive retries now process only remaining unprocessed quantity.
+  - Receive results now include `skippedItemCount`, `newlyReceivedQty`, and `alreadyReceivedQty`.
+  - `allocateReceivedInboundToBackorders(...)` now reports skipped and already-covered demand counts so repeated auto-release jobs have structured retry output.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-10-repeat-receive-allocation-auto-release-guardrails.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/inventory/src/application/inbound/inbound-demand.test.ts` passed with 4 tests and 4 assertions; `bun test packages/sales/src/sales-fulfillment-plan.test.ts` passed with 20 tests and 55 assertions; import check for inbound service, allocation job, and inventories router passed. No broad typecheck, build, dev server, browser test, PDF render test, or curl check was run.
+
+- Completed Inventory Pending 09 hold-until-complete and partial-shipment workspace slice.
+  - Added line-level fulfillment hold metadata under `LineItem.meta.fulfillment.holdUntilComplete`.
+  - Fulfillment projections now expose `holdUntilComplete`, `availableToShipQty`, `canShipNow`, and `heldBackQty`.
+  - `shipAvailableSalesInventory` now skips held lines unless the full remaining quantity is available, and returns skipped held lines with `reason: "hold_until_complete"`.
+  - Added `setSalesInventoryLineFulfillmentHold`, `salesPartialShipmentQueue`, and protected inventory tRPC procedures for the same.
+  - Added dedicated `/inventory/partial-shipments` route and client workspace with hold toggles, available quantity, remaining quantity, blockers, and guarded Ship Available actions.
+  - Updated `/inventory/backorders` to show hold/available state, link to the partial-shipment workspace, and avoid accidental held partial shipments.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-09-hold-until-complete-partial-shipment-screen.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/sales/src/sales-fulfillment-plan.test.ts` passed with 19 tests and 54 assertions; import check for the inventories router plus partial-shipment client component passed. Importing the server route directly hit the expected Next `server-only` runtime guard, so route runtime/browser validation remains deferred to Pending 15. No broad typecheck, build, dev server, browser test, PDF render test, or curl check was run.
+
+- Completed Inventory Pending 07 reconciliation job foundation.
+  - Added `packages/sales/src/inventory-reconciliation-report.ts` with a dry-run report for inventory-backed sales drift across sales inventory sync, shipment/allocation, and component fulfillment domains.
+  - Added checked counts, drift counts, severity, bounded samples, skipped counts, skipped reasons, next cursor, and has-more output.
+  - Added Trigger task `run-inventory-reconciliation-report` plus protected tRPC query/mutation access through `inventories.inventoryReconciliationReport` and `inventories.runInventoryReconciliationReport`.
+  - Kept repair actions explicit and separate; the reconciliation job does not mutate stock, allocations, inbound demand, sales lines, or Dyke definitions.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-07-inventory-reconciliation-jobs.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/sales/src/inventory-reconciliation-report.test.ts` passed with 7 tests and 21 assertions; import check for `apps/api/src/trpc/routers/inventories.route.ts` and `packages/jobs/src/tasks/inventory/run-inventory-reconciliation-report.ts` passed. No broad typecheck, build, dev server, browser test, PDF render test, or curl check was run.
+
+- Completed Inventory Pending 06 inventory print parity data/golden slice.
+  - Inventory print keeps the exact current v2 template input shape and does not modify the legacy sales print route.
+  - Added packet-specific section titles for production BOM, pick list, packing list, backorder summary, and customer remaining summary using existing `LineItemSection` data.
+  - Added print-only operational quantity helpers so pick/packing packets reflect inventory allocation state before legacy delivery rows exist.
+  - Added golden-style fixture assertions for production/BOM, pick list, packing list, backorder, and customer remaining summary packet rows.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-06-inventory-print-parity-dyke-golden-packets.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/api/endpoints.md`
+  - Validation: `bun test packages/sales/src/print/inventory-print-data.test.ts` passed with 5 tests and 14 assertions; import check for `apps/api/src/trpc/routers/print.route.ts` passed; scoped `git diff --check` passed. No broad typecheck, build, dev server, browser/PDF render test, or curl check was run.
+
+- Completed Inventory Pending 05 shipment-record decision.
+  - Accepted `OrderDelivery` / `OrderItemDelivery` as canonical shipment records for the current inventory cutover phase.
+  - Added ADR: `brain/decisions/ADR-008-inventory-shipment-record-source.md`
+  - Inventory-origin shipments must use metadata source tags such as `inventory_partial_shipment` and `inventory_dispatch_mode`; stock reservation/pick/consume state remains in `StockAllocation`.
+  - Deferred new `SalesShipment` / `SalesShipmentLine` models until a concrete reporting, audit, or operational gap proves the existing delivery records plus metadata are insufficient.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-05-shipment-record-decision.md`
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/database/schema.md`, `brain/database/relationships.md`, `brain/api/endpoints.md`
+  - Validation: documentation/code evidence check only; no broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 04 inventory-mode dispatch assign/pack/fulfill command/API slice.
+  - Added inventory dispatch allocation transition planning and commands for assign (`approved` -> `reserved`), pack (`reserved` -> `picked`), release (`approved` / `reserved` / `picked` -> `released`), and structured skips for unsafe states.
+  - Added picked-only inventory dispatch fulfillment that consumes only `picked` allocations and writes completed legacy `OrderDelivery` / `OrderItemDelivery` rows with `source: "inventory_dispatch_mode"`.
+  - Added inventory tRPC procedures: `assignInventoryDispatchAllocations`, `packInventoryDispatchAllocations`, `fulfillInventoryDispatch`, and `releaseInventoryDispatchAllocations`.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-04-inventory-mode-dispatch-assign-pack-fulfill.md`
+  - Updated API docs: `brain/api/endpoints.md`
+  - Updated tasks: `brain/tasks/roadmap.md`, `brain/tasks/done.md`
+  - Validation: `bun test packages/sales/src/sales-fulfillment-plan.test.ts` passed with 15 tests and 44 assertions; import check for `apps/api/src/trpc/routers/inventories.route.ts` passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 08 production readiness gates.
+  - Added shared `evaluateProductionReadinessGate` / `assertProductionReadinessForSale` logic backed by the existing inventory production plan projection.
+  - `update-sales-control` now gates `createAssignments` and `submitAll` before legacy production assignment/start actions run.
+  - Blockers cover missing inventory components, awaiting inbound, pending allocation review, and blocked/shortage readiness; no supervisor override was added.
+  - Added `lineItemUids` scoping to `getSalesProductionPlan` so selected production starts can be checked by control UID.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-08-production-readiness-gates.md`
+  - Updated tasks: `brain/tasks/roadmap.md`, `brain/tasks/done.md`
+  - Validation: `bun test packages/sales/src/sales-fulfillment-plan.test.ts packages/sales/src/production-readiness-gate.test.ts` passed with 16 tests and 49 assertions; import check for `packages/jobs/src/tasks/sales/update-sales-control.ts` passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 03 production assignment/completion inventory lifecycle bridge.
+  - Added `syncInventoryProductionLifecycleForSale`, which first ensures inventory sale lines exist via `syncSalesInventoryLineItems`, then recomputes production lifecycle from persisted production assignments/submissions.
+  - Wired `update-sales-control` to refresh inventory production projection after production assignment, submit-all completion, submission update/delete, assignment delete, and mark-as-completed actions.
+  - Inventory line production state is persisted in `LineItem.meta.production` with ordered, assigned, fulfilled, remaining, status, and timestamp fields; `LineItemComponents.status` remains dedicated to stock allocation/inbound/fulfillment.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-03-production-assignment-completion-inventory-lifecycle-bridge.md`
+  - Updated tasks: `brain/tasks/roadmap.md`, `brain/tasks/done.md`
+  - Validation: `bun test packages/sales/src/inventory-production-lifecycle.test.ts` passed with 4 tests and 9 assertions; `bun -e` import check for `packages/jobs/src/tasks/sales/update-sales-control.ts` passed; scoped `git diff --check` passed. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 02 variant/supplier price sync to Dyke.
+  - Generic inventory variant price sync now projects inventory `costPrice` into `DykePricingSystem.price` using `dependenciesUid = InventoryVariant.uid`, with idempotency recheck behavior that does not over-report creates.
+  - Supplier variant sync keeps legacy compatibility guardrails: update exact preserved/candidate rows, create only from preserved `SupplierVariant.meta.pricingKey`, skip missing original keys and ambiguous matches under `result.pricing.skipped`.
+  - Drift reporting now follows the same generic and supplier mapping rules used by the sync service.
+  - Updated plan: `brain/plans/2026-06-12-feature-pending-02-inventory-variant-supplier-price-sync-to-dyke.md`
+  - Updated tasks: `brain/tasks/roadmap.md`, `brain/tasks/done.md`
+  - Validation: `bun test packages/inventory/src/application/sync/inventory-to-dyke-sync.test.ts` passed with 34 tests and 81 assertions. No broad typecheck, build, dev server, browser test, or curl check was run.
+
+- Completed Inventory Pending 17 cutover gap audit execution matrix.
+  - Report: `brain/reports/2026-06-15-inventory-cutover-gap-audit.md`
+  - Updated plan: `brain/plans/2026-06-15-investigation-inventory-cutover-gap-audit.md`
+  - Updated tasks: `brain/tasks/roadmap.md`, `brain/tasks/done.md`
+  - Updated feature pointer: `brain/features/inventory-backed-sales-fulfillment.md`
+  - Findings: inventory foundations are broad but cutover remains incomplete; next recommended build order starts with Pending 02 price sync, Pending 03 production lifecycle bridge, Pending 08 production readiness gates, Pending 04 dispatch inventory mode, Pending 05 shipment record decision, Pending 06 print parity, and Pending 16 operations dashboard stock controls.
+  - Validation: read-only audit; no builds, typechecks, dev servers, browser tests, or curl checks were run.
+
 ## 2026-06-12
 
 - Approved Pending 01 inventory-to-Dyke sync fix-2 after Codex review.

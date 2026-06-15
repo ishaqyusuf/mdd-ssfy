@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Done
 
 ## Created Date
 2026-06-12
 
 ## Last Updated
-2026-06-12
+2026-06-15
 
 ## Goal Or Problem
 Decide whether to add `SalesShipment` / `SalesShipmentLine` or formally declare `OrderDelivery` / `OrderItemDelivery` as canonical shipment records.
@@ -51,8 +51,16 @@ Make an explicit architecture decision before expanding fulfillment reporting an
 - Migration may need backfill from existing deliveries.
 
 ## Open Questions
-- TODO: Are current delivery tables sufficient for all audit and reporting requirements?
+- Resolved for this cutover phase: current delivery tables are sufficient as canonical shipment records when paired with inventory metadata and `StockAllocation` state. New `SalesShipment` / `SalesShipmentLine` models are deferred until a specific reporting, audit, or operational requirement proves the existing records cannot carry the need.
 
 ## Linked Task
 - Task Title: Inventory Pending 05 - Shipment Record Decision
 - Task File: brain/tasks/roadmap.md
+
+## Completion Report
+- Completed Date: 2026-06-15
+- Decision: `OrderDelivery` / `OrderItemDelivery` are canonical shipment records for the current inventory migration phase.
+- ADR: `brain/decisions/ADR-008-inventory-shipment-record-source.md`.
+- Inventory shipment modes must tag metadata with `inventory_partial_shipment` or `inventory_dispatch_mode` and reconcile delivery lines against `StockAllocation` state.
+- `SalesShipment` / `SalesShipmentLine` models are not being added now.
+- Validation: current code evidence shows inventory partial shipment and inventory dispatch mode write `OrderDelivery` / `OrderItemDelivery`; no `SalesShipment` / `SalesShipmentLine` Prisma models exist.

@@ -10,12 +10,6 @@ import {
 } from "@gnd/sales/sales-form-core";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import {
-  invoiceCustomers,
-  invoiceMobileWorkflowRouteData,
-  invoiceSelectableItems,
-} from "../mock-data";
-import { USE_MOCK_INVOICE_FORM } from "./config";
 import type { InvoiceCustomer, InvoiceSelectableItem, NewSalesFormType } from "../types";
 
 type RealCustomerRow = Record<string, unknown>;
@@ -33,27 +27,21 @@ export function useInvoiceFormCustomerSearch(input: {
   const hasSearchText = customerQuery.length > 0;
 
   const recentCustomers = useQuery(
-    !USE_MOCK_INVOICE_FORM
-      ? _trpc.newSalesForm.searchCustomers.queryOptions(
-          {
-            query: "",
-            recent: true,
-            type,
-            limit: 5,
-          },
-          {
-            enabled: true,
-          },
-        )
-      : {
-          queryKey: ["invoice-form", "recent-customers", "mock-disabled"],
-          queryFn: async () => [],
-          enabled: false,
-        },
+    _trpc.newSalesForm.searchCustomers.queryOptions(
+      {
+        query: "",
+        recent: true,
+        type,
+        limit: 5,
+      },
+      {
+        enabled: true,
+      },
+    ),
   );
 
   const searchedCustomers = useQuery(
-    !USE_MOCK_INVOICE_FORM && hasSearchText
+    hasSearchText
       ? _trpc.newSalesForm.searchCustomers.queryOptions(
           {
             query: customerQuery,
@@ -72,26 +60,6 @@ export function useInvoiceFormCustomerSearch(input: {
         },
   );
 
-  const mockCustomers = useMemo(() => {
-    const query = customerQuery.toLowerCase();
-    if (!query) return invoiceCustomers;
-    return invoiceCustomers.filter((customer) =>
-      [
-        customer.name,
-        customer.businessName,
-        customer.contact,
-        customer.phone,
-        customer.email,
-        customer.billingAddress,
-        customer.shippingAddress,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [customerQuery]);
-
   const recentRows = useMemo(
     () => listRows<RealCustomerRow>(recentCustomers.data).map(mapRealCustomer),
     [recentCustomers.data],
@@ -102,18 +70,11 @@ export function useInvoiceFormCustomerSearch(input: {
   );
 
   return {
-    customers: USE_MOCK_INVOICE_FORM
-      ? mockCustomers
-      : hasSearchText
-        ? searchedRows
-        : recentRows,
-    isLoadingCustomers: USE_MOCK_INVOICE_FORM
-      ? false
-      : hasSearchText
-        ? searchedCustomers.isPending
-        : recentCustomers.isPending,
-    isSearchingCustomers:
-      !USE_MOCK_INVOICE_FORM && hasSearchText && searchedCustomers.isFetching,
+    customers: hasSearchText ? searchedRows : recentRows,
+    isLoadingCustomers: hasSearchText
+      ? searchedCustomers.isPending
+      : recentCustomers.isPending,
+    isSearchingCustomers: hasSearchText && searchedCustomers.isFetching,
     hasSearchText,
   };
 }
@@ -151,7 +112,7 @@ export function useInvoiceFormSearch(input: {
   const profileCoefficient = Number(input.profileCoefficient || 1) || 1;
 
   const realCustomers = useQuery(
-    needsCustomers && !USE_MOCK_INVOICE_FORM
+    needsCustomers
       ? _trpc.newSalesForm.searchCustomers.queryOptions(
           {
             query: customerQuery,
@@ -171,7 +132,7 @@ export function useInvoiceFormSearch(input: {
   );
 
   const realProducts = useQuery(
-    needsItems && !USE_MOCK_INVOICE_FORM
+    needsItems
       ? _trpc.newSalesForm.searchShelfProducts.queryOptions(
           {
             query: itemQuery,
@@ -189,7 +150,7 @@ export function useInvoiceFormSearch(input: {
         },
   );
   const realWorkflowRoute = useQuery(
-    needsItems && !USE_MOCK_INVOICE_FORM
+    needsItems
       ? _trpc.newSalesForm.getStepRouting.queryOptions(
           {},
           {
@@ -203,9 +164,8 @@ export function useInvoiceFormSearch(input: {
           enabled: false,
         },
   );
-  const workflowRouteData = USE_MOCK_INVOICE_FORM
-    ? invoiceMobileWorkflowRouteData
-    : (realWorkflowRoute.data as WorkflowRouteData | null | undefined) || null;
+  const workflowRouteData =
+    (realWorkflowRoute.data as WorkflowRouteData | null | undefined) || null;
   const rootWorkflowStep = getWorkflowRootStepRecord(workflowRouteData);
   const rootStepId = getWorkflowRootStepId(workflowRouteData);
   const rootStepTitle = String(
@@ -214,7 +174,6 @@ export function useInvoiceFormSearch(input: {
   const hasRootStepLookup = Boolean(rootStepId || rootStepTitle);
   const realWorkflowComponents = useQuery(
     needsItems &&
-      !USE_MOCK_INVOICE_FORM &&
       Boolean(workflowRouteData) &&
       hasRootStepLookup
       ? _trpc.sales.getStepComponents.queryOptions(
@@ -233,87 +192,18 @@ export function useInvoiceFormSearch(input: {
           enabled: false,
         },
   );
-  const rootWorkflowStatus = USE_MOCK_INVOICE_FORM
-    ? null
-    : resolveWorkflowRouteStatus({
-        routeQuery: realWorkflowRoute,
-        rootComponentsQuery: realWorkflowComponents,
-        routeReady: Boolean(workflowRouteData),
-        rootStepId: rootStepId || (hasRootStepLookup ? rootStepTitle : null),
-        rootComponentsCount: Array.isArray(realWorkflowComponents.data)
-          ? realWorkflowComponents.data.length
-          : 0,
-        isLoading:
-          realWorkflowRoute.isPending ||
-          (hasRootStepLookup && realWorkflowComponents.isPending),
-      });
-
-  const mockCustomers = useMemo(() => {
-    const query = (input.customerQuery || "").trim().toLowerCase();
-    if (!query) return invoiceCustomers;
-    return invoiceCustomers.filter((customer) =>
-      [
-        customer.name,
-        customer.contact,
-        customer.phone,
-        customer.email,
-        customer.billingAddress,
-        customer.shippingAddress,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [input.customerQuery]);
-
-  const mockProducts = useMemo(() => {
-    const query = (input.itemQuery || "").trim().toLowerCase();
-    const category = input.category || "All";
-    const configuredRootUids = new Set(
-      Object.keys(invoiceMobileWorkflowRouteData.composedRouter || {}),
-    );
-    const rootWorkflowStep = getWorkflowRootStepRecord(invoiceMobileWorkflowRouteData);
-    const workflowItems =
-      rootWorkflowStep && configuredRootUids.size
-        ? resolveWorkflowVisibleComponents({
-            components: invoiceSelectableItems
-              .filter((item) => item.source === "workflow")
-              .map(mapMockWorkflowComponentRecord)
-              .filter((component) =>
-                configuredRootUids.has(String(component.uid || "")),
-              ),
-            steps: [],
-            activeStep: rootWorkflowStep,
-            overrides: buildStepComponentOverrideMap(rootWorkflowStep),
-            includeCustomComponents,
-            profileCoefficient,
-          }).map(mapMockWorkflowComponent)
-        : [];
-    const shelfItems = invoiceSelectableItems
-      .filter((item) => item.source !== "workflow")
-      .filter(
-        (item) =>
-          !item.productId ||
-          !selectedProductIds.includes(Number(item.productId || 0)),
-      )
-      .map((item) => applyShelfProfilePrice(item, profileCoefficient));
-    return [...workflowItems, ...shelfItems].filter((item) => {
-      const categoryMatch = category === "All" || item.category === category;
-      const queryMatch =
-        !query ||
-        [item.title, item.sku, item.category, item.status]
-          .join(" ")
-          .toLowerCase()
-          .includes(query);
-      return categoryMatch && queryMatch;
-    });
-  }, [
-    includeCustomComponents,
-    input.category,
-    input.itemQuery,
-    profileCoefficient,
-    selectedProductIds,
-  ]);
+  const rootWorkflowStatus = resolveWorkflowRouteStatus({
+    routeQuery: realWorkflowRoute,
+    rootComponentsQuery: realWorkflowComponents,
+    routeReady: Boolean(workflowRouteData),
+    rootStepId: rootStepId || (hasRootStepLookup ? rootStepTitle : null),
+    rootComponentsCount: Array.isArray(realWorkflowComponents.data)
+      ? realWorkflowComponents.data.length
+      : 0,
+    isLoading:
+      realWorkflowRoute.isPending ||
+      (hasRootStepLookup && realWorkflowComponents.isPending),
+  });
 
   const realCustomerRows = useMemo(
     () => listRows<RealCustomerRow>(realCustomers.data).map(mapRealCustomer),
@@ -368,14 +258,13 @@ export function useInvoiceFormSearch(input: {
   ]);
 
   return {
-    customers: USE_MOCK_INVOICE_FORM ? mockCustomers : realCustomerRows,
-    products: USE_MOCK_INVOICE_FORM ? mockProducts : realProductRows,
-    isLoadingCustomers: USE_MOCK_INVOICE_FORM ? false : realCustomers.isPending,
-    isLoadingProducts: USE_MOCK_INVOICE_FORM
-      ? false
-      : realProducts.isPending ||
-        realWorkflowRoute.isPending ||
-        (Boolean(rootStepId) && realWorkflowComponents.isPending),
+    customers: realCustomerRows,
+    products: realProductRows,
+    isLoadingCustomers: realCustomers.isPending,
+    isLoadingProducts:
+      realProducts.isPending ||
+      realWorkflowRoute.isPending ||
+      (Boolean(rootStepId) && realWorkflowComponents.isPending),
     workflowRouteData,
     rootWorkflowStatus,
     refetchRootWorkflow: () => {
@@ -476,42 +365,6 @@ function mapRealWorkflowComponentRecord(
     salesPrice:
       row.salesPrice == null ? null : Number(row.salesPrice || 0),
     basePrice: row.basePrice == null ? null : Number(row.basePrice || 0),
-  };
-}
-
-function mapMockWorkflowComponentRecord(
-  item: InvoiceSelectableItem,
-): WorkflowComponentRecord {
-  return {
-    ...item,
-    selectableUid: item.uid,
-    id: item.componentId ?? null,
-    uid: item.componentUid || item.uid,
-    title: item.title,
-    salesPrice: item.salesPrice ?? item.unitPrice ?? null,
-    basePrice: item.basePrice ?? item.unitPrice ?? null,
-  };
-}
-
-function mapMockWorkflowComponent(
-  row: WorkflowComponentRecord,
-): InvoiceSelectableItem {
-  const selectableUid = String(row.selectableUid || row.uid || "");
-  const componentUid = String(row.uid || selectableUid);
-  const unitPrice = Number(row.salesPrice ?? row.basePrice ?? 0);
-  return {
-    uid: selectableUid || componentUid,
-    source: "workflow",
-    componentId: row.id == null ? null : Number(row.id || 0),
-    componentUid,
-    title: String(row.title || componentUid || "Component"),
-    sku: String(row.sku || componentUid || "Component"),
-    category: "Components",
-    unitPrice,
-    basePrice: row.basePrice == null ? unitPrice : Number(row.basePrice || 0),
-    salesPrice: unitPrice,
-    taxxable: true,
-    status: "Configure",
   };
 }
 

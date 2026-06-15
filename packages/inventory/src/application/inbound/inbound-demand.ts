@@ -150,6 +150,30 @@ export type ReceiveInboundShipmentResult = {
   receivedItemCount: number;
   stockMovementCount: number;
   issueCount: number;
+  skippedItemCount: number;
+  newlyReceivedQty: number;
+  alreadyReceivedQty: number;
+  lineItemComponentIds: number[];
+  inventoryVariantIds: number[];
+};
+
+export type PlanInboundReceiptDeltaInput = {
+  plannedQty?: number | null;
+  previousGoodQty?: number | null;
+  previousIssueQty?: number | null;
+  qtyReceived?: number | null;
+  qtyGood?: number | null;
+  qtyIssue?: number | null;
+};
+
+export type PlannedInboundReceiptDelta = {
+  targetGoodQty: number;
+  targetIssueQty: number;
+  targetReceivedQty: number;
+  deltaGoodQty: number;
+  deltaIssueQty: number;
+  deltaReceivedQty: number;
+  duplicate: boolean;
 };
 
 function positiveNumber(value?: number | null) {
@@ -845,6 +869,43 @@ function asPositiveNumber(value: unknown, fallback = 0) {
   return Number.isFinite(num) && num > 0 ? num : fallback;
 }
 
+export function planInboundReceiptDelta(
+  input: PlanInboundReceiptDeltaInput,
+): PlannedInboundReceiptDelta {
+  const plannedQty = positiveNumber(input.plannedQty);
+  const previousGoodQty = positiveNumber(input.previousGoodQty);
+  const previousIssueQty = positiveNumber(input.previousIssueQty);
+  const targetIssueCandidate =
+    input.qtyIssue == null ? previousIssueQty : positiveNumber(input.qtyIssue);
+  const targetGoodCandidate =
+    input.qtyGood == null
+      ? Math.max(
+          0,
+          (input.qtyReceived == null
+            ? plannedQty
+            : positiveNumber(input.qtyReceived)) - targetIssueCandidate,
+        )
+      : positiveNumber(input.qtyGood);
+  const targetGoodQty = Math.max(previousGoodQty, targetGoodCandidate);
+  const targetIssueQty = Math.max(previousIssueQty, targetIssueCandidate);
+  const deltaGoodQty = Math.max(0, targetGoodQty - previousGoodQty);
+  const deltaIssueQty = Math.max(0, targetIssueQty - previousIssueQty);
+  const deltaReceivedQty = deltaGoodQty + deltaIssueQty;
+
+  return {
+    targetGoodQty,
+    targetIssueQty,
+    targetReceivedQty: targetGoodQty + targetIssueQty,
+    deltaGoodQty,
+    deltaIssueQty,
+    deltaReceivedQty,
+    duplicate:
+      targetGoodQty + targetIssueQty > 0 &&
+      deltaGoodQty <= 0 &&
+      deltaIssueQty <= 0,
+  };
+}
+
 function computeLineItemComponentDemandState(input: {
   qtyRequired: number;
   qtyAllocated: number;
@@ -1125,6 +1186,9 @@ export async function receiveInboundShipment(
   let receivedItemCount = 0;
   let stockMovementCount = 0;
   let issueCount = 0;
+  let skippedItemCount = 0;
+  let newlyReceivedQty = 0;
+  let alreadyReceivedQty = 0;
   let totalPlannedQty = 0;
   let totalReceivedQty = 0;
   let hasOpenIssues = false;
@@ -1134,13 +1198,16 @@ export async function receiveInboundShipment(
   for (const item of shipment.items) {
     const override = receivedQtyByItemId.get(item.id);
     const plannedQty = Number(item.qty || 0);
-    const rawQtyReceived = Math.max(0, override?.qtyReceived ?? plannedQty);
-    const qtyIssue = Math.max(0, override?.qtyIssue ?? 0);
-    const qtyGood =
-      override?.qtyGood != null
-        ? Math.max(0, override.qtyGood)
-        : Math.max(0, rawQtyReceived - qtyIssue);
-    const qtyReceived = qtyGood + qtyIssue;
+    const receipt = planInboundReceiptDelta({
+      plannedQty,
+      previousGoodQty: item.qtyGood,
+      previousIssueQty: item.qtyIssue,
+      qtyReceived: override?.qtyReceived,
+      qtyGood: override?.qtyGood,
+      qtyIssue: override?.qtyIssue,
+    });
+    const qtyGood = receipt.deltaGoodQty;
+    const qtyIssue = receipt.deltaIssueQty;
     const unitPrice =
       override?.unitPrice == null
         ? item.unitPrice == null
@@ -1149,11 +1216,20 @@ export async function receiveInboundShipment(
         : override.unitPrice;
 
     totalPlannedQty += plannedQty;
-    totalReceivedQty += qtyReceived;
+    totalReceivedQty += receipt.targetReceivedQty;
+    newlyReceivedQty += receipt.deltaReceivedQty;
+    alreadyReceivedQty +=
+      positiveNumber(item.qtyGood) + positiveNumber(item.qtyIssue);
 
-    if (qtyReceived <= 0) continue;
+    if (receipt.duplicate) {
+      skippedItemCount += 1;
+    }
 
-    receivedItemCount += 1;
+    if (receipt.targetReceivedQty <= 0) continue;
+
+    if (receipt.deltaReceivedQty > 0) {
+      receivedItemCount += 1;
+    }
     touchedInventoryVariantIds.add(item.inventoryVariantId);
 
     let stock: { id: number } | null = null;
@@ -1256,8 +1332,8 @@ export async function receiveInboundShipment(
         id: item.id,
       },
       data: {
-        qtyGood,
-        qtyIssue,
+        qtyGood: receipt.targetGoodQty,
+        qtyIssue: receipt.targetIssueQty,
         unitPrice,
       },
     });
@@ -1325,6 +1401,9 @@ export async function receiveInboundShipment(
     receivedItemCount,
     stockMovementCount,
     issueCount,
+    skippedItemCount,
+    newlyReceivedQty,
+    alreadyReceivedQty,
     lineItemComponentIds: Array.from(touchedLineItemComponentIds),
     inventoryVariantIds: Array.from(touchedInventoryVariantIds),
   };

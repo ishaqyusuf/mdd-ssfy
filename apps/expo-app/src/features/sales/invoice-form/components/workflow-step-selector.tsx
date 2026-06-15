@@ -622,23 +622,7 @@ export function WorkflowStepSelector({
               />
             ) : null}
           </View>
-          <View className="aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted">
-            {imageUri ? (
-              <Image
-                source={{ uri: imageUri }}
-                resizeMode="contain"
-                className="h-full w-full"
-              />
-            ) : (
-              <View className="h-full w-full items-center justify-center">
-                <Icon
-                  name="FileText"
-                  className="text-muted-foreground"
-                  size={16}
-                />
-              </View>
-            )}
-          </View>
+          <ComponentGridImage imageUri={imageUri} />
           <View className="min-w-0">
             <Text
               numberOfLines={2}
@@ -979,6 +963,47 @@ function WorkflowSelectorNotice({
           </Text>
         </View>
       </View>
+    </View>
+  );
+}
+
+function ComponentGridImage({ imageUri }: { imageUri: string | null }) {
+  const [isImageLoading, setIsImageLoading] = useState(Boolean(imageUri));
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+    setIsImageLoading(Boolean(imageUri));
+  }, [imageUri]);
+
+  return (
+    <View className="aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted">
+      {imageUri && !imageFailed ? (
+        <Image
+          source={{ uri: imageUri }}
+          resizeMode="contain"
+          className="h-full w-full"
+          onLoadStart={() => setIsImageLoading(true)}
+          onLoadEnd={() => setIsImageLoading(false)}
+          onError={() => {
+            setImageFailed(true);
+            setIsImageLoading(false);
+          }}
+        />
+      ) : (
+        <ComponentGridImageFallback />
+      )}
+      {imageUri && isImageLoading ? (
+        <Skeleton className="absolute inset-0 h-full w-full rounded-xl" />
+      ) : null}
+    </View>
+  );
+}
+
+function ComponentGridImageFallback() {
+  return (
+    <View className="h-full w-full items-center justify-center">
+      <Icon name="FileText" className="text-muted-foreground" size={16} />
     </View>
   );
 }

@@ -18,8 +18,8 @@
 		"lint": "biome check .",
 		"format": "biome format --write .",
 		"typecheck": "tsc --noEmit",
-		"with-env": "dotenv -o -e ../../.env.local -e .env.local --",
-		"with-env:prod": "dotenv -o -e ../../.env.production -e .env.production --"
+		"with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
+		"with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
 	},
 	"dependencies": {
 		"@gnd/db": "workspace:*",

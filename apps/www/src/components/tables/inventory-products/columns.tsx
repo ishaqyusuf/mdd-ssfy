@@ -3,6 +3,7 @@
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { Progress } from "@gnd/ui/custom/progress";
 import ConfirmBtn from "@/components/confirm-button";
+import Link from "next/link";
 import { StockModeStatus } from "@/components/stock-mode-status";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
@@ -105,8 +106,10 @@ export const columns: ColumnDef<Item>[] = [
             };
             return (
                 <div className="flex gap-2">
-                    <Button variant="ghost" size="sm">
-                        <Icons.Eye className="w-4 h-4" />
+                    <Button asChild variant="ghost" size="sm">
+                        <Link href={`/inventory/${item.id}`}>
+                            <Icons.Eye className="w-4 h-4" />
+                        </Link>
                     </Button>
                     <Button
                         variant="ghost"

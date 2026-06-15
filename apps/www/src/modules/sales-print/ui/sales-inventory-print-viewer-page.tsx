@@ -1,11 +1,11 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { PrintLoading } from "@/components/print-loading";
 import { PrintUnavailable } from "@/components/print-sales-v2";
-import { RenderedInventoryPdfPrintViewer } from "@/components/rendered-inventory-pdf-print-viewer";
 import { readSalesInventoryPrintParams } from "@/modules/sales-print/application/inventory-print-request";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
+import { SalesInventoryPrintViewerClient } from "./sales-inventory-print-viewer-client";
 
 interface SalesInventoryPrintViewerPageProps {
 	searchParams: Record<string, string | string[] | undefined>;
@@ -38,7 +38,7 @@ export function SalesInventoryPrintViewerPage({
 			<ErrorBoundary errorComponent={ErrorFallback}>
 				<Suspense fallback={<PrintLoading />}>
 					{params.ids.length ? (
-						<RenderedInventoryPdfPrintViewer
+						<SalesInventoryPrintViewerClient
 							ids={params.ids}
 							mode={params.mode}
 							templateId={params.templateId}

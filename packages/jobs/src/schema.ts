@@ -55,6 +55,7 @@ export const taskNames = [
 	"send-storefront-win-back-email",
 	"allocate-received-inbound-to-backorders",
 	"backfill-sales-inventory-line-items",
+	"run-inventory-reconciliation-report",
 	"sync-sales-inventory-line-items",
 	"warm-sales-document-snapshot",
 	"sync-dyke-step-to-inventory",
@@ -215,6 +216,16 @@ export const backfillSalesInventoryLineItemsSchemaTask = z.object({
 });
 export type BackfillSalesInventoryLineItemsSchemaTask = z.infer<
 	typeof backfillSalesInventoryLineItemsSchemaTask
+>;
+
+export const inventoryReconciliationReportSchemaTask = z.object({
+	salesOrderId: z.number().optional().nullable(),
+	cursorId: z.number().optional().nullable(),
+	limit: z.number().min(1).max(200).optional().default(50),
+	sampleLimit: z.number().min(1).max(50).optional().default(10),
+});
+export type InventoryReconciliationReportSchemaTask = z.infer<
+	typeof inventoryReconciliationReportSchemaTask
 >;
 
 export const allocateReceivedInboundToBackordersSchemaTask = z.object({

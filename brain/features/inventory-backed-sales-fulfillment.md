@@ -19,7 +19,7 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - [x] `InboundDemand` tracks unavailable quantity expected through supplier/receiving.
 - [x] `InboundShipment` / `InboundShipmentItem` support the receiving workflow.
 - [x] `SalesFulfillmentPlan` exists as a projection over ordered, allocated, picked, shipped, remaining, backordered, inbound, and received quantities.
-- [ ] `SalesShipment` / `SalesShipmentLine` do not exist yet as explicit first-class shipment records. Current partial shipment support writes through `OrderDelivery` / `OrderItemDelivery` with `inventory_partial_shipment` metadata.
+- [x] `OrderDelivery` / `OrderItemDelivery` are the canonical shipment records for the current inventory cutover phase; see `brain/decisions/ADR-008-inventory-shipment-record-source.md`.
 
 ## Follow-Up Review: 2026-06-12
 
@@ -42,7 +42,7 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 7. Explicit shipment-record decision: either add `SalesShipment` / `SalesShipmentLine` or document `OrderDelivery` / `OrderItemDelivery` as canonical shipment records.
 8. Inventory print parity pass against Dyke print output with fixture/golden coverage for invoice, quote, production, packing, BOM, backorder, and customer remaining-summary packets.
 9. Inventory item dashboard with overview, variants, stock, sales, quotes, allocations, inbound demand, shipment/dispatch, movement history, and top-sales analytics.
-10. Reconciliation jobs for Dyke/inventory sync, sales-control/inventory lifecycle drift, stock/allocation drift, and print projection parity.
+10. Reconciliation monitor/job coverage for inventory-backed sales drift. Dry-run sales reconciliation now exists; browser alerting, print visual parity automation, and production-grade migration gates remain pending.
 
 ## Detailed Execution Plan
 
@@ -252,6 +252,12 @@ Detailed implementation handoff: `brain/handoffs/inventory-to-dyke-sync-handoff.
 
 ## Phase Status
 
+## Cutover Gap Audit: 2026-06-15
+
+Current cutover gap matrix: `brain/reports/2026-06-15-inventory-cutover-gap-audit.md`.
+
+Summary: foundations exist for sales inventory sync, inventory-to-Dyke job plumbing, variant/supplier price sync back to Dyke, sales-control production lifecycle projection, production readiness gating, inventory dispatch mode commands, canonical shipment-record decision, fulfillment/backorder projections, production plan UI, inbound receiving, stock operations, inventory operations dashboard, inventory print route, and sync monitoring. Remaining cutover work is now primarily browser/manual validation plus final migration gates.
+
 ### Phase 1: Sync Foundation
 Status: Mostly done.
 
@@ -263,10 +269,11 @@ Status: Mostly done.
 - [x] Legacy sales form saves queue sales inventory sync.
 - [x] Copy sales queues the same inventory sync job with `source: "copy-sales"`.
 - [x] Repair flows queue the same inventory sync job with `source: "repair"`.
+- [x] Inventory variant and supplier variant price changes sync back to `DykePricingSystem` through `sync-inventory-to-dyke` with preserved-key guardrails for supplier pricing.
 - [x] Structural Dyke/inventory drift reporting exists through `dykeInventoryDriftReport`.
 - [x] Sales inventory sync monitor reports coverage, synced count, skipped count, failed-risk count, and next backfill cursor.
 - [x] Backfill job returns processed, succeeded, failed, next cursor, and has-more state.
-- [ ] Pricing drift reporting is still not fully canonical while Dyke pricing semantics and inventory pricing semantics finish converging.
+- [x] Generic and supplier variant price drift reporting now follows the inventory-to-Dyke pricing mapping rules.
 - [ ] Remaining dormant Dyke admin/use-case helpers still need migration behind the inventory domain.
 - [ ] Delete/archive event behavior for Dyke definitions still needs an explicit inventory policy.
 
@@ -299,7 +306,7 @@ Status: Mostly done.
 - [ ] Safer repeat-receive and repeated allocation guardrails still need hardening.
 
 ### Phase 4: Production Planning
-Status: Projection and board done; enforcement pending.
+Status: Projection, board, lifecycle bridge, and readiness enforcement done; operator validation pending.
 
 - [x] Production plan groups by sale.
 - [x] Production plan groups by sales item.
@@ -309,22 +316,25 @@ Status: Projection and board done; enforcement pending.
 - [x] Component readiness supports `ready_for_production` and `fulfilled`.
 - [x] Line readiness is derived from required component readiness.
 - [x] Production shortage / blocker surface exists at `/inventory/production-plan`.
-- [ ] Existing production start actions still need to be hard-gated by inventory readiness.
+- [x] Sales-control production assignment/submission actions update `LineItem.meta.production` with assigned, fulfilled, remaining, and production status projection.
+- [x] Existing production assignment/start actions are hard-gated by inventory readiness for inventory-backed required components.
 - [ ] Sale-level production-ready transitions need final wiring into the broader sales production workflow.
+- [ ] Browser/operator validation for blocked and allowed production assignment remains pending.
 
 ### Phase 5: Await Inbound
-Status: Mostly done.
+Status: Mostly done; receive retry guardrails added.
 
 - [x] Unavailable component quantity remains in `InboundDemand`.
 - [x] Lines surface as `awaiting_inbound` when required components have open inbound demand.
 - [x] Inbound statuses exist: `pending`, `ordered`, `partially_received`, `received`, and `cancelled`.
 - [x] Production/backorder projections expose blocked, partially received, and ready-after-receive style states.
 - [x] Receiving workspace exists at `/inventory/inbounds`.
+- [x] Re-running receive uses persisted inbound item good/issue totals and applies only newly received deltas.
 - [ ] Purchasing/order lifecycle depth beyond inbound shipment creation is still pending.
 - [ ] Replacement inbound behavior for damaged/missing/incorrect received items is still undecided.
 
 ### Phase 6: Backorder and Partial Shipment
-Status: Core flow done; shipment model still pending.
+Status: Core flow done; shipment source of truth decided; hold-until-complete command guard and workspace added.
 
 - [x] Available quantity can be allocated, picked/packed, shipped, and consumed without cloning the sale.
 - [x] Remaining quantity stays on the original sale line projection.
@@ -333,21 +343,28 @@ Status: Core flow done; shipment model still pending.
 - [x] Received inbound stock can auto-allocate to backordered components through `allocate-received-inbound-to-backorders`.
 - [x] Sale/line can move to `ready_to_ship_remaining` when remaining stock becomes available.
 - [x] Backorder queue exists at `/inventory/backorders`.
-- [ ] Explicit `SalesShipment` / `SalesShipmentLine` records remain pending.
-- [ ] Final shipment completion needs stronger reconciliation against explicit shipment records once they exist.
+- [x] `OrderDelivery` / `OrderItemDelivery` are the canonical shipment records for partial shipment and inventory dispatch mode.
+- [x] Line-level `holdUntilComplete` metadata prevents accidental partial shipment until all remaining quantity is available.
+- [x] Dedicated partial shipment workspace exists at `/inventory/partial-shipments`.
+- [ ] Final shipment completion needs reconciliation between completed `OrderItemDelivery` quantities and consumed `StockAllocation` quantities.
 
 ### Phase 7: Fulfillment
-Status: Partially done.
+Status: Command/API foundation mostly done; dedicated UI validation pending.
 
 - [x] Inventory moves through allocation statuses including `reserved`, `picked`, and `consumed`.
 - [x] Partial shipment command exists as `shipAvailableSalesInventory`.
+- [x] Inventory dispatch mode supports assign, pack, fulfill, and release allocation transitions.
+- [x] Inventory dispatch fulfillment consumes only `picked` allocations.
+- [x] Inventory dispatch fulfillment writes legacy `OrderDelivery` / `OrderItemDelivery` compatibility rows.
+- [x] Dedicated inventory dispatch-mode workspace exists at `/inventory/dispatch-mode` for assign, pack, fulfill, and release actions.
 - [x] Backorder queue includes a "Ship Available" action.
 - [x] Line/component status is recomputed after fulfillment movement.
 - [x] Remaining quantity summary exists in backorder queue projections.
 - [x] Auto-release after inbound receiving is queued from receiving workflow.
-- [ ] "Hold until complete" option is not implemented.
-- [ ] Dedicated partial shipment screen beyond the backorder queue is still pending.
-- [ ] Pick-list driven warehouse flow needs deeper integration with inventory allocations.
+- [x] "Hold until complete" option is implemented at inventory line level.
+- [x] Dedicated partial shipment screen beyond the backorder queue is implemented.
+- [x] Inventory dispatch-mode browser route smoke passed at `/inventory/dispatch-mode`.
+- [ ] Inventory dispatch assign/pack/fulfill/release action proof still needs an approved allocation fixture with available stock.
 
 ### Phase 8: Stock Operations
 Status: Mostly done.
@@ -356,55 +373,57 @@ Status: Mostly done.
 - [x] Receiving records issue quantity separately from good quantity.
 - [x] Manual stock adjustments exist through `adjustInventoryStock`.
 - [x] Stock movement/audit rows are written for receiving and adjustment flows.
+- [x] Repeat receive does not duplicate stock or stock movements when the same received totals are submitted again.
 - [x] `InventoryStock.qty` remains the physical/current stock source.
-- [ ] Audit-log coverage should be explicitly verified for stock in, stock out, return, correction, consume, and release.
+- [x] Audit-log coverage is explicitly verified for stock in, stock out, return, correction, consume, and release through `stockAuditVerificationReport`.
+- [x] Operations dashboard summarizes tracked/untracked stock, low-stock, out-of-stock, open inbound, pending allocations, backordered lines, and production blockers from inventory-backed data.
 - [ ] Operator-facing reason-code taxonomy still needs review and polish.
 
 ### Phase 9: Print and UI
-Status: Partially done.
+Status: Print data/golden packet coverage mostly done; visual/browser proof pending.
 
 - [x] Inventory-backed print data exists for sales print modes.
+- [x] Inventory print uses the exact current v2 print template page input shape.
+- [x] Inventory print packet data/golden tests cover production BOM, pick list, packing list, backorder summary, and customer remaining summary.
 - [x] Backorder queue UI exists.
 - [x] Production shortage / production plan UI exists.
 - [x] Inbound receiving queue exists.
 - [x] Allocation review UI exists.
 - [x] Sale inventory health widget exists.
-- [ ] Print packets still need explicit verification/completion for BOM, pick list, packing list, backorder packet, production packet, and customer remaining-quantity summary.
-- [ ] Dedicated partial shipment screen remains pending.
-- [ ] Inventory print must still be proven 100% compatible with Dyke print output before broad cutover.
+- [x] Dedicated partial shipment screen exists at `/inventory/partial-shipments`.
+- [x] Item-level inventory dashboard exists at `/inventory/[id]` with variants, stock, movement history, inbound demand, allocations, and related sales/quotes backed by inventory `LineItem` references.
+- [x] Variants workspace exists at `/inventory/variants` with search/filter controls and price, stock, supplier, status, low-stock, dashboard, edit, and stock-operation actions.
+- [x] Top-sales analytics exist for inventory items and variants, ranking ordered quantity from inventory-backed `LineItem` rows and shipped quantity from consumed `StockAllocation` rows.
+- [x] Inventory operations dashboard exists on `/inventory` with stock-health cards, alert rows, and drilldowns to item dashboards, variants, stock operations, inbound, allocations, backorders, and production plan.
+- [x] Inventory dispatch-mode UI exists at `/inventory/dispatch-mode`.
+- [x] Inventory print route browser smoke passed after wrapping the PDF viewer in a client-only dynamic component; `/p/sales-inventory-v2?ids=08499LM&mode=production&preview=false` renders a blob-backed PDF iframe.
+- [ ] Inventory print still needs mode-by-mode visual packet comparison before broad invoice/quote cutover.
 
 ### Phase 10: Automation and Hardening
-Status: Partially done.
+Status: Partially done; dry-run reconciliation and receive/allocation retry guardrails exist.
 
 - [x] Sales inventory sync is automated through Trigger jobs.
 - [x] Allocation shortage creates inbound demand.
 - [x] Receiving can queue backorder allocation release.
 - [x] Legacy sales can continue while inventory-backed flows mature.
-- [ ] Stock/allocation reconciliation jobs are still pending.
+- [x] Dry-run sales inventory reconciliation report exists for missing component rows, completed shipment vs consumed allocation drift, and component allocation/inbound fulfillment status drift.
+- [x] `run-inventory-reconciliation-report` Trigger job supports bounded cursor runs, samples, severity, skipped counts, skipped reasons, and no mutation by default.
+- [x] Existing Dyke/inventory structural and pricing drift remains exposed through `dykeInventoryDriftReport`.
+- [x] Backorder auto-release reports skipped and already-covered demands on retries instead of duplicating allocations.
 - [ ] Drift repair and migration gates need production-grade runbooks and alerts.
+- [ ] Print projection parity automation beyond golden data tests still needs mode-by-mode browser/PDF visual validation before broad cutover.
 - [ ] Cutover of overview, print, production, deployment, fulfillment, and reporting to inventory projections remains pending.
 
 ## Pending Work
-1. Add explicit `SalesShipment` / `SalesShipmentLine` models or make a deliberate ADR that `OrderDelivery` / `OrderItemDelivery` are the canonical shipment records.
-2. Add the "hold until complete" fulfillment option.
-3. Build or finalize a dedicated partial shipment screen separate from the backorder queue.
-4. Hard-gate production start on inventory readiness across existing production actions.
-5. Finish sale-level production-ready transitions in the production workflow.
-6. Complete pricing drift reporting between Dyke definitions and inventory definitions.
-7. Migrate remaining dormant Dyke admin/use-case helpers into `@gnd/inventory`.
-8. Define delete/archive policy for Dyke definitions and inventory sync.
-9. Browser-validate allocation review, inbound receiving, production plan, backorder queue, and stock operations.
-10. Add guardrails for repeat receiving, repeated allocation, and duplicate auto-release.
-11. Decide whether inbound issue replacements create linked follow-up inbounds automatically.
-12. Verify audit coverage for stock in, stock out, return, correction, consume, and release.
-13. Finish inventory-backed print packets: BOM, pick list, packing list, backorder packet, production packet, and customer remaining-quantity summary.
-14. Add stock/allocation reconciliation jobs and drift alerts.
-15. Create migration gates and runbooks for switching overview, print, production, deployment, fulfillment, and reporting to inventory projections.
-16. Build full inventory-to-Dyke create/update/delete/archive sync.
-17. Sync inventory variant price and supplier-variant price updates back to Dyke pricing.
-18. Update inventory line projections from production assignment and production fulfilled events.
-19. Add inventory-mode dispatch assign/pack/fulfill lifecycle.
-20. Build item-level inventory dashboard, variants workspace, related sales/quotes views, and top-sales analytics.
+1. Finish sale-level production-ready transitions in the production workflow.
+2. Migrate remaining dormant Dyke admin/use-case helpers into `@gnd/inventory`.
+3. Define delete/archive policy for Dyke definitions and inventory sync.
+4. Finish browser validation action proof for allocation review, inbound receiving, partial shipment, inventory dispatch mode, stock operations, and mode-by-mode inventory print visuals. Route smoke evidence now lives in `brain/reports/2026-06-15-inventory-browser-validation-evidence.md`; remaining checks need controlled local fixtures with pending allocations, inbound demand/shipments, available dispatch allocations, held partial shipment lines, and safe stock rows.
+5. Decide whether inbound issue replacements create linked follow-up inbounds automatically.
+6. Verify audit coverage for stock in, stock out, return, correction, consume, and release.
+7. Add drift alerts and production-grade reconciliation runbooks.
+8. Create migration gates and runbooks for switching overview, print, production, deployment, fulfillment, and reporting to inventory projections.
+9. Item-level dashboard, related sales/quotes sections, variants workspace, top-sales analytics, and operations dashboard now exist; remaining UI work is validation plus later analytics polish.
 
 ## Evidence Pointers
 - Sync foundation: `packages/sales/src/sync-sales-inventory-line-items.ts`, `packages/sales/src/sales-inventory-sync-job.ts`, `packages/jobs/src/tasks/sales/backfill-sales-inventory-line-items.ts`
@@ -414,11 +433,18 @@ Status: Partially done.
 - Inbound receiving: `packages/inventory/src/application/inbound/inbound-demand.ts`
 - Allocation review: `packages/inventory/src/inventory.ts`
 - API surface: `apps/api/src/trpc/routers/inventories.route.ts`
-- UIs: `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/production-plan`
+- UIs: `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/partial-shipments`, `/inventory/production-plan`
 - Inventory -> Dyke partial helper: `packages/inventory/src/application/sync/dyke-update-from-inventory.ts`
 - Inventory variant pricing: `packages/inventory/src/inventory.ts`
 - Inventory print: `packages/sales/src/print/inventory-print-data.ts`, `/p/sales-inventory-v2`, `print.salesInventoryV2`
+- Inventory reconciliation: `packages/sales/src/inventory-reconciliation-report.ts`, `packages/jobs/src/tasks/inventory/run-inventory-reconciliation-report.ts`, `inventories.inventoryReconciliationReport`
 - Production/dispatch command chain: `packages/jobs/src/tasks/sales/update-sales-control.ts`, `packages/sales/src/sales-control/actions.ts`
-- Inventory pages: `/inventory`, `/inventory/stocks`, `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/production-plan`, `/inventory/suppliers`, `/inventory/review`
+- Inventory item dashboard: `packages/inventory/src/inventory.ts`, `inventories.inventoryItemDashboard`, `/inventory/[id]`
+- Inventory variants workspace: `packages/inventory/src/inventory.ts`, `inventories.inventoryVariantsWorkspace`, `/inventory/variants`
+- Inventory top-sales analytics: `packages/inventory/src/inventory.ts`, `inventories.inventoryTopSalesAnalytics`, `/inventory`, `/inventory/[id]`
+- Inventory stock audit verification: `packages/inventory/src/application/stock/stock-adjustment.ts`, `inventories.stockAuditVerificationReport`, `/inventory/stocks`
+- Inventory operations dashboard: `packages/inventory/src/inventory.ts`, `inventories.inventoryOperationsSummary`, `/inventory`
+- Inventory dispatch mode UI: `apps/www/src/components/inventory/inventory-dispatch-mode-page.tsx`, `inventories.assignInventoryDispatchAllocations`, `inventories.packInventoryDispatchAllocations`, `inventories.fulfillInventoryDispatch`, `inventories.releaseInventoryDispatchAllocations`, `/inventory/dispatch-mode`
+- Inventory pages: `/inventory`, `/inventory/[id]`, `/inventory/variants`, `/inventory/stocks`, `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/partial-shipments`, `/inventory/dispatch-mode`, `/inventory/production-plan`, `/inventory/suppliers`, `/inventory/review`
 
-Last updated: 2026-06-12
+Last updated: 2026-06-15

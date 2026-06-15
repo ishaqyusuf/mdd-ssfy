@@ -33,6 +33,7 @@
 		"./schema": "./src/schema.ts",
 		"./sales-fulfillment-plan": "./src/sales-fulfillment-plan.ts",
 		"./sales-inventory-overview": "./src/sales-inventory-overview.ts",
+		"./inventory-reconciliation-report": "./src/inventory-reconciliation-report.ts",
 		"./sales-inventory-sync-monitor": "./src/sales-inventory-sync-monitor.ts",
 		"./sales-inventory-sync-job": "./src/sales-inventory-sync-job.ts",
 		"./sync-sales-inventory-line-items": "./src/sync-sales-inventory-line-items.ts",

@@ -6,6 +6,7 @@ import {
   getDefaultSalesFormCustomerProfile,
   resolveSalesFormProfilePaymentTerm,
 } from "@gnd/sales/sales-form-core";
+import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -60,10 +61,12 @@ function getShellTitle(input: {
 
 export function InvoiceFormScreen({
   mode,
+  skipInitialCustomerSelector = false,
   slug,
   type = "order",
 }: {
   mode: InvoiceFormMode;
+  skipInitialCustomerSelector?: boolean;
   slug?: string;
   type?: NewSalesFormType;
 }) {
@@ -189,10 +192,19 @@ export function InvoiceFormScreen({
   }, [actions, recoveryType, type]);
 
   useEffect(() => {
-    if (mode !== "create" || initialCustomerRouteOpenedRef.current) return;
+    if (
+      mode !== "create" ||
+      skipInitialCustomerSelector ||
+      initialCustomerRouteOpenedRef.current
+    ) {
+      return;
+    }
     initialCustomerRouteOpenedRef.current = true;
-    router.push("/(sales)/invoices/customer-selector" as any);
-  }, [mode, router]);
+    router.replace({
+      pathname: "/(sales)/invoices/customer-selector",
+      params: { type, source: "new" },
+    } as Href);
+  }, [mode, router, skipInitialCustomerSelector, type]);
 
   useEffect(() => {
     const record = recordQuery.data;

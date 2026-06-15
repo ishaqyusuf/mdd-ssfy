@@ -1,25 +1,20 @@
 import { _trpc } from "@/components/static-trpc";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
-import { invoiceCustomerProfiles } from "../mock-data";
 import type { InvoiceCustomerProfile } from "../types";
-import { USE_MOCK_INVOICE_FORM } from "./config";
 
 type CustomerProfileRow = Record<string, unknown>;
 
 export function useInvoiceFormProfiles() {
-  const realProfiles = useQuery({
-    ..._trpc.customers.getCustomerProfiles.queryOptions(),
-    enabled: !USE_MOCK_INVOICE_FORM,
-  });
+  const realProfiles = useQuery(
+    _trpc.customers.getCustomerProfiles.queryOptions(),
+  );
 
   const profiles = useMemo(
     () =>
-      USE_MOCK_INVOICE_FORM
-        ? invoiceCustomerProfiles
-        : listRows<CustomerProfileRow>(realProfiles.data).map(
-            mapRealCustomerProfile,
-          ),
+      listRows<CustomerProfileRow>(realProfiles.data).map(
+        mapRealCustomerProfile,
+      ),
     [realProfiles.data],
   );
 
@@ -33,7 +28,7 @@ export function useInvoiceFormProfiles() {
   return {
     profiles,
     getProfileCoefficient,
-    isLoadingProfiles: USE_MOCK_INVOICE_FORM ? false : realProfiles.isPending,
+    isLoadingProfiles: realProfiles.isPending,
   };
 }
 

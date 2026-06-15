@@ -319,6 +319,54 @@ describe("syncInventoryToDyke generic pricing", () => {
 
     expect(result.pricing.updated).toBe(1);
     expect(result.pricing.created).toBe(0);
+    expect(updatedPrice).toBe(120);
+  });
+
+  it("prefers inventory costPrice over stale price when syncing generic variant pricing", async () => {
+    let updatedPrice: number | undefined;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-cost-wins",
+          status: "published",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: { id: 50, price: 500.0, costPrice: 125.0 },
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 300, dependenciesUid: "var-cost-wins", price: 100.0 },
+        ],
+        findFirst: async () => null,
+        updateMany: async (args: any) => {
+          updatedPrice = args?.data?.price;
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-price",
+    });
+
+    expect(result.pricing.updated).toBe(1);
     expect(updatedPrice).toBe(125);
   });
 
@@ -366,6 +414,59 @@ describe("syncInventoryToDyke generic pricing", () => {
 
     expect(result.pricing.created).toBe(1);
     expect(createdDepsUid).toBe("var-xyz-456");
+  });
+
+  it("does not report a created generic pricing row when an idempotency recheck finds one", async () => {
+    let createCalled = false;
+    let updateCalled = false;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-idem-generic",
+          status: "published",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: { id: 51, price: null, costPrice: 75.0 },
+          supplierVariants: [],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [],
+        findFirst: async () => ({ id: 400, price: 75.0 }),
+        create: async () => {
+          createCalled = true;
+          return { id: 401 };
+        },
+        updateMany: async () => {
+          updateCalled = true;
+          return { count: 1 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "variant-price",
+    });
+
+    expect(result.pricing.created).toBe(0);
+    expect(result.pricing.updated).toBe(0);
+    expect(createCalled).toBe(false);
+    expect(updateCalled).toBe(false);
   });
 });
 
@@ -428,6 +529,64 @@ describe("syncInventoryToDyke supplier pricing", () => {
     expect(updatedPrice).toBe(90);
   });
 
+  it("creates supplier pricing only with preserved original pricing key", async () => {
+    let createdDepsUid: string | undefined;
+    let createdPrice: number | undefined;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-supplier-create",
+          status: "published",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [
+            {
+              id: 1,
+              supplierId: 10,
+              costPrice: 80.0,
+              salesPrice: 90.0,
+              meta: { pricingKey: "36x80 & SUP1", size: "36x80" },
+              supplier: { uid: "SUP1", name: "Acme" },
+            },
+          ],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [],
+        findFirst: async () => null,
+        create: async (args: any) => {
+          createdDepsUid = args?.data?.dependenciesUid;
+          createdPrice = args?.data?.price;
+          return { id: 999, ...args.data };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "supplier-variant",
+    });
+
+    expect(result.pricing.created).toBe(1);
+    expect(createdDepsUid).toBe("36x80 & SUP1");
+    expect(createdPrice).toBe(90);
+  });
+
   it("skips without creating when original key is missing and no row matches", async () => {
     let createCalled = false;
 
@@ -484,6 +643,127 @@ describe("syncInventoryToDyke supplier pricing", () => {
     expect(result.pricing.skipped[0]!.reason).toBe(
       "missing_original_supplier_pricing_key",
     );
+  });
+
+  it("skips ambiguous supplier pricing matches", async () => {
+    let updateCalled = false;
+    let createCalled = false;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-supplier-ambiguous",
+          status: "published",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [
+            {
+              id: 1,
+              supplierId: 10,
+              costPrice: 80.0,
+              salesPrice: 90.0,
+              meta: { pricingKey: "36x80 & SUP1", size: "36x80" },
+              supplier: { uid: "SUP1", name: "Acme" },
+            },
+          ],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [
+          { id: 301, dependenciesUid: "36x80 & SUP1", price: 75.0 },
+          { id: 302, dependenciesUid: "SUP1-36x80", price: 76.0 },
+        ],
+        updateMany: async () => {
+          updateCalled = true;
+          return { count: 1 };
+        },
+        create: async () => {
+          createCalled = true;
+          return { id: 999 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "sync",
+      source: "supplier-variant",
+    });
+
+    expect(result.pricing.updated).toBe(0);
+    expect(result.pricing.created).toBe(0);
+    expect(updateCalled).toBe(false);
+    expect(createCalled).toBe(false);
+    expect(result.pricing.skipped[0]!.reason).toBe(
+      "ambiguous_supplier_pricing_match",
+    );
+  });
+
+  it("compare mode reports supplier pricing create without writing", async () => {
+    let createCalled = false;
+
+    const db = {
+      inventoryVariant: {
+        findUnique: async () => ({
+          id: 10,
+          uid: "var-supplier-compare",
+          status: "published",
+          deletedAt: null,
+          inventoryId: 1,
+          inventory: {
+            uid: "prod-uid-1",
+            inventoryCategoryId: 5,
+            sourceStepUid: null,
+            sourceComponentUid: null,
+            inventoryCategory: { uid: "step-uid-1" },
+          },
+          pricing: null,
+          supplierVariants: [
+            {
+              id: 1,
+              supplierId: 10,
+              costPrice: 80.0,
+              salesPrice: 90.0,
+              meta: { pricingKey: "36x80 & SUP1", size: "36x80" },
+              supplier: { uid: "SUP1", name: "Acme" },
+            },
+          ],
+          attributes: [],
+        }),
+      },
+      dykeSteps: {
+        findFirst: async () => ({ id: 200 }),
+      },
+      dykePricingSystem: {
+        findMany: async () => [],
+        create: async () => {
+          createCalled = true;
+          return { id: 999 };
+        },
+      },
+    } as unknown as Db;
+
+    const result = await syncInventoryToDyke(db, {
+      inventoryVariantId: 10,
+      mode: "compare",
+      source: "supplier-variant",
+    });
+
+    expect(result.pricing.created).toBe(1);
+    expect(createCalled).toBe(false);
   });
 });
 

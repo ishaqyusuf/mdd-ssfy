@@ -628,6 +628,11 @@ export const linkModules = [
                               "/inventory?productId=-1",
                           ).data,
                       ]).access(_role.is("Super Admin")).data,
+                      _link(
+                          "Variants",
+                          "products",
+                          "/inventory/variants",
+                      ).access(_role.is("Super Admin")).data,
                       _link("Components", "products", "/inventory/components", [
                           _subLink(
                               "Create Component",
@@ -653,6 +658,16 @@ export const linkModules = [
                           "Backorders",
                           "report",
                           "/inventory/backorders",
+                      ).access(_role.is("Super Admin")).data,
+                      _link(
+                          "Partial Shipments",
+                          "estimates",
+                          "/inventory/partial-shipments",
+                      ).access(_role.is("Super Admin")).data,
+                      _link(
+                          "Dispatch Mode",
+                          "estimates",
+                          "/inventory/dispatch-mode",
                       ).access(_role.is("Super Admin")).data,
                       _link(
                           "Production Plan",

@@ -16,6 +16,13 @@ export type DykeUpdateFromInventoryInput = {
   syncImage?: boolean;
 };
 
+function resolveGenericVariantPrice(pricing: {
+  price?: number | null;
+  costPrice?: number | null;
+} | null | undefined) {
+  return pricing?.costPrice ?? pricing?.price ?? null;
+}
+
 async function syncCategory(
   db: Db,
   inventoryCategoryId: number,
@@ -629,8 +636,7 @@ async function syncVariantAndPricing(
   // ---- Generic pricing (Fix A routing) ----
   const variantPricing = variant.pricing;
   if (variantPricing) {
-    const genericPrice =
-      variantPricing.price ?? variantPricing.costPrice ?? null;
+    const genericPrice = resolveGenericVariantPrice(variantPricing);
 
     if (genericPrice != null) {
       const targetDepsUid = variant.uid;
@@ -667,6 +673,7 @@ async function syncVariantAndPricing(
           pricingUpdated += 1;
         }
       } else {
+        let createGenericPricing = true;
         if (mode === "sync") {
           const alreadyExists = await db.dykePricingSystem.findFirst({
             where: {
@@ -677,6 +684,7 @@ async function syncVariantAndPricing(
             },
           });
           if (alreadyExists) {
+            createGenericPricing = false;
             if (alreadyExists.price !== genericPrice) {
               await db.dykePricingSystem.updateMany({
                 where: { id: alreadyExists.id },
@@ -695,7 +703,9 @@ async function syncVariantAndPricing(
             });
           }
         }
-        pricingCreated += 1;
+        if (createGenericPricing) {
+          pricingCreated += 1;
+        }
       }
     }
   }

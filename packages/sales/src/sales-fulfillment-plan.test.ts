@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+	applyHoldUntilCompleteToShipmentPlan,
+	buildSalesPartialShipmentQueue,
 	buildSalesBackorderQueue,
 	buildSalesProductionPlan,
+	isLineHeldUntilComplete,
 	planAvailableShipmentForLine,
+	planInventoryDispatchAllocationTransition,
 	planReceivedBackorderAllocation,
 	summarizeSalesFulfillmentPlan,
 } from "./sales-fulfillment-plan";
@@ -176,6 +180,180 @@ describe("buildSalesBackorderQueue", () => {
 
 		expect(queue.summary.totalCount).toBe(0);
 		expect(queue.summary.backorderedQty).toBe(0);
+	});
+});
+
+describe("hold until complete partial shipment planning", () => {
+	test("marks held partially available lines as not shippable", () => {
+		const fulfillment = summarizeSalesFulfillmentPlan([
+			{
+				id: 1,
+				qty: 10,
+				meta: {
+					fulfillment: {
+						holdUntilComplete: true,
+					},
+				},
+				salesItem: {
+					id: 200,
+					itemDeliveries: [],
+				},
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 10,
+						stockAllocations: [{ qty: 6, status: "reserved" }],
+					},
+				],
+			},
+		]);
+
+		expect(fulfillment.lines[0]).toMatchObject({
+			holdUntilComplete: true,
+			availableToShipQty: 6,
+			canShipNow: false,
+			heldBackQty: 10,
+		});
+		expect(
+			isLineHeldUntilComplete({
+				fulfillment: {
+					holdUntilComplete: true,
+				},
+			}),
+		).toBe(true);
+	});
+
+	test("allows held lines to ship when full remaining quantity is available", () => {
+		const fulfillment = summarizeSalesFulfillmentPlan([
+			{
+				id: 1,
+				qty: 10,
+				meta: {
+					fulfillment: {
+						holdUntilComplete: true,
+					},
+				},
+				salesItem: {
+					id: 200,
+					itemDeliveries: [],
+				},
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 10,
+						stockAllocations: [{ qty: 10, status: "reserved" }],
+					},
+				],
+			},
+		]);
+
+		expect(fulfillment.lines[0]).toMatchObject({
+			holdUntilComplete: true,
+			availableToShipQty: 10,
+			canShipNow: true,
+			heldBackQty: 0,
+		});
+	});
+
+	test("hold decision blocks partial ship plans but not complete ship plans", () => {
+		const partial = planAvailableShipmentForLine({
+			orderedQty: 10,
+			components: [
+				{
+					componentId: 10,
+					required: true,
+					orderedQty: 10,
+					availableQty: 6,
+				},
+			],
+		});
+		const complete = planAvailableShipmentForLine({
+			orderedQty: 10,
+			components: [
+				{
+					componentId: 10,
+					required: true,
+					orderedQty: 10,
+					availableQty: 10,
+				},
+			],
+		});
+
+		expect(applyHoldUntilCompleteToShipmentPlan(partial, true)).toEqual({
+			blocked: true,
+			reason: "hold_until_complete",
+			shipQty: 0,
+			backorderedQty: 0,
+			heldQty: 10,
+		});
+		expect(applyHoldUntilCompleteToShipmentPlan(complete, true)).toEqual({
+			blocked: false,
+			reason: null,
+			shipQty: 10,
+			backorderedQty: 0,
+			heldQty: 0,
+		});
+	});
+
+	test("builds partial shipment queue with available and held statuses", () => {
+		const queue = buildSalesPartialShipmentQueue([
+			{
+				id: 1,
+				qty: 10,
+				sale: {
+					id: 100,
+					orderId: "0001",
+				},
+				salesItem: {
+					id: 200,
+					itemDeliveries: [],
+				},
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 10,
+						stockAllocations: [{ qty: 6, status: "reserved" }],
+					},
+				],
+			},
+			{
+				id: 2,
+				qty: 10,
+				meta: {
+					fulfillment: {
+						holdUntilComplete: true,
+					},
+				},
+				sale: {
+					id: 101,
+					orderId: "0002",
+				},
+				salesItem: {
+					id: 201,
+					itemDeliveries: [],
+				},
+				components: [
+					{
+						id: 11,
+						required: true,
+						qty: 10,
+						stockAllocations: [{ qty: 6, status: "reserved" }],
+					},
+				],
+			},
+		]);
+
+		expect(queue.summary.totalCount).toBe(2);
+		expect(queue.summary.statusCounts.available_now).toBe(1);
+		expect(queue.summary.statusCounts.held_until_complete).toBe(1);
+		expect(queue.summary.heldLineCount).toBe(1);
+		expect(queue.items.map((item) => item.partialStatus)).toEqual([
+			"available_now",
+			"held_until_complete",
+		]);
 	});
 });
 
@@ -388,6 +566,87 @@ describe("planReceivedBackorderAllocation", () => {
 			shortageQty: 6,
 			reserveQty: 3,
 			remainingBackorderQty: 3,
+		});
+	});
+
+	test("does not reserve again when received shortage is already covered", () => {
+		const plan = planReceivedBackorderAllocation({
+			requiredQty: 10,
+			allocatedQty: 10,
+			receivedQty: 10,
+			availableStockQty: 10,
+		});
+
+		expect(plan).toEqual({
+			shortageQty: 0,
+			reserveQty: 0,
+			remainingBackorderQty: 0,
+		});
+	});
+});
+
+describe("planInventoryDispatchAllocationTransition", () => {
+	test("assign reserves approved allocations", () => {
+		expect(
+			planInventoryDispatchAllocationTransition({
+				action: "assign",
+				status: "approved",
+			}),
+		).toMatchObject({
+			transition: true,
+			toStatus: "reserved",
+			reason: "ready",
+		});
+	});
+
+	test("pack only moves reserved allocations to picked", () => {
+		expect(
+			planInventoryDispatchAllocationTransition({
+				action: "pack",
+				status: "reserved",
+			}),
+		).toMatchObject({
+			transition: true,
+			toStatus: "picked",
+		});
+		expect(
+			planInventoryDispatchAllocationTransition({
+				action: "pack",
+				status: "approved",
+			}),
+		).toMatchObject({
+			transition: false,
+			reason: "not_reserved_for_pack",
+		});
+	});
+
+	test("release does not reopen consumed or pending review allocations", () => {
+		expect(
+			planInventoryDispatchAllocationTransition({
+				action: "release",
+				status: "picked",
+			}),
+		).toMatchObject({
+			transition: true,
+			toStatus: "released",
+		});
+		expect(
+			planInventoryDispatchAllocationTransition({
+				action: "release",
+				status: "consumed",
+			}),
+		).toMatchObject({
+			transition: false,
+			reason: "already_consumed",
+		});
+		expect(
+			planInventoryDispatchAllocationTransition({
+				action: "assign",
+				status: "pending_review",
+			}),
+		).toMatchObject({
+			transition: false,
+			reason: "pending_review_not_dispatchable",
 		});
 	});
 });

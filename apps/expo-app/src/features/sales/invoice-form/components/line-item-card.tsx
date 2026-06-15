@@ -47,9 +47,7 @@ import {
   type TextInputProps,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { USE_MOCK_INVOICE_FORM } from "../api/config";
 import { formatMoney, parseCurrencyInput } from "../lib/format";
-import { invoiceSelectableItems } from "../mock-data";
 import type { NewSalesFormLineItem } from "../types";
 
 function TextInput({
@@ -136,8 +134,7 @@ export function LineItemCard({
       ),
     [shelfSections],
   );
-  const shouldLoadShelfProducts =
-    !USE_MOCK_INVOICE_FORM && shelfSections.length > 0;
+  const shouldLoadShelfProducts = shelfSections.length > 0;
   const shelfProductsQuery = useQuery(
     shouldLoadShelfProducts
       ? _trpc.newSalesForm.searchShelfProducts.queryOptions(
@@ -159,15 +156,10 @@ export function LineItemCard({
   );
   const shelfProducts = useMemo(
     () =>
-      USE_MOCK_INVOICE_FORM
-        ? invoiceSelectableItems
-            .filter((entry) => entry.source === "shelf")
-            .filter((entry) => matchesShelfProductSearch(entry, shelfProductSearch))
-            .map((entry) => mapMockShelfProduct(entry, customerProfileCoefficient))
-        : ((shelfProductsQuery.data || []) as unknown[]).map((row) =>
-            mapShelfProduct(row, customerProfileCoefficient),
-          ),
-    [customerProfileCoefficient, shelfProductSearch, shelfProductsQuery.data],
+      ((shelfProductsQuery.data || []) as unknown[]).map((row) =>
+        mapShelfProduct(row, customerProfileCoefficient),
+      ),
+    [customerProfileCoefficient, shelfProductsQuery.data],
   );
   const doorRows = getDoorRows(item);
   const doorRouteConfig = getDoorRouteConfig(item, workflowSteps);
@@ -1261,53 +1253,6 @@ function mapShelfProduct(
           }
         : { id: Number(entry || 0) },
     ),
-  };
-}
-
-function matchesShelfProductSearch(
-  item: { title?: string; sku?: string; category?: string },
-  search: string,
-) {
-  const normalized = search.trim().toLowerCase();
-  if (!normalized) return true;
-  return [item.title, item.sku, item.category]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase()
-    .includes(normalized);
-}
-
-function mapMockShelfProduct(
-  item: {
-    productId?: number | null;
-    title?: string;
-    unitPrice?: number | null;
-    basePrice?: number | null;
-    salesPrice?: number | null;
-    categoryId?: number | null;
-    parentCategoryId?: number | null;
-    categoryIds?: number[];
-  },
-  profileCoefficient?: number | null,
-): ShelfProductOption {
-  const baseUnitPrice = Number(
-    item.basePrice ?? item.unitPrice ?? item.salesPrice ?? 0,
-  );
-  const displayUnitPrice = profileAdjustedDoorSalesPrice(
-    item.salesPrice == null ? baseUnitPrice : Number(item.salesPrice || 0),
-    baseUnitPrice,
-    profileCoefficient,
-  );
-  return {
-    id: item.productId == null ? null : Number(item.productId || 0),
-    title: String(item.title || "Shelf product"),
-    unitPrice: baseUnitPrice,
-    salesPrice: displayUnitPrice,
-    categoryId:
-      item.categoryId == null ? null : Number(item.categoryId || 0),
-    parentCategoryId:
-      item.parentCategoryId == null ? null : Number(item.parentCategoryId || 0),
-    categoryPath: (item.categoryIds || []).map((id) => ({ id })),
   };
 }
 
