@@ -18,6 +18,7 @@ import {
 } from "@/lib/theme-preference";
 import { InsuranceStatusAlert } from "@/components/insurance/insurance-status-alert";
 import { Pressable } from "@/components/ui/pressable";
+import type { Href } from "expo-router";
 import {
 	SettingsSections,
 	type SettingsSectionKey,
@@ -55,7 +56,7 @@ export default function SettingsExampleScreen({
 	);
 	async function updateJobSetting(key, value) {
 		updateSetting({
-			type: setting?.type!,
+			type: "jobs-settings",
 			meta: {
 				[key]: value,
 			},
@@ -84,6 +85,11 @@ export default function SettingsExampleScreen({
 		auth.isAdmin ||
 		auth.currentSectionKey === "dispatch" ||
 		auth.currentSectionKey === "driver";
+	const showDesignSystemPreviews = __DEV__;
+	const designSystemPreviewRoute = "/design-system-preview" as Href;
+	const opsConsolePreviewRoute = "/design-system-preview/template-a" as Href;
+	const fieldFlowPreviewRoute = "/design-system-preview/template-b" as Href;
+	const salesLedgerPreviewRoute = "/design-system-preview/template-c" as Href;
 
 	return (
 		<View className="flex-1 bg-background">
@@ -177,6 +183,66 @@ export default function SettingsExampleScreen({
 						onSelectSection={onSelectSection ?? (() => {})}
 						visible={shouldShowSections}
 					/>
+					{showDesignSystemPreviews ? (
+						<Section title="Design System Previews">
+							<SettingsItem
+								icon="LayoutDashboard"
+								label="All Templates"
+								subLabel="Compare the three proposed mobile directions"
+								isLast={false}
+								onPress={() => router.push(designSystemPreviewRoute)}
+								rightElement={
+									<Icon
+										name="ChevronRight"
+										className="text-muted-foreground"
+										size={20}
+									/>
+								}
+							/>
+							<SettingsItem
+								icon="Briefcase"
+								label="Ops Console"
+								subLabel="Compact Fikri-inspired operational cards"
+								isLast={false}
+								onPress={() => router.push(opsConsolePreviewRoute)}
+								rightElement={
+									<Icon
+										name="ChevronRight"
+										className="text-muted-foreground"
+										size={20}
+									/>
+								}
+							/>
+							<SettingsItem
+								icon="Truck"
+								label="Field Flow"
+								subLabel="Thumb-first driver and installer workflow"
+								isLast={false}
+								onPress={() => router.push(fieldFlowPreviewRoute)}
+								rightElement={
+									<Icon
+										name="ChevronRight"
+										className="text-muted-foreground"
+										size={20}
+									/>
+								}
+							/>
+							<SettingsItem
+								icon="ReceiptText"
+								label="Sales Ledger"
+								subLabel="Dense sales, invoice, and order workspace"
+								isLast
+								onPress={() => router.push(salesLedgerPreviewRoute)}
+								rightElement={
+									<Icon
+										name="ChevronRight"
+										className="text-muted-foreground"
+										size={20}
+									/>
+								}
+							/>
+						</Section>
+					) : null}
 					<Section title="Appearance">
 						<SettingsItem
 							icon="Settings"

@@ -4,6 +4,21 @@
 
 ## 2026-06-15
 
+- Updated the app download API default APK source.
+  - Changed `/api/download-app` to default to Expo EAS artifact `QG5-xn0VgAxDwj58KqyTLdN1aXKiQRpUOYxLc1rFr5s.apk`.
+  - Updated API documentation: `brain/api/endpoints.md`.
+  - Validation: pending focused route/source check.
+
+- Implemented Expo mobile design-system template previews.
+  - Added preview routes under `apps/expo-app/src/app/design-system-preview` for the template index plus Ops Console, Field Flow, and Sales Ledger samples.
+  - Added isolated preview feature files under `apps/expo-app/src/features/design-system-preview`, including token specs, sample data, shared preview components, and documentation.
+  - Added a Settings section named `Design System Previews` with links to the index and each template.
+  - Added mobile design documentation: `apps/expo-app/DESIGN.md` and `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
+  - Updated plan: `brain/plans/2026-06-15-mobile-design-system-template-previews.md`.
+  - Narrowed Settings job-setting updates to the literal `"jobs-settings"` type instead of the previous loose `setting?.type!`.
+  - Validation: focused Biome check for the new preview route/feature files passed; `git diff --check` passed; broad Expo typecheck remains blocked by existing workspace baseline errors, but touched-file diagnostic grep returned no preview/settings/layout diagnostics after the Settings type fix. Expo dev server started on port `3502`; web route smoke is blocked by an existing `react-native-css` / `react-native-web` FlatList Metro error and Playwright screenshot smoke is blocked by a missing local browser binary.
+  - Follow-up: gated the design-system preview Settings section, protected root stack screen, and preview route layout behind `__DEV__`, making the samples development-only. Focused Biome, `git diff --check`, and touched-file TypeScript diagnostic grep passed.
+
 - Fixed `apps/www` production logout hardening.
   - Changed `/signout` to call the Better Auth sign-out handler in-process instead of server-fetching the public `/api/auth/sign-out` URL.
   - Preserved forwarded auth/request headers for the internal handler call and continued forwarding any Better Auth `Set-Cookie` response headers.

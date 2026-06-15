@@ -1,30 +1,21 @@
-import { useColorScheme } from "@/hooks/use-color";
 import { cn } from "@/lib/utils";
-import { BlurView as ExpoBlurView } from "expo-blur";
-import { View } from "react-native";
+import { type StyleProp, View, type ViewStyle } from "react-native";
+
 type Props = {
-  children: React.ReactNode;
-  className?: string;
-  intensity?: number;
+	children?: React.ReactNode;
+	className?: string;
+	intensity?: number;
+	style?: StyleProp<ViewStyle>;
+	tint?: string;
 };
-export function BlurView({ children, className = "", intensity = 90 }: Props) {
-  const tint = useColorScheme()?.colorScheme;
-  return (
-    <ExpoBlurView
-      tint={tint || "light"}
-      intensity={intensity}
-      className={cn("rounded-lg", className)}
-    >
-      {children}
-    </ExpoBlurView>
-  );
-  return (
-    <View
-      // tint={tint || "light"}
-      className={cn("bg-foreground/30", className)}
-      // intensity={intensity}
-    >
-      {children}
-    </View>
-  );
+
+export function BlurView({ children, className = "", style }: Props) {
+	return (
+		<View
+			className={cn("rounded-lg bg-foreground/30", className)}
+			style={style}
+		>
+			{children}
+		</View>
+	);
 }

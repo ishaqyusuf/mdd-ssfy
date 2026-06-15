@@ -22,7 +22,7 @@ import {
   Animated,
 } from "react-native";
 
-import { BlurView } from "expo-blur";
+import { BlurView } from "@/components/blur-view";
 import { Icon } from "@/components/ui/icon";
 import { useColors } from "@/hooks/use-color";
 import { cn } from "@/lib/utils";

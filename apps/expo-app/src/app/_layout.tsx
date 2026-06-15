@@ -143,6 +143,15 @@ const InitialLayout = () => {
                 // header: () => <Header title="Create Installer Profile" />,
               }}
             />
+            {__DEV__ ? (
+              <Stack.Screen
+                name="design-system-preview"
+                options={{
+                  presentation: "modal",
+                  headerShown: false,
+                }}
+              />
+            ) : null}
             <Stack.Screen
               name="updates"
               options={{
