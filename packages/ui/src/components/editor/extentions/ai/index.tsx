@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import type { Editor } from "@tiptap/react";

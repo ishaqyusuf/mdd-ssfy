@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { DashIcon } from "@radix-ui/react-icons";

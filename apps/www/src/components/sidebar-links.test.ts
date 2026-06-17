@@ -74,7 +74,7 @@ describe("sidebar role access", () => {
         ).toBe(false);
     });
 
-    test("allows admins with viewOrders to open the sales orders v2 page by default", () => {
+    test("allows admins with viewOrders to open the sales orders page by default", () => {
         const links = getLinkModules(
             validateLinks({
                 role: { name: "Admin" },
@@ -83,9 +83,6 @@ describe("sidebar role access", () => {
             }),
         );
 
-        expect(links.linksNameMap["/sales-book/orders/v2"]?.hasAccess).toBe(
-            true,
-        );
         expect(links.linksNameMap["/sales-book/orders"]?.hasAccess).toBe(true);
     });
 

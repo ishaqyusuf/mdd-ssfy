@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { ArchiveIcon } from "@radix-ui/react-icons";
 import { HugeiconsIcon, type HugeiconsIconProps } from "@hugeicons/react";
 import * as HugeIcons from "@hugeicons/core-free-icons";

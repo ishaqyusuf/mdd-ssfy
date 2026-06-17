@@ -1,4 +1,20 @@
 import { type Db, type TransactionClient } from "@gnd/db";
+import {
+  ACTIVE_INBOUND_DEMAND_STATUSES,
+  ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES,
+} from "./inbound-demand-policy";
+import type { OrderInboundStatus } from "./inbound-demand-policy";
+export {
+  ACTIVE_INBOUND_DEMAND_STATUSES,
+  ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES,
+  canOrderInboundPromptMutateDemand,
+  resolveOrderInboundDemandStatus,
+} from "./inbound-demand-policy";
+export type {
+  CanOrderInboundPromptMutateDemandInput,
+  OrderInboundStatus,
+  ResolveOrderInboundDemandStatusInput,
+} from "./inbound-demand-policy";
 
 type DbLike = Db | TransactionClient;
 type InboundDemandQueueStatus =
@@ -31,6 +47,26 @@ export type InboundDemandQueueInput = {
   status?: InboundDemandQueueStatus[];
   supplierId?: number | null;
   saleId?: number | null;
+};
+
+export type InboundStatusDemandReconciliationInput = {
+  take?: number | null;
+};
+
+export type ApplyOrderInboundStatusToInventoryDemandInput = {
+  saleId: number;
+  status: OrderInboundStatus;
+  demandIds?: number[] | null;
+};
+
+export type ApplyOrderInboundStatusToInventoryDemandResult = {
+  saleId: number;
+  status: OrderInboundStatus;
+  updatedDemandCount: number;
+  skipped: boolean;
+  reason?:
+    | "available_status_does_not_mutate_shortage_demand"
+    | "selected_demand_ids_invalid";
 };
 
 export type SupplierReorderSuggestionDemandLike = {
@@ -99,6 +135,74 @@ export type SupplierReorderSuggestionsSummary = {
 export type SupplierReorderSuggestionsResult = {
   summary: SupplierReorderSuggestionsSummary;
   suggestions: SupplierReorderSuggestion[];
+};
+
+export type InboundStatusDemandReconciliationInputRow = {
+  id: number;
+  orderId?: string | null;
+  slug?: string | null;
+  inventoryStatus?: string | null;
+  lineItems?: Array<{
+    id: number;
+    title?: string | null;
+    components?: Array<{
+      id: number;
+      qtyInbound?: number | null;
+      status?: string | null;
+      inventoryVariant?: {
+        id?: number | null;
+        sku?: string | null;
+        uid?: string | null;
+        inventory?: {
+          id?: number | null;
+          name?: string | null;
+        } | null;
+      } | null;
+      inboundDemands?: Array<{
+        id: number;
+        qty?: number | null;
+        qtyReceived?: number | null;
+        status?: string | null;
+        inboundShipmentItemId?: number | null;
+      }> | null;
+    }> | null;
+  }> | null;
+};
+
+export type InboundStatusDemandReconciliationRow = {
+  saleId: number;
+  orderId: string | null;
+  slug: string | null;
+  inventoryStatus: OrderInboundStatus;
+  openDemandCount: number;
+  openDemandQty: number;
+  orderedDemandCount: number;
+  issue:
+    | "order_status_without_inventory_demand"
+    | "available_status_with_open_inventory_demand"
+    | "pending_order_has_ordered_inventory_demand";
+  severity: "warning" | "critical";
+  demandPreview: Array<{
+    demandId: number;
+    lineItemId: number;
+    lineTitle: string | null;
+    inventoryName: string | null;
+    sku: string | null;
+    qtyOpen: number;
+    status: string | null;
+  }>;
+};
+
+export type InboundStatusDemandReconciliationResult = {
+  summary: {
+    reviewedOrderCount: number;
+    issueCount: number;
+    orderStatusWithoutDemandCount: number;
+    availableWithDemandCount: number;
+    pendingOrderWithOrderedDemandCount: number;
+    openDemandQty: number;
+  };
+  rows: InboundStatusDemandReconciliationRow[];
 };
 
 export type InboundShipmentDetailInput = {
@@ -178,6 +282,234 @@ export type PlannedInboundReceiptDelta = {
 
 function positiveNumber(value?: number | null) {
   return Math.max(0, Number(value || 0));
+}
+
+function isOrderInboundStatus(
+  status?: string | null,
+): status is OrderInboundStatus {
+  return (
+    status === "AVAILABLE" ||
+    status === "ORDERED" ||
+    status === "PENDING ORDER"
+  );
+}
+
+function isOpenDemandStatus(status?: string | null) {
+  return ACTIVE_INBOUND_DEMAND_STATUSES.includes(
+    status as (typeof ACTIVE_INBOUND_DEMAND_STATUSES)[number],
+  );
+}
+
+function normalizeDemandIds(demandIds?: number[] | null) {
+  if (!demandIds?.length) return [];
+
+  return Array.from(
+    new Set(
+      demandIds
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    ),
+  );
+}
+
+export function buildInboundStatusDemandReconciliation(
+  orders: InboundStatusDemandReconciliationInputRow[],
+): InboundStatusDemandReconciliationResult {
+  const rows: InboundStatusDemandReconciliationRow[] = [];
+
+  for (const order of orders) {
+    if (!isOrderInboundStatus(order.inventoryStatus)) continue;
+
+    const demandPreview: InboundStatusDemandReconciliationRow["demandPreview"] =
+      [];
+    let openDemandCount = 0;
+    let openDemandQty = 0;
+    let orderedDemandCount = 0;
+
+    for (const lineItem of order.lineItems || []) {
+      for (const component of lineItem.components || []) {
+        for (const demand of component.inboundDemands || []) {
+          if (!isOpenDemandStatus(demand.status)) continue;
+
+          const qtyOpen = Math.max(
+            0,
+            positiveNumber(demand.qty) - positiveNumber(demand.qtyReceived),
+          );
+          if (qtyOpen <= 0) continue;
+
+          openDemandCount += 1;
+          openDemandQty += qtyOpen;
+          if (demand.status === "ordered" || demand.inboundShipmentItemId) {
+            orderedDemandCount += 1;
+          }
+
+          if (demandPreview.length < 3) {
+            demandPreview.push({
+              demandId: demand.id,
+              lineItemId: lineItem.id,
+              lineTitle: lineItem.title ?? null,
+              inventoryName:
+                component.inventoryVariant?.inventory?.name ?? null,
+              sku:
+                component.inventoryVariant?.sku ||
+                component.inventoryVariant?.uid ||
+                null,
+              qtyOpen,
+              status: demand.status ?? null,
+            });
+          }
+        }
+      }
+    }
+
+    const hasOpenDemand = openDemandCount > 0;
+    const issue =
+      (order.inventoryStatus === "PENDING ORDER" ||
+        order.inventoryStatus === "ORDERED") &&
+      !hasOpenDemand
+        ? "order_status_without_inventory_demand"
+        : order.inventoryStatus === "AVAILABLE" && hasOpenDemand
+          ? "available_status_with_open_inventory_demand"
+          : order.inventoryStatus === "PENDING ORDER" && orderedDemandCount > 0
+            ? "pending_order_has_ordered_inventory_demand"
+            : null;
+
+    if (!issue) continue;
+
+    rows.push({
+      saleId: order.id,
+      orderId: order.orderId ?? null,
+      slug: order.slug ?? null,
+      inventoryStatus: order.inventoryStatus,
+      openDemandCount,
+      openDemandQty,
+      orderedDemandCount,
+      issue,
+      severity:
+        issue === "available_status_with_open_inventory_demand"
+          ? "critical"
+          : "warning",
+      demandPreview,
+    });
+  }
+
+  return {
+    summary: {
+      reviewedOrderCount: orders.length,
+      issueCount: rows.length,
+      orderStatusWithoutDemandCount: rows.filter(
+        (row) => row.issue === "order_status_without_inventory_demand",
+      ).length,
+      availableWithDemandCount: rows.filter(
+        (row) => row.issue === "available_status_with_open_inventory_demand",
+      ).length,
+      pendingOrderWithOrderedDemandCount: rows.filter(
+        (row) => row.issue === "pending_order_has_ordered_inventory_demand",
+      ).length,
+      openDemandQty: rows.reduce(
+        (sum, row) => sum + Number(row.openDemandQty || 0),
+        0,
+      ),
+    },
+    rows,
+  };
+}
+
+export async function applyOrderInboundStatusToInventoryDemand(
+  db: DbLike,
+  input: ApplyOrderInboundStatusToInventoryDemandInput,
+): Promise<ApplyOrderInboundStatusToInventoryDemandResult> {
+  const selectedDemandIds = normalizeDemandIds(input.demandIds);
+  const selectedDemandScopeRequested = Boolean(input.demandIds?.length);
+  if (selectedDemandScopeRequested && !selectedDemandIds.length) {
+    return {
+      saleId: input.saleId,
+      status: input.status,
+      updatedDemandCount: 0,
+      skipped: true,
+      reason: "selected_demand_ids_invalid",
+    };
+  }
+  const selectedDemandFilter = selectedDemandIds.length
+    ? {
+        id: {
+          in: selectedDemandIds,
+        },
+      }
+    : {};
+
+  if (input.status === "AVAILABLE") {
+    if (selectedDemandIds.length) {
+      const result = await db.inboundDemand.updateMany({
+        where: {
+          deletedAt: null,
+          status: {
+            in: [...ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES],
+          },
+          ...selectedDemandFilter,
+          lineItemComponent: {
+            parent: {
+              saleId: input.saleId,
+              deletedAt: null,
+            },
+          },
+        },
+        data: {
+          status: "cancelled",
+          notes: "Order inbound prompt: AVAILABLE",
+        },
+      });
+
+      return {
+        saleId: input.saleId,
+        status: input.status,
+        updatedDemandCount: result.count,
+        skipped: false,
+      };
+    }
+
+    return {
+      saleId: input.saleId,
+      status: input.status,
+      updatedDemandCount: 0,
+      skipped: true,
+      reason: "available_status_does_not_mutate_shortage_demand",
+    };
+  }
+
+  const demandStatus = input.status === "ORDERED" ? "ordered" : "pending";
+  const shouldOnlyUpdateUnassignedDemand = input.status === "PENDING ORDER";
+  const result = await db.inboundDemand.updateMany({
+    where: {
+      deletedAt: null,
+      status: {
+        in: [...ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES],
+      },
+      ...selectedDemandFilter,
+      ...(shouldOnlyUpdateUnassignedDemand
+        ? {
+            inboundShipmentItemId: null,
+          }
+        : {}),
+      lineItemComponent: {
+        parent: {
+          saleId: input.saleId,
+          deletedAt: null,
+        },
+      },
+    },
+    data: {
+      status: demandStatus,
+      notes: `Order inbound prompt: ${input.status}`,
+    },
+  });
+
+  return {
+    saleId: input.saleId,
+    status: input.status,
+    updatedDemandCount: result.count,
+    skipped: false,
+  };
 }
 
 function getPreferredSupplierVariant(
@@ -339,7 +671,7 @@ export async function getSupplierReorderSuggestions(
     where: {
       deletedAt: null,
       status: {
-        in: ["pending", "ordered", "partially_received"],
+        in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
       },
     },
     orderBy: {
@@ -423,7 +755,7 @@ export async function getInboundDemandQueue(
 ) {
   const statuses: InboundDemandQueueStatus[] = input.status?.length
     ? input.status
-    : ["pending", "ordered", "partially_received"];
+    : [...ACTIVE_INBOUND_DEMAND_STATUSES];
 
   return db.inboundDemand.findMany({
     where: {
@@ -530,6 +862,78 @@ export async function getInboundDemandQueue(
   });
 }
 
+export async function getInboundStatusDemandReconciliation(
+  db: DbLike,
+  input: InboundStatusDemandReconciliationInput = {},
+) {
+  const take = Math.min(Math.max(Number(input.take || 50), 1), 200);
+  const orders = await db.salesOrders.findMany({
+    where: {
+      type: "order",
+      deletedAt: null,
+      inventoryStatus: {
+        in: ["AVAILABLE", "ORDERED", "PENDING ORDER"],
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+    take,
+    select: {
+      id: true,
+      orderId: true,
+      slug: true,
+      inventoryStatus: true,
+      lineItems: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          title: true,
+          components: {
+            select: {
+              id: true,
+              qtyInbound: true,
+              status: true,
+              inventoryVariant: {
+                select: {
+                  id: true,
+                  sku: true,
+                  uid: true,
+                  inventory: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+              inboundDemands: {
+                where: {
+                  deletedAt: null,
+                  status: {
+                    in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+                  },
+                },
+                select: {
+                  id: true,
+                  qty: true,
+                  qtyReceived: true,
+                  status: true,
+                  inboundShipmentItemId: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return buildInboundStatusDemandReconciliation(orders);
+}
+
 export async function listInboundShipments(
   db: DbLike,
   input: InboundShipmentListInput = {},
@@ -632,7 +1036,7 @@ export async function assignInboundDemandsToShipment(
       },
       deletedAt: null,
       status: {
-        in: ["pending", "ordered", "partially_received"],
+        in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
       },
     },
     select: {
@@ -1026,7 +1430,7 @@ export async function createInboundShipmentFromDemands(
       },
       deletedAt: null,
       status: {
-        in: ["pending", "ordered", "partially_received"],
+        in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
       },
     },
     select: {

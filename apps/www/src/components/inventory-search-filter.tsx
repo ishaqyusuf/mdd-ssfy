@@ -9,7 +9,13 @@ import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 
-export function InventorySearchFilter() {
+type Props = {
+	placeholder?: string;
+};
+
+export function InventorySearchFilter({
+	placeholder = "Search Inventories",
+}: Props) {
 	return (
 		<SearchFilterProvider
 			args={[
@@ -18,14 +24,14 @@ export function InventorySearchFilter() {
 				},
 			]}
 		>
-			<Content />
+			<Content placeholder={placeholder} />
 		</SearchFilterProvider>
 	);
 }
-function Content() {
+function Content({ placeholder }: Required<Props>) {
 	const { shouldFetch } = useSearchFilterContext();
 	const trpc = useTRPC();
-	const { data: trpcFilterData } = useQuery({
+	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.inventory.queryOptions(),
 	});
@@ -34,8 +40,9 @@ function Content() {
 		<>
 			<SearchFilterTRPC
 				debounceMs={300}
-				placeholder={"Search Inventories"}
+				placeholder={placeholder}
 				filterList={trpcFilterData}
+				loading={shouldFetch && isFetching}
 			/>
 		</>
 	);

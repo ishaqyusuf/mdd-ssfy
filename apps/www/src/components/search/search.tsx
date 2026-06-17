@@ -77,7 +77,7 @@ const QUICK_LINKS: {
 		id: "sales",
 		title: "Sales",
 		subtitle: "Review orders and active sales work",
-		href: "/sales-book/orders/v2",
+		href: "/sales-book/orders",
 		icon: "orders",
 		rules: [_perm.is("editOrders")],
 	},

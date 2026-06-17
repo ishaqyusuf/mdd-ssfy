@@ -128,7 +128,9 @@ describe("buildInventoryReconciliationReportFromLines", () => {
 		]);
 
 		expect(report.mode).toBe("dry-run");
+		expect(report.status).toBe("synced");
 		expect(report.totalDriftCount).toBe(0);
+		expect(report.skippedComparisonCount).toBe(0);
 		expect(report.domains.sales_inventory_sync.checkedCount).toBe(1);
 		expect(report.domains.shipment_allocation.checkedCount).toBe(1);
 		expect(report.domains.component_fulfillment.checkedCount).toBe(1);
@@ -155,6 +157,8 @@ describe("buildInventoryReconciliationReportFromLines", () => {
 		]);
 
 		expect(report.totalDriftCount).toBe(1);
+		expect(report.status).toBe("needs_review");
+		expect(report.skippedComparisonCount).toBe(2);
 		expect(report.domains.sales_inventory_sync.severity).toBe("error");
 		expect(report.domains.sales_inventory_sync.samples[0]).toMatchObject({
 			domain: "sales_inventory_sync",
@@ -201,6 +205,8 @@ describe("buildInventoryReconciliationReportFromLines", () => {
 		]);
 
 		expect(report.totalDriftCount).toBe(2);
+		expect(report.status).toBe("needs_review");
+		expect(report.skippedComparisonCount).toBe(0);
 		expect(report.domains.shipment_allocation.samples[0]).toMatchObject({
 			severity: "error",
 			expected: 6,
@@ -242,5 +248,6 @@ describe("buildInventoryReconciliationReportFromLines", () => {
 
 		expect(report.nextCursorId).toBe(10);
 		expect(report.hasMore).toBe(true);
+		expect(report.status).toBe("partial");
 	});
 });

@@ -26,9 +26,10 @@ export function InventoryAllocationReviewPage() {
   const approveAll = useMutation(
     trpc.inventories.approveBulkStockAllocation.mutationOptions({
       onSuccess(data) {
+        const skippedCount = data.skippedCount || 0;
         toast({
           title: "Allocations approved",
-          description: `${data.count} allocation suggestions approved.`,
+          description: `${data.count} allocation suggestions approved${skippedCount ? `, ${skippedCount} skipped because they were already handled` : ""}.`,
           variant: "success",
         });
         allocations.refetch();
@@ -38,9 +39,12 @@ export function InventoryAllocationReviewPage() {
 
   const approveOne = useMutation(
     trpc.inventories.approveStockAllocation.mutationOptions({
-      onSuccess() {
+      onSuccess(data) {
         toast({
-          title: "Allocation approved",
+          title: data.skipped ? "Allocation already handled" : "Allocation approved",
+          description: data.skipped
+            ? "This allocation was no longer pending review."
+            : undefined,
           variant: "success",
         });
         allocations.refetch();
@@ -50,9 +54,12 @@ export function InventoryAllocationReviewPage() {
 
   const rejectOne = useMutation(
     trpc.inventories.rejectStockAllocation.mutationOptions({
-      onSuccess() {
+      onSuccess(data) {
         toast({
-          title: "Allocation rejected",
+          title: data.skipped ? "Allocation already handled" : "Allocation rejected",
+          description: data.skipped
+            ? "This allocation was no longer pending review."
+            : undefined,
           variant: "success",
         });
         allocations.refetch();
@@ -147,6 +154,16 @@ export function InventoryAllocationReviewPage() {
                   Available stock {row.inventoryStockQty} • Shortage{" "}
                   {Number(row.shortageQty || 0)}
                   {row.supplierName ? ` • Supplier ${row.supplierName}` : ""}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Allocation #{row.id}
+                  {row.lineItemComponent?.id
+                    ? ` • Component #${row.lineItemComponent.id}`
+                    : ""}
+                  {row.inventoryVariant?.id
+                    ? ` • Variant #${row.inventoryVariant.id}`
+                    : ""}
+                  {row.inventoryStockId ? ` • Stock #${row.inventoryStockId}` : ""}
                 </div>
               </div>
 

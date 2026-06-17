@@ -10,7 +10,7 @@ import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
     return constructMetadata({
-        title: "Sales Production v2 - gndprodesk.com",
+        title: "Sales Production - gndprodesk.com",
     });
 }
 

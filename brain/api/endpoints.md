@@ -14,41 +14,65 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
+- Sales orders v2 routes now include:
+  - `sales.getOrdersV2`: canonical sales orders list query for `/sales-book/orders` and `/sales-book/orders/bin`; accepts the existing pagination `bin` flag and forwards it through the legacy sales filter adapter for deleted-order views
+  - `sales.getOrdersV2Summary`: canonical sales orders summary query for `/sales-book/orders`
+  - `filters.salesOrdersV2`: filter metadata query used by `SalesOrdersV2Header`
 - Dispatch / pickup packing routes now include:
   - `dispatch.sendSaleForPickup`: creates or reuses a pickup `OrderDelivery` in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - `dispatch.packingList`: tab-aware query powering `/sales/packing-list` for `current`, `completed`, and admin-only `cancelled` views
   - `dispatch.signPackingSlip`: saves signature + packed/received names, packs all items into the delivery, and completes packing through the `/p/sales-invoice-v2` flow
   - Expo mobile now consumes `dispatch.packingList` for a separate `/(drivers)/warehouse-packing` workspace exposed from Settings, while item-level execution still reuses `dispatch.dispatchOverviewV2` + the shared dispatch detail packing flow
 - Inventory dispatch routes now include:
-  - `inventories.assignInventoryDispatchAllocations`: moves eligible inventory allocations into `reserved` for dispatch mode
-  - `inventories.packInventoryDispatchAllocations`: moves reserved inventory allocations into `picked`
-  - `inventories.fulfillInventoryDispatch`: consumes picked allocations and writes completed legacy `OrderDelivery` / `OrderItemDelivery` compatibility rows
-  - `inventories.releaseInventoryDispatchAllocations`: releases held inventory dispatch allocations that have not been consumed
+  - `inventories.assignInventoryDispatchAllocations`: moves eligible inventory allocations into `reserved` for dispatch mode, using status-guarded updates so concurrent reruns return skipped evidence instead of overwriting rows already moved by another action
+  - `inventories.packInventoryDispatchAllocations`: moves reserved inventory allocations into `picked`, using the same status-guarded transition behavior as dispatch assignment
+  - Dispatch queue payloads now expose `allocationIdsByStatus` for approved, reserved, and picked allocations so browser/operator controls can target one exact allocation instead of mutating every allocation on the line.
+  - `inventories.fulfillInventoryDispatch`: consumes picked allocations first with status-and-quantity guards, then writes completed legacy `OrderDelivery` / `OrderItemDelivery` compatibility rows only after consumption succeeds; accepts optional `allocationIds` to fulfill an exact picked allocation subset.
+  - `inventories.releaseInventoryDispatchAllocations`: releases held inventory dispatch allocations that have not been consumed, using the same status-guarded transition behavior as dispatch assignment
   - Shipment history for these routes is canonical in `OrderDelivery` / `OrderItemDelivery`; see `brain/decisions/ADR-008-inventory-shipment-record-source.md`
 - Inventory partial shipment routes now include:
   - `inventories.salesPartialShipmentQueue`: dedicated partial-shipment queue with available-now, held-until-complete, awaiting-inbound, backordered, and ready-remaining statuses
+  - Partial/backorder queue payloads expose allocation id groups where needed by inventory dispatch controls, so exact allocation actions can be rendered without a separate row lookup.
   - `inventories.setSalesInventoryLineFulfillmentHold`: line-level hold-until-complete toggle stored in `LineItem.meta.fulfillment`
   - `inventories.shipAvailableSalesInventory`: now skips held lines unless the full remaining quantity can ship, returning skipped held lines with reason `hold_until_complete`
+- Inventory allocation review routes now include retry guardrails:
+  - `inventories.approveStockAllocation` and `inventories.rejectStockAllocation`: only mutate active `pending_review` rows; retries against already transitioned, cancelled, released, or deleted rows return `skipped: true` with reason `not_pending_review`
+  - `inventories.approveBulkStockAllocation`: only approves active `pending_review` rows and returns `skippedCount` for duplicate, missing, deleted, already transitioned, or concurrently claimed ids
 - Inventory inbound and backorder release routes now include retry guardrails:
   - `inventories.receiveInboundShipment`: receive is delta-based from persisted `InboundShipmentItem.qtyGood` / `qtyIssue`, so repeating the same payload does not duplicate stock, movement, demand received quantity, or issue rows; result includes duplicate/skipped quantity counters
   - `inventories.allocateReceivedInboundToBackorders`: auto-release result includes skipped demand and already-covered demand counts for repeated allocation jobs
+  - `inventories.inboundStatusDemandReconciliation`: bounded reconciliation query for `/inventory/inbounds`, comparing manual `SalesOrders.inventoryStatus` prompts with open line-level `InboundDemand` rows
+  - `notes.saveInboundNote`: after updating the order-level inbound status and note, applies `ORDERED` / `PENDING ORDER` to existing open inventory demand rows for the same sale; `AVAILABLE` remains non-destructive and `PENDING ORDER` does not downgrade partially received or shipment-linked demand
+  - `notes.saveInboundNote` accepts optional `demandIds` for line-scoped prompt application; selected mutable demand can be marked ordered/pending or cancelled when a selected line is confirmed available, while order-wide `AVAILABLE` still remains non-destructive
+  - Selected `demandIds` are sanitized at the inventory boundary; a non-empty selected-demand request with no valid positive integer ids is skipped and never broadened into an order-wide demand mutation
+  - Sales inventory line sync reads `SalesOrders.inventoryStatus` when projecting `InboundDemand`, so demand created after the save-time prompt still inherits `ORDERED` / `PENDING ORDER` semantics
+  - Active inbound reads use the inventory-owned `ACTIVE_INBOUND_DEMAND_STATUSES` policy (`pending`, `ordered`, `partially_received`) across demand queue, reorder suggestions, reconciliation, create/assign flows, and sales sync
+  - Order prompt mutation uses the narrower inventory-owned `ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES` policy (`pending`, `ordered`) so prompt saves do not overwrite partially received or shipment-linked demand
 - Inventory print routes now include:
   - `print.salesInventoryV2`: inventory-backed print data route for `/p/sales-inventory-v2`; emits the same v2 template input shape as current sales print while packet rows are composed from inventory `LineItem` / `LineItemComponents`
   - Data/golden coverage exists for production BOM, pick list, packing list, backorder summary, and customer remaining summary packets
 - Inventory reconciliation routes now include:
-  - `inventories.inventoryReconciliationReport`: dry-run report over inventory-backed sales lines with checked counts, drift counts, severity, samples, skipped counts, skipped reasons, next cursor, and has-more state
-  - `inventories.runInventoryReconciliationReport`: queues Trigger task `run-inventory-reconciliation-report` for bounded dry-run reconciliation; no repair or mutation is performed by this job
+  - `inventories.inventoryReconciliationReport`: dry-run report over inventory-backed sales lines with `synced` / `needs_review` / `partial` status, checked counts, drift counts, total skipped-comparison count, severity, samples, skipped counts, skipped reasons, next cursor, and has-more state
+  - `inventories.runInventoryReconciliationReport`: queues Trigger task `run-inventory-reconciliation-report` for bounded dry-run reconciliation; no repair or mutation is performed by this job, and Trigger output carries status, checked, drift, skipped-comparison, cursor, and has-more evidence for operator run summaries
+  - `inventories.salesInventorySyncMonitor`: bounded sync coverage and review-risk query for inventory-backed sales cutover, including missing sales, componentless synced sales, stale inventory sale-line counts, stale stock-allocation and inbound-demand residue counts, bounded samples, and optional `includeReconciliation` / `reconciliationLimit` input to fold the dry-run inventory reconciliation summary into the same review-risk gate; when reconciliation is requested, the summary includes per-domain checked, drift, skipped, skipped-reason, severity, and sample counts plus a total `skippedComparisonCount` for operator cutover evidence, and clean-but-partial or skipped-comparison coverage keeps the monitor in `needs_review` until reconciliation proof is complete
+  - `inventories.cleanupStaleSalesInventoryLineItems`: dry-run-default cleanup mutation for stale inventory sale lines whose parent sale is missing or deleted; when applied, it releases allocation rows, cancels inbound demand rows, removes stale components, and soft-deletes the stale inventory line
   - `inventories.dykeInventoryDriftReport`: existing Dyke/inventory definition and pricing drift report used beside the sales inventory reconciliation report
 - Inventory item dashboard routes now include:
   - `inventories.inventoryItemDashboard`: bounded item overview query for `/inventory/[id]`, returning item summary, variants, current stock, stock movements, inbound demand, active allocations, and related sales/quotes from inventory `LineItem` references
 - Inventory variants workspace routes now include:
   - `inventories.inventoryVariantsWorkspace`: bounded variants query for `/inventory/variants`, with search plus item, category, supplier, status, stock-mode, and low-stock filters; rows expose stock, price, supplier, status, item, category, and attribute context
 - Inventory top-sales analytics routes now include:
-  - `inventories.inventoryTopSalesAnalytics`: 90-day default inventory-backed analytics for `/inventory` and `/inventory/[id]`, ranking items and variants by ordered quantity from `LineItem` rows and shipped quantity from consumed `StockAllocation` rows; revenue/cost metrics include reliability counts because legacy-only/unmapped sales are excluded
+  - `inventories.inventoryTopSalesAnalytics`: 90-day default inventory-backed analytics for `/inventory` and `/inventory/[id]`, ranking items and variants by ordered quantity from `LineItem` rows and shipped quantity from consumed `StockAllocation` rows; sale counts are de-duplicated across ordered lines and consumed allocations, and revenue/cost metrics include reliability counts because legacy-only/unmapped sales are excluded
 - Inventory stock audit routes now include:
   - `inventories.stockAuditVerificationReport`: 90-day default audit matrix for `/inventory/stocks`, verifying stock in, stock out, return, correction, consume, and release against expected `StockMovement` types and `InventoryLog` actions
 - Inventory operations dashboard routes now include:
   - `inventories.inventoryOperationsSummary`: bounded stock-health query for `/inventory`, returning tracked/untracked variant and item counts, low/out-of-stock alert rows, open inbound demand qty, pending allocation qty, backordered line count, production blocker count, and the current tracking policy metadata
+- Inventory browser validation readiness routes now include:
+  - `inventories.inventoryBrowserValidationFixtureReport`: read-only fixture readiness query for the Pending 15 browser workflow matrix, reporting whether local data has pending allocation review, dispatch assign/pack/fulfill allocations, inbound receiving, received-inbound backorder release, partial shipment, held partial shipment, low-stock, and safe stock-adjustment fixture categories; SQL-filterable categories return real database counts while samples remain bounded for the dashboard, and each fixture row carries its package-owned workspace link, recommended operator action, seed-plan identifiers, and `countDiagnostic` metadata so bounded application scans are visible in API/CLI evidence
+- Inventory Dyke authoring routes now include:
+  - `inventories.upsertDykeCustomStepComponent`: step-scoped custom-component create/update mutation used by both legacy and new sales forms; it matches existing custom components by id, uid, or normalized title, writes the component through `@gnd/inventory`, optionally creates/updates the Dyke pricing row, invalidates sales workflow caches, and queues targeted `sync-dyke-step-to-inventory`
+  - `inventories.archiveDykeCustomStepComponent`: hides a step-scoped custom Dyke component from future sales-form selection by writing `meta.deletedAt`, then invalidates sales workflow caches and queues targeted `sync-dyke-step-to-inventory`; the physical `deletedAt` column is intentionally left unchanged so older sales, invoice editing, and print lookups can still resolve the component row
+  - `inventories.saveDykeStepComponent` and `inventories.updateDykeComponentPricing`: lower-level component and pricing mutations still exist for legacy/admin paths that manage those concerns separately
 - Community production routes now include:
   - `community.getUnitProductions`: community unit-production task list with builder/project/task/status/due-date filtering and `ids` deep-link filtering
   - `community.getUnitProductionSummary`: lightweight summary query powering unit-production widgets for total tasks, units covered, queued, started, completed, and past-due counts

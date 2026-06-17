@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { Icons, type Icon } from "@gnd/ui/icons";

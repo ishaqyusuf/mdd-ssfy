@@ -6,15 +6,23 @@ import { tmpdir } from "node:os";
 import {
 	assertSafeConnections,
 	buildCursorExpression,
+	buildDuplicateSkipReason,
 	buildCursorWhereClause,
 	buildKeysetWhereClause,
 	buildUpsertSql,
 	buildUpsertValues,
 	classifyTable,
+	isDuplicateKeyError,
 	parseArgs,
 	parseEnvFile,
 	quoteIdent,
+	recoverFromDuplicateConflict,
+	resetLocalTable,
 	resolveOptions,
+	type DuplicateConflictContext,
+	type SyncOptions,
+	type SyncState,
+	type TableManifest,
 } from "./local-sync";
 
 describe("local db sync helpers", () => {
@@ -148,6 +156,10 @@ describe("local db sync helpers", () => {
 		expect(parseArgs(["--reset-cursor"])).toMatchObject({
 			resetCursor: true,
 		});
+		expect(parseArgs(["--on-duplicate", "ignore"])).toMatchObject({
+			onDuplicate: "ignore",
+		});
+		expect(() => parseArgs(["--on-duplicate", "merge"])).toThrow("Invalid value for --on-duplicate");
 		expect(parseEnvFile("DATABASE_URL='mysql://root@localhost/db'\n# ignored\nOTHER=value")).toEqual({
 			DATABASE_URL: "mysql://root@localhost/db",
 			OTHER: "value",
@@ -186,4 +198,207 @@ describe("local db sync helpers", () => {
 			await rm(cwd, { recursive: true, force: true });
 		}
 	});
+
+	test("detects raw MySQL duplicate-key errors", () => {
+		expect(isDuplicateKeyError(new Error("Raw query failed. Code: `1062`. Message: `Duplicate entry 'x' for key 'Users_email_key'`"))).toBe(
+			true,
+		);
+		expect(
+			isDuplicateKeyError({
+				code: "P2010",
+				meta: { code: "1062", message: "Duplicate entry 'x' for key 'Users_email_key'" },
+			}),
+		).toBe(true);
+		expect(isDuplicateKeyError(new Error("Raw query failed. Code: `1038`. Message: `Out of sort memory`"))).toBe(false);
+	});
+
+	test("resets a local table with quoted identifiers and restores FK checks", async () => {
+		const calls: string[] = [];
+		const target = {
+			$executeRawUnsafe: async (sql: string) => {
+				calls.push(sql);
+			},
+		};
+
+		await resetLocalTable(target, "Bad`Table");
+
+		expect(calls).toEqual([
+			"SET FOREIGN_KEY_CHECKS = 0",
+			"DELETE FROM `Bad``Table`",
+			"ALTER TABLE `Bad``Table` AUTO_INCREMENT = 1",
+			"SET FOREIGN_KEY_CHECKS = 1",
+		]);
+	});
+
+	test("restores FK checks when auto-increment reset is not supported", async () => {
+		const calls: string[] = [];
+		const target = {
+			$executeRawUnsafe: async (sql: string) => {
+				calls.push(sql);
+				if (sql.startsWith("ALTER TABLE")) {
+					throw new Error("no auto increment");
+				}
+			},
+		};
+
+		await resetLocalTable(target, "StaticTable");
+
+		expect(calls).toEqual([
+			"SET FOREIGN_KEY_CHECKS = 0",
+			"DELETE FROM `StaticTable`",
+			"ALTER TABLE `StaticTable` AUTO_INCREMENT = 1",
+			"SET FOREIGN_KEY_CHECKS = 1",
+		]);
+	});
+
+	test("builds ignored duplicate reports with readable skip reasons", () => {
+		const context = createDuplicateContext();
+
+		expect(buildDuplicateSkipReason(context)).toContain("Skipped after duplicate-key conflict");
+		expect(buildDuplicateSkipReason(context)).toContain("Duplicate entry");
+	});
+
+	test("duplicate recovery ignore returns a skipped report", async () => {
+		const recovery = await recoverFromDuplicateConflict({
+			context: createDuplicateContext({ read: 25, written: 10 }),
+			manifest: createManifest(),
+			target: undefined,
+			state: createState(),
+			stateFile: "/tmp/not-written.json",
+			options: createOptions("ignore"),
+			resetAttempts: new Set(),
+		});
+
+		expect(recovery).toMatchObject({
+			type: "skip",
+			report: {
+				table: "NoteTags",
+				mode: "insert-only",
+				read: 25,
+				written: 10,
+			},
+		});
+	});
+
+	test("duplicate recovery cancel rethrows the original error", async () => {
+		const error = new Error("duplicate");
+
+		await expect(
+			recoverFromDuplicateConflict({
+				context: createDuplicateContext({ error }),
+				manifest: createManifest(),
+				target: undefined,
+				state: createState(),
+				stateFile: "/tmp/not-written.json",
+				options: createOptions("cancel"),
+				resetAttempts: new Set(),
+			}),
+		).rejects.toBe(error);
+	});
+
+	test("duplicate recovery reset clears table cursor and records one reset attempt", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
+		const stateFile = `${cwd}/state.json`;
+		const calls: string[] = [];
+		const target = {
+			$executeRawUnsafe: async (sql: string) => {
+				calls.push(sql);
+			},
+		};
+		const state = createState();
+		const resetAttempts = new Set<string>();
+
+		try {
+			const recovery = await recoverFromDuplicateConflict({
+				context: createDuplicateContext(),
+				manifest: createManifest(),
+				target,
+				state,
+				stateFile,
+				options: createOptions("reset"),
+				resetAttempts,
+			});
+
+			expect(recovery).toMatchObject({ type: "retry" });
+			expect(state.tables.NoteTags).toBeUndefined();
+			expect(resetAttempts.has("NoteTags")).toBe(true);
+			expect(calls).toContain("DELETE FROM `NoteTags`");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("duplicate recovery refuses a second reset for the same table", async () => {
+		await expect(
+			recoverFromDuplicateConflict({
+				context: createDuplicateContext({ resetAttempted: true }),
+				manifest: createManifest(),
+				target: {
+					$executeRawUnsafe: async () => undefined,
+				},
+				state: createState(),
+				stateFile: "/tmp/not-written.json",
+				options: createOptions("reset"),
+				resetAttempts: new Set(["NoteTags"]),
+			}),
+		).rejects.toThrow("refusing to reset the same table twice");
+	});
 });
+
+function createManifest(): TableManifest {
+	return {
+		table: "NoteTags",
+		columns: ["id", "tagName", "tagValue", "notePadId", "createdAt"],
+		keyColumns: ["id"],
+		cursorColumns: ["createdAt"],
+		mode: "insert-only",
+	};
+}
+
+function createState(): SyncState {
+	return {
+		version: 1,
+		updatedAt: new Date(0).toISOString(),
+		tables: {
+			NoteTags: {
+				cursorValue: "2026-06-01 00:00:00.000",
+				keyValues: { id: 1 },
+				cursorColumns: ["createdAt"],
+				mode: "insert-only",
+				completedFullScan: true,
+				syncedAt: new Date(0).toISOString(),
+			},
+		},
+	};
+}
+
+function createOptions(onDuplicate: SyncOptions["onDuplicate"]): SyncOptions {
+	return {
+		sourceUrl: "mysql://prod.example.com/gnd",
+		targetUrl: "mysql://root@localhost:3306/gnd-prisma2",
+		stateFile: "/tmp/local-sync-state.json",
+		initialCursorValue: "2026-05-04 23:59:59.999",
+		dryRun: false,
+		resetCursor: false,
+		refreshStatic: false,
+		staticRefreshMaxRows: 5_000,
+		readBatchSize: 10_000,
+		writeBatchSize: 500,
+		onDuplicate,
+	};
+}
+
+function createDuplicateContext(overrides: Partial<DuplicateConflictContext> = {}): DuplicateConflictContext {
+	const error = new Error("Raw query failed. Code: `1062`. Message: `Duplicate entry 'x' for key 'NoteTags_tagName_tagValue_notePadId_key'`");
+	return {
+		table: "NoteTags",
+		mode: "insert-only",
+		error,
+		message: error.message,
+		read: 10,
+		written: 0,
+		cursorValue: "2026-06-01 00:00:00.000",
+		resetAttempted: false,
+		...overrides,
+	};
+}

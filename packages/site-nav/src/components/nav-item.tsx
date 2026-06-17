@@ -1,14 +1,15 @@
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { Icon } from "@gnd/ui/icons";
-import { useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { NavLink as NavLinkType, NavModule } from "../lib/types";
 import { isPathInLink, normalizeNavPath } from "../lib/utils";
 import { NavChildItem } from "./nav-child-item";
 import { NavLink } from "./nav-link";
 import { useSiteNav } from "./use-site-nav";
 
-const HOVER_EXPAND_DELAY_MS = 180;
+const HOVER_EXPAND_DELAY_MS = 1000;
+const HOVER_COLLAPSE_DELAY_MS = 1000;
 
 export interface NavItemProps {
 	module: NavModule;
@@ -18,14 +19,17 @@ export interface NavItemProps {
 	isItemExpanded: boolean;
 	onToggle: (path: string) => void;
 	onSelect?: () => void;
+	scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export const NavItem = ({
 	item,
 	isActive,
 	isExpanded,
+	isItemExpanded,
 	onSelect,
 	onToggle,
+	scrollContainerRef,
 }: NavItemProps) => {
 	const {
 		props: { pathName },
@@ -35,31 +39,116 @@ export const NavItem = ({
 	);
 	const hasChildren = item.subLinks && item.subLinks.length > 0;
 	const [isHovered, setIsHovered] = useState(false);
-	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const expandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	const resetPreserveFrameRef = useRef<number | null>(null);
+	const childContainerRef = useRef<HTMLDivElement>(null);
+	const pendingScrollCompensationRef = useRef<number | null>(null);
+	const [isPreservingDownwardCollapse, setIsPreservingDownwardCollapse] =
+		useState(false);
 	const childLinks = (item.subLinks ?? []).filter((child) => !child.meta);
 
 	const hasActiveChild = hasChildren
 		? childLinks.some((child) => isPathInLink(normalizedPathName, child))
 		: false;
 	const shouldShowChildren =
-		isExpanded && (isHovered || hasActiveChild || isActive);
+		isExpanded && (isHovered || isItemExpanded || hasActiveChild || isActive);
+
+	const clearExpandTimeout = () => {
+		if (!expandTimeoutRef.current) return;
+		clearTimeout(expandTimeoutRef.current);
+		expandTimeoutRef.current = null;
+	};
+
+	const clearCollapseTimeout = () => {
+		if (!collapseTimeoutRef.current) return;
+		clearTimeout(collapseTimeoutRef.current);
+		collapseTimeoutRef.current = null;
+	};
+
+	useEffect(() => {
+		return () => {
+			if (expandTimeoutRef.current) {
+				clearTimeout(expandTimeoutRef.current);
+			}
+			if (collapseTimeoutRef.current) {
+				clearTimeout(collapseTimeoutRef.current);
+			}
+			if (resetPreserveFrameRef.current) {
+				cancelAnimationFrame(resetPreserveFrameRef.current);
+			}
+		};
+	}, []);
+
+	useLayoutEffect(() => {
+		if (!isPreservingDownwardCollapse || shouldShowChildren) return;
+		const collapsedHeight = pendingScrollCompensationRef.current ?? 0;
+		pendingScrollCompensationRef.current = null;
+		const scrollContainer = scrollContainerRef?.current;
+		if (scrollContainer && collapsedHeight > 0) {
+			scrollContainer.scrollTop = Math.max(
+				0,
+				scrollContainer.scrollTop - collapsedHeight,
+			);
+		}
+		if (resetPreserveFrameRef.current) {
+			cancelAnimationFrame(resetPreserveFrameRef.current);
+		}
+		resetPreserveFrameRef.current = requestAnimationFrame(() => {
+			setIsPreservingDownwardCollapse(false);
+			resetPreserveFrameRef.current = null;
+		});
+	}, [isPreservingDownwardCollapse, scrollContainerRef, shouldShowChildren]);
 
 	const handleMouseEnter = () => {
+		clearCollapseTimeout();
 		if (hasChildren && !hasActiveChild && !isActive) {
-			hoverTimeoutRef.current = setTimeout(() => {
+			clearExpandTimeout();
+			expandTimeoutRef.current = setTimeout(() => {
 				setIsHovered(true);
+				expandTimeoutRef.current = null;
 			}, HOVER_EXPAND_DELAY_MS);
 		} else {
 			setIsHovered(true);
 		}
 	};
 
-	const handleMouseLeave = () => {
-		if (hoverTimeoutRef.current) {
-			clearTimeout(hoverTimeoutRef.current);
-			hoverTimeoutRef.current = null;
-		}
-		setIsHovered(false);
+	const getChildBlockLayoutHeight = () => {
+		const childContainer = childContainerRef.current;
+		if (!childContainer) return 0;
+		const childRect = childContainer.getBoundingClientRect();
+		const childStyle = window.getComputedStyle(childContainer);
+		return childRect.height + Number.parseFloat(childStyle.marginTop || "0");
+	};
+
+	const handleMouseLeave = (event: React.MouseEvent<HTMLDivElement>) => {
+		clearExpandTimeout();
+		clearCollapseTimeout();
+
+		const childRect = childContainerRef.current?.getBoundingClientRect();
+		const collapsedHeight = getChildBlockLayoutHeight();
+		const willCollapseOnLeave =
+			isHovered && !isItemExpanded && !hasActiveChild && !isActive;
+		const isLeavingDownward =
+			willCollapseOnLeave && childRect
+				? event.clientY >= childRect.bottom - 1
+				: false;
+
+		collapseTimeoutRef.current = setTimeout(() => {
+			const scrollTop = scrollContainerRef?.current?.scrollTop ?? 0;
+			if (
+				isLeavingDownward &&
+				collapsedHeight > 0 &&
+				scrollTop >= collapsedHeight
+			) {
+				pendingScrollCompensationRef.current = collapsedHeight;
+				setIsPreservingDownwardCollapse(true);
+			}
+			setIsHovered(false);
+			collapseTimeoutRef.current = null;
+		}, HOVER_COLLAPSE_DELAY_MS);
 	};
 
 	const handleChevronClick = (e: React.MouseEvent) => {
@@ -141,8 +230,11 @@ export const NavItem = ({
 
 			{hasChildren && (
 				<div
+					ref={childContainerRef}
 					className={cn(
-						"transition-all duration-300 ease-in-out overflow-hidden",
+						"overflow-hidden",
+						!isPreservingDownwardCollapse &&
+							"transition-all duration-300 ease-in-out",
 						shouldShowChildren ? "max-h-96 mt-1.5" : "max-h-0",
 					)}
 				>
@@ -154,7 +246,9 @@ export const NavItem = ({
 								child={child}
 								isActive={isChildActive}
 								isExpanded={isExpanded}
-								isParentHovered={isHovered || hasActiveChild || isActive}
+								isParentHovered={
+									isHovered || isItemExpanded || hasActiveChild || isActive
+								}
 								hasActiveChild={hasActiveChild}
 								isParentActive={isActive}
 								onSelect={onSelect}

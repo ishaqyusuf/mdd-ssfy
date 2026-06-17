@@ -212,6 +212,20 @@ export function useUpdateDykeComponentPricingMutation() {
 	);
 }
 
+export function useUpsertDykeCustomStepComponentMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.inventories.upsertDykeCustomStepComponent.mutationOptions(),
+	);
+}
+
+export function useArchiveDykeCustomStepComponentMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.inventories.archiveDykeCustomStepComponent.mutationOptions(),
+	);
+}
+
 export function useNewSalesFormResolveCustomerQuery(
 	input: NewSalesFormResolveCustomerInput,
 	enabled = true,

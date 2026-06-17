@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Text, View } from "@react-pdf/renderer";
 import type { ServiceSection } from "@gnd/sales/print/types";
 import { colWidth, sumColSpans } from "../../../shared/utils";

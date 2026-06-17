@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Document, Font, Page, Text, View } from "@react-pdf/renderer";
 import QRCodeUtil from "qrcode";
 import { cn } from "@gnd/utils/react-pdf";

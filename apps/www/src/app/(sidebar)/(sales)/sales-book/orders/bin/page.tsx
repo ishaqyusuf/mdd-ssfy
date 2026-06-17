@@ -1,47 +1,43 @@
 import { ErrorFallbackSales } from "@/components/error-fallback-sales";
-import { OrderHeader } from "@/components/sales-order-header";
-import { DataTable } from "@/components/tables/sales-orders/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
-import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
+import PageShell from "@/components/page-shell";
+import { SalesOrdersV2Header } from "@/components/sales-orders-v2-header";
+import { DataTable } from "@/components/tables-2/sales-orders/data-table";
+import { SalesOrdersSkeleton } from "@/components/tables-2/sales-orders/skeleton";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { resolveSalesVisibility } from "@/lib/sales-visibility";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 
-import PageShell from "@/components/page-shell";
-import { PageTitle } from "@gnd/ui/custom/page-title";
-
 export const dynamic = "force-dynamic";
-export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Sales Bin | GND",
-    });
+
+export async function generateMetadata() {
+	return constructMetadata({
+		title: "Sales Bin | GND",
+	});
 }
 
-export default async function Page(props) {
-    const searchParams = await props.searchParams;
-    const queryClient = getQueryClient();
-    const { filter } = await resolveSalesVisibility(
-        loadOrderFilterParams(searchParams),
-    );
-    await queryClient.fetchInfiniteQuery(
-        trpc.sales.getOrders.infiniteQueryOptions({
-            ...(filter as any),
-            bin: true,
-        }) as any,
-    );
-    return (
-        <PageShell>
-            <HydrateClient>
-                <PageTitle>Sales Bin</PageTitle>
-                <OrderHeader />
-                <ErrorBoundary errorComponent={ErrorFallbackSales}>
-                    <Suspense fallback={<TableSkeleton />}>
-                        <DataTable bin />
-                    </Suspense>
-                </ErrorBoundary>
-            </HydrateClient>
-        </PageShell>
-    );
+export default async function Page() {
+	const initialSettings = await getInitialTableSettings("sales-orders");
+
+	return (
+		<PageShell>
+			<HydrateClient>
+				<PageTitle>Sales Bin</PageTitle>
+				<div className="flex flex-col gap-6">
+					<SalesOrdersV2Header />
+					<ErrorBoundary errorComponent={ErrorFallbackSales}>
+						<Suspense
+							fallback={
+								<SalesOrdersSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable initialSettings={initialSettings} bin />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
+		</PageShell>
+	);
 }

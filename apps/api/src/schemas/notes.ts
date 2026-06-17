@@ -10,6 +10,7 @@ export const saveInboundNoteSchema = z.object({
   salesId: z.number(),
   orderNo: z.string(),
   status: z.enum(orderInboundStatuses),
+  demandIds: z.array(z.number().int().positive()).optional(),
   attachments: z
     .array(
       z.object({

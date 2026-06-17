@@ -53,4 +53,48 @@ describe("workflow visible components", () => {
 
 		expect(components[0]?.salesPrice).toBe(6);
 	});
+
+	it("hides unselected custom components while keeping the selected custom component visible", () => {
+		const components = resolveWorkflowVisibleComponents({
+			components: [
+				{
+					uid: "selected-custom",
+					title: "Selected Custom",
+					custom: true,
+					salesPrice: 10,
+					basePrice: 10,
+				},
+				{
+					uid: "other-custom",
+					title: "Other Custom",
+					custom: true,
+					salesPrice: 20,
+					basePrice: 20,
+				},
+				{
+					uid: "standard",
+					title: "Standard",
+					salesPrice: 30,
+					basePrice: 30,
+				},
+			],
+			steps: [
+				{
+					prodUid: "selected-custom",
+					step: {
+						uid: "step-1",
+					},
+				},
+			],
+			activeStep: null,
+			overrides: new Map(),
+			includeCustomComponents: false,
+			profileCoefficient: 1,
+		});
+
+		expect(components.map((component) => component.uid)).toEqual([
+			"selected-custom",
+			"standard",
+		]);
+	});
 });

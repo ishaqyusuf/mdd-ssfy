@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { format } from "date-fns";
 import { formatDateRange } from "little-date";
 

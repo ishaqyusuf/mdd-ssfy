@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Img, Section } from "@react-email/components";
 
 import { getEmailUrl } from "@gnd/utils/envs";

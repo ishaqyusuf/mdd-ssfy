@@ -25,7 +25,7 @@ export function CommunitySearchFilter() {
 function Content() {
 	const { shouldFetch } = useSearchFilterContext();
 	const trpc = useTRPC();
-	const { data: trpcFilterData } = useQuery({
+	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.inventory.queryOptions(),
 	});
@@ -36,6 +36,7 @@ function Content() {
 				debounceMs={300}
 				placeholder={"Search Projects"}
 				filterList={trpcFilterData}
+				loading={shouldFetch && isFetching}
 			/>
 		</>
 	);

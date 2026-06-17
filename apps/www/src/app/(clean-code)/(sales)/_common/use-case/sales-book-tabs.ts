@@ -41,10 +41,10 @@ export async function getSalesTabActionUseCase() {
         const url = (
             {
                 // Delivery: "/sales-book/delivery",
-                Orders: "/sales-book/orders/v2",
+                Orders: "/sales-book/orders",
                 Pickup: "/sales-book/pickup",
                 Quotes: "/sales-book/quotes",
-                Productions: "/sales-book/productions",
+                Productions: "/sales-book/productions/v2",
                 Dispatch: "/sales-book/dispatch",
                 // "Pending Evaluation": "/sales-book/pending-evaluation",
             } as { [id in SalesTabs]: string }

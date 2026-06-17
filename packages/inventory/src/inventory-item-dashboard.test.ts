@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildInventoryBrowserValidationFixtureReport,
   buildInventoryItemDashboardSummary,
   buildInventoryOperationsSummary,
   buildInventoryTopSalesAnalytics,
@@ -226,6 +227,17 @@ describe("buildInventoryTopSalesAnalytics", () => {
     });
     expect(analytics.topItemsByOrderedQty[0]?.inventoryName).toBe("Hinge");
     expect(analytics.topItemsByShippedQty[0]?.inventoryName).toBe("Hinge");
+    expect(
+      analytics.topItemsByOrderedQty.find((row) => row.inventoryName === "Door Slab")
+        ?.saleCount,
+    ).toBe(1);
+    expect(
+      analytics.topItemsByOrderedQty.find((row) => row.inventoryName === "Hinge")
+        ?.saleCount,
+    ).toBe(2);
+    expect(analytics.caveats).toContain(
+      "Shipped quantity is based on consumed stock allocations.",
+    );
     expect(analytics.topVariantsByOrderedQty[0]?.variantSku).toBe("HINGE-201");
     expect(analytics.topVariantsByShippedQty[0]?.variantSku).toBe("HINGE-201");
   });
@@ -359,6 +371,390 @@ describe("buildInventoryOperationsSummary", () => {
       variantOverride: false,
       thresholdField: "InventoryVariant.lowStockAlert",
     });
+  });
+});
+
+describe("buildInventoryBrowserValidationFixtureReport", () => {
+  test("marks missing browser mutation fixtures as blocked", () => {
+    const report = buildInventoryBrowserValidationFixtureReport({
+      pending_allocation_review: {
+        count: 7,
+        samples: [
+          { id: 1 },
+          { id: 2 },
+          { id: 3 },
+          { id: 4 },
+          { id: 5 },
+          { id: 6 },
+        ],
+      },
+      dispatch_assignable_allocation: { count: 0 },
+      dispatch_packable_allocation: { count: 1 },
+      dispatch_fulfillable_allocation: { count: 1 },
+      open_inbound_demand: { count: 1 },
+      inbound_receiving_shipment: { count: 0 },
+      received_inbound_backorder: { count: 1 },
+      partial_shipment_available: { count: 1 },
+      held_partial_shipment: { count: 0 },
+      low_stock_variant: { count: 1 },
+      safe_stock_adjustment_variant: { count: 1 },
+    });
+
+    expect(report.status).toBe("blocked");
+    expect(report.summary).toMatchObject({
+      readyFixtureCount: 7,
+      requiredFixtureCount: 11,
+      missingFixtureCount: 4,
+      readyWorkflowCount: 8,
+      requiredWorkflowCount: 13,
+      blockedWorkflowCount: 5,
+    });
+    expect(report.fixtures[0]).toMatchObject({
+      count: 7,
+      ready: true,
+      workspaceHref: "/inventory/allocations",
+      seedFixtureId: "INV-FIX-ALLOC",
+      seedPlanHref:
+        "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+      recommendedAction:
+        "Seed or identify at least three sale-line allocations with pending allocation review.",
+      countDiagnostic: {
+        countSource: "sql_count",
+        sampleLimit: 5,
+        complete: true,
+      },
+    });
+    expect(report.fixtures[0]?.samples).toHaveLength(5);
+    expect(report.missingFixtures.map((fixture) => fixture.key)).toEqual([
+      "dispatch_assignable_allocation",
+      "dispatch_packable_allocation",
+      "inbound_receiving_shipment",
+      "held_partial_shipment",
+    ]);
+    expect(report.missingFixtures[0]).toMatchObject({
+      seedFixtureId: "INV-FIX-ALLOC",
+      seedPlanHref:
+        "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+    });
+    expect(report.diagnostics.seedFixturesToPrepare).toEqual([
+      {
+        seedFixtureId: "INV-FIX-ALLOC",
+        seedPlanHref:
+          "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+        missingCount: 2,
+        missingFixtureKeys: [
+          "dispatch_assignable_allocation",
+          "dispatch_packable_allocation",
+        ],
+        missingFixtureLabels: [
+          "Dispatch assignable approved allocation",
+          "Dispatch packable reserved allocation",
+        ],
+      },
+      {
+        seedFixtureId: "INV-FIX-INBOUND",
+        seedPlanHref:
+          "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-inbound",
+        missingCount: 1,
+        missingFixtureKeys: ["inbound_receiving_shipment"],
+        missingFixtureLabels: ["Inbound shipment ready for receiving"],
+      },
+      {
+        seedFixtureId: "INV-FIX-PARTIAL",
+        seedPlanHref:
+          "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-partial",
+        missingCount: 1,
+        missingFixtureKeys: ["held_partial_shipment"],
+        missingFixtureLabels: ["Held partial shipment line"],
+      },
+    ]);
+    expect(
+      report.workflowMatrix
+        .filter((workflow) => !workflow.ready)
+        .map((workflow) => workflow.key),
+    ).toEqual([
+      "dispatch_assign",
+      "dispatch_pack",
+      "dispatch_release",
+      "inbound_receive",
+      "partial_hold_until_complete",
+    ]);
+    expect(report.workflowMatrix[0]?.candidateSamples).toEqual([
+      { fixtureKey: "pending_allocation_review", id: 1 },
+      { fixtureKey: "pending_allocation_review", id: 2 },
+      { fixtureKey: "pending_allocation_review", id: 3 },
+    ]);
+    expect(report.workflowMatrix[0]?.primarySample).toEqual({
+      fixtureKey: "pending_allocation_review",
+      id: 1,
+    });
+  });
+
+  test("groups multiple missing categories by the fixture seed to prepare", () => {
+    const report = buildInventoryBrowserValidationFixtureReport({
+      pending_allocation_review: { count: 0 },
+      dispatch_assignable_allocation: { count: 0 },
+      dispatch_packable_allocation: { count: 0 },
+      dispatch_fulfillable_allocation: { count: 0 },
+      open_inbound_demand: { count: 1 },
+      inbound_receiving_shipment: { count: 1 },
+      received_inbound_backorder: { count: 1 },
+      partial_shipment_available: {
+        count: 1,
+        samples: [{ id: 30, orderId: "INV-FIX-PARTIAL" }],
+      },
+      held_partial_shipment: {
+        count: 1,
+        samples: [{ id: 31, orderId: "INV-FIX-PARTIAL" }],
+      },
+      low_stock_variant: { count: 1 },
+      safe_stock_adjustment_variant: { count: 1 },
+    });
+
+    expect(report.diagnostics.seedFixturesToPrepare).toEqual([
+      {
+        seedFixtureId: "INV-FIX-ALLOC",
+        seedPlanHref:
+          "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+        missingCount: 4,
+        missingFixtureKeys: [
+          "pending_allocation_review",
+          "dispatch_assignable_allocation",
+          "dispatch_packable_allocation",
+          "dispatch_fulfillable_allocation",
+        ],
+        missingFixtureLabels: [
+          "Pending allocation review",
+          "Dispatch assignable approved allocation",
+          "Dispatch packable reserved allocation",
+          "Dispatch fulfillable picked allocation",
+        ],
+      },
+    ]);
+  });
+
+  test("marks the browser mutation fixture set as ready when every category exists", () => {
+    const report = buildInventoryBrowserValidationFixtureReport({
+      pending_allocation_review: {
+        count: 3,
+        samples: [
+          { id: 9, orderId: "INV-FIX-ALLOC" },
+          { id: 10, orderId: "INV-FIX-ALLOC" },
+          { id: 11, orderId: "INV-FIX-ALLOC" },
+        ],
+      },
+      dispatch_assignable_allocation: {
+        count: 2,
+        samples: [
+          { id: 20, orderId: "INV-FIX-ALLOC" },
+          { id: 21, orderId: "INV-FIX-ALLOC" },
+        ],
+      },
+      dispatch_packable_allocation: {
+        count: 2,
+        samples: [
+          { id: 30, orderId: "INV-FIX-ALLOC" },
+          { id: 31, orderId: "INV-FIX-ALLOC" },
+        ],
+      },
+      dispatch_fulfillable_allocation: {
+        count: 1,
+        samples: [{ id: 40, orderId: "INV-FIX-ALLOC" }],
+      },
+      open_inbound_demand: {
+        count: 1,
+        samples: [{ id: 50, orderId: "INV-FIX-INBOUND" }],
+      },
+      inbound_receiving_shipment: {
+        count: 1,
+        samples: [{ id: 60, orderId: "INV-FIX-INBOUND" }],
+      },
+      received_inbound_backorder: { count: 1 },
+      partial_shipment_available: {
+        count: 1,
+        samples: [{ id: 30, orderId: "INV-FIX-PARTIAL" }],
+      },
+      held_partial_shipment: {
+        count: 1,
+        samples: [{ id: 31, orderId: "INV-FIX-PARTIAL" }],
+      },
+      low_stock_variant: { count: 1 },
+      safe_stock_adjustment_variant: { count: 1 },
+    });
+
+    expect(report.status).toBe("ready");
+    expect(report.missingFixtures).toEqual([]);
+    expect(report.nextAction).toContain("Run the approved browser workflow matrix");
+    expect(report.summary).toMatchObject({
+      readyWorkflowCount: 13,
+      requiredWorkflowCount: 13,
+      blockedWorkflowCount: 0,
+    });
+    expect(report.workflowMatrix[0]).toMatchObject({
+      key: "allocation_approve",
+      phase: "Allocation Review",
+      runOrder: 10,
+      ready: true,
+      fixtureKeys: ["pending_allocation_review"],
+      workspaceHref: "/inventory/allocations",
+      operatorGuard:
+        "Run before bulk approval; use only the primary sample so reject/bulk rows remain pending.",
+      candidateSamples: [
+        {
+          fixtureKey: "pending_allocation_review",
+          id: 9,
+          orderId: "INV-FIX-ALLOC",
+        },
+        {
+          fixtureKey: "pending_allocation_review",
+          id: 10,
+          orderId: "INV-FIX-ALLOC",
+        },
+        {
+          fixtureKey: "pending_allocation_review",
+          id: 11,
+          orderId: "INV-FIX-ALLOC",
+        },
+      ],
+      primarySample: {
+        fixtureKey: "pending_allocation_review",
+        id: 9,
+        orderId: "INV-FIX-ALLOC",
+      },
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "allocation_reject")
+        ?.primarySample,
+    ).toEqual({
+      fixtureKey: "pending_allocation_review",
+      id: 10,
+      orderId: "INV-FIX-ALLOC",
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "allocation_reject"),
+    ).toMatchObject({
+      runOrder: 20,
+      operatorGuard:
+        "Run before bulk approval; use only the primary sample so the bulk row remains pending.",
+    });
+    expect(
+      report.workflowMatrix.find(
+        (workflow) => workflow.key == "allocation_bulk_approve",
+      )?.primarySample,
+    ).toEqual({
+      fixtureKey: "pending_allocation_review",
+      id: 11,
+      orderId: "INV-FIX-ALLOC",
+    });
+    expect(
+      report.workflowMatrix.find(
+        (workflow) => workflow.key == "allocation_bulk_approve",
+      ),
+    ).toMatchObject({
+      runOrder: 30,
+      operatorGuard:
+        "Run after the single approve and reject checks, with the remaining pending fixture row visible.",
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "dispatch_pack")
+        ?.primarySample,
+    ).toEqual({
+      fixtureKey: "dispatch_packable_allocation",
+      id: 30,
+      orderId: "INV-FIX-ALLOC",
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "dispatch_pack"),
+    ).toMatchObject({
+      runOrder: 50,
+      operatorGuard:
+        "Use the primary reserved allocation; do not pack the release sample.",
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "dispatch_release")
+        ?.primarySample,
+    ).toEqual({
+      fixtureKey: "dispatch_packable_allocation",
+      id: 31,
+      orderId: "INV-FIX-ALLOC",
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "dispatch_release"),
+    ).toMatchObject({
+      runOrder: 70,
+      operatorGuard:
+        "Use the second reserved primary sample so pack and release prove separate rows.",
+    });
+    expect(
+      report.workflowMatrix.find((workflow) => workflow.key == "inbound_receive")
+        ?.primarySample,
+    ).toEqual({
+      fixtureKey: "inbound_receiving_shipment",
+      id: 60,
+      orderId: "INV-FIX-INBOUND",
+    });
+    expect(
+      report.workflowMatrix.find(
+        (workflow) => workflow.key == "partial_ship_available",
+      ),
+    ).toMatchObject({
+      fixtureKeys: ["partial_shipment_available"],
+      ready: true,
+      candidateSamples: [
+        {
+          fixtureKey: "partial_shipment_available",
+          id: 30,
+          orderId: "INV-FIX-PARTIAL",
+        },
+      ],
+    });
+  });
+
+  test("surfaces incomplete count diagnostics for bounded fixture scans", () => {
+    const report = buildInventoryBrowserValidationFixtureReport({
+      pending_allocation_review: { count: 3 },
+      dispatch_assignable_allocation: { count: 2 },
+      dispatch_packable_allocation: { count: 2 },
+      dispatch_fulfillable_allocation: { count: 1 },
+      open_inbound_demand: { count: 1 },
+      inbound_receiving_shipment: { count: 1 },
+      received_inbound_backorder: { count: 1 },
+      partial_shipment_available: { count: 1 },
+      held_partial_shipment: {
+        count: 1,
+        countDiagnostic: {
+          countSource: "bounded_application_scan",
+          sampleLimit: 5,
+          scanLimit: 100,
+          scannedCount: 100,
+          candidateCount: 128,
+          complete: false,
+          note: "Scans recent held-candidate lines.",
+        },
+      },
+      low_stock_variant: { count: 1 },
+      safe_stock_adjustment_variant: { count: 1 },
+    });
+
+    expect(report.status).toBe("ready");
+    expect(report.fixtures.find((fixture) => fixture.key == "held_partial_shipment")).toMatchObject({
+      countDiagnostic: {
+        countSource: "bounded_application_scan",
+        scanLimit: 100,
+        scannedCount: 100,
+        candidateCount: 128,
+        complete: false,
+      },
+    });
+    expect(report.diagnostics.incompleteCountFixtures).toEqual([
+      expect.objectContaining({
+        key: "held_partial_shipment",
+        countDiagnostic: expect.objectContaining({
+          complete: false,
+          note: "Scans recent held-candidate lines.",
+        }),
+      }),
+    ]);
   });
 });
 

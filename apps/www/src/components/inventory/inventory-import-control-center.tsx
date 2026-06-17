@@ -1,789 +1,1028 @@
 "use client";
 
 import ConfirmBtn from "@/components/confirm-button";
-import { DataTable } from "@/components/tables/inventory-import/data-table";
+import { InventoryImportColumnVisibility } from "@/components/tables-2/inventory-import/column-visibility";
+import type { InventoryImportRow } from "@/components/tables-2/inventory-import/columns";
+import { DataTable } from "@/components/tables-2/inventory-import/data-table";
 import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
+import { useInventoryImportFilterParams } from "@/hooks/use-inventory-import-filter-params";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import {
+	useMutation,
+	useQuery,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Strategy = "optimized" | "handcrafted";
 type ScopeMode = "active" | "all";
 type RunFullImportInput = {
-    categoryId?: number;
-    scope?: ScopeMode;
-    strategy?: Strategy;
-    compare?: boolean;
-    reset?: boolean;
-    source?: "event" | "job" | "manual";
+	categoryId?: number;
+	scope?: ScopeMode;
+	strategy?: Strategy;
+	compare?: boolean;
+	reset?: boolean;
+	source?: "event" | "job" | "manual";
+};
+
+type Props = {
+	initialScope?: ScopeMode;
+	initialTableSettings?: Partial<TableSettings>;
 };
 
 function StatCard({
-    title,
-    value,
-    subtitle,
+	title,
+	value,
+	subtitle,
 }: {
-    title: string;
-    value: string | number;
-    subtitle: string;
+	title: string;
+	value: string | number;
+	subtitle: string;
 }) {
-    return (
-        <Card className="p-4">
-            <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                {title}
-            </div>
-            <div className="mt-2 text-2xl font-semibold">{value}</div>
-            <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
-        </Card>
-    );
+	return (
+		<Card className="p-4">
+			<div className="text-xs uppercase tracking-wide text-muted-foreground">
+				{title}
+			</div>
+			<div className="mt-2 text-2xl font-semibold">{value}</div>
+			<div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>
+		</Card>
+	);
 }
 
 function CheckRow({
-    label,
-    ok,
-    detail,
-    pending,
+	label,
+	ok,
+	detail,
+	pending,
 }: {
-    label: string;
-    ok: boolean;
-    detail: string;
-    pending?: boolean;
+	label: string;
+	ok: boolean;
+	detail: string;
+	pending?: boolean;
 }) {
-    return (
-        <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
-            <div className="space-y-1">
-                <div className="font-medium">{label}</div>
-                <div className="text-sm text-muted-foreground">{detail}</div>
-            </div>
-            <Badge
-                variant={pending ? "outline" : ok ? "secondary" : "destructive"}
-                className="shrink-0 gap-1"
-            >
-                {pending ? (
-                    <Icons.Clock className="size-3.5" />
-                ) : ok ? (
-                    <Icons.CheckCircle className="size-3.5" />
-                ) : (
-                    <Icons.Clock className="size-3.5" />
-                )}
-                {pending ? "Checking" : ok ? "Healthy" : "Needs Attention"}
-            </Badge>
-        </div>
-    );
+	return (
+		<div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+			<div className="space-y-1">
+				<div className="font-medium">{label}</div>
+				<div className="text-sm text-muted-foreground">{detail}</div>
+			</div>
+			<Badge
+				variant={pending ? "outline" : ok ? "secondary" : "destructive"}
+				className="shrink-0 gap-1"
+			>
+				{pending ? (
+					<Icons.Clock className="size-3.5" />
+				) : ok ? (
+					<Icons.CheckCircle className="size-3.5" />
+				) : (
+					<Icons.Clock className="size-3.5" />
+				)}
+				{pending ? "Checking" : ok ? "Healthy" : "Needs Attention"}
+			</Badge>
+		</div>
+	);
 }
 
-export function InventoryImportControlCenter() {
-    const trpc = useTRPC();
-    const queryClient = useQueryClient();
-    const [strategy, setStrategy] = useState<Strategy>("optimized");
-    const [scope, setScope] = useState<ScopeMode>("active");
-    const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
-    const [currentRunId, setCurrentRunId] = useState<string | null>(null);
-    const [currentRunLabel, setCurrentRunLabel] = useState<string | null>(null);
-    const idleQueryEnabled = useIdleQueryEnabled(1000);
+export function InventoryImportControlCenter({
+	initialScope = "active",
+	initialTableSettings,
+}: Props) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const [strategy, setStrategy] = useState<Strategy>("optimized");
+	const [scope, setScope] = useState<ScopeMode>(initialScope);
+	const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
+	const [currentRunId, setCurrentRunId] = useState<string | null>(null);
+	const [currentRunLabel, setCurrentRunLabel] = useState<string | null>(null);
+	const idleQueryEnabled = useIdleQueryEnabled(1000);
+	const { filters, hasFilters, setFilters } = useInventoryImportFilterParams();
 
-    const imports = useQuery(
-        trpc.inventories.inventoryImports.queryOptions({
-            size: 200,
-            scope,
-        }),
-    );
-    const totalProducts = useQuery(
-        trpc.inventories.inventorySummary.queryOptions(
-            {
-                type: "total_products",
-            },
-            {
-                enabled: idleQueryEnabled,
-                refetchOnWindowFocus: false,
-                staleTime: 60 * 1000,
-            },
-        ),
-    );
-    const categories = useQuery(
-        trpc.inventories.inventorySummary.queryOptions(
-            {
-                type: "categories",
-            },
-            {
-                enabled: idleQueryEnabled,
-                refetchOnWindowFocus: false,
-                staleTime: 60 * 1000,
-            },
-        ),
-    );
-    const kindReview = useQuery(
-        trpc.inventories.inventoryProductKindReview.queryOptions(undefined, {
-            enabled: idleQueryEnabled,
-            refetchOnWindowFocus: false,
-            staleTime: 60 * 1000,
-        }),
-    );
-    const salesInventorySyncMonitor = useQuery(
-        trpc.inventories.salesInventorySyncMonitor.queryOptions(
-            {
-                sampleLimit: 5,
-            },
-            {
-                enabled: idleQueryEnabled,
-                refetchOnWindowFocus: false,
-                staleTime: 60 * 1000,
-            },
-        ),
-    );
-    const runStatus = useQuery({
-        ...trpc.taskTrigger.status.queryOptions({
-            runId: currentRunId || "pending",
-        }),
-        enabled: !!currentRunId,
-        refetchInterval: (query) => {
-            const status = query.state.data?.status;
-            return status &&
-                ["COMPLETED", "FAILED", "CANCELED", "CANCELLED"].includes(
-                    status,
-                )
-                ? false
-                : 1500;
-        },
-    });
+	const imports = useSuspenseQuery(
+		trpc.inventories.inventoryImports.queryOptions({
+			size: 200,
+			scope,
+			q: filters.q,
+		}),
+	);
+	const totalProducts = useQuery(
+		trpc.inventories.inventorySummary.queryOptions(
+			{
+				type: "total_products",
+			},
+			{
+				enabled: idleQueryEnabled,
+				refetchOnWindowFocus: false,
+				staleTime: 60 * 1000,
+			},
+		),
+	);
+	const categories = useQuery(
+		trpc.inventories.inventorySummary.queryOptions(
+			{
+				type: "categories",
+			},
+			{
+				enabled: idleQueryEnabled,
+				refetchOnWindowFocus: false,
+				staleTime: 60 * 1000,
+			},
+		),
+	);
+	const kindReview = useQuery(
+		trpc.inventories.inventoryProductKindReview.queryOptions(undefined, {
+			enabled: idleQueryEnabled,
+			refetchOnWindowFocus: false,
+			staleTime: 60 * 1000,
+		}),
+	);
+	const salesInventorySyncMonitor = useQuery(
+		trpc.inventories.salesInventorySyncMonitor.queryOptions(
+			{
+				sampleLimit: 5,
+				includeReconciliation: true,
+				reconciliationLimit: 50,
+			},
+			{
+				enabled: idleQueryEnabled,
+				refetchOnWindowFocus: false,
+				staleTime: 60 * 1000,
+			},
+		),
+	);
+	const runStatus = useQuery({
+		...trpc.taskTrigger.status.queryOptions({
+			runId: currentRunId || "pending",
+		}),
+		enabled: !!currentRunId,
+		refetchInterval: (query) => {
+			const status = query.state.data?.status;
+			return status &&
+				["COMPLETED", "FAILED", "CANCELED", "CANCELLED"].includes(status)
+				? false
+				: 1500;
+		},
+	});
 
-    const rows = imports.data?.data || [];
-    const scopeMeta = imports.data?.meta;
-    const importedCount = rows.filter((row) => Boolean(row.categoryUid)).length;
-    const pendingCount = rows.filter((row) => !row.categoryUid).length;
-    const totalScopedProducts = rows.reduce(
-        (sum, row) => sum + Number(row.totalProducts || 0),
-        0,
-    );
-    const totalStandardProducts = rows.reduce(
-        (sum, row) => sum + Number(row.standardProducts || 0),
-        0,
-    );
-    const totalCustomProducts = rows.reduce(
-        (sum, row) => sum + Number(row.customProducts || 0),
-        0,
-    );
+	const rows = (imports.data?.data || []) as InventoryImportRow[];
+	const scopeMeta = imports.data?.meta;
+	const importedCount = rows.filter((row) => Boolean(row.categoryUid)).length;
+	const pendingCount = rows.filter((row) => !row.categoryUid).length;
+	const totalScopedProducts = rows.reduce(
+		(sum, row) => sum + Number(row.totalProducts || 0),
+		0,
+	);
+	const totalStandardProducts = rows.reduce(
+		(sum, row) => sum + Number(row.standardProducts || 0),
+		0,
+	);
+	const totalCustomProducts = rows.reduce(
+		(sum, row) => sum + Number(row.customProducts || 0),
+		0,
+	);
 
-    const invalidateAll = useCallback(async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({
-                queryKey: trpc.inventories.inventoryImports.queryKey(),
-            }),
-            queryClient.invalidateQueries({
-                queryKey: trpc.inventories.inventoryProducts.infiniteQueryKey(),
-            }),
-            queryClient.invalidateQueries({
-                queryKey: trpc.inventories.inventorySummary.queryKey(),
-            }),
-            queryClient.invalidateQueries({
-                queryKey:
-                    trpc.inventories.inventoryProductKindReview.queryKey(),
-            }),
-            queryClient.invalidateQueries({
-                queryKey:
-                    trpc.inventories.salesInventorySyncMonitor.queryKey(),
-            }),
-        ]);
-    }, [queryClient, trpc]);
+	const invalidateAll = useCallback(async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventoryImports.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventoryProducts.infiniteQueryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventorySummary.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventoryProductKindReview.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.salesInventorySyncMonitor.queryKey(),
+			}),
+		]);
+	}, [queryClient, trpc]);
 
-    const runFullImport = useMutation(
-        trpc.inventories.runFullImport.mutationOptions({
-            onSuccess: async (data, variables) => {
-                const input = (variables ?? {}) as RunFullImportInput;
-                setCurrentRunId(data.id);
-                setCurrentRunLabel(
-                    input.compare
-                        ? "System Check"
-                        : input.reset
-                          ? "Full Refresh"
-                          : "Update Inventory",
-                );
-                setLastRunSummary(
-                    `${input.compare ? "System check" : input.reset ? "Full refresh" : "Inventory update"} queued for ${input.scope ?? "active"} scope using ${input.strategy ?? strategy}.`,
-                );
-                toast({
-                    title: input.compare
-                        ? "System check queued"
-                        : input.reset
-                          ? "Full refresh queued"
-                          : "Inventory update queued",
-                    variant: "success",
-                });
-            },
-            onError: () => {
-                toast({
-                    title: "Import action failed",
-                    variant: "destructive",
-                });
-            },
-        }),
-    );
-    const runSalesInventoryBackfill = useMutation(
-        trpc.inventories.backfillSalesInventorySync.mutationOptions({
-            onSuccess: async (data) => {
-                setCurrentRunId(data.id);
-                setCurrentRunLabel("Sales inventory backfill");
-                setLastRunSummary(
-                    "Sales inventory backfill queued for the next unsynced batch.",
-                );
-                toast({
-                    title: "Sales inventory backfill queued",
-                    variant: "success",
-                });
-            },
-            onError: () => {
-                toast({
-                    title: "Sales inventory backfill failed",
-                    variant: "destructive",
-                });
-            },
-        }),
-    );
+	const runFullImport = useMutation(
+		trpc.inventories.runFullImport.mutationOptions({
+			onSuccess: async (data, variables) => {
+				const input = (variables ?? {}) as RunFullImportInput;
+				setCurrentRunId(data.id);
+				setCurrentRunLabel(
+					input.compare
+						? "System Check"
+						: input.reset
+							? "Full Refresh"
+							: "Update Inventory",
+				);
+				setLastRunSummary(
+					`${input.compare ? "System check" : input.reset ? "Full refresh" : "Inventory update"} queued for ${input.scope ?? "active"} scope using ${input.strategy ?? strategy}.`,
+				);
+				toast({
+					title: input.compare
+						? "System check queued"
+						: input.reset
+							? "Full refresh queued"
+							: "Inventory update queued",
+					variant: "success",
+				});
+			},
+			onError: () => {
+				toast({
+					title: "Import action failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const runSalesInventoryBackfill = useMutation(
+		trpc.inventories.backfillSalesInventorySync.mutationOptions({
+			onSuccess: async (data) => {
+				setCurrentRunId(data.id);
+				setCurrentRunLabel("Sales inventory backfill");
+				setLastRunSummary(
+					"Sales inventory backfill queued for the next unsynced batch.",
+				);
+				toast({
+					title: "Sales inventory backfill queued",
+					variant: "success",
+				});
+			},
+			onError: () => {
+				toast({
+					title: "Sales inventory backfill failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const runInventoryReconciliation = useMutation(
+		trpc.inventories.runInventoryReconciliationReport.mutationOptions({
+			onSuccess: async (data, variables) => {
+				setCurrentRunId(data.id);
+				setCurrentRunLabel("Inventory reconciliation");
+				setLastRunSummary(
+					`Inventory reconciliation queued from cursor ${variables.cursorId ?? 0} with a ${variables.limit ?? 50}-line batch.`,
+				);
+				toast({
+					title: "Inventory reconciliation queued",
+					variant: "success",
+				});
+			},
+			onError: () => {
+				toast({
+					title: "Inventory reconciliation failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const cleanupStaleSalesInventoryLines = useMutation(
+		trpc.inventories.cleanupStaleSalesInventoryLineItems.mutationOptions({
+			onSuccess: async (data) => {
+				setLastRunSummary(
+					`${data.cleanedLineItemCount} stale inventory sale lines cleaned; ${data.releasedAllocationCount} allocations released and ${data.cancelledInboundDemandCount} inbound demand rows cancelled.`,
+				);
+				toast({
+					title: "Stale inventory sale lines cleaned",
+					variant: "success",
+				});
+				await invalidateAll();
+			},
+			onError: () => {
+				toast({
+					title: "Stale inventory cleanup failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 
-    const isImportRunning =
-        runFullImport.isPending ||
-        runSalesInventoryBackfill.isPending ||
-        runStatus.data?.isQueued ||
-        runStatus.data?.isExecuting ||
-        false;
+	const isImportRunning =
+		runFullImport.isPending ||
+		runSalesInventoryBackfill.isPending ||
+		runInventoryReconciliation.isPending ||
+		cleanupStaleSalesInventoryLines.isPending ||
+		runStatus.data?.isQueued ||
+		runStatus.data?.isExecuting ||
+		false;
 
-    useEffect(() => {
-        if (!currentRunId || !runStatus.data) return;
+	useEffect(() => {
+		if (!currentRunId || !runStatus.data) return;
 
-        if (runStatus.data.isCompleted) {
-            const output = runStatus.data.output as {
-                totalSteps?: number;
-                strategy?: string;
-                compare?: boolean;
-                reset?: boolean;
-            } | null;
-            const summary =
-                output && typeof output === "object"
-                    ? `${output.totalSteps || 0} steps processed using ${output.strategy || strategy}${output.compare ? " (compare)" : ""}${output.reset ? " with reset" : ""}.`
-                    : `${currentRunLabel || "Inventory import"} completed.`;
+		if (runStatus.data.isCompleted) {
+			const output = runStatus.data.output as {
+				totalSteps?: number;
+				strategy?: string;
+				compare?: boolean;
+				reset?: boolean;
+				status?: string;
+				checkedLineCount?: number;
+				totalDriftCount?: number;
+				skippedComparisonCount?: number;
+				nextCursorId?: number | null;
+				hasMore?: boolean;
+			} | null;
+			const summary =
+				output && typeof output === "object"
+					? typeof output.checkedLineCount === "number"
+						? `${output.checkedLineCount} inventory lines checked (${String(output.status || "unknown").replace(/_/g, " ")}) with ${output.totalDriftCount || 0} drift row(s)${output.skippedComparisonCount ? ` and ${output.skippedComparisonCount} skipped comparison row(s)` : ""}${output.hasMore ? `; next cursor ${output.nextCursorId ?? "none"}` : ""}.`
+						: `${output.totalSteps || 0} steps processed using ${output.strategy || strategy}${output.compare ? " (compare)" : ""}${output.reset ? " with reset" : ""}.`
+					: `${currentRunLabel || "Inventory import"} completed.`;
 
-            setLastRunSummary(summary);
-            toast({
-                title: `${currentRunLabel || "Inventory import"} completed`,
-                variant: "success",
-            });
-            void invalidateAll();
-            setCurrentRunId(null);
-            setCurrentRunLabel(null);
-            return;
-        }
+			setLastRunSummary(summary);
+			toast({
+				title: `${currentRunLabel || "Inventory import"} completed`,
+				variant: "success",
+			});
+			void invalidateAll();
+			setCurrentRunId(null);
+			setCurrentRunLabel(null);
+			return;
+		}
 
-        if (runStatus.data.isFailed || runStatus.data.isCancelled) {
-            setLastRunSummary(
-                `${currentRunLabel || "Inventory import"} failed. Review the latest job run for details.`,
-            );
-            toast({
-                title: `${currentRunLabel || "Inventory import"} failed`,
-                variant: "destructive",
-            });
-            setCurrentRunId(null);
-            setCurrentRunLabel(null);
-        }
-    }, [
-        currentRunId,
-        currentRunLabel,
-        invalidateAll,
-        runStatus.data,
-        strategy,
-    ]);
+		if (runStatus.data.isFailed || runStatus.data.isCancelled) {
+			setLastRunSummary(
+				`${currentRunLabel || "Inventory import"} failed. Review the latest job run for details.`,
+			);
+			toast({
+				title: `${currentRunLabel || "Inventory import"} failed`,
+				variant: "destructive",
+			});
+			setCurrentRunId(null);
+			setCurrentRunLabel(null);
+		}
+	}, [currentRunId, currentRunLabel, invalidateAll, runStatus.data, strategy]);
 
-    const resetInventory = useMutation(
-        trpc.inventories.resetInventorySystem.mutationOptions({
-            onSuccess: async () => {
-                setLastRunSummary("Inventory system reset completed.");
-                toast({
-                    title: "Inventory system reset",
-                    variant: "success",
-                });
-                await invalidateAll();
-            },
-            onError: () => {
-                toast({
-                    title: "Reset failed",
-                    variant: "destructive",
-                });
-            },
-        }),
-    );
+	const resetInventory = useMutation(
+		trpc.inventories.resetInventorySystem.mutationOptions({
+			onSuccess: async () => {
+				setLastRunSummary("Inventory system reset completed.");
+				toast({
+					title: "Inventory system reset",
+					variant: "success",
+				});
+				await invalidateAll();
+			},
+			onError: () => {
+				toast({
+					title: "Reset failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 
-    const checks = useMemo(
-        () => [
-            {
-                label: "Legacy import coverage",
-                ok: pendingCount === 0,
-                detail:
-                    pendingCount === 0
-                        ? "Every active sales-settings step in scope has an imported inventory category."
-                        : `${pendingCount} active-scope steps are still pending import coverage.`,
-            },
-            {
-                label: "Stale imported categories",
-                ok: (scopeMeta?.staleImportedCategories || 0) === 0,
-                detail:
-                    (scopeMeta?.staleImportedCategories || 0) === 0
-                        ? "No excluded Dyke steps are still represented in imported inventory categories."
-                        : `${scopeMeta?.staleImportedCategories || 0} imported categories belong to steps outside the active sales-settings scope.`,
-            },
-            {
-                label: "Custom import spillover",
-                ok: (scopeMeta?.staleCustomImported || 0) === 0,
-                detail:
-                    (scopeMeta?.staleCustomImported || 0) === 0
-                        ? "No excluded custom imports are still attached to stale steps."
-                        : `${scopeMeta?.staleCustomImported || 0} custom imported rows are still linked to steps outside the active scope.`,
-            },
-            {
-                label: "Kind classification review",
-                pending: !idleQueryEnabled || kindReview.isPending,
-                ok:
-                    Boolean(idleQueryEnabled) &&
-                    !kindReview.isPending &&
-                    (kindReview.data?.summary?.mismatched || 0) === 0,
-                detail:
-                    !idleQueryEnabled || kindReview.isPending
-                        ? "Classification review will load after the import table is ready."
-                        : (kindReview.data?.summary?.mismatched || 0) === 0
-                          ? "Current inventory/component kinds match the pricing heuristic."
-                          : `${kindReview.data?.summary?.mismatched || 0} records still differ from the suggested kind.`,
-            },
-            {
-                label: "Import strategy",
-                ok: strategy === "optimized",
-                detail:
-                    strategy === "optimized"
-                        ? "Optimized strategy is selected as the default update path."
-                        : "Handcrafted strategy is selected for this run. Use only when validating edge cases.",
-            },
-            {
-                label: "Sales inventory sync coverage",
-                pending:
-                    !idleQueryEnabled || salesInventorySyncMonitor.isPending,
-                ok:
-                    Boolean(idleQueryEnabled) &&
-                    !salesInventorySyncMonitor.isPending &&
-                    salesInventorySyncMonitor.data?.status === "synced",
-                detail:
-                    !idleQueryEnabled || salesInventorySyncMonitor.isPending
-                        ? "Sales inventory sync monitor will load after the control center is ready."
-                        : salesInventorySyncMonitor.data?.status === "synced"
-                          ? "Every legacy sale has inventory-backed line items."
-                          : `${salesInventorySyncMonitor.data?.missingSalesCount || 0} sales still need backfill and ${salesInventorySyncMonitor.data?.failedRiskCount || 0} synced sales need review.`,
-            },
-        ],
-        [
-            idleQueryEnabled,
-            kindReview.isPending,
-            kindReview.data?.summary?.mismatched,
-            pendingCount,
-            salesInventorySyncMonitor.data?.failedRiskCount,
-            salesInventorySyncMonitor.data?.missingSalesCount,
-            salesInventorySyncMonitor.data?.status,
-            salesInventorySyncMonitor.isPending,
-            scopeMeta?.staleCustomImported,
-            scopeMeta?.staleImportedCategories,
-            strategy,
-        ],
-    );
+	const salesInventoryMonitor = salesInventorySyncMonitor.data;
+	const reconciliation = salesInventoryMonitor?.reconciliation ?? null;
+	const reconciliationDriftDomains = reconciliation?.driftDomains || [];
+	const reconciliationDomainSummaries = reconciliation?.domainSummaries || [];
+	const reconciliationSkippedCount =
+		reconciliation?.skippedComparisonCount || 0;
+	const reviewSamples = salesInventoryMonitor?.reviewSamples || [];
+	const staleSamples = salesInventoryMonitor?.staleSamples || [];
 
-    return (
-        <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-xl font-semibold">Import Control Center</h2>
-                <p className="max-w-3xl text-sm text-muted-foreground">
-                    This workspace is now settings-driven. Update, check, reset,
-                    and monitor the inventory import from the steps actively
-                    used by the sales form instead of pulling the full legacy
-                    Dyke set.
-                </p>
-            </div>
+	const checks = useMemo(
+		() => [
+			{
+				label: "Legacy import coverage",
+				ok: pendingCount === 0,
+				detail:
+					pendingCount === 0
+						? "Every active sales-settings step in scope has an imported inventory category."
+						: `${pendingCount} active-scope steps are still pending import coverage.`,
+			},
+			{
+				label: "Stale imported categories",
+				ok: (scopeMeta?.staleImportedCategories || 0) === 0,
+				detail:
+					(scopeMeta?.staleImportedCategories || 0) === 0
+						? "No excluded Dyke steps are still represented in imported inventory categories."
+						: `${scopeMeta?.staleImportedCategories || 0} imported categories belong to steps outside the active sales-settings scope.`,
+			},
+			{
+				label: "Custom import spillover",
+				ok: (scopeMeta?.staleCustomImported || 0) === 0,
+				detail:
+					(scopeMeta?.staleCustomImported || 0) === 0
+						? "No excluded custom imports are still attached to stale steps."
+						: `${scopeMeta?.staleCustomImported || 0} custom imported rows are still linked to steps outside the active scope.`,
+			},
+			{
+				label: "Kind classification review",
+				pending: !idleQueryEnabled || kindReview.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!kindReview.isPending &&
+					(kindReview.data?.summary?.mismatched || 0) === 0,
+				detail:
+					!idleQueryEnabled || kindReview.isPending
+						? "Classification review will load after the import table is ready."
+						: (kindReview.data?.summary?.mismatched || 0) === 0
+							? "Current inventory/component kinds match the pricing heuristic."
+							: `${kindReview.data?.summary?.mismatched || 0} records still differ from the suggested kind.`,
+			},
+			{
+				label: "Import strategy",
+				ok: strategy === "optimized",
+				detail:
+					strategy === "optimized"
+						? "Optimized strategy is selected as the default update path."
+						: "Handcrafted strategy is selected for this run. Use only when validating edge cases.",
+			},
+			{
+				label: "Sales inventory sync coverage",
+				pending: !idleQueryEnabled || salesInventorySyncMonitor.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!salesInventorySyncMonitor.isPending &&
+					salesInventorySyncMonitor.data?.status === "synced",
+				detail:
+					!idleQueryEnabled || salesInventorySyncMonitor.isPending
+						? "Sales inventory sync monitor will load after the control center is ready."
+						: salesInventorySyncMonitor.data?.status === "synced"
+							? "Every legacy sale has inventory-backed line items."
+							: salesInventorySyncMonitor.data?.reconciliation?.status ===
+									"partial"
+								? `${salesInventorySyncMonitor.data.reconciliation.checkedLineCount} reconciled inventory lines checked clean so far; continue from cursor ${salesInventorySyncMonitor.data.reconciliation.nextCursorId ?? "none"} before cutover.`
+								: reconciliationSkippedCount > 0
+									? `${reconciliationSkippedCount} reconciliation comparison row(s) were skipped; review coverage before treating sales sync as cutover-ready.`
+							: `${salesInventorySyncMonitor.data?.missingSalesCount || 0} sales still need backfill and ${salesInventorySyncMonitor.data?.failedRiskCount || 0} synced sales need review.`,
+			},
+			{
+				label: "Inventory reconciliation",
+				pending: !idleQueryEnabled || salesInventorySyncMonitor.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!salesInventorySyncMonitor.isPending &&
+					salesInventorySyncMonitor.data?.reconciliation?.status === "synced",
+				detail:
+					!idleQueryEnabled || salesInventorySyncMonitor.isPending
+						? "Inventory reconciliation summary will load after the sales sync monitor is ready."
+						: !salesInventorySyncMonitor.data?.reconciliation
+							? "Inventory reconciliation summary is unavailable for this monitor run."
+							: salesInventorySyncMonitor.data.reconciliation.totalDriftCount > 0
+								? `${salesInventorySyncMonitor.data.reconciliation.totalDriftCount} reconciliation drift rows need review across ${salesInventorySyncMonitor.data.reconciliation.driftDomains.length} domain(s).`
+								: reconciliationSkippedCount > 0
+									? `${reconciliationSkippedCount} reconciliation comparison row(s) were skipped; review the coverage cards before cutover.`
+								: salesInventorySyncMonitor.data.reconciliation.hasMore
+									? `${salesInventorySyncMonitor.data.reconciliation.checkedLineCount} inventory lines checked clean; continue from cursor ${salesInventorySyncMonitor.data.reconciliation.nextCursorId} for full coverage.`
+									: `${salesInventorySyncMonitor.data.reconciliation.checkedLineCount} inventory lines checked with no reconciliation drift.`,
+			},
+			{
+				label: "Stale fulfillment residue",
+				pending: !idleQueryEnabled || salesInventorySyncMonitor.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!salesInventorySyncMonitor.isPending &&
+					(salesInventorySyncMonitor.data?.staleStockAllocationCount || 0) === 0 &&
+					(salesInventorySyncMonitor.data?.staleInboundDemandCount || 0) === 0,
+				detail:
+					!idleQueryEnabled || salesInventorySyncMonitor.isPending
+						? "Stale allocation and demand residue will load after the sales sync monitor is ready."
+						: (salesInventorySyncMonitor.data?.staleStockAllocationCount || 0) === 0 &&
+							  (salesInventorySyncMonitor.data?.staleInboundDemandCount || 0) === 0
+							? "No active allocation or inbound demand rows are attached to stale inventory sale lines."
+							: `${salesInventorySyncMonitor.data?.staleStockAllocationCount || 0} allocation rows and ${salesInventorySyncMonitor.data?.staleInboundDemandCount || 0} inbound demand rows are attached to stale inventory sale lines.`,
+			},
+		],
+		[
+			idleQueryEnabled,
+			kindReview.isPending,
+			kindReview.data?.summary?.mismatched,
+			pendingCount,
+			reconciliationSkippedCount,
+			salesInventorySyncMonitor.data?.failedRiskCount,
+			salesInventorySyncMonitor.data?.missingSalesCount,
+			salesInventorySyncMonitor.data?.reconciliation?.checkedLineCount,
+			salesInventorySyncMonitor.data?.reconciliation?.driftDomains.length,
+			salesInventorySyncMonitor.data?.reconciliation?.hasMore,
+			salesInventorySyncMonitor.data?.reconciliation?.nextCursorId,
+			salesInventorySyncMonitor.data?.reconciliation?.status,
+			salesInventorySyncMonitor.data?.reconciliation?.totalDriftCount,
+			salesInventorySyncMonitor.data?.status,
+			salesInventorySyncMonitor.data?.staleInboundDemandCount,
+			salesInventorySyncMonitor.data?.staleStockAllocationCount,
+			salesInventorySyncMonitor.isPending,
+			scopeMeta?.staleCustomImported,
+			scopeMeta?.staleImportedCategories,
+			strategy,
+		],
+	);
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <StatCard
-                    title="Scoped Steps"
-                    value={rows.length}
-                    subtitle={`${importedCount} imported • ${pendingCount} pending • ${scopeMeta?.excludedSteps || 0} excluded`}
-                />
-                <StatCard
-                    title="Scoped Products"
-                    value={totalScopedProducts}
-                    subtitle={`${totalStandardProducts} standard • ${totalCustomProducts} custom in the selected scope`}
-                />
-                <StatCard
-                    title="Imported Labels"
-                    value={scopeMeta?.importedStandardProducts || 0}
-                    subtitle={`${scopeMeta?.importedCustomProducts || 0} custom imports labeled separately`}
-                />
-                <StatCard
-                    title="Inventory Records"
-                    value={
-                        !idleQueryEnabled || totalProducts.isPending
-                            ? "..."
-                            : totalProducts.data?.value || 0
-                    }
-                    subtitle={String(
-                        !idleQueryEnabled || totalProducts.isPending
-                            ? "Loading current inventory count"
-                            : totalProducts.data?.subtitle ||
-                                  "Current inventory count",
-                    )}
-                />
-                <StatCard
-                    title="Sales Sync"
-                    value={
-                        !idleQueryEnabled ||
-                        salesInventorySyncMonitor.isPending
-                            ? "..."
-                            : `${salesInventorySyncMonitor.data?.syncCoverageRate || 0}%`
-                    }
-                    subtitle={
-                        !idleQueryEnabled ||
-                        salesInventorySyncMonitor.isPending
-                            ? "Loading sales inventory coverage"
-                            : `${salesInventorySyncMonitor.data?.syncedSalesCount || 0}/${salesInventorySyncMonitor.data?.totalSalesCount || 0} synced • ${salesInventorySyncMonitor.data?.missingSalesCount || 0} missing`
-                    }
-                />
-                <StatCard
-                    title="Categories"
-                    value={
-                        !idleQueryEnabled || categories.isPending
-                            ? "..."
-                            : categories.data?.value || 0
-                    }
-                    subtitle={
-                        !idleQueryEnabled || categories.isPending
-                            ? "Loading active category count"
-                            : "Active inventory categories"
-                    }
-                />
-            </div>
+	return (
+		<div className="flex flex-col gap-6">
+			<div className="flex flex-col gap-2">
+				<h2 className="text-xl font-semibold">Import Control Center</h2>
+				<p className="max-w-3xl text-sm text-muted-foreground">
+					This workspace is now settings-driven. Update, check, reset, and
+					monitor the inventory import from the steps actively used by the sales
+					form instead of pulling the full legacy Dyke set.
+				</p>
+			</div>
 
-            <Card className="p-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-1">
-                        <h3 className="font-semibold">
-                            Sales Inventory Sync Monitor
-                        </h3>
-                        <p className="max-w-3xl text-sm text-muted-foreground">
-                            Tracks how far legacy sales have been projected into
-                            inventory line items, components, allocations, and
-                            inbound demand. The default backfill action only
-                            targets missing inventory-backed sale lines.
-                        </p>
-                    </div>
-                    <Badge variant="outline" className="w-fit capitalize">
-                        {!idleQueryEnabled || salesInventorySyncMonitor.isPending
-                            ? "loading"
-                            : salesInventorySyncMonitor.data?.status.replace(
-                                  /_/g,
-                                  " ",
-                              )}
-                    </Badge>
-                </div>
+			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+				<StatCard
+					title="Scoped Steps"
+					value={rows.length}
+					subtitle={`${importedCount} imported • ${pendingCount} pending • ${scopeMeta?.excludedSteps || 0} excluded`}
+				/>
+				<StatCard
+					title="Scoped Products"
+					value={totalScopedProducts}
+					subtitle={`${totalStandardProducts} standard • ${totalCustomProducts} custom in the selected scope`}
+				/>
+				<StatCard
+					title="Imported Labels"
+					value={scopeMeta?.importedStandardProducts || 0}
+					subtitle={`${scopeMeta?.importedCustomProducts || 0} custom imports labeled separately`}
+				/>
+				<StatCard
+					title="Inventory Records"
+					value={
+						!idleQueryEnabled || totalProducts.isPending
+							? "..."
+							: totalProducts.data?.value || 0
+					}
+					subtitle={String(
+						!idleQueryEnabled || totalProducts.isPending
+							? "Loading current inventory count"
+							: totalProducts.data?.subtitle || "Current inventory count",
+					)}
+				/>
+				<StatCard
+					title="Sales Sync"
+					value={
+						!idleQueryEnabled || salesInventorySyncMonitor.isPending
+							? "..."
+							: `${salesInventorySyncMonitor.data?.syncCoverageRate || 0}%`
+					}
+					subtitle={
+						!idleQueryEnabled || salesInventorySyncMonitor.isPending
+							? "Loading sales inventory coverage"
+							: `${salesInventorySyncMonitor.data?.syncedSalesCount || 0}/${salesInventorySyncMonitor.data?.totalSalesCount || 0} synced • ${salesInventorySyncMonitor.data?.missingSalesCount || 0} missing`
+					}
+				/>
+				<StatCard
+					title="Categories"
+					value={
+						!idleQueryEnabled || categories.isPending
+							? "..."
+							: categories.data?.value || 0
+					}
+					subtitle={
+						!idleQueryEnabled || categories.isPending
+							? "Loading active category count"
+							: "Active inventory categories"
+					}
+				/>
+			</div>
 
-                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <StatCard
-                        title="Synced Sales"
-                        value={
-                            !idleQueryEnabled ||
-                            salesInventorySyncMonitor.isPending
-                                ? "..."
-                                : salesInventorySyncMonitor.data
-                                      ?.syncedSalesCount || 0
-                        }
-                        subtitle={`${salesInventorySyncMonitor.data?.skippedAlreadySyncedCount || 0} skipped by default backfill`}
-                    />
-                    <StatCard
-                        title="Missing Sales"
-                        value={
-                            !idleQueryEnabled ||
-                            salesInventorySyncMonitor.isPending
-                                ? "..."
-                                : salesInventorySyncMonitor.data
-                                      ?.missingSalesCount || 0
-                        }
-                        subtitle={
-                            salesInventorySyncMonitor.data?.backfillCursorId !=
-                            null
-                                ? `Next cursor ${salesInventorySyncMonitor.data.backfillCursorId}`
-                                : "No missing sales cursor"
-                        }
-                    />
-                    <StatCard
-                        title="Components"
-                        value={
-                            !idleQueryEnabled ||
-                            salesInventorySyncMonitor.isPending
-                                ? "..."
-                                : salesInventorySyncMonitor.data
-                                      ?.componentCount || 0
-                        }
-                        subtitle={`${salesInventorySyncMonitor.data?.requiredComponentCount || 0} required • ${salesInventorySyncMonitor.data?.pendingReviewComponentCount || 0} pending review`}
-                    />
-                    <StatCard
-                        title="Inbound"
-                        value={
-                            !idleQueryEnabled ||
-                            salesInventorySyncMonitor.isPending
-                                ? "..."
-                                : salesInventorySyncMonitor.data
-                                      ?.awaitingInboundComponentCount || 0
-                        }
-                        subtitle={`${salesInventorySyncMonitor.data?.allocatedComponentCount || 0} allocated • ${salesInventorySyncMonitor.data?.fulfilledComponentCount || 0} fulfilled`}
-                    />
-                </div>
+			<Card className="p-5">
+				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+					<div className="space-y-1">
+						<h3 className="font-semibold">Sales Inventory Sync Monitor</h3>
+						<p className="max-w-3xl text-sm text-muted-foreground">
+							Tracks how far legacy sales have been projected into inventory
+							line items, components, allocations, and inbound demand. The
+							default backfill action only targets missing inventory-backed sale
+							lines.
+						</p>
+					</div>
+					<Badge variant="outline" className="w-fit capitalize">
+						{!idleQueryEnabled || salesInventorySyncMonitor.isPending
+							? "loading"
+							: salesInventorySyncMonitor.data?.status.replace(/_/g, " ")}
+					</Badge>
+				</div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                        type="button"
-                        disabled={
-                            isImportRunning ||
-                            !salesInventorySyncMonitor.data ||
-                            salesInventorySyncMonitor.data.missingSalesCount ===
-                                0
-                        }
-                        onClick={() =>
-                            runSalesInventoryBackfill.mutate({
-                                cursorId:
-                                    salesInventorySyncMonitor.data
-                                        ?.backfillCursorId ?? 0,
-                                batchSize: 50,
-                                includeAlreadySynced: false,
-                                source: "repair",
-                            })
-                        }
-                    >
-                        <Icons.Refresh className="mr-2 size-4" />
-                        Queue Next Backfill Batch
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={isImportRunning}
-                        onClick={() =>
-                            runSalesInventoryBackfill.mutate({
-                                cursorId: 0,
-                                batchSize: 50,
-                                includeAlreadySynced: true,
-                                source: "repair",
-                            })
-                        }
-                    >
-                        <Icons.Search className="mr-2 size-4" />
-                        Queue Review Batch
-                    </Button>
-                </div>
+				<div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+					<StatCard
+						title="Synced Sales"
+						value={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "..."
+								: salesInventorySyncMonitor.data?.syncedSalesCount || 0
+						}
+						subtitle={`${salesInventorySyncMonitor.data?.skippedAlreadySyncedCount || 0} skipped by default backfill`}
+					/>
+					<StatCard
+						title="Review Risk"
+						value={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "..."
+								: salesInventorySyncMonitor.data?.failedRiskCount || 0
+						}
+						subtitle={`${salesInventorySyncMonitor.data?.componentlessSalesCount || 0} componentless • ${salesInventorySyncMonitor.data?.staleInventoryLineItemCount || 0} stale lines • ${reconciliation?.totalDriftCount || 0} drift • ${reconciliation?.skippedComparisonCount || 0} skipped`}
+					/>
+					<StatCard
+						title="Missing Sales"
+						value={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "..."
+								: salesInventorySyncMonitor.data?.missingSalesCount || 0
+						}
+						subtitle={
+							salesInventorySyncMonitor.data?.backfillCursorId != null
+								? `Next cursor ${salesInventorySyncMonitor.data.backfillCursorId}`
+								: "No missing sales cursor"
+						}
+					/>
+					<StatCard
+						title="Components"
+						value={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "..."
+								: salesInventorySyncMonitor.data?.componentCount || 0
+						}
+						subtitle={`${salesInventorySyncMonitor.data?.requiredComponentCount || 0} required • ${salesInventorySyncMonitor.data?.pendingReviewComponentCount || 0} pending review`}
+					/>
+					<StatCard
+						title="Inbound"
+						value={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "..."
+								: salesInventorySyncMonitor.data
+										?.awaitingInboundComponentCount || 0
+						}
+						subtitle={`${salesInventorySyncMonitor.data?.allocatedComponentCount || 0} allocated • ${salesInventorySyncMonitor.data?.fulfilledComponentCount || 0} fulfilled`}
+					/>
+					<StatCard
+						title="Reconciliation"
+						value={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "..."
+								: (reconciliation?.totalDriftCount ?? "n/a")
+						}
+						subtitle={
+							!idleQueryEnabled || salesInventorySyncMonitor.isPending
+								? "Loading reconciliation summary"
+								: reconciliation
+									? reconciliation.hasMore
+										? `${reconciliation.checkedLineCount} checked • next cursor ${reconciliation.nextCursorId ?? "none"}`
+										: `${reconciliation.checkedLineCount} checked • ${reconciliation.status.replace(/_/g, " ")}`
+									: "Reconciliation not available"
+						}
+					/>
+				</div>
 
-                {salesInventorySyncMonitor.data?.missingSamples.length ? (
-                    <div className="mt-4 rounded-lg border bg-muted/30 p-3">
-                        <div className="text-sm font-medium">
-                            Next missing sales
-                        </div>
-                        <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                            {salesInventorySyncMonitor.data.missingSamples.map(
-                                (sale) => (
-                                    <div
-                                        key={sale.id}
-                                        className="rounded-md bg-background p-3 text-sm"
-                                    >
-                                        <div className="font-medium">
-                                            {sale.orderId}
-                                        </div>
-                                        <div className="text-muted-foreground">
-                                            {sale.status || "No status"} • ID{" "}
-                                            {sale.id}
-                                        </div>
-                                    </div>
-                                ),
-                            )}
-                        </div>
-                    </div>
-                ) : null}
-            </Card>
+				<div className="mt-4 flex flex-wrap gap-2">
+					<Button
+						type="button"
+						disabled={
+							isImportRunning ||
+							!salesInventorySyncMonitor.data ||
+							salesInventorySyncMonitor.data.missingSalesCount === 0
+						}
+						onClick={() =>
+							runSalesInventoryBackfill.mutate({
+								cursorId: salesInventorySyncMonitor.data?.backfillCursorId ?? 0,
+								batchSize: 50,
+								includeAlreadySynced: false,
+								source: "repair",
+							})
+						}
+					>
+						<Icons.Refresh className="mr-2 size-4" />
+						Queue Next Backfill Batch
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={isImportRunning}
+						onClick={() =>
+							runSalesInventoryBackfill.mutate({
+								cursorId: 0,
+								batchSize: 50,
+								includeAlreadySynced: true,
+								source: "repair",
+							})
+						}
+					>
+						<Icons.Search className="mr-2 size-4" />
+						Queue Review Batch
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={isImportRunning}
+						onClick={() =>
+							runInventoryReconciliation.mutate({
+								cursorId: reconciliation?.hasMore
+									? reconciliation.nextCursorId
+									: 0,
+								limit: 100,
+								sampleLimit: 10,
+							})
+						}
+					>
+						<Icons.Search className="mr-2 size-4" />
+						Queue Reconciliation
+					</Button>
+					<ConfirmBtn
+						variant="outline"
+						icon="Warn"
+						disabled={!staleSamples.length}
+						isDeleting={cleanupStaleSalesInventoryLines.isPending}
+						onClick={async () => {
+							cleanupStaleSalesInventoryLines.mutate({
+								lineItemIds: staleSamples.map((line) => line.id),
+								dryRun: false,
+							});
+						}}
+					>
+						Clean Visible Stale Lines
+					</ConfirmBtn>
+				</div>
 
-            <div className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
-                <Card className="p-5">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                            <h3 className="font-semibold">Import Actions</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Run full inventory updates across the configured
-                                sales-settings scope. No per-category import
-                                action is required here.
-                            </p>
-                        </div>
-                        <Badge variant="outline" className="capitalize">
-                            {strategy} • {scope}
-                        </Badge>
-                    </div>
+				{reconciliationDomainSummaries.length ? (
+					<div className="mt-4 rounded-lg border bg-muted/30 p-3">
+						<div className="text-sm font-medium">Reconciliation coverage</div>
+						<div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+							{reconciliationDomainSummaries.map((domain) => (
+								<div
+									key={domain.domain}
+									className="rounded-md bg-background p-3 text-sm"
+								>
+									<div className="flex items-center justify-between gap-3">
+										<div className="font-medium capitalize">
+											{domain.domain.replace(/_/g, " ")}
+										</div>
+										<Badge
+											variant={
+												domain.severity === "error"
+													? "destructive"
+													: domain.severity === "warning"
+														? "outline"
+														: "secondary"
+											}
+											className="shrink-0 capitalize"
+										>
+											{domain.severity}
+										</Badge>
+									</div>
+									<div className="mt-1 text-muted-foreground">
+										{domain.checkedCount} checked • {domain.driftCount} drift •{" "}
+										{domain.skippedCount} skipped
+									</div>
+									{domain.skippedReasons.length ? (
+										<div className="mt-2 text-xs text-muted-foreground">
+											{domain.skippedReasons[0]}
+										</div>
+									) : null}
+								</div>
+							))}
+						</div>
+					</div>
+				) : null}
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        {(["active", "all"] as const).map((value) => (
-                            <Button
-                                key={value}
-                                type="button"
-                                size="sm"
-                                variant={
-                                    scope === value ? "default" : "outline"
-                                }
-                                onClick={() => setScope(value)}
-                            >
-                                {value === "active"
-                                    ? "Active Scope"
-                                    : "All Dyke"}
-                            </Button>
-                        ))}
-                        {(["optimized", "handcrafted"] as const).map(
-                            (value) => (
-                                <Button
-                                    key={value}
-                                    type="button"
-                                    size="sm"
-                                    variant={
-                                        strategy === value
-                                            ? "default"
-                                            : "outline"
-                                    }
-                                    onClick={() => setStrategy(value)}
-                                >
-                                    {value}
-                                </Button>
-                            ),
-                        )}
-                    </div>
+				{salesInventorySyncMonitor.data?.missingSamples.length ? (
+					<div className="mt-4 rounded-lg border bg-muted/30 p-3">
+						<div className="text-sm font-medium">Next missing sales</div>
+						<div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+							{salesInventorySyncMonitor.data.missingSamples.map((sale) => (
+								<div
+									key={sale.id}
+									className="rounded-md bg-background p-3 text-sm"
+								>
+									<div className="font-medium">{sale.orderId}</div>
+									<div className="text-muted-foreground">
+										{sale.status || "No status"} • ID {sale.id}
+									</div>
+								</div>
+							))}
+						</div>
+					</div>
+				) : null}
 
-                    <div className="mt-5 grid gap-3 md:grid-cols-2">
-                        <Button
-                            type="button"
-                            disabled={isImportRunning}
-                            onClick={() =>
-                                runFullImport.mutate({
-                                    scope,
-                                    strategy,
-                                    source: "manual",
-                                    compare: false,
-                                    reset: false,
-                                })
-                            }
-                        >
-                            <Icons.Upload className="mr-2 size-4" />
-                            Update Inventory
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            disabled={isImportRunning}
-                            onClick={() =>
-                                runFullImport.mutate({
-                                    scope,
-                                    strategy,
-                                    source: "manual",
-                                    compare: true,
-                                    reset: false,
-                                })
-                            }
-                        >
-                            <Icons.Search className="mr-2 size-4" />
-                            System Check
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            disabled={isImportRunning}
-                            onClick={() =>
-                                runFullImport.mutate({
-                                    scope,
-                                    strategy,
-                                    source: "manual",
-                                    compare: false,
-                                    reset: true,
-                                })
-                            }
-                        >
-                            <Icons.Refresh className="mr-2 size-4" />
-                            Full Refresh
-                        </Button>
-                        <ConfirmBtn
-                            variant="outline"
-                            icon="Warn"
-                            isDeleting={resetInventory.isPending}
-                            onClick={async () => {
-                                resetInventory.mutate();
-                            }}
-                        >
-                            Reset Only
-                        </ConfirmBtn>
-                    </div>
+				{reviewSamples.length || staleSamples.length ? (
+					<div className="mt-4 grid gap-3 lg:grid-cols-2">
+						{reviewSamples.length ? (
+							<div className="rounded-lg border bg-muted/30 p-3">
+								<div className="text-sm font-medium">
+									Synced sales needing review
+								</div>
+								<div className="mt-2 grid gap-2">
+									{reviewSamples.map((sale) => (
+										<div
+											key={sale.id}
+											className="rounded-md bg-background p-3 text-sm"
+										>
+											<div className="font-medium">{sale.orderId}</div>
+											<div className="text-muted-foreground">
+												{sale.status || "No status"} • ID {sale.id}
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						) : null}
 
-                    <div className="mt-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-                        <div className="font-medium text-foreground">
-                            Run notes
-                        </div>
-                        <div className="mt-1">
-                            `Update Inventory` runs the selected scope without
-                            reset as a background job. `System Check` runs
-                            compare mode. `Full Refresh` resets and rebuilds the
-                            selected inventory import scope in the background.
-                            Custom Dyke rows are still imported, but standard
-                            inventory remains the default operational view.
-                        </div>
-                        {currentRunId && runStatus.data ? (
-                            <div className="mt-3 rounded-md bg-background p-3 text-foreground">
-                                <div className="font-medium">
-                                    {currentRunLabel || "Inventory import"}{" "}
-                                    status
-                                </div>
-                                <div className="mt-1 text-sm text-muted-foreground">
-                                    {runStatus.data.status}
-                                </div>
-                            </div>
-                        ) : null}
-                        {lastRunSummary ? (
-                            <div className="mt-3 rounded-md bg-background p-3 text-foreground">
-                                {lastRunSummary}
-                            </div>
-                        ) : null}
-                    </div>
-                </Card>
+						{staleSamples.length ? (
+							<div className="rounded-lg border bg-muted/30 p-3">
+								<div className="text-sm font-medium">
+									Stale inventory sale lines
+								</div>
+								<div className="mt-2 grid gap-2">
+									{staleSamples.map((line) => (
+										<div
+											key={line.id}
+											className="rounded-md bg-background p-3 text-sm"
+										>
+											<div className="font-medium">
+												{line.title || "Untitled inventory line"}
+											</div>
+											<div className="text-muted-foreground">
+												Line ID {line.id} • Sale{" "}
+												{line.sale?.orderId || line.saleId || "missing"}
+											</div>
+										</div>
+									))}
+								</div>
+							</div>
+						) : null}
+					</div>
+				) : null}
+			</Card>
 
-                <Card className="p-5">
-                    <div className="space-y-1">
-                        <h3 className="font-semibold">System Checks</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Quick visibility into whether the import area looks
-                            safe before you run an update.
-                        </p>
-                    </div>
-                    <div className="mt-4 grid gap-3">
-                        {checks.map((check) => (
-                            <CheckRow key={check.label} {...check} />
-                        ))}
-                    </div>
-                </Card>
-            </div>
+			<div className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
+				<Card className="p-5">
+					<div className="flex items-start justify-between gap-4">
+						<div className="space-y-1">
+							<h3 className="font-semibold">Import Actions</h3>
+							<p className="text-sm text-muted-foreground">
+								Run full inventory updates across the configured sales-settings
+								scope. No per-category import action is required here.
+							</p>
+						</div>
+						<Badge variant="outline" className="capitalize">
+							{strategy} • {scope}
+						</Badge>
+					</div>
 
-            <Card className="p-5">
-                <div className="space-y-1">
-                    <h3 className="font-semibold">Scope Breakdown</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Read-only Dyke step visibility for debugging and audit.
-                        The primary workflow above is now scope-driven, not
-                        category-by-category.
-                    </p>
-                </div>
-                <div className="mt-4">
-                    <DataTable scope={scope} />
-                </div>
-            </Card>
-        </div>
-    );
+					<div className="mt-4 flex flex-wrap gap-2">
+						{(["active", "all"] as const).map((value) => (
+							<Button
+								key={value}
+								type="button"
+								size="sm"
+								variant={scope === value ? "default" : "outline"}
+								onClick={() => setScope(value)}
+							>
+								{value === "active" ? "Active Scope" : "All Dyke"}
+							</Button>
+						))}
+						{(["optimized", "handcrafted"] as const).map((value) => (
+							<Button
+								key={value}
+								type="button"
+								size="sm"
+								variant={strategy === value ? "default" : "outline"}
+								onClick={() => setStrategy(value)}
+							>
+								{value}
+							</Button>
+						))}
+					</div>
+
+					<div className="mt-5 grid gap-3 md:grid-cols-2">
+						<Button
+							type="button"
+							disabled={isImportRunning}
+							onClick={() =>
+								runFullImport.mutate({
+									scope,
+									strategy,
+									source: "manual",
+									compare: false,
+									reset: false,
+								})
+							}
+						>
+							<Icons.Upload className="mr-2 size-4" />
+							Update Inventory
+						</Button>
+						<Button
+							type="button"
+							variant="outline"
+							disabled={isImportRunning}
+							onClick={() =>
+								runFullImport.mutate({
+									scope,
+									strategy,
+									source: "manual",
+									compare: true,
+									reset: false,
+								})
+							}
+						>
+							<Icons.Search className="mr-2 size-4" />
+							System Check
+						</Button>
+						<Button
+							type="button"
+							variant="secondary"
+							disabled={isImportRunning}
+							onClick={() =>
+								runFullImport.mutate({
+									scope,
+									strategy,
+									source: "manual",
+									compare: false,
+									reset: true,
+								})
+							}
+						>
+							<Icons.Refresh className="mr-2 size-4" />
+							Full Refresh
+						</Button>
+						<ConfirmBtn
+							variant="outline"
+							icon="Warn"
+							isDeleting={resetInventory.isPending}
+							onClick={async () => {
+								resetInventory.mutate();
+							}}
+						>
+							Reset Only
+						</ConfirmBtn>
+					</div>
+
+					<div className="mt-4 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+						<div className="font-medium text-foreground">Run notes</div>
+						<div className="mt-1">
+							`Update Inventory` runs the selected scope without reset as a
+							background job. `System Check` runs compare mode. `Full Refresh`
+							resets and rebuilds the selected inventory import scope in the
+							background. Custom Dyke rows are still imported, but standard
+							inventory remains the default operational view.
+						</div>
+						{currentRunId && runStatus.data ? (
+							<div className="mt-3 rounded-md bg-background p-3 text-foreground">
+								<div className="font-medium">
+									{currentRunLabel || "Inventory import"} status
+								</div>
+								<div className="mt-1 text-sm text-muted-foreground">
+									{runStatus.data.status}
+								</div>
+							</div>
+						) : null}
+						{lastRunSummary ? (
+							<div className="mt-3 rounded-md bg-background p-3 text-foreground">
+								{lastRunSummary}
+							</div>
+						) : null}
+					</div>
+				</Card>
+
+				<Card className="p-5">
+					<div className="space-y-1">
+						<h3 className="font-semibold">System Checks</h3>
+						<p className="text-sm text-muted-foreground">
+							Quick visibility into whether the import area looks safe before
+							you run an update.
+						</p>
+					</div>
+					<div className="mt-4 grid gap-3">
+						{checks.map((check) => (
+							<CheckRow key={check.label} {...check} />
+						))}
+					</div>
+				</Card>
+			</div>
+
+			<Card className="p-5">
+				<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+					<div className="space-y-1">
+						<h3 className="font-semibold">Scope Breakdown</h3>
+						<p className="text-sm text-muted-foreground">
+							Read-only Dyke step visibility for debugging and audit. The
+							primary workflow above is now scope-driven, not
+							category-by-category.
+						</p>
+					</div>
+					<InventoryImportColumnVisibility />
+				</div>
+				<div className="mt-4">
+					<DataTable
+						data={rows}
+						hasFilters={hasFilters}
+						initialSettings={initialTableSettings}
+						onClearFilters={() =>
+							setFilters({
+								q: null,
+								scope: null,
+							})
+						}
+						onShowAllScopes={() => setScope("all")}
+					/>
+				</div>
+			</Card>
+		</div>
+	);
 }

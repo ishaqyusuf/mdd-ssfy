@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Text, View } from "@react-pdf/renderer";
 import type { FooterData } from "@gnd/sales/print/types";
 

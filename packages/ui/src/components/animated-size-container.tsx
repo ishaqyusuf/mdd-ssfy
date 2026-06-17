@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { motion } from "framer-motion";
 import {
   type ComponentPropsWithoutRef,

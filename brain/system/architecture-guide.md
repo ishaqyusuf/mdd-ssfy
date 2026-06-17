@@ -458,8 +458,8 @@ Use route files as shell entry points, not as the whole feature.
 
 Preferred shape for larger features:
 ```text
-apps/www/src/app/(sidebar)/(sales)/sales-book/orders/v2/page.tsx
-apps/www/src/components/tables/sales-orders-v2/
+apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx
+apps/www/src/components/tables-2/sales-orders/
 apps/www/src/components/sales-orders-v2-header.tsx
 apps/www/src/hooks/use-sales-orders-v2-filter-params.ts
 ```

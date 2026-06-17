@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 // contextFactory.ts
 import {
   createContext as reactCreateContext,

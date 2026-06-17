@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import {
   Controller,
   ControllerProps,

@@ -5,6 +5,7 @@ import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
 import { OpenBuilderModal } from "./open-builder-modal";
+import { CommunityBuildersColumnVisibility } from "./tables-2/community-builders/column-visibility";
 
 type Props = {
 	initialFilterList?: PageFilterData[];
@@ -20,8 +21,10 @@ export function BuilderHeader({ initialFilterList }: Props) {
 				trpcRoute={trpc.filters.builder}
 				initialFilterList={initialFilterList}
 			/>
-			<div className="flex-1" />
-			<OpenBuilderModal />
+			<div className="flex flex-1 items-center justify-end gap-2">
+				<CommunityBuildersColumnVisibility />
+				<OpenBuilderModal />
+			</div>
 		</div>
 	);
 }

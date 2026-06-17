@@ -6,12 +6,10 @@ import type {
 import React, { useEffect, useRef } from "react";
 import {
   LayoutAnimation,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
-  UIManager,
   View,
 } from "react-native";
 import Animated, {
@@ -22,12 +20,6 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-
-if (Platform.OS === "android") {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}
 
 interface ToastProps {
   toast: ToastType;

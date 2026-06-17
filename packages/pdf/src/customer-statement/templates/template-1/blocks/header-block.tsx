@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { CompanyAddress } from "@gnd/sales/print/types";
 import { Image, Text, View } from "@react-pdf/renderer";
 import { resolveLogoSrc } from "../../../../sales-v2/shared/utils";

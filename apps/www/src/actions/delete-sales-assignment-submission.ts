@@ -2,6 +2,7 @@
 
 import { Prisma, prisma } from "@/db";
 import { resetSalesAction } from "@sales/sales-control/actions";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
@@ -72,5 +73,9 @@ export const deleteSalesAssignmentSubmissionAction = actionClient
             await resetSalesAction(tx as any, input.salesId);
             return {};
         });
+        await syncInventoryProductionLifecycleForSale(
+            prisma as any,
+            input.salesId,
+        );
         return resp;
     });

@@ -6,12 +6,30 @@ import { PreviewMetricCard } from "../components/preview-metric";
 import { PreviewBottomNav, PreviewShell } from "../components/preview-shell";
 import { fieldMetrics, fieldRecords } from "../data/sample-data";
 import { fieldFlowSystem } from "../design-systems/template-b-field-flow";
+import { usePreviewDesignSystem } from "../design-systems/types";
 
 export function TemplateBScreen() {
-	const system = fieldFlowSystem;
+	const system = usePreviewDesignSystem(fieldFlowSystem);
 
 	return (
-		<PreviewShell eyebrow="Template B" system={system} title="Field Flow">
+		<PreviewShell
+			bottomNavigation={
+				<PreviewBottomNav
+					active="Route"
+					items={[
+						{ icon: "House", label: "Home" },
+						{ icon: "Route", label: "Route" },
+						{ icon: "Warehouse", label: "Pack" },
+						{ icon: "Camera", label: "Proof" },
+						{ icon: "User", label: "Me" },
+					]}
+					system={system}
+				/>
+			}
+			eyebrow="Template B"
+			system={system}
+			title="Field Flow"
+		>
 			<View
 				style={{
 					backgroundColor: system.colors.primary,
@@ -28,10 +46,22 @@ export function TemplateBScreen() {
 					}}
 				>
 					<View style={{ flex: 1, gap: 5 }}>
-						<Text style={{ color: "#ffffff", fontSize: 12, fontWeight: "800" }}>
+						<Text
+							style={{
+								color: system.colors.primaryForeground,
+								fontSize: 12,
+								fontWeight: "800",
+							}}
+						>
 							ACTIVE ROUTE
 						</Text>
-						<Text style={{ color: "#ffffff", fontSize: 22, fontWeight: "900" }}>
+						<Text
+							style={{
+								color: system.colors.primaryForeground,
+								fontSize: 22,
+								fontWeight: "900",
+							}}
+						>
 							North Ridge Delivery
 						</Text>
 						<Text style={{ color: "rgba(255,255,255,0.76)", fontSize: 13 }}>
@@ -48,17 +78,22 @@ export function TemplateBScreen() {
 							width: 48,
 						}}
 					>
-						<Icon name="Truck" color="#ffffff" size={23} />
+						<Icon
+							name="Truck"
+							color={system.colors.primaryForeground}
+							size={23}
+						/>
 					</View>
 				</View>
 
 				<Pressable
 					style={{
 						alignItems: "center",
-						backgroundColor: "#ffffff",
+						backgroundColor: system.colors.primaryForeground,
 						borderRadius: 14,
 						flexDirection: "row",
 						justifyContent: "center",
+						overflow: "hidden",
 						paddingVertical: 13,
 					}}
 				>
@@ -122,18 +157,6 @@ export function TemplateBScreen() {
 					/>
 				))}
 			</View>
-
-			<PreviewBottomNav
-				active="Route"
-				items={[
-					{ icon: "House", label: "Home" },
-					{ icon: "Route", label: "Route" },
-					{ icon: "Warehouse", label: "Pack" },
-					{ icon: "Camera", label: "Proof" },
-					{ icon: "User", label: "Me" },
-				]}
-				system={system}
-			/>
 		</PreviewShell>
 	);
 }

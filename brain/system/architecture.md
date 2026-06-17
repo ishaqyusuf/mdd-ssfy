@@ -17,6 +17,7 @@ Tracks the current technical topology and major module boundaries.
 
 ## Notable Architecture Directions
 - Shared document infrastructure is consolidating under `packages/documents` for provider-agnostic storage and metadata lifecycle handling.
+- Inventory owns inbound demand status semantics for sales fulfillment projections; see `brain/decisions/ADR-009-inventory-owned-inbound-demand-status.md`.
 - The sales domain is splitting into dedicated package boundaries:
   - `packages/sales/src/control/*` for production and dispatch quantity truth
   - `packages/sales/src/payment-system/*` for canonical payment and accounting logic

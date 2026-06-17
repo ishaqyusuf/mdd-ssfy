@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Skeleton } from "@gnd/ui/skeleton";
 
 export function ComponentCardSkeletonGrid({ count = 6 }: { count?: number }) {

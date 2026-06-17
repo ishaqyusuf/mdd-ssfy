@@ -1,11 +1,14 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { GridSkeleton } from "@/components/grid-skeleton";
 import { ProductReportHeader } from "@/components/product-report-header";
-import { DataTable } from "@/components/tables/sales-statistics/data-table";
+import { DataTable } from "@/components/tables-2/sales-statistics/data-table";
+import { SalesStatisticsSkeleton } from "@/components/tables-2/sales-statistics/skeleton";
 import { loadProductReportFilterParams } from "@/hooks/use-product-report-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
 import PageShell from "@/components/page-shell";
@@ -13,32 +16,49 @@ import { PageTitle } from "@gnd/ui/custom/page-title";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Product Report | GND",
-    });
-}
-export default async function Page(props) {
-    const searchParams = await props.searchParams;
-    const queryClient = getQueryClient();
-    const filter = loadProductReportFilterParams(searchParams);
-    await queryClient.fetchInfiniteQuery(
-        trpc.sales.getProductReport.infiniteQueryOptions({
-            ...filter,
-        }) as any,
-    );
+type ProductReportInput = RouterInputs["sales"]["getProductReport"];
 
-    return (
-        <PageShell>
-            <HydrateClient>
-                <PageTitle>Product Reports</PageTitle>
-                <ProductReportHeader />
-                <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<GridSkeleton />}>
-                        <DataTable />
-                    </Suspense>
-                </ErrorBoundary>
-            </HydrateClient>
-        </PageShell>
-    );
+export async function generateMetadata() {
+	return constructMetadata({
+		title: "Product Report | GND",
+	});
+}
+type Props = {
+	searchParams: Promise<SearchParams>;
+};
+
+export default async function Page(props: Props) {
+	const searchParams = await props.searchParams;
+	const filter = loadProductReportFilterParams(searchParams);
+	const initialSettings = await getInitialTableSettings("sales-statistics");
+	const queryInput = {
+		...filter,
+	} as ProductReportInput;
+
+	batchPrefetch([
+		trpc.sales.getProductReport.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
+
+	return (
+		<PageShell>
+			<HydrateClient>
+				<PageTitle>Product Reports</PageTitle>
+				<div className="flex flex-col gap-6">
+					<ProductReportHeader />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense
+							fallback={
+								<SalesStatisticsSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable initialSettings={initialSettings} />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
+		</PageShell>
+	);
 }

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 const bars = Array(12).fill(0);
 
 export const Spinner = ({ size = 16 }) => {

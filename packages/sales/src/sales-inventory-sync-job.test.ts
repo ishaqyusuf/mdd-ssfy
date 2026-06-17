@@ -40,4 +40,24 @@ describe("queueSalesInventoryLineItemsSync", () => {
       },
     );
   });
+
+  it("preserves each sales inventory sync source in the task payload", async () => {
+    const sources = ["new-form", "old-form", "copy-sales", "manual", "repair"] as const;
+
+    for (const [index, source] of sources.entries()) {
+      await queueSalesInventoryLineItemsSync({
+        salesOrderId: 1000 + index,
+        source,
+      });
+
+      expect(tasks.trigger).toHaveBeenLastCalledWith(
+        "sync-sales-inventory-line-items",
+        {
+          salesOrderId: 1000 + index,
+          source,
+          triggeredByUserId: null,
+        },
+      );
+    }
+  });
 });

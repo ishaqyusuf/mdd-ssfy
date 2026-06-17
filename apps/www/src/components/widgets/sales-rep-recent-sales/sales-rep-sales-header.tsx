@@ -12,7 +12,7 @@ export function SalesRepSalesWidgetHeader() {
     return (
         <CardHeader className="fflex flex-row items-center justify-between">
             <div className="">
-                <Link href="/sales-book/orders/v2" prefetch>
+                <Link href="/sales-book/orders" prefetch>
                     <CardTitle>Recent Sales</CardTitle>
                     <CardDescription>
                         Your most recent sales proposals

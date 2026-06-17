@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 export type SalesFormDealerProfileCardProfile = {
 	id?: number | null;
 	title?: string | null;

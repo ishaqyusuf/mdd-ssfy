@@ -39,6 +39,8 @@ Record the browser validation results in `brain/reports/2026-06-15-inventory-bro
 | `/p/sales-inventory-v2` | Public route mounts `SalesInventoryPrintViewerPage`; API exposes `print.salesInventoryV2`; data/golden tests cover inventory packet rows; request tests cover the separate inventory print viewer URL contract. | Render invoice/production/pick/packing/backorder/customer-remaining packets and compare visually with Dyke/v2 template expectations. |
 
 ## Fixture Scenarios Needed
+Detailed fixture setup plan: `brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md`.
+
 1. Available sale line with approved inventory allocations.
 2. Sale line with held-until-complete enabled and only partial stock available.
 3. Sale line blocked by one missing required component with open inbound demand.

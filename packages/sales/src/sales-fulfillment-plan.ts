@@ -33,6 +33,7 @@ const DEFAULT_BACKORDER_QUEUE_STATUSES: SalesBackorderQueueStatus[] = [
 ];
 
 export type FulfillmentAllocationLike = {
+	id?: number | null;
 	qty?: number | null;
 	status?: string | null;
 };
@@ -206,6 +207,11 @@ export type SalesBackorderQueueItem = SalesFulfillmentQuantitySnapshot & {
 	canShipNow: boolean;
 	heldBackQty: number;
 	blockerComponents: SalesFulfillmentComponentProjection[];
+	allocationIdsByStatus: {
+		approved: number[];
+		reserved: number[];
+		picked: number[];
+	};
 };
 
 export type SalesBackorderQueueSummary = {
@@ -465,7 +471,8 @@ export type InventoryDispatchTransitionPlan = {
 		| "already_consumed"
 		| "already_released"
 		| "cancelled"
-		| "not_reserved_for_pack";
+		| "not_reserved_for_pack"
+		| "concurrently_claimed";
 };
 
 export type InventoryDispatchTransitionInput = {
@@ -498,6 +505,7 @@ export type InventoryDispatchTransitionResult = {
 export type FulfillInventoryDispatchInput = {
 	salesOrderId: number;
 	lineItemIds?: number[];
+	allocationIds?: number[];
 	deliveryMode?: string | null;
 	deliveredTo?: string | null;
 	createdByUserId?: number | null;
@@ -569,6 +577,16 @@ export function isLineHeldUntilComplete(meta: unknown) {
 	const current = readObject(meta);
 	const fulfillment = readObject(current.fulfillment);
 	return fulfillment.holdUntilComplete === true;
+}
+
+export function isLineProductionEligible(meta: unknown) {
+	const current = readObject(meta);
+	const production = readObject(current.production);
+	const inventorySync = readObject(current.inventorySync);
+
+	if (production.produceable === false) return false;
+	if (inventorySync.productionProduceable === false) return false;
+	return true;
 }
 
 function mergeMetaWithFulfillmentHold(
@@ -1133,6 +1151,34 @@ function getBlockerComponents(line: SalesFulfillmentLineProjection) {
 	);
 }
 
+function getAllocationIdsByStatus(line: SalesBackorderQueueLineLike) {
+	const allocationIdsByStatus = {
+		approved: [] as number[],
+		reserved: [] as number[],
+		picked: [] as number[],
+	};
+
+	for (const component of line.components || []) {
+		for (const allocation of component.stockAllocations || []) {
+			const id = Number(allocation.id || 0);
+			if (!id) continue;
+			if (allocation.status === "approved") {
+				allocationIdsByStatus.approved.push(id);
+			} else if (allocation.status === "reserved") {
+				allocationIdsByStatus.reserved.push(id);
+			} else if (allocation.status === "picked") {
+				allocationIdsByStatus.picked.push(id);
+			}
+		}
+	}
+
+	return {
+		approved: allocationIdsByStatus.approved.sort((a, b) => a - b),
+		reserved: allocationIdsByStatus.reserved.sort((a, b) => a - b),
+		picked: allocationIdsByStatus.picked.sort((a, b) => a - b),
+	};
+}
+
 export function buildSalesBackorderQueue(
 	lineItems: SalesBackorderQueueLineLike[],
 	input: Pick<GetSalesBackorderQueueInput, "statuses" | "limit"> = {},
@@ -1174,6 +1220,7 @@ export function buildSalesBackorderQueue(
 			inboundQty: line.inboundQty,
 			receivedQty: line.receivedQty,
 			blockerComponents: getBlockerComponents(line),
+			allocationIdsByStatus: getAllocationIdsByStatus(sourceLine),
 		});
 	}
 
@@ -1266,6 +1313,7 @@ export function buildSalesPartialShipmentQueue(
 			inboundQty: line.inboundQty,
 			receivedQty: line.receivedQty,
 			blockerComponents: getBlockerComponents(line),
+			allocationIdsByStatus: getAllocationIdsByStatus(sourceLine),
 		});
 	}
 
@@ -1472,6 +1520,7 @@ export function buildSalesProductionPlan(
 	const components: SalesProductionPlanComponent[] = [];
 
 	for (const sourceLine of lineItems) {
+		if (!isLineProductionEligible(sourceLine.meta)) continue;
 		const line = summarizeSalesFulfillmentPlan([sourceLine]).lines[0];
 		if (!line) continue;
 
@@ -1824,6 +1873,7 @@ export async function getSalesBackorderQueue(
 							},
 						},
 						select: {
+							id: true,
 							qty: true,
 							status: true,
 						},
@@ -2035,6 +2085,7 @@ export async function getSalesPartialShipmentQueue(
 							},
 						},
 						select: {
+							id: true,
 							qty: true,
 							status: true,
 						},
@@ -2107,6 +2158,7 @@ export async function getSalesProductionPlan(
 			uid: true,
 			title: true,
 			qty: true,
+			meta: true,
 			saleId: true,
 			sale: {
 				select: {
@@ -2419,6 +2471,7 @@ async function consumeComponentAllocations(
 		lineItemComponentId: number;
 		consumeQty: number;
 		statuses?: InventoryDispatchAllocationStatus[];
+		allocationIds?: number[];
 		note?: string | null;
 	},
 ) {
@@ -2428,6 +2481,11 @@ async function consumeComponentAllocations(
 		where: {
 			lineItemComponentId: input.lineItemComponentId,
 			deletedAt: null,
+			id: input.allocationIds?.length
+				? {
+						in: input.allocationIds,
+					}
+				: undefined,
 			status: {
 				in: input.statuses || ["approved", "reserved", "picked"],
 			},
@@ -2456,24 +2514,33 @@ async function consumeComponentAllocations(
 		const residualQty = roundQuantity(allocationQty - takeQty);
 
 		if (residualQty <= 0) {
-			await db.stockAllocation.update({
+			const updated = await db.stockAllocation.updateMany({
 				where: {
 					id: allocation.id,
+					deletedAt: null,
+					status: allocation.status,
+					qty: allocation.qty,
 				},
 				data: {
 					status: "consumed",
 					notes: input.note || allocation.notes,
 				},
 			});
+			if (updated.count === 0) continue;
 		} else {
-			await db.stockAllocation.update({
+			const updated = await db.stockAllocation.updateMany({
 				where: {
 					id: allocation.id,
+					deletedAt: null,
+					status: allocation.status,
+					qty: allocation.qty,
 				},
 				data: {
 					qty: residualQty,
 				},
 			});
+			if (updated.count === 0) continue;
+
 			await db.stockAllocation.create({
 				data: {
 					lineItemComponentId: allocation.lineItemComponentId,
@@ -3265,15 +3332,27 @@ export async function transitionInventoryDispatchAllocations(
 				continue;
 			}
 
-			await tx.stockAllocation.update({
+			const updated = await tx.stockAllocation.updateMany({
 				where: {
 					id: allocation.id,
+					deletedAt: null,
+					status: fromStatus,
 				},
 				data: {
 					status: plan.toStatus,
 					notes: input.note || allocation.notes,
 				},
 			});
+			if (updated.count === 0) {
+				skipped.push({
+					allocationId: allocation.id,
+					lineItemComponentId: allocation.lineItemComponentId,
+					status: fromStatus,
+					reason: "concurrently_claimed",
+				});
+				continue;
+			}
+
 			transitions.push({
 				allocationId: allocation.id,
 				lineItemComponentId: allocation.lineItemComponentId,
@@ -3328,6 +3407,13 @@ export async function fulfillInventoryDispatch(
 		? {
 				id: {
 					in: input.lineItemIds,
+				},
+			}
+		: {};
+	const allocationFilter = input.allocationIds?.length
+		? {
+				id: {
+					in: input.allocationIds,
 				},
 			}
 		: {};
@@ -3386,9 +3472,11 @@ export async function fulfillInventoryDispatch(
 								stockAllocations: {
 									where: {
 										deletedAt: null,
+										...allocationFilter,
 										status: "picked",
 									},
 									select: {
+										id: true,
 										qty: true,
 									},
 								},
@@ -3435,8 +3523,37 @@ export async function fulfillInventoryDispatch(
 
 		let deliveryId: number | null = null;
 		let consumedAllocationQty = 0;
+		const fulfilledLines: typeof plannedLines = [];
 
-		if (plannedLines.length) {
+		for (const plannedLine of plannedLines) {
+			for (const componentPlan of plannedLine.plan.components) {
+				if (componentPlan.consumeQty > 0) {
+					const consumed = await consumeComponentAllocations(tx, {
+						lineItemComponentId: componentPlan.componentId,
+						consumeQty: componentPlan.consumeQty,
+						statuses: ["picked"],
+						allocationIds: input.allocationIds,
+						note: input.note || "Consumed by inventory dispatch fulfillment.",
+					});
+					if (consumed.consumedQty < componentPlan.consumeQty) {
+						throw new Error(
+							"Picked inventory allocation was already claimed before dispatch fulfillment completed.",
+						);
+					}
+					consumedAllocationQty = roundQuantity(
+						consumedAllocationQty + consumed.consumedQty,
+					);
+				}
+
+				await recomputeLineItemComponentFulfillment(
+					tx,
+					componentPlan.componentId,
+				);
+			}
+			fulfilledLines.push(plannedLine);
+		}
+
+		if (fulfilledLines.length) {
 			const delivery = await tx.orderDelivery.create({
 				data: {
 					salesOrderId: sale.id,
@@ -3459,7 +3576,7 @@ export async function fulfillInventoryDispatch(
 			deliveryId = delivery.id;
 
 			await tx.orderItemDelivery.createMany({
-				data: plannedLines.map(({ line, plan }) => ({
+				data: fulfilledLines.map(({ line, plan }) => ({
 					orderId: sale.id,
 					orderItemId: line.salesItemId!,
 					orderDeliveryId: delivery.id,
@@ -3477,41 +3594,20 @@ export async function fulfillInventoryDispatch(
 			});
 		}
 
-		for (const { plan } of plannedLines) {
-			for (const componentPlan of plan.components) {
-				if (componentPlan.consumeQty > 0) {
-					const consumed = await consumeComponentAllocations(tx, {
-						lineItemComponentId: componentPlan.componentId,
-						consumeQty: componentPlan.consumeQty,
-						statuses: ["picked"],
-						note: input.note || "Consumed by inventory dispatch fulfillment.",
-					});
-					consumedAllocationQty = roundQuantity(
-						consumedAllocationQty + consumed.consumedQty,
-					);
-				}
-
-				await recomputeLineItemComponentFulfillment(
-					tx,
-					componentPlan.componentId,
-				);
-			}
-		}
-
 		return {
-			ok: plannedLines.length > 0,
+			ok: fulfilledLines.length > 0,
 			salesOrderId: sale.id,
 			deliveryId,
-			shippedLineCount: plannedLines.length,
+			shippedLineCount: fulfilledLines.length,
 			shippedQty: roundQuantity(
-				sumBy(plannedLines, ({ plan }) => plan.shipQty),
+				sumBy(fulfilledLines, ({ plan }) => plan.shipQty),
 			),
 			backorderedQty: roundQuantity(
-				sumBy(plannedLines, ({ plan }) => plan.backorderedQty),
+				sumBy(fulfilledLines, ({ plan }) => plan.backorderedQty),
 			),
 			consumedAllocationQty,
 			inboundDemandCreatedQty: 0,
-			lines: plannedLines.map(({ line, plan }) => ({
+			lines: fulfilledLines.map(({ line, plan }) => ({
 				lineItemId: line.id,
 				salesItemId: line.salesItemId!,
 				shipQty: plan.shipQty,

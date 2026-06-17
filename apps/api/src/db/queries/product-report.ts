@@ -40,7 +40,7 @@ export async function getProductReport(
 	{ db }: TRPCContext,
 	query: ProductReportSchema,
 ) {
-	const { response, searchMeta, meta, where } = await composeQueryData(
+	const { response, where } = await composeQueryData(
 		query,
 		whereStat(query),
 		db.dykeStepProducts,
@@ -70,7 +70,9 @@ export async function getProductReport(
 		//     },
 		//   },
 		// },
-		...searchMeta,
+		orderBy: {
+			id: "asc",
+		},
 		// include: SalesListInclude,
 		// orderBy: {
 		//   updatedAt: "desc",
@@ -151,8 +153,10 @@ export async function getProductReport(
 			},
 		},
 	});
-	return await response(
-		data.map((d) => {
+	const pageSize = query.size ? Number(query.size) : 20;
+	const cursor = Number(query.cursor || 0);
+	const rows = data
+		.map((d) => {
 			const productCode = d.product?.productCode;
 			const isMolding =
 				// ?.filter((a) => a?.molding)
@@ -205,8 +209,21 @@ export async function getProductReport(
 				date: d.createdAt,
 				productCode,
 			};
-		}),
-	);
+		})
+		.sort((a, b) => {
+			const unitsDiff = Number(b.units || 0) - Number(a.units || 0);
+
+			if (unitsDiff !== 0) return unitsDiff;
+
+			const nameDiff = (a.name || "").localeCompare(b.name || "");
+
+			if (nameDiff !== 0) return nameDiff;
+
+			return Number(a.id || 0) - Number(b.id || 0);
+		})
+		.slice(cursor, cursor + pageSize);
+
+	return await response(rows);
 }
 function whereStat(query: ProductReportSchema) {
 	const where: Prisma.DykeStepProductsWhereInput[] = [

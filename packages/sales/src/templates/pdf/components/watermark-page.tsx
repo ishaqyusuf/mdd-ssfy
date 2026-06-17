@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { env } from "process";
 import { Image, Page, PageProps, Text, View } from "@react-pdf/renderer";
 

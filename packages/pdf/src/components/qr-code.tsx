@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Image, View } from "@react-pdf/renderer";
 
 interface QRCodeProps {

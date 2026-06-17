@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Colors, getColorFromName, hexToRgba } from "@gnd/utils/colors";
 import { cn } from "../../utils";
 

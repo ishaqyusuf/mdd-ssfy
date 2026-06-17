@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Icons } from "@gnd/ui/icons";
 import { cva } from "class-variance-authority";
 import type { ReactNode } from "react";

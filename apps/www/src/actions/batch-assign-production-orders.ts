@@ -3,7 +3,11 @@
 import { serverSession } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { actionClient } from "./safe-action";
-import { createAssignmentsTask, getSaleInformation } from "@sales/exports";
+import {
+	createAssignmentsTask,
+	getSaleInformation,
+	syncInventoryProductionLifecycleForSale,
+} from "@sales/exports";
 import { z } from "zod";
 
 const batchAssignProductionOrdersSchema = z.object({
@@ -54,6 +58,7 @@ export const batchAssignProductionOrdersAction = actionClient
 					selections,
 				},
 			});
+			await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 
 			ordersUpdated += 1;
 			assignmentsQueued += selections.length;

@@ -1,10 +1,18 @@
 "use client";
 
 import { FileUploader } from "@/components/common/file-uploader";
+import {
+	buildCustomComponentOptions,
+	CustomComponentCombobox,
+	customComponentPriceChanged,
+	findCustomComponentOption,
+} from "@/components/forms/sales-form/custom-component-combobox";
+import type { CustomComponentOption } from "@/components/forms/sales-form/custom-component-combobox";
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
+import { CUSTOM_IMG_ID } from "@/utils/constants";
 import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
@@ -22,6 +30,14 @@ import {
 	summarizeDoors,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
+import {
+	AlertDialog,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@gnd/ui/alert-dialog";
 import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Dialog,
@@ -39,6 +55,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
+	useArchiveDykeCustomStepComponentMutation,
 	useNewSalesFormShelfCategoriesQuery,
 	useNewSalesFormShelfProductSearchQuery,
 	useNewSalesFormShelfProductsQuery,
@@ -49,6 +66,7 @@ import {
 	useSalesSuppliersQuery,
 	useSalesUpdateStepMetaMutation,
 	useUpdateDykeComponentPricingMutation,
+	useUpsertDykeCustomStepComponentMutation,
 } from "../api";
 import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
@@ -223,6 +241,21 @@ export function ItemWorkflowPanel() {
 			noHandle: false,
 			hasSwing: true,
 		});
+	const [customComponentDialog, setCustomComponentDialog] = useState<{
+		open: boolean;
+		lineUid: string | null;
+		stepIndex: number;
+		title: string;
+		price: number | null;
+		selectedOption: CustomComponentOption | null;
+	}>({
+		open: false,
+		lineUid: null,
+		stepIndex: -1,
+		title: "",
+		price: null,
+		selectedOption: null,
+	});
 	const [supplierNameInput, setSupplierNameInput] = useState("");
 	const [editingSupplier, setEditingSupplier] = useState<{
 		id: number;
@@ -249,6 +282,10 @@ export function ItemWorkflowPanel() {
 	const deleteSupplierMutation = useSalesDeleteSupplierMutation();
 	const updateStepMetaMutation = useSalesUpdateStepMetaMutation();
 	const updateDoorPriceMutation = useUpdateDykeComponentPricingMutation();
+	const upsertCustomComponentMutation =
+		useUpsertDykeCustomStepComponentMutation();
+	const archiveCustomComponentMutation =
+		useArchiveDykeCustomStepComponentMutation();
 	const workflowAdminCapabilities = useMemo(
 		() => createWwwWorkflowAdminCapabilities(auth.roleTitle),
 		[auth.roleTitle],
@@ -278,6 +315,15 @@ export function ItemWorkflowPanel() {
 	const activeDoorStep = activeLine
 		? findLineStepByTitle(activeLine, "Door")
 		: null;
+	const activeSelectedComponentUids = useMemo(
+		() =>
+			new Set(
+				Object.values(buildSelectedProdUidsByStepUid(activeLineSteps))
+					.flat()
+					.map(String),
+			),
+		[activeLineSteps],
+	);
 	const visibleLineItems = useMemo(() => {
 		return routeScopedLineItems.map((line, index) => ({
 			line,
@@ -492,6 +538,25 @@ export function ItemWorkflowPanel() {
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
 	]);
+	const customComponentOptions = useMemo(
+		() => buildCustomComponentOptions(stepComponentsQuery.data || []),
+		[stepComponentsQuery.data],
+	);
+	const selectedCustomComponentOption = useMemo(() => {
+		const title = customComponentDialog.title.trim();
+		return (
+			customComponentDialog.selectedOption ||
+			findCustomComponentOption(customComponentOptions, title)
+		);
+	}, [
+		customComponentDialog.selectedOption,
+		customComponentDialog.title,
+		customComponentOptions,
+	]);
+	const selectedCustomComponentPriceChanged = customComponentPriceChanged(
+		selectedCustomComponentOption,
+		customComponentDialog.price,
+	);
 	const visibleDoorComponents = useMemo(() => {
 		return resolveWorkflowVisibleComponents({
 			components: doorStepComponentsQuery.data || [],
@@ -545,7 +610,11 @@ export function ItemWorkflowPanel() {
 				configured.has(component.uid || ""),
 			)
 			.filter((component: StepComponentLike) =>
-				isComponentEnabledForView(component, includeCustomComponents),
+				isComponentEnabledForView(
+					component,
+					includeCustomComponents,
+					activeSelectedComponentUids,
+				),
 			)
 			.filter((component: StepComponentLike) =>
 				isComponentVisibleByRules(
@@ -595,6 +664,7 @@ export function ItemWorkflowPanel() {
 		routeData,
 		rootComponentsQuery.data,
 		activeLineSteps,
+		activeSelectedComponentUids,
 		includeCustomComponents,
 		activeProfileCoefficient,
 		activeStepComponentOverrides,
@@ -652,6 +722,111 @@ export function ItemWorkflowPanel() {
 			...prev,
 			[line.uid]: result.activeStepIndex,
 		}));
+	}
+	function openCustomComponentDialog(
+		line: (typeof record.lineItems)[number],
+		stepIndex: number,
+	) {
+		const step = getWorkflowSteps(line)[stepIndex];
+		const selectedUid = String(step?.prodUid || "");
+		const selectedOption =
+			customComponentOptions.find(
+				(option) => String(option.uid || "") === selectedUid,
+			) || null;
+		setCustomComponentDialog({
+			open: true,
+			lineUid: line.uid,
+			stepIndex,
+			title: selectedOption?.title || "",
+			price: selectedOption?.price ?? null,
+			selectedOption,
+		});
+	}
+	function resetCustomComponentDialog() {
+		setCustomComponentDialog({
+			open: false,
+			lineUid: null,
+			stepIndex: -1,
+			title: "",
+			price: null,
+			selectedOption: null,
+		});
+	}
+	function getSelectedCustomComponentOption() {
+		return selectedCustomComponentOption;
+	}
+	async function submitCustomComponentDialog(options?: { updatePrice?: boolean }) {
+		const title = customComponentDialog.title.trim();
+		if (!title || !customComponentDialog.lineUid) return;
+		const line = record.lineItems.find(
+			(item) => item.uid === customComponentDialog.lineUid,
+		);
+		if (!line) return;
+		const steps = getWorkflowSteps(line);
+		const step = steps[customComponentDialog.stepIndex];
+		const stepId = Number(step?.stepId || step?.step?.id || 0);
+		if (!stepId) return;
+		const selectedOption = getSelectedCustomComponentOption();
+		const selectedComponent = selectedOption
+			? (stepComponentsQuery.data || []).find(
+					(component) =>
+						String(component?.uid || "") === String(selectedOption.uid || "") ||
+						Number(component?.id || 0) === Number(selectedOption.componentId || 0),
+				)
+			: null;
+
+		if (selectedOption && selectedComponent && !options?.updatePrice) {
+			saveSelectedComponent({
+				line,
+				steps,
+				currentStepIndex: customComponentDialog.stepIndex,
+				component: selectedComponent as WorkflowComponent,
+				selectedOverride: true,
+			});
+			resetCustomComponentDialog();
+			return;
+		}
+
+		const result = await upsertCustomComponentMutation.mutateAsync({
+			id: selectedOption?.componentId,
+			uid: selectedOption?.uid || undefined,
+			stepId,
+			title,
+			price: customComponentDialog.price,
+			pricingId: selectedOption?.pricingId,
+			dependenciesUid: selectedOption?.dependenciesUid,
+			img: CUSTOM_IMG_ID,
+			meta: {},
+		});
+		await stepComponentsQuery.refetch();
+		saveSelectedComponent({
+			line,
+			steps,
+			currentStepIndex: customComponentDialog.stepIndex,
+			component: result.component as WorkflowComponent,
+			selectedOverride: true,
+		});
+		resetCustomComponentDialog();
+	}
+	async function archiveCustomComponent(option: CustomComponentOption) {
+		await archiveCustomComponentMutation.mutateAsync({
+			id: option.componentId,
+			uid: option.uid || undefined,
+		});
+		await stepComponentsQuery.refetch();
+		if (
+			selectedCustomComponentOption &&
+			(String(selectedCustomComponentOption.uid || "") === String(option.uid || "") ||
+				Number(selectedCustomComponentOption.componentId || 0) ===
+					Number(option.componentId || 0))
+		) {
+			setCustomComponentDialog((prev) => ({
+				...prev,
+				title: "",
+				price: null,
+				selectedOption: null,
+			}));
+		}
 	}
 	function proceedMultiSelectStep(
 		line: (typeof record.lineItems)[number],
@@ -2228,7 +2403,9 @@ export function ItemWorkflowPanel() {
 										stepIndex: activeIndex,
 									})
 								}
-								onEnableCustomComponent={() => setIncludeCustomComponents(true)}
+								onEnableCustomComponent={() =>
+									openCustomComponentDialog(line, activeIndex)
+								}
 								onRefresh={() => {
 									void stepComponentsQuery.refetch();
 									void rootComponentsQuery.refetch();
@@ -2631,6 +2808,92 @@ export function ItemWorkflowPanel() {
 					onApply={(linePatch) => updateLineItem(activeLine.uid, linePatch)}
 				/>
 			) : null}
+
+			<AlertDialog
+				open={customComponentDialog.open}
+				onOpenChange={(open) =>
+					setCustomComponentDialog((prev) => ({
+						...prev,
+						open,
+						lineUid: open ? prev.lineUid : null,
+						stepIndex: open ? prev.stepIndex : -1,
+					}))
+				}
+			>
+				<AlertDialogContent className="sm:max-w-md">
+					<AlertDialogHeader>
+						<AlertDialogTitle>Custom Component</AlertDialogTitle>
+					</AlertDialogHeader>
+					<CustomComponentCombobox
+						title={customComponentDialog.title}
+						price={customComponentDialog.price}
+						options={customComponentOptions}
+						disabled={
+							upsertCustomComponentMutation.isPending ||
+							archiveCustomComponentMutation.isPending
+						}
+						onTitleChange={(title) =>
+							setCustomComponentDialog((prev) => ({
+								...prev,
+								title,
+								selectedOption:
+									prev.selectedOption &&
+									prev.selectedOption.title.trim().toLowerCase() ===
+										title.trim().toLowerCase()
+										? prev.selectedOption
+										: null,
+							}))
+						}
+						onPriceChange={(price) =>
+							setCustomComponentDialog((prev) => ({
+								...prev,
+								price,
+							}))
+						}
+						onSelect={(option) =>
+							setCustomComponentDialog((prev) => ({
+								...prev,
+								selectedOption: option,
+							}))
+						}
+						onDeleteOption={(option) => {
+							void archiveCustomComponent(option);
+						}}
+					/>
+					<AlertDialogFooter>
+						<AlertDialogCancel onClick={resetCustomComponentDialog}>
+							Cancel
+						</AlertDialogCancel>
+						{selectedCustomComponentOption &&
+						selectedCustomComponentPriceChanged ? (
+							<Button
+								type="button"
+								variant="outline"
+								disabled={
+									upsertCustomComponentMutation.isPending ||
+									archiveCustomComponentMutation.isPending
+								}
+								onClick={() =>
+									void submitCustomComponentDialog({ updatePrice: true })
+								}
+							>
+								Update price
+							</Button>
+						) : null}
+						<Button
+							type="button"
+							disabled={
+								upsertCustomComponentMutation.isPending ||
+								archiveCustomComponentMutation.isPending ||
+								!customComponentDialog.title.trim()
+							}
+							onClick={() => void submitCustomComponentDialog()}
+						>
+							Proceed
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			<ComponentEditDialog
 				open={componentEditModal.open}

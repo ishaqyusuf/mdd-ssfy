@@ -13,7 +13,6 @@ import { DeleteRowAction } from "@/components/_v1/data-table/data-table-row-acti
 import { Icons } from "@gnd/ui/icons";
 import { Menu } from "@gnd/ui/custom/menu";
 import { _modal } from "@/components/common/modal/provider";
-import { CustomComponentForm } from "@/components/forms/sales-form/custom-component";
 import { useSortControl } from "@/hooks/use-sort-control";
 import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";

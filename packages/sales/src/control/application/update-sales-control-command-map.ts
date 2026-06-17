@@ -49,6 +49,15 @@ export const UPDATE_SALES_CONTROL_COMMAND_MAP: Record<
 	],
 };
 
+export const INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS = [
+	"submitAll",
+	"createAssignments",
+	"updateSubmissions",
+	"deleteSubmissions",
+	"deleteAssignments",
+	"markAsCompleted",
+] satisfies LegacyUpdateSalesControlAction[];
+
 const ORDERED_ACTION_KEYS: LegacyUpdateSalesControlAction[] = [
 	"submitAll",
 	"packItems",
@@ -80,6 +89,14 @@ export function resolveLegacyUpdateSalesControlAction(
 		};
 	}
 	return null;
+}
+
+export function shouldSyncInventoryProductionLifecycleForSalesControl(
+	input: UpdateSalesControl,
+) {
+	return INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS.some(
+		(action) => !!input[action],
+	);
 }
 
 export const RESET_SALES_CONTROL_COMMAND: ControlRepairCommand =

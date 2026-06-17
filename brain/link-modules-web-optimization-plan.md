@@ -17,7 +17,7 @@ Use `linkModules` as the authoritative source for active user-facing route plann
 ### Sales
 - Dashboard: `/sales-dashboard`, `/sales-rep`
 - Accounting: `/sales-book/accounting`, `/sales-book/accounting/resolution-center`
-- Orders: `/sales-book/orders`, `/sales-book/orders/bin`, `/sales-book/orders/v2`
+- Orders: `/sales-book/orders`, `/sales-book/orders/bin`; `/sales-book/orders/v2` is a compatibility redirect only.
 - Quotes: `/sales-book/quotes`, `/sales-book/quotes/bin`
 - Sales-book forms: `/sales-book/create-order`, `/sales-book/create-quote`, `/sales-book/edit-order/[slug]`, `/sales-book/edit-quote/[slug]`
 - Experimental new-form routes: `/sales-form/create-order`, `/sales-form/create-quote`, `/sales-form/edit-order/[slug]`, `/sales-form/edit-quote/[slug]`

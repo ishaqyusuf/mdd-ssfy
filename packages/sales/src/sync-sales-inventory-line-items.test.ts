@@ -2,6 +2,8 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildInventorySyncComponentCandidatesForItem,
 	planComponentDemandState,
+	resolveProjectedInboundDemandStatus,
+	resolveSalesItemProductionEligibility,
 } from "./sync-sales-inventory-line-items";
 
 const emptyItem = {
@@ -60,6 +62,51 @@ describe("sync sales inventory line items", () => {
 			qtyReceived: 0,
 			status: "allocated",
 		});
+	});
+
+	it("projects order inbound prompts into newly created inbound demand status", () => {
+		expect(
+			resolveProjectedInboundDemandStatus({
+				orderInventoryStatus: "ORDERED",
+				qtyInbound: 4,
+				qtyReceived: 0,
+			}),
+		).toBe("ordered");
+
+		expect(
+			resolveProjectedInboundDemandStatus({
+				orderInventoryStatus: "PENDING ORDER",
+				qtyInbound: 4,
+				qtyReceived: 0,
+			}),
+		).toBe("pending");
+	});
+
+	it("does not let order prompts downgrade received or shipment-linked demand", () => {
+		expect(
+			resolveProjectedInboundDemandStatus({
+				orderInventoryStatus: "PENDING ORDER",
+				qtyInbound: 4,
+				qtyReceived: 2,
+			}),
+		).toBe("partially_received");
+
+		expect(
+			resolveProjectedInboundDemandStatus({
+				orderInventoryStatus: "PENDING ORDER",
+				qtyInbound: 4,
+				qtyReceived: 0,
+				inboundShipmentItemId: 123,
+			}),
+		).toBe("ordered");
+
+		expect(
+			resolveProjectedInboundDemandStatus({
+				orderInventoryStatus: "ORDERED",
+				qtyInbound: 4,
+				qtyReceived: 4,
+			}),
+		).toBe("received");
 	});
 
 	it("extracts package-authored form step, shelf, HPT, and door candidates from item metadata", () => {
@@ -181,5 +228,243 @@ describe("sync sales inventory line items", () => {
 		expect(candidates[0]?.sourceUid).toBe("shelf-prod-55");
 		expect(candidates[0]?.qty).toBe(4);
 		expect(candidates[0]?.inventoryName).toBe("Relational shelf");
+	});
+
+	it("preserves produceable semantics for persisted mixed grouped metadata rows", () => {
+		const hptLine = {
+			...emptyItem,
+			id: 21,
+			description: "House Package Tool",
+			dykeProduction: true,
+			meta: {
+				formSteps: [
+					{
+						prodUid: "door-root",
+						qty: 1,
+						value: "Door",
+						step: {
+							uid: "item-type-step",
+							title: "Item Type",
+						},
+						meta: {
+							selectedComponents: [
+								{
+									id: 501,
+									uid: "door-501",
+									title: "30in Door",
+								},
+							],
+						},
+					},
+					{
+						prodUid: "door-501",
+						qty: 2,
+						value: "30in Door",
+						step: {
+							uid: "door-step",
+							title: "Door",
+						},
+						meta: {
+							selectedComponents: [
+								{
+									id: 501,
+									uid: "door-501",
+									title: "30in Door",
+								},
+							],
+						},
+					},
+				],
+				housePackageTool: {
+					totalDoors: 2,
+					doors: [
+						{
+							stepProductId: 501,
+							totalQty: 2,
+							dimension: "30 x 80",
+						},
+					],
+				},
+			},
+		};
+		const serviceLine = {
+			...emptyItem,
+			id: 22,
+			description: "Install Service",
+			dykeProduction: true,
+			meta: {
+				formSteps: [
+					{
+						prodUid: "service-install",
+						qty: 1,
+						value: "Services",
+						step: {
+							uid: "service-step",
+							title: "Services",
+						},
+					},
+				],
+				serviceRows: [
+					{
+						title: "Installation",
+						qty: 1,
+					},
+				],
+			},
+		};
+		const mouldingLine = {
+			...emptyItem,
+			id: 23,
+			description: "Moulding",
+			dykeProduction: true,
+			meta: {
+				mouldingRows: [
+					{
+						title: "Casing",
+						qty: 8,
+					},
+				],
+				housePackageTool: {
+					totalDoors: 0,
+					doors: [],
+					stepProduct: {
+						uid: "moulding-casing",
+						name: "Casing",
+						step: {
+							uid: "moulding-step",
+							title: "Moulding",
+						},
+					},
+				},
+			},
+		};
+
+		expect(
+			[hptLine, serviceLine, mouldingLine].map((line) =>
+				resolveSalesItemProductionEligibility(line),
+			),
+		).toEqual([true, true, false]);
+
+		expect(
+			buildInventorySyncComponentCandidatesForItem(hptLine).map(
+				(candidate) => candidate.sourceType,
+			),
+		).toEqual([
+			"dyke-step-product",
+			"dyke-step-product",
+			"dyke-house-package",
+			"dyke-door-product",
+		]);
+		expect(
+			buildInventorySyncComponentCandidatesForItem(serviceLine).map(
+				(candidate) => candidate.sourceUid,
+			),
+		).toEqual(["service-install"]);
+		expect(
+			buildInventorySyncComponentCandidatesForItem(mouldingLine).map(
+				(candidate) => candidate.sourceUid,
+			),
+		).toEqual(["moulding-casing"]);
+	});
+
+	it("treats produceable service rows as production eligible", () => {
+		expect(
+			resolveSalesItemProductionEligibility({
+				...emptyItem,
+				dykeProduction: true,
+				formSteps: [
+					{
+						prodUid: "service-root",
+						value: "Services",
+						qty: 1,
+						meta: {},
+						step: {
+							uid: "service-step",
+							title: "Services",
+						},
+						component: {
+							uid: "service-root",
+							name: "Install",
+						},
+					},
+				],
+			}),
+		).toBe(true);
+	});
+
+	it("lets explicit non-produceable metadata override Dyke production flags", () => {
+		expect(
+			resolveSalesItemProductionEligibility({
+				...emptyItem,
+				dykeProduction: true,
+				meta: {
+					produceable: false,
+				},
+				formSteps: [
+					{
+						prodUid: "door-root",
+						value: "Door",
+						qty: 1,
+						meta: {},
+						step: {
+							uid: "door-step",
+							title: "Door",
+						},
+						component: {
+							uid: "door-root",
+							name: "Door",
+						},
+					},
+				],
+			}),
+		).toBe(false);
+	});
+
+	it("treats non-produceable service rows as production ineligible", () => {
+		expect(
+			resolveSalesItemProductionEligibility({
+				...emptyItem,
+				dykeProduction: false,
+				formSteps: [
+					{
+						prodUid: "service-root",
+						value: "Services",
+						qty: 1,
+						meta: {},
+						step: {
+							uid: "service-step",
+							title: "Services",
+						},
+						component: {
+							uid: "service-root",
+							name: "Install",
+						},
+					},
+				],
+			}),
+		).toBe(false);
+	});
+
+	it("treats moulding rows as production ineligible even when they carry HPT metadata", () => {
+		expect(
+			resolveSalesItemProductionEligibility({
+				...emptyItem,
+				description: "Moulding",
+				dykeProduction: false,
+				housePackageTool: {
+					deletedAt: null,
+					totalDoors: 0,
+					stepProduct: {
+						uid: "moulding-casing",
+						name: "Casing",
+						step: {
+							uid: "moulding-step",
+							title: "Moulding",
+						},
+					},
+					doors: [],
+				},
+			}),
+		).toBe(false);
 	});
 });

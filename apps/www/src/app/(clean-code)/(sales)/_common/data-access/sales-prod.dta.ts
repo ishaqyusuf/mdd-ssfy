@@ -2,6 +2,7 @@ import { userId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma, Prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { resetSalesAction } from "@sales/sales-control/actions";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 
 import { excludeDeleted } from "../utils/db-utils";
 import { Qty } from "./dto/sales-item-dto";
@@ -18,6 +19,10 @@ export async function createItemAssignmentDta(
         data,
     });
     await resetSalesAction(prisma as any, data.order.connect.id);
+    await syncInventoryProductionLifecycleForSale(
+        prisma as any,
+        data.order.connect.id,
+    );
     return assignment;
 }
 export async function deleteAssignmentDta(
@@ -85,6 +90,7 @@ export async function deleteAssignmentDta(
         });
     }
     await resetSalesAction(prisma as any, a.orderId);
+    await syncInventoryProductionLifecycleForSale(prisma as any, a.orderId);
 }
 export async function submitAssignmentDta(
     data: Prisma.OrderProductionSubmissionsCreateInput,
@@ -94,6 +100,7 @@ export async function submitAssignmentDta(
         data,
     });
     await resetSalesAction(prisma as any, c.salesOrderId);
+    await syncInventoryProductionLifecycleForSale(prisma as any, c.salesOrderId);
     return c;
 }
 export async function deleteAssignmentSubmissionDta(submitId, produceable) {
@@ -106,6 +113,10 @@ export async function deleteAssignmentSubmissionDta(submitId, produceable) {
         },
     });
     await resetSalesAction(prisma as any, submission.salesOrderId);
+    await syncInventoryProductionLifecycleForSale(
+        prisma as any,
+        submission.salesOrderId,
+    );
 }
 export async function updateAssignmentDta(
     id,

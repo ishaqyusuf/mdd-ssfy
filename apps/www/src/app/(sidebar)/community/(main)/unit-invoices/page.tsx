@@ -1,11 +1,13 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { UnitInvoiceModal } from "@/components/modals/unit-invoice-modal";
-import { TableSkeleton } from "@/components/tables/skeleton";
-import { DataTable } from "@/components/tables/unit-invoices/data-table";
+import { DataTable } from "@/components/tables-2/unit-invoices/data-table";
+import { UnitInvoicesSkeleton } from "@/components/tables-2/unit-invoices/skeleton";
 import { UnitInvoicesHeader } from "@/components/unit-invoices-header";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { loadUnitInvoiceFilterParams } from "@/hooks/use-unit-invoices-filter-params";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -30,12 +32,17 @@ export default async function Page(props: Props) {
 	const queryClient = getQueryClient();
 	const filter = loadUnitInvoiceFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
+	const initialSettings = await getInitialTableSettings("unit-invoices");
+	const queryInput = {
+		...filter,
+		sort,
+	} as unknown as RouterInputs["community"]["getUnitInvoices"];
 
 	await queryClient.fetchInfiniteQuery(
-		trpc.community.getUnitInvoices.infiniteQueryOptions({
-			...(filter as any),
-			sort,
-		}) as any,
+		trpc.community.getUnitInvoices.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
 	);
 
 	return (
@@ -45,8 +52,12 @@ export default async function Page(props: Props) {
 					<PageTitle>Unit Invoices</PageTitle>
 					<UnitInvoicesHeader />
 					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<DataTable />
+						<Suspense
+							fallback={
+								<UnitInvoicesSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable initialSettings={initialSettings} />
 						</Suspense>
 					</ErrorBoundary>
 					<UnitInvoiceModal />

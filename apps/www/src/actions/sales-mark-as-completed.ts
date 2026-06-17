@@ -4,6 +4,7 @@ import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { QtyControlType } from "@gnd/utils/sales";
 import { resetSalesAction } from "@sales/sales-control/actions";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 
 import { SalesDispatchStatus } from "@api/type";
@@ -101,5 +102,6 @@ async function markSalesAsCompleted(id, types: QtyControlType[]) {
         });
         await resetSalesAction(tx as any, id);
     });
+    await syncInventoryProductionLifecycleForSale(prisma as any, id);
     // authorName
 }

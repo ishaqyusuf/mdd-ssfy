@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { JSX } from "react";
 import type { CustomerStatementPdfData } from "./types";
 import { Template1 } from "./templates/template-1";

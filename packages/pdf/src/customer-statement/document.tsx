@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Document, Font } from "@react-pdf/renderer";
 import {
 	type CustomerStatementTemplateConfig,

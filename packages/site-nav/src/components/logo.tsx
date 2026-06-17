@@ -6,12 +6,16 @@ interface SiteNavLogoProps {
 	Icon?: ComponentType;
 	href?: string;
 	className?: string;
+	title?: string;
+	subtitle?: string;
 }
 
 function BaseLogo({
 	Icon,
 	href = "/",
 	className,
+	title,
+	subtitle,
 	expandedOnly = false,
 	collapsedOnly = false,
 }: SiteNavLogoProps & { expandedOnly?: boolean; collapsedOnly?: boolean }) {
@@ -23,7 +27,13 @@ function BaseLogo({
 	if (expandedOnly && !isExpanded) return null;
 	if (collapsedOnly && isExpanded) return null;
 
-	const content = Icon ? <Icon /> : <span className="text-xs">Logo</span>;
+	const content = Icon ? (
+		<span className="inline-flex shrink-0 items-center [&_img]:block">
+			<Icon />
+		</span>
+	) : (
+		<span className="text-xs">Logo</span>
+	);
 
 	return (
 		<div
@@ -43,14 +53,16 @@ function BaseLogo({
 					)}
 				>
 					{content}
-					{isExpanded ? (
-						<div className="flex min-w-0 flex-col">
-							<span className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/70">
-								Workspace
+					{isExpanded && title ? (
+						<div className="flex min-w-0 flex-col leading-none">
+							<span className="truncate text-[22px] font-extrabold tracking-normal text-sidebar-foreground">
+								{title}
 							</span>
-							<span className="truncate text-sm font-semibold text-sidebar-foreground">
-								Control Panel
-							</span>
+							{subtitle ? (
+								<span className="mt-1 truncate text-xs font-semibold tracking-normal text-sidebar-foreground/80">
+									{subtitle}
+								</span>
+							) : null}
 						</div>
 					) : null}
 				</Link>
@@ -63,14 +75,16 @@ function BaseLogo({
 					)}
 				>
 					{content}
-					{isExpanded ? (
-						<div className="flex min-w-0 flex-col">
-							<span className="truncate text-[10px] font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/70">
-								Workspace
+					{isExpanded && title ? (
+						<div className="flex min-w-0 flex-col leading-none">
+							<span className="truncate text-[22px] font-extrabold tracking-normal text-sidebar-foreground">
+								{title}
 							</span>
-							<span className="truncate text-sm font-semibold text-sidebar-foreground">
-								Control Panel
-							</span>
+							{subtitle ? (
+								<span className="mt-1 truncate text-xs font-semibold tracking-normal text-sidebar-foreground/80">
+									{subtitle}
+								</span>
+							) : null}
 						</div>
 					) : null}
 				</a>

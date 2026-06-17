@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 export * from "./editor";
 export * from "./utils/logo";
 

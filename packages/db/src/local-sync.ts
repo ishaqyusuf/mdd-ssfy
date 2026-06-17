@@ -3,6 +3,8 @@ import { dirname, resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 export type SyncMode = "incremental" | "insert-only" | "static-refresh" | "skip";
+export type DuplicateConflictAction = "ignore" | "reset" | "cancel";
+export type DuplicateConflictPolicy = DuplicateConflictAction | "prompt";
 
 export type ColumnInfo = {
 	name: string;
@@ -46,6 +48,8 @@ export type SyncOptions = {
 	staticRefreshMaxRows: number;
 	readBatchSize: number;
 	writeBatchSize: number;
+	onDuplicate: DuplicateConflictPolicy;
+	onDuplicateConflict?: (context: DuplicateConflictContext) => DuplicateConflictAction | Promise<DuplicateConflictAction>;
 	onProgress?: (event: SyncProgressEvent) => void;
 };
 
@@ -58,11 +62,23 @@ export type SyncReport = {
 	skippedReason?: string;
 };
 
+export type DuplicateConflictContext = {
+	table: string;
+	mode: SyncMode;
+	error: unknown;
+	message: string;
+	read: number;
+	written: number;
+	cursorValue?: string | null;
+	resetAttempted: boolean;
+};
+
 export type SyncProgressEvent =
 	| { type: "manifest:start" }
 	| { type: "manifest"; tableCount: number }
 	| { type: "table:start"; table: string; mode: SyncMode }
 	| { type: "table:batch"; table: string; mode: SyncMode; read: number; written: number; cursorValue?: string | null }
+	| { type: "table:reset"; table: string; reason: string }
 	| { type: "table:skip"; table: string; reason: string }
 	| { type: "table:done"; report: SyncReport };
 
@@ -71,6 +87,18 @@ type KeyColumnRow = {
 	index_name: string;
 	seq_in_index: bigint | number;
 };
+
+type RawTargetClient = Pick<PrismaClient, "$executeRawUnsafe">;
+
+class DuplicateKeySyncError extends Error {
+	context: Omit<DuplicateConflictContext, "resetAttempted">;
+
+	constructor(context: Omit<DuplicateConflictContext, "resetAttempted">) {
+		super(context.message);
+		this.name = "DuplicateKeySyncError";
+		this.context = context;
+	}
+}
 
 const DEFAULT_STATE: SyncState = {
 	version: 1,
@@ -82,6 +110,7 @@ const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 
 const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
+const DUPLICATE_POLICIES = new Set<DuplicateConflictPolicy>(["prompt", "ignore", "reset", "cancel"]);
 
 export function quoteIdent(identifier: string): string {
 	return `\`${identifier.replaceAll("`", "``")}\``;
@@ -350,6 +379,14 @@ export function parseArgs(argv: string[]): Partial<SyncOptions> & { help?: boole
 			case "--static-refresh-max-rows":
 				parsed.staticRefreshMaxRows = Number(next());
 				break;
+			case "--on-duplicate": {
+				const value = next();
+				if (!DUPLICATE_POLICIES.has(value as DuplicateConflictPolicy)) {
+					throw new Error(`Invalid value for --on-duplicate: ${value}. Expected prompt, ignore, reset, or cancel.`);
+				}
+				parsed.onDuplicate = value as DuplicateConflictPolicy;
+				break;
+			}
 			case "-h":
 			case "--help":
 				parsed.help = true;
@@ -441,6 +478,7 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 			staticRefreshMaxRows: parsed.staticRefreshMaxRows ?? 5_000,
 			readBatchSize: parsed.readBatchSize ?? 10_000,
 			writeBatchSize: parsed.writeBatchSize ?? 500,
+			onDuplicate: parsed.onDuplicate ?? "prompt",
 			help: true,
 		};
 	}
@@ -465,6 +503,7 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 		staticRefreshMaxRows: parsed.staticRefreshMaxRows ?? 5_000,
 		readBatchSize: parsed.readBatchSize ?? 10_000,
 		writeBatchSize: parsed.writeBatchSize ?? 500,
+		onDuplicate: parsed.onDuplicate ?? "prompt",
 	};
 }
 
@@ -657,6 +696,7 @@ export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]>
 	const target = options.dryRun ? undefined : new PrismaClient({ datasources: { db: { url: options.targetUrl } } });
 	const reports: SyncReport[] = [];
 	const state = await readState(options.stateFile);
+	const resetAttempts = new Set<string>();
 
 	try {
 		options.onProgress?.({ type: "manifest:start" });
@@ -694,12 +734,44 @@ export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]>
 				continue;
 			}
 
-			const report =
-				manifest.mode === "static-refresh"
-					? await syncStaticTable(source, target, manifest, options)
-					: await syncCursorTable(source, target, manifest, state, options);
-			options.onProgress?.({ type: "table:done", report });
-			reports.push(report);
+			while (true) {
+				try {
+					const tableOptions = resetAttempts.has(manifest.table) ? { ...options, initialCursorValue: null } : options;
+					const report =
+						manifest.mode === "static-refresh"
+							? await syncStaticTable(source, target, manifest, tableOptions)
+							: await syncCursorTable(source, target, manifest, state, tableOptions);
+					options.onProgress?.({ type: "table:done", report });
+					reports.push(report);
+					break;
+				} catch (error) {
+					if (!(error instanceof DuplicateKeySyncError)) {
+						throw error;
+					}
+
+					const recovery = await recoverFromDuplicateConflict({
+						context: {
+							...error.context,
+							resetAttempted: resetAttempts.has(manifest.table),
+						},
+						manifest,
+						target,
+						state,
+						stateFile: options.stateFile,
+						options,
+						resetAttempts,
+					});
+
+					if (recovery.type === "skip") {
+						options.onProgress?.({ type: "table:skip", table: manifest.table, reason: recovery.report.skippedReason ?? "Skipped." });
+						options.onProgress?.({ type: "table:done", report: recovery.report });
+						reports.push(recovery.report);
+						break;
+					}
+
+					options.onProgress?.({ type: "table:reset", table: manifest.table, reason: recovery.reason });
+				}
+			}
 		}
 	} finally {
 		await source.$disconnect();
@@ -707,6 +779,86 @@ export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]>
 	}
 
 	return reports;
+}
+
+export async function recoverFromDuplicateConflict(input: {
+	context: DuplicateConflictContext;
+	manifest: TableManifest;
+	target: RawTargetClient | undefined;
+	state: SyncState;
+	stateFile: string;
+	options: SyncOptions;
+	resetAttempts: Set<string>;
+}): Promise<{ type: "retry"; reason: string } | { type: "skip"; report: SyncReport }> {
+	const action = await resolveDuplicateConflictAction(input.context, input.options);
+
+	if (action === "ignore") {
+		return {
+			type: "skip",
+			report: {
+				table: input.context.table,
+				mode: input.context.mode,
+				read: input.context.read,
+				written: input.context.written,
+				cursorValue: input.context.cursorValue,
+				skippedReason: buildDuplicateSkipReason(input.context),
+			},
+		};
+	}
+
+	if (action === "cancel") {
+		throw input.context.error;
+	}
+
+	if (input.context.resetAttempted || input.resetAttempts.has(input.context.table)) {
+		throw new Error(
+			`Duplicate-key conflict remained after resetting ${input.context.table}; refusing to reset the same table twice in one sync run.`,
+		);
+	}
+
+	if (!input.target) {
+		throw new Error("Internal sync error: target database client is required to reset a table.");
+	}
+
+	await resetLocalTable(input.target, input.manifest.table);
+	delete input.state.tables[input.manifest.table];
+	await writeState(input.stateFile, input.state);
+	input.resetAttempts.add(input.manifest.table);
+
+	return {
+		type: "retry",
+		reason: `Reset local table after duplicate-key conflict: ${input.context.message}`,
+	};
+}
+
+async function resolveDuplicateConflictAction(
+	context: DuplicateConflictContext,
+	options: SyncOptions,
+): Promise<DuplicateConflictAction> {
+	if (options.onDuplicateConflict) {
+		return options.onDuplicateConflict(context);
+	}
+
+	return options.onDuplicate === "prompt" ? "cancel" : options.onDuplicate;
+}
+
+export function buildDuplicateSkipReason(context: DuplicateConflictContext): string {
+	return `Skipped after duplicate-key conflict: ${context.message}`;
+}
+
+export async function resetLocalTable(target: RawTargetClient, table: string): Promise<void> {
+	await target.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 0");
+
+	try {
+		await target.$executeRawUnsafe(`DELETE FROM ${quoteIdent(table)}`);
+		try {
+			await target.$executeRawUnsafe(`ALTER TABLE ${quoteIdent(table)} AUTO_INCREMENT = 1`);
+		} catch {
+			// Some tables do not have an auto-increment column. The data reset is still valid.
+		}
+	} finally {
+		await target.$executeRawUnsafe("SET FOREIGN_KEY_CHECKS = 1");
+	}
 }
 
 async function syncCursorTable(
@@ -776,7 +928,22 @@ async function syncCursorTable(
 			if (!target) {
 				throw new Error("Internal sync error: target database client is required when dryRun is false.");
 			}
-			totalWritten += await upsertRows(target, manifest, rows, options.writeBatchSize);
+			try {
+				totalWritten += await upsertRows(target, manifest, rows, options.writeBatchSize);
+			} catch (error) {
+				if (!isDuplicateKeyError(error)) {
+					throw error;
+				}
+				throw new DuplicateKeySyncError({
+					table: manifest.table,
+					mode: manifest.mode,
+					error,
+					message: formatSyncErrorMessage(error),
+					read: totalRead,
+					written: totalWritten,
+					cursorValue: latestCursor?.cursorValue,
+				});
+			}
 			state.tables[manifest.table] = latestCursor;
 			await writeState(options.stateFile, state);
 		}
@@ -931,6 +1098,30 @@ function isSortMemoryError(error: unknown): boolean {
 	return message.includes("Code: `1038`") || message.includes("Out of sort memory");
 }
 
+export function isDuplicateKeyError(error: unknown): boolean {
+	const code = getErrorField(error, "code");
+	const meta = getErrorField(error, "meta") as Record<string, unknown> | undefined;
+	const metaCode = meta?.code;
+	const metaMessage = meta?.message;
+	const message = error instanceof Error ? error.message : String(error);
+
+	return (
+		code === "1062" ||
+		metaCode === "1062" ||
+		message.includes("Code: `1062`") ||
+		message.includes("Duplicate entry") ||
+		(typeof metaMessage === "string" && metaMessage.includes("Duplicate entry"))
+	);
+}
+
+function getErrorField(error: unknown, field: string): unknown {
+	return typeof error === "object" && error !== null ? (error as Record<string, unknown>)[field] : undefined;
+}
+
+function formatSyncErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
 async function syncStaticTable(
 	source: PrismaClient,
 	target: PrismaClient | undefined,
@@ -960,7 +1151,21 @@ async function syncStaticTable(
 		if (!target) {
 			throw new Error("Internal sync error: target database client is required when dryRun is false.");
 		}
-		written = await upsertRows(target, manifest, rows, options.writeBatchSize);
+		try {
+			written = await upsertRows(target, manifest, rows, options.writeBatchSize);
+		} catch (error) {
+			if (!isDuplicateKeyError(error)) {
+				throw error;
+			}
+			throw new DuplicateKeySyncError({
+				table: manifest.table,
+				mode: manifest.mode,
+				error,
+				message: formatSyncErrorMessage(error),
+				read: rows.length,
+				written,
+			});
+		}
 	}
 
 	options.onProgress?.({

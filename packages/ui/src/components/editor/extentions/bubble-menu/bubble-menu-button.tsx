@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 interface BubbleMenuButtonProps {

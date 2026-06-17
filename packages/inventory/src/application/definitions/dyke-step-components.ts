@@ -1,6 +1,11 @@
 import type { Db } from "@gnd/db";
 import { generateRandomString } from "@gnd/utils";
-import type { DykeStepComponent } from "../../schema";
+import type {
+  ArchiveDykeCustomStepComponent,
+  DykeStepComponent,
+  UpsertDykeCustomStepComponent,
+} from "../../schema";
+import { updateDykeComponentPricing } from "../pricing/update-dyke-component-pricing";
 
 type DykeStepProductRecord = Awaited<
   ReturnType<typeof getDykeStepProductWithRelations>
@@ -92,6 +97,7 @@ function buildDykeStepComponentDto(
         uid,
       })),
       custom: component.custom,
+      deletedAt: typeof meta.deletedAt === "string" ? meta.deletedAt : null,
       visible: false,
       priceId: null,
       sortId: null,
@@ -132,6 +138,84 @@ async function getPricingByComponentUid(db: Db, componentUid: string) {
     },
     {},
   );
+}
+
+function normalizeCustomComponentTitle(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+async function findExistingCustomComponent(
+  db: Db,
+  input: UpsertDykeCustomStepComponent,
+) {
+  if (input.id) {
+    const component = await db.dykeStepProducts.findFirst({
+      where: {
+        id: input.id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        meta: true,
+      },
+    });
+    return isMetaArchived(component?.meta) ? null : component;
+  }
+
+  if (input.uid) {
+    const component = await db.dykeStepProducts.findFirst({
+      where: {
+        uid: input.uid,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        meta: true,
+      },
+    });
+    return isMetaArchived(component?.meta) ? null : component;
+  }
+
+  const normalizedTitle = normalizeCustomComponentTitle(input.title);
+  if (!normalizedTitle) return null;
+
+  const customComponents = await db.dykeStepProducts.findMany({
+    where: {
+      dykeStepId: input.stepId,
+      custom: true,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      meta: true,
+    },
+  });
+
+  return (
+    customComponents.find(
+      (component) =>
+        !isMetaArchived(component.meta) &&
+        normalizeCustomComponentTitle(component.name) === normalizedTitle,
+    ) || null
+  );
+}
+
+function isMetaArchived(meta: unknown) {
+  return Boolean(
+    meta &&
+      typeof meta === "object" &&
+      !Array.isArray(meta) &&
+      (meta as Record<string, unknown>).deletedAt,
+  );
+}
+
+function safeMetaRecord(meta: unknown) {
+  return meta && typeof meta === "object" && !Array.isArray(meta)
+    ? (meta as Record<string, any>)
+    : {};
 }
 
 export async function saveDykeStepComponent(db: Db, input: DykeStepComponent) {
@@ -178,5 +262,104 @@ export async function saveDykeStepComponent(db: Db, input: DykeStepComponent) {
     stepId: hydrated.dykeStepId,
     componentId: hydrated.id,
     componentUid: hydrated.uid || "",
+  };
+}
+
+export async function upsertDykeCustomStepComponent(
+  db: Db,
+  input: UpsertDykeCustomStepComponent,
+) {
+  const title = String(input.title || "").trim();
+  if (!title) {
+    throw new Error("Custom component title is required");
+  }
+
+  const existing = await findExistingCustomComponent(db, input);
+  const mergedMeta = existing
+    ? {
+        ...safeMetaRecord(existing.meta),
+        ...(input.meta || {}),
+      }
+    : input.meta || {};
+  const saved = await saveDykeStepComponent(db, {
+    id: existing?.id,
+    custom: true,
+    img: input.img,
+    meta: mergedMeta,
+    name: title,
+    stepId: input.stepId,
+  });
+
+  if (input.price != null) {
+    await updateDykeComponentPricing(db, {
+      stepId: saved.stepId,
+      stepProductUid: saved.componentUid,
+      pricings: [
+        {
+          id: input.pricingId,
+          dependenciesUid: input.dependenciesUid,
+          price: input.price,
+        },
+      ],
+      triggerInventorySync: false,
+    });
+  }
+
+  const hydrated = await getDykeStepProductWithRelations(db, saved.componentId);
+  const pricing = await getPricingByComponentUid(db, hydrated.uid || "");
+
+  return {
+    component: buildDykeStepComponentDto(hydrated, pricing),
+    stepId: hydrated.dykeStepId,
+    componentId: hydrated.id,
+    componentUid: hydrated.uid || "",
+  };
+}
+
+export async function archiveDykeCustomStepComponent(
+  db: Db,
+  input: ArchiveDykeCustomStepComponent,
+) {
+  const identityWhere = input.id ? { id: input.id } : { uid: input.uid || "" };
+  const existing = await db.dykeStepProducts.findFirst({
+    where: {
+      ...identityWhere,
+      custom: true,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      meta: true,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Custom component not found");
+  }
+
+  const meta =
+    safeMetaRecord(existing.meta);
+
+  const updated = await db.dykeStepProducts.update({
+    where: {
+      id: existing.id,
+    },
+    data: {
+      meta: {
+        ...meta,
+        deletedAt: new Date().toISOString(),
+      },
+    },
+    select: {
+      id: true,
+      dykeStepId: true,
+      uid: true,
+    },
+  });
+
+  return {
+    stepId: updated.dykeStepId,
+    componentId: updated.id,
+    componentUid: updated.uid || "",
   };
 }

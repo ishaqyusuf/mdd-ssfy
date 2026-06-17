@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
@@ -371,6 +372,15 @@ export function SalesFormWorkflowPanel<
 		}),
 		[activeLineSteps],
 	);
+	const activeSelectedComponentUids = useMemo(
+		() =>
+			new Set(
+				Object.values(activeSelectionState.selectedProdUidsByStepUid)
+					.flat()
+					.map(String),
+			),
+		[activeSelectionState.selectedProdUidsByStepUid],
+	);
 	const activeDoorStep = useMemo(
 		() => activeLineSteps.find((step) => isDoorStepTitle(step?.step?.title)),
 		[activeLineSteps],
@@ -394,7 +404,11 @@ export function SalesFormWorkflowPanel<
 				configuredRootComponentUids.has(String(component?.uid || "")),
 			)
 			.filter((component) =>
-				isComponentEnabledForView(component, includeCustomComponents),
+				isComponentEnabledForView(
+					component,
+					includeCustomComponents,
+					activeSelectedComponentUids,
+				),
 			)
 			.filter((component) =>
 				isComponentVisibleByRules(
@@ -420,6 +434,7 @@ export function SalesFormWorkflowPanel<
 		activeProfileCoefficient,
 		activePricingView,
 		activeSelectionState,
+		activeSelectedComponentUids,
 		activeStep,
 		activeStepComponentOverrides,
 		configuredRootComponentUids,
@@ -429,7 +444,11 @@ export function SalesFormWorkflowPanel<
 	const visibleComponents = useMemo(() => {
 		return (stepComponentsQuery.data || [])
 			.filter((component) =>
-				isComponentEnabledForView(component, includeCustomComponents),
+				isComponentEnabledForView(
+					component,
+					includeCustomComponents,
+					activeSelectedComponentUids,
+				),
 			)
 			.filter((component) =>
 				isComponentVisibleByRules(
@@ -455,6 +474,7 @@ export function SalesFormWorkflowPanel<
 		activeProfileCoefficient,
 		activePricingView,
 		activeSelectionState,
+		activeSelectedComponentUids,
 		activeStep,
 		activeStepComponentOverrides,
 		includeCustomComponents,
@@ -463,7 +483,11 @@ export function SalesFormWorkflowPanel<
 	const visibleDoorComponents = useMemo(() => {
 		return (doorComponentsQuery.data || [])
 			.filter((component) =>
-				isComponentEnabledForView(component, includeCustomComponents),
+				isComponentEnabledForView(
+					component,
+					includeCustomComponents,
+					activeSelectedComponentUids,
+				),
 			)
 			.filter((component) =>
 				isComponentVisibleByRules(
@@ -490,6 +514,7 @@ export function SalesFormWorkflowPanel<
 		activeProfileCoefficient,
 		activePricingView,
 		activeSelectionState,
+		activeSelectedComponentUids,
 		activeStep,
 		doorComponentsQuery.data,
 		includeCustomComponents,

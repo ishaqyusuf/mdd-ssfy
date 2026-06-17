@@ -4,12 +4,30 @@ import { PreviewMetricCard } from "../components/preview-metric";
 import { PreviewBottomNav, PreviewShell } from "../components/preview-shell";
 import { opsMetrics, opsRecords } from "../data/sample-data";
 import { opsConsoleSystem } from "../design-systems/template-a-ops-console";
+import { usePreviewDesignSystem } from "../design-systems/types";
 
 export function TemplateAScreen() {
-	const system = opsConsoleSystem;
+	const system = usePreviewDesignSystem(opsConsoleSystem);
 
 	return (
-		<PreviewShell eyebrow="Template A" system={system} title="Ops Console">
+		<PreviewShell
+			bottomNavigation={
+				<PreviewBottomNav
+					active="Home"
+					items={[
+						{ icon: "House", label: "Home" },
+						{ icon: "Mail", label: "Inbox" },
+						{ icon: "ReceiptText", label: "Sales" },
+						{ icon: "Calendar", label: "Calendar" },
+						{ icon: "more", label: "More" },
+					]}
+					system={system}
+				/>
+			}
+			eyebrow="Template A"
+			system={system}
+			title="Ops Console"
+		>
 			<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
 				{opsMetrics.map((metric) => (
 					<PreviewMetricCard
@@ -44,25 +62,13 @@ export function TemplateAScreen() {
 							fontWeight: "700",
 						}}
 					>
-						3 priority items
+						{opsRecords.length} priority items
 					</Text>
 				</View>
 				{opsRecords.map((record) => (
 					<PreviewRecordCard key={record.id} record={record} system={system} />
 				))}
 			</View>
-
-			<PreviewBottomNav
-				active="Home"
-				items={[
-					{ icon: "House", label: "Home" },
-					{ icon: "Mail", label: "Inbox" },
-					{ icon: "ReceiptText", label: "Sales" },
-					{ icon: "Calendar", label: "Calendar" },
-					{ icon: "more", label: "More" },
-				]}
-				system={system}
-			/>
 		</PreviewShell>
 	);
 }

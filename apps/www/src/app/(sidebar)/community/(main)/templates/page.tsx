@@ -1,9 +1,10 @@
 import { CommunityTemplateHeader } from "@/components/community-template-header";
 import { ErrorFallback } from "@/components/error-fallback";
-import { DataTable } from "@/components/tables/community-template/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
+import { DataTable } from "@/components/tables-2/community-templates/data-table";
+import { CommunityTemplatesSkeleton } from "@/components/tables-2/community-templates/skeleton";
 import { loadCommunityTemplateFilterParams } from "@/hooks/use-community-template-filter-params";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -25,14 +26,12 @@ export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
 	const queryClient = getQueryClient();
 	const filter = loadCommunityTemplateFilterParams(searchParams);
-	const [templateFilters, _initialTemplates] = await Promise.all([
-		queryClient.fetchQuery(
-			trpc.filters.communityTemplateFilters.queryOptions(),
-		),
+	const [initialSettings] = await Promise.all([
+		getInitialTableSettings("community-templates"),
 		queryClient.fetchInfiniteQuery(
 			trpc.community.getCommunityTemplates.infiniteQueryOptions({
 				...filter,
-			}) as any,
+			}),
 		),
 	]);
 	return (
@@ -40,10 +39,14 @@ export default async function Page(props: Props) {
 			<HydrateClient>
 				<div className="flex flex-col gap-6">
 					<PageTitle>Community Template</PageTitle>
-					<CommunityTemplateHeader initialFilterList={templateFilters} />
+					<CommunityTemplateHeader />
 					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<DataTable />
+						<Suspense
+							fallback={
+								<CommunityTemplatesSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable initialSettings={initialSettings} />
 						</Suspense>
 					</ErrorBoundary>
 				</div>

@@ -31,6 +31,13 @@ Tracks important request/response contracts and shared schema boundaries.
   - `newSalesForm.saveDraft` / `saveFinal` accept optional `inventoryStatus` for orders and return it in the saved payload
   - `newSalesForm.get` / `bootstrap` return top-level `inventoryStatus`
   - `notes.saveInboundNote` updates the order-level status and creates an `inventory_inbound` order note; `PENDING ORDER` also creates unread recipients for inbound-channel subscribers
+- Inventory browser validation fixture report contract:
+  - `inventories.inventoryBrowserValidationFixtureReport` returns `status`, `summary`, `fixtures`, `missingFixtures`, `diagnostics`, and `nextAction`
+  - every fixture row includes package-owned `workspaceHref`, `recommendedAction`, `seedFixtureId`, `seedPlanHref`, bounded `samples`, and `countDiagnostic`
+  - `missingFixtures` includes the same seed-plan identifiers so blocked reports can be converted directly into the controlled fixture seed plan
+  - `diagnostics.seedFixturesToPrepare` groups missing fixture categories by `seedFixtureId`, preserving category keys/labels so an operator can prepare one seed fixture that satisfies multiple blocked categories
+  - `countDiagnostic.countSource` is `sql_count` for complete database counts or `bounded_application_scan` for readiness categories that require application-level metadata/stock math
+  - `countDiagnostic.complete=false` means the readiness count may be underreported because only a bounded candidate set was scanned; the current bounded categories are held partial shipment lines and low-stock monitored variants
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

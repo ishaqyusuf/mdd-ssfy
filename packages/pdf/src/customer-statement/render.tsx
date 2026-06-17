@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Document, renderToBuffer } from "@react-pdf/renderer";
 import { generateQrCodeDataUrl } from "../sales-v2/qr";

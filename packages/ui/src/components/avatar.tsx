@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import * as AvatarPrimitive from "@radix-ui/react-avatar";

@@ -1,50 +1,27 @@
-import { ErrorFallback } from "@/components/error-fallback";
-import {
-	type DashboardResponse,
-	ProductionWorkspace,
-} from "@/components/production-workspace";
-import { loadSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
-import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
-import type { PageFilterData } from "@api/type";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { redirect } from "next/navigation";
 
-import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
-export async function generateMetadata() {
-	return constructMetadata({
-		title: "Sales Production - gndprodesk.com",
-	});
-}
-export default async function Page(props) {
-	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
-	const filter = loadSalesProductionFilterParams(searchParams);
-	const [initialDashboardData, initialFilterList, _initialProductionRows] =
-		await Promise.all([
-			queryClient.fetchQuery(
-				trpc.sales.productionDashboard.queryOptions(),
-			),
-			queryClient.fetchQuery(
-				trpc.filters.salesProductions.queryOptions(),
-			),
-			queryClient.fetchInfiniteQuery(
-				// biome-ignore lint/suspicious/noExplicitAny: shared tRPC infinite query options are not fully typed in this repo yet.
-				trpc.sales.productions.infiniteQueryOptions(filter) as any,
-			),
-		]);
 
-	return (
-		<PageShell className="">
-			<HydrateClient>
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<ProductionWorkspace
-						mode="admin"
-						initialDashboardData={initialDashboardData as DashboardResponse}
-						initialFilterList={initialFilterList as PageFilterData[]}
-					/>
-				</ErrorBoundary>
-			</HydrateClient>
-		</PageShell>
-	);
+export default async function Page(props: {
+	searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+	const searchParams = await props.searchParams;
+	const query = new URLSearchParams();
+
+	for (const [key, value] of Object.entries(searchParams ?? {})) {
+		if (Array.isArray(value)) {
+			for (const item of value) {
+				query.append(key, item);
+			}
+			continue;
+		}
+
+		if (value) {
+			query.set(key, value);
+		}
+	}
+
+	const queryString = query.toString();
+	const suffix = queryString ? `?${queryString}` : "";
+	redirect(`/sales-book/productions/v2${suffix}`);
 }

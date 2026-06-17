@@ -1108,6 +1108,1269 @@ export function buildInventoryOperationsSummary(input: {
   };
 }
 
+type InventoryBrowserValidationFixtureKey =
+  | "pending_allocation_review"
+  | "dispatch_assignable_allocation"
+  | "dispatch_packable_allocation"
+  | "dispatch_fulfillable_allocation"
+  | "open_inbound_demand"
+  | "inbound_receiving_shipment"
+  | "received_inbound_backorder"
+  | "partial_shipment_available"
+  | "held_partial_shipment"
+  | "low_stock_variant"
+  | "safe_stock_adjustment_variant";
+
+type InventoryBrowserValidationFixtureSample = {
+  id: number;
+  saleId?: number | null;
+  orderId?: string | null;
+  lineItemId?: number | null;
+  inventoryId?: number | null;
+  inventoryName?: string | null;
+  inventoryVariantId?: number | null;
+  variantSku?: string | null;
+  status?: string | null;
+  qty?: number | null;
+  qtyReceived?: number | null;
+  stockQty?: number | null;
+};
+
+type InventoryBrowserValidationFixtureCountDiagnostic = {
+  countSource: "sql_count" | "bounded_application_scan";
+  sampleLimit: number;
+  scanLimit?: number;
+  scannedCount?: number;
+  candidateCount?: number;
+  complete: boolean;
+  note?: string;
+};
+
+type InventoryBrowserValidationFixtureInput = Record<
+  InventoryBrowserValidationFixtureKey,
+  {
+    count: number;
+    samples?: InventoryBrowserValidationFixtureSample[];
+    countDiagnostic?: Partial<InventoryBrowserValidationFixtureCountDiagnostic>;
+  }
+>;
+
+type InventoryBrowserValidationWorkflowKey =
+  | "allocation_approve"
+  | "allocation_reject"
+  | "allocation_bulk_approve"
+  | "dispatch_assign"
+  | "dispatch_pack"
+  | "dispatch_fulfill"
+  | "dispatch_release"
+  | "inbound_receive"
+  | "received_backorder_release"
+  | "partial_ship_available"
+  | "partial_hold_until_complete"
+  | "stock_adjustment"
+  | "low_stock_dashboard";
+
+const INVENTORY_BROWSER_VALIDATION_FIXTURES: Array<{
+  key: InventoryBrowserValidationFixtureKey;
+  label: string;
+  seedFixtureId: string;
+  seedPlanHref: string;
+  requiredCount: number;
+  workspaceHref: string;
+  recommendedAction: string;
+}> = [
+  {
+    key: "pending_allocation_review",
+    label: "Pending allocation review",
+    seedFixtureId: "INV-FIX-ALLOC",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+    requiredCount: 3,
+    workspaceHref: "/inventory/allocations",
+    recommendedAction:
+      "Seed or identify at least three sale-line allocations with pending allocation review.",
+  },
+  {
+    key: "dispatch_assignable_allocation",
+    label: "Dispatch assignable approved allocation",
+    seedFixtureId: "INV-FIX-ALLOC",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+    requiredCount: 2,
+    workspaceHref: "/inventory/dispatch-mode",
+    recommendedAction:
+      "Seed or identify at least two approved allocations for dispatch assignment proof without consuming partial-shipment proof.",
+  },
+  {
+    key: "dispatch_packable_allocation",
+    label: "Dispatch packable reserved allocation",
+    seedFixtureId: "INV-FIX-ALLOC",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+    requiredCount: 2,
+    workspaceHref: "/inventory/dispatch-mode",
+    recommendedAction:
+      "Seed or identify at least two reserved allocations for dispatch pack and release proof.",
+  },
+  {
+    key: "dispatch_fulfillable_allocation",
+    label: "Dispatch fulfillable picked allocation",
+    seedFixtureId: "INV-FIX-ALLOC",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-alloc",
+    requiredCount: 1,
+    workspaceHref: "/inventory/dispatch-mode",
+    recommendedAction: "Seed or identify a picked allocation for fulfillment proof.",
+  },
+  {
+    key: "open_inbound_demand",
+    label: "Open inbound demand",
+    seedFixtureId: "INV-FIX-INBOUND",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-inbound",
+    requiredCount: 1,
+    workspaceHref: "/inventory/inbounds",
+    recommendedAction: "Seed or identify open line-level inbound demand.",
+  },
+  {
+    key: "inbound_receiving_shipment",
+    label: "Inbound shipment ready for receiving",
+    seedFixtureId: "INV-FIX-INBOUND",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-inbound",
+    requiredCount: 1,
+    workspaceHref: "/inventory/inbounds",
+    recommendedAction: "Create or identify an inbound shipment with receiveable items.",
+  },
+  {
+    key: "received_inbound_backorder",
+    label: "Received inbound backorder release",
+    seedFixtureId: "INV-FIX-RECEIVED",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-received",
+    requiredCount: 1,
+    workspaceHref: "/inventory/backorders",
+    recommendedAction: "Seed or identify received inbound demand tied to a backordered line.",
+  },
+  {
+    key: "partial_shipment_available",
+    label: "Available partial shipment line",
+    seedFixtureId: "INV-FIX-PARTIAL",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-partial",
+    requiredCount: 1,
+    workspaceHref: "/inventory/partial-shipments",
+    recommendedAction: "Seed or identify a partially available line for ship-available proof.",
+  },
+  {
+    key: "held_partial_shipment",
+    label: "Held partial shipment line",
+    seedFixtureId: "INV-FIX-PARTIAL",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-partial",
+    requiredCount: 1,
+    workspaceHref: "/inventory/partial-shipments",
+    recommendedAction: "Seed or identify a line with hold-until-complete enabled.",
+  },
+  {
+    key: "low_stock_variant",
+    label: "Low-stock monitored variant",
+    seedFixtureId: "INV-FIX-STOCK-LOW",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-stock-low",
+    requiredCount: 1,
+    workspaceHref: "/inventory/variants",
+    recommendedAction: "Seed or identify a monitored variant below its low-stock threshold.",
+  },
+  {
+    key: "safe_stock_adjustment_variant",
+    label: "Safe monitored stock adjustment variant",
+    seedFixtureId: "INV-FIX-STOCK-SAFE",
+    seedPlanHref:
+      "brain/reports/2026-06-16-inventory-validation-fixture-seed-plan.md#inv-fix-stock-safe",
+    requiredCount: 1,
+    workspaceHref: "/inventory/stocks",
+    recommendedAction: "Pick a safe monitored variant for stock adjustment proof.",
+  },
+];
+
+const INVENTORY_BROWSER_VALIDATION_WORKFLOWS: Array<{
+  key: InventoryBrowserValidationWorkflowKey;
+  phase: string;
+  label: string;
+  runOrder: number;
+  fixtureKeys: InventoryBrowserValidationFixtureKey[];
+  primaryFixtureKey?: InventoryBrowserValidationFixtureKey;
+  primarySampleIndex?: number;
+  workspaceHref: string;
+  operatorAction: string;
+  operatorGuard: string;
+  expectedEvidence: string;
+}> = [
+  {
+    key: "allocation_approve",
+    phase: "Allocation Review",
+    label: "Approve pending allocation",
+    runOrder: 10,
+    fixtureKeys: ["pending_allocation_review"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/allocations",
+    operatorAction: "Approve one pending review row and record the allocation id.",
+    operatorGuard:
+      "Run before bulk approval; use only the primary sample so reject/bulk rows remain pending.",
+    expectedEvidence:
+      "Allocation status changes from pending_review to approved or reserved without changing unrelated lines.",
+  },
+  {
+    key: "allocation_reject",
+    phase: "Allocation Review",
+    label: "Reject pending allocation",
+    runOrder: 20,
+    fixtureKeys: ["pending_allocation_review"],
+    primarySampleIndex: 1,
+    workspaceHref: "/inventory/allocations",
+    operatorAction: "Reject one pending review row with a reason.",
+    operatorGuard:
+      "Run before bulk approval; use only the primary sample so the bulk row remains pending.",
+    expectedEvidence:
+      "Allocation leaves the dispatchable queue and the component availability projection refreshes.",
+  },
+  {
+    key: "allocation_bulk_approve",
+    phase: "Allocation Review",
+    label: "Bulk approve visible allocations",
+    runOrder: 30,
+    fixtureKeys: ["pending_allocation_review"],
+    primarySampleIndex: 2,
+    workspaceHref: "/inventory/allocations",
+    operatorAction: "Run Approve Visible against the controlled fixture rows.",
+    operatorGuard:
+      "Run after the single approve and reject checks, with the remaining pending fixture row visible.",
+    expectedEvidence:
+      "Bulk result reports approved and skipped rows separately, with no duplicate allocation mutation.",
+  },
+  {
+    key: "dispatch_assign",
+    phase: "Dispatch",
+    label: "Assign dispatch allocation",
+    runOrder: 40,
+    fixtureKeys: ["dispatch_assignable_allocation"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/dispatch-mode",
+    operatorAction: "Assign one approved allocation from inventory dispatch mode.",
+    operatorGuard:
+      "Use the primary approved allocation; leave the spare approved row untouched for rerun/recovery.",
+    expectedEvidence:
+      "Approved allocation moves to reserved and remains tied to the same sale line/component.",
+  },
+  {
+    key: "dispatch_pack",
+    phase: "Dispatch",
+    label: "Pack reserved allocation",
+    runOrder: 50,
+    fixtureKeys: ["dispatch_packable_allocation"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/dispatch-mode",
+    operatorAction: "Pack one reserved allocation.",
+    operatorGuard:
+      "Use the primary reserved allocation; do not pack the release sample.",
+    expectedEvidence:
+      "Reserved allocation moves to picked and the dispatch row updates without consuming stock yet.",
+  },
+  {
+    key: "dispatch_fulfill",
+    phase: "Dispatch",
+    label: "Fulfill picked allocation",
+    runOrder: 60,
+    fixtureKeys: ["dispatch_fulfillable_allocation"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/dispatch-mode",
+    operatorAction: "Fulfill one picked allocation.",
+    operatorGuard:
+      "Use the primary picked allocation and verify delivery compatibility metadata afterward.",
+    expectedEvidence:
+      "Picked allocation moves to consumed, shipped quantity increases, and delivery compatibility metadata is written.",
+  },
+  {
+    key: "dispatch_release",
+    phase: "Dispatch",
+    label: "Release reserved allocation",
+    runOrder: 70,
+    fixtureKeys: ["dispatch_packable_allocation"],
+    primarySampleIndex: 1,
+    workspaceHref: "/inventory/dispatch-mode",
+    operatorAction: "Release one reserved allocation instead of fulfilling it.",
+    operatorGuard:
+      "Use the second reserved primary sample so pack and release prove separate rows.",
+    expectedEvidence:
+      "Reserved allocation moves to released and availability is restored without stock consumption.",
+  },
+  {
+    key: "inbound_receive",
+    phase: "Inbound",
+    label: "Receive inbound shipment",
+    runOrder: 80,
+    fixtureKeys: ["inbound_receiving_shipment", "open_inbound_demand"],
+    primaryFixtureKey: "inbound_receiving_shipment",
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/inbounds",
+    operatorAction: "Receive a controlled inbound shipment item against open demand.",
+    operatorGuard:
+      "Record before quantities first, then repeat the same receive totals to prove retry idempotency.",
+    expectedEvidence:
+      "Received quantity and stock move by the new delta only; retry does not duplicate receipt.",
+  },
+  {
+    key: "received_backorder_release",
+    phase: "Backorders",
+    label: "Release received backorder",
+    runOrder: 90,
+    fixtureKeys: ["received_inbound_backorder"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/backorders",
+    operatorAction: "Allocate or release a received inbound backorder row.",
+    operatorGuard:
+      "Run after receive proof if both use related inbound screens, and record remaining/backordered quantities.",
+    expectedEvidence:
+      "Backordered quantity reduces and the line becomes allocation or production ready as appropriate.",
+  },
+  {
+    key: "partial_ship_available",
+    phase: "Partial Shipments",
+    label: "Ship available partial line",
+    runOrder: 100,
+    fixtureKeys: ["partial_shipment_available"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/partial-shipments",
+    operatorAction: "Ship the available quantity on a partial line.",
+    operatorGuard:
+      "Use only the non-held primary line; held-line proof has a separate sample.",
+    expectedEvidence:
+      "Shipment quantity never exceeds remaining quantity, and the line retains the correct backorder remainder.",
+  },
+  {
+    key: "partial_hold_until_complete",
+    phase: "Partial Shipments",
+    label: "Hold partial line until complete",
+    runOrder: 110,
+    fixtureKeys: ["held_partial_shipment"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/partial-shipments",
+    operatorAction: "Confirm the held line stays out of ship-available actions.",
+    operatorGuard:
+      "Do not remove the hold flag during this proof; verify it stays excluded from ship-available actions.",
+    expectedEvidence:
+      "Held line remains blocked for partial shipment until full required quantity is available.",
+  },
+  {
+    key: "stock_adjustment",
+    phase: "Stock",
+    label: "Post stock add/remove/return/correction",
+    runOrder: 120,
+    fixtureKeys: ["safe_stock_adjustment_variant"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/stocks",
+    operatorAction:
+      "Post controlled add, remove, return, and correction movements on the safe fixture variant.",
+    operatorGuard:
+      "Use the safe stock fixture variant only; avoid variants tied to active fulfillment proof.",
+    expectedEvidence:
+      "InventoryStock quantity changes by signed movement amounts and audit rows include reason/type.",
+  },
+  {
+    key: "low_stock_dashboard",
+    phase: "Stock",
+    label: "Verify low-stock dashboard signal",
+    runOrder: 130,
+    fixtureKeys: ["low_stock_variant"],
+    primarySampleIndex: 0,
+    workspaceHref: "/inventory/variants",
+    operatorAction: "Open the low-stock fixture variant from the inventory dashboard/variants view.",
+    operatorGuard:
+      "Use read-only dashboard/variant navigation; do not adjust low-stock fixture quantity.",
+    expectedEvidence:
+      "Low-stock alert is visible and points at the monitored fixture variant below threshold.",
+  },
+];
+
+export function buildInventoryBrowserValidationFixtureReport(
+  input: InventoryBrowserValidationFixtureInput,
+) {
+  const fixtures = INVENTORY_BROWSER_VALIDATION_FIXTURES.map((fixture) => {
+    const value = input[fixture.key] || { count: 0 };
+    const count = Math.max(0, Number(value.count || 0));
+    const countDiagnostic: InventoryBrowserValidationFixtureCountDiagnostic = {
+      countSource: value.countDiagnostic?.countSource || "sql_count",
+      sampleLimit: value.countDiagnostic?.sampleLimit ?? 5,
+      scanLimit: value.countDiagnostic?.scanLimit,
+      scannedCount: value.countDiagnostic?.scannedCount,
+      candidateCount: value.countDiagnostic?.candidateCount,
+      complete: value.countDiagnostic?.complete ?? true,
+      note: value.countDiagnostic?.note,
+    };
+    return {
+      ...fixture,
+      count,
+      countDiagnostic,
+      ready: count >= fixture.requiredCount,
+      samples: (value.samples || []).slice(0, 5),
+    };
+  });
+  const missing = fixtures.filter((fixture) => !fixture.ready);
+  const fixturesByKey = new Map(
+    fixtures.map((fixture) => [fixture.key, fixture]),
+  );
+  const fixtureReadyByKey = new Map(
+    fixtures.map((fixture) => [fixture.key, fixture.ready]),
+  );
+  const workflowMatrix = INVENTORY_BROWSER_VALIDATION_WORKFLOWS.map(
+    (workflow) => {
+      const missingFixtureKeys = workflow.fixtureKeys.filter(
+        (fixtureKey) => !fixtureReadyByKey.get(fixtureKey),
+      );
+      const candidateSamples = workflow.fixtureKeys
+        .flatMap((fixtureKey) =>
+          (fixturesByKey.get(fixtureKey)?.samples || []).map((sample) => ({
+            fixtureKey,
+            ...sample,
+          })),
+        )
+        .slice(0, 3);
+      const primaryFixtureKey = workflow.primaryFixtureKey || workflow.fixtureKeys[0];
+      const primarySampleIndex = workflow.primarySampleIndex || 0;
+      const primarySample = primaryFixtureKey
+        ? (fixturesByKey.get(primaryFixtureKey)?.samples || [])[primarySampleIndex]
+        : null;
+      return {
+        ...workflow,
+        ready: missingFixtureKeys.length == 0,
+        missingFixtureKeys,
+        candidateSamples,
+        primarySample: primarySample
+          ? {
+              fixtureKey: primaryFixtureKey,
+              ...primarySample,
+            }
+          : (candidateSamples[0] || null),
+      };
+    },
+  );
+  const blockedWorkflows = workflowMatrix.filter((workflow) => !workflow.ready);
+  const seedFixturesToPrepare = Array.from(
+    missing
+      .reduce((map, fixture) => {
+        const existing = map.get(fixture.seedFixtureId);
+        if (existing) {
+          existing.missingFixtureKeys.push(fixture.key);
+          existing.missingFixtureLabels.push(fixture.label);
+          existing.missingCount += 1;
+          return map;
+        }
+        map.set(fixture.seedFixtureId, {
+          seedFixtureId: fixture.seedFixtureId,
+          seedPlanHref: fixture.seedPlanHref,
+          missingCount: 1,
+          missingFixtureKeys: [fixture.key],
+          missingFixtureLabels: [fixture.label],
+        });
+        return map;
+      }, new Map<string, {
+        seedFixtureId: string;
+        seedPlanHref: string;
+        missingCount: number;
+        missingFixtureKeys: InventoryBrowserValidationFixtureKey[];
+        missingFixtureLabels: string[];
+      }>())
+      .values(),
+  );
+
+  return {
+    status: missing.length ? "blocked" : "ready",
+    summary: {
+      readyFixtureCount: fixtures.length - missing.length,
+      requiredFixtureCount: fixtures.length,
+      missingFixtureCount: missing.length,
+      readyWorkflowCount: workflowMatrix.length - blockedWorkflows.length,
+      requiredWorkflowCount: workflowMatrix.length,
+      blockedWorkflowCount: blockedWorkflows.length,
+    },
+    diagnostics: {
+      seedFixturesToPrepare,
+      incompleteCountFixtures: fixtures
+        .filter((fixture) => !fixture.countDiagnostic.complete)
+        .map((fixture) => ({
+          key: fixture.key,
+          label: fixture.label,
+          countDiagnostic: fixture.countDiagnostic,
+        })),
+    },
+    fixtures,
+    workflowMatrix,
+    missingFixtures: missing.map((fixture) => ({
+      key: fixture.key,
+      label: fixture.label,
+      seedFixtureId: fixture.seedFixtureId,
+      seedPlanHref: fixture.seedPlanHref,
+      count: fixture.count,
+      requiredCount: fixture.requiredCount,
+    })),
+    nextAction: missing.length
+      ? "Seed or identify local validation fixtures for the missing categories before rerunning mutating browser workflow checks."
+      : "Run the approved browser workflow matrix and record the mutation evidence.",
+  };
+}
+
+function isInventoryLineHeldUntilComplete(meta: unknown) {
+  if (!meta || typeof meta !== "object") return false;
+  const fulfillment = (meta as { fulfillment?: unknown }).fulfillment;
+  return (
+    !!fulfillment &&
+    typeof fulfillment === "object" &&
+    (fulfillment as { holdUntilComplete?: unknown }).holdUntilComplete === true
+  );
+}
+
+function stockAllocationFixtureSample(allocation: {
+  id: number;
+  qty?: number | null;
+  status?: string | null;
+  inventoryVariantId?: number | null;
+  inventoryVariant?: {
+    id?: number | null;
+    sku?: string | null;
+    inventoryId?: number | null;
+    inventory?: {
+      id?: number | null;
+      name?: string | null;
+    } | null;
+  } | null;
+  lineItemComponent?: {
+    parent?: {
+      id?: number | null;
+      saleId?: number | null;
+      sale?: {
+        id?: number | null;
+        orderId?: string | number | null;
+      } | null;
+    } | null;
+  } | null;
+}): InventoryBrowserValidationFixtureSample {
+  const variant = allocation.inventoryVariant;
+  const parent = allocation.lineItemComponent?.parent;
+  return {
+    id: allocation.id,
+    saleId: parent?.sale?.id ?? parent?.saleId ?? null,
+    orderId:
+      parent?.sale?.orderId == null ? null : String(parent.sale.orderId),
+    lineItemId: parent?.id ?? null,
+    inventoryId: variant?.inventory?.id ?? variant?.inventoryId ?? null,
+    inventoryName: variant?.inventory?.name ?? null,
+    inventoryVariantId: variant?.id ?? allocation.inventoryVariantId ?? null,
+    variantSku: variant?.sku ?? null,
+    status: allocation.status ?? null,
+    qty: allocation.qty ?? null,
+  };
+}
+
+function inboundDemandFixtureSample(demand: {
+  id: number;
+  qty?: number | null;
+  qtyReceived?: number | null;
+  status?: string | null;
+  inventoryVariantId?: number | null;
+  inventoryVariant?: {
+    id?: number | null;
+    sku?: string | null;
+    inventory?: {
+      id?: number | null;
+      name?: string | null;
+    } | null;
+  } | null;
+  lineItemComponent?: {
+    parent?: {
+      id?: number | null;
+      saleId?: number | null;
+      sale?: {
+        id?: number | null;
+        orderId?: string | number | null;
+      } | null;
+    } | null;
+  } | null;
+}): InventoryBrowserValidationFixtureSample {
+  const parent = demand.lineItemComponent?.parent;
+  return {
+    id: demand.id,
+    saleId: parent?.sale?.id ?? parent?.saleId ?? null,
+    orderId:
+      parent?.sale?.orderId == null ? null : String(parent.sale.orderId),
+    lineItemId: parent?.id ?? null,
+    inventoryId: demand.inventoryVariant?.inventory?.id ?? null,
+    inventoryName: demand.inventoryVariant?.inventory?.name ?? null,
+    inventoryVariantId: demand.inventoryVariant?.id ?? demand.inventoryVariantId ?? null,
+    variantSku: demand.inventoryVariant?.sku ?? null,
+    status: demand.status ?? null,
+    qty: demand.qty ?? null,
+    qtyReceived: demand.qtyReceived ?? null,
+  };
+}
+
+function lineItemFixtureSample(line: {
+  id: number;
+  qty?: number | null;
+  saleId?: number | null;
+  sale?: {
+    id?: number | null;
+    orderId?: string | number | null;
+  } | null;
+  inventory?: {
+    id?: number | null;
+    name?: string | null;
+  } | null;
+  variant?: {
+    id?: number | null;
+    sku?: string | null;
+  } | null;
+}): InventoryBrowserValidationFixtureSample {
+  return {
+    id: line.id,
+    saleId: line.sale?.id ?? line.saleId ?? null,
+    orderId: line.sale?.orderId == null ? null : String(line.sale.orderId),
+    lineItemId: line.id,
+    inventoryId: line.inventory?.id ?? null,
+    inventoryName: line.inventory?.name ?? null,
+    inventoryVariantId: line.variant?.id ?? null,
+    variantSku: line.variant?.sku ?? null,
+    qty: line.qty ?? null,
+  };
+}
+
+function variantFixtureSample(variant: {
+  id: number;
+  sku?: string | null;
+  inventory?: {
+    id?: number | null;
+    name?: string | null;
+  } | null;
+  stocks?: Array<{
+    qty?: number | null;
+  }>;
+}): InventoryBrowserValidationFixtureSample {
+  return {
+    id: variant.id,
+    inventoryId: variant.inventory?.id ?? null,
+    inventoryName: variant.inventory?.name ?? null,
+    inventoryVariantId: variant.id,
+    variantSku: variant.sku ?? null,
+    stockQty: (variant.stocks || []).reduce(
+      (total, stock) => total + Number(stock.qty || 0),
+      0,
+    ),
+  };
+}
+
+const validationAllocationSelect = {
+  id: true,
+  qty: true,
+  status: true,
+  inventoryVariantId: true,
+  inventoryVariant: {
+    select: {
+      id: true,
+      sku: true,
+      inventoryId: true,
+      inventory: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+  lineItemComponent: {
+    select: {
+      parent: {
+        select: {
+          id: true,
+          saleId: true,
+          sale: {
+            select: {
+              id: true,
+              orderId: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.StockAllocationSelect;
+
+const validationInboundDemandSelect = {
+  id: true,
+  qty: true,
+  qtyReceived: true,
+  status: true,
+  inventoryVariantId: true,
+  inventoryVariant: {
+    select: {
+      id: true,
+      sku: true,
+      inventory: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  },
+  lineItemComponent: {
+    select: {
+      parent: {
+        select: {
+          id: true,
+          saleId: true,
+          sale: {
+            select: {
+              id: true,
+              orderId: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.InboundDemandSelect;
+
+function validationSaleAllocationWhere(
+  status: "pending_review" | "approved" | "reserved" | "picked",
+) {
+  return {
+    deletedAt: null,
+    status,
+    lineItemComponent: {
+      parent: {
+        deletedAt: null,
+        lineItemType: "SALE",
+        sale: {
+          is: {
+            deletedAt: null,
+          },
+        },
+      },
+    },
+  } satisfies Prisma.StockAllocationWhereInput;
+}
+
+const validationOpenInboundDemandWhere = {
+  deletedAt: null,
+  status: {
+    in: ["pending", "ordered", "partially_received"],
+  },
+  lineItemComponent: {
+    parent: {
+      deletedAt: null,
+      lineItemType: "SALE",
+      sale: {
+        is: {
+          deletedAt: null,
+        },
+      },
+    },
+  },
+} satisfies Prisma.InboundDemandWhereInput;
+
+const validationReceivedInboundDemandWhere = {
+  deletedAt: null,
+  status: {
+    in: ["partially_received", "received"],
+  },
+  qtyReceived: {
+    gt: 0,
+  },
+  lineItemComponent: {
+    parent: {
+      deletedAt: null,
+      lineItemType: "SALE",
+      sale: {
+        is: {
+          deletedAt: null,
+        },
+      },
+    },
+  },
+} satisfies Prisma.InboundDemandWhereInput;
+
+const validationInboundShipmentWhere = {
+  deletedAt: null,
+  status: {
+    in: ["pending", "in_progress", "issue_open"],
+  },
+  items: {
+    some: {
+      deletedAt: null,
+    },
+  },
+} satisfies Prisma.InboundShipmentWhereInput;
+
+const validationPartialShipmentLineWhere = {
+  deletedAt: null,
+  lineItemType: "SALE",
+  sale: {
+    is: {
+      deletedAt: null,
+    },
+  },
+  components: {
+    some: {
+      status: {
+        not: "cancelled",
+      },
+      stockAllocations: {
+        some: {
+          deletedAt: null,
+          status: {
+            in: ["approved", "reserved", "picked"],
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.LineItemWhereInput;
+
+const validationHeldCandidateLineWhere = {
+  deletedAt: null,
+  lineItemType: "SALE",
+  sale: {
+    is: {
+      deletedAt: null,
+    },
+  },
+  components: {
+    some: {
+      status: {
+        not: "cancelled",
+      },
+    },
+  },
+} satisfies Prisma.LineItemWhereInput;
+
+const validationLineItemSelect = {
+  id: true,
+  qty: true,
+  saleId: true,
+  meta: true,
+  sale: {
+    select: {
+      id: true,
+      orderId: true,
+    },
+  },
+  inventory: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  variant: {
+    select: {
+      id: true,
+      sku: true,
+    },
+  },
+} satisfies Prisma.LineItemSelect;
+
+const validationPartialShipmentLineSelect = {
+  ...validationLineItemSelect,
+  components: {
+    where: {
+      status: {
+        not: "cancelled",
+      },
+    },
+    select: {
+      stockAllocations: {
+        where: {
+          deletedAt: null,
+          status: {
+            in: ["approved", "reserved", "picked"],
+          },
+        },
+        select: {
+          qty: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.LineItemSelect;
+
+function isPartiallyAvailableValidationLine(
+  line: Prisma.LineItemGetPayload<{
+    select: typeof validationPartialShipmentLineSelect;
+  }>,
+) {
+  if (isInventoryLineHeldUntilComplete(line.meta)) return false;
+
+  const orderedQty = Number(line.qty ?? 0);
+  const activeAllocatedQty = line.components.reduce(
+    (componentTotal, component) =>
+      componentTotal +
+      component.stockAllocations.reduce(
+        (allocationTotal, allocation) => allocationTotal + Number(allocation.qty || 0),
+        0,
+      ),
+    0,
+  );
+
+  return activeAllocatedQty > 0 && orderedQty > activeAllocatedQty;
+}
+
+export async function inventoryBrowserValidationFixtureReport(db: Db) {
+  const monitoredVariantWhere = {
+    deletedAt: null,
+    inventory: {
+      deletedAt: null,
+      productKind: "inventory",
+      ...({ sourceCustom: false } as any),
+      OR: [
+        {
+          stockMode: "monitored",
+        },
+        {
+          inventoryCategory: {
+            stockMode: "monitored",
+          },
+        },
+      ],
+    },
+  } satisfies Prisma.InventoryVariantWhereInput;
+  const safeStockAdjustmentVariantWhere = {
+    ...monitoredVariantWhere,
+    stocks: {
+      some: {
+        deletedAt: null,
+        qty: {
+          gt: 0,
+        },
+      },
+    },
+  } satisfies Prisma.InventoryVariantWhereInput;
+
+  const [
+    pendingAllocationCount,
+    pendingAllocations,
+    approvedAllocationCount,
+    approvedAllocations,
+    reservedAllocationCount,
+    reservedAllocations,
+    pickedAllocationCount,
+    pickedAllocations,
+    openInboundDemandCount,
+    openInboundDemands,
+    inboundShipmentCount,
+    inboundShipments,
+    receivedInboundDemandCount,
+    receivedInboundDemands,
+    partialShipmentCandidateLineCount,
+    partialShipmentCandidateLines,
+    heldCandidateLineCount,
+    heldCandidateLines,
+    monitoredVariantCount,
+    safeStockAdjustmentVariantCount,
+    safeStockAdjustmentVariants,
+    monitoredVariants,
+  ] = await Promise.all([
+    db.stockAllocation.count({
+      where: validationSaleAllocationWhere("pending_review"),
+    }),
+    db.stockAllocation.findMany({
+      where: validationSaleAllocationWhere("pending_review"),
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: validationAllocationSelect,
+    }),
+    db.stockAllocation.count({
+      where: validationSaleAllocationWhere("approved"),
+    }),
+    db.stockAllocation.findMany({
+      where: validationSaleAllocationWhere("approved"),
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: validationAllocationSelect,
+    }),
+    db.stockAllocation.count({
+      where: validationSaleAllocationWhere("reserved"),
+    }),
+    db.stockAllocation.findMany({
+      where: validationSaleAllocationWhere("reserved"),
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: validationAllocationSelect,
+    }),
+    db.stockAllocation.count({
+      where: validationSaleAllocationWhere("picked"),
+    }),
+    db.stockAllocation.findMany({
+      where: validationSaleAllocationWhere("picked"),
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: validationAllocationSelect,
+    }),
+    db.inboundDemand.count({
+      where: validationOpenInboundDemandWhere,
+    }),
+    db.inboundDemand.findMany({
+      where: validationOpenInboundDemandWhere,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: validationInboundDemandSelect,
+    }),
+    db.inboundShipment.count({
+      where: validationInboundShipmentWhere,
+    }),
+    db.inboundShipment.findMany({
+      where: validationInboundShipmentWhere,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: {
+        id: true,
+        status: true,
+        items: {
+          where: {
+            deletedAt: null,
+          },
+          take: 1,
+          select: {
+            qty: true,
+            qtyGood: true,
+            inventoryVariant: {
+              select: {
+                id: true,
+                sku: true,
+                inventory: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    db.inboundDemand.count({
+      where: validationReceivedInboundDemandWhere,
+    }),
+    db.inboundDemand.findMany({
+      where: validationReceivedInboundDemandWhere,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+      select: validationInboundDemandSelect,
+    }),
+    db.lineItem.count({
+      where: validationPartialShipmentLineWhere,
+    }),
+    db.lineItem.findMany({
+      where: validationPartialShipmentLineWhere,
+      orderBy: {
+        id: "desc",
+      },
+      take: 200,
+      select: validationPartialShipmentLineSelect,
+    }),
+    db.lineItem.count({
+      where: validationHeldCandidateLineWhere,
+    }),
+    db.lineItem.findMany({
+      where: validationHeldCandidateLineWhere,
+      orderBy: {
+        id: "desc",
+      },
+      take: 100,
+      select: validationLineItemSelect,
+    }),
+    db.inventoryVariant.count({
+      where: monitoredVariantWhere,
+    }),
+    db.inventoryVariant.count({
+      where: safeStockAdjustmentVariantWhere,
+    }),
+    db.inventoryVariant.findMany({
+      where: safeStockAdjustmentVariantWhere,
+      orderBy: {
+        id: "asc",
+      },
+      take: 5,
+      select: {
+        id: true,
+        sku: true,
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        stocks: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            qty: true,
+          },
+        },
+      },
+    }),
+    db.inventoryVariant.findMany({
+      where: monitoredVariantWhere,
+      orderBy: {
+        id: "asc",
+      },
+      take: 2000,
+      select: {
+        id: true,
+        sku: true,
+        lowStockAlert: true,
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+            stockMode: true,
+            inventoryCategory: {
+              select: {
+                stockMode: true,
+              },
+            },
+          },
+        },
+        stocks: {
+          where: {
+            deletedAt: null,
+          },
+          select: {
+            qty: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const heldPartialShipmentLines = heldCandidateLines.filter((line) =>
+    isInventoryLineHeldUntilComplete(line.meta),
+  );
+  const partialShipmentLines = partialShipmentCandidateLines.filter(
+    isPartiallyAvailableValidationLine,
+  );
+  const lowStockVariants = monitoredVariants.filter((variant) => {
+    const stockQty = (variant.stocks || []).reduce(
+      (total, stock) => total + Number(stock.qty || 0),
+      0,
+    );
+    return variant.lowStockAlert != null && stockQty <= Number(variant.lowStockAlert);
+  });
+
+  return buildInventoryBrowserValidationFixtureReport({
+    pending_allocation_review: {
+      count: pendingAllocationCount,
+      samples: pendingAllocations.map(stockAllocationFixtureSample),
+    },
+    dispatch_assignable_allocation: {
+      count: approvedAllocationCount,
+      samples: approvedAllocations.map(stockAllocationFixtureSample),
+    },
+    dispatch_packable_allocation: {
+      count: reservedAllocationCount,
+      samples: reservedAllocations.map(stockAllocationFixtureSample),
+    },
+    dispatch_fulfillable_allocation: {
+      count: pickedAllocationCount,
+      samples: pickedAllocations.map(stockAllocationFixtureSample),
+    },
+    open_inbound_demand: {
+      count: openInboundDemandCount,
+      samples: openInboundDemands.map(inboundDemandFixtureSample),
+    },
+    inbound_receiving_shipment: {
+      count: inboundShipmentCount,
+      samples: inboundShipments.map((shipment) => {
+        const item = shipment.items[0];
+        return {
+          id: shipment.id,
+          status: shipment.status,
+          inventoryId: item?.inventoryVariant.inventory?.id ?? null,
+          inventoryName: item?.inventoryVariant.inventory?.name ?? null,
+          inventoryVariantId: item?.inventoryVariant.id ?? null,
+          variantSku: item?.inventoryVariant.sku ?? null,
+          qty: item?.qty ?? null,
+          qtyReceived: item?.qtyGood ?? null,
+        };
+      }),
+    },
+    received_inbound_backorder: {
+      count: receivedInboundDemandCount,
+      samples: receivedInboundDemands.map(inboundDemandFixtureSample),
+    },
+    partial_shipment_available: {
+      count: partialShipmentLines.length,
+      samples: partialShipmentLines.slice(0, 5).map(lineItemFixtureSample),
+      countDiagnostic: {
+        countSource: "bounded_application_scan",
+        sampleLimit: 5,
+        scanLimit: 200,
+        scannedCount: partialShipmentCandidateLines.length,
+        candidateCount: partialShipmentCandidateLineCount,
+        complete: partialShipmentCandidateLineCount <= partialShipmentCandidateLines.length,
+        note:
+          "Partial shipment readiness is derived by scanning non-held candidate sale lines and confirming active allocation is less than ordered quantity.",
+      },
+    },
+    held_partial_shipment: {
+      count: heldPartialShipmentLines.length,
+      samples: heldPartialShipmentLines.slice(0, 5).map(lineItemFixtureSample),
+      countDiagnostic: {
+        countSource: "bounded_application_scan",
+        sampleLimit: 5,
+        scanLimit: 100,
+        scannedCount: heldCandidateLines.length,
+        candidateCount: heldCandidateLineCount,
+        complete: heldCandidateLineCount <= heldCandidateLines.length,
+        note:
+          "Held partial shipment readiness is derived by scanning recent candidate line metadata for holdUntilComplete.",
+      },
+    },
+    low_stock_variant: {
+      count: lowStockVariants.length,
+      samples: lowStockVariants.slice(0, 5).map(variantFixtureSample),
+      countDiagnostic: {
+        countSource: "bounded_application_scan",
+        sampleLimit: 5,
+        scanLimit: 2000,
+        scannedCount: monitoredVariants.length,
+        candidateCount: monitoredVariantCount,
+        complete: monitoredVariantCount <= monitoredVariants.length,
+        note:
+          "Low-stock readiness is derived by scanning monitored variants and summing current stock quantities in application code.",
+      },
+    },
+    safe_stock_adjustment_variant: {
+      count: safeStockAdjustmentVariantCount,
+      samples: safeStockAdjustmentVariants.map(variantFixtureSample),
+    },
+  });
+}
+
 export async function inventoryOperationsSummary(db: Db) {
   const [variants, openInboundDemands, pendingAllocations, backorderComponents, productionBlockers] =
     await Promise.all([
@@ -3515,9 +4778,11 @@ export async function approveStockAllocation(
   db: Db,
   input: ApproveStockAllocation,
 ) {
-  const allocation = await db.stockAllocation.findUniqueOrThrow({
+  const allocation = await db.stockAllocation.findFirst({
     where: {
       id: input.allocationId,
+      deletedAt: null,
+      status: "pending_review",
     },
     select: {
       id: true,
@@ -3525,10 +4790,20 @@ export async function approveStockAllocation(
       lineItemComponentId: true,
     },
   });
+  if (!allocation) {
+    return {
+      ok: true,
+      allocationId: input.allocationId,
+      skipped: true,
+      reason: "not_pending_review",
+    };
+  }
 
-  await db.stockAllocation.update({
+  const updated = await db.stockAllocation.updateMany({
     where: {
       id: allocation.id,
+      deletedAt: null,
+      status: "pending_review",
     },
     data: {
       qty: input.approvedQty == null ? allocation.qty : Number(input.approvedQty || 0),
@@ -3537,6 +4812,14 @@ export async function approveStockAllocation(
       deletedAt: null,
     },
   });
+  if (updated.count === 0) {
+    return {
+      ok: true,
+      allocationId: allocation.id,
+      skipped: true,
+      reason: "not_pending_review",
+    };
+  }
 
   await recomputeLineItemComponentFromAllocationState(
     db,
@@ -3546,6 +4829,7 @@ export async function approveStockAllocation(
   return {
     ok: true,
     allocationId: allocation.id,
+    skipped: false,
   };
 }
 
@@ -3553,19 +4837,31 @@ export async function rejectStockAllocation(
   db: Db,
   input: RejectStockAllocation,
 ) {
-  const allocation = await db.stockAllocation.findUniqueOrThrow({
+  const allocation = await db.stockAllocation.findFirst({
     where: {
       id: input.allocationId,
+      deletedAt: null,
+      status: "pending_review",
     },
     select: {
       id: true,
       lineItemComponentId: true,
     },
   });
+  if (!allocation) {
+    return {
+      ok: true,
+      allocationId: input.allocationId,
+      skipped: true,
+      reason: "not_pending_review",
+    };
+  }
 
-  await db.stockAllocation.update({
+  const updated = await db.stockAllocation.updateMany({
     where: {
       id: allocation.id,
+      deletedAt: null,
+      status: "pending_review",
     },
     data: {
       status: "cancelled",
@@ -3573,6 +4869,14 @@ export async function rejectStockAllocation(
       deletedAt: new Date(),
     },
   });
+  if (updated.count === 0) {
+    return {
+      ok: true,
+      allocationId: allocation.id,
+      skipped: true,
+      reason: "not_pending_review",
+    };
+  }
 
   await recomputeLineItemComponentFromAllocationState(
     db,
@@ -3582,6 +4886,7 @@ export async function rejectStockAllocation(
   return {
     ok: true,
     allocationId: allocation.id,
+    skipped: false,
   };
 }
 
@@ -3589,12 +4894,14 @@ export async function approveBulkStockAllocation(
   db: Db,
   input: BulkApproveStockAllocation,
 ) {
+  const allocationIds = Array.from(new Set(input.allocationIds));
   const allocations = await db.stockAllocation.findMany({
     where: {
       id: {
-        in: input.allocationIds,
+        in: allocationIds,
       },
       deletedAt: null,
+      status: "pending_review",
     },
     select: {
       id: true,
@@ -3606,19 +4913,29 @@ export async function approveBulkStockAllocation(
     return {
       ok: true,
       count: 0,
+      skippedCount: allocationIds.length,
     };
   }
 
-  await db.stockAllocation.updateMany({
+  const updated = await db.stockAllocation.updateMany({
     where: {
       id: {
         in: allocations.map((allocation) => allocation.id),
       },
+      deletedAt: null,
+      status: "pending_review",
     },
     data: {
       status: "approved",
     },
   });
+  if (updated.count === 0) {
+    return {
+      ok: true,
+      count: 0,
+      skippedCount: allocationIds.length,
+    };
+  }
 
   const componentIds = Array.from(
     new Set(allocations.map((allocation) => allocation.lineItemComponentId)),
@@ -3629,7 +4946,8 @@ export async function approveBulkStockAllocation(
 
   return {
     ok: true,
-    count: allocations.length,
+    count: updated.count,
+    skippedCount: Math.max(0, allocationIds.length - updated.count),
   };
 }
 

@@ -12,6 +12,7 @@ import {
 	packDispatchItemTask,
 	assertProductionReadinessForSale,
 	resolveLegacyUpdateSalesControlAction,
+	shouldSyncInventoryProductionLifecycleForSalesControl,
 	startDispatchTask,
 	submitAllTask,
 	submitDispatchTask,
@@ -76,17 +77,6 @@ function resolveActionHandler(input: UpdateSalesControl) {
 	}
 	const legacyAction = resolveLegacyActionCompat(input);
 	return legacyAction ? actionMaps[legacyAction] : null;
-}
-
-function shouldSyncInventoryProductionLifecycle(input: UpdateSalesControl) {
-	return Boolean(
-		input.createAssignments ||
-			input.submitAll ||
-			input.updateSubmissions ||
-			input.deleteSubmissions ||
-			input.deleteAssignments ||
-			input.markAsCompleted,
-	);
 }
 
 function getProductionReadinessGateLineUids(input: UpdateSalesControl) {
@@ -329,7 +319,11 @@ export const updateSalesControl = schemaTask({
 				});
 			}
 			const response = await action(db, input);
-			if (shouldSyncInventoryProductionLifecycle(input as UpdateSalesControl)) {
+			if (
+				shouldSyncInventoryProductionLifecycleForSalesControl(
+					input as UpdateSalesControl,
+				)
+			) {
 				await syncInventoryProductionLifecycleForSale(
 					db as any,
 					input.meta.salesId,

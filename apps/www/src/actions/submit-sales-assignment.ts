@@ -4,6 +4,7 @@ import { prisma } from "@/db";
 import { formatMoney } from "@/lib/use-number";
 import { sum } from "@/lib/utils";
 import { resetSalesAction } from "@sales/sales-control/actions";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import z from "zod";
 
 import { createPayrollAction } from "./create-payroll";
@@ -79,5 +80,9 @@ export const submitSalesAssignmentAction = actionClient
                 submissionId: submission.id,
             };
         });
+        await syncInventoryProductionLifecycleForSale(
+            prisma as any,
+            input.salesId,
+        );
         return resp;
     });

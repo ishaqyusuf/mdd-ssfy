@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { NumericFormat, type NumericFormatProps } from "react-number-format";
 import { Input } from "./input";
 

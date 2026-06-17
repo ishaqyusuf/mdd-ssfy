@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import * as React from "react";
 import { cn } from "../utils";
 import { InputGroup } from "./namespace";

@@ -39,9 +39,11 @@ export type InventoryReconciliationReportInput = {
 
 export type InventoryReconciliationReport = {
 	mode: "dry-run";
+	status: "synced" | "needs_review" | "partial";
 	salesOrderId: number | null;
 	checkedLineCount: number;
 	totalDriftCount: number;
+	skippedComparisonCount: number;
 	nextCursorId: number | null;
 	hasMore: boolean;
 	domains: Record<
@@ -334,14 +336,28 @@ export function buildInventoryReconciliationReportFromLines(
 		}
 	}
 
+	const totalDriftCount = Object.values(domains).reduce(
+		(total, domain) => total + domain.driftCount,
+		0,
+	);
+	const skippedComparisonCount = Object.values(domains).reduce(
+		(total, domain) => total + domain.skippedCount,
+		0,
+	);
+	const status: InventoryReconciliationReport["status"] =
+		totalDriftCount > 0 || skippedComparisonCount > 0
+			? "needs_review"
+			: input.hasMore
+				? "partial"
+				: "synced";
+
 	return {
 		mode: "dry-run",
+		status,
 		salesOrderId: input.salesOrderId ?? null,
 		checkedLineCount: lines.length,
-		totalDriftCount: Object.values(domains).reduce(
-			(total, domain) => total + domain.driftCount,
-			0,
-		),
+		totalDriftCount,
+		skippedComparisonCount,
 		nextCursorId: input.nextCursorId ?? null,
 		hasMore: !!input.hasMore,
 		domains,

@@ -1,7 +1,7 @@
 import type { Db } from "./types";
 import { syncSalesInventoryLineItems } from "./sync-sales-inventory-line-items";
 
-type ProductionProjection = {
+export type ProductionProjection = {
   orderedQty: number;
   assignedQty: number;
   fulfilledQty: number;
@@ -57,7 +57,7 @@ function resolveProductionStatus(input: {
   return "pending";
 }
 
-function mergeMetaWithProduction(
+export function mergeMetaWithProduction(
   meta: unknown,
   production: ProductionProjection,
 ) {
@@ -65,10 +65,19 @@ function mergeMetaWithProduction(
     meta && typeof meta === "object" && !Array.isArray(meta)
       ? (meta as Record<string, unknown>)
       : {};
+  const currentProduction =
+    current.production &&
+    typeof current.production === "object" &&
+    !Array.isArray(current.production)
+      ? (current.production as Record<string, unknown>)
+      : {};
 
   return {
     ...current,
-    production,
+    production: {
+      ...currentProduction,
+      ...production,
+    },
   };
 }
 

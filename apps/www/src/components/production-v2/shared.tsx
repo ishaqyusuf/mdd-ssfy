@@ -227,7 +227,7 @@ export function ProductionAdminBoardV2() {
     return (
         <ProductionV2Board
             scope="admin"
-            title="Production Board v2"
+            title="Production Board"
             description="Admin production oversight with quick assign, completed labels, and inline order expansion."
         />
     );
@@ -460,7 +460,7 @@ function ProductionV2Board({
     return (
         <div className="grid gap-6">
             <section className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(34,197,94,0.18),_transparent_28%),linear-gradient(135deg,#fffdf7_0%,#f8fafc_48%,#eef6ff_100%)] shadow-[0_20px_55px_-30px_rgba(15,23,42,0.28)]">
-                <div className="grid gap-6 px-5 py-6 lg:px-7 lg:py-7 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-end">
+                <div className="grid gap-4 px-5 py-5 lg:px-7 xl:grid-cols-[minmax(0,1fr)_minmax(520px,680px)] xl:items-end">
                     <div className="space-y-4">
                         <div className="flex flex-wrap items-center gap-3">
                             <Badge className="rounded-full border border-slate-300 bg-white/90 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-700 hover:bg-white">
@@ -482,69 +482,75 @@ function ProductionV2Board({
                             </p>
                         </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                        <div className="relative">
-                            <Icons.Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-                            <Input
-                                value={search}
-                                onChange={(event) =>
+                    <div className="flex flex-col gap-3 xl:items-end">
+                        <div className="flex flex-col gap-4 sm:flex-row">
+                            <div className="relative sm:min-w-[240px] sm:flex-1">
+                                <Icons.Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    value={search}
+                                    onChange={(event) =>
+                                        void setFilters({
+                                            q: event.target.value || null,
+                                        })
+                                    }
+                                    placeholder="Search order or customer"
+                                    className="h-11 rounded-2xl border-slate-200 bg-white/90 pl-10 shadow-sm"
+                                />
+                            </div>
+                            <Select
+                                value={activeLabel}
+                                onValueChange={setActiveLabel}
+                            >
+                                <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm sm:w-[160px]">
+                                    <SelectValue placeholder="Choose label" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pending">
+                                        Pending
+                                    </SelectItem>
+                                    <SelectItem value="due-today">
+                                        Due Today
+                                    </SelectItem>
+                                    <SelectItem value="due-tomorrow">
+                                        Due Tomorrow
+                                    </SelectItem>
+                                    <SelectItem value="past-due">
+                                        Past Due
+                                    </SelectItem>
+                                    <SelectItem value="completed">
+                                        Completed
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select
+                                value={priority || "all"}
+                                onValueChange={(nextPriority) =>
                                     void setFilters({
-                                        q: event.target.value || null,
+                                        priority:
+                                            nextPriority === "all"
+                                                ? null
+                                                : (nextPriority as SalesPriorityValue),
                                     })
                                 }
-                                placeholder="Search order or customer"
-                                className="h-11 rounded-2xl border-slate-200 bg-white/90 pl-10 shadow-sm"
-                            />
+                            >
+                                <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm sm:w-[160px]">
+                                    <SelectValue placeholder="Priority" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">
+                                        All priorities
+                                    </SelectItem>
+                                    <SelectItem value="CRITICAL">
+                                        Critical
+                                    </SelectItem>
+                                    <SelectItem value="HIGH">High</SelectItem>
+                                    <SelectItem value="NORMAL">
+                                        Normal
+                                    </SelectItem>
+                                    <SelectItem value="LOW">Low</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <Select
-                            value={activeLabel}
-                            onValueChange={setActiveLabel}
-                        >
-                            <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
-                                <SelectValue placeholder="Choose label" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="pending">Pending</SelectItem>
-                                <SelectItem value="due-today">
-                                    Due Today
-                                </SelectItem>
-                                <SelectItem value="due-tomorrow">
-                                    Due Tomorrow
-                                </SelectItem>
-                                <SelectItem value="past-due">
-                                    Past Due
-                                </SelectItem>
-                                <SelectItem value="completed">
-                                    Completed
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select
-                            value={priority || "all"}
-                            onValueChange={(nextPriority) =>
-                                void setFilters({
-                                    priority:
-                                        nextPriority === "all"
-                                            ? null
-                                            : (nextPriority as SalesPriorityValue),
-                                })
-                            }
-                        >
-                            <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
-                                <SelectValue placeholder="Priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">
-                                    All priorities
-                                </SelectItem>
-                                <SelectItem value="CRITICAL">
-                                    Critical
-                                </SelectItem>
-                                <SelectItem value="HIGH">High</SelectItem>
-                                <SelectItem value="NORMAL">Normal</SelectItem>
-                                <SelectItem value="LOW">Low</SelectItem>
-                            </SelectContent>
-                        </Select>
                         <Select
                             value={productionSort}
                             onValueChange={(nextSort) =>
@@ -556,7 +562,7 @@ function ProductionV2Board({
                                 })
                             }
                         >
-                            <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
+                            <SelectTrigger className="h-10 rounded-2xl border-slate-200 bg-white/90 shadow-sm sm:w-[180px]">
                                 <SelectValue placeholder="Sort by" />
                             </SelectTrigger>
                             <SelectContent>
@@ -744,37 +750,12 @@ function ProductionV2Board({
 
                 <div className="grid gap-4 xl:sticky xl:top-4">
                     <Card className="overflow-hidden rounded-[28px] border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] shadow-[0_18px_40px_-24px_rgba(15,23,42,0.2)]">
-                        <CardHeader className="space-y-4 px-5 pb-4 pt-5">
+                        <CardHeader className="space-y-3 px-5 pb-3 pt-4">
                             <div className="space-y-1">
                                 <CardTitle className="flex items-center gap-2 text-base">
                                     <Icons.CalendarDays className="h-4 w-4 text-sky-600" />
-                                    Due Calendar
+                                    Calendar
                                 </CardTitle>
-                                <CardDescription className="text-sm leading-6">
-                                    Compact date picker for quick queue
-                                    filtering.
-                                </CardDescription>
-                            </div>
-                            <div className="grid gap-2 rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                                    Current Focus
-                                </p>
-                                <p className="text-sm font-semibold text-slate-900">
-                                    {selectedDate
-                                        ? formatDateValue(
-                                              new Date(
-                                                  `${selectedDate}T00:00:00`,
-                                              ),
-                                          )
-                                        : activeLabel === "pending"
-                                          ? "All open orders"
-                                          : activeLabel.replace("-", " ")}
-                                </p>
-                                <p className="text-xs text-slate-500">
-                                    {selectedDate
-                                        ? `${dueDateCalendarMap.get(selectedDate)?.count || 0} orders due`
-                                        : `${dashboard?.summary.queueCount || 0} orders in queue`}
-                                </p>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
                                 <LegendPill
@@ -1060,7 +1041,7 @@ function ProductionOrderCard({
                         "border-slate-500/90 shadow-[0_22px_44px_-28px_rgba(15,23,42,0.34)]",
                 )}
             >
-                <div className="flex items-start gap-3 px-4 py-4 sm:px-5">
+                <div className="group/order-summary flex items-start gap-3 px-4 py-4 transition-colors hover:bg-sky-50/75 focus-within:bg-sky-50/75 sm:px-5">
                     <Checkbox
                         checked={isSelected}
                         onCheckedChange={(checked) =>
@@ -1074,7 +1055,7 @@ function ProductionOrderCard({
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                 <button
                                     type="button"
-                                    className="min-w-0 flex-1 rounded-[20px] p-1 text-left outline-none transition-transform hover:translate-y-[-1px] focus-visible:ring-2 focus-visible:ring-slate-400/70"
+                                    className="min-w-0 flex-1 cursor-pointer rounded-[20px] bg-white/60 p-1 text-left outline-none transition-[background-color,box-shadow,transform] group-hover/order-summary:bg-white/35 hover:translate-y-[-1px] hover:bg-white/45 hover:shadow-[inset_0_0_0_1px_rgba(14,165,233,0.16),0_14px_28px_-24px_rgba(15,23,42,0.45)] focus-visible:bg-white/45 focus-visible:ring-2 focus-visible:ring-slate-400/70"
                                     aria-expanded={isExpanded}
                                     aria-label={`Toggle details for ${item.orderId}`}
                                     onClick={onToggle}

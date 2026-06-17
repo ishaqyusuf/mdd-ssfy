@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
 import type { SalesTemplateConfig } from "../../../registry";

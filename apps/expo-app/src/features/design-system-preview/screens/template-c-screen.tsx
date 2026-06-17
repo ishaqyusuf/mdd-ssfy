@@ -4,12 +4,30 @@ import { PreviewMetricCard } from "../components/preview-metric";
 import { PreviewBottomNav, PreviewShell } from "../components/preview-shell";
 import { salesMetrics, salesRecords } from "../data/sample-data";
 import { salesLedgerSystem } from "../design-systems/template-c-sales-ledger";
+import { usePreviewDesignSystem } from "../design-systems/types";
 
 export function TemplateCScreen() {
-	const system = salesLedgerSystem;
+	const system = usePreviewDesignSystem(salesLedgerSystem);
 
 	return (
-		<PreviewShell eyebrow="Template C" system={system} title="Sales Ledger">
+		<PreviewShell
+			bottomNavigation={
+				<PreviewBottomNav
+					active="Sales"
+					items={[
+						{ icon: "LayoutDashboard", label: "Home" },
+						{ icon: "ReceiptText", label: "Sales" },
+						{ icon: "CircleDollarSign", label: "Money" },
+						{ icon: "Truck", label: "Ship" },
+						{ icon: "more", label: "More" },
+					]}
+					system={system}
+				/>
+			}
+			eyebrow="Template C"
+			system={system}
+			title="Sales Ledger"
+		>
 			<View style={{ flexDirection: "row", gap: 10 }}>
 				{salesMetrics.map((metric) => (
 					<PreviewMetricCard
@@ -123,18 +141,6 @@ export function TemplateCScreen() {
 					</View>
 				))}
 			</View>
-
-			<PreviewBottomNav
-				active="Sales"
-				items={[
-					{ icon: "LayoutDashboard", label: "Home" },
-					{ icon: "ReceiptText", label: "Sales" },
-					{ icon: "CircleDollarSign", label: "Money" },
-					{ icon: "Truck", label: "Ship" },
-					{ icon: "more", label: "More" },
-				]}
-				system={system}
-			/>
 		</PreviewShell>
 	);
 }

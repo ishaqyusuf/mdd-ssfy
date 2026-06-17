@@ -1,5 +1,6 @@
 import type { SaveInboundNoteSchema } from "@api/schemas/notes";
 import type { TRPCContext } from "@api/trpc/init";
+import { applyOrderInboundStatusToInventoryDemand } from "@gnd/inventory";
 import type { NoteTagNames } from "@gnd/utils/constants";
 import {
 	getSubscribersAccount,
@@ -231,10 +232,17 @@ export async function saveInboundNote(
 			},
 		}),
 	]);
+	const inventoryDemandUpdate =
+		await applyOrderInboundStatusToInventoryDemand(ctx.db, {
+			saleId: order.id,
+			status: nextStatus,
+			demandIds: data.demandIds,
+		});
 
 	return {
 		order: updatedOrder,
 		note,
+		inventoryDemandUpdate,
 		notificationCount: recipientIds.length,
 		previousStatus,
 		status: nextStatus,

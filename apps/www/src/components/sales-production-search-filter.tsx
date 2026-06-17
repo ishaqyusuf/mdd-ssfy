@@ -1,7 +1,10 @@
 "use client";
 
 import { salesProductionFilterParamsSchema } from "@/hooks/use-sales-production-filter-params";
-import { SearchFilterProvider } from "@/hooks/use-search-filter";
+import {
+	SearchFilterProvider,
+	useSearchFilterContext,
+} from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
 import { useQuery } from "@gnd/ui/tanstack";
@@ -30,7 +33,9 @@ export function SalesProductionSearchFilter({
 }
 function Content({ initialFilterList, workerMode = false }: Props) {
 	const trpc = useTRPC();
-	const { data } = useQuery({
+	const { shouldFetch } = useSearchFilterContext();
+	const { data, isFetching } = useQuery({
+		enabled: shouldFetch,
 		...trpc.filters.salesProductions.queryOptions(),
 		initialData: initialFilterList,
 	});
@@ -45,6 +50,7 @@ function Content({ initialFilterList, workerMode = false }: Props) {
 			<SearchFilterTRPC
 				placeholder={"Search Order Production Information"}
 				filterList={trpcFilterData}
+				loading={shouldFetch && isFetching}
 			/>
 		</>
 	);

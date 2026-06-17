@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import type { PreviewMetric } from "../data/sample-data";
-import type { PreviewDesignSystem } from "../design-systems/types";
+import type { ResolvedPreviewDesignSystem } from "../design-systems/types";
 
 export function PreviewMetricCard({
 	metric,
@@ -8,7 +8,7 @@ export function PreviewMetricCard({
 	compact = false,
 }: {
 	metric: PreviewMetric;
-	system: PreviewDesignSystem;
+	system: ResolvedPreviewDesignSystem;
 	compact?: boolean;
 }) {
 	const color = system.colors[metric.tone];

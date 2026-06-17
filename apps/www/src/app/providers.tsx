@@ -1,6 +1,7 @@
 "use client";
 
 import { ModalProvider } from "@/components/common/modal/provider";
+import { NavigationLoadingBar } from "@/components/navigation-loading-bar";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { TRPCReactProvider } from "@/trpc/client";
 import { SessionProvider } from "@/lib/auth/client";
@@ -21,6 +22,7 @@ export function Providers({ children, serverTrpcUrl }: Props) {
                 <TRPCReactProvider serverTrpcUrl={serverTrpcUrl}>
                     <ModalProvider>
                         <ThemeProvider attribute="class" defaultTheme="light">
+                            <NavigationLoadingBar />
                             {children}
                         </ThemeProvider>
                     </ModalProvider>

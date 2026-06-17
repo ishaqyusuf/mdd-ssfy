@@ -415,13 +415,15 @@ export function dtoStepComponent(
     pricing,
     productCode: component.productCode,
     redirectUid: component.redirectUid,
-    _metaData: {
+      _metaData: {
       sorts: (sorts || [])?.map(({ sortIndex, stepComponentId, uid }) => ({
         sortIndex,
         stepComponentId,
         uid,
       })),
       custom: component.custom,
+      deletedAt:
+        meta && typeof meta.deletedAt === "string" ? meta.deletedAt : null,
       visible: false,
       priceId: null,
       sortId: null,

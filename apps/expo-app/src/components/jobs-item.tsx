@@ -132,7 +132,9 @@ export function JobsItem({
         )}
         <View className="flex-1" />
         <View>
-          <Text className="text-xl font-semibold">{amount}</Text>
+          <Text className="text-xl font-semibold text-card-foreground">
+            {amount}
+          </Text>
         </View>
       </View>
 

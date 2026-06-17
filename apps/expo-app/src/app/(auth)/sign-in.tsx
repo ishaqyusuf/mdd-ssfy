@@ -1,212 +1,108 @@
-import React from "react";
-import { Controller } from "react-hook-form";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { useZodForm } from "@/components/use-zod-form";
-import { signInSchema } from "@/lib/schemas/auth";
-import { Input } from "@/components/ui/input-2";
-import { useMutation } from "@tanstack/react-query";
-import { useAuthContext } from "@/hooks/use-auth";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { LoginTemplate0 } from "@/components/login-template-0";
+import { LoginTemplate1 } from "@/components/login-template-1";
 import { Icon } from "@/components/ui/icon";
-import { mobileSignIn } from "@/lib/mobile-auth";
+import { Modal, useModal } from "@/components/ui/modal";
+import React, { useState } from "react";
+import { Pressable, Text, View } from "react-native";
 
-import { SafeArea } from "@/components/safe-area";
+const TEMPLATES = [
+	{
+		id: 0,
+		name: "Operator Access",
+		description: "Dark ProDesk card with quick access.",
+		Component: LoginTemplate0,
+	},
+	{
+		id: 1,
+		name: "Wave Sign In",
+		description: "High-contrast black and white concept.",
+		Component: LoginTemplate1,
+	},
+];
 
 export default function SignIn() {
-  const form = useZodForm(signInSchema, {
-    defaultValues: {
-      email: process.env.EXPO_PUBLIC_EMAIL?.split(",")?.[0]!,
-      password: process.env.EXPO_PUBLIC_TOK,
-    },
-  });
+	const [activeIndex, setActiveIndex] = useState(0);
+	const designsModal = useModal();
+	const activeTemplate = TEMPLATES[activeIndex];
+	const ActiveComponent = activeTemplate.Component;
 
-  const testEmails = process.env.EXPO_PUBLIC_EMAIL?.split(",");
-  const auth = useAuthContext();
+	function selectDesign(index: number) {
+		setActiveIndex(index);
+		designsModal.dismiss();
+	}
 
-  const { mutate: loginMutation, isPending } = useMutation({
-    mutationFn: mobileSignIn,
-    onSuccess(data) {
-      auth.onLogin(data);
-    },
-    onError(error) {
-      Alert.alert(
-        "Sign In Failed",
-        error instanceof Error ? error.message : "Unable to signin",
-      );
-    },
-    meta: {
-      toastTitle: {
-        error: "Unable to complete",
-        loading: "Processing...",
-        success: "Done!.",
-      },
-    },
-  });
-  const signIn = async (data) => {
-    loginMutation(data);
-  };
+	return (
+		<View className="relative flex-1">
+			<ActiveComponent />
 
-  return (
-    <SafeArea>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1 bg-background relative"
-      >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            padding: 32,
-          }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="flex justify-end flex-row">
-            <ThemeToggle />
-          </View>
+			{__DEV__ && (
+				<>
+					<View className="absolute bottom-8 right-5 z-50">
+						<Pressable
+							accessibilityLabel="Open login design switcher"
+							accessibilityRole="button"
+							onPress={designsModal.present}
+							className="h-14 min-w-14 flex-row items-center justify-center gap-2 rounded-full border border-border bg-card px-4 shadow-lg shadow-black/20 active:bg-muted"
+						>
+							<Icon name="LayoutGrid" className="text-foreground" size={20} />
+							<Text className="text-sm font-bold text-foreground">Designs</Text>
+						</Pressable>
+					</View>
 
-          <View className="items-center mb-12">
-            <View className="p-4 bg-primary/10 rounded-full">
-              <Icon name="Lock" className="size-48 text-primary" />
-            </View>
+					<Modal
+						ref={designsModal.ref}
+						title="Login designs"
+						snapPoints={["42%"]}
+					>
+						<View className="gap-3 px-5 pb-8 pt-2">
+							<Text className="text-xs font-semibold uppercase tracking-[1px] text-muted-foreground">
+								{TEMPLATES.length} available
+							</Text>
 
-            <Text className="text-foreground text-4xl font-bold mt-6">
-              Welcome Back
-            </Text>
-            <Text className="text-muted-foreground text-lg mt-2">
-              Sign in to continue
-            </Text>
-          </View>
+							{TEMPLATES.map((template, index) => {
+								const isActive = index === activeIndex;
 
-          <View className="gap-y-4">
-            <View>
-              <Label>Email</Label>
-              <Controller
-                control={form.control}
-                name="email"
-                render={({
-                  field: { onChange, onBlur, value },
-                  fieldState: { error },
-                }) => (
-                  <View className="mt-2">
-                    <Input
-                      placeholder="Email"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      textContentType="emailAddress"
-                    />
-                    {error && (
-                      <Text className="text-destructive mt-1">
-                        {error.message}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              />
-            </View>
-
-            <View>
-              <Label>Password</Label>
-              <Controller
-                control={form.control}
-                name="password"
-                render={({
-                  field: { onChange, onBlur, value },
-                  fieldState: { error },
-                }) => (
-                  <View className="mt-2">
-                    <Input
-                      placeholder="Password"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      secureTextEntry
-                      textContentType="password"
-                      className="tracking-widest"
-                    />
-                    {error && (
-                      <Text className="text-destructive mt-1">
-                        {error.message}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              />
-            </View>
-
-            <TouchableOpacity className="self-end mt-2">
-              <Text className="text-primary font-medium">Forgot Password?</Text>
-            </TouchableOpacity>
-          </View>
-
-          {!testEmails?.length || (
-            <View className="flex flex-wrap gap-1 flex-row">
-              {testEmails.map((email, i) => (
-                <Button
-                  key={i}
-                  className="px-2 py-1 rounded-full border border-border"
-                  onPress={() => form.setValue("email", email)}
-                >
-                  <Text className="text-primary-foreground ">
-                    {email?.split("@")?.[0]}
-                  </Text>
-                </Button>
-              ))}
-            </View>
-          )}
-
-          <Button
-            onPress={form.handleSubmit(signIn)}
-            className="mt-8"
-            size="lg"
-            variant="destructive"
-          >
-            {!isPending || (
-              <View className="pointer-events-none animate-spin">
-                <Icon name="Loader2" className="text-destructive-foreground" />
-              </View>
-            )}
-            <Text className="text-destructive-foreground">Sign In</Text>
-          </Button>
-
-          <View className="mt-12 items-center">
-            <Text className="text-center text-muted-foreground">
-              Or sign in with
-            </Text>
-
-            <View className="flex-row justify-center space-x-6 mt-4">
-              <TouchableOpacity className="h-14 w-14 bg-muted items-center justify-center rounded-full">
-                <Text className="text-foreground text-2xl font-bold">G</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity className="h-14 w-14 bg-muted items-center justify-center rounded-full">
-                <Text className="text-foreground text-2xl font-bold">A</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View className="flex-row justify-center mt-8">
-            <Text className="text-muted-foreground">
-              {"Don't"} have an account?{" "}
-            </Text>
-            <TouchableOpacity>
-              <Text className="text-primary font-bold">Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeArea>
-  );
+								return (
+									<Pressable
+										key={template.id}
+										accessibilityLabel={`Switch to ${template.name}`}
+										accessibilityRole="button"
+										accessibilityState={{ selected: isActive }}
+										onPress={() => selectDesign(index)}
+										className={`min-h-16 flex-row items-center gap-3 rounded-2xl border px-4 py-3 active:bg-muted ${
+											isActive
+												? "border-primary bg-primary/10"
+												: "border-border bg-card"
+										}`}
+									>
+										<View
+											className={`h-10 w-10 items-center justify-center rounded-xl ${
+												isActive ? "bg-primary/15" : "bg-muted"
+											}`}
+										>
+											<Icon
+												name={isActive ? "Check" : "AppWindow"}
+												className={
+													isActive ? "text-primary" : "text-muted-foreground"
+												}
+												size={20}
+											/>
+										</View>
+										<View className="flex-1">
+											<Text className="text-base font-bold text-foreground">
+												{template.name}
+											</Text>
+											<Text className="mt-0.5 text-xs leading-5 text-muted-foreground">
+												{template.description}
+											</Text>
+										</View>
+									</Pressable>
+								);
+							})}
+						</View>
+					</Modal>
+				</>
+			)}
+		</View>
+	);
 }

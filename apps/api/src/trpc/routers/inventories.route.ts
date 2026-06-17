@@ -9,6 +9,7 @@ import {
 } from "@api/db/queries/inventory.generate";
 import {
   approveStockAllocationSchema,
+  archiveDykeCustomStepComponentSchema,
   bulkApproveStockAllocationSchema,
   inboundItemIssueFormSchema,
   getInventoryCategoriesSchema,
@@ -28,6 +29,7 @@ import {
   inventoryImportRunSchema,
   supplierVariantFormSchema,
   updateDykeComponentPricingSchema,
+  upsertDykeCustomStepComponentSchema,
   inventoryListSchema,
   updateCategoryVariantAttributeSchema,
   updateCategoryStockModeSchema,
@@ -51,7 +53,10 @@ import {
 } from "@gnd/sales/sales-fulfillment-plan";
 import { getInventoryReconciliationReport } from "@gnd/sales/inventory-reconciliation-report";
 import { getSalesInventoryOverview } from "@gnd/sales/sales-inventory-overview";
-import { getSalesInventorySyncMonitor } from "@gnd/sales/sales-inventory-sync-monitor";
+import {
+  cleanupStaleSalesInventoryLineItems,
+  getSalesInventorySyncMonitor,
+} from "@gnd/sales/sales-inventory-sync-monitor";
 import {
   allocateReceivedInboundToBackordersSchemaTask,
   backfillSalesInventoryLineItemsSchemaTask,
@@ -59,6 +64,7 @@ import {
 } from "@gnd/jobs/schema";
 import {
   adjustInventoryStock,
+  archiveDykeCustomStepComponent,
   approveBulkStockAllocation,
   approveStockAllocation,
   deleteInventories,
@@ -70,6 +76,7 @@ import {
   inventoryForm,
   getInventoryItemDashboard,
   getStockAuditVerificationReport,
+  inventoryBrowserValidationFixtureReport,
   inventoryList,
   inventoryOperationsSummary,
   inventorySummary,
@@ -98,6 +105,7 @@ import {
   createInboundShipmentFromDemands,
   getInboundDemandQueue,
   getInboundShipmentDetail,
+  getInboundStatusDemandReconciliation,
   getSupplierReorderSuggestions,
   receiveInboundShipment,
   getDykeInventoryDriftReport,
@@ -118,6 +126,7 @@ import {
   supplierVariantsByInventory,
   syncInventorySuppliersFromDyke,
   updateDykeComponentPricing,
+  upsertDykeCustomStepComponent,
 } from "@gnd/inventory";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { inventoryImport } from "@gnd/inventory/inventory-import";
@@ -165,6 +174,7 @@ const inventoryDispatchTransitionSchema = z.object({
 const inventoryDispatchFulfillSchema = z.object({
   salesOrderId: z.number(),
   lineItemIds: z.array(z.number()).optional(),
+  allocationIds: z.array(z.number()).optional(),
   deliveryMode: z.string().optional().nullable(),
   deliveredTo: z.string().optional().nullable(),
   authorName: z.string().optional().nullable(),
@@ -259,6 +269,17 @@ export const inventoriesRouter = createTRPCRouter({
     )
     .query(async (props) => {
       return getInboundDemandQueue(props.ctx.db, props.input);
+    }),
+  inboundStatusDemandReconciliation: protectedProcedure
+    .input(
+      z
+        .object({
+          take: z.number().optional().nullable(),
+        })
+        .optional(),
+    )
+    .query(async (props) => {
+      return getInboundStatusDemandReconciliation(props.ctx.db, props.input);
     }),
   supplierReorderSuggestions: protectedProcedure.query(async (props) => {
     return getSupplierReorderSuggestions(props.ctx.db);
@@ -537,6 +558,9 @@ export const inventoriesRouter = createTRPCRouter({
   inventoryOperationsSummary: protectedProcedure.query(async (props) => {
     return inventoryOperationsSummary(props.ctx.db);
   }),
+  inventoryBrowserValidationFixtureReport: protectedProcedure.query(async (props) => {
+    return inventoryBrowserValidationFixtureReport(props.ctx.db);
+  }),
   upsertShelfProducts: publicProcedure
     .input(upsertInventoriesForDykeShelfProductsSchema)
     .mutation(async (props) => {
@@ -594,6 +618,48 @@ export const inventoriesRouter = createTRPCRouter({
     .input(dykeStepComponentSchema)
     .mutation(async (props) => {
       const result = await saveDykeStepComponent(props.ctx.db, props.input);
+      await invalidateSalesWorkflowForStepComponent({
+        stepId: result.stepId,
+        componentId: result.componentId,
+        componentUid: result.componentUid,
+        routing: true,
+      });
+      if (result.stepId) {
+        await queueDykeStepToInventorySync({
+          stepId: result.stepId,
+          source: "event",
+        });
+      }
+      return result;
+    }),
+  upsertDykeCustomStepComponent: protectedProcedure
+    .input(upsertDykeCustomStepComponentSchema)
+    .mutation(async (props) => {
+      const result = await upsertDykeCustomStepComponent(
+        props.ctx.db,
+        props.input,
+      );
+      await invalidateSalesWorkflowForStepComponent({
+        stepId: result.stepId,
+        componentId: result.componentId,
+        componentUid: result.componentUid,
+        routing: true,
+      });
+      if (result.stepId) {
+        await queueDykeStepToInventorySync({
+          stepId: result.stepId,
+          source: "event",
+        });
+      }
+      return result;
+    }),
+  archiveDykeCustomStepComponent: protectedProcedure
+    .input(archiveDykeCustomStepComponentSchema)
+    .mutation(async (props) => {
+      const result = await archiveDykeCustomStepComponent(
+        props.ctx.db,
+        props.input,
+      );
       await invalidateSalesWorkflowForStepComponent({
         stepId: result.stepId,
         componentId: result.componentId,
@@ -687,11 +753,29 @@ export const inventoriesRouter = createTRPCRouter({
       z
         .object({
           sampleLimit: z.number().min(1).max(20).optional(),
+          includeReconciliation: z.boolean().optional(),
+          reconciliationLimit: z.number().min(1).max(200).optional(),
         })
         .optional(),
     )
     .query(async (props) => {
       return getSalesInventorySyncMonitor(props.ctx.db, props.input ?? {});
+    }),
+  cleanupStaleSalesInventoryLineItems: protectedProcedure
+    .input(
+      z
+        .object({
+          lineItemIds: z.array(z.number().int().positive()).optional(),
+          limit: z.number().int().min(1).max(500).optional(),
+          dryRun: z.boolean().optional().default(true),
+        })
+        .optional(),
+    )
+    .mutation(async (props) => {
+      return cleanupStaleSalesInventoryLineItems(
+        props.ctx.db,
+        props.input ?? { dryRun: true },
+      );
     }),
   inventoryReconciliationReport: protectedProcedure
     .input(inventoryReconciliationReportSchemaTask.optional())

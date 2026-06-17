@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 import type { PreviewStatus } from "../data/sample-data";
-import type { PreviewDesignSystem } from "../design-systems/types";
+import type { ResolvedPreviewDesignSystem } from "../design-systems/types";
 
 const statusLabel: Record<PreviewStatus, string> = {
 	ready: "Ready",
@@ -14,7 +14,7 @@ export function PreviewStatusPill({
 	system,
 }: {
 	status: PreviewStatus;
-	system: PreviewDesignSystem;
+	system: ResolvedPreviewDesignSystem;
 }) {
 	const color = system.colors[status];
 

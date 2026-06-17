@@ -24,6 +24,15 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Sortable, SortableItem } from "@gnd/ui/sortable";
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@gnd/ui/alert-dialog";
 
 import {
     useFormDataStore,
@@ -142,8 +151,6 @@ function Content({ itemStepUid }) {
                             />
                         </Fragment>
                     ))}
-                    {/* <CustomComponent ctx={ctx} /> */}
-                    <CustomComponentForm itemStepUid={itemStepUid} />
                 </div>
 
                 <FloatingAction ctx={ctx} />
@@ -161,6 +168,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
     } = ctx;
     const isDoor = ctx.cls.isDoor();
     const zus = useFormDataStore();
+    const [customDialogOpen, setCustomDialogOpen] = useState(false);
     const selectionUids = () =>
         Object.entries(selectionState?.uids)
             .filter(([a, b]) => {
@@ -186,6 +194,8 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
         ctx.clearSelection();
     }, [selectionState, stepUid, ctx]);
     const hasSelections = ctx.cls.getItemForm()?.groupItem?.qty?.total > 0;
+    const canProceedMultiSelect = ctx.cls.isMultiSelect() && hasSelections;
+    const supportsCustomComponents = Boolean(ctx.cls.getStepForm()?.meta?.custom);
     return (
         <>
             <div
@@ -235,6 +245,40 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                                 {items?.length} components
                             </span>{" "}
                             <SearchBar ctx={ctx} />
+                            {supportsCustomComponents ? (
+                                <AlertDialog
+                                    open={customDialogOpen}
+                                    onOpenChange={setCustomDialogOpen}
+                                >
+                                    <AlertDialogTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                        >
+                                            Custom
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                Custom Component
+                                            </AlertDialogTitle>
+                                        </AlertDialogHeader>
+                                        <CustomComponentForm
+                                            itemStepUid={stepUid}
+                                            onComplete={() =>
+                                                setCustomDialogOpen(false)
+                                            }
+                                        />
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                                Cancel
+                                            </AlertDialogCancel>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            ) : null}
                             <Menu Icon={Icons.menu}>
                                 <Menu.Item
                                     Icon={Icons.Folder}
@@ -307,7 +351,7 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                                 </Menu.Item>
                                 <CustomComponentAction ctx={ctx} />
                             </Menu>
-                            {!hasSelections || (
+                            {!canProceedMultiSelect || (
                                 <>
                                     <Button
                                         onClick={() => {

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { JobsPayrollPdfDocument } from "./payroll/document";
 import { JobsSelectionPdfDocument } from "./selection/document";
 import type { JobsPrintData } from "./shared/types";

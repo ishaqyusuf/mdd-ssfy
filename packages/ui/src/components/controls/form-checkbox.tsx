@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Checkbox } from "../checkbox";

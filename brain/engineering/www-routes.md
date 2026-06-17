@@ -72,7 +72,7 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/sales-book/edit-quote/[slug]`
 - `/sales-book/customers`
 - `/sales-book/dispatch`
-- `/sales-book/dispatch/v2`
+- `/sales-book/dispatch/v2` (compatibility redirect to `/sales-book/dispatch`)
 - `/sales-book/dispatch-admin`
 - `/sales-book/dispatch-task`
 - `/sales-book/edit/[type]`
@@ -80,9 +80,9 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/sales-book/inbound-management`
 - `/sales-book/orders`
 - `/sales-book/orders/bin`
-- `/sales-book/orders/v2`
+- `/sales-book/orders/v2` (compatibility redirect to `/sales-book/orders`)
 - `/sales-book/orders/overview-v2`
-- `/sales-book/productions`
+- `/sales-book/productions` (compatibility redirect to `/sales-book/productions/v2`)
 - `/sales-book/productions/v2`
 - `/sales-book/quotes`
 - `/sales-book/quotes/bin`

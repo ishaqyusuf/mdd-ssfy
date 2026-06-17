@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 
 export function SelectTag({

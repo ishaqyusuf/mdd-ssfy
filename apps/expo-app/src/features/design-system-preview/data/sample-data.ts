@@ -59,6 +59,83 @@ export const opsRecords: PreviewRecord[] = [
 			{ icon: "TriangleAlert", label: "Change order" },
 		],
 	},
+	{
+		id: "W-512",
+		title: "Warehouse Pull List",
+		subtitle: "Door slabs staged, hardware bins still need verification",
+		status: "pending",
+		meta: [
+			{ icon: "Warehouse", label: "Bay 4" },
+			{ icon: "ClipboardList", label: "16 lines" },
+			{ icon: "Clock", label: "Due 4:00 PM" },
+		],
+	},
+	{
+		id: "I-238",
+		title: "Oakmont Install Closeout",
+		subtitle: "Final photos uploaded, waiting on customer signature",
+		status: "complete",
+		meta: [
+			{ icon: "Camera", label: "Photos" },
+			{ icon: "CheckCircle2", label: "Checklist" },
+			{ icon: "User", label: "A. Lee" },
+		],
+	},
+	{
+		id: "SO-8812",
+		title: "Westfield Production Hold",
+		subtitle: "Line item mismatch between quote and production packet",
+		status: "blocked",
+		meta: [
+			{ icon: "HardHat", label: "Production" },
+			{ icon: "ReceiptText", label: "SO-8812" },
+			{ icon: "TriangleAlert", label: "Mismatch" },
+		],
+	},
+	{
+		id: "D-291",
+		title: "South Loop Route",
+		subtitle: "Driver assigned, route window confirmed with customer",
+		status: "ready",
+		meta: [
+			{ icon: "Truck", label: "Route 18" },
+			{ icon: "MapPin", label: "San Antonio" },
+			{ icon: "Clock", label: "Tomorrow" },
+		],
+	},
+	{
+		id: "QT-802",
+		title: "Dealer Quote Follow-up",
+		subtitle: "Margin approved, waiting for revised delivery estimate",
+		status: "pending",
+		meta: [
+			{ icon: "FileText", label: "Quote" },
+			{ icon: "CircleDollarSign", label: "$24.9k" },
+			{ icon: "User", label: "Dealer" },
+		],
+	},
+	{
+		id: "J-1056",
+		title: "Cedar Park Cabinet Job",
+		subtitle: "Measurements checked and ready for production scheduling",
+		status: "ready",
+		meta: [
+			{ icon: "Briefcase", label: "Job #1056" },
+			{ icon: "ClipboardCheck", label: "Approved" },
+			{ icon: "Calendar", label: "Schedule" },
+		],
+	},
+	{
+		id: "CS-144",
+		title: "Service Ticket Review",
+		subtitle: "Customer reported one missing trim piece after delivery",
+		status: "blocked",
+		meta: [
+			{ icon: "TriangleAlert", label: "Service" },
+			{ icon: "Truck", label: "Delivered" },
+			{ icon: "MapPin", label: "Plano" },
+		],
+	},
 ];
 
 export const fieldMetrics: PreviewMetric[] = [

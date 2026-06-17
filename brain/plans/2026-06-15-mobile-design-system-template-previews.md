@@ -245,6 +245,15 @@ Implemented on 2026-06-15.
 - Added `apps/expo-app/DESIGN.md` and preview-specific `DESIGN.md`.
 - Registered `design-system-preview` in the protected root Expo stack for signed-in users.
 - Follow-up update: the Settings section, protected root stack screen, and preview route layout are now gated behind `__DEV__` so the previews are development-only.
+- Follow-up update: added per-template dark palettes and wired the preview index plus all three template screens to resolve colors from the active app color scheme.
+- Follow-up update: added the existing app theme toggle to the top-right header slot of the shared preview shell, so all three template screens can switch light/dark mode in place.
+- Follow-up update: moved template bottom tabs into a shared shell overlay so they no longer scroll with the template content.
+- Follow-up update: changed the shared preview shell to derive header text/search contrast and native status bar style from header luminance, fixing Ops Console light-mode status icons and Sales Ledger light-mode header text visibility.
+- Follow-up update: expanded the Ops Console work queue sample to ten records so the template exercises scrolling under the bottom tab overlay.
+- Follow-up update: replaced the preview header's image-based global theme toggle with a local Sun/Moon icon toggle that inherits the template header foreground color.
+- Follow-up update: added explicit clipping to rounded preview touch surfaces and header controls so pressed/ripple feedback does not bleed over curved component edges.
+- Follow-up update: added a reusable `Icon` `inverted` option that resolves theme-token colors against the opposite app theme, then used it for preview header back, search, and filter icons when the custom header surface is opposite the current theme.
+- Follow-up update: changed the bottom tab overlay to float without a full-width footer background, increasing scroll padding so content remains visible around and behind the tab card.
 - Removed the existing `setting?.type!` job-settings update ambiguity by sending the literal `"jobs-settings"` type from Settings.
 
 Validation:

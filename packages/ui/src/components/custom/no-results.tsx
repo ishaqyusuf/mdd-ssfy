@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Button } from "../button";
 
 interface Props {

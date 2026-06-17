@@ -26,7 +26,7 @@ function Content() {
 	const ctx = useSearchFilterContext();
 	const { shouldFetch } = ctx;
 	const trpc = useTRPC();
-	const { data: trpcFilterData } = useQuery({
+	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.customer.queryOptions(),
 	});
@@ -36,6 +36,7 @@ function Content() {
 			<SearchFilterTRPC
 				placeholder="Search customers"
 				filterList={trpcFilterData}
+				loading={shouldFetch && isFetching}
 			/>
 		</>
 	);

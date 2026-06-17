@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 import { Fragment } from "react";
 
 const salesCustomTabs = [
-    { key: "orders", href: "/sales-book/orders/v2", label: "Sales" },
+    { key: "orders", href: "/sales-book/orders", label: "Sales" },
     { key: "quotes", href: "/sales-book/quotes", label: "quotes" },
 ];
 

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Image, Text, View } from "@react-pdf/renderer";
 import type { PrintSection, RowCell } from "@gnd/sales/print/types";
 import { cn } from "../../../../utils/tw";

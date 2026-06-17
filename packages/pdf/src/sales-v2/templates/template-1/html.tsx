@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { SalesTemplateRenderProps } from "../../registry";
 import { SalesHtmlTemplatePage } from "../../shared/html-template";
 

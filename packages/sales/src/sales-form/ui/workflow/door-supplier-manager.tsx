@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { Badge } from "@gnd/ui/badge";

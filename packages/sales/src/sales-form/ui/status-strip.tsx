@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { cn } from "@gnd/ui/cn";

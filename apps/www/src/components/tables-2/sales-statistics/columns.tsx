@@ -1,0 +1,214 @@
+"use client";
+
+import { env } from "@/env.mjs";
+import { cn } from "@/lib/utils";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Badge } from "@gnd/ui/badge";
+import { FormatAmount } from "@gnd/ui/custom/format-amount";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import type { ColumnDef } from "@tanstack/react-table";
+
+export type SalesStatistic =
+	RouterOutputs["sales"]["getProductReport"]["data"][number];
+
+type Column = ColumnDef<SalesStatistic>;
+
+export function resolveProductImageSrc(src?: string | null) {
+	if (!src) return null;
+	if (src.startsWith("http") || src.startsWith("/")) return src;
+
+	return `${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${src}`;
+}
+
+export function getSalesStatisticRowId(item: SalesStatistic, index?: number) {
+	return (
+		item.id?.toString() ??
+		item.productCode ??
+		`${item.name ?? "sales-statistic"}-${index ?? "unknown"}`
+	);
+}
+
+function ProductCell({ item }: { item: SalesStatistic }) {
+	const title = item.name || "-";
+	const imageSrc = resolveProductImageSrc(item.img);
+
+	return (
+		<div className="flex min-w-0 items-center gap-3">
+			<div className="size-10 shrink-0 overflow-hidden rounded border bg-muted">
+				{imageSrc ? (
+					<img
+						src={imageSrc}
+						alt={title}
+						className="h-full w-full object-cover"
+					/>
+				) : (
+					<div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase text-muted-foreground">
+						{title.slice(0, 1)}
+					</div>
+				)}
+			</div>
+			<div className="min-w-0 space-y-0.5">
+				<TextWithTooltip
+					className="max-w-full truncate font-semibold uppercase"
+					text={title}
+				/>
+				{item.productCode ? (
+					<div className="truncate font-mono text-[11px] text-muted-foreground">
+						{item.productCode}
+					</div>
+				) : null}
+			</div>
+		</div>
+	);
+}
+
+function MoneyCell({ value }: { value?: number | null }) {
+	return (
+		<span className="block text-right font-mono font-medium">
+			<FormatAmount amount={value ?? 0} maximumFractionDigits={0} />
+		</span>
+	);
+}
+
+function MarginCell({ item }: { item: SalesStatistic }) {
+	const salesPrice = Number(item.salesPrice || 0);
+	const costPrice = Number(item.costPrice || 0);
+	const margin =
+		salesPrice > 0 ? ((salesPrice - costPrice) / salesPrice) * 100 : 0;
+
+	return (
+		<span
+			className={cn(
+				"block text-right font-mono font-medium",
+				margin >= 25
+					? "text-emerald-700"
+					: margin > 0
+						? "text-amber-700"
+						: "text-muted-foreground",
+			)}
+		>
+			{margin.toFixed(1)}%
+		</span>
+	);
+}
+
+export const columns: Column[] = [
+	{
+		id: "productName",
+		header: "Product",
+		accessorKey: "name",
+		size: 320,
+		minSize: 260,
+		maxSize: 520,
+		enableResizing: true,
+		enableHiding: false,
+		meta: {
+			sticky: true,
+			skeleton: { type: "avatar-text" },
+			headerLabel: "Product",
+			className:
+				"w-[320px] min-w-[260px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		},
+		cell: ({ row }) => <ProductCell item={row.original} />,
+	},
+	{
+		id: "category",
+		header: "Category",
+		accessorKey: "category",
+		size: 180,
+		minSize: 140,
+		maxSize: 260,
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "badge" },
+			headerLabel: "Category",
+			className: "w-[180px] min-w-[140px]",
+		},
+		cell: ({ row }) =>
+			row.original.category ? (
+				<Badge variant="secondary" className="max-w-full truncate">
+					{row.original.category}
+				</Badge>
+			) : (
+				<span className="text-muted-foreground">-</span>
+			),
+	},
+	{
+		id: "units",
+		header: "Units Sold",
+		accessorKey: "units",
+		size: 120,
+		minSize: 100,
+		maxSize: 160,
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-16" },
+			headerLabel: "Units Sold",
+			className: "w-[120px] min-w-[100px] text-right",
+		},
+		cell: ({ row }) => (
+			<span className="block text-right font-mono font-medium">
+				{row.original.units ?? 0}
+			</span>
+		),
+	},
+	{
+		id: "revenue",
+		header: "Revenue",
+		accessorKey: "revenue",
+		size: 140,
+		minSize: 120,
+		maxSize: 180,
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-20" },
+			headerLabel: "Revenue",
+			className: "w-[140px] min-w-[120px] text-right",
+		},
+		cell: ({ row }) => <MoneyCell value={row.original.revenue} />,
+	},
+	{
+		id: "costPrice",
+		header: "Cost Price",
+		accessorKey: "costPrice",
+		size: 140,
+		minSize: 120,
+		maxSize: 180,
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-20" },
+			headerLabel: "Cost Price",
+			className: "w-[140px] min-w-[120px] text-right",
+		},
+		cell: ({ row }) => <MoneyCell value={row.original.costPrice} />,
+	},
+	{
+		id: "salesPrice",
+		header: "Sales Price",
+		accessorKey: "salesPrice",
+		size: 140,
+		minSize: 120,
+		maxSize: 180,
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-20" },
+			headerLabel: "Sales Price",
+			className: "w-[140px] min-w-[120px] text-right",
+		},
+		cell: ({ row }) => <MoneyCell value={row.original.salesPrice} />,
+	},
+	{
+		id: "margin",
+		header: "Margin",
+		size: 120,
+		minSize: 100,
+		maxSize: 160,
+		enableResizing: true,
+		meta: {
+			skeleton: { type: "text", width: "w-16" },
+			headerLabel: "Margin",
+			className: "w-[120px] min-w-[100px] text-right",
+		},
+		cell: ({ row }) => <MarginCell item={row.original} />,
+	},
+];

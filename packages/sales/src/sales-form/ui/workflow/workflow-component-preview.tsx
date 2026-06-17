@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 export type WorkflowComponentPreviewProps = {

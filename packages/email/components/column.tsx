@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Img, Row, Section, Text } from "@react-email/components";
 import { getEmailThemeClasses } from "./theme";
 

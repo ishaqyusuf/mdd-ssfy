@@ -33,6 +33,14 @@ The previews adapt those ideas to GND's actual mobile domains: jobs, dispatch, w
 - No live mutations.
 - No production dashboard behavior changes.
 - Development builds only.
+- Light and dark palettes are defined per template.
+- Preview screens resolve the active palette from the app color scheme.
+- Template screens expose the app theme toggle in the top-right header slot.
+- Template bottom tabs render as a floating overlay outside the scroll view, with transparent surrounding space so content remains visible around the tab card.
+- Header text, search controls, and native status bar style derive from header luminance so dark chrome uses light system icons and near-white chrome keeps dark text.
+- Header theme-toggle icons also derive from the header foreground instead of the global app theme artwork.
+- Header back, search, and filter icons use the shared `Icon` `inverted` option when the custom header surface is opposite the current app theme.
+- Rounded touch surfaces and header controls set explicit clipping so pressed/ripple feedback does not bleed past curved corners.
 - Components stay local to `src/features/design-system-preview`.
 - Tiny route wrappers live in `src/app/design-system-preview`.
 - Existing app primitives are reused where practical: `Pressable`, `Icon`, React Native `Text` and `View`.
@@ -53,9 +61,11 @@ Visual system:
 - dark graphite top chrome
 - light gray background
 - white cards with thin borders
+- dark mode shifts to graphite surfaces, softer blue accents, and brighter state colors
 - compact search/filter row
 - metadata rows with small icons
 - status chips for ready, pending, blocked, and complete states
+- extended work queue sample so the screen scrolls beneath and around the floating tab card
 - bottom navigation mock
 
 Tradeoff:
@@ -79,6 +89,7 @@ Best fit:
 Visual system:
 
 - light header
+- dark mode uses a deep teal-black header and surfaces instead of white field cards
 - prominent active-route card
 - larger controls
 - pill filters
@@ -104,6 +115,7 @@ Best fit:
 Visual system:
 
 - soft off-white background
+- dark mode uses warm charcoal surfaces while preserving the ledger feel
 - lower-radius cards
 - ledger rows
 - tabular numeric values

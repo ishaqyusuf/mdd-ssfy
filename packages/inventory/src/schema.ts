@@ -347,6 +347,33 @@ export const dykeStepComponentSchema = z.object({
 });
 export type DykeStepComponent = z.infer<typeof dykeStepComponentSchema>;
 
+export const upsertDykeCustomStepComponentSchema = z.object({
+  id: z.number().optional(),
+  uid: z.string().optional(),
+  stepId: z.number(),
+  title: z.string(),
+  price: z.number().nullable().optional(),
+  pricingId: z.number().optional(),
+  dependenciesUid: z.string().optional(),
+  img: z.string().optional(),
+  meta: z.record(z.string(), z.any()).optional(),
+});
+export type UpsertDykeCustomStepComponent = z.infer<
+  typeof upsertDykeCustomStepComponentSchema
+>;
+
+export const archiveDykeCustomStepComponentSchema = z
+  .object({
+    id: z.number().optional(),
+    uid: z.string().optional(),
+  })
+  .refine((input) => Boolean(input.id || input.uid), {
+    message: "Custom component id or uid is required",
+  });
+export type ArchiveDykeCustomStepComponent = z.infer<
+  typeof archiveDykeCustomStepComponentSchema
+>;
+
 export const updateDykeComponentPricingSchema = z.object({
   stepId: z.number(),
   stepProductUid: z.string(),

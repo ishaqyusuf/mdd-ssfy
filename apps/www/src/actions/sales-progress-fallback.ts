@@ -3,6 +3,7 @@
 import { prisma } from "@/db";
 
 import { resetSalesStatAction } from "./reset-sales-stat";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 
 export interface SalesProgressFallback {
     dispatchId?;
@@ -49,4 +50,5 @@ export async function salesProgressFallBackAction(
             });
     });
     await resetSalesStatAction(props.salesId, props.salesUid);
+    await syncInventoryProductionLifecycleForSale(prisma as any, props.salesId);
 }

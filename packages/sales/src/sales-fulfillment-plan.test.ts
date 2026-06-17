@@ -181,6 +181,57 @@ describe("buildSalesBackorderQueue", () => {
 		expect(queue.summary.totalCount).toBe(0);
 		expect(queue.summary.backorderedQty).toBe(0);
 	});
+
+	test("keeps non-produceable stock demand in fulfillment queues", () => {
+		const queue = buildSalesBackorderQueue([
+			{
+				id: 1,
+				title: "Moulding",
+				qty: 3,
+				meta: {
+					production: {
+						produceable: false,
+					},
+					inventorySync: {
+						productionProduceable: false,
+					},
+				},
+				sale: {
+					id: 100,
+					orderId: "0001",
+				},
+				salesItem: {
+					id: 200,
+					itemDeliveries: [],
+				},
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 3,
+						inventory: {
+							id: 500,
+							name: "Moulding stock",
+						},
+						stockAllocations: [],
+						inboundDemands: [{ qty: 3, qtyReceived: 0, status: "ordered" }],
+					},
+				],
+			},
+		]);
+
+		expect(queue.summary.totalCount).toBe(1);
+		expect(queue.summary.inboundQty).toBe(3);
+		expect(queue.items[0]).toMatchObject({
+			title: "Moulding",
+			status: "awaiting_inbound",
+			backorderedQty: 3,
+			inboundQty: 3,
+		});
+		expect(queue.items[0]?.blockerComponents[0]?.inventoryName).toBe(
+			"Moulding stock",
+		);
+	});
 });
 
 describe("hold until complete partial shipment planning", () => {
@@ -536,6 +587,53 @@ describe("buildSalesProductionPlan", () => {
 			lineReadiness: "awaiting_inbound",
 		});
 	});
+
+	test("ignores inventory-backed lines marked non-produceable", () => {
+		const plan = buildSalesProductionPlan([
+			{
+				id: 1,
+				title: "Moulding",
+				qty: 1,
+				meta: {
+					production: {
+						produceable: false,
+					},
+				},
+				components: [
+					{
+						id: 10,
+						required: true,
+						qty: 1,
+						stockAllocations: [],
+						inboundDemands: [{ qty: 1, qtyReceived: 0, status: "pending" }],
+					},
+				],
+			},
+			{
+				id: 2,
+				title: "Door",
+				qty: 1,
+				meta: {
+					production: {
+						produceable: true,
+					},
+				},
+				components: [
+					{
+						id: 11,
+						required: true,
+						qty: 1,
+						stockAllocations: [{ qty: 1, status: "approved" }],
+					},
+				],
+			},
+		]);
+
+		expect(plan.summary.lineCount).toBe(1);
+		expect(plan.summary.componentCount).toBe(1);
+		expect(plan.components[0]?.lineTitle).toBe("Door");
+		expect(plan.components[0]?.componentId).toBe(11);
+	});
 });
 
 describe("planReceivedBackorderAllocation", () => {
@@ -710,6 +808,43 @@ describe("planAvailableShipmentForLine", () => {
 		expect(plan.shipQty).toBe(4);
 		expect(plan.backorderedQty).toBe(0);
 		expect(plan.components[0]?.consumeQty).toBe(4);
+	});
+
+	test("does not let optional component shortages block required-component shipment", () => {
+		const plan = planAvailableShipmentForLine({
+			orderedQty: 5,
+			alreadyShippedQty: 0,
+			components: [
+				{
+					componentId: 1,
+					required: true,
+					orderedQty: 5,
+					availableQty: 5,
+					inventoryVariantId: 101,
+				},
+				{
+					componentId: 2,
+					required: false,
+					orderedQty: 5,
+					availableQty: 0,
+					inventoryVariantId: 102,
+				},
+			],
+		});
+
+		expect(plan).toMatchObject({
+			orderedQty: 5,
+			shipQty: 5,
+			backorderedQty: 0,
+		});
+		expect(plan.components).toEqual([
+			{
+				componentId: 1,
+				consumeQty: 5,
+				backorderedQty: 0,
+				inventoryVariantId: 101,
+			},
+		]);
 	});
 });
 

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { PrintSigningData } from "@gnd/sales/print/types";
 import { Image, Text, View } from "@react-pdf/renderer";
 import { resolveDocumentImageSrc } from "../../../shared/utils";

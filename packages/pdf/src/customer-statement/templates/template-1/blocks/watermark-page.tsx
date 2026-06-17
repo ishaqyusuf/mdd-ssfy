@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Image, Page, Text, View } from "@react-pdf/renderer";
 import type { PageProps } from "@react-pdf/renderer";
 import type { ReactNode } from "react";

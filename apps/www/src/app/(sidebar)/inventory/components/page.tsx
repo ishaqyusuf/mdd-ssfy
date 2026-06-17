@@ -1,12 +1,14 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { InventoryHeader } from "@/components/inventory-header";
-import { DataTable } from "@/components/tables/inventory-products/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
+import PageShell from "@/components/page-shell";
+import { DataTable } from "@/components/tables-2/inventory-products/data-table";
+import { InventoryProductsSkeleton } from "@/components/tables-2/inventory-products/skeleton";
 import { loadInventoryFilterParams } from "@/hooks/use-inventory-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import PageShell from "@/components/page-shell";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
-import { getQueryClient, HydrateClient, trpc } from "@/trpc/server";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
@@ -14,42 +16,53 @@ import { Suspense } from "react";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
-    return constructMetadata({
-        title: "Components | GND",
-    });
+	return constructMetadata({
+		title: "Components | GND",
+	});
 }
 
 type Props = {
-    searchParams: Promise<SearchParams>;
+	searchParams: Promise<SearchParams>;
 };
+type InventoryProductsInput = RouterInputs["inventories"]["inventoryProducts"];
 
 export default async function Page(props: Props) {
-    const searchParams = await props.searchParams;
-    const queryClient = getQueryClient();
-    const filter = {
-        productKind: "component" as const,
-        ...loadInventoryFilterParams(searchParams),
-    };
+	const searchParams = await props.searchParams;
+	const filter = loadInventoryFilterParams(searchParams);
+	const initialSettings = await getInitialTableSettings("inventory-products");
+	const queryInput = {
+		...filter,
+		productKind: filter.productKind ?? "component",
+		showCustom: filter.showCustom ?? false,
+	} as InventoryProductsInput;
 
-    await queryClient.fetchInfiniteQuery(
-        trpc.inventories.inventoryProducts.infiniteQueryOptions({
-            ...filter,
-        }) as any,
-    );
+	batchPrefetch([
+		trpc.inventories.inventoryProducts.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
 
-    return (
-        <PageShell>
-            <PageTitle>Components</PageTitle>
-            <HydrateClient>
-                <div className="flex flex-col gap-6">
-                    <InventoryHeader />
-                    <ErrorBoundary errorComponent={ErrorFallback}>
-                        <Suspense fallback={<TableSkeleton />}>
-                            <DataTable defaultProductKind="component" />
-                        </Suspense>
-                    </ErrorBoundary>
-                </div>
-            </HydrateClient>
-        </PageShell>
-    );
+	return (
+		<PageShell>
+			<PageTitle>Components</PageTitle>
+			<HydrateClient>
+				<div className="flex flex-col gap-6">
+					<InventoryHeader defaultProductKind="component" />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense
+							fallback={
+								<InventoryProductsSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable
+								defaultProductKind="component"
+								initialSettings={initialSettings}
+							/>
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
+		</PageShell>
+	);
 }

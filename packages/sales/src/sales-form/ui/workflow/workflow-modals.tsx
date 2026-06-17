@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 export { ComponentEditDialog, type ComponentEditDialogMode, type ComponentEditDialogProps, type ComponentEditDialogRouteOption, type ComponentEditDialogState } from "./modals/component-edit-dialog";

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Text, View } from "@react-pdf/renderer";
 
 const BORDER = "#d1dae8";

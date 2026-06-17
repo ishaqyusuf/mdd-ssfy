@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useTable } from ".";
 import { Spinner } from "../../spinner";
 

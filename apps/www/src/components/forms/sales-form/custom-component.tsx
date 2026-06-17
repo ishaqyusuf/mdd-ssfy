@@ -1,172 +1,163 @@
-import { useEffect, useMemo, useState } from "react";
 import { useStepContext } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/ctx";
 import { ComponentHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
 import Button from "@/components/common/button";
-import { NumberInput } from "@/components/currency-input";
-import { LabelInput } from "@/components/label-input";
-import { generateRandomString } from "@/lib/utils";
+import {
+	CustomComponentCombobox,
+	buildCustomComponentOptions,
+	customComponentPriceChanged,
+	findCustomComponentOption,
+} from "@/components/forms/sales-form/custom-component-combobox";
+import type { CustomComponentOption } from "@/components/forms/sales-form/custom-component-combobox";
 import { useTRPC } from "@/trpc/client";
 import { CUSTOM_IMG_ID } from "@/utils/constants";
-import { useForm } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useForm } from "react-hook-form";
 
-import { Label } from "@gnd/ui/label";
+export function CustomComponentForm({
+	itemStepUid,
+	onComplete,
+}: {
+	itemStepUid: string;
+	onComplete?: () => void;
+}) {
+	const trpc = useTRPC();
+	const ctx = useStepContext(itemStepUid);
+	const customOptions = useMemo(
+		() => buildCustomComponentOptions(ctx.stepComponents),
+		[ctx.stepComponents],
+	);
 
-export function CustomComponentForm({ itemStepUid }) {
-    const trpc = useTRPC();
-    const ctx = useStepContext(itemStepUid);
-    const customInputs = useMemo(
-        () => ctx.stepComponents?.filter((s) => s._metaData.custom),
-        [ctx.stepComponents]
-    );
+	const form = useForm({
+		defaultValues: {
+			title: "",
+			basePrice: null as number | null,
+			selectedOption: null as CustomComponentOption | null,
+		},
+	});
+	const formData = form.watch();
+	const selectedOption =
+		formData.selectedOption ||
+		findCustomComponentOption(customOptions, formData.title || "");
+	const hasSelectedOption = Boolean(
+		selectedOption?.uid || selectedOption?.componentId,
+	);
+	const priceChanged = customComponentPriceChanged(
+		selectedOption,
+		formData.basePrice,
+	);
+	const saveComponentMutation = useMutation(
+		trpc.inventories.upsertDykeCustomStepComponent.mutationOptions({
+			onError() {},
+			async onSuccess(data) {
+				ctx.cls.addStepComponent(data.component);
+				await refreshAndSelectComponent(String(data.component.uid || ""));
+				onComplete?.();
+			},
+		}),
+	);
+	const archiveComponentMutation = useMutation(
+		trpc.inventories.archiveDykeCustomStepComponent.mutationOptions({
+			async onSuccess(_data, variables) {
+				await ctx.cls.refreshStepComponentsData(true);
+				if (
+					(variables.uid &&
+						String(selectedOption?.uid || "") === String(variables.uid)) ||
+					(variables.id &&
+						Number(selectedOption?.componentId || 0) === Number(variables.id))
+				) {
+					form.setValue("selectedOption", null);
+					form.setValue("title", "");
+					form.setValue("basePrice", null);
+				}
+			},
+		}),
+	);
+	async function refreshAndSelectComponent(uid: string) {
+		if (!uid) return;
+		await ctx.cls.refreshStepComponentsData(true);
+		const cls = new ComponentHelperClass(itemStepUid, uid);
+		if (formData.basePrice != null) await cls.fetchUpdatedPrice();
+		setTimeout(() => cls.selectComponent(), 250);
+	}
+	function save(options?: { updatePrice?: boolean }) {
+		const title = String(formData.title || "").trim();
+		if (!title || !stepForm?.stepId) return;
 
-    const form = useForm({
-        defaultValues: {
-            title: undefined,
-            basePrice: undefined,
-            salesPrice: undefined,
-            editMode: true,
-            saveData: undefined,
-            pricingUpdated: undefined,
-        },
-    });
-    const formData = form.watch();
-    async function saveComponentPrice() {
-        const uid = formData.saveData.uid;
-        const priceModel = ctx.cls.getComponentPriceModel(uid);
-        const dependenciesUid = priceModel.priceVariants?.find(
-            (d) => d.current
-        )?.path;
+		if (hasSelectedOption && !options?.updatePrice) {
+			void refreshAndSelectComponent(String(selectedOption?.uid || ""));
+			onComplete?.();
+			return;
+		}
 
-        //  let currentPricingId = Object.entries(priceModel.priceVariants).find(
-        //     ([k, d]) => d.current,
-        // )[0];
-        const current = priceModel.pricing?.[dependenciesUid];
-        // const currentPricingModel = priceModel?.pricing?.[current?.];
-
-        if (current?.price == formData.basePrice) refreshAndSelectComponent();
-        else {
-            savePriceMutation.mutate({
-                stepId: ctx.cls.getStepForm().stepId,
-                stepProductUid: uid,
-                pricings: [
-                    {
-                        id: current?.id || undefined,
-                        price: formData?.basePrice,
-                        dependenciesUid,
-                    },
-                ],
-            });
-        }
-    }
-    const savePriceMutation = useMutation(
-        trpc.inventories.updateDykeComponentPricing.mutationOptions({
-        onSuccess(data) {
-            form.setValue("pricingUpdated", generateRandomString());
-            // refreshAndSelectComponent(data.input.stepProductUid);
-        },
-        onError(error) {},
-        })
-    );
-    useEffect(() => {
-        let data = formData.saveData;
-        if (data) {
-            ctx.cls.addStepComponent(data);
-
-            if (formData.basePrice) {
-                saveComponentPrice();
-            } else refreshAndSelectComponent();
-        }
-    }, [formData.saveData]);
-    useEffect(() => {
-        if (formData.pricingUpdated) {
-            refreshAndSelectComponent();
-        }
-    }, [formData.pricingUpdated, formData.saveData]);
-    // saveAction.hasSucceeded
-    const saveComponentMutation = useMutation(
-        trpc.inventories.saveDykeStepComponent.mutationOptions({
-            onError() {},
-            onSuccess(data) {
-                form.setValue("saveData", data.component);
-            },
-        })
-    );
-    const [componentCls, setComponentCls] = useState<ComponentHelperClass>();
-    useEffect(() => {
-        if (!componentCls) return;
-        setTimeout(() => {
-            componentCls.selectComponent();
-        }, 500);
-    }, [componentCls, formData.saveData]);
-    async function refreshAndSelectComponent() {
-        const uid = formData.saveData.uid;
-        await ctx.cls.refreshStepComponentsData(true);
-        let cls = new ComponentHelperClass(itemStepUid, uid);
-        if (formData?.basePrice) await cls.fetchUpdatedPrice();
-        setComponentCls(cls);
-
-        // componentCls.selectComponent();
-    }
-    function save() {
-        let existing = customInputs?.find(
-            (i) =>
-                i.title?.toLocaleLowerCase() ==
-                formData?.title?.toLocaleLowerCase()
-        );
-
-        saveComponentMutation.mutate({
-            id: existing?.id,
-            custom: true,
-            img: CUSTOM_IMG_ID,
-            meta: {},
-            name: formData.title,
-            stepId: stepForm.stepId,
-        });
-    }
-    const stepForm = ctx.cls.getStepForm();
-    if (!stepForm?.meta?.custom) return null;
-    return (
-        <div className="min-h-[56px] rounded-lg border  font-mono$">
-            <div className="border-b p-4 py-2">
-                <Label>Custom</Label>
-            </div>
-            <div className="grid gap-4 p-4">
-                <div className="grid gap-2">
-                    <Label>Component</Label>
-                    <LabelInput
-                        className="rounded-none border-border uppercase"
-                        value={formData.title}
-                        onChange={(e) => form.setValue("title", e.target.value)}
-                    />
-                </div>
-                <div className="flex items-center justify-end gap-4">
-                    <Label>Cost Price</Label>
-                    <NumberInput
-                        prefix="$"
-                        value={formData.basePrice}
-                        className="w-12 rounded-none"
-                        onValueChange={(values) => {
-                            form.setValue(
-                                "basePrice",
-                                values.floatValue || null
-                            );
-                        }}
-                    />
-                </div>
-                <div className="flex justify-end">
-                    <Button
-                        disabled={
-                            saveComponentMutation.isPending ||
-                            savePriceMutation.isPending
-                        }
-                        onClick={save}
-                        size="xs"
-                    >
-                        Proceed
-                    </Button>
-                </div>
-            </div>
-        </div>
-    );
+		saveComponentMutation.mutate({
+			id: selectedOption?.componentId,
+			uid: selectedOption?.uid || undefined,
+			img: CUSTOM_IMG_ID,
+			meta: {},
+			title,
+			price: formData.basePrice,
+			pricingId: selectedOption?.pricingId,
+			dependenciesUid: selectedOption?.dependenciesUid,
+			stepId: stepForm.stepId,
+		});
+	}
+	const stepForm = ctx.cls.getStepForm();
+	if (!stepForm?.meta?.custom) return null;
+	return (
+		<div className="grid gap-4">
+			<CustomComponentCombobox
+				title={formData.title}
+				price={formData.basePrice}
+				options={customOptions}
+				disabled={
+					saveComponentMutation.isPending || archiveComponentMutation.isPending
+				}
+				onTitleChange={(title) => {
+					form.setValue("title", title);
+					if (
+						formData.selectedOption &&
+						formData.selectedOption.title.trim().toLowerCase() !==
+							title.trim().toLowerCase()
+					) {
+						form.setValue("selectedOption", null);
+					}
+				}}
+				onPriceChange={(price) => form.setValue("basePrice", price)}
+				onSelect={(option) => form.setValue("selectedOption", option)}
+				onDeleteOption={(option) => {
+					archiveComponentMutation.mutate({
+						id: option.componentId,
+						uid: option.uid || undefined,
+					});
+				}}
+			/>
+			<div className="flex justify-end gap-2">
+				{hasSelectedOption && priceChanged ? (
+					<Button
+						disabled={
+							saveComponentMutation.isPending ||
+							archiveComponentMutation.isPending
+						}
+						onClick={() => save({ updatePrice: true })}
+						size="xs"
+						variant="outline"
+					>
+						Update price
+					</Button>
+				) : null}
+				<Button
+					disabled={
+						saveComponentMutation.isPending ||
+						archiveComponentMutation.isPending ||
+						!String(formData.title || "").trim()
+					}
+					onClick={() => save()}
+					size="xs"
+				>
+					Proceed
+				</Button>
+			</div>
+		</div>
+	);
 }

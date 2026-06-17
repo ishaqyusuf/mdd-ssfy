@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { buildInventoryProductionProjection } from "./inventory-production-lifecycle";
+import {
+  buildInventoryProductionProjection,
+  mergeMetaWithProduction,
+} from "./inventory-production-lifecycle";
 
 const fixedNow = new Date("2026-06-15T12:00:00.000Z");
 
@@ -98,5 +101,43 @@ describe("buildInventoryProductionProjection", () => {
 
     expect(projection.status).toBe("fulfilled");
     expect(projection.assignedQty).toBe(1);
+  });
+
+  it("preserves Dyke produceable metadata when refreshing production lifecycle", () => {
+    const meta = mergeMetaWithProduction(
+      {
+        production: {
+          produceable: false,
+          source: "dyke",
+        },
+        inventorySync: {
+          productionProduceable: false,
+        },
+      },
+      {
+        orderedQty: 4,
+        assignedQty: 4,
+        fulfilledQty: 2,
+        remainingQty: 2,
+        status: "partially_fulfilled",
+        updatedAt: fixedNow.toISOString(),
+      },
+    );
+
+    expect(meta).toEqual({
+      production: {
+        produceable: false,
+        source: "dyke",
+        orderedQty: 4,
+        assignedQty: 4,
+        fulfilledQty: 2,
+        remainingQty: 2,
+        status: "partially_fulfilled",
+        updatedAt: fixedNow.toISOString(),
+      },
+      inventorySync: {
+        productionProduceable: false,
+      },
+    });
   });
 });

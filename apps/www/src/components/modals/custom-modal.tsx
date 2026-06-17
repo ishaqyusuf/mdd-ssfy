@@ -42,7 +42,7 @@ const sheetContentVariant = cva("flex w-full flex-col", {
 });
 
 interface Props
-	extends SheetContentProps,
+	extends Omit<SheetContentProps, "title">,
 		VariantProps<typeof sheetContentVariant> {
 	children?: React.ReactNode;
 	open?: boolean;
@@ -92,7 +92,7 @@ function CustomModalBase({
 							<div id="customModalTitle" />
 						</>
 					) : (
-						<Dialog.Title id="customModalTitle">{title}</Dialog.Title>
+						<Dialog.Title>{title}</Dialog.Title>
 					)}
 					{!description ? null : descriptionAsChild ? (
 						<>
@@ -102,9 +102,7 @@ function CustomModalBase({
 							<div id="customModalDescription" />
 						</>
 					) : (
-						<Dialog.Description id="customModalDescription">
-							{description}
-						</Dialog.Description>
+						<Dialog.Description>{description}</Dialog.Description>
 					)}
 				</Dialog.Header>
 				{children}

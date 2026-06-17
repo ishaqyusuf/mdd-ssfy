@@ -12,6 +12,7 @@ Repository-level implementation rules that recur across active workstreams.
 - Keep correctness-critical business behavior inside explicit package boundaries rather than route-local helpers.
 - Add focused regression coverage for fixes touching pricing, persistence, payments, dispatch, or other high-risk business flows.
 - Preserve existing production behavior when building replacement systems in parallel; cutovers should be explicit, reversible, and documented.
+- React TSX packages that can be imported outside their own app/package compiler context must self-pin their runtime with `/** @jsxImportSource react */`; do not rely only on package `tsconfig` when files may be loaded from `apps/api` or another workspace that uses a different JSX runtime such as `hono/jsx`.
 - Prefer Midday-style page architecture wherever possible:
   - before introducing a new workspace layout, dashboard shell, or page-level data pattern, inspect the local Midday reference and reuse its structural approach when it fits
   - route components should stay thin and avoid blocking navigation on expensive setup work

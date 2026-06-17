@@ -2,6 +2,7 @@
 
 import { prisma } from "@/db";
 import { resetSalesAction } from "@sales/sales-control/actions";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
@@ -41,6 +42,15 @@ export const deleteSalesAssignmentAction = actionClient
         const resp = await prisma.$transaction(async (tx: typeof prisma) => {
             const assignment = await deleteSalesAssignment(input, tx);
             await resetSalesAction(tx as any, assignment.orderId);
+            return {
+                salesId: assignment.orderId,
+            };
         });
+        if (resp?.salesId) {
+            await syncInventoryProductionLifecycleForSale(
+                prisma as any,
+                resp.salesId,
+            );
+        }
         return resp;
     });

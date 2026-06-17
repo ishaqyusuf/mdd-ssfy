@@ -18,6 +18,7 @@ import { Textarea } from "@gnd/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { InboundStatusReconciliationPanel } from "./inbound-status-reconciliation-panel";
 
 const statusToneClassName: Record<string, string> = {
     draft: "border-slate-200 bg-slate-100 text-slate-700",
@@ -89,9 +90,21 @@ export function InboundReceivingPage() {
             staleTime: 60 * 1000,
         }),
     );
+    const inboundReconciliationQuery = useQuery(
+        trpc.inventories.inboundStatusDemandReconciliation.queryOptions(
+            {
+                take: 50,
+            },
+            {
+                refetchOnWindowFocus: false,
+                staleTime: 60 * 1000,
+            },
+        ),
+    );
     const shipments = shipmentsQuery.data ?? [];
     const suppliers = suppliersQuery.data ?? [];
     const demandQueue = demandQueueQuery.data ?? [];
+    const inboundReconciliation = inboundReconciliationQuery.data ?? null;
     const reorderSuggestions =
         reorderSuggestionsQuery.data?.suggestions ?? [];
     const reorderSummary = reorderSuggestionsQuery.data?.summary;
@@ -197,9 +210,10 @@ export function InboundReceivingPage() {
         setReceiveInputs((current) => {
             const next = { ...current };
             for (const item of selectedShipment.items) {
+                const receivedGoodQty = Number(item.qtyGood || 0);
                 next[item.id] = next[item.id] || {
                     qtyReceived: String(item.qty ?? ""),
-                    qtyGood: String(item.qtyGood ?? item.qty ?? ""),
+                    qtyGood: String(receivedGoodQty > 0 ? item.qtyGood : item.qty ?? ""),
                     qtyIssue: String(item.qtyIssue ?? ""),
                     unitPrice:
                         item.unitPrice == null
@@ -240,6 +254,14 @@ export function InboundReceivingPage() {
             }),
             queryClient.invalidateQueries({
                 queryKey: trpc.inventories.supplierReorderSuggestions.queryKey(),
+            }),
+            queryClient.invalidateQueries({
+                queryKey:
+                    trpc.inventories.inboundStatusDemandReconciliation.queryKey(
+                        {
+                            take: 50,
+                        },
+                    ),
             }),
             inboundId
                 ? queryClient.invalidateQueries({
@@ -620,6 +642,92 @@ export function InboundReceivingPage() {
                                         </div>
                                     </div>
 
+                                    {selectedShipment.items.length ? (
+                                        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-900">
+                                                        Receiving lines
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">
+                                                        Post the current good/issue quantities for this
+                                                        inbound.
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        receiveInboundMutation.mutate({
+                                                            inboundId: selectedShipment.id,
+                                                            items: selectedShipment.items.map((item) => {
+                                                                const input = receiveInputs[item.id];
+                                                                return {
+                                                                    inboundShipmentItemId: item.id,
+                                                                    qtyReceived: Number(
+                                                                        input?.qtyReceived || item.qty || 0,
+                                                                    ),
+                                                                    qtyGood: Number(
+                                                                        input?.qtyGood ||
+                                                                            item.qty ||
+                                                                            0,
+                                                                    ),
+                                                                    qtyIssue: Number(
+                                                                        input?.qtyIssue ?? item.qtyIssue ?? 0,
+                                                                    ),
+                                                                    unitPrice: input?.unitPrice
+                                                                        ? Number(input.unitPrice)
+                                                                        : null,
+                                                                    issueType: input?.issueType,
+                                                                    issueNotes: input?.issueNotes || null,
+                                                                };
+                                                            }),
+                                                        })
+                                                    }
+                                                    disabled={receiveInboundMutation.isPending}
+                                                >
+                                                    {receiveInboundMutation.isPending
+                                                        ? "Receiving..."
+                                                        : `Receive Inbound #${selectedShipment.id}`}
+                                                </Button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {selectedShipment.items.map((item) => {
+                                                    const input = receiveInputs[item.id];
+                                                    return (
+                                                        <div
+                                                            key={item.id}
+                                                            className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                                                        >
+                                                            <div className="font-medium text-slate-900">
+                                                                Item #{item.id} • Variant #
+                                                                {item.inventoryVariantId || "N/A"}
+                                                            </div>
+                                                            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                                                <span>Qty {Number(item.qty || 0)}</span>
+                                                                    <span>
+                                                                        Good{" "}
+                                                                        {Number(
+                                                                            input?.qtyGood ||
+                                                                                item.qty ||
+                                                                                0,
+                                                                        )}
+                                                                </span>
+                                                                <span>
+                                                                    Issue{" "}
+                                                                    {Number(input?.qtyIssue ?? item.qtyIssue ?? 0)}
+                                                                </span>
+                                                                <span>
+                                                                    Received {Number(item.qtyGood || 0)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ) : null}
+
                                     {selectedDemandRows.length ? (
                                         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
                                             <span className="font-medium text-slate-900">
@@ -655,6 +763,10 @@ export function InboundReceivingPage() {
             </Card>
 
             <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+                <InboundStatusReconciliationPanel
+                    reconciliation={inboundReconciliation}
+                />
+
                 <Card className="p-4 space-y-4">
                     <div className="space-y-1">
                         <h3 className="text-sm font-semibold">

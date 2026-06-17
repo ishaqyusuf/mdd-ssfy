@@ -1,7 +1,14 @@
 import { type Db, type TransactionClient } from "@gnd/db";
+import {
+	ACTIVE_INBOUND_DEMAND_STATUSES,
+	resolveOrderInboundDemandStatus,
+} from "@gnd/inventory/inbound";
 import { generateInventoryCategoryUidFromShelfCategoryId } from "@gnd/inventory/inventory-utils";
 
 type DbLike = Db | TransactionClient;
+
+export const resolveProjectedInboundDemandStatus =
+	resolveOrderInboundDemandStatus;
 
 export type SyncSalesInventoryLineItemsInput = {
 	salesOrderId: number;
@@ -48,9 +55,11 @@ type SyncComponentCandidate = {
 type SyncItemLike = {
 	id: number;
 	description: string | null;
+	dykeProduction?: boolean | null;
 	meta: unknown;
 	formSteps: Array<{
 		prodUid: string | null;
+		value?: string | null;
 		qty: number | null;
 		meta: unknown;
 		step: { uid: string | null; title: string | null } | null;
@@ -100,6 +109,16 @@ function readNumber(value: unknown): number | null {
 
 function readString(value: unknown): string | null {
 	return typeof value === "string" && value.trim().length ? value.trim() : null;
+}
+
+function readBoolean(value: unknown): boolean | null {
+	if (typeof value === "boolean") return value;
+	if (typeof value === "string") {
+		const normalized = value.trim().toLowerCase();
+		if (normalized === "true") return true;
+		if (normalized === "false") return false;
+	}
+	return null;
 }
 
 function asPositiveNumber(value: unknown, fallback = 1): number {
@@ -442,6 +461,7 @@ function metadataFormSteps(item: SyncItemLike) {
 		);
 		return {
 			prodUid: readString(step.prodUid),
+			value: readString(step.value),
 			qty: readNumber(step.qty),
 			meta: step.meta,
 			step: {
@@ -557,6 +577,70 @@ function metadataHousePackageTool(item: SyncItemLike) {
 			: null,
 		doors,
 	};
+}
+
+function isServiceSalesItem(item: SyncItemLike) {
+	const formSteps = item.formSteps.length
+		? item.formSteps
+		: metadataFormSteps(item);
+	return formSteps.some((step) => {
+		const value = readString(step.value)?.toLowerCase();
+		return value === "services" || value === "service";
+	});
+}
+
+function isMouldingSalesItem(item: SyncItemLike) {
+	const itemMeta = asRecord(item.meta);
+	const nestedMeta = asRecord(itemMeta.meta);
+	const textValues = [
+		item.description,
+		readString(itemMeta.title),
+		readString(itemMeta.itemType),
+		readString(itemMeta.kind),
+		readString(nestedMeta.itemType),
+		readString(nestedMeta.kind),
+	]
+		.filter((value): value is string => Boolean(value))
+		.map((value) => value.toLowerCase());
+
+	if (
+		textValues.some(
+			(value) => value.includes("moulding") || value.includes("molding"),
+		)
+	) {
+		return true;
+	}
+
+	if (
+		metadataArray(itemMeta.mouldingRows).length ||
+		metadataArray(nestedMeta.mouldingRows).length
+	) {
+		return true;
+	}
+
+	const hpt =
+		item.housePackageTool && !item.housePackageTool.deletedAt
+			? item.housePackageTool
+			: metadataHousePackageTool(item);
+	return Boolean(
+		hpt && Number(hpt.totalDoors || 0) <= 0 && hpt.stepProduct?.uid,
+	);
+}
+
+export function resolveSalesItemProductionEligibility(item: SyncItemLike) {
+	const itemMeta = asRecord(item.meta);
+	const nestedMeta = asRecord(itemMeta.meta);
+	const explicitProduceable =
+		readBoolean(itemMeta.produceable) ??
+		readBoolean(nestedMeta.produceable) ??
+		readBoolean(itemMeta.production) ??
+		readBoolean(nestedMeta.production);
+
+	if (explicitProduceable !== null) return explicitProduceable;
+	if (isMouldingSalesItem(item)) return false;
+	if (isServiceSalesItem(item)) return item.dykeProduction === true;
+	if (item.dykeProduction === true) return true;
+	return true;
 }
 
 export function buildInventorySyncComponentCandidatesForItem(
@@ -879,6 +963,7 @@ async function syncComponentFulfillment(
 		lineItemComponentId: number;
 		inventoryVariantId: number;
 		qtyRequired: number;
+		orderInventoryStatus?: string | null;
 	},
 ): Promise<ComponentDemandState> {
 	const qtyRequired = Math.max(0, input.qtyRequired);
@@ -919,6 +1004,9 @@ async function syncComponentFulfillment(
 				where: {
 					lineItemComponentId: input.lineItemComponentId,
 					deletedAt: null,
+					status: {
+						in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+					},
 				},
 				select: {
 					id: true,
@@ -931,12 +1019,17 @@ async function syncComponentFulfillment(
 			db.inboundDemand.findMany({
 				where: {
 					lineItemComponentId: input.lineItemComponentId,
+					deletedAt: null,
+				},
+				orderBy: {
+					createdAt: "asc",
 				},
 				select: {
 					id: true,
 					qty: true,
 					qtyReceived: true,
 					status: true,
+					inboundShipmentItemId: true,
 				},
 			}),
 		]);
@@ -1136,13 +1229,13 @@ async function syncComponentFulfillment(
 				},
 				data: {
 					qty: demandState.qtyInbound,
-					status:
-						demandState.qtyReceived > 0 &&
-						demandState.qtyReceived < demandState.qtyInbound
-							? "partially_received"
-							: demandState.qtyReceived >= demandState.qtyInbound
-								? "received"
-								: "pending",
+					status: resolveProjectedInboundDemandStatus({
+						orderInventoryStatus: input.orderInventoryStatus,
+						qtyInbound: demandState.qtyInbound,
+						qtyReceived: demandState.qtyReceived,
+						inboundShipmentItemId:
+							primaryInboundDemand.inboundShipmentItemId ?? null,
+					}),
 					deletedAt: null,
 				},
 			});
@@ -1152,7 +1245,11 @@ async function syncComponentFulfillment(
 					lineItemComponentId: input.lineItemComponentId,
 					inventoryVariantId: input.inventoryVariantId,
 					qty: demandState.qtyInbound,
-					status: "pending",
+					status: resolveProjectedInboundDemandStatus({
+						orderInventoryStatus: input.orderInventoryStatus,
+						qtyInbound: demandState.qtyInbound,
+						qtyReceived: demandState.qtyReceived,
+					}),
 				},
 			});
 		}
@@ -1209,6 +1306,7 @@ export async function syncSalesInventoryLineItems(
 		},
 		select: {
 			id: true,
+			inventoryStatus: true,
 			lineItems: {
 				select: {
 					id: true,
@@ -1229,6 +1327,7 @@ export async function syncSalesInventoryLineItems(
 				select: {
 					id: true,
 					description: true,
+					dykeProduction: true,
 					qty: true,
 					rate: true,
 					total: true,
@@ -1240,6 +1339,7 @@ export async function syncSalesInventoryLineItems(
 						select: {
 							id: true,
 							prodUid: true,
+							value: true,
 							qty: true,
 							meta: true,
 							step: {
@@ -1329,6 +1429,7 @@ export async function syncSalesInventoryLineItems(
 
 	for (const [index, item] of sale.items.entries()) {
 		const itemMeta = asRecord(item.meta);
+		const productionEligible = resolveSalesItemProductionEligibility(item);
 		const title = normalizeItemTitle(item);
 		const description = normalizeItemDescription(item);
 		const uid = normalizeItemUid(item);
@@ -1378,16 +1479,21 @@ export async function syncSalesInventoryLineItems(
 			inventoryVariantId: mapping.inventoryVariantId,
 			inventoryCategoryId: mapping.inventoryCategoryId,
 			deletedAt: null,
-			meta: {
-				...(itemMeta as Record<string, unknown>),
-				inventorySync: {
-					source,
-					triggeredByUserId: input.triggeredByUserId ?? null,
-					syncedAt: new Date().toISOString(),
-					inventoryUid: mapping.inventoryUid,
-					componentCount: itemComponents.size,
-				},
-			} as Record<string, unknown>,
+				meta: {
+					...(itemMeta as Record<string, unknown>),
+					production: {
+						...asRecord(itemMeta.production),
+						produceable: productionEligible,
+					},
+					inventorySync: {
+						source,
+						triggeredByUserId: input.triggeredByUserId ?? null,
+						syncedAt: new Date().toISOString(),
+						inventoryUid: mapping.inventoryUid,
+						componentCount: itemComponents.size,
+						productionProduceable: productionEligible,
+					},
+				} as Record<string, unknown>,
 		};
 
 		let lineItemId: number;
@@ -1489,6 +1595,7 @@ export async function syncSalesInventoryLineItems(
 				lineItemComponentId,
 				inventoryVariantId: componentMapping.inventoryVariantId,
 				qtyRequired: Math.max(1, Math.round(candidate.qty)),
+				orderInventoryStatus: sale.inventoryStatus,
 			});
 
 			await db.lineItemComponents.update({

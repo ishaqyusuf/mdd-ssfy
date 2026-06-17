@@ -2,7 +2,7 @@ import { access, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-type Action = "build:preview" | "update:preview";
+type Action = "eas-build:dev" | "eas-build:preview" | "update:preview";
 type CurrentIdentity = {
 	email: string | null;
 	username: string | null;
@@ -17,7 +17,8 @@ type EasAccount = {
 const APP_DIR = path.join(import.meta.dir, "..", "apps", "expo-app");
 
 const ACTION_COMMANDS: Record<Action, string[]> = {
-	"build:preview": ["bun", "run", "build:preview"],
+	"eas-build:dev": ["bun", "run", "eas-build:dev"],
+	"eas-build:preview": ["bun", "run", "eas-build:preview"],
 	"update:preview": ["bun", "run", "update:preview"],
 };
 
@@ -109,7 +110,7 @@ function resolveAccount(
 				"",
 				"Set EAS_EMAIL/EAS_PASSWORD, or choose a named account with:",
 				"  EAS_ACCOUNT=work EAS_WORK_EMAIL=... EAS_WORK_PASSWORD=...",
-				"  bun run build:preview -- --account work",
+				"  bun run eas-build:preview -- --account work",
 			].join("\n"),
 		);
 		process.exit(1);
@@ -165,7 +166,7 @@ function toEnvKey(value: string): string {
 
 function getUsage(): string {
 	return [
-		"Usage: bun ./scripts/eas-account-runner.ts <build:preview|update:preview> [--account <name>]",
+		"Usage: bun ./scripts/eas-account-runner.ts <eas-build:dev|eas-build:preview|update:preview> [--account <name>]",
 		"",
 		"Default credentials:",
 		"  EAS_EMAIL or EAS_LOGIN",

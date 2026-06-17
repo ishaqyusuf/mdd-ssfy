@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { formatSalesFormCurrency } from "./format";
 
 export type SalesFormCreditLimitMeterProps = {

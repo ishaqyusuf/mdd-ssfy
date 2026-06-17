@@ -2,7 +2,7 @@ import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
 import { Text, View } from "react-native";
 import type { PreviewRecord } from "../data/sample-data";
-import type { PreviewDesignSystem } from "../design-systems/types";
+import type { ResolvedPreviewDesignSystem } from "../design-systems/types";
 import { PreviewStatusPill } from "./preview-status";
 
 export function PreviewRecordCard({
@@ -11,7 +11,7 @@ export function PreviewRecordCard({
 	dense = false,
 }: {
 	record: PreviewRecord;
-	system: PreviewDesignSystem;
+	system: ResolvedPreviewDesignSystem;
 	dense?: boolean;
 }) {
 	return (
@@ -24,6 +24,7 @@ export function PreviewRecordCard({
 				backgroundColor: system.colors.surface,
 				padding: dense ? 13 : 15,
 				gap: 12,
+				overflow: "hidden",
 			}}
 		>
 			<View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>

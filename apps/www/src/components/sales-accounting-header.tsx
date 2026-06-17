@@ -10,6 +10,7 @@ import { salesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter
 import { useTRPC } from "@/trpc/client";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
 import { SalesReportMenu } from "./sales-report-menu";
+import { SalesAccountingColumnVisibility } from "./tables-2/sales-accounting/column-visibility";
 
 const SalesAccountingExport = dynamic(
 	() =>
@@ -28,26 +29,28 @@ type Props = {
 export function SalesAccountingHeader({ initialFilterList }: Props) {
 	const trpc = useTRPC();
 	return (
-		<div className="flex gap-4 justify-between">
+		<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 			<SearchFilter
 				filterSchema={salesAccountingFilterParams}
 				placeholder="Search Sales Accountings..."
 				trpcRoute={trpc.filters.salesAccounting}
 				initialFilterList={initialFilterList}
 			/>
-			<SalesAccountingExport />
-			<div className="flex-1" />
-			<SalesReportMenu />
-			<Link
-				href="/sales-book/accounting/resolution-center"
-				className={cn(
-					buttonVariants({
-						size: "sm",
-					}),
-				)}
-			>
-				Resolution Center
-			</Link>
+			<div className="flex flex-wrap items-center gap-2 md:justify-end">
+				<SalesAccountingColumnVisibility />
+				<SalesAccountingExport />
+				<SalesReportMenu />
+				<Link
+					href="/sales-book/accounting/resolution-center"
+					className={cn(
+						buttonVariants({
+							size: "sm",
+						}),
+					)}
+				>
+					Resolution Center
+				</Link>
+			</div>
 		</div>
 	);
 }

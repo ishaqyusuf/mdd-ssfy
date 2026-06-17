@@ -10,6 +10,7 @@ import {
 } from "../sales-stat-control.action";
 import { itemControlUidObject } from "../../utils/item-control-utils";
 import { _notify } from "@/app-deps/(v1)/_actions/notifications";
+import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 
 export async function createItemAssignmentAction({
     salesItemId,
@@ -26,7 +27,7 @@ export async function createItemAssignmentAction({
 }) {
     const obj = itemControlUidObject(uid);
     doorId = obj.doorId;
-    return (await prisma.$transaction((async (tx: typeof prisma) => {
+    const assignmentId = (await prisma.$transaction((async (tx: typeof prisma) => {
         const assignment = await tx.orderItemProductionAssignments.create({
             data: {
                 salesDoor: doorId
@@ -74,9 +75,11 @@ export async function createItemAssignmentAction({
         }
         return assignment.id;
     }) as any)) as any;
+    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
+    return assignmentId;
 }
 export async function deleteItemAssignmentAction({ id }) {
-    return await prisma.$transaction((async (tx: typeof prisma) => {
+    const salesId = await prisma.$transaction((async (tx: typeof prisma) => {
         const a = await prisma.orderItemProductionAssignments.update({
             where: {
                 id,
@@ -106,7 +109,9 @@ export async function deleteItemAssignmentAction({ id }) {
             },
         });
         await resetSalesStatAction(a.orderId);
+        return a.orderId;
     }) as any);
+    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 }
 export async function submitItemAssignmentAction({
     uid,
@@ -119,7 +124,7 @@ export async function submitItemAssignmentAction({
     salesItemId,
     produceable,
 }) {
-    return await prisma.$transaction((async (tx: typeof prisma) => {
+    await prisma.$transaction((async (tx: typeof prisma) => {
         await tx.orderProductionSubmissions.create({
             data: {
                 lhQty: lh,
@@ -152,6 +157,7 @@ export async function submitItemAssignmentAction({
             await updateSalesStatControlAction(salesId);
         }
     }) as any);
+    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 }
 export async function updateAssignmentDueDateAction(assignmentId, dueDate) {
     await prisma.orderItemProductionAssignments.update({
@@ -177,7 +183,7 @@ export async function updateAssignmentAssignedToAction(
     });
 }
 export async function deleteSubmissionAction({ id }) {
-    return await prisma.$transaction((async (tx: typeof prisma) => {
+    const salesId = await prisma.$transaction((async (tx: typeof prisma) => {
         const resp = await tx.orderProductionSubmissions.update({
             where: { id },
             data: {
@@ -185,5 +191,7 @@ export async function deleteSubmissionAction({ id }) {
             },
         });
         await resetSalesStatAction(resp.salesOrderId);
+        return resp.salesOrderId;
     }) as any);
+    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
 }

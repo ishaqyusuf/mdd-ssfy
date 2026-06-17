@@ -1,57 +1,46 @@
 import { DispatchHeader } from "@/components/dispatch-header";
 import { ErrorFallback } from "@/components/error-fallback";
-import { DataTable } from "@/components/tables/sales-dispatch/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
-import { loadDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
+import PageShell from "@/components/page-shell";
+import { DataTable } from "@/components/tables-2/sales-dispatch/data-table";
+import { SalesDispatchSkeleton } from "@/components/tables-2/sales-dispatch/skeleton";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
-import PageShell from "@/components/page-shell";
-import { PageTitle } from "@gnd/ui/custom/page-title";
-
 export const dynamic = "force-dynamic";
-export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Dispatch Management | GND",
-    });
+
+export async function generateMetadata() {
+	return constructMetadata({
+		title: "Dispatch Management | GND",
+	});
 }
-type Props = {
-    searchParams: Promise<SearchParams>;
-};
 
-export default async function Page(props: Props) {
-    const searchParams = await props.searchParams;
-    const filter = loadDispatchFilterParams(searchParams);
-    const queryClient = getQueryClient();
+export default async function Page() {
+	const initialSettings = await getInitialTableSettings("sales-dispatch");
 
-    await Promise.all([
-        queryClient.fetchInfiniteQuery(
-            trpc.dispatch.assignedDispatch.infiniteQueryOptions(filter) as any,
-        ),
-        queryClient.fetchQuery(
-            trpc.hrm.getEmployees.queryOptions({
-                can: ["viewDelivery"],
-                cannot: ["editOrders"],
-            }),
-        ),
-    ]);
-
-    return (
-        <PageShell>
-            <HydrateClient>
-                <PageTitle>Dispatch Management</PageTitle>
-                <div className="flex flex-col gap-6">
-                    <DispatchHeader />
-                    <ErrorBoundary errorComponent={ErrorFallback}>
-                        <Suspense fallback={<TableSkeleton />}>
-                            <DataTable driver />
-                        </Suspense>
-                    </ErrorBoundary>
-                </div>
-            </HydrateClient>
-        </PageShell>
-    );
+	return (
+		<PageShell>
+			<HydrateClient>
+				<PageTitle>Dispatch Management</PageTitle>
+				<div className="flex flex-col gap-6">
+					<DispatchHeader />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense
+							fallback={
+								<SalesDispatchSkeleton
+									initialSettings={initialSettings}
+									driver
+								/>
+							}
+						>
+							<DataTable driver initialSettings={initialSettings} />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
+		</PageShell>
+	);
 }

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { memo } from "react";
 import { Checkbox } from "../../checkbox";
 const SelectCell = memo(

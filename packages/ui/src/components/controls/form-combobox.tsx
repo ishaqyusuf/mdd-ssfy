@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { useDataSkeleton } from "@/hooks/use-data-skeleton";
 import { cn } from "@/utils";
 import { ComboboxDropdown, ComboboxProps } from "@gnd/ui/combobox-dropdown";

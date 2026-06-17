@@ -4,13 +4,13 @@ import {
 	isComponentVisibleByRules,
 	resolveComponentPriceByDeps,
 } from "../../domain";
+import { profileAdjustedSalesPrice } from "./workflow-format";
 import {
-	getStepPriceDeps,
-	isComponentEnabledForView,
 	type WorkflowComponentRecord,
 	type WorkflowStepRecord,
+	getStepPriceDeps,
+	isComponentEnabledForView,
 } from "./workflow-records";
-import { profileAdjustedSalesPrice } from "./workflow-format";
 
 export type ResolveWorkflowVisibleComponentsInput = {
 	components: WorkflowComponentRecord[];
@@ -35,11 +35,18 @@ export function resolveWorkflowVisibleComponents({
 }: ResolveWorkflowVisibleComponentsInput): WorkflowComponentRecord[] {
 	const selectedByStepUid = buildSelectedByStepUid(steps);
 	const selectedProdUidsByStepUid = buildSelectedProdUidsByStepUid(steps);
+	const selectedComponentUids = new Set(
+		Object.values(selectedProdUidsByStepUid).flat().map(String),
+	);
 
 	return (components || [])
 		.filter((component) => !component.isDeleted)
 		.filter((component) =>
-			isComponentEnabledForView(component, includeCustomComponents),
+			isComponentEnabledForView(
+				component,
+				includeCustomComponents,
+				selectedComponentUids,
+			),
 		)
 		.filter((component) =>
 			isComponentVisibleByRules(

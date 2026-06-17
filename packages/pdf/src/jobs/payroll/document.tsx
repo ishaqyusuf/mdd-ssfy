@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Document, Text, View } from "@react-pdf/renderer";
 import { WatermarkPage } from "../../sales-v2/shared/watermark-page";
 import {

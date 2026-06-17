@@ -15,6 +15,7 @@ import {
     TABLE_SETTINGS_COOKIE,
     type TableId,
     type TableSettings,
+    type TableViewMode,
 } from "@/utils/table-settings";
 
 interface UseTableSettingsProps {
@@ -33,6 +34,8 @@ interface UseTableSettingsReturn {
     setColumnOrder: Dispatch<SetStateAction<ColumnOrderState>>;
     showColumnDividers: boolean;
     setShowColumnDividers: Dispatch<SetStateAction<boolean>>;
+    viewMode: TableViewMode;
+    setViewMode: Dispatch<SetStateAction<TableViewMode>>;
 }
 
 export function useTableSettings({
@@ -56,6 +59,9 @@ export function useTableSettings({
     const [showColumnDividers, setShowColumnDividers] = useState<boolean>(
         defaultShowColumnDividers ?? settings.showColumnDividers ?? false,
     );
+    const [viewMode, setViewMode] = useState<TableViewMode>(
+        settings.viewMode ?? "table",
+    );
     const isInitialMount = useRef(true);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -65,6 +71,7 @@ export function useTableSettings({
             sizing: ColumnSizingState,
             order: ColumnOrderState,
             columnDividers: boolean,
+            nextViewMode: TableViewMode,
         ) => {
             if (debounceRef.current) {
                 clearTimeout(debounceRef.current);
@@ -93,6 +100,7 @@ export function useTableSettings({
                     sizing,
                     order,
                     showColumnDividers: columnDividers,
+                    viewMode: nextViewMode,
                 };
 
                 await updateTableSettingsAction({
@@ -115,12 +123,14 @@ export function useTableSettings({
             columnSizing,
             columnOrder,
             showColumnDividers,
+            viewMode,
         );
     }, [
         columnVisibility,
         columnSizing,
         columnOrder,
         showColumnDividers,
+        viewMode,
         persistSettings,
     ]);
 
@@ -141,5 +151,7 @@ export function useTableSettings({
         setColumnOrder,
         showColumnDividers,
         setShowColumnDividers,
+        viewMode,
+        setViewMode,
     };
 }

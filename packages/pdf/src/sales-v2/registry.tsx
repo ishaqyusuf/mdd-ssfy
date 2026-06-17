@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import type { JSX } from "react";
 

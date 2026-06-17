@@ -36,6 +36,16 @@ src/features/design-system-preview
 
 Open them from Settings under `Design System Previews` in development builds only. The preview Settings section and preview route stack are gated behind `__DEV__`.
 
+Each preview template ships with light and dark palettes. The preview screens resolve colors from the app's current color scheme, so Settings theme overrides can be used to compare both modes before a template is selected.
+
+The three template screens include a top-right theme toggle for fast light/dark comparison while reviewing the samples.
+
+Template bottom tabs float over the scroll content as a compact overlay, leaving the surrounding content/background visible instead of reserving a full-width footer band.
+
+Preview header text/search contrast and native status bar style are computed from the template header color, so dark headers use light status icons while near-white headers use dark text.
+
+The shared `Icon` component supports an `inverted` option for custom surfaces that need icon colors from the opposite app theme, such as dark preview chrome inside light mode.
+
 ## Candidate Templates
 
 ### Template A: Ops Console

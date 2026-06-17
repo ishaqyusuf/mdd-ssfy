@@ -1,51 +1,70 @@
 import { ErrorFallback } from "@/components/error-fallback";
+import PageShell from "@/components/page-shell";
 import { SalesQuoteHeader } from "@/components/sales-quote-header";
-import { DataTable } from "@/components/tables/sales-quotes/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
+import { DataTable } from "@/components/tables-2/sales-quotes/data-table";
+import { SalesQuotesSkeleton } from "@/components/tables-2/sales-quotes/skeleton";
+import { normalizeSalesQuoteSort } from "@/components/tables-2/sales-quotes/sort";
 import { loadOrderFilterParams } from "@/hooks/use-sales-filter-params";
+import { loadSortParams } from "@/hooks/use-sort-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { resolveSalesVisibility } from "@/lib/sales-visibility";
 import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
-import PageShell from "@/components/page-shell";
-import { PageTitle } from "@gnd/ui/custom/page-title";
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata(props) {
-    return constructMetadata({
-        title: "Quotes | GND",
-    });
+type SalesQuotesInput = RouterInputs["sales"]["quotes"];
+
+export async function generateMetadata() {
+	return constructMetadata({
+		title: "Quotes | GND",
+	});
 }
 
-export default async function Page(props) {
-    const searchParams = await props.searchParams;
-    const { filter, salesManager } = await resolveSalesVisibility(
-        loadOrderFilterParams(searchParams),
-    );
-    batchPrefetch([
-        trpc.sales.quotes.infiniteQueryOptions(filter as any, {
-            getNextPageParam: ({ meta }: { meta?: { cursor?: unknown } }) =>
-                meta?.cursor,
-        }) as any,
-        trpc.filters.salesQuotes.queryOptions({
-            salesManager,
-        }),
-    ]);
-    return (
-        <PageShell>
-            <HydrateClient>
-                <PageTitle>Quotes</PageTitle>
-                <div className="flex flex-col gap-6">
-                    <SalesQuoteHeader />
-                    <ErrorBoundary errorComponent={ErrorFallback}>
-                        <Suspense fallback={<TableSkeleton />}>
-                            <DataTable />
-                        </Suspense>
-                    </ErrorBoundary>
-                </div>
-            </HydrateClient>
-        </PageShell>
-    );
+type Props = {
+	searchParams: Promise<SearchParams>;
+};
+
+export default async function Page(props: Props) {
+	const searchParams = await props.searchParams;
+	const { filter } = await resolveSalesVisibility(
+		loadOrderFilterParams(searchParams),
+	);
+	const { sort } = loadSortParams(searchParams);
+	const initialSettings = await getInitialTableSettings("sales-quotes");
+	const queryInput = {
+		...filter,
+		sort: normalizeSalesQuoteSort(sort),
+	} as SalesQuotesInput;
+
+	batchPrefetch([
+		trpc.sales.quotes.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
+	return (
+		<PageShell>
+			<HydrateClient>
+				<PageTitle>Quotes</PageTitle>
+				<div className="flex flex-col gap-6">
+					<SalesQuoteHeader />
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense
+							fallback={
+								<SalesQuotesSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable initialSettings={initialSettings} />
+						</Suspense>
+					</ErrorBoundary>
+				</div>
+			</HydrateClient>
+		</PageShell>
+	);
 }

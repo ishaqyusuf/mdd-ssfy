@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import type { SalesTemplateRenderProps } from "../../registry";
 import { WatermarkPage } from "../../shared/watermark-page";
 import {

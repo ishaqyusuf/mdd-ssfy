@@ -1,6 +1,24 @@
 #!/usr/bin/env bun
 
-import { resolveOptions, syncDatabases, type SyncMode, type SyncProgressEvent } from "../src/local-sync";
+import { clearScreenDown, cursorTo, emitKeypressEvents, moveCursor } from "node:readline";
+import { createInterface } from "node:readline/promises";
+import {
+	resolveOptions,
+	syncDatabases,
+	type DuplicateConflictAction,
+	type DuplicateConflictContext,
+	type DuplicateConflictPolicy,
+	type SyncMode,
+	type SyncProgressEvent,
+} from "../src/local-sync";
+
+type DuplicatePromptChoice = {
+	action: DuplicateConflictAction;
+	key: string;
+	label: string;
+	description: string;
+	disabled?: boolean;
+};
 
 function printHelp() {
 	console.log(`Usage:
@@ -18,6 +36,7 @@ Options:
   --write-batch-size <number>       Local upsert batch size (default: 500)
   --refresh-static                  Upsert small tables that have no timestamp cursor
   --static-refresh-max-rows <n>     Max rows for --refresh-static tables (default: 5000)
+  --on-duplicate <mode>             Duplicate-key recovery: prompt, ignore, reset, cancel (default: prompt in TTY, cancel otherwise)
   -h, --help                        Show this help
 
 Environment:
@@ -58,7 +77,7 @@ function formatElapsed(startedAt: number) {
 	return `${((Date.now() - startedAt) / 1000).toFixed(1)}s`.padStart(7);
 }
 
-function formatMode(mode: SyncMode) {
+function formatMode(mode: SyncMode | "reset") {
 	return mode.padEnd(14);
 }
 
@@ -87,6 +106,9 @@ function createProgressReporter(startedAt: number) {
 				);
 				break;
 			}
+			case "table:reset":
+				console.log(`[${elapsed}] RESET ${formatMode("reset")} ${formatTable(event.table)} ${event.reason}`);
+				break;
 			case "table:skip":
 				console.log(`[${elapsed}] SKIP  ${formatMode("skip")} ${formatTable(event.table)} ${event.reason}`);
 				break;
@@ -100,6 +122,185 @@ function createProgressReporter(startedAt: number) {
 			}
 		}
 	};
+}
+
+function createDuplicateConflictResolver(policy: DuplicateConflictPolicy) {
+	return async (context: DuplicateConflictContext): Promise<DuplicateConflictAction> => {
+		if (policy !== "prompt") {
+			if (policy === "reset") {
+				console.warn(
+					`Duplicate-key conflict in ${context.table}; --on-duplicate reset will delete and fully reimport the local ${context.table} table.`,
+				);
+			}
+			return policy;
+		}
+
+		if (!process.stdin.isTTY) {
+			console.warn(`Duplicate-key conflict in ${context.table}; stdin is not interactive, so the sync will cancel.`);
+			return "cancel";
+		}
+
+		return promptForDuplicateConflict(context);
+	};
+}
+
+async function promptForDuplicateConflict(context: DuplicateConflictContext): Promise<DuplicateConflictAction> {
+	console.error("");
+	console.error(`Duplicate-key conflict while syncing ${context.table} (${context.mode}).`);
+	console.error(`Rows read: ${context.read}, rows written: ${context.written}`);
+	if (context.cursorValue) {
+		console.error(`Cursor: ${context.cursorValue}`);
+	}
+	console.error(context.message);
+
+	if (process.stdin.setRawMode && process.stdout.isTTY) {
+		return selectDuplicateConflictAction(context);
+	}
+
+	return promptForDuplicateConflictText(context);
+}
+
+function getDuplicatePromptChoices(context: DuplicateConflictContext): DuplicatePromptChoice[] {
+	return [
+		{
+			action: "ignore",
+			key: "i",
+			label: "Ignore",
+			description: "skip this table for this run and continue to the next table",
+		},
+		{
+			action: "reset",
+			key: "r",
+			label: "Reset",
+			description: `delete and fully reimport only the local ${context.table} table`,
+			disabled: context.resetAttempted,
+		},
+		{
+			action: "cancel",
+			key: "c",
+			label: "Cancel",
+			description: "stop the sync now",
+		},
+	];
+}
+
+async function selectDuplicateConflictAction(context: DuplicateConflictContext): Promise<DuplicateConflictAction> {
+	const choices = getDuplicatePromptChoices(context);
+	let selectedIndex = choices.findIndex((choice) => !choice.disabled);
+	if (selectedIndex < 0) {
+		selectedIndex = choices.length - 1;
+	}
+	let renderedLines = 0;
+	const wasRaw = process.stdin.isRaw;
+
+	return new Promise<DuplicateConflictAction>((resolve) => {
+		const cleanup = () => {
+			process.stdin.off("keypress", onKeypress);
+			process.stdin.setRawMode?.(Boolean(wasRaw));
+		};
+		const finish = (action: DuplicateConflictAction) => {
+			cleanup();
+			if (renderedLines > 0) {
+				moveCursor(process.stdout, 0, -renderedLines);
+				cursorTo(process.stdout, 0);
+				clearScreenDown(process.stdout);
+			}
+			const choice = choices.find((item) => item.action === action);
+			console.log(`Selected: ${choice?.label ?? action}`);
+			resolve(action);
+		};
+		const moveSelection = (direction: 1 | -1) => {
+			for (let step = 0; step < choices.length; step += 1) {
+				selectedIndex = (selectedIndex + direction + choices.length) % choices.length;
+				if (!choices[selectedIndex]?.disabled) {
+					break;
+				}
+			}
+			render();
+		};
+		const render = () => {
+			if (renderedLines > 0) {
+				moveCursor(process.stdout, 0, -renderedLines);
+				cursorTo(process.stdout, 0);
+				clearScreenDown(process.stdout);
+			}
+
+			const lines = [
+				"Choose a recovery action with Up/Down, then Enter:",
+				...choices.map((choice, index) => {
+					const marker = index === selectedIndex ? ">" : " ";
+					const shortcut = `[${choice.key}]`;
+					const disabled = choice.disabled ? " unavailable" : "";
+					return `${marker} ${shortcut} ${choice.label.padEnd(7)} ${choice.description}${disabled}`;
+				}),
+				"Shortcuts: i ignore, r reset, c cancel. Ctrl+C cancels.",
+			];
+			process.stdout.write(`${lines.join("\n")}\n`);
+			renderedLines = lines.length;
+		};
+		const onKeypress = (_text: string, key: { name?: string; ctrl?: boolean }) => {
+			if (key.ctrl && key.name === "c") {
+				finish("cancel");
+				return;
+			}
+			if (key.name === "up") {
+				moveSelection(-1);
+				return;
+			}
+			if (key.name === "down") {
+				moveSelection(1);
+				return;
+			}
+			if (key.name === "return" || key.name === "enter") {
+				const selected = choices[selectedIndex];
+				if (selected && !selected.disabled) {
+					finish(selected.action);
+				}
+				return;
+			}
+
+			const shortcut = choices.find((choice) => choice.key === key.name && !choice.disabled);
+			if (shortcut) {
+				finish(shortcut.action);
+			}
+		};
+
+		emitKeypressEvents(process.stdin);
+		process.stdin.setRawMode?.(true);
+		process.stdin.resume();
+		process.stdin.on("keypress", onKeypress);
+		render();
+	});
+}
+
+async function promptForDuplicateConflictText(context: DuplicateConflictContext): Promise<DuplicateConflictAction> {
+	if (context.resetAttempted) {
+		console.error("Reset has already been tried for this table in this sync run.");
+	} else {
+		console.error(`[reset] deletes and fully reimports only the local ${context.table} table.`);
+	}
+
+	const readline = createInterface({ input: process.stdin, output: process.stdout });
+	try {
+		while (true) {
+			const answer = (await readline.question("Choose [ignore] next table, [reset] table, or [cancel] sync: ")).trim().toLowerCase();
+
+			if (answer === "ignore" || answer === "i") {
+				return "ignore";
+			}
+			if ((answer === "reset" || answer === "r") && !context.resetAttempted) {
+				return "reset";
+			}
+			if (answer === "cancel" || answer === "c" || answer === "") {
+				return "cancel";
+			}
+
+			const resetHint = context.resetAttempted ? " Reset is no longer available for this table." : "";
+			console.error(`Enter ignore, reset, or cancel.${resetHint}`);
+		}
+	} finally {
+		readline.close();
+	}
 }
 
 const startedAt = Date.now();
@@ -123,9 +324,15 @@ try {
 	if (options.resetCursor) {
 		console.log("Cursor reset: enabled");
 	}
+	if (options.onDuplicate === "prompt" && !process.stdin.isTTY) {
+		console.log("Duplicate recovery: cancel (non-interactive stdin)");
+	} else {
+		console.log(`Duplicate recovery: ${options.onDuplicate}`);
+	}
 
 	const reports = await syncDatabases({
 		...options,
+		onDuplicateConflict: createDuplicateConflictResolver(options.onDuplicate),
 		onProgress: createProgressReporter(startedAt),
 	});
 	printReport(reports, options.dryRun, startedAt);

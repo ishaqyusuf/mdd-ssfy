@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Font, Head, Html, Tailwind } from "@react-email/components";
 import type React from "react";
 
@@ -58,7 +59,7 @@ export const getEmailDarkModeCSS = () => {
       .email-border {
         border-color: ${emailTheme.dark.border} !important;
       }
-      
+
       /* Image swapping for dark mode */
       .dark-mode-hide {
         display: none !important;

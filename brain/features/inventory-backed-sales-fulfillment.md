@@ -20,6 +20,8 @@ The long-term source of truth for overview, print, production, deployment, fulfi
 - [x] `InboundShipment` / `InboundShipmentItem` support the receiving workflow.
 - [x] `SalesFulfillmentPlan` exists as a projection over ordered, allocated, picked, shipped, remaining, backordered, inbound, and received quantities.
 - [x] `OrderDelivery` / `OrderItemDelivery` are the canonical shipment records for the current inventory cutover phase; see `brain/decisions/ADR-008-inventory-shipment-record-source.md`.
+- [x] Inventory owns inbound demand status semantics for order prompt projection and selected line-demand prompt scope; see `brain/decisions/ADR-009-inventory-owned-inbound-demand-status.md`.
+- [x] `inventories.inventoryBrowserValidationFixtureReport` provides a read-only cutover preflight for browser mutation proof, checking whether the local data set has the required allocation, inbound receiving, dispatch, partial shipment, low-stock, and stock-adjustment fixture categories before mutating workflow validation is rerun. `/inventory` surfaces this through `InventoryValidationFixturePanel` beside the operations dashboard, and the root `bun run inventory:validation-fixtures` command exposes the same report for repeatable CLI evidence, including `--json` for machine-readable payloads, `--markdown` for paste-ready Brain evidence snapshots with workflow samples, `--seed-checklist` for grouped setup actions, `--seed-blueprint` for row-level seed planning, `--evidence-template` for a paste-ready browser mutation worksheet, `--mutation-snapshot` for exact fixture-row before/after state capture, and `--completion-gate` for the Pending 15 cutover checklist. The mutation snapshot now starts with a `Primary Proof Target Index` for run-order rows `10` through `130`, including exact primary row ids, compare fields, and expected deltas for each workflow, then labels stock allocations, inbound shipment items, inbound demands, line projections, stock fixture rows, and delivery compatibility rows with `proofTarget` and `primaryProof`; allocation and inbound rows also include `proofRole`. This lets legacy seed rows, alternate/recovery candidates, direct browser targets, and rows expected to change after mutation be compared cleanly before and after browser validation. Fixture rows include seed-plan identifiers plus `countDiagnostic` metadata so exact SQL-count categories and bounded application-scan categories are distinguishable; the panel and CLI both call out incomplete bounded-count categories. The report now also returns a package-owned browser mutation matrix with runnable/blocked workflow status, deterministic run order, primary action samples, operator guards, candidate fixture samples, operator actions, and expected evidence for allocation approval/rejection/bulk approval, dispatch assign/pack/fulfill/release, inbound receive, received-backorder release, partial ship/hold, stock adjustment, and low-stock dashboard proof. The completion gate groups those rows into allocation review, inventory dispatch fulfillment, inbound/backorder, partial/held shipment, and stock/low-stock coverage, while keeping before/after snapshots and Brain evidence update as explicit manual completion gates. Pending allocation review readiness now requires three pending-review candidates so approve, reject, and bulk-approve proof can each point at a distinct primary sample; dispatch assign/pack readiness also requires spare approved/reserved capacity so dispatch proof does not reuse partial or held proof rows, and pack/release get separate primary samples plus guard text. Ship-available partial readiness now excludes `holdUntilComplete` rows so held-line proof stays separate from ship-available proof. The safe stock-adjustment fixture now requires a monitored non-custom variant with positive stock, avoiding a false-ready state from zero-stock monitored variants. The stock-only fixture groups can be dry-run with `bun run inventory:seed-stock-fixtures` and applied only with an explicit `--apply`; allocation, inbound, received-backorder, and partial-shipment fixture groups can be dry-run/applied with `bun run inventory:seed-allocation-fixture`, `bun run inventory:seed-inbound-fixture`, `bun run inventory:seed-received-fixture`, and `bun run inventory:seed-partial-fixture`. Partial shipment readiness now requires active allocated quantity to be greater than zero and less than ordered line quantity, avoiding false partial-shipment readiness from complete dispatch allocation fixtures. The local fixture preflight is now expected to be `11/11` ready after repairing older `INV-FIX-ALLOC` seeds with the updated allocation helper.
 
 ## Follow-Up Review: 2026-06-12
 
@@ -263,15 +265,28 @@ Status: Mostly done.
 
 - [x] Active Dyke custom component create/update paths now go through `@gnd/inventory` services.
 - [x] Dyke component pricing updates route through inventory-domain pricing services.
+- [x] Legacy and new sales forms share a custom-component browse/create flow backed by `inventories.upsertDykeCustomStepComponent`; existing step-scoped custom components can be selected to fill cost price, edited prices persist only through an explicit `Update price` action, new custom components are refreshed and selected after proceed, and selected custom components remain visible even while unselected custom components stay hidden by default. Existing component metadata is preserved during price/name updates. Custom components can be hidden from future selection through `inventories.archiveDykeCustomStepComponent`, which stores `meta.deletedAt` on the Dyke component instead of physically setting the model `deletedAt` column so older sales/print references keep resolving.
 - [x] Targeted Dyke step sync is queued through `sync-dyke-step-to-inventory`.
 - [x] Sales inventory sync has one shared job entrypoint, `sync-sales-inventory-line-items`.
+- [x] Shared sync queue preserves source labels for `new-form`, `old-form`, `copy-sales`, `manual`, and `repair`.
 - [x] New sales form saves queue sales inventory sync.
 - [x] Legacy sales form saves queue sales inventory sync.
+- [x] Save-path guard coverage verifies new-form draft/final saves and successful legacy saves keep queueing the shared inventory sync job.
 - [x] Copy sales queues the same inventory sync job with `source: "copy-sales"`.
 - [x] Repair flows queue the same inventory sync job with `source: "repair"`.
 - [x] Inventory variant and supplier variant price changes sync back to `DykePricingSystem` through `sync-inventory-to-dyke` with preserved-key guardrails for supplier pricing.
 - [x] Structural Dyke/inventory drift reporting exists through `dykeInventoryDriftReport`.
-- [x] Sales inventory sync monitor reports coverage, synced count, skipped count, failed-risk count, and next backfill cursor.
+- [x] Sales inventory sync monitor reports coverage, synced count, skipped count, failed-risk count, stale inventory sale-line count, stale allocation/demand residue counts, bounded review/stale samples, and next backfill cursor.
+- [x] Sales inventory sync monitor can optionally include a bounded dry-run inventory reconciliation summary, adding shipment/allocation, component-fulfillment, and missing-component drift into the same review-risk score when callers request the deeper Phase 5 cutover gate.
+- [x] Sales inventory sync monitor keeps the cutover status in `needs_review` when optional reconciliation is clean but partial, preventing a bounded cursor run from being mistaken for full sync proof.
+- [x] Sales inventory sync monitor also treats skipped reconciliation comparisons as `needs_review` and includes them in review-risk count through `skippedComparisonCount`, so rows that could not compare shipment/allocation or component-fulfillment state cannot pass the cutover gate just because drift is zero.
+- [x] Raw inventory reconciliation reports and queued reconciliation Trigger outputs expose shared `synced` / `needs_review` / `partial` status plus total `skippedComparisonCount`, so one-off reconciliation runs and monitor summaries use the same status and skipped-proof evidence.
+- [x] Inventory import control center requests that bounded reconciliation summary and surfaces it as both a monitor stat and a system check, so operators can see whether the visible sales sync coverage is clean, partial, or carrying reconciliation drift.
+- [x] Inventory import control center's Review Risk stat now names componentless sales, stale inventory lines, reconciliation drift, and skipped reconciliation comparisons, matching the package-owned `failedRiskCount` composition.
+- [x] Inventory import control center also promotes stale allocation/demand residue into the system checks list, so active `StockAllocation` and `InboundDemand` rows attached to stale inventory sale lines are visible as a cleanup gate instead of only appearing in the Review Risk stat subtitle.
+- [x] Inventory import control center can queue the existing `run-inventory-reconciliation-report` Trigger task from the sales sync monitor section, starting from the current reconciliation cursor when the bounded summary is partial.
+- [x] Inventory import control center shows reconciliation coverage domain cards when the bounded summary is available, separating sales sync, shipment/allocation, and component-fulfillment checked, drift, skipped, severity, and sample totals so clean-but-partial or skipped comparisons are visible.
+- [x] Stale inventory sale-line cleanup exists as a dry-run-default inventory route and a bounded visible-samples action in the import control center; the monitor now shows how many allocation and inbound demand rows are attached to stale sale lines before cleanup runs.
 - [x] Backfill job returns processed, succeeded, failed, next cursor, and has-more state.
 - [x] Generic and supplier variant price drift reporting now follows the inventory-to-Dyke pricing mapping rules.
 - [ ] Remaining dormant Dyke admin/use-case helpers still need migration behind the inventory domain.
@@ -302,8 +317,9 @@ Status: Mostly done.
 - [x] Allocation review queue exists at `/inventory/allocations`.
 - [x] Bulk allocation approval exists through `approveBulkStockAllocation`.
 - [x] Sales inventory health widget is backed by `salesInventoryOverview`.
+- [x] Allocation review approve/reject/bulk-approve mutations are retry-safe for already transitioned rows: only active `pending_review` allocations mutate, retries return skipped evidence instead of reviving or recounting rows, and the allocation review UI toast copy surfaces skipped rows to operators.
 - [ ] Browser validation and operator flow proof are still pending for the allocation review screen.
-- [ ] Safer repeat-receive and repeated allocation guardrails still need hardening.
+- [ ] Broader repeated allocation guardrails still need browser/operator proof across allocation review and dispatch-mode reruns.
 
 ### Phase 4: Production Planning
 Status: Projection, board, lifecycle bridge, and readiness enforcement done; operator validation pending.
@@ -317,6 +333,7 @@ Status: Projection, board, lifecycle bridge, and readiness enforcement done; ope
 - [x] Line readiness is derived from required component readiness.
 - [x] Production shortage / blocker surface exists at `/inventory/production-plan`.
 - [x] Sales-control production assignment/submission actions update `LineItem.meta.production` with assigned, fulfilled, remaining, and production status projection.
+- [x] Canonical `update-sales-control` production mutations use the package-owned `shouldSyncInventoryProductionLifecycleForSalesControl` decision to refresh inventory production lifecycle for assignment, submit-all, submission update/delete, assignment delete, and mark-complete actions while leaving dispatch-only mutations out of production lifecycle refresh.
 - [x] Existing production assignment/start actions are hard-gated by inventory readiness for inventory-backed required components.
 - [ ] Sale-level production-ready transitions need final wiring into the broader sales production workflow.
 - [ ] Browser/operator validation for blocked and allowed production assignment remains pending.
@@ -344,6 +361,7 @@ Status: Core flow done; shipment source of truth decided; hold-until-complete co
 - [x] Sale/line can move to `ready_to_ship_remaining` when remaining stock becomes available.
 - [x] Backorder queue exists at `/inventory/backorders`.
 - [x] `OrderDelivery` / `OrderItemDelivery` are the canonical shipment records for partial shipment and inventory dispatch mode.
+- [x] Shipment planning uses required components as the gating set; optional component shortages do not block required-component shipment.
 - [x] Line-level `holdUntilComplete` metadata prevents accidental partial shipment until all remaining quantity is available.
 - [x] Dedicated partial shipment workspace exists at `/inventory/partial-shipments`.
 - [ ] Final shipment completion needs reconciliation between completed `OrderItemDelivery` quantities and consumed `StockAllocation` quantities.
@@ -353,9 +371,9 @@ Status: Command/API foundation mostly done; dedicated UI validation pending.
 
 - [x] Inventory moves through allocation statuses including `reserved`, `picked`, and `consumed`.
 - [x] Partial shipment command exists as `shipAvailableSalesInventory`.
-- [x] Inventory dispatch mode supports assign, pack, fulfill, and release allocation transitions.
-- [x] Inventory dispatch fulfillment consumes only `picked` allocations.
-- [x] Inventory dispatch fulfillment writes legacy `OrderDelivery` / `OrderItemDelivery` compatibility rows.
+- [x] Inventory dispatch mode supports assign, pack, fulfill, and release allocation transitions, with status-guarded assign/pack/release updates that report concurrently claimed rows as skipped instead of overwriting them.
+- [x] Inventory dispatch fulfillment consumes only `picked` allocations, with status-and-quantity-guarded consumption so concurrent claims or stale partial split quantities cannot be counted as shipped.
+- [x] Inventory dispatch fulfillment writes legacy `OrderDelivery` / `OrderItemDelivery` compatibility rows only after picked allocation consumption succeeds, and the dispatch-mode UI explains concurrent-claim failures as refresh/retry work instead of a generic error.
 - [x] Dedicated inventory dispatch-mode workspace exists at `/inventory/dispatch-mode` for assign, pack, fulfill, and release actions.
 - [x] Backorder queue includes a "Ship Available" action.
 - [x] Line/component status is recomputed after fulfillment movement.
@@ -388,16 +406,19 @@ Status: Print data/golden packet coverage mostly done; visual/browser proof pend
 - [x] Backorder queue UI exists.
 - [x] Production shortage / production plan UI exists.
 - [x] Inbound receiving queue exists.
+- [x] Inbound receiving now shows order-prompt vs line-demand reconciliation, and `ORDERED` / `PENDING ORDER` prompts update existing open `InboundDemand` row statuses.
 - [x] Allocation review UI exists.
 - [x] Sale inventory health widget exists.
 - [x] Dedicated partial shipment screen exists at `/inventory/partial-shipments`.
 - [x] Item-level inventory dashboard exists at `/inventory/[id]` with variants, stock, movement history, inbound demand, allocations, and related sales/quotes backed by inventory `LineItem` references.
 - [x] Variants workspace exists at `/inventory/variants` with search/filter controls and price, stock, supplier, status, low-stock, dashboard, edit, and stock-operation actions.
-- [x] Top-sales analytics exist for inventory items and variants, ranking ordered quantity from inventory-backed `LineItem` rows and shipped quantity from consumed `StockAllocation` rows.
+- [x] Top-sales analytics exist for inventory items and variants, ranking ordered quantity from inventory-backed `LineItem` rows and shipped quantity from consumed `StockAllocation` rows while de-duplicating sale counts across ordered lines and consumed allocations.
 - [x] Inventory operations dashboard exists on `/inventory` with stock-health cards, alert rows, and drilldowns to item dashboards, variants, stock operations, inbound, allocations, backorders, and production plan.
 - [x] Inventory dispatch-mode UI exists at `/inventory/dispatch-mode`.
 - [x] Inventory print route browser smoke passed after wrapping the PDF viewer in a client-only dynamic component; `/p/sales-inventory-v2?ids=08499LM&mode=production&preview=false` renders a blob-backed PDF iframe.
-- [ ] Inventory print still needs mode-by-mode visual packet comparison before broad invoice/quote cutover.
+- [x] Desktop browser mutation proof for the local validation matrix passed on `1440x900`: allocation approve/reject/bulk, dispatch assign/pack/fulfill/release, inbound receive, received-backorder release, partial ship, held-line skip, stock adjustment, and low-stock dashboard signal. Evidence lives in `brain/reports/2026-06-15-inventory-browser-validation-evidence.md`.
+- [x] Inventory print route/mode render proof passed on `1440x900` for production, order-packing, packing-slip, invoice, quote, backorder summary, and customer remaining summary packets, with blob-backed PDF iframes plus print-data section/row evidence.
+- [x] Mapped Dyke legacy-vs-inventory print route parity passed for order `08077PC` / sale `21379` on invoice, production, packing-slip, and order-packing modes. Future hardening can add automated pixel/golden PDF diffing, but the desktop browser cutover proof is complete.
 
 ### Phase 10: Automation and Hardening
 Status: Partially done; dry-run reconciliation and receive/allocation retry guardrails exist.
@@ -415,15 +436,40 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - [ ] Cutover of overview, print, production, deployment, fulfillment, and reporting to inventory projections remains pending.
 
 ## Pending Work
-1. Finish sale-level production-ready transitions in the production workflow.
+1. Browser-validate the save-time inbound prompt through `/inventory/inbounds`, including `ORDERED`, `PENDING ORDER`, and `AVAILABLE` mismatch scenarios against real sales fixtures.
 2. Migrate remaining dormant Dyke admin/use-case helpers into `@gnd/inventory`.
 3. Define delete/archive policy for Dyke definitions and inventory sync.
-4. Finish browser validation action proof for allocation review, inbound receiving, partial shipment, inventory dispatch mode, stock operations, and mode-by-mode inventory print visuals. Route smoke evidence now lives in `brain/reports/2026-06-15-inventory-browser-validation-evidence.md`; remaining checks need controlled local fixtures with pending allocations, inbound demand/shipments, available dispatch allocations, held partial shipment lines, and safe stock rows.
-5. Decide whether inbound issue replacements create linked follow-up inbounds automatically.
-6. Verify audit coverage for stock in, stock out, return, correction, consume, and release.
-7. Add drift alerts and production-grade reconciliation runbooks.
-8. Create migration gates and runbooks for switching overview, print, production, deployment, fulfillment, and reporting to inventory projections.
-9. Item-level dashboard, related sales/quotes sections, variants workspace, top-sales analytics, and operations dashboard now exist; remaining UI work is validation plus later analytics polish.
+4. Decide whether inbound issue replacements create linked follow-up inbounds automatically.
+5. Add drift alerts, automated pixel/golden PDF diffing, and production-grade reconciliation runbooks.
+6. Create migration gates and runbooks for switching overview, print, production, deployment, fulfillment, and reporting to inventory projections.
+7. Item-level dashboard, related sales/quotes sections, variants workspace, top-sales analytics, and operations dashboard now exist; remaining UI work is validation plus later analytics polish.
+
+## 2026-06-16 Produceable Semantics Update
+- Inventory sales-line sync now normalizes Dyke production eligibility onto `LineItem.meta.production.produceable` and `LineItem.meta.inventorySync.productionProduceable`.
+- Produceable service rows are production eligible; non-produceable service rows and moulding rows are production ineligible.
+- Explicit `produceable: false` metadata overrides legacy/Dyke production truthiness when deriving inventory production eligibility.
+- Persisted mixed grouped metadata rows are covered at package level: HPT metadata remains produceable and still extracts HPT/door candidates, service metadata stays produceable when `dykeProduction` is true, and moulding metadata remains non-produceable even when legacy Dyke production flags are truthy.
+- Production lifecycle updates preserve the existing production eligibility flag while refreshing assigned/fulfilled/remaining/status values.
+- Production plan/readiness projections ignore inventory-backed lines marked non-produceable, while leaving their inventory components available for fulfillment/backorder analytics.
+- Validation: `bun test packages/sales/src/sync-sales-inventory-line-items.test.ts packages/sales/src/sales-fulfillment-plan.test.ts` passed with 29 tests and 74 assertions; `bun test packages/sales/src/sync-sales-inventory-line-items.test.ts` passed with 12 tests and 25 assertions after adding explicit non-produceable metadata precedence and persisted mixed grouped metadata coverage; `bun test packages/sales/src/sales-fulfillment-plan.test.ts` passed with 22 tests and 63 assertions after adding non-produceable fulfillment queue coverage; `bun test packages/sales/src/inventory-production-lifecycle.test.ts` passed with 5 tests and 10 assertions after adding production lifecycle metadata preservation coverage.
+
+## 2026-06-16 Legacy Production Bypass Update
+- Direct legacy production assignment/submission/delete/mark-complete paths now call `syncInventoryProductionLifecycleForSale` after their existing sales-control/stat reset mutation.
+- Covered paths include standalone production assignment actions, clean-code production data-access helpers, mirrored `app-deps` helpers, batch assignment, old mark-complete actions, sales-progress fallback deletion, and the older production item action helpers.
+- The canonical `update-sales-control` task still owns the modern task path; package-level sales-control tasks were not changed to avoid double-syncing modern flows.
+- Validation: `bun test apps/www/src/actions/production-control-reset.test.ts` passed with 2 tests and 42 assertions; focused sales inventory/fulfillment tests still passed with 29 tests and 74 assertions; `bun test packages/sales/src/inventory-production-lifecycle.test.ts` passed with 5 tests and 10 assertions.
+
+## 2026-06-16 Inbound Prompt Reconciliation Update
+- `notes.saveInboundNote` now applies `ORDERED` and `PENDING ORDER` prompts to existing open inventory `InboundDemand` rows for the same sale.
+- `PENDING ORDER` updates are limited to unassigned open demand and do not downgrade shipment-linked or partially received demand.
+- `syncSalesInventoryLineItems` now reads the sale's order-level inbound status and uses the shared inventory demand-status resolver when creating/updating `InboundDemand`, covering the async timing case where the invoice prompt saves before inventory demand rows exist.
+- Sales inventory sync, inbound queue, reorder suggestions, reconciliation, and inbound assignment flows now use the inventory-owned `ACTIVE_INBOUND_DEMAND_STATUSES` policy for active demand reads, so previously cancelled/deleted demand history is not counted or revived into the active projection.
+- Order prompt mutation uses the separate inventory-owned `ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES` policy, keeping prompt-side updates limited to `pending` and `ordered` demand.
+- Added ADR-009 to document inventory as the owner of inbound demand status semantics and sales as a consumer of that policy.
+- `AVAILABLE` prompts intentionally do not cancel shortage demand; these disagreements surface in the inbound reconciliation report instead of hiding real stock gaps.
+- Added `inventories.inboundStatusDemandReconciliation`, a bounded query comparing `SalesOrders.inventoryStatus` with open line-level demand.
+- `/inventory/inbounds` now shows a compact reconciliation panel for orders with prompt/demand mismatches, extracted as a dedicated widget component to keep the workspace page composition-oriented.
+- Validation: `bun test packages/inventory/src/application/inbound/inbound-demand.test.ts` passed with 14 tests and 31 assertions; `bun test packages/sales/src/sync-sales-inventory-line-items.test.ts` passed with 10 tests and 20 assertions.
 
 ## Evidence Pointers
 - Sync foundation: `packages/sales/src/sync-sales-inventory-line-items.ts`, `packages/sales/src/sales-inventory-sync-job.ts`, `packages/jobs/src/tasks/sales/backfill-sales-inventory-line-items.ts`
@@ -447,4 +493,4 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - Inventory dispatch mode UI: `apps/www/src/components/inventory/inventory-dispatch-mode-page.tsx`, `inventories.assignInventoryDispatchAllocations`, `inventories.packInventoryDispatchAllocations`, `inventories.fulfillInventoryDispatch`, `inventories.releaseInventoryDispatchAllocations`, `/inventory/dispatch-mode`
 - Inventory pages: `/inventory`, `/inventory/[id]`, `/inventory/variants`, `/inventory/stocks`, `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/partial-shipments`, `/inventory/dispatch-mode`, `/inventory/production-plan`, `/inventory/suppliers`, `/inventory/review`
 
-Last updated: 2026-06-15
+Last updated: 2026-06-17

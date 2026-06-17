@@ -74,14 +74,6 @@ export const columns: ColumnDef<Item>[] = [
         ),
     },
     {
-        header: "P.O",
-        accessorKey: "po",
-        meta: {
-            className: "",
-        },
-        cell: ({ row: { original: item } }) => <div>{item?.poNo}</div>,
-    },
-    {
         header: "Customer",
         accessorKey: "customer",
         cell: ({ row: { original: item } }) => (
@@ -414,11 +406,6 @@ function ItemCard({ item }: ItemProps) {
                             value={item.invoice.total}
                             className="mt-0.5 block text-sm font-semibold text-foreground"
                         />
-                        {item.poNo && (
-                            <div className="mt-1 max-w-[100px] truncate text-[11px] text-muted-foreground">
-                                PO {item.poNo}
-                            </div>
-                        )}
                     </div>
                 </div>
             </ListItem.Content>

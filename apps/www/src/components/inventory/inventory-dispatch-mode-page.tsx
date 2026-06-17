@@ -62,10 +62,26 @@ function getSalesOverviewUrl(orderId: string | null) {
 	return `/sales-book/orders/overview-v2?${params.toString()}`;
 }
 
+function getDispatchFulfillmentErrorDescription(error: unknown) {
+	const message =
+		error instanceof Error ? error.message : String(error || "Unknown error");
+	if (message.includes("Picked inventory allocation was already claimed")) {
+		return "The picked allocation was already handled by another action. Refresh the queue and retry the remaining line.";
+	}
+	return message;
+}
+
 function getLineInput(item: DispatchQueueItem) {
 	return {
 		salesOrderId: item.salesOrderId,
 		lineItemIds: item.lineItemId ? [item.lineItemId] : [],
+	};
+}
+
+function getAllocationInput(item: DispatchQueueItem, allocationId: number) {
+	return {
+		...getLineInput(item),
+		allocationIds: [allocationId],
 	};
 }
 
@@ -152,6 +168,14 @@ export function InventoryDispatchModePage() {
 					title: data.ok ? "Inventory dispatch fulfilled" : "Nothing fulfilled",
 					description: `${formatQty(data.shippedQty)} shipped, ${formatQty(data.consumedAllocationQty)} consumed.`,
 					...(data.ok ? { variant: "success" as const } : {}),
+				});
+				invalidateQueues();
+			},
+			onError(error) {
+				toast({
+					title: "Inventory dispatch not fulfilled",
+					description: getDispatchFulfillmentErrorDescription(error),
+					variant: "destructive",
 				});
 				invalidateQueues();
 			},
@@ -253,6 +277,25 @@ export function InventoryDispatchModePage() {
 										<span>Remaining {formatQty(item.remainingQty)}</span>
 										<span>Inbound {formatQty(item.inboundQty)}</span>
 									</div>
+									<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+										<span>Sale #{item.salesOrderId || "N/A"}</span>
+										<span>Line #{item.lineItemId || "N/A"}</span>
+										{item.allocationIdsByStatus.approved.length ? (
+											<span>
+												Approved #{item.allocationIdsByStatus.approved.join(", #")}
+											</span>
+										) : null}
+										{item.allocationIdsByStatus.reserved.length ? (
+											<span>
+												Reserved #{item.allocationIdsByStatus.reserved.join(", #")}
+											</span>
+										) : null}
+										{item.allocationIdsByStatus.picked.length ? (
+											<span>
+												Picked #{item.allocationIdsByStatus.picked.join(", #")}
+											</span>
+										) : null}
+									</div>
 								</div>
 								<div className="flex shrink-0 flex-wrap gap-2">
 									{overviewUrl ? (
@@ -260,6 +303,74 @@ export function InventoryDispatchModePage() {
 											<Link href={overviewUrl}>Sale</Link>
 										</Button>
 									) : null}
+									{item.allocationIdsByStatus.approved.map((allocationId) => (
+										<Button
+											key={`assign-${allocationId}`}
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={isMutating}
+											onClick={() =>
+												assign.mutate({
+													...getAllocationInput(item, allocationId),
+													note: "Assigned from inventory dispatch mode.",
+												})
+											}
+										>
+											Assign #{allocationId}
+										</Button>
+									))}
+									{item.allocationIdsByStatus.reserved.map((allocationId) => (
+										<Button
+											key={`pack-${allocationId}`}
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={isMutating}
+											onClick={() =>
+												pack.mutate({
+													...getAllocationInput(item, allocationId),
+													note: "Packed from inventory dispatch mode.",
+												})
+											}
+										>
+											Pack #{allocationId}
+										</Button>
+									))}
+									{item.allocationIdsByStatus.picked.map((allocationId) => (
+										<Button
+											key={`fulfill-${allocationId}`}
+											type="button"
+											size="sm"
+											disabled={isMutating || !canFulfill}
+											onClick={() =>
+												fulfill.mutate({
+													...getAllocationInput(item, allocationId),
+													deliveryMode: "inventory_dispatch",
+													note: "Fulfilled from inventory dispatch mode.",
+												})
+											}
+										>
+											Fulfill #{allocationId}
+										</Button>
+									))}
+									{item.allocationIdsByStatus.reserved.map((allocationId) => (
+										<Button
+											key={`release-${allocationId}`}
+											type="button"
+											variant="outline"
+											size="sm"
+											disabled={isMutating}
+											onClick={() =>
+												release.mutate({
+													...getAllocationInput(item, allocationId),
+													note: "Released from inventory dispatch mode.",
+												})
+											}
+										>
+											Release #{allocationId}
+										</Button>
+									))}
 									<Button
 										type="button"
 										variant="outline"

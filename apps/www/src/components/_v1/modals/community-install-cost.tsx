@@ -36,7 +36,13 @@ import {
 } from "../columns/base-columns";
 import Money from "../money";
 import BaseModal from "./base-modal";
-import { Item } from "@/components/tables/community-template/columns";
+import type { CommunityTemplateRow } from "@/components/tables-2/community-templates/columns";
+
+type CommunityInstallCostTemplate = Omit<CommunityTemplateRow, "meta"> & {
+    meta: {
+        installCosts?: InstallCost[];
+    };
+};
 
 export default function CommunityInstallCostModal() {
     const route = useRouter();
@@ -86,13 +92,13 @@ export default function CommunityInstallCostModal() {
             }
         });
     }
-    async function init(data: Item) {
+    async function init(data: CommunityInstallCostTemplate) {
         form.reset({
-            costs: data.meta.installCosts || [{}],
+            costs: data.meta?.installCosts || [{}],
         });
     }
     return (
-        <BaseModal<Item>
+        <BaseModal<CommunityInstallCostTemplate>
             className="sm:max-w-[500px]"
             onOpen={(data) => {
                 init(data);
@@ -102,7 +108,7 @@ export default function CommunityInstallCostModal() {
             Title={({ data }) => <div>Default Community Install Costs</div>}
             Subtitle={({ data }) => (
                 <div>
-                    {data?.project?.name}: {data?.project?.builder?.name}
+                    {data?.project?.title}: {data?.project?.builder?.name}
                 </div>
             )}
             Content={({ data }) => (

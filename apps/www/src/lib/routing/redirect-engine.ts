@@ -32,7 +32,6 @@ const dynamicRedirectMaps = {
     "/community/community-template/:slug":
         "/community/community-template/:slug/v1",
     "/jobs/:taskType": "/jobs-dashboard",
-    // "/sales-book/orders/:salesNo": "/sales-book/orders/v2/:salesNo",
     // "/sales-book/productions/:salesNo": "/sales-book/productions/v2/:salesNo",
 } as const;
 export const redirectRules: RedirectRule[] = [
@@ -49,11 +48,6 @@ export const redirectRules: RedirectRule[] = [
         type: "pattern" as const,
     })),
     // Dynamic examples for future migrations:
-    // {
-    //     from: "/sales-book/orders/:salesNo",
-    //     to: "/sales-book/orders/v2/:salesNo",
-    //     type: "pattern",
-    // },
     // {
     //     from: "/sales-book/productions/:salesNo",
     //     to: "/sales-book/productions/v2/:salesNo",
@@ -216,4 +210,3 @@ function normalizePath(path: string) {
     }
     return normalized;
 }
-

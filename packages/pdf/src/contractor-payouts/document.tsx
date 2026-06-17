@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 function formatCurrency(value?: number | null) {

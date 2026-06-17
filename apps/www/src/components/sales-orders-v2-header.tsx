@@ -9,14 +9,11 @@ import {
 import { cn } from "@/lib/utils";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
-import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
-import Link from "next/link";
 import { CreateSalesBtn } from "./create-sales-btn";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
-import { SalesTabs } from "./sales-tabs";
 import { SalesOrdersV2ColumnVisibility } from "./sales-orders-v2-column-visibility";
+import { SalesTabs } from "./sales-tabs";
 
 export function SalesOrdersV2Header() {
 	return (
@@ -34,12 +31,6 @@ export function SalesOrdersV2Header() {
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				<SalesOrdersV2ColumnVisibility />
-				<Button asChild size="sm" variant="outline">
-					<Link href="/sales-book/orders">
-						<Icons.ArrowUpRight className="mr-2 size-4" />
-						<span className="hidden lg:inline">Legacy</span>
-					</Link>
-				</Button>
 				<CreateSalesBtn />
 			</div>
 		</div>
@@ -50,10 +41,8 @@ function SalesOrdersV2SearchFilterContent() {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
-	const isTableScrolled = useSalesOrdersStore(
-		(state) => state.isTableScrolled,
-	);
-	const { data: trpcFilterData } = useQuery({
+	const isTableScrolled = useSalesOrdersStore((state) => state.isTableScrolled);
+	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.salesOrdersV2.queryOptions({
 			salesManager: auth?.can?.viewSalesManager,
@@ -64,6 +53,7 @@ function SalesOrdersV2SearchFilterContent() {
 		<SearchFilterTRPC
 			placeholder="Search order number, customer, phone, address, or P.O..."
 			filterList={trpcFilterData}
+			loading={shouldFetch && isFetching}
 			afterSearch={<SalesOrdersV2InlineTabs visible={isTableScrolled} />}
 			pageTabs={null}
 		/>

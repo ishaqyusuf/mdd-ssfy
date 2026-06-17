@@ -252,9 +252,15 @@ export function isWorkflowComponentSelected(
 
 	if (componentId && Number(step.componentId || 0) === componentId) return true;
 
-	const selectedValue = String(step.value || "").trim().toLowerCase();
-	const componentTitle = String(component?.title || "").trim().toLowerCase();
-	return Boolean(selectedValue && componentTitle && selectedValue === componentTitle);
+	const selectedValue = String(step.value || "")
+		.trim()
+		.toLowerCase();
+	const componentTitle = String(component?.title || "")
+		.trim()
+		.toLowerCase();
+	return Boolean(
+		selectedValue && componentTitle && selectedValue === componentTitle,
+	);
 }
 
 export function hasWorkflowStepSelection(
@@ -283,7 +289,9 @@ export function workflowStepSelectionLabel(
 		);
 	}
 
-	return String(step?.value || step?.prodUid || step?.componentId || "Selected");
+	return String(
+		step?.value || step?.prodUid || step?.componentId || "Selected",
+	);
 }
 
 export function stepKey(lineUid: string, stepIndex: number) {
@@ -432,8 +440,11 @@ export function getStoredServiceRows(line: WorkflowLineItemRecord) {
 export function isComponentEnabledForView(
 	component: WorkflowComponentRecord,
 	includeCustom: boolean,
+	selectedCustomUids?: Set<string>,
 ) {
 	if (includeCustom) return true;
+	const uid = String(component?.uid || "");
+	if (uid && selectedCustomUids?.has(uid)) return true;
 	return !component?._metaData?.custom && !component?.custom;
 }
 

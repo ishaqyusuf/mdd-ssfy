@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import type { ReactNode, RefObject } from "react";
@@ -79,8 +80,23 @@ export function WorkflowStepComponentPanel<
 	TComponent extends WorkflowComponentRecord,
 >(props: WorkflowStepComponentPanelProps<TComponent>) {
 	const activeStepTitle = props.activeStep?.step?.title;
+	const activeStepMeta =
+		props.activeStep?.step?.meta &&
+		typeof props.activeStep.step.meta === "object" &&
+		!Array.isArray(props.activeStep.step.meta)
+			? (props.activeStep.step.meta as Record<string, unknown>)
+			: {};
+	const activeFormStepMeta =
+		props.activeStep?.meta &&
+		typeof props.activeStep.meta === "object" &&
+		!Array.isArray(props.activeStep.meta)
+			? (props.activeStep.meta as Record<string, unknown>)
+			: {};
 	const isDoorStep = isDoorStepTitle(activeStepTitle);
 	const isMultiSelectStep = isMultiSelectStepTitle(activeStepTitle);
+	const supportsCustomComponents = Boolean(
+		activeStepMeta.custom || activeFormStepMeta.custom,
+	);
 
 	return (
 		<StepComponentPicker
@@ -250,7 +266,7 @@ export function WorkflowStepComponentPanel<
 								) : null}
 								{props.onEnableCustomComponent ? (
 									<Menu.Item onClick={props.onEnableCustomComponent}>
-										Component
+										Custom
 									</Menu.Item>
 								) : null}
 								<Menu.Item onClick={props.onRefresh}>Refresh</Menu.Item>
@@ -261,13 +277,26 @@ export function WorkflowStepComponentPanel<
 						) : null
 					}
 					actionSlot={
-						isMultiSelectStep ? (
-							<Button
-								onClick={props.onProceedMultiSelect}
-								disabled={!props.selectedUids.size}
-							>
-								Next Step
-							</Button>
+						supportsCustomComponents || isMultiSelectStep ? (
+							<div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+								{supportsCustomComponents && props.onEnableCustomComponent ? (
+									<Button
+										type="button"
+										variant="outline"
+										onClick={props.onEnableCustomComponent}
+									>
+										Custom
+									</Button>
+								) : null}
+								{isMultiSelectStep ? (
+									<Button
+										onClick={props.onProceedMultiSelect}
+										disabled={!props.selectedUids.size}
+									>
+										Proceed
+									</Button>
+								) : null}
+							</div>
 						) : null
 					}
 				/>

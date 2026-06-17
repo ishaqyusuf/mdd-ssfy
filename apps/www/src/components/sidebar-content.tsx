@@ -49,10 +49,7 @@ function NavLayoutClient({ children, pageTabDefaults }) {
         refetchOnWindowFocus: false,
         staleTime: Number.POSITIVE_INFINITY,
     });
-    const navDefaults = {
-        ...defaults,
-        "/sales-book/orders": "/sales-book/orders/v2",
-    };
+    const navDefaults = defaults;
 
     return (
         <SiteNav.Provider
@@ -68,7 +65,11 @@ function NavLayoutClient({ children, pageTabDefaults }) {
         >
             <div className="relative ">
                 <SiteNav.Sidebar>
-                    <SiteNav.Logo Icon={Icons.LogoLg} />
+                    <SiteNav.Logo
+                        Icon={Icons.Logo}
+                        title="GND"
+                        subtitle="Millwork Corp"
+                    />
                     <SiteNav.LogoSm Icon={Icons.Logo} />
                     {/* <TermSwitcher /> */}
                     {/* <ModuleSwitcher /> */}

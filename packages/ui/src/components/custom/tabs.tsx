@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { cn } from "../../utils";
 import createContextFactory from "@/utils/context-factory";
 import { useEffect, useRef, useState } from "react";

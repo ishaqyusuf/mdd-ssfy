@@ -8,8 +8,12 @@ import { View } from "react-native";
 import type { ComponentType } from "react";
 
 export type LucideProps = Omit<HugeiconsProps, "icon" | "altIcon" | "showAlt">;
+type IconThemeOverride = keyof typeof THEME | "";
 export type IconProps = LucideProps & {
+  as?: ComponentType<any>;
+  inverted?: boolean;
   name?: IconKeys;
+  theme?: IconThemeOverride;
 };
 type LucideIcon = ComponentType<LucideProps>;
 type HugeIconName = keyof typeof HugeIcons;
@@ -25,7 +29,9 @@ function hugeIcon(name: HugeIconName): LucideIcon {
     const resolvedIcon = icon ?? (HugeIcons.X as any);
 
     if (__DEV__ && !icon) {
-      console.warn(`[Icon] Missing Hugeicon export for "${name}", falling back to X.`);
+      console.warn(
+        `[Icon] Missing Hugeicon export for "${name}", falling back to X.`,
+      );
     }
 
     return (
@@ -68,6 +74,8 @@ const Clock = hugeIcon("Clock");
 const CreditCard = hugeIcon("CreditCard");
 const Delete = hugeIcon("Delete");
 const DoorOpen = hugeIcon("Door01Icon");
+const Eye = hugeIcon("EyeIcon");
+const EyeOff = hugeIcon("ViewOffIcon");
 const Fence = hugeIcon("FenceIcon");
 const FilePenLine = hugeIcon("FileEditIcon");
 const FileText = hugeIcon("File02Icon");
@@ -138,9 +146,23 @@ const iconSizes = {
   "2xl": 40,
 };
 // type T = IconProps['strokeWidth']
-function IconImpl({ name, ...props }: IconProps) {
-  let IconComponent;
+function IconImpl({
+  as: IconComponent,
+  inverted,
+  name,
+  theme,
+  ...props
+}: IconProps) {
   const { colorScheme } = useColorScheme();
+  const themeOverride =
+    theme === "dark" || theme === "light" ? theme : undefined;
+  const iconColorScheme = themeOverride
+    ? themeOverride
+    : inverted
+      ? colorScheme === "dark"
+        ? "light"
+        : "dark"
+      : colorScheme;
   const className = typeof props.className === "string" ? props.className : "";
   const textClass = className
     .split(" ")
@@ -163,7 +185,7 @@ function IconImpl({ name, ...props }: IconProps) {
         : parsedOpacity;
 
   const themedColor =
-    color && colorScheme === "dark"
+    color && iconColorScheme === "dark"
       ? THEME.dark[color]
       : color
         ? THEME.light[color]
@@ -258,6 +280,8 @@ const appIcons = {
   CreditCard,
   Delete,
   DoorOpen,
+  Eye,
+  EyeOff,
   Fence,
   FilePenLine,
   FileText,

@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { View } from "@react-pdf/renderer";
 import type { CustomerStatementTemplateRenderProps } from "../../registry";
 import {

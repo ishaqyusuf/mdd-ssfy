@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 "use client";
 
 import { Command as CommandPrimitive } from "cmdk";

@@ -32,6 +32,7 @@ export function NavsList({
 	const {
 		linkModules,
 		activeLink,
+		mainMenuRef,
 		isExpanded: _isExpanded,
 		props: { pathName: rawPathName },
 	} = useSiteNav();
@@ -229,6 +230,7 @@ export function NavsList({
 																		expandedItem === path ? null : path,
 																	);
 																}}
+																scrollContainerRef={mainMenuRef}
 																item={link}
 																module={module}
 																isActive={isLinkActive(link)}

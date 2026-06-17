@@ -13,6 +13,19 @@ const productionControlMutationFiles = [
     "../app/(clean-code)/(sales)/_common/data-access/sales-prod.dta.ts",
 ];
 
+const productionInventoryLifecycleMutationFiles = [
+    "batch-assign-production-orders.ts",
+    "create-sales-assignment.ts",
+    "submit-sales-assignment.ts",
+    "delete-sales-assignment.ts",
+    "delete-sales-assignment-submission.ts",
+    "sales-mark-as-completed.ts",
+    "sales-progress-fallback.ts",
+    "../app-deps/(clean-code)/(sales)/_common/data-access/sales-prod.dta.ts",
+    "../app/(clean-code)/(sales)/_common/data-access/sales-prod.dta.ts",
+    "../app/(clean-code)/(sales)/_common/data-actions/production-actions/item-assign-action.ts",
+];
+
 function readActionFile(path: string) {
     return readFileSync(new URL(path, import.meta.url), "utf8");
 }
@@ -26,6 +39,14 @@ describe("legacy production control mutations", () => {
             expect(source, file).not.toContain("updateSalesItemStats");
             expect(source, file).not.toContain("updateSalesStatAction");
             expect(source, file).not.toContain("updateSalesProgressDta");
+        }
+    });
+
+    it("refreshes inventory production lifecycle after direct production mutations", () => {
+        for (const file of productionInventoryLifecycleMutationFiles) {
+            const source = readActionFile(file);
+
+            expect(source, file).toContain("syncInventoryProductionLifecycleForSale");
         }
     });
 });

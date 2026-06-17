@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 export { QueryClientProvider, isServer } from "@tanstack/react-query";
 
 export type { QueryClient as QueryClientType } from "@tanstack/react-query";
