@@ -14,6 +14,12 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
+- Dealership/dealer-program routes now include:
+  - `dealerPortal.dashboard`: dealer-scoped summary for open quotes, pending requests, active orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent activity
+  - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used by the dealer order overview and print/payment surfaces; payload now includes `createdAt`
+  - `dealerPortal.createPaymentLink`: dealer-owned approved-order checkout-link mutation for orders with outstanding balance
+  - `dealerPortal.saveSettings`: dealer settings mutation accepts external logo URLs and bounded uploaded image data URLs for dealer invoice branding
+  - `sales.approveDealerSalesRequest`: internal approval mutation now accepts optional reviewed `deliveryCost` and `approverNote`, assigns first approver ownership, stamps approval metadata, and sends the dealer approval email with a checkout URL when payment is due
 - Sales orders v2 routes now include:
   - `sales.getOrdersV2`: canonical sales orders list query for `/sales-book/orders` and `/sales-book/orders/bin`; accepts the existing pagination `bin` flag and forwards it through the legacy sales filter adapter for deleted-order views
   - `sales.getOrdersV2Summary`: canonical sales orders summary query for `/sales-book/orders`

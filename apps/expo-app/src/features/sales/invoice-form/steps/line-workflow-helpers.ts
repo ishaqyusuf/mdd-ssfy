@@ -60,8 +60,8 @@ export function getSelectedDoorComponents(
 }
 
 export function mapShelfProduct(
-	row: unknown,
-	profileCoefficient?: number | null,
+  row: unknown,
+  profileCoefficient?: number | null,
 ): ShelfProductOption {
 	const product = (row || {}) as Record<string, unknown>;
 	const categoryPath = Array.isArray(product.categoryPath)
@@ -96,6 +96,23 @@ export function mapShelfProduct(
 					}
 				: { id: Number(entry || 0) },
 		),
+	};
+}
+
+export function mapWorkflowComponent(row: unknown): WorkflowComponentRecord {
+	const component = (row || {}) as WorkflowComponentRecord &
+		Record<string, unknown>;
+	return {
+		...component,
+		id: component.id == null ? null : Number(component.id || 0),
+		uid: String(component.uid || component.id || ""),
+		title: String(
+			component.title || component.value || component.uid || "Component",
+		),
+		salesPrice:
+			component.salesPrice == null ? null : Number(component.salesPrice || 0),
+		basePrice:
+			component.basePrice == null ? null : Number(component.basePrice || 0),
 	};
 }
 

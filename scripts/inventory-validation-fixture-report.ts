@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-const DEFAULT_DATABASE_URL = "mysql://root@localhost/gnd-prisma2";
+const DEFAULT_DATABASE_URL = "mysql://root@localhost:3307/gnd-prisma2";
 
 type CliOptions = {
 	json: boolean;
@@ -20,13 +20,13 @@ function usage() {
 		[
 			"Usage:",
 			"  bun scripts/inventory-validation-fixture-report.ts",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --json",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --markdown",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --seed-checklist",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --seed-blueprint",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --evidence-template",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --mutation-snapshot",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --completion-gate",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --json",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --markdown",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --seed-checklist",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --seed-blueprint",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --evidence-template",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --mutation-snapshot",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/inventory-validation-fixture-report.ts --completion-gate",
 			"",
 			"Options:",
 			"  --json             Print the full machine-readable report payload",

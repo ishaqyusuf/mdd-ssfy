@@ -74,6 +74,7 @@ import { getSaleInformation } from "@gnd/sales/get-sale-information";
 import { generateRandomString, timeLog } from "@gnd/utils";
 import { createNoteAction } from "@notifications/note";
 import { EmailService } from "@gnd/notifications/services/email-service";
+import { buildFullPaymentToken } from "@api/db/queries/checkout";
 import {
 	getInvoicePrintData,
 	printInvoiceSchema,
@@ -94,7 +95,12 @@ import {
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { z } from "zod";
 import { getAppUrl } from "@gnd/utils/envs";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+	type TRPCContext,
+} from "../init";
 
 const dealerOrderRequestsSchema = z.object({
 	cursor: z.number().optional().nullable(),
@@ -104,16 +110,48 @@ const dealerOrderRequestsSchema = z.object({
 const dealerOrderRequestIdSchema = z.object({
 	requestId: z.number(),
 });
+const approveDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
+	deliveryCost: z.number().min(0).optional().nullable(),
+	approverNote: z.string().optional().nullable(),
+});
 const rejectDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
 	reason: z.string().optional().nullable(),
 });
 
+function getDealershipUrl() {
+	if (process.env.NEXT_PUBLIC_DEALERSHIP_URL) {
+		return process.env.NEXT_PUBLIC_DEALERSHIP_URL.replace(/\/$/, "");
+	}
+
+	if (
+		process.env.VERCEL_ENV === "production" ||
+		process.env.NODE_ENV === "production"
+	) {
+		return "https://dealers.gndprodesk.com";
+	}
+
+	if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
+		return `https://${process.env.VERCEL_URL}`;
+	}
+
+	return "http://localhost:3006";
+}
+
 async function sendDealerApprovalEmail(
-	ctx: { db: any },
+	ctx: TRPCContext,
 	result: Awaited<ReturnType<typeof approveDealerOrderRequest>>,
 ) {
 	if (!result.dealerEmail) return;
-	const orderUrl = `${getAppUrl().replace(/\/$/, "")}/orders`;
+	const orderUrl = `${getDealershipUrl()}/orders/${result.order.id}`;
+	const paymentToken = await buildFullPaymentToken(ctx, {
+		salesId: result.paymentContext.salesId,
+		customerId: result.paymentContext.customerId,
+		customerPhone: result.paymentContext.customerPhone,
+		amountDue: result.paymentContext.amountDue,
+	});
+	const paymentUrl = paymentToken
+		? `${getAppUrl().replace(/\/$/, "")}/checkout/${paymentToken}/v2`
+		: null;
 	await new EmailService(ctx.db).sendTransactional({
 		to: result.dealerEmail,
 		subject: `Quote ${result.quoteNo} approved as order ${result.order.orderId}`,
@@ -125,6 +163,7 @@ async function sendDealerApprovalEmail(
 			customerName: result.customerName,
 			total: result.total,
 			orderUrl,
+			paymentUrl,
 		},
 	});
 }
@@ -165,12 +204,16 @@ export const salesRouter = createTRPCRouter({
 			);
 		}),
 	approveDealerSalesRequest: protectedProcedure
-		.input(dealerOrderRequestIdSchema)
+		.input(approveDealerOrderRequestSchema)
 		.mutation(async (props) => {
 			const result = await approveDealerOrderRequest(
 				props.ctx.db,
 				props.ctx.userId,
 				props.input.requestId,
+				{
+					deliveryCost: props.input.deliveryCost,
+					approverNote: props.input.approverNote,
+				},
 			);
 			if (!result.alreadyApproved) {
 				await sendDealerApprovalEmail(props.ctx, result);

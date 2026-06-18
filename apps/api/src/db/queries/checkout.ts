@@ -230,7 +230,7 @@ async function getAcceptedQuoteOrder(
 		: null;
 }
 
-async function buildFullPaymentToken(
+export async function buildFullPaymentToken(
 	ctx: TRPCContext,
 	data: {
 		salesId: number;

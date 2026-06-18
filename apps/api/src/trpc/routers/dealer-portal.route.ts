@@ -1,5 +1,6 @@
 import {
   dealerPortalConvertQuoteSchema,
+  dealerPortalCreatePaymentLinkSchema,
   dealerPortalCustomersListSchema,
   dealerPortalCustomerLookupSchema,
   dealerPortalCustomerSchema,
@@ -12,6 +13,7 @@ import {
   dealerPortalSalesProfileSchema,
   dealerPortalSettingsSchema,
 } from "@api/schemas/dealer";
+import { createSalesCheckoutLink } from "@api/db/queries/checkout";
 import { z } from "zod";
 import { getDealershipCustomersFilter } from "@api/filters/dealership-customers-filter";
 import { getDealershipOrdersFilter } from "@api/filters/dealership-orders-filter";
@@ -65,6 +67,11 @@ import {
   type DealerWorkflowVisibility,
 } from "@api/utils/dealer-workflow-visibility";
 import { NotificationService } from "@gnd/notifications/services/triggers";
+import { getCustomerWallet } from "@gnd/sales/wallet";
+import {
+  tokenize,
+  type SalesPaymentTokenSchema,
+} from "@gnd/utils/tokenizer";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import { resolveSalesDocumentHtmlPreviewAccess } from "@api/utils/sales-document-access";
@@ -74,6 +81,17 @@ const dealerWorkflowStepComponentsSchema = z.object({
   stepTitle: z.string().optional().nullable(),
   stepId: z.number().optional(),
 });
+
+function dealerPaymentExpiry() {
+  return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+}
+
+function dealerPaymentAccountNo(input: {
+  customerId?: number | null;
+  customerPhone?: string | null;
+}) {
+  return input.customerPhone || (input.customerId ? `cust-${input.customerId}` : null);
+}
 
 export const dealerPortalRouter = createTRPCRouter({
   me: dealerProtectedProcedure.query(({ ctx }) => {
@@ -262,6 +280,102 @@ export const dealerPortalRouter = createTRPCRouter({
         pricingMode: input.pricingMode,
         baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? null,
       });
+    }),
+  createPaymentLink: dealerProtectedProcedure
+    .input(dealerPortalCreatePaymentLinkSchema)
+    .mutation(async ({ ctx, input }) => {
+      const sale = await ctx.db.salesOrders.findFirst({
+        where: {
+          id: input.id,
+          dealerAuthId: ctx.dealer.id,
+          deletedAt: null,
+          type: {
+            not: "quote",
+          },
+        },
+        select: {
+          id: true,
+          amountDue: true,
+          customerId: true,
+          customer: {
+            select: {
+              phoneNo: true,
+            },
+          },
+          billingAddress: {
+            select: {
+              phoneNo: true,
+            },
+          },
+          shippingAddress: {
+            select: {
+              phoneNo: true,
+            },
+          },
+          dealerSale: {
+            select: {
+              dueAmount: true,
+            },
+          },
+        },
+      });
+
+      if (!sale) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const amountDue = Number(sale.dealerSale?.dueAmount ?? sale.amountDue ?? 0);
+      if (amountDue <= 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This order does not have an outstanding balance.",
+        });
+      }
+
+      const accountNo = dealerPaymentAccountNo({
+        customerId: sale.customerId,
+        customerPhone:
+          sale.billingAddress?.phoneNo ||
+          sale.customer?.phoneNo ||
+          sale.shippingAddress?.phoneNo ||
+          null,
+      });
+      if (!accountNo) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This order is missing customer payment identity.",
+        });
+      }
+
+      const wallet = await getCustomerWallet(ctx.db, accountNo);
+      if (!wallet?.id) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This customer does not have a payment wallet yet.",
+        });
+      }
+
+      const token = tokenize({
+        salesIds: [sale.id],
+        expiry: dealerPaymentExpiry(),
+        payPlan: "full",
+        amount: amountDue,
+        walletId: wallet.id,
+      } satisfies SalesPaymentTokenSchema);
+      const result = await createSalesCheckoutLink(ctx, {
+        token,
+        amount: input.amount ?? null,
+        selectedSalesIds: [sale.id],
+      });
+
+      if (!result?.paymentLink) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Could not create payment link for this order.",
+        });
+      }
+
+      return result;
     }),
   saveQuote: dealerProtectedProcedure
     .input(dealerPortalSaveQuoteSchema)

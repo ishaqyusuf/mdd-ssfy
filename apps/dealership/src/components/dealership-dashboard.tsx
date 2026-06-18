@@ -1,84 +1,201 @@
-import { ArrowUpRight, CircleDollarSign, FileText, Users } from "lucide-react";
+"use client";
 
-const metrics = [
-  {
-    label: "Open Quotes",
-    value: "0",
-    icon: FileText,
-  },
-  {
-    label: "Active Orders",
-    value: "0",
-    icon: ArrowUpRight,
-  },
-  {
-    label: "Customers",
-    value: "0",
-    icon: Users,
-  },
-  {
-    label: "Ledger Balance",
-    value: "$0.00",
-    icon: CircleDollarSign,
-  },
-];
+import { useTRPC } from "@/trpc/client";
+import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import {
+	ArrowUpRight,
+	CircleDollarSign,
+	FileText,
+	ReceiptText,
+	Users,
+} from "lucide-react";
+import Link from "next/link";
+
+function currency(value?: number | null) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(Number(value || 0));
+}
+
+function date(value?: Date | string | null) {
+	if (!value) return "-";
+	return new Intl.DateTimeFormat("en", {
+		month: "short",
+		day: "numeric",
+	}).format(new Date(value));
+}
 
 export function DealershipDashboard({
-  dealerName,
+	dealerName,
 }: {
-  dealerName: string;
+	dealerName: string;
 }) {
-  return (
-    <div className="space-y-8">
-      <header className="flex flex-col gap-3 border-b pb-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">
-            Dealer workspace
-          </p>
-          <h2 className="text-2xl font-semibold tracking-normal">
-            {dealerName}
-          </h2>
-        </div>
-      </header>
+	const trpc = useTRPC();
+	const dashboardQuery = useQuery(trpc.dealerPortal.dashboard.queryOptions());
+	const dashboard = dashboardQuery.data;
+	const metrics = [
+		{
+			label: "Open Quotes",
+			value: String(dashboard?.openQuotes ?? 0),
+			icon: FileText,
+			href: "/quotes",
+		},
+		{
+			label: "Pending Requests",
+			value: String(dashboard?.pendingRequests ?? 0),
+			icon: ArrowUpRight,
+			href: "/quotes",
+		},
+		{
+			label: "Active Orders",
+			value: String(dashboard?.activeOrders ?? 0),
+			icon: ReceiptText,
+			href: "/orders",
+		},
+		{
+			label: "Unpaid Balance",
+			value: currency(dashboard?.unpaidAmount),
+			icon: CircleDollarSign,
+			href: "/orders?amountDue=due",
+		},
+		{
+			label: "Paid Revenue",
+			value: currency(dashboard?.paidRevenue),
+			icon: CircleDollarSign,
+			href: "/orders?amountDue=paid",
+		},
+		{
+			label: "Dealer Earnings",
+			value: currency(dashboard?.dealerEarnings),
+			icon: ArrowUpRight,
+			href: "/orders",
+		},
+		{
+			label: "Dealer Taxes",
+			value: currency(dashboard?.dealerFacingTax),
+			icon: ReceiptText,
+			href: "/orders",
+		},
+		{
+			label: "Customers",
+			value: String(dashboard?.customers ?? 0),
+			icon: Users,
+			href: "/customers",
+		},
+	];
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
+	return (
+		<div className="space-y-8">
+			<header className="flex flex-col gap-3 border-b pb-6 md:flex-row md:items-center md:justify-between">
+				<div>
+					<p className="text-sm font-medium text-muted-foreground">
+						Dealer workspace
+					</p>
+					<h2 className="text-2xl font-semibold tracking-normal">
+						{dealerName}
+					</h2>
+				</div>
+				<Button asChild>
+					<Link href="/quotes/new">Create quote</Link>
+				</Button>
+			</header>
 
-          return (
-            <div className="rounded-lg border bg-card p-4" key={metric.label}>
-              <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {metric.label}
-                </p>
-                <Icon className="size-4 text-muted-foreground" />
-              </div>
-              <p className="text-2xl font-semibold">{metric.value}</p>
-            </div>
-          );
-        })}
-      </section>
+			<section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+				{metrics.map((metric) => {
+					const Icon = metric.icon;
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <div className="min-h-80 rounded-lg border bg-card p-5">
-          <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-base font-semibold">Sales Activity</h3>
-            <span className="rounded-md border px-2 py-1 text-xs text-muted-foreground">
-              Month
-            </span>
-          </div>
-          <div className="flex h-56 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-            No activity
-          </div>
-        </div>
+					return (
+						<Link
+							className="rounded-lg border bg-card p-4 transition-colors hover:bg-muted/40"
+							href={metric.href}
+							key={metric.label}
+						>
+							<div className="mb-4 flex items-center justify-between">
+								<p className="text-sm font-medium text-muted-foreground">
+									{metric.label}
+								</p>
+								<Icon className="size-4 text-muted-foreground" />
+							</div>
+							<p className="text-2xl font-semibold">
+								{dashboardQuery.isPending ? "-" : metric.value}
+							</p>
+						</Link>
+					);
+				})}
+			</section>
 
-        <div className="min-h-80 rounded-lg border bg-card p-5">
-          <h3 className="mb-6 text-base font-semibold">Recent Work</h3>
-          <div className="flex h-56 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-            No recent records
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+			<section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+				<div className="rounded-lg border bg-card p-5">
+					<div className="mb-5 flex items-center justify-between">
+						<h3 className="text-base font-semibold">Recent Orders</h3>
+						<Button asChild size="sm" variant="outline">
+							<Link href="/orders">View all</Link>
+						</Button>
+					</div>
+					<div className="divide-y">
+						{dashboard?.recentOrders?.length ? (
+							dashboard.recentOrders.map((order) => (
+								<Link
+									className="grid gap-2 py-3 text-sm md:grid-cols-[1fr_120px_110px]"
+									href={`/orders/${order.id}`}
+									key={order.id}
+								>
+									<div className="min-w-0">
+										<p className="truncate font-medium">{order.orderId}</p>
+										<p className="truncate text-xs text-muted-foreground">
+											{order.customerName}
+										</p>
+									</div>
+									<p className="text-muted-foreground">
+										{currency(order.amountDue)} due
+									</p>
+									<p className="text-muted-foreground md:text-right">
+										{date(order.createdAt)}
+									</p>
+								</Link>
+							))
+						) : (
+							<div className="py-10 text-center text-sm text-muted-foreground">
+								No recent orders
+							</div>
+						)}
+					</div>
+				</div>
+
+				<div className="rounded-lg border bg-card p-5">
+					<div className="mb-5 flex items-center justify-between">
+						<h3 className="text-base font-semibold">Request Activity</h3>
+						<Button asChild size="sm" variant="outline">
+							<Link href="/quotes">Quotes</Link>
+						</Button>
+					</div>
+					<div className="space-y-3">
+						{dashboard?.recentRequests?.length ? (
+							dashboard.recentRequests.map((request) => (
+								<div className="rounded-md border p-3" key={request.id}>
+									<div className="flex items-center justify-between gap-3">
+										<p className="truncate text-sm font-medium">
+											{request.sale?.orderId || "Dealer request"}
+										</p>
+										<Badge variant="outline">{request.status}</Badge>
+									</div>
+									<p className="mt-1 text-xs text-muted-foreground">
+										{request.sale?.customerName || "Customer"} ·{" "}
+										{date(request.createdAt)}
+									</p>
+								</div>
+							))
+						) : (
+							<div className="py-10 text-center text-sm text-muted-foreground">
+								No order requests yet
+							</div>
+						)}
+					</div>
+				</div>
+			</section>
+		</div>
+	);
 }

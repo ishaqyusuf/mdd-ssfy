@@ -22,6 +22,7 @@ interface Props {
 	customerName?: string | null;
 	total?: number | null;
 	orderUrl?: string | null;
+	paymentUrl?: string | null;
 }
 
 function currency(value?: number | null) {
@@ -38,6 +39,7 @@ export default function DealerSalesRequestApprovedEmail({
 	customerName,
 	total,
 	orderUrl,
+	paymentUrl,
 }: Props) {
 	const themeClasses = getEmailThemeClasses();
 	const lightStyles = getEmailInlineStyles("light");
@@ -75,6 +77,11 @@ export default function DealerSalesRequestApprovedEmail({
 						{customerName ? ` - Customer: ${customerName}` : null}
 						{typeof total === "number" ? ` - Total: ${currency(total)}` : null}
 					</Text>
+					{paymentUrl ? (
+						<Section className="text-center mt-[30px] mb-[16px]">
+							<Button href={paymentUrl}>Make Payment</Button>
+						</Section>
+					) : null}
 					{orderUrl ? (
 						<Section className="text-center mt-[30px] mb-[40px]">
 							<Button href={orderUrl}>View Order</Button>

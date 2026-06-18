@@ -3,10 +3,12 @@
 import { useTRPC } from "@/trpc/client";
 import { salesFormDeliveryOptions } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
+import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "lucide-react";
-import type { FormEvent } from "react";
+import { Building2, Upload } from "lucide-react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { Field } from "./shared";
 
 function getSettingLogoUrl(meta: unknown) {
@@ -47,6 +49,7 @@ function getSettingDefaults(meta: unknown) {
 export function DealerSettings() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const [logoUrl, setLogoUrl] = useState("");
 	const settingsQuery = useQuery(trpc.dealerPortal.settings.queryOptions());
 	const profilesQuery = useQuery(trpc.dealerPortal.salesProfiles.queryOptions());
 	const taxProfilesQuery = useQuery(trpc.dealerPortal.taxProfiles.queryOptions());
@@ -82,7 +85,7 @@ export function DealerSettings() {
 			name: String(form.get("name") || ""),
 			companyName: String(form.get("companyName") || ""),
 			phoneNo: String(form.get("phoneNo") || ""),
-			logoUrl: String(form.get("logoUrl") || ""),
+			logoUrl: logoUrl || "",
 			address1: String(form.get("address1") || ""),
 			address2: String(form.get("address2") || ""),
 			city: String(form.get("city") || ""),
@@ -97,12 +100,49 @@ export function DealerSettings() {
 		});
 	}
 
+	function onLogoFileChange(event: ChangeEvent<HTMLInputElement>) {
+		const file = event.target.files?.[0];
+		if (!file) return;
+		if (!file.type.startsWith("image/")) {
+			toast({
+				title: "Choose an image file.",
+				variant: "destructive",
+			});
+			return;
+		}
+		if (file.size > 350_000) {
+			toast({
+				title: "Logo image is too large.",
+				description: "Upload an image under 350 KB.",
+				variant: "destructive",
+			});
+			return;
+		}
+
+		const reader = new FileReader();
+		reader.onload = () => {
+			if (typeof reader.result === "string") {
+				setLogoUrl(reader.result);
+			}
+		};
+		reader.onerror = () => {
+			toast({
+				title: "Could not read logo image.",
+				variant: "destructive",
+			});
+		};
+		reader.readAsDataURL(file);
+	}
+
 	const settings = settingsQuery.data;
-	const logoUrl = getSettingLogoUrl(settings?.meta);
 	const defaults = getSettingDefaults(settings?.meta);
 	const dealershipProfileName = settings?.dealer?.profile?.title || null;
 	const profiles = profilesQuery.data ?? [];
 	const taxProfiles = taxProfilesQuery.data ?? [];
+
+	useEffect(() => {
+		setLogoUrl(getSettingLogoUrl(settings?.meta));
+	}, [settings?.meta]);
 
 	return (
 		<section className="rounded-lg border bg-background p-4">
@@ -127,12 +167,15 @@ export function DealerSettings() {
 						label="Phone"
 						name="phoneNo"
 					/>
-					<Field
-						defaultValue={logoUrl}
-						label="Logo URL"
-						name="logoUrl"
-						type="url"
-					/>
+					<div className="space-y-2">
+						<Label htmlFor="logoUrlDisplay">Logo URL</Label>
+						<Input
+							id="logoUrlDisplay"
+							onChange={(event) => setLogoUrl(event.target.value)}
+							placeholder="https://..."
+							value={logoUrl.startsWith("data:") ? "" : logoUrl}
+						/>
+					</div>
 				</div>
 
 				{logoUrl ? (
@@ -150,6 +193,22 @@ export function DealerSettings() {
 						</div>
 					</div>
 				) : null}
+
+				<div className="rounded-md border border-dashed p-3">
+					<label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+						<Upload className="size-4" />
+						Upload invoice logo
+						<input
+							accept="image/*"
+							className="sr-only"
+							onChange={onLogoFileChange}
+							type="file"
+						/>
+					</label>
+					<p className="mt-1 text-xs text-muted-foreground">
+						PNG, JPG, WebP, GIF, or SVG under 350 KB.
+					</p>
+				</div>
 
 				<div className="rounded-md border bg-muted/20 p-3">
 					<p className="text-sm font-medium">GND dealership profile</p>

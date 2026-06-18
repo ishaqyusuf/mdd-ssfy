@@ -42,19 +42,6 @@ export function CustomerForm() {
 	const { data: salesProfiles } = useQuery(
 		trpc.customers.getCustomerProfiles.queryOptions(),
 	);
-	// const resp = useEffectLoader(
-	//     async () => {
-	//         const re = {
-	//             taxProfiles: await getTaxProfilesAction(),
-	//             salesProfiles: await getCustomerProfilesAction(),
-	//         };
-	//         return re;
-	//     },
-	//     {
-	//         wait: 120,
-	//     },
-	// );
-	// const { taxProfiles, salesProfiles } = resp?.data || {};
 
 	const [customerType] = form.watch(["customerType"]);
 	const [resolutionRequired, setResolutionRequired] = useState(false);

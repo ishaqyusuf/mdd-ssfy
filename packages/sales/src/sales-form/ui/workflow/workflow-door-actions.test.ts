@@ -254,6 +254,9 @@ describe("workflow door actions", () => {
 
 		expect(result?.activeDoorUid).toBe("door-b");
 		expect(result?.linePatch.formSteps?.[0]?.prodUid).toBe("door-b");
+		expect(result?.linePatch.formSteps?.[0]?.meta?.selectedProdUids).toEqual([
+			"door-b",
+		]);
 	});
 
 	it("removes an HPT door option and updates door totals", () => {
@@ -310,5 +313,77 @@ describe("workflow door actions", () => {
 		expect((result?.linePatch.housePackageTool as any)?.doors).toHaveLength(1);
 		expect(result?.linePatch.qty).toBe(2);
 		expect(result?.linePatch.lineTotal).toBe(100);
+	});
+
+	it("uses route config when removing an HPT door option", () => {
+		const result = removeWorkflowHptDoorOption({
+			routeData: {
+				composedRouter: {
+					"door-b": {
+						config: {
+							noHandle: true,
+							hasSwing: false,
+						},
+					},
+				},
+			},
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						prodUid: "door-a",
+						meta: {
+							selectedProdUids: ["door-a", "door-b"],
+							selectedComponents: [
+								{
+									id: 1,
+									uid: "door-a",
+									title: "Door A",
+								},
+								{
+									id: 2,
+									uid: "door-b",
+									title: "Door B",
+								},
+							],
+						},
+					},
+				],
+				housePackageTool: {
+					doors: [
+						{
+							stepProductId: 1,
+							totalQty: 1,
+							unitPrice: 100,
+							lineTotal: 100,
+						},
+						{
+							stepProductId: 2,
+							lhQty: 1,
+							rhQty: 1,
+							totalQty: 3,
+							unitPrice: 50,
+							lineTotal: 150,
+							swing: "LH",
+						},
+					],
+				},
+			},
+			stepIndex: 0,
+			component: {
+				id: 1,
+				uid: "door-a",
+			},
+		});
+
+		const remainingDoor = (result?.linePatch.housePackageTool as any)
+			?.doors?.[0];
+		expect(result?.activeDoorUid).toBe("door-b");
+		expect(remainingDoor?.lhQty).toBe(0);
+		expect(remainingDoor?.rhQty).toBe(0);
+		expect(remainingDoor?.swing).toBe("");
+		expect(result?.linePatch.qty).toBe(3);
+		expect(result?.linePatch.lineTotal).toBe(150);
 	});
 });

@@ -9,7 +9,7 @@ import { type SignInSchema, signInSchema } from "@/lib/schemas/auth";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { NavigationBar } from "expo-navigation-bar";
+import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import React, { useEffect, useState } from "react";
@@ -56,6 +56,8 @@ export function LoginTemplate1() {
 
   useEffect(() => {
     SystemUI.setBackgroundColorAsync("#000000").catch(() => null);
+    NavigationBar.setButtonStyleAsync("light").catch(() => null);
+    NavigationBar.setBackgroundColorAsync("#000000").catch(() => null);
     return () => {
       SystemUI.setBackgroundColorAsync(colors.background).catch(() => null);
     };
@@ -98,7 +100,6 @@ export function LoginTemplate1() {
   return (
     <View className="flex-1 bg-black">
       <StatusBar style="dark" backgroundColor="#ffffff" translucent />
-      <NavigationBar style="dark" />
 
       {/* Top Wavy White Section */}
       <View className="absolute top-0 w-full h-[45%] bg-white z-0">

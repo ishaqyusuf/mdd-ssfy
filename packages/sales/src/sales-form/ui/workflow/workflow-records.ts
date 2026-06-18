@@ -469,6 +469,7 @@ export function buildStepComponentOverrideMap(
 	if (String(step?.prodUid || "").trim()) {
 		const uid = String(step?.prodUid || "").trim();
 		if (!overrides.has(uid)) {
+			const custom = step?.meta?.custom === true || step?.custom === true;
 			overrides.set(uid, {
 				uid,
 				title: step?.value || null,
@@ -476,6 +477,10 @@ export function buildStepComponentOverrideMap(
 				basePrice: step?.basePrice ?? null,
 				redirectUid: step?.meta?.redirectUid || null,
 				sectionOverride: step?.meta?.sectionOverride || null,
+				custom,
+				_metaData: {
+					custom,
+				},
 			});
 		}
 	}

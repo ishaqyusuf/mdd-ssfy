@@ -91,6 +91,7 @@
         "@gnd/auth": "workspace:*",
         "@gnd/community": "workspace:*",
         "@gnd/db": "workspace:*",
+        "@gnd/events": "workspace:*",
         "@gnd/notifications": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/site-nav": "workspace:*",

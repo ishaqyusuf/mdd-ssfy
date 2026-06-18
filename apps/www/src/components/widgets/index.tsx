@@ -18,7 +18,6 @@ import { TopProductsWidget } from "./top-products-widget";
 // import { WidgetsNavigation } from "./navigation";
 // import { Spending } from "./spending";
 // import { Tracker } from "./tracker";
-// import { Transactions } from "./transactions/transactions";
 // import { Vault } from "./vault";
 
 export function Widgets() {
@@ -29,7 +28,6 @@ export function Widgets() {
 		// <Assistant key="assistant" />,
 		// <Spending disabled={disabled} key="spending" />,
 		// <Invoice key="invoice" />,
-		// <Transactions disabled={disabled} key="transactions" />,
 		// <Tracker key="tracker" />,
 		// <Inbox key="inbox" disabled={disabled} />,
 		// <AccountBalance key="account-balance" />,

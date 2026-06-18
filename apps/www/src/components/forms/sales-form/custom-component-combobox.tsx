@@ -43,6 +43,12 @@ type CustomComponentSource = {
 	} | null;
 };
 
+type CustomComponentPricing = {
+	price: number | null;
+	pricingId?: number;
+	dependenciesUid?: string;
+};
+
 function firstFiniteNumber(...values: unknown[]) {
 	for (const value of values) {
 		if (value == null || value === "") continue;
@@ -50,6 +56,28 @@ function firstFiniteNumber(...values: unknown[]) {
 		if (Number.isFinite(numeric)) return numeric;
 	}
 	return null;
+}
+
+export function normalizeCustomComponentTitleInput(value: string) {
+	return value.toUpperCase();
+}
+
+export function isCustomMarkedComponent(component: CustomComponentSource) {
+	return component?._metaData?.custom === true || component?.custom === true;
+}
+
+function buildCustomComponentOptionId(
+	component: CustomComponentSource,
+	title: string,
+	pricing: CustomComponentPricing,
+) {
+	return [
+		component?.id == null ? "id:none" : `id:${component.id}`,
+		component?.uid ? `uid:${component.uid}` : "uid:none",
+		pricing.pricingId == null ? "pricing:none" : `pricing:${pricing.pricingId}`,
+		pricing.dependenciesUid ? `dep:${pricing.dependenciesUid}` : "dep:none",
+		title ? `title:${title}` : "title:none",
+	].join("|");
 }
 
 export function getCustomComponentPricing(component: CustomComponentSource) {
@@ -64,9 +92,9 @@ export function getCustomComponentPricing(component: CustomComponentSource) {
 	const selectedKey = direct ? componentUid : fallbackEntry?.[0];
 	const selectedPricing = direct || fallbackEntry?.[1] || null;
 	const price = firstFiniteNumber(
+		selectedPricing?.price,
 		component?.basePrice,
 		component?.salesPrice,
-		selectedPricing?.price,
 	);
 
 	return {
@@ -85,15 +113,20 @@ export function buildCustomComponentOptions(
 	return (components || [])
 		.filter(
 			(component) =>
-				(component?._metaData?.custom || component?.custom) &&
-				!component?._metaData?.deletedAt,
+				isCustomMarkedComponent(component) && !component?._metaData?.deletedAt,
 		)
 		.map((component) => {
 			const pricing = getCustomComponentPricing(component);
-			const title = String(component?.title || component?.name || "").trim();
+			const title = normalizeCustomComponentTitleInput(
+				String(component?.title || component?.name || "").trim(),
+			);
 			return {
-				id: String(component?.id || component?.uid || title),
-				label: title || String(component?.uid || "Custom component"),
+				id: buildCustomComponentOptionId(component, title, pricing),
+				label:
+					title ||
+					normalizeCustomComponentTitleInput(
+						String(component?.uid || "Custom component"),
+					),
 				componentId:
 					typeof component?.id === "number" ? component.id : undefined,
 				uid: component?.uid || null,
@@ -103,7 +136,10 @@ export function buildCustomComponentOptions(
 				dependenciesUid: pricing.dependenciesUid,
 			};
 		})
-		.filter((option) => option.title || option.uid);
+		.filter((option) => option.title || option.uid)
+		.sort((a, b) =>
+			a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+		);
 }
 
 export function customComponentPriceChanged(
@@ -120,11 +156,12 @@ export function findCustomComponentOption(
 	options: CustomComponentOption[],
 	title: string,
 ) {
-	const normalized = title.trim().toLowerCase();
+	const normalized = normalizeCustomComponentTitleInput(title).trim();
 	if (!normalized) return null;
 	return (
 		options.find(
-			(option) => option.title.trim().toLowerCase() === normalized,
+			(option) =>
+				normalizeCustomComponentTitleInput(option.title).trim() === normalized,
 		) || null
 	);
 }
@@ -133,6 +170,7 @@ export function CustomComponentCombobox({
 	title,
 	price,
 	options,
+	selectedOption,
 	disabled,
 	onTitleChange,
 	onPriceChange,
@@ -142,20 +180,23 @@ export function CustomComponentCombobox({
 	title: string;
 	price: number | null;
 	options: CustomComponentOption[];
+	selectedOption?: CustomComponentOption | null;
 	disabled?: boolean;
 	onTitleChange: (value: string) => void;
 	onPriceChange: (value: number | null) => void;
 	onSelect?: (option: CustomComponentOption | null) => void;
 	onDeleteOption?: (option: CustomComponentOption) => void;
 }) {
+	const normalizedTitle = normalizeCustomComponentTitleInput(title);
 	const exactOption = findCustomComponentOption(options, title);
 	const selectedItem =
+		selectedOption ||
 		exactOption ||
-		(title.trim()
+		(normalizedTitle.trim()
 			? {
-					id: `draft:${title.trim().toLowerCase()}`,
-					label: title.trim(),
-					title: title.trim(),
+					id: `draft:${normalizedTitle.trim().toLowerCase()}`,
+					label: normalizedTitle.trim(),
+					title: normalizedTitle.trim(),
 					price,
 				}
 			: undefined);
@@ -171,13 +212,16 @@ export function CustomComponentCombobox({
 					searchPlaceholder="Type custom component title..."
 					disabled={disabled}
 					showCreateWhenMatches={false}
+					normalizeInput={normalizeCustomComponentTitleInput}
 					onSearch={onTitleChange}
 					onCreate={(value) => {
-						onTitleChange(value);
+						onTitleChange(normalizeCustomComponentTitleInput(value));
 						onSelect?.(null);
 					}}
 					renderOnCreate={(value) => (
-						<span className="text-sm">Create "{value}"</span>
+						<span className="text-sm">
+							Create "{normalizeCustomComponentTitleInput(value)}"
+						</span>
 					)}
 					renderListItem={({ item }) => (
 						<div className="group flex w-full items-center justify-between gap-3">
@@ -242,18 +286,21 @@ export function CustomComponentCombobox({
 					)}
 					emptyResults="No custom component found"
 					onSelect={(option) => {
-						onTitleChange(option.title || option.label);
+						onTitleChange(
+							normalizeCustomComponentTitleInput(option.title || option.label),
+						);
 						onPriceChange(option.price ?? null);
 						onSelect?.(option);
 					}}
 				/>
 			</div>
-			<div className="grid gap-2">
-				<Label>Cost Price</Label>
+			<div className="grid justify-items-end gap-2">
+				<Label className="text-right">Cost Price</Label>
 				<NumberInput
 					prefix="$"
 					value={price ?? undefined}
-					className="h-10 w-full rounded-md"
+					placeholder="$0.00"
+					className="h-10 w-40 rounded-md text-right"
 					disabled={disabled}
 					onValueChange={(values) => {
 						onPriceChange(values.floatValue ?? null);

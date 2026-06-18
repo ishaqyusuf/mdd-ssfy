@@ -1,0 +1,747 @@
+# WWW Unused And Old Code Analysis - 2026-06-17
+
+## Scope
+
+Analysis and first cleanup slice for `apps/www` dead, stale, and migration-era code.
+
+## Commands Run
+
+- `bun run knip --workspace apps/www --include files,exports,dependencies,unlisted,unresolved --no-progress --reporter compact --no-exit-code`
+- `bun run knip --workspace apps/www --include files,exports,dependencies,unlisted,unresolved --no-progress --reporter json --no-exit-code > /tmp/gnd-www-knip.json`
+- Targeted `find`, `rg`, and small Node scripts to group Knip output, compare sidebar links to App Router pages, and identify `app-deps` imports.
+
+## Topline Results
+
+- Initial Knip file candidates: 653.
+- Current Knip file candidates after cleanup: 20.
+- Last full-audit Knip issue entries: 225.
+- Current unused package dependency candidates: 3 runtime dependencies and 1 dev dependency.
+- Current unresolved import candidates: 0.
+- `apps/www/src/app` route-convention files: 152.
+- `apps/www/src/app-deps` route-convention files at audit start: 21, all stale `loading.tsx` or `not-found.tsx` style files rather than live `page.tsx` routes.
+- `apps/www/src/app-deps` is not globally removable. Live code still imports auth helpers, old sales form stores, types, query utilities, and community helpers from `@/app-deps/...`.
+
+## Cleanup Slice Completed
+
+Started on 2026-06-17 after the read-only audit and continued on 2026-06-18:
+
+- Deleted 643 high-confidence stale tracked files:
+  - copied middleware/image loader: `apps/www/src/middleware-copy.ts`, `apps/www/image-loader.ts`
+  - sandbox/debug/copy artifacts under `apps/www/src/app-deps/sand-box`, `apps/www/src/app-deps/(public)/debug`, `apps/www/src/app-deps/(sidebar)/(sales)/sales-book/(bebug)`, and `apps/www/src/app/(sidebar)/community/(main)/builders/page-copy.tsx`
+  - all 21 stale `loading.tsx` route-convention files under `apps/www/src/app-deps`
+  - the placeholder `/sales-book/home-page` route that only rendered `HELLO`
+  - the isolated `apps/www/src/app-deps/(v1)/_actions/upgrade/*` action files, after removing the no-op `_fixHomeTaskDates()` call from `getHomesAction`
+  - stale tracked `apps/www/knip-report.txt` and `apps/www/knip-vscode-report.txt` artifacts; the current report now lives in Brain
+  - inert `apps/www/src/app-deps` root convention duplicates: `global-error.tsx`, `not-found.tsx`, and `providers.tsx`
+  - unreferenced `apps/www/src/app-deps/_components/data-table` wrappers: `data-table-column-header.tsx`, `index.tsx`, and `toolbar.tsx`; live table cell/context helpers were retained because active common columns still import them
+  - ignored backup route `apps/www/src/app/(sidebar)/community/(main)/_page.tsx`
+  - old `app-deps` dealer guest signup/create-password files that had no live `src/app` route
+  - old `app-deps` sales settings components: `DoorWizard.tsx`, `GeneralSettings.tsx`, `SalesSettings.tsx`, `sales-commision.tsx`, and `components/wizard-form.tsx`
+  - unused MDX/Tiptap prototypes, login mockups, demo outline table, disabled transactions widget, and orphan sales-rep recent-sales widget under `apps/www/src/components`
+  - isolated demo/dummy files: the old `components/sales-view` mock UI, `components/forms/example-form`, `lib/dummy-inventory-data.ts`, and the paired `data/old-site-jobs.ts` plus `app-deps/(v1)/_actions/hrm-jobs/restore-jobs.ts` restore helper
+  - unmounted command palette files under `components/cmd` that were only still referenced by the deleted `app-deps/providers.tsx`
+  - orphan `modules/error/handler.ts`
+  - unmounted widgets: `components/widgets/inventory-stock-alert-widget.tsx` and `components/widgets/sales-pay-widget/index.tsx`, plus a stale commented `<SalesPayWidget />` reference in the sales invoice column
+  - unused common helpers: `components/common/controls/form-auto-complete-input.tsx`, `components/common/new-feature-btn/*`, `components/common/stat-cards/*`, and the old `lib/validations/customer-service.ts`, `email.ts`, and `hrm.ts` schemas
+  - stale `app-deps/(sidebar)/**/search-params.ts` files that were superseded by live `src/app` route-local search param helpers
+  - old `_v2` islands: email template helper/actions, contractor upload-document modal, and tab-layout hook; the tiny `EmailTypes` union was moved into `lib/modal.ts`, where it is still used
+  - duplicate unreferenced `src/app/_components/data-table/*` table helper island
+  - isolated unused helpers/data: `_v2/components/common/date-control.tsx`, `input-control.tsx`, `select-control.tsx`, `lib/data/dyke-doors-svg.ts`, `lib/data/home-design.ts`, `lib/sales/copy-order.ts`, and `lib/sales/sales-invoice-form.ts`; `_v2/components/common/render-form.tsx` was kept because sales step-component code still imports it
+  - superseded notification channel v1 table island: `components/tables/notification-channels/*` and `components/notification-channels-header.tsx`; the live settings route uses `/settings/notification-channels/v2`
+  - unmounted leaf UI files from Knip's current candidate list: old sales-overview inline controls, orphan customer/account/unit-invoice/job modal components, the unused inventory-import table skeleton, legacy table helper leaf files, and the unreferenced sales-orders fulfillment completion modal
+  - orphaned follow-on leaves after modal/table cleanup: the old notification-channel form island, unused site-action notification configuration actions, unmounted account/customer update actions, and the obsolete unit-invoice modal report hook/body while preserving the live print-based invoice-aging report path
+  - obsolete community/take-off/builder leaves: old `app-deps` community project/unit table shells and add button, the unmounted take-off form island plus its loader action, dead app-deps v2 contractor upload and sales edit utility files, stale customer-report CSS, and the old builder table/modal pair plus builder task sync actions that were only imported by that old modal
+  - stale source-tree Markdown sketches: generated `page.md` implementation notes for old sales-accounting, builders, unit-productions, customer-services, and employees page patterns, plus an empty community-template schema placeholder and stale community-inventory sheet sketch
+  - unused cache/cookie helpers: unreferenced cached dispatcher/customer-profile/page-tab/sales-order-number helpers and the obsolete sidemenu cookie server action, after removing the stale commented customer-profile helper reference from the customer form
+  - orphan hooks: unused bin/fn/note/scroll/sidebar/table/status/filter/payment/email hooks under `apps/www/src/hooks`, after removing the stale commented `useSyncStatus` reference from `use-task-trigger.ts`
+  - old utility leaves: unreferenced watermark, auth-session, community home-template builder, compose-ref, safe-action, email-transform, option-builder, quick-print, and refresh helpers under `apps/www/src/lib`, after removing the stale commented watermark effect from the home printer
+  - orphan app-local utility/type leaves: duplicated payment-param formatter, `hasQuery`, old print-quote wrapper, server-data type helper, `TypeToZod` helper, resumable-upload helper, and stale dashboard/email/modal type files, after removing two commented resumable-upload branches from upload components
+  - orphan top-level leaves: unused inventory and invoice-summary stores, old notification-channel context, empty auth provider, starter `siteConfig`, duplicate users data-action, old export-config helper, and unused `sales.stats.ts` recalculation path
+  - orphan `_v2`, employee, and lib leaves: old dirty-form persistence hook, transform-option helper, unmounted employee record approval/overview helpers, and self-only chart/toast utility files
+  - orphan `_v1` component leaves: old production action menu, unused breadcrumb portal/link helpers, task action dropdown, and unmounted delivery/sales batch action components, after removing stale commented breadcrumb imports from the community-template page
+  - additional orphan `_v1` UI leaves: old home selection batch action, unmounted image/back-order/community-install-cost/model-cost modals, the self-contained legacy community-model-cost modal subfolder, and the unmounted sales supply sheet
+  - unmounted dev-only sales `_backward-compat` repair menu island under `apps/www/src/app/(clean-code)/(sales)/_backward-compat`, plus its now-orphan `actions/--fix/fix-customer-tax-profiles.ts` server action; the live `fix-undefined-order-id` action was retained because current edit-quote routing imports it
+  - orphan `app-deps/(v1)/_actions` leaves: unused email-template actions, an empty unit-invoice edit action, the unused old home-invoice query action, and unused v1 model-cost helper actions; nearby live wallet, invoice-task, install-cost, and community-model-cost actions were retained because current imports still reference them
+  - additional orphan `app-deps/(v1)/_actions` leaves: old customer-service list/create/update/project-unit actions and old HRM job creation/insurance/list/payment loaders; nearby live customer-service assignment/status/delete actions and HRM delete/approve/reject/payment actions were retained because current `_v1` shells still import them
+  - isolated app-deps utility leaves: duplicate app-deps clean-code export config/types, old punchout-cost loader, stale auto-complete persistence helper, stale app-deps email sender, and no-op Twilio SMS helper; the non-app-deps clean-code export mirror remains in place
+  - orphan attachment/PDF helper chain: old `modules/email/send.tsx`, attachment processing, email template transform helper, the private `modules/pdf/create-pdf.ts` Browserless/Cloudinary upload helper, the private Cloudinary wrapper, and the now-orphan module-local error reporter; the app-local Trigger email task was reviewed later after confirming `@gnd/jobs` owns the live `send-composed-email` job
+  - additional isolated UI/action leaves: obsolete cached sales-payment-resolution filters, old recent-sales cache query, unused payment-portal column builder, unused client auth guard, unused old Midday search-filter component, and a mismatched resolution-center empty-state component; nearby live search-filter adapters, table empty states, customer-address cache action, revalidation tag helper, and paginated customer action helper were retained because current imports still reference them
+  - unused viewer/dialog and controlled-input leaves: the unmounted `viewer-shell` provider/dialog/barrel and old clean-code `NumberPicker`; the still-live `viewer-shell/controller.ts` and its controller test were retained because sales-print imports the controller directly
+  - additional unused UI leaves: old `TableMenuTrigger` and unused `sales-overview-system` v2 section helper components; nearby live sales-overview query/provider/route-entry code and current menu/table helpers were retained
+  - old clean-code `fikr-ui` shell components: `FPage`, `FPageContent`, `FContentShell`, `FPageTabs`, and `FPageTitle`; the island had no external imports
+  - isolated top-level server-action leaves: unused create-customer, create-customer-address, reset-user-session, send-login-email, and validate-auth-token actions
+  - isolated old customer-sales query leaves: unused pending/recent/list customer-sales actions and their now-orphan `__gtCustomerSalesTx` revalidation tag helper
+  - isolated old contractor v1 jobs table/sheet leaves: `job-table-shell.tsx`, `job-overview-sheet.tsx`, and `job-payment-table-shell.tsx`; the only remaining references were internal to that island
+  - unused root component helper leaves: `AnimateReveal`, `GridSkeleton`, `IconButton`, and `LineInfo`; exact symbol and path scans found no external imports
+  - orphan community dashboard/summary UI leaves: `CommunityDashboard`, `CommunityHomesSummary`, `CommunitySummaryBuilders`, `CommunitySummaryTemplates`, `CommunityTotalProjects`, `SummaryCardLink`, and `CommunitySearchFilter`; current community routes no longer import them
+  - orphan community model/project opener leaves: old `InstallCostSidebar`, empty model-template header helpers, and unused create/open modal buttons for model costs, community projects, and work orders; the active community-template page now has its stale commented legacy block removed
+  - orphan root/demo UI leaves: unused `InlineTextEditor`, `CancelSalesTransactionAction`, old root `Organization`, old reset-inventory trigger button, and the mock root `ProductionWorkerDashboard`; stale commented call sites were removed from sales accounting and production dashboard tabs
+  - orphan legacy UI atoms: old `login-form`, `shell`, and unused `_v1` atoms for combobox, notification dropdown, quick login, re-render display, refresher, stat-card, tooltip, and x-progress; live `_v1` `page-header`, clean-code `Kbd`, and clean-code `Search` were retained because current imports still prove them live
+  - isolated support leaves: old `components/widgets/community-summary-widgets.tsx`, empty root `components/forms/inventory-category-form.tsx`, and unreferenced `styles/sales.css`; live inventory-category form subfolder files and `styles/globals.css` were retained because current imports/tooling still reference them
+  - orphan clean-code export pair: `apps/www/src/app/(clean-code)/_common/export/config.ts` and `type.ts`; the pair only referenced each other and had no external imports
+  - orphan `_v1` tab-layout island: `community-settings-layout.tsx`, `hrm-layout.tsx`, `inbound-layout.tsx`, and `tabbed-layout.tsx`; the files only referenced each other and had no external imports
+  - unmounted `_v1` modal wrappers: `activate-production-modal.tsx`, `assign-task-modal.tsx`, and `edit-invoice-modal.tsx`; their component/path references were absent from live imports, while `base-modal.tsx` was retained because current model-install-cost and verify-task modal code still import it
+  - orphan lib leaves: the old chunk processor helper `lib/chunker.ts` and the legacy sidebar/nav builder `lib/navs.ts`; exact path and symbol scans found no remaining imports after the tab-layout island was removed
+  - orphan `_v1` table-shell island: community invoice, productions, tasks, contractors, customer-service, data-page, employee-profile, home-template, model-cost, putaway, and wrapper shell files; exact filename and exported-symbol scans found no external imports
+  - follow-on orphan `_v1` leaves after shell removal: employee/roles/task filter components, the verify-task-jobs modal, and the old `_v1/print` base/home/order print island; builder/projects filters and data-page context stayed because current imports still reference them
+  - orphan community-template table-helper island: the old app-deps community-template table shell, its app-deps install-cost modal, `_v1` builder/projects filters, `_v1` install/model cost cells, `_v1` base modal, and the old `_v1` data-table helper files except `data-table-row-actions.tsx`, which remains live in sales-form/table-cell imports
+  - orphan clean-code/common data-table support island: unreferenced clean-code data-table shell/filter/infinity helpers and styles, unused common data-table column wrappers, and unused app-deps data-table context/cell wrappers; live clean-code `search-params`, `table-cells`, `Dl`, common pagination/table-cells, and `_v1` row actions were retained
+  - orphan `_v1` UI leaves after table-shell cleanup: unused putaway/community/status/payment/work-order helpers and the old `_v1` install-cost form; live `_v1` base/import model-template sheets stayed because the old model-form compatibility path still imports them
+  - orphan final support leaves: `_v1/info.tsx` and `common/data-table/data-table-pagination.tsx`; `_v1/page-header.tsx` and `common/data-table/table-cells.tsx` remain because exact model-form/version-history imports still reference them
+  - orphan one-off app-deps v1 action leaves: the old customer conflict merge fixer, community pivot bootstrap/repair helper, home-template suggestion loader, and static home-model reader; still-imported community helpers such as `_template-import.ts` were retained
+  - orphan app-deps v1 community action leaves: old unit-template link resolver, invoice sync helper, model-search updater, install-cost action wrapper, and one-off lot/block backfill helper; still-imported `_template-import.ts`, `_task-names.ts`, and current community production/model-cost helpers were retained
+  - orphan old community model-form compatibility island: `app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/*`, its now-internal `_v1` import/base sheet helpers, `_v1/page-header.tsx`, common data-table `table-cells.tsx`, and the `_template-import.ts` search action; removed the matching stale `#unitModelForm` CSS rule from live globals
+  - orphan app-deps v1 community/HRM action chain: old home-template query helper, community task-name loader, activate-production action, community-model-cost action, home query action, install-cost action, community job assignment action, community production query action, and HRM delete-job bridge; current tRPC community/job routes were retained
+  - orphan app-deps v1 community-invoice and HRM payment leaves: old invoice task delete/update actions plus old job worker-change/approval, make-payment, and payment-delete actions; current payment UI variables and tRPC job/payment flows were retained
+  - orphan app-deps v1 customer-service action leaves: old assign-tech, CRUD, and status-update server actions; current customer-service tRPC/table flows were retained
+  - orphan app-deps v1 HRM employee action leaves: old soft-delete, employee-list cache, create/save, and password-reset server actions; current HRM tRPC/table flows were retained
+  - orphan placeholder sales-rep UI leaves: old static recent-quotes, recent-sales, and sales chart components; the active sales-rep page continues to use current data tables
+  - orphan community-template action wrapper: old `CommunityTemplateActions`; current form headers still import `InstallCostBtn` and `ModelTemplateSetting` directly
+  - orphan utility/type leaves: unused compact-number formatter, generated id helper, old customer-service work-order types, and duplicated data-table type helpers
+  - orphan sales/production header leaves: unused sales invoice due-status display, old order header/search/export wrappers, old sales production header wrapper, and old task production tabs component
+  - orphan clean-code/utility leaves: unused `Kbd` atom and obsolete client-side `isProdClient` helper after removing the inactive commented refund menu block that referenced it
+  - orphan lib leaves: unused `DataPageContext`/`useDataPage` helper and obsolete `@/lib/modal` dispatcher wrapper
+  - follow-on orphan action: old `getSalesProductionQueryTabs` server action that only backed the deleted task production tabs and already returned an empty list
+  - orphan print wrappers: old `PrintSales` PDF viewer wrapper and standalone `sales-menu-print` component; current v2 print viewer and current sales menu print action were retained
+  - orphan sales/production UI island: unused `SalesOptionMarkAs` menu leaf plus detached `OrderProductionGateCard` and its now-internal production-gate helper
+  - orphan dispatch action/dialog island: unused legacy `DispatchActions` wrapper plus its cancel, clear-packing, delete, and queue confirmation dialogs; the current `tables-2/sales-dispatch` action cell and shared completion-decision modal were retained
+  - orphan dispatch/packing detail island: unused legacy dispatch completion form, duplicate sweeper modal, packing driver/order cards, and old packing item list/form/listing components; current dispatch table controls and live `dispatch-packing-overview` progress usage were retained
+  - orphan sales form/payment UI leaves: unused `SalesPaymentForm`, stale customer tax/profile prompt, detached sales form email/labor/door-size components, and unused new-sales-form adapter hooks; removed the lone stale commented `SalesPaymentForm` call from the customer transactions tab
+  - orphan v1 sales action leaves: unused legacy `update-payment-term.ts` no-op and detached `update-sales-date.ts` action; nearby v1 sales `type.ts` stayed because current old customer query actions import its exported filter types
+  - orphan accounting search-param quartet: duplicated `app` and `app-deps` clean-code sales accounting/resolution-center search-param modules with no exact imports; the shared clean-code data-table search parser was retained
+  - orphan clean-code sales UI helper leaves: unused sidebar toggle/store hooks, detached `PagesTab` wrapper, and old sales-book tabs use-case; current sales-book tabs use `components/sales-tabs.tsx`
+  - orphan app-side clean-code `use-sticky` hook copy; the app-deps `use-sticky` hook remains live through the old components-section context and was not touched
+  - orphan clean-code dispatch data-action island: detached app and app-deps dispatch create/delete/list/overview action loaders and DTOs; current dispatch data-access/tRPC/table paths were retained
+  - orphan clean-code tax modal pair: detached `tax-modal/action.ts` and `tax-modal/tax-modal.tsx`; active sales tax persistence was retained because current sales-form data access still imports it
+  - orphan clean-code tax data/use-case pair: detached `tax.dta.ts` and `sales-tax-use-case.ts`; active `sales-tax.persistent.ts` was retained because sales-form data access still imports it, and stale commented `getTaxListUseCase` references were removed from legacy hook mirrors
+  - orphan clean-code production worker and analytics helpers: detached `production-workers-dta.ts`, `sales-prod-workers-use-case.ts`, and `sales-analytics-dta.ts`; current production routes and dashboards were not touched
+  - orphan app-side clean-code Dyke custom-step helper pair: detached `dyke-step-dta.ts` and `dyke-steps-use-case.ts`; current inventory/Dyke domain sync code and app-deps mirrors were retained
+  - orphan app-side clean-code sales use-case wrappers: detached sales list, sales delete/restore, item overview/control, dispatch, payment, and production wrappers with no live imports; underlying app-deps mirrors/actions/data-access stayed in place
+  - orphan app-side clean-code customer/wallet data-access island: detached customer, sales-payment, transaction, and wallet data-access files; current customer infinite API and live payment/customer flows use app-deps or package-domain paths instead
+  - orphan app-side clean-code sales-form utility: detached `sales-form-utils.ts`; current sales form adapters and package-domain code do not import it
+  - orphan v1 inbound/payment action leaves: old `sales-inbound/*` action files plus old `sales-payment/crud.ts` and `get-sales-payment-customer.ts`; current inbound-management and payment flows use newer route/domain paths
+  - orphan app-side clean-code production list/action utility pair: detached `productions-list-action.ts` and `production-utils.ts`; current infinite production APIs import the app-deps mirror instead
+  - orphan app-side clean-code sales/production helper island: detached `batch-action.ts`, `item-assignments-action.ts`, `sales-items-action.ts`, and `sales-overview.action.ts`; the tested `item-assign-action.ts` was retained
+  - orphan app-local action leaves: detached `delete-sales-delivery-action.ts`, `update-sales-item-stat.ts`, `update-sales-stat.ts`, `update-customer-profile.ts`, and `update-customer-tax.ts`; test-read `sales-progress-fallback.ts` and live `get-sales-customer-data.ts` were retained
+  - orphan standalone sales action leaves: detached `delete-sales.ts`, `restore-sale.ts`, `update-sales-date-action.ts`, `update-sales-delivery-cost-action.ts`, and `update-sales-labor-cost-action.ts`; similarly named live assignment/extra-cost actions were retained
+  - orphan old app-deps v1 sales action island: detached pickup, supplies, customer CRUD, inventory, sales component, sales form, sales inventory, sales payment, sales priority, and save-PDF action files with no live imports
+  - orphan old app-deps v1 sales customer/type island: detached `type.ts` plus customer sales-order query, merge, and customer-list actions with no live imports
+  - orphan old app-deps v1 utility helper leaves: detached customer-wallet transaction/wallet, settings, progress, and pagination action helpers with no live imports
+  - orphan root dispatch utility: detached `apps/www/src/utils/db/where.dispatch.ts`; current dispatch code imports its separate clean-code/app-deps dispatch query helpers instead
+  - orphan app-local Trigger/email v3 chain: detached `apps/www/src/lib/resend.ts`, app-local email footer/logo/template files, trigger constants/schema, and no-op `apps/www/src/trigger/tasks/email/send-composed-email.tsx`; `@gnd/jobs` now owns the live `send-composed-email` task and `@gnd/email` owns the rendered template
+  - orphan app-local Dyke step-component action pair: detached `apps/www/src/actions/save-step-component.ts` and `apps/www/src/actions/update-component-pricing-action.ts`, plus their now-unused schema exports in `apps/www/src/actions/schema.ts`; the active save/pricing flow uses `@gnd/inventory` through inventories tRPC
+  - orphan app-deps duplicate legacy step hook: detached `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_hooks/legacy/use-dyke-form-step/index.tsx`; live app-deps modal/helper imports point to the app-side legacy step hook
+  - orphan app-deps sales-form UI leaves: detached `component-section-footer.tsx`, the old `components-section/custom-component.tsx`, and `data-page/line-input.tsx`; similarly named live `custom-component.action.tsx` and shared `_components/line-input.tsx` were retained
+  - orphan app-deps modal pairs: detached `deps-modal` action/index files and the incomplete `height-settings-modal` ctx/modal pair; exact scans showed no external imports, while live `component-deps-modal` stayed in place
+  - orphan step-component wrapper and follow-on helpers: detached `step-component-modal.tsx`, `use-step-component-modal.tsx`, `components/(clean-code)/search.tsx`, and `_v2/components/common/render-form.tsx`; the live `component-deps-modal` opener and step-products type/image imports were retained
+  - orphan app-deps door selector pair: detached `doors-modal.tsx` and its private `step-products/product.tsx` image helper; the step-products type barrel remains live through legacy sales-form helpers
+  - orphan duplicate app-deps step/pricing use-case chain: detached app-deps `sales-book-pricing-use-case.ts`, `step-component-use-case.ts`, `dyke-steps.persistent.ts`, and `step-components.dta.ts`; current app-deps form code imports the app-side live use-case/data-access copies instead
+  - orphan app-deps hook/context leaves: detached empty `hpt-helper.tsx`, `use-zus-form-hook.ts`, and the self-contained `use-sales-book-form.ts` / `_utils/context.tsx` pair; live `legacy-dyke-form-helper`, `data-store`, `legacy-hooks`, and `component-deps-modal` chains were retained
+  - orphan customer data island: detached `components/forms/sales-form/customer-data-section.tsx`, `actions/get-sales-customer-data.ts`, and `actions/cache/get-customer-address.ts` with no remaining live imports
+  - duplicate app-deps hook type-source files: detached app-deps `data-store.ts` and `legacy-hooks.tsx`; `legacy-dyke-form-helper.tsx` now imports the live app-side hook types
+  - orphan payment-resolution action island: detached `actions/resolve-payment-issue.ts` plus its private `actions/delete-payroll.ts` helper; exact scans found no live imports or action references
+  - rootless legacy Dyke form compatibility island: app-side legacy form contexts/hooks (`data-store.ts`, `legacy-hooks.tsx`, `legacy/use-dyke-form-step/index.tsx`), app-deps step component action/helper/modal files, and the private app-deps step-products type barrel; exact provider/caller scans found no live entry point outside the deleted island
+- Removed the dead custom image-loader reference from `apps/www/next.config.mjs`.
+- Removed 15 high-confidence stale `@gnd/www` package declarations after exact import/config scans and refreshed the Bun lockfile:
+  - runtime dependencies: `@actions/core`, `@actions/github`, `@cloudinary/react`, `@cloudinary/url-gen`, `@mdx-js/loader`, `@mdx-js/react`, `@mdxeditor/editor`, `@next/mdx`, `crypto`, `i`, `next-cloudinary`, `next-mdx-remote`, `npm`, and `resend`
+  - dev dependency: `@types/mdx`
+- Removed 35 more high-confidence stale `@gnd/www` runtime package declarations after exact app import/config scans and refreshed the Bun lockfile:
+  - `@dnd-kit/modifiers`, `@gnd/email`, `@gnd/events`, `@headlessui/react`, `@radix-ui/react-dialog`, `@radix-ui/react-icons`, `@react-hook/async`, `@react-pdf/renderer`, `@tiptap/extension-mention`, `@tiptap/pm`, `@tiptap/react`, `@tiptap/starter-kit`, `@trpc/client`, `@trpc/server`, `@trpc/tanstack-react-query`, `aos`, `autoprefixer`, `cmdk`, `debounce`, `embla-carousel-autoplay`, `embla-carousel-react`, `focus-trap-react`, `fs-extra`, `nanoid`, `next-themes`, `puppeteer`, `react-beautiful-dnd`, `react-colorful`, `react-wrap-balancer`, `swr`, `ts-results`, `tus-js-client`, `use-deep-compare-effect`, `uuid`, and `xlsx`
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-full-20260618-after-deps2-lock.json` reports 20 file candidates, 227 issue entries, 4 runtime dependency candidates, 3 dev dependency candidates, 5 unlisted candidates, 5 unresolved candidates, and 551 export candidates.
+  - Removed the stale commented `@gnd/events/client` layout import so the removed workspace dependency has no remaining app-side breadcrumb.
+- Removed old tracked `apps/www/tailwind-copy.config` after confirming it had no references and the app's active PostCSS config delegates to `@gnd/ui/postcss.config`.
+  - Removed its private package declarations: `tailwindcss-animate` and `@tailwindcss/typography`.
+  - Removed the unused package-local `vercel` CLI dev dependency; current Vercel runtime packages remain because the app imports `@vercel/analytics`, `@vercel/blob`, and `@vercel/speed-insights`.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-full-20260618-after-tooling1-lock.json` reports 20 file candidates, 227 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 5 unresolved candidates, and 551 export candidates.
+  - The remaining runtime dependency candidates are `eslint`, `eslint-config-next`, and `puppeteer-core`; these are config/tooling-sensitive and were retained for separate review.
+  - The remaining dev dependency candidate is `tailwindcss`; it was retained because the app still has shadcn/Tailwind tooling config references and `@tailwindcss/postcss` in dev dependencies.
+- Repaired the remaining five Knip unresolved import candidates in legacy sales type code:
+  - Retargeted stale `@/app/(v2)/(loggedIn)/sales-v2/type` imports to the existing `@/app-deps/(v2)/(loggedIn)/sales-v2/type` path.
+  - Replaced deleted private v2 form-action imports inside `apps/www/src/app-deps/(v2)/(loggedIn)/sales-v2/type.ts` with a local structural legacy form type so live old-sales-form type consumers no longer depend on missing files.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-full-20260618-after-unresolved1.json` reports 20 file candidates, 225 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 0 unresolved candidates, and 551 export candidates.
+- Fixed active sidebar route issues:
+  - `Unit Production` now points to `/community/unit-productions`.
+  - `Mobile App` now points to `/settings/app-download`.
+  - the `Sales Commission` item was removed because no current route exists.
+  - the meta `Edit Order` sublink no longer has a clickable `/sales-book/edit-order` href while still preserving edit route matching through `childPaths`.
+  - template active-match child paths now use canonical dynamic route prefixes instead of literal `slug` placeholders.
+- Retargeted stale legacy nav/table-shell links from old community/settings URLs to current canonical URLs:
+  - `/community/project-units`
+  - `/community/unit-invoices`
+  - `/community/unit-productions`
+  - `/community/community-template/slug`
+  - `/community/model-template/slug`
+- Refreshed Knip file-candidate count after the cleanup: 20 file candidates remain, down from 653. The removed `/sales-book/home-page` placeholder route, stale tracked Knip report artifacts, and generated Markdown sketches were stale but were not part of Knip's file-candidate list.
+
+## Largest Knip File Candidate Clusters
+
+| Area | Count | Interpretation |
+| --- | ---: | --- |
+| `apps/www/src/components` | 5 | Remaining candidates are mostly test/support files rather than obvious removable UI leaves. |
+| `apps/www/src/app-deps` | 3 | Remaining app-deps candidates are tests and were retained by default. |
+| `apps/www/src/app` | 1 | Remaining app candidate is test-read production assignment code. |
+| `apps/www/src/actions` | 4 | Remaining action candidates include test-read production/inventory reset fixtures and should not be bulk-deleted. |
+| `apps/www/src/lib` | 1 | Remaining lib candidate is test-backed routing support and should not be bulk-deleted. |
+| `apps/www/src/modules` | 4 | Remaining module candidates are sales-print tests and other false-positive-prone integration/test helpers. |
+| `apps/www/src/hooks` | 1 | Remaining hook candidate is test-backed URL-param behavior and should not be bulk-deleted. |
+| `apps/www/src/styles` | 1 | Remaining stylesheet is referenced by `components.json` tooling but not imported by the app runtime. |
+
+## Current Remaining Candidate Notes
+
+- 16 of the remaining 20 candidates are `*.test.*` files and were retained by default.
+- `create-sales-dispatch-items-action.ts`, `sales-progress-fallback.ts`, and `item-assign-action.ts` are read by `production-control-reset.test.ts`; they should not be removed without intentionally redesigning that regression coverage.
+- `styles/globals.css` is not imported by the app runtime, but `components.json` still points shadcn tooling at it; treat it as a tooling/config cleanup candidate rather than a runtime-dead file.
+- Current conservative status: no further high-confidence tracked-file deletion remains in the file-only Knip candidate list without either deleting tests, redesigning production-control regression coverage, or migrating shadcn CSS tooling config.
+
+## High-Confidence Cleanup Candidates
+
+These are safe to prioritize for removal review because they are clearly old, copied, debug-only, or inactive route artifacts:
+
+- `apps/www/src/middleware-copy.ts` - removed in first cleanup slice.
+  - Active runtime uses `apps/www/src/proxy.ts`.
+  - `middleware-copy.ts` has older auth/session behavior and imports `./env.mjs`, which is not part of the current active proxy path.
+- `apps/www/image-loader.ts` - removed in first cleanup slice.
+  - `next.config.mjs` has `images.loader` and `loaderFile` commented out.
+- `apps/www/src/app-deps/**/loading.tsx` - the 21 tracked stale files were removed in first cleanup slice.
+  - 21 files flagged.
+  - `app-deps` is not the active App Router root, and these are not imported by live code.
+- Debug/sandbox/copy files:
+  - `apps/www/src/app-deps/sand-box/zus-form/*`
+  - `apps/www/src/app-deps/(public)/debug/sheet/*`
+  - `apps/www/src/app-deps/(public)/debug/sheet-with-select/*`
+  - `apps/www/src/app-deps/(sidebar)/(sales)/sales-book/(bebug)/debug-*/data-table-copy.tsx`
+  - `apps/www/src/app/(sidebar)/community/(main)/builders/page-copy.tsx`
+  - Removed in first cleanup slice.
+- One-off fix/upgrade files:
+  - `apps/www/src/actions/--fix/fix-customer-tax-profiles.ts` - removed with the unmounted `_backward-compat` repair menu island.
+  - `apps/www/src/app-deps/(v1)/_actions/upgrade/*` - removed in second cleanup slice.
+  - `apps/www/src/app/(clean-code)/(sales)/_backward-compat/fix-customer-tax-profiles.tsx`
+  - `apps/www/src/app/(clean-code)/(sales)/_backward-compat/january-sales-stats.tsx`
+- Finder metadata:
+  - Earlier audit output noted `.DS_Store` files under `apps/www/src/app-deps`, but the current tracked-file check returned no tracked `.DS_Store` files under `apps/www`.
+
+## Needs Careful Migration Review
+
+These areas look old but are not safe for bulk deletion:
+
+- `apps/www/src/app-deps/(clean-code)/(sales)`
+  - Live imports still reference sales types, sales form stores, quantity helpers, old Dyke form helpers, and data access helpers.
+  - Several imports originate from active legacy sales form components under `apps/www/src/components/forms/sales-form`.
+- `apps/www/src/app-deps/(v1)/_actions`
+  - 64 files are Knip file candidates, but live `_v1` components and active app code still import selected auth, notification, settings, HRM, community, and sales helpers.
+- `apps/www/src/components/_v1`
+  - 66 file candidates.
+  - This is migration-era UI, but active code still imports some `_v1` components such as quick login, print/home helpers, filters, modals, and table shells.
+- `apps/www/src/app/(clean-code)/(sales)`
+  - 57 file candidates.
+  - Some are compatibility server/data actions used by active sales routes, proxy redirects, and dashboard deep links.
+- `apps/www/src/actions`
+  - 46 file candidates.
+  - Sales, payment, production, inventory, and checkout actions are correctness-sensitive. Delete only after direct import scan and route/mutation replacement confirmation.
+- `apps/www/src/modules/error/report.ts`
+  - Knip still reports this file as unused, but source inspection shows `apps/www/src/modules/pdf/create-pdf.ts` imports `logError` from it. Treat it as a false positive unless `modules/pdf/create-pdf.ts` is also retired.
+
+## Active Route And Link Findings
+
+Current active sidebar path scan found these actionable route problems:
+
+| Link | Current status | Suggested action |
+| --- | --- | --- |
+| `/sales-book/edit-order` | Fixed. | Meta sublink no longer has a clickable invalid href; route matching is preserved through child paths. |
+| `/tasks/unit-productions` | Fixed. | Nav href changed to `/community/unit-productions`. |
+| `/sales/commissions` | Fixed. | Removed from active and legacy nav because no current route exists. |
+| `/settings/mobile-app` | Fixed. | Nav href changed to `/settings/app-download`. |
+
+Other stale-looking paths in `components/sidebar-links.ts` are currently comments or child-path matchers, not direct clickable nav links:
+
+- `/sales-books/quotes`
+- `/sales-book/pickups`
+- `/jobs/installations`
+- `/jobs/punchouts`
+- `/hrm/profiles`
+- `/hrm/roles`
+- `/settings/community/community-template/slug`
+
+## Orphan Route Review
+
+Current user-facing pages not covered by active sidebar literals:
+
+- Expected deep links or redirects:
+  - `/sales-book/edit-quote/[slug]`
+  - `/sales-book/edit/[type]`
+  - `/sales-form/edit-order/[slug]`
+  - `/sales-form/edit-quote/[slug]`
+  - `/sales/accept-quote/[orderId]`
+  - `/sales-book/production-tasks` redirects through `redirect-engine` to `/production/dashboard/v2`.
+  - `/sales-book/reports` redirects to `/sales-book/accounting`.
+  - `/sales-book/top-selling-products` and `/sales-book/top-selling-products/[id]` are live product-report routes documented in `brain/features/sales-product-report-table.md`.
+- Stale placeholder `/sales-book/home-page` was removed in the first cleanup slice.
+- Old dealer guest signup/create-password files under `app-deps` were removed. The live public auth surface is `/password-reset`, `/login/create-password`, and `/login/reset-password`.
+
+## Dependency Findings
+
+Knip reports these unused runtime dependency candidates:
+
+`@actions/core`, `@actions/github`, `@cloudinary/react`, `@cloudinary/url-gen`, `@dnd-kit/modifiers`, `@gnd/email`, `@gnd/events`, `@headlessui/react`, `@mdx-js/loader`, `@mdx-js/react`, `@mdxeditor/editor`, `@next/mdx`, `@radix-ui/react-dialog`, `@radix-ui/react-icons`, `@react-hook/async`, `@react-pdf/renderer`, `@tiptap/extension-mention`, `@tiptap/pm`, `@tiptap/react`, `@tiptap/starter-kit`, `@trpc/client`, `@trpc/server`, `@trpc/tanstack-react-query`, `aos`, `autoprefixer`, `cmdk`, `crypto`, `debounce`, `embla-carousel-autoplay`, `embla-carousel-react`, `eslint`, `eslint-config-next`, `focus-trap-react`, `fs-extra`, `i`, `nanoid`, `next-cloudinary`, `next-mdx-remote`, `next-themes`, `npm`, `puppeteer`, `puppeteer-core`, `react-beautiful-dnd`, `react-colorful`, `react-wrap-balancer`, `resend`, `swr`, `tailwindcss-animate`, `ts-results`, `tus-js-client`, `use-deep-compare-effect`, `uuid`, `xlsx`.
+
+Knip reports these unused dev dependency candidates:
+
+`@tailwindcss/typography`, `@types/mdx`, `tailwindcss`, `vercel`.
+
+Recommended dependency cleanup should start with obvious old experiments and duplicate packages:
+
+- MDX/editor stack: `@mdx-js/*`, `@next/mdx`, `@mdxeditor/editor`, `next-mdx-remote`, `@types/mdx`. The old local MDX/Tiptap prototype components were removed; package cleanup was deferred because `apps/www/package.json` already has unrelated user edits in the working tree.
+- Old drag/drop and animation helpers: `react-beautiful-dnd`, `aos`, possibly `embla-*` if carousel usage remains absent.
+- Legacy data fetching/helpers: `swr`, `debounce`, `ts-results`, `use-deep-compare-effect` if import scans stay clean.
+- Accidental packages: `i`, `npm`, `crypto`.
+
+Do not remove `puppeteer`, `puppeteer-core`, `@react-pdf/renderer`, `@trpc/*`, `tailwindcss`, or workspace packages from package.json based on Knip alone; those can be used through runtime config, scripts, generated code, or package-level imports that Knip may not see.
+
+## Unlisted And Unresolved Findings
+
+- `server-only` is imported from several server-only files but is not listed in `apps/www/package.json`.
+  - Files: `src/trpc/server.tsx`, `src/lib/auth/session.ts`, `src/lib/auth/web-auth.ts`, `src/utils/get-geolocation.ts`, `src/lib/sales-visibility.ts`.
+  - Action: add `server-only` to `@gnd/www` dependencies or verify it is intentionally provided transitively by Next.
+- Unresolved legacy aliases:
+  - `apps/www/src/app-deps/(clean-code)/(sales)/types.ts` imports `@/app/(v2)/(loggedIn)/sales-v2/type`.
+  - `apps/www/src/app-deps/(v2)/(loggedIn)/sales-v2/type.ts` imports `.d.ts`-only old form action modules that no longer resolve as runtime files.
+  - `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/sales-tax.persistent.ts` imports `@/app/(v2)/(loggedIn)/sales-v2/type`.
+
+## Recommended Cleanup Order
+
+1. Fix active broken sidebar links:
+   - Completed for active nav in first cleanup slice.
+2. Delete high-confidence non-code and debug leftovers:
+   - `.DS_Store` files under `apps/www/src/app-deps`
+   - `middleware-copy.ts` - completed
+   - `image-loader.ts` - completed
+   - sandbox/debug/copy files - completed for tracked high-confidence files
+3. Remove `app-deps` route-convention leftovers:
+   - completed for the 21 tracked stale `loading.tsx` files under `apps/www/src/app-deps`
+4. Review old one-off fix/upgrade scripts and placeholder route:
+   - `actions/--fix/*`
+   - `app-deps/(v1)/_actions/upgrade/*` - completed
+   - `/sales-book/home-page` - completed
+5. Create smaller follow-up cleanup PRs by domain:
+   - old community v1 table/modals/actions
+   - old HRM/job v1 table/modals/actions
+   - old sales clean-code/backward-compat helpers
+   - old package dependencies after focused import scans
+
+## Validation Notes
+
+- First cleanup slice validation:
+  - `bun test apps/www/src/components/sidebar-links.test.ts` passed with 6 tests and 30 expectations.
+  - Active sidebar route-literal scan returned 0 missing path literals.
+  - `find apps/www/src/app-deps -type f -name 'loading.tsx'` returned no files.
+  - scoped `git diff --check -- apps/www brain` passed.
+  - no source references remain for `app-deps/(v1)/_actions/upgrade`.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 571 remaining file candidates after the second cleanup slice.
+- Second cleanup slice validation:
+  - Targeted stale-reference scans for the deleted dealer, settings, MDX/Tiptap, login mockup, widget, route backup, and `app-deps` data-table files returned no source references.
+  - `bun test apps/www/src/components/sidebar-links.test.ts` passed with 6 tests and 30 expectations.
+  - Active sidebar route scan checked 67 hrefs and found 0 missing routes.
+  - `find apps/www/src/app-deps -type f -name 'loading.tsx'` returned no files.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Third cleanup slice validation:
+  - Targeted stale-reference scans for the deleted sales-view, example-form, dummy inventory, old job restore, command palette, error handler, and unmounted widget files returned no live source references.
+  - `modules/error/report.ts` was restored after the scan showed it is still imported by `modules/pdf/create-pdf.ts`.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 554 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Fourth cleanup slice validation:
+  - Targeted stale-reference scans for deleted common helpers, validation schemas, `app-deps/(sidebar)` search params, `_v2` email/contractor/tab helpers, and `src/app/_components/data-table` returned no live source references to deleted paths.
+  - `EmailTypes` now lives in `apps/www/src/lib/modal.ts`, preserving the type used by `openEmailComposer`.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 533 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Fifth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v2` controls, static data files, sales helper files, and the v1 notification channel table/header returned no live references to deleted paths.
+  - Confirmed `_v2/components/common/render-form.tsx` and `lib/data-page-context.ts` remain live through sales/community imports and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 522 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Sixth cleanup slice validation:
+  - Targeted stale-reference scans for deleted sales-overview inline controls, orphan modal components, legacy table helper leaves, the inventory-import table skeleton, and the sales-orders fulfillment completion modal returned no live source references.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 507 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Seventh cleanup slice validation:
+  - Targeted stale-reference scans for the deleted notification-channel form island, site-action notification configuration actions, account/customer update actions, and unit-invoice modal report hook/body returned no live source references to those deleted paths or symbols.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 495 remaining file candidates.
+- Eighth cleanup slice validation:
+  - Targeted stale-reference scans for deleted community table shells/add button, take-off form files, contractor upload action, sales edit utility pair, customer-report CSS, old builder table/modal files, and builder task sync actions returned no live references to the deleted paths or symbols.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 480 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Ninth cleanup slice validation:
+  - Targeted stale-reference scans for deleted generated Markdown sketches, empty schema placeholder, community-inventory sheet sketch, cached dispatcher/customer-profile/page-tab/sales-order-number helpers, and sidemenu cookie action returned no live references.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 475 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Tenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted hook files returned no live source references; the remaining `useStepComponents` hit is an object property in the live new-sales-form workflow adapter, not the removed hook file.
+  - Targeted stale-reference scans for deleted utility files returned no live source references.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 453 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Eleventh cleanup slice validation:
+  - Targeted stale-reference scans for deleted app-local utility and type files returned no live source references.
+  - Confirmed remaining `formatPaymentParams` usage resolves to `@gnd/utils/sales` and remaining `printQuote` usage is the live sales-print service export, not the deleted app-local wrapper.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 444 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Twelfth cleanup slice validation:
+  - Targeted stale-reference scans for deleted store, context, provider, config, data-action, and data-access files returned no live source references.
+  - Confirmed the remaining `getUsersListAction` usage resolves to the separate live `apps/www/src/actions/get-users-list.ts` path, not the deleted duplicate data-action file.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 436 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Thirteenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v2`, employee-management, chart, and toast utility files returned no live source references.
+  - Confirmed `apps/www/src/_v2/components/common/render-form.tsx`, `apps/www/src/lib/format.ts`, and `apps/www/src/lib/chunker.ts` remain live through current imports and were not removed; `where.dispatch.ts` was later removed after a focused root-utility review.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 430 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Fourteenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v1` production action, breadcrumb, task action, and batch action files returned no live source references; the remaining `ProdActions` hit is a type name in `types/sales.ts`, not the deleted component.
+  - Confirmed nearby `_v1` files such as `putaway-actions.tsx`, `job-type.tsx`, filters, and `community-summary-widgets.tsx` remain live through current imports and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 424 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Fifteenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v1` home-selection, image modal, back-order modal, community-install-cost modal, model-cost modal, community-model-cost subfolder, and sales-supply sheet files returned no live source references to those deleted paths or symbols.
+  - Confirmed same-name newer implementations such as `components/modals/community-model-cost-modal.tsx`, `components/modals/create-community-model-cost-modal.tsx`, and the clean-code image-gallery modal remain live and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 414 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Sixteenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_backward-compat` files, repair-menu symbols, and `actions/--fix/fix-customer-tax-profiles.ts` returned no live source references.
+  - Confirmed `apps/www/src/actions/--fix/fix-undefined-order-id.ts` remains live through the edit-quote route and was not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 399 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Seventeenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted v1 email-template actions, `community-invoice/get-invoices`, `community-invoice/edit-unit-invoice`, `_model-cost-stat`, `community-model-cost-units`, and `model-costs` returned no live source references.
+  - Confirmed nearby live v1 actions were retained: wallet transaction helpers, community invoice task delete/update actions, install-cost updates, and community-model-cost import/sync actions.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 392 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Eighteenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted customer-service list/create/update/project-unit actions and HRM job creation/insurance/list/payment loader actions returned no live path references; remaining `getJobs` and `getCustomerServices` hits are current tRPC route names, not imports of the removed v1 files.
+  - Confirmed nearby live v1 actions were retained: customer-service assignment/delete/status actions and HRM delete/approve/reject/payment actions.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 385 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Nineteenth cleanup slice validation:
+  - Targeted stale-reference scans for deleted app-deps export config/types, punchout-cost loader, auto-complete persistence helper, app-deps email sender, and Twilio SMS helper returned no live source references.
+  - Confirmed `apps/www/src/app/(clean-code)/_common/export/config.ts` and `type.ts` remain present while the duplicate app-deps copies were removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 379 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Twentieth cleanup slice validation:
+  - Targeted stale-reference scans for the deleted module-local email send/attachment/transform helpers, PDF creation helper, Cloudinary wrapper, and module-local error reporter returned no live source references.
+  - Confirmed the separate upload-signature Cloudinary helper under `app-deps/(v1)/_actions/cloudinary` remains live through `lib/upload-file.ts`.
+  - Later review confirmed `@gnd/jobs` owns the live `send-composed-email` task id, so the old app-local Trigger task and template were removed in the eighty-second slice.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 372 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Twenty-first cleanup slice validation:
+  - Targeted stale-reference scans for deleted cached sales-payment-resolution filters, recent-sales cache query, client auth guard, old Midday search-filter component, payment-dashboard column builder, and resolution-center empty-state component returned no live source references.
+  - Confirmed nearby helpers were retained because current imports still reference them: `__gtCustomerSalesTx`, `getCustomerAddress`, `paginatedAction`, active Midday search-filter adapters/TRPC components, and current table/widget empty-state modules.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 366 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Twenty-second cleanup slice validation:
+  - Targeted stale-reference scans for deleted `viewer-shell` provider/dialog/barrel and old clean-code `NumberPicker` returned no live source references.
+  - Confirmed `apps/www/src/components/viewer-shell/controller.ts` remains live through `apps/www/src/modules/sales-print/application/sales-print-service.ts` and was not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 362 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed after the following twenty-third slice.
+- Twenty-third cleanup slice validation:
+  - Targeted stale-reference scans for deleted `TableMenuTrigger` and unused sales-overview v2 section helper components returned no live source references.
+  - Confirmed nearby live overview hooks/provider/route-entry and community summary widgets remain imported and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 360 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Twenty-fourth cleanup slice validation:
+  - Targeted stale-reference scans for deleted clean-code `fikr-ui` shell components (`FPage`, `FPageContent`, `FContentShell`, `FPageTabs`, and `FPageTitle`) returned no live source references.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 355 remaining file candidates.
+- Twenty-fifth cleanup slice validation:
+  - Targeted stale-reference scans for deleted create-customer, create-customer-address, reset-user-session, send-login-email, and validate-auth-token server-action leaves returned no live source references.
+  - Kept higher-risk step-component pricing/inventory actions even though Knip still flags them, because they sit near active sales-form and inventory migration paths and need a separate focused review.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 350 remaining file candidates.
+- Twenty-sixth cleanup slice validation:
+  - Targeted stale-reference scans for deleted pending/recent/list customer-sales query actions and `__gtCustomerSalesTx` returned no live source references.
+  - Confirmed current customer-service and sales-form customer data paths remain live through tRPC/current action imports and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 345 remaining file candidates.
+  - scoped `git diff --check -- apps/www brain` passed.
+- Twenty-seventh cleanup slice validation:
+  - Targeted stale-reference scans for deleted old contractor v1 jobs table/sheet files returned no live source references outside the deleted island.
+  - Confirmed current `/contractors/jobs` and jobs-dashboard routes remain in `src/app` and do not import the deleted app-deps v1 shells.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 342 remaining file candidates.
+- Twenty-eighth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `AnimateReveal`, `GridSkeleton`, `IconButton`, and `LineInfo` helpers returned no live source references.
+  - Skipped noisier root names such as `Shell` and `LoginForm` because scans showed broad or live-adjacent usage that needs separate review.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 338 remaining file candidates.
+- Twenty-ninth cleanup slice validation:
+  - Targeted stale-reference scans for deleted community dashboard/summary/search component leaves returned no live source references.
+  - Confirmed `CommunityTemplateActions` remains live through the old model-form compatibility path and was not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 331 remaining file candidates.
+- Thirtieth cleanup slice validation:
+  - Targeted stale-reference scans for deleted install-cost/model/project/work-order opener leaves returned no live component imports; the remaining `install-cost-sidebar-footer` hits are a DOM portal id used by the current resizable install-cost panel, not an import of the deleted sidebar component.
+  - Removed stale commented legacy community-template page code that referenced the deleted `InstallCostSidebar`.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 326 remaining file candidates.
+- Thirty-first cleanup slice validation:
+  - Targeted stale-reference scans for deleted `InlineTextEditor`, `CancelSalesTransactionAction`, root `Organization`, `ResetInventories`, and root mock `ProductionWorkerDashboard` returned no live source references.
+  - Confirmed remaining production dashboard hits are the current `ProductionWorkerDashboardV2` route/lazy-loader, not the deleted root demo component.
+  - Removed stale commented `CancelSalesTransactionAction` and `ResetInventories` call sites.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 321 remaining file candidates.
+- Thirty-second cleanup slice validation:
+  - Targeted import-path scans for deleted old `login-form`, `shell`, and `_v1` atoms returned no live imports.
+  - Confirmed `_v1/page-header`, `_v1/info`, clean-code `Kbd`, and clean-code `Search` remain live through current imports and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 311 remaining file candidates.
+- Thirty-third cleanup slice validation:
+  - Targeted stale-reference scans for deleted `community-summary-widgets`, the empty root `inventory-category-form.tsx`, and `styles/sales.css` returned no live source references.
+  - Confirmed `hooks/use-id.ts`, the inventory-category form subfolder, and `styles/globals.css` remain live or tooling-referenced and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 308 remaining file candidates.
+- Thirty-fourth cleanup slice validation:
+  - Targeted stale-reference scans for deleted clean-code export `config.ts` and `type.ts` returned no live source references.
+  - Confirmed app-deps `_actions/progress.ts` and `_actions/settings.ts` remain live through sales pickup, settings, install-cost, and payment paths and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --no-progress --reporter json --no-exit-code` reported 306 remaining file candidates.
+- Thirty-fifth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v1` tab-layout files returned no external imports or symbol references; the files only referenced each other inside the deleted island.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 302 remaining file candidates.
+- Thirty-sixth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v1` modal wrapper paths and component names returned no live imports.
+  - Confirmed `_v1/modals/base-modal.tsx` remains live through current model-install-cost and verify-task modal imports and was not removed.
+  - Confirmed legacy modal-name strings such as `assignTask`, `activateProduction`, and `editInvoice` still appear in old `_v1` shells/store typing, so those related openers were left for a later shell-level review.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 299 remaining file candidates.
+- Thirty-seventh cleanup slice validation:
+  - Later review confirmed the old app-local trigger support files were only used by the old app-local task and were removed in the eighty-second slice.
+  - Targeted stale-reference scans for deleted `lib/chunker.ts` and `lib/navs.ts` returned no live imports or symbol references.
+  - Confirmed nearby lib candidates remained live through current imports at this point: `data-page-context.ts`, `format.ts`, `is-prod.ts`, `modal.ts`, and `order-production-gate.ts`; `resend.ts` was later removed with the old app-local Trigger email task.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 297 remaining file candidates.
+- Thirty-eighth cleanup slice validation:
+  - Targeted filename and exported-symbol scans for the deleted `_v1` shell files returned no external imports.
+  - Confirmed `_v1` filters were not bulk-deleted before shell removal; `builder-filter.tsx` and `projects-filter.tsx` remain live through the app-deps community-template table shell.
+  - Confirmed `lib/data-page-context.ts` remains live through model-form and work-order imports.
+- Thirty-ninth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `employee-filter.tsx`, `roles-filter.tsx`, `task-filters.tsx`, and `verify-task-jobs-before-assign-modal.tsx` returned no live component/path imports.
+  - The remaining `staticPayableEmployees` hit is a store field name rather than a deleted filter import, and modal-name strings are store typing residue left for later type cleanup.
+- Fortieth cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v1/print` files returned no external imports.
+  - The stale `activateProduction` opener was contained inside the deleted old home printer; the remaining `activateProduction` text is a store modal-name type and an unrelated `deactivateProduction` action name.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 275 remaining file candidates.
+- Forty-first cleanup slice validation:
+  - Targeted stale-reference scans for the deleted app-deps community-template table shell and its old install-cost modal returned no external imports.
+  - Targeted scans for deleted `_v1` builder/projects filters, install/model cost cells, base modal, and old `_v1` data-table helper files returned no live imports.
+  - Confirmed similarly named current implementations remain live and were not touched, including `components/tables-2/community-templates/*`, `components/modals/model-install-cost-modal/*`, and `components/forms/community-template-v1/install-cost-resizable-panel.tsx`.
+  - Confirmed `components/_v1/data-table/data-table-row-actions.tsx` remains live through sales-form/table-cell imports and was not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 259 remaining file candidates.
+- Forty-second cleanup slice validation:
+  - Exact import-path scans for the deleted clean-code data-table shell, filter-command, infinity toolbar/actions, item overview sheet, utility, and CSS files returned no external imports.
+  - Exact scans for the deleted common data-table column wrappers and app-deps data-table context/cell wrappers returned no live imports after deleting their small self-contained dependency chain.
+  - Confirmed live clean-code data-table support remains in place where current source imports it: `search-params`, `table-cells`, `Dl`, and related compose/header helpers.
+  - Confirmed live common data-table pagination/table-cells and `_v1/data-table/data-table-row-actions.tsx` were retained because current imports still reference them.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 244 remaining file candidates.
+- Forty-third cleanup slice validation:
+  - Targeted stale-reference scans for deleted `_v1` putaway, community columns, home selection, install-cost form, job payment, job type, pickup status, sales date, payment overview, tech cell, and work-order overview files returned no live path imports.
+  - Remaining same-name text hits are current non-deleted symbols such as `CommunityInstallCostForm` and `getHomeProductionStatus`, not imports of the deleted `_v1` files.
+  - Confirmed `components/_v1/sheets/base-sheet.tsx` and `import-model-template-sheet.tsx` remain live through `app-deps/(v1)/(loggedIn)/settings/community/_components/model-form/model-form.tsx` and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 233 remaining file candidates.
+- Forty-fourth cleanup slice validation:
+  - Exact stale-reference scans for deleted `_v1/info.tsx` and `common/data-table/data-table-pagination.tsx` returned no live imports.
+  - Confirmed `_v1/page-header.tsx` and `common/data-table/table-cells.tsx` remain live through old model-form/version-history imports and were not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 231 remaining file candidates.
+- Forty-fifth cleanup slice validation:
+  - Exact stale-reference scans for deleted app-deps v1 one-off action paths and symbols returned no live imports.
+  - Confirmed `_template-import.ts` remains live through `_v1/sheets/import-model-template-sheet.tsx` and was not removed.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 227 remaining file candidates.
+- Forty-sixth cleanup slice validation:
+  - Exact stale-reference scans for deleted app-deps v1 community helper paths and symbols returned no live imports.
+  - Confirmed `_template-import.ts` remains live through `_v1/sheets/import-model-template-sheet.tsx`; other still-imported community helpers were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 222 remaining file candidates.
+- Forty-seventh cleanup slice validation:
+  - Exact stale-reference scans for the deleted old community model-form folder, `_v1` sheet/page-header helpers, common table-cells helper, `_template-import.ts`, `searchImport`, and `#unitModelForm` returned no live references.
+  - Removed the stale `#unitModelForm` CSS rule from `styles/globals.css` after deleting the only component that emitted that id.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 213 remaining file candidates.
+- Forty-eighth cleanup slice validation:
+  - Exact stale-reference scans for the deleted app-deps community/HRM action paths and exported symbols returned no live imports.
+  - Remaining `getCommunityTemplates`, `installCosts`, and `deleteJob` hits are current tRPC route names, current nav labels, or current component-level mutation names rather than imports of the deleted app-deps files.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 204 remaining file candidates.
+- Forty-ninth cleanup slice validation:
+  - Exact stale-reference scans for deleted community-invoice and HRM job/payment action paths and exported symbols returned no live imports.
+  - Remaining `makePayment` text in current source is local payment UI mutation state, not an import of the deleted old HRM job payment action.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 199 remaining file candidates.
+- Fiftieth cleanup slice validation:
+  - Exact stale-reference scans for deleted customer-service action paths and exported symbols returned no live imports.
+  - Remaining `updateWorkOrderStatus` text is a current customer-service tRPC mutation option, not an import of the deleted old app-deps server action.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 196 remaining file candidates.
+- Fifty-first cleanup slice validation:
+  - Exact stale-reference scans for deleted HRM employee action paths and exported symbols returned no live imports.
+  - Remaining `resetEmployeePassword` text is a current HRM tRPC mutation option, not an import of the deleted old app-deps server action.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 193 remaining file candidates.
+- Fifty-second cleanup slice validation:
+  - Exact stale-reference scans for deleted placeholder sales-rep UI paths and exported component names returned no live imports.
+  - Removed the remaining stale commented `<RecentSales />` call from the active sales-rep page while preserving the current data-table implementation.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 190 remaining file candidates.
+- Fifty-third cleanup slice validation:
+  - Exact stale-reference scans for deleted `CommunityTemplateActions` path and exported symbol returned no live imports.
+  - Confirmed `InstallCostBtn` and `ModelTemplateSetting` remain live through current community-template form headers and were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 189 remaining file candidates.
+- Fifty-fourth cleanup slice validation:
+  - Exact stale-reference scans for deleted utility/type paths and exported symbols returned no live imports.
+  - `lib/resend.ts` was later removed with the old app-local Trigger email task; payment-adjacent `lib/is-prod.ts` was kept for later review because a current file still contained a commented refund block referencing its symbol at this point in the cleanup.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 185 remaining file candidates.
+- Fifty-fifth cleanup slice validation:
+  - Exact stale-reference scans for deleted sales/production header wrapper paths and exported symbols returned no live imports.
+  - Remaining `sales-order-search-filter` hits are task-event `filterSystem.systemId` strings, not imports of the deleted order search wrapper.
+  - Confirmed `SalesProductionSearchFilter` remains live through current production dashboard/workspace files and was not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 179 remaining file candidates.
+- Fifty-sixth cleanup slice validation:
+  - Exact stale-reference scans for deleted `Kbd`, `kbdVariants`, `isProdClient`, and `@/lib/is-prod` returned no live imports.
+  - Removed only an inactive commented refund menu block from the resolution-center component; runtime resolution actions were not changed.
+  - Remaining `is-prod` text is `is-prod-server`, a separate live helper that was not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 177 remaining file candidates.
+- Fifty-seventh cleanup slice validation:
+  - Exact stale-reference scans for deleted `DataPageContext`, `useDataPage`, `@/lib/data-page-context`, `@/lib/modal`, `openEmailComposer`, and `EmailTypes` returned no live imports.
+  - Remaining `openModal` usage belongs to active modal providers/utilities, not the deleted `@/lib/modal` wrapper.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 175 remaining file candidates.
+- Fifty-eighth cleanup slice validation:
+  - Exact stale-reference scans for deleted `get-sales-production-query-tab.ts` and `getSalesProductionQueryTabs` returned no live imports.
+  - Confirmed legacy dispatch actions import their own dispatch query helper rather than the later-deleted root `utils/db/where.dispatch.ts`.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 174 remaining file candidates.
+- Fifty-ninth cleanup slice validation:
+  - Exact stale-reference scans for deleted `print-sales.tsx`, `sales-menu-print.tsx`, `PrintSales`, `SalesMenuPrint`, and `SalesMenuPrintModes` returned no live imports of those wrapper files.
+  - Remaining print hits are the live `print-sales-v2` viewer and the internal `SalesMenuPrint` inside `sales-menu.tsx`.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 172 remaining file candidates.
+- Sixtieth cleanup slice validation:
+  - Exact stale-reference scans for deleted `SalesOptionMarkAs`, `OrderProductionGateCard`, `@/lib/order-production-gate`, and production-gate helper exports returned no live imports.
+  - The deleted production-gate helper was only imported by the deleted card; current production dashboard/workspace routes were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 169 remaining file candidates.
+- Sixty-first cleanup slice validation:
+  - Exact stale-reference scans for deleted dispatch action/dialog paths and exported component names returned no live imports outside the removed island.
+  - Confirmed the current `tables-2/sales-dispatch` actions cell owns live dispatch controls and still imports the shared `DispatchCompletionDecisionModal`; that modal was not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 164 remaining file candidates.
+- Sixty-second cleanup slice validation:
+  - Exact stale-reference scans for deleted dispatch completion, dispatch sweeper, and packing detail component paths and exported names returned no live imports.
+  - Confirmed `PackingProgress` remains live through `dispatch-packing-overview` and was not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 156 remaining file candidates.
+- Sixty-third cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted sales form/payment UI leaves and new-sales-form adapter hooks returned no live imports.
+  - Removed the stale commented `SalesPaymentForm` call from the customer transactions tab; runtime transaction loading and table rendering were not changed.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 148 remaining file candidates.
+- Sixty-fourth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted v1 sales `update-payment-term.ts` and `update-sales-date.ts` returned no live imports.
+  - Kept v1 sales `type.ts` because old customer query actions still import its `ShowCustomerHaving` and `InvoicePastDue` types.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 146 remaining file candidates.
+- Sixty-fifth cleanup slice validation:
+  - Exact import-path scans and exported-symbol scans for the deleted accounting search-param modules returned no live imports.
+  - Confirmed the shared `components/(clean-code)/data-table/search-params.ts` parser remains live and was not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 142 remaining file candidates.
+- Sixty-sixth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted clean-code sales sidebar/store hooks, `PagesTab`, and `getSalesTabActionUseCase` returned no live imports.
+  - Confirmed current sales-book tabs route/layout imports `components/sales-tabs.tsx`, not the deleted clean-code tabs use-case.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 138 remaining file candidates.
+- Sixty-seventh cleanup slice validation:
+  - Exact path and symbol scans for the deleted app-side clean-code `use-sticky` hook returned no live imports.
+  - Confirmed the similarly named app-deps `use-sticky` hook remains live through the old components-section context and was not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 137 remaining file candidates.
+- Sixty-eighth cleanup slice validation:
+  - Exact path and exported-symbol scans for the deleted clean-code dispatch data-action app/app-deps mirrors returned no live imports outside that removed island.
+  - Confirmed current dispatch data-access/tRPC/table paths do not import the deleted action loaders or DTOs.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 130 remaining file candidates.
+- Sixty-ninth cleanup slice validation:
+  - Exact path and exported-symbol scans for the deleted clean-code tax modal pair returned no live imports outside the removed files.
+  - Confirmed active sales tax persistence remains imported by sales-form data access and was not deleted.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 128 remaining file candidates.
+- Seventieth cleanup slice validation:
+  - Exact path and exported-symbol scans for the deleted clean-code tax data/use-case pair returned no live imports outside that removed island; two stale commented `getTaxListUseCase` references were removed from legacy hook mirrors.
+  - Confirmed active `sales-tax.persistent.ts` remains imported by sales-form data access and was not deleted.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 126 remaining file candidates.
+- Seventy-first cleanup slice validation:
+  - Exact path and exported-symbol scans for the deleted production-worker data/use-case pair and sales analytics data helper returned no live imports outside the removed files.
+  - Confirmed current production routes, assignment flows, and dashboard/report code were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 123 remaining file candidates.
+- Seventy-second cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted app-side Dyke custom-step helpers, sales use-case wrappers, and customer/wallet data-access files returned no live imports outside removed files.
+  - Confirmed current customer infinite API, live production assignment row, and app-deps sales mirrors were retained.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 110 remaining file candidates.
+- Seventy-third cleanup slice validation:
+  - Exact path and exported-symbol scans for the deleted app-side sales-form utility and old v1 sales-inbound/payment action files returned no live imports outside removed files.
+  - Confirmed current inbound-management and payment candidates that remain are separate files, including the old logged-in sales payment action and payment-processor tests.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 102 remaining file candidates.
+- Seventy-fourth cleanup slice validation:
+  - Exact app-side import-path scans for deleted `productions-list-action.ts` and `production-utils.ts` returned no live imports.
+  - Confirmed current production infinite API routes import the app-deps production list mirror and its separate app-deps utility copy, not the deleted app-side duplicate.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 100 remaining file candidates.
+- Seventy-fifth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted app-side `batch-action.ts`, `item-assignments-action.ts`, `sales-items-action.ts`, and `sales-overview.action.ts` returned no live imports.
+  - Confirmed `item-assign-action.ts` remains because `apps/www/src/actions/production-control-reset.test.ts` imports it directly.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 96 remaining file candidates.
+- Seventy-sixth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted `delete-sales-delivery-action.ts`, `update-sales-item-stat.ts`, `update-sales-stat.ts`, `update-customer-profile.ts`, and `update-customer-tax.ts` returned no live imports outside the removed action chain.
+  - Confirmed `sales-progress-fallback.ts` remains because `apps/www/src/actions/production-control-reset.test.ts` reads it directly, and confirmed `get-sales-customer-data.ts` remains live through the legacy sales-form customer data section.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 91 remaining file candidates.
+- Seventy-seventh cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted `delete-sales.ts`, `restore-sale.ts`, `update-sales-date-action.ts`, `update-sales-delivery-cost-action.ts`, and `update-sales-labor-cost-action.ts` returned no live imports.
+  - Confirmed similarly prefixed live actions such as `delete-sales-assignment`, `delete-sales-assignment-submission`, and `delete-sales-extra-cost` are separate files and were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 86 remaining file candidates.
+- Seventy-eighth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted old app-deps v1 logged-in sales action files returned no live imports.
+  - Confirmed retained app-deps v1 sales candidates are separate customer/type files and were not touched in this slice.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 76 remaining file candidates.
+- Seventy-ninth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted old app-deps v1 sales customer/type files returned no live imports.
+  - Confirmed no `app-deps/(v1)/(loggedIn)/sales` files remain in the refreshed Knip snapshot.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 72 remaining file candidates.
+- Eightieth cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted old app-deps v1 customer-wallet, settings, progress, and pagination helper files returned no live imports.
+  - Confirmed remaining same-name wallet/settings/progress helpers are package-level or unrelated app-local implementations, not the deleted app-deps files.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 67 remaining file candidates.
+- Eighty-first cleanup slice validation:
+  - Exact path scans for deleted `apps/www/src/utils/db/where.dispatch.ts` returned no live imports.
+  - Confirmed similarly named dispatch query helpers under clean-code/app-deps utility modules remain live and were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 66 remaining file candidates.
+- Eighty-second cleanup slice validation:
+  - Exact path and import scans for deleted app-local Trigger/email files returned no live app imports.
+  - Confirmed `packages/jobs/trigger.config.ts` loads `packages/jobs/src/tasks`, and the live `send-composed-email` implementation imports `@gnd/email/emails/composed-email`.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 59 remaining file candidates.
+- Eighty-third cleanup slice validation:
+  - Exact path and exported-symbol scans for deleted `save-step-component.ts`, `update-component-pricing-action.ts`, `saveStepComponent`, `updateComponentPricingAction`, `stepComponentSchema`, and `updateComponentPricingSchema` returned no live imports.
+  - Confirmed active Dyke component save/pricing code remains available through `@gnd/inventory` and the inventories tRPC router.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 57 remaining file candidates.
+- Eighty-fourth cleanup slice validation:
+  - Exact scans for the deleted app-deps duplicate `legacy/use-dyke-form-step` path returned no live imports.
+  - Confirmed current app-deps modal/helper code imports the app-side legacy step hook path instead.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 56 remaining file candidates.
+- Eighty-fifth cleanup slice validation:
+  - Exact scans for deleted `ComponentSectionFooter`, `CustomComponent({ ctx`, direct `component-section-footer` / `custom-component` component imports, and `data-page/line-input` returned no live imports.
+  - Confirmed the broad `custom-component` prefix hit belongs to live `custom-component.action.tsx`, not the deleted old UI leaf.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 53 remaining file candidates.
+- Eighty-sixth cleanup slice validation:
+  - Exact exported-symbol scans for deleted `DependenciesModal`, `saveDykeMeta`, `HeightSettingsModal`, and `useHeightSettingCtx` returned no live imports.
+  - Exact deleted-folder path scans for `deps-modal/action.ts`, `deps-modal/index.tsx`, `height-settings-modal/ctx.tsx`, and `height-settings-modal/height-settings-modal.tsx` returned no live references.
+  - Confirmed the broad `deps-modal` prefix can also match retained live `component-deps-modal`, so final validation used exact deleted paths.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 49 remaining file candidates.
+- Eighty-seventh cleanup slice validation:
+  - Exact scans for deleted `StepComponentModal`, `useStepComponentModal`, `@/components/(clean-code)/search`, and `@/_v2/components/common/render-form` returned no live imports.
+  - Confirmed retained `component-deps-modal` remains opened by the app-deps step helper and was not touched.
+  - Confirmed step-products `IStepProducts` and `ProductImage` imports remain live through legacy sales-form helpers and doors modal.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 45 remaining file candidates.
+- Eighty-eighth cleanup slice validation:
+  - Exact scans for deleted `DoorsModal`, `doors-modal`, and `step-products/product` import paths returned no live imports.
+  - Confirmed remaining `ProductImage` text belongs to unrelated inventory/statistics components or stale comments, not the deleted app-deps helper.
+  - Confirmed `IStepProducts` and the step-products type barrel remain live through legacy sales-form helpers.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 43 remaining file candidates.
+- Eighty-ninth cleanup slice validation:
+  - Exact path scans for deleted app-deps `sales-book-pricing-use-case`, `step-component-use-case`, `dyke-steps.persistent`, and `step-components.dta` returned no live imports.
+  - Confirmed current app-deps form/modal code imports the app-side live use-case and data-access files under `@/app/(clean-code)/(sales)/_common`.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 39 remaining file candidates.
+- Ninetieth cleanup slice validation:
+  - Exact scans for deleted `hpt-helper`, `useBaseSalesBookFormContext`, `SalesBookFormContext`, `use-zus-form-hook`, and deleted hook/context paths returned no live imports.
+  - Confirmed live `legacy-dyke-form-helper`, `data-store`, `legacy-hooks`, and `component-deps-modal` import chains remain intact.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 35 remaining file candidates.
+- Ninety-first cleanup slice validation:
+  - Exact scans for `CustomerDataSection`, `customer-data-section`, `getSalesCustomerData`, `get-sales-customer-data`, `getCustomerAddress`, and `get-customer-address` returned no live imports after deleting the detached customer data island.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 32 remaining file candidates.
+- Ninety-second cleanup slice validation:
+  - Exact scans for app-deps `_hooks/data-store`, app-deps `_hooks/legacy-hooks`, and the old relative `../../_hooks/*` imports returned no live references after switching `legacy-dyke-form-helper.tsx` to app-side type imports.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 30 remaining file candidates.
+- Ninety-third cleanup slice validation:
+  - Exact scans for `resolvePaymentAction`, `resolve-payment-issue`, `resolve-payment-action`, `deleteSalesCommission`, `deletePayroll`, and `delete-payroll` returned no live references after deleting the detached payment-resolution action island.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 28 remaining file candidates.
+- Ninety-fourth cleanup slice validation:
+  - Exact scans for legacy Dyke form providers/callers (`useLegacyDykeFormStep`, `useLegacyDykeFormContext`, `LegacyDykeFormStepContext.Provider`, `LegacyDykeFormItemContext.Provider`), app-deps helpers (`legacyDykeFormHelper`, `component-deps-modal`, `sales-book/(form)/_actions/steps.action`), and the private app-deps step-products type barrel showed no live entry point outside the deleted island.
+  - The remaining `zus-step-helper` imports are separate current sales-form helpers and were not touched.
+  - refreshed `bun run knip --workspace apps/www --include files --reporter json` reported 20 remaining file candidates.
+- Ninety-fifth cleanup slice validation:
+  - The remaining file-only Knip candidates classify as 16 tests, 3 production-control files read directly by `production-control-reset.test.ts`, and 1 shadcn tooling stylesheet referenced by `apps/www/src/components.json`.
+  - No source files were deleted in this slice because the remaining non-test candidates are test-backed or tooling-backed rather than high-confidence dead runtime code.
+- Ninety-sixth cleanup slice validation:
+  - Exact import/config scans found no live `apps/www` usage for removed package declarations: `@actions/core`, `@actions/github`, Cloudinary React helpers, MDX/MDX editor packages, `next-cloudinary`, `next-mdx-remote`, `crypto` package dependency, `i`, `npm`, `resend`, and `@types/mdx`.
+  - `bun install --lockfile-only` refreshed `bun.lock`.
+  - refreshed `bun run knip --workspace apps/www --include files,exports,dependencies,unlisted,unresolved --reporter json` reports 39 runtime dependency candidates, 3 dev dependency candidates, 20 file candidates, 5 unlisted entries, 5 unresolved entries, and 551 export candidates.
+- No build, typecheck, browser QA, or dev server was run.
+- Because `apps/www` still depends on legacy compatibility code, every deletion PR should run a focused import scan first and only then a narrow validation command for the affected domain.

@@ -253,28 +253,6 @@ function Action({ item: sale }: { item: Item }) {
 	return (
 		<Menu disabled={updatePayment?.isExecuting} label="Resolve" noSize>
 			{dueMismatch ? UpdateAmountDue : null}
-			{/* <Menu.Item
-                onClick={(e) => {
-                    // updatePayment.execute({
-                    //     salesId: sale.id,
-                    // });
-                }}
-                SubMenu={
-                    <>
-                        <Menu.Item icon="wallet">Wallet</Menu.Item>
-                        <Menu.Item icon="cash">Cash</Menu.Item>
-                    </>
-                }
-                disabled={sale?.calculatedDue >= 0 || isProdClient}
-                icon="pendingPayment"
-                shortCut={
-                    <>
-                        <Money value={sale?.calculatedDue} />
-                    </>
-                }
-            >
-                Refund
-            </Menu.Item> */}
 		</Menu>
 	);
 }

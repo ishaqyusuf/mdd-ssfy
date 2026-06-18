@@ -34,6 +34,7 @@ export default function InvoiceCustomerSelectorRoute() {
 
 	return (
 		<CustomerSelectorScreen
+			type={type}
 			onClose={closeToPreviousScreen}
 			onCustomerSelected={() => {
 				actions.setStep("items");

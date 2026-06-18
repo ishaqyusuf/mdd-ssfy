@@ -29,6 +29,12 @@ payload guarantees.
   dashboard query.
 - Dealer sales/quote list filters now include delivery option, dealer sales
   profile, and payment state; sales/orders also include invoice status.
+- 2026-06-18 implementation pass added dealer-side payment-link creation from
+  approved orders, an order overview/payment page, a real dealer dashboard
+  summary, and approval-time delivery-cost review/approver ownership stamping.
+- 2026-06-18 follow-up pass added payment links to dealer approval emails,
+  bounded dealer logo image upload via data URL persistence, and OpenPanel
+  progress tracking in the dealer app.
 
 ## Scope
 
@@ -114,6 +120,8 @@ Invoice address rules:
 Dealer portal:
 
 - Add `dealerPortal.requestQuoteOrder`.
+- Add `dealerPortal.createPaymentLink` for dealer-owned approved orders with an
+  outstanding balance.
 - Return request status with dealer quote/order list/detail payloads.
 - Prevent duplicate pending requests for the same quote.
 - Enforce dealer ownership on every request path.
@@ -133,6 +141,15 @@ Notifications:
 - Notification action deep-links to the internal request review surface.
 - Dealer payment-link email should reuse existing sales checkout/payment-link
   infrastructure where possible.
+- Approval emails include both the dealer order URL and a checkout URL when the
+  approved order has an outstanding balance and payment token context can be
+  built.
+
+Analytics:
+
+- The dealer app mounts the shared OpenPanel provider and emits a
+  `Dealer Program Progress Viewed` event on dealer dashboard, quote, order,
+  customer, and settings navigation.
 
 ## Dealer UI
 
@@ -229,6 +246,9 @@ bun run test:new-sales-form-migration
 
 Focused tests to add or preserve:
 
+Current 2026-06-18 implementation pass skipped browser testing by user request;
+use focused static checks until a separate browser QA pass is requested.
+
 - Dealer can request order from own quote only.
 - Dealer cannot request another dealer's quote.
 - Duplicate pending request is prevented or returns the existing request.
@@ -236,6 +256,9 @@ Focused tests to add or preserve:
   cost, and sends payment-link email.
 - Second approval attempt returns already-worked information.
 - Dealer payment link works from email and order dashboard.
+- Dealer uploaded logo image persists through settings and resolves in dealer
+  print branding.
+- Dealer program OpenPanel progress event is mounted in the dealership app.
 - Dealer invoice address mapping is customer ship-to and dealer bill-to.
 - Customer invoice address mapping is customer ship-to and customer bill-to.
 - Dealer/customer pricing visibility follows

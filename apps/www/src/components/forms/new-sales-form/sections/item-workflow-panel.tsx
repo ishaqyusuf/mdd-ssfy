@@ -6,6 +6,7 @@ import {
 	CustomComponentCombobox,
 	customComponentPriceChanged,
 	findCustomComponentOption,
+	normalizeCustomComponentTitleInput,
 } from "@/components/forms/sales-form/custom-component-combobox";
 import type { CustomComponentOption } from "@/components/forms/sales-form/custom-component-combobox";
 import { MouldingCalculator } from "@/components/moulding-calculator";
@@ -29,15 +30,8 @@ import {
 	getRouteConfigForLine as resolveRouteConfigForLine,
 	summarizeDoors,
 } from "@gnd/sales/sales-form";
+import { Alert, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
-import {
-	AlertDialog,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from "@gnd/ui/alert-dialog";
 import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Dialog,
@@ -190,6 +184,33 @@ function resolveComponentImageSrc(src?: string | null) {
 	if (!base) return normalized;
 	if (normalized.startsWith("dyke/")) return `${base}/${normalized}`;
 	return `${base}/dyke/${normalized}`;
+}
+
+function withCustomSelectionPrice(
+	component: WorkflowComponent,
+	price: number | null,
+	profileCoefficient?: number | null,
+) {
+	const resolvedBasePrice = firstFiniteNumber(
+		price,
+		component.basePrice,
+		component.salesPrice,
+	);
+	const resolvedSalesPrice = profileAdjustedSalesPrice(
+		component.salesPrice,
+		resolvedBasePrice,
+		profileCoefficient,
+	);
+	return {
+		...component,
+		salesPrice: resolvedSalesPrice,
+		basePrice: resolvedBasePrice ?? component.basePrice ?? null,
+		custom: true,
+		_metaData: {
+			...(component._metaData || {}),
+			custom: true,
+		},
+	} as WorkflowComponent;
 }
 
 export function ItemWorkflowPanel() {
@@ -704,6 +725,7 @@ export function ItemWorkflowPanel() {
 		steps: WorkflowStep[];
 		currentStepIndex: number;
 		component: WorkflowComponent;
+		visibleComponentsOverride?: WorkflowComponent[];
 		selectedOverride?: boolean;
 	}) {
 		const result = saveWorkflowSelectedComponent({
@@ -712,7 +734,7 @@ export function ItemWorkflowPanel() {
 			steps,
 			currentStepIndex,
 			component,
-			visibleComponents,
+			visibleComponents: visibleComponentsOverride || visibleComponents,
 			activeStepTitle: activeStep?.step?.title || "",
 			selectedOverride,
 		});
@@ -727,19 +749,89 @@ export function ItemWorkflowPanel() {
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
 	) {
+		if (
+			customComponentDialog.open &&
+			customComponentDialog.lineUid === line.uid &&
+			customComponentDialog.stepIndex === stepIndex
+		) {
+			resetCustomComponentDialog();
+			return;
+		}
+
 		const step = getWorkflowSteps(line)[stepIndex];
+		const stepSnapshot = step as
+			| (WorkflowStep & {
+					componentId?: number | string | null;
+					custom?: boolean | null;
+					salesPrice?: number | null;
+				})
+			| undefined;
 		const selectedUid = String(step?.prodUid || "");
+		const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
+			? (step.meta.selectedComponents as WorkflowComponent[])
+			: [];
+		const selectedComponent =
+			selectedComponents.find(
+				(component) => String(component?.uid || "") === selectedUid,
+			) || null;
 		const selectedOption =
 			customComponentOptions.find(
 				(option) => String(option.uid || "") === selectedUid,
 			) || null;
+		const selectedIsCustom = Boolean(
+			selectedOption ||
+				step?.meta?.custom === true ||
+				stepSnapshot?.custom === true ||
+				selectedComponent?.custom === true ||
+				selectedComponent?._metaData?.custom === true,
+		);
+		const selectedTitle = normalizeCustomComponentTitleInput(
+			String(
+				selectedOption?.title ||
+					selectedComponent?.title ||
+					step?.value ||
+					"",
+			).trim(),
+		);
+		const selectedPrice = firstFiniteNumber(
+			selectedComponent?.basePrice,
+			step?.basePrice,
+			selectedOption?.price,
+			selectedComponent?.salesPrice,
+			stepSnapshot?.salesPrice,
+			step?.price,
+		);
+		const hydratedSelectedOption =
+			selectedIsCustom && selectedOption
+				? {
+						...selectedOption,
+						price: selectedPrice,
+					}
+				: selectedIsCustom && selectedUid
+					? ({
+							id: [
+								"selected",
+								selectedUid,
+								selectedComponent?.id ?? stepSnapshot?.componentId ?? "none",
+							].join(":"),
+							label: selectedTitle || "CUSTOM",
+							componentId:
+								typeof (selectedComponent?.id ?? stepSnapshot?.componentId) ===
+								"number"
+									? Number(selectedComponent?.id ?? stepSnapshot?.componentId)
+									: undefined,
+							uid: selectedUid,
+							title: selectedTitle || "CUSTOM",
+							price: selectedPrice,
+						} satisfies CustomComponentOption)
+					: null;
 		setCustomComponentDialog({
 			open: true,
 			lineUid: line.uid,
 			stepIndex,
-			title: selectedOption?.title || "",
-			price: selectedOption?.price ?? null,
-			selectedOption,
+			title: selectedIsCustom ? hydratedSelectedOption?.title || "" : "",
+			price: selectedIsCustom ? hydratedSelectedOption?.price ?? null : null,
+			selectedOption: hydratedSelectedOption,
 		});
 	}
 	function resetCustomComponentDialog() {
@@ -755,8 +847,26 @@ export function ItemWorkflowPanel() {
 	function getSelectedCustomComponentOption() {
 		return selectedCustomComponentOption;
 	}
-	async function submitCustomComponentDialog(options?: { updatePrice?: boolean }) {
-		const title = customComponentDialog.title.trim();
+	function mergeVisibleComponentForSelection(component: WorkflowComponent) {
+		const uid = String(component?.uid || "");
+		if (!uid) return [component, ...visibleComponents];
+		const merged = visibleComponents.map((visibleComponent) =>
+			String(visibleComponent?.uid || "") === uid
+				? {
+						...visibleComponent,
+						...component,
+					}
+				: visibleComponent,
+		);
+		if (!merged.some((visibleComponent) => String(visibleComponent?.uid || "") === uid)) {
+			merged.unshift(component);
+		}
+		return merged;
+	}
+	async function submitCustomComponentDialog() {
+		const title = normalizeCustomComponentTitleInput(
+			customComponentDialog.title.trim(),
+		);
 		if (!title || !customComponentDialog.lineUid) return;
 		const line = record.lineItems.find(
 			(item) => item.uid === customComponentDialog.lineUid,
@@ -775,12 +885,24 @@ export function ItemWorkflowPanel() {
 				)
 			: null;
 
-		if (selectedOption && selectedComponent && !options?.updatePrice) {
+		if (selectedOption && selectedComponent && !selectedCustomComponentPriceChanged) {
+			const selectedPrice = firstFiniteNumber(
+				selectedOption.price,
+				selectedComponent.basePrice,
+				selectedComponent.salesPrice,
+			);
+			const componentForSelection = withCustomSelectionPrice(
+				selectedComponent as WorkflowComponent,
+				selectedPrice,
+				activeProfileCoefficient,
+			);
 			saveSelectedComponent({
 				line,
 				steps,
 				currentStepIndex: customComponentDialog.stepIndex,
-				component: selectedComponent as WorkflowComponent,
+				component: componentForSelection,
+				visibleComponentsOverride:
+					mergeVisibleComponentForSelection(componentForSelection),
 				selectedOverride: true,
 			});
 			resetCustomComponentDialog();
@@ -796,16 +918,23 @@ export function ItemWorkflowPanel() {
 			pricingId: selectedOption?.pricingId,
 			dependenciesUid: selectedOption?.dependenciesUid,
 			img: CUSTOM_IMG_ID,
-			meta: {},
+			meta: { custom: true },
 		});
-		await stepComponentsQuery.refetch();
+		const componentForSelection = withCustomSelectionPrice(
+			result.component as WorkflowComponent,
+			customComponentDialog.price,
+			activeProfileCoefficient,
+		);
 		saveSelectedComponent({
 			line,
 			steps,
 			currentStepIndex: customComponentDialog.stepIndex,
-			component: result.component as WorkflowComponent,
+			component: componentForSelection,
+			visibleComponentsOverride:
+				mergeVisibleComponentForSelection(componentForSelection),
 			selectedOverride: true,
 		});
+		void stepComponentsQuery.refetch();
 		resetCustomComponentDialog();
 	}
 	async function archiveCustomComponent(option: CustomComponentOption) {
@@ -827,6 +956,83 @@ export function ItemWorkflowPanel() {
 				selectedOption: null,
 			}));
 		}
+	}
+	function renderCustomComponentInlinePanel(
+		line: (typeof record.lineItems)[number],
+		stepIndex: number,
+	) {
+		if (
+			!customComponentDialog.open ||
+			customComponentDialog.lineUid !== line.uid ||
+			customComponentDialog.stepIndex !== stepIndex
+		) {
+			return null;
+		}
+
+		return (
+			<Alert className="rounded-md bg-background p-3 text-foreground shadow-sm">
+				<AlertTitle className="mb-3">Custom Component</AlertTitle>
+				<CustomComponentCombobox
+					title={customComponentDialog.title}
+					price={customComponentDialog.price}
+					options={customComponentOptions}
+					selectedOption={selectedCustomComponentOption}
+					disabled={
+						upsertCustomComponentMutation.isPending ||
+						archiveCustomComponentMutation.isPending
+					}
+					onTitleChange={(title) =>
+						setCustomComponentDialog((prev) => ({
+							...prev,
+							title,
+							selectedOption:
+								prev.selectedOption &&
+								prev.selectedOption.title.trim().toLowerCase() ===
+									title.trim().toLowerCase()
+									? prev.selectedOption
+									: null,
+						}))
+					}
+					onPriceChange={(price) =>
+						setCustomComponentDialog((prev) => ({
+							...prev,
+							price,
+						}))
+					}
+					onSelect={(option) =>
+						setCustomComponentDialog((prev) => ({
+							...prev,
+							selectedOption: option,
+						}))
+					}
+					onDeleteOption={(option) => {
+						void archiveCustomComponent(option);
+					}}
+				/>
+				<div className="mt-3 flex flex-wrap justify-end gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={resetCustomComponentDialog}
+					>
+						Cancel
+					</Button>
+					<Button
+						type="button"
+						size="sm"
+						disabled={
+							upsertCustomComponentMutation.isPending ||
+							archiveCustomComponentMutation.isPending ||
+							!customComponentDialog.title.trim()
+						}
+						onClick={() => void submitCustomComponentDialog()}
+					>
+						Proceed
+					</Button>
+				</div>
+			</Alert>
+		);
 	}
 	function proceedMultiSelectStep(
 		line: (typeof record.lineItems)[number],
@@ -2406,6 +2612,10 @@ export function ItemWorkflowPanel() {
 								onEnableCustomComponent={() =>
 									openCustomComponentDialog(line, activeIndex)
 								}
+								customComponentSlot={renderCustomComponentInlinePanel(
+									line,
+									activeIndex,
+								)}
 								onRefresh={() => {
 									void stepComponentsQuery.refetch();
 									void rootComponentsQuery.refetch();
@@ -2808,92 +3018,6 @@ export function ItemWorkflowPanel() {
 					onApply={(linePatch) => updateLineItem(activeLine.uid, linePatch)}
 				/>
 			) : null}
-
-			<AlertDialog
-				open={customComponentDialog.open}
-				onOpenChange={(open) =>
-					setCustomComponentDialog((prev) => ({
-						...prev,
-						open,
-						lineUid: open ? prev.lineUid : null,
-						stepIndex: open ? prev.stepIndex : -1,
-					}))
-				}
-			>
-				<AlertDialogContent className="sm:max-w-md">
-					<AlertDialogHeader>
-						<AlertDialogTitle>Custom Component</AlertDialogTitle>
-					</AlertDialogHeader>
-					<CustomComponentCombobox
-						title={customComponentDialog.title}
-						price={customComponentDialog.price}
-						options={customComponentOptions}
-						disabled={
-							upsertCustomComponentMutation.isPending ||
-							archiveCustomComponentMutation.isPending
-						}
-						onTitleChange={(title) =>
-							setCustomComponentDialog((prev) => ({
-								...prev,
-								title,
-								selectedOption:
-									prev.selectedOption &&
-									prev.selectedOption.title.trim().toLowerCase() ===
-										title.trim().toLowerCase()
-										? prev.selectedOption
-										: null,
-							}))
-						}
-						onPriceChange={(price) =>
-							setCustomComponentDialog((prev) => ({
-								...prev,
-								price,
-							}))
-						}
-						onSelect={(option) =>
-							setCustomComponentDialog((prev) => ({
-								...prev,
-								selectedOption: option,
-							}))
-						}
-						onDeleteOption={(option) => {
-							void archiveCustomComponent(option);
-						}}
-					/>
-					<AlertDialogFooter>
-						<AlertDialogCancel onClick={resetCustomComponentDialog}>
-							Cancel
-						</AlertDialogCancel>
-						{selectedCustomComponentOption &&
-						selectedCustomComponentPriceChanged ? (
-							<Button
-								type="button"
-								variant="outline"
-								disabled={
-									upsertCustomComponentMutation.isPending ||
-									archiveCustomComponentMutation.isPending
-								}
-								onClick={() =>
-									void submitCustomComponentDialog({ updatePrice: true })
-								}
-							>
-								Update price
-							</Button>
-						) : null}
-						<Button
-							type="button"
-							disabled={
-								upsertCustomComponentMutation.isPending ||
-								archiveCustomComponentMutation.isPending ||
-								!customComponentDialog.title.trim()
-							}
-							onClick={() => void submitCustomComponentDialog()}
-						>
-							Proceed
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 
 			<ComponentEditDialog
 				open={componentEditModal.open}

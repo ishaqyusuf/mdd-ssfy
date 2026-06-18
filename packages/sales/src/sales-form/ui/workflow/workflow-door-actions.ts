@@ -106,6 +106,12 @@ export function swapWorkflowDoorComponent(input: {
 				}
 			: component,
 	);
+	const nextSelectedUids = nextSelectedComponents
+		.map((component) => String(component?.uid || ""))
+		.filter(
+			(uid, index, list) =>
+				Boolean(uid) && list.findIndex((entry) => entry === uid) === index,
+		);
 
 	const nextStep = {
 		...step,
@@ -121,6 +127,7 @@ export function swapWorkflowDoorComponent(input: {
 				: step?.value,
 		meta: {
 			...(step?.meta || {}),
+			selectedProdUids: nextSelectedUids,
 			selectedComponents: nextSelectedComponents,
 		},
 	};

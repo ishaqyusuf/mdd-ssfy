@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 export type WorkflowComponentCardProps = {
 	selected?: boolean;
+	selectedCustom?: boolean;
 	badgesSlot?: ReactNode;
 	actionsSlot?: ReactNode;
 	children: ReactNode;
@@ -14,7 +15,9 @@ export function WorkflowComponentCard(props: WorkflowComponentCardProps) {
 	return (
 		<div
 			className={`relative overflow-hidden rounded-lg border text-left transition ${
-				props.selected
+				props.selectedCustom
+					? "border-destructive bg-destructive/5 ring-1 ring-destructive/30 hover:border-destructive"
+					: props.selected
 					? "border-primary bg-primary/5 ring-1 ring-primary/20 hover:border-primary"
 					: "bg-card hover:border-primary"
 			}`}

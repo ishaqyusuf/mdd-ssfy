@@ -8,6 +8,29 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+function approvalPayload(request: { id: number; deliveryOption?: string | null }) {
+	const mode = request.deliveryOption?.toLowerCase();
+	if (mode !== "delivery" && mode !== "ship") {
+		return { requestId: request.id };
+	}
+
+	const value = window.prompt(
+		`Enter reviewed ${mode} cost before approving this dealer request.`,
+		"0",
+	);
+	if (value == null) return null;
+	const deliveryCost = Number(value);
+	if (!Number.isFinite(deliveryCost) || deliveryCost < 0) {
+		toast.error("Enter a valid delivery cost.");
+		return null;
+	}
+
+	return {
+		requestId: request.id,
+		deliveryCost,
+	};
+}
+
 export function DealerRequestReviewBanner({
 	requestId,
 }: {
@@ -82,7 +105,13 @@ export function DealerRequestReviewBanner({
 					<Button
 						size="sm"
 						disabled={!isPending || approve.isPending}
-						onClick={() => approve.mutate({ requestId })}
+						onClick={() => {
+							const payload = approvalPayload({
+								id: requestId,
+								deliveryOption: request.deliveryOption,
+							});
+							if (payload) approve.mutate(payload);
+						}}
 					>
 						<Icons.CheckCheck className="mr-2 size-4" />
 						Approve

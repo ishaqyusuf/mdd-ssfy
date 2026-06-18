@@ -113,24 +113,6 @@ export function FileUpload({
 							setProgress(Math.round(_progress / files.length));
 						},
 					});
-					// return resumableUpload({
-					//     bucket: "vault",
-					//     path,
-					//     file,
-					//     onProgress: (bytesUploaded, bytesTotal) => {
-					//         uploadProgress.current[idx] =
-					//             (bytesUploaded / bytesTotal) * 100;
-
-					//         const _progress = uploadProgress.current.reduce(
-					//             (acc, currentValue) => {
-					//                 return acc + currentValue;
-					//             },
-					//             0,
-					//         );
-
-					//         setProgress(Math.round(_progress / files.length));
-					//     },
-					// }),
 				}),
 			); //as UploadResult[];
 

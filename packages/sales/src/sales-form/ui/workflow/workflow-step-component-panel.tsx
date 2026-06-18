@@ -45,6 +45,7 @@ export type WorkflowStepComponentPanelProps<
 	selectedUids: Set<string>;
 	search: string;
 	noticeSlot?: ReactNode;
+	customComponentSlot?: ReactNode;
 	includeCustomComponents: boolean;
 	isDealershipMode: boolean;
 	mouldingSelection?: WorkflowMouldingSelectionState;
@@ -76,6 +77,10 @@ export type WorkflowStepComponentPanelProps<
 	onAddMoulding: (component: TComponent) => void;
 };
 
+function isCustomWorkflowComponent(component: WorkflowComponentRecord) {
+	return component?._metaData?.custom === true || component?.custom === true;
+}
+
 export function WorkflowStepComponentPanel<
 	TComponent extends WorkflowComponentRecord,
 >(props: WorkflowStepComponentPanelProps<TComponent>) {
@@ -97,18 +102,60 @@ export function WorkflowStepComponentPanel<
 	const supportsCustomComponents = Boolean(
 		activeStepMeta.custom || activeFormStepMeta.custom,
 	);
+	const selectedCustomComponents = (
+		Array.isArray(props.activeStep?.meta?.selectedComponents)
+			? props.activeStep.meta.selectedComponents
+			: []
+	).filter(
+		(component) =>
+			props.selectedUids.has(String(component?.uid || "")) &&
+			isCustomWorkflowComponent(component),
+	) as TComponent[];
+	if (
+		!selectedCustomComponents.length &&
+		props.selectedUids.has(String(props.activeStep?.prodUid || "")) &&
+		(activeFormStepMeta.custom === true || props.activeStep?.custom === true)
+	) {
+		selectedCustomComponents.push({
+			uid: String(props.activeStep?.prodUid || ""),
+			title: props.activeStep?.value || props.activeStep?.title || "Custom",
+			salesPrice: props.activeStep?.price ?? null,
+			basePrice: props.activeStep?.basePrice ?? null,
+			custom: true,
+			_metaData: { custom: true },
+		} as TComponent);
+	}
+	const selectedCustomFallbacks = selectedCustomComponents.filter(
+		(component) =>
+			!props.filteredComponents.some(
+				(candidate) =>
+					String(candidate?.uid || "") === String(component?.uid || ""),
+			),
+	);
+	const filteredComponents = [...selectedCustomFallbacks, ...props.filteredComponents]
+		.slice()
+		.sort((a, b) => {
+			const aSelectedCustom =
+				props.selectedUids.has(String(a.uid || "")) && isCustomWorkflowComponent(a);
+			const bSelectedCustom =
+				props.selectedUids.has(String(b.uid || "")) && isCustomWorkflowComponent(b);
+			if (aSelectedCustom === bSelectedCustom) return 0;
+			return aSelectedCustom ? -1 : 1;
+		});
 
 	return (
 		<StepComponentPicker
 			loading={props.loading}
 			hasComponents={Boolean(props.components.length)}
-			filteredComponents={props.filteredComponents}
+			filteredComponents={filteredComponents}
 			search={props.search}
 			noticeSlot={props.noticeSlot}
 			getKey={(component) => String(component.uid || "")}
 			renderComponent={(component) => {
 				const componentUid = String(component.uid || "");
 				const isSelected = props.selectedUids.has(componentUid);
+				const isSelectedCustom =
+					isSelected && isCustomWorkflowComponent(component);
 				const mouldingOpen =
 					Boolean(props.mouldingSelection?.open) &&
 					props.mouldingSelection?.lineUid === props.lineUid &&
@@ -118,6 +165,7 @@ export function WorkflowStepComponentPanel<
 				return (
 					<WorkflowComponentCard
 						selected={isSelected}
+						selectedCustom={isSelectedCustom}
 						badgesSlot={
 							!props.isDealershipMode ? (
 								<WorkflowComponentBadges
@@ -187,6 +235,7 @@ export function WorkflowStepComponentPanel<
 											alt={component.title || componentUid}
 											title={props.componentLabel(component.title)}
 											price={props.formatPrice(component.salesPrice)}
+											customAvatar={isSelectedCustom}
 										/>
 									</button>
 								}
@@ -207,6 +256,7 @@ export function WorkflowStepComponentPanel<
 									alt={component.title || componentUid}
 									title={props.componentLabel(component.title)}
 									price={props.formatPrice(component.salesPrice)}
+									customAvatar={isSelectedCustom}
 								/>
 							</button>
 						)}
@@ -278,24 +328,31 @@ export function WorkflowStepComponentPanel<
 					}
 					actionSlot={
 						supportsCustomComponents || isMultiSelectStep ? (
-							<div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
-								{supportsCustomComponents && props.onEnableCustomComponent ? (
-									<Button
-										type="button"
-										variant="outline"
-										onClick={props.onEnableCustomComponent}
-									>
-										Custom
-									</Button>
+							<div className="relative flex w-full justify-end sm:w-auto">
+								{supportsCustomComponents && props.customComponentSlot ? (
+									<div className="absolute right-0 bottom-full z-20 mb-2 w-[calc(100vw-2rem)] max-w-md sm:w-96">
+										{props.customComponentSlot}
+									</div>
 								) : null}
-								{isMultiSelectStep ? (
-									<Button
-										onClick={props.onProceedMultiSelect}
-										disabled={!props.selectedUids.size}
-									>
-										Proceed
-									</Button>
-								) : null}
+								<div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+									{supportsCustomComponents && props.onEnableCustomComponent ? (
+										<Button
+											type="button"
+											variant="destructive"
+											onClick={props.onEnableCustomComponent}
+										>
+											Custom
+										</Button>
+									) : null}
+									{isMultiSelectStep ? (
+										<Button
+											onClick={props.onProceedMultiSelect}
+											disabled={!props.selectedUids.size}
+										>
+											Proceed
+										</Button>
+									) : null}
+								</div>
 							</div>
 						) : null
 					}

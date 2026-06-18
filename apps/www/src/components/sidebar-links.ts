@@ -312,10 +312,6 @@ export const linkModules = [
 			// .childPaths("sales-book/accounting/resolution-center").data,
 		]),
 		_section("", null, [
-			// _link("HOME", "project", "/sales-book/home-page").access(
-			//     _perm.in("editOrders"),
-			// ).data,
-
 			_link("Sales", "orders", "/sales-book/orders", [
 				_subLink("Bin", "/sales-book/orders/bin").access(
 					_role.is("Super Admin"),
@@ -329,7 +325,7 @@ export const linkModules = [
 				_subLink("Shelf Items", "/sales-book/shelf-items").access(
 					_perm.is("editOrders"),
 				).data,
-				_subLink("Edit Order", "/sales-book/edit-order")
+				_link("Edit Order", null, undefined)
 					.access(_perm.is("editOrders"))
 					.childPaths("sales-book/edit-order", "sales-form/edit-order")
 					.meta().data,
@@ -503,10 +499,8 @@ export const linkModules = [
 			_link("Templates", "template", "/community/templates")
 				.access(canViewCommunityUnits)
 				.childPaths(
-					"/settings/community/community-template/slug",
-					"/community/community-template/slug",
-					"/community/community-template/slug/v1",
-					"/community/model-template/slug",
+					"/community/community-template",
+					"/community/model-template",
 					"/community/template-schema",
 				).data,
 			_link("Builders", "builder", "/community/builders").access(
@@ -521,7 +515,6 @@ export const linkModules = [
 				"Customer Service",
 				"customerService",
 				"/community/customer-services",
-				// "/customer-services"
 			)
 				.access(_perm.is("viewCustomerService"))
 				.level(7).data,
@@ -535,9 +528,11 @@ export const linkModules = [
 			])
 				.access(_role.is("Production"))
 				.childPaths("/production/dashboard/v2").data,
-			_link("Unit Production", "production", "/tasks/unit-productions").access(
-				_role.is("Production"),
-			).data,
+			_link(
+				"Unit Production",
+				"production",
+				"/community/unit-productions",
+			).access(_role.is("Production")).data,
 			// _link("Installations", "tasks", "/tasks/installations").access(
 			// 	_role.is("1099 Contractor"),
 			// 	_perm.is("viewInstallation"),
@@ -567,9 +562,6 @@ export const linkModules = [
 				.access(_role.in("1099 Contractor", "Punchout", "Deco Shutters"))
 				.childPaths("/jobs-dashboard/payments", "/jobs-dashboard/jobs-list")
 				.data,
-			_link("Sales Commission", "percent", "/sales/commissions").access(
-				_perm.is("viewCommission"),
-			).data,
 		]),
 	]),
 
@@ -646,7 +638,7 @@ export const linkModules = [
 	_module("", null, "", [
 		profileSection,
 		_section("Support", null, [
-			_link("Mobile App", "mobileApp", "/settings/mobile-app").access(
+			_link("Mobile App", "mobileApp", "/settings/app-download").access(
 				_role.is("Super Admin"),
 			).data,
 		]),

@@ -140,16 +140,16 @@ function StepSectionHeader({ cls }: { cls: StepHelperClass }) {
                     <div className="flex-1"></div>
                     <span className="font-mono$">{stepForm.value}</span>
                     {stepForm.salesPrice ? (
-                        <Badge variant="destructive" className="h-5 px-1">
+                        <Badge variant="destructive" className="h-5 px-1 text-white">
                             ${formatMoney(stepForm.salesPrice)}
                         </Badge>
                     ) : null}
                     {!stat.hasSelection || (
                         <>
-                            <Badge variant="destructive" className="h-5 px-1">
+                            <Badge variant="destructive" className="h-5 px-1 text-white">
                                 selection: {stat.selectionCount}
                             </Badge>
-                            <Badge variant="destructive" className="h-5 px-1">
+                            <Badge variant="destructive" className="h-5 px-1 text-white">
                                 qty: {stat.selectionQty}
                             </Badge>
                         </>

@@ -9,14 +9,14 @@
     "./render": "./render.ts"
   },
   "scripts": {
-    "patch:preview-server": "node ./scripts/patch-react-email-preview-server.mjs",
-    "clean": "rm -rf .turbo node_modules",
-    "lint": "biome check .",
-    "format": "biome format --write .",
-    "typecheck": "tsc --noEmit",
-    "dev": "bun run patch:preview-server && email dev -p 3003",
     "--build": "email build",
-    "start": "bun run patch:preview-server && email start"
+    "clean": "rm -rf .turbo node_modules",
+    "dev": "bun run patch:preview-server && email dev -p 3003",
+    "format": "biome format --write .",
+    "lint": "biome check .",
+    "patch:preview-server": "node ./scripts/patch-react-email-preview-server.mjs",
+    "start": "bun run patch:preview-server && email start",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@gnd/ui": "workspace:*",

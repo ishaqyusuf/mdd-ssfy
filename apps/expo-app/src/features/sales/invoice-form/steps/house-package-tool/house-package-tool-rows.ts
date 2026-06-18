@@ -14,7 +14,6 @@ export type DoorRowWithIndex = {
 export type DoorGroup = {
 	key: string;
 	title: string;
-	subtitle: string;
 	component: WorkflowComponentRecord | null;
 	rows: DoorRowWithIndex[];
 	totalQty: number;
@@ -66,7 +65,6 @@ export function buildDoorGroups(
 		groups.set(key, {
 			key,
 			title: componentLabel(component.title || component.uid || "Door"),
-			subtitle: component.uid ? String(component.uid) : "",
 			component,
 			rows: [],
 			totalQty: 0,
@@ -80,7 +78,6 @@ export function buildDoorGroups(
 			groups.set(key, {
 				key,
 				title: rowGroupTitle(row, index),
-				subtitle: String(row.stepProductId || row.dimension || "Saved door"),
 				component: null,
 				rows: [],
 				totalQty: 0,
@@ -98,7 +95,6 @@ export function buildDoorGroups(
 		groups.set("manual", {
 			key: "manual",
 			title: "House package",
-			subtitle: "Manual sizes",
 			component: null,
 			rows: [],
 			totalQty: 0,

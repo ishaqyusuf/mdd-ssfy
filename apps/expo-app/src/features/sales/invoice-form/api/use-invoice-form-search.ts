@@ -32,7 +32,7 @@ export function useInvoiceFormCustomerSearch(input: {
         query: "",
         recent: true,
         type,
-        limit: 5,
+        limit: 10,
       },
       {
         enabled: true,
@@ -94,7 +94,7 @@ export function useInvoiceFormSearch(input: {
   const scope = input.scope || "all";
   const needsCustomers = scope !== "items";
   const needsItems = scope !== "customers";
-  const customerLimit = customerQuery ? 10 : 5;
+  const customerLimit = 10;
   const type = input.type || "order";
   const productLimit = itemQuery ? 20 : 5;
   const selectedProductIds = useMemo(

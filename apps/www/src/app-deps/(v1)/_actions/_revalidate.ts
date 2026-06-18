@@ -20,7 +20,7 @@ const _path = {
 	delivery: "/sales-v2/dispatch/delivery",
 	dealers: "/sales-v2/dealers",
 	quotes: "/sales/quotes",
-	homes: "/community/units",
+	homes: "/community/project-units",
 	jobs: "/contractor/jobs",
 	orders: "/sales/orders",
 	backorders: "/sales/back-orders",

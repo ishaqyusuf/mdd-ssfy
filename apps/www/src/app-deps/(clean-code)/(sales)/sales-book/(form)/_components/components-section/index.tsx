@@ -24,15 +24,7 @@ import { Checkbox } from "@gnd/ui/checkbox";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Sortable, SortableItem } from "@gnd/ui/sortable";
-import {
-    AlertDialog,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@gnd/ui/alert-dialog";
+import { Alert, AlertTitle } from "@gnd/ui/alert";
 
 import {
     useFormDataStore,
@@ -121,6 +113,49 @@ export function ComponentsSection({ itemStepUid }: Props) {
 function Content({ itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
     const { items, sticky, cls, props } = ctx;
+    const stepForm = ctx.cls.getStepForm();
+    const selectedComponentUid = String(stepForm?.componentUid || "");
+    const selectedCustomComponent = useMemo(() => {
+        if (!stepForm?.flatRate || !selectedComponentUid) return null;
+        if (
+            (items || []).some(
+                (component) => String(component?.uid || "") === selectedComponentUid,
+            )
+        ) {
+            return null;
+        }
+
+        return {
+            id: stepForm?.componentId || null,
+            uid: selectedComponentUid,
+            title: stepForm?.value || "Custom",
+            salesPrice: stepForm?.salesPrice ?? null,
+            basePrice: stepForm?.basePrice ?? null,
+            stepId: stepForm?.stepId,
+            custom: true,
+            _metaData: {
+                custom: true,
+            },
+        };
+    }, [items, selectedComponentUid, stepForm]);
+    const sortedItems = useMemo(
+        () =>
+            (items || []).slice().sort((a, b) => {
+                const aSelectedCustom = Boolean(
+                    selectedComponentUid &&
+                    String(a?.uid || "") === selectedComponentUid &&
+                    (a?._metaData?.custom === true || a?.custom === true),
+                );
+                const bSelectedCustom = Boolean(
+                    selectedComponentUid &&
+                    String(b?.uid || "") === selectedComponentUid &&
+                    (b?._metaData?.custom === true || b?.custom === true),
+                );
+                if (aSelectedCustom === bSelectedCustom) return 0;
+                return aSelectedCustom ? -1 : 1;
+            }),
+        [items, selectedComponentUid],
+    );
 
     return (
         <div className="grid gap-4">
@@ -128,8 +163,9 @@ function Content({ itemStepUid }) {
                 ref={sticky.containerRef}
                 className="relative h-full p-4 pb-28"
             >
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
                     {!items.length &&
+                        !selectedCustomComponent &&
                         Array(10)
                             .fill(null)
                             .map((_, i) => (
@@ -141,7 +177,15 @@ function Content({ itemStepUid }) {
                                     <Skeleton className="h-10" />
                                 </div>
                             ))}
-                    {items?.map((component, index) => (
+                    {selectedCustomComponent ? (
+                        <ComponentItemCard
+                            ctx={ctx}
+                            itemIndex={-1}
+                            key={selectedCustomComponent.uid}
+                            component={selectedCustomComponent as any}
+                        />
+                    ) : null}
+                    {sortedItems?.map((component, index) => (
                         <Fragment key={component.id}>
                             <ComponentItemCard
                                 ctx={ctx}
@@ -246,39 +290,35 @@ function FloatingAction({ ctx }: { ctx: UseStepContext }) {
                             </span>{" "}
                             <SearchBar ctx={ctx} />
                             {supportsCustomComponents ? (
-                                <AlertDialog
-                                    open={customDialogOpen}
-                                    onOpenChange={setCustomDialogOpen}
-                                >
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                        >
-                                            Custom
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>
+                                <div className="relative flex w-full justify-end sm:w-auto">
+                                    {customDialogOpen ? (
+                                        <Alert className="absolute right-0 bottom-full z-20 mb-2 w-[calc(100vw-2rem)] max-w-md rounded-md bg-background p-3 shadow-sm sm:w-96">
+                                            <AlertTitle className="mb-3">
                                                 Custom Component
-                                            </AlertDialogTitle>
-                                        </AlertDialogHeader>
-                                        <CustomComponentForm
-                                            itemStepUid={stepUid}
-                                            onComplete={() =>
-                                                setCustomDialogOpen(false)
-                                            }
-                                        />
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>
-                                                Cancel
-                                            </AlertDialogCancel>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            ) : null}
+                                            </AlertTitle>
+                                            <CustomComponentForm
+                                                itemStepUid={stepUid}
+                                                onCancel={() =>
+                                                    setCustomDialogOpen(false)
+                                                }
+                                                onComplete={() =>
+                                                    setCustomDialogOpen(false)
+                                                }
+                                            />
+                                        </Alert>
+                                    ) : null}
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() =>
+                                            setCustomDialogOpen((open) => !open)
+                                        }
+                                    >
+                                        Custom
+                                    </Button>
+                                </div>
+							) : null}
                             <Menu Icon={Icons.menu}>
                                 <Menu.Item
                                     Icon={Icons.Folder}

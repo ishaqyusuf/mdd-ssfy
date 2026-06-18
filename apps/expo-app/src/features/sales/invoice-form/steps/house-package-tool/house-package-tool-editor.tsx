@@ -1,10 +1,11 @@
 import { Text } from "@/components/ui/text";
+import { Icon } from "@/components/ui/icon";
 import type {
 	DoorStoredRow,
 	WorkflowComponentRecord,
 } from "@gnd/sales/sales-form-core";
 import { useEffect, useMemo, useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { formatMoney } from "../../lib/format";
 import {
 	IconButton,
@@ -29,6 +30,11 @@ export function HousePackageToolEditor({
 	onAddRow,
 	onChange,
 	onRemove,
+	onRemoveDoorOption,
+	onConfigureDoorSizes,
+	swapCandidates,
+	isLoadingSwapCandidates,
+	onSwapDoorOption,
 }: {
 	rows: DoorStoredRow[];
 	selectedDoors?: WorkflowComponentRecord[];
@@ -39,6 +45,14 @@ export function HousePackageToolEditor({
 	onAddRow: (row: DoorStoredRow) => void;
 	onChange: (index: number, patch: Partial<DoorStoredRow>) => void;
 	onRemove: (index: number) => void;
+	onRemoveDoorOption?: (component: WorkflowComponentRecord) => void;
+	onConfigureDoorSizes?: (component: WorkflowComponentRecord) => void;
+	swapCandidates?: WorkflowComponentRecord[];
+	isLoadingSwapCandidates?: boolean;
+	onSwapDoorOption?: (
+		sourceComponent: WorkflowComponentRecord,
+		targetComponent: WorkflowComponentRecord,
+	) => void;
 }) {
 	const groups = useMemo(
 		() => buildDoorGroups(rows, selectedDoors || []),
@@ -47,8 +61,13 @@ export function HousePackageToolEditor({
 	const [activeGroupKey, setActiveGroupKey] = useState(
 		() => groups[0]?.key || "manual",
 	);
+	const [swapOpen, setSwapOpen] = useState(false);
 	const activeGroup =
 		groups.find((group) => group.key === activeGroupKey) || groups[0] || null;
+	const activeSwapCandidates = (swapCandidates || []).filter(
+		(component) =>
+			String(component.uid || "") !== String(activeGroup?.component?.uid || ""),
+	);
 
 	useEffect(() => {
 		if (!groups.length) {
@@ -59,7 +78,15 @@ export function HousePackageToolEditor({
 		setActiveGroupKey(groups[0]?.key || "manual");
 	}, [activeGroupKey, groups]);
 
+	useEffect(() => {
+		setSwapOpen(false);
+	}, [activeGroupKey]);
+
 	const addSizeRow = () => {
+		if (activeGroup?.component && onConfigureDoorSizes) {
+			onConfigureDoorSizes(activeGroup.component);
+			return;
+		}
 		onAddRow(
 			createHousePackageDoorRow(activeGroup?.component, profileCoefficient),
 		);
@@ -122,6 +149,93 @@ export function HousePackageToolEditor({
 						/>
 					))}
 				</ScrollView>
+			) : null}
+
+			{activeGroup?.component ? (
+				<View className="mt-3 flex-row items-center gap-2 rounded-xl border border-border bg-card p-2">
+					<View className="min-w-0 flex-1">
+						<Text numberOfLines={1} className="text-sm font-bold text-foreground">
+							{activeGroup.title}
+						</Text>
+						<Text className="text-[10px] text-muted-foreground">
+							{activeGroup.rows.length} size row
+							{activeGroup.rows.length === 1 ? "" : "s"} -{" "}
+							{formatMoney(activeGroup.totalPrice)}
+						</Text>
+					</View>
+					{onConfigureDoorSizes ? (
+						<Pressable
+							onPress={() =>
+								activeGroup.component
+									? onConfigureDoorSizes(activeGroup.component)
+									: undefined
+							}
+							disabled={disabled}
+							className="h-10 flex-row items-center gap-1 rounded-xl border border-border bg-background px-3 active:bg-muted disabled:opacity-40"
+						>
+							<Icon name="Settings" className="text-foreground" size={14} />
+							<Text className="text-[11px] font-bold text-foreground">
+								Sizes
+							</Text>
+						</Pressable>
+					) : null}
+					{onSwapDoorOption ? (
+						<Pressable
+							onPress={() => setSwapOpen((open) => !open)}
+							disabled={disabled}
+							className="h-10 flex-row items-center gap-1 rounded-xl border border-border bg-background px-3 active:bg-muted disabled:opacity-40"
+						>
+							<Icon name="Route" className="text-foreground" size={14} />
+							<Text className="text-[11px] font-bold text-foreground">
+								Swap
+							</Text>
+						</Pressable>
+					) : null}
+					<IconButton
+						icon="Trash"
+						tone="danger"
+						disabled={disabled || !onRemoveDoorOption}
+						onPress={() => onRemoveDoorOption?.(activeGroup.component!)}
+					/>
+				</View>
+			) : null}
+
+			{swapOpen && activeGroup?.component ? (
+				<View className="mt-2 gap-2 rounded-xl border border-border bg-card p-2">
+					<Text className="text-[10px] font-bold uppercase text-muted-foreground">
+						Swap door
+					</Text>
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={{ gap: 6, paddingRight: 16 }}
+					>
+						{activeSwapCandidates.map((component) => (
+							<SelectChip
+								key={`swap-door-${component.uid || component.id}`}
+								title={componentLabel(component.title || component.uid || "Door")}
+								subtitle={formatMoney(component.salesPrice || 0)}
+								selected={false}
+								disabled={disabled}
+								onPress={() => {
+									if (!activeGroup.component || !onSwapDoorOption) return;
+									onSwapDoorOption(activeGroup.component, component);
+									setSwapOpen(false);
+								}}
+							/>
+						))}
+						{isLoadingSwapCandidates ? (
+							<Text className="self-center text-xs text-muted-foreground">
+								Loading doors...
+							</Text>
+						) : null}
+						{!isLoadingSwapCandidates && !activeSwapCandidates.length ? (
+							<Text className="self-center text-xs text-muted-foreground">
+								No other door options available.
+							</Text>
+						) : null}
+					</ScrollView>
+				</View>
 			) : null}
 
 			<View className="mt-3 gap-3">

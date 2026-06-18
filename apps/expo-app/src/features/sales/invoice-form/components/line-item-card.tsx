@@ -2,6 +2,7 @@ import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { _trpc } from "@/components/static-trpc";
 import {
+  buildStepComponentOverrideMap,
   buildShelfProductRowPatch,
   buildInitialWorkflowShelfPatch,
   buildWorkflowDoorRowsPatch,
@@ -13,23 +14,37 @@ import {
   buildWorkflowShelfSectionsContext,
   buildWorkflowShelfSectionsPatch,
   buildWorkflowShelfSyncPatch,
+  calcWorkflowDoorRow,
+  clearUnpricedDoorRowQty,
   clearShelfRowProduct,
   computeHptSharedDoorSurcharge,
   createShelfProductDraft,
   createShelfSectionDraft,
+  deriveDoorSizeRows,
+  getDoorSupplierMeta,
+  getShelfLeafCategoryIds,
   getWorkflowLineDisplayTotal,
   getWorkflowSteps,
   hasWorkflowStepSelection,
+  isDoorStepTitle,
   isHousePackageToolStepTitle,
   isMouldingItem,
   isServiceItem,
   isShelfItem,
+  removeWorkflowHptDoorOption,
   removeWorkflowMouldingSelection,
+  resolveWorkflowVisibleComponents,
+  rowsForDoorComponent,
+  swapWorkflowDoorComponent,
+  updateWorkflowDoorSupplier,
   type DoorStoredRow,
   type MouldingRow,
   type ServiceRow,
+  type ShelfCategoryRecord,
   type ShelfProductOption,
   type ShelfRowDraft,
+  type ShelfSectionDraft,
+  type WorkflowComponentRecord,
   type WorkflowLineItemRecord,
   workflowStepSelectionLabel,
 } from "@gnd/sales/sales-form-core";
@@ -42,7 +57,9 @@ import {
   type TextInputProps,
 } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 import { formatMoney, parseCurrencyInput } from "../lib/format";
+import { useInvoiceFormModalStore } from "../store/use-invoice-form-modal-store";
 import { HousePackageToolEditor } from "../steps/house-package-tool/house-package-tool-editor";
 import {
   getDoorRouteConfig,
@@ -50,6 +67,7 @@ import {
   getSelectedDoorComponents,
   linePatchChanged,
   mapShelfProduct,
+  mapWorkflowComponent,
 } from "../steps/line-workflow-helpers";
 import { MouldingRowsEditor } from "../steps/moulding/moulding-rows-editor";
 import {
@@ -76,7 +94,9 @@ function TextInput({
         styles.cardInput,
         classes.includes("h-9") ? styles.inputH9 : null,
         classes.includes("h-10") ? styles.inputH10 : null,
-        classes.includes("min-h-16") || multiline ? styles.inputMultiline : null,
+        classes.includes("min-h-16") || multiline
+          ? styles.inputMultiline
+          : null,
         classes.includes("flex-1") ? styles.flex1 : null,
         classes.includes("ml-2") ? styles.ml2 : null,
         classes.includes("text-right") ? styles.textRight : null,
@@ -114,6 +134,13 @@ export function LineItemCard({
   customerProfileCoefficient?: number | null;
   disabled?: boolean;
 }) {
+  const router = useRouter();
+  const setDoorSizePicker = useInvoiceFormModalStore(
+    (state) => state.actions.setDoorSizePicker,
+  );
+  const clearDoorSizePicker = useInvoiceFormModalStore(
+    (state) => state.actions.clearDoorSizePicker,
+  );
   const sku = String(item.meta?.sku || item.description || "ITEM");
   const workflowLine = item as unknown as WorkflowLineItemRecord;
   const workflowSteps = getWorkflowSteps(workflowLine);
@@ -136,9 +163,45 @@ export function LineItemCard({
     isHousePackageToolStepTitle(step.step?.title || step.title),
   );
   const shelfSections = shelfItem
-    ? buildWorkflowShelfSectionsContext(workflowLine, customerProfileCoefficient).sections
+    ? buildWorkflowShelfSectionsContext(
+        workflowLine,
+        customerProfileCoefficient,
+      ).sections
     : [];
   const [shelfProductSearch, setShelfProductSearch] = useState("");
+  const shelfCategoriesQuery = useQuery(
+    _trpc.newSalesForm.getShelfCategories.queryOptions(
+      {},
+      {
+        enabled: shelfItem,
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
+  const shelfCategories = useMemo(
+    () => (shelfCategoriesQuery.data || []) as ShelfCategoryRecord[],
+    [shelfCategoriesQuery.data],
+  );
+  const shelfCategoryIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          shelfSections
+            .flatMap((section) => {
+              const ids = Array.isArray(section.categoryIds)
+                ? section.categoryIds
+                : [];
+              const lastId = ids.length ? ids[ids.length - 1] : null;
+              return lastId
+                ? getShelfLeafCategoryIds(shelfCategories, lastId)
+                : ids;
+            })
+            .map((id) => Number(id || 0))
+            .filter((id) => id > 0),
+        ),
+      ),
+    [shelfCategories, shelfSections],
+  );
   const selectedShelfProductIds = useMemo(
     () =>
       Array.from(
@@ -151,13 +214,13 @@ export function LineItemCard({
       ),
     [shelfSections],
   );
-  const shouldLoadShelfProducts = shelfSections.length > 0;
+  const shelfProductQueryText = shelfProductSearch.trim();
+  const shouldLoadShelfProducts =
+    shelfSections.length > 0 && shelfCategoryIds.length > 0;
   const shelfProductsQuery = useQuery(
-    _trpc.newSalesForm.searchShelfProducts.queryOptions(
+    _trpc.newSalesForm.getShelfProducts.queryOptions(
       {
-        query: shelfProductSearch.trim(),
-        selectedIds: selectedShelfProductIds,
-        limit: shelfProductSearch.trim() ? 20 : 5,
+        categoryIds: shelfCategoryIds,
       },
       {
         enabled: shouldLoadShelfProducts,
@@ -165,22 +228,118 @@ export function LineItemCard({
       },
     ),
   );
-  const shelfProducts = useMemo(
-    () =>
-      ((shelfProductsQuery.data || []) as unknown[]).map((row) =>
-        mapShelfProduct(row, customerProfileCoefficient),
-      ),
-    [customerProfileCoefficient, shelfProductsQuery.data],
+  const searchedShelfProductsQuery = useQuery(
+    _trpc.newSalesForm.searchShelfProducts.queryOptions(
+      {
+        query: shelfProductQueryText,
+        selectedIds: selectedShelfProductIds,
+        limit: 20,
+      },
+      {
+        enabled: shelfItem && shelfProductQueryText.length > 0,
+        refetchOnWindowFocus: false,
+      },
+    ),
   );
+  const selectedShelfProductsQuery = useQuery(
+    _trpc.newSalesForm.getShelfProductDetails.queryOptions(
+      {
+        ids: selectedShelfProductIds,
+      },
+      {
+        enabled: shelfItem && selectedShelfProductIds.length > 0,
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
+  const shelfProducts = useMemo(() => {
+    const productMap = new Map<number, ShelfProductOption>();
+    for (const row of [
+      ...((shelfProductsQuery.data || []) as unknown[]),
+      ...((searchedShelfProductsQuery.data || []) as unknown[]),
+      ...((selectedShelfProductsQuery.data || []) as unknown[]),
+    ]) {
+      const product = mapShelfProduct(row, customerProfileCoefficient);
+      const id = Number(product.id || 0);
+      if (id > 0) productMap.set(id, product);
+    }
+    return Array.from(productMap.values());
+  }, [
+    customerProfileCoefficient,
+    searchedShelfProductsQuery.data,
+    selectedShelfProductsQuery.data,
+    shelfProductsQuery.data,
+  ]);
   const doorRows = getDoorRows(workflowLine);
   const doorRouteConfig = getDoorRouteConfig(workflowLine, workflowSteps);
   const selectedDoorComponents = getSelectedDoorComponents(workflowSteps);
+  const doorStepIndex = workflowSteps.findIndex((step) =>
+    isDoorStepTitle(step.step?.title || step.title),
+  );
+  const doorStep = doorStepIndex >= 0 ? workflowSteps[doorStepIndex] : null;
+  const doorStepId = Number(doorStep?.stepId || doorStep?.step?.id || 0);
+  const doorStepTitle = String(doorStep?.step?.title || doorStep?.title || "");
+  const workflowRouteQuery = useQuery(
+    _trpc.newSalesForm.getStepRouting.queryOptions(
+      {},
+      {
+        enabled: Boolean(doorStep),
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
+  const workflowRouteData = workflowRouteQuery.data || null;
+  const doorSupplierMeta = getDoorSupplierMeta(doorStep);
+  const doorSuppliersQuery = useQuery(
+    _trpc.sales.getSuppliers.queryOptions(
+      {},
+      {
+        enabled: Boolean(doorStep),
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
+  const doorSuppliers = useMemo(
+    () => readDoorSuppliers(doorSuppliersQuery.data),
+    [doorSuppliersQuery.data],
+  );
+  const doorComponentsQuery = useQuery(
+    _trpc.sales.getStepComponents.queryOptions(
+      {
+        stepId: doorStepId || undefined,
+        stepTitle: doorStepId ? undefined : doorStepTitle || "Door",
+      },
+      {
+        enabled: Boolean(doorStep),
+        refetchOnWindowFocus: false,
+      },
+    ),
+  );
+  const visibleDoorComponents = useMemo(
+    () =>
+      resolveWorkflowVisibleComponents({
+        components: Array.isArray(doorComponentsQuery.data)
+          ? doorComponentsQuery.data.map(mapWorkflowComponent)
+          : [],
+        steps: workflowSteps,
+        activeStep: doorStep,
+        overrides: buildStepComponentOverrideMap(doorStep),
+        includeCustomComponents: false,
+        profileCoefficient: customerProfileCoefficient || 1,
+      }),
+    [
+      customerProfileCoefficient,
+      doorComponentsQuery.data,
+      doorStep,
+      workflowSteps,
+    ],
+  );
   const hasWorkflowRowEditor = Boolean(
     serviceItem ||
-      mouldingItem ||
-      shelfItem ||
-      hasHousePackageToolStep ||
-      doorRows.length,
+    mouldingItem ||
+    shelfItem ||
+    hasHousePackageToolStep ||
+    doorRows.length,
   );
 
   const patchWorkflowLine = (patch: Partial<NewSalesFormLineItem>) => {
@@ -190,11 +349,20 @@ export function LineItemCard({
   useEffect(() => {
     if (disabled || !shelfItem || !onWorkflowPatch) return;
     const patch =
-      buildInitialWorkflowShelfPatch(workflowLine, customerProfileCoefficient) ||
+      buildInitialWorkflowShelfPatch(
+        workflowLine,
+        customerProfileCoefficient,
+      ) ||
       buildWorkflowShelfSyncPatch(workflowLine, customerProfileCoefficient);
     if (!patch) return;
     onWorkflowPatch(patch.linePatch as Partial<NewSalesFormLineItem>);
-  }, [customerProfileCoefficient, disabled, workflowLine, onWorkflowPatch, shelfItem]);
+  }, [
+    customerProfileCoefficient,
+    disabled,
+    workflowLine,
+    onWorkflowPatch,
+    shelfItem,
+  ]);
 
   useEffect(() => {
     if (disabled || !doorRows.length || !onWorkflowPatch) return;
@@ -226,11 +394,7 @@ export function LineItemCard({
   }, [disabled, item, workflowLine, onWorkflowPatch, serviceItem, serviceRows]);
 
   useEffect(() => {
-    if (
-      disabled ||
-      !mouldingContext?.rows.length ||
-      !onWorkflowPatch
-    ) {
+    if (disabled || !mouldingContext?.rows.length || !onWorkflowPatch) {
       return;
     }
     const patch = buildWorkflowMouldingRowsPatch({
@@ -322,6 +486,80 @@ export function LineItemCard({
     );
   };
 
+  const patchShelfSection = (
+    sectionIndex: number,
+    patch:
+      | Partial<ShelfSectionDraft>
+      | ((section: ShelfSectionDraft) => Partial<ShelfSectionDraft>),
+  ) => {
+    const sections = shelfSections.map((section, currentSectionIndex) => {
+      if (currentSectionIndex !== sectionIndex) return section;
+      const nextPatch = typeof patch === "function" ? patch(section) : patch;
+      return {
+        ...section,
+        ...nextPatch,
+      };
+    });
+    patchWorkflowLine(
+      buildWorkflowShelfSectionsPatch({
+        sections,
+        profileCoefficient: customerProfileCoefficient,
+      }).linePatch as Partial<NewSalesFormLineItem>,
+    );
+  };
+
+  const clearShelfRowForCategoryChange = (
+    row: ShelfRowDraft,
+    categoryIds: number[],
+  ): ShelfRowDraft => {
+    const nextCategoryId = categoryIds.length
+      ? categoryIds[categoryIds.length - 1]
+      : null;
+    return {
+      ...row,
+      categoryId: nextCategoryId,
+      productId: null,
+      description: "",
+      basePrice: 0,
+      salesPrice: 0,
+      customPrice: null,
+      unitPrice: 0,
+      totalPrice: 0,
+      meta: {
+        ...(row.meta || {}),
+        categoryIds,
+        shelfParentCategoryId: categoryIds[0] ?? null,
+        basePrice: 0,
+        salesPrice: 0,
+        customPrice: null,
+        unitPrice: 0,
+      },
+    };
+  };
+
+  const changeShelfSectionCategories = (
+    sectionIndex: number,
+    categoryIds: number[],
+  ) => {
+    const nextCategoryIds = Array.from(
+      new Set(
+        categoryIds
+          .map((id) => Number(id || 0))
+          .filter((id) => Number.isFinite(id) && id > 0),
+      ),
+    );
+    patchShelfSection(sectionIndex, (section) => ({
+      categoryIds: nextCategoryIds,
+      parentCategoryId: nextCategoryIds[0] ?? null,
+      categoryId: nextCategoryIds.length
+        ? nextCategoryIds[nextCategoryIds.length - 1]
+        : null,
+      rows: (section.rows || []).map((row) =>
+        clearShelfRowForCategoryChange(row, nextCategoryIds),
+      ),
+    }));
+  };
+
   const addShelfSection = () => {
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
@@ -368,7 +606,8 @@ export function LineItemCard({
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
         sections: shelfSections.filter(
-          (_section, currentSectionIndex) => currentSectionIndex !== sectionIndex,
+          (_section, currentSectionIndex) =>
+            currentSectionIndex !== sectionIndex,
         ),
         profileCoefficient: customerProfileCoefficient,
       }).linePatch as Partial<NewSalesFormLineItem>,
@@ -389,7 +628,7 @@ export function LineItemCard({
         ? buildShelfProductRowPatch({
             row,
             product,
-            categories: [],
+            categories: shelfCategories,
             profileCoefficient: customerProfileCoefficient || 1,
           })
         : clearShelfRowProduct(row),
@@ -438,6 +677,140 @@ export function LineItemCard({
     );
   };
 
+  const removeDoorOption = (component: WorkflowComponentRecord) => {
+    if (doorStepIndex < 0) return;
+    const result = removeWorkflowHptDoorOption({
+      routeData: workflowRouteData,
+      line: workflowLine,
+      stepIndex: doorStepIndex,
+      component,
+    });
+    if (!result) return;
+    patchWorkflowLine(result.linePatch as Partial<NewSalesFormLineItem>);
+  };
+
+  const swapDoorOption = (
+    sourceComponent: WorkflowComponentRecord,
+    targetComponent: WorkflowComponentRecord,
+  ) => {
+    if (doorStepIndex < 0) return;
+    const result = swapWorkflowDoorComponent({
+      line: workflowLine,
+      stepIndex: doorStepIndex,
+      sourceComponent,
+      targetComponent,
+      profileCoefficient: customerProfileCoefficient,
+    });
+    if (!result) return;
+    patchWorkflowLine(result.linePatch as Partial<NewSalesFormLineItem>);
+  };
+
+  const configureDoorSizes = (component: WorkflowComponentRecord) => {
+    const componentId = Number(component.id || 0);
+    if (!componentId) return;
+    const routeFlags = {
+      noHandle: Boolean(doorRouteConfig?.noHandle),
+      hasSwing: doorRouteConfig?.hasSwing !== false,
+    };
+    const initialRows = deriveDoorSizeRows({
+      line: workflowLine as any,
+      existingRows: rowsForDoorComponent(workflowLine as any, componentId),
+      component,
+      routeData: workflowRouteData,
+      supplierUid: doorSupplierMeta.supplierUid,
+      profileCoefficient: customerProfileCoefficient || 1,
+    }) as DoorStoredRow[];
+
+    const applyPickerRows = () => {
+      const picker = useInvoiceFormModalStore.getState().doorSizePicker;
+      const selectedRows = (picker?.rows || []).filter(
+        (row) => Number(row.totalQty || 0) > 0,
+      );
+      const otherRows = doorRows.filter(
+        (row) => Number(row.stepProductId || 0) !== componentId,
+      );
+      const patch = buildWorkflowDoorRowsPatch({
+        line: workflowLine,
+        rows: [...otherRows, ...selectedRows],
+        sharedDoorSurcharge: computeHptSharedDoorSurcharge(workflowLine),
+        noHandle: routeFlags.noHandle,
+        hasSwing: routeFlags.hasSwing,
+        profileCoefficient: customerProfileCoefficient,
+      });
+      patchWorkflowLine({
+        ...(patch.linePatch as Partial<NewSalesFormLineItem>),
+        meta: {
+          ...(workflowLine.meta || {}),
+          workflowDoorRouteConfig: routeFlags,
+        },
+      });
+      clearDoorSizePicker();
+    };
+
+    setDoorSizePicker({
+      component,
+      rows: initialRows.map((row) => clearUnpricedDoorRowQty(row)),
+      supplierUid: doorSupplierMeta.supplierUid,
+      supplierName: doorSupplierMeta.supplierName,
+      suppliers: doorSuppliers,
+      isLoadingSuppliers: doorSuppliersQuery.isFetching,
+      noHandle: routeFlags.noHandle,
+      disabled,
+      onSupplierChange: (supplier) => {
+        if (doorStepIndex < 0) return;
+        const picker = useInvoiceFormModalStore.getState().doorSizePicker;
+        const supplierPatch = updateWorkflowDoorSupplier({
+          line: workflowLine,
+          stepIndex: doorStepIndex,
+          supplier,
+          profileCoefficient: customerProfileCoefficient || 1,
+        });
+        if (supplierPatch) {
+          patchWorkflowLine(
+            supplierPatch as Partial<NewSalesFormLineItem>,
+          );
+        }
+        const nextRows = deriveDoorSizeRows({
+          line: workflowLine as any,
+          existingRows: picker?.rows || initialRows,
+          component,
+          routeData: workflowRouteData,
+          supplierUid: supplier?.uid || null,
+          profileCoefficient: customerProfileCoefficient || 1,
+        }) as DoorStoredRow[];
+        if (!picker) return;
+        setDoorSizePicker({
+          ...picker,
+          rows: nextRows.map((row) => clearUnpricedDoorRowQty(row)),
+          supplierUid: supplier?.uid || null,
+          supplierName: supplier?.name || null,
+        });
+      },
+      onChangeRow: (rowIndex, rowPatch) => {
+        const picker = useInvoiceFormModalStore.getState().doorSizePicker;
+        if (!picker) return;
+        const nextRows = picker.rows.map((row, index) =>
+          index === rowIndex
+            ? clearUnpricedDoorRowQty(
+                calcWorkflowDoorRow({
+                  ...row,
+                  ...rowPatch,
+                }) as DoorStoredRow,
+              )
+            : row,
+        );
+        setDoorSizePicker({
+          ...picker,
+          rows: nextRows,
+        });
+      },
+      onOk: applyPickerRows,
+      onNextStep: applyPickerRows,
+      onClose: clearDoorSizePicker,
+    });
+    router.push("/(sales)/invoices/door-size" as any);
+  };
+
   return (
     <View className="rounded-2xl border border-border bg-card p-3">
       <View className="flex-row items-start gap-3">
@@ -446,7 +819,10 @@ export function LineItemCard({
         </View>
         <View className="min-w-0 flex-1">
           {isWorkflowLine ? (
-            <Text numberOfLines={1} className="text-sm font-bold text-foreground">
+            <Text
+              numberOfLines={1}
+              className="text-sm font-bold text-foreground"
+            >
               {item.title}
             </Text>
           ) : (
@@ -460,7 +836,8 @@ export function LineItemCard({
           <Text className="mt-0.5 text-xs text-muted-foreground">{sku}</Text>
           {isWorkflowLine ? (
             <Text className="mt-1 text-[11px] font-semibold text-primary">
-              {configuredSteps.length}/{workflowSteps.length} workflow steps configured
+              {configuredSteps.length}/{workflowSteps.length} workflow steps
+              configured
             </Text>
           ) : null}
         </View>
@@ -479,11 +856,17 @@ export function LineItemCard({
       {configuredSteps.length > 0 ? (
         <View className="mt-3 gap-1.5">
           {configuredSteps.slice(0, 3).map((step, index) => (
-            <View key={`${step.uid || step.stepId || index}`} className="flex-row gap-2">
+            <View
+              key={`${step.uid || step.stepId || index}`}
+              className="flex-row gap-2"
+            >
               <Text className="w-24 text-[11px] font-bold text-muted-foreground">
                 {step.step?.title || step.title || `Step ${index + 1}`}
               </Text>
-              <Text numberOfLines={1} className="flex-1 text-[11px] text-foreground">
+              <Text
+                numberOfLines={1}
+                className="flex-1 text-[11px] text-foreground"
+              >
                 {workflowStepSelectionLabel(step)}
               </Text>
             </View>
@@ -503,7 +886,9 @@ export function LineItemCard({
             className="h-10 flex-row items-center justify-center gap-2 rounded-xl border border-primary bg-primary/5 active:opacity-80 disabled:opacity-40"
           >
             <Icon name="SlidersHorizontal" className="text-primary" size={15} />
-            <Text className="text-xs font-bold text-primary">Configure workflow</Text>
+            <Text className="text-xs font-bold text-primary">
+              Configure workflow
+            </Text>
           </Pressable>
           {serviceItem ? (
             <ServiceRowsEditor
@@ -525,11 +910,18 @@ export function LineItemCard({
           {shelfItem ? (
             <ShelfRowsEditor
               sections={shelfSections}
+              categories={shelfCategories}
               products={shelfProducts}
               productSearch={shelfProductSearch}
-              isLoadingProducts={shelfProductsQuery.isPending}
+              isLoadingCategories={shelfCategoriesQuery.isFetching}
+              isLoadingProducts={
+                shelfProductsQuery.isFetching ||
+                searchedShelfProductsQuery.isFetching ||
+                selectedShelfProductsQuery.isFetching
+              }
               disabled={disabled}
               onProductSearchChange={setShelfProductSearch}
+              onSectionCategoryChange={changeShelfSectionCategories}
               onSelectProduct={selectShelfProduct}
               onChange={updateShelfRow}
               onAddSection={addShelfSection}
@@ -549,6 +941,11 @@ export function LineItemCard({
               onAddRow={addDoorRow}
               onChange={updateDoorRow}
               onRemove={removeDoorRow}
+              onRemoveDoorOption={removeDoorOption}
+              onConfigureDoorSizes={configureDoorSizes}
+              swapCandidates={visibleDoorComponents}
+              isLoadingSwapCandidates={doorComponentsQuery.isFetching}
+              onSwapDoorOption={swapDoorOption}
             />
           ) : null}
         </View>
@@ -565,7 +962,9 @@ export function LineItemCard({
           >
             <Icon
               name={item.taxxable ? "CheckCircle2" : "XCircle"}
-              className={item.taxxable ? "text-primary" : "text-muted-foreground"}
+              className={
+                item.taxxable ? "text-primary" : "text-muted-foreground"
+              }
               size={15}
             />
             <Text
@@ -597,7 +996,9 @@ export function LineItemCard({
             <Text className="text-[10px] font-bold uppercase text-muted-foreground">
               Qty
             </Text>
-            <Text className="text-sm font-bold text-foreground">{item.qty}</Text>
+            <Text className="text-sm font-bold text-foreground">
+              {item.qty}
+            </Text>
           </View>
         ) : (
           <View className="flex-row items-center rounded-full border border-border bg-background p-1">
@@ -634,7 +1035,9 @@ export function LineItemCard({
                 <TextInput
                   value={String(item.unitPrice || 0)}
                   keyboardType="decimal-pad"
-                  onChangeText={(value) => onUnitPriceChange(parseCurrencyInput(value))}
+                  onChangeText={(value) =>
+                    onUnitPriceChange(parseCurrencyInput(value))
+                  }
                   editable={!disabled}
                   className="h-9 rounded-xl border border-border bg-background px-2 text-right text-xs font-bold text-foreground"
                 />
@@ -646,7 +1049,9 @@ export function LineItemCard({
                 <TextInput
                   value={String(displayTotal || 0)}
                   keyboardType="decimal-pad"
-                  onChangeText={(value) => onLineTotalChange(parseCurrencyInput(value))}
+                  onChangeText={(value) =>
+                    onLineTotalChange(parseCurrencyInput(value))
+                  }
                   editable={!disabled}
                   className="h-9 rounded-xl border border-border bg-background px-2 text-right text-xs font-bold text-foreground"
                 />
@@ -662,6 +1067,21 @@ export function LineItemCard({
       </View>
     </View>
   );
+}
+
+function readDoorSuppliers(value: unknown) {
+  if (!value || typeof value !== "object") return [];
+  const rows = (value as { stepProducts?: unknown }).stepProducts;
+  return Array.isArray(rows)
+    ? rows.map((row) => {
+        const supplier = (row || {}) as Record<string, unknown>;
+        return {
+          id: supplier.id == null ? null : Number(supplier.id || 0),
+          uid: supplier.uid ? String(supplier.uid) : null,
+          name: supplier.name ? String(supplier.name) : null,
+        };
+      })
+    : [];
 }
 
 const styles = StyleSheet.create({

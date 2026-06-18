@@ -1,7 +1,6 @@
 import type {
 	AddressBookMeta,
 	SalesDispatchStatus,
-	StepComponentMeta,
 } from "@/app-deps/(clean-code)/(sales)/types";
 import type { DeliveryOption } from "@/types/sales";
 import { salesPaymentProcessorApplyPaymentSchema } from "@gnd/sales/payment-system/contracts";
@@ -128,26 +127,6 @@ export const createPaymentSchemaOld = z
 		} else {
 		}
 	});
-export const stepComponentSchema = z.object({
-	id: z.number().optional(),
-	img: z.string().optional(),
-	name: z.string(),
-	productCode: z.string().optional(),
-	custom: z.boolean().optional().default(false),
-	stepId: z.number().optional(),
-	meta: z.object({}).optional() as z.ZodType<StepComponentMeta>,
-});
-export const updateComponentPricingSchema = z.object({
-	stepId: z.number(),
-	stepProductUid: z.string(),
-	pricings: z.array(
-		z.object({
-			id: z.number().optional(),
-			dependenciesUid: z.string().optional(),
-			price: z.number().optional(),
-		}),
-	),
-});
 export const createPaymentSchema = salesPaymentProcessorApplyPaymentSchema;
 export const updateDispatchStatusSchema = z.object({
 	orderId: z.number(),

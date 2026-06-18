@@ -25,6 +25,29 @@ function date(value?: Date | string | null) {
 	}).format(new Date(value));
 }
 
+function approvalPayload(request: { id: number; deliveryOption?: string | null }) {
+	const mode = request.deliveryOption?.toLowerCase();
+	if (mode !== "delivery" && mode !== "ship") {
+		return { requestId: request.id };
+	}
+
+	const value = window.prompt(
+		`Enter reviewed ${mode} cost before approving this dealer request.`,
+		"0",
+	);
+	if (value == null) return null;
+	const deliveryCost = Number(value);
+	if (!Number.isFinite(deliveryCost) || deliveryCost < 0) {
+		toast.error("Enter a valid delivery cost.");
+		return null;
+	}
+
+	return {
+		requestId: request.id,
+		deliveryCost,
+	};
+}
+
 export function SalesRepDealerRequests() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -122,11 +145,10 @@ export function SalesRepDealerRequests() {
 							<Button
 								size="sm"
 								disabled={!isPending || approve.isPending}
-								onClick={() =>
-									approve.mutate({
-										requestId: request.id,
-									})
-								}
+								onClick={() => {
+									const payload = approvalPayload(request);
+									if (payload) approve.mutate(payload);
+								}}
 							>
 								<Icons.CheckCheck className="mr-2 size-4" />
 								Approve

@@ -50,6 +50,7 @@ export interface ComboboxProps<T> {
   valueKey?: string;
   openChanged?;
   onSearch?: (value: string) => void;
+  normalizeInput?: (value: string) => string;
   Trigger?: React.ReactNode;
   showCreateWhenMatches?: boolean;
   renderActions?: (context: {
@@ -78,6 +79,7 @@ export function ComboboxDropdown<T extends ComboboxItem>({
   listClassName,
   pageSize = 20,
   onSearch,
+  normalizeInput,
   noSearch,
   openChanged,
   Trigger,
@@ -132,8 +134,9 @@ export function ComboboxDropdown<T extends ComboboxItem>({
         <CommandInput
           value={inputValue}
           onValueChange={(e) => {
-            setInputValue(e);
-            onSearch?.(e);
+            const nextValue = normalizeInput ? normalizeInput(e) : e;
+            setInputValue(nextValue);
+            onSearch?.(nextValue);
           }}
           placeholder={searchPlaceholder ?? "Search item..."}
           className="px-3"

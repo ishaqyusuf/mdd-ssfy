@@ -700,8 +700,9 @@ export function deriveMouldingRows({
     const existing = existingByUid.get(String(component.uid));
     const existingQty = existing?.qty == null ? null : Number(existing.qty);
     return {
+      ...(existing || {}),
       uid: component.uid,
-      title: component.title,
+      title: component.title || existing?.title,
       description: String(existing?.description || "").trim() || component.title || "Moulding",
       qty:
         existingQty == null || !Number.isFinite(existingQty) || existingQty <= 0

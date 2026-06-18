@@ -2,7 +2,664 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-06-18
+
+- Continued the mobile shelf-items parity audit without marking the Brain-goal queue complete.
+  - Found the mobile shelf helper supported global typed product search before category selection, but the line-card data loader only fetched category-scoped products, leaving the no-category search path without results.
+  - Added a shelf product search query for typed mobile shelf searches, merged those rows with category-scoped and selected-product rows, and wired the loading state into the shelf editor.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited line-card TSX passed a pure Bun TSX transpile check, focused shelf option tests passed, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile sales dashboard invoice-entry parity audit without marking the Brain-goal queue complete.
+  - Found the `New Invoice` Sales/Quote chooser still gated behind `auth.isAdmin` on the mobile sales dashboard, which made the requested dashboard entry unavailable to non-admin sales users.
+  - Removed the admin gate from the `New Invoice` sheet card while leaving the separate dispatch FAB admin-only.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited dashboard TSX passed a pure Bun TSX transpile check and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile recent-customer parity audit without marking the Brain-goal queue complete.
+  - Hardened the recent-customer API path used by the mobile invoice customer selector so it overfetches grouped quote/order customer references before hydrating customers, then slices back to the requested limit.
+  - This prevents stale or missing customer references from under-filling the default 10-customer list while preserving sales-type-specific quote/order recency ordering.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: targeted recent-customer API regression tests passed and scoped `git diff --check` passed for the touched API files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the dealership quote-to-order and dealer-program implementation pass.
+  - Added a dealer-owned payment-link mutation and wired approved dealer orders to open checkout links from the orders table and the new order overview payment tab.
+  - Replaced the placeholder dealership dashboard with dealer-scoped metrics for quotes, pending requests, orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent request/order activity.
+  - Added a dealer order overview page with limited progress, payment status, payment-link generation, and dealer/customer print actions.
+  - Hardened internal dealer-request approval so delivery/ship requests require reviewed delivery cost, the first approving rep is stamped as owner, delivery cost is persisted, and approval metadata is recorded.
+  - Updated docs: `brain/features/dealership-quote-to-order-approval.md`, `brain/api/endpoints.md`, and `brain/progress.md`.
+  - Validation: scoped diff audit and scoped `git diff --check` only; no browser test, dev server, broad typecheck, or build was run per request.
+
+- Continued the dealership completion pass for payment emails, logo upload, and analytics.
+  - Added checkout-token payment URLs to dealer approval emails so approved orders can be paid from the email as well as the dealer order page.
+  - Added bounded image upload in dealer settings by reading image files as data URLs and allowing those values through the dealer settings schema; existing PDF image resolution already supports data URLs.
+  - Mounted OpenPanel in the dealership app through `@gnd/events` and added a dealer progress tracker for dashboard, quote, order, customer, and settings navigation.
+  - Updated docs: `brain/features/dealership-quote-to-order-approval.md`, `brain/api/endpoints.md`, and `brain/progress.md`.
+  - Validation: scoped diff audit, scoped `git diff --check`, trailing-whitespace scan, and targeted symbol scans passed; no browser test, dev server, broad typecheck, or build was run per request.
+
+- Continued the mobile workflow floating-action parity audit without marking the Brain-goal queue complete.
+  - Found that the inline multi-select selected-count footer strip still registered through the screen-level floating host at `bottom: 0`, which could overlap the Save Draft/Create footer after the floating-action host hardening.
+  - Restricted that bottom-zero selected-count strip to overlay workflow selector mode only; inline door/moulding multi-select now keeps only the centered floating `Proceed` and custom actions in the footer-safe lane above the invoice footer.
+  - Updated docs: `brain/progress.md`.
+  - Validation: edited workflow selector TSX passed a pure Bun TSX transpile check, focused custom-component/shelf/barrel/shared workflow tests passed, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile shelf-items parity audit without marking the Brain-goal queue complete.
+  - Compared mobile shelf product picking against the website inline shelf editor and found mobile only showed product chips after a category path was selected, while the website product combobox also supports search-result driven selection.
+  - Changed mobile shelf product option resolution so typed product search can show de-duped global results before a category is selected, while the unsearched default state remains category-guided.
+  - Updated the shelf row UI copy and empty state so users can discover either path: select a category or search for a product.
+  - Added focused mobile shelf coverage for global product search without a selected category.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: shelf helper tests passed, edited shelf TS/TSX files passed a pure Bun TSX transpile check, focused custom-component/shelf/barrel/shared workflow tests passed, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile custom-component selection parity audit without marking the Brain-goal queue complete.
+  - Compared mobile final `Proceed` behavior against the website custom component flow and found mobile still upserted existing selected custom options even when the title/cost were unchanged.
+  - Added pure helper coverage for custom option price-change detection and mapping an existing custom option into a selected workflow component with profile-adjusted sales price.
+  - Changed the mobile custom sheet so an unchanged existing custom option selects and advances immediately without a backend update, while title/cost changes and new custom entries still save/update through `inventories.upsertDykeCustomStepComponent`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: custom-component helper tests passed, edited custom-component TSX/TS files passed a pure Bun TSX transpile check, focused custom-component/shelf/barrel/shared workflow tests passed, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile floating-action parity audit without marking the Brain-goal queue complete.
+  - Reworked the shared mobile invoice floating-action helper around a local screen-level host in the invoice form shell, so the invoice item FAB, custom button, and multi-select proceed actions render outside the scroll view and stay footer-safe on both iOS and Android.
+  - Tightened floating-action registration to track only supported view props and a stable refresh key, avoiding host state churn from unstable rest-prop/children objects while preserving the existing caller API used by the item FAB, custom button, and proceed actions.
+  - Added workflow-state refresh keys to dynamic floating workflow controls so multi-select `Proceed`, overlay selected-count actions, and custom action offsets refresh their handlers when the active line, active step, selected count, visible components, or custom-capable step changes.
+  - Added shared centered stack offsets for the invoice floating lane: base workflow action above the footer, item switcher FAB on the second level, and custom action on the third level when a multi-select `Proceed` button is also visible, keeping all three aligned on the same x-axis without overlap.
+  - Raised inline workflow floating offsets to the same footer-safe lane used by the item FAB, keeping custom/proceed controls above the Save Draft/Create footer in the inline invoice form.
+  - Removed the unused House Package Tool door-group UID subtitle field so UID text cannot leak back into mobile component-list surfaces through that helper.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited invoice-form TSX files passed a pure Bun TSX transpile check, focused custom-component, shelf, barrel, and shared workflow tests passed, and scoped `git diff --check` passed; direct runtime import was not useful because React Native's package entry contains Flow syntax for Bun. No dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile custom-component sheet parity audit without marking the Brain-goal queue complete.
+  - Audited the shared mobile `Modal` primitive and found that it always presents at snap index `0`, so the custom sheet's previous dynamic single-snap `["100%"] -> ["42%"]` mode switch did not explicitly drive the requested fullscreen-to-compressed morph.
+  - Changed the custom component sheet to use stable snap points `["42%", "100%"]`, explicitly snap to fullscreen on open, and explicitly snap down to compressed `Title & Cost` when search/title selection proceeds.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused custom-component, shelf, barrel, and shared workflow tests plus scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile sales-form shared-export audit without marking the Brain-goal queue complete.
+  - Audited all mobile invoice-form imports from `@gnd/sales/sales-form-core` against the actual package entrypoint and found one remaining missing mobile-critical export: `swapWorkflowDoorComponent`, used by the HPT active-door swap flow.
+  - Exported `swapWorkflowDoorComponent` through `sales-form-core` and added a small barrel smoke test covering the mobile shelf traversal and HPT door swap helpers.
+  - Re-ran the mobile import/export audit and confirmed 101 imported symbols across 22 mobile invoice-form files now have matching `sales-form-core` exports.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused barrel, shelf, custom-component, and shared workflow tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile shelf-items parity audit without marking the Brain-goal queue complete.
+  - Extracted mobile shelf product bucketing, category scoping, search filtering, de-duping, and the 20-item visible cap into a pure helper so the shelf editor remains presentation-focused.
+  - Added focused Expo Bun coverage for category-scoped capped rendering, duplicate product removal across parent/leaf buckets, and search filtering.
+  - Fixed the shared `@gnd/sales/sales-form-core` export surface so mobile's shelf category helpers resolve through the package entrypoint at runtime.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused shelf helper and mobile workflow/custom tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile custom-component parity audit without marking the Brain-goal queue complete.
+  - Aligned mobile custom-capable step detection with website/shared workflow semantics by recognizing `activeStep.custom === true` selected-step snapshots in addition to form-step and route-step metadata.
+  - Kept the detection in the pure custom-component helper module and added focused coverage for all supported metadata shapes.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused custom-component helper tests and the mobile workflow/custom pack passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile foundation/customer-flow parity audit without marking the Brain-goal queue complete.
+  - Changed `newSalesForm.searchCustomers` recent mode to group sales documents by customer for the selected `order`/`quote` type and order customers by their latest matching sales document timestamp, so repeated recent records for one customer no longer under-fill the requested 10 unique recent customers.
+  - Added focused API coverage proving type-filtered recent customer search returns 10 unique quote customers even when one customer owns the newest repeated quote records.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract doc update was needed because the existing `recent/type/limit` contract is unchanged.
+  - Validation: the targeted recent-customer regression passed; the broader `new-sales-form.test.ts` file still has two unrelated tax-summary assertion failures in existing tests, so this slice relies on the focused regression plus the mobile workflow/custom test pack.
+
+- Continued the mobile custom-component parity audit without marking the Brain-goal queue complete.
+  - Extracted mobile custom-component option filtering/pricing into a pure helper module so sheet UI stays focused on presentation/state and option semantics can be tested without importing React Native UI.
+  - Aligned mobile custom-component search/result cost resolution with website semantics by preferring the stored custom pricing row before falling back to component base/sales prices.
+  - Added focused Expo Bun coverage for stored custom pricing preference, dependency pricing identity, and archived custom filtering.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused custom-component and shared workflow tests plus scoped `git diff --check` were run; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile sales invoice/quote parity audit without marking the Brain-goal queue complete.
+  - Changed the mobile sales dashboard `New Invoice` Sales/Quote chooser from a hard-coded `super admin` role-name gate to the existing `auth.isAdmin` sales-stack convention, matching the protected mobile sales route and making the requested dashboard action available to mobile sales admins.
+  - Hardened moulding grouped-row edit hydration so existing `line.meta.mouldingRows` identity fields such as `salesItemId`, `hptId`, `groupUid`, and `primaryGroupItem` survive the shared derivation step before mobile row edits are re-persisted.
+  - Added focused shared workflow coverage for moulding identity preservation.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused shared workflow tests and scoped `git diff --check` were run; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile sales invoice/quote parity work directly in the main workspace without the Brain goal queue.
+  - Added the mobile dashboard Sales/Quote chooser for `New Invoice`, preserved selected `order`/`quote` type through the customer selector, and changed mobile customer recents to request 10 type-aware customers.
+  - Made customer/item helper text and item actions quote-aware, passing route type directly to the customer selector/list so quote flows do not flash invoice-only wording or query the wrong recent-customer type in those surfaces.
+  - Passed the selected customer id into create-mode bootstrap after the customer selector handoff so bootstrap hydration stays scoped to the chosen customer.
+  - Removed visible UID subtitles/fallback labels from workflow component cards and added a shared `FloatingInvoiceAction` helper for footer-safe centered actions.
+  - Added a focused mobile custom-component sheet module with full-height search/create, explicit full-width fixed-bottom search proceed, compressed `Title & Cost`, dismiss reset, website-matched `inventories.upsertDykeCustomStepComponent` save/update metadata, workflow selection, advancement, and selected-custom-first ordering.
+  - Hardened the mobile door-size `Next step` path by requiring at least one selected quantity and deferring route navigation until after the workflow callback runs.
+  - Changed moulding component taps from a one-off quantity prompt to shared multi-select selection/removal, keeping detailed qty/add-on/custom price edits in the moulding row editor.
+  - Added a centered floating `Proceed` action for selected door/moulding multi-select steps and kept it vertically separated from bottom footer actions and the custom-component FAB.
+  - Moved the invoice item switcher FAB into the shared centered floating-action lane so it aligns with custom/proceed actions and stays above the Save Draft/Create footer.
+  - Added mobile HPT active-door removal through the shared `removeWorkflowHptDoorOption` helper so selected door state and grouped door rows stay synchronized.
+  - Added mobile HPT active-door swap using visible door-step candidates and the shared `swapWorkflowDoorComponent` helper; hardened that helper to keep `selectedProdUids` synchronized with the swapped component.
+  - Wired mobile HPT active-door `Sizes` into the existing fullscreen door-size picker, including supplier-sensitive row derivation, and applied selected rows back through shared door-row patching.
+  - Changed HPT `Add size` on active door groups to open the derived size picker, leaving manual blank-row add only as a fallback for manual groups.
+  - Added mobile shelf category-path selection, category-scoped product loading, selected-product detail hydration, bounded product chip rendering, and full category metadata in shelf row patches.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused shared workflow tests passed for visible components, door actions, moulding actions, row patches, and selection actions; scoped static scans and `git diff --check` passed. No dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile sales invoice/quote parity audit without the Brain goal queue.
+  - Re-read the five mobile sales parity plan contracts and current mobile invoice feature notes, then audited the current code paths for customer type flow, custom components, door/HPT, moulding, shelf items, component subtitles, and floating actions.
+  - Fixed mobile HPT active-door removal so it passes the current workflow route data into `removeWorkflowHptDoorOption`; remaining door rows now preserve route-config-sensitive no-handle/swing normalization instead of recalculating through a null route context.
+  - Added a focused workflow-door regression test covering HPT door removal under a no-handle/no-swing route config.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused shared workflow tests passed for visible components, door actions, moulding actions, row patches, and selection actions; scoped `git diff --check` passed for the touched code/test files. No dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile custom-component parity audit without the Brain goal queue.
+  - Compared mobile custom-component save/select behavior with the website new-sales-form custom component path.
+  - Exported the shared `profileAdjustedSalesPrice` helper through `@gnd/sales/sales-form-core` and changed the mobile custom-component sheet so selected custom components use the entered cost as base price and derive the selected sales price from the active customer profile coefficient before workflow selection.
+  - Added focused shared workflow-format coverage for profile-adjusted sales price derivation.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused shared workflow tests passed for workflow format, visible components, door actions, moulding actions, row patches, and selection actions; scoped `git diff --check` passed for the touched code/test/Brain files. No dev server, broad typecheck/build, or UI automation was run per request.
+
+- Fixed a legacy sales-form custom component price-selection regression.
+  - Updated `apps/www/src/components/forms/sales-form/custom-component.tsx` so editing the cost price of an existing custom component and pressing `Proceed` selects the component with the submitted price immediately, then refreshes the component list afterward.
+  - Follow-up: kept the custom component input as cost/base price and derived sales price through the active sales profile multiplier in both legacy and new sales-form custom selection paths; legacy flat-rate custom totals now use the derived sales price instead of the cost value.
+  - Updated `brain/features/inventory-backed-sales-fulfillment.md` with the behavior note.
+  - Validation: scoped `git diff --check` passed for the touched sales-form and Brain files; no build, broad typecheck, browser QA, or dev server was run.
+
+- Created a Brain-goal intake for mobile sales invoice/quote website parity and split it into five approved, handoff-sized plans instead of one monolithic implementation packet.
+  - Added `brain/intake/2026-06-18-mobile-sales-form-website-parity.md`.
+  - Added approved plans for foundation/customer flow, custom component parity, door size/HPT parity, moulding parity, and shelf items parity under `brain/plans/`.
+  - Added matching backlog entries in `brain/tasks/backlog.md`.
+  - Converted the approved plans into ready handoffs under `brain/handoffs/ready/` and moved the matching tasks to `brain/tasks/in-progress.md`.
+  - Created five global Brain Loop queue items under `~/.brain-loop/queues/handoffs/`, enabled the GND project in the Brain Loop registry, created five requested task worktrees under `~/.brain-loop/worktrees/gnd/`, and synced the new Brain planning/handoff files into each worktree so implementation agents can read their contracts.
+  - No app code was changed in this planning/handoff slice; implementation remains queued for the five review units.
+
+- Moved local database workflow from XAMPP to Docker MySQL.
+  - Updated `.env.local` to use `mysql://root@127.0.0.1:3307/gnd-prisma2` and changed local validation/audit script fallback database URLs to port `3307`.
+  - Hardened `scripts/mysql-xampp-to-docker.sh` so it prefers XAMPP's bundled `mysqldump`, forces TCP for the source dump, and drops/recreates the Docker target database before import.
+  - Started XAMPP MySQL through the macOS admin prompt, dumped `gnd-prisma2` from XAMPP on `3306`, and reset/imported Docker MySQL on `3307`.
+  - Confirmed Docker MySQL, Adminer, and Redis are running through `apps/www/docker-compose.yml`; existing root dev scripts already run Docker MySQL/Redis via `dev:prepare -> dev:services`.
+  - Validation: `prisma migrate dev` reached Docker MySQL but stopped on drift because it would require `migrate reset` and discard the cloned data; `prisma migrate status` and `prisma migrate deploy` were run with Node 22 and reported 100 migrations with no pending migrations.
+
+- Continued the `apps/www` unused/old-code cleanup with a ninety-sixth package-dependency slice.
+  - Removed 15 high-confidence stale `@gnd/www` package declarations: `@actions/core`, `@actions/github`, Cloudinary React helpers, MDX/MDX editor packages, `next-cloudinary`, `next-mdx-remote`, accidental `crypto`/`i`/`npm` package dependencies, `resend`, and `@types/mdx`.
+  - Refreshed `bun.lock` with `bun install --lockfile-only`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: exact import/config scans found no live `apps/www` use of the removed packages; refreshed full Knip reports 39 runtime dependency candidates, 3 dev dependency candidates, and the same 20 retained file candidates. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a ninety-fifth conservative classification pass.
+  - Confirmed the remaining 20 file-only Knip candidates split into 16 tests, 3 production-control files read by `production-control-reset.test.ts`, and 1 shadcn tooling stylesheet referenced by `apps/www/src/components.json`.
+  - No source files were deleted in this pass because the remaining non-test candidates are test-backed or tooling-backed rather than high-confidence dead runtime code.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted classification scans and the slice104 Knip snapshot support the retained-tail decision. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a ninety-fourth conservative slice.
+  - Deleted 8 more high-confidence stale tracked files: the rootless legacy Dyke form compatibility island spanning app-side legacy hooks/contexts, app-deps step action/helper/modal files, and the private app-deps step-products type barrel.
+  - Confirmed no live provider/caller imports existed outside that deleted island; retained separate current `zus-step-helper` imports used by the active sales form.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted legacy Dyke form chain; refreshed Knip file-candidate count is 20, down from 653 at audit start and 28 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a ninety-third conservative slice.
+  - Deleted 2 more high-confidence stale tracked files: detached `resolve-payment-issue.ts` and its private `delete-payroll.ts` helper.
+  - Confirmed production-control files remain because `production-control-reset.test.ts` reads them directly, and no broad payment/production cleanup was attempted.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted payment-resolution action island; refreshed Knip file-candidate count is 28, down from 653 at audit start and 30 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with ninety-first and ninety-second conservative slices.
+  - Deleted 5 more high-confidence stale tracked files: the detached customer data component/action/cache island and duplicate app-deps sales-form hook type-source files.
+  - Switched `legacy-dyke-form-helper.tsx` to import `IDykeComponentStore` and `LegacyDykeFormItemType` from the live app-side hook files before deleting the duplicate app-deps copies.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the customer data island or old app-deps hook paths; refreshed Knip file-candidate count is 30, down from 653 at audit start and 35 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with eighty-eighth through ninetieth conservative slices.
+  - Deleted 10 more high-confidence stale tracked files: orphan app-deps `doors-modal` plus its private product image helper, duplicate app-deps step/pricing use-case and data-access copies, empty `hpt-helper`, and detached hook/context leaves (`use-sales-book-form`, `use-zus-form-hook`, `_utils/context`).
+  - Confirmed live app-side step/pricing use-cases, step-products type barrel, `legacy-dyke-form-helper`, `data-store`, `legacy-hooks`, and `component-deps-modal` chains remain intact.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted door/product helper, duplicate use-case/data-access paths, or hook/context symbols; refreshed Knip file-candidate count is 35, down from 653 at audit start and 45 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eighty-seventh conservative slice.
+  - Deleted 4 more high-confidence stale tracked files: the orphan `step-component-modal` wrapper/hook pair plus follow-on orphan helpers `components/(clean-code)/search.tsx` and `_v2/components/common/render-form.tsx`.
+  - Confirmed live `component-deps-modal` remains opened by the step helper, and step-products type/image helpers remain imported by legacy sales-form code.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for deleted wrapper/helper symbols or exact paths; refreshed Knip file-candidate count is 45, down from 653 at audit start and 49 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eighty-sixth conservative slice.
+  - Deleted 4 more high-confidence stale tracked app-deps modal files: the orphan `deps-modal` action/index pair and incomplete `height-settings-modal` ctx/modal pair.
+  - Confirmed the retained `component-deps-modal` step-component files are separate live code and were not touched.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for deleted modal symbols or exact folder paths; refreshed Knip file-candidate count is 49, down from 653 at audit start and 53 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eighty-fifth conservative slice.
+  - Deleted 3 more high-confidence stale tracked app-deps sales-form UI leaves: `component-section-footer.tsx`, old `components-section/custom-component.tsx`, and `data-page/line-input.tsx`.
+  - Confirmed similarly named `custom-component.action.tsx` and shared `_components/line-input.tsx` remain live and were not touched.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted UI leaves; refreshed Knip file-candidate count is 53, down from 653 at audit start and 56 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with eighty-third and eighty-fourth conservative slices.
+  - Deleted 3 more high-confidence stale tracked files: the old app-local Dyke step-component action pair (`save-step-component.ts`, `update-component-pricing-action.ts`) and the unused app-deps duplicate legacy step hook.
+  - Removed the now-unused `stepComponentSchema`, `updateComponentPricingSchema`, and `StepComponentMeta` import from `apps/www/src/actions/schema.ts`; the active Dyke component save/pricing path remains owned by `@gnd/inventory` through the inventories tRPC router.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted action paths, schema symbols, or app-deps duplicate hook path; refreshed Knip file-candidate count is 56, down from 653 at audit start and 59 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Fixed local jobs Trigger profile selection.
+  - Updated `@gnd/jobs` dev script to pass `--profile redland` directly to `trigger dev`, so root `bun run jobs` no longer depends on the local dotenv `TRIGGER_PROFILE` value or Trigger CLI's current default profile.
+  - Validation: scoped diff inspection only; no dev server, Trigger dev session, broad typecheck, build, or browser QA was run.
+
+- Continued the `apps/www` unused/old-code cleanup with eighty-first and eighty-second conservative slices.
+  - Deleted 8 more high-confidence stale tracked files: the orphan root dispatch `where.dispatch` utility plus the old app-local Trigger/email v3 chain (`lib/resend`, app-local email template/components, trigger constants/schema, and the no-op `send-composed-email` task).
+  - Confirmed the live `send-composed-email` job is now owned by `@gnd/jobs` / `@gnd/email`, and current app code triggers the task id without importing the deleted app-local task files.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted dispatch utility or app-local Trigger/email paths; refreshed Knip file-candidate count is 59, down from 653 at audit start and 67 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eightieth conservative slice.
+  - Deleted 5 more high-confidence stale tracked files: old app-deps v1 customer-wallet transaction/wallet helpers, settings helper, progress helper, and pagination action utility.
+  - Confirmed remaining same-name wallet/settings/progress helpers are package-level or unrelated app-local implementations, not imports of the deleted app-deps files.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted utility helper paths or exported symbols; refreshed Knip file-candidate count is 67, down from 653 at audit start and 72 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-ninth conservative slice.
+  - Deleted 4 more high-confidence stale tracked files: the old app-deps v1 sales customer/type island (`type.ts`, customer sales-order query, customer merge, and customer list helpers).
+  - Confirmed no `app-deps/(v1)/(loggedIn)/sales` file candidates remain after this slice.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted customer/type paths or exported symbols; refreshed Knip file-candidate count is 72, down from 653 at audit start and 76 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-eighth conservative slice.
+  - Deleted 10 more high-confidence stale tracked files: the old app-deps v1 logged-in sales action island for pickup, supplies, customer CRUD, inventory, component save, sales form, sales inventory, payment, priority, and save-PDF helpers.
+  - Kept app-deps v1 customer/type files and wallet/settings helpers for separate exact-reference review rather than folding them into this deletion.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted v1 sales action paths or exported symbols; refreshed Knip file-candidate count is 76, down from 653 at audit start and 86 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-seventh conservative slice.
+  - Deleted 5 more high-confidence stale tracked files: standalone app-local actions for old sale delete/restore plus date, delivery-cost, and labor-cost updates.
+  - Kept similarly prefixed live actions (`delete-sales-assignment`, `delete-sales-assignment-submission`, and `delete-sales-extra-cost`) because active production/sales-form UI still imports them.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted standalone sales action paths; refreshed Knip file-candidate count is 86, down from 653 at audit start and 91 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-sixth conservative slice.
+  - Deleted 5 more high-confidence stale tracked files: the detached old sales delivery deletion action, its private app-local stat-delta helpers, and two unused customer profile/tax update action leaves.
+  - Kept `sales-progress-fallback.ts` because `apps/www/src/actions/production-control-reset.test.ts` reads it directly, kept `get-sales-customer-data.ts` because the legacy sales form imports it, and kept payment resolution/payroll actions due to their internal dependency chain.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted action paths; refreshed Knip file-candidate count is 91, down from 653 at audit start and 96 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-fifth conservative slice.
+  - Deleted 4 more high-confidence stale tracked files: detached app-side clean-code sales/production helper leaves for batch production, assignment lookup, sales item overview, and sales overview loading.
+  - Kept `item-assign-action.ts` because `apps/www/src/actions/production-control-reset.test.ts` imports it directly, and kept legacy form hook candidates untouched.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted app-side helper paths or exported symbols; refreshed Knip file-candidate count is 96, down from 653 at audit start and 100 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-fourth conservative slice.
+  - Deleted 2 more high-confidence stale tracked files: the detached app-side clean-code production list action and its app-side production utility helper.
+  - Kept the current app-deps production list mirror because active infinite production API routes import that path, and kept all remaining production assignment actions/tests untouched.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`, `ai/plan.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted app-side production list paths; refreshed Knip file-candidate count is 100, down from 653 at audit start and 102 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-third conservative slice.
+  - Deleted 8 more high-confidence stale tracked files: the orphan app-side clean-code sales-form utility, old v1 sales-inbound action leaves, and old v1 sales-payment action leaves.
+  - Kept current inbound-management/payment flows and remaining live-adjacent sales payment/test files untouched; exact scans showed the deleted files had no live imports outside themselves.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted sales-form utility or v1 inbound/payment action paths and exported symbols; refreshed Knip file-candidate count is 102, down from 653 at audit start and 110 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-second conservative slice.
+  - Deleted 13 more high-confidence stale tracked files: app-side clean-code Dyke custom-step helpers, sales use-case wrappers, and the customer/wallet data-access island.
+  - Kept current app-deps mirrors, package-domain inventory/payment paths, customer infinite API, and live production assignment row untouched; exact scans showed the deleted app-side files had no live imports outside themselves.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted app-side clean-code helper paths or exported symbols; refreshed Knip file-candidate count is 110, down from 653 at audit start and 123 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventy-first conservative slice.
+  - Deleted 3 more high-confidence stale tracked files: the detached clean-code production-worker data/use-case pair and orphan sales analytics data helper.
+  - Kept current production routes, assignment flows, and dashboard/report code untouched; exact scans showed the deleted helpers had no live imports outside themselves.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted production-worker or analytics helper paths or exported symbols; refreshed Knip file-candidate count is 123, down from 653 at audit start and 126 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventieth conservative slice.
+  - Deleted 2 more high-confidence stale tracked files: the detached clean-code tax data-access and sales-tax use-case pair.
+  - Kept active `sales-tax.persistent.ts` because current sales-form data access still imports it; exact scans showed the deleted tax data/use-case pair had no live imports outside itself, and two stale commented `getTaxListUseCase` references were removed from legacy hook mirrors.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted tax data/use-case paths or exported symbols; refreshed Knip file-candidate count is 126, down from 653 at audit start and 128 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-ninth conservative slice.
+  - Deleted 2 more high-confidence stale tracked files: the detached clean-code tax modal action and component pair.
+  - Kept active sales tax persistence because current sales-form data access still imports it; exact scans showed the deleted modal pair had no live imports outside itself.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted tax modal paths or exported symbols; refreshed Knip file-candidate count is 128, down from 653 at audit start and 130 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-eighth conservative slice.
+  - Deleted 7 more high-confidence stale tracked files: detached clean-code dispatch create/delete/list/overview action loaders and DTOs across the app and app-deps mirrors.
+  - Kept current dispatch data-access, tRPC, and table paths; exact scans showed the deleted dispatch data-action island had no live imports outside itself.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted dispatch data-action paths or exported symbols; refreshed Knip file-candidate count is 130, down from 653 at audit start and 137 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-seventh conservative slice.
+  - Deleted 1 more high-confidence stale tracked file: the orphan app-side clean-code `use-sticky` hook copy.
+  - Kept the app-deps `use-sticky` hook because old components-section context still imports it; exact scans showed the deleted app copy had no live imports.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted app-side `use-sticky` path or exported symbols; refreshed Knip file-candidate count is 137, down from 653 at audit start and 138 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-sixth conservative slice.
+  - Deleted 4 more high-confidence stale tracked files: unused clean-code sales sidebar/store hooks, detached `PagesTab`, and old `getSalesTabActionUseCase`.
+  - Kept the current sales-book tab implementation in `components/sales-tabs.tsx`; exact scans showed no imports of the deleted clean-code helper files.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted clean-code sales UI helper paths or exported symbols; refreshed Knip file-candidate count is 138, down from 653 at audit start and 142 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-fifth conservative slice.
+  - Deleted 4 more high-confidence stale tracked files: duplicated clean-code sales accounting and resolution-center search-param modules under both `app` and `app-deps`.
+  - Kept the shared clean-code data-table search parser because current code still imports it; exact scans showed the deleted accounting search-param quartet had no live imports.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted accounting search-param paths or exported symbols; refreshed Knip file-candidate count is 142, down from 653 at audit start and 146 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-fourth conservative slice.
+  - Deleted 2 more high-confidence stale tracked files: unused legacy v1 sales `update-payment-term.ts` and detached `update-sales-date.ts` action leaves.
+  - Kept v1 sales `type.ts` because old customer query actions still import its filter types; nearby payment/inventory/customer actions remain for one-by-one review.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted v1 sales action paths or exported symbols; refreshed Knip file-candidate count is 146, down from 653 at audit start and 148 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-third conservative slice.
+  - Deleted 8 more high-confidence stale tracked files: the unused `SalesPaymentForm`, stale customer profile/tax prompt, old sales form email/labor/door-size leaves, and unused new-sales-form adapter hooks.
+  - Removed the lone stale commented `<SalesPaymentForm />` call from the customer transactions tab while leaving transaction loading/rendering untouched.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted sales form/payment UI paths or exported symbols; refreshed Knip file-candidate count is 148, down from 653 at audit start and 156 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-second conservative slice.
+  - Deleted 8 more high-confidence stale tracked files: unused legacy dispatch completion/sweeper leaves plus old packing driver/order cards and packing item list/form/listing components.
+  - Kept the current `tables-2/sales-dispatch` controls and live `dispatch-packing-overview` progress usage; `PackingProgress` remains imported by active UI and was not touched.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted dispatch/packing component paths or exported symbols; refreshed Knip file-candidate count is 156, down from 653 at audit start and 164 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixty-first conservative slice.
+  - Deleted 5 more high-confidence stale tracked files: the unused legacy `DispatchActions` wrapper plus its cancel, clear-packing, delete, and queue confirmation dialogs.
+  - Kept the current `tables-2/sales-dispatch` actions cell and shared `DispatchCompletionDecisionModal`; exact scans showed the deleted dialog island had no live imports.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted dispatch action/dialog paths or exported symbols; refreshed Knip file-candidate count is 164, down from 653 at audit start and 169 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixtieth conservative slice.
+  - Deleted 3 more high-confidence stale tracked files: the unused `SalesOptionMarkAs` menu leaf plus detached `OrderProductionGateCard` and its now-internal production-gate helper.
+  - Kept current production dashboard/workspace routes; exact scans showed the production-gate helper was only imported by the deleted card.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted sales/production UI island paths or exported symbols; refreshed Knip file-candidate count is 169, down from 653 at audit start and 172 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with fifty-eighth and fifty-ninth conservative slices.
+  - Deleted 3 more high-confidence stale tracked files: the no-op `getSalesProductionQueryTabs` action plus old `PrintSales` and standalone `sales-menu-print` wrappers.
+  - Kept live dispatch query helpers, current `print-sales-v2` viewer, and the current `sales-menu.tsx` internal print action.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted action/print-wrapper paths or exported symbols; refreshed Knip file-candidate count is 172, down from 653 at audit start and 175 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifty-seventh conservative slice.
+  - Deleted 2 more high-confidence stale tracked lib files: the unused `DataPageContext`/`useDataPage` helper and obsolete `@/lib/modal` dispatcher wrapper.
+  - Kept active modal providers/utilities and the current order production gate helper; matching `openModal` text belongs to other live modal systems, not the deleted wrapper.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted lib paths or exported symbols; refreshed Knip file-candidate count is 175, down from 653 at audit start and 177 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifty-sixth conservative slice.
+  - Deleted 2 more high-confidence stale tracked files: the unused clean-code `Kbd` atom and obsolete client-side `isProdClient` helper.
+  - Removed only an inactive commented refund menu block from the resolution-center component; runtime resolution actions were not changed.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for `Kbd`, `kbdVariants`, `isProdClient`, or `@/lib/is-prod`; refreshed Knip file-candidate count is 177, down from 653 at audit start and 179 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifty-fifth conservative slice.
+  - Deleted 6 more high-confidence stale tracked component files: unused sales invoice due-status display, old order header/search/export wrappers, old sales production header wrapper, and old task production tabs component.
+  - Kept current production search filters and current sales tables; remaining `sales-order-search-filter` text is a task-event filter-system id, not an import of the deleted wrapper.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted component paths or exported symbols; refreshed Knip file-candidate count is 179, down from 653 at audit start and 185 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifty-fourth conservative slice.
+  - Deleted 4 more high-confidence stale tracked utility/type files: unused compact-number formatter, generated id helper, old customer-service work-order types, and duplicated data-table type helpers.
+  - Kept live Trigger email `lib/resend.ts`; also left payment-adjacent `lib/is-prod.ts` for later review because a current file still contains a commented refund block referencing its symbol.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted utility/type paths or exported symbols; refreshed Knip file-candidate count is 185, down from 653 at audit start and 189 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with fifty-second and fifty-third conservative slices.
+  - Deleted 4 more high-confidence stale tracked component files: old placeholder sales-rep recent-quotes/recent-sales/chart UI leaves and the orphan `CommunityTemplateActions` wrapper.
+  - Removed a stale commented `<RecentSales />` call from the active sales-rep page; current sales-rep data tables and community-template form header controls were retained.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted component paths or symbols; refreshed Knip file-candidate count is 189, down from 653 at audit start and 193 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifty-first conservative slice.
+  - Deleted 3 more high-confidence stale tracked app-deps v1 HRM employee action files: old soft-delete, employee-list cache, create/save, and password-reset server actions.
+  - Kept current HRM tRPC/table flows; matching `resetEmployeePassword` text is a current tRPC mutation option, not an import of the deleted old server action.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted HRM employee action paths; refreshed Knip file-candidate count is 193, down from 653 at audit start and 196 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fiftieth conservative slice.
+  - Deleted 3 more high-confidence stale tracked app-deps v1 customer-service action files: old assign-tech, CRUD, and status-update server actions.
+  - Kept current customer-service tRPC/table flows; matching `updateWorkOrderStatus` text is a current tRPC mutation option, not an import of the deleted old server action.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted customer-service action paths; refreshed Knip file-candidate count is 196, down from 653 at audit start and 199 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-ninth conservative slice.
+  - Deleted 5 more high-confidence stale tracked app-deps v1 files: old community-invoice task delete/update actions and old HRM job worker-change/approval, make-payment, and payment-delete actions.
+  - Kept current payment UI mutations and tRPC job/payment flows; matching `makePayment` text is local current UI state, not an import of the deleted old HRM action.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted community-invoice and HRM job/payment action paths; refreshed Knip file-candidate count is 199, down from 653 at audit start and 204 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-eighth conservative slice.
+  - Deleted 9 more high-confidence stale tracked app-deps v1 files: old home-template query helper, task-name loader, activate-production action, community-model-cost action, home query action, install-cost action, community job assignment action, community production query action, and HRM delete-job bridge.
+  - Kept current tRPC community/job routes and current `/community/install-costs` navigation; matching text hits are route/API names, not imports of the deleted app-deps files.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted community/HRM action paths; refreshed Knip file-candidate count is 204, down from 653 at audit start and 213 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-seventh conservative slice.
+  - Deleted 9 more high-confidence stale tracked files: the old app-deps community model-form compatibility island, its now-internal `_v1` import/base sheet helpers, `_v1/page-header.tsx`, common data-table `table-cells.tsx`, and the `_template-import.ts` search action.
+  - Removed the stale `#unitModelForm` rule from `styles/globals.css` because the only component emitting that id was deleted.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live references for the deleted model-form/sheet/helper paths or `#unitModelForm`; refreshed Knip file-candidate count is 213, down from 653 at audit start and 222 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
 ## 2026-06-17
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-sixth conservative slice.
+  - Deleted 5 more high-confidence stale tracked app-deps v1 community action files: old unit-template link resolver, invoice sync helper, model-search updater, install-cost action wrapper, and one-off lot/block backfill helper.
+  - Kept still-live community helpers such as `_template-import.ts` and `_task-names.ts`, plus current production/model-cost helpers, because exact imports still reference nearby compatibility code.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted community helper paths; refreshed Knip file-candidate count is 222, down from 653 at audit start and 227 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-fifth conservative slice.
+  - Deleted 4 more high-confidence stale tracked app-deps v1 action files: the old customer conflict merge fixer, community pivot bootstrap helper, home-template suggestion loader, and static home-model reader.
+  - Kept still-live community helpers such as `_template-import.ts` because the `_v1` import model-template sheet still imports them.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted one-off app-deps action paths; refreshed Knip file-candidate count is 227, down from 653 at audit start and 231 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-fourth conservative slice.
+  - Deleted 2 more high-confidence stale tracked support files: orphan `_v1/info.tsx` and unused common data-table pagination.
+  - Kept `_v1/page-header.tsx` and `common/data-table/table-cells.tsx` because exact model-form/version-history imports still reference them.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted info/pagination paths; refreshed Knip file-candidate count is 231, down from 653 at audit start and 233 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-third conservative slice.
+  - Deleted 11 more high-confidence stale tracked files: orphan `_v1` putaway/community/status/payment/work-order helpers and the old `_v1` install-cost form.
+  - Kept `_v1/sheets/base-sheet.tsx` and `_v1/sheets/import-model-template-sheet.tsx` because the old model-form compatibility path still imports them.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for deleted `_v1` helper paths; refreshed Knip file-candidate count is 233, down from 653 at audit start and 244 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-second conservative slice.
+  - Deleted 15 more high-confidence stale tracked files: the orphan clean-code data-table shell/filter-command/infinity helpers and styles, unused common data-table column wrappers, and unused app-deps data-table context/cell wrappers.
+  - Kept live clean-code data-table support (`search-params`, `table-cells`, `Dl`, compose/header helpers), common pagination/table-cells, and `_v1/data-table/data-table-row-actions.tsx` because exact scans showed current imports.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for deleted clean-code/common/app-deps data-table support paths; refreshed Knip file-candidate count is 244, down from 653 at audit start and 259 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a forty-first conservative slice.
+  - Deleted 16 more high-confidence stale tracked files: the old app-deps community-template table shell, its app-deps install-cost modal, `_v1` builder/projects filters, `_v1` install/model cost cells, `_v1` base modal, and old `_v1` data-table helper files.
+  - Kept similarly named current implementations under `components/tables-2/community-templates`, `components/modals/model-install-cost-modal`, and `components/forms/community-template-v1`, and kept `_v1/data-table/data-table-row-actions.tsx` because sales-form/table-cell imports still use it.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for deleted table-shell, modal, filter, cell, base-modal, or data-table-helper paths; refreshed Knip file-candidate count is 259, down from 653 at audit start and 275 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with thirty-eighth through fortieth conservative slices.
+  - Deleted 22 more high-confidence stale tracked files: 11 orphan `_v1` table-shell files, follow-on orphan employee/roles/task filters, the verify-task-jobs modal, and the old `_v1/print` base/home/order print island.
+  - Kept `builder-filter.tsx`, `projects-filter.tsx`, and `lib/data-page-context.ts` because current app-deps/model/work-order imports still reference them; modal-name strings in store typing were left for later type cleanup.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for deleted shell, filter, modal, or print paths; refreshed Knip file-candidate count is 275, down from 653 at audit start and 297 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with thirty-fifth through thirty-seventh conservative slices.
+  - Deleted 9 more high-confidence stale tracked files: the self-contained `_v1` tab-layout island, three unmounted `_v1` modal wrappers for activate-production/assign-task/edit-invoice flows, and orphan lib leaves `chunker.ts`/`navs.ts`.
+  - Kept `_v1/modals/base-modal.tsx` because current model-install-cost and verify-task modal code still imports it, kept Trigger email support files because the live Trigger task imports them, and left legacy modal-name openers for later shell-level review.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted tab-layout, modal-wrapper, or lib paths; refreshed Knip file-candidate count is 297, down from 653 at audit start and 306 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with thirty-third and thirty-fourth conservative slices.
+  - Deleted 5 more high-confidence stale tracked files: orphan `community-summary-widgets`, the empty root `inventory-category-form.tsx`, unreferenced `styles/sales.css`, and the self-contained clean-code export `config.ts`/`type.ts` pair.
+  - Kept `hooks/use-id.ts`, app-deps `_actions/progress.ts`, app-deps `_actions/settings.ts`, the inventory-category form subfolder, and `styles/globals.css` because exact scans showed live imports or tooling references.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted support/export leaves; refreshed Knip file-candidate count is 306, down from 653 at audit start and 311 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with thirty-first and thirty-second conservative slices.
+  - Deleted 15 more high-confidence stale tracked files: unused root/demo UI leaves, old root auth/shell helpers, and orphan `_v1` atom components.
+  - Removed stale commented `CancelSalesTransactionAction` and `ResetInventories` call sites while preserving current `ProductionWorkerDashboardV2`, `_v1/page-header`, `_v1/info`, clean-code `Kbd`, and clean-code `Search` because exact scans showed live imports.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live imports for the deleted root and `_v1` leaves; refreshed Knip file-candidate count is 311, down from 653 at audit start and 326 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with twenty-ninth and thirtieth conservative slices.
+  - Deleted 12 more high-confidence stale tracked files: orphan community dashboard/summary/search UI leaves, the old install-cost sidebar, empty model-template header helpers, and unused community model/project/work-order opener buttons.
+  - Removed a stale commented legacy block from the current community-template page because it referenced the deleted install-cost sidebar.
+  - Kept `CommunityTemplateActions` because the legacy model-form compatibility path still imports it, and kept the current install-cost resizable panel/portal id because it is still used by active form UI.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted community/root opener leaves; refreshed Knip file-candidate count is 326, down from 653 at audit start and 338 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with twenty-seventh and twenty-eighth conservative slices.
+  - Deleted 7 more high-confidence stale tracked files: the old contractor v1 jobs table/sheet island and four unused root component helper leaves (`AnimateReveal`, `GridSkeleton`, `IconButton`, and `LineInfo`).
+  - Kept noisier or live-adjacent root components such as `Shell`, `LoginForm`, and `SummaryCardLink`, plus sensitive sales/production actions and active compatibility helpers that still need one-by-one review.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted contractor jobs and root component leaves; refreshed Knip file-candidate count is 338, down from 653 at audit start and 345 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with twenty-fourth through twenty-sixth conservative slices.
+  - Deleted 15 more high-confidence stale tracked files: the old clean-code `fikr-ui` shell island, unused customer/auth server-action leaves, and old customer-sales query actions plus their orphan revalidation tag helper.
+  - Kept still-live common data-table/type helpers, model-form types/sections, dispatch production-control action fixture, step-component pricing/inventory actions, and customer-service/current sales-form customer data actions because exact scans showed live imports or higher migration risk.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted `fikr-ui`, server-action, and customer-sales query leaves; refreshed Knip file-candidate count is 345, down from 653 at audit start and 360 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with twenty-second and twenty-third conservative slices.
+  - Deleted 6 more high-confidence stale tracked files: the unmounted `viewer-shell` provider/dialog/barrel, old clean-code `NumberPicker`, old `TableMenuTrigger`, and unused sales-overview v2 section helper components.
+  - Kept the still-live `viewer-shell/controller.ts` and controller test because sales-print imports the controller directly, and kept nearby live sales-overview hooks/provider/route-entry plus current community summary widgets.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted viewer/dialog/input/menu/overview leaves; refreshed Knip file-candidate count is 360, down from 653 at audit start and 366 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a twenty-first conservative slice.
+  - Deleted 6 more high-confidence stale tracked files: obsolete cached sales-payment-resolution filters, old recent-sales cache query, unused payment-portal column builder, unused client auth guard, unused old Midday search-filter component, and a mismatched resolution-center empty-state component.
+  - Kept nearby live helpers including current Midday search-filter adapters/TRPC components, table/widget empty states, customer-address cache action, revalidation tag helper, and paginated customer action helper.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted UI/action leaves; refreshed Knip file-candidate count is 366, down from 653 at audit start and 372 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a twentieth conservative slice.
+  - Deleted 7 more high-confidence stale tracked files: old module-local email send/attachment/transform helpers, the private PDF creation helper, the private Cloudinary wrapper, and the now-orphan module-local error reporter.
+  - Kept the Trigger `send-composed-email` task and React email template because current app code still triggers that task id, and kept the separate live upload-signature Cloudinary helper used by `lib/upload-file.ts`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted module-local email/PDF/Cloudinary/error chain; refreshed Knip file-candidate count is 372, down from 653 at audit start and 379 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a nineteenth conservative slice.
+  - Deleted 6 more high-confidence stale tracked files: duplicate app-deps clean-code export config/types, old punchout-cost loader, stale auto-complete persistence helper, stale app-deps email sender, and no-op Twilio SMS helper.
+  - Kept the non-app-deps clean-code export mirror under `apps/www/src/app/(clean-code)/_common/export`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted app-deps utility/helper paths; refreshed Knip file-candidate count is 379, down from 653 at audit start and 385 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eighteenth conservative slice.
+  - Deleted 7 more high-confidence stale tracked files: old customer-service list/create/update/project-unit actions and old HRM job creation/insurance/list/payment loader actions.
+  - Kept nearby live v1 actions, including customer-service assignment/delete/status actions and HRM delete/approve/reject/payment actions that current `_v1` shells still import.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live path references for the deleted customer-service or HRM loader/action files; remaining `getJobs` and `getCustomerServices` hits are current tRPC route names, not imports of removed v1 files; refreshed Knip file-candidate count is 385, down from 653 at audit start and 392 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventeenth conservative slice.
+  - Deleted 7 more high-confidence stale tracked files: unused v1 email-template actions, an empty community-invoice edit action, an unused old home-invoice query action, and unused v1 model-cost helper actions.
+  - Kept nearby live v1 actions, including customer-wallet transactions, community invoice task delete/update actions, install-cost updates, and community-model-cost import/sync actions.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted v1 email, community-invoice query/edit, or model-cost helper paths; refreshed Knip file-candidate count is 392, down from 653 at audit start and 399 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixteenth conservative slice.
+  - Deleted 15 more high-confidence stale tracked files: the unmounted dev-only sales `_backward-compat` repair menu island and its now-orphan `actions/--fix/fix-customer-tax-profiles.ts` server action.
+  - Kept the neighboring `actions/--fix/fix-undefined-order-id.ts` because current edit-quote routing still imports it.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted `_backward-compat` paths, repair-menu symbols, or removed tax-profile fix action; refreshed Knip file-candidate count is 399, down from 653 at audit start and 414 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifteenth conservative slice.
+  - Deleted 10 more high-confidence stale tracked files: old `_v1` home selection batch action, unmounted image/back-order/community-install-cost/model-cost modals, the legacy community-model-cost modal subfolder, and the unmounted sales supply sheet.
+  - Kept nearby live replacements and false-positive-adjacent code, including the modern community model cost modals, clean-code image-gallery modal, `homes-selection-action.tsx`, active `_v1` modal/sheet bases, `import-model-template-sheet.tsx`, and `payment-overview-sheet.tsx`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted `_v1` home-selection/modal/sheet paths; refreshed Knip file-candidate count is 414, down from 653 at audit start and 424 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fourteenth conservative slice.
+  - Deleted 6 more high-confidence stale tracked files: old `_v1` production action menu, breadcrumb portal/link helpers, task action dropdown, and unused delivery/sales batch action components.
+  - Removed two stale commented breadcrumb imports from the community-template page and kept nearby live `_v1` files such as `putaway-actions.tsx`, `job-type.tsx`, filters, and `community-summary-widgets.tsx`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted `_v1` action/breadcrumb/task/batch files; refreshed Knip file-candidate count is 424, down from 653 at audit start and 430 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a thirteenth conservative slice.
+  - Deleted 6 more high-confidence stale tracked files: old `_v2` dirty-form persistence and transform-option helpers, unmounted employee-management record approval/overview helpers, and self-only chart/toast utility files.
+  - Kept nearby live false positives including `_v2/components/common/render-form.tsx`, `utils/db/where.dispatch.ts`, `lib/format.ts`, and `lib/chunker.ts` because current imports still prove them live.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted `_v2`, employee-management, chart, or toast utility files; refreshed Knip file-candidate count is 430, down from 653 at audit start and 436 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a twelfth conservative slice.
+  - Deleted 8 more high-confidence stale tracked files: orphan inventory and invoice-summary stores, old notification-channel context, empty auth provider, starter `siteConfig`, duplicate users data-action, old export-config helper, and unused `sales.stats.ts` recalculation path.
+  - Kept nearby live paths such as `apps/www/src/actions/get-users-list.ts`, current sales stat reset/update actions, global CSS, and still-imported `_v1` data-table/customer-service types.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted store/context/provider/config/data-action/data-access files; refreshed Knip file-candidate count is 436, down from 653 at audit start and 444 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eleventh conservative slice.
+  - Deleted 9 more high-confidence stale tracked files: orphan app-local utility files for payment params, query checking, old sales-invoice printing, server data typing, type-to-Zod conversion, resumable uploads, plus stale dashboard/email/modal type files.
+  - Removed two commented resumable-upload branches from upload components, while keeping live `@gnd/utils/sales` payment-param usage, the live sales-print service `printQuote`, and still-imported `_v1` customer-service/data-table types.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted app-local utility or type files; refreshed Knip file-candidate count is 444, down from 653 at audit start and 453 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a tenth conservative slice.
+  - Deleted 22 more high-confidence stale tracked files: 13 orphan hook files plus 9 old lib utility leaves for watermark adjustment, session policy, community home-template building, composed refs, safe actions, email transform, option building, quick print, and token refresh.
+  - Removed stale commented references from the task trigger and home printer while keeping nearby live helpers such as `lib/resend`, `modules/email/transform`, `modules/email/send`, `chunker`, `format`, `order-production-gate`, `data-page-context`, and `lib/is-prod.ts`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted hooks or utilities; the remaining `useStepComponents` hit is a live object property in the new-sales-form workflow adapter; refreshed Knip file-candidate count is 453, down from 653 at audit start and 475 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Fixed Expo login template 0 keyboard avoidance.
+  - Replaced the template 0 `KeyboardAvoidingView` + `ScrollView` stack with the app's existing `react-native-keyboard-controller` `KeyboardAwareScrollView` pattern, preserving the login layout while letting focused email/password inputs scroll above the keyboard.
+  - Kept the quick-login FAB outside the scroll content as an overlay and added bottom scroll padding/offset so the lower security note and controls remain reachable.
+  - Validation: scoped `git diff --check -- apps/expo-app/src/components/login-template-0.tsx` passed. A focused `./node_modules/.bin/tsc -p apps/expo-app/tsconfig.json --noEmit` was attempted but stayed silent for about two minutes and was stopped; no diagnostics were emitted before stopping.
+
+- Continued the `apps/www` unused/old-code cleanup with a sixth conservative slice.
+  - Deleted 15 more high-confidence stale tracked files: unmounted sales-overview inline controls, orphan customer/account/unit-invoice/job modal components, an unused inventory-import table skeleton, legacy table helper leaf files, and the unreferenced sales-orders fulfillment completion modal.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live source references for the deleted files; refreshed Knip file-candidate count is 507, down from 653 at audit start and 522 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a seventh conservative slice.
+  - Deleted 12 more high-confidence stale tracked files: the old notification-channel form island, unused site-action notification configuration actions, unmounted account/customer update actions, and the obsolete unit-invoice modal report hook/body while preserving the live print-based invoice-aging report path.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live references to the deleted paths or symbols; refreshed Knip file-candidate count is 495, down from 653 at audit start and 507 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with an eighth conservative slice.
+  - Deleted 15 more high-confidence stale tracked files: old `app-deps` community project/unit table shells and add button, the unmounted take-off form island plus loader action, dead app-deps v2 contractor upload and sales edit utility files, stale customer-report CSS, and the old builder table/modal pair plus builder task sync actions that were only imported by that old modal.
+  - Kept nearby live compatibility files, including `community/units/home-modal.tsx`, app-deps sales v2 step-product helpers, HRM job actions, and the builder `action.ts` module because current source imports still prove them live.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live references to the deleted paths or symbols; refreshed Knip file-candidate count is 480, down from 653 at audit start and 495 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a ninth conservative slice.
+  - Deleted 12 more high-confidence stale tracked files: generated `page.md` implementation sketches for old route patterns, an empty community-template schema placeholder, a stale community-inventory sheet sketch, unreferenced cache helpers for dispatchers/customer profiles/page tabs/sales order numbers, and the obsolete sidemenu cookie server action.
+  - Removed the stale commented customer-profile helper loader from the customer form and kept live nearby helpers such as `get-loggedin-profile`, `get-customer-address`, and current tRPC customer-profile loading.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans returned no live references to the deleted paths or symbols; refreshed Knip file-candidate count is 475, down from 653 at audit start and 480 after the previous cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Tightened sales-form custom component entry UX. The shared combobox now has an opt-in input normalizer, and the custom component picker uses it so only explicitly custom-marked components appear, search/create/select text is stored and displayed in uppercase, suggestions are sorted alphabetically, duplicate custom names keep unique option identity, and existing custom selection carries the option price into the selected step. The cost price field is compact, right-aligned, and shows `$0.00` when empty. The footer `Custom` action now uses the destructive button variant in both old and shared workflow panels, opens an anchored inline alert editor above the footer button without increasing footer height, persists selected custom metadata on the step/form, sends `meta.custom` on custom upsert, and pins a selected custom component first in the component list with a custom avatar and destructive border treatment. Validation: scoped `git diff --check` passed for tracked UI/Brain files, and a direct trailing-whitespace scan passed for the custom picker.
+
+- Started cleanup from the `apps/www` unused/old-code audit.
+  - Fixed active sidebar links for unit production and mobile app support, removed the no-route sales commission link, and made the edit-order sublink a meta matcher instead of a clickable invalid `/sales-book/edit-order` href.
+  - Retargeted stale legacy community table/nav links from old `/settings/community/*`, `/community/units`, `/community/invoices`, and `/community/productions` URLs to current canonical community routes.
+  - Deleted 42 high-confidence stale tracked files: copied middleware/image-loader, debug/sandbox/copy files, the 21 `app-deps` orphan `loading.tsx` route-convention files, the placeholder `/sales-book/home-page` route, isolated `app-deps/(v1)/_actions/upgrade/*` actions, and stale tracked Knip report artifacts.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/features/site-navigation.md`, `brain/engineering/www-routes.md`, `brain/progress.md`.
+  - Validation: focused `bun test apps/www/src/components/sidebar-links.test.ts` passed with 6 tests and 30 expectations; active sidebar path-literal scan returned 0 missing paths; `find apps/www/src/app-deps -type f -name 'loading.tsx'` returned no files; no source references remain for `app-deps/(v1)/_actions/upgrade`; scoped `git diff --check -- apps/www brain` passed; refreshed Knip file-candidate count is 614, down from 653. No build, typecheck, browser QA, or dev server was run.
+
+- Extended the `apps/www` unused/old-code cleanup.
+  - Deleted another 43 high-confidence stale tracked files: inert `app-deps` root convention duplicates, unreferenced `app-deps` data-table wrappers, ignored community `_page.tsx` backup route, old dealer guest signup/password files, old `app-deps` sales settings components, unused MDX/Tiptap prototypes, login mockups, a demo outline table, an orphan sales-rep recent-sales widget, and the disabled transactions widget.
+  - Removed the stale commented transactions widget reference from `apps/www/src/components/widgets/index.tsx`.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/engineering/www-routes.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans passed; focused `bun test apps/www/src/components/sidebar-links.test.ts` passed with 6 tests and 30 expectations; active sidebar route scan checked 67 hrefs and found 0 missing routes; `find apps/www/src/app-deps -type f -name 'loading.tsx'` returned no files; scoped `git diff --check -- apps/www brain` passed; refreshed Knip file-candidate count is 571, down from 653 at audit start and 614 after the first cleanup slice. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup.
+  - Deleted 17 more high-confidence stale tracked files: the old `components/sales-view` mock UI, `components/forms/example-form`, `lib/dummy-inventory-data.ts`, the paired `data/old-site-jobs.ts` plus `app-deps/(v1)/_actions/hrm-jobs/restore-jobs.ts`, the unmounted `components/cmd` command palette, orphan `modules/error/handler.ts`, and unmounted inventory-stock/sales-pay widgets.
+  - Removed the stale commented `<SalesPayWidget />` reference from the sales invoice column.
+  - Kept `modules/error/report.ts` because a live import from `modules/pdf/create-pdf.ts` proves it is not safe to delete despite Knip flagging it.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans passed for the deleted names; refreshed Knip file-candidate count is 554, down from 653 at audit start and 571 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with another conservative slice.
+  - Deleted 21 more high-confidence stale tracked files: unused common helpers, old validation schemas, stale `app-deps/(sidebar)` search-param helpers, old `_v2` email/contractor/tab helpers, and the duplicate unreferenced `src/app/_components/data-table` island.
+  - Moved the tiny `EmailTypes` union into `apps/www/src/lib/modal.ts` so `openEmailComposer` keeps its local type without depending on the deleted `_v2/email/types.ts` file.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans passed for deleted paths; refreshed Knip file-candidate count is 533, down from 653 at audit start and 554 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Continued the `apps/www` unused/old-code cleanup with a fifth conservative slice.
+  - Deleted 11 more high-confidence stale tracked files: unused `_v2` date/input/select controls, old static Dyke/home design data files, unused sales clone/invoice helper files, and the superseded v1 notification channel table/header.
+  - Kept `_v2/components/common/render-form.tsx` and `lib/data-page-context.ts` despite Knip flags because source imports prove they are still live.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: targeted stale-reference scans passed for deleted paths; refreshed Knip file-candidate count is 522, down from 653 at audit start and 533 after the previous cleanup slice; scoped `git diff --check -- apps/www brain` passed. No build, broad typecheck, browser QA, or dev server was run.
+
+- Analyzed unused and old code in `apps/www`.
+  - Ran current Knip analysis for the `@gnd/www` workspace and grouped 653 unused-file candidates plus dependency/export findings into high-confidence cleanup, migration-review, route-link, and dependency categories.
+  - Confirmed `apps/www/src/app-deps` is not globally removable because active code still imports legacy sales, auth, settings, and utility helpers from it, but its route-convention `loading.tsx` files, debug/sandbox files, and copied middleware/image-loader leftovers are strong cleanup candidates.
+  - Identified current active sidebar route issues: `/tasks/unit-productions`, `/sales/commissions`, `/settings/mobile-app`, and the meta `/sales-book/edit-order` href.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `brain/progress.md`.
+  - Validation: analysis-only; no app code changes, build, typecheck, browser QA, or dev server run.
+
+- Fixed the Expo slice of `mobile-jobs` startup.
+  - Replaced Expo package scripts that invoked the `expo` shim through Bun's package runner with a local `scripts/run-expo-cli.cjs` wrapper that resolves and executes `expo/bin/cli` through Node, avoiding the Bun auto-install/package-resolution path that was receiving `SIGKILL`.
+  - Downgraded `expo-navigation-bar` from the Expo 56 preview line to the SDK 54 bundled range `~5.0.10`, and changed the login template system navigation-bar usage from the preview declarative component to the stable async API.
+  - Validation: `bun install` completed and updated `bun.lock`; `bun run with-env node ./scripts/run-expo-cli.cjs --version` returned `54.0.25`; `bun run with-env node ./scripts/run-expo-cli.cjs config --type public` returned the public Expo config; `bun run with-env node ./scripts/run-expo-cli.cjs start --help` returned help without starting Metro; scoped `git diff --check` passed. Full `mobile-jobs` was not run per fast Bun monorepo command discipline.
 
 - Reworked sales-form custom component selection and archiving.
   - Removed the legacy custom-component form from the component card grid and exposed it through a `Custom` button in the step floating footer when the step supports custom components.
@@ -2445,3 +3102,5 @@
 - 2026-06-16: Migrated `/community/templates` to the tables-2 standard. The route now renders `components/tables-2/community-templates/*` with the existing `community.getCommunityTemplates` query, existing template filter params/hook, existing `CommunityTemplateHeader` actions, existing template modal/model-cost/install-cost/preview/delete behavior, and a lazy Midday search-filter adapter over the existing `filters.communityTemplateFilters` endpoint; no new v2 query, filter param, filter endpoint, route fork, or core table change was added. Removed the now-unused `components/tables/community-template/*` files and old `CommunityTemplateSearchFilter` wrapper after import scans, and added `brain/features/community-templates-table.md`. Validation: focused Biome passed, `git diff --check` passed for the templates slice, filtered `@gnd/www` typecheck had no diagnostics for touched templates route/table/header/settings/config files or the retargeted legacy install-cost modal row type while full typecheck remains blocked by existing baseline errors, import scans were clean, `components/tables-2/core` has no diff, HTTP smoke returned `200` for `/community/templates`, and Browser smoke passed with Quick Login as Pablo Cruz / Super Admin on desktop `/community/templates`, desktop `/community/templates?q=2795`, and mobile `390x844` `/community/templates` with no document-level horizontal overflow.
 - 2026-06-16: Migrated `/community/customer-services` to the tables-2 standard. The route now renders `components/tables-2/customer-service/*` with the existing `customerService.getCustomerServices` query, existing customer-service filter params/hook, existing `CustomerServiceHeader`, existing Punchout employee query for assignment, and existing work-order edit/status/assign/delete behavior; no new v2 query, filter param, filter endpoint, route fork, or core table change was added. Removed the now-unused `components/tables/customer-service/*` files after import scans and added `brain/features/customer-service-table.md`. Browser validation also found and fixed an invalid shared summary-card skeleton nested inside text elements in `packages/ui/src/components/custom/summary-card-skeleton.tsx`, removing fresh hydration warnings from the customer-services summary widgets. Validation: focused Biome passed, `git diff --check` passed for the customer-service slice, filtered `@gnd/www` typecheck had no diagnostics for touched customer-service route/table/header/settings/config files while full typecheck remains blocked by existing baseline errors, import scans were clean, `components/tables-2/core` has no diff, HTTP smoke returned `200` for `/community/customer-services`, and Browser smoke passed with Quick Login as Pablo Cruz / Super Admin on desktop `/community/customer-services`, desktop `/community/customer-services?q=Yanaixy`, and mobile `390x844` `/community/customer-services` with no document-level horizontal overflow.
 - 2026-06-16: Migrated `/community/unit-invoices` to the tables-2 standard. The route now renders `components/tables-2/unit-invoices/*` with the existing `community.getUnitInvoices` query, existing unit-invoice filter params/hook, existing `UnitInvoicesHeader`, existing report menu, and existing `editUnitInvoiceId` modal behavior; no new v2 query, filter param, filter endpoint, route fork, or core table change was added. The old `components/tables/unit-invoices/*` files remain because the project overview widget still imports the legacy embeddable table. Browser validation also found and fixed a shared `CustomModal` Radix title/description id issue so row-open invoice dialogs no longer emit fresh accessibility errors. Added `brain/features/unit-invoices-table.md`. Validation: focused Biome passed, `git diff --check` passed for the unit-invoices slice, filtered `@gnd/www` typecheck had no diagnostics for touched unit-invoices route/table/header/settings/config files or `CustomModal` while full typecheck remains blocked by existing baseline errors, `components/tables-2/core` has no diff, HTTP smoke returned `200` for `/community/unit-invoices`, and Browser smoke passed with Quick Login as Pablo Cruz / Super Admin on desktop `/community/unit-invoices`, existing `q` search binding, mobile `390x844`, and row-open modal behavior with no document-level horizontal overflow.
+- 2026-06-18: Continued the `apps/www` unused/old code cleanup with package-dependency/tooling slices. After exact app import/config scans, removed 35 more stale `@gnd/www` runtime package declarations (`@dnd-kit/modifiers`, `@gnd/email`, `@gnd/events`, `@headlessui/react`, `@radix-ui/react-dialog`, `@radix-ui/react-icons`, `@react-hook/async`, `@react-pdf/renderer`, `@tiptap/*`, `@trpc/*`, `aos`, `autoprefixer`, `cmdk`, `debounce`, `embla-carousel-*`, `focus-trap-react`, `fs-extra`, `nanoid`, `next-themes`, `puppeteer`, `react-beautiful-dnd`, `react-colorful`, `react-wrap-balancer`, `swr`, `ts-results`, `tus-js-client`, `use-deep-compare-effect`, `uuid`, and `xlsx`), removed the stale commented `@gnd/events/client` layout import, deleted old unreferenced `apps/www/tailwind-copy.config`, removed its private `tailwindcss-animate` / `@tailwindcss/typography` deps, removed the unused package-local `vercel` CLI dev dependency, and refreshed `bun.lock`. Full Knip snapshot `/tmp/gnd-www-knip-full-20260618-after-tooling1-lock.json` now reports 20 file candidates, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 5 unresolved candidates, and 551 export candidates; remaining package candidates are tooling/config-sensitive and retained for separate review.
+- 2026-06-18: Repaired the remaining `apps/www` Knip unresolved import candidates in legacy sales type code. Stale `@/app/(v2)/(loggedIn)/sales-v2/type` imports now point to the existing `@/app-deps/(v2)/(loggedIn)/sales-v2/type` module, and that module no longer imports deleted private v2 form-action files; it now declares the legacy form shape structurally for the still-live old-sales-form type consumers. Full Knip snapshot `/tmp/gnd-www-knip-full-20260618-after-unresolved1.json` now reports 20 file candidates, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 0 unresolved candidates, and 551 export candidates.

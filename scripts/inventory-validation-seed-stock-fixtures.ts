@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-const DEFAULT_DATABASE_URL = "mysql://root@localhost/gnd-prisma2";
+const DEFAULT_DATABASE_URL = "mysql://root@localhost:3307/gnd-prisma2";
 
 type CliOptions = {
 	apply: boolean;

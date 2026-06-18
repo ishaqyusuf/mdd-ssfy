@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf .turbo node_modules",
-    "with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
-    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --",
-    "dev": "bun run with-env bun ../../scripts/with-trigger-profile.mjs -- trigger dev",
     "deploy": "bun run prisma.ts && bun run with-env:prod bun ../../scripts/with-trigger-profile.mjs -- trigger deploy",
-    "typecheck": "tsc --noEmit"
+    "dev": "bun run with-env bun ../../scripts/with-trigger-profile.mjs -- trigger dev --profile redland",
+    "typecheck": "tsc --noEmit",
+    "with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
+    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
   },
   "exports": {
     "./schema": "./src/schema.ts",

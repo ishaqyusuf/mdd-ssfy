@@ -40,8 +40,6 @@ const config = {
     },
     devIndicators: false,
     images: {
-        // loader: "custom",
-        // loaderFile: "./image-loader.ts",
         remotePatterns: [
             {
                 protocol: "https",

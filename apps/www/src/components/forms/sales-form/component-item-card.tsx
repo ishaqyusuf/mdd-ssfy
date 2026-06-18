@@ -123,6 +123,12 @@ export function ComponentItemCard({
         } else cls.selectComponent();
     }, [selectState, cls, component, ctx]);
     const multiSelect = cls.isMultiSelect();
+    const isCustomComponent =
+        component?._metaData?.custom === true || component?.custom === true;
+    const isSelected =
+        (multiSelect && cls.multiSelected()) ||
+        stepForm?.componentUid == component.uid;
+    const isSelectedCustom = isSelected && isCustomComponent;
 
     return (
         <div className="group relative flex min-h-[25vh] flex-col p-2 xl:min-h-[35vh]">
@@ -132,9 +138,10 @@ export function ComponentItemCard({
             <button
                 className={cn(
                     "h-full w-full overflow-hiddens  rounded-lg border-2 hover:border-primary-foreground",
-                    (multiSelect && cls.multiSelected()) ||
-                        stepForm?.componentUid == component.uid
-                        ? "border-muted-foreground bg-muted"
+                    isSelectedCustom
+                        ? "border-destructive bg-destructive/5 ring-1 ring-destructive/30"
+                        : isSelected
+                          ? "border-muted-foreground bg-muted"
                         : "hover:border-muted-foreground/50",
                     sortMode &&
                         "border-dashed border-muted-foreground hover:border-muted-foreground",
@@ -142,7 +149,7 @@ export function ComponentItemCard({
                 onClick={!sortMode ? selectComponent : undefined}
             >
                 <div className="flex h-full flex-col">
-                    <div className="flex-1 flex relative">
+                    <div className="relative flex flex-1">
                         {/* <Image
                             className="aspect-square"
                             src={`${env.NEXT_PUBLIC_CLOUDINARY_BASE_URL}/dyke/${component.img}`}
@@ -151,11 +158,19 @@ export function ComponentItemCard({
                             width={128}
                             height={128}
                         /> */}
-                        <ComponentImg
-                            noHover={sortMode}
-                            aspectRatio={4 / 2}
-                            src={component.img}
-                        />
+                        {isSelectedCustom ? (
+                            <div className="flex h-full min-h-32 flex-1 items-center justify-center bg-destructive/10 p-4 text-destructive">
+                                <div className="flex size-16 items-center justify-center rounded-full border border-destructive/40 bg-background shadow-sm">
+                                    <Icons.Sparkles className="size-8" />
+                                </div>
+                            </div>
+                        ) : (
+                            <ComponentImg
+                                noHover={sortMode}
+                                aspectRatio={4 / 2}
+                                src={component.img}
+                            />
+                        )}
                         <div className="absolute hidden bottom-0 right-0">
                             <div className="flex  gap-2 items-center text-xs font-semibold px-2">
                                 <div className="flex-1" />

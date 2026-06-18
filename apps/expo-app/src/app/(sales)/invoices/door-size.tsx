@@ -62,12 +62,12 @@ export default function InvoiceDoorSizeRoute() {
       onOk={() => {
         handledCloseRef.current = true;
         picker.onOk();
-        router.back();
+        requestAnimationFrame(() => router.back());
       }}
       onNextStep={() => {
         handledCloseRef.current = true;
         picker.onNextStep();
-        router.back();
+        requestAnimationFrame(() => router.back());
       }}
     />
   );

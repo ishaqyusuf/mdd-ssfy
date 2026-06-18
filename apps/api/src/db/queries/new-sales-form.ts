@@ -1518,8 +1518,10 @@ export async function searchNewSalesCustomers(
   };
 
   if (data.recent && !query) {
-    const recentOrders = await ctx.db.salesOrders.findMany({
-      take: 25,
+    const recentCustomerLimit = Math.max(data.limit * 3, data.limit + 10);
+    const recentCustomerGroups = await ctx.db.salesOrders.groupBy({
+      by: ["customerId"],
+      take: recentCustomerLimit,
       where: {
         deletedAt: null,
         customerId: {
@@ -1527,69 +1529,77 @@ export async function searchNewSalesCustomers(
         },
         type: data.type || undefined,
       },
+      _max: {
+        updatedAt: true,
+      },
       orderBy: {
-        updatedAt: "desc",
+        _max: {
+          updatedAt: "desc",
+        },
+      },
+    });
+    const customerIds = recentCustomerGroups
+      .map((group) => Number(group.customerId || 0))
+      .filter((customerId) => customerId > 0);
+    if (!customerIds.length) return [];
+    const customers = await ctx.db.customers.findMany({
+      where: {
+        id: {
+          in: customerIds,
+        },
       },
       select: {
-        customerId: true,
-        customer: {
+        id: true,
+        name: true,
+        businessName: true,
+        phoneNo: true,
+        email: true,
+        profile: {
           select: {
             id: true,
-            name: true,
-            businessName: true,
-            phoneNo: true,
-            email: true,
-            profile: {
+            title: true,
+          },
+        },
+        taxProfiles: {
+          take: 1,
+          select: {
+            tax: {
               select: {
-                id: true,
                 title: true,
-              },
-            },
-            taxProfiles: {
-              take: 1,
-              select: {
-                tax: {
-                  select: {
-                    title: true,
-                    taxCode: true,
-                  },
-                },
-              },
-            },
-            addressBooks: {
-              take: 1,
-              orderBy: [{ isPrimary: "desc" }, { id: "asc" }],
-              select: {
-                id: true,
-                name: true,
-                address1: true,
-                address2: true,
-                city: true,
-                state: true,
-                country: true,
-                phoneNo: true,
-                email: true,
-                meta: true,
-                isPrimary: true,
+                taxCode: true,
               },
             },
           },
         },
+        addressBooks: {
+          take: 1,
+          orderBy: [{ isPrimary: "desc" }, { id: "asc" }],
+          select: {
+            id: true,
+            name: true,
+            address1: true,
+            address2: true,
+            city: true,
+            state: true,
+            country: true,
+            phoneNo: true,
+            email: true,
+            meta: true,
+            isPrimary: true,
+          },
+        },
       },
     });
-    const recentCustomers = recentOrders
-      .map((order) => order.customer)
+    const customerById = new Map(
+      customers.map((customer) => [Number(customer.id || 0), customer]),
+    );
+    return customerIds
+      .map((customerId) => customerById.get(customerId))
       .filter((customer): customer is NonNullable<typeof customer> =>
         Boolean(customer),
-      );
-    const deduped = new Map<number, (typeof recentCustomers)[number]>();
-    for (const customer of recentCustomers) {
-      if (!deduped.has(customer.id)) {
-        deduped.set(customer.id, customer);
-      }
-      if (deduped.size >= data.limit) break;
-    }
-    return Array.from(deduped.values()).map(mapCustomerResult);
+      )
+      .slice(0, data.limit)
+      .map(mapCustomerResult);
   }
 
   const customers = await ctx.db.customers.findMany({

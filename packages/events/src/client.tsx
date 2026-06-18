@@ -1,30 +1,40 @@
+"use client";
+
 import {
   OpenPanelComponent,
-  type PostEventPayload,
   useOpenPanel,
 } from "@openpanel/nextjs";
+import { useCallback } from "react";
 
 const isProd = process.env.NODE_ENV === "production";
+const clientId = process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID;
+type TrackProperties = Record<string, unknown>;
 
-const Provider = () => (
-  <OpenPanelComponent
-    clientId={process.env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID!}
-    trackAttributes={true}
-    trackScreenViews={isProd}
-    trackOutgoingLinks={isProd}
-  />
-);
+const Provider = () =>
+  clientId ? (
+    <OpenPanelComponent
+      clientId={clientId}
+      trackAttributes={true}
+      trackScreenViews={isProd}
+      trackOutgoingLinks={isProd}
+    />
+  ) : null;
 
-const track = (options: { event: string } & PostEventPayload["properties"]) => {
+const useTrack = () => {
   const { track: openTrack } = useOpenPanel();
 
-  if (!isProd) {
-    return;
-  }
+  return useCallback(
+    (options: { event: string } & TrackProperties) => {
+      if (!isProd) {
+        return;
+      }
 
-  const { event, ...rest } = options;
+      const { event, ...rest } = options;
 
-  openTrack(event, rest);
+      openTrack(event, rest);
+    },
+    [openTrack],
+  );
 };
 
-export { Provider, track };
+export { Provider, useTrack };

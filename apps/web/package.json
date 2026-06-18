@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4300} TZ=UTC vite dev --port ${PORTLESS_APP_PORT:-4300}",
     "build": "vite build",
+    "clean": "git clean -xdf .output .tanstack .turbo node_modules",
+    "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-4300} TZ=UTC vite dev --port ${PORTLESS_APP_PORT:-4300}",
     "start": "vite start",
-    "typecheck": "tsc --noEmit",
-    "clean": "git clean -xdf .output .tanstack .turbo node_modules"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.168.22",

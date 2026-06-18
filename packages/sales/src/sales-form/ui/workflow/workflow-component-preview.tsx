@@ -1,18 +1,27 @@
 /** @jsxImportSource react */
 "use client";
 
+import { Icons } from "@gnd/ui/icons";
+
 export type WorkflowComponentPreviewProps = {
 	imageSrc?: string | null;
 	title: string;
 	price?: string | null;
 	alt?: string | null;
+	customAvatar?: boolean;
 };
 
 export function WorkflowComponentPreview(props: WorkflowComponentPreviewProps) {
 	return (
 		<>
 			<div className="h-32 bg-muted">
-				{props.imageSrc ? (
+				{props.customAvatar ? (
+					<div className="flex h-full w-full items-center justify-center bg-destructive/10 p-4 text-destructive">
+						<div className="flex size-16 items-center justify-center rounded-full border border-destructive/40 bg-background shadow-sm">
+							<Icons.Sparkles className="size-8" />
+						</div>
+					</div>
+				) : props.imageSrc ? (
 					<img
 						src={props.imageSrc}
 						alt={props.alt || props.title}

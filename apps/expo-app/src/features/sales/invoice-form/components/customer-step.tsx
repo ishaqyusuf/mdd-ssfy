@@ -6,7 +6,7 @@ import { FlatList, Pressable, TextInput, View } from "react-native";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormCustomerSearch } from "../api/use-invoice-form-search";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
-import type { InvoiceCustomer } from "../types";
+import type { InvoiceCustomer, NewSalesFormType } from "../types";
 
 function CustomerRow({
   customer,
@@ -59,12 +59,15 @@ function CustomerRow({
 
 export function CustomerStep({
   onCustomerSelected,
+  type: routeType,
 }: {
   onCustomerSelected?: () => void;
+  type?: NewSalesFormType;
 }) {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 250);
-  const type = useInvoiceFormStore((state) => state.type);
+  const storeType = useInvoiceFormStore((state) => state.type);
+  const type = routeType || storeType;
   const { customers, hasSearchText, isLoadingCustomers, isSearchingCustomers } =
     useInvoiceFormCustomerSearch({
       type,
@@ -107,7 +110,11 @@ export function CustomerStep({
               />
             </View>
             <Text className="text-[11px] font-semibold uppercase text-muted-foreground">
-              {hasSearchText ? "Search results" : "Recent customers"}
+              {hasSearchText
+                ? "Search results"
+                : type === "quote"
+                  ? "Recent quote customers"
+                  : "Recent sales customers"}
             </Text>
           </View>
         }

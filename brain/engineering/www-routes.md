@@ -16,8 +16,9 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/forgot-password` 
 - `/login`
 - `/login/v2`
-- `/login/password-reset`
+- `/login/create-password`
 - `/login/reset-password`
+- `/password-reset`
 - `/signin`
 - `/report/login-token` 
 - `/signout`
@@ -76,7 +77,6 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/sales-book/dispatch-admin`
 - `/sales-book/dispatch-task`
 - `/sales-book/edit/[type]`
-- `/sales-book/home-page`
 - `/sales-book/inbound-management`
 - `/sales-book/orders`
 - `/sales-book/orders/bin`
@@ -172,12 +172,8 @@ Grouped route reference for the `apps/www` Next.js App Router surface.
 - `/settings/community/model-templates`
 
 ## Dealer And Guest Flow
-- `/dealer/signup`
-- `/dealer/registration-submitted`
-- `/dealer/create-password/[token]`
-- `/dealer/create-password/[token]/success`
-- `/password-reset`
-- `/password-reset/next`
+- Dealer account management is currently exposed through `/sales-book/dealers`.
+- Old dealer guest signup/create-password files under `apps/www/src/app-deps` were removed during the 2026-06-17 unused-code cleanup because they were not live `src/app` routes.
 
 ## Mail Utilities And Debug
 - `/mail-grid/templates`

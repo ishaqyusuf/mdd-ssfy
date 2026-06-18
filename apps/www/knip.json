@@ -10,8 +10,6 @@
   ],
   "ignore": [
     "src/**/*.d.ts",
-    "src/**/*.md",
-    "knip-report.txt",
-    "knip-vscode-report.txt"
+    "src/**/*.md"
   ]
 }

@@ -352,11 +352,19 @@ export function setWorkflowComponentRedirect(input: {
 }
 
 function toSelectedComponent(component: WorkflowComponentRecord) {
+	const custom = component?.custom === true || component?._metaData?.custom === true;
 	return {
 		uid: String(component.uid || ""),
 		title: component.title || null,
 		redirectUid: component.redirectUid || null,
 		id: component.id || null,
 		img: component.img || null,
+		salesPrice: component.salesPrice ?? null,
+		basePrice: component.basePrice ?? null,
+		custom,
+		_metaData: {
+			...(component._metaData || {}),
+			custom,
+		},
 	};
 }

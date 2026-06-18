@@ -107,6 +107,9 @@ describe("workflow moulding actions", () => {
 		});
 
 		expect(patch?.formSteps[0]?.prodUid).toBe("moulding-a");
+		expect(patch?.formSteps[0]?.meta?.selectedProdUids).toEqual([
+			"moulding-a",
+		]);
 		expect((patch?.meta.mouldingRows as any[])[0]?.qty).toBe(3);
 		expect(patch?.qty).toBe(3);
 		expect(patch?.unitPrice).toBe(15);

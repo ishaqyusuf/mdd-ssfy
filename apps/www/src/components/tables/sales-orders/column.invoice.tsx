@@ -114,8 +114,6 @@ export function InvoiceColumn({ item }: { item: Item }) {
                         >
                             <span>Apply Payment</span>
                         </Button>
-
-                        {/* <SalesPayWidget /> */}
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>

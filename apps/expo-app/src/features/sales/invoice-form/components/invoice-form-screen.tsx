@@ -41,6 +41,7 @@ import type {
   NewSalesFormType,
 } from "../types";
 import { CustomerStep } from "./customer-step";
+import { FloatingInvoiceActionHost } from "./floating-invoice-action";
 import { InvoiceFormFooter } from "./invoice-form-footer";
 import { InvoiceFormHeader } from "./invoice-form-header";
 import { ItemSelector } from "./item-selector";
@@ -121,7 +122,12 @@ export function InvoiceFormScreen({
     billingId: billingAddressId,
     shippingId: shippingAddressId,
   });
-  const recordQuery = useInvoiceFormRecord({ mode, slug, type });
+  const recordQuery = useInvoiceFormRecord({
+    mode,
+    slug,
+    type,
+    customerId: mode === "create" ? customerId : null,
+  });
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<InvoiceFormRecoverySnapshot | null>(null);
   const hydratedVersionRef = useRef<string | null>(null);
@@ -442,99 +448,101 @@ export function InvoiceFormScreen({
 
   return (
     <SafeArea>
-      <KeyboardAvoidingView
-        className="flex-1 bg-background"
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
-      >
-        <InvoiceFormHeader
-          title={headerTitle}
-          onOpenDetails={() =>
-            router.push("/(sales)/invoices/sales-details" as any)
-          }
-        />
-        {recordQuery.isPending ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator />
-            <Text className="mt-2 text-xs text-muted-foreground">
-              Loading {type === "quote" ? "quote" : "invoice"}...
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            className="flex-1"
-            automaticallyAdjustKeyboardInsets
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              paddingHorizontal: 0,
-              paddingTop: 4,
-              paddingBottom: 112,
-            }}
-          >
-            {recoverySnapshot ? (
-              <View className="mx-4 mb-4 gap-3 bg-amber-50 p-3">
-                <Text className="text-sm font-semibold text-amber-950">
-                  Unsaved local edits were found
-                </Text>
-                <Text className="text-xs text-amber-900">
-                  {recoverySavedAt
-                    ? `Saved on this device from ${recoverySavedAt}.`
-                    : "Saved on this device."}
-                </Text>
-                <View className="flex-row gap-2">
-                  <Button
-                    variant="outline"
-                    className="h-10 flex-1 rounded-xl border-amber-300 bg-white"
-                    onPress={dismissRecoverySnapshot}
-                  >
-                    <Text>Dismiss</Text>
-                  </Button>
-                  <Button
-                    className="h-10 flex-1 rounded-xl"
-                    onPress={applyRecoverySnapshot}
-                  >
-                    <Text>Restore</Text>
-                  </Button>
-                </View>
-              </View>
-            ) : null}
-            <ItemsStep />
-          </ScrollView>
-        )}
-        <InvoiceFormFooter
-          step="review"
-          canGoBack={false}
-          isSaving={isSaving}
-          validationError={validationError}
-          onBack={actions.prevStep}
-          onSaveDraft={handleSaveDraft}
-          onContinue={actions.nextStep}
-          onSaveFinal={handleCreateInvoice}
-          finalActionLabel={
-            mode === "edit"
-              ? `Save ${type === "quote" ? "Quote" : "Invoice"}`
-              : `Create ${type === "quote" ? "Quote" : "Invoice"}`
-          }
-        />
-        {selectorOpen ? <ItemSelector /> : null}
-        {workflowSelectorLine ? (
-          <WorkflowStepSelector
-            line={workflowSelectorLine}
-            onClose={actions.closeWorkflowSelector}
+      <FloatingInvoiceActionHost>
+        <KeyboardAvoidingView
+          className="flex-1 bg-background"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
+        >
+          <InvoiceFormHeader
+            title={headerTitle}
+            onOpenDetails={() =>
+              router.push("/(sales)/invoices/sales-details" as any)
+            }
           />
-        ) : null}
-        {isSaving ? (
-          <View className="absolute inset-0 items-center justify-center bg-background/30">
-            <View className="items-center gap-2 rounded-2xl border border-border bg-card p-4">
+          {recordQuery.isPending ? (
+            <View className="flex-1 items-center justify-center">
               <ActivityIndicator />
-              <Text className="text-xs text-muted-foreground">
-                Saving {type === "quote" ? "quote" : "invoice"}...
+              <Text className="mt-2 text-xs text-muted-foreground">
+                Loading {type === "quote" ? "quote" : "invoice"}...
               </Text>
             </View>
-          </View>
-        ) : null}
-      </KeyboardAvoidingView>
+          ) : (
+            <ScrollView
+              className="flex-1"
+              automaticallyAdjustKeyboardInsets
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{
+                paddingHorizontal: 0,
+                paddingTop: 4,
+                paddingBottom: 112,
+              }}
+            >
+              {recoverySnapshot ? (
+                <View className="mx-4 mb-4 gap-3 bg-amber-50 p-3">
+                  <Text className="text-sm font-semibold text-amber-950">
+                    Unsaved local edits were found
+                  </Text>
+                  <Text className="text-xs text-amber-900">
+                    {recoverySavedAt
+                      ? `Saved on this device from ${recoverySavedAt}.`
+                      : "Saved on this device."}
+                  </Text>
+                  <View className="flex-row gap-2">
+                    <Button
+                      variant="outline"
+                      className="h-10 flex-1 rounded-xl border-amber-300 bg-white"
+                      onPress={dismissRecoverySnapshot}
+                    >
+                      <Text>Dismiss</Text>
+                    </Button>
+                    <Button
+                      className="h-10 flex-1 rounded-xl"
+                      onPress={applyRecoverySnapshot}
+                    >
+                      <Text>Restore</Text>
+                    </Button>
+                  </View>
+                </View>
+              ) : null}
+              <ItemsStep />
+            </ScrollView>
+          )}
+          <InvoiceFormFooter
+            step="review"
+            canGoBack={false}
+            isSaving={isSaving}
+            validationError={validationError}
+            onBack={actions.prevStep}
+            onSaveDraft={handleSaveDraft}
+            onContinue={actions.nextStep}
+            onSaveFinal={handleCreateInvoice}
+            finalActionLabel={
+              mode === "edit"
+                ? `Save ${type === "quote" ? "Quote" : "Invoice"}`
+                : `Create ${type === "quote" ? "Quote" : "Invoice"}`
+            }
+          />
+          {selectorOpen ? <ItemSelector /> : null}
+          {workflowSelectorLine ? (
+            <WorkflowStepSelector
+              line={workflowSelectorLine}
+              onClose={actions.closeWorkflowSelector}
+            />
+          ) : null}
+          {isSaving ? (
+            <View className="absolute inset-0 items-center justify-center bg-background/30">
+              <View className="items-center gap-2 rounded-2xl border border-border bg-card p-4">
+                <ActivityIndicator />
+                <Text className="text-xs text-muted-foreground">
+                  Saving {type === "quote" ? "quote" : "invoice"}...
+                </Text>
+              </View>
+            </View>
+          ) : null}
+        </KeyboardAvoidingView>
+      </FloatingInvoiceActionHost>
     </SafeArea>
   );
 }
@@ -542,10 +550,16 @@ export function InvoiceFormScreen({
 export function CustomerSelectorScreen({
   onClose,
   onCustomerSelected,
+  type: routeType,
 }: {
   onClose: () => void;
   onCustomerSelected: () => void;
+  type?: NewSalesFormType;
 }) {
+  const storeType = useInvoiceFormStore((state) => state.type);
+  const type = routeType || storeType;
+  const noun = type === "quote" ? "quote" : "invoice";
+
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
@@ -563,10 +577,10 @@ export function CustomerSelectorScreen({
           </View>
           <View className="h-11 w-11" />
         </View>
-        <CustomerStep onCustomerSelected={onCustomerSelected} />
+        <CustomerStep type={type} onCustomerSelected={onCustomerSelected} />
         <View className="px-4 pb-4 pt-3">
           <Text className="text-center text-xs text-muted-foreground">
-            Customer is required before adding invoice items.
+            Customer is required before adding {noun} items.
           </Text>
         </View>
       </View>

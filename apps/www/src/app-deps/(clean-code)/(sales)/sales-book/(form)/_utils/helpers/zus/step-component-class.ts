@@ -882,6 +882,12 @@ export class ComponentHelperClass extends StepHelperClass {
                 salesPrice: component.salesPrice,
                 basePrice: component.basePrice,
                 sectionOverride: component.sectionOverride,
+                meta: {
+                    ...(stepData.meta || {}),
+                    custom:
+                        component._metaData?.custom === true ||
+                        component.custom === true,
+                },
             };
             if (stepData.title == "Item Type") {
                 this.resetGroupItem(component.title);

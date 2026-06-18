@@ -34,6 +34,11 @@ function snapshotSelectedComponent(component: any) {
       : [],
     redirectUid: component?.redirectUid || null,
     sectionOverride: component?.sectionOverride || null,
+    custom: component?.custom === true || component?._metaData?.custom === true,
+    _metaData: {
+      ...(component?._metaData || {}),
+      custom: component?.custom === true || component?._metaData?.custom === true,
+    },
   };
 }
 
@@ -73,10 +78,24 @@ export function applyMultiSelectStepMutation({
   else selectedSet.delete(component.uid);
 
   const selectedUids = Array.from(selectedSet);
+  const existingSelectedComponents = Array.isArray(current?.meta?.selectedComponents)
+    ? current.meta.selectedComponents
+    : [];
   const selectedComponents = selectedUids
-    .map((uid) =>
-      visibleComponents.find((candidate: any) => candidate.uid === uid),
-    )
+    .map((uid) => {
+      const visible = visibleComponents.find((candidate: any) => candidate.uid === uid);
+      const existing = existingSelectedComponents.find(
+        (candidate: any) => String(candidate?.uid || "") === String(uid || ""),
+      );
+      if (String(component?.uid || "") === String(uid || "")) {
+        return {
+          ...(visible || {}),
+          ...(existing || {}),
+          ...component,
+        };
+      }
+      return visible || existing;
+    })
     .filter(Boolean);
   const primary = selectedComponents[0] || null;
   const totalSales = selectedComponents.reduce(
@@ -152,6 +171,9 @@ export function applySingleSelectStepMutation({
       img: component.img || null,
       redirectUid: component.redirectUid || null,
       sectionOverride: component.sectionOverride || null,
+      custom: component?.custom === true || component?._metaData?.custom === true,
+      selectedComponents: [snapshotSelectedComponent(component)],
+      selectedProdUids: component?.uid ? [component.uid] : [],
     },
     step: {
       ...(current.step || {

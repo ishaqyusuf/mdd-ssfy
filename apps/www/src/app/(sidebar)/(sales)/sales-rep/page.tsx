@@ -206,7 +206,6 @@ export default async function SalesRepProfile(props: {
                                         size: 5,
                                     }}
                                 />
-                                {/* <RecentSales /> */}
                             </TabsContent>
                             <TabsContent
                                 value="recent-quotes"

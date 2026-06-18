@@ -7,9 +7,10 @@ import { Button } from "@gnd/ui/button";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { DropdownMenu, Item as ItemUi } from "@gnd/ui/namespace";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FileText, MoreHorizontal, Printer } from "lucide-react";
+import { CreditCard, FileText, MoreHorizontal, Printer } from "lucide-react";
+import Link from "next/link";
 
 export type Item = RouterOutputs["dealerPortal"]["orders"]["data"][number];
 type Column = ColumnDef<Item>;
@@ -41,6 +42,7 @@ function customerName(item: Item) {
 
 function OrderActions({ item }: { item: Item }) {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const printDocument = useMutation(
 		trpc.dealerPortal.printDocument.mutationOptions({
 			onSuccess: (result) => {
@@ -55,9 +57,43 @@ function OrderActions({ item }: { item: Item }) {
 			},
 		}),
 	);
+	const createPaymentLink = useMutation(
+		trpc.dealerPortal.createPaymentLink.mutationOptions({
+			onSuccess: async (result) => {
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.dealerPortal.orders.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.dealerPortal.dashboard.pathKey(),
+					}),
+				]);
+				window.open(result.paymentLink, "_blank", "noopener,noreferrer");
+			},
+			onError: (error) => {
+				toast({
+					title: "Could not create payment link.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const hasBalance = Number(item.amountDue || 0) > 0;
 
 	return (
-		<div className="flex justify-end">
+		<div className="flex justify-end gap-2">
+			{hasBalance ? (
+				<Button
+					disabled={createPaymentLink.isPending}
+					onClick={() => createPaymentLink.mutate({ id: item.id })}
+					size="sm"
+					type="button"
+				>
+					<CreditCard className="mr-2 size-4" />
+					Pay
+				</Button>
+			) : null}
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger asChild>
 					<Button size="sm" type="button" variant="ghost">
@@ -65,6 +101,10 @@ function OrderActions({ item }: { item: Item }) {
 					</Button>
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end" className="w-[190px]">
+					<DropdownMenu.Item asChild>
+						<Link href={`/orders/${item.id}`}>View order</Link>
+					</DropdownMenu.Item>
+					<DropdownMenu.Separator />
 					<DropdownMenu.Item
 						disabled={printDocument.isPending}
 						onSelect={(event) => {

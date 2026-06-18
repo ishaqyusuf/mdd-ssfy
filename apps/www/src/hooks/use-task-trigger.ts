@@ -37,7 +37,6 @@ export function useTaskTrigger(props?: Props) {
     } = props || {};
     const [runId, setRunId] = useState<string | undefined>();
     const [accessToken, setAccessToken] = useState<string | undefined>();
-    // const { status, setStatus } = useSyncStatus({ runId, accessToken });
     const [status, setStatus] = useState<
         "FAILED" | "SYNCING" | "COMPLETED" | null
     >(null);

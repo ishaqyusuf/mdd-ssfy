@@ -40,10 +40,6 @@ export function ProductionDashboardTabs() {
                     </Tabs.TabsHeader>
                 </Tabs.Items>
             </Tabs>
-
-            {/* <div className="flex-1"></div> */}
-            {/* <ResetInventories /> */}
         </div>
     );
 }
-

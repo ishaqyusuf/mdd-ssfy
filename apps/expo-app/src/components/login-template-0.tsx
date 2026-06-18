@@ -15,17 +15,11 @@ import { Image } from "expo-image";
 import React, { useState } from "react";
 import { Controller } from "react-hook-form";
 import type { TextStyle } from "react-native";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 const SPLASH_LOGO = require("@assets/icons/splash-logo.png");
+const TEMPLATE_0_KEYBOARD_BOTTOM_OFFSET = 96;
 
 export function LoginTemplate0() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -75,18 +69,20 @@ export function LoginTemplate0() {
 
   return (
     <SafeArea>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="relative flex-1 bg-background"
-      >
-        <ScrollView
+      <View className="relative flex-1 bg-background">
+        <KeyboardAwareScrollView
+          bottomOffset={TEMPLATE_0_KEYBOARD_BOTTOM_OFFSET}
+          disableScrollOnKeyboardHide
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          className="flex-1"
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: "center",
             padding: 20,
+            paddingBottom: 96,
           }}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
         >
           <View className="mb-8 flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
@@ -263,11 +259,11 @@ export function LoginTemplate0() {
               </View>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
         <LoginQuickAccess
           onSelectEmail={(email) => form.setValue("email", email)}
         />
-      </KeyboardAvoidingView>
+      </View>
     </SafeArea>
   );
 }

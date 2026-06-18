@@ -161,6 +161,14 @@ export type DealerPortalPrintDocumentSchema = z.infer<
   typeof dealerPortalPrintDocumentSchema
 >;
 
+export const dealerPortalCreatePaymentLinkSchema = z.object({
+  id: z.number(),
+  amount: z.number().positive().optional().nullable(),
+});
+export type DealerPortalCreatePaymentLinkSchema = z.infer<
+  typeof dealerPortalCreatePaymentLinkSchema
+>;
+
 export const dealerPortalSalesLineItemSchema = salesFormPortableLineItemSchema;
 export type DealerPortalSalesLineItemSchema = z.infer<
   typeof dealerPortalSalesLineItemSchema
@@ -204,6 +212,17 @@ export type DealerPortalRequestQuoteOrderSchema = z.infer<
   typeof dealerPortalRequestQuoteOrderSchema
 >;
 
+const dealerLogoUrlSchema = z.string().refine(
+  (value) => {
+    if (!value) return true;
+    if (z.string().url().safeParse(value).success) return true;
+    return /^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/i.test(value);
+  },
+  {
+    message: "Use a valid image URL or uploaded image.",
+  },
+);
+
 export const dealerPortalSettingsSchema = z.object({
   name: z.string().optional().nullable(),
   companyName: z.string().optional().nullable(),
@@ -216,7 +235,7 @@ export const dealerPortalSettingsSchema = z.object({
         .optional(),
     )
     .nullable(),
-  logoUrl: z.string().url().optional().nullable().or(z.literal("")),
+  logoUrl: dealerLogoUrlSchema.optional().nullable(),
   address1: z.string().optional().nullable(),
   address2: z.string().optional().nullable(),
   city: z.string().optional().nullable(),

@@ -8,7 +8,6 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@gnd/db";
 
 function revalidateProductionPages() {
-    revalidatePath("/community/productions");
     revalidatePath("/community/unit-productions");
 }
 

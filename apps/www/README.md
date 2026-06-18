@@ -28,6 +28,7 @@ bash ./scripts/mysql-xampp-to-docker.sh full
 ```
 
 This starts MySQL on `127.0.0.1:3307` and imports the default XAMPP database `gnd-prisma2` from `127.0.0.1:3306`.
+The import resets the Docker `gnd-prisma2` database before loading the dump.
 
 Useful commands:
 

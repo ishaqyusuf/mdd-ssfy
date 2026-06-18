@@ -5,6 +5,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/apps/www/docker-compose.yml}"
 SERVICE_NAME="${SERVICE_NAME:-mysql}"
+XAMPP_BIN_DIR="${XAMPP_BIN_DIR:-/Applications/XAMPP/xamppfiles/bin}"
+MYSQLDUMP_BIN="${MYSQLDUMP_BIN:-mysqldump}"
+
+if [[ -x "$XAMPP_BIN_DIR/mysqldump" ]]; then
+  MYSQLDUMP_BIN="$XAMPP_BIN_DIR/mysqldump"
+fi
 
 SOURCE_DB_HOST="${SOURCE_DB_HOST:-127.0.0.1}"
 SOURCE_DB_PORT="${SOURCE_DB_PORT:-3306}"
@@ -76,14 +82,15 @@ compose_up() {
 }
 
 dump_source() {
-  require_command mysqldump
+  require_command "$MYSQLDUMP_BIN"
 
   local dump_file="${1:-$DEFAULT_DUMP_FILE}"
   mkdir -p "$(dirname "$dump_file")"
 
   if [[ -n "$SOURCE_DB_PASSWORD" ]]; then
     MYSQL_PWD="$SOURCE_DB_PASSWORD" \
-      mysqldump \
+      "$MYSQLDUMP_BIN" \
+      --protocol=TCP \
       --host="$SOURCE_DB_HOST" \
       --port="$SOURCE_DB_PORT" \
       --user="$SOURCE_DB_USER" \
@@ -94,7 +101,8 @@ dump_source() {
       --default-character-set=utf8mb4 \
       "$SOURCE_DB_NAME" >"$dump_file"
   else
-    mysqldump \
+    "$MYSQLDUMP_BIN" \
+      --protocol=TCP \
       --host="$SOURCE_DB_HOST" \
       --port="$SOURCE_DB_PORT" \
       --user="$SOURCE_DB_USER" \
@@ -137,13 +145,13 @@ import_dump() {
 
   docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE_NAME" \
     "${mysql_args[@]}" \
-    -e "CREATE DATABASE IF NOT EXISTS \`$TARGET_DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    -e "DROP DATABASE IF EXISTS \`$TARGET_DB_NAME\`; CREATE DATABASE \`$TARGET_DB_NAME\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
   docker compose -f "$COMPOSE_FILE" exec -T "$SERVICE_NAME" \
     "${mysql_args[@]}" \
     "$TARGET_DB_NAME" <"$dump_file"
 
-  echo "Imported $dump_file into Docker MySQL database: $TARGET_DB_NAME"
+  echo "Reset Docker MySQL database and imported $dump_file into: $TARGET_DB_NAME"
 }
 
 command="${1:-}"

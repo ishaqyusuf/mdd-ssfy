@@ -17,6 +17,14 @@ type WorkflowComponent = {
 };
 
 export function snapshotSelectedComponent(component: WorkflowComponent) {
+	const custom =
+		component?.custom === true ||
+		(component?._metaData as { custom?: boolean } | null | undefined)
+			?.custom === true;
+	const metaData =
+		((component?._metaData as Record<string, unknown> | null) ||
+			{}) as Record<string, unknown>;
+
 	return {
 		id: component?.id ?? null,
 		uid: component?.uid || "",
@@ -34,5 +42,10 @@ export function snapshotSelectedComponent(component: WorkflowComponent) {
 			: [],
 		redirectUid: component?.redirectUid || null,
 		sectionOverride: component?.sectionOverride || null,
+		custom,
+		_metaData: {
+			...metaData,
+			custom,
+		},
 	};
 }

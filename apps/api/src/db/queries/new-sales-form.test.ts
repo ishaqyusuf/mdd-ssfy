@@ -8,6 +8,7 @@ import {
   getNewSalesForm,
   saveDraftNewSalesForm,
   saveFinalNewSalesForm,
+  searchNewSalesCustomers,
   searchNewSalesFormShelfProducts,
 } from "./new-sales-form";
 
@@ -459,6 +460,36 @@ function createMockContext() {
         if (!order) return null;
         return getOrderGraph(order);
       },
+      groupBy: async ({ where, take }: any) => {
+        const groups = new Map<number, { customerId: number; updatedAt: Date }>();
+        state.orders
+          .filter((order) => {
+            if (where?.deletedAt === null && order.deletedAt != null) {
+              return false;
+            }
+            if (where?.customerId?.not === null && order.customerId == null) {
+              return false;
+            }
+            if (where?.type && order.type !== where.type) return false;
+            return true;
+          })
+          .forEach((order) => {
+            const customerId = Number(order.customerId || 0);
+            if (!customerId) return;
+            const updatedAt = new Date(order.updatedAt || order.createdAt || now);
+            const existing = groups.get(customerId);
+            if (!existing || existing.updatedAt.getTime() < updatedAt.getTime()) {
+              groups.set(customerId, { customerId, updatedAt });
+            }
+          });
+        return Array.from(groups.values())
+          .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+          .slice(0, Number(take || groups.size))
+          .map((group) => ({
+            customerId: group.customerId,
+            _max: { updatedAt: group.updatedAt },
+          }));
+      },
     },
     salesDocumentSnapshot: {
       findMany: async ({ where }: any) =>
@@ -514,7 +545,15 @@ function createMockContext() {
       },
     },
     customers: {
-      findMany: async () => state.customers,
+      findMany: async ({ where }: any = {}) => {
+        const inIds = where?.id?.in;
+        return state.customers.filter((customer) => {
+          if (Array.isArray(inIds) && !inIds.includes(customer.id)) {
+            return false;
+          }
+          return true;
+        });
+      },
     },
     users: {
       findFirst: async ({ where, select }: any) => {
@@ -652,6 +691,95 @@ function createMockContext() {
 }
 
 describe("new-sales-form relational parity", () => {
+  it("returns the requested unique recent customers for the selected sales type", async () => {
+    const { ctx, state } = createMockContext();
+    state.customers = Array.from({ length: 12 }, (_, index) => {
+      const id = index + 1;
+      return {
+        id,
+        name: `Customer ${id}`,
+        businessName: null,
+        phoneNo: "",
+        email: `customer-${id}@example.com`,
+      };
+    });
+    state.orders = [
+      ...Array.from({ length: 20 }, (_, index) => ({
+        id: index + 1,
+        customerId: 1,
+        type: "quote",
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 18, 12, 0, 0 - index)),
+      })),
+      ...Array.from({ length: 11 }, (_, index) => ({
+        id: 100 + index,
+        customerId: index + 2,
+        type: "quote",
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 17, 12, 0, 0 - index)),
+      })),
+      {
+        id: 999,
+        customerId: 12,
+        type: "order",
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 19, 12, 0, 0)),
+      },
+    ];
+
+    const customers = await searchNewSalesCustomers(ctx, {
+      recent: true,
+      type: "quote",
+      limit: 10,
+    });
+
+    expect(customers).toHaveLength(10);
+    expect(customers.map((customer) => customer.customerId)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    ]);
+  });
+
+  it("overfetches recent customer groups so missing customers do not under-fill the requested limit", async () => {
+    const { ctx, state } = createMockContext();
+    state.customers = Array.from({ length: 10 }, (_, index) => {
+      const id = index + 1;
+      return {
+        id,
+        name: `Customer ${id}`,
+        businessName: null,
+        phoneNo: "",
+        email: `customer-${id}@example.com`,
+      };
+    });
+    state.orders = [
+      {
+        id: 1,
+        customerId: 99,
+        type: "quote",
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 19, 12, 0, 0)),
+      },
+      ...Array.from({ length: 10 }, (_, index) => ({
+        id: index + 2,
+        customerId: index + 1,
+        type: "quote",
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 18, 12, 0, 0 - index)),
+      })),
+    ];
+
+    const customers = await searchNewSalesCustomers(ctx, {
+      recent: true,
+      type: "quote",
+      limit: 10,
+    });
+
+    expect(customers).toHaveLength(10);
+    expect(customers.map((customer) => customer.customerId)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+    ]);
+  });
+
   it("loads shelf categories and products for selected categories", async () => {
     const { ctx } = createMockContext();
 

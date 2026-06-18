@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildWorkflowDoorRowsPatch,
 	buildWorkflowDoorSizeVariantPatch,
+	buildWorkflowMouldingRowsContext,
 	buildWorkflowMouldingRowsPatch,
 	buildWorkflowServiceRowsContext,
 	buildWorkflowServiceRowsPatch,
@@ -63,6 +64,49 @@ describe("workflow row patches", () => {
 		expect(patch.unitPrice).toBe(32.67);
 		expect((patch.meta as any).mouldingRows[0].lineTotal).toBe(56);
 		expect((patch.meta as any).mouldingRows[1].lineTotal).toBe(42);
+	});
+
+	it("preserves legacy moulding row identity when deriving edit rows", () => {
+		const context = buildWorkflowMouldingRowsContext({
+			uid: "line-1",
+			formSteps: [
+				{
+					step: { title: "Moulding" },
+					prodUid: "moulding-1",
+					meta: {
+						selectedProdUids: ["moulding-1"],
+						selectedComponents: [
+							{
+								id: 12,
+								uid: "moulding-1",
+								title: "Casing",
+								salesPrice: 20,
+								basePrice: 10,
+							},
+						],
+					},
+				},
+			],
+			meta: {
+				mouldingRows: [
+					{
+						uid: "moulding-1",
+						title: "Casing",
+						qty: 2,
+						salesPrice: 20,
+						salesItemId: 301,
+						hptId: 401,
+						groupUid: "group-1",
+						primaryGroupItem: true,
+					},
+				],
+			},
+		});
+
+		expect(context.rows[0]?.salesItemId).toBe(301);
+		expect(context.rows[0]?.hptId).toBe(401);
+		expect(context.rows[0]?.groupUid).toBe("group-1");
+		expect(context.rows[0]?.primaryGroupItem).toBe(true);
 	});
 
 	it("derives and persists service rows", () => {
@@ -149,8 +193,9 @@ describe("workflow row patches", () => {
 
 		expect(patch.flatRows).toHaveLength(1);
 		expect(patch.qty).toBe(2);
-		expect(patch.lineTotal).toBe(0);
+		expect(patch.lineTotal).toBe(22);
 		expect((patch.linePatch as any).shelfItems).toHaveLength(1);
+		expect((patch.linePatch as any).shelfItems[0]?.totalPrice).toBe(22);
 	});
 
 	it("builds HPT row patches with shared surcharge", () => {

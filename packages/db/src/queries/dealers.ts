@@ -160,6 +160,11 @@ export type DealerOrderRequestsInput = {
   status?: DealerSalesRequestStatus | "all" | null;
 };
 
+export type ApproveDealerOrderRequestInput = {
+  deliveryCost?: number | null;
+  approverNote?: string | null;
+};
+
 function getObjectMeta(meta: unknown): Record<string, unknown> {
   return meta && typeof meta === "object" && !Array.isArray(meta)
     ? (meta as Record<string, unknown>)
@@ -753,7 +758,17 @@ export async function getActiveDealerByAuthUserId(
 }
 
 export async function getDealerPortalDashboard(db: Database, dealerId: number) {
-  const [openQuotes, activeOrders, customers, salesProfiles] =
+  const [
+    openQuotes,
+    activeOrders,
+    customers,
+    salesProfiles,
+    pendingRequests,
+    orderTotals,
+    recentQuotes,
+    recentOrders,
+    recentRequests,
+  ] =
     await Promise.all([
       db.salesOrders.count({
         where: {
@@ -783,13 +798,204 @@ export async function getDealerPortalDashboard(db: Database, dealerId: number) {
           deletedAt: null,
         },
       }),
+      db.dealerSalesRequest.count({
+        where: {
+          request: DEALER_ORDER_REQUEST_TYPE,
+          status: "pending",
+          deletedAt: null,
+          sale: {
+            dealerAuthId: dealerId,
+            deletedAt: null,
+          },
+        },
+      }),
+      db.salesOrders.findMany({
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          type: {
+            not: "quote",
+          },
+        },
+        select: {
+          id: true,
+          orderId: true,
+          createdAt: true,
+          grandTotal: true,
+          amountDue: true,
+          meta: true,
+          dealerSale: {
+            select: {
+              grandTotal: true,
+              dueAmount: true,
+            },
+          },
+        },
+      }),
+      db.salesOrders.findMany({
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          type: "quote",
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 5,
+        select: dealerDashboardSalesSelect,
+      }),
+      db.salesOrders.findMany({
+        where: {
+          dealerAuthId: dealerId,
+          deletedAt: null,
+          type: {
+            not: "quote",
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 5,
+        select: dealerDashboardSalesSelect,
+      }),
+      db.dealerSalesRequest.findMany({
+        where: {
+          request: DEALER_ORDER_REQUEST_TYPE,
+          deletedAt: null,
+          sale: {
+            dealerAuthId: dealerId,
+            deletedAt: null,
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 5,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          sale: {
+            select: dealerDashboardSalesSelect,
+          },
+        },
+      }),
     ]);
+  const totals = orderTotals.reduce(
+    (acc, order) => {
+      const total = Number(order.dealerSale?.grandTotal ?? order.grandTotal ?? 0);
+      const due = Number(order.dealerSale?.dueAmount ?? order.amountDue ?? 0);
+      const internalTotal = Number(order.grandTotal || 0);
+      const dealerTax = getDealerDashboardTaxTotal(order.meta);
+
+      acc.unpaidAmount += due;
+      acc.paidRevenue += Math.max(0, total - due);
+      acc.approvedRevenue += total;
+      acc.dealerEarnings += Math.max(0, total - internalTotal);
+      acc.dealerFacingTax += dealerTax;
+      return acc;
+    },
+    {
+      unpaidAmount: 0,
+      paidRevenue: 0,
+      approvedRevenue: 0,
+      dealerEarnings: 0,
+      dealerFacingTax: 0,
+    },
+  );
 
   return {
     openQuotes,
     activeOrders,
     customers,
     salesProfiles,
+    pendingRequests,
+    unpaidAmount: roundCurrency(totals.unpaidAmount),
+    paidRevenue: roundCurrency(totals.paidRevenue),
+    approvedRevenue: roundCurrency(totals.approvedRevenue),
+    dealerEarnings: roundCurrency(totals.dealerEarnings),
+    dealerFacingTax: roundCurrency(totals.dealerFacingTax),
+    recentQuotes: recentQuotes.map(mapDealerDashboardSale),
+    recentOrders: recentOrders.map(mapDealerDashboardSale),
+    recentRequests: recentRequests.map((request) => ({
+      id: request.id,
+      status: request.status,
+      createdAt: request.createdAt,
+      updatedAt: request.updatedAt,
+      sale: request.sale ? mapDealerDashboardSale(request.sale) : null,
+    })),
+  };
+}
+
+const dealerDashboardSalesSelect = {
+  id: true,
+  orderId: true,
+  status: true,
+  type: true,
+  createdAt: true,
+  grandTotal: true,
+  amountDue: true,
+  dealerSale: {
+    select: {
+      grandTotal: true,
+      dueAmount: true,
+    },
+  },
+  customer: {
+    select: {
+      name: true,
+      businessName: true,
+      email: true,
+    },
+  },
+} satisfies Prisma.SalesOrdersSelect;
+
+function getDealerDashboardTaxTotal(meta: Prisma.JsonValue | null | undefined) {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return 0;
+  const newSalesForm = (meta as Record<string, unknown>).newSalesForm;
+  if (
+    !newSalesForm ||
+    typeof newSalesForm !== "object" ||
+    Array.isArray(newSalesForm)
+  ) {
+    return 0;
+  }
+  const summary = (newSalesForm as Record<string, unknown>).summary;
+  if (!summary || typeof summary !== "object" || Array.isArray(summary)) {
+    return 0;
+  }
+  const value = Number((summary as Record<string, unknown>).taxTotal || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function mapDealerDashboardSale(sale: {
+  id: number;
+  orderId: string | null;
+  status: string | null;
+  type: string | null;
+  createdAt: Date | null;
+  grandTotal: number | null;
+  amountDue: number | null;
+  dealerSale?: {
+    grandTotal: number | null;
+    dueAmount: number | null;
+  } | null;
+  customer?: {
+    name: string | null;
+    businessName: string | null;
+    email: string | null;
+  } | null;
+}) {
+  return {
+    id: sale.id,
+    orderId: sale.orderId,
+    status: sale.status,
+    type: sale.type,
+    createdAt: sale.createdAt,
+    grandTotal: Number(sale.dealerSale?.grandTotal ?? sale.grandTotal ?? 0),
+    amountDue: Number(sale.dealerSale?.dueAmount ?? sale.amountDue ?? 0),
+    customerName: customerName(sale.customer),
   };
 }
 
@@ -1804,6 +2010,7 @@ export async function getDealerPortalSalesDocuments(
       title: true,
       status: true,
       type: true,
+      createdAt: true,
       grandTotal: true,
       amountDue: true,
       meta: true,
@@ -3105,6 +3312,7 @@ function mapDealerOrderRequest(row: any) {
     orderStatus: sale.status,
     grandTotal: Number(sale.grandTotal || 0),
     amountDue: Number(sale.amountDue || 0),
+    deliveryOption: sale.deliveryOption || null,
     dealerId: dealer.id || null,
     dealerName: dealerName(dealer),
     dealerEmail: dealer.email || null,
@@ -3139,6 +3347,7 @@ export async function getDealerOrderRequests(
         status: true,
         grandTotal: true,
         amountDue: true,
+        deliveryOption: true,
         salesRepId: true,
         customer: {
           select: {
@@ -3258,6 +3467,7 @@ export async function getDealerOrderRequest(
           status: true,
           grandTotal: true,
           amountDue: true,
+          deliveryOption: true,
           salesRepId: true,
           customer: {
             select: {
@@ -3288,6 +3498,7 @@ export async function approveDealerOrderRequest(
   db: Database,
   userId: number,
   requestId: number,
+  input: ApproveDealerOrderRequestInput = {},
 ) {
   return db.$transaction(async (tx) => {
     const scope = await getSalesRequestUserScope(
@@ -3312,13 +3523,43 @@ export async function approveDealerOrderRequest(
             status: true,
             meta: true,
             dealerAuthId: true,
+            customerId: true,
             grandTotal: true,
             amountDue: true,
+            deliveryOption: true,
+            salesRepId: true,
+            dealerSale: {
+              select: {
+                grandTotal: true,
+                dueAmount: true,
+              },
+            },
+            extraCosts: {
+              where: {
+                type: "Delivery",
+              },
+              select: {
+                id: true,
+                amount: true,
+              },
+              take: 1,
+            },
             customer: {
               select: {
                 name: true,
                 businessName: true,
                 email: true,
+                phoneNo: true,
+              },
+            },
+            billingAddress: {
+              select: {
+                phoneNo: true,
+              },
+            },
+            shippingAddress: {
+              select: {
+                phoneNo: true,
               },
             },
             dealerAuth: {
@@ -3343,6 +3584,17 @@ export async function approveDealerOrderRequest(
     }
 
     const alreadyApproved = row.status === "approved";
+    const deliveryOption = String(row.sale.deliveryOption || "pickup");
+    const deliveryCost =
+      input.deliveryCost == null ? null : Math.max(0, Number(input.deliveryCost));
+    const requiresDeliveryReview = ["delivery", "ship"].includes(
+      deliveryOption.toLowerCase(),
+    );
+
+    if (!alreadyApproved && requiresDeliveryReview && deliveryCost == null) {
+      throw new Error("Delivery cost review is required before approval.");
+    }
+
     let order =
       row.sale.type === "order"
         ? {
@@ -3353,6 +3605,10 @@ export async function approveDealerOrderRequest(
             status: row.sale.status,
           }
         : null;
+    let finalTotal = Number(row.sale.dealerSale?.grandTotal ?? row.sale.grandTotal ?? 0);
+    let finalAmountDue = Number(
+      row.sale.dealerSale?.dueAmount ?? row.sale.amountDue ?? 0,
+    );
 
     if (!order) {
       if (!row.sale.dealerAuthId) {
@@ -3370,6 +3626,101 @@ export async function approveDealerOrderRequest(
           },
         },
       );
+    }
+
+    if (!alreadyApproved) {
+      const currentOrder = await tx.salesOrders.findUnique({
+        where: { id: order.id },
+        select: {
+          meta: true,
+          grandTotal: true,
+          amountDue: true,
+        },
+      });
+      const currentMeta =
+        currentOrder?.meta &&
+        typeof currentOrder.meta === "object" &&
+        !Array.isArray(currentOrder.meta)
+          ? currentOrder.meta
+          : {};
+      const previousDeliveryCost = Number(row.sale.extraCosts?.[0]?.amount || 0);
+      const deliveryDelta =
+        deliveryCost == null ? 0 : deliveryCost - previousDeliveryCost;
+      finalTotal =
+        Number(row.sale.dealerSale?.grandTotal ?? currentOrder?.grandTotal ?? 0) +
+        deliveryDelta;
+      finalAmountDue =
+        Number(row.sale.dealerSale?.dueAmount ?? currentOrder?.amountDue ?? 0) +
+        deliveryDelta;
+
+      if (deliveryCost != null) {
+        if (row.sale.extraCosts?.[0]?.id) {
+          await tx.salesExtraCosts.update({
+            where: {
+              id: row.sale.extraCosts[0].id,
+            },
+            data: {
+              label: "Delivery",
+              amount: deliveryCost,
+              tax: 0,
+              totalAmount: deliveryCost,
+            },
+          });
+        } else {
+          await tx.salesExtraCosts.create({
+            data: {
+              orderId: order.id,
+              label: "Delivery",
+              type: "Delivery",
+              taxxable: false,
+              amount: deliveryCost,
+              tax: 0,
+              totalAmount: deliveryCost,
+              percentage: 0,
+            },
+          });
+        }
+      }
+
+      await tx.salesOrders.update({
+        where: { id: order.id },
+        data: {
+          salesRepId: userId,
+          ...(deliveryDelta
+            ? {
+                grandTotal: Number(currentOrder?.grandTotal || 0) + deliveryDelta,
+                amountDue: Number(currentOrder?.amountDue || 0) + deliveryDelta,
+              }
+            : {}),
+          meta: {
+            ...currentMeta,
+            dealerRequestApproval: {
+              requestId: row.id,
+              approvedById: userId,
+              approvedAt: new Date().toISOString(),
+              deliveryOption,
+              deliveryCost,
+              approverNote: input.approverNote?.trim() || null,
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      if (deliveryDelta) {
+        await (tx as any).dealerSales.updateMany({
+          where: {
+            salesOrderId: order.id,
+          },
+          data: {
+            grandTotal: {
+              increment: deliveryDelta,
+            },
+            dueAmount: {
+              increment: deliveryDelta,
+            },
+          },
+        });
+      }
     }
 
     const updatedRequest = await tx.dealerSalesRequest.update({
@@ -3393,7 +3744,17 @@ export async function approveDealerOrderRequest(
       dealerName: dealerName(row.sale.dealerAuth || {}),
       quoteNo: row.sale.orderId,
       customerName: customerName(row.sale.customer),
-      total: Number(row.sale.grandTotal || 0),
+      total: finalTotal,
+      paymentContext: {
+        salesId: order.id,
+        customerId: row.sale.customerId || null,
+        customerPhone:
+          row.sale.billingAddress?.phoneNo ||
+          row.sale.customer?.phoneNo ||
+          row.sale.shippingAddress?.phoneNo ||
+          null,
+        amountDue: finalAmountDue,
+      },
     };
   });
 }

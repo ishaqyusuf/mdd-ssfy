@@ -6,10 +6,6 @@ import {
 } from "@/db";
 import { HousePackageToolMeta } from "@/types/sales";
 
-import { getDykeFormAction } from "./form/_action/get-dyke-form";
-import { getStepForm } from "./form/_action/get-dyke-step";
-import { getStepProduct } from "./form/_action/get-dyke-step-product";
-
 export interface IDykeSalesItem {
     meta: {
         shelfItem: {
@@ -30,14 +26,41 @@ export type DykeDoorType =
     | "Moulding"
     | "Door Slabs Only"
     | "Services";
-export type DykeStep = Awaited<ReturnType<typeof getStepForm>>;
-type DykeStepProducts = Awaited<ReturnType<typeof getStepProduct>>;
+export type DykeStep = Record<string, any>;
+type DykeStepProducts = Array<Record<string, any>>;
 // type IDykeStepForm = {
 //     data: DykeStepForm;
 //     step: Awaited<ReturnType<typeof getStepForm>>;
 // };
-export interface DykeForm
-    extends Awaited<ReturnType<typeof getDykeFormAction>> {}
+export interface DykeForm {
+    _taxForm: {
+        taxByCode: Record<
+            string,
+            {
+                selected: boolean;
+                data: {
+                    id?: string | number;
+                    tax?: number | null;
+                    taxxable?: number | null;
+                    taxCode?: string | null;
+                };
+            }
+        >;
+    };
+    itemArray: Array<{
+        item: {
+            formStepArray: any[];
+        };
+        multiComponent: {
+            components: Array<{
+                _doorForm: any[];
+                [key: string]: any;
+            }>;
+        };
+        [key: string]: any;
+    }>;
+    [key: string]: any;
+}
 export type FormStepArray = DykeForm["itemArray"][0]["item"]["formStepArray"];
 export type DykeFormItem = DykeForm["itemArray"][0];
 export type DykeDoorForm =

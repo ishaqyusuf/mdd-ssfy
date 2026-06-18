@@ -111,7 +111,9 @@ export class CostingClass {
             if (k.startsWith(`${itemUid}-`)) {
                 if (!stepData.flatRate)
                     totalBasePrice += stepData?.basePrice || 0;
-                else totalFlatRate += stepData?.basePrice || 0;
+                else
+                    totalFlatRate +=
+                        stepData?.salesPrice ?? stepData?.basePrice ?? 0;
             }
         });
         const ds = dotSet(groupItem);
@@ -140,7 +142,9 @@ export class CostingClass {
             if (k.startsWith(`${itemUid}-`)) {
                 if (!stepData.flatRate)
                     totalBasePrice += stepData?.basePrice || 0;
-                else totalFlatRate += stepData?.basePrice || 0;
+                else
+                    totalFlatRate +=
+                        stepData?.salesPrice ?? stepData?.basePrice ?? 0;
             }
         });
         const totalSalesPrice = this.calculateSales(totalBasePrice);

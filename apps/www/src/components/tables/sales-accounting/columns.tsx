@@ -315,14 +315,7 @@ function CustomerTransactionAction({ item }: { item: Item }) {
     );
 }
 function Action({ item }: { item: Item }) {
-    return (
-        <>
-            {/* <CancelSalesTransactionAction
-                status={item.status}
-                customerTransactionId={item.id}
-            /> */}
-        </>
-    );
+    return <></>;
 }
 export const mobileColumn: ColumnDef<Item>[] = [
     {

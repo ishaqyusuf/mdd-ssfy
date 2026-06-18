@@ -16,7 +16,7 @@ import {
 	type SalesAuditStatus,
 } from "./sales-form-parity-audit-utils";
 
-const DEFAULT_DATABASE_URL = "mysql://root@localhost/gnd-prisma2";
+const DEFAULT_DATABASE_URL = "mysql://root@localhost:3307/gnd-prisma2";
 const DEFAULT_OUT_ROOT = "brain/reports/sales-form-parity";
 
 type CliOptions = {
@@ -51,8 +51,8 @@ function usage() {
 	console.log(
 		[
 			"Usage:",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/sales-form-parity-audit.ts --year=2026 --month=2026-05",
-			"  DATABASE_URL='mysql://root@localhost/gnd-prisma2' bun scripts/sales-form-parity-audit.ts --year=2026 --all-months",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/sales-form-parity-audit.ts --year=2026 --month=2026-05",
+			"  DATABASE_URL='mysql://root@localhost:3307/gnd-prisma2' bun scripts/sales-form-parity-audit.ts --year=2026 --all-months",
 			"",
 			"Options:",
 			"  --year=YYYY        Calendar year to inventory. Default: 2026",

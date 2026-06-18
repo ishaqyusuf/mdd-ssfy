@@ -8,6 +8,10 @@ import { PanResponder, Pressable, TextInput, View } from "react-native";
 import { createDefaultLineItems } from "../mock-data";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type { NewSalesFormLineItem } from "../types";
+import {
+  FloatingInvoiceAction,
+  INVOICE_FLOATING_SECONDARY_OFFSET,
+} from "./floating-invoice-action";
 import { WorkflowStepSelector } from "./workflow-step-selector";
 
 export function ItemsStep() {
@@ -18,6 +22,7 @@ export function ItemsStep() {
     dismiss: dismissItemsSheet,
   } = useModal();
   const lineItems = useInvoiceFormStore((state) => state.lineItems);
+  const type = useInvoiceFormStore((state) => state.type);
   const salesId = useInvoiceFormStore((state) => state.salesId);
   const slug = useInvoiceFormStore((state) => state.slug);
   const actions = useInvoiceFormStore((state) => state.actions);
@@ -42,6 +47,8 @@ export function ItemsStep() {
   const hasMultipleItems = itemSections.length > 1;
   const canGoPrevious = hasMultipleItems && activeIndex > 0;
   const canGoNext = hasMultipleItems && activeIndex < itemSections.length - 1;
+  const itemNoun = type === "quote" ? "quote" : "invoice";
+  const itemNounTitle = type === "quote" ? "Quote" : "Invoice";
 
   useEffect(() => {
     if (!itemSections.length) {
@@ -113,7 +120,7 @@ export function ItemsStep() {
   };
 
   return (
-    <View className="relative gap-4 pb-20">
+    <View className="relative gap-4 pb-32">
       {activeSection || visibleWorkflowLine ? (
         <View className="relative min-h-[640px]" {...panResponder.panHandlers}>
           {hasMultipleItems ? (
@@ -179,10 +186,10 @@ export function ItemsStep() {
             size={28}
           />
           <Text className="mt-3 text-sm font-bold text-foreground">
-            No invoice items yet
+            No {itemNoun} items yet
           </Text>
           <Text className="mt-1 text-center text-xs text-muted-foreground">
-            Add an item to start the invoice.
+            Add an item to start the {itemNoun}.
           </Text>
           <Button
             className="mt-4 h-11 rounded-xl px-4"
@@ -194,16 +201,21 @@ export function ItemsStep() {
         </View>
       )}
 
-      <Pressable
-        onPress={() => presentItemsSheet()}
-        className="absolute bottom-3 right-3 h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg active:opacity-90"
+      <FloatingInvoiceAction
+        align="center"
+        footerOffset={INVOICE_FLOATING_SECONDARY_OFFSET}
       >
-        <Icon name="List" className="text-primary-foreground" size={24} />
-      </Pressable>
+        <Pressable
+          onPress={() => presentItemsSheet()}
+          className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-lg active:opacity-90"
+        >
+          <Icon name="List" className="text-primary-foreground" size={24} />
+        </Pressable>
+      </FloatingInvoiceAction>
 
       <Modal
         ref={itemsSheetRef}
-        title="Invoice items"
+        title={`${itemNounTitle} items`}
         snapPoints={["65%", "90%"]}
       >
         <BottomSheetScrollView
@@ -240,7 +252,7 @@ export function ItemsStep() {
                       numberOfLines={1}
                       className="mt-0.5 text-xs text-muted-foreground"
                     >
-                      Invoice item {index + 1}
+                      {itemNounTitle} item {index + 1}
                     </Text>
                   </View>
                   {selected ? (
@@ -254,7 +266,7 @@ export function ItemsStep() {
         <View className="absolute bottom-0 left-0 right-0 border-t border-border bg-background p-4">
           <Button className="h-11 rounded-xl" onPress={addInvoiceItemFromSheet}>
             <Icon name="Plus" className="text-primary-foreground" size={16} />
-            <Text>Add invoice item</Text>
+            <Text>Add {itemNoun} item</Text>
           </Button>
         </View>
       </Modal>

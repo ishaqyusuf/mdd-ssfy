@@ -103,4 +103,47 @@ describe("mutation-engine domain", () => {
       noHandle: true,
     });
   });
+
+  it("uses submitted multi-select component pricing over stale visible component pricing", () => {
+    const steps = [
+      {
+        stepId: 2,
+        step: { title: "Door" },
+        componentId: null,
+        prodUid: "",
+        meta: {},
+      },
+    ];
+    const result = applyMultiSelectStepMutation({
+      steps,
+      currentStepIndex: 0,
+      component: {
+        id: 1,
+        uid: "custom-1",
+        title: "CUSTOM PART",
+        salesPrice: 42,
+        basePrice: 42,
+        custom: true,
+      },
+      visibleComponents: [
+        {
+          id: 1,
+          uid: "custom-1",
+          title: "CUSTOM PART",
+          salesPrice: null,
+          basePrice: null,
+          custom: true,
+        },
+      ],
+      selectedOverride: true,
+      activeStepTitle: "Door",
+    });
+
+    expect(result.steps[0].price).toBe(42);
+    expect(result.steps[0].basePrice).toBe(42);
+    expect(result.steps[0].meta.selectedComponents[0].salesPrice).toBe(42);
+    expect(result.steps[0].meta.selectedComponents[0]._metaData.custom).toBe(
+      true,
+    );
+  });
 });

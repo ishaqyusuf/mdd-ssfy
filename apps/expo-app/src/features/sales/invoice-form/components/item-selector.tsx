@@ -130,6 +130,8 @@ export function ItemSelector() {
   );
   const { getProfileCoefficient } = useInvoiceFormProfiles();
   const customerProfileCoefficient = getProfileCoefficient(customerProfileId);
+  const type = useInvoiceFormStore((state) => state.type);
+  const noun = type === "quote" ? "quote" : "invoice";
   const selectedProductIds = useMemo(
     () =>
       Array.from(
@@ -382,7 +384,7 @@ export function ItemSelector() {
             disabled={!selectedRows.length}
             onPress={addSelectedToInvoice}
           >
-            <Text>Add to invoice</Text>
+            <Text>Add to {noun}</Text>
           </Button>
         </View>
       </View>

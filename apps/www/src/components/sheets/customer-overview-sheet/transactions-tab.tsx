@@ -42,7 +42,6 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
 
     return (
         <div className="flex flex-col">
-            {/* <SalesPaymentForm /> */}
             <EmptyState
                 empty={data?.status && data?.transactions?.length == 0}
                 title="Empty Transactions"

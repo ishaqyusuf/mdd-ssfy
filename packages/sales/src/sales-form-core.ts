@@ -75,6 +75,7 @@ export {
 export {
 	removeWorkflowHptDoorOption,
 	removeWorkflowSelectedComponent,
+	swapWorkflowDoorComponent,
 	updateWorkflowDoorSupplier,
 	type WorkflowDoorActionPatch,
 } from "./sales-form/ui/workflow/workflow-door-actions";
@@ -128,6 +129,10 @@ export {
 	patchShelfRowQty,
 } from "./sales-form/ui/workflow/shelf-row-products";
 export {
+	getShelfChildCategories,
+	getShelfLeafCategoryIds,
+} from "./sales-form/ui/workflow/shelf-inputs";
+export {
 	buildStepComponentOverrideMap,
 	componentLabel,
 	createShelfProductDraft,
@@ -154,7 +159,10 @@ export {
 	resolveWorkflowStepComponentStatus,
 	type WorkflowPanelStatus,
 } from "./sales-form/ui/workflow/workflow-query-state";
-export { moneyIfPositive } from "./sales-form/ui/workflow/workflow-format";
+export {
+	moneyIfPositive,
+	profileAdjustedSalesPrice,
+} from "./sales-form/ui/workflow/workflow-format";
 export type {
 	DoorStoredRow,
 	MouldingRow,
