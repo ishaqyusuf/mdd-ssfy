@@ -5,6 +5,7 @@ import { Modal, useModal } from "@/components/ui/modal";
 import { Text } from "@/components/ui/text";
 import {
   profileAdjustedSalesPrice,
+  readSalesFormObjectMetadata,
   type WorkflowComponentRecord,
   type WorkflowStepRecord,
 } from "@gnd/sales/sales-form-core";
@@ -20,33 +21,27 @@ import {
 import { FloatingInvoiceAction } from "../components/floating-invoice-action";
 import {
   buildCustomOptions,
+  canProceedCustomComponentDetails,
   customComponentPriceChanged,
   customOptionToWorkflowComponent,
-  isCustomComponent,
+  findCustomOptionByTitle,
+  mergeSelectedCustomComponents,
+  normalizeCustomComponentTitleInput,
+  orderSelectedCustomFirst,
   stepSupportsCustomComponents,
   type CustomComponentOption,
 } from "./custom-component-options";
 
-export { stepSupportsCustomComponents } from "./custom-component-options";
+export {
+  mergeSelectedCustomComponents,
+  orderSelectedCustomFirst,
+  stepSupportsCustomComponents,
+} from "./custom-component-options";
 
 type SheetMode = "search" | "details";
 
 const CUSTOM_COMPONENT_IMAGE_ID = "ff8zkn817rjqv6ml2qdr";
-
-export function orderSelectedCustomFirst(
-  components: WorkflowComponentRecord[],
-  step?: WorkflowStepRecord | null,
-) {
-  const selectedUids = new Set(readSelectedUids(step));
-  return [...components].sort((a, b) => {
-    const aSelectedCustom =
-      isCustomComponent(a) && selectedUids.has(String(a.uid || ""));
-    const bSelectedCustom =
-      isCustomComponent(b) && selectedUids.has(String(b.uid || ""));
-    if (aSelectedCustom === bSelectedCustom) return 0;
-    return aSelectedCustom ? -1 : 1;
-  });
-}
+const CUSTOM_COMPONENT_SNAP_POINTS = ["42%", "100%"];
 
 export function CustomComponentSheet({
   step,
@@ -54,12 +49,14 @@ export function CustomComponentSheet({
   profileCoefficient,
   footerOffset,
   onSaved,
+  onOptionsChanged,
 }: {
   step?: WorkflowStepRecord | null;
   components: WorkflowComponentRecord[];
   profileCoefficient?: number | null;
   footerOffset: number;
   onSaved: (component: WorkflowComponentRecord) => void;
+  onOptionsChanged?: () => void;
 }) {
   const modal = useModal();
   const [mode, setMode] = useState<SheetMode>("search");
@@ -67,9 +64,20 @@ export function CustomComponentSheet({
   const [cost, setCost] = useState("");
   const [selectedOption, setSelectedOption] =
     useState<CustomComponentOption | null>(null);
+  const [pendingArchiveKey, setPendingArchiveKey] = useState<string | null>(null);
+  const [archivedOptionKeys, setArchivedOptionKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
   const stepId = Number(step?.stepId || step?.step?.id || 0);
-  const options = useMemo(() => buildCustomOptions(components), [components]);
-  const query = title.trim().toLowerCase();
+  const options = useMemo(
+    () =>
+      buildCustomOptions(components).filter(
+        (option) => !archivedOptionKeys.has(customOptionKey(option)),
+      ),
+    [archivedOptionKeys, components],
+  );
+  const normalizedTitle = normalizeCustomComponentTitleInput(title);
+  const query = normalizedTitle.toLowerCase();
   const results = useMemo(
     () =>
       query
@@ -93,8 +101,39 @@ export function CustomComponentSheet({
       },
     }),
   );
-  const canProceedFromSearch = title.trim().length > 0;
-  const canSave = stepId > 0 && title.trim().length > 0 && !saveMutation.isPending;
+  const archiveMutation = useMutation(
+    _trpc.inventories.archiveDykeCustomStepComponent.mutationOptions({
+      onSuccess(_data, variables) {
+        setArchivedOptionKeys((current) => {
+          const next = new Set(current);
+          next.add(
+            customOptionKey({ id: variables.id, uid: variables.uid } as any),
+          );
+          return next;
+        });
+        if (
+          selectedOption &&
+          (Number(selectedOption.id || 0) === Number(variables.id || 0) ||
+            String(selectedOption.uid || "") === String(variables.uid || ""))
+        ) {
+          setSelectedOption(null);
+          setTitle("");
+          setCost("");
+        }
+        setPendingArchiveKey(null);
+        onOptionsChanged?.();
+      },
+    }),
+  );
+  const canProceedFromSearch = normalizedTitle.length > 0;
+  const parsedCost = parseCost(cost);
+  const canSave = canProceedCustomComponentDetails({
+    stepId,
+    title,
+    selectedOption,
+    nextPrice: parsedCost,
+    saving: saveMutation.isPending,
+  });
 
   function openSearchSheet() {
     reset();
@@ -108,24 +147,31 @@ export function CustomComponentSheet({
     setTitle("");
     setCost("");
     setSelectedOption(null);
+    setPendingArchiveKey(null);
   }
 
   function continueToDetails(option?: CustomComponentOption | null) {
-    if (option) {
-      setSelectedOption(option);
-      setTitle(option.title);
-      setCost(option.price == null ? "" : String(option.price));
+    const matchedOption = option || findCustomOptionByTitle(options, title);
+    if (matchedOption) {
+      setSelectedOption(matchedOption);
+      setTitle(matchedOption.title);
+      setCost(matchedOption.price == null ? "" : String(matchedOption.price));
+    } else {
+      setTitle(normalizedTitle);
     }
-    if (!String(option?.title || title).trim()) return;
+    if (!String(matchedOption?.title || normalizedTitle).trim()) return;
     setMode("details");
     requestAnimationFrame(() => modal.ref.current?.snapToIndex(0));
   }
 
   function saveCustomComponent() {
-    const price = parseCost(cost);
+    if (!canSave) return;
+
+    const titleForSave = normalizeCustomComponentTitleInput(title);
+    const price = parsedCost;
     if (
       selectedOption &&
-      selectedOption.title.trim() === title.trim() &&
+      selectedOption.title.trim() === titleForSave &&
       !customComponentPriceChanged(selectedOption, price)
     ) {
       onSaved(
@@ -144,11 +190,20 @@ export function CustomComponentSheet({
       uid: selectedOption?.uid || undefined,
       img: CUSTOM_COMPONENT_IMAGE_ID,
       stepId,
-      title: title.trim(),
+      title: titleForSave,
       price,
       pricingId: selectedOption?.pricingId,
       dependenciesUid: selectedOption?.dependenciesUid,
       meta: { custom: true },
+    });
+  }
+
+  function archiveCustomOption(option: CustomComponentOption) {
+    if (archiveMutation.isPending) return;
+    if (!option.id && !option.uid) return;
+    archiveMutation.mutate({
+      id: option.id,
+      uid: option.uid || undefined,
     });
   }
 
@@ -172,7 +227,7 @@ export function CustomComponentSheet({
       <Modal
         ref={modal.ref}
         title={mode === "search" ? undefined : "Title & Cost"}
-        snapPoints={["42%", "100%"]}
+        snapPoints={CUSTOM_COMPONENT_SNAP_POINTS}
         onDismiss={reset}
       >
         {mode === "search" ? (
@@ -211,20 +266,17 @@ export function CustomComponentSheet({
                 </View>
               }
               renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => continueToDetails(item)}
-                  className="mb-2 flex-row items-center justify-between rounded-2xl border border-border bg-card p-4 active:opacity-80"
-                >
-                  <View className="min-w-0 flex-1">
-                    <Text numberOfLines={1} className="font-bold text-foreground">
-                      {item.title}
-                    </Text>
-                    <Text className="mt-1 text-xs text-muted-foreground">
-                      {item.price == null ? "No cost set" : `$${item.price.toFixed(2)}`}
-                    </Text>
-                  </View>
-                  <Icon name="ChevronRight" className="text-muted-foreground" size={18} />
-                </Pressable>
+                <CustomOptionRow
+                  item={item}
+                  pendingArchiveKey={pendingArchiveKey}
+                  disabled={archiveMutation.isPending}
+                  onSelect={() => continueToDetails(item)}
+                  onRequestArchive={() =>
+                    setPendingArchiveKey(customOptionKey(item))
+                  }
+                  onCancelArchive={() => setPendingArchiveKey(null)}
+                  onConfirmArchive={() => archiveCustomOption(item)}
+                />
               )}
             />
             <View className="absolute inset-x-0 bottom-0 border-t border-border bg-card px-4 pb-5 pt-3">
@@ -245,7 +297,15 @@ export function CustomComponentSheet({
               </Text>
               <TextInput
                 value={title}
-                onChangeText={setTitle}
+                onChangeText={(value) => {
+                  setTitle(value);
+                  if (
+                    selectedOption &&
+                    selectedOption.title !== normalizeCustomComponentTitleInput(value)
+                  ) {
+                    setSelectedOption(null);
+                  }
+                }}
                 placeholder="Custom component title"
                 placeholderTextColor="#8A8A8A"
                 className="h-12 rounded-xl border border-border bg-card px-3 text-foreground"
@@ -295,8 +355,8 @@ function mapSavedComponent(
   costPrice?: number | null,
   profileCoefficient?: number | null,
 ): WorkflowComponentRecord | null {
-  const data = readObject(value);
-  const component = data ? readObject(data.component) : null;
+  const data = readSalesFormObjectMetadata(value);
+  const component = data ? readSalesFormObjectMetadata(data.component) : null;
   if (!component) return null;
   const basePrice = firstFiniteNumber(
     costPrice,
@@ -312,29 +372,109 @@ function mapSavedComponent(
     ...component,
     id: component.id == null ? null : Number(component.id || 0),
     uid: String(component.uid || component.id || ""),
-    title: String(component.title || component.name || component.uid || "Component"),
+    title: normalizeCustomComponentTitleInput(
+      component.title || component.name || "Component",
+    ),
     salesPrice,
     basePrice,
     custom: true,
     _metaData: {
-      ...(readObject(component._metaData) || {}),
+      ...(readSalesFormObjectMetadata(component._metaData) || {}),
       custom: true,
     },
   };
 }
 
-function readSelectedUids(step?: WorkflowStepRecord | null) {
-  const meta = readObject(step?.meta);
-  const values = Array.isArray(meta?.selectedProdUids)
-    ? meta.selectedProdUids
-    : [];
-  return values.map((value) => String(value || "")).filter(Boolean);
+function CustomOptionRow({
+  item,
+  pendingArchiveKey,
+  disabled,
+  onSelect,
+  onRequestArchive,
+  onCancelArchive,
+  onConfirmArchive,
+}: {
+  item: CustomComponentOption;
+  pendingArchiveKey: string | null;
+  disabled?: boolean;
+  onSelect: () => void;
+  onRequestArchive: () => void;
+  onCancelArchive: () => void;
+  onConfirmArchive: () => void;
+}) {
+  const archivePending = pendingArchiveKey === customOptionKey(item);
+  const canArchive = Boolean(item.id || item.uid);
+
+  return (
+    <View className="mb-2 rounded-2xl border border-border bg-card p-4">
+      <View className="flex-row items-center justify-between gap-3">
+        <Pressable
+          onPress={onSelect}
+          disabled={disabled}
+          className="min-w-0 flex-1 active:opacity-80 disabled:opacity-50"
+        >
+          <Text numberOfLines={1} className="font-bold text-foreground">
+            {item.title}
+          </Text>
+          <Text className="mt-1 text-xs text-muted-foreground">
+            {item.price == null ? "No cost set" : `$${item.price.toFixed(2)}`}
+          </Text>
+        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={onRequestArchive}
+            disabled={disabled || !canArchive}
+            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-background disabled:opacity-40"
+          >
+            <Icon name="Trash" className="text-red-600" size={16} />
+          </Pressable>
+          <Pressable
+            onPress={onSelect}
+            disabled={disabled}
+            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-background disabled:opacity-40"
+          >
+            <Icon name="ChevronRight" className="text-muted-foreground" size={18} />
+          </Pressable>
+        </View>
+      </View>
+      {archivePending ? (
+        <View className="mt-3 gap-2 rounded-xl border border-red-200 bg-red-50 p-3">
+          <Text className="text-xs font-bold text-red-700">
+            Delete custom component?
+          </Text>
+          <Text className="text-[11px] text-red-700">
+            This hides "{item.title}" from future custom component results.
+          </Text>
+          <View className="flex-row justify-end gap-2">
+            <Pressable
+              onPress={onCancelArchive}
+              disabled={disabled}
+              className="h-9 items-center justify-center rounded-lg border border-border bg-background px-4 disabled:opacity-40"
+            >
+              <Text className="text-[11px] font-bold text-foreground">
+                Cancel
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={onConfirmArchive}
+              disabled={disabled || !canArchive}
+              className="h-9 items-center justify-center rounded-lg bg-red-600 px-4 disabled:opacity-40"
+            >
+              <Text className="text-[11px] font-bold text-white">
+                {disabled ? "Deleting..." : "Delete"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
 }
 
-function readObject(value: unknown): Record<string, any> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, any>)
-    : null;
+function customOptionKey(option: Pick<CustomComponentOption, "id" | "uid">) {
+  const uid = String(option.uid || "").trim();
+  if (uid) return `uid:${uid}`;
+  return `id:${option.id ?? "none"}`;
 }
 
 function firstFiniteNumber(...values: unknown[]) {

@@ -4,6 +4,7 @@ import {
 	deriveMouldingRows,
 	getSelectedProdUids,
 	normalizeSalesFormTitle as normalizeTitle,
+	readSalesFormObjectMetadata,
 	sharedMouldingComponentPrice,
 	summarizeMouldingPersistRows,
 } from "../../domain";
@@ -33,10 +34,43 @@ export type WorkflowMouldingSelectionPatch = {
 };
 
 function getMouldingRows(line: WorkflowLineItemRecord): MouldingRow[] {
-	const meta = line.meta as WorkflowLineItemRecord["meta"] & {
-		mouldingRows?: MouldingRow[];
-	};
+	const meta = readSalesFormObjectMetadata(line.meta) || {};
 	return Array.isArray(meta?.mouldingRows) ? meta.mouldingRows : [];
+}
+
+function stepMetadataRecords(step: WorkflowStepRecord) {
+	return [
+		readSalesFormObjectMetadata(step?.meta),
+		readSalesFormObjectMetadata(readSalesFormObjectMetadata(step?.step)?.meta),
+	].filter(Boolean) as Record<string, unknown>[];
+}
+
+function readSelectedMouldingUids(step: WorkflowStepRecord) {
+	const metaUids = stepMetadataRecords(step)
+		.flatMap((meta) =>
+			Array.isArray(meta.selectedProdUids) ? meta.selectedProdUids : [],
+		)
+		.map((uid) => String(uid || "").trim())
+		.filter(Boolean);
+	const fallbackUids = getSelectedProdUids(step);
+	return Array.from(new Set([...metaUids, ...fallbackUids]));
+}
+
+function readSelectedMouldingComponents(
+	step: WorkflowStepRecord,
+	fallback: WorkflowComponentRecord[],
+) {
+	const metaComponents = stepMetadataRecords(step).flatMap((meta) =>
+		Array.isArray(meta.selectedComponents) ? meta.selectedComponents : [],
+	);
+	const byUid = new Map<string, WorkflowComponentRecord>();
+	for (const component of [...fallback, ...metaComponents]) {
+		const record = readSalesFormObjectMetadata(component);
+		const uid = String(record?.uid || "").trim();
+		if (!uid || byUid.has(uid)) continue;
+		byUid.set(uid, record as WorkflowComponentRecord);
+	}
+	return Array.from(byUid.values());
 }
 
 export function saveWorkflowMouldingSelectionWithQty(input: {
@@ -87,7 +121,7 @@ export function saveWorkflowMouldingSelectionWithQty(input: {
 	return {
 		formSteps: multiMutation.steps,
 		meta: {
-			...(input.line.meta || {}),
+			...(readSalesFormObjectMetadata(input.line.meta) || {}),
 			mouldingRows: summary.storedRows,
 		},
 		qty: summary.qtyTotal,
@@ -102,17 +136,21 @@ export function removeWorkflowMouldingSelection(input: {
 	rows: MouldingRow[];
 	selectedMouldings: WorkflowComponentRecord[];
 	sharedComponentPrice?: number | null;
-}): WorkflowMouldingRemovalPatch {
+}): WorkflowMouldingRemovalPatch | null {
+	if (input.rows.length <= 1) {
+		return null;
+	}
 	const remainingRows = input.rows.filter(
 		(row) => String(row.uid) !== input.mouldingUid,
 	);
+	if (!remainingRows.length) return null;
 	const next = summarizeMouldingPersistRows(
 		remainingRows,
 		input.sharedComponentPrice || 0,
 	);
 	const patch: WorkflowMouldingRemovalPatch = {
 		meta: {
-			...(input.line.meta || {}),
+			...(readSalesFormObjectMetadata(input.line.meta) || {}),
 			mouldingRows: next.storedRows,
 		},
 		qty: next.qtyTotal,
@@ -127,14 +165,13 @@ export function removeWorkflowMouldingSelection(input: {
 	if (mouldingStepIndex < 0) return patch;
 
 	const mouldingStep = steps[mouldingStepIndex];
-	const selectedUids = getSelectedProdUids(mouldingStep).filter(
+	const selectedUids = readSelectedMouldingUids(mouldingStep).filter(
 		(uid) => uid !== input.mouldingUid,
 	);
-	const selectedComponentsSource = Array.isArray(
-		mouldingStep?.meta?.selectedComponents,
-	)
-		? mouldingStep.meta.selectedComponents
-		: input.selectedMouldings;
+	const selectedComponentsSource = readSelectedMouldingComponents(
+		mouldingStep,
+		input.selectedMouldings,
+	);
 	const remainingComponents = selectedUids
 		.map(
 			(uid) =>
@@ -163,7 +200,7 @@ export function removeWorkflowMouldingSelection(input: {
 		price: remainingComponents.length ? totalSales : 0,
 		basePrice: remainingComponents.length ? totalBase : 0,
 		meta: {
-			...(mouldingStep?.meta || {}),
+			...(readSalesFormObjectMetadata(mouldingStep?.meta) || {}),
 			selectedProdUids: selectedUids.map((uid) => String(uid)),
 			selectedComponents: remainingComponents.map((component) =>
 				snapshotSelectedComponent(component),

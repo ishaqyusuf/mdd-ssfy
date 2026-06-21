@@ -44,7 +44,7 @@ function mapRealCustomerProfile(row: CustomerProfileRow): InvoiceCustomerProfile
     coefficient: Number.isFinite(coefficient) ? coefficient : null,
     meta:
       row.meta && typeof row.meta === "object" && !Array.isArray(row.meta)
-        ? row.meta
+        ? (row.meta as Record<string, unknown>)
         : null,
   };
 }

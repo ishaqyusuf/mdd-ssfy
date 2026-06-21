@@ -255,19 +255,26 @@ export function JobDetailsStep() {
                 name="job.description"
                 render={({ field, fieldState }) => (
                   <View>
-                    <TextInput
-                      value={(field.value as string) || ""}
-                      onChangeText={field.onChange}
-                      multiline
-                      numberOfLines={4}
+                    <View
                       className={cn(
                         "min-h-28 rounded-2xl border bg-background px-4 py-3 text-sm text-foreground",
                         fieldState.error ? "border-destructive" : "border-border",
                       )}
-                      style={{ textAlignVertical: "top", textAlign: "left" }}
-                      placeholder="Write job notes and instructions..."
-                      placeholderTextColor="hsl(var(--muted-foreground))"
-                    />
+                    >
+                      <TextInput
+                        value={(field.value as string) || ""}
+                        onChangeText={field.onChange}
+                        multiline
+                        numberOfLines={4}
+                        style={{
+                          minHeight: 88,
+                          textAlignVertical: "top",
+                          textAlign: "left",
+                        }}
+                        placeholder="Write job notes and instructions..."
+                        placeholderTextColor="hsl(var(--muted-foreground))"
+                      />
+                    </View>
                     {fieldState.error?.message ? (
                       <Text className="mt-1 text-xs text-destructive">
                         {fieldState.error.message}
@@ -400,33 +407,40 @@ export function JobDetailsStep() {
                         name={qtyFieldName as any}
                         render={({ field, fieldState }) => (
                           <View className="w-24 px-1">
-                            <TextInput
-                              value={
-                                field.value === null || field.value === undefined
-                                  ? ""
-                                  : String(field.value)
-                              }
-                              onChangeText={(text) => {
-                                field.onChange(
-                                  parseQty(
-                                    text.replace(/[^0-9.]/g, ""),
-                                    admin ? task?.maxQty : null,
-                                  ),
-                                );
-                                void form.trigger(qtyFieldName as any);
-                              }}
-                              keyboardType="decimal-pad"
-                              editable={!admin || Number(task?.maxQty || 0) > 0}
+                            <View
                               className={cn(
                                 "h-10 rounded-xl border bg-card px-2 text-xs text-foreground",
                                 fieldState.error
                                   ? "border-destructive"
                                   : "border-border",
                               )}
-                              style={{ textAlign: "center" }}
-                              placeholder="0"
-                              placeholderTextColor="hsl(var(--muted-foreground))"
-                            />
+                            >
+                              <TextInput
+                                value={
+                                  field.value === null ||
+                                  field.value === undefined
+                                    ? ""
+                                    : String(field.value)
+                                }
+                                onChangeText={(text) => {
+                                  field.onChange(
+                                    parseQty(
+                                      text.replace(/[^0-9.]/g, ""),
+                                      admin ? task?.maxQty : null,
+                                    ),
+                                  );
+                                  void form.trigger(qtyFieldName as any);
+                                }}
+                                keyboardType="decimal-pad"
+                                editable={!admin || Number(task?.maxQty || 0) > 0}
+                                style={{
+                                  height: 40,
+                                  textAlign: "center",
+                                }}
+                                placeholder="0"
+                                placeholderTextColor="hsl(var(--muted-foreground))"
+                              />
+                            </View>
                             {state.showTaskQty && admin ? (
                               <Text className="mt-1 text-center text-[10px] text-muted-foreground">
                                 / {task?.maxQty || 0}

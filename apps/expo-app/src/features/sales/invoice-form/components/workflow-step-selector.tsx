@@ -6,11 +6,11 @@ import { Text } from "@/components/ui/text";
 import {
   buildStepComponentOverrideMap,
   buildWorkflowMouldingRowsContext,
+  buildWorkflowMouldingRowsPatch,
   buildWorkflowDoorSizeVariantPatch,
   buildWorkflowLinePricingPatch,
   calcWorkflowDoorRow,
   clearUnpricedDoorRowQty,
-  componentLabel,
   computeHptSharedDoorSurcharge,
   deriveDoorSizeRows,
   firstPendingStepIndex,
@@ -21,12 +21,13 @@ import {
   getWorkflowSteps,
   isDoorStepTitle,
   isHousePackageToolStepTitle,
-  isMouldingItem,
   isMultiSelectStepTitle,
+  isMouldingItem,
   isRedirectDisabledStep,
   isWorkflowComponentSelected,
   moneyIfPositive,
   proceedWorkflowMultiSelectStep,
+  readSalesFormObjectMetadata,
   removeWorkflowMouldingSelection,
   resolveWorkflowStepComponentStatus,
   resolveWorkflowVisibleComponents,
@@ -40,10 +41,20 @@ import {
   type WorkflowComponentRecord,
   type WorkflowStepRecord,
 } from "@gnd/sales/sales-form-core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   FlatList,
   Image,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -53,23 +64,51 @@ import {
   type TextInputProps,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import {
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceWorkflowStepComponents } from "../api/use-invoice-workflow-step-components";
+import {
+  formatWorkflowComponentLabel,
+  getWorkflowSelectableTitle,
+} from "../api/workflow-selectable-copy";
 import { parseCurrencyInput } from "../lib/format";
+import { getSalesDocumentLabels } from "../lib/sales-document-labels";
 import { useInvoiceFormModalStore } from "../store/use-invoice-form-modal-store";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
-import type { NewSalesFormLineItem } from "../types";
+import type { NewSalesFormLineItem, NewSalesFormType } from "../types";
+import {
+  getDoorRows,
+  getMobileDoorRouteFlags,
+} from "../steps/line-workflow-helpers";
+import { HousePackageToolWorkflowStep } from "../steps/house-package-tool/house-package-tool-workflow-step";
 import {
   CustomComponentSheet,
+  mergeSelectedCustomComponents,
   orderSelectedCustomFirst,
   stepSupportsCustomComponents,
 } from "../custom-component/custom-component-sheet";
+import { FloatingInvoiceAction } from "./floating-invoice-action";
 import {
-  FloatingInvoiceAction,
-  INVOICE_FLOATING_BASE_OFFSET,
-  INVOICE_FLOATING_TERTIARY_OFFSET,
-} from "./floating-invoice-action";
+  getCustomComponentFloatingOffset,
+  getWorkflowProceedFloatingOffset,
+} from "./floating-invoice-action-layout";
+import {
+  getWorkflowProceedSelectedCount,
+  isWorkflowBulkSelectableStep,
+  shouldShowWorkflowProceedAction,
+} from "./workflow-proceed-visibility";
+import {
+  filterWorkflowComponentsBySearch,
+  getWorkflowProceedFallbackSelectedCount,
+  limitWorkflowComponents,
+  shouldShowWorkflowComponentSearch,
+  shouldTreatWorkflowStepAsMouldingSelection,
+  shouldUseWorkflowGroupedRowEditorStep,
+} from "./workflow-step-rendering";
+import { getWorkflowStepPillLabels } from "./workflow-step-pill-labels";
 
 type WorkflowSelectorNoticeState = {
   icon: IconKeys;
@@ -77,7 +116,22 @@ type WorkflowSelectorNoticeState = {
   description: string;
 };
 
-const OVERLAY_FOOTER_PROCEED_OFFSET = 84;
+export type WorkflowStickyHeaderEntry = {
+  key: string;
+  node: ReactNode;
+};
+
+export type WorkflowFloatingActionEntry = {
+  key: string;
+  footerOffset: number;
+  onPress: () => void;
+};
+
+export type WorkflowLineItemEditorEntry = {
+  key: string;
+  family: string;
+  stepTitle: string;
+};
 
 function TextInput({
   className,
@@ -115,10 +169,26 @@ export function WorkflowStepSelector({
   line,
   onClose,
   presentation = "overlay",
+  footerActionsHidden = false,
+  onComponentScroll,
+  formScrollY = 0,
+  inlineContentTopY,
+  onStickyHeaderChange,
+  onInlineProceedActionChange,
+  onLineItemEditorChange,
 }: {
   line: NewSalesFormLineItem;
   onClose: () => void;
   presentation?: "overlay" | "inline";
+  footerActionsHidden?: boolean;
+  onComponentScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  formScrollY?: number;
+  inlineContentTopY?: number;
+  onStickyHeaderChange?: (entry: WorkflowStickyHeaderEntry | null) => void;
+  onInlineProceedActionChange?: (
+    entry: WorkflowFloatingActionEntry | null,
+  ) => void;
+  onLineItemEditorChange?: (entry: WorkflowLineItemEditorEntry | null) => void;
 }) {
   const inline = presentation === "inline";
   const currentLine =
@@ -133,6 +203,9 @@ export function WorkflowStepSelector({
   const [doorSizeComponent, setDoorSizeComponent] =
     useState<WorkflowComponentRecord | null>(null);
   const [doorSizeRows, setDoorSizeRows] = useState<DoorStoredRow[]>([]);
+  const [componentSearchQuery, setComponentSearchQuery] = useState("");
+  const [pendingMultiSelectUidsByStep, setPendingMultiSelectUidsByStep] =
+    useState<Record<string, string[]>>({});
   const activeStep = steps[activeStepIndex] || steps[0] || null;
   const {
     components,
@@ -148,6 +221,7 @@ export function WorkflowStepSelector({
   );
   const { getProfileCoefficient } = useInvoiceFormProfiles();
   const actions = useInvoiceFormStore((state) => state.actions);
+  const formType = useInvoiceFormStore((state) => state.type);
   const router = useRouter();
   const setDoorSizePicker = useInvoiceFormModalStore(
     (state) => state.actions.setDoorSizePicker,
@@ -156,26 +230,36 @@ export function WorkflowStepSelector({
     (state) => state.actions.clearDoorSizePicker,
   );
   const activeStepTitle = activeStep?.step?.title || activeStep?.title || "";
+  const activeStepTitleKey = activeStepTitle.trim().toLowerCase();
   const activeStepUid = String(activeStep?.step?.uid || activeStep?.uid || "");
   const rootStepUid = String(workflowRouteData?.rootStepUid || "");
   const activeRootStep =
-    activeStepTitle.trim().toLowerCase() === "item type" ||
+    activeStepTitleKey === "item type" ||
     (Boolean(rootStepUid) && activeStepUid === rootStepUid);
   const activeStepFamily = activeStep
     ? getItemWorkflowStepFamily(currentLine, activeStep)
     : "component-grid";
-  const activeMouldingStep =
-    isMouldingItem(currentLine) &&
-    activeStepTitle.trim().toLowerCase() === "moulding";
+  const activeMouldingStep = shouldTreatWorkflowStepAsMouldingSelection({
+    activeRootStep,
+    activeStepTitle,
+    mouldingItem: isMouldingItem(currentLine),
+  });
+  const activeMultiSelectStepKey = `${currentLine.uid || "line"}:${activeStepIndex}:${activeStepUid || activeStepTitleKey || "step"}`;
+  const activeMouldingContext = useMemo(
+    () =>
+      activeMouldingStep ? buildWorkflowMouldingRowsContext(currentLine) : null,
+    [activeMouldingStep, currentLine],
+  );
   const activeHousePackageToolStep =
     isHousePackageToolStepTitle(activeStepTitle);
   const activeRedirectDisabledStep = activeStep
     ? isRedirectDisabledStep(activeStep)
     : false;
-  const activeGroupedRowEditorStep =
-    activeStepFamily === "service-line-item" ||
-    activeStepFamily === "shelf" ||
-    (activeStepFamily === "moulding-line-item" && !activeMouldingStep);
+  const activeGroupedRowEditorStep = shouldUseWorkflowGroupedRowEditorStep({
+    activeRootStep,
+    activeStepFamily,
+    activeMouldingStep,
+  });
   const showComponentPicker =
     Boolean(activeStep) &&
     !activeHousePackageToolStep &&
@@ -184,12 +268,11 @@ export function WorkflowStepSelector({
   const multiSelectStep = isMultiSelectStepTitle(activeStepTitle);
   const doorStep = isDoorStepTitle(activeStepTitle);
   const pickerMultiSelectStep = showComponentPicker && multiSelectStep;
-  const bulkSelectableStep =
-    pickerMultiSelectStep && !doorStep && !activeMouldingStep;
-  const selectedCount = useMemo(
-    () => getSelectedProdUids(activeStep).length,
-    [activeStep],
-  );
+  const bulkSelectableStep = isWorkflowBulkSelectableStep({
+    pickerMultiSelectStep,
+    doorStep,
+    mouldingStep: activeMouldingStep,
+  });
   const activeStepComponentOverrides = useMemo(
     () => buildStepComponentOverrideMap(activeStep),
     [activeStep],
@@ -222,6 +305,77 @@ export function WorkflowStepSelector({
       workflowRouteData?.composedRouter,
     ],
   );
+  const visibleSelectedCount = useMemo(
+    () =>
+      visibleComponents.filter((component) =>
+        isWorkflowComponentSelected(activeStep, component),
+      ).length,
+    [activeStep, visibleComponents],
+  );
+  const activeDoorRowCount = useMemo(
+    () =>
+      doorStep
+        ? getDoorRows(currentLine).filter(
+            (row) => Number(row.totalQty || row.lhQty || row.rhQty || 0) > 0,
+          ).length
+        : 0,
+    [currentLine, doorStep],
+  );
+  const activeStepSelectedComponentCount = useMemo(() => {
+    const meta = readSalesFormObjectMetadata(activeStep?.meta) || {};
+    const nestedMeta =
+      readSalesFormObjectMetadata(activeStep?.step?.meta) || {};
+    const outerSelected = Array.isArray(meta.selectedComponents)
+      ? meta.selectedComponents.length
+      : 0;
+    const nestedSelected = Array.isArray(nestedMeta.selectedComponents)
+      ? nestedMeta.selectedComponents.length
+      : 0;
+    return Math.max(outerSelected, nestedSelected);
+  }, [activeStep]);
+  const stepSelectedUids = useMemo(
+    () => getSelectedProdUids(activeStep),
+    [activeStep],
+  );
+  const stepSelectedCount = stepSelectedUids.length;
+  const pendingMultiSelectUids =
+    pendingMultiSelectUidsByStep[activeMultiSelectStepKey] || [];
+  const pendingMultiSelectCount = pendingMultiSelectUids.length;
+  const selectedCount = useMemo(
+    () =>
+      getWorkflowProceedSelectedCount({
+        stepSelectedCount,
+        fallbackSelectedCount: getWorkflowProceedFallbackSelectedCount({
+          visibleSelectedCount,
+          stepSelectedComponentCount: activeStepSelectedComponentCount,
+          doorStep,
+          doorRowCount: activeDoorRowCount,
+          mouldingStep: activeMouldingStep,
+          mouldingSelectionCount:
+            activeMouldingContext?.selectedMouldings.length || 0,
+          mouldingRowCount: activeMouldingContext?.rows.length || 0,
+          pendingMultiSelectCount,
+        }),
+      }),
+    [
+      activeDoorRowCount,
+      activeMouldingContext?.rows.length,
+      activeMouldingContext?.selectedMouldings.length,
+      activeMouldingStep,
+      activeStepSelectedComponentCount,
+      doorStep,
+      pendingMultiSelectCount,
+      stepSelectedCount,
+      visibleSelectedCount,
+    ],
+  );
+  const proceedActionVisible = shouldShowWorkflowProceedAction({
+    componentPickerStep: showComponentPicker,
+    pickerMultiSelectStep,
+    doorStep,
+    mouldingStep: activeMouldingStep,
+    selectedCount,
+  });
   const customVisibleComponents = useMemo(
     () =>
       resolveWorkflowVisibleComponents({
@@ -254,14 +408,21 @@ export function WorkflowStepSelector({
     showComponentPicker && stepSupportsCustomComponents(activeStep);
   const selectorNotice = useMemo(
     () =>
-      resolveWorkflowSelectorNotice({
-        activeStep,
-        activeStepFamily,
-        activeStepTitle,
-        activeHousePackageToolStep,
-        activeRedirectDisabledStep,
-        activeGroupedRowEditorStep,
-      }),
+      inline &&
+      activeGroupedRowEditorStep &&
+      (activeStepFamily === "moulding-line-item" ||
+        activeStepFamily === "service-line-item" ||
+        activeStepFamily === "shelf")
+        ? null
+        : resolveWorkflowSelectorNotice({
+            activeStep,
+            activeStepFamily,
+            activeStepTitle,
+            activeHousePackageToolStep,
+            activeRedirectDisabledStep,
+            activeGroupedRowEditorStep,
+            type: formType,
+          }),
     [
       activeGroupedRowEditorStep,
       activeHousePackageToolStep,
@@ -269,6 +430,8 @@ export function WorkflowStepSelector({
       activeStep,
       activeStepFamily,
       activeStepTitle,
+      formType,
+      inline,
     ],
   );
   const doorSizeRouteConfig = useMemo(
@@ -304,6 +467,21 @@ export function WorkflowStepSelector({
   }, [currentLine.uid, presentation, steps]);
 
   useEffect(() => {
+    setComponentSearchQuery("");
+  }, [activeStepUid]);
+
+  useEffect(() => {
+    if (!pendingMultiSelectCount) return;
+    if (stepSelectedCount < pendingMultiSelectCount) return;
+    setPendingMultiSelectUidsByStep((current) => {
+      if (!current[activeMultiSelectStepKey]) return current;
+      const next = { ...current };
+      delete next[activeMultiSelectStepKey];
+      return next;
+    });
+  }, [activeMultiSelectStepKey, pendingMultiSelectCount, stepSelectedCount]);
+
+  useEffect(() => {
     if (!steps.length) return;
     setActiveStepIndex((current) =>
       presentation === "inline"
@@ -314,6 +492,40 @@ export function WorkflowStepSelector({
           ),
     );
   }, [presentation, steps]);
+
+  useEffect(() => {
+    if (!inline || !onLineItemEditorChange) return;
+    if (!activeGroupedRowEditorStep) {
+      onLineItemEditorChange(null);
+      return;
+    }
+    onLineItemEditorChange({
+      key: [
+        currentLine.uid || line.uid,
+        activeStepIndex,
+        activeStepFamily,
+        activeStepUid || activeStepTitleKey || "step",
+      ].join(":"),
+      family: activeStepFamily,
+      stepTitle: activeStepTitle,
+    });
+  }, [
+    activeGroupedRowEditorStep,
+    activeStepFamily,
+    activeStepIndex,
+    activeStepTitle,
+    activeStepTitleKey,
+    activeStepUid,
+    currentLine.uid,
+    inline,
+    line.uid,
+    onLineItemEditorChange,
+  ]);
+
+  useEffect(() => {
+    if (!inline || !onLineItemEditorChange) return;
+    return () => onLineItemEditorChange(null);
+  }, [inline, onLineItemEditorChange]);
 
   useEffect(() => {
     if (!doorSizeComponent) return;
@@ -342,6 +554,7 @@ export function WorkflowStepSelector({
   const applyComponentSelection = (
     component: WorkflowComponentRecord,
     selectionComponents = visibleComponents,
+    options?: { selectedOverride?: boolean },
   ) => {
     if (!workflowRouteData || !activeStep) return;
     const result = saveWorkflowSelectedComponent({
@@ -352,6 +565,7 @@ export function WorkflowStepSelector({
       component,
       visibleComponents: selectionComponents,
       activeStepTitle,
+      selectedOverride: options?.selectedOverride,
     });
     if (!result) return;
     actions.patchLineItem(line.uid, {
@@ -361,11 +575,44 @@ export function WorkflowStepSelector({
     setActiveStepIndex(result.activeStepIndex);
   };
 
+  const rememberPendingMultiSelectSelection = (
+    component: WorkflowComponentRecord,
+    selected: boolean,
+  ) => {
+    const uid = String(component.uid || "").trim();
+    if (!uid) return;
+    setPendingMultiSelectUidsByStep((current) => {
+      const existing = current[activeMultiSelectStepKey] || [];
+      const nextUids = selected
+        ? existing.includes(uid)
+          ? existing
+          : [...existing, uid]
+        : existing.filter((entry) => entry !== uid);
+      if (!nextUids.length) {
+        if (!existing.length) return current;
+        const next = { ...current };
+        delete next[activeMultiSelectStepKey];
+        return next;
+      }
+      if (
+        existing.length === nextUids.length &&
+        existing.every((entry, index) => entry === nextUids[index])
+      ) {
+        return current;
+      }
+      return {
+        ...current,
+        [activeMultiSelectStepKey]: nextUids,
+      };
+    });
+  };
+
   const handleToggleMouldingSelection = (
     component: WorkflowComponentRecord,
   ) => {
     if (!activeStep) return;
-    const mouldingContext = buildWorkflowMouldingRowsContext(currentLine);
+    const mouldingContext =
+      activeMouldingContext || buildWorkflowMouldingRowsContext(currentLine);
     const componentUid = String(component.uid || "");
     const existingRow = mouldingContext.rows.find(
       (row) => String(row.uid || "") === componentUid,
@@ -379,6 +626,7 @@ export function WorkflowStepSelector({
         selectedMouldings: mouldingContext.selectedMouldings,
         sharedComponentPrice: mouldingContext.sharedComponentPrice,
       });
+      if (!patch) return;
       actions.patchLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
       return;
     }
@@ -397,13 +645,49 @@ export function WorkflowStepSelector({
     actions.patchLineItem(line.uid, result as Partial<NewSalesFormLineItem>);
   };
 
+  const handleMouldingQtyChange = (
+    component: WorkflowComponentRecord,
+    qty: number,
+  ) => {
+    const mouldingContext =
+      activeMouldingContext || buildWorkflowMouldingRowsContext(currentLine);
+    const componentUid = String(component.uid || "");
+    const existingRow = mouldingContext.rows.find(
+      (row) => String(row.uid || "") === componentUid,
+    );
+    if (!existingRow) return;
+    const nextQty = Math.max(1, Number(qty || 0) || 1);
+    const patch = buildWorkflowMouldingRowsPatch({
+      line: currentLine,
+      rows: mouldingContext.rows.map((row) =>
+        String(row.uid || "") === componentUid ? { ...row, qty: nextQty } : row,
+      ),
+      sharedComponentPrice: mouldingContext.sharedComponentPrice,
+    });
+    actions.patchLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
+  };
+
   const handleSelect = (component: WorkflowComponentRecord) => {
     if (doorStep) {
+      rememberPendingMultiSelectSelection(component, true);
+      applyComponentSelection(component, visibleComponents, {
+        selectedOverride: true,
+      });
       setDoorSizeComponent(component);
       router.push("/(sales)/invoices/door-size" as any);
       return;
     }
     if (activeMouldingStep) {
+      const mouldingContext =
+        activeMouldingContext || buildWorkflowMouldingRowsContext(currentLine);
+      const componentUid = String(component.uid || "");
+      const existingRow = mouldingContext.rows.find(
+        (row) => String(row.uid || "") === componentUid,
+      );
+      rememberPendingMultiSelectSelection(
+        component,
+        !existingRow || mouldingContext.rows.length <= 1,
+      );
       handleToggleMouldingSelection(component);
       return;
     }
@@ -412,12 +696,16 @@ export function WorkflowStepSelector({
 
   const handleCustomComponentSaved = (component: WorkflowComponentRecord) => {
     void refetchStepComponents();
-    applyComponentSelection(component, [
+    applyComponentSelection(
       component,
-      ...customVisibleComponents.filter(
-        (item) => String(item.uid || "") !== String(component.uid || ""),
-      ),
-    ]);
+      [
+        component,
+        ...customVisibleComponents.filter(
+          (item) => String(item.uid || "") !== String(component.uid || ""),
+        ),
+      ],
+      { selectedOverride: true },
+    );
   };
 
   const handleDoorSizeRowChange = (
@@ -440,10 +728,7 @@ export function WorkflowStepSelector({
     const selectedRows = doorSizeRows.filter(
       (row) => Number(row.totalQty || 0) > 0,
     );
-    const doorRouteFlags = {
-      noHandle: Boolean(doorSizeRouteConfig?.noHandle),
-      hasSwing: doorSizeRouteConfig?.hasSwing !== false,
-    };
+    const doorRouteFlags = getMobileDoorRouteFlags(doorSizeRouteConfig);
     const doorPatch = buildWorkflowDoorSizeVariantPatch({
       line: currentLine,
       componentId: Number(doorSizeComponent.id || 0),
@@ -456,6 +741,8 @@ export function WorkflowStepSelector({
     const firstResolvedRow = doorPatch.rows.find(
       (row) => Number(row.totalQty || 0) > 0,
     );
+    const firstResolvedRowMeta =
+      readSalesFormObjectMetadata(firstResolvedRow?.meta) || {};
     const resolvedDoorComponent = firstResolvedRow
       ? {
           ...doorSizeComponent,
@@ -463,7 +750,7 @@ export function WorkflowStepSelector({
             firstResolvedRow.unitPrice || doorSizeComponent.salesPrice || 0,
           ),
           basePrice: Number(
-            firstResolvedRow.meta?.baseUnitPrice ||
+            firstResolvedRowMeta.baseUnitPrice ||
               doorSizeComponent.basePrice ||
               0,
           ),
@@ -486,27 +773,53 @@ export function WorkflowStepSelector({
       ...currentLine,
       ...(doorPatch.linePatch as Partial<NewSalesFormLineItem>),
     };
+    const selectionLinePatch = selectionResult?.linePatch as
+      | Partial<NewSalesFormLineItem>
+      | undefined;
+    let workflowLinePatch = selectionLinePatch;
+    let nextActiveStepIndex = selectionResult?.activeStepIndex;
+    if (options?.advance && selectionResult) {
+      const proceedResult = proceedWorkflowMultiSelectStep({
+        routeData: workflowRouteData,
+        line: {
+          ...lineWithDoorPatch,
+          ...(selectionLinePatch || {}),
+        },
+        stepIndex: activeStepIndex,
+        visibleComponents,
+      });
+      if (proceedResult) {
+        workflowLinePatch = {
+          ...(selectionLinePatch || {}),
+          ...(proceedResult.linePatch as Partial<NewSalesFormLineItem>),
+        };
+        nextActiveStepIndex = proceedResult.activeStepIndex;
+      }
+    }
+    const doorPatchMeta =
+      readSalesFormObjectMetadata(
+        (doorPatch.linePatch as Partial<NewSalesFormLineItem>).meta,
+      ) || {};
+    const workflowPatchMeta =
+      readSalesFormObjectMetadata(
+        (workflowLinePatch as Partial<NewSalesFormLineItem> | undefined)?.meta,
+      ) || {};
     actions.patchLineItem(line.uid, {
       ...(doorPatch.linePatch as Partial<NewSalesFormLineItem>),
-      ...(selectionResult?.linePatch as Partial<NewSalesFormLineItem>),
+      ...(workflowLinePatch || {}),
       meta: {
-        ...(currentLine.meta || {}),
-        ...(((doorPatch.linePatch as Partial<NewSalesFormLineItem>).meta ||
-          {}) as Record<string, unknown>),
-        ...(((
-          selectionResult?.linePatch as
-            | Partial<NewSalesFormLineItem>
-            | undefined
-        )?.meta || {}) as Record<string, unknown>),
+        ...(readSalesFormObjectMetadata(currentLine.meta) || {}),
+        ...doorPatchMeta,
+        ...workflowPatchMeta,
         workflowDoorRouteConfig: doorRouteFlags,
       },
       ...buildWorkflowLinePricingPatch(
         lineWithDoorPatch,
-        selectionResult?.linePatch.formSteps || steps,
+        workflowLinePatch?.formSteps || selectionLinePatch?.formSteps || steps,
       ),
     });
-    if (options?.advance && selectionResult) {
-      setActiveStepIndex(selectionResult.activeStepIndex);
+    if (options?.advance && nextActiveStepIndex != null) {
+      setActiveStepIndex(nextActiveStepIndex);
     }
     setDoorSizeComponent(null);
     clearDoorSizePicker();
@@ -531,6 +844,7 @@ export function WorkflowStepSelector({
       clearDoorSizePicker();
       return;
     }
+    const doorRouteFlags = getMobileDoorRouteFlags(doorSizeRouteConfig);
     setDoorSizePicker({
       component: doorSizeComponent,
       rows: doorSizeRows,
@@ -538,7 +852,7 @@ export function WorkflowStepSelector({
       supplierUid: doorSizeSupplier.supplierUid,
       suppliers: doorSuppliers,
       isLoadingSuppliers: isLoadingDoorSuppliers,
-      noHandle: Boolean(doorSizeRouteConfig?.noHandle),
+      noHandle: doorRouteFlags.noHandle,
       disabled: !workflowRouteData,
       onSupplierChange: handleDoorSupplierChange,
       onChangeRow: handleDoorSizeRowChange,
@@ -560,6 +874,7 @@ export function WorkflowStepSelector({
     setDoorSizePicker,
     workflowRouteData,
     doorSizeRouteConfig?.noHandle,
+    doorSizeRouteConfig?.hasSwing,
   ]);
 
   const handleSelectAll = () => {
@@ -577,7 +892,7 @@ export function WorkflowStepSelector({
     });
   };
 
-  const handleProceed = () => {
+  const handleProceed = useCallback(() => {
     if (!workflowRouteData) return;
     const result = proceedWorkflowMultiSelectStep({
       routeData: workflowRouteData,
@@ -591,7 +906,19 @@ export function WorkflowStepSelector({
       ...buildWorkflowLinePricingPatch(currentLine, result.linePatch.formSteps),
     });
     setActiveStepIndex(result.activeStepIndex);
-  };
+  }, [
+    actions,
+    activeStepIndex,
+    currentLine,
+    line.uid,
+    visibleComponents,
+    workflowRouteData,
+  ]);
+  const handleProceedRef = useRef(handleProceed);
+  handleProceedRef.current = handleProceed;
+  const handleInlineProceedPress = useCallback(() => {
+    handleProceedRef.current();
+  }, []);
 
   const componentPickerHeader = (
     <View className="mb-3 gap-2">
@@ -632,59 +959,149 @@ export function WorkflowStepSelector({
   const renderComponentCard = (item: WorkflowComponentRecord) => {
     const selected = isWorkflowComponentSelected(activeStep, item);
     const imageUri = resolveComponentImageUri(item.img);
+    const mouldingRow = activeMouldingStep
+      ? activeMouldingContext?.rows.find(
+          (row) => String(row.uid || "") === String(item.uid || ""),
+        )
+      : null;
+    const mouldingQty = Math.max(1, Number(mouldingRow?.qty || 1));
+    const priceLabel = moneyIfPositive(item.salesPrice);
     return (
-      <Pressable
+      <View
         key={String(item.uid || item.id || item.title)}
-        onPress={() => handleSelect(item)}
-        className={`flex-1 rounded-2xl border p-3 active:opacity-80 ${
-          selected ? "border-primary bg-primary/5" : "border-border bg-card"
+        className={`flex-1 overflow-hidden rounded-2xl border active:opacity-80 ${
+          selected ? "border-primary bg-white" : "border-border bg-white"
         }`}
       >
-        <View className="gap-2">
-          <View
-            className={`absolute right-2 top-2 z-10 h-7 w-7 items-center justify-center rounded-full ${
-              selected ? "bg-primary" : "border border-border bg-background"
-            }`}
-          >
-            {selected ? (
-              <Icon
-                name="Check"
-                className="text-primary-foreground"
-                size={15}
-              />
+        <View>
+          <View className="relative">
+            <Pressable onPress={() => handleSelect(item)}>
+              <View
+                className={`absolute right-2 top-2 z-10 h-7 w-7 items-center justify-center rounded-full ${
+                  selected ? "bg-primary" : "border border-border bg-background"
+                }`}
+              >
+                {selected ? (
+                  <Icon
+                    name="Check"
+                    className="text-primary-foreground"
+                    size={15}
+                  />
+                ) : null}
+              </View>
+              <ComponentGridImage imageUri={imageUri} />
+            </Pressable>
+            {activeMouldingStep && selected ? (
+              <View className="absolute inset-x-2 bottom-2 z-20 h-10 flex-row items-center justify-between rounded-xl border border-border bg-background/95 px-2 shadow-sm">
+                <Pressable
+                  onPress={() => handleMouldingQtyChange(item, mouldingQty - 1)}
+                  className="h-7 w-7 items-center justify-center rounded-full bg-muted"
+                >
+                  <Icon name="Minus" className="text-foreground" size={14} />
+                </Pressable>
+                <TextInput
+                  value={String(mouldingQty)}
+                  keyboardType="number-pad"
+                  onChangeText={(value) =>
+                    handleMouldingQtyChange(item, parseCurrencyInput(value))
+                  }
+                  className="h-8 flex-1 bg-transparent px-2 text-center text-sm font-bold text-foreground"
+                />
+                <Pressable
+                  onPress={() => handleMouldingQtyChange(item, mouldingQty + 1)}
+                  className="h-7 w-7 items-center justify-center rounded-full bg-muted"
+                >
+                  <Icon name="Plus" className="text-foreground" size={14} />
+                </Pressable>
+              </View>
             ) : null}
           </View>
-          <ComponentGridImage imageUri={imageUri} />
-          <View className="min-w-0">
-            <Text
-              numberOfLines={2}
-              className="text-sm font-bold text-foreground"
-            >
-              {componentLabel(item.title || "Component")}
-            </Text>
+          <View className="gap-1 px-3 pb-3 pt-2">
+            <Pressable onPress={() => handleSelect(item)} className="min-w-0">
+              <Text
+                numberOfLines={2}
+                className="text-sm font-bold text-foreground"
+              >
+                {formatWorkflowComponentLabel(getWorkflowSelectableTitle(item))}
+              </Text>
+            </Pressable>
+            {priceLabel ? (
+              <Pressable onPress={() => handleSelect(item)}>
+                <Text className="text-sm font-bold text-foreground">
+                  {priceLabel}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
-          <Text className="text-sm font-bold text-foreground">
-            {moneyIfPositive(item.salesPrice) || "-"}
-          </Text>
         </View>
-      </Pressable>
+      </View>
     );
   };
 
-  const componentPickerData =
-    showComponentPicker && !isLoadingComponents
-      ? orderSelectedCustomFirst(visibleComponents, activeStep)
-      : [];
-
-  return (
-    <View
-      className={
-        inline
-          ? "relative bg-background"
-          : "absolute inset-0 z-50 bg-background"
-      }
-    >
-      <View className="bg-background px-4 pb-3 pt-4">
+  const componentPickerBaseData = useMemo(
+    () =>
+      showComponentPicker && !isLoadingComponents
+        ? orderSelectedCustomFirst(
+            mergeSelectedCustomComponents(visibleComponents, activeStep),
+            activeStep,
+          )
+        : [],
+    [activeStep, isLoadingComponents, showComponentPicker, visibleComponents],
+  );
+  const showComponentSearch = shouldShowWorkflowComponentSearch(
+    componentPickerBaseData.length,
+  );
+  const componentPickerData = useMemo(() => {
+    const nextComponents = showComponentSearch
+      ? filterWorkflowComponentsBySearch(
+          componentPickerBaseData,
+          componentSearchQuery,
+          getWorkflowComponentSearchValues,
+        )
+      : componentPickerBaseData;
+    return activeMouldingStep
+      ? limitWorkflowComponents(nextComponents)
+      : nextComponents;
+  }, [
+    activeMouldingStep,
+    componentPickerBaseData,
+    componentSearchQuery,
+    showComponentSearch,
+  ]);
+  const inlineMouldingSelectedCount =
+    inline && activeMouldingStep
+      ? componentPickerBaseData.filter((component) =>
+          isWorkflowComponentSelected(activeStep, component),
+        ).length
+      : 0;
+  const effectiveProceedActionVisible =
+    proceedActionVisible ||
+    (inline &&
+      showComponentPicker &&
+      activeMouldingStep &&
+      inlineMouldingSelectedCount > 0);
+  const navigateToDoorStep = () => {
+    const doorIndex = steps.findIndex((step) =>
+      isDoorStepTitle(step.step?.title || step.title),
+    );
+    if (doorIndex < 0) return;
+    setActiveStepIndex(resolveInteractiveStepIndex(steps, doorIndex));
+  };
+  const housePackageToolContent = activeHousePackageToolStep ? (
+    <View className="px-4 py-3">
+      <HousePackageToolWorkflowStep
+        line={currentLine}
+        profileCoefficient={getProfileCoefficient(customerProfileId) || 1}
+        onPatch={(patch) => {
+          actions.patchLineItem(line.uid, patch);
+        }}
+        onAddDoor={navigateToDoorStep}
+      />
+    </View>
+  ) : null;
+  const workflowStepControls = useMemo(
+    () => (
+      <View className="border-b border-border bg-background px-4 pb-3 pt-4">
         {inline ? null : (
           <View className="flex-row items-center gap-3">
             <Pressable
@@ -714,35 +1131,196 @@ export function WorkflowStepSelector({
             setActiveStepIndex(resolveInteractiveStepIndex(steps, index))
           }
         />
+        {showComponentSearch ? (
+          <View className="mt-3 h-11 flex-row items-center rounded-xl border border-border bg-card px-3">
+            <Icon name="Search" className="text-muted-foreground" size={18} />
+            <TextInput
+              value={componentSearchQuery}
+              onChangeText={setComponentSearchQuery}
+              placeholder="Search components"
+              returnKeyType="search"
+              autoCorrect={false}
+              autoCapitalize="none"
+              className="h-10 flex-1 text-base text-foreground"
+            />
+            {componentSearchQuery ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear component search"
+                onPress={() => setComponentSearchQuery("")}
+                className="h-8 w-8 items-center justify-center rounded-full active:bg-muted"
+              >
+                <Icon name="X" className="text-muted-foreground" size={16} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
       </View>
+    ),
+    [
+      activeStepIndex,
+      componentSearchQuery,
+      currentLine.title,
+      inline,
+      onClose,
+      showComponentSearch,
+      steps,
+    ],
+  );
+  const workflowStepControlsRef = useRef<ReactNode | null>(null);
+  workflowStepControlsRef.current = workflowStepControls;
+  const stickyHeaderVisible =
+    inline &&
+    inlineContentTopY != null &&
+    formScrollY >= Math.max(0, inlineContentTopY);
+  const stickyHeaderKey = [
+    activeStepIndex,
+    activeStepUid,
+    componentSearchQuery,
+    showComponentSearch ? "search" : "no-search",
+    steps.length,
+  ].join(":");
 
-      {inline ? (
-        <View className="px-2 py-3">
-          {componentPickerHeader}
-          {componentPickerData.length ? (
-            <View className="flex-row flex-wrap gap-2">
-              {componentPickerData.map((item) => (
-                <View
-                  key={String(item.uid || item.id || item.title)}
-                  className="w-[48%]"
-                >
-                  {renderComponentCard(item)}
-                </View>
-              ))}
-            </View>
-          ) : (
-            componentPickerEmpty
-          )}
+  useEffect(() => {
+    if (!onStickyHeaderChange || !inline) return;
+    onStickyHeaderChange(
+      stickyHeaderVisible && workflowStepControlsRef.current
+        ? {
+            key: stickyHeaderKey,
+            node: workflowStepControlsRef.current,
+          }
+        : null,
+    );
+    return () => onStickyHeaderChange(null);
+  }, [inline, onStickyHeaderChange, stickyHeaderVisible, stickyHeaderKey]);
+
+  const selectedUidSignature = stepSelectedUids.join("|");
+  const pendingSelectedUidSignature = pendingMultiSelectUids.join("|");
+  const visibleComponentSignature = visibleComponents
+    .map((component) => String(component.uid || component.id || ""))
+    .join("|");
+  const mouldingRowSignature =
+    activeMouldingContext?.rows
+      .map((row) => `${row.uid || ""}:${row.qty || ""}`)
+      .join("|") || "";
+  const workflowProceedActionKey = [
+    "multi-proceed",
+    currentLine.uid,
+    activeStepIndex,
+    activeStepUid,
+    activeStep?.prodUid || "",
+    activeStep?.value || "",
+    selectedCount,
+    selectedUidSignature,
+    pendingSelectedUidSignature,
+    mouldingRowSignature,
+    activeDoorRowCount,
+    visibleComponents.length,
+    visibleComponentSignature,
+    workflowRouteData ? "route" : "no-route",
+    inline ? "inline" : "overlay",
+    footerActionsHidden ? "footer-hidden" : "footer-visible",
+  ].join(":");
+  const workflowProceedOffset = getWorkflowProceedFloatingOffset({
+    inline,
+    footerActionsHidden,
+  });
+  const workflowProceedActionNode = (
+    <FloatingInvoiceAction
+      align="center"
+      footerOffset={workflowProceedOffset}
+      pointerEvents="box-none"
+      refreshKey={workflowProceedActionKey}
+    >
+      <Button
+        className="h-12 w-[220px] rounded-full px-8 shadow-lg"
+        onPress={handleProceed}
+        style={{ width: 220 }}
+      >
+        <Text>Proceed</Text>
+      </Button>
+    </FloatingInvoiceAction>
+  );
+
+  useEffect(() => {
+    if (!inline || !onInlineProceedActionChange) return;
+    if (!effectiveProceedActionVisible) {
+      onInlineProceedActionChange(null);
+      return;
+    }
+    onInlineProceedActionChange({
+      key: workflowProceedActionKey,
+      footerOffset: workflowProceedOffset,
+      onPress: handleInlineProceedPress,
+    });
+  }, [
+    effectiveProceedActionVisible,
+    inline,
+    onInlineProceedActionChange,
+    handleInlineProceedPress,
+    workflowProceedActionKey,
+    workflowProceedOffset,
+  ]);
+
+  useEffect(() => {
+    if (!inline || !onInlineProceedActionChange) return;
+    return () => onInlineProceedActionChange(null);
+  }, [inline, onInlineProceedActionChange]);
+
+  return (
+    <View
+      className={
+        inline
+          ? "relative bg-background"
+          : "absolute inset-0 z-50 bg-background"
+      }
+    >
+      <View className="z-10">{workflowStepControls}</View>
+
+      {activeHousePackageToolStep ? (
+        housePackageToolContent
+      ) : activeGroupedRowEditorStep ? (
+        null
+      ) : inline ? (
+        <View className="relative">
+          <View
+            style={{
+              padding: 16,
+              paddingBottom: effectiveProceedActionVisible
+                ? footerActionsHidden
+                  ? 72
+                  : 112
+                : 28,
+            }}
+          >
+            {componentPickerHeader}
+            {componentPickerData.length ? (
+              <View className="flex-row flex-wrap gap-2">
+                {componentPickerData.map((item) => (
+                  <View
+                    key={String(item.uid || item.id || item.title)}
+                    className="w-[48%]"
+                  >
+                    {renderComponentCard(item)}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              componentPickerEmpty
+            )}
+          </View>
         </View>
       ) : (
         <FlatList
           data={componentPickerData}
           numColumns={2}
+          onScroll={onComponentScroll}
+          scrollEventThrottle={onComponentScroll ? 16 : undefined}
           columnWrapperStyle={{ gap: 10 }}
           keyExtractor={(item) => String(item.uid || item.id || item.title)}
           contentContainerStyle={{
             padding: 16,
-            paddingBottom: pickerMultiSelectStep && selectedCount ? 184 : 96,
+            paddingBottom: effectiveProceedActionVisible ? 184 : 96,
           }}
           ListHeaderComponent={componentPickerHeader}
           ListEmptyComponent={componentPickerEmpty}
@@ -788,31 +1366,22 @@ export function WorkflowStepSelector({
           </View>
         </FloatingInvoiceAction>
       ) : null}
-      {pickerMultiSelectStep && selectedCount ? (
-        <FloatingInvoiceAction
-          align="center"
-          footerOffset={
-            inline ? INVOICE_FLOATING_BASE_OFFSET : OVERLAY_FOOTER_PROCEED_OFFSET
-          }
-          pointerEvents="box-none"
-          refreshKey={`multi-proceed-${currentLine.uid}-${activeStepIndex}-${selectedCount}-${visibleComponents.length}-${inline}`}
-        >
-          <Button className="h-12 rounded-full px-8" onPress={handleProceed}>
-            <Text>Proceed</Text>
-          </Button>
-        </FloatingInvoiceAction>
-      ) : null}
+      {!inline && effectiveProceedActionVisible
+        ? workflowProceedActionNode
+        : null}
       {showCustomComponentAction ? (
         <CustomComponentSheet
           step={activeStep}
           components={components}
           profileCoefficient={getProfileCoefficient(customerProfileId) || 1}
-          footerOffset={
-            pickerMultiSelectStep && selectedCount
-              ? INVOICE_FLOATING_TERTIARY_OFFSET
-              : INVOICE_FLOATING_BASE_OFFSET
-          }
+          footerOffset={getCustomComponentFloatingOffset({
+            proceedVisible: effectiveProceedActionVisible,
+            footerActionsHidden,
+          })}
           onSaved={handleCustomComponentSaved}
+          onOptionsChanged={() => {
+            void refetchStepComponents();
+          }}
         />
       ) : null}
     </View>
@@ -853,12 +1422,7 @@ function WorkflowStepPills({
       {steps.map((step, index) => {
         const selected = activeStepIndex === index;
         const disabled = isRedirectDisabledStep(step);
-        const stepLabel = step.value
-          ? componentLabel(step.value)
-          : step.step?.title || step.title || `Step ${index + 1}`;
-        const pillLabel = step.value
-          ? middleTruncateText(stepLabel, STEP_PILL_COMPONENT_LABEL_MAX_LENGTH)
-          : stepLabel;
+        const { stepLabel, pillLabel } = getWorkflowStepPillLabels(step, index);
 
         return (
           <Pressable
@@ -882,7 +1446,7 @@ function WorkflowStepPills({
                 : disabled
                   ? "border-border bg-muted opacity-60"
                   : "border-border bg-card active:bg-muted"
-            }`}
+            } will-change-pressable`}
           >
             <Text
               numberOfLines={1}
@@ -904,16 +1468,6 @@ function WorkflowStepPills({
   );
 }
 
-const STEP_PILL_COMPONENT_LABEL_MAX_LENGTH = 24;
-
-function middleTruncateText(value: string, maxLength: number) {
-  if (value.length <= maxLength) return value;
-  const visible = Math.max(4, maxLength - 1);
-  const start = Math.ceil(visible / 2);
-  const end = Math.floor(visible / 2);
-  return `${value.slice(0, start)}...${value.slice(value.length - end)}`;
-}
-
 function firstEditableStepIndex(steps: WorkflowStepRecord[]) {
   return resolveInteractiveStepIndex(steps, firstPendingStepIndex(steps));
 }
@@ -933,6 +1487,7 @@ function resolveWorkflowSelectorNotice({
   activeHousePackageToolStep,
   activeRedirectDisabledStep,
   activeGroupedRowEditorStep,
+  type,
 }: {
   activeStep: WorkflowStepRecord | null;
   activeStepFamily: string;
@@ -940,7 +1495,10 @@ function resolveWorkflowSelectorNotice({
   activeHousePackageToolStep: boolean;
   activeRedirectDisabledStep: boolean;
   activeGroupedRowEditorStep: boolean;
+  type: NewSalesFormType;
 }): WorkflowSelectorNoticeState | null {
+  const labels = getSalesDocumentLabels(type);
+
   if (!activeStep) {
     return {
       icon: "AlertCircle",
@@ -961,8 +1519,7 @@ function resolveWorkflowSelectorNotice({
     return {
       icon: "DoorOpen",
       title: activeStepTitle || "House package tool",
-      description:
-        "Door quantities and sizes are edited on the invoice line item.",
+      description: `Door quantities and sizes are edited on the ${labels.lineItemLabel}.`,
     };
   }
 
@@ -975,7 +1532,7 @@ function resolveWorkflowSelectorNotice({
     return {
       icon: "List",
       title: titleByFamily[activeStepFamily] || activeStepTitle || "Line items",
-      description: "Grouped rows are edited directly on the invoice line item.",
+      description: `Grouped rows are edited directly on the ${labels.lineItemLabel}.`,
     };
   }
 
@@ -1008,9 +1565,17 @@ function WorkflowSelectorNotice({
   );
 }
 
-function ComponentGridImage({ imageUri }: { imageUri: string | null }) {
+const ComponentGridImage = memo(function ComponentGridImage({
+  imageUri,
+}: {
+  imageUri: string | null;
+}) {
   const [isImageLoading, setIsImageLoading] = useState(Boolean(imageUri));
   const [imageFailed, setImageFailed] = useState(false);
+  const imageSource = useMemo(
+    () => (imageUri ? { uri: imageUri } : null),
+    [imageUri],
+  );
 
   useEffect(() => {
     setImageFailed(false);
@@ -1018,12 +1583,13 @@ function ComponentGridImage({ imageUri }: { imageUri: string | null }) {
   }, [imageUri]);
 
   return (
-    <View className="aspect-square w-full overflow-hidden rounded-xl border border-border bg-muted">
-      {imageUri && !imageFailed ? (
+    <View className="aspect-square w-full overflow-hidden bg-muted">
+      {imageSource && !imageFailed ? (
         <Image
-          source={{ uri: imageUri }}
+          source={imageSource}
           resizeMode="contain"
           className="h-full w-full"
+          fadeDuration={0}
           onLoadStart={() => setIsImageLoading(true)}
           onLoadEnd={() => setIsImageLoading(false)}
           onError={() => {
@@ -1039,7 +1605,7 @@ function ComponentGridImage({ imageUri }: { imageUri: string | null }) {
       ) : null}
     </View>
   );
-}
+});
 
 function ComponentGridImageFallback() {
   return (
@@ -1080,7 +1646,8 @@ function formatDoorSizeTitle(size?: string | null) {
 }
 
 function isDoorRowPriceMissing(row?: DoorStoredRow | null) {
-  return Boolean(row?.meta?.priceMissing);
+  const meta = readSalesFormObjectMetadata(row?.meta) || {};
+  return Boolean(meta.priceMissing);
 }
 
 const DOOR_SIZE_KEYBOARD_BOTTOM_OFFSET = 88;
@@ -1104,6 +1671,8 @@ export function DoorSizePickerScreen({
   isLoadingSuppliers,
   noHandle,
   disabled,
+  primaryActionLabel = "Next step",
+  showSecondaryAction = true,
   onSupplierChange,
   onChangeRow,
   onOk,
@@ -1122,6 +1691,8 @@ export function DoorSizePickerScreen({
   isLoadingSuppliers?: boolean;
   noHandle?: boolean;
   disabled?: boolean;
+  primaryActionLabel?: string;
+  showSecondaryAction?: boolean;
   onSupplierChange?: (
     supplier: { uid?: string | null; name?: string | null } | null,
   ) => void;
@@ -1139,7 +1710,15 @@ export function DoorSizePickerScreen({
     0,
   );
   const imageUri = resolveComponentImageUri(component.img);
-  const title = componentLabel(component.title || component.uid || "Door");
+  const title = formatWorkflowComponentLabel(
+    getWorkflowSelectableTitle(component),
+  );
+  const primaryActionIcon: IconKeys = primaryActionLabel
+    .toLowerCase()
+    .includes("next")
+    ? "ArrowRight"
+    : "Check";
+  const canAdvanceDoorSize = !disabled && totalQty > 0;
 
   return (
     <SafeArea>
@@ -1244,15 +1823,15 @@ export function DoorSizePickerScreen({
               </Text>
             ) : (
               <>
-                <Text className="ml-3 w-14 text-center text-[10px] font-semibold uppercase text-muted-foreground">
+                <Text className="ml-3 w-16 text-center text-[10px] font-semibold uppercase text-muted-foreground">
                   LH
                 </Text>
-                <Text className="ml-2 w-14 text-center text-[10px] font-semibold uppercase text-muted-foreground">
+                <Text className="ml-2 w-16 text-center text-[10px] font-semibold uppercase text-muted-foreground">
                   RH
                 </Text>
               </>
             )}
-            <Text className="ml-4 w-24 text-right text-[10px] font-semibold uppercase text-muted-foreground">
+            <Text className="ml-2 w-20 text-right text-[10px] font-semibold uppercase text-muted-foreground">
               Total
             </Text>
           </View>
@@ -1266,7 +1845,7 @@ export function DoorSizePickerScreen({
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
           renderScrollComponent={renderDoorSizeKeyboardAwareScrollView}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 112 }}
           ListEmptyComponent={
             <View className="py-12">
               <Text className="text-center text-sm font-bold text-foreground">
@@ -1317,7 +1896,7 @@ export function DoorSizePickerScreen({
                   </View>
                 ) : (
                   <>
-                    <View className="ml-3 w-14">
+                    <View className="ml-3 w-16">
                       {priceMissing ? null : (
                         <DoorSizeNumberField
                           value={row.lhQty}
@@ -1331,7 +1910,7 @@ export function DoorSizePickerScreen({
                         />
                       )}
                     </View>
-                    <View className="ml-2 w-14">
+                    <View className="ml-2 w-16">
                       {priceMissing ? null : (
                         <DoorSizeNumberField
                           value={row.rhQty}
@@ -1347,32 +1926,43 @@ export function DoorSizePickerScreen({
                     </View>
                   </>
                 )}
-                <Text className="ml-4 w-24 text-right text-base font-extrabold text-foreground">
+                <Text className="ml-2 w-20 text-right text-base font-extrabold text-foreground">
                   {moneyIfPositive(row.lineTotal) || "$0.00"}
                 </Text>
               </View>
             );
           }}
         />
-        <View className="bg-background px-4 pb-4 pt-3">
-          <View className="flex-row gap-2">
+        <KeyboardStickyView
+          offset={{ closed: 0, opened: 0 }}
+          className="bg-background px-4 pb-7 pt-2"
+        >
+          <View className="flex-row items-center gap-2">
+            {showSecondaryAction ? (
+              <Button
+                variant="ghost"
+                className="h-11 flex-1 px-3"
+                disabled={disabled}
+                onPress={onOk}
+              >
+                <Icon name="Check" className="text-foreground" size={16} />
+                <Text>OK</Text>
+              </Button>
+            ) : null}
             <Button
-              className="h-11 flex-1 rounded-lg"
-              disabled={disabled || totalQty <= 0}
+              className="h-11 flex-1 rounded-lg px-3"
+              disabled={!canAdvanceDoorSize}
               onPress={onNextStep}
             >
-              <Text>Next step</Text>
-            </Button>
-            <Button
-              variant="ghost"
-              className="h-11 flex-1"
-              disabled={disabled}
-              onPress={onOk}
-            >
-              <Text>OK</Text>
+              <Text>{primaryActionLabel}</Text>
+              <Icon
+                name={primaryActionIcon}
+                className="text-primary-foreground"
+                size={16}
+              />
             </Button>
           </View>
-        </View>
+        </KeyboardStickyView>
       </View>
     </SafeArea>
   );
@@ -1392,7 +1982,7 @@ function DoorSizeNumberField({
     <TextInput
       value={displayValue}
       placeholder="0"
-      keyboardType="decimal-pad"
+      keyboardType="number-pad"
       editable={!disabled}
       onChangeText={(nextValue) => onChange(parseCurrencyInput(nextValue))}
       className="h-10 flex-1 rounded-lg bg-muted/60 px-1 text-center text-xs font-bold text-foreground"
@@ -1448,6 +2038,24 @@ function resolveComponentImageUri(src?: string | null) {
     : `dyke/${normalizedPath}`;
 
   return `${normalizedBase}/${pathWithBucket}`;
+}
+
+function getWorkflowComponentSearchValues(component: WorkflowComponentRecord) {
+  const record = component as WorkflowComponentRecord & Record<string, unknown>;
+  const title = getWorkflowSelectableTitle(component);
+
+  return [
+    title,
+    formatWorkflowComponentLabel(title),
+    record.title,
+    record.value,
+    record.name,
+    record.description,
+    record.category,
+    record.sku,
+    record.uid,
+    record.id,
+  ];
 }
 
 const styles = StyleSheet.create({

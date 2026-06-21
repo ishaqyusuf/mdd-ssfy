@@ -28,6 +28,85 @@ describe("profile-repricing domain", () => {
     expect(line.lineTotal).toBe(10);
   });
 
+  it("reprices selected components and grouped rows from JSON metadata", () => {
+    const lineItems = [
+      {
+        qty: 2,
+        unitPrice: 100,
+        lineTotal: 200,
+        formSteps: [
+          {
+            price: 90,
+            meta: JSON.stringify({
+              selectedComponents: [{ uid: "door-a", salesPrice: 40, basePrice: 20 }],
+            }),
+          },
+        ],
+      },
+      {
+        qty: 1,
+        unitPrice: 999,
+        lineTotal: 999,
+        shelfItems: [
+          {
+            qty: 2,
+            unitPrice: 50,
+            totalPrice: 100,
+            meta: JSON.stringify({ baseUnitPrice: 40 }),
+          },
+        ],
+      },
+      {
+        qty: 2,
+        unitPrice: 50,
+        lineTotal: 100,
+        meta: JSON.stringify({
+          workflowDoorRouteConfig: {
+            noHandle: true,
+            hasSwing: false,
+          },
+        }),
+        housePackageTool: {
+          totalDoors: 2,
+          totalPrice: 100,
+          doors: [
+            {
+              lhQty: 2,
+              rhQty: 3,
+              totalQty: 4,
+              unitPrice: 50,
+              lineTotal: 100,
+              swing: "LH",
+              meta: JSON.stringify({ baseUnitPrice: 120 }),
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = repriceSalesFormLineItemsByProfile(lineItems, 2, 4);
+    const stepLine = result[0] as any;
+    expect(stepLine.formSteps[0].price).toBe(5);
+    expect(stepLine.formSteps[0].meta.selectedComponents[0].salesPrice).toBe(5);
+    expect(Object.keys(stepLine.formSteps[0].meta)).not.toContain("0");
+
+    const shelfLine = result[1] as any;
+    expect(shelfLine.shelfItems[0].salesPrice).toBe(10);
+    expect(shelfLine.shelfItems[0].unitPrice).toBe(10);
+    expect(shelfLine.shelfItems[0].totalPrice).toBe(20);
+    expect(shelfLine.shelfItems[0].meta.basePrice).toBe(40);
+    expect(Object.keys(shelfLine.shelfItems[0].meta)).not.toContain("0");
+
+    const door = (result[2] as any).housePackageTool.doors[0];
+    expect(door.lhQty).toBe(0);
+    expect(door.rhQty).toBe(0);
+    expect(door.swing).toBe("");
+    expect(door.unitPrice).toBe(30);
+    expect(door.lineTotal).toBe(120);
+    expect(door.meta.baseUnitPrice).toBe(120);
+    expect(Object.keys(door.meta)).not.toContain("0");
+  });
+
   it("falls back to ratio repricing when base prices are absent", () => {
     const lineItems = [
       {

@@ -29,6 +29,7 @@ export default function SalesLayout() {
       />
       <Stack.Screen name="orders/index" options={{ headerShown: false }} />
       <Stack.Screen name="orders/[orderNo]" options={{ headerShown: false }} />
+      <Stack.Screen name="quotes/index" options={{ headerShown: false }} />
       <Stack.Screen
         name="orders/[orderNo]/delivery/create"
         options={{

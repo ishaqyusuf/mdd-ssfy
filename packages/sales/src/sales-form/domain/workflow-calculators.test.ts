@@ -45,6 +45,24 @@ describe("workflow-calculators domain", () => {
 		expect(out.totalPrice).toBe(307.25);
 	});
 
+	it("uses JSON row metadata in door summaries", () => {
+		const out = summarizeDoors([
+			{
+				totalQty: 2,
+				addon: 5,
+				meta: JSON.stringify({
+					doorSalesUnitPrice: 100,
+					sharedDoorSurcharge: 10,
+					flatRate: 2,
+				}),
+			},
+		]);
+
+		expect(out.rows[0].unitPrice).toBe(117);
+		expect(out.rows[0].lineTotal).toBe(234);
+		expect(out.totalPrice).toBe(234);
+	});
+
 	it("uses totalQty when noHandle route config is active", () => {
 		const out = summarizeDoors(
 			[{ lhQty: 1, rhQty: 2, totalQty: 4, unitPrice: 50 }],
@@ -140,6 +158,42 @@ describe("workflow-calculators domain", () => {
 		});
 		expect(config.noHandle).toBe(false);
 		expect(config.hasSwing).toBe(true);
+	});
+
+	it("applies route overrides from string step metadata", () => {
+		const config = getRouteConfigForLine({
+			routeData: {
+				composedRouter: {
+					root1: { config: { noHandle: false, hasSwing: true } },
+				},
+			},
+			line: {
+				formSteps: [
+					{
+						prodUid: "root1",
+					},
+					{
+						meta: JSON.stringify({
+							sectionOverride: {
+								overrideMode: true,
+								noHandle: true,
+							},
+						}),
+					},
+				],
+			},
+			step: {
+				meta: JSON.stringify({
+					sectionOverride: {
+						overrideMode: true,
+						hasSwing: false,
+					},
+				}),
+			},
+		});
+
+		expect(config.noHandle).toBe(true);
+		expect(config.hasSwing).toBe(false);
 	});
 
 	it("lets the active component override beat persisted prior-step override state", () => {
@@ -255,6 +309,31 @@ describe("workflow-calculators domain", () => {
 		expect(summary.lineTotal).toBe(90);
 	});
 
+	it("applies profile pricing to shelf rows when base metadata is JSON", () => {
+		const summary = summarizeShelfRows(
+			[
+				{
+					uid: "row-1",
+					productId: 101,
+					description: "Profile shelf row",
+					qty: 3,
+					meta: JSON.stringify({
+						basePrice: 60,
+						productRowUid: "json-row",
+					}),
+				},
+			],
+			2,
+		);
+
+		expect(summary.rows[0].uid).toBe("json-row");
+		expect(summary.rows[0].salesPrice).toBe(30);
+		expect(summary.rows[0].unitPrice).toBe(30);
+		expect(summary.rows[0].meta.productRowUid).toBe("json-row");
+		expect(Object.keys(summary.rows[0].meta)).not.toContain("0");
+		expect(summary.lineTotal).toBe(90);
+	});
+
 	it("ignores null custom shelf prices when applying profile pricing", () => {
 		const summary = summarizeShelfRows(
 			[
@@ -321,6 +400,29 @@ describe("workflow-calculators domain", () => {
 		expect(sections[0].subTotal).toBe(35);
 	});
 
+	it("groups shelf rows from JSON category metadata", () => {
+		const sections = buildShelfSections([
+			{
+				categoryId: 20,
+				productId: 101,
+				description: "Panel",
+				qty: 2,
+				unitPrice: 15,
+				meta: JSON.stringify({
+					sectionUid: "sec-json",
+					shelfParentCategoryId: 10,
+					productRowUid: "row-json",
+				}),
+			},
+		]);
+
+		expect(sections).toHaveLength(1);
+		expect(sections[0].uid).toBe("sec-json");
+		expect(sections[0].categoryIds).toEqual([10, 20]);
+		expect(sections[0].rows[0].meta.productRowUid).toBe("row-json");
+		expect(Object.keys(sections[0].rows[0].meta)).not.toContain("0");
+	});
+
 	it("flattens shelf sections while preserving base/sales/custom pricing metadata", () => {
 		const rows = flattenShelfSections(
 			[
@@ -355,6 +457,41 @@ describe("workflow-calculators domain", () => {
 		expect(rows[0].meta.basePrice).toBe(10);
 		expect(rows[0].meta.salesPrice).toBe(15.4);
 		expect(rows[0].meta.customPrice).toBe(18);
+	});
+
+	it("flattens shelf sections while parsing JSON row metadata", () => {
+		const rows = flattenShelfSections(
+			[
+				{
+					uid: "sec-json",
+					categoryIds: [10, 20],
+					parentCategoryId: 10,
+					categoryId: 20,
+					rows: [
+						{
+							uid: "row-json",
+							productId: 101,
+							description: "Panel",
+							qty: 2,
+							meta: JSON.stringify({
+								basePrice: 10,
+								customPrice: 18,
+								productRowUid: "persisted-row",
+							}),
+						},
+					],
+				},
+			],
+			0.65,
+		);
+
+		expect(rows[0].uid).toBe("persisted-row");
+		expect(rows[0].unitPrice).toBe(18);
+		expect(rows[0].totalPrice).toBe(36);
+		expect(rows[0].meta.sectionUid).toBe("sec-json");
+		expect(rows[0].meta.categoryIds).toEqual([10, 20]);
+		expect(rows[0].meta.productRowUid).toBe("persisted-row");
+		expect(Object.keys(rows[0].meta)).not.toContain("0");
 	});
 
 	it("derives and summarizes moulding rows", () => {
@@ -679,6 +816,69 @@ describe("workflow-calculators domain", () => {
 		);
 
 		expect(sizes).toEqual(["1-10 x 6-8"]);
+	});
+
+	it("reads door size variants from JSON line and route metadata", () => {
+		const sizesFromLine = deriveDoorSizeCandidates(
+			{
+				formSteps: [
+					{
+						step: { uid: "height-step", title: "Height" },
+						value: "6-8",
+						prodUid: "h-68",
+					},
+					{
+						step: { uid: "door-step", title: "Door" },
+						meta: JSON.stringify({
+							doorSizeVariation: [
+								{
+									rules: [],
+									widthList: ["1-2"],
+								},
+							],
+						}),
+					},
+				],
+			},
+			{
+				"2-0 x 6-8": { price: 50 },
+			},
+		);
+		const sizesFromRoute = deriveDoorSizeCandidates(
+			{
+				formSteps: [
+					{
+						step: { uid: "height-step", title: "Height" },
+						value: "6-8",
+						prodUid: "h-68",
+					},
+					{
+						step: { uid: "door-step", title: "Door" },
+						meta: {},
+					},
+				],
+			},
+			{
+				"2-0 x 6-8": { price: 50 },
+			},
+			{
+				stepsByUid: {
+					"door-step": {
+						meta: JSON.stringify({
+							doorSizeVariation: [
+								{
+									rules: [],
+									widthList: ["1-4"],
+								},
+							],
+						}),
+					},
+				},
+			},
+		);
+
+		expect(sizesFromLine).toEqual(["1-2 x 6-8"]);
+		expect(sizesFromRoute).toEqual(["1-4 x 6-8"]);
 	});
 
 	it("falls back to pricing-derived sizes when no variant configuration exists", () => {

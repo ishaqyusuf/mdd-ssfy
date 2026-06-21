@@ -35,17 +35,26 @@ export function useInvoiceFormActions() {
   const realDeleteLineItem = useMutation(
     _trpc.newSalesForm.deleteLineItem.mutationOptions(),
   );
+  type SaveDraftInput = Parameters<typeof realSaveDraft.mutateAsync>[0];
+  type SaveFinalInput = Parameters<typeof realSaveFinal.mutateAsync>[0];
+  type RecalculateMutationInput = Parameters<
+    typeof realRecalculate.mutateAsync
+  >[0];
 
   const saveDraft = async (
     payload: SaveDraftNewSalesFormPayload,
   ): Promise<InvoiceFormSaveResult> => {
-    return realSaveDraft.mutateAsync(payload) as Promise<InvoiceFormSaveResult>;
+    return realSaveDraft.mutateAsync(
+      payload as SaveDraftInput,
+    ) as Promise<InvoiceFormSaveResult>;
   };
 
   const saveFinal = async (
     payload: SaveDraftNewSalesFormPayload,
   ): Promise<InvoiceFormSaveResult> => {
-    return realSaveFinal.mutateAsync(payload) as Promise<InvoiceFormSaveResult>;
+    return realSaveFinal.mutateAsync(
+      payload as SaveFinalInput,
+    ) as Promise<InvoiceFormSaveResult>;
   };
 
   const deleteLineItem = async (
@@ -57,7 +66,10 @@ export function useInvoiceFormActions() {
   const recalculate = async (
     input: RecalculateInput,
   ): Promise<NewSalesFormSummary> => {
-    return realRecalculate.mutateAsync(input) as Promise<NewSalesFormSummary>;
+    const { cccPercentage: _clientOnlyCccPercentage, ...serverInput } = input;
+    return realRecalculate.mutateAsync(
+      serverInput as RecalculateMutationInput,
+    ) as Promise<NewSalesFormSummary>;
   };
 
   return {

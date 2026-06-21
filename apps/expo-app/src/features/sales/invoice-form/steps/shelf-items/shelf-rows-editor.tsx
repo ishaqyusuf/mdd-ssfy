@@ -1,412 +1,671 @@
+import { SafeArea } from "@/components/safe-area";
+import { _trpc } from "@/components/static-trpc";
 import { Icon } from "@/components/ui/icon";
+import { Modal as BottomSheetModal, useModal } from "@/components/ui/modal";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
+import { SalesClickListRow } from "@/features/sales/components/sales-click-list-row";
 import {
-  getShelfChildCategories,
+  getShelfRowDisplayUnitPrice,
+  patchShelfRowPrice,
+  patchShelfRowQty,
   type ShelfCategoryRecord,
   type ShelfProductOption,
   type ShelfRowDraft,
   type ShelfSectionDraft,
-  patchShelfRowPrice,
-  patchShelfRowQty,
 } from "@gnd/sales/sales-form-core";
-import { useMemo } from "react";
-import { Pressable, ScrollView, View } from "react-native";
-import { formatMoney } from "../../lib/format";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { FlatList, Modal as NativeModal, Pressable, View } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { formatMoney, parseCurrencyInput } from "../../lib/format";
 import {
   IconButton,
-  NumberField,
-  RowShell,
-  SelectChip,
   StepSectionHeader,
   StepTextInput,
 } from "../shared/mobile-editor-primitives";
 import {
-  buildShelfProductBuckets,
-  getVisibleShelfProducts,
+  formatShelfProductCategoryPath,
+  formatShelfRowCategoryPath,
 } from "./shelf-product-options";
+
+type SelectedShelfRow = {
+  sectionIndex: number;
+  rowIndex: number;
+  row: ShelfRowDraft;
+};
+
+type EditingShelfProduct = {
+  id: number;
+  title: string;
+  price: string;
+};
 
 export function ShelfRowsEditor({
   sections,
   categories,
   products,
   productSearch,
-  isLoadingCategories,
   isLoadingProducts,
   disabled,
   onProductSearchChange,
-  onSectionCategoryChange,
   onSelectProduct,
+  onProductUpdated,
+  onProductDeleted,
   onChange,
-  onAddSection,
-  onAddRow,
   onRemoveRow,
-  onRemoveSection,
 }: {
   sections: ShelfSectionDraft[];
   categories: ShelfCategoryRecord[];
   products: ShelfProductOption[];
   productSearch: string;
-  isLoadingCategories?: boolean;
   isLoadingProducts?: boolean;
   disabled?: boolean;
   onProductSearchChange: (query: string) => void;
-  onSectionCategoryChange: (
-    sectionIndex: number,
-    categoryIds: number[],
-  ) => void;
-  onSelectProduct: (
-    sectionIndex: number,
-    rowIndex: number,
-    product: ShelfProductOption | null,
-  ) => void;
+  onSelectProduct: (product: ShelfProductOption) => void;
+  onProductUpdated: (product: ShelfProductOption) => void;
+  onProductDeleted: (productId: number) => void;
   onChange: (
     sectionIndex: number,
     rowIndex: number,
     patch: Partial<ShelfRowDraft>,
   ) => void;
-  onAddSection: () => void;
-  onAddRow: (sectionIndex: number) => void;
   onRemoveRow: (sectionIndex: number, rowIndex: number) => void;
-  onRemoveSection: (sectionIndex: number) => void;
 }) {
-  const productBuckets = useMemo(() => {
-    return buildShelfProductBuckets(products);
-  }, [products]);
-  const categoryById = useMemo(
+  const queryClient = useQueryClient();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [editingProduct, setEditingProduct] =
+    useState<EditingShelfProduct | null>(null);
+  const [selectedOptionsProduct, setSelectedOptionsProduct] =
+    useState<ShelfProductOption | null>(null);
+  const {
+    ref: productOptionsSheetRef,
+    present: presentProductOptionsSheet,
+    dismiss: dismissProductOptionsSheet,
+  } = useModal();
+  const [pendingDeleteProductId, setPendingDeleteProductId] = useState<
+    number | null
+  >(null);
+  const selectedRows = useMemo(
     () =>
-      new Map(
-        categories
-          .map((category) => [Number(category.id || 0), category] as const)
-          .filter(([id]) => id > 0),
+      sections.flatMap((section, sectionIndex) =>
+        (section.rows || [])
+          .map((row, rowIndex) => ({ sectionIndex, rowIndex, row }))
+          .filter((entry) => entry.row.description || entry.row.productId),
       ),
-    [categories],
+    [sections],
   );
-  const categoryTitle = (id: number) =>
-    String(categoryById.get(Number(id || 0))?.name || `Category ${id}`);
+
+  const invalidateShelfProducts = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: _trpc.newSalesForm.searchShelfProducts.queryKey(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: _trpc.newSalesForm.getShelfProductDetails.queryKey(),
+      }),
+    ]);
+  };
+
+  const updateProductMutation = useMutation(
+    _trpc.newSalesForm.updateShelfProduct.mutationOptions({
+      async onSuccess(data) {
+        onProductUpdated(data as ShelfProductOption);
+        setEditingProduct(null);
+        onProductSearchChange("");
+        await invalidateShelfProducts();
+      },
+    }),
+  );
+  const deleteProductMutation = useMutation(
+    _trpc.newSalesForm.deleteShelfProduct.mutationOptions({
+      async onSuccess(_data, variables) {
+        onProductDeleted(Number(variables.id || 0));
+        await invalidateShelfProducts();
+      },
+    }),
+  );
+
+  const openPicker = () => {
+    onProductSearchChange("");
+    setEditingProduct(null);
+    setPickerOpen(true);
+  };
+
+  const closePicker = () => {
+    setPickerOpen(false);
+    setEditingProduct(null);
+    dismissProductOptionsSheet();
+    setSelectedOptionsProduct(null);
+    setPendingDeleteProductId(null);
+  };
+
+  const selectProduct = (product: ShelfProductOption) => {
+    onSelectProduct(product);
+    closePicker();
+  };
+
+  const startEdit = (product: ShelfProductOption) => {
+    const id = Number(product.id || 0);
+    if (!id) return;
+    setPendingDeleteProductId(null);
+    setEditingProduct({
+      id,
+      title: String(product.title || ""),
+      price: String(product.unitPrice ?? product.salesPrice ?? ""),
+    });
+  };
+
+  const openProductOptions = (product: ShelfProductOption) => {
+    setSelectedOptionsProduct(product);
+    presentProductOptionsSheet();
+  };
+
+  const editSelectedOptionsProduct = () => {
+    if (!selectedOptionsProduct) return;
+    const product = selectedOptionsProduct;
+    dismissProductOptionsSheet();
+    setSelectedOptionsProduct(null);
+    startEdit(product);
+  };
+
+  const requestDeleteSelectedOptionsProduct = () => {
+    if (!selectedOptionsProduct) return;
+    setPendingDeleteProductId(Number(selectedOptionsProduct.id || 0));
+    dismissProductOptionsSheet();
+    setSelectedOptionsProduct(null);
+  };
+
+  const closeProductOptions = () => {
+    dismissProductOptionsSheet();
+    setSelectedOptionsProduct(null);
+  };
+
+  const saveProductEdit = () => {
+    if (!editingProduct?.id || !editingProduct.title.trim()) return;
+    updateProductMutation.mutate({
+      id: editingProduct.id,
+      title: editingProduct.title.trim(),
+      unitPrice: parseCurrencyInput(editingProduct.price),
+    });
+  };
 
   return (
     <View className="border-t border-border pt-3">
-      <StepSectionHeader
-        title="Shelf items"
-        actionLabel="Section"
-        disabled={disabled}
-        onAction={onAddSection}
-      />
-      <View className="mt-2 gap-3">
-        {sections.map((section, sectionIndex) => (
-          <ShelfSectionEditor
-            key={`${section.uid || sectionIndex}`}
-            section={section}
-            sectionIndex={sectionIndex}
-            categories={categories}
-            categoryTitle={categoryTitle}
-            productBuckets={productBuckets}
-            productSearch={productSearch}
-            isLoadingCategories={isLoadingCategories}
-            isLoadingProducts={isLoadingProducts}
-            disabled={disabled}
-            onProductSearchChange={onProductSearchChange}
-            onSectionCategoryChange={onSectionCategoryChange}
-            onSelectProduct={onSelectProduct}
-            onChange={onChange}
-            onAddRow={onAddRow}
-            onRemoveRow={onRemoveRow}
-            onRemoveSection={onRemoveSection}
+      <StepSectionHeader title="Shelf items" />
+      <View className="mt-2">
+        {selectedRows.length ? (
+          selectedRows.map((entry) => (
+            <ShelfSelectedRow
+              key={`${entry.sectionIndex}:${entry.row.uid || entry.rowIndex}`}
+              entry={entry}
+              categories={categories}
+              disabled={disabled}
+              onChange={onChange}
+              onRemoveRow={onRemoveRow}
+            />
+          ))
+        ) : (
+          <View className="border-y border-border py-4">
+            <Text className="text-sm font-bold text-foreground">
+              No shelf items selected
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              Add a shelf item to attach products to this line.
+            </Text>
+          </View>
+        )}
+        <Pressable
+          onPress={openPicker}
+          disabled={disabled}
+          className="mt-3 h-12 flex-row items-center justify-center gap-2 rounded-xl border border-primary bg-primary/5 disabled:opacity-40"
+        >
+          <Icon name="Plus" className="text-primary" size={16} />
+          <Text className="text-sm font-bold text-primary">Add shelf</Text>
+        </Pressable>
+      </View>
+
+      <NativeModal
+        visible={pickerOpen}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={closePicker}
+      >
+        <SafeArea>
+          <View className="flex-1 bg-background">
+            <View className="flex-row items-center gap-3 border-b border-border px-4 py-3">
+              <Pressable
+                onPress={closePicker}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
+              >
+                <Icon name="X" className="text-foreground" size={18} />
+              </Pressable>
+              <View className="min-w-0 flex-1">
+                <Text className="text-base font-bold text-foreground">
+                  Shelf item
+                </Text>
+                <Text className="text-xs text-muted-foreground">
+                  Search or choose a recent item
+                </Text>
+              </View>
+            </View>
+
+            {editingProduct ? (
+              <ShelfProductEditForm
+                editingProduct={editingProduct}
+                disabled={updateProductMutation.isPending}
+                onChange={setEditingProduct}
+                onCancel={() => setEditingProduct(null)}
+                onSave={saveProductEdit}
+              />
+            ) : (
+              <ShelfProductSearchList
+                products={products}
+                categories={categories}
+                query={productSearch}
+                isLoading={isLoadingProducts}
+                disabled={disabled || deleteProductMutation.isPending}
+                pendingDeleteProductId={pendingDeleteProductId}
+                onQueryChange={onProductSearchChange}
+                onSelect={selectProduct}
+                onOpenOptions={openProductOptions}
+                onCancelDelete={() => setPendingDeleteProductId(null)}
+                onDelete={(product) => {
+                  const id = Number(product.id || 0);
+                  if (!id) return;
+                  deleteProductMutation.mutate({ id });
+                  setPendingDeleteProductId(null);
+                }}
+              />
+            )}
+          </View>
+        </SafeArea>
+        <BottomSheetModal
+          ref={productOptionsSheetRef}
+          hideHeader
+          enableDynamicSizing
+        >
+          <BottomSheetView className="px-5 pb-7 pt-3">
+            <SalesClickListRow
+              title="Edit shelf item"
+              subtitle={
+                selectedOptionsProduct?.title || "Update name and price"
+              }
+              icon="Pencil"
+              onPress={editSelectedOptionsProduct}
+            />
+            <SalesClickListRow
+              title="Delete shelf item"
+              subtitle="Hide item and remove matching selected rows"
+              icon="Trash"
+              onPress={requestDeleteSelectedOptionsProduct}
+            />
+            <SalesClickListRow
+              title="Cancel"
+              subtitle="Close options"
+              icon="X"
+              onPress={closeProductOptions}
+            />
+          </BottomSheetView>
+        </BottomSheetModal>
+      </NativeModal>
+    </View>
+  );
+}
+
+function ShelfSelectedRow({
+  entry,
+  categories,
+  disabled,
+  onChange,
+  onRemoveRow,
+}: {
+  entry: SelectedShelfRow;
+  categories: ShelfCategoryRecord[];
+  disabled?: boolean;
+  onChange: (
+    sectionIndex: number,
+    rowIndex: number,
+    patch: Partial<ShelfRowDraft>,
+  ) => void;
+  onRemoveRow: (sectionIndex: number, rowIndex: number) => void;
+}) {
+  const row = entry.row;
+  const unitPrice = getShelfRowDisplayUnitPrice(row);
+  const qty = Math.max(0, Number(row.qty || 0));
+  const changeQty = (nextQty: number) => {
+    onChange(
+      entry.sectionIndex,
+      entry.rowIndex,
+      patchShelfRowQty(row, Math.max(0, nextQty)),
+    );
+  };
+  return (
+    <View className="border-b border-border py-3">
+      <View className="flex-row items-center gap-3">
+        <View className="min-w-0 flex-1">
+          <Text numberOfLines={1} className="text-sm font-bold text-foreground">
+            {row.description || "Shelf item"}
+          </Text>
+        </View>
+        <View className="h-9 flex-row items-center rounded-full border border-border bg-background">
+          <Pressable
+            onPress={() => changeQty(qty - 1)}
+            disabled={disabled || qty <= 0}
+            className="h-9 w-9 items-center justify-center rounded-full active:bg-muted disabled:opacity-40"
+          >
+            <Icon name="Minus" className="text-foreground" size={14} />
+          </Pressable>
+          <StepTextInput
+            value={String(row.qty ?? 0)}
+            keyboardType="number-pad"
+            onChangeText={(value) => changeQty(parseCurrencyInput(value))}
+            editable={!disabled}
+            textAlign="center"
+            fontWeight="bold"
+            style={{
+              width: 42,
+              minHeight: 34,
+              borderWidth: 0,
+              backgroundColor: "transparent",
+              paddingHorizontal: 0,
+            }}
           />
-        ))}
+          <Pressable
+            onPress={() => changeQty(qty + 1)}
+            disabled={disabled}
+            className="h-9 w-9 items-center justify-center rounded-full active:bg-muted disabled:opacity-40"
+          >
+            <Icon name="Plus" className="text-foreground" size={14} />
+          </Pressable>
+        </View>
+        <IconButton
+          icon="Trash"
+          tone="danger"
+          disabled={disabled}
+          onPress={() => onRemoveRow(entry.sectionIndex, entry.rowIndex)}
+        />
+      </View>
+      <View className="mt-2 flex-row items-end gap-3">
+        <Text
+          numberOfLines={1}
+          className="min-w-0 flex-1 text-xs text-muted-foreground"
+        >
+          {formatShelfRowCategoryPath(row, categories)}
+        </Text>
+        <StepTextInput
+          value={String(unitPrice ?? 0)}
+          keyboardType="decimal-pad"
+          onChangeText={(value) =>
+            onChange(
+              entry.sectionIndex,
+              entry.rowIndex,
+              patchShelfRowPrice(row, parseCurrencyInput(value)),
+            )
+          }
+          editable={!disabled}
+          textAlign="right"
+          fontWeight="bold"
+          style={{
+            width: 82,
+            minHeight: 34,
+            borderWidth: 0,
+            backgroundColor: "transparent",
+            paddingHorizontal: 0,
+          }}
+        />
+        <Text className="w-24 text-right text-lg font-extrabold text-foreground">
+          {formatMoney(row.totalPrice || 0)}
+        </Text>
       </View>
     </View>
   );
 }
 
-function ShelfSectionEditor({
-  section,
-  sectionIndex,
+function ShelfProductSearchList({
+  products,
   categories,
-  categoryTitle,
-  productBuckets,
-  productSearch,
-  isLoadingCategories,
-  isLoadingProducts,
+  query,
+  isLoading,
   disabled,
-  onProductSearchChange,
-  onSectionCategoryChange,
-  onSelectProduct,
-  onChange,
-  onAddRow,
-  onRemoveRow,
-  onRemoveSection,
+  pendingDeleteProductId,
+  onQueryChange,
+  onSelect,
+  onOpenOptions,
+  onCancelDelete,
+  onDelete,
 }: {
-  section: ShelfSectionDraft;
-  sectionIndex: number;
+  products: ShelfProductOption[];
   categories: ShelfCategoryRecord[];
-  categoryTitle: (id: number) => string;
-  productBuckets: Map<number, ShelfProductOption[]>;
-  productSearch: string;
-  isLoadingCategories?: boolean;
-  isLoadingProducts?: boolean;
+  query: string;
+  isLoading?: boolean;
   disabled?: boolean;
-  onProductSearchChange: (query: string) => void;
-  onSectionCategoryChange: (
-    sectionIndex: number,
-    categoryIds: number[],
-  ) => void;
-  onSelectProduct: (
-    sectionIndex: number,
-    rowIndex: number,
-    product: ShelfProductOption | null,
-  ) => void;
-  onChange: (
-    sectionIndex: number,
-    rowIndex: number,
-    patch: Partial<ShelfRowDraft>,
-  ) => void;
-  onAddRow: (sectionIndex: number) => void;
-  onRemoveRow: (sectionIndex: number, rowIndex: number) => void;
-  onRemoveSection: (sectionIndex: number) => void;
+  pendingDeleteProductId?: number | null;
+  onQueryChange: (query: string) => void;
+  onSelect: (product: ShelfProductOption) => void;
+  onOpenOptions: (product: ShelfProductOption) => void;
+  onCancelDelete: () => void;
+  onDelete: (product: ShelfProductOption) => void;
 }) {
-  const categoryIds = Array.isArray(section.categoryIds)
-    ? section.categoryIds.map((id) => Number(id || 0)).filter((id) => id > 0)
-    : [];
-  const lastCategoryId = categoryIds.length
-    ? categoryIds[categoryIds.length - 1]
-    : null;
-  const categoryOptions = getShelfChildCategories(categories, lastCategoryId);
-  const { visibleProducts, hasMoreProducts } = getVisibleShelfProducts({
-    categories,
-    productBuckets,
-    categoryIds,
-    query: productSearch,
-  });
-  const hasProductSearch = productSearch.trim().length > 0;
-  const canShowProductOptions = categoryIds.length > 0 || hasProductSearch;
-
   return (
-    <RowShell>
-      <View className="flex-row items-center gap-2">
-        <View className="min-w-0 flex-1">
-          <Text className="text-[11px] font-bold text-foreground">
-            Section {sectionIndex + 1}
-          </Text>
-          <Text className="text-[10px] text-muted-foreground">
-            {section.rows.length} row
-            {section.rows.length === 1 ? "" : "s"}
-            {" - "}
-            {formatMoney(section.subTotal || 0)}
-          </Text>
-        </View>
-        <Pressable
-          onPress={() => onAddRow(sectionIndex)}
-          disabled={disabled}
-          className="h-8 flex-row items-center gap-1 rounded-full border border-primary bg-primary/5 px-3 disabled:opacity-40"
-        >
-          <Icon name="Plus" className="text-primary" size={12} />
-          <Text className="text-[10px] font-bold text-primary">Row</Text>
-        </Pressable>
-        <IconButton
-          icon="Trash"
-          tone="danger"
-          disabled={disabled}
-          onPress={() => onRemoveSection(sectionIndex)}
-        />
-      </View>
-
-      <View className="gap-2 border-t border-border pt-3">
-        <Text className="text-[10px] font-bold uppercase text-muted-foreground">
-          Category
-        </Text>
-        {categoryIds.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 6, paddingRight: 16 }}
-          >
-            {categoryIds.map((id, index) => (
-              <SelectChip
-                key={`shelf-cat-selected-${section.uid}-${id}-${index}`}
-                title={categoryTitle(id)}
-                subtitle={
-                  index === categoryIds.length - 1 ? "Selected" : "Path"
-                }
-                selected
-                disabled={disabled}
-                onPress={() =>
-                  onSectionCategoryChange(
-                    sectionIndex,
-                    categoryIds.slice(0, index + 1),
-                  )
-                }
-              />
-            ))}
-            <SelectChip
-              title="Clear"
-              subtitle="Reset"
-              selected={false}
-              disabled={disabled}
-              onPress={() => onSectionCategoryChange(sectionIndex, [])}
-            />
-          </ScrollView>
-        ) : null}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 6, paddingRight: 16 }}
-        >
-          {categoryOptions.map((category) => {
-            const categoryId = Number(category.id || 0);
-            return (
-              <SelectChip
-                key={`shelf-cat-option-${section.uid}-${categoryId}`}
-                title={String(category.name || "Category")}
-                subtitle={String(category.type || "Category")}
-                selected={false}
-                disabled={disabled}
-                onPress={() =>
-                  onSectionCategoryChange(sectionIndex, [
-                    ...categoryIds,
-                    categoryId,
-                  ])
-                }
-              />
-            );
-          })}
-          {isLoadingCategories ? (
-            <Text className="self-center text-xs text-muted-foreground">
-              Loading categories...
-            </Text>
-          ) : null}
-          {!isLoadingCategories && !categoryOptions.length ? (
-            <Text className="self-center text-xs text-muted-foreground">
-              {categoryIds.length
-                ? "Category path complete"
-                : "No categories available"}
-            </Text>
-          ) : null}
-        </ScrollView>
-      </View>
-
-      {section.rows.map((row, rowIndex) => (
-        <View
-          key={`${section.uid}:${row.uid || rowIndex}`}
-          className="gap-2 border-t border-border pt-3"
-        >
-          <View className="gap-2 rounded-xl border border-border bg-card p-2">
-            <View className="h-10 flex-row items-center rounded-lg border border-border bg-background px-2">
-              <Icon name="Search" className="text-muted-foreground" size={14} />
-              <StepTextInput
-                value={productSearch}
-                onChangeText={onProductSearchChange}
-                editable={!disabled}
-                placeholder="Search shelf products"
-                style={{
-                  minHeight: 32,
-                  flex: 1,
-                  borderWidth: 0,
-                  backgroundColor: "transparent",
-                  paddingHorizontal: 8,
-                }}
-              />
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 6 }}
-            >
-              <SelectChip
-                title="Custom"
-                subtitle="Manual row"
-                selected={!row.productId}
-                disabled={disabled}
-                onPress={() => onSelectProduct(sectionIndex, rowIndex, null)}
-              />
-              {canShowProductOptions ? (
-                visibleProducts.map((product) => (
-                  <SelectChip
-                    key={`shelf-product-${section.uid}-${row.uid || rowIndex}-${product.id}`}
-                    title={String(product.title || "Shelf product")}
-                    subtitle={formatMoney(
-                      Number(product.salesPrice ?? product.unitPrice ?? 0),
-                    )}
-                    selected={
-                      Number(row.productId || 0) === Number(product.id || 0)
-                    }
-                    disabled={disabled}
-                    onPress={() =>
-                      onSelectProduct(sectionIndex, rowIndex, product)
-                    }
-                  />
-                ))
-              ) : (
-                <Text className="self-center text-xs text-muted-foreground">
-                  Select a category or search to show products.
-                </Text>
-              )}
-              {isLoadingProducts && canShowProductOptions ? (
-                <Text className="self-center text-xs text-muted-foreground">
-                  Loading products...
-                </Text>
-              ) : null}
-              {canShowProductOptions &&
-              !isLoadingProducts &&
-              !visibleProducts.length ? (
-                <Text className="self-center text-xs text-muted-foreground">
-                  No products found.
-                </Text>
-              ) : null}
-              {hasMoreProducts ? (
-                <Text className="self-center text-xs text-muted-foreground">
-                  Refine search for more
-                </Text>
-              ) : null}
-            </ScrollView>
-          </View>
-
-          <StepTextInput
-            value={String(row.description || "")}
-            onChangeText={(description) =>
-              onChange(sectionIndex, rowIndex, { description })
-            }
-            editable={!disabled}
-            placeholder="Shelf item"
-            fontWeight="bold"
-          />
-          <View className="flex-row gap-2">
-            <NumberField
-              label="Qty"
-              value={row.qty}
-              disabled={disabled}
-              onChange={(qty) =>
-                onChange(sectionIndex, rowIndex, patchShelfRowQty(row, qty))
-              }
-            />
-            <NumberField
-              label="Unit"
-              value={row.unitPrice}
-              disabled={disabled}
-              onChange={(unitPrice) =>
-                onChange(
-                  sectionIndex,
-                  rowIndex,
-                  patchShelfRowPrice(row, unitPrice),
-                )
-              }
-            />
-            <View className="w-24 justify-end">
-              <Text className="text-right text-xs font-bold text-foreground">
-                {formatMoney(row.totalPrice || 0)}
+    <View className="flex-1">
+      <FlatList
+        data={isLoading ? [] : products}
+        keyExtractor={(item) => String(item.id || item.title)}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}
+        ListEmptyComponent={
+          isLoading ? (
+            <ShelfProductListSkeleton />
+          ) : (
+            <View className="items-center border-b border-border py-8">
+              <Text className="text-center text-sm font-bold text-foreground">
+                No shelf items found.
               </Text>
             </View>
-            <View className="justify-end">
-              <IconButton
-                icon="Trash"
-                tone="danger"
+          )
+        }
+        renderItem={({ item }) => (
+          <View className="border-b border-border py-3">
+            <View className="flex-row items-center gap-3">
+              <Pressable
+                onPress={() => onSelect(item)}
                 disabled={disabled}
-                onPress={() => onRemoveRow(sectionIndex, rowIndex)}
-              />
+                className="min-w-0 flex-1 active:opacity-80 disabled:opacity-40"
+              >
+                <Text
+                  numberOfLines={1}
+                  className="text-sm font-bold text-foreground"
+                >
+                  {item.title || "Shelf item"}
+                </Text>
+                <View className="mt-1 flex-row items-center gap-2">
+                  <Text
+                    numberOfLines={1}
+                    className="min-w-0 flex-1 text-xs text-muted-foreground"
+                  >
+                    {formatShelfProductCategoryPath(item, categories)}
+                  </Text>
+                  <Text className="text-xs font-bold text-foreground">
+                    {formatMoney(numberOrZero(item.salesPrice, item.unitPrice))}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                onPress={() => onOpenOptions(item)}
+                disabled={disabled}
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted disabled:opacity-40"
+              >
+                <Icon
+                  name="ChevronRight"
+                  className="text-muted-foreground"
+                  size={18}
+                />
+              </Pressable>
+            </View>
+            {pendingDeleteProductId === Number(item.id || 0) ? (
+              <View className="mt-3 gap-2 border-t border-red-200 bg-red-50 p-3">
+                <Text className="text-xs font-bold text-red-700">
+                  Delete shelf item?
+                </Text>
+                <Text className="text-[11px] text-red-700">
+                  This hides "{item.title || "Shelf item"}" and removes matching
+                  selected rows.
+                </Text>
+                <View className="flex-row justify-end gap-2">
+                  <Pressable
+                    onPress={onCancelDelete}
+                    disabled={disabled}
+                    className="h-9 items-center justify-center rounded-lg border border-border bg-background px-4 disabled:opacity-40"
+                  >
+                    <Text className="text-[11px] font-bold text-foreground">
+                      Cancel
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => onDelete(item)}
+                    disabled={disabled}
+                    className="h-9 items-center justify-center rounded-lg bg-red-600 px-4 disabled:opacity-40"
+                  >
+                    <Text className="text-[11px] font-bold text-white">
+                      {disabled ? "Deleting..." : "Delete"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+          </View>
+        )}
+      />
+      <KeyboardStickyView
+        offset={{ closed: 0, opened: 0 }}
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 20,
+          paddingHorizontal: 16,
+          paddingBottom: 20,
+          paddingTop: 8,
+        }}
+      >
+        <View
+          style={{
+            height: 48,
+            flexDirection: "row",
+            alignItems: "center",
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: "#D9DEE8",
+            backgroundColor: "#FFFFFF",
+            paddingHorizontal: 12,
+          }}
+        >
+          <Icon name="Search" className="text-muted-foreground" size={15} />
+          <StepTextInput
+            value={query}
+            onChangeText={onQueryChange}
+            editable={!disabled}
+            placeholder="Search shelf items"
+            style={{
+              minHeight: 38,
+              flex: 1,
+              borderWidth: 0,
+              backgroundColor: "transparent",
+              paddingHorizontal: 8,
+            }}
+          />
+        </View>
+      </KeyboardStickyView>
+    </View>
+  );
+}
+
+function ShelfProductListSkeleton() {
+  return (
+    <View>
+      {Array.from({ length: 8 }).map((_, index) => (
+        <View
+          key={`shelf-product-skeleton-${index}`}
+          className="flex-row items-center gap-3 border-b border-border py-3"
+        >
+          <View className="min-w-0 flex-1">
+            <Skeleton className="h-4 w-2/3 rounded-md" />
+            <View className="mt-2 flex-row items-center gap-2">
+              <Skeleton className="h-3 flex-1 rounded-md" />
+              <Skeleton className="h-3 w-14 rounded-md" />
             </View>
           </View>
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <Skeleton className="h-10 w-10 rounded-xl" />
         </View>
       ))}
-    </RowShell>
+    </View>
+  );
+}
+
+function numberOrZero(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function ShelfProductEditForm({
+  editingProduct,
+  disabled,
+  onChange,
+  onCancel,
+  onSave,
+}: {
+  editingProduct: EditingShelfProduct;
+  disabled?: boolean;
+  onChange: (product: EditingShelfProduct) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <View className="flex-1 px-4 py-4">
+      <View className="gap-3 rounded-2xl border border-border bg-card p-3">
+        <StepTextInput
+          value={editingProduct.title}
+          onChangeText={(title) => onChange({ ...editingProduct, title })}
+          editable={!disabled}
+          placeholder="Shelf item name"
+          fontWeight="bold"
+        />
+        <StepTextInput
+          value={editingProduct.price}
+          keyboardType="decimal-pad"
+          onChangeText={(price) => onChange({ ...editingProduct, price })}
+          editable={!disabled}
+          placeholder="Price"
+          fontWeight="bold"
+        />
+        <View className="flex-row gap-2">
+          <Pressable
+            onPress={onCancel}
+            disabled={disabled}
+            className="h-11 flex-1 items-center justify-center rounded-xl border border-border bg-background disabled:opacity-40"
+          >
+            <Text className="text-sm font-bold text-foreground">Cancel</Text>
+          </Pressable>
+          <Pressable
+            onPress={onSave}
+            disabled={disabled || !editingProduct.title.trim()}
+            className="h-11 flex-1 items-center justify-center rounded-xl bg-primary disabled:opacity-40"
+          >
+            <Text className="text-sm font-bold text-primary-foreground">
+              Save
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
   );
 }

@@ -10,11 +10,22 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Animated,
+  Easing,
   View,
   type StyleProp,
   type ViewProps,
   type ViewStyle,
 } from "react-native";
+import {
+  shouldUpdateFloatingInvoiceAction,
+  type FloatingInvoiceActionRegistryEntry,
+} from "./floating-invoice-action-registry";
+export {
+  INVOICE_FLOATING_BASE_OFFSET,
+  INVOICE_FLOATING_SECONDARY_OFFSET,
+  INVOICE_FLOATING_TERTIARY_OFFSET,
+} from "./floating-invoice-action-layout";
 
 type FloatingInvoiceActionProps = {
   align?: "center" | "right" | "stretch";
@@ -26,14 +37,10 @@ type FloatingInvoiceActionProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export const INVOICE_FLOATING_BASE_OFFSET = 104;
-export const INVOICE_FLOATING_SECONDARY_OFFSET = 168;
-export const INVOICE_FLOATING_TERTIARY_OFFSET = 232;
-
 type FloatingInvoiceActionHostContextValue = {
   registerAction: (
     id: string,
-    entry: { node: ReactNode; refreshKey: string },
+    entry: FloatingInvoiceActionRegistryEntry,
   ) => void;
   unregisterAction: (id: string) => void;
 };
@@ -47,12 +54,14 @@ export function FloatingInvoiceActionHost({
   children: ReactNode;
 }) {
   const [actions, setActions] = useState<
-    Record<string, { node: ReactNode; refreshKey: string }>
+    Record<string, FloatingInvoiceActionRegistryEntry>
   >({});
   const registerAction = useCallback(
-    (id: string, entry: { node: ReactNode; refreshKey: string }) => {
+    (id: string, entry: FloatingInvoiceActionRegistryEntry) => {
       setActions((current) => {
-        if (current[id]?.refreshKey === entry.refreshKey) return current;
+        if (!shouldUpdateFloatingInvoiceAction(current[id], entry)) {
+          return current;
+        }
         return { ...current, [id]: entry };
       });
     },
@@ -99,23 +108,53 @@ export function FloatingInvoiceAction({
 }: FloatingInvoiceActionProps) {
   const host = useContext(FloatingInvoiceActionHostContext);
   const id = useId();
+  const animatedBottom = useMemo(() => new Animated.Value(footerOffset), []);
   const alignmentClass =
     align === "center"
       ? "items-center"
       : align === "right"
         ? "items-end"
         : "items-stretch";
+  useEffect(() => {
+    Animated.timing(animatedBottom, {
+      toValue: footerOffset,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [animatedBottom, footerOffset]);
   const action = useMemo(
     () => (
-      <View
+      <Animated.View
         pointerEvents="box-none"
-        className={`absolute inset-x-0 z-20 px-4 ${alignmentClass} ${className || ""}`}
-        style={[{ bottom: footerOffset }, style]}
+        style={[
+          {
+            position: "absolute",
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            paddingHorizontal: 16,
+            bottom: animatedBottom,
+          } as any,
+          style,
+        ]}
       >
-        <View pointerEvents={pointerEvents}>{children}</View>
-      </View>
+        <View
+          pointerEvents={pointerEvents}
+          className={`${alignmentClass} ${className || ""}`}
+        >
+          {children}
+        </View>
+      </Animated.View>
     ),
-    [alignmentClass, children, className, footerOffset, pointerEvents, style],
+    [
+      alignmentClass,
+      animatedBottom,
+      children,
+      className,
+      pointerEvents,
+      style,
+    ],
   );
   const actionRefreshKey = String(
     refreshKey ??

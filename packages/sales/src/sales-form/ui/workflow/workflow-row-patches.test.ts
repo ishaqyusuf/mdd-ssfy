@@ -66,6 +66,51 @@ describe("workflow row patches", () => {
 		expect((patch.meta as any).mouldingRows[1].lineTotal).toBe(42);
 	});
 
+	it("clamps edited moulding row quantity to one", () => {
+		const patch = buildWorkflowMouldingRowsPatch({
+			line: {
+				uid: "line-1",
+				meta: {},
+			},
+			sharedComponentPrice: 5,
+			rows: [
+				{
+					uid: "moulding-1",
+					title: "Casing",
+					qty: 0,
+					salesPrice: 20,
+				},
+			],
+		});
+
+		expect(patch.qty).toBe(1);
+		expect(patch.lineTotal).toBe(25);
+		expect((patch.meta as any).mouldingRows[0].qty).toBe(1);
+		expect((patch.meta as any).mouldingRows[0].lineTotal).toBe(25);
+	});
+
+	it("builds moulding patches from JSON line metadata without spreading string keys", () => {
+		const patch = buildWorkflowMouldingRowsPatch({
+			line: {
+				uid: "line-1",
+				meta: JSON.stringify({ keep: true }),
+			} as any,
+			sharedComponentPrice: 5,
+			rows: [
+				{
+					uid: "moulding-1",
+					title: "Casing",
+					qty: 2,
+					salesPrice: 20,
+				},
+			],
+		});
+
+		expect((patch.meta as any).keep).toBe(true);
+		expect((patch.meta as any).mouldingRows).toHaveLength(1);
+		expect((patch.meta as any)[0]).toBeUndefined();
+	});
+
 	it("preserves legacy moulding row identity when deriving edit rows", () => {
 		const context = buildWorkflowMouldingRowsContext({
 			uid: "line-1",
@@ -80,6 +125,7 @@ describe("workflow row patches", () => {
 								id: 12,
 								uid: "moulding-1",
 								title: "Casing",
+								img: "casing.png",
 								salesPrice: 20,
 								basePrice: 10,
 							},
@@ -109,6 +155,51 @@ describe("workflow row patches", () => {
 		expect(context.rows[0]?.primaryGroupItem).toBe(true);
 	});
 
+	it("preserves persisted moulding rows from JSON line metadata", () => {
+		const context = buildWorkflowMouldingRowsContext({
+			uid: "line-1",
+			formSteps: [
+				{
+					step: { title: "Moulding" },
+					prodUid: "moulding-1",
+					meta: {
+						selectedProdUids: ["moulding-1"],
+						selectedComponents: [
+							{
+								id: 12,
+								uid: "moulding-1",
+								title: "Casing",
+								img: "casing.png",
+								salesPrice: 20,
+								basePrice: 10,
+							},
+						],
+					},
+				},
+			],
+			meta: JSON.stringify({
+				mouldingRows: [
+					{
+						uid: "moulding-1",
+						title: "Saved Casing",
+						description: "Saved casing row",
+						qty: 4,
+						salesPrice: 20,
+						customPrice: 28,
+						salesItemId: 301,
+					},
+				],
+			}),
+		} as any);
+
+		expect(context.rows[0]?.description).toBe("Saved casing row");
+		expect(context.rows[0]?.qty).toBe(4);
+		expect(context.rows[0]?.img).toBe("casing.png");
+		expect(context.rows[0]?.customPrice).toBe(28);
+		expect(context.rows[0]?.salesItemId).toBe(301);
+		expect(context.totalAmount).toBe(112);
+	});
+
 	it("derives and persists service rows", () => {
 		const line = {
 			uid: "service-line",
@@ -130,6 +221,33 @@ describe("workflow row patches", () => {
 		expect(patch.lineTotal).toBe(60);
 		expect(patch.description).toBe("Install");
 		expect((patch.meta as any).taxxable).toBe(true);
+	});
+
+	it("derives service rows from JSON line metadata", () => {
+		const context = buildWorkflowServiceRowsContext({
+			uid: "service-line",
+			description: "Fallback",
+			qty: 1,
+			unitPrice: 10,
+			meta: JSON.stringify({
+				serviceRows: [
+					{
+						uid: "svc-1",
+						service: "Install",
+						taxxable: true,
+						produceable: true,
+						qty: 3,
+						unitPrice: 25,
+					},
+				],
+			}),
+		} as any);
+
+		expect(context.rows).toHaveLength(1);
+		expect(context.rows[0]?.service).toBe("Install");
+		expect(context.rows[0]?.qty).toBe(3);
+		expect(context.rows[0]?.taxxable).toBe(true);
+		expect(context.rows[0]?.produceable).toBe(true);
 	});
 
 	it("persists multi-row service tax and production flags", () => {
@@ -164,6 +282,31 @@ describe("workflow row patches", () => {
 		expect((patch.meta as any).taxxable).toBe(true);
 		expect((patch.meta as any).produceable).toBe(true);
 		expect((patch.meta as any).serviceRows).toHaveLength(2);
+	});
+
+	it("builds service patches from JSON line metadata without spreading string keys", () => {
+		const patch = buildWorkflowServiceRowsPatch({
+			line: {
+				uid: "service-line",
+				meta: JSON.stringify({ keep: true }),
+			} as any,
+			rows: [
+				{
+					uid: "svc-1",
+					service: "Install",
+					taxxable: true,
+					produceable: true,
+					qty: 2,
+					unitPrice: 25,
+				},
+			],
+		});
+
+		expect((patch.meta as any).keep).toBe(true);
+		expect((patch.meta as any).serviceRows).toHaveLength(1);
+		expect((patch.meta as any).taxxable).toBe(true);
+		expect((patch.meta as any).produceable).toBe(true);
+		expect((patch.meta as any)[0]).toBeUndefined();
 	});
 
 	it("builds shelf section patches", () => {

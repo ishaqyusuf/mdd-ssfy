@@ -1,5 +1,8 @@
 import { InvoiceFormScreen } from "@/features/sales/invoice-form/components/invoice-form-screen";
-import type { NewSalesFormType } from "@/features/sales/invoice-form/types";
+import {
+	normalizeRouteParam,
+	normalizeSalesFormTypeParam,
+} from "@/features/sales/invoice-form/lib/sales-form-route-params";
 import { useLocalSearchParams } from "expo-router";
 
 export default function NewInvoiceRoute() {
@@ -7,9 +10,9 @@ export default function NewInvoiceRoute() {
 		skipCustomerSelector?: string;
 		type?: string;
 	}>();
-	const type = normalizeSalesFormType(params.type);
+	const type = normalizeSalesFormTypeParam(params.type);
 	const skipInitialCustomerSelector =
-		normalizeParam(params.skipCustomerSelector) === "1";
+		normalizeRouteParam(params.skipCustomerSelector) === "1";
 
 	return (
 		<InvoiceFormScreen
@@ -18,13 +21,4 @@ export default function NewInvoiceRoute() {
 			type={type}
 		/>
 	);
-}
-
-function normalizeSalesFormType(value?: string | string[]): NewSalesFormType {
-	const raw = normalizeParam(value);
-	return raw === "quote" ? "quote" : "order";
-}
-
-function normalizeParam(value?: string | string[]) {
-	return Array.isArray(value) ? value[0] : value;
 }

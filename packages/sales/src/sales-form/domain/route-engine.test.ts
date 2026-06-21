@@ -69,14 +69,14 @@ describe("route-engine domain", () => {
         ...routeData.stepsByUid,
         stepC: {
           ...routeData.stepsByUid.stepC,
-          meta: {
+          meta: JSON.stringify({
             doorSizeVariation: [
               {
                 rules: [],
                 widthList: ["1-10"],
               },
             ],
-          },
+          }),
         },
       },
     };
@@ -97,6 +97,40 @@ describe("route-engine domain", () => {
         widthList: ["1-10"],
       },
     ]);
+  });
+
+  it("resolves configured route steps from string selected-component metadata", () => {
+    const scoped = resolveConfiguredRouteStepsForLine({
+      routeData,
+      line: {
+        formSteps: [
+          {
+            stepId: 1,
+            componentId: null,
+            prodUid: "",
+            value: "",
+            meta: JSON.stringify({
+              img: "door.png",
+              selectedComponents: [
+                {
+                  uid: "rootA",
+                  title: "Door",
+                },
+              ],
+            }),
+            step: { id: 1, uid: "rootStep", title: "Item Type" },
+          },
+        ],
+      },
+    });
+
+    expect(scoped.map((step: any) => step.step.uid)).toEqual([
+      "rootStep",
+      "stepB",
+      "stepC",
+    ]);
+    expect(scoped[0]?.prodUid).toBe("rootA");
+    expect(scoped[0]?.meta?.img).toBe("door.png");
   });
 
   it("merges configured series with existing step selections", () => {
@@ -633,7 +667,7 @@ describe("route-engine domain", () => {
         stepId: 3,
         prodUid: "casing-a",
         value: "Colonial",
-        meta: { preserved: true },
+        meta: JSON.stringify({ preserved: true }),
         step: { id: 3, uid: "stepC", title: "Casing" },
       },
       {
@@ -664,6 +698,7 @@ describe("route-engine domain", () => {
     ]);
     expect(rebuilt.steps[2]?.meta?.redirectDisabled).toBe(true);
     expect(rebuilt.steps[2]?.meta?.redirectTargetUid).toBe("stepD");
+    expect(rebuilt.steps[2]?.meta?.preserved).toBe(true);
     expect(rebuilt.activeIndex).toBe(3);
   });
 
@@ -738,7 +773,7 @@ describe("route-engine domain", () => {
         stepId: 3,
         prodUid: "casing-a",
         value: "Colonial",
-        meta: { restored: true },
+        meta: JSON.stringify({ restored: true }),
         step: { id: 3, uid: "stepC", title: "Casing" },
       },
       {

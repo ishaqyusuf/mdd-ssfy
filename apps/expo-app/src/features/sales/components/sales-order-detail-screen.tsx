@@ -92,7 +92,9 @@ export function SalesOrderDetailScreen({ orderNo }: Props) {
                 <Text className="text-[11px] font-semibold text-foreground">{paidPct.toFixed(0)}%</Text>
               </View>
               <View className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <View className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
+                <View style={{ width: `${paidPct}%`, height: "100%" }}>
+                  <View className="h-full rounded-full bg-primary" />
+                </View>
               </View>
             </View>
           </OverviewCard>
@@ -375,7 +377,9 @@ function FinancialOverviewCard({
         </View>
         <Text className="text-2xl font-black text-foreground">{money(due)}</Text>
         <View className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-          <View className="h-full rounded-full bg-primary" style={{ width: `${paidPct}%` }} />
+          <View style={{ width: `${paidPct}%`, height: "100%" }}>
+            <View className="h-full rounded-full bg-primary" />
+          </View>
         </View>
       </View>
 

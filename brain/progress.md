@@ -2,7 +2,875 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+## 2026-06-21
+
+- Moved the local `apps/www` mobile-jobs dev port off `3000` and onto the repo's fixed `4000` child-port contract.
+  - `mobile-jobs` was failing because a Hermes WhatsApp bridge process reclaimed `3000` after the dev port cleanup, causing the www dev process to exit with code 143 during `/api/auth-session` compilation.
+  - Updated the www dev script default to `PORTLESS_APP_PORT=4000` and aligned Expo's local public web URL/port to `4000`, leaving site on `4100`.
+  - Validation: reran `bun run mobile-jobs`; www, site, Expo Metro, and Trigger worker stayed up, and `curl http://127.0.0.1:4000/api/auth-session` returned `200` with `null` unauthenticated session JSON.
+
+- Added a structured loading skeleton to the mobile sales dashboard.
+  - Replaced the centered pending spinner with a dashboard-shaped skeleton that mirrors stat cards, sales/quote actions, and recent-sales cards while the overview query loads.
+  - Kept the skeleton in a dedicated mobile feature component so the route screen stays focused and the placeholder can reuse the app's native `Skeleton` primitive.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped syntax parse for the changed sales dashboard TSX files passed; scoped `git diff --check` passed. No dev server, build, broad typecheck, or device automation was run.
+
+## 2026-06-19
+
+- Fixed actual React Native `className` + `style` conflicts in the Expo app.
+  - Removed combined `className`/`style` usage from direct `react-native` primitives and `Animated.View` hits across mobile app screens, footers, chat swatches, progress bars, dispatch placeholders, login inputs, and invoice floating/item actions.
+  - Left wrapper/custom component usages and example-only icon usages for a separate pass, matching the narrowed request to fix actual React Native components first.
+  - Updated docs: `brain/progress.md`; no API/database/feature docs were needed because this is standards compliance and presentation refactoring only, with no contract, schema, or persisted behavior change.
+  - Validation: import-aware direct React Native scanner reports `total=0`; broader scanner reports only deferred wrapper/example hits; scoped `git diff --check` passed. No dev server, broad typecheck/build, or UI automation was run.
+
+- Added active-item header and swipe navigation to the mobile invoice form.
+  - Changed the invoice form header to show the active item label (`Item x` fallback or the item description/name when set) as a chevron-down button that opens the existing invoice item bottom sheet.
+  - Moved the left/right item chevrons into a fixed mid-screen overlay so they stay in place while the item body scrolls, and added horizontal swipe navigation with swipe-left moving to the next item and swipe-right moving to the previous item.
+  - Added a focused swipe-direction helper and regression coverage for swipe direction, bounds, short swipes, vertical gestures, and single-item forms.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation/navigation behavior only.
+  - Validation: focused item-navigation and item-sheet helper tests passed; scoped Biome check passed for the new helper files; scoped `git diff --check` passed. A broader Biome check across existing dirty invoice-form screen files still reports pre-existing lint/format issues unrelated to this slice.
+
+- Implemented the mobile Quotes list screen using the Orders list feature set.
+  - Added `/(sales)/quotes`, registered it in the mobile sales stack, and changed the Sales Dashboard Quotes tile from disabled `Coming soon` copy to a live route.
+  - Extracted the mobile orders list/card behavior into shared sales-document list/card components, preserved the Orders wrapper and dispatch-search behavior, and added a Quotes wrapper backed by `sales.quotes` plus `filters.salesQuotes`.
+  - Quote cards now show quote-specific status from invoice pending/total amounts and open the existing quote-aware invoice edit form only when a saved slug is present; slugless legacy quotes render as unavailable instead of navigating to a broken edit route.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this reuses existing tRPC contracts and makes no schema or contract changes.
+  - Validation: focused new-sales-type and sales-document-list helper tests passed; scoped Biome check passed for the new/refactored list files; scoped `git diff --check` passed. No Expo dev server, broad typecheck, build, or device/browser automation was run.
+
+- Made mobile sales chooser sheets compact and headerless.
+  - Removed the title/header area from the `New Invoice` Sales/Quote chooser and let the bottom sheet dynamically size to its Sales, Quote, and Cancel rows.
+  - Follow-up: wrapped the `New Invoice` chooser rows in `BottomSheetView` so Gorhom dynamic sizing can measure the content and present the sheet reliably.
+  - Applied the same headerless content-sized bottom sheet behavior to the invoice item list modal opened from the invoice form footer CTA.
+  - Added more inner spacing to both headerless sheet bodies so flat list rows do not hug the rounded sheet corners.
+  - Added horizontal padding inside the shared flat list rows so each item's icon/text/chevron have their own inset instead of relying only on sheet padding.
+  - Adapted the invoice item list modal to the same `BottomSheetView` measured body used by the `New Invoice` chooser so its row padding and content sizing match.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation behavior only.
+  - Validation: focused sales-type option, item-sheet helper, and native UI-boundary tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run.
+
+- Lowered and narrowed the mobile Door/Moulding Proceed action.
+  - Changed the shared invoice floating-action offsets so overlay Proceed sits closer to the bottom, and inline Proceed moves farther down when the normal footer hides during scroll.
+  - Added eased 240ms cubic animation to the shared floating action host and inline Proceed frame so bottom-position changes feel smoother.
+  - Gave the workflow Proceed button an explicit 220-point pill width so it no longer renders as a full-width bottom bar.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation behavior only.
+  - Validation: focused floating-action-layout test passed; scoped `git diff --check` passed; no dev server, build, broad typecheck, or UI automation was run.
+
+- Flattened mobile sales chooser and item switcher modals.
+  - Added a shared Expo sales click-list row and reused it in the `New Invoice` Sales/Quote chooser so Sales, Quote, and Cancel match the customer-selector flat divider-list style.
+  - Updated the invoice item switcher opened from the invoice form footer route CTA to use the same flat row style for item selection, New item, and Cancel while preserving item summaries and selected state.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation behavior only.
+  - Validation: focused sales-type option, item-sheet helper, and native UI-boundary tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run.
+
+- Added keyboard-aware support for inline HPT size-card inputs.
+  - Replaced the mobile invoice form shell's competing `KeyboardAvoidingView` plus plain form `ScrollView` with the existing `react-native-keyboard-controller` `KeyboardAwareScrollView` pattern.
+  - Added a bottom keyboard offset so focused HPT size-card inputs such as LH/RH/Base/Add-on/Custom can scroll above the keyboard while preserving the existing invoice footer overlay.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile keyboard presentation behavior only.
+  - Validation: scoped `git diff --check` passed; no dev server, build, broad typecheck, or UI automation was run per request.
+
+- Changed mobile HPT Add Door to return to the Door step.
+  - The House Package Tool `Add door` button now asks the workflow selector to activate the existing Door multi-select step instead of opening a separate HPT-local candidate strip.
+  - Removed the HPT-local direct add-door option wiring while keeping active-door tabs, swap, remove, and selected-door Sizes behavior intact.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this changes mobile workflow presentation/navigation only.
+  - Validation: scoped `git diff --check` passed; no dev server, build, broad typecheck, or UI automation was run per request.
+
+- Removed the mobile House Package Tool Add Size card.
+  - Removed the quick Add Size chip card and its editor/workflow props from the mobile HPT step, leaving the selected-door `Sizes` control as the size configuration path.
+  - Updated the empty HPT copy to point users to the selected-door Sizes action instead of another Add Size card.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this removes mobile presentation controls without changing persisted payload shape.
+  - Validation: scoped `git diff --check` passed; no dev server, build, broad typecheck, or UI automation was run per request.
+
+- Stabilized mobile invoice form bottom scroll padding while footer actions hide/show.
+  - Kept the invoice form scroll container on a stable 25-point bottom padding, with the active item section retaining its own stable reserve, instead of collapsing the reserve when footer actions hide during scroll.
+  - This preserves the footer slide/fade behavior while avoiding content-height changes that can flicker component grids during scrolling.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed; no dev server, build, broad typecheck, or UI automation was run per request.
+
+- Rendered the functional mobile House Package Tool editor inside the active workflow step.
+  - Added a focused `HousePackageToolWorkflowStep` wrapper that reuses the existing mobile HPT editor and shared sales-form helpers for selected doors, size rows, supplier-aware sizing, add/swap/remove door, add size, row pricing, and door-size picker updates.
+  - Replaced the inline workflow selector's HPT notice-only body with the functional editor while preserving the existing step pills and non-HPT component-grid flow.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this wires existing mobile/shared HPT behavior into the active step without changing payload contracts.
+  - Validation: focused HPT row helper and workflow proceed/rendering tests passed; scoped `git diff --check` passed; no dev server, build, broad typecheck, or UI automation was run per request.
+
+- Fixed local `apps/www` proxy auth-session self-fetch resolution.
+  - Moved the proxy's auth-session URL decision into a focused helper and made all local dev hosts, including plain `http://localhost`, `.localhost`, `.test`, and IPv6 loopback forms, resolve to `http://127.0.0.1:<app-port>/api/auth-session`.
+  - This avoids local auth checks going through `localhost`/`::1` during cold route compilation or portless proxying while preserving non-local origins and the existing auth snapshot payload.
+  - Follow-up: added a one-time retry for transient local socket-close failures such as `UND_ERR_SOCKET` so a cold internal `/api/auth-session` connection close does not immediately log a proxy auth failure.
+  - Updated docs: `brain/api/permissions.md` and `brain/progress.md`; no database docs were needed because this is auth proxy URL resolution only.
+  - Validation: focused proxy auth-session URL/fetch tests passed; scoped `git diff --check` passed; no dev server, build, browser, or broad typecheck was run.
+
+- Added thresholded mobile workflow component search.
+  - Workflow steps now show a native search input below the step pills only when the component grid has more than 12 results.
+  - The search filters the already-resolved component picker data in place while keeping selected-state and inline Moulding Proceed visibility based on the unfiltered base list.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client presentation/filtering behavior only.
+  - Validation: focused workflow rendering tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Stabilized the mobile Moulding grid against remaining column flicker.
+  - Memoized component grid image rendering, memoized image source objects, and disabled Android image fade so store updates from selection do not visually reload unchanged moulding images.
+  - Made inline Moulding bottom Proceed spacing stable for the whole Moulding step instead of toggling padding when selected state changes, avoiding another grid-height recalculation during selection.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile rendering behavior only.
+  - Validation: focused workflow rendering/proceed, line-workflow, and shared moulding/selection tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added an inline Moulding Proceed fallback inside the mobile item workflow.
+  - Manual testing showed selected Moulding cards and qty controls were visible while the screen-level floating Proceed button still did not appear in the inline invoice item flow.
+  - Added a picker-local bottom Proceed button for inline Moulding that keys off the same visible selected-card state as the checkmarks, adds bottom padding, and calls the existing `handleProceed` next-step path.
+  - Kept overlay workflow selectors on the screen-level floating action host to avoid changing the full-screen selector behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client workflow presentation only.
+  - Validation: focused workflow rendering/proceed, line-workflow, and shared moulding/selection tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened the mobile Moulding multi-select Proceed button visibility.
+  - Added selected component snapshot and selected moulding-count fallbacks to the workflow Proceed selected-count helper, so Moulding can show the centered floating `Proceed` button even when derived rows have not caught up.
+  - Added a small visual lift to the centered Proceed button so it reads as a floating footer action when it appears.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client workflow visibility only.
+  - Validation: focused workflow rendering/proceed, line-workflow, and shared moulding/selection tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Removed the mobile Moulding grid's unchecked quantity-control reservation.
+  - Reworked selected moulding quantity controls from a hidden reserved footer into a selected-only overlay on the component image, so unchecked cards keep the same measured height and no longer show blank bottom space.
+  - Kept quantity changes routed through the shared moulding row patch path while avoiding FlatList row-height changes that can cause scroll flicker.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client rendering behavior only.
+  - Validation: focused workflow rendering/proceed, line-workflow, and shared moulding/selection tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Refined the mobile invoice item switcher sheet.
+  - Changed the footer item-switcher icon to a right-aligned breadcrumb/route button beside the Create/Save action.
+  - Added pure invoice item sheet helpers for item-count-based snap points, compact `Item 01` row labels, and quantity/line-count/total subtitles.
+  - Updated the sheet footer to use a concise `+ New` action.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client sheet presentation only.
+  - Validation: focused item-sheet, item-section, workflow, floating-layout, and shared moulding/selection tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Replaced the mobile invoice item FAB with a footer item-switcher icon and restored targeted workflow behavior.
+  - Moved the invoice item sheet opener out of the floating-action lane and into an optional footer breadcrumb/list icon button beside the Create/Save action, while keeping item-sheet state owned by `ItemsStep`.
+  - Protected the root `Item Type` step from grouped-row editor substitution, so choosing Moulding no longer causes the first step pill to render moulding line-item data instead of the component grid.
+  - Added Door/Moulding selected-row fallbacks for centered floating `Proceed` visibility, including saved Door size rows and selected Moulding rows when step metadata lags.
+  - Restored Moulding selected-card qty controls with a reserved-height control area to avoid first-selection scroll flicker.
+  - Moved Door Size footer actions onto `KeyboardStickyView` with extra list padding so OK/Next stack above the keyboard.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client workflow UI behavior over the existing payload shape.
+  - Validation: focused mobile workflow, floating-layout, line-workflow, and shared moulding/selection tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Fixed new-sales-form grouped service/moulding multi-line save identity.
+  - Ran the focused API save/hydrate tests after the mobile grouped-row work and found multi-line grouped save regressions in the test harness and API save identity rules.
+  - Added missing `dykeSalesDoors.create` / `update` coverage to the multi-line API test fixture so the current per-door save path is exercised.
+  - Changed `saveNewSalesFormInternal` so grouped service/moulding rows only update existing `SalesOrderItems` when the row itself carries `salesItemId`; newly added grouped rows now create new legacy siblings instead of overwriting the grouped parent line id.
+  - Applied the same row-level identity rule to grouped moulding `HousePackageTools`: rows with `hptId` update/revive existing HPT rows, while newly added moulding rows create new HPT siblings instead of reusing the parent HPT id.
+  - Updated docs: `brain/api/contracts.md` and `brain/progress.md`; no database schema docs were needed because this preserves the existing relational shape and fixes save identity behavior.
+  - Validation: focused API new-sales-form/dealer tests passed, related grouped-row shared/mobile tests passed, and scoped checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Fixed the mobile Door/Moulding multi-select Proceed regression and first-Moulding selection flicker.
+  - Audited the workflow selector after manual testing showed the centered floating `Proceed` stayed hidden and the Moulding grid flickered on first selection.
+  - Changed the mobile selector to treat the active `Moulding` step by step title instead of requiring the whole line to already be classified as a moulding item.
+  - Added selected-count fallbacks from visible selected component state and selected `meta.mouldingRows`, so the Proceed footer can appear while step metadata catches up after Door/Moulding selection.
+  - Removed inline quantity controls from selected moulding grid cards, keeping card heights stable during selection; moulding quantities remain editable in the moulding line-item editor.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client workflow UI behavior over the existing payload shape.
+  - Validation: focused mobile workflow proceed visibility test passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile item-selector row subtitles against workflow UID copy.
+  - Audited the mobile item selector after the component-list UID cleanup and found the workflow root row subtitle was still inline in the component, relying on upstream category normalization.
+  - Extracted item selector row subtitle copy into a pure helper and made workflow rows fall back to `Components` if a uid-like category ever reaches the UI.
+  - Added focused coverage preserving ordinary shelf SKU/category subtitles while suppressing uid-like workflow subtitles.
+  - Tightened the mobile UI-boundary test to assert its scan root covers the Expo `src/app` and `src/features` trees, so the guard continues to protect all mobile source from `@gnd/ui` imports.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this changes mobile display copy only.
+  - Validation: focused item selector copy tests, line item display tests, native sales-form-core boundary test, and mobile UI-boundary test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Tightened mobile Door/HPT route flags to explicit booleans.
+  - Audited the native Door/HPT route flag helper against the requirement that `noHandle` and `hasSwing` should be enabled only when route config explicitly sets them true.
+  - Found the helper used truthiness, so stringy metadata such as `"true"` or numeric `1` could incorrectly enable no-handle or swing UI if it reached the mobile path.
+  - Changed the helper to require literal boolean `true` for both flags and added focused coverage for string/numeric values staying disabled.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this narrows mobile interpretation of existing route metadata without changing persisted shape.
+  - Validation: focused line-workflow helper test, native sales-form-core boundary test, and mobile UI-boundary test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Removed leftover mobile shelf section-clear UI.
+  - Rechecked the simplified shelf picker against the clarified flow: plus `Shelf item`, fullscreen recent/search list, select returns to the shelf step, and edit/delete stay inside the search dialog.
+  - Found an unused `ShelfDestructiveConfirmation` component from the older clear-category/clear-section/remove-section shelf flow; no current mobile shelf code imported it.
+  - Deleted the unused component so the Expo shelf implementation keeps only the simplified picker/list/edit/delete architecture requested for mobile.
+  - Updated docs: `brain/progress.md`; no API/database docs were needed because this removes unused mobile UI code without changing payloads or contracts.
+  - Validation: targeted search confirmed the old shelf destructive-action strings are gone; focused shelf product option tests, native sales-form-core boundary test, and mobile UI-boundary test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added shared coverage for Moulding multi-select proceed behavior.
+  - Audited the native-safe sales-form-core boundary and mobile-visible workflow copy paths after the original Android bundling failure and UID-copy cleanup requirements.
+  - Confirmed the mobile core barrel remains direct-to-pure-helper only and current boundary tests pass without pulling `@gnd/ui` or TSX modules into Expo.
+  - Added a focused shared workflow regression proving selected Moulding multi-select steps use the same `proceedWorkflowMultiSelectStep` path as Door and advance to the line-item step.
+  - Updated docs: `brain/progress.md`; no API/database docs were needed because this pins existing workflow behavior without changing contracts or schema.
+  - Validation: focused workflow selection action tests, mobile workflow proceed visibility tests, native sales-form-core boundary test, and mobile UI-boundary test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Pinned the mobile customer selector recent/search query contract.
+  - Audited the typed customer selector path after the Sales/Quote handoff to verify that the default mobile list requests recent customers by the selected sales form type.
+  - Found the behavior was implemented inline in the hook, while the API already had coverage for unique recent customers ordered by selected order/quote usage.
+  - Extracted the mobile customer search request shape into a focused helper so blank screens always request `recent: true`, the selected type, and `limit: 10`, while typed search sends trimmed text with `recent: false`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this preserves the existing `newSalesForm.searchCustomers` contract.
+  - Validation: focused customer search options test, native sales-form-core boundary test, and mobile UI-boundary test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened direct moulding row edits against zero quantities.
+  - Audited the mobile moulding component grid, selected-card quantity controls, shared moulding selection helper, mobile row editor, and website workflow panel against the website-equivalent multi-select rule.
+  - Confirmed selection-time quantities already clamp blank/zero values through the shared `saveWorkflowMouldingSelectionWithQty` helper, but direct row edits from the line-item editor use `buildWorkflowMouldingRowsPatch` and could persist a selected row with quantity zero until the next rederive.
+  - Changed the shared moulding row summarizer to persist at least quantity 1 for every selected moulding row, so mobile and website row-edit paths follow the same selected-row minimum quantity rule.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because the persisted `meta.mouldingRows` shape is unchanged.
+  - Validation: focused workflow row-patch test, native sales-form-core boundary test, and mobile UI-boundary test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Centralized the simplified mobile shelf picker search request contract.
+  - Audited the Expo/web-UI package boundary and the simplified shelf picker against the clarified mobile-only shelf flow.
+  - Confirmed Expo source and the mobile-facing `sales-form-core` barrel remain guarded against `@gnd/ui`, and the shelf picker already uses a fullscreen modal with category subtitles plus edit/delete actions.
+  - Extracted the shelf picker search input shape into a focused helper so blank picker search is pinned to top-10 recent shelf products with no selected-product padding, while typed search stays a larger explicit search.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because the API contract and persisted `shelfItems` shape are unchanged.
+  - Validation: focused shelf option tests, mobile native UI boundary test, and `sales-form-core` native-safety test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added focused coverage for the mobile New Invoice Sales/Quote handoff.
+  - Audited the sales dashboard `New Invoice` sheet and typed customer-selector routes against the requested Sales/Quote chooser flow.
+  - Found the behavior was implemented in the sheet but the Sales -> `order`, Quote -> `quote`, `source=new` customer-selector handoff contract lived inline in the component.
+  - Extracted the sales type options and typed customer-selector route builder into a small pure helper, then covered both Sales and Quote mappings with a focused Bun test.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile client routing and test coverage only.
+  - Validation: focused new-sales-type options test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile HPT created-size row metadata against UID-like door titles.
+  - Audited custom components, customer recents, Door-size proceed, floating actions, UID-safe component copy, and HPT row grouping against the active mobile sales-form requirements.
+  - Found the HPT quick available-size helper already stored a UID-safe human component title, but the generic created-size helper still persisted raw `component.title` into row metadata.
+  - Reused the same HPT component-title normalization for created size rows so imported/custom door components with UID-like titles store human value/title copy before save/reopen.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because the persisted payload shape is unchanged.
+  - Validation: focused HPT row helper tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened the simplified mobile shelf recent picker against hidden-product under-fill.
+  - Audited the mobile shelf picker and API source after the clarified simple flow; the UI already keeps blank picker results recent/search-only, with edit/delete actions and selected-row category subtitles.
+  - Found the backend recent-shelf helper could still stop after a fixed overfetch page of hidden/archived products, leaving the blank search under-filled even when older visible shelf usage existed.
+  - Changed the helper to scan recent shelf usage in batches, preserve recency order, filter visible shelf products per batch, and stop only when the requested limit is filled or usage is exhausted.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract/database docs were needed because the existing `newSalesForm.searchShelfProducts` response contract is unchanged.
+  - Validation: exact hidden-product regression passed; the full `new-sales-form.test.ts` file and the broader shelf-name filter still hit existing unrelated grand-total assertions where `grandTotal` equals `subTotal`. No dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened the product report query to live step components and sales-count sorting.
+  - Audited `/product-report` and `/sales-book/top-selling-products` after irrelevant products appeared in the report.
+  - Found `sales.getProductReport` started from broad `DykeStepProducts` rows and only filtered by any historical relation usage, so disabled/deleted step components and quote/deleted-order usage could leak into the report; computed sorting also used units before sales count.
+  - Added shared order-scoped relation filters for priced step forms, sales doors, and house-package moulding records; constrained report products to enabled step components under live steps, including archived custom-component metadata; removed zero-sale rows; and sorted rows by computed sales usage count before units/name/id tie-breakers.
+  - Updated docs: `brain/features/sales-product-report-table.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because no schema or migration changed.
+  - Validation: focused Biome check passed for `apps/api/src/db/queries/product-report.ts`; scoped `git diff --check` passed for the touched query file. No dev server, browser smoke, broad typecheck, or build was run.
+
+- Hardened mobile workflow step pill labels for reopened JSON selection metadata.
+  - Audited line-card and workflow-selector selected-step labels against the UID-visible-copy requirement.
+  - Found the line card used the shared UID-safe selection label, but the workflow selector pills only used that safe selected-label path when `step.value` was present; reopened records with JSON `selectedComponents` but no stored `value` could show the generic step title instead of the selected component label.
+  - Extracted native step-pill label resolution into a pure helper that uses shared workflow selection state, preserving existing uppercase component-label styling while showing safe selected labels for JSON metadata.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile display-label behavior only.
+  - Validation: focused workflow-step pill label test, shared workflow-records tests, native sales-form-core boundary test, and mobile UI-boundary test passed; targeted search confirmed the selector no longer gates pill labels on `step.value`; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Centralized mobile sales form route type parsing and tightened customer-selector reset timing.
+  - Audited the new/edit/customer-selector invoice routes against the Sales/Quote handoff and recent-customer requirements.
+  - Found each route owned its own `type` param normalization, and the initial `source=new` customer-selector reset ran in a normal effect, leaving a narrow chance for stale selected-customer state to paint on direct/deep entry before reset.
+  - Added a small native route-param helper with focused coverage, routed the new/edit/customer-selector routes through it, and moved the initial customer-selector reset/type handoff to a layout effect so the store is reset and typed before the selector paints.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile route/handoff behavior only.
+  - Validation: focused route-param helper test plus native sales-form-core and mobile UI-boundary tests passed; targeted search confirmed the duplicate route-local normalizers were removed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added regression coverage for mobile Door/Moulding multi-select Proceed visibility.
+  - Audited the current mobile workflow selector against the requirement that Door and Moulding multi-select steps show a centered floating `Proceed` once at least one item is selected and that the action advances the workflow.
+  - Confirmed the existing handler uses the shared `proceedWorkflowMultiSelectStep` path; extracted the visibility and bulk-select eligibility predicates into a tiny native helper so Door and Moulding proceed behavior is explicit and test-backed.
+  - Added focused coverage for Door, Moulding, generic multi-select, and zero-selection states while preserving the existing floating lane and shared proceed action behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile workflow UI guard coverage only.
+  - Validation: focused workflow-proceed visibility test, shared workflow-selection action tests, native sales-form-core boundary test, and mobile UI-boundary test passed; targeted search confirmed the old inline proceed predicates were removed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Cleaned up remaining quote/invoice visible labels in mobile.
+  - Audited the mobile details/read-only screen, workflow notices, recovery banner, item selector, and item sheet after the sales type selector and quote-aware save/customer copy were already in place.
+  - Found the screen title and reference row still used hardcoded sales wording, so quote records could show `Sales details` / `Sales #`; workflow notices also referred to the `invoice line item`, recovered quote drafts could say `invoice changes`, and sparse item sections could fall back to `Invoice item`.
+  - Added a small native document-label helper under `invoice-form/lib` with focused coverage and routed the shell fallback title, details heading/reference label, workflow notice copy, recovery message, item selector action, item sheet labels, and sparse item fallback title through it, keeping quote screens on `Quote details` / `Quote #` / `quote line item` / `quote changes` / `Quote item` and order screens on invoice wording.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile display copy only.
+  - Validation: focused sales-document label test plus native sales-form-core and mobile UI-boundary tests passed; exact-string search found no remaining `Sales details` / `Sales #` labels in the mobile invoice-form path and no `invoice line item` / recovered invoice message / `Invoice item(s)` outside the invoice-mode label regression; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Normalized sparse mobile custom component fallback titles.
+  - Audited the mobile custom component option helper after the search/details/save path had been hardened.
+  - Found sparse custom option rows with no title/name fell back to `Custom component`, while real custom titles are normalized to uppercase like the website.
+  - Changed the fallback option label to `CUSTOM COMPONENT` and added a focused helper regression so sparse custom options keep the same title normalization contract as typed and saved custom components.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile option display/select normalization only.
+  - Validation: focused custom-component option tests plus native sales-form-core and mobile UI-boundary tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Guarded mobile HPT against removing the final selected door option.
+  - Audited active-door removal in the mobile House Package Tool section after confirming Door/Moulding multi-select requires at least one selected item.
+  - Found the mobile HPT editor exposed the active-door trash action even when only one door option remained selected, allowing the line to drop into a no-selected-door state while still sitting inside HPT.
+  - Added a small native helper to allow HPT door-option removal only when the editor is enabled, a removal handler exists, and more than one door option remains selected; wired the active-door trash button through that helper.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile editor guard behavior over existing shared HPT actions.
+  - Validation: focused HPT row helper tests plus native sales-form-core and mobile UI-boundary tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile workflow selection and Door/HPT display labels against UID-like copy.
+  - Audited the Door Size picker, HPT group helpers, active-door chips, and workflow step pills after the component-card UID cleanup.
+  - Found the Door Size picker header still used raw `component.title`, HPT row grouping stored/rendered raw selected door titles, and the shared `workflowStepSelectionLabel` helper could fall back to component UID, `prodUid`, or UID-like `value` as visible copy.
+  - Routed the Door Size picker through the mobile UID-safe selectable-title helper, made HPT group labels and quick available-size row `componentTitle` metadata prefer human component value/title copy, and hardened the shared workflow selection-label helper to skip UID-like copy before falling back to readable step titles or neutral selection text.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this changes visible labels and stored HPT display metadata without changing persistence contracts or schema.
+  - Validation: focused shared workflow-records, workflow selectable copy, HPT row grouping, native sales-form-core boundary, and mobile UI-boundary tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Routed mobile HPT add/swap door chip labels through UID-safe copy.
+  - Audited visible HPT door option labels after the general component UID cleanup.
+  - Found the HPT add-door and swap-door chips still used raw component titles, so sparse component records with UID-like titles could leak workflow slugs into mobile UI.
+  - Reused the existing mobile workflow selectable copy helper for those chip titles, keeping identity/routing fields unchanged while filtering visible copy.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this changes mobile display copy only.
+  - Validation: focused workflow selectable copy, HPT row grouping, native sales-form-core boundary, and mobile UI-boundary tests passed; a direct Bun TSX import check was attempted but blocked by React Native's Flow syntax in `react-native/index.js`, so it was not used as proof.
+
+- Hardened the mobile custom component save handler.
+  - Audited the custom component details path after aligning Proceed enablement with unchanged existing custom selection.
+  - Found the visible disabled state guarded invalid create/update cases, but the `saveCustomComponent` handler itself could still be invoked programmatically with an unsaveable details state.
+  - Added an early handler guard so invalid custom create/update states cannot call `inventories.upsertDykeCustomStepComponent`, while unchanged existing options still select locally through the website-equivalent path.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this narrows a mobile client mutation path without changing contracts or schema.
+  - Validation: focused custom-component option tests and native mobile/web-UI boundary tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile workflow line titles against UID-like visible copy.
+  - Audited the mobile invoice workflow card/review display after the UID subtitle cleanup.
+  - Found review rows and workflow line cards could still render raw `item.title`, which can be UID-like on sparse or hydrated workflow records.
+  - Added a shared mobile line-item display title helper beside the existing subtitle helper and routed both line cards and review item rows through it, preserving ordinary product titles while falling back to safe workflow description/category copy.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile display-copy cleanup only.
+  - Validation: focused line-item display tests passed, plus native sales-form-core boundary and mobile UI-boundary tests; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Tightened the mobile HPT swing-field route flag.
+  - Audited the full-screen Door Size picker and mobile HPT row editor after aligning route flag semantics with the website panel.
+  - Found the HPT row editor still rendered Swing when `hasSwing` was omitted because it only hid the field for explicit `false`.
+  - Changed the editor to show Swing only for explicit true, and routed the door-size picker registration through the same mobile door-route flag helper.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this changes mobile UI interpretation of existing route metadata only.
+  - Validation: focused line-workflow helper, HPT row grouping, native sales-form-core boundary, and mobile UI-boundary tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Aligned mobile Door/HPT route flags with website HPT semantics.
+  - Audited the mobile House Package Tool editor and door-size apply path against the website new-sales-form HPT panel.
+  - Found mobile treated missing `hasSwing` config as enabled, while the website renders and patches swing only when `hasSwing` is explicitly true.
+  - Added a native helper for mobile door route flags and routed HPT row patches, HPT editor props, and door-size apply patches through it so missing route config no longer renders or persists swing values.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this keeps existing payload shape while aligning mobile flag interpretation.
+  - Validation: focused line-workflow helper, floating-action layout, native sales-form-core boundary, and mobile UI-boundary tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Made the mobile invoice item FAB lane explicit.
+  - Audited the shared floating invoice action host against the requested item FAB/custom/proceed alignment above the footer.
+  - Confirmed the item FAB, custom action, and workflow Proceed already share the centered screen-level host; added a named item-FAB offset helper so the item switcher no longer depends on an unnamed secondary-lane literal.
+  - Updated the focused floating-action layout regression to pin the item FAB to the secondary centered lane while custom/proceed stacking remains unchanged.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is a mobile layout contract cleanup only.
+  - Validation: focused floating-action layout, native sales-form-core boundary, and mobile UI-boundary tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Polished simplified mobile shelf edit return behavior.
+  - Audited the fullscreen shelf picker against the clarified mobile shelf flow: add shelf item, recent/search list, edit/delete actions, edit save returning to the search dialog, and selected row category subtitles.
+  - Found edit save returned to the product list while preserving the old search text, which could hide the just-renamed product and make the return feel broken.
+  - Cleared the shelf picker search query after a successful product edit so the modal returns to the simple recent/list view.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this changes mobile modal state only.
+  - Validation: focused shelf product option tests passed, native mobile/web-UI boundary tests passed, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Aligned mobile custom component Proceed enablement with the save/select path.
+  - Audited the custom component sheet against the requested search-to-compressed-details flow and the website-equivalent unchanged-existing-option behavior.
+  - Found the details Proceed button required a valid step id even when the selected custom option was unchanged, although that path only selects the existing option and does not need a backend upsert.
+  - Added a pure enablement helper so unchanged existing options can proceed without step id, while new or price-changed customs still require step id before save/update.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this changes mobile button enablement only.
+  - Validation: focused custom-component option tests passed, native mobile/web-UI boundary tests passed, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile workflow component card copy against UID-like titles.
+  - Audited the mobile workflow component grid and component mappers against the requirement that component lists must not show UID subtitles or UID-like fallback copy.
+  - Found the component card and two mobile mappers still used raw `title || value` copy, so a UID-like title could render even though selectable-row copy was already protected.
+  - Routed component mapping and grid titles through the existing UID-safe workflow selectable copy helper and added a focused mapper regression.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this changes display-copy fallback only.
+  - Validation: focused workflow selectable copy and line-workflow helper tests passed; native mobile/web-UI boundary tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Consolidated mobile invoice edge metadata parsing on the shared parser.
+  - Audited remaining Expo invoice custom-component, line-workflow, shelf subtitle, HPT grouping, default-profile, and seeded shelf-row helpers after the shared-core parser export.
+  - Removed duplicated local JSON parser implementations and object-only reads at those edges, routing them through `readSalesFormObjectMetadata` from the native-safe sales-form core barrel.
+  - Kept the mobile UI native-owned and avoided `@gnd/ui`; this is parser plumbing only, with no payload shape change.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client parsing of existing metadata fields without changing payload shape.
+  - Validation: focused custom-component option, line-workflow helper, and shelf product option tests passed; native mobile/web-UI boundary tests passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile invoice store metadata parsing.
+  - Audited Expo invoice store line merge/update helpers because mobile shelf and grouped service edits rely on them after reopen.
+  - Found source-line matching and taxable propagation still read line metadata as object-only.
+  - Moved those reads through the shared sales-form metadata parser so JSON-string metadata keeps native line merging and grouped service row updates aligned with shared-core save behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens mobile parsing of existing metadata fields without changing payload shape.
+  - Validation: native mobile/web-UI boundary tests passed, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared record normalization and grouped-line metadata parsing.
+  - Audited shared normalization/grouping after mobile-native metadata parsing so mobile create/edit hydration stays on the same core logic path as the website new-sales-form.
+  - Found HPT route-config normalization and grouped service/moulding legacy helpers still had object-only metadata reads for some line, row, and step metadata.
+  - Moved those reads through object-or-JSON metadata parsing so no-handle HPT hydration, grouped service flags, grouped-row expansion, HPT price tags, and selected moulding step snapshots survive reopened stringified metadata.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused record-normalization and grouping tests passed, native mobile/web-UI boundary tests passed, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile-native invoice metadata parsing at display/editor edges.
+  - Audited Expo invoice item grouping, line-card subtitles, door-size patch merges, and HPT row displays after the shared-core metadata parser pass.
+  - Found several mobile-native surfaces still reading or spreading line/row metadata as object-only even though reopened records can carry JSON-string metadata.
+  - Exported the shared metadata parser from the native-safe sales-form core barrel and wired the mobile-native call sites through it without importing `@gnd/ui`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client parsing of existing metadata fields without changing payload shape.
+  - Validation: focused line-item display tests passed, native mobile/web-UI boundary tests passed, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared workflow selection action metadata parsing for mobile edit/reopen parity.
+  - Audited workflow selection actions because mobile component selection, multi-select Proceed, Select All, and redirect updates depend on these shared website-equivalent routing helpers.
+  - Found selected component, redirect, and select-all patch paths still read or spread step metadata as object-only.
+  - Moved those reads and merges to the shared sales-form metadata parser so JSON-string step metadata keeps selection/proceed/redirect updates on the shared routing path without spreading string keys.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow-selection action tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched workflow-selection files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared workflow record metadata parsing for mobile edit/reopen parity.
+  - Audited workflow record helpers because mobile selected-card state, selection labels, and component override maps depend on them.
+  - Found selection checks, selection labels, and component override map fallbacks still read selected UID/component and redirect/section metadata as object-only.
+  - Moved those reads to the shared sales-form metadata parser so JSON-string step metadata keeps selected state and override hydration aligned with reopened records.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow-record tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched workflow-record files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared shelf row helper metadata parsing for mobile edit/reopen parity.
+  - Audited shelf price and product-row helpers because mobile shelf row editing uses them while still writing canonical shared `shelfItems`.
+  - Found shelf display pricing, custom price edits, custom-price clearing, product clearing, and product selection patching still read or spread row metadata as object-only.
+  - Moved those reads and merges to the shared sales-form metadata parser so JSON-string shelf row metadata preserves price/category fields without spreading string metadata keys.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused shelf helper and shelf row product tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched shelf helper files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared workflow component edit metadata parsing for mobile edit/reopen parity.
+  - Audited workflow component edit helpers because mobile consumes them through the native-safe sales-form core barrel for component price, image, redirect, and section override edits.
+  - Found edit-state creation, save patches, and quick price overrides still read and spread selected component metadata as object-only.
+  - Moved those reads to the shared sales-form metadata parser so JSON-string selected-component snapshots can be edited without spreading string metadata keys.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow component edit action tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched component edit files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared workflow calculator metadata parsing for mobile edit/reopen parity.
+  - Audited workflow calculators because mobile shelf sections, door-size candidates, and HPT door summaries rely on them through the native-safe sales-form core boundary.
+  - Found shelf row pricing/category metadata, door-size variation metadata, and HPT door summary metadata still had object-only reads even though the module already had access to the shared parser.
+  - Moved those reads to the shared sales-form metadata parser so reopened JSON-string records keep shelf pricing/category identity, door-size variation rules, and HPT summary surcharge/flat-rate values.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow-calculator tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched workflow-calculator files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened selected Door/Moulding selector metadata parsing for mobile edit/reopen parity.
+  - Audited selected component selector helpers because mobile HPT, moulding rows, line totals, and workflow sync depend on their restored selected snapshots.
+  - Found selector fallbacks and persisted moulding rows still read some metadata fields through object-only access and used a local parser instead of the shared sales-form parser.
+  - Moved selector metadata reads to the shared parser so outer/nested step metadata, fallback component fields, and persisted moulding rows are restored from object or JSON-string metadata.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused selector tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched selector files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared moulding action metadata parsing for mobile edit/reopen parity.
+  - Audited moulding save/remove actions because mobile moulding multi-select and row quantity edits route through shared sales-form core helpers.
+  - Found the helper still used a local metadata parser and still spread raw line/step metadata in selection patches, which could leak string-character keys or miss persisted moulding rows when metadata was stringified.
+  - Moved the helper to the shared sales-form metadata parser for object or JSON-string line/step metadata while preserving the website-equivalent grouped-row patch shape.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow moulding action tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched moulding action files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened sales-form costing metadata parsing for mobile invoice/quote total parity.
+  - Audited summary costing because mobile save/review totals are computed from shared sales-form summary logic.
+  - Found service taxability, derived service/moulding labor rows, fallback labor rates, and shelf row price fallbacks still read line/row metadata as object-only.
+  - Moved those reads to the shared sales-form metadata parser so JSON-string grouped-row metadata contributes to totals, labor, and taxability without changing payload shape.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused costing tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched costing files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened customer-profile repricing metadata parsing for mobile edit/reopen parity.
+  - Audited profile repricing because mobile customer/profile initialization routes through shared record normalization and `repriceSalesFormLineItemsByProfile`.
+  - Found workflow selected components, shelf rows, HPT door rows, and stored door route config still depended on object-only metadata when recalculating prices for a profile coefficient change.
+  - Moved those reads and metadata spreads to the shared sales-form metadata parser so JSON-string metadata remains usable without changing the canonical payload shape or website-equivalent pricing rules.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused profile-repricing tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched profile-repricing files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared Door/HPT action metadata parsing for mobile edit/reopen parity.
+  - Audited the shared door action helper because mobile HPT add/swap/remove and supplier changes call it through the native-safe sales-form core barrel.
+  - Found supplier updates, selected-door swaps, HPT add/remove, and selection summarization still read or spread step metadata as object-only.
+  - Moved those reads to the shared sales-form metadata parser so JSON-string selected-component snapshots keep driving Door/HPT actions without duplicating selected doors or spreading string metadata keys.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow door action tests passed, focused door utility tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched door action/utility files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared door-size utility metadata parsing for mobile edit/reopen parity.
+  - Audited the shared door utility layer because mobile Door and HPT size editing depends on it for website-equivalent price availability, selected component identity, supplier metadata, row normalization, and supplier repricing.
+  - Found several helpers still read row/step metadata as object-only, which could lose configured base pricing, selected custom/imported door identity, supplier info, or missing-price state after reopening stringified saved metadata.
+  - Moved those reads to the shared sales-form metadata parser while preserving the existing new-sales-form pricing and payload shape.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused door utility tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched door utility files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened HPT compatibility metadata parsing for mobile edit/reopen parity.
+  - Audited the shared HPT compatibility layer because mobile HPT rows rely on it for website-equivalent pricing, legacy row hydration, normalization, and totals.
+  - Found flat-rate, door sales-unit, surcharge, add-on, custom override, and hydration paths still read several step/row metadata values as object-only.
+  - Moved those reads to the shared sales-form metadata parser so HPT compatibility logic accepts object or JSON-string metadata while keeping the canonical payload shape and new-sales-form pricing semantics unchanged.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused HPT compatibility tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched HPT compatibility files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened route rebuild metadata handling for mobile edit/reopen parity.
+  - Audited the shared route engine because mobile workflow selection and custom/HPT progression depend on `rebuildStepsFromSelection` and `resolveConfiguredRouteStepsForLine`.
+  - Found route seeding, configured-step merging, selected root resolution, redirect disable/restore, and custom next-step fallback still read several metadata values as object-only.
+  - Moved those reads to the shared sales-form metadata parser so route rebuilds preserve configured route metadata, selected root snapshots, image metadata, redirect-disabled state, and line `doorType` fallback from object or JSON-string metadata.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused route-engine tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched route-engine files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Centralized shared sales-form workflow metadata parsing.
+  - Followed up on the repeated object-or-JSON metadata hardening in the mobile invoice parity path.
+  - Added a small shared `readSalesFormObjectMetadata` helper under the sales-form domain layer and migrated the recently touched shared workflow modules away from local parser copies.
+  - Kept the parser in `@gnd/sales` shared core so Expo continues to consume native-safe business logic without importing web UI code.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is internal shared-core architecture cleanup.
+  - Validation: focused metadata, mutation-engine, step-engine, workflow-calculators, workflow-selection, and workflow-visible-components tests passed; native mobile/web-UI boundary tests passed; scoped `git diff --check` passed for touched shared workflow files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared workflow step metadata maps for mobile reopen parity.
+  - Scanned mobile invoice-form and shared sales-form helpers for remaining object-only workflow metadata reads that affect component visibility, routing, or pricing.
+  - Found the shared step engine still read `selectedProdUids`, `redirectDisabled`, and component `priceStepDeps` from object metadata only, which could hide selected custom components, mis-evaluate multi-select visibility rules, or skip dependency pricing after JSON-string hydration.
+  - Updated the shared step engine to parse object or JSON-string metadata for those maps, keeping `resolveWorkflowVisibleComponents` and workflow step navigation aligned with reopened mobile form state while preserving the website's core logic path.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens shared-core parsing of existing metadata fields without changing payload shape.
+  - Validation: focused step-engine tests passed, focused workflow-visible-components tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched step-engine files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile HPT route-config metadata handling.
+  - Audited the door/moulding floating Proceed path and confirmed the current mobile selector already shows Proceed only when a multi-select picker has at least one selected component, using `proceedWorkflowMultiSelectStep` and the shared floating-action lanes.
+  - Found a smaller HPT reopen gap: selected-door helpers and route-config resolution still read some step/line metadata as object-only, so JSON-string metadata could drop selected door snapshots or no-handle/swing section overrides.
+  - Updated the shared `getRouteConfigForLine` resolver and the mobile line workflow helper to parse object or JSON-string metadata before applying stored route config, selected components, and section overrides.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client/shared-core parsing of existing metadata without changing payload shape.
+  - Validation: focused workflow-calculators route tests passed, focused mobile line-workflow helper tests passed, native mobile/web-UI boundary tests passed, and scoped `git diff --check` passed for touched HPT helper files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened shared custom-component metadata handling for mobile workflow selection.
+  - Audited the mobile custom-component flow against the website new-sales-form custom component path and the shared sales-form selection helpers.
+  - Found shared workflow selection still treated component `_metaData` as object-only in several core snapshots, so JSON-string custom metadata could lose the custom marker or spread string characters into persisted selected-component metadata.
+  - Updated the shared mutation engine, workflow selection snapshot helper, and visible-component filter to parse object or JSON-string metadata before checking/persisting `custom`, keeping mobile custom selections hidden from normal lists unless selected and preserving selected-custom-first behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client/shared-core parsing of existing metadata without changing payload shape.
+  - Validation: focused mutation-engine, workflow-selection, workflow-visible-components, and mobile custom-component option tests passed; native mobile/web-UI boundary tests passed; scoped `git diff --check` passed for touched shared workflow files; no dev server, broad typecheck/build, or UI automation was run per request.
+
 ## 2026-06-18
+
+- Hardened the mobile invoice floating-action lane contract.
+  - Audited item FAB, workflow Proceed, and Custom action placement against the requested shared centered floating behavior above the footer.
+  - Added a pure floating-action layout module for primary/secondary/tertiary/overlay-proceed offsets, moved the item FAB and workflow Proceed/Custom call sites to the shared helpers, and added focused tests pinning the stacked lane spacing.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile layout plumbing only.
+  - Validation: focused floating-action layout/registry tests passed, native mobile/web-UI boundary test passed, scoped `git diff --check` passed for touched files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened sparse customer display in the mobile invoice flow.
+  - Audited the type-aware recent-customer selector path and found the query/type handoff was already correct, but sparse customer rows could still render dangling contact separators or blank billing copy in selector/review/details UI.
+  - Added a small native mobile customer-display helper, wired it into the customer selector, review step, and read-only details screen, and covered sparse contact/address fallback behavior with focused tests.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile display-copy normalization only.
+  - Validation: focused customer-display tests passed, native mobile/web-UI boundary test passed, scoped `git diff --check` passed for touched files, and a targeted scan found no remaining dangling `contact - phone` render pattern in invoice-form components; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened the new-sales-form shelf API test harness.
+  - Found the API mock had drifted into split `dykeSalesShelfItem` definitions, leaving root recent shelf reads and transaction shelf writes at risk of masking each other.
+  - Extracted one local shelf-row finder for the test harness, wired it through both the root DB mock and transaction mock, and kept transactional `updateMany` / `createMany` available for save-path tests.
+  - Updated docs: `brain/progress.md`; no feature/API contract docs changed because this is validation harness cleanup only.
+  - Validation: focused recent shelf search test passed, focused repeated shelf-save test passed, and scoped `git diff --check` passed for the touched API test file; one broader save/hydrate test still hits the existing unrelated tax-summary assertion where `grandTotal` equals `subTotal`.
+
+- Hardened the mobile shelf recent-products source.
+  - Found `newSalesForm.searchShelfProducts` overfetched recent shelf usage rows but sliced to the requested limit before filtering archived/hidden products, which could under-fill the simplified mobile picker's blank search even when older visible recent shelf items existed.
+  - Changed the recent helper to preserve the overfetched unique ID order through visibility filtering and slice after hidden products are skipped; blank search still returns recent used products only and does not fill with unused active shelf products.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/endpoints.md`, and `brain/progress.md`; no API contract shape changed.
+  - Validation: focused `new-sales-form` shelf recent/edit/delete test passed and scoped `git diff --check` passed for the touched API files; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added inline confirmation to simplified mobile shelf product delete.
+  - Reviewed the simplified shelf picker against the clarified mobile shelf contract.
+  - Kept the fullscreen search/edit/select flow unchanged, but changed the search-result delete icon to open an inline confirmation before calling `newSalesForm.deleteShelfProduct`; the existing parent delete callback still clears matching selected shelf rows after the soft delete.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this only adds a native confirmation before the existing delete mutation.
+  - Validation: focused shelf helper/option tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched file, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added website-equivalent custom component archive action to mobile.
+  - Compared the website custom component combobox option-management behavior with the mobile custom sheet.
+  - Added a trash action and inline confirmation to mobile custom search results, wired to `inventories.archiveDykeCustomStepComponent`, and refreshed the step component source after archive so mobile follows the same existing inventory mutation contract as the website.
+  - Kept the action inside the native mobile sheet UI; no web UI package was imported.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because mobile now consumes the existing archive mutation.
+  - Validation: focused custom-component option tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Aligned mobile saved-custom selection with the website workflow path.
+  - Compared the website new-sales-form custom-component submit flow against mobile `CustomComponentSheet` save/select wiring.
+  - Updated mobile saved-custom selection to pass `selectedOverride: true` into the shared `saveWorkflowSelectedComponent` helper, matching the website path so saved/selected custom components are always selected instead of being treated like an ordinary toggle on multi-select-capable steps.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this changes only the mobile caller's intent flag into the existing shared workflow selection helper.
+  - Validation: focused shared workflow selection/mutation tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched file, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Aligned mobile custom-component price-change detection with website logic.
+  - Compared the mobile custom-component save/select flow against the website new-sales-form custom component combobox and shared workflow selection helper.
+  - Updated mobile `customComponentPriceChanged` to match the website's null-vs-zero semantics, so explicitly setting an unpriced custom component to `0` or clearing a `0` price is treated as a changed price and routes through the existing upsert path.
+  - Confirmed mobile custom selection continues to use the shared `saveWorkflowSelectedComponent` helper after save/select, preserving website workflow mutation behavior while keeping the UI native.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this aligns client-side decision logic with the existing website mutation contract.
+  - Validation: focused custom-component option tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile workflow selectable copy against UID-like values.
+  - Updated the mobile workflow selectable display helper so component rows ignore UID-like `value` fallbacks when `title` is absent or also UID-like.
+  - Item/component search rows now fall back to neutral `Component` / `Workflow component` copy unless the API row provides a human title or value.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile display-copy normalization only.
+  - Validation: focused workflow selectable copy tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile line-card subtitles against UID-like workflow copy.
+  - Updated the mobile invoice line-item display helper so workflow rows suppress UID-like fallback strings such as `workflow-*`, `*-uid`, and component/source UID markers even when they do not exactly match the stored identity fields.
+  - Preserved normal product SKU display for non-workflow items and kept human category copy as the preferred workflow fallback.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile display-copy filtering only.
+  - Validation: focused line-item display tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened the mobile new-sales customer-selector entry.
+  - Updated the Expo customer-selector route so `source=new` resets the in-memory sales form before reapplying the selected `order`/`quote` type.
+  - This keeps direct/deep initial customer-selection paths aligned with the dashboard `New Invoice` sheet behavior and prevents stale customer or line-item state from surviving into a new invoice/quote.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this only tightens route/store initialization.
+  - Validation: native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched route and docs, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Aligned mobile custom-component title normalization with the website.
+  - Updated mobile custom-component helpers to normalize option, match, and selected component titles to uppercase, matching the website combobox behavior.
+  - Updated the mobile custom sheet save path to send normalized titles to `inventories.upsertDykeCustomStepComponent` and clear the selected existing option when the compressed title edit no longer matches it, preventing accidental existing-custom updates when the user intends a new title.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this aligns client-side normalization with the existing website flow.
+  - Validation: focused custom-component option tests passed, native mobile/web-UI boundary tests passed, scoped `git diff --check` passed for the touched custom files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile moulding/service grouped rows for JSON line metadata.
+  - Updated shared workflow record readers so stored `meta.mouldingRows` and `meta.serviceRows` are read from object metadata or JSON-string line metadata.
+  - Updated moulding/service row patch builders to merge parsed line metadata before writing grouped rows, avoiding accidental string-character metadata keys when a hydrated line carries stringified metadata.
+  - Mirrored the metadata reader in shared record normalization so create/edit/update hydration recalculates grouped moulding and service totals from stringified metadata instead of stale line totals.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens parsing of existing metadata fields without changing payload shape.
+  - Validation: focused workflow row-patch and record-normalization tests passed, scoped `git diff --check` passed for the touched grouped-row files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile HPT row grouping for JSON row metadata.
+  - Updated the mobile House Package Tool row grouping helper to read component UID/title metadata from either object metadata or JSON-string row metadata.
+  - This keeps reopened imported/custom door size rows attached to their selected door group instead of falling back into the manual group when persisted row metadata is stringified.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens parsing of existing row metadata without changing payload shape.
+  - Validation: focused HPT row grouping tests passed, scoped `git diff --check` passed for the touched HPT files, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Tightened the simplified mobile shelf picker result source.
+  - Updated the mobile line-item shelf picker wiring so its fullscreen search modal is fed only by `searchShelfProducts` recent/search results and no longer merges already-selected shelf product detail rows into the picker list.
+  - This keeps blank search aligned with the requested top-10 recent shelf items behavior while selected items remain displayed in the shelf step UI with category-tree subtitles.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because mobile now passes an empty selected-id list to the existing search endpoint for this picker.
+  - Validation: focused shelf helper/option tests passed, scoped `git diff --check` passed for the touched mobile line-card file, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened selected custom-component merging across split metadata shapes.
+  - Updated the mobile custom-component option helper to merge selected custom UID/component arrays from all available active-step metadata records instead of stopping at the first array it sees.
+  - This prevents an empty outer form-step `selectedProdUids` or `selectedComponents` array from masking nested route-step selected custom snapshots, preserving selected-custom-first ordering and visible selected custom hydration.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens parsing of existing metadata fields without changing payload shape.
+  - Validation: focused custom component option tests passed, changed custom option files passed a Bun transpile check, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile door/HPT reopen selection for nested route metadata.
+  - Updated the shared sales-form selector so `getSelectedDoorComponentsForLine` reads selected door snapshots from both outer form-step metadata and nested route-step metadata, including JSON-string metadata shapes.
+  - This keeps reopened mobile door/HPT lines from losing richer selected door data such as pricing, supplier variants, redirect metadata, and section overrides when hydration carries selection under `step.meta`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens parsing of existing metadata fields without changing payload shape.
+  - Validation: focused selector and HPT row grouping tests passed, changed selector files passed a Bun transpile check, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile shelf selected-row category subtitles for hydrated metadata.
+  - Updated the shelf category-path display helper so selected shelf rows read category metadata from object metadata or JSON-string metadata.
+  - This keeps the simplified mobile shelf picker showing category-tree subtitles after hydration/edit reopen instead of falling back to `Uncategorized` when row metadata arrives stringified.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens display parsing of existing row metadata without changing payload shape.
+  - Validation: focused shelf product option tests passed, changed shelf option files passed a Bun transpile check, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile moulding reopen selection for nested route metadata.
+  - Updated the shared sales-form selector so `getSelectedMouldingComponentsForLine` reads selected component snapshots from both outer form-step metadata and nested route-step metadata, including JSON-string metadata shapes.
+  - This keeps reopened mobile moulding lines from losing richer selected component data when hydration carries selection under `step.meta` instead of the outer form-step `meta`, while still backfilling from persisted `line.meta.mouldingRows`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client/domain parsing of existing metadata fields without changing payload shape.
+  - Validation: focused selector and workflow row-patch tests passed, changed selector files passed a Bun transpile check, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile HPT door grouping for uid-only selected doors.
+  - Found `buildDoorGroups` attached persisted size rows to selected door groups only by numeric `stepProductId`, so hydrated rows for selected doors identified by `meta.componentUid` could split into a manual group.
+  - Updated the HPT row grouping helper to fall back to stored component UID metadata and added focused coverage for uid-only selected doors.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this preserves existing row metadata semantics without changing payload shape.
+  - Validation: focused HPT row grouping tests passed, changed HPT row files passed a Bun transpile check, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile moulding removal for nested route metadata.
+  - Updated the shared moulding removal helper to reconcile selected UID/component snapshots from both outer form-step metadata and nested route-step metadata, including JSON-string metadata shapes.
+  - This keeps row removal, selected moulding summaries, and persisted `meta.mouldingRows` synchronized after mobile edit/hydration paths that carry selection snapshots under `step.meta`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client parsing of existing metadata fields without changing payload shape.
+  - Validation: focused moulding action and moulding calculator tests passed, changed moulding action files passed a Bun transpile check, and no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened HPT custom-price edits to recalculate immediately.
+  - Found the shared door custom-price helper preserved override metadata but did not update the row final unit and line total at the edit point, leaving mobile HPT row totals/breakdowns able to lag until a later grouped-row normalization.
+  - Updated `patchDoorRowCustomPrice` to use the canonical HPT unit-price breakdown, applying custom price as the immediate final unit and restoring calculated automatic pricing when the custom price is cleared.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is shared row-edit behavior within the existing HPT payload shape.
+  - Validation: focused door price update and mobile HPT row grouping tests passed, changed door-price files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened selected custom-component display for nested route metadata.
+  - Extended the mobile custom option helper so selected custom snapshots and selected custom UID ordering are read from either active form-step metadata or nested route-step metadata, including JSON-string metadata shapes.
+  - This keeps selected custom components pinned first even when the route/component API hydrates selected state through `step.meta` instead of the outer form-step `meta`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens client parsing of existing metadata shapes.
+  - Validation: focused custom-component option and floating-action registry tests passed, changed custom option files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Fixed the mobile door-size `Next step` advance path.
+  - Found the door-size route applied the selected door rows through the multi-select save helper, but that helper intentionally leaves ordinary multi-select interactions on the current step.
+  - Changed the mobile door-size `advance` path to run the shared multi-select proceed action after applying the door rows, so `Next step` moves the workflow past Door while `OK` still only applies the size rows.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile workflow state behavior only.
+  - Validation: focused workflow selection and row-patch tests passed, the mobile workflow selector passed a Bun TSX transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Tightened the simplified mobile shelf picker contract.
+  - Changed blank `newSalesForm.searchShelfProducts` results to return only recently used shelf products instead of filling sparse usage with unused active products.
+  - Kept typed shelf search and selected-product hydration as the paths for finding non-recent shelf products.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/endpoints.md`, and `brain/progress.md`.
+  - Validation: focused shelf product API tests passed, shelf subtitle/native-boundary guards passed, changed API files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request. The full `new-sales-form.test.ts` file still has two unrelated tax-summary assertion failures in existing non-shelf tests.
+
+- Aligned typed custom-component proceed with list selection.
+  - Added a pure exact-title matcher for custom options and wired the fullscreen search `Proceed` path through it.
+  - Typing an existing custom component title and tapping `Proceed` now collapses into `Title & Cost` using the existing option and stored price, matching the behavior of tapping the search result and avoiding duplicate custom creation.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this changes mobile selection behavior before the existing save/upsert call.
+  - Validation: focused custom-component option tests passed, touched custom component files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile custom-component metadata shape handling.
+  - Custom option detection, archived filtering, and selected-custom snapshot merging now accept both object metadata and JSON-string metadata, matching the shapes mobile can receive from API/hydration boundaries.
+  - Added focused coverage for stringified `_metaData` custom/deleted flags and stringified step metadata containing selected custom snapshots.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this broadens mobile parsing of existing metadata fields.
+  - Validation: focused custom-component option tests passed and touched custom option files passed a Bun transpile check; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Unified selected-custom-first ordering with custom metadata parsing.
+  - Moved the selected-custom-first ordering helper into the pure custom options module so selected-custom merging, option detection, archived filtering, and grid ordering share the same object/JSON-string metadata handling.
+  - Kept the sheet as a UI shell that re-exports the pure helper for existing imports, and made its save-response metadata reader JSON-string tolerant.
+  - Added focused coverage proving selected custom components are pinned first when `selectedProdUids` and custom metadata arrive as JSON strings.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile metadata parsing and ordering behavior only.
+  - Validation: focused custom-component option tests passed and touched custom files passed a Bun transpile check; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile line-card subtitles against hydrated workflow UID metadata.
+  - Added a pure line-item display helper so ordinary product SKUs remain visible while workflow line subtitles avoid `workflowComponentUid`, `sourceUid`, and line identity values.
+  - Updated the mobile line-item card to use the helper instead of rendering `meta.sku` directly.
+  - Added focused regression coverage for ordinary product SKUs, hydrated workflow UID suppression, and sparse workflow fallback copy.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile display mapping only.
+  - Validation: focused line-item display tests passed, touched line-card files passed a Bun transpile check, targeted direct-subtitle scan returned no matches, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Stabilized the mobile custom-component sheet snap configuration.
+  - Replaced the inline `["42%", "100%"]` snap-point array with a module-level constant so the shared bottom-sheet Modal does not receive a new snap-point reference while users type/search.
+  - This keeps the requested fullscreen search to compressed `Title & Cost` morphing flow less fragile without changing the UI contract.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile presentation plumbing only.
+  - Validation: focused custom sheet transpile check passed, targeted snap-point scan confirmed the stable constant is used, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened the mobile invoice floating-action host against stale callbacks.
+  - Extracted the host update decision into a pure registry helper and changed registration to refresh when the rendered action node changes, even if the lane/offset refresh key is unchanged.
+  - Preserved the no-op update guard for unchanged node plus unchanged refresh key, so item FAB/custom/proceed lanes do not churn unnecessarily.
+  - Added focused regression coverage for unchanged actions, same-key node updates, and changed refresh keys.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile UI state plumbing only.
+  - Validation: focused floating-action registry tests passed, touched floating-action files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Enforced the moulding final-row removal invariant in shared workflow logic.
+  - Changed `removeWorkflowMouldingSelection` to return `null` when a removal would clear the final persisted moulding row, matching the website/mobile line-editor UX.
+  - Made mobile workflow toggling, mobile line-item removal, and the website line-item panel no-op when the shared helper rejects the removal.
+  - Added focused regression coverage for the final-row guard while preserving multi-row removal behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this tightens shared workflow behavior without changing payload shape.
+  - Validation: focused moulding action tests passed, touched moulding caller files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Removed a remaining workflow UID display fallback from the mobile item selector search path.
+  - Added a pure workflow selectable-copy helper so workflow search rows use component titles or neutral copy for display title/SKU fields instead of component UID strings.
+  - Kept workflow identity in `componentUid` / `workflowComponentUid` fields for routing and persistence.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile display mapping only.
+  - Validation: focused workflow selectable-copy tests passed, touched search files passed a Bun transpile check, targeted UID-display fallback scan returned no matches in the mobile invoice-form area, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Kept the mobile shelf-items picker intentionally simple.
+  - Removed obsolete mobile category-bucketing/search helper code and tests left over from the previous complex shelf flow.
+  - Retained focused helper coverage only for the category-tree subtitles shown in the fullscreen shelf search list and selected shelf rows.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because search/recent/edit/delete behavior and canonical `shelfItems` persistence are unchanged.
+  - Validation: focused shelf subtitle helper tests passed, touched shelf files passed a Bun transpile check, obsolete helper names were scanned out of the mobile invoice-form shelf path, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Clarified mobile door-size fullscreen action semantics.
+  - Added optional action copy/secondary-action controls to the native door-size picker state and screen.
+  - Kept the main workflow door-size flow as `Next step` plus `OK`, where `Next step` applies the selected rows and advances the workflow.
+  - Changed the HPT line-item size editor to show a single `Apply` action because that reuse path edits current HPT rows and does not advance the workflow selector.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this is mobile UI state only.
+  - Validation: touched door-size files passed a Bun transpile check, focused workflow selection/native-boundary tests passed, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Hardened mobile House Package Tool add-door focus behavior.
+  - Kept the newly selected add-door group pending until the parent line-item patch rehydrates `selectedDoors`, preventing the active chip from snapping back to the previous door before the new group exists.
+  - Added focused mobile HPT grouping coverage for selected doors with no size rows, persisted size-row grouping, and manual legacy rows.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because the existing `formSteps` and `housePackageTool.doors` payload shape is unchanged.
+  - Validation: focused mobile HPT row-group tests passed, touched HPT files passed a Bun transpile check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Tightened mobile House Package Tool quick-size row parity.
+  - Moved quick available-size row construction into the HPT row helper and kept website-equivalent tier pricing while adding the same component uid/title metadata used by full HPT picker rows.
+  - Updated the line-item card to call the helper instead of constructing HPT quick rows inline.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because the canonical `housePackageTool.doors` shape is unchanged.
+  - Validation: focused mobile HPT row tests passed and touched HPT files passed a Bun transpile check; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Tightened shared door-size derivation metadata parity.
+  - Updated `deriveDoorSizeRows` so main door-size picker rows carry component uid/title metadata for both configured-size and fallback rows, matching custom/HPT row creation paths and improving saved-row grouping/display after hydration.
+  - Added focused door utility coverage for metadata on configured zero-dollar rows and fallback rows.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because this preserves extra row metadata inside the existing `housePackageTool.doors` JSON shape.
+  - Validation: focused door utility tests passed and touched door utility files passed a Bun transpile check; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added mobile House Package Tool add-door support.
+  - Added shared `addWorkflowHptDoorOption`, exported it through the mobile-safe sales-form core, and covered that it adds a Door multi-select option without mutating configured HPT size rows, quantities, or totals.
+  - Added a flat mobile HPT `Add door` control that opens available door options, adds the selected door to the HPT door groups, and leaves size/quantity configuration to the existing door-size controls.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because the existing `formSteps` and `housePackageTool.doors` payload shape is unchanged.
+  - Validation: focused workflow door action tests passed, changed HPT/mobile files passed a Bun transpile check, and the sales-form-core native-safety guard still passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Simplified the mobile shelf-items step around the requested full-screen shelf item picker.
+  - Replaced the category/section-heavy mobile shelf editor with a `Shelf item` action that opens a fullscreen search modal, shows 10 recent used shelf products on blank search, supports typed search, returns selected items to a clean row list with category-tree subtitles, and keeps row qty/price/remove controls in the shelf step.
+  - Added edit/delete actions to mobile shelf search results; edit saves shelf product name/price and returns to the search list, while delete soft-deletes the shelf product and clears matching selected rows.
+  - Changed `newSalesForm.searchShelfProducts` blank-query behavior to use recent saved shelf line usage, added route-local `newSalesForm.updateShelfProduct` and `newSalesForm.deleteShelfProduct`, and documented the API surface.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/endpoints.md`, and `brain/progress.md`.
+  - Validation: focused shelf product helper tests passed, the targeted recent/edit/delete API test passed, changed files passed a Bun transpile check, and the native UI boundary test still passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added an Expo-source guard so the mobile app cannot import the web UI package directly.
+  - Added `apps/expo-app/src/features/sales/invoice-form/native-ui-boundary.test.ts`, which walks `apps/expo-app/src` and fails if source files reference `@gnd/ui` or `packages/ui`.
+  - Updated ADR-010 and the mobile invoice-form feature doc to document that Expo may share pure `@gnd/sales/sales-form-core` helpers, but not website UI.
+  - Validation: the focused native UI boundary test passed and the targeted `rg` source scan found no current Expo/web-UI imports; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Added an executable native-safety guard for the mobile sales-form core boundary.
+  - Added `packages/sales/src/sales-form-core.native-safety.test.ts`, which recursively walks relative imports/exports from `sales-form-core.ts` and fails if the mobile-facing barrel reaches TSX modules or `@gnd/ui`.
+  - Updated `brain/features/mobile-invoice-form.md` and `brain/progress.md` to document the test-backed native-safe boundary.
+  - Validation: the native-safety guard passed, and the `sales-form-core` Bun import smoke check still passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Fixed the mobile Android bundle regression caused by a web UI import crossing into Expo.
+  - The Android bundle failed because `@gnd/sales/sales-form-core` exported shelf helpers from `sales-form/ui/workflow/shelf-inputs.tsx`, which imports `@gnd/ui/combobox` and `@gnd/ui/icons`.
+  - Added native-safe pure `shelf-helpers.ts`, repointed the mobile-facing core barrel to it, and kept `shelf-inputs.tsx` as a web UI component that imports/re-exports those pure helpers for website compatibility.
+  - Added ADR-010 to document that mobile may consume `sales-form-core` only when it stays free of web UI and `@gnd/ui` imports.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/progress.md`, and `brain/decisions/ADR-010-mobile-sales-form-core-native-safe.md`.
+  - Validation: `sales-form-core` Bun import smoke check passed, focused shelf helper tests passed, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile moulding website-parity audit without marking the Brain-goal queue complete.
+  - Found website moulding rows expose a per-row LF/piece-length/waste calculator while mobile only supported direct quantity entry; mobile custom price also could not return to a true blank/Auto value, and it allowed removal of the final moulding row unlike web.
+  - Added package-owned piece-length detection and moulding quantity calculation, a modular mobile per-row calculator with piece-length choices, total LF, waste, pieces, cost preview, Cancel/Apply, a reusable nullable mobile number field, and website-equivalent final-row removal protection.
+  - Calculator Apply updates only row quantity through the existing `buildWorkflowMouldingRowsPatch` path, preserving grouped metadata and legacy identity behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because `line.meta.mouldingRows` is unchanged.
+  - Validation: focused moulding calculator Bun tests passed (3 tests), targeted calculator/export wiring scans passed, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile House Package Tool website-parity audit without marking the Brain-goal queue complete.
+  - Found mobile HPT rows omitted the website estimate breakdown, base cost, component surcharge, calculated/custom final-unit context, and priced workflow-step contributions; mobile also edited computed unit price directly and allowed quantity on rows with missing supplier pricing.
+  - Extracted the web base-price updater into a native-safe pure workflow helper with a compatibility re-export, added a dedicated mobile HPT pricing/breakdown component, aligned size/quantity/base/add-on/custom controls with website semantics, and surfaced missing-price guidance.
+  - Added a shared custom-price patch helper so clearing an override removes both row and legacy metadata on web and mobile, then added focused pricing regression coverage.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because the canonical HPT payload shape is unchanged.
+  - Validation: focused `door-price-update` Bun tests passed (2 tests), targeted HPT export/action scans passed, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile shelf-items destructive-action parity audit without marking the Brain-goal queue complete.
+  - Compared the mobile shelf editor with the website `DefaultShelfPanel` and found mobile removed populated categories/sections immediately and lacked the website's whole-section Clear action.
+  - Added a shelf-only inline confirmation component, guarded populated category/section clears, added Clear section reset-to-one-blank-row behavior, and guarded section removal while keeping persistence in the existing line-item workflow boundary.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API contract update was needed because the canonical `shelfItems` payload is unchanged.
+  - Validation: targeted shelf action contract scans and scoped `git diff --check` checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile fresh-create item-state audit without marking the Brain-goal queue complete.
+  - Found create/reset/bootstrap state and `ItemsStep` still automatically seeded a mock workflow `New Line`, making the existing empty-state Add item/FAB workflow unreachable on a fresh invoice.
+  - Changed fresh create/reset state to keep an empty line-item list, preserved empty create bootstrap records despite the shared hydrator's generic-line fallback, and removed the `ItemsStep` auto-add effect. The explicit Add item action still creates the workflow template, and shared save validation already rejects saving without a line item.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: scoped Bun build check passed for the invoice-form store and ItemsStep, targeted symbol checks confirmed the automatic fallback path was removed, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile New Invoice fresh-state audit without marking the Brain-goal queue complete.
+  - Found the direct Sales/Quote-to-customer-selector handoff still reused whatever invoice form state was in memory until a later form bootstrap/hydration occurred.
+  - Changed the Sales/Quote choice to reset the in-memory form and immediately apply the selected sales type before opening the typed customer selector, preventing stale customer/items from appearing as selected in the new-flow selector.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: scoped Bun build check passed for the Sales/Quote sheet and invoice-form store, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile floating-action footer-safety audit without marking the Brain-goal queue complete.
+  - Found the shared floating lanes sat close enough to the fixed Save Draft/Create footer that validation text could reduce clearance and risk overlap.
+  - Raised the shared invoice floating offsets while preserving the same centered x-axis and 64px vertical spacing for Proceed, item FAB, and Custom actions.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: scoped Bun build check passed for the floating host and its item/custom/workflow callers, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile New Invoice customer-handoff audit without marking the Brain-goal queue complete.
+  - Found the Sales/Quote sheet still routed to `/invoices/new` first and relied on the form screen to redirect to the initial customer selector, even though the customer selector route already has `source=new` handoff behavior.
+  - Changed the dashboard `New Invoice` Sales/Quote choice to open the typed customer selector directly, avoiding an intermediate create-form bootstrap before customer selection.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: scoped Bun build check passed for the Sales/Quote sheet and related customer/new invoice routes, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile workflow UID-visibility audit without marking the Brain-goal queue complete.
+  - Found sparse workflow/custom/HPT component data could still fall back to UID text for visible titles even after the requested UID subtitle cleanup.
+  - Replaced those visible title fallbacks with neutral labels (`Component`, `Door`, `Custom component`) while preserving UID fields for keys, identity, routing, and saved payloads.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: targeted search found no remaining `title || uid` / `componentLabel(...uid)` visible fallback patterns under the mobile invoice-form area, custom-component helper tests passed, edited modules passed a scoped Bun build check with React Native internals externalized, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile moulding row-editor parity audit without marking the Brain-goal queue complete.
+  - Compared mobile moulding rows to the website `MouldingLineItemsEditor` and found mobile lacked row thumbnails and the aggregate total qty/amount surface.
+  - Added compact moulding row thumbnails with the same Cloudinary path resolution pattern used by mobile workflow components, plus a total qty/amount summary card above the rows.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited moulding editor TSX passed a scoped Bun build check with React Native internals externalized, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile House Package Tool website-parity audit without marking the Brain-goal queue complete.
+  - Found the website HPT panel exposes remaining priced size options for the active door, while mobile only reopened the full size configurator or added a blank manual row.
+  - Exported `deriveDoorSizeCandidates` and `resolveDoorTierPricing` through the mobile-facing sales-form core barrel, added available-size chips to the mobile HPT editor, and wired those chips to create the same priced row metadata used by the website (`baseUnitPrice`, `doorSalesUnitPrice`, `sharedDoorSurcharge`, `priceMissing`).
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited HPT/mobile parent/shared barrel modules passed scoped Bun build checks with React Native internals externalized where needed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile moulding selection parity audit without marking the Brain-goal queue complete.
+  - Found the mobile moulding component grid could toggle multiple selections, but unlike the website moulding popover it silently added new moulding rows at quantity `1` and only allowed quantity edits later in the line-item section.
+  - Added selected-card quantity controls to the mobile moulding selection grid and routed changes through the shared `saveWorkflowMouldingSelectionWithQty` path so selection, stored moulding rows, and line totals remain synchronized.
+  - Added focused shared coverage proving an already-selected moulding can update quantity without being deselected.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused moulding action tests passed, edited workflow selector TSX passed a scoped Bun build check with React Native internals externalized, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile shelf-items website-parity audit without marking the Brain-goal queue complete.
+  - Found the mobile shelf row editor treated direct unit edits as custom prices but did not expose website-equivalent base/sales pricing context or a way to clear the custom override back to calculated sales pricing.
+  - Added a shared `clearShelfRowCustomPrice` workflow helper with focused tests, exported shelf price helpers through the mobile-facing sales-form core barrel, and updated mobile shelf rows to show base/sales pricing plus a reset-to-sales action when a custom override is present.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused shelf row product tests passed, edited shared/mobile modules passed scoped Bun build checks with React Native internals externalized, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile customer-selection bootstrap audit without marking the Brain-goal queue complete.
+  - Found the invoice form store still initialized and reset create-mode forms with the first mock customer, which could make a new invoice look customer-selected before the customer selector or bootstrap handoff completed.
+  - Changed create/reset state to start with no selected customer while preserving explicit customer selection, selected-customer bootstrap hydration, recovery payloads, and saved-record hydration.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited invoice-form store passed a pure Bun transpile check; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile custom-component visibility parity audit without marking the Brain-goal queue complete.
+  - Found a newly saved custom component could be selected into active-step metadata before the component query refetch made it part of the visible component list.
+  - Added a focused helper that merges selected custom snapshots into the mobile component grid, preserving selected-custom-first display while keeping unselected custom components hidden.
+  - Added focused helper coverage for selected custom snapshot insertion and duplicate avoidance.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: focused custom-component helper tests passed, edited custom/workflow TSX files passed a pure Bun TS/TSX transpile check, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile quote/invoice wording parity audit without marking the Brain-goal queue complete.
+  - Found quote mode still showed invoice-only copy in the details editor and read-only details sheet (`Invoice date`, `invoice memo`).
+  - Made those labels quote-aware while preserving invoice wording for order mode.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited details TSX files passed a pure Bun TSX transpile check and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile House Package Tool parity audit without marking the Brain-goal queue complete.
+  - Compared the mobile HPT row editor to the website HPT panel and found mobile had add-on/custom price controls and totals but no direct unit-price edit field.
+  - Added a compact Unit field to mobile HPT rows so unit price changes flow through the existing shared door-row patch/totals path.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited HPT editor TSX passed a pure Bun TSX transpile check and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+
+- Continued the mobile component-list UID cleanup without marking the Brain-goal queue complete.
+  - Found workflow-root rows in the mobile item selector still used the component UID as the visible subtitle via the mapped `sku` field.
+  - Changed item selector row rendering so workflow components show their category instead of UID text, while ordinary shelf/product rows continue to show SKU/category details.
+  - Changed newly added workflow lines to use the component title for visible description/SKU copy while keeping `workflowComponentUid` as the identity field.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`.
+  - Validation: edited item selector and mock-data TS/TSX files passed a pure Bun transpile check and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
 
 - Continued the mobile shelf-items parity audit without marking the Brain-goal queue complete.
   - Found the mobile shelf helper supported global typed product search before category selection, but the line-card data loader only fetched category-scoped products, leaving the no-category search path without results.
@@ -3104,3 +3972,62 @@
 - 2026-06-16: Migrated `/community/unit-invoices` to the tables-2 standard. The route now renders `components/tables-2/unit-invoices/*` with the existing `community.getUnitInvoices` query, existing unit-invoice filter params/hook, existing `UnitInvoicesHeader`, existing report menu, and existing `editUnitInvoiceId` modal behavior; no new v2 query, filter param, filter endpoint, route fork, or core table change was added. The old `components/tables/unit-invoices/*` files remain because the project overview widget still imports the legacy embeddable table. Browser validation also found and fixed a shared `CustomModal` Radix title/description id issue so row-open invoice dialogs no longer emit fresh accessibility errors. Added `brain/features/unit-invoices-table.md`. Validation: focused Biome passed, `git diff --check` passed for the unit-invoices slice, filtered `@gnd/www` typecheck had no diagnostics for touched unit-invoices route/table/header/settings/config files or `CustomModal` while full typecheck remains blocked by existing baseline errors, `components/tables-2/core` has no diff, HTTP smoke returned `200` for `/community/unit-invoices`, and Browser smoke passed with Quick Login as Pablo Cruz / Super Admin on desktop `/community/unit-invoices`, existing `q` search binding, mobile `390x844`, and row-open modal behavior with no document-level horizontal overflow.
 - 2026-06-18: Continued the `apps/www` unused/old code cleanup with package-dependency/tooling slices. After exact app import/config scans, removed 35 more stale `@gnd/www` runtime package declarations (`@dnd-kit/modifiers`, `@gnd/email`, `@gnd/events`, `@headlessui/react`, `@radix-ui/react-dialog`, `@radix-ui/react-icons`, `@react-hook/async`, `@react-pdf/renderer`, `@tiptap/*`, `@trpc/*`, `aos`, `autoprefixer`, `cmdk`, `debounce`, `embla-carousel-*`, `focus-trap-react`, `fs-extra`, `nanoid`, `next-themes`, `puppeteer`, `react-beautiful-dnd`, `react-colorful`, `react-wrap-balancer`, `swr`, `ts-results`, `tus-js-client`, `use-deep-compare-effect`, `uuid`, and `xlsx`), removed the stale commented `@gnd/events/client` layout import, deleted old unreferenced `apps/www/tailwind-copy.config`, removed its private `tailwindcss-animate` / `@tailwindcss/typography` deps, removed the unused package-local `vercel` CLI dev dependency, and refreshed `bun.lock`. Full Knip snapshot `/tmp/gnd-www-knip-full-20260618-after-tooling1-lock.json` now reports 20 file candidates, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 5 unresolved candidates, and 551 export candidates; remaining package candidates are tooling/config-sensitive and retained for separate review.
 - 2026-06-18: Repaired the remaining `apps/www` Knip unresolved import candidates in legacy sales type code. Stale `@/app/(v2)/(loggedIn)/sales-v2/type` imports now point to the existing `@/app-deps/(v2)/(loggedIn)/sales-v2/type` module, and that module no longer imports deleted private v2 form-action files; it now declares the legacy form shape structurally for the still-live old-sales-form type consumers. Full Knip snapshot `/tmp/gnd-www-knip-full-20260618-after-unresolved1.json` now reports 20 file candidates, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 0 unresolved candidates, and 551 export candidates.
+- 2026-06-19: Restored the mobile new-invoice customer handoff to the original first-item workflow behavior after the fresh-state audit made the items screen start empty after customer selection. `selectCustomer` now seeds the blank workflow `New Line` only when the selected form has no line items, preserving the customer gate while showing the inline `Item Type` step pills/component grid immediately after customer selection. Validation: focused invoice-form store regression test passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Fixed the remaining mobile new-invoice first-item regression where create-mode bootstrap hydration could overwrite the selected customer's seeded blank workflow line with an empty line-item array after route handoff. Empty create bootstrap now preserves the current selected customer's `New Line` workflow item, or reseeds it when the bootstrap already carries a selected customer, so the original `Item Type` step pills/component grid remain visible after customer selection. Validation: focused invoice-form store regression test passed and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Added a pure mobile items-step section boundary so the seeded first workflow line is explicitly recognized as the active workflow section for inline step-pill rendering without mounting the React Native UI. The focused proof now covers customer selection seeding, empty create-bootstrap preservation, seeded workflow section detection, and both native UI package boundary tests. No dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Removed the mobile invoice-form dependency on the shared `componentLabel` export after Expo reported the symbol as unavailable. Mobile workflow component titles, selected step-pill labels, and HPT door labels now use a native-local formatter in `workflow-selectable-copy`, preserving uppercase display without relying on the sales-form-core barrel. Validation: focused workflow-copy, step-pill, HPT row-group, native UI boundary, and sales-form-core native-safety tests passed; scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Fixed legacy-strategy sales-form summary totals so credit-card convenience charges are included in `grandTotal` instead of only being exposed as `ccc`. This cleared the broader new-sales-form save/hydrate assertions where credit-card/HPT quote totals were equal to subtotal after hydration. Validation: focused costing and API new-sales-form relational tests passed as part of the 58-test mobile/sales-form regression pack; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened mobile House Package Tool reopened-row grouping without changing the main workflow step system. Component-less legacy/imported HPT size rows now attach to the only selected door group, matching the website panel fallback instead of showing an empty selected door and a separate manual group. Validation: focused HPT row-group tests passed and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened Door/Moulding multi-select selected-count detection without touching the main workflow step UI. The shared `getSelectedProdUids` helper now reads selected UIDs from nested `step.meta` as well as outer form-step metadata, including JSON-string metadata, so reopened Door/Moulding multi-select steps can still show the floating Proceed action when selections were persisted in nested metadata. Validation: focused mutation-engine, workflow-moulding-action, and mobile proceed-visibility tests passed; scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Removed another mobile workflow UID-copy leak from the inline invoice item description input without changing workflow routing or selection. Extracted item-step display copy into a pure helper so placeholder/UID-like workflow descriptions (`WF-ITEM`, `workflow-*`, `mobile-*`, and UID-ish metadata strings) render as blank while human descriptions remain visible. Validation: focused item-step copy, item-selector copy, and line-item display tests passed; scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Fixed the mobile Door/Moulding multi-select Proceed visibility regression reported during manual testing. The floating Proceed helper now treats Door and Moulding selected state as explicit visibility inputs, so the button remains visible after more than one selection even if the generic picker flag changes. Door card taps now persist the selected Door component before opening the Door Size route, preserving the existing size workflow while giving the Door step immediate selected metadata for the Proceed button. Validation: focused `workflow-proceed-visibility` test passed and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened the mobile invoice form store's service-row taxable metadata patch without changing runtime behavior. `buildLineTaxablePatch` now carries an explicit parsed metadata shape with optional `serviceRows`, keeping grouped service-row tax propagation type-stable while preserving the shared object-or-JSON metadata path. Validation: focused invoice-form store regression test passed and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened the mobile invoice form API action hook around generated tRPC mutation input types without changing the user-facing form flow. Save draft/final calls now bridge through the generated mutation input aliases, and server recalculation strips the mobile-local `cccPercentage` field before calling `newSalesForm.recalculate` because that percentage is used by the local summary calculator but is not part of the server recalculate schema. Validation: scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Stabilized the mobile invoice form search hook around generated tRPC query option types without changing the customer/item picker behavior. Disabled customer/product/workflow queries now still use their real tRPC `queryOptions` with `enabled: false` instead of hand-written placeholder query objects, while the hook continues to use the shared recent-customer request helper and UID-safe workflow selectable copy helpers. Validation: focused customer-search-options and workflow-selectable-copy tests passed, scoped `git diff --check` passed, and no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened the mobile floating invoice action regression test fixtures so they use valid React nodes while still proving refresh-key and node-identity updates for the shared FAB/custom/proceed host. Validation: focused floating action registry/layout tests passed and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened the mobile HPT row-group tests around JSON-string metadata fixtures. The two tests that intentionally pass stringified row metadata now cast through `unknown` before `DoorStoredRow[]`, keeping object-metadata fixtures directly typed while preserving coverage for reopened JSON metadata grouping and UID-safe fallback labels. Validation: focused HPT row-group tests passed and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Tightened mobile invoice workflow component scrolling behavior. Component search now appears only when the active step has more than 15 components, the step pills/search stay fixed above the scrolling component grid, and scroll-down/up behavior hides or reveals the normal Save Draft/Create footer while preserving centered workflow Proceed actions by moving their lane lower when the footer is hidden. Validation: focused workflow-step-rendering and floating-action-layout tests passed, scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Followed up on the mobile workflow component scrolling fix after Expo reported a nested `VirtualizedLists` warning and manual QA showed the whole invoice screen should remain the scroller. Inline workflow selectors now render component cards as normal content in the invoice form ScrollView, while a screen-level sticky workflow header mirrors the step pills/search once that section reaches the top under the invoice header. The footer-hidden state now also collapses the form and item bottom padding so hiding Save Draft/Create does not leave a large blank reserve. Overlay selectors still use `FlatList` because they are not nested in the parent form scroll. Validation: focused workflow-step-rendering and floating-action-layout tests passed, scoped `git diff --check` passed, and a targeted scan confirmed inline mode no longer owns a nested vertical VirtualizedList/ScrollView.
+- 2026-06-19: Fixed the sticky workflow header maximum-update-depth regression. The inline workflow selector no longer pushes a freshly-created React node into parent state on every render; it now sends a keyed sticky-header entry, and the invoice form only updates sticky state when that key changes or the sticky header clears. This preserves the full-screen scroll plus sticky step pills/search behavior without a render-effect loop. Validation: focused workflow-step-rendering and floating-action-layout tests passed, scoped `git diff --check` passed, and a targeted scan confirmed the old unstable `setStickyWorkflowHeader(node)` path is gone.
+- 2026-06-19: Removed the remaining hidden-footer layout reserve in the mobile invoice form. The Save Draft/Create footer now renders as an absolute bottom overlay instead of occupying normal screen layout, and hidden-footer state drops both the form and item-section bottom padding to zero so scrolling content no longer stops above a blank footer slot when the actions slide away. Validation: focused workflow-step-rendering and floating-action-layout tests passed, scoped `git diff --check` passed, and a targeted scan confirmed the footer overlay plus zero hidden padding wiring.
+- 2026-06-19: Polished the mobile Door Size picker footer actions. The picker footer now uses a sticky bottom action bar with a subtle top border, larger rounded buttons, the secondary `OK` action on the left as an outline button, and the primary `Next step`/`Apply` action emphasized on the right or full-width when secondary is hidden. Validation: scoped `git diff --check` passed for the Door Size footer file; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Reworked the mobile Door Size picker footer after design review. The rejected side-by-side OK/Next footer was replaced with a calmer native action stack: a compact selected-door/status row, a quiet ghost `OK` action when present, and one full-width primary `Next step`/`Apply` button whose zero-quantity disabled state uses the muted secondary treatment instead of a heavy primary slab. The footer keeps extra bottom breathing room because the Expo `SafeArea` helper only pads the top on Android. Validation: scoped `git diff --check` passed for the Door Size footer file; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Adjusted the mobile Door Size picker quantity columns after device review. LH/RH input columns are wider, the total column/gap is tighter, and the quantity group sits farther right beside the total without changing pricing or row-save behavior. Validation: scoped `git diff --check` passed for the Door Size picker and Brain progress files; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Redesigned the mobile invoice items bottom sheet. The sheet now uses content-estimated snap points plus dynamic sizing so it opens closer to the available item content, item rows use tighter rounded list cards with a clearer selected check treatment, and the add action is a full-width primary `+ Item` control pinned above the safe bottom area. Validation: focused `items-step-sheet` test passed and scoped `git diff --check` passed for the touched item sheet files; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Fixed inline workflow Proceed placement in the mobile invoice form. Inline Door/Moulding Proceed no longer renders at the end of the component list; it now registers with the screen-level floating action host like overlay workflows, stays centered above the invoice footer, and uses the existing animated footer-hidden offset so it moves lower when the footer actions hide and back up when they return. Validation: focused floating-action-layout and workflow-step-rendering tests passed, and scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Realigned the mobile Door Size picker footer with the main invoice action footer style. The size modal now uses the same compact background/padding, row gap, ghost secondary `OK` button, and `h-11` rounded primary `Next step`/`Apply` button pattern as `InvoiceFormFooter`; the taller custom status/action stack and extra list padding were removed. Validation: scoped `git diff --check` passed for the Door Size picker file; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Fixed the follow-up inline Door/Moulding Proceed visibility regression and capped Moulding component results. Inline workflow selectors now publish a keyed Proceed action entry through `ItemsStep` to `InvoiceFormScreen`, keeping the screen-level floating host responsible for rendering the button after Door Size or Moulding line patches; the key refreshes when the backing line changes so the handler stays current. Moulding component grids now apply the workflow component visible limit of 15 after optional search filtering. Validation: focused workflow-step-rendering, workflow-proceed-visibility, and floating-action-layout tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Adjusted the mobile invoice item switcher sheet so the add-item button appears directly after the invoice item rows inside the sheet content instead of as a fixed bottom footer. Validation: scoped `git diff --check` passed for the item sheet file and Brain notes; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Fixed Door/Moulding multi-select Proceed visibility while selected component metadata is still rehydrating through the mobile invoice form store. The workflow selector now tracks local pending multi-select card taps per line/step, feeds that count into the Proceed visibility fallback, clears it once real step metadata catches up, and recognizes Moulding/Molding plural title variants as Moulding steps. Validation: focused workflow-step-rendering, workflow-proceed-visibility, and floating-action-layout tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Followed up on the Door/Moulding multi-select Proceed regression by removing the fragile parent-stored inline Proceed node handoff. Inline workflow selectors now mount their `FloatingInvoiceAction` directly under the shared host like overlay selectors, while stale persisted `mouldingRows` no longer force a newly selected non-moulding route into the `moulding-line-item` family. Validation: focused workflow-step-rendering, workflow-proceed-visibility, floating-action-layout, and shared step-family tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Fixed the remaining mobile Moulding Proceed visibility gap where category pills such as `FLAT BOARD (...WOOD PRIMED)` were not recognized as moulding multi-select steps. The inline selector now treats non-root, non-Line Item component picker steps inside a Moulding item as moulding selection steps, so selected category cards register the centered floating Proceed action while the final Moulding line-item editor remains separate. Validation: focused workflow-step-rendering, workflow-proceed-visibility, floating-action-layout, and shared step-family tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Fixed the follow-up mobile multi-select Proceed rendering issue by moving inline Proceed back to the screen-owned keyed action handoff instead of relying on direct registration from inside the invoice form scroller. The floating-action registry now treats `refreshKey` as the explicit update boundary rather than React node identity, avoiding action churn while still refreshing Proceed when selected UIDs, active step, visible components, or footer state changes. Validation: focused floating-action registry, workflow-step-rendering, workflow-proceed-visibility, floating-action-layout, and shared step-family tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Reworked the inline mobile multi-select Proceed rendering path again after device testing still showed no button. Inline selectors now publish only a keyed Proceed button plus footer offset, and `InvoiceFormScreen` renders that button directly in an absolute animated frame above the footer instead of routing it through the floating-action host registry. The inline visibility fallback also now treats any visible selected component in the active picker as enough to surface Proceed, covering configured multi-select steps whose titles are not in the small built-in multi-select title list. Validation: focused floating-action registry, workflow-step-rendering, workflow-proceed-visibility, floating-action-layout, and shared step-family tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Followed up on the inline Proceed regression by removing the last child-rendered button handoff. `WorkflowStepSelector` now publishes only a stable Proceed callback plus footer offset, and `InvoiceFormScreen` owns the actual absolute pill button with explicit Android `elevation`/`zIndex`. The parent action state now also refreshes when the callback or offset changes under the same visual key, preventing stale handlers without storing child React elements. Validation: focused floating-action registry, workflow-step-rendering, workflow-proceed-visibility, floating-action-layout, and shared step-family tests passed; scoped `git diff --check` passed; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-19: Updated the mobile Sales Dashboard Recent Sales section to render the shared actual order sales card used by the mobile Orders list instead of the old compact dashboard-only row. The dashboard overview now includes `customerPhone`, and a focused mapper converts recent sales into `SalesDocumentCard` items with total/paid/due, date, phone, and delivery-option fields while preserving order-detail navigation. Validation: focused recent-sales mapper test passed; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or device automation was run.
+- 2026-06-19: Wired the mobile inline Moulding `Line Item` step to the invoice line-item editor surface, matching the website new-sales-form `StepSection` boundary. `WorkflowStepSelector` now only reports the active grouped line-item step, while `ItemsStep` renders a shared native `WorkflowMouldingLineItemEditor` below the selector; the old inline placeholder notice is suppressed only for that wired Moulding final step. The editor reuses the existing moulding row features for row thumbnails, qty, calculator, add-on, nullable custom price, estimate, totals, and final-row removal protection through shared sales-form-core patches. Validation: focused workflow-step-rendering test passed and scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Hotfixed the inline workflow Proceed handoff after device testing reported a maximum-update-depth crash in `InvoiceFormScreen`. `WorkflowStepSelector` now passes a stable inline Proceed callback that delegates to the latest proceed handler through a ref, so the parent action state no longer loops on fresh callback identity. The workflow step pills also opt into `will-change-pressable` to avoid ReactNativeCss remount warnings when selected/active styles change. Validation: focused workflow-step-rendering test passed and scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Hotfixed the second mobile Moulding `Line Item` update-depth crash where the inline final-step editor patched the invoice line from its mount-time row sync effect. The shared `WorkflowMouldingLineItemEditor` now supports `syncOnMount`, and the inline `ItemsStep` instance disables mount-time syncing so it displays derived rows without calling `patchLineItem` until the user edits qty, calculator, add-on, custom price, or removal. The card-owned editor path keeps the existing sync behavior. Validation: focused workflow-step-rendering test passed and scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Implemented the mobile Shelf Items final-step editor. Shelf workflow rows now use a shared native `WorkflowShelfLineItemEditor` extracted from `LineItemCard`, and the inline final `Shelf Items` step renders that editor below the workflow pills instead of the old grouped-row placeholder. The inline path disables mount-time shelf sync to avoid `patchLineItem` loops, while user actions still patch through shared sales-form-core shelf helpers. The selected shelf UI was flattened to title + qty stepper, category tree + editable unit price + prominent total, plus a `+ Add shelf` action. The fullscreen picker keeps the simplified direct product search/recent flow with flat result rows showing title, category tree, unit price, edit icon, and delete icon. Validation: focused workflow-step-rendering and shelf-product-options tests passed, and scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Fixed the mobile Shelf Items picker follow-up. The fullscreen shelf modal now uses the app SafeArea wrapper like customer selection so it clears the Android status bar, shelf results show skeleton rows while loading, the inline shelf editor can activate from the visible Shelf step while item-type metadata catches up, and blank shelf search requests up to 15 items with recent-usage ordering plus active-product fallback when usage history is sparse. The API keeps hidden/archived products excluded while scanning recent usage in batches. Validation: focused new-sales-form API, mobile shelf-product-options, workflow-step-rendering, and workflow step-family tests passed with 45 tests / 183 assertions; scoped `git diff --check` passed. No dev server, broad typecheck/build, or UI automation was run per request.
+- 2026-06-19: Implemented the mobile Service `Line Item` final-step editor and flattened grouped line editors. The inline Service final step now renders a native row editor below the workflow pills, patches through shared sales-form-core service helpers, and disables mount-time sync in the inline path to avoid invoice-line update loops. Service and Moulding grouped row editors now use flat divider rows and plain summary strips while keeping their row controls and totals. Validation: focused workflow-step-rendering, workflow-row-patches, and step-family tests passed with 30 tests / 91 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Fixed the mobile inline workflow Proceed button visibility regression where the pill could render white text without its blue background. The screen-owned Proceed overlay now uses style-only React Native primitives with explicit themed primary background/foreground colors, avoiding the Expo `className` plus `style` mix on the animated frame/button path. Validation: focused floating-action-layout, workflow-proceed-visibility, and workflow-step-rendering tests passed with 19 tests / 44 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Lowered the mobile inline workflow Proceed button placement. Inline Proceed now uses a dedicated lower offset while the footer is visible and a near-bottom offset when the footer hides, so it moves down farther without moving Custom or other floating action lanes. Validation: focused floating-action-layout, workflow-proceed-visibility, and workflow-step-rendering tests passed with 19 tests / 46 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Tuned the mobile inline workflow Proceed visible-footer lane after device review still showed it too high when the Save Draft/Create action footer was visible. The visible-footer offset now derives from the 44px footer action height plus 15px, while the hidden-footer near-bottom offset remains unchanged. Validation: focused floating-action-layout, workflow-proceed-visibility, and workflow-step-rendering tests passed with 19 tests / 47 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Reduced the mobile inline workflow Proceed pill size from 220x48 to 184x44 while keeping the style-only themed button path and existing vertical offsets. Validation: focused floating-action-layout, workflow-proceed-visibility, and workflow-step-rendering tests passed with 19 tests / 47 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Changed the mobile invoice footer item-switcher icon from the route/breadcrumb symbol to the clipboard-list item symbol while keeping placement and item-sheet behavior unchanged. Validation: scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Tightened the mobile inline workflow Proceed visibility contract so the floating Proceed button can appear only on active multi-component picker steps. The visibility helper now requires a component-picker gate, while Door/Moulding fallback counts still work inside that gate; regular single-select steps, line-item editors, HPT, shelf/service final steps, and selected metadata outside a component picker no longer surface Proceed. Validation: focused workflow-proceed-visibility, workflow-step-rendering, and floating-action-layout tests passed with 20 tests / 49 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Increased the mobile Service line-item row total emphasis by widening the total column and changing the amount from small bold text to a larger heavy amount treatment. Validation: scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Removed redundant mobile grouped line-item chrome for Service and Moulding. Inline grouped line-item steps no longer render the empty component-picker `Line Item` label/body, and the Service/Moulding row editors no longer add duplicate top section labels or top dividers before their totals; Service keeps its add action as a simple bottom button. Validation: focused workflow-step-rendering and workflow-proceed-visibility tests passed with 17 tests / 34 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Added plus/minus quantity controls to the mobile Service line-item row editor. Service qty now uses a compact stepper with an editable numeric center value, clamps decrement at zero, and leaves Unit as the standard numeric field. Validation: scoped `git diff --check` passed and the service editor path was scanned for Expo `className` plus `style` mixing; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-19: Increased the mobile Service row total emphasis again by widening the amount column and bumping the row total to an extra-large heavy text treatment. Validation: scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Updated the mobile Moulding line-item editor so moulding names are display-only instead of editable text fields, row thumbnails use the resolved moulding image URI, and tapping a thumbnail opens a fullscreen native image preview with a close control. Validation: focused workflow-step-rendering, workflow-row-patches, and step-family tests passed with 30 tests / 91 assertions; scoped `git diff --check` passed; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Redesigned the mobile Moulding line-item row into a compact row-first editor. Rows now show a larger actual moulding thumbnail, display-only title, icon-only calculator trigger, More options action, protected remove action, plus/minus qty stepper with direct entry, estimate, total, and conditional Add-on/Custom chips. Add-on and nullable custom price moved from the main row into a per-row bottom sheet with Clear, Cancel, and Apply actions, while the calculator panel remains shared-core backed and applies quantity through the existing grouped-row patch path. Validation: focused workflow-step-rendering, workflow-row-patches, and step-family tests passed with 30 tests / 91 assertions; scoped `git diff --check` passed; touched moulding files were scanned for Expo `className` plus `style` mixing with no matches; no Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Fixed mobile Moulding line-item row thumbnails showing the fallback icon by preserving selected/persisted moulding `img` values when deriving row context and when backfilling selected moulding components from saved row metadata. Validation: focused workflow row patch and selector tests passed with 29 tests / 101 assertions; scoped `git diff --check` passed. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Refined the mobile Moulding image preview modal with a darker tappable backdrop, top-right close icon, image tap isolation, and swipe-down dismissal. Validation: scoped Biome check passed for the moulding row editor, scoped `git diff --check` passed, and the touched file was scanned for Expo `className` plus `style` mixing with no matches. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Changed the mobile Moulding line-item calculator action to use the actual Hugeicons calculator icon and open the calculator in a per-row bottom sheet instead of expanding inline in the row. Validation: scoped Biome check passed for the moulding row editor, the Hugeicons calculator export was verified from the Expo app workspace, and scoped `git diff --check` passed. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Added more breathing room to the mobile Moulding calculator and More bottom sheets with larger side/bottom padding plus clearer title, field, and action spacing. Validation: scoped Biome check passed for the moulding row editor, scoped `git diff --check` passed, and the touched file was scanned for Expo `className` plus `style` mixing with no matches. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Updated mobile invoice quantity inputs to use number keyboards for whole-count fields. Door Size modal Qty/LH/RH, inline HPT Qty/LH/RH, Moulding qty, selected Moulding grid qty, Service qty, and Shelf qty now use `number-pad`, while price/cost/custom fields stay on decimal keyboards. Validation: focused workflow-step-rendering, workflow-row-patches, and step-family tests passed with 30 tests / 92 assertions; scoped `git diff --check` passed; targeted scan found no Qty/LH/RH field still using `decimal-pad`. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Restyled the mobile Moulding line-item row to match the attached bold data mockup: larger row spacing, padded image thumbnail, uppercase two-line title, compact icon actions, stacked Add-on/Custom chips, stronger Quantity stepper, line-through estimate when overrides are present, and prominent primary Final Total. Validation: scoped Biome check passed for the moulding row editor, focused workflow-step-rendering/workflow-row-patches/step-family tests passed with 30 tests / 92 assertions, scoped `git diff --check` passed, and the touched file was scanned for Expo `className` plus `style` mixing with no matches. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Added keyboard-aware handling to the mobile Moulding Add-on/Custom bottom sheet. The More options sheet now uses fixed taller keyboard-safe snap points, the app's bottom-sheet keyboard-aware scroll view, larger bottom reserve, and interactive keyboard behavior so focused Add-on and Custom inputs can move above the keyboard without mixing Expo `className` and `style` on the same element. Validation: scoped Biome check passed for the moulding row editor, scoped `git diff --check` passed, and the touched file was scanned for Expo `className` plus `style` mixing with no matches. No Expo dev server, broad typecheck/build, or UI automation was run.
+- 2026-06-21: Matched the mobile Moulding calculator bottom sheet spacing to the Add-on/Custom sheet polish by increasing bottom padding and the title-to-panel gap while leaving calculator behavior and patch logic unchanged. Validation: scoped Biome check passed for the moulding row editor, scoped `git diff --check` passed, and the touched file was scanned for Expo `className` plus `style` mixing with no matches. No Expo dev server, broad typecheck/build, or UI automation was run.

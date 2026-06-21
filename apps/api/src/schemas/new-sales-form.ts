@@ -101,6 +101,22 @@ export type SearchNewSalesFormShelfProductsSchema = z.infer<
   typeof searchNewSalesFormShelfProductsSchema
 >;
 
+export const updateNewSalesFormShelfProductSchema = z.object({
+  id: z.number().int().positive(),
+  title: z.string().trim().min(1).max(255),
+  unitPrice: z.number().min(0).max(1_000_000).nullable().optional(),
+});
+export type UpdateNewSalesFormShelfProductSchema = z.infer<
+  typeof updateNewSalesFormShelfProductSchema
+>;
+
+export const deleteNewSalesFormShelfProductSchema = z.object({
+  id: z.number().int().positive(),
+});
+export type DeleteNewSalesFormShelfProductSchema = z.infer<
+  typeof deleteNewSalesFormShelfProductSchema
+>;
+
 export const saveDraftNewSalesFormSchema = z.object({
   type: newSalesFormTypeSchema,
   slug: z.string().optional().nullable(),

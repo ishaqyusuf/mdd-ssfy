@@ -184,10 +184,17 @@ export function LoginTemplate1() {
                           onBlur={onBlur}
                           onChangeText={onChange}
                           value={value}
-                          className="h-full flex-1 px-3 text-base text-white"
                           cursorColor="#ffffff"
                           selectionColor="#ffffff"
-                          style={inputStyle}
+                          style={[
+                            {
+                              height: "100%",
+                              flex: 1,
+                              paddingHorizontal: 12,
+                              fontSize: 16,
+                            },
+                            inputStyle,
+                          ]}
                         />
                       </View>
                       {error ? (
@@ -223,10 +230,15 @@ export function LoginTemplate1() {
                           onBlur={onBlur}
                           onChangeText={onChange}
                           value={value}
-                          className="h-full flex-1 px-3 text-base text-white"
                           cursorColor="#ffffff"
                           selectionColor="#ffffff"
                           style={[
+                            {
+                              height: "100%",
+                              flex: 1,
+                              paddingHorizontal: 12,
+                              fontSize: 16,
+                            },
                             inputStyle,
                             !isPasswordVisible && passwordDotsStyle,
                           ]}

@@ -249,6 +249,115 @@ describe("workflow selection actions", () => {
 		expect(result?.activeStepIndex).toBe(1);
 	});
 
+	it("proceeds a multi-select moulding step to the line item step", () => {
+		const result = proceedWorkflowMultiSelectStep({
+			routeData: {
+				...routeData,
+				stepsByUid: {
+					...routeData.stepsByUid,
+					stepB: {
+						id: 2,
+						uid: "stepB",
+						title: "Moulding",
+					},
+				},
+			},
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						stepId: 2,
+						step: {
+							id: 2,
+							uid: "stepB",
+							title: "Moulding",
+						},
+						prodUid: "mouldingA",
+						value: "Moulding A",
+						meta: {
+							selectedProdUids: ["mouldingA"],
+							selectedComponents: [
+								{
+									id: 31,
+									uid: "mouldingA",
+									title: "Moulding A",
+									redirectUid: "stepC",
+								},
+							],
+						},
+					},
+					{
+						stepId: 3,
+						step: {
+							id: 3,
+							uid: "stepC",
+							title: "Line Item",
+						},
+						meta: {},
+					},
+				],
+			},
+			stepIndex: 0,
+			visibleComponents: [
+				{
+					id: 31,
+					uid: "mouldingA",
+					title: "Moulding A",
+					redirectUid: "stepC",
+				},
+			],
+		});
+
+		expect(result?.linePatch.formSteps[0]?.prodUid).toBe("mouldingA");
+		expect(result?.activeStepIndex).toBe(1);
+	});
+
+	it("proceeds a multi-select step from JSON selected-component metadata", () => {
+		const result = proceedWorkflowMultiSelectStep({
+			routeData,
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						stepId: 2,
+						step: {
+							id: 2,
+							uid: "stepB",
+							title: "Door",
+						},
+						prodUid: "doorA",
+						value: "Door A",
+						meta: JSON.stringify({
+							redirectUid: "stepC",
+							selectedProdUids: ["doorA"],
+							selectedComponents: [
+								{
+									id: 21,
+									uid: "doorA",
+									title: "Door A",
+								},
+							],
+						}),
+					},
+					{
+						stepId: 3,
+						step: {
+							id: 3,
+							uid: "stepC",
+							title: "Line Item",
+						},
+						meta: {},
+					},
+				],
+			},
+			stepIndex: 0,
+			visibleComponents: [],
+		});
+
+		expect(result?.linePatch.formSteps[0]?.prodUid).toBe("doorA");
+		expect(result?.activeStepIndex).toBe(1);
+	});
+
 	it("selects all visible components for a multi-select step", () => {
 		const result = selectAllWorkflowComponents({
 			line: {
@@ -271,6 +380,63 @@ describe("workflow selection actions", () => {
 		expect(result?.formSteps[0]?.price).toBe(30);
 		expect(result?.formSteps[0]?.basePrice).toBe(13);
 		expect(result?.formSteps[0]?.meta?.selectedProdUids).toEqual(["a", "b"]);
+	});
+
+	it("selects all without spreading JSON step metadata", () => {
+		const result = selectAllWorkflowComponents({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						meta: JSON.stringify({ preserved: "yes" }),
+					},
+				],
+			},
+			stepIndex: 0,
+			components: [
+				{ id: 1, uid: "a", title: "A", salesPrice: 10, basePrice: 5 },
+			],
+		});
+
+		expect(result?.formSteps[0]?.meta?.preserved).toBe("yes");
+		expect(Object.keys(result?.formSteps[0]?.meta || {})).not.toContain("0");
+		expect(result?.formSteps[0]?.meta?.selectedProdUids).toEqual(["a"]);
+	});
+
+	it("selects all while preserving string custom metadata", () => {
+		const result = selectAllWorkflowComponents({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						meta: {},
+					},
+				],
+			},
+			stepIndex: 0,
+			components: [
+				{
+					id: 1,
+					uid: "custom-a",
+					title: "Custom A",
+					salesPrice: 10,
+					basePrice: 5,
+					_metaData: JSON.stringify({ custom: true, source: "dyke" }) as any,
+				},
+			],
+		});
+
+		expect(result?.formSteps[0]?.meta?.selectedComponents?.[0]?.custom).toBe(
+			true,
+		);
+		expect(
+			result?.formSteps[0]?.meta?.selectedComponents?.[0]?._metaData,
+		).toEqual({
+			custom: true,
+			source: "dyke",
+		});
 	});
 
 	it("updates selected component redirect and reroutes primary selections", () => {
@@ -302,5 +468,44 @@ describe("workflow selection actions", () => {
 
 		expect(result?.linePatch.formSteps[0]?.meta?.redirectUid).toBe("stepC");
 		expect(result?.activeStepIndex).toBeGreaterThanOrEqual(0);
+	});
+
+	it("updates selected component redirect from JSON step metadata", () => {
+		const result = setWorkflowComponentRedirect({
+			routeData,
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						stepId: 2,
+						step: { id: 2, uid: "stepB", title: "Door" },
+						prodUid: "doorA",
+						value: "Door A",
+						meta: JSON.stringify({
+							preserved: true,
+							selectedComponents: [
+								{
+									uid: "doorA",
+									title: "Door A",
+								},
+							],
+						}),
+					},
+				],
+			},
+			stepIndex: 0,
+			componentUid: "doorA",
+			redirectUid: "stepC",
+		});
+
+		expect(result?.linePatch.formSteps[0]?.meta?.preserved).toBe(true);
+		expect(Object.keys(result?.linePatch.formSteps[0]?.meta || {})).not.toContain(
+			"0",
+		);
+		expect(result?.linePatch.formSteps[0]?.meta?.redirectUid).toBe("stepC");
+		expect(
+			result?.linePatch.formSteps[0]?.meta?.selectedComponents?.[0]
+				?.redirectUid,
+		).toBe("stepC");
 	});
 });

@@ -1,5 +1,7 @@
 "use client";
 
+import { readSalesFormObjectMetadata } from "../../domain/metadata";
+
 type WorkflowComponent = {
 	id?: number | null;
 	uid?: string | null;
@@ -17,13 +19,9 @@ type WorkflowComponent = {
 };
 
 export function snapshotSelectedComponent(component: WorkflowComponent) {
+	const metaData = readSalesFormObjectMetadata(component?._metaData) || {};
 	const custom =
-		component?.custom === true ||
-		(component?._metaData as { custom?: boolean } | null | undefined)
-			?.custom === true;
-	const metaData =
-		((component?._metaData as Record<string, unknown> | null) ||
-			{}) as Record<string, unknown>;
+		component?.custom === true || (metaData as { custom?: boolean }).custom === true;
 
 	return {
 		id: component?.id ?? null,

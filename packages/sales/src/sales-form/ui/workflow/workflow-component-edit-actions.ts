@@ -4,6 +4,7 @@ import {
 	type WorkflowLineItemRecord,
 	type WorkflowStepRecord,
 } from "./workflow-records";
+import { readSalesFormObjectMetadata } from "../../domain";
 
 export type WorkflowComponentEditMode = "edit" | "sectionOverride";
 
@@ -26,6 +27,17 @@ export type WorkflowComponentEditPatch = {
 	formSteps: WorkflowStepRecord[];
 };
 
+function readStepMeta(step?: WorkflowStepRecord | null) {
+	return readSalesFormObjectMetadata(step?.meta) || {};
+}
+
+function readSelectedComponents(step?: WorkflowStepRecord | null) {
+	const meta = readStepMeta(step);
+	return Array.isArray(meta.selectedComponents)
+		? (meta.selectedComponents as WorkflowComponentRecord[])
+		: [];
+}
+
 export function buildWorkflowComponentEditState(input: {
 	line: WorkflowLineItemRecord;
 	stepIndex: number;
@@ -34,9 +46,8 @@ export function buildWorkflowComponentEditState(input: {
 }): WorkflowComponentEditState | null {
 	const step = getWorkflowSteps(input.line)[input.stepIndex];
 	if (!step) return null;
-	const selected = Array.isArray(step?.meta?.selectedComponents)
-		? step.meta.selectedComponents
-		: [];
+	const stepMeta = readStepMeta(step);
+	const selected = readSelectedComponents(step);
 	const current = selected.find(
 		(entry) => String(entry?.uid || "") === String(input.component?.uid || ""),
 	);
@@ -60,7 +71,7 @@ export function buildWorkflowComponentEditState(input: {
 			current?.redirectUid ??
 				input.component?.redirectUid ??
 				(String(step?.prodUid || "") === String(input.component?.uid || "")
-					? step?.meta?.redirectUid
+					? stepMeta.redirectUid
 					: "") ??
 				"",
 		),
@@ -81,11 +92,10 @@ export function saveWorkflowComponentEdit(input: {
 	const steps = [...getWorkflowSteps(input.line)];
 	const step = steps[input.state.stepIndex];
 	if (!step) return null;
+	const stepMeta = readStepMeta(step);
 
 	const salesPrice = Number(input.state.salesPrice || 0);
-	const selected = Array.isArray(step?.meta?.selectedComponents)
-		? step.meta.selectedComponents
-		: [];
+	const selected = readSelectedComponents(step);
 	const hasTarget = selected.some(
 		(entry) => String(entry?.uid || "") === String(input.state.componentUid),
 	);
@@ -119,20 +129,20 @@ export function saveWorkflowComponentEdit(input: {
 		...step,
 		price: isCurrentSelected ? salesPrice : step?.price,
 		meta: {
-			...(step?.meta || {}),
+			...stepMeta,
 			img: isCurrentSelected
 				? input.state.componentImg || null
-				: step?.meta?.img || null,
+				: stepMeta.img || null,
 			redirectUid: isCurrentSelected
 				? input.state.redirectUid || null
-				: step?.meta?.redirectUid || null,
+				: stepMeta.redirectUid || null,
 			sectionOverride: isCurrentSelected
 				? {
 						overrideMode: input.state.overrideMode,
 						noHandle: input.state.noHandle,
 						hasSwing: input.state.hasSwing,
 					}
-				: step?.meta?.sectionOverride || null,
+				: stepMeta.sectionOverride || null,
 			selectedComponents: nextSelectedComponents,
 		},
 	};
@@ -153,10 +163,9 @@ export function applyWorkflowComponentPriceOverride(input: {
 	const steps = [...getWorkflowSteps(input.line)];
 	const step = steps[input.stepIndex];
 	if (!step) return null;
+	const stepMeta = readStepMeta(step);
 
-	const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-		? step.meta.selectedComponents
-		: [];
+	const selectedComponents = readSelectedComponents(step);
 	const nextSelectedComponents = selectedComponents.map((entry) =>
 		String(entry?.uid) === String(input.component?.uid)
 			? {
@@ -191,7 +200,7 @@ export function applyWorkflowComponentPriceOverride(input: {
 				? (input.fallbackBasePrice ?? step?.basePrice ?? input.price)
 				: step?.basePrice,
 		meta: {
-			...(step.meta || {}),
+			...stepMeta,
 			selectedComponents: nextSelectedComponents,
 		},
 	};

@@ -10,12 +10,18 @@ type Props = {
 };
 
 export function BlurView({ children, className = "", style }: Props) {
+	if (!style) {
+		return (
+			<View className={cn("rounded-lg bg-foreground/30", className)}>
+				{children}
+			</View>
+		);
+	}
 	return (
-		<View
-			className={cn("rounded-lg bg-foreground/30", className)}
-			style={style}
-		>
-			{children}
+		<View style={style}>
+			<View className={cn("rounded-lg bg-foreground/30", className)}>
+				{children}
+			</View>
 		</View>
 	);
 }

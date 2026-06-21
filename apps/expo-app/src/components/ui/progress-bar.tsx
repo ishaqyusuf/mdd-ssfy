@@ -73,10 +73,20 @@ function ProgressBar({
         accessibilityValue={{ min, max: safeMax, now: safeValue }}
         className={cn(progressTrackVariants({ size }), trackClassName)}
       >
-        <View
-          className={cn('h-full rounded-full', fillClassName)}
-          style={{ width: `${visualPercent}%`, backgroundColor: fillColor }}
-        />
+        {fillColor ? (
+          <View
+            style={{
+              width: `${visualPercent}%`,
+              height: '100%',
+              borderRadius: 999,
+              backgroundColor: fillColor,
+            }}
+          />
+        ) : (
+          <View style={{ width: `${visualPercent}%`, height: '100%' }}>
+            <View className={cn('h-full rounded-full', fillClassName)} />
+          </View>
+        )}
       </View>
     </View>
   );

@@ -274,6 +274,21 @@ function createMockContext() {
           }),
         );
       },
+      create: async ({ data }: any) => {
+        const row = {
+          id: state.ids.door++,
+          deletedAt: null,
+          ...data,
+        };
+        state.doors.push(row);
+        return row;
+      },
+      update: async ({ where, data }: any) => {
+        const row = state.doors.find((door) => door.id === where.id);
+        if (!row) throw new Error(`Missing dykeSalesDoor ${where.id}`);
+        Object.assign(row, data);
+        return row;
+      },
     },
     salesExtraCosts: {
       updateMany: async ({ where, data }: any) => {
@@ -582,7 +597,8 @@ describe("new-sales-form multi-line mixed parity", () => {
     expect((serviceLine?.meta as any)?.taxxable).toBe(true);
     expect(((serviceLine?.meta as any)?.serviceRows || []).length).toBe(2);
 
-    expect(mouldingLine?.housePackageTool).toBeNull();
+    expect(mouldingLine?.housePackageTool).toBeTruthy();
+    expect(mouldingLine?.housePackageTool?.doors || []).toHaveLength(0);
     expect(mouldingLine?.shelfItems || []).toHaveLength(0);
     expect(mouldingLine?.formSteps || []).toHaveLength(2);
     expect(mouldingLine?.qty).toBe(2);

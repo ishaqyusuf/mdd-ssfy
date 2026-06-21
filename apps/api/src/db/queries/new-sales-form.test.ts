@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { tasks } from "@trigger.dev/sdk/v3";
 import {
+  deleteNewSalesFormShelfProduct,
   getNewSalesFormShelfCategories,
   getNewSalesFormShelfProductDetails,
   getNewSalesFormShelfProductIndex,
@@ -10,6 +11,7 @@ import {
   saveFinalNewSalesForm,
   searchNewSalesCustomers,
   searchNewSalesFormShelfProducts,
+  updateNewSalesFormShelfProduct,
 } from "./new-sales-form";
 
 (tasks as any).trigger = mock(async () => ({ id: "test-trigger-run" }));
@@ -199,14 +201,50 @@ function createMockContext() {
         state.dealerAuth.find((dealer) => dealer.id === order.dealerAuthId) ||
         null,
       dealerSale:
-        state.dealerSales.find((dealerSale) => dealerSale.salesOrderId === order.id) ||
-        null,
+        state.dealerSales.find(
+          (dealerSale) => dealerSale.salesOrderId === order.id,
+        ) || null,
       dealerSalesProfile:
         state.customerTypes.find(
           (profile) => profile.id === order.dealerSalesProfileId,
         ) || null,
       items,
     };
+  }
+
+  function findShelfItemRows({ where, select, orderBy, take, skip }: any = {}) {
+    const rows = state.shelfItems.filter((s) => {
+      if (where?.deletedAt === null && s.deletedAt != null) return false;
+      if (where?.productId?.not === null && s.productId == null) return false;
+      return true;
+    });
+    const sorted = [...rows].sort((a, b) => {
+      for (const order of orderBy || []) {
+        const [key, dir] = Object.entries(order)[0] as [string, any];
+        const av =
+          (a as any)[key] instanceof Date
+            ? (a as any)[key].getTime()
+            : ((a as any)[key] ?? "");
+        const bv =
+          (b as any)[key] instanceof Date
+            ? (b as any)[key].getTime()
+            : ((b as any)[key] ?? "");
+        if (av === bv) continue;
+        return dir === "desc" ? (av < bv ? 1 : -1) : av > bv ? 1 : -1;
+      }
+      return 0;
+    });
+    const offset = Math.max(0, Number(skip || 0));
+    const paged = offset > 0 ? sorted.slice(offset) : sorted;
+    const limited = Number(take || 0) > 0 ? paged.slice(0, take) : paged;
+    return limited.map((row) => {
+      if (!select) return row;
+      const picked: Record<string, unknown> = {};
+      Object.keys(select).forEach((key) => {
+        if ((select as any)[key]) picked[key] = (row as any)[key];
+      });
+      return picked;
+    });
   }
 
   const tx = {
@@ -293,6 +331,7 @@ function createMockContext() {
       },
     },
     dykeSalesShelfItem: {
+      findMany: async (args: any) => findShelfItemRows(args),
       updateMany: async ({ where, data }: any) => {
         state.shelfItems
           .filter((s) => {
@@ -461,7 +500,10 @@ function createMockContext() {
         return getOrderGraph(order);
       },
       groupBy: async ({ where, take }: any) => {
-        const groups = new Map<number, { customerId: number; updatedAt: Date }>();
+        const groups = new Map<
+          number,
+          { customerId: number; updatedAt: Date }
+        >();
         state.orders
           .filter((order) => {
             if (where?.deletedAt === null && order.deletedAt != null) {
@@ -476,9 +518,14 @@ function createMockContext() {
           .forEach((order) => {
             const customerId = Number(order.customerId || 0);
             if (!customerId) return;
-            const updatedAt = new Date(order.updatedAt || order.createdAt || now);
+            const updatedAt = new Date(
+              order.updatedAt || order.createdAt || now,
+            );
             const existing = groups.get(customerId);
-            if (!existing || existing.updatedAt.getTime() < updatedAt.getTime()) {
+            if (
+              !existing ||
+              existing.updatedAt.getTime() < updatedAt.getTime()
+            ) {
               groups.set(customerId, { customerId, updatedAt });
             }
           });
@@ -578,6 +625,9 @@ function createMockContext() {
         );
       },
     },
+    dykeSalesShelfItem: {
+      findMany: async (args: any) => findShelfItemRows(args),
+    },
     dykeShelfCategories: {
       findMany: async ({ where, select, orderBy }: any) => {
         const inIds = where?.id?.in || null;
@@ -611,6 +661,7 @@ function createMockContext() {
         const inCategoryIds = where?.OR?.[0]?.categoryId?.in || [];
         const inParentCategoryIds = where?.OR?.[1]?.parentCategoryId?.in || [];
         const inIds = where?.id?.in || null;
+        const notInIds = where?.id?.notIn || null;
         const titleContains = String(where?.title?.contains || "")
           .trim()
           .toLowerCase();
@@ -638,6 +689,7 @@ function createMockContext() {
         const rows = state.shelfProducts.filter((row) => {
           if (where?.deletedAt === null && row.deletedAt != null) return false;
           if (inIds && !inIds.includes(row.id)) return false;
+          if (notInIds && notInIds.includes(row.id)) return false;
           if (
             Array.isArray(where?.AND) &&
             !where.AND.every((clause: any) => matchesClause(row, clause))
@@ -680,6 +732,17 @@ function createMockContext() {
           });
           return picked;
         });
+      },
+      update: async ({ where, data, select }: any) => {
+        const row = state.shelfProducts.find((entry) => entry.id === where.id);
+        if (!row) throw new Error("Shelf product not found");
+        Object.assign(row, data);
+        if (!select) return row;
+        const picked: Record<string, unknown> = {};
+        Object.keys(select).forEach((key) => {
+          if ((select as any)[key]) picked[key] = (row as any)[key];
+        });
+        return picked;
       },
     },
   };
@@ -861,7 +924,7 @@ describe("new-sales-form relational parity", () => {
     expect(restored.map((product) => product.id)).toEqual([1002]);
   });
 
-  it("searches shelf products independently with empty defaults and selected hydration", async () => {
+  it("searches shelf products with recent-only blanks and selected hydration", async () => {
     const { ctx, state } = createMockContext();
     state.shelfProducts.push(
       {
@@ -920,11 +983,7 @@ describe("new-sales-form relational parity", () => {
       limit: 5,
     });
     expect(defaultProducts.map((product) => product.id)).toEqual([
-      1004, 1001, 1005, 1006, 1007,
-    ]);
-    expect(defaultProducts[0]?.categoryPath).toEqual([
-      { id: 10, name: "Door Hardware" },
-      { id: 11, name: "Hinges" },
+      1009, 1008, 1007, 1006, 1005,
     ]);
 
     const withSelected = await searchNewSalesFormShelfProducts(ctx, {
@@ -933,7 +992,9 @@ describe("new-sales-form relational parity", () => {
       limit: 5,
     });
     expect(withSelected.map((product) => product.id)).toContain(1008);
-    expect(withSelected.length).toBe(6);
+    expect(withSelected.map((product) => product.id)).toEqual([
+      1009, 1008, 1007, 1006, 1005,
+    ]);
 
     const searched = await searchNewSalesFormShelfProducts(ctx, {
       query: "flush",
@@ -941,6 +1002,145 @@ describe("new-sales-form relational parity", () => {
       limit: 20,
     });
     expect(searched.map((product) => product.id)).toEqual([1009]);
+  });
+
+  it("returns recent shelf products and supports mobile shelf product edits", async () => {
+    const { ctx, state } = createMockContext();
+    state.shelfProducts.push(
+      {
+        id: 1004,
+        title: "Zeta Rail",
+        unitPrice: 20,
+        categoryId: 12,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 1005,
+        title: "Flush Bolt",
+        unitPrice: 22,
+        categoryId: 12,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+    );
+    state.shelfItems.push(
+      {
+        id: 4,
+        productId: 1003,
+        deletedAt: null,
+        updatedAt: new Date("2026-06-18T13:00:00.000Z"),
+      },
+      {
+        id: 1,
+        productId: 1001,
+        deletedAt: null,
+        updatedAt: new Date("2026-06-18T10:00:00.000Z"),
+      },
+      {
+        id: 2,
+        productId: 1004,
+        deletedAt: null,
+        updatedAt: new Date("2026-06-18T12:00:00.000Z"),
+      },
+      {
+        id: 3,
+        productId: 1005,
+        deletedAt: null,
+        updatedAt: new Date("2026-06-18T11:00:00.000Z"),
+      },
+    );
+
+    const recent = await searchNewSalesFormShelfProducts(ctx, {
+      query: "",
+      selectedIds: [],
+      limit: 10,
+    });
+    expect(recent.slice(0, 3).map((product) => product.id)).toEqual([
+      1004, 1005, 1001,
+    ]);
+    expect(recent.map((product) => product.id)).toContain(1002);
+    expect(recent.map((product) => product.id)).not.toContain(1003);
+
+    const updated = await updateNewSalesFormShelfProduct(ctx, {
+      id: 1004,
+      title: "Updated Rail",
+      unitPrice: 27.5,
+    });
+    expect(updated).toMatchObject({
+      id: 1004,
+      title: "Updated Rail",
+      unitPrice: 27.5,
+    });
+
+    await deleteNewSalesFormShelfProduct(ctx, { id: 1004 });
+    const searched = await searchNewSalesFormShelfProducts(ctx, {
+      query: "updated",
+      selectedIds: [],
+      limit: 10,
+    });
+    expect(searched).toHaveLength(0);
+  });
+
+  it("continues scanning recent shelf usage when hidden products would under-fill recents", async () => {
+    const { ctx, state } = createMockContext();
+    const hiddenProducts = Array.from({ length: 30 }, (_, index) => ({
+      id: 3000 + index,
+      title: `Hidden recent ${index}`,
+      unitPrice: 1,
+      categoryId: 11,
+      parentCategoryId: 10,
+      deletedAt: new Date("2026-06-01T00:00:00.000Z"),
+    }));
+    const visibleProducts = [
+      {
+        id: 4001,
+        title: "Visible Older A",
+        unitPrice: 11,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 4002,
+        title: "Visible Older B",
+        unitPrice: 12,
+        categoryId: 11,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+      {
+        id: 4003,
+        title: "Visible Older C",
+        unitPrice: 13,
+        categoryId: 12,
+        parentCategoryId: 10,
+        deletedAt: null,
+      },
+    ];
+    state.shelfProducts.push(...hiddenProducts, ...visibleProducts);
+    state.shelfItems.push(
+      ...hiddenProducts.map((product, index) => ({
+        id: 3000 + index,
+        productId: product.id,
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 19, 12, index, 0)),
+      })),
+      ...visibleProducts.map((product, index) => ({
+        id: 4000 + index,
+        productId: product.id,
+        deletedAt: null,
+        updatedAt: new Date(Date.UTC(2026, 5, 18, 12, index, 0)),
+      })),
+    );
+
+    const recent = await searchNewSalesFormShelfProducts(ctx, {
+      query: "",
+      selectedIds: [],
+      limit: 3,
+    });
+
+    expect(recent.map((product) => product.id)).toEqual([4003, 4002, 4001]);
   });
 
   it("hydrates payment method from legacy sales order meta on edit", async () => {
@@ -1260,7 +1460,9 @@ describe("new-sales-form relational parity", () => {
         taxTotal: 0,
         grandTotal: 0,
       },
-      extraCosts: [{ id: null, label: "Labor", type: "Labor" as const, amount: 0 }],
+      extraCosts: [
+        { id: null, label: "Labor", type: "Labor" as const, amount: 0 },
+      ],
       lineItems: [
         {
           id: null,
@@ -1386,7 +1588,9 @@ describe("new-sales-form relational parity", () => {
         taxTotal: 0,
         grandTotal: 0,
       },
-      extraCosts: [{ id: null, label: "Labor", type: "Labor" as const, amount: 0 }],
+      extraCosts: [
+        { id: null, label: "Labor", type: "Labor" as const, amount: 0 },
+      ],
       lineItems: [
         {
           id: overrides.lineId ?? null,

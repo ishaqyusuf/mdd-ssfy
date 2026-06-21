@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
-  buildShelfProductBuckets,
-  getVisibleShelfProducts,
-  MOBILE_SHELF_PRODUCT_LIMIT,
+  buildShelfProductSearchInput,
+  formatShelfProductCategoryPath,
+  formatShelfRowCategoryPath,
 } from "./shelf-product-options";
 
 const categories = [
@@ -12,82 +12,88 @@ const categories = [
 ] as any[];
 
 describe("shelf product options", () => {
-  it("returns category-scoped products capped for mobile rendering", () => {
-    const products = Array.from(
-      { length: MOBILE_SHELF_PRODUCT_LIMIT + 5 },
-      (_, index) => ({
-        id: index + 1,
-        title: `Hinge ${index + 1}`,
-        categoryId: 2,
-        parentCategoryId: 1,
-      }),
-    ) as any[];
-    const buckets = buildShelfProductBuckets(products);
-
-    const result = getVisibleShelfProducts({
-      categories,
-      productBuckets: buckets,
-      categoryIds: [1],
-    });
-
-    expect(result.totalCount).toBe(MOBILE_SHELF_PRODUCT_LIMIT + 5);
-    expect(result.visibleProducts).toHaveLength(MOBILE_SHELF_PRODUCT_LIMIT);
-    expect(result.hasMoreProducts).toBe(true);
+  it("formats search-result category tree subtitles from API paths", () => {
+    expect(
+      formatShelfProductCategoryPath(
+        {
+          categoryId: 2,
+          parentCategoryId: 1,
+          categoryPath: [
+            { id: 1, name: "Hardware" },
+            { id: 2, name: "Hinges" },
+          ],
+        } as any,
+        categories,
+      ),
+    ).toBe("Hardware / Hinges");
   });
 
-  it("dedupes products that match both parent and leaf category buckets", () => {
-    const buckets = buildShelfProductBuckets([
-      {
-        id: 1,
-        title: "Ball Bearing Hinge",
-        categoryId: 2,
-        parentCategoryId: 1,
-      } as any,
-    ]);
-
-    const result = getVisibleShelfProducts({
-      categories,
-      productBuckets: buckets,
-      categoryIds: [1],
-    });
-
-    expect(result.visibleProducts.map((product) => product.id)).toEqual([1]);
+  it("formats search-result category tree subtitles from category ids", () => {
+    expect(
+      formatShelfProductCategoryPath(
+        {
+          categoryId: 3,
+          parentCategoryId: 1,
+        } as any,
+        categories,
+      ),
+    ).toBe("Hardware / Locks");
   });
 
-  it("filters visible products by search text", () => {
-    const buckets = buildShelfProductBuckets([
-      { id: 1, title: "Ball Bearing Hinge", categoryId: 2 } as any,
-      { id: 2, title: "Mortise Lock", categoryId: 3 } as any,
-    ]);
-
-    const result = getVisibleShelfProducts({
-      categories,
-      productBuckets: buckets,
-      categoryIds: [1],
-      query: "lock",
-    });
-
-    expect(result.visibleProducts.map((product) => product.title)).toEqual([
-      "Mortise Lock",
-    ]);
-    expect(result.hasMoreProducts).toBe(false);
+  it("formats selected shelf row category tree subtitles", () => {
+    expect(
+      formatShelfRowCategoryPath(
+        {
+          categoryId: 2,
+          meta: {
+            categoryIds: [1, 2],
+          },
+        },
+        categories,
+      ),
+    ).toBe("Hardware / Hinges");
   });
 
-  it("allows global product search before a category is selected", () => {
-    const buckets = buildShelfProductBuckets([
-      { id: 1, title: "Ball Bearing Hinge", categoryId: 2 } as any,
-      { id: 2, title: "Mortise Lock", categoryId: 3 } as any,
-    ]);
+  it("formats selected shelf row category tree subtitles from JSON metadata", () => {
+    expect(
+      formatShelfRowCategoryPath(
+        {
+          categoryId: 2,
+          meta: JSON.stringify({
+            categoryIds: [1, 2],
+            shelfParentCategoryId: 1,
+          }),
+        },
+        categories,
+      ),
+    ).toBe("Hardware / Hinges");
+  });
 
-    const result = getVisibleShelfProducts({
-      categories,
-      productBuckets: buckets,
-      categoryIds: [],
-      query: "hinge",
+  it("falls back when shelf category metadata is missing", () => {
+    expect(
+      formatShelfRowCategoryPath(
+        {
+          categoryId: null,
+          meta: null,
+        },
+        categories,
+      ),
+    ).toBe("Uncategorized");
+  });
+
+  it("uses recent-only top 15 shelf search params for blank picker search", () => {
+    expect(buildShelfProductSearchInput("   ")).toEqual({
+      query: "",
+      selectedIds: [],
+      limit: 15,
     });
+  });
 
-    expect(result.visibleProducts.map((product) => product.title)).toEqual([
-      "Ball Bearing Hinge",
-    ]);
+  it("uses typed shelf search params without selected-product padding", () => {
+    expect(buildShelfProductSearchInput(" rail ")).toEqual({
+      query: "rail",
+      selectedIds: [],
+      limit: 20,
+    });
   });
 });

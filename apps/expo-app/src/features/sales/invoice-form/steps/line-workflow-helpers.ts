@@ -8,7 +8,9 @@ import {
 	isDoorStepTitle,
 	isHousePackageToolStepTitle,
 	profileAdjustedDoorSalesPrice,
+	readSalesFormObjectMetadata,
 } from "@gnd/sales/sales-form-core";
+import { getWorkflowSelectableTitle } from "../api/workflow-selectable-copy";
 import type { NewSalesFormLineItem } from "../types";
 
 export function getDoorRows(item: WorkflowLineItemRecord) {
@@ -31,8 +33,9 @@ export function getDoorRouteConfig(
 	);
 	const stepForConfig = doorStep || hptStep;
 	if (!stepForConfig) return null;
-	const selectedComponents = Array.isArray(doorStep?.meta?.selectedComponents)
-		? doorStep.meta.selectedComponents
+	const doorStepMeta = readSalesFormObjectMetadata(doorStep?.meta);
+	const selectedComponents = Array.isArray(doorStepMeta?.selectedComponents)
+		? doorStepMeta.selectedComponents
 		: [];
 	const storedRouteConfig = readStoredDoorRouteConfig(item);
 	const stepRouteConfig = getRouteConfigForLine({
@@ -47,14 +50,24 @@ export function getDoorRouteConfig(
 	};
 }
 
+export function getMobileDoorRouteFlags(
+	routeConfig?: { noHandle?: unknown; hasSwing?: unknown } | null,
+) {
+	return {
+		noHandle: routeConfig?.noHandle === true,
+		hasSwing: routeConfig?.hasSwing === true,
+	};
+}
+
 export function getSelectedDoorComponents(
 	steps: ReturnType<typeof getWorkflowSteps>,
 ): WorkflowComponentRecord[] {
 	const doorStep = steps.find((step) =>
 		isDoorStepTitle(step.step?.title || step.title),
 	);
-	const selectedComponents = Array.isArray(doorStep?.meta?.selectedComponents)
-		? doorStep.meta.selectedComponents
+	const doorStepMeta = readSalesFormObjectMetadata(doorStep?.meta);
+	const selectedComponents = Array.isArray(doorStepMeta?.selectedComponents)
+		? doorStepMeta.selectedComponents
 		: [];
 	return selectedComponents.filter(Boolean) as WorkflowComponentRecord[];
 }
@@ -106,9 +119,7 @@ export function mapWorkflowComponent(row: unknown): WorkflowComponentRecord {
 		...component,
 		id: component.id == null ? null : Number(component.id || 0),
 		uid: String(component.uid || component.id || ""),
-		title: String(
-			component.title || component.value || component.uid || "Component",
-		),
+		title: getWorkflowSelectableTitle(component),
 		salesPrice:
 			component.salesPrice == null ? null : Number(component.salesPrice || 0),
 		basePrice:
@@ -127,7 +138,7 @@ export function linePatchChanged(
 }
 
 function readStoredDoorRouteConfig(item: WorkflowLineItemRecord) {
-	const meta = item.meta || {};
+	const meta = readSalesFormObjectMetadata(item.meta) || {};
 	const config = meta.workflowDoorRouteConfig;
 	if (!config || typeof config !== "object" || Array.isArray(config)) {
 		return {};

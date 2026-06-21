@@ -520,10 +520,9 @@ function ChatColorPicker({ className, palette = defaultPalette }: ChatColorPicke
         )}
       >
         <View className="flex-row items-center gap-2">
-          <View
-            className="size-3.5 rounded-full border border-border"
-            style={{ backgroundColor: state.noteColor }}
-          />
+          <View style={{ backgroundColor: state.noteColor, borderRadius: 999 }}>
+            <View className="size-3.5 rounded-full border border-border" />
+          </View>
           <Text className="text-xs text-muted-foreground">Color</Text>
         </View>
         <Icon name="ChevronDown" className="text-muted-foreground" size={14} />
@@ -551,19 +550,22 @@ function ChatColorPicker({ className, palette = defaultPalette }: ChatColorPicke
                       setNoteColor(color);
                       setOpen(false);
                     }}
-                    className={cn(
-                      "size-10 items-center justify-center rounded-full border",
-                      selected ? "border-foreground" : "border-border",
-                    )}
-                    style={{ backgroundColor: color }}
+                    style={{ backgroundColor: color, borderRadius: 999 }}
                   >
-                    {selected ? (
-                      <Icon
-                        name="Check"
-                        className={color === "#000000" ? "text-white" : "text-foreground"}
-                        size={14}
-                      />
-                    ) : null}
+                    <View
+                      className={cn(
+                        "size-10 items-center justify-center rounded-full border",
+                        selected ? "border-foreground" : "border-border",
+                      )}
+                    >
+                      {selected ? (
+                        <Icon
+                          name="Check"
+                          className={color === "#000000" ? "text-white" : "text-foreground"}
+                          size={14}
+                        />
+                      ) : null}
+                    </View>
                   </Pressable>
                 );
               })}

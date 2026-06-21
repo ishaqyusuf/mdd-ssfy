@@ -84,15 +84,14 @@ export function DispatchPackingDelayModal({
 											contentFit="cover"
 										/>
 									) : (
-										<View
-											className="items-center justify-center rounded-xl bg-muted"
-											style={{ width: 44, height: 44 }}
-										>
-											<Icon
-												name="HardHat"
-												className="text-muted-foreground"
-												size={18}
-											/>
+										<View style={{ width: 44, height: 44 }}>
+											<View className="h-full w-full items-center justify-center rounded-xl bg-muted">
+												<Icon
+													name="HardHat"
+													className="text-muted-foreground"
+													size={18}
+												/>
+											</View>
 										</View>
 									)}
 									<View className="flex-1">

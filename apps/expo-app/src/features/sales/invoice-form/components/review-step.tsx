@@ -7,6 +7,11 @@ import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { formatDate, formatMoney } from "../lib/format";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type { InvoiceInventoryStatus } from "../types";
+import {
+  getCustomerAddressLine,
+  getCustomerContactLine,
+} from "./customer-display";
+import { getLineItemDisplayTitle } from "./line-item-display";
 
 const inventoryStatusOptions: Array<{
   label: string;
@@ -67,12 +72,16 @@ export function ReviewStep() {
       <ReviewCard title="Customer" onEdit={() => setStep("customer")}>
         <Text className="font-bold text-foreground">{customer?.name || "No customer"}</Text>
         <Text className="mt-1 text-sm text-muted-foreground">
-          {customer?.contact} - {customer?.phone}
+          {getCustomerContactLine(customer)}
         </Text>
         <Text className="mt-3 text-xs font-bold uppercase text-muted-foreground">Billing</Text>
-        <Text className="text-sm text-foreground">{customer?.billingAddress}</Text>
+        <Text className="text-sm text-foreground">
+          {getCustomerAddressLine(customer)}
+        </Text>
         <Text className="mt-2 text-xs font-bold uppercase text-muted-foreground">Shipping</Text>
-        <Text className="text-sm text-foreground">{customer?.shippingAddress}</Text>
+        <Text className="text-sm text-foreground">
+          {customer?.shippingAddress || getCustomerAddressLine(customer)}
+        </Text>
       </ReviewCard>
 
       <ReviewCard
@@ -106,7 +115,7 @@ export function ReviewStep() {
         {lineItems.slice(0, 2).map((item) => (
           <View key={item.uid} className="flex-row justify-between py-1">
             <Text className="flex-1 text-sm text-muted-foreground" numberOfLines={1}>
-              {item.title} x {item.qty}
+              {getLineItemDisplayTitle(item)} x {item.qty}
             </Text>
             <Text className="text-sm font-semibold text-foreground">
               {formatMoney(

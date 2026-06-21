@@ -25,12 +25,19 @@ Tracks important request/response contracts and shared schema boundaries.
   - grouped moulding UI lines store row projection in `line.meta.mouldingRows`
   - grouped row projections carry legacy persistence identity where known: `salesItemId`, `hptId` for moulding, `groupUid`, `uid`, `primaryGroupItem`, row qty/price/total fields, and row-level tax/production flags for services
   - API hydration treats DB grouping identity as authoritative and only uses persisted `order.meta.newSalesForm` for current editable row values
-  - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; moulding rows also write per-row `HousePackageTools`
+  - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; rows with `salesItemId` update/revive that legacy sibling, while newly added grouped rows without row-level legacy identity create new siblings instead of reusing the grouped parent line id
+  - grouped moulding rows also write per-row `HousePackageTools`; rows with `hptId` update/revive that legacy HPT row, while newly added moulding rows without row-level HPT identity create new HPT rows instead of reusing the grouped parent HPT id
+  - legacy-strategy summaries include credit-card convenience charges in `summary.grandTotal` as well as `summary.ccc`, so saved and hydrated sales/quote totals remain payable-total aligned
+- Product report contract:
+  - `sales.getProductReport` returns enabled sales-form step components only: the component row and parent step must not be deleted, archived custom components with `meta.deletedAt` are excluded, and the row must have scoped order-backed usage through priced step forms, sales doors, or house-package moulding records
+  - default ordering is by computed sales usage count descending, then units descending, then product name/id tie-breakers
 - Manual order inbound status contract:
   - `SalesOrders.inventoryStatus` stores `AVAILABLE | ORDERED | PENDING ORDER`
   - `newSalesForm.saveDraft` / `saveFinal` accept optional `inventoryStatus` for orders and return it in the saved payload
   - `newSalesForm.get` / `bootstrap` return top-level `inventoryStatus`
   - `notes.saveInboundNote` updates the order-level status and creates an `inventory_inbound` order note; `PENDING ORDER` also creates unread recipients for inbound-channel subscribers
+- Mobile sales dashboard contract:
+  - `sales.mobileDashboardOverview.recentSales[]` returns card-ready recent order rows with `id`, `orderId`, `customerName`, `customerPhone`, `total`, `due`, `paid`, `createdAt`, and `deliveryOption`
 - Inventory browser validation fixture report contract:
   - `inventories.inventoryBrowserValidationFixtureReport` returns `status`, `summary`, `fixtures`, `missingFixtures`, `diagnostics`, and `nextAction`
   - every fixture row includes package-owned `workspaceHref`, `recommendedAction`, `seedFixtureId`, `seedPlanHref`, bounded `samples`, and `countDiagnostic`

@@ -118,6 +118,43 @@ describe("item workflow step family", () => {
 		expect(family).toBe("moulding-line-item");
 	});
 
+	it("does not let stale moulding rows force a new non-moulding route into the moulding family", () => {
+		const family = getItemWorkflowStepFamily(
+			{
+				title: "Door",
+				formSteps: [
+					{
+						step: {
+							title: "Item Type",
+						},
+						value: "Door",
+					},
+					{
+						step: {
+							title: "Door",
+						},
+					},
+				],
+				meta: {
+					mouldingRows: [
+						{
+							uid: "old-moulding",
+							title: "Old casing",
+							qty: 2,
+						},
+					],
+				},
+			} as any,
+			{
+				step: {
+					title: "Door",
+				},
+			} as any,
+		);
+
+		expect(family).toBe("component-grid");
+	});
+
 	it("keeps grouped service panel active from service step aliases", () => {
 		const family = getItemWorkflowStepFamily(
 			{
@@ -148,5 +185,34 @@ describe("item workflow step family", () => {
 		);
 
 		expect(family).toBe("service-line-item");
+	});
+
+	it("keeps the shelf editor active from the visible shelf step while item type metadata catches up", () => {
+		const family = getItemWorkflowStepFamily(
+			{
+				title: "Shelf Items",
+				formSteps: [
+					{
+						step: {
+							title: "Item Type",
+						},
+						value: "",
+					},
+					{
+						step: {
+							title: "Shelf Items",
+						},
+					},
+				],
+				meta: {},
+			} as any,
+			{
+				step: {
+					title: "Shelf Items",
+				},
+			} as any,
+		);
+
+		expect(family).toBe("shelf");
 	});
 });

@@ -90,17 +90,31 @@ function normalizeOrderInboundStatus(
 }
 
 function getStoredMouldingRows(line: SalesFormLineItemRecord) {
-	const meta = line.meta as SalesFormLineItemRecord["meta"] & {
+	const meta = readObject(line.meta) as SalesFormLineItemRecord["meta"] & {
 		mouldingRows?: Array<Record<string, unknown>>;
 	};
 	return Array.isArray(meta?.mouldingRows) ? meta.mouldingRows : [];
 }
 
 function getStoredServiceRows(line: SalesFormLineItemRecord) {
-	const meta = line.meta as SalesFormLineItemRecord["meta"] & {
+	const meta = readObject(line.meta) as SalesFormLineItemRecord["meta"] & {
 		serviceRows?: Array<Record<string, unknown>>;
 	};
 	return Array.isArray(meta?.serviceRows) ? meta.serviceRows : [];
+}
+
+function readObject(value: unknown): Record<string, any> | null {
+	if (!value) return null;
+	if (typeof value === "string") {
+		try {
+			return readObject(JSON.parse(value));
+		} catch {
+			return null;
+		}
+	}
+	return typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, any>)
+		: null;
 }
 
 function deriveShelfLineTotalForSummary(shelfRows: any[]) {
@@ -220,7 +234,8 @@ function deriveLineSummaryForNormalization(line: SalesFormLineItemRecord) {
 }
 
 function readWorkflowDoorRouteConfig(line: SalesFormLineItemRecord) {
-	const config = line.meta?.workflowDoorRouteConfig;
+	const meta = readObject(line.meta);
+	const config = meta?.workflowDoorRouteConfig;
 	if (!config || typeof config !== "object" || Array.isArray(config)) {
 		return {};
 	}

@@ -12,10 +12,12 @@ import {
 } from "react-native";
 import { useInvoiceFormSearch } from "../api/use-invoice-form-search";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
-import { createLineItem } from "../mock-data";
 import { formatMoney } from "../lib/format";
+import { getSalesDocumentLabels } from "../lib/sales-document-labels";
+import { createLineItem } from "../mock-data";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type { InvoiceSelectableItem } from "../types";
+import { getItemSelectorRowSubtitle } from "./item-selector-copy";
 
 const categories = [
   "All",
@@ -42,6 +44,7 @@ function SelectorRow({
 }) {
   const workflowRoot = item.source === "workflow";
   const selected = !workflowRoot && selectedQty > 0;
+  const subtitle = getItemSelectorRowSubtitle(item);
 
   return (
     <View
@@ -64,7 +67,7 @@ function SelectorRow({
             {item.title}
           </Text>
           <Text className="mt-0.5 text-xs text-muted-foreground">
-            {item.sku} - {item.category}
+            {subtitle}
           </Text>
           <Text
             className={`mt-1 text-xs font-semibold ${
@@ -131,7 +134,7 @@ export function ItemSelector() {
   const { getProfileCoefficient } = useInvoiceFormProfiles();
   const customerProfileCoefficient = getProfileCoefficient(customerProfileId);
   const type = useInvoiceFormStore((state) => state.type);
-  const noun = type === "quote" ? "quote" : "invoice";
+  const labels = getSalesDocumentLabels(type);
   const selectedProductIds = useMemo(
     () =>
       Array.from(
@@ -192,7 +195,7 @@ export function ItemSelector() {
       item,
       1,
       workflowRouteData,
-      customerProfileCoefficient,
+      customerProfileCoefficient ?? undefined,
     );
     actions.addOrUpdateLineItem(line);
     actions.closeWorkflowSelector();
@@ -205,7 +208,7 @@ export function ItemSelector() {
         row.item,
         row.qty,
         workflowRouteData,
-        customerProfileCoefficient,
+        customerProfileCoefficient ?? undefined,
       );
       actions.addOrUpdateLineItem(line);
     });
@@ -384,7 +387,7 @@ export function ItemSelector() {
             disabled={!selectedRows.length}
             onPress={addSelectedToInvoice}
           >
-            <Text>Add to {noun}</Text>
+            <Text>Add to {labels.lowerNoun}</Text>
           </Button>
         </View>
       </View>

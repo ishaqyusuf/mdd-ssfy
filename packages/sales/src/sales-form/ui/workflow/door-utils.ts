@@ -5,6 +5,7 @@ import {
 	getSelectedDoorComponentsForLine,
 	hasDoorSizeVariationConfig,
 	normalizeHptDoorRowForLegacy,
+	readSalesFormObjectMetadata,
 	resolveDoorTierPricing,
 } from "../../domain";
 import type { SalesFormLineItemRecord } from "../../application";
@@ -83,8 +84,12 @@ function firstFiniteDoorNumber(...values: Array<number | null | undefined>) {
 	return null;
 }
 
+function readDoorRowMeta(row?: DoorRow | null) {
+	return readSalesFormObjectMetadata(row?.meta) || {};
+}
+
 export function isDoorRowPriceMissing(row?: DoorRow | null) {
-	return Boolean(row?.meta?.priceMissing);
+	return Boolean(readDoorRowMeta(row).priceMissing);
 }
 
 export function clearUnpricedDoorRowQty<T extends DoorRow>(row: T): T {
@@ -96,7 +101,7 @@ export function clearUnpricedDoorRowQty<T extends DoorRow>(row: T): T {
 		totalQty: 0,
 		lineTotal: 0,
 		meta: {
-			...(row?.meta || {}),
+			...readDoorRowMeta(row),
 			priceMissing: true,
 		},
 	};
@@ -104,7 +109,7 @@ export function clearUnpricedDoorRowQty<T extends DoorRow>(row: T): T {
 
 function hasConfiguredDoorRowPrice(row?: DoorRow | null) {
 	if (!row || isDoorRowPriceMissing(row)) return false;
-	return row.meta?.baseUnitPrice != null;
+	return readDoorRowMeta(row).baseUnitPrice != null;
 }
 
 export function calcWorkflowDoorRow<T extends DoorRow>(row: T): T {
@@ -205,6 +210,8 @@ export function deriveDoorSizeRows({
 						component?.basePrice,
 						profileCoefficient,
 					),
+					componentUid: component?.uid || null,
+					componentTitle: component?.title || null,
 				},
 			}),
 		];
@@ -227,8 +234,9 @@ export function deriveDoorSizeRows({
 			fallbackBasePrice: component?.basePrice,
 		});
 		const existingHasConfiguredPrice = hasConfiguredDoorRowPrice(existing);
+		const existingMeta = readDoorRowMeta(existing);
 		const existingBaseUnit = existingHasConfiguredPrice
-			? firstFiniteDoorNumber(existing?.meta?.baseUnitPrice)
+			? firstFiniteDoorNumber(existingMeta.baseUnitPrice)
 			: null;
 		const hasResolvedPrice = Boolean(
 			pricingPair.hasPrice || existingHasConfiguredPrice,
@@ -260,10 +268,13 @@ export function deriveDoorSizeRows({
 				jambSizePrice: unitPrice,
 				unitPrice,
 				meta: {
-					...((existing as any)?.meta || {}),
+					...existingMeta,
 					priceMissing: !hasResolvedPrice,
 					baseUnitPrice: rowBaseUnit ?? 0,
 					doorSalesUnitPrice: unitPrice,
+					componentUid: existingMeta.componentUid ?? component?.uid ?? null,
+					componentTitle:
+						existingMeta.componentTitle ?? component?.title ?? null,
 				},
 			}),
 		);
@@ -271,8 +282,8 @@ export function deriveDoorSizeRows({
 }
 
 export function getDoorSupplierMeta(step?: WorkflowStepWithMeta | null) {
-	const meta = step?.meta || {};
-	const formStepMeta = meta?.formStepMeta || {};
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
+	const formStepMeta = readSalesFormObjectMetadata(meta?.formStepMeta) || {};
 	const supplierUid = formStepMeta?.supplierUid || meta?.supplierUid || null;
 	const supplierName = formStepMeta?.supplierName || meta?.supplierName || null;
 	return {
@@ -329,37 +340,40 @@ export function applySharedDoorSurcharge(
 }
 
 export function normalizeStoredDoorRows(rows: DoorRow[]) {
-	return rows.map((row) => ({
-		id: row?.id ?? null,
-		dimension: String(row?.dimension || ""),
-		swing: String(row?.swing || ""),
-		stepProductId: Number(row?.stepProductId || 0),
-		lhQty: Number(row?.lhQty || 0),
-		rhQty: Number(row?.rhQty || 0),
-		totalQty: Number(row?.totalQty || 0),
-		unitPrice: Number(Number(row?.unitPrice || 0).toFixed(2)),
-		lineTotal: Number(Number(row?.lineTotal || 0).toFixed(2)),
-		doorPrice: Number(Number(row?.doorPrice || 0).toFixed(2)),
-		jambSizePrice: Number(Number(row?.jambSizePrice || 0).toFixed(2)),
-		addon:
-			row?.addon == null || row?.addon === ""
-				? null
-				: Number(Number(row.addon || 0).toFixed(2)),
-		customPrice:
-			row?.customPrice == null || row?.customPrice === ""
-				? null
-				: Number(Number(row.customPrice || 0).toFixed(2)),
-		meta: {
-			baseUnitPrice: Number(Number(row?.meta?.baseUnitPrice || 0).toFixed(2)),
-			doorSalesUnitPrice: Number(
-				Number(row?.meta?.doorSalesUnitPrice || 0).toFixed(2),
-			),
-			sharedDoorSurcharge: Number(
-				Number(row?.meta?.sharedDoorSurcharge || 0).toFixed(2),
-			),
-			priceMissing: Boolean(row?.meta?.priceMissing),
-		},
-	}));
+	return rows.map((row) => {
+		const meta = readDoorRowMeta(row);
+		return {
+			id: row?.id ?? null,
+			dimension: String(row?.dimension || ""),
+			swing: String(row?.swing || ""),
+			stepProductId: Number(row?.stepProductId || 0),
+			lhQty: Number(row?.lhQty || 0),
+			rhQty: Number(row?.rhQty || 0),
+			totalQty: Number(row?.totalQty || 0),
+			unitPrice: Number(Number(row?.unitPrice || 0).toFixed(2)),
+			lineTotal: Number(Number(row?.lineTotal || 0).toFixed(2)),
+			doorPrice: Number(Number(row?.doorPrice || 0).toFixed(2)),
+			jambSizePrice: Number(Number(row?.jambSizePrice || 0).toFixed(2)),
+			addon:
+				row?.addon == null || row?.addon === ""
+					? null
+					: Number(Number(row.addon || 0).toFixed(2)),
+			customPrice:
+				row?.customPrice == null || row?.customPrice === ""
+					? null
+					: Number(Number(row.customPrice || 0).toFixed(2)),
+			meta: {
+				baseUnitPrice: Number(Number(meta.baseUnitPrice || 0).toFixed(2)),
+				doorSalesUnitPrice: Number(
+					Number(meta.doorSalesUnitPrice || 0).toFixed(2),
+				),
+				sharedDoorSurcharge: Number(
+					Number(meta.sharedDoorSurcharge || 0).toFixed(2),
+				),
+				priceMissing: Boolean(meta.priceMissing),
+			},
+		};
+	});
 }
 
 export function repricePersistedDoorRowsForSupplier(args: {
@@ -414,7 +428,7 @@ export function repricePersistedDoorRowsForSupplier(args: {
 				? Number((tierPricing.salesPrice || 0).toFixed(2))
 				: 0,
 			meta: {
-				...(row?.meta || {}),
+				...readDoorRowMeta(row),
 				baseUnitPrice,
 				doorSalesUnitPrice: hasResolvedPrice
 					? Number((tierPricing.salesPrice || 0).toFixed(2))

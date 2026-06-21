@@ -14,11 +14,8 @@ export function JobFormFooter() {
   return (
     <View className="absolute bottom-0 left-0 right-0">
       <BlurView intensity={90} className="w-full pt-4">
-        <View
-          className="p-4 border-t border-border"
-          style={{ paddingBottom: bottom || 16 }}
-        >
-          <View className="flex-col w-full px-5 py-1 gap-4 max-w-lg mx-auto">
+        <View style={{ paddingBottom: bottom || 16 }}>
+          <View className="flex-col w-full max-w-lg gap-4 border-t border-border px-9 py-5 mx-auto">
             <View className="flex-row items-end justify-between   w-full px-4">
               <View className="flex-col">
                 <Text className="text-base font-medium text-muted-foreground">

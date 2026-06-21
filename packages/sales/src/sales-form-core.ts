@@ -54,11 +54,16 @@ export {
 export { getSelectedProdUids } from "./sales-form/domain";
 export {
 	computeHptSharedDoorSurcharge,
+	deriveDoorSizeCandidates,
+	getHptDoorSalesUnitPrice,
 	getRedirectableRoutes,
 	getRouteConfigForLine,
 	isMouldingItem,
 	isServiceItem,
 	isShelfItem,
+	readSalesFormObjectMetadata,
+	resolveHptDoorUnitPriceBreakdown,
+	resolveDoorTierPricing,
 } from "./sales-form/domain";
 export {
 	proceedWorkflowMultiSelectStep,
@@ -73,6 +78,7 @@ export {
 	type WorkflowSelectionPatch,
 } from "./sales-form/ui/workflow/workflow-selection-actions";
 export {
+	addWorkflowHptDoorOption,
 	removeWorkflowHptDoorOption,
 	removeWorkflowSelectedComponent,
 	swapWorkflowDoorComponent,
@@ -119,11 +125,23 @@ export {
 	clearUnpricedDoorRowQty,
 	deriveDoorSizeRows,
 	getDoorSupplierMeta,
+	isDoorRowPriceMissing,
 	rowsForDoorComponent,
 } from "./sales-form/ui/workflow/door-utils";
 export { profileAdjustedDoorSalesPrice } from "./sales-form/ui/workflow/door-pricing";
 export {
+	patchDoorRowCustomPrice,
+	updateDoorRowBasePrice,
+} from "./sales-form/ui/workflow/door-price-update";
+export {
+	calculateMouldingQuantity,
+	deriveMouldingPieceLength,
+	type MouldingQuantityCalculation,
+	type MouldingQuantityCalculationInput,
+} from "./sales-form/ui/workflow/moulding-calculator";
+export {
 	buildShelfProductRowPatch,
+	clearShelfRowCustomPrice,
 	clearShelfRowProduct,
 	patchShelfRowPrice,
 	patchShelfRowQty,
@@ -131,7 +149,10 @@ export {
 export {
 	getShelfChildCategories,
 	getShelfLeafCategoryIds,
-} from "./sales-form/ui/workflow/shelf-inputs";
+	getShelfRowBasePrice,
+	getShelfRowDisplayUnitPrice,
+	getShelfRowSalesPrice,
+} from "./sales-form/ui/workflow/shelf-helpers";
 export {
 	buildStepComponentOverrideMap,
 	componentLabel,

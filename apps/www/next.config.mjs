@@ -32,9 +32,6 @@ const config = {
         "@gnd/notifications",
         "@gnd/pdf",
     ],
-    eslint: {
-        ignoreDuringBuilds: true,
-    },
     typescript: {
         ignoreBuildErrors: true,
     },

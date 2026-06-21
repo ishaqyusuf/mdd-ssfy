@@ -1,5 +1,6 @@
 import { normalizeSalesFormTitle } from "./step-engine";
 import { getSelectedProdUids } from "./mutation-engine";
+import { readSalesFormObjectMetadata } from "./metadata";
 
 function snapshotSelectedComponent(component: any) {
 	return {
@@ -20,6 +21,29 @@ function snapshotSelectedComponent(component: any) {
 		redirectUid: component?.redirectUid || null,
 		sectionOverride: component?.sectionOverride || null,
 	};
+}
+
+function stepMetadataRecords(step: any) {
+	return [
+		readSalesFormObjectMetadata(step?.meta),
+		readSalesFormObjectMetadata(readSalesFormObjectMetadata(step?.step)?.meta),
+	].filter(Boolean) as Array<Record<string, any>>;
+}
+
+function getStepSelectedComponents(step: any) {
+	const byUid = new Map<string, ReturnType<typeof snapshotSelectedComponent>>();
+	for (const meta of stepMetadataRecords(step)) {
+		const components = Array.isArray(meta.selectedComponents)
+			? meta.selectedComponents
+			: [];
+		for (const component of components) {
+			const snapshot = snapshotSelectedComponent(component);
+			const uid = String(snapshot?.uid || "").trim();
+			if (!uid || byUid.has(uid)) continue;
+			byUid.set(uid, snapshot);
+		}
+	}
+	return Array.from(byUid.values());
 }
 
 export function findLineStepByTitle(line: any, title: string) {
@@ -62,11 +86,8 @@ export function getSelectedDoorComponentsForLine(
 	},
 ) {
 	const doorStep = findLineStepByTitle(line, "Door");
-	const selected = Array.isArray(doorStep?.meta?.selectedComponents)
-		? doorStep.meta.selectedComponents
-				.map((component: any) => snapshotSelectedComponent(component))
-				.filter((component: any) => !!component.uid)
-		: [];
+	const doorStepMeta = readSalesFormObjectMetadata(doorStep?.meta) || {};
+	const selected = getStepSelectedComponents(doorStep);
 	const availableComponents = Array.isArray(options?.availableComponents)
 		? options?.availableComponents || []
 		: [];
@@ -116,17 +137,17 @@ export function getSelectedDoorComponentsForLine(
 				id: doorStep?.componentId ?? null,
 				uid: normalizedUid,
 				title: doorStep?.value || "Door",
-				img: doorStep?.meta?.img || null,
-				inventoryId: doorStep?.meta?.inventoryId ?? null,
-				inventoryVariantId: doorStep?.meta?.inventoryVariantId ?? null,
+				img: doorStepMeta.img || null,
+				inventoryId: doorStepMeta.inventoryId ?? null,
+				inventoryVariantId: doorStepMeta.inventoryVariantId ?? null,
 				salesPrice:
 					doorStep?.price == null ? null : Number(doorStep.price || 0),
 				basePrice:
 					doorStep?.basePrice == null ? null : Number(doorStep.basePrice || 0),
 				pricing: null,
 				supplierVariants: [],
-				redirectUid: doorStep?.meta?.redirectUid || null,
-				sectionOverride: doorStep?.meta?.sectionOverride || null,
+				redirectUid: doorStepMeta.redirectUid || null,
+				sectionOverride: doorStepMeta.sectionOverride || null,
 			};
 			resolved.push(fallback);
 			resolvedUids.add(normalizedUid);
@@ -158,27 +179,25 @@ export function getSelectedDoorComponentsForLine(
 			id: doorStep?.componentId ?? null,
 			uid: prodUid,
 			title: doorStep?.value || "Door",
-			img: doorStep?.meta?.img || null,
-			inventoryId: doorStep?.meta?.inventoryId ?? null,
-			inventoryVariantId: doorStep?.meta?.inventoryVariantId ?? null,
+			img: doorStepMeta.img || null,
+			inventoryId: doorStepMeta.inventoryId ?? null,
+			inventoryVariantId: doorStepMeta.inventoryVariantId ?? null,
 			salesPrice: doorStep?.price == null ? null : Number(doorStep.price || 0),
 			basePrice:
 				doorStep?.basePrice == null ? null : Number(doorStep.basePrice || 0),
 			pricing: null,
 			supplierVariants: [],
-			redirectUid: doorStep?.meta?.redirectUid || null,
-			sectionOverride: doorStep?.meta?.sectionOverride || null,
+			redirectUid: doorStepMeta.redirectUid || null,
+			sectionOverride: doorStepMeta.sectionOverride || null,
 		},
 	];
 }
 
 export function getSelectedMouldingComponentsForLine(line: any) {
 	const mouldingStep = findLineStepByTitle(line, "Moulding");
-	const selected = Array.isArray(mouldingStep?.meta?.selectedComponents)
-		? mouldingStep.meta.selectedComponents
-				.map((component: any) => snapshotSelectedComponent(component))
-				.filter((component: any) => !!component.uid)
-		: [];
+	const mouldingStepMeta =
+		readSalesFormObjectMetadata(mouldingStep?.meta) || {};
+	const selected = getStepSelectedComponents(mouldingStep);
 	const resolved = [...selected];
 	const resolvedUids = new Set(
 		resolved
@@ -194,9 +213,9 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 				id: mouldingStep?.componentId ?? null,
 				uid: normalizedUid,
 				title: mouldingStep?.value || "Moulding",
-				img: mouldingStep?.meta?.img || null,
-				inventoryId: mouldingStep?.meta?.inventoryId ?? null,
-				inventoryVariantId: mouldingStep?.meta?.inventoryVariantId ?? null,
+				img: mouldingStepMeta.img || null,
+				inventoryId: mouldingStepMeta.inventoryId ?? null,
+				inventoryVariantId: mouldingStepMeta.inventoryVariantId ?? null,
 				salesPrice:
 					mouldingStep?.price == null ? null : Number(mouldingStep.price || 0),
 				basePrice:
@@ -205,15 +224,16 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 						: Number(mouldingStep.basePrice || 0),
 				pricing: null,
 				supplierVariants: [],
-				redirectUid: mouldingStep?.meta?.redirectUid || null,
-				sectionOverride: mouldingStep?.meta?.sectionOverride || null,
+				redirectUid: mouldingStepMeta.redirectUid || null,
+				sectionOverride: mouldingStepMeta.sectionOverride || null,
 			});
 			resolvedUids.add(normalizedUid);
 		}
 	}
 
-	const storedRows = Array.isArray(line?.meta?.mouldingRows)
-		? line.meta.mouldingRows
+	const lineMeta = readSalesFormObjectMetadata(line?.meta) || {};
+	const storedRows = Array.isArray(lineMeta.mouldingRows)
+		? lineMeta.mouldingRows
 		: [];
 	for (const row of storedRows as Array<Record<string, unknown>>) {
 		const uid = String(row?.uid || "").trim();
@@ -222,7 +242,7 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 			id: null,
 			uid,
 			title: String(row?.title || row?.description || "Moulding"),
-			img: null,
+			img: row?.img || null,
 			inventoryId: null,
 			inventoryVariantId: null,
 			salesPrice:
@@ -244,9 +264,9 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 			id: mouldingStep?.componentId ?? null,
 			uid: prodUid,
 			title: mouldingStep?.value || "Moulding",
-			img: mouldingStep?.meta?.img || null,
-			inventoryId: mouldingStep?.meta?.inventoryId ?? null,
-			inventoryVariantId: mouldingStep?.meta?.inventoryVariantId ?? null,
+			img: mouldingStepMeta.img || null,
+			inventoryId: mouldingStepMeta.inventoryId ?? null,
+			inventoryVariantId: mouldingStepMeta.inventoryVariantId ?? null,
 			salesPrice:
 				mouldingStep?.price == null ? null : Number(mouldingStep.price || 0),
 			basePrice:
@@ -255,8 +275,8 @@ export function getSelectedMouldingComponentsForLine(line: any) {
 					: Number(mouldingStep.basePrice || 0),
 			pricing: null,
 			supplierVariants: [],
-			redirectUid: mouldingStep?.meta?.redirectUid || null,
-			sectionOverride: mouldingStep?.meta?.sectionOverride || null,
+			redirectUid: mouldingStepMeta.redirectUid || null,
+			sectionOverride: mouldingStepMeta.sectionOverride || null,
 		},
 	];
 }

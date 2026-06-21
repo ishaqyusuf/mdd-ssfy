@@ -1,4 +1,5 @@
 import { generateRandomString } from "@gnd/utils";
+import { readSalesFormObjectMetadata } from "./metadata";
 import { normalizeSalesFormTitle } from "./step-engine";
 
 type GroupKind = "moulding" | "service";
@@ -8,8 +9,7 @@ function roundCurrency(value: number) {
 }
 
 function safeRecord(value: unknown): Record<string, any> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return value as Record<string, any>;
+  return readSalesFormObjectMetadata(value) || {};
 }
 
 function getLineMetaRows(line: any, key: "mouldingRows" | "serviceRows") {
@@ -183,17 +183,20 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
       siblings.find((item) => Boolean(item?.multiDyke)) || siblings[0];
 
     if (kind === "service") {
-      const serviceRows = siblings.map((item, index) => ({
-        salesItemId: item?.id ?? null,
-        groupUid,
-        primaryGroupItem: Boolean(item?.multiDyke) || index === 0,
-        uid: String(item?.uid || "").trim() || `legacy-service-${index + 1}`,
-        service: String(item?.description || "").trim(),
-        taxxable: Boolean(item?.sourceMeta?.tax ?? item?.meta?.taxxable),
-        produceable: Boolean(item?.dykeProduction ?? item?.meta?.produceable),
-        qty: Number(item?.qty || 0),
-        unitPrice: Number(item?.unitPrice || 0),
-      }));
+      const serviceRows = siblings.map((item, index) => {
+        const itemMeta = safeRecord(item?.meta);
+        return {
+          salesItemId: item?.id ?? null,
+          groupUid,
+          primaryGroupItem: Boolean(item?.multiDyke) || index === 0,
+          uid: String(item?.uid || "").trim() || `legacy-service-${index + 1}`,
+          service: String(item?.description || "").trim(),
+          taxxable: Boolean(item?.sourceMeta?.tax ?? itemMeta.taxxable),
+          produceable: Boolean(item?.dykeProduction ?? itemMeta.produceable),
+          qty: Number(item?.qty || 0),
+          unitPrice: Number(item?.unitPrice || 0),
+        };
+      });
       const summary = summarizeServiceRows(serviceRows);
       return [
         {
@@ -369,8 +372,9 @@ export function expandGroupedLineForLegacySave<T extends Record<string, any>>(
     ];
   }
   const rows = groupedRows(line, kind);
+  const meta = safeRecord(line?.meta);
   const groupUid =
-    String(line?.meta?.groupUid || rows[0]?.groupUid || line?.uid || "").trim() ||
+    String(meta.groupUid || rows[0]?.groupUid || line?.uid || "").trim() ||
     generateRandomString(8);
   return rows.map((row, index) => ({
     line,

@@ -22,7 +22,11 @@ import {
 	getHptDoorSalesUnitPrice,
 	resolveHptDoorUnitPriceBreakdown,
 } from "../../domain";
-import { DoorPriceCell, updateDoorRowBasePrice } from "./door-price-cell";
+import {
+	DoorPriceCell,
+	patchDoorRowCustomPrice,
+	updateDoorRowBasePrice,
+} from "./door-price-cell";
 import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 import type {
 	DoorStoredRow,
@@ -532,18 +536,20 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 															<div className="flex items-center justify-between gap-3">
 																<span>{pricingLabels.customPrice}</span>
 																{props.canEditPricing ? (
-																	<Input
-																		type="number"
-																		step="0.01"
-																		value={row.customPrice ?? ""}
-																		onChange={(event) =>
-																			props.onPatchRow(row, {
-																				customPrice:
+																		<Input
+																			type="number"
+																			step="0.01"
+																			value={row.customPrice ?? ""}
+																			onChange={(event) => {
+																				const customPrice =
 																					event.target.value === ""
 																						? null
-																						: Number(event.target.value || 0),
-																			})
-																		}
+																						: Number(event.target.value || 0);
+																				props.onPatchRow(
+																					row,
+																					patchDoorRowCustomPrice(row, customPrice),
+																				);
+																			}}
 																		className={priceInputClassName}
 																	/>
 																) : (

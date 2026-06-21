@@ -15,6 +15,15 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Mobile Invoice Form Architecture Refactor
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-19-feature-mobile-invoice-form-architecture-refactor.md`.
+- Related Feature: Mobile invoice form architecture
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-19-feature-mobile-invoice-form-architecture-refactor.md
+- Created Date: 2026-06-19
+
 ### Inventory Pending 02 - Inventory Variant Supplier Price Sync To Dyke
 - Priority: High
 - Description: Track plan in `brain/plans/2026-06-12-feature-pending-02-inventory-variant-supplier-price-sync-to-dyke.md`.

@@ -340,6 +340,7 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
           select: {
             name: true,
             businessName: true,
+            phoneNo: true,
           },
         },
       },
@@ -386,6 +387,7 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
       id: order.id,
       orderId: order.orderId,
       customerName: order.customer?.businessName || order.customer?.name || "-",
+      customerPhone: order.customer?.phoneNo || null,
       total: Number(order.grandTotal || 0),
       due: Number(order.amountDue || 0),
       paid: Number(order.grandTotal || 0) - Number(order.amountDue || 0),

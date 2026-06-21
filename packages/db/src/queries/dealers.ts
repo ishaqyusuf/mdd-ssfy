@@ -2021,7 +2021,6 @@ export async function getDealerPortalSalesDocuments(
         },
       },
       invoiceStatus: true,
-      createdAt: true,
       customer: {
         select: {
           id: true,

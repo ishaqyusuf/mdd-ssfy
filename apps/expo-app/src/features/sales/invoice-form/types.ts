@@ -1,3 +1,9 @@
+import type {
+  SalesFormLineItemRecord,
+  WorkflowLineItemRecord,
+  WorkflowStepRecord,
+} from "@gnd/sales/sales-form-core";
+
 export type NewSalesFormType = "order" | "quote";
 
 export type NewSalesFormMeta = {
@@ -17,7 +23,7 @@ export type NewSalesFormMeta = {
   taxCode?: string | null;
 };
 
-export type NewSalesFormLineItem = {
+export type NewSalesFormLineItem = SalesFormLineItemRecord & {
   id?: number | null;
   uid: string;
   title: string;
@@ -27,9 +33,9 @@ export type NewSalesFormLineItem = {
   lineTotal: number;
   taxxable?: boolean | null;
   meta?: Record<string, unknown> | null;
-  formSteps?: unknown[] | null;
-  shelfItems?: unknown[] | null;
-  housePackageTool?: unknown | null;
+  formSteps?: WorkflowStepRecord[];
+  shelfItems?: WorkflowLineItemRecord["shelfItems"];
+  housePackageTool?: WorkflowLineItemRecord["housePackageTool"];
 };
 
 export type NewSalesFormSummary = {

@@ -14,6 +14,35 @@ describe("mutation-engine domain", () => {
     expect(uids).toEqual(["a", "b"]);
   });
 
+  it("extracts selected prod uids from string metadata", () => {
+    const uids = getSelectedProdUids({
+      meta: JSON.stringify({ selectedProdUids: ["a", "b", "a"] }),
+    });
+    expect(uids).toEqual(["a", "b"]);
+  });
+
+  it("extracts selected prod uids from nested step metadata", () => {
+    const uids = getSelectedProdUids({
+      step: {
+        meta: {
+          selectedProdUids: ["nested-a", "nested-b", "nested-a"],
+        },
+      },
+    });
+    expect(uids).toEqual(["nested-a", "nested-b"]);
+  });
+
+  it("extracts selected prod uids from nested JSON step metadata", () => {
+    const uids = getSelectedProdUids({
+      step: {
+        meta: JSON.stringify({
+          selectedProdUids: ["nested-a", "nested-b", "nested-a"],
+        }),
+      },
+    });
+    expect(uids).toEqual(["nested-a", "nested-b"]);
+  });
+
   it("builds compact step labels", () => {
     expect(compactStepValue([{ title: "Door A" }, { title: "Door B" }])).toBe(
       "Door A +1",
@@ -145,5 +174,39 @@ describe("mutation-engine domain", () => {
     expect(result.steps[0].meta.selectedComponents[0]._metaData.custom).toBe(
       true,
     );
+  });
+
+  it("preserves custom metadata from string component metadata", () => {
+    const steps = [
+      {
+        stepId: 3,
+        step: { title: "Custom Step" },
+        componentId: null,
+        prodUid: "",
+        meta: JSON.stringify({ existing: true }),
+      },
+    ];
+
+    const next = applySingleSelectStepMutation({
+      steps,
+      currentStepIndex: 0,
+      component: {
+        id: 5,
+        uid: "custom-json",
+        title: "CUSTOM JSON",
+        salesPrice: 25,
+        basePrice: 20,
+        _metaData: JSON.stringify({ custom: true, source: "dyke" }),
+      },
+      activeStepTitle: "Custom Step",
+    });
+
+    expect(next[0].meta.existing).toBe(true);
+    expect(next[0].meta.custom).toBe(true);
+    expect(next[0].meta.selectedComponents[0].custom).toBe(true);
+    expect(next[0].meta.selectedComponents[0]._metaData).toEqual({
+      custom: true,
+      source: "dyke",
+    });
   });
 });

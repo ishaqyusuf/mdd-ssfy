@@ -100,6 +100,29 @@ describe("HPT legacy compatibility", () => {
 		expect(breakdown.calculatedFinalUnitPrice).toBe(136);
 	});
 
+	it("resolves persisted override metadata from JSON row metadata", () => {
+		const row: any = normalizeHptDoorRowForLegacy(
+			{
+				totalQty: 2,
+				unitPrice: 136,
+				addon: 5,
+				meta: JSON.stringify({
+					doorSalesUnitPrice: 111,
+					overridePrice: 90,
+				}),
+			},
+			{
+				sharedDoorSurcharge: 20,
+			},
+		);
+
+		expect(row.customPrice).toBe(90);
+		expect(row.unitPrice).toBe(90);
+		expect(row.lineTotal).toBe(180);
+		expect(row.meta.overridePrice).toBe(90);
+		expect(row.meta.calculatedFinalUnitPrice).toBe(136);
+	});
+
 	it("hydrates legacy rows from jambSizePrice and doorPrice", () => {
 		const row: any = hydrateHptDoorRowFromLegacy(
 			{
@@ -119,6 +142,30 @@ describe("HPT legacy compatibility", () => {
 		expect(row.addon).toBe(8);
 		expect(row.unitPrice).toBe(139);
 		expect(row.lineTotal).toBe(139);
+	});
+
+	it("hydrates legacy rows while preserving JSON metadata", () => {
+		const row: any = hydrateHptDoorRowFromLegacy(
+			{
+				jambSizePrice: 111,
+				doorPrice: 8,
+				totalQty: 1,
+				unitPrice: 139,
+				lineTotal: 139,
+				meta: JSON.stringify({
+					componentUid: "door-json",
+					priceMissing: false,
+				}),
+			},
+			{
+				sharedDoorSurcharge: 20,
+			},
+		);
+
+		expect(row.meta.componentUid).toBe("door-json");
+		expect(row.meta.doorSalesUnitPrice).toBe(111);
+		expect(row.addon).toBe(8);
+		expect(row.unitPrice).toBe(139);
 	});
 
 	it("lets durable legacy fields override stale new-form metadata on hydrate", () => {
@@ -173,5 +220,38 @@ describe("HPT legacy compatibility", () => {
 		expect(line.lineTotal).toBe(262);
 		expect(line.housePackageTool.totalDoors).toBe(2);
 		expect(line.housePackageTool.totalPrice).toBe(262);
+	});
+
+	it("normalizes HPT totals with JSON row and step metadata", () => {
+		const line: any = normalizeHptLineForLegacy({
+			uid: "line-1",
+			qty: 1,
+			unitPrice: 0,
+			lineTotal: 0,
+			formSteps: [
+				{
+					step: { title: "Specie" },
+					price: 20,
+					meta: JSON.stringify({ flatRate: 3 }),
+				},
+			],
+			housePackageTool: {
+				id: null,
+				doors: [
+					{
+						totalQty: 2,
+						meta: JSON.stringify({
+							doorSalesUnitPrice: 111,
+						}),
+					},
+				],
+			},
+		});
+
+		expect(line.qty).toBe(2);
+		expect(line.unitPrice).toBe(134);
+		expect(line.lineTotal).toBe(268);
+		expect(line.housePackageTool.doors[0].meta.flatRate).toBe(3);
+		expect(line.housePackageTool.totalPrice).toBe(268);
 	});
 });

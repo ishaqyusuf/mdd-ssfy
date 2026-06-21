@@ -1,4 +1,5 @@
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
+import { readSalesFormObjectMetadata } from "../../domain";
 import type {
 	ShelfCategoryRecord,
 	ShelfProductOption,
@@ -23,18 +24,21 @@ function firstFiniteValue(...values: Array<number | null | undefined>) {
 	return 0;
 }
 
+function readShelfRowMeta(row?: ShelfRowDraft | null) {
+	return readSalesFormObjectMetadata(row?.meta) || {};
+}
+
 function getShelfRowDisplayUnitPrice(row: ShelfRowDraft) {
+	const meta = readShelfRowMeta(row);
 	return firstFiniteValue(
 		typeof row?.customPrice === "number" ? row.customPrice : undefined,
-		typeof row?.meta?.customPrice === "number"
-			? row.meta.customPrice
-			: undefined,
+		typeof meta.customPrice === "number" ? meta.customPrice : undefined,
 		row?.salesPrice,
-		row?.meta?.salesPrice,
+		meta.salesPrice,
 		row?.unitPrice,
-		row?.meta?.unitPrice,
+		meta.unitPrice,
 		row?.basePrice,
-		row?.meta?.basePrice,
+		meta.basePrice,
 	);
 }
 
@@ -69,14 +73,39 @@ function productCategoryPath(
 export function patchShelfRowPrice(row: ShelfRowDraft, unitPrice: number) {
 	const nextPrice = roundCurrency(unitPrice);
 	const qty = Number(row?.qty ?? 1);
+	const meta = readShelfRowMeta(row);
 	return {
 		...row,
 		customPrice: nextPrice,
 		unitPrice: nextPrice,
 		totalPrice: roundCurrency(qty * nextPrice),
 		meta: {
-			...(row?.meta || {}),
+			...meta,
 			customPrice: nextPrice,
+			unitPrice: nextPrice,
+		},
+	};
+}
+
+export function clearShelfRowCustomPrice(row: ShelfRowDraft) {
+	const meta = readShelfRowMeta(row);
+	const nextPrice = firstFiniteValue(
+		row?.salesPrice,
+		meta.salesPrice,
+		row?.unitPrice,
+		meta.unitPrice,
+		row?.basePrice,
+		meta.basePrice,
+	);
+	const qty = Number(row?.qty ?? 1);
+	return {
+		...row,
+		customPrice: null,
+		unitPrice: nextPrice,
+		totalPrice: roundCurrency(qty * nextPrice),
+		meta: {
+			...meta,
+			customPrice: null,
 			unitPrice: nextPrice,
 		},
 	};
@@ -93,6 +122,7 @@ export function patchShelfRowQty(row: ShelfRowDraft, qty: number) {
 }
 
 export function clearShelfRowProduct(row: ShelfRowDraft) {
+	const meta = readShelfRowMeta(row);
 	return {
 		...row,
 		categoryId: null,
@@ -104,7 +134,7 @@ export function clearShelfRowProduct(row: ShelfRowDraft) {
 		unitPrice: 0,
 		totalPrice: 0,
 		meta: {
-			...(row?.meta || {}),
+			...meta,
 			categoryIds: [],
 			shelfParentCategoryId: null,
 			basePrice: 0,
@@ -138,6 +168,7 @@ export function buildShelfProductRowPatch(input: {
 	);
 	const unitPrice = salesPrice;
 	const qty = Number(input.row?.qty ?? 1);
+	const meta = readShelfRowMeta(input.row);
 	return {
 		...input.row,
 		categoryId,
@@ -149,7 +180,7 @@ export function buildShelfProductRowPatch(input: {
 		unitPrice,
 		totalPrice: roundCurrency(qty * unitPrice),
 		meta: {
-			...(input.row?.meta || {}),
+			...meta,
 			categoryIds,
 			shelfParentCategoryId: parentCategoryId,
 			basePrice,

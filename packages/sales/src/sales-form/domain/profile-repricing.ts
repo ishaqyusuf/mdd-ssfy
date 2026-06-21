@@ -2,6 +2,7 @@ import {
 	computeHptSharedDoorSurcharge,
 	normalizeHptDoorRowForLegacy,
 } from "./hpt-compatibility";
+import { readSalesFormObjectMetadata } from "./metadata";
 
 function roundCurrency(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -23,7 +24,11 @@ function valueFromPath(source: unknown, path: string[]): unknown {
   let cursor = source as Record<string, unknown> | null | undefined;
   for (const key of path) {
     if (!cursor || typeof cursor !== "object") return null;
-    cursor = cursor[key] as Record<string, unknown> | null | undefined;
+    const nextValue = cursor[key];
+    cursor =
+      key === "meta"
+        ? readSalesFormObjectMetadata(nextValue)
+        : (nextValue as Record<string, unknown> | null | undefined);
   }
   return cursor;
 }
@@ -39,7 +44,7 @@ function firstFinite(source: unknown, paths: string[][]) {
 export type SalesFormProfileStepLike = {
   price?: number | null;
   basePrice?: number | null;
-  meta?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | string | null;
   [key: string]: unknown;
 };
 
@@ -47,7 +52,7 @@ export type SalesFormProfileShelfItemLike = {
   qty?: number | null;
   unitPrice?: number | null;
   totalPrice?: number | null;
-  meta?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | string | null;
   [key: string]: unknown;
 };
 
@@ -55,7 +60,7 @@ export type SalesFormProfileDoorLike = {
   totalQty?: number | null;
   unitPrice?: number | null;
   lineTotal?: number | null;
-  meta?: Record<string, unknown> | null;
+  meta?: Record<string, unknown> | string | null;
   [key: string]: unknown;
 };
 
@@ -70,6 +75,7 @@ export type SalesFormProfileLineItemLike = {
   qty?: number | null;
   unitPrice?: number | null;
   lineTotal?: number | null;
+  meta?: Record<string, unknown> | string | null;
   formSteps?: SalesFormProfileStepLike[] | null;
   shelfItems?: SalesFormProfileShelfItemLike[] | null;
   housePackageTool?: SalesFormHousePackageToolLike | null;
@@ -89,8 +95,9 @@ export function repriceSalesFormLineItemsByProfile<
 
   return (lineItems || []).map((line) => {
     const formSteps = (line.formSteps || []).map((step) => {
-      const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-        ? step.meta.selectedComponents.map((component: any) => {
+      const stepMeta = readSalesFormObjectMetadata(step?.meta) || {};
+      const selectedComponents = Array.isArray(stepMeta.selectedComponents)
+        ? stepMeta.selectedComponents.map((component: any) => {
             const componentBase = toFinite(component?.basePrice);
             const currentSales = toFinite(component?.salesPrice);
             return {
@@ -99,11 +106,11 @@ export function repriceSalesFormLineItemsByProfile<
                 componentBase != null
                   ? roundCurrency(componentBase * nextMultiplier)
                   : currentSales != null
-                    ? roundCurrency(currentSales * ratio)
-                    : currentSales,
+                  ? roundCurrency(currentSales * ratio)
+                  : currentSales,
             };
           })
-        : step?.meta?.selectedComponents;
+        : stepMeta.selectedComponents;
 
       const selectedComponentsPrice = Array.isArray(selectedComponents)
         ? selectedComponents.reduce((sum: number, component: any) => {
@@ -135,13 +142,14 @@ export function repriceSalesFormLineItemsByProfile<
           selectedComponents == null
             ? step?.meta
             : {
-                ...(step?.meta || {}),
+                ...stepMeta,
                 selectedComponents,
               },
       };
     });
 
     const shelfItems = (line.shelfItems || []).map((row) => {
+      const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
       const unitPrice = toFinite(row?.unitPrice) ?? 0;
       const qty = toFinite(row?.qty) ?? 0;
       const customPrice = firstFinite(row, [
@@ -168,7 +176,7 @@ export function repriceSalesFormLineItemsByProfile<
         unitPrice: nextUnitPrice,
         totalPrice: roundCurrency(qty * nextUnitPrice),
         meta: {
-          ...(row?.meta || {}),
+          ...rowMeta,
           ...(baseUnitPrice == null ? {} : { basePrice: baseUnitPrice }),
           salesPrice: nextSalesPrice,
           unitPrice: nextUnitPrice,
@@ -187,6 +195,7 @@ export function repriceSalesFormLineItemsByProfile<
     );
     const doorRouteConfig = readWorkflowDoorRouteConfig(line);
     const doors = existingDoors.map((door) => {
+      const doorMeta = readSalesFormObjectMetadata(door?.meta) || {};
       const currentUnit = toFinite(door?.unitPrice) ?? 0;
       const baseUnitPrice = firstFinite(door, [
         ["basePrice"],
@@ -205,7 +214,7 @@ export function repriceSalesFormLineItemsByProfile<
           ...door,
           jambSizePrice: fallbackDoorSales,
           meta: {
-            ...(door?.meta || {}),
+            ...doorMeta,
             ...(baseUnitPrice == null ? {} : { baseUnitPrice }),
             doorSalesUnitPrice: fallbackDoorSales,
           },
@@ -276,7 +285,7 @@ export function repriceSalesFormLineItemsByProfile<
 }
 
 function readWorkflowDoorRouteConfig(line: SalesFormProfileLineItemLike) {
-  const meta = (line as { meta?: Record<string, unknown> | null }).meta || {};
+  const meta = readSalesFormObjectMetadata(line.meta) || {};
   const config = meta.workflowDoorRouteConfig;
   if (!config || typeof config !== "object" || Array.isArray(config)) {
     return {};

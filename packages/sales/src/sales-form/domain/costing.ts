@@ -4,6 +4,7 @@ import type {
 	SalesFormLineItemLike,
 	SalesFormSummaryResult,
 } from "../contracts/types";
+import { readSalesFormObjectMetadata } from "./metadata";
 
 function roundCurrency(value: number) {
 	return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -51,7 +52,7 @@ function isTaxableLineLegacy(line: SalesFormLineItemLike) {
 	const itemType = inferItemType(line);
 	const isService = itemType === "services" || itemType === "service";
 	if (isService) {
-		const metaTaxxable = (line.meta as { taxxable?: unknown } | null)?.taxxable;
+		const metaTaxxable = readSalesFormObjectMetadata(line.meta)?.taxxable;
 		if (typeof metaTaxxable === "boolean") return metaTaxxable;
 		return false;
 	}
@@ -75,17 +76,18 @@ function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
 	const deriveRowsLabor = (rows: any[], fallbackRate: number) =>
 		roundCurrency(
 			(rows || []).reduce((rowSum: number, row: any) => {
+				const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
 				const unitLabor = safeNumber(
 					row?.pricing?.unitLabor ??
 						row?.unitLabor ??
-						row?.meta?.unitLabor ??
-						row?.meta?.laborConfig?.rate ??
+						rowMeta.unitLabor ??
+						rowMeta.laborConfig?.rate ??
 						fallbackRate,
 				);
 				const laborQty = safeNumber(
 					row?.pricing?.laborQty ??
 						row?.laborQty ??
-						row?.meta?.laborQty ??
+						rowMeta.laborQty ??
 						row?.qty ??
 						row?.totalQty,
 				);
@@ -97,15 +99,16 @@ function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
 	return roundCurrency(
 		(lineItems || []).reduce((sum, line) => {
 			const lineAny = line as any;
-			const fallbackRate = safeNumber(lineAny?.meta?.laborConfig?.rate);
+			const lineMeta = readSalesFormObjectMetadata(lineAny?.meta) || {};
+			const fallbackRate = safeNumber(lineMeta.laborConfig?.rate);
 			const doors = Array.isArray(lineAny?.housePackageTool?.doors)
 				? lineAny.housePackageTool.doors
 				: [];
-			const serviceRows = Array.isArray(lineAny?.meta?.serviceRows)
-				? lineAny.meta.serviceRows
+			const serviceRows = Array.isArray(lineMeta.serviceRows)
+				? lineMeta.serviceRows
 				: [];
-			const mouldingRows = Array.isArray(lineAny?.meta?.mouldingRows)
-				? lineAny.meta.mouldingRows
+			const mouldingRows = Array.isArray(lineMeta.mouldingRows)
+				? lineMeta.mouldingRows
 				: [];
 			const shelfRows = Array.isArray(lineAny?.shelfItems)
 				? lineAny.shelfItems
@@ -130,6 +133,7 @@ function deriveShelfLineTotal(line: SalesFormLineItemLike) {
 	if (!shelfRows.length) return null;
 	return roundCurrency(
 		shelfRows.reduce((sum: number, row: any) => {
+			const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
 			const explicitTotal = safeNumber(row?.totalPrice);
 			if (explicitTotal > 0) return sum + explicitTotal;
 			const qty = safeNumber(row?.qty);
@@ -138,10 +142,10 @@ function deriveShelfLineTotal(line: SalesFormLineItemLike) {
 				row?.salesPrice,
 				row?.unitPrice,
 				row?.basePrice,
-				row?.meta?.customPrice,
-				row?.meta?.salesPrice,
-				row?.meta?.unitPrice,
-				row?.meta?.basePrice,
+				rowMeta.customPrice,
+				rowMeta.salesPrice,
+				rowMeta.unitPrice,
+				rowMeta.basePrice,
 			);
 			return sum + roundCurrency(qty * unitPrice);
 		}, 0),
@@ -267,13 +271,14 @@ export function calculateSalesFormSummary(
 		const ccc = isCreditCard
 			? roundCurrency((cccBase * cccPercentage) / 100)
 			: 0;
+		const grandTotal = roundCurrency(grandBeforeCcc + ccc);
 
 		return {
 			subTotal,
 			adjustedSubTotal,
 			taxRate: normalizedTaxRate,
 			taxTotal,
-			grandTotal: grandBeforeCcc,
+			grandTotal,
 			discount,
 			discountPct,
 			percentDiscountValue,

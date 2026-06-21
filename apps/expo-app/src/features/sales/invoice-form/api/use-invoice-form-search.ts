@@ -11,6 +11,11 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import type { InvoiceCustomer, InvoiceSelectableItem, NewSalesFormType } from "../types";
+import { buildCustomerSearchInput } from "./customer-search-options";
+import {
+  getWorkflowSelectableSku,
+  getWorkflowSelectableTitle,
+} from "./workflow-selectable-copy";
 
 type RealCustomerRow = Record<string, unknown>;
 type RealProductRow = Record<string, unknown> & {
@@ -28,12 +33,7 @@ export function useInvoiceFormCustomerSearch(input: {
 
   const recentCustomers = useQuery(
     _trpc.newSalesForm.searchCustomers.queryOptions(
-      {
-        query: "",
-        recent: true,
-        type,
-        limit: 10,
-      },
+      buildCustomerSearchInput({ query: "", type }),
       {
         enabled: true,
       },
@@ -41,23 +41,12 @@ export function useInvoiceFormCustomerSearch(input: {
   );
 
   const searchedCustomers = useQuery(
-    hasSearchText
-      ? _trpc.newSalesForm.searchCustomers.queryOptions(
-          {
-            query: customerQuery,
-            recent: false,
-            type,
-            limit: 10,
-          },
-          {
-            enabled: true,
-          },
-        )
-      : {
-          queryKey: ["invoice-form", "searched-customers", "disabled"],
-          queryFn: async () => [],
-          enabled: false,
-        },
+    _trpc.newSalesForm.searchCustomers.queryOptions(
+      buildCustomerSearchInput({ query: customerQuery, type }),
+      {
+        enabled: hasSearchText,
+      },
+    ),
   );
 
   const recentRows = useMemo(
@@ -94,7 +83,6 @@ export function useInvoiceFormSearch(input: {
   const scope = input.scope || "all";
   const needsCustomers = scope !== "items";
   const needsItems = scope !== "customers";
-  const customerLimit = 10;
   const type = input.type || "order";
   const productLimit = itemQuery ? 20 : 5;
   const selectedProductIds = useMemo(
@@ -112,57 +100,34 @@ export function useInvoiceFormSearch(input: {
   const profileCoefficient = Number(input.profileCoefficient || 1) || 1;
 
   const realCustomers = useQuery(
-    needsCustomers
-      ? _trpc.newSalesForm.searchCustomers.queryOptions(
-          {
-            query: customerQuery,
-            recent: !customerQuery,
-            type,
-            limit: customerLimit,
-          },
-          {
-            enabled: true,
-          },
-        )
-      : {
-          queryKey: ["invoice-form", "customers", "disabled"],
-          queryFn: async () => [],
-          enabled: false,
-        },
+    _trpc.newSalesForm.searchCustomers.queryOptions(
+      buildCustomerSearchInput({ query: customerQuery, type }),
+      {
+        enabled: needsCustomers,
+      },
+    ),
   );
 
   const realProducts = useQuery(
-    needsItems
-      ? _trpc.newSalesForm.searchShelfProducts.queryOptions(
-          {
-            query: itemQuery,
-            selectedIds: selectedProductIds,
-            limit: productLimit,
-          },
-          {
-            enabled: true,
-          },
-        )
-      : {
-          queryKey: ["invoice-form", "products", "disabled"],
-          queryFn: async () => [],
-          enabled: false,
-        },
+    _trpc.newSalesForm.searchShelfProducts.queryOptions(
+      {
+        query: itemQuery,
+        selectedIds: selectedProductIds,
+        limit: productLimit,
+      },
+      {
+        enabled: needsItems,
+      },
+    ),
   );
   const realWorkflowRoute = useQuery(
-    needsItems
-      ? _trpc.newSalesForm.getStepRouting.queryOptions(
-          {},
-          {
-            enabled: true,
-            refetchOnWindowFocus: false,
-          },
-        )
-      : {
-          queryKey: ["invoice-form", "workflow-route", "disabled"],
-          queryFn: async () => null,
-          enabled: false,
-        },
+    _trpc.newSalesForm.getStepRouting.queryOptions(
+      {},
+      {
+        enabled: needsItems,
+        refetchOnWindowFocus: false,
+      },
+    ),
   );
   const workflowRouteData =
     (realWorkflowRoute.data as WorkflowRouteData | null | undefined) || null;
@@ -173,24 +138,16 @@ export function useInvoiceFormSearch(input: {
   ).trim();
   const hasRootStepLookup = Boolean(rootStepId || rootStepTitle);
   const realWorkflowComponents = useQuery(
-    needsItems &&
-      Boolean(workflowRouteData) &&
-      hasRootStepLookup
-      ? _trpc.sales.getStepComponents.queryOptions(
-          {
-            stepId: rootStepId || undefined,
-            stepTitle: rootStepId ? undefined : rootStepTitle || "Item Type",
-          },
-          {
-            enabled: true,
-            refetchOnWindowFocus: false,
-          },
-        )
-      : {
-          queryKey: ["invoice-form", "workflow-components", "disabled"],
-          queryFn: async () => [],
-          enabled: false,
-        },
+    _trpc.sales.getStepComponents.queryOptions(
+      {
+        stepId: rootStepId || undefined,
+        stepTitle: rootStepId ? undefined : rootStepTitle || "Item Type",
+      },
+      {
+        enabled: needsItems && Boolean(workflowRouteData) && hasRootStepLookup,
+        refetchOnWindowFocus: false,
+      },
+    ),
   );
   const rootWorkflowStatus = resolveWorkflowRouteStatus({
     routeQuery: realWorkflowRoute,
@@ -361,7 +318,7 @@ function mapRealWorkflowComponentRecord(
     ...row,
     id: componentId,
     uid: componentUid,
-    title: String(row.title || row.value || componentUid || "Component"),
+    title: getWorkflowSelectableTitle(row),
     salesPrice:
       row.salesPrice == null ? null : Number(row.salesPrice || 0),
     basePrice: row.basePrice == null ? null : Number(row.basePrice || 0),
@@ -377,8 +334,8 @@ function mapRealWorkflowComponent(row: WorkflowComponentRecord): InvoiceSelectab
     source: "workflow",
     componentId,
     componentUid,
-    title: String(row.title || row.value || componentUid || "Component"),
-    sku: componentUid || `COMP-${componentId || "NEW"}`,
+    title: getWorkflowSelectableTitle(row),
+    sku: getWorkflowSelectableSku(row),
     category: "Components",
     unitPrice,
     basePrice: row.basePrice == null ? unitPrice : Number(row.basePrice || 0),

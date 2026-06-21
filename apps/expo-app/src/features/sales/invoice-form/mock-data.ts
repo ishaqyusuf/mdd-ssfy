@@ -12,6 +12,7 @@ import {
   buildWorkflowServiceRowsPatch,
   createShelfProductDraft,
   isServiceItem,
+  readSalesFormObjectMetadata,
   selectWorkflowRootComponent,
 } from "@gnd/sales/sales-form-core";
 import type {
@@ -448,7 +449,7 @@ export function createLineItem(
         {
           ...shelfRow,
           meta: {
-            ...(shelfRow.meta || {}),
+            ...(readSalesFormObjectMetadata(shelfRow.meta) || {}),
             sku: item.sku,
             category: item.category,
           },
@@ -502,13 +503,13 @@ function createWorkflowLineItem(
   const line = {
     uid,
     title: "New Line",
-    description: item.sku,
+    description: item.title,
     qty,
     unitPrice,
     lineTotal,
     taxxable: item.taxxable,
     meta: {
-      sku: item.sku,
+      sku: item.title,
       category: item.category,
       sourceUid: item.uid,
       workflowComponentUid: component.uid,

@@ -1,5 +1,6 @@
 import { resolveSupplierVariantPricing } from "@gnd/inventory/suppliers";
 import { normalizeHptDoorRowForLegacy } from "./hpt-compatibility";
+import { readSalesFormObjectMetadata } from "./metadata";
 import { normalizeSalesFormTitle } from "./step-engine";
 
 function firstFiniteNumber(...values: Array<number | null | undefined>) {
@@ -40,7 +41,7 @@ function profileAdjustedSalesPrice(
 
 function isShelfPlaceholderRow(row: any) {
   const description = String(row?.description || "").trim();
-  const meta = row?.meta || {};
+  const meta = readSalesFormObjectMetadata(row?.meta) || {};
   const basePrice = firstFiniteNumber(
     row?.basePrice,
     row?.baseUnitPrice,
@@ -56,7 +57,7 @@ function normalizeShelfProductRow(
   index: number,
   profileCoefficient?: number | null,
 ) {
-  const meta = row?.meta || {};
+  const meta = readSalesFormObjectMetadata(row?.meta) || {};
   const qty = Number(row?.qty ?? 0);
   const explicitBasePrice = firstFiniteNumber(
     row?.basePrice,
@@ -300,12 +301,13 @@ function getDoorSizeVariationConfig(line: any, routeData?: any) {
   const lineSteps = Array.isArray(line?.formSteps) ? line.formSteps : [];
   for (const step of lineSteps) {
     const stepUid = String(step?.step?.uid || step?.uid || "").trim();
+    const stepMeta = readSalesFormObjectMetadata(step?.meta) || {};
     const routeStepMeta =
       stepUid && routeData?.stepsByUid?.[stepUid]?.meta
-        ? routeData.stepsByUid[stepUid].meta
+        ? readSalesFormObjectMetadata(routeData.stepsByUid[stepUid].meta) || {}
         : null;
-    const variations = Array.isArray(step?.meta?.doorSizeVariation)
-      ? step.meta.doorSizeVariation
+    const variations = Array.isArray(stepMeta.doorSizeVariation)
+      ? stepMeta.doorSizeVariation
       : Array.isArray(routeStepMeta?.doorSizeVariation)
         ? routeStepMeta.doorSizeVariation
         : null;
@@ -388,11 +390,12 @@ export function summarizeDoors(
   const noHandle = !!options?.noHandle;
   const hasSwing = options?.hasSwing !== false;
   const normalized = (rows || []).map((row) => {
+    const meta = readSalesFormObjectMetadata(row?.meta) || {};
     return normalizeHptDoorRowForLegacy(row, {
       noHandle,
       hasSwing,
-      sharedDoorSurcharge: row?.meta?.sharedDoorSurcharge,
-      flatRate: row?.meta?.flatRate,
+      sharedDoorSurcharge: meta.sharedDoorSurcharge,
+      flatRate: meta.flatRate,
     });
   });
   const totalDoors = normalized.reduce((sum, row) => sum + Number(row?.totalQty || 0), 0);
@@ -431,10 +434,10 @@ export function getRouteConfigForLine({
   // base route config -> prior step overrides (in order) -> current component override -> current step override.
   const lineSteps = Array.isArray(line?.formSteps) ? line.formSteps : [];
   for (const formStep of lineSteps) {
-    applyOverride(formStep?.meta?.sectionOverride);
+    applyOverride(readSalesFormObjectMetadata(formStep?.meta)?.sectionOverride);
   }
   applyOverride(component?.sectionOverride);
-  applyOverride(step?.meta?.sectionOverride);
+  applyOverride(readSalesFormObjectMetadata(step?.meta)?.sectionOverride);
 
   return config;
 }
@@ -552,7 +555,7 @@ export function summarizeShelfRows(
 }
 
 function normalizeShelfCategoryPath(row: any) {
-  const meta = row?.meta || {};
+  const meta = readSalesFormObjectMetadata(row?.meta) || {};
   const explicitCategoryIds = Array.isArray(meta?.categoryIds)
     ? meta.categoryIds
         .map((value: any) => Number(value || 0))
@@ -577,7 +580,7 @@ export function buildShelfSections(
   );
   const sections = new Map<string, any>();
   rows.forEach((row: any, index: number) => {
-    const rowMeta = row?.meta || {};
+    const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
     const categoryIds = normalizeShelfCategoryPath(row);
     const parentCategoryId =
       Number(rowMeta?.shelfParentCategoryId || 0) ||
@@ -653,8 +656,9 @@ export function flattenShelfSections(
             meta: {},
           },
         ];
-    return rows.map((row: any, rowIndex: number) =>
-      normalizeShelfProductRow(
+    return rows.map((row: any, rowIndex: number) => {
+      const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
+      return normalizeShelfProductRow(
         {
           ...row,
           categoryId: firstFiniteNumber(
@@ -665,23 +669,25 @@ export function flattenShelfSections(
               : null,
           ),
           meta: {
-            ...(row?.meta || {}),
+            ...rowMeta,
             sectionUid,
             categoryIds: Array.isArray(section?.categoryIds)
               ? section.categoryIds
-              : row?.meta?.categoryIds ?? [],
+              : Array.isArray(rowMeta.categoryIds)
+                ? rowMeta.categoryIds
+                : [],
             shelfParentCategoryId:
               section?.parentCategoryId ??
-              row?.meta?.shelfParentCategoryId ??
+              rowMeta.shelfParentCategoryId ??
               null,
             productRowUid:
-              row?.meta?.productRowUid || row?.uid || `product-${rowIndex + 1}`,
+              rowMeta.productRowUid || row?.uid || `product-${rowIndex + 1}`,
           },
         },
         rowIndex,
         profileCoefficient,
-      ),
-    );
+      );
+    });
   });
 }
 
@@ -715,6 +721,7 @@ export function deriveMouldingRows({
           : Number(existing.customPrice || 0),
       salesPrice: Number(existing?.salesPrice ?? component?.salesPrice ?? 0),
       basePrice: Number(existing?.basePrice ?? component?.basePrice ?? 0),
+      img: existing?.img || component?.img || null,
     };
   });
 
@@ -732,6 +739,7 @@ export function deriveMouldingRows({
       ...row,
       title: row.title || component?.title || "Moulding",
       description: row.description || component?.title || row.title || "Moulding",
+      img: row.img || component?.img || null,
       qty,
       addon,
       customPrice,
@@ -750,7 +758,7 @@ export function summarizeMouldingPersistRows(nextRowsRaw: any[], sharedComponent
     uid: row.uid,
     title: row.title,
     description: row.description,
-    qty: Number(row.qty || 0),
+    qty: Math.max(1, Number(row.qty || 0) || 0),
     addon: Number(row.addon || 0),
     customPrice:
       row.customPrice == null || row.customPrice === "" ? null : Number(row.customPrice || 0),

@@ -2,21 +2,32 @@ import { SafeArea } from "@/components/safe-area";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
+import { useColors } from "@/hooks/use-color";
 import {
   getDefaultSalesFormCustomerProfile,
+  readSalesFormObjectMetadata,
   resolveSalesFormProfilePaymentTerm,
 } from "@gnd/sales/sales-form-core";
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
+  Text as NativeText,
   View,
 } from "react-native";
+import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useInvoiceFormActions } from "../api/use-invoice-form-actions";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormRecord } from "../api/use-invoice-form-record";
@@ -32,6 +43,7 @@ import {
   writeInvoiceFormRecoverySnapshot,
 } from "../lib/local-recovery";
 import { formatMoney } from "../lib/format";
+import { getSalesDocumentLabels } from "../lib/sales-document-labels";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type {
   InvoiceCustomer,
@@ -40,13 +52,26 @@ import type {
   NewSalesFormSummary,
   NewSalesFormType,
 } from "../types";
+import { getCustomerContactLine } from "./customer-display";
 import { CustomerStep } from "./customer-step";
 import { FloatingInvoiceActionHost } from "./floating-invoice-action";
 import { InvoiceFormFooter } from "./invoice-form-footer";
 import { InvoiceFormHeader } from "./invoice-form-header";
 import { ItemSelector } from "./item-selector";
-import { ItemsStep } from "./items-step";
-import { WorkflowStepSelector } from "./workflow-step-selector";
+import {
+	ItemsStep,
+	type InvoiceItemNavigationEntry,
+} from "./items-step";
+import {
+  WorkflowStepSelector,
+  type WorkflowFloatingActionEntry,
+  type WorkflowStickyHeaderEntry,
+} from "./workflow-step-selector";
+
+const FORM_SCROLL_BOTTOM_PADDING = 25;
+const FORM_KEYBOARD_BOTTOM_OFFSET = 160;
+const INLINE_WORKFLOW_PROCEED_BUTTON_HEIGHT = 44;
+const INLINE_WORKFLOW_PROCEED_BUTTON_WIDTH = 184;
 
 function getShellTitle(input: {
   type: NewSalesFormType;
@@ -54,10 +79,111 @@ function getShellTitle(input: {
   salesId?: number | null;
   slug?: string | null;
 }) {
+  const labels = getSalesDocumentLabels(input.type);
+
   if (input.orderId) return input.orderId;
-  if (input.salesId) return `Sales #${input.salesId}`;
+  if (input.salesId) return `${labels.referencePrefix}${input.salesId}`;
   if (input.slug) return input.slug;
-  return input.type === "quote" ? "Quote" : "Invoice";
+  return labels.noun;
+}
+
+function InlineWorkflowProceedActionFrame({
+	footerOffset,
+	onPress,
+}: {
+  footerOffset: number;
+  onPress: () => void;
+}) {
+  const animatedBottom = useMemo(() => new Animated.Value(footerOffset), []);
+  const colors = useColors();
+
+  useEffect(() => {
+    Animated.timing(animatedBottom, {
+      toValue: footerOffset,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [animatedBottom, footerOffset]);
+
+  return (
+    <Animated.View
+      pointerEvents="box-none"
+      style={
+        {
+          alignItems: "center",
+          bottom: animatedBottom,
+          elevation: 24,
+          height: 56,
+          justifyContent: "center",
+          left: 0,
+          paddingHorizontal: 16,
+          position: "absolute",
+          right: 0,
+          zIndex: 60,
+        } as any
+      }
+    >
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => ({
+          alignItems: "center",
+          backgroundColor: colors.primary,
+          borderRadius: 999,
+          elevation: 10,
+          height: INLINE_WORKFLOW_PROCEED_BUTTON_HEIGHT,
+          justifyContent: "center",
+          opacity: pressed ? 0.9 : 1,
+          paddingHorizontal: 24,
+          shadowColor: "rgb(15, 23, 42)",
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.18,
+          shadowRadius: 16,
+          width: INLINE_WORKFLOW_PROCEED_BUTTON_WIDTH,
+        })}
+      >
+        <NativeText
+          style={{
+            color: colors.primaryForeground,
+            fontSize: 14,
+            fontWeight: "700",
+          }}
+        >
+          Proceed
+        </NativeText>
+      </Pressable>
+    </Animated.View>
+	);
+}
+
+function FixedInvoiceItemNavigation({
+	entry,
+}: {
+	entry: InvoiceItemNavigationEntry | null;
+}) {
+	if (!entry) return null;
+
+	return (
+		<View
+			pointerEvents="box-none"
+			className="absolute inset-x-0 top-1/2 z-30 h-20 -translate-y-10 flex-row items-center justify-between"
+		>
+			<Pressable
+				onPress={entry.onPrevious}
+				disabled={!entry.canGoPrevious}
+				className="h-20 w-12 items-center justify-center active:opacity-60 disabled:opacity-20"
+			>
+				<Icon name="ChevronLeft" className="size-xl text-foreground" />
+			</Pressable>
+			<Pressable
+				onPress={entry.onNext}
+				disabled={!entry.canGoNext}
+				className="h-20 w-12 items-center justify-center active:opacity-60 disabled:opacity-20"
+			>
+				<Icon name="ChevronRight" className="size-xl text-foreground" />
+			</Pressable>
+		</View>
+	);
 }
 
 export function InvoiceFormScreen({
@@ -128,11 +254,26 @@ export function InvoiceFormScreen({
     type,
     customerId: mode === "create" ? customerId : null,
   });
+  const [openItemsSheet, setOpenItemsSheet] = useState<(() => void) | null>(
+    null,
+  );
+  const [activeItemHeaderTitle, setActiveItemHeaderTitle] = useState<
+    string | null
+  >(null);
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<InvoiceFormRecoverySnapshot | null>(null);
+  const [footerActionsHidden, setFooterActionsHidden] = useState(false);
+  const [formScrollY, setFormScrollY] = useState(0);
+	const [stickyWorkflowHeader, setStickyWorkflowHeader] =
+		useState<WorkflowStickyHeaderEntry | null>(null);
+	const [inlineWorkflowProceedAction, setInlineWorkflowProceedAction] =
+		useState<WorkflowFloatingActionEntry | null>(null);
+	const [itemNavigation, setItemNavigation] =
+		useState<InvoiceItemNavigationEntry | null>(null);
   const hydratedVersionRef = useRef<string | null>(null);
   const recoveryReadRef = useRef<string | null>(null);
   const initialCustomerRouteOpenedRef = useRef(false);
+  const lastScrollYRef = useRef(0);
 
   const headerTitle = useMemo(
     () =>
@@ -344,7 +485,7 @@ export function InvoiceFormScreen({
     const defaultProfile = getDefaultSalesFormCustomerProfile(profiles);
     const nextProfileId = Number(defaultProfile?.id || 0);
     if (!nextProfileId) return;
-    const profileMeta = defaultProfile?.meta || {};
+    const profileMeta = readSalesFormObjectMetadata(defaultProfile?.meta) || {};
     actions.applyCustomerProfileMeta(
       {
         customerProfileId: nextProfileId,
@@ -446,16 +587,71 @@ export function InvoiceFormScreen({
     }
   };
 
+  const handleItemsSheetPresenterChange = useCallback(
+    (presenter: (() => void) | null) => {
+      setOpenItemsSheet(presenter ? () => presenter : null);
+    },
+    [],
+  );
+
+  const handleFormScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const nextY = Math.max(0, event.nativeEvent.contentOffset.y);
+      const delta = nextY - lastScrollYRef.current;
+      lastScrollYRef.current = nextY;
+      setFormScrollY((current) =>
+        Math.abs(current - nextY) > 2 ? nextY : current,
+      );
+
+      if (nextY < 12) {
+        setFooterActionsHidden(false);
+        return;
+      }
+      if (delta > 8) {
+        setFooterActionsHidden(true);
+        return;
+      }
+      if (delta < -8) {
+        setFooterActionsHidden(false);
+      }
+    },
+    [],
+  );
+  const handleStickyWorkflowHeaderChange = useCallback(
+    (entry: WorkflowStickyHeaderEntry | null) => {
+      setStickyWorkflowHeader((current) => {
+        if (!entry) return current ? null : current;
+        if (current?.key === entry.key) return current;
+        return entry;
+      });
+    },
+    [],
+  );
+  const handleInlineWorkflowProceedActionChange = useCallback(
+    (entry: WorkflowFloatingActionEntry | null) => {
+      setInlineWorkflowProceedAction((current) => {
+        if (!entry) return current ? null : current;
+        if (
+          current?.key === entry.key &&
+          current.footerOffset === entry.footerOffset &&
+          current.onPress === entry.onPress
+        ) {
+          return current;
+        }
+        return entry;
+      });
+    },
+    [],
+  );
+  const formBottomPadding = FORM_SCROLL_BOTTOM_PADDING;
+
   return (
     <SafeArea>
       <FloatingInvoiceActionHost>
-        <KeyboardAvoidingView
-          className="flex-1 bg-background"
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={0}
-        >
+        <View className="flex-1 bg-background">
           <InvoiceFormHeader
-            title={headerTitle}
+            title={activeItemHeaderTitle || headerTitle}
+            onOpenItemsSheet={openItemsSheet}
             onOpenDetails={() =>
               router.push("/(sales)/invoices/sales-details" as any)
             }
@@ -468,15 +664,18 @@ export function InvoiceFormScreen({
               </Text>
             </View>
           ) : (
-            <ScrollView
+            <KeyboardAwareScrollView
               className="flex-1"
-              automaticallyAdjustKeyboardInsets
+              bottomOffset={FORM_KEYBOARD_BOTTOM_OFFSET}
+              disableScrollOnKeyboardHide
               keyboardDismissMode="interactive"
               keyboardShouldPersistTaps="handled"
+              onScroll={handleFormScroll}
+              scrollEventThrottle={16}
               contentContainerStyle={{
                 paddingHorizontal: 0,
                 paddingTop: 4,
-                paddingBottom: 112,
+                paddingBottom: formBottomPadding,
               }}
             >
               {recoverySnapshot ? (
@@ -506,29 +705,62 @@ export function InvoiceFormScreen({
                   </View>
                 </View>
               ) : null}
-              <ItemsStep />
-            </ScrollView>
-          )}
-          <InvoiceFormFooter
-            step="review"
-            canGoBack={false}
-            isSaving={isSaving}
-            validationError={validationError}
-            onBack={actions.prevStep}
-            onSaveDraft={handleSaveDraft}
-            onContinue={actions.nextStep}
-            onSaveFinal={handleCreateInvoice}
-            finalActionLabel={
-              mode === "edit"
-                ? `Save ${type === "quote" ? "Quote" : "Invoice"}`
-                : `Create ${type === "quote" ? "Quote" : "Invoice"}`
-            }
-          />
+				<ItemsStep
+					onItemsSheetPresenterChange={handleItemsSheetPresenterChange}
+					footerActionsHidden={footerActionsHidden}
+					onComponentScroll={handleFormScroll}
+                formScrollY={formScrollY}
+                onStickyWorkflowHeaderChange={handleStickyWorkflowHeaderChange}
+					onInlineWorkflowProceedActionChange={
+						handleInlineWorkflowProceedActionChange
+					}
+					onActiveItemTitleChange={setActiveItemHeaderTitle}
+					onItemNavigationChange={setItemNavigation}
+				/>
+			</KeyboardAwareScrollView>
+		)}
+          {stickyWorkflowHeader ? (
+            <View className="absolute inset-x-0 top-14 z-30">
+              {stickyWorkflowHeader.node}
+            </View>
+          ) : null}
+          {inlineWorkflowProceedAction ? (
+			<InlineWorkflowProceedActionFrame
+				footerOffset={inlineWorkflowProceedAction.footerOffset}
+				onPress={inlineWorkflowProceedAction.onPress}
+			/>
+		) : null}
+		<FixedInvoiceItemNavigation entry={itemNavigation} />
+		<View
+			pointerEvents="box-none"
+			className="absolute inset-x-0 bottom-0 z-40"
+          >
+            <InvoiceFormFooter
+              step="review"
+              canGoBack={false}
+              isSaving={isSaving}
+              validationError={validationError}
+              onBack={actions.prevStep}
+              onSaveDraft={handleSaveDraft}
+              onContinue={actions.nextStep}
+              onSaveFinal={handleCreateInvoice}
+              onOpenItemsSheet={openItemsSheet}
+              hidden={footerActionsHidden && !validationError}
+              finalActionLabel={
+                mode === "edit"
+                  ? `Save ${type === "quote" ? "Quote" : "Invoice"}`
+                  : `Create ${type === "quote" ? "Quote" : "Invoice"}`
+              }
+            />
+          </View>
           {selectorOpen ? <ItemSelector /> : null}
           {workflowSelectorLine ? (
             <WorkflowStepSelector
               line={workflowSelectorLine}
               onClose={actions.closeWorkflowSelector}
+              footerActionsHidden={footerActionsHidden}
+              onComponentScroll={handleFormScroll}
+              onStickyHeaderChange={handleStickyWorkflowHeaderChange}
             />
           ) : null}
           {isSaving ? (
@@ -541,7 +773,7 @@ export function InvoiceFormScreen({
               </View>
             </View>
           ) : null}
-        </KeyboardAvoidingView>
+        </View>
       </FloatingInvoiceActionHost>
     </SafeArea>
   );
@@ -611,7 +843,8 @@ export function SalesDetailsScreen({
   status?: string | null;
   saveStatus?: string | null;
 }) {
-  const noun = type === "quote" ? "Quote" : "Invoice";
+  const labels = getSalesDocumentLabels(type);
+  const createdAtLabel = type === "quote" ? "Quote date" : "Invoice date";
   const dueLabel = type === "quote" ? "Good until" : "Due date";
   const dueValue = type === "quote" ? meta.goodUntil : meta.paymentDueDate;
 
@@ -627,7 +860,7 @@ export function SalesDetailsScreen({
             </Pressable>
             <View className="pointer-events-none absolute inset-x-14 items-center">
               <Text className="text-base font-semibold text-foreground">
-                Sales details
+                {labels.detailsTitle}
               </Text>
             </View>
             <View className="h-11 w-11" />
@@ -643,7 +876,7 @@ export function SalesDetailsScreen({
                   {customer.name}
                 </Text>
                 <Text className="mt-1 text-sm text-muted-foreground">
-                  {customer.contact || customer.email || customer.phone}
+                  {getCustomerContactLine(customer)}
                 </Text>
                 <DetailLine label="Phone" value={customer.phone} />
                 <DetailLine label="Email" value={customer.email} />
@@ -656,14 +889,17 @@ export function SalesDetailsScreen({
               </Text>
             )}
 
-            <SectionTitle title={`${noun} details`} />
+            <SectionTitle title={labels.detailsTitle} />
             <View className="pb-5">
-              <DetailLine label="Sales #" value={orderId || slug || salesId} />
+              <DetailLine
+                label={labels.referenceLabel}
+                value={orderId || slug || salesId}
+              />
               <DetailLine
                 label="Status"
                 value={status || saveStatus || "Draft"}
               />
-              <DetailLine label="Invoice date" value={meta.createdAt} />
+              <DetailLine label={createdAtLabel} value={meta.createdAt} />
               <DetailLine label={dueLabel} value={dueValue} />
               <DetailLine label="Payment term" value={meta.paymentTerm} />
               <DetailLine label="Payment method" value={meta.paymentMethod} />

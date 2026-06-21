@@ -13,22 +13,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { useEffect, useState } from "react";
 import { getHptDoorSalesUnitPrice } from "../../domain";
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
+import type { DoorPriceRow } from "./door-price-update";
 
-export type DoorPriceRow = {
-  dimension?: string | null;
-  unitPrice?: number | null;
-  lhQty?: number | null;
-  rhQty?: number | null;
-  totalQty?: number | null;
-  lineTotal?: number | null;
-  meta?: {
-    baseUnitPrice?: number | null;
-    doorSalesUnitPrice?: number | null;
-    priceMissing?: boolean | null;
-    [key: string]: unknown;
-  } | null;
-  [key: string]: unknown;
-};
+export {
+  patchDoorRowCustomPrice,
+  updateDoorRowBasePrice,
+} from "./door-price-update";
+export type { DoorPriceRow } from "./door-price-update";
 
 function toNumber(value: unknown, fallback = 0) {
   const num = Number(value);
@@ -135,22 +126,6 @@ export function resolveDoorPriceBreakdown(
   };
 }
 
-function calcDoorRow<T extends DoorPriceRow>(row: T): T {
-  const lhQty = toNumber(row.lhQty, 0);
-  const rhQty = toNumber(row.rhQty, 0);
-  const totalInput = toNumber(row.totalQty, 0);
-  const unitPrice = toNumber(row.unitPrice, 0);
-  const totalQty = lhQty + rhQty > 0 ? lhQty + rhQty : totalInput;
-  return {
-    ...row,
-    lhQty,
-    rhQty,
-    unitPrice,
-    totalQty,
-    lineTotal: Number((totalQty * unitPrice).toFixed(2)),
-  };
-}
-
 function feetInchToInches(value: string) {
   const [feetPart, inchPart = "0"] = value.split("-");
   const feet = Number(feetPart || 0);
@@ -165,38 +140,6 @@ export function formatDoorSizeTitle(size?: string | null) {
   const heightIn = height ? feetInchToInches(height.trim()) : "";
   if (!widthIn || !heightIn) return String(size || "--");
   return `${widthIn} x ${heightIn}`;
-}
-
-export function updateDoorRowBasePrice<T extends DoorPriceRow>(
-  row: T,
-  nextBase: number,
-  profileCoefficient?: number | null,
-) {
-  const normalizedNextBase = Math.max(0, nextBase);
-  const priorBase = firstFiniteNumber(row.meta?.baseUnitPrice);
-  const priorCalculatedSales =
-    priorBase == null
-      ? toNumber(row.unitPrice, 0)
-      : profileAdjustedDoorSalesPrice(null, priorBase, profileCoefficient);
-  const surcharge = Number(
-    (toNumber(row.unitPrice, 0) - priorCalculatedSales).toFixed(2),
-  );
-  const nextCalculatedSales = profileAdjustedDoorSalesPrice(
-    null,
-    normalizedNextBase,
-    profileCoefficient,
-  );
-  return calcDoorRow({
-    ...row,
-    unitPrice: Number((nextCalculatedSales + surcharge).toFixed(2)),
-    jambSizePrice: nextCalculatedSales,
-    meta: {
-      ...(row.meta || {}),
-      baseUnitPrice: normalizedNextBase,
-      doorSalesUnitPrice: nextCalculatedSales,
-      priceMissing: false,
-    },
-  });
 }
 
 export function DoorPriceCell({

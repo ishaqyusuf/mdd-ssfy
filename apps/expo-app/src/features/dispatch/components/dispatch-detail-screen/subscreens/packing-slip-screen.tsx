@@ -188,15 +188,14 @@ export function PackingSlipScreen({
                     />
                   </Pressable>
                 ) : (
-                  <View
-                    className="items-center justify-center rounded-xl bg-muted"
-                    style={{ width: 52, height: 52 }}
-                  >
-                    <Icon
-                      name="HardHat"
-                      className="text-muted-foreground"
-                      size={18}
-                    />
+                  <View style={{ width: 52, height: 52 }}>
+                    <View className="h-full w-full items-center justify-center rounded-xl bg-muted">
+                      <Icon
+                        name="HardHat"
+                        className="text-muted-foreground"
+                        size={18}
+                      />
+                    </View>
                   </View>
                 )}
                 <View className="flex-1">
@@ -212,10 +211,7 @@ export function PackingSlipScreen({
               </View>
 
               {hasSingle && !singleUnavailable ? (
-                <View
-                  className="rounded-xl bg-muted/70 p-3"
-                  style={{ opacity: singleUnavailable ? 0.7 : 1 }}
-                >
+                <View className="rounded-xl bg-muted/70 p-3">
                   <Text className="mb-2 text-[11px] font-semibold uppercase tracking-[1px] text-muted-foreground">
                     Available: {maxQty}
                   </Text>

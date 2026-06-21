@@ -4,6 +4,7 @@ import {
 	resolveInitialWorkflowStepIndex as resolveInitialStepIndex,
 	resolveInteractiveWorkflowStepIndex,
 } from "../../domain/step-engine";
+import { readSalesFormObjectMetadata } from "../../domain/metadata";
 
 export type WorkflowStepRecord = {
 	id?: number | null;
@@ -234,15 +235,17 @@ export function isWorkflowComponentSelected(
 	const componentUid = String(component?.uid || "");
 	const componentId = Number(component?.id || 0);
 	if (!step || (!componentUid && !componentId)) return false;
+	const meta = readSalesFormObjectMetadata(step.meta) || {};
 
 	if (componentUid) {
-		const selectedUids = Array.isArray(step.meta?.selectedProdUids)
-			? step.meta.selectedProdUids.map((uid) => String(uid || ""))
+		const selectedUids = Array.isArray(meta.selectedProdUids)
+			? meta.selectedProdUids.map((uid) => String(uid || ""))
 			: [];
 		if (selectedUids.includes(componentUid)) return true;
 		if (String(step.prodUid || "") === componentUid) return true;
 		if (
-			step.meta?.selectedComponents?.some(
+			Array.isArray(meta.selectedComponents) &&
+			meta.selectedComponents.some(
 				(selected) => String(selected?.uid || "") === componentUid,
 			)
 		) {
@@ -266,32 +269,54 @@ export function isWorkflowComponentSelected(
 export function hasWorkflowStepSelection(
 	step: WorkflowStepRecord | null | undefined,
 ) {
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
 	return Boolean(
 		String(step?.value || step?.prodUid || "").trim() ||
 			step?.componentId ||
-			step?.meta?.selectedComponents?.length ||
-			step?.meta?.selectedProdUids?.length,
+			(Array.isArray(meta.selectedComponents) && meta.selectedComponents.length) ||
+			(Array.isArray(meta.selectedProdUids) && meta.selectedProdUids.length),
 	);
 }
 
 export function workflowStepSelectionLabel(
 	step: WorkflowStepRecord | null | undefined,
 ) {
-	const selected = Array.isArray(step?.meta?.selectedComponents)
-		? step.meta.selectedComponents
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
+	const selected = Array.isArray(meta.selectedComponents)
+		? meta.selectedComponents
 		: [];
 	if (selected.length) {
 		return (
 			selected
-				.map((component) => component.title || component.uid)
+				.map((component) =>
+					firstHumanWorkflowLabel(component.title, component.value),
+				)
 				.filter(Boolean)
 				.join(", ") || "Selected"
 		);
 	}
 
-	return String(
-		step?.value || step?.prodUid || step?.componentId || "Selected",
+	return (
+		firstHumanWorkflowLabel(step?.value, step?.title, step?.step?.title) ||
+		(step?.componentId ? `Component ${step.componentId}` : "Selected")
 	);
+}
+
+function firstHumanWorkflowLabel(...values: unknown[]) {
+	for (const value of values) {
+		const candidate = String(value || "").trim();
+		if (candidate && !isLikelyUidCopy(candidate)) return candidate;
+	}
+	return "";
+}
+
+function isLikelyUidCopy(value: string) {
+	const normalized = value.toLowerCase();
+	if (normalized.startsWith("workflow-")) return true;
+	if (normalized.includes("componentuid") || normalized.includes("sourceuid")) {
+		return true;
+	}
+	return /(^|[-_])(uid|uuid)([-_]|$)/.test(normalized);
 }
 
 export function stepKey(lineUid: string, stepIndex: number) {
@@ -424,14 +449,14 @@ export function getLineTitlePlaceholder(line: WorkflowLineItemRecord) {
 }
 
 export function getStoredMouldingRows(line: WorkflowLineItemRecord) {
-	const meta = line.meta as WorkflowLineItemRecord["meta"] & {
+	const meta = readSalesFormObjectMetadata(line.meta) as WorkflowLineItemRecord["meta"] & {
 		mouldingRows?: MouldingRow[];
 	};
 	return Array.isArray(meta?.mouldingRows) ? meta.mouldingRows : [];
 }
 
 export function getStoredServiceRows(line: WorkflowLineItemRecord) {
-	const meta = line.meta as WorkflowLineItemRecord["meta"] & {
+	const meta = readSalesFormObjectMetadata(line.meta) as WorkflowLineItemRecord["meta"] & {
 		serviceRows?: ServiceRow[];
 	};
 	return Array.isArray(meta?.serviceRows) ? meta.serviceRows : [];
@@ -445,12 +470,14 @@ export function isComponentEnabledForView(
 	if (includeCustom) return true;
 	const uid = String(component?.uid || "");
 	if (uid && selectedCustomUids?.has(uid)) return true;
-	return !component?._metaData?.custom && !component?.custom;
+	const metaData = readSalesFormObjectMetadata(component?._metaData);
+	return !metaData?.custom && !component?.custom;
 }
 
 export function getStepPriceDeps(step?: WorkflowStepRecord | null) {
-	return Array.isArray(step?.meta?.priceStepDeps)
-		? step.meta.priceStepDeps
+	const meta = readSalesFormObjectMetadata(step?.meta);
+	return Array.isArray(meta?.priceStepDeps)
+		? meta.priceStepDeps
 		: null;
 }
 
@@ -458,8 +485,9 @@ export function buildStepComponentOverrideMap(
 	step?: WorkflowStepRecord | null,
 ) {
 	const overrides = new Map<string, WorkflowComponentRecord>();
-	const selected = Array.isArray(step?.meta?.selectedComponents)
-		? step.meta.selectedComponents
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
+	const selected = Array.isArray(meta.selectedComponents)
+		? meta.selectedComponents
 		: [];
 	for (const component of selected) {
 		const uid = String(component?.uid || "").trim();
@@ -469,14 +497,14 @@ export function buildStepComponentOverrideMap(
 	if (String(step?.prodUid || "").trim()) {
 		const uid = String(step?.prodUid || "").trim();
 		if (!overrides.has(uid)) {
-			const custom = step?.meta?.custom === true || step?.custom === true;
+			const custom = meta.custom === true || step?.custom === true;
 			overrides.set(uid, {
 				uid,
 				title: step?.value || null,
 				salesPrice: step?.price ?? null,
 				basePrice: step?.basePrice ?? null,
-				redirectUid: step?.meta?.redirectUid || null,
-				sectionOverride: step?.meta?.sectionOverride || null,
+				redirectUid: meta.redirectUid || null,
+				sectionOverride: meta.sectionOverride || null,
 				custom,
 				_metaData: {
 					custom,

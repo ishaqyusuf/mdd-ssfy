@@ -5,6 +5,7 @@ import type {
   WorkflowStepRecord,
 } from "@gnd/sales/sales-form-core";
 import { useQuery } from "@tanstack/react-query";
+import { getWorkflowSelectableTitle } from "./workflow-selectable-copy";
 
 type WorkflowComponentRow = WorkflowComponentRecord & Record<string, unknown>;
 type DoorSupplierRow = Record<string, unknown>;
@@ -77,7 +78,7 @@ function mapWorkflowComponent(row: WorkflowComponentRow): WorkflowComponentRecor
     ...row,
     id: row.id == null ? null : Number(row.id || 0),
     uid: String(row.uid || row.id || ""),
-    title: String(row.title || row.value || row.uid || "Component"),
+    title: getWorkflowSelectableTitle(row),
     salesPrice:
       row.salesPrice == null ? null : Number(row.salesPrice || 0),
     basePrice: row.basePrice == null ? null : Number(row.basePrice || 0),

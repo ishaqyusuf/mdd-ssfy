@@ -5,19 +5,17 @@ import { Pressable } from "@/components/ui/pressable";
 import { useSalesDashboardOverview } from "@/features/sales/api/use-sales-dashboard-overview";
 import { useAuthContext } from "@/hooks/use-auth";
 import { useRouter } from "expo-router";
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import { NewSalesTypeSheet } from "./new-sales-type-sheet";
+import { SalesDocumentCard } from "./sales-document-card";
+import { toRecentSalesDocumentItem } from "./sales-dashboard-recent-sales";
+import { SalesDashboardSkeleton } from "./sales-dashboard-skeleton";
 
 export function SalesDashboardScreen() {
   const router = useRouter();
   const auth = useAuthContext();
-  const { data, isPending, refetch, isRefetching } = useSalesDashboardOverview();
+  const { data, isPending, refetch, isRefetching } =
+    useSalesDashboardOverview();
 
   return (
     <SafeArea>
@@ -34,9 +32,7 @@ export function SalesDashboardScreen() {
             </Text>
           </View>
           {isPending ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator />
-            </View>
+            <SalesDashboardSkeleton />
           ) : (
             <ScrollView
               contentContainerStyle={{
@@ -100,13 +96,16 @@ export function SalesDashboardScreen() {
                   </View>
                 </Pressable>
 
-                <View className="rounded-2xl border border-border bg-card p-4 opacity-60">
+                <Pressable
+                  onPress={() => router.push("/(sales)/quotes")}
+                  className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
+                >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-3">
-                      <View className="rounded-full bg-muted p-2">
+                      <View className="rounded-full bg-primary/10 p-2">
                         <Icon
                           name="FileText"
-                          className="text-muted-foreground"
+                          className="text-primary"
                           size={18}
                         />
                       </View>
@@ -115,12 +114,17 @@ export function SalesDashboardScreen() {
                           Quotes
                         </Text>
                         <Text className="text-xs text-muted-foreground">
-                          Coming soon
+                          Search and edit customer quotes
                         </Text>
                       </View>
                     </View>
+                    <Icon
+                      name="ChevronRight"
+                      className="text-muted-foreground"
+                      size={20}
+                    />
                   </View>
-                </View>
+                </Pressable>
               </View>
               <View className="mt-6">
                 <View className="mb-3 flex-row items-center justify-between">
@@ -134,18 +138,23 @@ export function SalesDashboardScreen() {
 
                 {(data?.recentSales || []).length ? (
                   <View className="gap-2">
-                    {(data?.recentSales || []).map((sale) => (
-                      <RecentSaleItem
-                        key={String(sale.id)}
-                        sale={sale}
-                        onPress={() =>
-                          router.push({
-                            pathname: "/(sales)/orders/[orderNo]",
-                            params: { orderNo: sale.orderId },
-                          } as any)
-                        }
-                      />
-                    ))}
+                    {(data?.recentSales || []).map((sale) => {
+                      const item = toRecentSalesDocumentItem(sale);
+
+                      return (
+                        <SalesDocumentCard
+                          type="order"
+                          key={String(sale.id)}
+                          item={item}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/(sales)/orders/[orderNo]",
+                              params: { orderNo: sale.orderId },
+                            } as any)
+                          }
+                        />
+                      );
+                    })}
                   </View>
                 ) : (
                   <View className="rounded-2xl border border-dashed border-border p-4">
@@ -155,7 +164,6 @@ export function SalesDashboardScreen() {
                   </View>
                 )}
               </View>
-
             </ScrollView>
           )}
         </View>
@@ -180,40 +188,5 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <Text className="text-xs font-medium text-muted-foreground">{label}</Text>
       <Text className="mt-1.5 text-3xl font-bold text-foreground">{value}</Text>
     </View>
-  );
-}
-
-function RecentSaleItem({
-  sale,
-  onPress,
-}: {
-  sale: any;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
-    >
-      <View className="flex-row items-center justify-between">
-        <View className="flex-1 pr-3">
-          <Text className="text-sm font-bold text-foreground">
-            #{sale.orderId}
-          </Text>
-          <Text className="mt-0.5 text-xs text-muted-foreground">
-            {sale.customerName || "-"}
-          </Text>
-        </View>
-
-        <View className="items-end">
-          <Text className="text-sm font-semibold text-foreground">
-            ${Number(sale.total || 0).toFixed(2)}
-          </Text>
-          <Text className="text-[11px] text-muted-foreground">
-            Due ${Number(sale.due || 0).toFixed(2)}
-          </Text>
-        </View>
-      </View>
-    </Pressable>
   );
 }

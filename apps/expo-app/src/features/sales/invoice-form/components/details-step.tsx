@@ -94,6 +94,7 @@ export function DetailsStep() {
   const { taxProfiles } = useInvoiceFormTaxProfiles();
   const taxOptions = buildSalesFormTaxSelectOptions(taxProfiles);
   const isQuote = type === "quote";
+  const noun = isQuote ? "quote" : "invoice";
   const patch = (key: keyof NewSalesFormMeta) => (value: string) =>
     updateMeta({ [key]: value });
   const setTaxCode = (value: string) =>
@@ -112,7 +113,11 @@ export function DetailsStep() {
       <View className="gap-3">
         <View className="flex-row gap-3">
           <View className="flex-1">
-            <Field label="Invoice date" value={meta.createdAt} onChangeText={patch("createdAt")} />
+            <Field
+              label={isQuote ? "Quote date" : "Invoice date"}
+              value={meta.createdAt}
+              onChangeText={patch("createdAt")}
+            />
           </View>
           <View className="flex-1">
             <Field
@@ -165,7 +170,7 @@ export function DetailsStep() {
           value={meta.notes}
           onChangeText={patch("notes")}
           multiline
-          placeholder="Internal notes or invoice memo"
+          placeholder={`Internal notes or ${noun} memo`}
         />
       </View>
     </View>

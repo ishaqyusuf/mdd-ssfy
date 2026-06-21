@@ -7,6 +7,10 @@ import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormCustomerSearch } from "../api/use-invoice-form-search";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type { InvoiceCustomer, NewSalesFormType } from "../types";
+import {
+  getCustomerAddressLine,
+  getCustomerContactLine,
+} from "./customer-display";
 
 function CustomerRow({
   customer,
@@ -34,13 +38,13 @@ function CustomerRow({
             numberOfLines={1}
             className="mt-0.5 text-xs text-muted-foreground"
           >
-            {customer.contact} - {customer.phone}
+            {getCustomerContactLine(customer)}
           </Text>
           <Text
             numberOfLines={1}
             className="mt-0.5 text-xs text-muted-foreground"
           >
-            {customer.billingAddress}
+            {getCustomerAddressLine(customer)}
           </Text>
         </View>
         {selected ? (

@@ -59,6 +59,7 @@ const Building2 = hugeIcon("Building02Icon");
 const Calendar = hugeIcon("Calendar");
 const CalendarCheck = hugeIcon("CalendarCheckIn01Icon");
 const Camera = hugeIcon("Camera");
+const Calculator = hugeIcon("CalculatorIcon");
 const ChartNoAxesColumn = hugeIcon("Analytics01Icon");
 const Check = hugeIcon("Check");
 const CheckCircle2 = hugeIcon("CheckmarkCircle01Icon");
@@ -266,6 +267,7 @@ const appIcons = {
   Calendar,
   CalendarCheck,
   Camera,
+  Calculator,
   Check,
   CheckSquare,
   CheckCircle2,

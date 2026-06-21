@@ -102,7 +102,7 @@ export function buildWorkflowMouldingRowsPatch(input: {
 	);
 	return {
 		meta: {
-			...(input.line.meta || {}),
+			...readLineMeta(input.line.meta),
 			mouldingRows: next.storedRows,
 		},
 		qty: next.qtyTotal,
@@ -114,7 +114,7 @@ export function buildWorkflowMouldingRowsPatch(input: {
 export function buildWorkflowServiceRowsContext(
 	line: WorkflowLineItemRecord,
 ): WorkflowServiceRowsContext {
-	const lineMeta = (line.meta || {}) as {
+	const lineMeta = readLineMeta(line.meta) as {
 		taxxable?: boolean;
 		produceable?: boolean;
 	};
@@ -138,7 +138,7 @@ export function buildWorkflowServiceRowsPatch(input: {
 	const next = summarizeServiceRows(String(input.line.uid || ""), input.rows);
 	return {
 		meta: {
-			...(input.line.meta || {}),
+			...readLineMeta(input.line.meta),
 			serviceRows: next.rows,
 			taxxable: next.taxxable,
 			produceable: next.produceable,
@@ -148,6 +148,20 @@ export function buildWorkflowServiceRowsPatch(input: {
 		lineTotal: next.lineTotal,
 		description: next.description,
 	};
+}
+
+function readLineMeta(value: unknown): Record<string, unknown> {
+	if (!value) return {};
+	if (typeof value === "string") {
+		try {
+			return readLineMeta(JSON.parse(value));
+		} catch {
+			return {};
+		}
+	}
+	return typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
 }
 
 export function buildWorkflowShelfSectionsContext(

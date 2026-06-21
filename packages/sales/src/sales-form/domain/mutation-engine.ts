@@ -1,9 +1,17 @@
+import { readSalesFormObjectMetadata } from "./metadata";
+
 export function getSelectedProdUids(step: any) {
-  const metaUids = Array.isArray(step?.meta?.selectedProdUids)
-    ? step.meta.selectedProdUids
-        .map((uid: unknown) => String(uid || "").trim())
-        .filter(Boolean)
-    : [];
+  const metaRecords = [
+    readSalesFormObjectMetadata(step?.meta),
+    readSalesFormObjectMetadata(readSalesFormObjectMetadata(step?.step)?.meta),
+  ].filter(Boolean);
+  const metaUids = metaRecords.flatMap((meta) =>
+    Array.isArray(meta?.selectedProdUids)
+      ? meta.selectedProdUids
+          .map((uid: unknown) => String(uid || "").trim())
+          .filter(Boolean)
+      : [],
+  );
   if (metaUids.length) return Array.from(new Set(metaUids));
   const prodUid = String(step?.prodUid || "").trim();
   return prodUid ? [prodUid] : [];
@@ -19,6 +27,8 @@ export function compactStepValue(selectedComponents: any[]) {
 }
 
 function snapshotSelectedComponent(component: any) {
+  const metaData = readSalesFormObjectMetadata(component?._metaData) || {};
+  const custom = component?.custom === true || metaData.custom === true;
   return {
     id: component?.id ?? null,
     uid: component?.uid || "",
@@ -34,10 +44,10 @@ function snapshotSelectedComponent(component: any) {
       : [],
     redirectUid: component?.redirectUid || null,
     sectionOverride: component?.sectionOverride || null,
-    custom: component?.custom === true || component?._metaData?.custom === true,
+    custom,
     _metaData: {
-      ...(component?._metaData || {}),
-      custom: component?.custom === true || component?._metaData?.custom === true,
+      ...metaData,
+      custom,
     },
   };
 }
@@ -69,6 +79,7 @@ export function applyMultiSelectStepMutation({
     };
   }
 
+  const currentMeta = readSalesFormObjectMetadata(current?.meta) || {};
   const selectedSet = new Set(getSelectedProdUids(current));
   const nextSelected =
     typeof selectedOverride === "boolean"
@@ -78,8 +89,8 @@ export function applyMultiSelectStepMutation({
   else selectedSet.delete(component.uid);
 
   const selectedUids = Array.from(selectedSet);
-  const existingSelectedComponents = Array.isArray(current?.meta?.selectedComponents)
-    ? current.meta.selectedComponents
+  const existingSelectedComponents = Array.isArray(currentMeta.selectedComponents)
+    ? currentMeta.selectedComponents
     : [];
   const selectedComponents = selectedUids
     .map((uid) => {
@@ -115,7 +126,7 @@ export function applyMultiSelectStepMutation({
     price: selectedComponents.length ? totalSales : 0,
     basePrice: selectedComponents.length ? totalBase : 0,
     meta: {
-      ...(current.meta || {}),
+      ...currentMeta,
       img: primary?.img || null,
       redirectUid: primary?.redirectUid || null,
       sectionOverride: primary?.sectionOverride || null,
@@ -156,6 +167,9 @@ export function applySingleSelectStepMutation({
   const nextSteps = [...steps];
   const current = nextSteps[currentStepIndex];
   if (!current) return nextSteps;
+  const currentMeta = readSalesFormObjectMetadata(current?.meta) || {};
+  const componentMeta = readSalesFormObjectMetadata(component?._metaData) || {};
+  const custom = component?.custom === true || componentMeta.custom === true;
 
   nextSteps[currentStepIndex] = {
     ...current,
@@ -167,11 +181,11 @@ export function applySingleSelectStepMutation({
     basePrice:
       component.basePrice == null ? current.basePrice : Number(component.basePrice || 0),
     meta: {
-      ...(current.meta || {}),
+      ...currentMeta,
       img: component.img || null,
       redirectUid: component.redirectUid || null,
       sectionOverride: component.sectionOverride || null,
-      custom: component?.custom === true || component?._metaData?.custom === true,
+      custom,
       selectedComponents: [snapshotSelectedComponent(component)],
       selectedProdUids: component?.uid ? [component.uid] : [],
     },

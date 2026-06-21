@@ -24,6 +24,10 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.getOrdersV2`: canonical sales orders list query for `/sales-book/orders` and `/sales-book/orders/bin`; accepts the existing pagination `bin` flag and forwards it through the legacy sales filter adapter for deleted-order views
   - `sales.getOrdersV2Summary`: canonical sales orders summary query for `/sales-book/orders`
   - `filters.salesOrdersV2`: filter metadata query used by `SalesOrdersV2Header`
+- New sales form shelf product routes now include:
+  - `newSalesForm.searchShelfProducts`: mobile and web shelf picker search; blank query returns up to 10 visible recently used shelf products ordered by latest saved shelf line usage, skipping archived/hidden recent products without filling from unused active products; unused active shelf products are only shown through typed search or selected-product hydration
+  - `newSalesForm.updateShelfProduct`: updates a shelf product title and unit price for the mobile shelf search edit action
+  - `newSalesForm.deleteShelfProduct`: soft-deletes a shelf product for the mobile shelf search delete action
 - Dispatch / pickup packing routes now include:
   - `dispatch.sendSaleForPickup`: creates or reuses a pickup `OrderDelivery` in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - `dispatch.packingList`: tab-aware query powering `/sales/packing-list` for `current`, `completed`, and admin-only `cancelled` views

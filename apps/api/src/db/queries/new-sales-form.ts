@@ -4,6 +4,7 @@ import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-war
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import {
   bootstrapNewSalesFormSchema,
+  deleteNewSalesFormShelfProductSchema,
   deleteNewSalesFormLineItemSchema,
   getNewSalesFormSchema,
   getNewSalesFormStepRoutingSchema,
@@ -16,8 +17,10 @@ import {
   saveFinalNewSalesFormSchema,
   searchNewSalesCustomersSchema,
   searchNewSalesFormShelfProductsSchema,
+  updateNewSalesFormShelfProductSchema,
   resolveNewSalesCustomerSchema,
   type BootstrapNewSalesFormSchema,
+  type DeleteNewSalesFormShelfProductSchema,
   type DeleteNewSalesFormLineItemSchema,
   type GetNewSalesFormSchema,
   type GetNewSalesFormStepRoutingSchema,
@@ -34,6 +37,7 @@ import {
   type SaveFinalNewSalesFormSchema,
   type SearchNewSalesCustomersSchema,
   type SearchNewSalesFormShelfProductsSchema,
+  type UpdateNewSalesFormShelfProductSchema,
   type ResolveNewSalesCustomerSchema,
 } from "@api/schemas/new-sales-form";
 import { getSalesCustomer } from "@api/db/queries/customer";
@@ -123,11 +127,11 @@ function finiteOptionalNumber(value: unknown) {
 }
 
 function resolveDealerProfileCard(order: {
-    dealerAuth?: {
-      id?: number | null;
-      email?: string | null;
-      name?: string | null;
-      companyName?: string | null;
+  dealerAuth?: {
+    id?: number | null;
+    email?: string | null;
+    name?: string | null;
+    companyName?: string | null;
     dealer?: {
       name?: string | null;
       businessName?: string | null;
@@ -168,7 +172,8 @@ function normalizeDealerProfileCardProfile(
     title: profile.title || null,
     salesPercentage:
       profile.salesPercentage == null ? null : Number(profile.salesPercentage),
-    coefficient: profile.coefficient == null ? null : Number(profile.coefficient),
+    coefficient:
+      profile.coefficient == null ? null : Number(profile.coefficient),
   };
 }
 
@@ -1890,13 +1895,140 @@ export async function getNewSalesFormShelfProductDetails(
   }));
 }
 
+async function getRecentShelfProducts(
+  ctx: TRPCContext,
+  visibilityWhere: any,
+  productSelect: any,
+  limit: number,
+) {
+  if (limit <= 0) return [];
+
+  const products: any[] = [];
+  const seenProductIds = new Set<number>();
+  const batchSize = Math.max(limit * 4, 25);
+  let skip = 0;
+
+  while (products.length < limit) {
+    const recentRows = await ctx.db.dykeSalesShelfItem.findMany({
+      where: {
+        deletedAt: null,
+        productId: {
+          not: null,
+        },
+      },
+      select: {
+        productId: true,
+      },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: batchSize,
+      skip,
+    });
+
+    if (!recentRows.length) break;
+
+    const candidateIds = recentRows
+      .map((row) => Number(row?.productId || 0))
+      .filter((id) => {
+        if (id <= 0 || seenProductIds.has(id)) return false;
+        seenProductIds.add(id);
+        return true;
+      });
+
+    const visibleProducts = candidateIds.length
+      ? await ctx.db.dykeShelfProducts.findMany({
+          where: {
+            ...visibilityWhere,
+            id: {
+              in: candidateIds,
+            },
+          },
+          select: productSelect,
+        })
+      : [];
+    const visibleProductById = new Map(
+      visibleProducts.map(
+        (product) => [Number(product?.id || 0), product] as const,
+      ),
+    );
+
+    for (const id of candidateIds) {
+      const product = visibleProductById.get(id);
+      if (product) products.push(product);
+      if (products.length >= limit) break;
+    }
+
+    if (recentRows.length < batchSize) break;
+    skip += recentRows.length;
+  }
+
+  if (products.length < limit) {
+    const fallbackRows = await ctx.db.dykeShelfProducts.findMany({
+      where: {
+        ...visibilityWhere,
+        id: {
+          notIn: Array.from(seenProductIds),
+        },
+      },
+      select: productSelect,
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: limit - products.length,
+    });
+    products.push(...fallbackRows);
+  }
+
+  return products.slice(0, limit);
+}
+
+export async function updateNewSalesFormShelfProduct(
+  ctx: TRPCContext,
+  input: UpdateNewSalesFormShelfProductSchema,
+) {
+  const payload = updateNewSalesFormShelfProductSchema.parse(input);
+  return ctx.db.dykeShelfProducts.update({
+    where: {
+      id: payload.id,
+    },
+    data: {
+      title: payload.title,
+      unitPrice:
+        payload.unitPrice == null ? null : Number(payload.unitPrice || 0),
+    },
+    select: {
+      id: true,
+      title: true,
+      img: true,
+      unitPrice: true,
+      categoryId: true,
+      parentCategoryId: true,
+    },
+  });
+}
+
+export async function deleteNewSalesFormShelfProduct(
+  ctx: TRPCContext,
+  input: DeleteNewSalesFormShelfProductSchema,
+) {
+  const payload = deleteNewSalesFormShelfProductSchema.parse(input);
+  return ctx.db.dykeShelfProducts.update({
+    where: {
+      id: payload.id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 export async function searchNewSalesFormShelfProducts(
   ctx: TRPCContext,
   input: SearchNewSalesFormShelfProductsSchema,
 ) {
   const payload = searchNewSalesFormShelfProductsSchema.parse(input);
   const query = payload.query.trim();
-  const limit = query ? payload.limit : Math.min(payload.limit, 5);
+  const limit = query ? payload.limit : Math.min(payload.limit, 15);
   const visibilityWhere = await activeShelfProductWhere(ctx);
   const productSelect = {
     id: true,
@@ -1906,21 +2038,19 @@ export async function searchNewSalesFormShelfProducts(
     categoryId: true,
     parentCategoryId: true,
   } as const;
-  const rows = await ctx.db.dykeShelfProducts.findMany({
-    where: {
-      ...visibilityWhere,
-      ...(query
-        ? {
-            title: {
-              contains: query,
-            },
-          }
-        : {}),
-    },
-    select: productSelect,
-    orderBy: [{ title: "asc" }],
-    take: limit,
-  });
+  const rows = query
+    ? await ctx.db.dykeShelfProducts.findMany({
+        where: {
+          ...visibilityWhere,
+          title: {
+            contains: query,
+          },
+        },
+        select: productSelect,
+        orderBy: [{ title: "asc" }],
+        take: limit,
+      })
+    : await getRecentShelfProducts(ctx, visibilityWhere, productSelect, limit);
   const rowIds = new Set(rows.map((row) => Number(row?.id || 0)));
   const selectedIds = payload.selectedIds.filter(
     (id, index, list) =>
@@ -2383,7 +2513,11 @@ async function saveNewSalesFormInternal(
           meta: itemMeta as any,
           deletedAt: null,
         };
-        const existingSalesItemId = Number(row.salesItemId || line.id || 0);
+        const existingSalesItemId = Number(
+          row.salesItemId ||
+            (legacyLine.kind && !legacyLine.primaryGroupItem ? 0 : line.id) ||
+            0,
+        );
         const createdItem =
           existingSalesItemId > 0
             ? await tx.salesOrderItems.update({
@@ -2539,7 +2673,11 @@ async function saveNewSalesFormInternal(
             meta: safeRecord(hpt.meta) as any,
             deletedAt: null,
           };
-          const existingHptId = Number(row.hptId || hpt.id || 0);
+          const existingHptId = Number(
+            row.hptId ||
+              (legacyLine.kind && !legacyLine.primaryGroupItem ? 0 : hpt.id) ||
+              0,
+          );
           const createdHpt =
             existingHptId > 0
               ? await tx.housePackageTools.update({

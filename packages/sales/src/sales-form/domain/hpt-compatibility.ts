@@ -1,3 +1,5 @@
+import { readSalesFormObjectMetadata } from "./metadata";
+
 type HptDoorRow = Record<string, any>;
 type HptLine = Record<string, any>;
 
@@ -77,7 +79,8 @@ export function computeHptSharedDoorSurcharge(
 export function computeHptFlatRate(line: HptLine | null | undefined) {
 	return roundCurrency(
 		(line?.formSteps || []).reduce((sum: number, step: any) => {
-			return sum + Number(step?.meta?.flatRate || 0);
+			const meta = readSalesFormObjectMetadata(step?.meta);
+			return sum + Number(meta?.flatRate || 0);
 		}, 0),
 	);
 }
@@ -87,7 +90,7 @@ export function getHptDoorSalesUnitPrice(
 	context?: HptCompatibilityContext,
 ) {
 	if (!row) return 0;
-	const meta = row?.meta || {};
+	const meta = readSalesFormObjectMetadata(row?.meta) || {};
 	const sharedDoorSurcharge = Number(
 		context?.sharedDoorSurcharge ?? meta.sharedDoorSurcharge ?? 0,
 	);
@@ -146,7 +149,7 @@ export function resolveHptDoorUnitPriceBreakdown(
 			hasCustomPrice: false,
 		};
 	}
-	const meta = row?.meta || {};
+	const meta = readSalesFormObjectMetadata(row?.meta) || {};
 	const sharedDoorSurcharge = roundCurrency(
 		Number(context?.sharedDoorSurcharge ?? meta.sharedDoorSurcharge ?? 0),
 	);
@@ -190,7 +193,7 @@ export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
 	row: T,
 	context?: HptCompatibilityContext,
 ): T & HptDoorRow {
-	const meta = row?.meta || {};
+	const meta = readSalesFormObjectMetadata(row?.meta) || {};
 	const noHandle = !!context?.noHandle;
 	const hasSwing = context?.hasSwing !== false;
 	const totalQty = selectedDoorQty(row, noHandle);
@@ -236,7 +239,7 @@ export function hydrateHptDoorRowFromLegacy<T extends HptDoorRow>(
 	door: T,
 	context?: HptCompatibilityContext,
 ): T & HptDoorRow {
-	const meta = door?.meta || {};
+	const meta = readSalesFormObjectMetadata(door?.meta) || {};
 	const doorSalesUnitPrice =
 		firstFinite(door?.jambSizePrice, meta?.doorSalesUnitPrice) ?? 0;
 	const addon = firstFinite(door?.doorPrice, door?.addon, meta?.addon) ?? 0;

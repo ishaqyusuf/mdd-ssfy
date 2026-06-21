@@ -1,11 +1,6 @@
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import {
-	formatMoney,
-	sum,
-	timeLog,
-	transformFilterDateToQuery,
-} from "@gnd/utils";
+import { formatMoney, sum, transformFilterDateToQuery } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
 import type { HousePackageToolMeta } from "@sales/types";
@@ -36,6 +31,74 @@ type MouldingPriceMeta = HousePackageToolMeta["priceTags"] extends infer T
 		: never
 	: never;
 
+function getProductReportDateWhere(query: ProductReportSchema) {
+	const createdAt = transformFilterDateToQuery(
+		query.dateRange as ProductReportDateRange,
+	);
+
+	return createdAt ? { createdAt } : {};
+}
+
+function getOrderWhere() {
+	return {
+		deletedAt: null,
+		type: "order" as const,
+	};
+}
+
+function getOrderItemWhere() {
+	return {
+		deletedAt: null,
+		salesOrder: getOrderWhere(),
+	};
+}
+
+function getStepFormSalesWhere(query: ProductReportSchema) {
+	return {
+		deletedAt: null,
+		price: { gt: 0 },
+		basePrice: { gt: 0 },
+		...getProductReportDateWhere(query),
+		salesOrderItem: getOrderItemWhere(),
+	} satisfies Prisma.DykeStepFormWhereInput;
+}
+
+function getSalesDoorWhere(query: ProductReportSchema) {
+	return {
+		deletedAt: null,
+		...getProductReportDateWhere(query),
+		order: getOrderWhere(),
+		salesOrderItem: getOrderItemWhere(),
+	} satisfies Prisma.DykeSalesDoorsWhereInput;
+}
+
+function getHousePackageToolWhere(query: ProductReportSchema) {
+	return {
+		deletedAt: null,
+		moldingId: { not: null },
+		...getProductReportDateWhere(query),
+		order: getOrderWhere(),
+		salesOrderItem: getOrderItemWhere(),
+	} satisfies Prisma.HousePackageToolsWhereInput;
+}
+
+function isProductReportComponentEnabled(component: {
+	custom?: boolean | null;
+	meta?: unknown;
+}) {
+	if (!component.custom) return true;
+	if (
+		!component.meta ||
+		typeof component.meta !== "object" ||
+		Array.isArray(component.meta)
+	) {
+		return true;
+	}
+
+	const deletedAt = (component.meta as Record<string, unknown>).deletedAt;
+	return typeof deletedAt !== "string" || deletedAt.length === 0;
+}
+
 export async function getProductReport(
 	{ db }: TRPCContext,
 	query: ProductReportSchema,
@@ -45,21 +108,9 @@ export async function getProductReport(
 		whereStat(query),
 		db.dykeStepProducts,
 	);
-	const dateFilter = {
-		createdAt: transformFilterDateToQuery(
-			query.dateRange as ProductReportDateRange,
-		),
-	};
-	const salesOrderFilter = {
-		deletedAt: null,
-		salesOrderItem: {
-			deletedAt: null,
-			salesOrder: {
-				deletedAt: null,
-				type: "order" as const,
-			},
-		},
-	};
+	const stepFormSalesWhere = getStepFormSalesWhere(query);
+	const salesDoorWhere = getSalesDoorWhere(query);
+	const housePackageToolWhere = getHousePackageToolWhere(query);
 
 	const data = await db.dykeStepProducts.findMany({
 		where,
@@ -81,6 +132,8 @@ export async function getProductReport(
 			createdAt: true,
 			img: true,
 			id: true,
+			custom: true,
+			meta: true,
 			name: true,
 
 			step: {
@@ -90,22 +143,14 @@ export async function getProductReport(
 			},
 			product: { select: { title: true, productCode: true, img: true } },
 			stepForms: {
-				where: {
-					...salesOrderFilter,
-					price: { gt: 0 },
-					basePrice: { gt: 0 },
-					...dateFilter,
-				},
+				where: stepFormSalesWhere,
 				select: {
 					price: true,
 					basePrice: true,
 				},
 			},
 			housePackageTools: {
-				where: {
-					moldingId: { not: null },
-					...dateFilter,
-				},
+				where: housePackageToolWhere,
 				select: {
 					// molding: {
 					//   select: {
@@ -127,10 +172,7 @@ export async function getProductReport(
 					totalQty: true,
 					jambSizePrice: true,
 				},
-				where: {
-					deletedAt: null,
-					...dateFilter,
-				},
+				where: salesDoorWhere,
 			},
 			_count: {
 				select: {
@@ -139,16 +181,7 @@ export async function getProductReport(
 					//     deletedAt: null,
 					//   }
 					// },
-					stepForms: {
-						where: {
-							...dateFilter,
-							salesOrderItem: {
-								salesOrder: {
-									type: "order",
-								},
-							},
-						},
-					},
+					stepForms: { where: stepFormSalesWhere },
 				},
 			},
 		},
@@ -156,12 +189,15 @@ export async function getProductReport(
 	const pageSize = query.size ? Number(query.size) : 20;
 	const cursor = Number(query.cursor || 0);
 	const rows = data
+		.filter(isProductReportComponentEnabled)
 		.map((d) => {
 			const productCode = d.product?.productCode;
 			const isMolding =
 				// ?.filter((a) => a?.molding)
 				!!d?.housePackageTools?.length;
 			const doorsCount = d?.salesDoors?.length;
+			const salesCount =
+				doorsCount + d.housePackageTools.length + d.stepForms.length;
 			const hpts = d.housePackageTools
 				.map((a) => ({
 					...a,
@@ -208,9 +244,16 @@ export async function getProductReport(
 				img: d.img || d.product?.img,
 				date: d.createdAt,
 				productCode,
+				salesCount,
 			};
 		})
+		.filter((row) => Number(row.salesCount || 0) > 0)
 		.sort((a, b) => {
+			const salesCountDiff =
+				Number(b.salesCount || 0) - Number(a.salesCount || 0);
+
+			if (salesCountDiff !== 0) return salesCountDiff;
+
 			const unitsDiff = Number(b.units || 0) - Number(a.units || 0);
 
 			if (unitsDiff !== 0) return unitsDiff;
@@ -226,7 +269,16 @@ export async function getProductReport(
 	return await response(rows);
 }
 function whereStat(query: ProductReportSchema) {
+	const stepFormSalesWhere = getStepFormSalesWhere(query);
+	const salesDoorWhere = getSalesDoorWhere(query);
+	const housePackageToolWhere = getHousePackageToolWhere(query);
 	const where: Prisma.DykeStepProductsWhereInput[] = [
+		{
+			deletedAt: null,
+			step: {
+				deletedAt: null,
+			},
+		},
 		{
 			OR: [
 				{
@@ -266,29 +318,17 @@ function whereStat(query: ProductReportSchema) {
 			OR: [
 				{
 					stepForms: {
-						some: {
-							deletedAt: null,
-							// price: {
-							//   gt: 0,
-							// },
-							salesOrderItem: {
-								salesOrder: {
-									type: "order",
-								},
-							},
-						},
+						some: stepFormSalesWhere,
 					},
 				},
 				{
 					salesDoors: {
-						some: {},
+						some: salesDoorWhere,
 					},
 				},
 				{
 					housePackageTools: {
-						some: {
-							molding: {},
-						},
+						some: housePackageToolWhere,
 					},
 				},
 			],
@@ -304,47 +344,6 @@ function whereStat(query: ProductReportSchema) {
 	if (query.productId) {
 		where.push({
 			id: query.productId,
-		});
-	}
-	if (query.dateRange) {
-		const dateFilter = {
-			createdAt: transformFilterDateToQuery(
-				query.dateRange as ProductReportDateRange,
-			),
-		};
-		where.push({
-			OR: [
-				{
-					stepForms: {
-						some: {
-							deletedAt: null,
-							...dateFilter,
-							salesOrderItem: {
-								deletedAt: null,
-								salesOrder: {
-									deletedAt: null,
-									type: "order",
-								},
-							},
-						},
-					},
-				},
-				{
-					salesDoors: {
-						some: {
-							deletedAt: null,
-							...dateFilter,
-						},
-					},
-				},
-				{
-					housePackageTools: {
-						some: {
-							...dateFilter,
-						},
-					},
-				},
-			],
 		});
 	}
 	if (query.q) {

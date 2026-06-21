@@ -4,6 +4,7 @@ import {
   buildSelectedProdUidsByStepUid,
   customNextStepTitle,
   getRedirectableRoutes,
+  isWorkflowRedirectDisabledStep,
   isComponentVisibleByRules,
   resolveComponentPriceByDeps,
 } from "./step-engine";
@@ -75,6 +76,26 @@ describe("step-engine domain", () => {
       },
     ]);
     expect(selected["door-step"]).toEqual(["door-a", "door-b"]);
+  });
+
+  it("builds selected UID stacks from string step metadata", () => {
+    const selected = buildSelectedProdUidsByStepUid([
+      {
+        step: { uid: "door-step" },
+        meta: JSON.stringify({
+          selectedProdUids: ["door-a", "door-b"],
+        }),
+      },
+    ]);
+    expect(selected["door-step"]).toEqual(["door-a", "door-b"]);
+  });
+
+  it("detects redirect-disabled steps from string metadata", () => {
+    expect(
+      isWorkflowRedirectDisabledStep({
+        meta: JSON.stringify({ redirectDisabled: true }),
+      }),
+    ).toBe(true);
   });
 
   it("lists redirect routes in configured step order and keeps the current step available", () => {
@@ -151,6 +172,24 @@ describe("step-engine domain", () => {
       },
       {
         priceStepDeps: ["supplier", "size"],
+      },
+    );
+    expect(resolved.salesPrice).toBe(260);
+    expect(resolved.basePrice).toBe(260);
+  });
+
+  it("uses component metadata dependency keys from string metadata", () => {
+    const resolved = resolveComponentPriceByDeps(
+      {
+        uid: "door-comp",
+        meta: JSON.stringify({ priceStepDeps: ["supplier", "size"] }),
+        pricing: {
+          "sup-a-2-8 x 7-0": { price: 260 },
+        },
+      },
+      {
+        supplier: "sup-a",
+        size: "2-8 x 7-0",
       },
     );
     expect(resolved.salesPrice).toBe(260);

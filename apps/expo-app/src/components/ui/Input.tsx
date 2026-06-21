@@ -65,33 +65,35 @@ export function Input<T extends FieldValues>({
               ) : (
                 <Ionicons name={icon} size={20} color='#6366F1' />
               )}
-              <TextInput
-                value={value}
-                onBlur={onBlur}
-                onChangeText={onChange}
-                className={cn(
-                  'flex-1 mx-3 text-[#111827] font-poppins text-lg',
-                  className
-                )}
-                secureTextEntry={
-                  name === 'password' ||
-                  name === 'confirmPassword' ||
-                  name === 'oldPassword' ||
-                  name === 'newPassword' ||
-                  name === 'confirmNewPassword'
-                    ? isPasswordVisible
-                    : false
-                }
-                autoCapitalize='none'
-                autoCorrect={false}
-                placeholderTextColor='#9CA3AF'
-                style={{
-                  textAlignVertical: 'center',
-                  paddingVertical: 0,
-                  includeFontPadding: false,
-                }}
-                {...rest}
-              />
+              <View className={cn('flex-1 mx-3', className)}>
+                <TextInput
+                  value={value}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  secureTextEntry={
+                    name === 'password' ||
+                    name === 'confirmPassword' ||
+                    name === 'oldPassword' ||
+                    name === 'newPassword' ||
+                    name === 'confirmNewPassword'
+                      ? isPasswordVisible
+                      : false
+                  }
+                  autoCapitalize='none'
+                  autoCorrect={false}
+                  placeholderTextColor='#9CA3AF'
+                  style={{
+                    flex: 1,
+                    color: '#111827',
+                    fontFamily: 'Poppins',
+                    fontSize: 18,
+                    textAlignVertical: 'center',
+                    paddingVertical: 0,
+                    includeFontPadding: false,
+                  }}
+                  {...rest}
+                />
+              </View>
               {(name === 'password' ||
                 name === 'confirmPassword' ||
                 name === 'oldPassword' ||

@@ -123,18 +123,39 @@ describe("sales form grouped line parity", () => {
     expect(line.meta.serviceRows[0].produceable).toBe(true);
   });
 
+  it("collapses legacy service siblings with JSON metadata flags", () => {
+    const [line] = collapseLegacyGroupedLines([
+      {
+        id: 22,
+        uid: "svc-json-a",
+        multiDykeUid: "grp-json",
+        multiDyke: true,
+        title: "Services",
+        description: "Install",
+        qty: 1,
+        unitPrice: 80,
+        lineTotal: 80,
+        meta: JSON.stringify({ taxxable: true, produceable: true }),
+        formSteps: [{ step: { title: "Item Type" }, value: "Services" }],
+      },
+    ] as any[]);
+
+    expect(line.meta.serviceRows[0].taxxable).toBe(true);
+    expect(line.meta.serviceRows[0].produceable).toBe(true);
+  });
+
   it("expands grouped service and moulding projections for legacy save", () => {
     const serviceRows = expandGroupedLineForLegacySave({
       uid: "service-parent",
       title: "Services",
       formSteps: [{ step: { title: "Item Type" }, value: "Services" }],
-      meta: {
+      meta: JSON.stringify({
         groupUid: "svc-group",
         serviceRows: [
           { uid: "svc-1", service: "Install", qty: 1, unitPrice: 80 },
           { uid: "svc-2", service: "Delivery", qty: 1, unitPrice: 30 },
         ],
-      },
+      }),
     });
     const mouldingRows = expandGroupedLineForLegacySave({
       uid: "moulding-parent",

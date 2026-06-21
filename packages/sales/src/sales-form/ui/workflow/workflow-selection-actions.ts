@@ -6,6 +6,7 @@ import {
 	compactStepValue,
 	mergeConfiguredSeriesWithExisting,
 	normalizeSalesFormTitle as normalizeTitle,
+	readSalesFormObjectMetadata,
 	rebuildStepsFromSelection,
 } from "../../domain";
 import { snapshotSelectedComponent } from "./component-utils";
@@ -38,6 +39,17 @@ export type SaveWorkflowSelectedComponentInput = {
 	activeStepTitle?: string | null;
 	selectedOverride?: boolean;
 };
+
+function readStepMeta(step?: WorkflowStepRecord | null) {
+	return readSalesFormObjectMetadata(step?.meta) || {};
+}
+
+function readSelectedComponents(step?: WorkflowStepRecord | null) {
+	const meta = readStepMeta(step);
+	return Array.isArray(meta.selectedComponents)
+		? (meta.selectedComponents as WorkflowComponentRecord[])
+		: [];
+}
 
 export function saveWorkflowSelectedComponent(
 	input: SaveWorkflowSelectedComponentInput,
@@ -115,7 +127,7 @@ export function saveWorkflowSelectedComponent(
 		selectedComponent: {
 			...toSelectedComponent(input.component),
 			redirectUid:
-				singleMutationSteps[input.currentStepIndex]?.meta?.redirectUid ||
+				readStepMeta(singleMutationSteps[input.currentStepIndex]).redirectUid ||
 				input.component.redirectUid ||
 				null,
 		},
@@ -153,7 +165,7 @@ export function proceedWorkflowMultiSelectStep(
 		.map(
 			(uid) =>
 				input.visibleComponents.find((component) => component.uid === uid) ||
-				step?.meta?.selectedComponents?.find(
+				readSelectedComponents(step).find(
 					(component) => component.uid === uid,
 				),
 		)
@@ -167,7 +179,7 @@ export function proceedWorkflowMultiSelectStep(
 		startIndex: input.stepIndex,
 		selectedComponent: {
 			...toSelectedComponent(primary),
-			redirectUid: step?.meta?.redirectUid || primary.redirectUid || null,
+			redirectUid: readStepMeta(step).redirectUid || primary.redirectUid || null,
 		},
 	});
 	const lineItemStepIndex = routed.steps.findIndex((step) =>
@@ -252,7 +264,7 @@ export function selectAllWorkflowComponents(input: {
 		price: totalSales,
 		basePrice: totalBase,
 		meta: {
-			...(step?.meta || {}),
+			...readStepMeta(step),
 			selectedProdUids,
 			selectedComponents,
 		},
@@ -271,7 +283,7 @@ export function setWorkflowStepRedirect(input: {
 	steps[input.stepIndex] = {
 		...step,
 		meta: {
-			...(step.meta || {}),
+			...readStepMeta(step),
 			redirectUid: input.redirectUid || null,
 		},
 	};
@@ -288,9 +300,8 @@ export function setWorkflowComponentRedirect(input: {
 	const steps = [...(input.line.formSteps || [])];
 	const step = steps[input.stepIndex];
 	if (!step) return null;
-	const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-		? (step.meta.selectedComponents as WorkflowComponentRecord[])
-		: [];
+	const stepMeta = readStepMeta(step);
+	const selectedComponents = readSelectedComponents(step);
 	const nextSelectedComponents = selectedComponents.map((component) =>
 		String(component?.uid || "") === String(input.componentUid || "")
 			? {
@@ -302,11 +313,11 @@ export function setWorkflowComponentRedirect(input: {
 	steps[input.stepIndex] = {
 		...step,
 		meta: {
-			...(step.meta || {}),
+			...stepMeta,
 			redirectUid:
 				String(step?.prodUid || "") === String(input.componentUid || "")
 					? input.redirectUid || null
-					: step?.meta?.redirectUid || null,
+					: stepMeta.redirectUid || null,
 			selectedComponents: nextSelectedComponents,
 		},
 	};
@@ -352,7 +363,10 @@ export function setWorkflowComponentRedirect(input: {
 }
 
 function toSelectedComponent(component: WorkflowComponentRecord) {
-	const custom = component?.custom === true || component?._metaData?.custom === true;
+	const metaData = readSalesFormObjectMetadata(component?._metaData) || {};
+	const custom =
+		component?.custom === true ||
+		(metaData as { custom?: boolean }).custom === true;
 	return {
 		uid: String(component.uid || ""),
 		title: component.title || null,
@@ -363,7 +377,7 @@ function toSelectedComponent(component: WorkflowComponentRecord) {
 		basePrice: component.basePrice ?? null,
 		custom,
 		_metaData: {
-			...(component._metaData || {}),
+			...metaData,
 			custom,
 		},
 	};

@@ -65,6 +65,7 @@ export {
 } from "./shelf-inputs";
 export {
   buildShelfProductRowPatch,
+  clearShelfRowCustomPrice,
   clearShelfRowProduct,
   patchShelfRowPrice,
   patchShelfRowQty,
@@ -148,6 +149,7 @@ export {
   type WorkflowComponentEditState,
 } from "./workflow-component-edit-actions";
 export {
+  addWorkflowHptDoorOption,
   removeWorkflowHptDoorOption,
   removeWorkflowSelectedComponent,
   swapWorkflowDoorComponent,

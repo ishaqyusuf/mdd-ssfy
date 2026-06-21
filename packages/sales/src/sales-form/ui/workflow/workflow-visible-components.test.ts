@@ -97,4 +97,94 @@ describe("workflow visible components", () => {
 			"standard",
 		]);
 	});
+
+	it("treats string metadata custom components like object metadata", () => {
+		const components = resolveWorkflowVisibleComponents({
+			components: [
+				{
+					uid: "selected-custom",
+					title: "Selected Custom",
+					_metaData: JSON.stringify({ custom: true }) as any,
+					salesPrice: 10,
+					basePrice: 10,
+				},
+				{
+					uid: "other-custom",
+					title: "Other Custom",
+					_metaData: JSON.stringify({ custom: true }) as any,
+					salesPrice: 20,
+					basePrice: 20,
+				},
+				{
+					uid: "standard",
+					title: "Standard",
+					salesPrice: 30,
+					basePrice: 30,
+				},
+			],
+			steps: [
+				{
+					prodUid: "selected-custom",
+					step: {
+						uid: "step-1",
+					},
+				},
+			],
+			activeStep: null,
+			overrides: new Map(),
+			includeCustomComponents: false,
+			profileCoefficient: 1,
+		});
+
+		expect(components.map((component) => component.uid)).toEqual([
+			"selected-custom",
+			"standard",
+		]);
+	});
+
+	it("keeps selected custom components visible from string step metadata", () => {
+		const components = resolveWorkflowVisibleComponents({
+			components: [
+				{
+					uid: "selected-custom",
+					title: "Selected Custom",
+					_metaData: JSON.stringify({ custom: true }) as any,
+					salesPrice: 10,
+					basePrice: 10,
+				},
+				{
+					uid: "other-custom",
+					title: "Other Custom",
+					_metaData: JSON.stringify({ custom: true }) as any,
+					salesPrice: 20,
+					basePrice: 20,
+				},
+				{
+					uid: "standard",
+					title: "Standard",
+					salesPrice: 30,
+					basePrice: 30,
+				},
+			],
+			steps: [
+				{
+					step: {
+						uid: "step-1",
+					},
+					meta: JSON.stringify({
+						selectedProdUids: ["selected-custom"],
+					}) as any,
+				},
+			],
+			activeStep: null,
+			overrides: new Map(),
+			includeCustomComponents: false,
+			profileCoefficient: 1,
+		});
+
+		expect(components.map((component) => component.uid)).toEqual([
+			"selected-custom",
+			"standard",
+		]);
+	});
 });

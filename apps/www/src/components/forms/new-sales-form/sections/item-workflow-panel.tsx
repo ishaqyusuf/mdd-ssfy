@@ -1532,6 +1532,7 @@ export function ItemWorkflowPanel() {
 				selectedMouldings,
 				sharedComponentPrice,
 			});
+			if (!patch) return;
 			updateLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
 		}
 

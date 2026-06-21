@@ -4,6 +4,7 @@ import {
 	normalizeSalesFormTitle,
 	stepMatches,
 } from "./step-engine";
+import { readSalesFormObjectMetadata } from "./metadata";
 
 const DEFAULT_AUTO_ADVANCE_TITLES = new Set([
 	"height",
@@ -22,7 +23,7 @@ type SelectedComponent = {
 };
 
 function clearRedirectDisabledMeta(step: any) {
-	const meta = step?.meta || {};
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
 	return {
 		...step,
 		meta: {
@@ -34,10 +35,11 @@ function clearRedirectDisabledMeta(step: any) {
 }
 
 function markRedirectDisabled(step: any, redirectTargetUid: string) {
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
 	return {
 		...step,
 		meta: {
-			...(step?.meta || {}),
+			...meta,
 			redirectDisabled: true,
 			redirectTargetUid,
 		},
@@ -48,6 +50,7 @@ export function seedRouteStep(
 	step: any,
 	selectedComponent?: SelectedComponent,
 ) {
+	const stepMeta = readSalesFormObjectMetadata(step?.meta) || {};
 	return {
 		id: null,
 		stepId: step.id,
@@ -55,11 +58,7 @@ export function seedRouteStep(
 		prodUid: selectedComponent?.uid || "",
 		value: selectedComponent?.title || "",
 		meta: {
-			...(step?.meta &&
-			typeof step.meta === "object" &&
-			!Array.isArray(step.meta)
-				? step.meta
-				: {}),
+			...stepMeta,
 			...(selectedComponent?.img
 				? {
 						img: selectedComponent.img,
@@ -119,8 +118,8 @@ export function mergeConfiguredSeriesWithExisting(
 			componentId: existing?.componentId ?? seriesStep?.componentId ?? null,
 			value: safeString(existing?.value) ? existing.value : seriesStep?.value,
 			meta: {
-				...(seriesStep?.meta || {}),
-				...(existing?.meta || {}),
+				...(readSalesFormObjectMetadata(seriesStep?.meta) || {}),
+				...(readSalesFormObjectMetadata(existing?.meta) || {}),
 			},
 			stepId: seriesStep.stepId ?? existing.stepId ?? null,
 			step: {
@@ -205,14 +204,15 @@ function rootComponentsForStep(routeData: any, rootStep: any) {
 }
 
 function selectedComponentUidCandidates(step: any) {
+	const meta = readSalesFormObjectMetadata(step?.meta);
 	const candidates = [
 		step?.prodUid,
 		step?.componentUid,
-		step?.meta?.prodUid,
-		step?.meta?.componentUid,
+		meta?.prodUid,
+		meta?.componentUid,
 	];
-	if (Array.isArray(step?.meta?.selectedComponents)) {
-		step.meta.selectedComponents.forEach((component: any) => {
+	if (Array.isArray(meta?.selectedComponents)) {
+		meta.selectedComponents.forEach((component: any) => {
 			candidates.push(component?.uid);
 		});
 	}
@@ -220,17 +220,18 @@ function selectedComponentUidCandidates(step: any) {
 }
 
 function rootComponentTitleCandidates(step: any) {
+	const meta = readSalesFormObjectMetadata(step?.meta);
 	const candidates = [
 		step?.value,
 		step?.title,
 		step?.step?.title,
 		step?.item?.value,
 		step?.item?.title,
-		step?.meta?.value,
-		step?.meta?.title,
+		meta?.value,
+		meta?.title,
 	];
-	if (Array.isArray(step?.meta?.selectedComponents)) {
-		step.meta.selectedComponents.forEach((component: any) => {
+	if (Array.isArray(meta?.selectedComponents)) {
+		meta.selectedComponents.forEach((component: any) => {
 			candidates.push(component?.title, component?.name, component?.value);
 		});
 	}
@@ -304,6 +305,7 @@ function resolveSelectedRootComponent(
 	rootStep: any,
 	itemTypeStep: any,
 ): SelectedComponent | null {
+	const itemTypeMeta = readSalesFormObjectMetadata(itemTypeStep?.meta);
 	const configured = getConfiguredRootComponentUids(routeData);
 	const rootComponents = rootComponentsForStep(routeData, rootStep);
 	const byUid = new Map<string, any>(
@@ -321,7 +323,7 @@ function resolveSelectedRootComponent(
 			title:
 				itemTypeStep?.value || component?.title || itemTypeStep?.title || null,
 			id: itemTypeStep?.componentId || component?.id || null,
-			img: itemTypeStep?.meta?.img || component?.img || null,
+			img: itemTypeMeta?.img || component?.img || null,
 		};
 	}
 
@@ -339,7 +341,7 @@ function resolveSelectedRootComponent(
 				uid: safeString(component.uid),
 				title: itemTypeStep?.value || component?.title || null,
 				id: componentId,
-				img: itemTypeStep?.meta?.img || component?.img || null,
+				img: itemTypeMeta?.img || component?.img || null,
 			};
 		}
 	}
@@ -355,7 +357,7 @@ function resolveSelectedRootComponent(
 		uid: safeString(component.uid),
 		title: itemTypeStep?.value || component?.title || null,
 		id: itemTypeStep?.componentId || component?.id || null,
-		img: itemTypeStep?.meta?.img || component?.img || null,
+		img: itemTypeMeta?.img || component?.img || null,
 	};
 }
 
@@ -370,8 +372,8 @@ function mergeConfiguredStepWithExisting(seriesStep: any, existing: any) {
 		componentId: existing?.componentId ?? seriesStep?.componentId ?? null,
 		value: safeString(existing?.value) ? existing.value : seriesStep?.value,
 		meta: {
-			...(seriesStep?.meta || {}),
-			...(existing?.meta || {}),
+			...(readSalesFormObjectMetadata(seriesStep?.meta) || {}),
+			...(readSalesFormObjectMetadata(existing?.meta) || {}),
 		},
 		stepId: seriesStep.stepId ?? existing.stepId ?? null,
 		step: {
@@ -510,8 +512,9 @@ export function resolveNextStep({
 	}
 
 	if (!nextStep && allowCustomFallback) {
+		const lineMeta = readSalesFormObjectMetadata(line?.meta);
 		const customTitle = customNextStepTitle(
-			(line.meta as any)?.doorType || null,
+			lineMeta?.doorType || null,
 			currentStep.step?.title,
 			selectedComponent.title || currentStep.value,
 		);
@@ -664,8 +667,8 @@ export function rebuildStepsFromSelection({
 			...step,
 			...existing,
 			meta: {
-				...(step?.meta || {}),
-				...(existing?.meta || {}),
+				...(readSalesFormObjectMetadata(step?.meta) || {}),
+				...(readSalesFormObjectMetadata(existing?.meta) || {}),
 			},
 			stepId: step.stepId ?? existing.stepId ?? null,
 			step: {

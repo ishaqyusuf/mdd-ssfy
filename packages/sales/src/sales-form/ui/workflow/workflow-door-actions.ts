@@ -2,6 +2,7 @@ import {
 	compactStepValue,
 	getRouteConfigForLine,
 	getSelectedProdUids,
+	readSalesFormObjectMetadata,
 	summarizeDoors,
 } from "../../domain";
 import { snapshotSelectedComponent } from "./component-utils";
@@ -30,6 +31,17 @@ function averageUnitPrice(totalPrice: number, totalQty: number) {
 	return totalQty > 0 ? Number((totalPrice / totalQty).toFixed(2)) : 0;
 }
 
+function readWorkflowStepMeta(step?: WorkflowStepRecord | null) {
+	return readSalesFormObjectMetadata(step?.meta) || {};
+}
+
+function readSelectedComponents(step?: WorkflowStepRecord | null) {
+	const meta = readWorkflowStepMeta(step);
+	return Array.isArray(meta.selectedComponents)
+		? (meta.selectedComponents as WorkflowComponentRecord[])
+		: [];
+}
+
 export function updateWorkflowDoorSupplier(input: {
 	line: WorkflowLineItemRecord;
 	stepIndex: number;
@@ -39,9 +51,9 @@ export function updateWorkflowDoorSupplier(input: {
 	const steps = [...getWorkflowSteps(input.line)];
 	const step = steps[input.stepIndex];
 	if (!step) return null;
-	const currentMeta = step.meta || {};
+	const currentMeta = readWorkflowStepMeta(step);
 	const currentFormStepMeta =
-		(currentMeta.formStepMeta as Record<string, unknown> | null) || {};
+		readSalesFormObjectMetadata(currentMeta.formStepMeta) || {};
 	steps[input.stepIndex] = {
 		...step,
 		meta: {
@@ -94,9 +106,7 @@ export function swapWorkflowDoorComponent(input: {
 	const targetUid = String(input.targetComponent?.uid || "");
 	if (!sourceUid || !targetUid || sourceUid === targetUid) return null;
 
-	const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
-		? step.meta.selectedComponents
-		: [];
+	const selectedComponents = readSelectedComponents(step);
 	const nextSelectedComponents = selectedComponents.map((component) =>
 		String(component?.uid || "") === sourceUid
 			? {
@@ -126,7 +136,7 @@ export function swapWorkflowDoorComponent(input: {
 				? input.targetComponent?.title || step?.value || ""
 				: step?.value,
 		meta: {
-			...(step?.meta || {}),
+			...readWorkflowStepMeta(step),
 			selectedProdUids: nextSelectedUids,
 			selectedComponents: nextSelectedComponents,
 		},
@@ -183,6 +193,52 @@ export function swapWorkflowDoorComponent(input: {
 	};
 }
 
+export function addWorkflowHptDoorOption(input: {
+	line: WorkflowLineItemRecord;
+	stepIndex: number;
+	component: WorkflowComponentRecord;
+}): { linePatch: WorkflowDoorActionPatch; activeDoorUid: string } | null {
+	const componentUid = String(input.component?.uid || "");
+	if (!componentUid) return null;
+
+	const steps = [...getWorkflowSteps(input.line)];
+	const step = steps[input.stepIndex];
+	if (!step) return null;
+
+	const existingSelectedComponents = readSelectedComponents(step);
+	if (
+		existingSelectedComponents.some(
+			(component) => String(component?.uid || "") === componentUid,
+		)
+	) {
+		return null;
+	}
+
+	const selectedComponents = [
+		...existingSelectedComponents,
+		snapshotSelectedComponent(input.component) as WorkflowComponentRecord,
+	];
+	const selectedUids = [
+		...getSelectedProdUids(step).map((uid) => String(uid)),
+		componentUid,
+	].filter(
+		(uid, index, list) =>
+			Boolean(uid) && list.findIndex((entry) => entry === uid) === index,
+	);
+	steps[input.stepIndex] = summarizeSelectionStep(
+		step,
+		selectedUids,
+		selectedComponents,
+	);
+
+	return {
+		activeDoorUid: componentUid,
+		linePatch: {
+			formSteps: steps,
+		},
+	};
+}
+
 export function removeWorkflowSelectedComponent(input: {
 	line: WorkflowLineItemRecord;
 	stepIndex: number;
@@ -196,9 +252,7 @@ export function removeWorkflowSelectedComponent(input: {
 			.map((uid) => String(uid))
 			.filter((uid) => uid !== input.componentUid);
 		const selectedComponents = (
-			Array.isArray(step?.meta?.selectedComponents)
-				? step.meta.selectedComponents
-				: []
+			readSelectedComponents(step)
 		).filter(
 			(component) => String(component?.uid) !== input.componentUid,
 		) as WorkflowComponentRecord[];
@@ -222,7 +276,7 @@ export function removeWorkflowSelectedComponent(input: {
 		price: 0,
 		basePrice: 0,
 		meta: {
-			...(step.meta || {}),
+			...readWorkflowStepMeta(step),
 			redirectUid: null,
 			sectionOverride: null,
 			selectedProdUids: [],
@@ -258,9 +312,7 @@ export function removeWorkflowHptDoorOption(input: {
 		.map((uid) => String(uid))
 		.filter((uid) => uid !== componentUid);
 	const selectedComponents = (
-		Array.isArray(step?.meta?.selectedComponents)
-			? step.meta.selectedComponents
-			: []
+		readSelectedComponents(step)
 	).filter(
 		(entry) => String(entry?.uid || "") !== componentUid,
 	) as WorkflowComponentRecord[];
@@ -335,7 +387,7 @@ function summarizeSelectionStep(
 		price: selectedComponents.length ? totalSales : 0,
 		basePrice: selectedComponents.length ? totalBase : 0,
 		meta: {
-			...(step?.meta || {}),
+			...readWorkflowStepMeta(step),
 			selectedProdUids: selectedUids.map((uid) => String(uid)),
 			selectedComponents,
 		},

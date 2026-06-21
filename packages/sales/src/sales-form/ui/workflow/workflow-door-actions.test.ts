@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	addWorkflowHptDoorOption,
 	removeWorkflowHptDoorOption,
 	removeWorkflowSelectedComponent,
 	swapWorkflowDoorComponent,
@@ -35,6 +36,41 @@ describe("workflow door actions", () => {
 			supplierUid: "supplier-1",
 			supplierName: "Supplier One",
 		});
+	});
+
+	it("updates door supplier metadata without spreading JSON step metadata", () => {
+		const patch = updateWorkflowDoorSupplier({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						meta: JSON.stringify({
+							formStepMeta: {
+								supplierUid: null,
+								legacyFlag: "keep",
+							},
+							selectedProdUids: ["door-a"],
+						}),
+					},
+				],
+			},
+			stepIndex: 0,
+			supplier: {
+				uid: "supplier-1",
+				name: "Supplier One",
+			},
+		});
+
+		expect(patch?.formSteps?.[0]?.meta?.formStepMeta).toEqual({
+			supplierUid: "supplier-1",
+			legacyFlag: "keep",
+			supplierName: "Supplier One",
+		});
+		expect(patch?.formSteps?.[0]?.meta?.selectedProdUids).toEqual(["door-a"]);
+		expect(Object.keys((patch?.formSteps?.[0]?.meta || {}) as any)).not.toContain(
+			"0",
+		);
 	});
 
 	it("reprices persisted HPT rows when the door supplier changes", () => {
@@ -257,6 +293,159 @@ describe("workflow door actions", () => {
 		expect(result?.linePatch.formSteps?.[0]?.meta?.selectedProdUids).toEqual([
 			"door-b",
 		]);
+	});
+
+	it("swaps a selected door component from JSON selected-component metadata", () => {
+		const result = swapWorkflowDoorComponent({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						prodUid: "door-a",
+						value: "Door A",
+						componentId: 1,
+						meta: JSON.stringify({
+							selectedComponents: [
+								{
+									id: 1,
+									uid: "door-a",
+									title: "Door A",
+									redirectUid: "route-a",
+								},
+							],
+						}),
+					},
+				],
+				housePackageTool: {
+					doors: [
+						{
+							stepProductId: 1,
+							dimension: "2-0 x 7-0",
+							totalQty: 2,
+							unitPrice: 100,
+							lineTotal: 200,
+						},
+					],
+				},
+			},
+			stepIndex: 0,
+			sourceComponent: {
+				id: 1,
+				uid: "door-a",
+				title: "Door A",
+			},
+			targetComponent: {
+				id: 2,
+				uid: "door-b",
+				title: "Door B",
+				salesPrice: 150,
+				basePrice: 100,
+			},
+		});
+
+		expect(result?.activeDoorUid).toBe("door-b");
+		expect(result?.linePatch.formSteps?.[0]?.prodUid).toBe("door-b");
+		expect(result?.linePatch.formSteps?.[0]?.meta?.selectedComponents).toEqual([
+			expect.objectContaining({
+				uid: "door-b",
+				redirectUid: "route-a",
+			}),
+		]);
+		expect(Object.keys((result?.linePatch.formSteps?.[0]?.meta || {}) as any)).not.toContain(
+			"0",
+		);
+	});
+
+	it("adds an HPT door option without changing configured door rows", () => {
+		const result = addWorkflowHptDoorOption({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						prodUid: "door-a",
+						value: "Door A",
+						componentId: 1,
+						meta: {
+							selectedProdUids: ["door-a"],
+							selectedComponents: [
+								{
+									id: 1,
+									uid: "door-a",
+									title: "Door A",
+									salesPrice: 100,
+									basePrice: 80,
+								},
+							],
+						},
+					},
+				],
+				housePackageTool: {
+					doors: [
+						{
+							stepProductId: 1,
+							dimension: "2-0 x 7-0",
+							totalQty: 2,
+							unitPrice: 100,
+							lineTotal: 200,
+						},
+					],
+				},
+			},
+			stepIndex: 0,
+			component: {
+				id: 2,
+				uid: "door-b",
+				title: "Door B",
+				salesPrice: 140,
+				basePrice: 90,
+			},
+		});
+
+		expect(result?.activeDoorUid).toBe("door-b");
+		expect(result?.linePatch.formSteps?.[0]?.prodUid).toBe("door-a");
+		expect(result?.linePatch.formSteps?.[0]?.value).toBe("Door A +1");
+		expect(result?.linePatch.formSteps?.[0]?.meta?.selectedProdUids).toEqual([
+			"door-a",
+			"door-b",
+		]);
+		expect(result?.linePatch.housePackageTool).toBeUndefined();
+		expect(result?.linePatch.qty).toBeUndefined();
+	});
+
+	it("does not duplicate an HPT door option from JSON selected-component metadata", () => {
+		const result = addWorkflowHptDoorOption({
+			line: {
+				uid: "line-1",
+				formSteps: [
+					{
+						step: { title: "Door" },
+						prodUid: "door-a",
+						value: "Door A",
+						componentId: 1,
+						meta: JSON.stringify({
+							selectedProdUids: ["door-a"],
+							selectedComponents: [
+								{
+									id: 1,
+									uid: "door-a",
+									title: "Door A",
+								},
+							],
+						}),
+					},
+				],
+			},
+			stepIndex: 0,
+			component: {
+				id: 1,
+				uid: "door-a",
+				title: "Door A",
+			},
+		});
+
+		expect(result).toBeNull();
 	});
 
 	it("removes an HPT door option and updates door totals", () => {

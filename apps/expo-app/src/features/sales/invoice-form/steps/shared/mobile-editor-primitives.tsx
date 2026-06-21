@@ -79,12 +79,14 @@ export function NumberField({
 	disabled,
 	onChange,
 	style,
+	keyboardType = "decimal-pad",
 }: {
 	label: string;
 	value?: number | string | null;
 	disabled?: boolean;
 	onChange: (value: number) => void;
 	style?: StyleProp<TextStyle>;
+	keyboardType?: TextInputProps["keyboardType"];
 }) {
 	return (
 		<View className="min-w-0 flex-1 gap-1">
@@ -93,11 +95,45 @@ export function NumberField({
 			</Text>
 			<StepTextInput
 				value={String(value ?? 0)}
-				keyboardType="decimal-pad"
+				keyboardType={keyboardType}
 				onChangeText={(nextValue) => onChange(parseCurrencyInput(nextValue))}
 				editable={!disabled}
 				fontWeight="bold"
 				style={[styles.numberInput, style]}
+			/>
+		</View>
+	);
+}
+
+export function OptionalNumberField({
+	label,
+	value,
+	disabled,
+	placeholder = "Auto",
+	onChange,
+}: {
+	label: string;
+	value?: number | null;
+	disabled?: boolean;
+	placeholder?: string;
+	onChange: (value: number | null) => void;
+}) {
+	return (
+		<View className="min-w-0 flex-1 gap-1">
+			<Text className="text-[10px] font-bold uppercase text-muted-foreground">
+				{label}
+			</Text>
+			<StepTextInput
+				value={value == null ? "" : String(value)}
+				keyboardType="decimal-pad"
+				onChangeText={(nextValue) =>
+					onChange(
+						nextValue.trim() === "" ? null : parseCurrencyInput(nextValue),
+					)
+				}
+				editable={!disabled}
+				placeholder={placeholder}
+				fontWeight="bold"
 			/>
 		</View>
 	);
@@ -168,7 +204,7 @@ export function IconButton({
 	disabled,
 	onPress,
 }: {
-	icon: "Trash" | "Plus" | "X";
+	icon: "Pencil" | "Trash" | "Plus" | "X";
 	tone?: "default" | "danger";
 	disabled?: boolean;
 	onPress: () => void;

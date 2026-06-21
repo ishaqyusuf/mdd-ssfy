@@ -43,6 +43,7 @@ import { useColors } from "@/hooks/use-color";
 
 type ModalProps = BottomSheetModalProps & {
   title?: string;
+  hideHeader?: boolean;
 };
 
 type ModalRef = React.ForwardedRef<BottomSheetModal>;
@@ -69,6 +70,7 @@ export const Modal = React.forwardRef(
     {
       snapPoints: _snapPoints = ["60%"],
       title,
+      hideHeader = false,
       detached = false,
       enableDynamicSizing = false,
       ...props
@@ -94,13 +96,16 @@ export const Modal = React.forwardRef(
       [colors],
     );
     const renderHandleComponent = React.useCallback(
-      () => (
-        <>
-          <View className="mb-8 mt-2 h-1 w-12 self-center rounded-lg bg-background" />
-          <ModalHeader title={title} dismiss={modal.dismiss} />
-        </>
-      ),
-      [title, modal.dismiss],
+      () =>
+        hideHeader ? (
+          <View className="mb-2 mt-2 h-1 w-12 self-center rounded-lg bg-background" />
+        ) : (
+          <>
+            <View className="mb-8 mt-2 h-1 w-12 self-center rounded-lg bg-background" />
+            <ModalHeader title={title} dismiss={modal.dismiss} />
+          </>
+        ),
+      [hideHeader, title, modal.dismiss],
     );
 
     return (

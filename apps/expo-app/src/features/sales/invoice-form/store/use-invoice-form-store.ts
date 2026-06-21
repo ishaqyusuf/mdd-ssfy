@@ -5,6 +5,7 @@ import {
   normalizeSalesFormMeta,
   patchShelfRowPrice,
   patchShelfRowQty,
+  readSalesFormObjectMetadata,
   normalizeSalesFormPaymentTerm,
   removeSalesFormExtraCost,
   removeSalesFormLineItem,
@@ -24,7 +25,6 @@ import {
   createDefaultLineItems,
   defaultExtraCosts,
   defaultInvoiceMeta,
-  invoiceCustomers,
 } from "../mock-data";
 import type {
   InvoiceCustomer,
@@ -44,6 +44,7 @@ import type {
 } from "../types";
 import { calculateInvoiceSummary } from "../lib/calculate-summary";
 import type { InvoiceFormRecoverySnapshot } from "../lib/local-recovery";
+import { getSalesDocumentLabels } from "../lib/sales-document-labels";
 import {
   fromSharedSalesFormState,
   type MobileSalesFormState,
@@ -155,9 +156,7 @@ type InvoiceFormState = {
 };
 
 function createInitialData() {
-  const lineItems = normalizeSalesFormLineItems(
-    createDefaultLineItems(),
-  ) as NewSalesFormLineItem[];
+  const lineItems: NewSalesFormLineItem[] = [];
   const extraCosts = normalizeSalesFormExtraCosts(
     defaultExtraCosts,
   ) as NewSalesFormExtraCost[];
@@ -192,7 +191,7 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
     version: null,
     settings: initial.settings,
     meta: normalizeSalesFormMeta(defaultInvoiceMeta) as NewSalesFormMeta,
-    customer: invoiceCustomers[0] || null,
+    customer: null,
     lineItems: initial.lineItems,
     extraCosts: initial.extraCosts,
     summary: initial.summary,
@@ -206,8 +205,15 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
     actions: {
       selectCustomer(customer, options) {
         set((state) => {
+          const customerSelectedState =
+            state.lineItems.length > 0
+              ? state
+              : {
+                  ...state,
+                  lineItems: createDefaultLineItems(),
+                };
           const shared = setSalesFormCustomerProfileMeta(
-            sharedSnapshot(state),
+            sharedSnapshot(customerSelectedState),
             {
               customerId: customer.id,
               customerProfileId: customer.profileId ?? null,
@@ -331,12 +337,19 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
       },
       addOrUpdateLineItem(item) {
         set((state) => {
-          const sourceUid = item.meta?.sourceUid;
+          const itemMeta = readSalesFormObjectMetadata(item.meta) || {};
+          const sourceUid = itemMeta.sourceUid;
           const workflowLine = isWorkflowLineItem(item);
           const exists = state.lineItems.find(
-            (line) =>
-              line.uid === item.uid ||
-              (!workflowLine && sourceUid ? line.meta?.sourceUid === sourceUid : false),
+            (line) => {
+              const lineMeta = readSalesFormObjectMetadata(line.meta) || {};
+              return (
+                line.uid === item.uid ||
+                (!workflowLine && sourceUid
+                  ? lineMeta.sourceUid === sourceUid
+                  : false)
+              );
+            },
           );
           const shared = exists
             ? updateSalesFormLineItem(sharedSnapshot(state), exists.uid, {
@@ -544,6 +557,12 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
         ) as SaveDraftNewSalesFormPayload;
       },
       hydrateFromRecord(record) {
+        const current = get();
+        const sourceLineItems = Array.isArray(record.lineItems)
+          ? record.lineItems
+          : [];
+        const preserveEmptyCreateLineItems =
+          !record.salesId && !record.slug && sourceLineItems.length === 0;
         const hydrated = hydrateSalesFormRecord({
           type: record.type,
           salesId: record.salesId ?? null,
@@ -559,6 +578,23 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           settings: record.settings ?? null,
           updatedAt: record.updatedAt ?? null,
         });
+        const recordCustomer = mapRecordCustomer(record.customer);
+        const recordCustomerId =
+          recordCustomer?.id ?? record.form?.customerId ?? null;
+        const currentCustomerId =
+          current.customer?.id ?? current.meta.customerId ?? null;
+        const canReuseCurrentCreateLineItems =
+          current.lineItems.length > 0 &&
+          (!recordCustomerId || currentCustomerId === recordCustomerId);
+        const shouldSeedCreateLineItem =
+          Boolean(recordCustomer || current.customer || record.form?.customerId);
+        const nextLineItems = preserveEmptyCreateLineItems
+          ? canReuseCurrentCreateLineItems
+            ? current.lineItems
+            : shouldSeedCreateLineItem
+              ? createDefaultLineItems()
+              : []
+          : (hydrated.lineItems as NewSalesFormLineItem[]);
         const shared = toSharedSalesFormState({
           type: (hydrated.type || "order") as NewSalesFormType,
           salesId: hydrated.salesId ?? null,
@@ -569,17 +605,16 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           version: hydrated.version ?? null,
           settings: hydrated.settings ?? null,
           meta: hydrated.form as NewSalesFormMeta,
-          lineItems: ensureCreateInvoiceDefaultLineItems(
-            hydrated.lineItems as NewSalesFormLineItem[],
-            hydrated.salesId ?? null,
-            hydrated.slug ?? null,
-          ),
+          lineItems: nextLineItems,
           extraCosts: hydrated.extraCosts as NewSalesFormExtraCost[],
           summary: hydrated.summary as NewSalesFormSummary,
           saveStatus: "idle",
           dirty: false,
           lastSavedAt: hydrated.updatedAt ?? null,
         });
+        const nextShared = preserveEmptyCreateLineItems
+          ? recomputeSharedSummary(shared)
+          : shared;
         set({
           type: (hydrated.type || "order") as NewSalesFormType,
           salesId: hydrated.salesId ?? null,
@@ -589,8 +624,8 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           status: hydrated.status ?? null,
           version: hydrated.version ?? null,
           settings: hydrated.settings ?? null,
-          customer: mapRecordCustomer(record.customer) || get().customer,
-          ...fromSharedSalesFormState(shared),
+          customer: recordCustomer || current.customer,
+          ...fromSharedSalesFormState(nextShared),
           dirty: false,
           saveStatus: "idle",
           validationError: null,
@@ -640,8 +675,10 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           lastSavedAt: snapshot.savedAt,
         });
 
+        const nextType = (hydrated.type || payload.type) as NewSalesFormType;
+
         set({
-          type: (hydrated.type || payload.type) as NewSalesFormType,
+          type: nextType,
           salesId: hydrated.salesId ?? nextSalesId,
           slug: hydrated.slug ?? nextSlug,
           orderId: hydrated.orderId ?? current.orderId,
@@ -652,7 +689,8 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           ...fromSharedSalesFormState(shared),
           dirty: true,
           saveStatus: "idle",
-          validationError: "Recovered unsaved local invoice changes.",
+          validationError:
+            getSalesDocumentLabels(nextType).recoveredChangesMessage,
           selectorOpen: false,
           workflowSelectorLineUid: null,
         });
@@ -763,7 +801,7 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           version: null,
           settings: initialData.settings,
           meta: normalizeSalesFormMeta(defaultInvoiceMeta) as NewSalesFormMeta,
-          customer: invoiceCustomers[0] || null,
+          customer: null,
           lineItems: initialData.lineItems,
           extraCosts: initialData.extraCosts,
           summary: initialData.summary,
@@ -973,9 +1011,20 @@ function buildLineDescriptionPatch(line: NewSalesFormLineItem, description: stri
   return shelfItems ? { description, shelfItems } : { description };
 }
 
+function isWorkflowLineItem(line: NewSalesFormLineItem) {
+  const meta = readSalesFormObjectMetadata(line.meta) || {};
+  return (
+    Boolean(meta.workflowComponentUid) ||
+    (Array.isArray(line.formSteps) && line.formSteps.length > 0)
+  );
+}
+
 function buildLineTaxablePatch(line: NewSalesFormLineItem, taxxable: boolean) {
-  const meta = {
-    ...((line.meta as Record<string, unknown> | undefined) || {}),
+  const meta: Record<string, unknown> & {
+    serviceRows?: unknown[];
+    taxxable: boolean;
+  } = {
+    ...(readSalesFormObjectMetadata(line.meta) || {}),
     taxxable,
   };
   const serviceRows = Array.isArray(meta.serviceRows)
@@ -1037,21 +1086,4 @@ function syncShelfRowsToLineDescription(
       description,
     };
   });
-}
-
-function isWorkflowLineItem(line: NewSalesFormLineItem) {
-  return (
-    Boolean(line.meta?.workflowComponentUid) ||
-    (Array.isArray(line.formSteps) && line.formSteps.length > 0)
-  );
-}
-
-function ensureCreateInvoiceDefaultLineItems(
-  lineItems: NewSalesFormLineItem[],
-  salesId?: number | null,
-  slug?: string | null,
-) {
-  if (salesId || slug) return lineItems;
-  if (lineItems.some((line) => isWorkflowLineItem(line))) return lineItems;
-  return normalizeSalesFormLineItems(createDefaultLineItems()) as NewSalesFormLineItem[];
 }

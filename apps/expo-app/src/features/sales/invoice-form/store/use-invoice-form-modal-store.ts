@@ -17,6 +17,8 @@ type DoorSizePickerState = {
   isLoadingSuppliers?: boolean;
   noHandle?: boolean;
   disabled?: boolean;
+  primaryActionLabel?: string;
+  showSecondaryAction?: boolean;
   onSupplierChange?: (
     supplier: { uid?: string | null; name?: string | null } | null,
   ) => void;

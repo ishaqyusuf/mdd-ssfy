@@ -129,15 +129,14 @@ export function SalesRequestPackingModal({
                           />
                         </Pressable>
                       ) : (
-                        <View
-                          className="items-center justify-center rounded-xl bg-muted"
-                          style={{ width: 48, height: 48 }}
-                        >
-                          <Icon
-                            name="HardHat"
-                            className="text-muted-foreground"
-                            size={18}
-                          />
+                        <View style={{ width: 48, height: 48 }}>
+                          <View className="h-full w-full items-center justify-center rounded-xl bg-muted">
+                            <Icon
+                              name="HardHat"
+                              className="text-muted-foreground"
+                              size={18}
+                            />
+                          </View>
                         </View>
                       )}
                       <View className="flex-1">

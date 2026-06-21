@@ -1,3 +1,5 @@
+import { readSalesFormObjectMetadata } from "./metadata";
+
 export function normalizeSalesFormTitle(value?: string | null) {
 	return String(value || "")
 		.trim()
@@ -9,13 +11,11 @@ type WorkflowStepLike = {
 	step?: {
 		title?: string | null;
 	} | null;
-	meta?: {
-		redirectDisabled?: boolean | null;
-	} | null;
+	meta?: unknown;
 };
 
 export function isWorkflowRedirectDisabledStep(step?: WorkflowStepLike | null) {
-	return Boolean(step?.meta?.redirectDisabled);
+	return Boolean(readSalesFormObjectMetadata(step?.meta)?.redirectDisabled);
 }
 
 export function resolveInteractiveWorkflowStepIndex(
@@ -56,10 +56,11 @@ export function buildSelectedProdUidsByStepUid(steps: any[]) {
 	(steps || []).forEach((step) => {
 		const stepUid = step?.step?.uid;
 		if (!stepUid) return;
+		const meta = readSalesFormObjectMetadata(step?.meta);
 		const candidates = new Set<string>();
 		if (step?.prodUid) candidates.add(String(step.prodUid));
-		if (Array.isArray(step?.meta?.selectedProdUids)) {
-			step.meta.selectedProdUids.forEach((uid: any) => {
+		if (Array.isArray(meta?.selectedProdUids)) {
+			meta.selectedProdUids.forEach((uid: any) => {
 				if (uid) candidates.add(String(uid));
 			});
 		}
@@ -167,12 +168,13 @@ export function resolveComponentPriceByDeps(
 ) {
 	const pricing =
 		component?.pricing || component?.pricings || component?.priceData || null;
+	const componentMeta = readSalesFormObjectMetadata(component?.meta);
 	const deps = Array.isArray(options?.priceStepDeps)
 		? options?.priceStepDeps
 		: Array.isArray(component?.priceStepDeps)
 			? component.priceStepDeps
-			: Array.isArray(component?.meta?.priceStepDeps)
-				? component.meta.priceStepDeps
+			: Array.isArray(componentMeta?.priceStepDeps)
+				? componentMeta.priceStepDeps
 				: [];
 	const directSales = Number(component?.salesPrice);
 	const directBase = Number(component?.basePrice);
@@ -310,7 +312,6 @@ export function resolveComponentPriceByDeps(
 		basePrice: Number.isFinite(basePrice) ? basePrice : null,
 	};
 }
-
 export function customNextStepTitle(
 	doorType: string | null | undefined,
 	currentStepTitle: string | null | undefined,
