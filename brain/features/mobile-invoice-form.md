@@ -15,6 +15,7 @@ Tracks the Expo mobile invoice/quote form under `apps/expo-app/src/features/sale
   - `actions.buildSavePayload(...)`
   - `toSalesFormSaveDraftPayload(...)`
   - `newSalesForm.saveDraft` / `newSalesForm.saveFinal`
+- Mobile save/finalize requests treat the persisted invoice/quote record as the user-facing completion boundary. Server-side inventory sync and document warmup queueing now run as bounded best-effort post-save tasks so running mobile without the jobs worker cannot leave the mobile form stuck on `Saving invoice...`; save failures surface a retryable footer error message.
 - The mobile invoice form store parses line metadata through the shared sales-form parser before matching existing source lines or propagating taxable state into grouped service rows, so JSON-string metadata does not break native line merging or grouped row updates after reopen.
 - The shared sales form schemas preserve rich grouped payloads with pass-through fields for:
   - `formSteps`

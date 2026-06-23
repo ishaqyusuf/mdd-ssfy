@@ -1,5 +1,6 @@
 "use client";
 
+import { useSalesInventoryConfiguratorPrompt } from "@/components/forms/sales-form/inventory-configurator-dialog";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
@@ -598,27 +599,31 @@ function ActionCell({ item }: { item: SalesOrder }) {
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const overviewQuery = useSalesOverviewQuery();
+    const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
+        useSalesInventoryConfiguratorPrompt();
 
     return (
-        <div className="relative z-10 flex items-center justify-end gap-1">
-            <Button
-                asChild
-                variant="ghost"
-                size="icon"
-                className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-                <Link
-                    href={`/sales-book/edit-order/${item.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Edit"
-                    aria-label={`Edit ${item.orderId || item.slug}`}
-                    onClick={(event) => event.stopPropagation()}
+        <>
+            {inventoryConfiguratorDialog}
+            <div className="relative z-10 flex items-center justify-end gap-1">
+                <Button
+                    asChild
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                    <Icons.Edit className="size-4" />
-                    <span className="sr-only">Edit order</span>
-                </Link>
-            </Button>
+                    <Link
+                        href={`/sales-book/edit-order/${item.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Edit"
+                        aria-label={`Edit ${item.orderId || item.slug}`}
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <Icons.Edit className="size-4" />
+                        <span className="sr-only">Edit order</span>
+                    </Link>
+                </Button>
 
             <Button
                 variant="ghost"
@@ -653,6 +658,16 @@ function ActionCell({ item }: { item: SalesOrder }) {
                 contentClassName="min-w-52"
             >
                 <SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
+                <SalesMenu.Item
+                    disabled={!item.id}
+                    onSelect={() => {
+                        void openSalesInventoryConfigurator(item.id);
+                    }}
+                >
+                    <Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />
+                    Inventory
+                </SalesMenu.Item>
+                <SalesMenu.Separator />
                 <SalesMenu.SalesEmailMenuItems />
                 <SalesMenu.MarkAs />
                 <SalesMenu.SalesPrintMenuItems />
@@ -673,7 +688,8 @@ function ActionCell({ item }: { item: SalesOrder }) {
                         ]);
                     }}
                 />
-            </SalesMenu>
-        </div>
+                </SalesMenu>
+            </div>
+        </>
     );
 }

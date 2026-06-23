@@ -6,6 +6,7 @@ import { SalesOverviewActivityTabV1 } from "./tabs/activity/v1";
 import { SalesOverviewDetailsTabV1 } from "./tabs/details/v1";
 import { SalesOverviewDispatchTabV1 } from "./tabs/dispatch/v1";
 import { SalesOverviewFinanceTabV1 } from "./tabs/finance/v1";
+import { SalesOverviewInventoryTabV1 } from "./tabs/inventory/v1";
 import { SalesOverviewOverviewTabV1 } from "./tabs/overview/v1";
 import { SalesOverviewOverviewTabV2 } from "./tabs/overview/v2";
 import { SalesOverviewPackingTabV1 } from "./tabs/packing/v1";
@@ -39,6 +40,7 @@ export const DEFAULT_SALES_OVERVIEW_TAB_VERSIONS: Partial<
 	finance: "v1",
 	production: "v1",
 	dispatch: "v1",
+	inventory: "v1",
 	packing: "v1",
 	transactions: "v1",
 	activity: "v1",
@@ -86,6 +88,16 @@ const SALES_OVERVIEW_TAB_VERSION_REGISTRY: SalesOverviewTabVersionRegistry = {
 			v1: {
 				content: <SalesOverviewDispatchTabV1 />,
 				status: "active",
+			},
+		},
+	},
+	inventory: {
+		defaultVersion: "v1",
+		versions: {
+			v1: {
+				content: <SalesOverviewInventoryTabV1 />,
+				description: "Inventory demand, stock, allocation, and purchasing status",
+				status: "experimental",
 			},
 		},
 	},

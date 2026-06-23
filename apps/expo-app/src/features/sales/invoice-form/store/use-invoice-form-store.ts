@@ -149,7 +149,7 @@ type InvoiceFormState = {
     restoreRecoverySnapshot: (snapshot: InvoiceFormRecoverySnapshot) => void;
     markSaving: () => void;
     markSaved: (data?: InvoiceFormSaveResult) => void;
-    markError: () => void;
+    markError: (message?: string) => void;
     markStale: () => void;
     reset: () => void;
   };
@@ -782,8 +782,8 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
           };
         });
       },
-      markError() {
-        set({ saveStatus: "error" });
+      markError(message) {
+        set({ saveStatus: "error", validationError: message ?? null });
       },
       markStale() {
         set({ saveStatus: "stale" });

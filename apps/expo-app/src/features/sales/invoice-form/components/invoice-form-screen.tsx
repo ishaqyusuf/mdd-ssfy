@@ -520,7 +520,9 @@ export function InvoiceFormScreen({
       actions.markStale();
       return;
     }
-    actions.markError();
+    actions.markError(
+      `Could not save ${type === "quote" ? "quote" : "invoice"}. Check your connection and try again.`,
+    );
   };
 
   const dismissRecoverySnapshot = () => {

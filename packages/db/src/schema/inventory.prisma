@@ -770,10 +770,10 @@ model LinePricing {
     id  Int  @id @default(autoincrement())
     qty Int?
 
-    costPrice      Int?
-    salesPrice     Int?
-    unitCostPrice  Int?
-    unitSalesPrice Int?
+    costPrice      Float?
+    salesPrice     Float?
+    unitCostPrice  Float?
+    unitSalesPrice Float?
 
     component   LineItemComponents? @relation(fields: [componentId], references: [id])
     componentId Int?                @unique

@@ -33,12 +33,13 @@ export function SalesOverviewPageShell() {
 				onValueChange={(tab) =>
 					actions.setCurrentTab(tab as SalesOverviewTabId)
 				}
+				className="flex flex-col flex-1 min-w-0"
 			>
 				<SalesOverviewHeader
 					activeTab={activeTab}
 					onTabChange={actions.setCurrentTab}
 				/>
-				<div className="flex flex-1 flex-col">
+				<div className="flex flex-1 flex-col min-w-0">
 					<SalesOverviewPanels activeTab={activeTab} />
 				</div>
 			</Tabs>

@@ -20,6 +20,8 @@ import type {
   UpdateCategoryVariantAttribute,
   UpdateSubComponent,
   UpdateCategoryStockMode,
+  UpdateInventoryProductKind,
+  UpdateCategoryProductKind,
   VariantForm,
 } from "./schema";
 import {
@@ -5270,6 +5272,46 @@ export async function updateCategoryStockMode(
     },
     select: {
       id: true,
+      stockMode: true,
+    },
+  });
+}
+
+export async function updateInventoryProductKind(
+  db: Db,
+  data: UpdateInventoryProductKind,
+) {
+  return db.inventory.update({
+    where: {
+      id: data.id,
+    },
+    data: {
+      productKind: data.productKind,
+      stockMode: data.productKind === "component" ? "unmonitored" : undefined,
+    },
+    select: {
+      id: true,
+      productKind: true,
+      stockMode: true,
+    },
+  });
+}
+
+export async function updateCategoryProductKind(
+  db: Db,
+  data: UpdateCategoryProductKind,
+) {
+  return db.inventoryCategory.update({
+    where: {
+      id: data.id,
+    },
+    data: {
+      productKind: data.productKind,
+      stockMode: data.productKind === "component" ? "unmonitored" : undefined,
+    },
+    select: {
+      id: true,
+      productKind: true,
       stockMode: true,
     },
   });

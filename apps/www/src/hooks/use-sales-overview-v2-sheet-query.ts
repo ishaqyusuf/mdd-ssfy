@@ -28,6 +28,7 @@ export function useSalesOverviewV2SheetQuery() {
 			"transactions",
 			"inbound",
 			"activity",
+			"inventory",
 			"dispatch",
 			"packing",
 			"finance",

@@ -17,6 +17,26 @@ Tracks queued work that is important but not currently in the top execution slic
 - Status: Backlog
 - Created Date: 2026-05-15
 
+### Sales Overview Stock Allocation And Availability Actions
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-22-feature-sales-overview-stock-allocation-availability-actions.md`.
+- Related Feature: Sales overview inventory workflows
+- Status: Backlog
+- Plan Status: Approved
+- Plan File: brain/plans/2026-06-22-feature-sales-overview-stock-allocation-availability-actions.md
+- Intake File: brain/intake/2026-06-22-sales-overview-inventory-workflows.md
+- Created Date: 2026-06-22
+
+### Sales Overview Inventory Inbound Creator
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-22-feature-sales-overview-inventory-inbound-creator.md`.
+- Related Feature: Sales overview inventory workflows
+- Status: Backlog
+- Plan Status: Approved
+- Plan File: brain/plans/2026-06-22-feature-sales-overview-inventory-inbound-creator.md
+- Intake File: brain/intake/2026-06-22-sales-overview-inventory-workflows.md
+- Created Date: 2026-06-22
+
 ## Next Up
 - [ ] 2026-06-09 mobile sales invoice form feature: add a sales invoice form flow to the mobile app, covering invoice creation/editing, customer/order context, line-item entry, save/submit behavior, and parity with the web sales invoice workflow where applicable (Expo + API + UI + Validation)
 - [ ] June 5, 2026 sales backlog: promote Sales Orders V2 from super-admin/default-route gating to the general Sales orders experience, including navigation/default tab behavior and legacy fallback review (UI + Validation)

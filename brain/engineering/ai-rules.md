@@ -10,6 +10,7 @@ Operational rules for AI agents contributing to this repository.
 - Prefer editing the structured Brain locations over creating new flat docs.
 - Leave compatibility breadcrumbs when moving or reorganizing existing documentation.
 - Keep historical logs in `brain/progress.md` unless a future migration explicitly relocates them.
+- When a task updates Prisma models/schema, run `bun run db:migrate` and `bun run db:push`; do not manually create migration files.
 - For Next.js work in `apps/www`, `apps/dealership`, or shared React UI consumed by either app, always use the repository's React/Next.js UI skill set before implementing or reviewing:
   - `vercel-react-best-practices`
   - `agency-engineering` with the Frontend Developer specialist by default

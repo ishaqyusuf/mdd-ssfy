@@ -38,6 +38,7 @@ export function useSalesOverviewQuery() {
 			"transactions",
 			"activity",
 			"inbound",
+			"inventory",
 			"dispatch",
 			"notification",
 			"packing",

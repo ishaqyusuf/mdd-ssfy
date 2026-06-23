@@ -8,13 +8,20 @@ import { useTRPC } from "@/trpc/client";
 import { Spinner } from "@gnd/ui/spinner";
 import { generateRandomString } from "@gnd/utils";
 import { Button } from "@gnd/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { SettingsClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class";
 import { dotCompare } from "@/utils/compare";
 
 type CustomerAddress = {
-    meta?: { zip_code: string };
+    meta?: unknown;
     id?: number;
     name?: string | null;
     email?: string | null;
@@ -242,6 +249,37 @@ export function SalesCustomerInput() {
     );
 }
 
+export function LegacySalesCustomerSelectorDialog({
+    open,
+    type,
+}: {
+    open: boolean;
+    type?: "order" | "quote";
+}) {
+    const heading = type === "quote" ? "Create Quote" : "Create Order";
+
+    return (
+        <Dialog open={open}>
+            <DialogContent
+                className="max-w-2xl gap-0 overflow-hidden p-0"
+                onEscapeKeyDown={(event) => event.preventDefault()}
+                onInteractOutside={(event) => event.preventDefault()}
+            >
+                <DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-5">
+                    <DialogTitle>{heading}: Select Customer</DialogTitle>
+                    <DialogDescription>
+                        Search by customer name, phone, or profile before
+                        building the sale.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="p-6">
+                    <SearchCustomer />
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function CustomerProfileDetails({ customer }: { customer?: CustomerProfile }) {
     const address = formatAddress(customer?.address);
     const details = [
@@ -292,8 +330,14 @@ function CustomerProfileDetails({ customer }: { customer?: CustomerProfile }) {
 
 function formatAddress(address?: CustomerAddress) {
     if (!address) return "";
+    const zipCode =
+        typeof address.meta === "object" &&
+        address.meta !== null &&
+        !Array.isArray(address.meta)
+            ? String((address.meta as { zip_code?: unknown }).zip_code || "")
+            : "";
     const cityState = [address.city, address.state].filter(Boolean).join(", ");
-    const line3 = [cityState, address.meta?.zip_code].filter(Boolean).join(" ");
+    const line3 = [cityState, zipCode].filter(Boolean).join(" ");
     return [address.address1, address.address2, line3, address.country]
         .filter(Boolean)
         .join(", ");

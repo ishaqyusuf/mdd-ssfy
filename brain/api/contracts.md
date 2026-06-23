@@ -36,6 +36,9 @@ Tracks important request/response contracts and shared schema boundaries.
   - `newSalesForm.saveDraft` / `saveFinal` accept optional `inventoryStatus` for orders and return it in the saved payload
   - `newSalesForm.get` / `bootstrap` return top-level `inventoryStatus`
   - `notes.saveInboundNote` updates the order-level status and creates an `inventory_inbound` order note; `PENDING ORDER` also creates unread recipients for inbound-channel subscribers
+- New sales form save completion contract:
+  - `newSalesForm.saveDraft` / `saveFinal` return after the sales form record is persisted and current sales-document snapshot state is expired
+  - follow-up Trigger queue work for sales inventory line-item sync and document snapshot warmups is best-effort and bounded; queue timeout/failure must not change the save response payload or leave clients waiting indefinitely
 - Mobile sales dashboard contract:
   - `sales.mobileDashboardOverview.recentSales[]` returns card-ready recent order rows with `id`, `orderId`, `customerName`, `customerPhone`, `total`, `due`, `paid`, `createdAt`, and `deliveryOption`
 - Inventory browser validation fixture report contract:
@@ -45,6 +48,18 @@ Tracks important request/response contracts and shared schema boundaries.
   - `diagnostics.seedFixturesToPrepare` groups missing fixture categories by `seedFixtureId`, preserving category keys/labels so an operator can prepare one seed fixture that satisfies multiple blocked categories
   - `countDiagnostic.countSource` is `sql_count` for complete database counts or `bounded_application_scan` for readiness categories that require application-level metadata/stock math
   - `countDiagnostic.complete=false` means the readiness count may be underreported because only a bounded candidate set was scanned; the current bounded categories are held partial shipment lines and low-stock monitored variants
+- Sales inventory overview contract:
+  - `inventories.salesInventoryOverview({ salesOrderId })` continues returning the sale, line items, and summary, and now also returns `groups[]` plus merged top-level `rows[]` for sales overview Inventory tabs
+  - `inventories.syncSalesInventoryOverview({ salesOrderId })` runs the existing single-sale inventory line-item sync for one order and returns the package sync result; the sales overview Inventory tab uses it as a self-healing path when an opened order has no inventory-backed rows yet
+  - each group represents an invoice item with `label`, `qty`, `rows[]`, and totals for required, in-stock, allocated, pending, and cost
+  - top-level `rows[]` is the Inventory-tab display contract: matching component/category/variant rows are merged across invoice items, demand quantities are summed, and physical stock is reported once per inventory variant instead of multiplied by every invoice item occurrence
+  - each row includes component name, step/category name, required qty, summed physical stock qty from active `InventoryStock` rows, allocated qty, pending qty, open inbound qty, linked open inbound qty, cost, sales price, status, tracking policy, inventory ids, variant SKU, merged component ids, inbound demand ids, unassigned pending inbound demand ids, pending stock allocation ids, and action eligibility
+  - `inventories.createInboundShipmentFromDemands` accepts existing demand ids and/or selected sales line-item component groups with requested qty; when component selections are supplied, the API prepares only the requested pending `InboundDemand` quantity for monitored stock inventory rows before creating the inbound shipment, splitting an existing unlinked pending demand when the requested qty is smaller than its outstanding qty
+  - sales overview row-level `Allocate available stock` approves pending stock allocation ids through the existing bulk allocation approval contract; inbound creation is a stock-scoped mutation contract
+  - `inventories.orderInboundShipments({ salesOrderId })` returns inbound shipments linked to a sale through `InboundDemand`, including shipment items, stock-line received/ordered quantities, demand rows, and order-scoped counts for the sales overview Inventory `INBOUNDS` segment
+  - `inventories.inboundShipments` returns general inbound rows with `linkedOrders[]` summary data, including order id, type/status, customer name/business name/phone, demand qty, received qty, demand count, and amount due/grand total where available
+  - `inventories.updateInboundShipmentStatus` updates an inbound shipment lifecycle status and records an `inventory_inbound_activity` lifecycle event with `activityType=status_updated`
+  - inbound lifecycle activity payloads carry a `lifecycleEventId`; the notification channel is synced before writing, and the API ensures a timeline note exists for the event even when no channel recipients are configured
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

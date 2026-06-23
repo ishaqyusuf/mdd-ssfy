@@ -12,6 +12,7 @@ export type SalesOverviewTabId =
 	| "production"
 	| "transactions"
 	| "activity"
+	| "inventory"
 	| "dispatch"
 	| "packing"
 	| "finance"
@@ -22,6 +23,7 @@ export const SALES_OVERVIEW_TAB_ORDER: SalesOverviewTabId[] = [
 	"production",
 	"transactions",
 	"activity",
+	"inventory",
 	"dispatch",
 	"packing",
 	"finance",

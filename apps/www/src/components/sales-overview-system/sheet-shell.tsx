@@ -49,12 +49,13 @@ export function SalesOverviewSheetShell({ onClose }: { onClose?: () => void }) {
 				onValueChange={(tab) =>
 					actions.setCurrentTab(tab as SalesOverviewTabId)
 				}
+				className="flex flex-col flex-1 min-w-0"
 			>
 				<SalesOverviewHeader
 					activeTab={activeTab}
 					onTabChange={actions.setCurrentTab}
 				/>
-				<CustomSheetContent className="-mt-4">
+				<CustomSheetContent className="-mt-4 flex-1 min-w-0">
 					<SalesOverviewPanels activeTab={activeTab} />
 				</CustomSheetContent>
 			</Tabs>

@@ -2856,42 +2856,98 @@ async function saveNewSalesFormInternal(
   });
 }
 
+const POST_SAVE_QUEUE_TIMEOUT_MS = 2_000;
+
+export async function runBoundedPostSaveTask<T>(
+  label: string,
+  task: () => Promise<T>,
+  timeoutMs = POST_SAVE_QUEUE_TIMEOUT_MS,
+): Promise<T | null> {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  let timedOut = false;
+
+  try {
+    return await Promise.race([
+      Promise.resolve()
+        .then(task)
+        .catch((error) => {
+          if (!timedOut) {
+            console.error(`Unable to complete post-save task: ${label}`, error);
+          }
+          return null;
+        }),
+      new Promise<null>((resolve) => {
+        timeout = setTimeout(() => {
+          timedOut = true;
+          console.error(`Timed out post-save task: ${label}`);
+          resolve(null);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function getSalesDocumentPrefixes(isQuote: boolean) {
+  return isQuote
+    ? ["quote_pdf"]
+    : [
+        "invoice_pdf",
+        "production_pdf",
+        "packing_slip_pdf",
+        "order_packing_pdf",
+        "quote_pdf",
+      ];
+}
+
+function getSalesDocumentWarmupInputs(salesOrderId: number, isQuote: boolean) {
+  return isQuote
+    ? [{ salesOrderId, mode: "quote" as const }]
+    : [
+        { salesOrderId, mode: "invoice" as const },
+        { salesOrderId, mode: "production" as const },
+        { salesOrderId, mode: "packing-slip" as const },
+        { salesOrderId, mode: "order-packing" as const },
+      ];
+}
+
+async function runNewSalesFormPostSaveTasks(
+  ctx: TRPCContext,
+  result: Awaited<ReturnType<typeof saveNewSalesFormInternal>>,
+) {
+  const isQuote = result.type === "quote";
+
+  await expireCurrentSalesDocumentSnapshots({
+    db: ctx.db,
+    salesOrderId: result.salesId,
+    reason: "invoice_updated",
+    documentPrefixes: getSalesDocumentPrefixes(isQuote),
+  });
+
+  await Promise.all([
+    runBoundedPostSaveTask("queue-sales-inventory-line-items-sync", () =>
+      queueSalesInventoryLineItemsSync({
+        salesOrderId: result.salesId,
+        source: "new-form",
+        triggeredByUserId: ctx.userId ?? null,
+      }),
+    ),
+    runBoundedPostSaveTask("queue-sales-document-snapshot-warmups", () =>
+      queueSalesDocumentSnapshotWarmups(
+        getSalesDocumentWarmupInputs(result.salesId, isQuote),
+      ),
+    ),
+  ]);
+}
+
 export async function saveDraftNewSalesForm(
   ctx: TRPCContext,
   input: SaveDraftNewSalesFormSchema,
 ) {
   const payload = saveDraftNewSalesFormSchema.parse(input);
   const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
-  await queueSalesInventoryLineItemsSync({
-    salesOrderId: result.salesId,
-    source: "new-form",
-    triggeredByUserId: ctx.userId ?? null,
-  });
-  const isQuote = result.type === "quote";
-  await expireCurrentSalesDocumentSnapshots({
-    db: ctx.db,
-    salesOrderId: result.salesId,
-    reason: "invoice_updated",
-    documentPrefixes: isQuote
-      ? ["quote_pdf"]
-      : [
-          "invoice_pdf",
-          "production_pdf",
-          "packing_slip_pdf",
-          "order_packing_pdf",
-          "quote_pdf",
-        ],
-  });
-  await queueSalesDocumentSnapshotWarmups(
-    isQuote
-      ? [{ salesOrderId: result.salesId, mode: "quote" }]
-      : [
-          { salesOrderId: result.salesId, mode: "invoice" },
-          { salesOrderId: result.salesId, mode: "production" },
-          { salesOrderId: result.salesId, mode: "packing-slip" },
-          { salesOrderId: result.salesId, mode: "order-packing" },
-        ],
-  );
+  await runNewSalesFormPostSaveTasks(ctx, result);
   return result;
 }
 
@@ -2901,36 +2957,7 @@ export async function saveFinalNewSalesForm(
 ) {
   const payload = saveFinalNewSalesFormSchema.parse(input);
   const result = await saveNewSalesFormInternal(ctx, payload, "Active");
-  await queueSalesInventoryLineItemsSync({
-    salesOrderId: result.salesId,
-    source: "new-form",
-    triggeredByUserId: ctx.userId ?? null,
-  });
-  const isQuote = result.type === "quote";
-  await expireCurrentSalesDocumentSnapshots({
-    db: ctx.db,
-    salesOrderId: result.salesId,
-    reason: "invoice_updated",
-    documentPrefixes: isQuote
-      ? ["quote_pdf"]
-      : [
-          "invoice_pdf",
-          "production_pdf",
-          "packing_slip_pdf",
-          "order_packing_pdf",
-          "quote_pdf",
-        ],
-  });
-  await queueSalesDocumentSnapshotWarmups(
-    isQuote
-      ? [{ salesOrderId: result.salesId, mode: "quote" }]
-      : [
-          { salesOrderId: result.salesId, mode: "invoice" },
-          { salesOrderId: result.salesId, mode: "production" },
-          { salesOrderId: result.salesId, mode: "packing-slip" },
-          { salesOrderId: result.salesId, mode: "order-packing" },
-        ],
-  );
+  await runNewSalesFormPostSaveTasks(ctx, result);
   return result;
 }
 

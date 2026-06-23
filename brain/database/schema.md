@@ -10,6 +10,7 @@ Tracks important schema-level entities and ownership boundaries.
   - `LineItemComponents` as the gross demand row created from sales/inventory sync
   - `StockAllocation` as stock-side reservation/allocation against that demand
   - `InboundDemand` as the shortage/replenishment row that should link into `InboundShipmentItem` and later post through `StockMovement`
+- `LinePricing.costPrice`, `LinePricing.salesPrice`, `LinePricing.unitCostPrice`, and `LinePricing.unitSalesPrice` are decimal-capable `Float?` fields. These snapshots can store cents from inventory variant pricing, supplier variant pricing, HPT door unit prices, and sales-form fallback pricing.
 - The first shared inbound service now exists in `packages/inventory/src/application/inbound/inbound-demand.ts`:
   - `createInboundShipmentFromDemands(...)` converts `InboundDemand` shortages into `InboundShipment` + `InboundShipmentItem`
   - `receiveInboundShipment(...)` now splits `qtyGood` vs `qtyIssue`, posts only good qty into `InventoryStock`, writes `StockMovement`, and rolls progress back up into `LineItemComponents`

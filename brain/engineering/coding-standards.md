@@ -12,6 +12,7 @@ Repository-level implementation rules that recur across active workstreams.
 - Keep correctness-critical business behavior inside explicit package boundaries rather than route-local helpers.
 - Add focused regression coverage for fixes touching pricing, persistence, payments, dispatch, or other high-risk business flows.
 - Preserve existing production behavior when building replacement systems in parallel; cutovers should be explicit, reversible, and documented.
+- For any Prisma model/schema update, run `bun run db:migrate` and `bun run db:push`; do not manually create migration files.
 - React TSX packages that can be imported outside their own app/package compiler context must self-pin their runtime with `/** @jsxImportSource react */`; do not rely only on package `tsconfig` when files may be loaded from `apps/api` or another workspace that uses a different JSX runtime such as `hono/jsx`.
 - Expo app components must not mix NativeWind `className` and React Native `style` on the same element. Use `className` only when it fully covers the design; when custom style is needed, convert that element to `style` only instead of combining both.
 - Prefer Midday-style page architecture wherever possible:

@@ -36,10 +36,7 @@ import {
     useState,
 } from "react";
 import { SalesFormDevSwitcher } from "../sales-form-dev-switcher";
-import {
-    type OrderInboundStatus,
-    useInStockStatusPrompt,
-} from "../sales-form/in-stock-status-dialog";
+import { useSalesInventoryConfiguratorPrompt } from "../sales-form/inventory-configurator-dialog";
 import { PaymentMethodReviewDialog } from "../sales-form/payment-method-review-dialog";
 import { useSalesFormCapabilities } from "./adapters/use-sales-form-capabilities";
 import { useSalesFormPermissions } from "./adapters/use-sales-form-permissions";
@@ -397,8 +394,8 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
     const [manualSaveLock, setManualSaveLock] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
-    const { inStockStatusDialog, promptForInboundStatus } =
-        useInStockStatusPrompt();
+    const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
+        useSalesInventoryConfiguratorPrompt();
     const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
         resolveInitialPackageWorkflowPanelEnabled,
     );
@@ -470,9 +467,6 @@ export function NewSalesForm(props: Props) {
                 enabled: isOrder && !!record?.salesId,
             },
         ),
-    );
-    const saveInboundStatus = useMutation(
-        trpc.notes.saveInboundNote.mutationOptions(),
     );
     const packingDispatches = useMemo(
         () =>
@@ -908,25 +902,12 @@ export function NewSalesForm(props: Props) {
         [clearRecoveryKeys, markSaved, patchRecord, taskTrigger],
     );
 
-    const logInboundStatusAfterSave = useCallback(
-        async (
-            resp: { salesId?: number | null; orderId?: string | null },
-            inboundStatus: OrderInboundStatus | null,
-            previousStatus?: string | null,
-        ) => {
-            if (!inboundStatus || previousStatus === inboundStatus) return;
-            if (!resp.salesId || !resp.orderId) return;
-            patchRecord({
-                inventoryStatus: inboundStatus,
-            } as Partial<NewSalesFormRecord>);
-            await saveInboundStatus.mutateAsync({
-                salesId: resp.salesId,
-                orderNo: resp.orderId,
-                status: inboundStatus,
-                note: "Inbound status captured during order save.",
-            });
+    const configureInventoryAfterSave = useCallback(
+        async (resp: { salesId?: number | null }) => {
+            if (!isOrder) return;
+            await openSalesInventoryConfigurator(resp.salesId);
         },
-        [patchRecord, saveInboundStatus],
+        [isOrder, openSalesInventoryConfigurator],
     );
 
     useEffect(() => {
@@ -1087,10 +1068,6 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
-            const previousInboundStatus = record.inventoryStatus;
-            const inboundStatus = isOrder
-                ? await promptForInboundStatus(previousInboundStatus)
-                : null;
             markSaving();
             const resp = await autosave.flush("manual-flush", {
                 force: true,
@@ -1100,11 +1077,7 @@ export function NewSalesForm(props: Props) {
                 return;
             }
             await handlePostSaveSuccess(resp);
-            await logInboundStatusAfterSave(
-                resp,
-                inboundStatus,
-                previousInboundStatus,
-            );
+            await configureInventoryAfterSave(resp);
             await clearSelectedCustomerQuery();
             if (props.mode === "create") {
                 const editHref = buildEditHref(resp);
@@ -1124,14 +1097,9 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
-            const previousInboundStatus = record.inventoryStatus;
-            const inboundStatus = isOrder
-                ? await promptForInboundStatus(previousInboundStatus)
-                : null;
             markSaving();
             const payload = {
                 ...toSaveDraftInput(record, false),
-                inventoryStatus: inboundStatus,
             };
             try {
                 const resp = await finalSave.mutateAsync({
@@ -1139,11 +1107,7 @@ export function NewSalesForm(props: Props) {
                     autosave: false,
                 });
                 await handlePostSaveSuccess(resp);
-                await logInboundStatusAfterSave(
-                    resp,
-                    inboundStatus,
-                    previousInboundStatus,
-                );
+                await configureInventoryAfterSave(resp);
                 toast({
                     title: "Saved",
                     description: `${props.type} ${resp?.orderId} has been finalized.`,
@@ -1179,26 +1143,14 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
-            const previousInboundStatus = record.inventoryStatus;
-            const inboundStatus = isOrder
-                ? await promptForInboundStatus(previousInboundStatus)
-                : null;
             if (dirty) {
                 const resp = await autosave.flush("manual-flush");
                 if (!resp) return;
                 await handlePostSaveSuccess(resp);
-                await logInboundStatusAfterSave(
-                    resp,
-                    inboundStatus,
-                    previousInboundStatus,
-                );
+                await configureInventoryAfterSave(resp);
                 await clearSelectedCustomerQuery();
             } else {
-                await logInboundStatusAfterSave(
-                    record,
-                    inboundStatus,
-                    previousInboundStatus,
-                );
+                await configureInventoryAfterSave(record);
             }
             router.push(
                 `/sales-book/${props.type === "order" ? "orders" : "quotes"}`,
@@ -1210,26 +1162,14 @@ export function NewSalesForm(props: Props) {
         await runWithManualSaveLock(async () => {
             if (!record) return;
             if (!validateBeforeSave()) return;
-            const previousInboundStatus = record.inventoryStatus;
-            const inboundStatus = isOrder
-                ? await promptForInboundStatus(previousInboundStatus)
-                : null;
             if (dirty) {
                 const resp = await autosave.flush("manual-flush");
                 if (!resp) return;
                 await handlePostSaveSuccess(resp);
-                await logInboundStatusAfterSave(
-                    resp,
-                    inboundStatus,
-                    previousInboundStatus,
-                );
+                await configureInventoryAfterSave(resp);
                 await clearSelectedCustomerQuery();
             } else {
-                await logInboundStatusAfterSave(
-                    record,
-                    inboundStatus,
-                    previousInboundStatus,
-                );
+                await configureInventoryAfterSave(record);
             }
             router.push(
                 `/sales-form/${props.type === "order" ? "create-order" : "create-quote"}`,
@@ -1539,7 +1479,7 @@ export function NewSalesForm(props: Props) {
                 enabled={usePackageWorkflowPanel}
                 onChange={setUsePackageWorkflowPanel}
             />
-            {inStockStatusDialog}
+            {inventoryConfiguratorDialog}
             {settingsOpen ? (
                 <NewSalesFormSettingsModal
                     open={settingsOpen}

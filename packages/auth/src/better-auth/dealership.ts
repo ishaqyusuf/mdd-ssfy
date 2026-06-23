@@ -124,15 +124,15 @@ function getDealershipBaseUrl() {
 		return `https://${process.env.VERCEL_URL}`;
 	}
 
-	return "http://localhost:4200";
+	return "http://localhost:3006";
 }
 
 function getTrustedOrigins() {
 	const localAppPort =
 		process.env.PORTLESS_APP_PORT || process.env.PORT || "3006";
 	const localDealershipOrigins = [
-		"http://localhost:4200",
-		"http://127.0.0.1:4200",
+		"http://localhost:3006",
+		"http://127.0.0.1:3006",
 		`http://localhost:${localAppPort}`,
 		`http://127.0.0.1:${localAppPort}`,
 	];

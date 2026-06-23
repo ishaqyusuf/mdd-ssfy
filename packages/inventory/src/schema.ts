@@ -335,6 +335,20 @@ export const updateCategoryStockModeSchema = z.object({
 export type UpdateCategoryStockMode = z.infer<
   typeof updateCategoryStockModeSchema
 >;
+export const updateInventoryProductKindSchema = z.object({
+  id: z.number(),
+  productKind: inventoryProductKindSchema,
+});
+export type UpdateInventoryProductKind = z.infer<
+  typeof updateInventoryProductKindSchema
+>;
+export const updateCategoryProductKindSchema = z.object({
+  id: z.number(),
+  productKind: inventoryProductKindSchema,
+});
+export type UpdateCategoryProductKind = z.infer<
+  typeof updateCategoryProductKindSchema
+>;
 
 export const dykeStepComponentSchema = z.object({
   id: z.number().optional(),

@@ -67,6 +67,16 @@ export function useSalesOverviewTabs() {
 			access: ["salesAdmin", "production", "dispatch"],
 		},
 		{
+			value: "inventory",
+			label: "Inventory",
+			...resolveSalesOverviewTabVersion("inventory"),
+			description: "Line-level stock, allocation, and purchasing status",
+			access: ["salesAdmin"],
+			badge: "New",
+			hideForQuote: true,
+			hidden: isDispatchMode || isProductionMode,
+		},
+		{
 			value: "dispatch",
 			label: "Dispatch",
 			...resolveSalesOverviewTabVersion("dispatch"),

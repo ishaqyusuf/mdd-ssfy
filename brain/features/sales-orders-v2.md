@@ -49,6 +49,7 @@
   - `apps/www/src/hooks/use-sales-orders-v2-filter-params.ts`
 - Header
   - `apps/www/src/components/sales-orders-v2-header.tsx`
+  - `apps/www/src/components/sales-tabs.tsx` renders the shared sales-book Orders/Quotes/Production/Shelf Items navigation as a real `ButtonGroup` in both the page-tab portal and the compact inline header placement.
 - Summary widgets
   - `apps/www/src/components/sales-orders-v2-summary-widgets.tsx`
 - Table
@@ -72,6 +73,7 @@
 - The current page uses the richer `tables-2/sales-orders` implementation as the table standard.
 - The older `components/tables/sales-orders-v2` files were removed after an import scan confirmed they were unused.
 - `components/tables-2/core/*` remains unchanged for this migration.
+- Legacy `/sales-book/create-order` fresh-create forms require customer selection on open. When the hydrated legacy form has no saved sales id and no `metaData.customer.id`, it opens a required `Create Order: Select Customer` dialog that reuses the existing legacy customer lookup; selecting a customer updates the same legacy form store and closes the dialog.
 
 ## Current Table Shape
 - Columns

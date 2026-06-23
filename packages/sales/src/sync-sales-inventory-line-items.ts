@@ -1,11 +1,14 @@
-import { type Db, type TransactionClient } from "@gnd/db";
-import {
-	ACTIVE_INBOUND_DEMAND_STATUSES,
-	resolveOrderInboundDemandStatus,
-} from "@gnd/inventory/inbound";
+import type { Db, TransactionClient } from "@gnd/db";
+import { resolveOrderInboundDemandStatus } from "@gnd/inventory/inbound";
 import { generateInventoryCategoryUidFromShelfCategoryId } from "@gnd/inventory/inventory-utils";
 
 type DbLike = Db | TransactionClient;
+const ACTIVE_STOCK_ALLOCATION_STATUSES = [
+	"pending_review",
+	"approved",
+	"reserved",
+	"picked",
+] as const;
 
 export const resolveProjectedInboundDemandStatus =
 	resolveOrderInboundDemandStatus;
@@ -35,6 +38,16 @@ type ResolvedInventoryMapping = InventoryMapping & {
 	inventoryUid: string | null;
 };
 
+type ComponentLinePricingSnapshot = {
+	costPrice: number | null;
+	salesPrice: number | null;
+	unitCostPrice: number | null;
+	unitSalesPrice: number | null;
+	qty: number;
+	inventoryId: number;
+	inventoryVariantId: number;
+};
+
 type SyncComponentCandidate = {
 	sourceType:
 		| "dyke-step-product"
@@ -50,17 +63,24 @@ type SyncComponentCandidate = {
 	inventoryCategoryUid: string;
 	inventoryCategoryTitle: string;
 	inventoryName: string;
+	unitCostPrice?: number | null;
+	unitSalesPrice?: number | null;
 };
 
 type SyncItemLike = {
 	id: number;
 	description: string | null;
+	qty?: number | null;
+	rate?: number | null;
+	total?: number | null;
 	dykeProduction?: boolean | null;
 	meta: unknown;
 	formSteps: Array<{
 		prodUid: string | null;
 		value?: string | null;
 		qty: number | null;
+		price?: number | null;
+		basePrice?: number | null;
 		meta: unknown;
 		step: { uid: string | null; title: string | null } | null;
 		component: { uid: string | null; name: string | null } | null;
@@ -70,12 +90,18 @@ type SyncItemLike = {
 		qty: number | null;
 		description: string | null;
 		categoryId: number | null;
+		unitPrice?: number | null;
+		totalPrice?: number | null;
+		meta?: unknown;
 		shelfProduct: { id: number; title: string | null } | null;
 		category: { id: number; name: string | null } | null;
 	}>;
 	housePackageTool: {
 		deletedAt: Date | null;
 		totalDoors: number | null;
+		dimension?: string | null;
+		dependenciesUid?: string | null;
+		meta?: unknown;
 		stepProduct: {
 			uid: string | null;
 			name: string | null;
@@ -83,6 +109,11 @@ type SyncItemLike = {
 		} | null;
 		doors?: Array<{
 			totalQty: number | null;
+			dimension?: string | null;
+			meta?: unknown;
+			dependenciesUid?: string | null;
+			unitPrice?: number | null;
+			lineTotal?: number | null;
 			stepProduct: {
 				uid: string | null;
 				name: string | null;
@@ -127,11 +158,437 @@ function asPositiveNumber(value: unknown, fallback = 1): number {
 	return num;
 }
 
+function numberSafeDivide(total: unknown, divisor: unknown) {
+	const totalNumber = Number(total);
+	const divisorNumber = Number(divisor);
+	if (!Number.isFinite(totalNumber) || !Number.isFinite(divisorNumber)) {
+		return null;
+	}
+	if (divisorNumber <= 0) return null;
+	return totalNumber / divisorNumber;
+}
+
+function roundCurrencySnapshotValue(value: number | null) {
+	if (value == null) return null;
+	return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function firstFiniteNumber(...values: Array<unknown>) {
+	for (const value of values) {
+		if (value == null || value === "") continue;
+		const num = Number(value);
+		if (Number.isFinite(num)) return num;
+	}
+	return null;
+}
+
+function firstPositiveNumber(...values: Array<unknown>) {
+	for (const value of values) {
+		if (value == null || value === "") continue;
+		const num = Number(value);
+		if (Number.isFinite(num) && num > 0) return num;
+	}
+	return null;
+}
+
+function profileCoefficientValue(value?: number | null) {
+	const coefficient = Number(value || 0);
+	return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : null;
+}
+
+function completeUnitPricingFromProfile(input: {
+	unitCostPrice?: number | null;
+	unitSalesPrice?: number | null;
+	profileCoefficient?: number | null;
+}) {
+	const coefficient = profileCoefficientValue(input.profileCoefficient);
+	let unitCostPrice = firstPositiveNumber(input.unitCostPrice);
+	let unitSalesPrice = firstPositiveNumber(input.unitSalesPrice);
+
+	if (unitCostPrice == null && unitSalesPrice != null && coefficient != null) {
+		unitCostPrice = unitSalesPrice * coefficient;
+	}
+
+	if (unitSalesPrice == null && unitCostPrice != null) {
+		unitSalesPrice =
+			coefficient == null ? unitCostPrice : unitCostPrice / coefficient;
+	}
+
+	return {
+		unitCostPrice: roundCurrencySnapshotValue(unitCostPrice),
+		unitSalesPrice: roundCurrencySnapshotValue(unitSalesPrice),
+	};
+}
+
+function resolveCandidateLinePricingSnapshot(
+	candidate: SyncComponentCandidate,
+	input: InventoryMapping & { qty: number },
+): ComponentLinePricingSnapshot | null {
+	const unitCostPrice = firstFiniteNumber(candidate.unitCostPrice);
+	const unitSalesPrice = firstFiniteNumber(candidate.unitSalesPrice);
+
+	if (unitCostPrice == null && unitSalesPrice == null) return null;
+
+	return {
+		costPrice: roundCurrencySnapshotValue(
+			unitCostPrice == null ? null : unitCostPrice * input.qty,
+		),
+		salesPrice: roundCurrencySnapshotValue(
+			unitSalesPrice == null ? null : unitSalesPrice * input.qty,
+		),
+		unitCostPrice: roundCurrencySnapshotValue(unitCostPrice),
+		unitSalesPrice: roundCurrencySnapshotValue(unitSalesPrice),
+		qty: input.qty,
+		inventoryId: input.inventoryId,
+		inventoryVariantId: input.inventoryVariantId,
+	};
+}
+
+function mergeComponentLinePricingSnapshots(
+	primary: ComponentLinePricingSnapshot | null,
+	fallback: ComponentLinePricingSnapshot | null,
+	input: InventoryMapping & { qty: number },
+): ComponentLinePricingSnapshot | null {
+	const unitCostPrice =
+		primary?.unitCostPrice ?? fallback?.unitCostPrice ?? null;
+	const unitSalesPrice =
+		primary?.unitSalesPrice ?? fallback?.unitSalesPrice ?? null;
+
+	if (unitCostPrice == null && unitSalesPrice == null) return null;
+
+	return {
+		costPrice: roundCurrencySnapshotValue(
+			primary?.costPrice ??
+				fallback?.costPrice ??
+				(unitCostPrice == null ? null : unitCostPrice * input.qty),
+		),
+		salesPrice: roundCurrencySnapshotValue(
+			primary?.salesPrice ??
+				fallback?.salesPrice ??
+				(unitSalesPrice == null ? null : unitSalesPrice * input.qty),
+		),
+		unitCostPrice: roundCurrencySnapshotValue(unitCostPrice),
+		unitSalesPrice: roundCurrencySnapshotValue(unitSalesPrice),
+		qty: input.qty,
+		inventoryId: input.inventoryId,
+		inventoryVariantId: input.inventoryVariantId,
+	};
+}
+
+async function resolveComponentLinePricingSnapshot(
+	db: DbLike,
+	input: InventoryMapping & { qty: number },
+): Promise<ComponentLinePricingSnapshot | null> {
+	const variant = await db.inventoryVariant.findUnique({
+		where: {
+			id: input.inventoryVariantId,
+		},
+		select: {
+			pricing: {
+				select: {
+					costPrice: true,
+					price: true,
+				},
+			},
+			supplierVariants: {
+				where: {
+					active: true,
+					deletedAt: null,
+				},
+				orderBy: [
+					{
+						preferred: "desc",
+					},
+					{
+						id: "asc",
+					},
+				],
+				select: {
+					costPrice: true,
+					salesPrice: true,
+				},
+			},
+		},
+	});
+
+	const preferredSupplierVariant = variant?.supplierVariants?.[0] ?? null;
+	const unitCostPrice = firstFiniteNumber(
+		variant?.pricing?.costPrice,
+		preferredSupplierVariant?.costPrice,
+	);
+	const unitSalesPrice = firstFiniteNumber(
+		variant?.pricing?.price,
+		preferredSupplierVariant?.salesPrice,
+	);
+
+	if (unitCostPrice == null && unitSalesPrice == null) return null;
+
+	return {
+		costPrice: roundCurrencySnapshotValue(
+			unitCostPrice == null ? null : unitCostPrice * input.qty,
+		),
+		salesPrice: roundCurrencySnapshotValue(
+			unitSalesPrice == null ? null : unitSalesPrice * input.qty,
+		),
+		unitCostPrice: roundCurrencySnapshotValue(unitCostPrice),
+		unitSalesPrice: roundCurrencySnapshotValue(unitSalesPrice),
+		qty: input.qty,
+		inventoryId: input.inventoryId,
+		inventoryVariantId: input.inventoryVariantId,
+	};
+}
+
+function sumDoorQty(
+	doors:
+		| Array<{
+				totalQty: number | null;
+		  }>
+		| undefined,
+) {
+	return (doors || []).reduce(
+		(total, door) => total + asPositiveNumber(door.totalQty, 0),
+		0,
+	);
+}
+
+function housePackageDoorQty(
+	housePackageTool: SyncItemLike["housePackageTool"],
+) {
+	if (!housePackageTool || housePackageTool.deletedAt) return 0;
+	return asPositiveNumber(
+		housePackageTool.totalDoors,
+		sumDoorQty(housePackageTool.doors),
+	);
+}
+
 function makeSourceKey(
 	sourceType: SyncComponentCandidate["sourceType"],
 	sourceUid: string,
+	variantUid = sourceUid,
 ) {
-	return `${sourceType}:${sourceUid}`;
+	return `${sourceType}:${sourceUid}:${variantUid}`;
+}
+
+function makeCandidateKey(candidate: SyncComponentCandidate) {
+	return makeSourceKey(
+		candidate.sourceType,
+		candidate.sourceUid,
+		candidate.variantUid,
+	);
+}
+
+function normalizeDykeDependencyUid(value: unknown): string | null {
+	const raw = readString(value);
+	if (!raw) return null;
+
+	const supplierSeparatorIndex = raw.indexOf(" & ");
+	const dependency =
+		supplierSeparatorIndex > 0 ? raw.slice(0, supplierSeparatorIndex) : raw;
+	const doorSizeMatch = dependency.match(/^(\d+-\d+)\s*x\s*(\d+-\d+)$/i);
+	if (!doorSizeMatch) return dependency.trim() || null;
+
+	const [, width, height] = doorSizeMatch;
+	return `w${width.replace(/-/g, "_")}-h${height.replace(/-/g, "_")}`;
+}
+
+function readDependencyUidFromParts(value: unknown): string | null {
+	if (!Array.isArray(value)) return null;
+
+	const parts = value
+		.map((part) => normalizeDykeDependencyUid(part))
+		.filter((part): part is string => Boolean(part));
+
+	return parts.length ? parts.join("-") : null;
+}
+
+function readDependencyUidFromRecord(
+	record: Record<string, unknown>,
+): string | null {
+	const nestedMeta = asRecord(record._metaData);
+	const nestedInventory = asRecord(record.inventory);
+	const direct =
+		normalizeDykeDependencyUid(record.dependenciesUid) ??
+		normalizeDykeDependencyUid(record.pricingDependencyUid) ??
+		normalizeDykeDependencyUid(record.dependencyUid) ??
+		normalizeDykeDependencyUid(record.inventoryVariantUid) ??
+		normalizeDykeDependencyUid(nestedMeta.dependenciesUid) ??
+		normalizeDykeDependencyUid(nestedMeta.pricingDependencyUid) ??
+		normalizeDykeDependencyUid(nestedInventory.variantUid) ??
+		normalizeDykeDependencyUid(nestedInventory.inventoryVariantUid);
+
+	return direct ?? readDependencyUidFromParts(record.dependenciesUidParts);
+}
+
+type StepSelectionContext = {
+	selectedByStepUid: Record<string, string>;
+	selectedProdUidsByStepUid: Record<string, string[]>;
+};
+
+function buildStepSelectionContext(
+	formSteps: SyncItemLike["formSteps"],
+): StepSelectionContext {
+	const selectedByStepUid: Record<string, string> = {};
+	const selectedProdUidsByStepUid: Record<string, string[]> = {};
+
+	for (const step of formSteps) {
+		const stepUid = readString(step.step?.uid);
+		if (!stepUid) continue;
+
+		const stepMeta = asRecord(step.meta);
+		const selectedUids = metadataArray(stepMeta.selectedProdUids)
+			.map((uid) => readString(uid))
+			.filter((uid): uid is string => Boolean(uid));
+		const selectedComponentUids = metadataArray(stepMeta.selectedComponents)
+			.map((component) => readString(asRecord(component).uid))
+			.filter((uid): uid is string => Boolean(uid));
+		const allUids = Array.from(
+			new Set(
+				[
+					...selectedUids,
+					...selectedComponentUids,
+					readString(step.prodUid),
+					readString(step.component?.uid),
+				].filter((uid): uid is string => Boolean(uid)),
+			),
+		);
+
+		if (allUids.length) {
+			selectedProdUidsByStepUid[stepUid] = allUids;
+			selectedByStepUid[stepUid] = allUids[0] as string;
+		}
+	}
+
+	return {
+		selectedByStepUid,
+		selectedProdUidsByStepUid,
+	};
+}
+
+function permutations(values: string[]) {
+	if (values.length <= 1) return [values];
+	if (values.length > 4) return [values];
+
+	const out: string[][] = [];
+	const used = new Array(values.length).fill(false);
+	const path: string[] = [];
+	const walk = () => {
+		if (path.length === values.length) {
+			out.push([...path]);
+			return;
+		}
+		for (let index = 0; index < values.length; index++) {
+			if (used[index]) continue;
+			used[index] = true;
+			path.push(values[index] as string);
+			walk();
+			path.pop();
+			used[index] = false;
+		}
+	};
+	walk();
+	return out;
+}
+
+function cartesian(groups: string[][], max = 24) {
+	if (!groups.length) return [] as string[][];
+
+	let acc: string[][] = [[]];
+	for (const group of groups) {
+		const next: string[][] = [];
+		for (const prefix of acc) {
+			for (const value of group) {
+				next.push([...prefix, value]);
+				if (next.length >= max) return next;
+			}
+		}
+		acc = next;
+		if (acc.length >= max) return acc.slice(0, max);
+	}
+
+	return acc;
+}
+
+function dependencyKeyCandidatesFromStep(
+	priceStepDeps: unknown,
+	context?: StepSelectionContext,
+) {
+	if (!Array.isArray(priceStepDeps) || !context) return [];
+
+	const depValueGroups = priceStepDeps
+		.map((stepUid) => {
+			const normalizedStepUid = readString(stepUid);
+			if (!normalizedStepUid) return [];
+			const selectedAll =
+				context.selectedProdUidsByStepUid[normalizedStepUid] || [];
+			if (selectedAll.length) return Array.from(new Set(selectedAll));
+			const selected = context.selectedByStepUid[normalizedStepUid];
+			return selected ? [selected] : [];
+		})
+		.filter((group) => group.length);
+
+	return Array.from(
+		new Set(
+			cartesian(depValueGroups).flatMap((combo) => [
+				combo.join("-"),
+				...permutations(combo).map((values) => values.join("-")),
+			]),
+		),
+	).filter(Boolean);
+}
+
+function dependencyUidFromPricingObject(
+	pricing: unknown,
+	priceStepDeps: unknown,
+	context?: StepSelectionContext,
+) {
+	const pricingRecord = asRecord(pricing);
+	if (!Object.keys(pricingRecord).length) return null;
+
+	const keyCandidates = dependencyKeyCandidatesFromStep(priceStepDeps, context);
+	for (const key of keyCandidates) {
+		if (pricingRecord[key] != null) return normalizeDykeDependencyUid(key);
+	}
+
+	return null;
+}
+
+function selectedComponentForStep(
+	stepMeta: Record<string, unknown>,
+	sourceUid: string,
+) {
+	const selectedComponents = metadataArray(stepMeta.selectedComponents).map(
+		(component) => asRecord(component),
+	);
+	return (
+		selectedComponents.find(
+			(component) => readString(component.uid) === sourceUid,
+		) ??
+		selectedComponents[0] ??
+		{}
+	);
+}
+
+function resolveCandidateVariantUid(input: {
+	sourceUid: string;
+	stepMeta?: Record<string, unknown>;
+	selectedComponent?: Record<string, unknown>;
+	context?: StepSelectionContext;
+}) {
+	const selectedComponent = input.selectedComponent ?? {};
+	const stepMeta = input.stepMeta ?? {};
+	const selectedMeta = asRecord(selectedComponent._metaData);
+
+	return (
+		readDependencyUidFromRecord(selectedComponent) ??
+		readDependencyUidFromRecord(selectedMeta) ??
+		readDependencyUidFromRecord(stepMeta) ??
+		dependencyUidFromPricingObject(
+			selectedComponent.pricing,
+			stepMeta.priceStepDeps,
+			input.context,
+		) ??
+		input.sourceUid
+	);
 }
 
 function extractInventoryMapping(meta: unknown): InventoryMapping | null {
@@ -223,11 +680,33 @@ async function ensureInventoryRecord(
 		select: {
 			id: true,
 			uid: true,
+			name: true,
 			inventoryCategoryId: true,
 		},
 	});
 
-	if (existing) return existing;
+	if (existing) {
+		const shouldRepairName =
+			input.name &&
+			input.name !== input.uid &&
+			(!existing.name || existing.name === existing.uid);
+		if (!shouldRepairName) return existing;
+
+		return db.inventory.update({
+			where: {
+				id: existing.id,
+			},
+			data: {
+				name: input.name,
+			},
+			select: {
+				id: true,
+				uid: true,
+				name: true,
+				inventoryCategoryId: true,
+			},
+		});
+	}
 
 	return db.inventory.create({
 		data: {
@@ -238,6 +717,7 @@ async function ensureInventoryRecord(
 		select: {
 			id: true,
 			uid: true,
+			name: true,
 			inventoryCategoryId: true,
 		},
 	});
@@ -334,32 +814,22 @@ async function resolveInventoryMappingForItem(
 			: metadataHousePackageTool(item);
 	const hptStepProduct = housePackageTool?.stepProduct;
 	if (hptStepProduct?.uid && hptStepProduct.step?.uid) {
-		return ensureInventoryMappingFromCandidate(db, {
-			sourceType: "dyke-house-package",
-			sourceUid: hptStepProduct.uid,
-			title:
-				hptStepProduct.name ||
-				item.description ||
-				`Sales Item ${item.id} Product`,
-			qty: asPositiveNumber(housePackageTool?.totalDoors, 1),
-			required: true,
-			inventoryUid: hptStepProduct.uid,
-			variantUid: hptStepProduct.uid,
-			inventoryCategoryUid: hptStepProduct.step.uid,
-			inventoryCategoryTitle: hptStepProduct.step.title || "Dyke Component",
-			inventoryName:
-				hptStepProduct.name ||
-				item.description ||
-				`Sales Item ${item.id} Product`,
-		});
+		const hptCandidate = buildHousePackageCandidate(
+			housePackageTool,
+			item.qty,
+			firstFiniteNumber(item.rate, numberSafeDivide(item.total, item.qty)),
+		);
+		if (hptCandidate) {
+			return ensureInventoryMappingFromCandidate(db, hptCandidate);
+		}
 	}
 
 	const shelfItems = item.shelfItems.length
 		? item.shelfItems
 		: metadataShelfItems(item);
 	if (shelfItems.length === 1) {
-		const shelf = shelfItems[0]!;
-		if (shelf.productId && shelf.categoryId) {
+		const shelf = shelfItems[0];
+		if (shelf?.productId && shelf.categoryId) {
 			const uid = `shelf-prod-${shelf.productId}`;
 			return ensureInventoryMappingFromCandidate(db, {
 				sourceType: "shelf-product",
@@ -390,24 +860,24 @@ async function resolveInventoryMappingForItem(
 		? item.formSteps
 		: metadataFormSteps(item);
 	if (formSteps.length === 1) {
-		const step = formSteps[0]!;
-		const sourceUid = step.prodUid || step.component?.uid;
-		const stepUid = step.step?.uid;
-		if (sourceUid && stepUid) {
-			const title =
-				step.component?.name || item.description || `Sales Item ${item.id}`;
-			return ensureInventoryMappingFromCandidate(db, {
-				sourceType: "dyke-step-product",
-				sourceUid,
-				title,
-				qty: asPositiveNumber(step.qty, 1),
-				required: true,
-				inventoryUid: sourceUid,
-				variantUid: sourceUid,
-				inventoryCategoryUid: stepUid,
-				inventoryCategoryTitle: step.step?.title || "Dyke Component",
-				inventoryName: title,
-			});
+		const step = formSteps[0];
+		if (step) {
+			const stepCandidate = buildStepFormCandidate(
+				step,
+				1,
+				buildStepSelectionContext(formSteps),
+			);
+			if (stepCandidate) {
+				return ensureInventoryMappingFromCandidate(db, {
+					...stepCandidate,
+					title:
+						stepCandidate.title || item.description || `Sales Item ${item.id}`,
+					inventoryName:
+						stepCandidate.inventoryName ||
+						item.description ||
+						`Sales Item ${item.id}`,
+				});
+			}
 		}
 	}
 
@@ -463,6 +933,8 @@ function metadataFormSteps(item: SyncItemLike) {
 			prodUid: readString(step.prodUid),
 			value: readString(step.value),
 			qty: readNumber(step.qty),
+			price: firstFiniteNumber(step.price),
+			basePrice: firstFiniteNumber(step.basePrice),
 			meta: step.meta,
 			step: {
 				uid: readString(stepRecord.uid),
@@ -495,6 +967,9 @@ function metadataShelfItems(item: SyncItemLike) {
 			qty: readNumber(shelf.qty),
 			description: readString(shelf.description),
 			categoryId,
+			unitPrice: firstFiniteNumber(shelf.unitPrice, meta.unitPrice),
+			totalPrice: firstFiniteNumber(shelf.totalPrice, meta.totalPrice),
+			meta: shelf.meta,
 			shelfProduct: productId
 				? {
 						id: productId,
@@ -534,6 +1009,11 @@ function metadataHousePackageTool(item: SyncItemLike) {
 		const stepUid = readString(doorStep.uid) ?? snapshot?.stepUid ?? null;
 		return {
 			totalQty: readNumber(door.totalQty),
+			dimension: readString(door.dimension),
+			dependenciesUid: readString(door.dependenciesUid),
+			unitPrice: firstFiniteNumber(door.unitPrice),
+			lineTotal: firstFiniteNumber(door.lineTotal),
+			meta: door.meta,
 			stepProduct: uid
 				? {
 						uid,
@@ -562,6 +1042,9 @@ function metadataHousePackageTool(item: SyncItemLike) {
 	return {
 		deletedAt: null,
 		totalDoors: readNumber(hpt.totalDoors),
+		dimension: readString(hpt.dimension),
+		dependenciesUid: readString(hpt.dependenciesUid),
+		meta: hpt.meta,
 		stepProduct: hptUid
 			? {
 					uid: hptUid,
@@ -645,6 +1128,7 @@ export function resolveSalesItemProductionEligibility(item: SyncItemLike) {
 
 export function buildInventorySyncComponentCandidatesForItem(
 	item: SyncItemLike,
+	options: { profileCoefficient?: number | null } = {},
 ) {
 	const candidates = new Map<string, SyncComponentCandidate>();
 	const formSteps = item.formSteps.length
@@ -657,43 +1141,50 @@ export function buildInventorySyncComponentCandidatesForItem(
 		item.housePackageTool && !item.housePackageTool.deletedAt
 			? item.housePackageTool
 			: metadataHousePackageTool(item);
+	const doorQty = housePackageDoorQty(housePackageTool);
+	const stepSelectionContext = buildStepSelectionContext(formSteps);
+
+	const addCandidate = (candidate: SyncComponentCandidate | null) => {
+		if (!candidate) return;
+
+		const key = makeCandidateKey(candidate);
+		const existing = candidates.get(key);
+		if (!existing) {
+			candidates.set(key, candidate);
+			return;
+		}
+
+		candidates.set(key, {
+			...existing,
+			qty: existing.qty + candidate.qty,
+			required: existing.required || candidate.required,
+		});
+	};
 
 	for (const step of formSteps) {
-		const candidate = buildStepFormCandidate(step);
-		if (candidate) {
-			candidates.set(
-				makeSourceKey(candidate.sourceType, candidate.sourceUid),
-				candidate,
-			);
-		}
+		addCandidate(
+			buildStepFormCandidate(step, doorQty || 1, stepSelectionContext),
+		);
 	}
 
 	for (const shelf of shelfItems) {
-		const candidate = buildShelfCandidate(shelf);
-		if (candidate) {
-			candidates.set(
-				makeSourceKey(candidate.sourceType, candidate.sourceUid),
-				candidate,
-			);
-		}
+		addCandidate(buildShelfCandidate(shelf, options));
 	}
 
 	if (housePackageTool && !housePackageTool.deletedAt) {
-		const hptCandidate = buildHousePackageCandidate(housePackageTool);
-		if (hptCandidate) {
-			candidates.set(
-				makeSourceKey(hptCandidate.sourceType, hptCandidate.sourceUid),
-				hptCandidate,
+		const doors = housePackageTool.doors || [];
+		if (!doors.length) {
+			addCandidate(
+				buildHousePackageCandidate(
+					housePackageTool,
+					item.qty,
+					firstFiniteNumber(item.rate, numberSafeDivide(item.total, item.qty)),
+					options,
+				),
 			);
 		}
-		for (const door of housePackageTool.doors || []) {
-			const doorCandidate = buildDoorCandidate(door);
-			if (doorCandidate) {
-				candidates.set(
-					makeSourceKey(doorCandidate.sourceType, doorCandidate.sourceUid),
-					doorCandidate,
-				);
-			}
+		for (const door of doors) {
+			addCandidate(buildDoorCandidate(door));
 		}
 	}
 
@@ -717,12 +1208,15 @@ function normalizeItemTitle(item: {
 function normalizeItemDescription(item: {
 	description: string | null;
 	meta: unknown;
+	housePackageTool?: SyncItemLike["housePackageTool"];
 }) {
 	const itemMeta = asRecord(item.meta);
 	return (
 		item.description ??
 		readString(itemMeta.description) ??
-		readString(asRecord(itemMeta.meta).description)
+		readString(asRecord(itemMeta.meta).description) ??
+		item.housePackageTool?.stepProduct?.name ??
+		null
 	);
 }
 
@@ -735,46 +1229,83 @@ function normalizeItemUid(item: { id: number; meta: unknown }) {
 	);
 }
 
-function buildStepFormCandidate(step: {
-	prodUid: string | null;
-	qty: number | null;
-	meta: unknown;
-	step: { uid: string | null; title: string | null } | null;
-	component: { uid: string | null; name: string | null } | null;
-}): SyncComponentCandidate | null {
+function buildStepFormCandidate(
+	step: {
+		prodUid: string | null;
+		value?: string | null;
+		qty: number | null;
+		price?: number | null;
+		basePrice?: number | null;
+		meta: unknown;
+		step: { uid: string | null; title: string | null } | null;
+		component: { uid: string | null; name: string | null } | null;
+	},
+	multiplier = 1,
+	context?: StepSelectionContext,
+): SyncComponentCandidate | null {
 	const sourceUid = step.prodUid || step.component?.uid;
 	const categoryUid = step.step?.uid;
 	if (!sourceUid || !categoryUid) return null;
 
 	const stepMeta = asRecord(step.meta);
+	const selectedComponent = selectedComponentForStep(stepMeta, sourceUid);
+	const variantUid = resolveCandidateVariantUid({
+		sourceUid,
+		stepMeta,
+		selectedComponent,
+		context,
+	});
 	const title =
 		step.component?.name ??
+		readString(selectedComponent.title) ??
 		readString(stepMeta.title) ??
 		readString(stepMeta.name) ??
+		readString(step.value) ??
 		sourceUid;
+	const unitCostPrice = firstFiniteNumber(
+		selectedComponent.basePrice,
+		selectedComponent.costPrice,
+		stepMeta.basePrice,
+		step.basePrice,
+	);
+	const unitSalesPrice = firstFiniteNumber(
+		selectedComponent.salesPrice,
+		selectedComponent.price,
+		stepMeta.salesPrice,
+		stepMeta.price,
+		step.price,
+	);
 
 	return {
 		sourceType: "dyke-step-product",
 		sourceUid,
 		title,
-		qty: asPositiveNumber(step.qty, 1),
+		qty: asPositiveNumber(step.qty, 1) * asPositiveNumber(multiplier, 1),
 		required: true,
 		inventoryUid: sourceUid,
-		variantUid: sourceUid,
+		variantUid,
 		inventoryCategoryUid: categoryUid,
 		inventoryCategoryTitle: step.step?.title || "Dyke Component",
 		inventoryName: title,
+		unitCostPrice,
+		unitSalesPrice,
 	};
 }
 
-function buildShelfCandidate(shelf: {
+function buildShelfCandidate(
+	shelf: {
 	productId: number | null;
 	qty: number | null;
 	description: string | null;
 	categoryId: number | null;
+	unitPrice?: number | null;
+	totalPrice?: number | null;
+	meta?: unknown;
 	shelfProduct: { id: number; title: string | null } | null;
 	category: { id: number; name: string | null } | null;
-}): SyncComponentCandidate | null {
+},
+	options: { profileCoefficient?: number | null } = {},
+): SyncComponentCandidate | null {
 	if (!shelf.productId || !shelf.categoryId) return null;
 
 	const uid = `shelf-prod-${shelf.productId}`;
@@ -782,12 +1313,34 @@ function buildShelfCandidate(shelf: {
 		shelf.shelfProduct?.title ||
 		shelf.description ||
 		`Shelf Item ${shelf.productId}`;
+	const qty = asPositiveNumber(shelf.qty, 1);
+	const meta = asRecord(shelf.meta);
+	const fallbackUnitSalesPrice =
+		firstPositiveNumber(
+			meta.salesPrice,
+			shelf.unitPrice,
+			meta.unitPrice,
+			numberSafeDivide(shelf.totalPrice, qty),
+			numberSafeDivide(meta.totalPrice, qty),
+		) ?? null;
+	const fallbackUnitCostPrice =
+		firstPositiveNumber(
+			meta.basePrice,
+			meta.baseUnitPrice,
+			meta.costPrice,
+			meta.unitCostPrice,
+		) ?? null;
+	const completedPricing = completeUnitPricingFromProfile({
+		unitCostPrice: fallbackUnitCostPrice,
+		unitSalesPrice: fallbackUnitSalesPrice,
+		profileCoefficient: options.profileCoefficient,
+	});
 
 	return {
 		sourceType: "shelf-product",
 		sourceUid: uid,
 		title,
-		qty: asPositiveNumber(shelf.qty, 1),
+		qty,
 		required: true,
 		inventoryUid: uid,
 		variantUid: uid,
@@ -796,39 +1349,81 @@ function buildShelfCandidate(shelf: {
 		),
 		inventoryCategoryTitle: shelf.category?.name || "Shelf Item",
 		inventoryName: title,
+		...completedPricing,
 	};
 }
 
-function buildHousePackageCandidate(hpt: {
-	totalDoors: number | null;
-	stepProduct: {
-		uid: string | null;
-		name: string | null;
-		step: { uid: string | null; title: string | null } | null;
-	} | null;
-}): SyncComponentCandidate | null {
+function buildHousePackageCandidate(
+	hpt: {
+		totalDoors: number | null;
+		dependenciesUid?: string | null;
+		dimension?: string | null;
+		meta?: unknown;
+		stepProduct: {
+			uid: string | null;
+			name: string | null;
+			step: { uid: string | null; title: string | null } | null;
+		} | null;
+	},
+	fallbackQty?: number | null,
+	fallbackUnitSalesPrice?: number | null,
+	options: { profileCoefficient?: number | null } = {},
+): SyncComponentCandidate | null {
 	const sourceUid = hpt.stepProduct?.uid;
 	const categoryUid = hpt.stepProduct?.step?.uid;
 	if (!sourceUid || !categoryUid) return null;
 
 	const title = hpt.stepProduct?.name || sourceUid;
+	const variantUid =
+		readDependencyUidFromRecord(asRecord(hpt.meta)) ??
+		normalizeDykeDependencyUid(hpt.dependenciesUid) ??
+		normalizeDykeDependencyUid(hpt.dimension) ??
+		sourceUid;
+	const qty = asPositiveNumber(
+		hpt.totalDoors,
+		sumDoorQty((hpt as SyncItemLike["housePackageTool"])?.doors) ||
+			asPositiveNumber(fallbackQty, 1),
+	);
+	const hptMeta = asRecord(hpt.meta);
+	const priceTags = asRecord(hptMeta.priceTags);
+	const mouldingPrice = asRecord(priceTags.moulding);
+	const completedPricing = completeUnitPricingFromProfile({
+		unitCostPrice: firstPositiveNumber(
+			mouldingPrice.basePrice,
+			mouldingPrice.costPrice,
+			mouldingPrice.unitCostPrice,
+		),
+		unitSalesPrice: firstPositiveNumber(
+			mouldingPrice.salesPrice,
+			mouldingPrice.price,
+			mouldingPrice.overridePrice,
+			fallbackUnitSalesPrice,
+		),
+		profileCoefficient: options.profileCoefficient,
+	});
 
 	return {
 		sourceType: "dyke-house-package",
 		sourceUid,
 		title,
-		qty: asPositiveNumber(hpt.totalDoors, 1),
+		qty,
 		required: true,
 		inventoryUid: sourceUid,
-		variantUid: sourceUid,
+		variantUid,
 		inventoryCategoryUid: categoryUid,
 		inventoryCategoryTitle: hpt.stepProduct?.step?.title || "Dyke Component",
 		inventoryName: title,
+		...completedPricing,
 	};
 }
 
 function buildDoorCandidate(door: {
 	totalQty: number | null;
+	dimension?: string | null;
+	dependenciesUid?: string | null;
+	meta?: unknown;
+	unitPrice?: number | null;
+	lineTotal?: number | null;
 	stepProduct: {
 		uid: string | null;
 		name: string | null;
@@ -840,18 +1435,28 @@ function buildDoorCandidate(door: {
 	if (!sourceUid || !categoryUid) return null;
 
 	const title = door.stepProduct?.name || sourceUid;
+	const variantUid =
+		readDependencyUidFromRecord(asRecord(door.meta)) ??
+		normalizeDykeDependencyUid(door.dependenciesUid) ??
+		normalizeDykeDependencyUid(door.dimension) ??
+		sourceUid;
+	const qty = asPositiveNumber(door.totalQty, 1);
+	const unitSalesPrice =
+		firstFiniteNumber(door.unitPrice) ??
+		(door.lineTotal == null ? null : numberSafeDivide(door.lineTotal, qty));
 
 	return {
 		sourceType: "dyke-door-product",
 		sourceUid,
 		title,
-		qty: asPositiveNumber(door.totalQty, 1),
+		qty,
 		required: true,
 		inventoryUid: sourceUid,
-		variantUid: sourceUid,
+		variantUid,
 		inventoryCategoryUid: categoryUid,
 		inventoryCategoryTitle: door.stepProduct?.step?.title || "Dyke Component",
 		inventoryName: title,
+		unitSalesPrice,
 	};
 }
 
@@ -1005,7 +1610,7 @@ async function syncComponentFulfillment(
 					lineItemComponentId: input.lineItemComponentId,
 					deletedAt: null,
 					status: {
-						in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+						in: [...ACTIVE_STOCK_ALLOCATION_STATUSES],
 					},
 				},
 				select: {
@@ -1307,6 +1912,11 @@ export async function syncSalesInventoryLineItems(
 		select: {
 			id: true,
 			inventoryStatus: true,
+			salesProfile: {
+				select: {
+					coefficient: true,
+				},
+			},
 			lineItems: {
 				select: {
 					id: true,
@@ -1341,6 +1951,8 @@ export async function syncSalesInventoryLineItems(
 							prodUid: true,
 							value: true,
 							qty: true,
+							price: true,
+							basePrice: true,
 							meta: true,
 							step: {
 								select: {
@@ -1366,6 +1978,9 @@ export async function syncSalesInventoryLineItems(
 							qty: true,
 							description: true,
 							categoryId: true,
+							unitPrice: true,
+							totalPrice: true,
+							meta: true,
 							shelfProduct: {
 								select: {
 									id: true,
@@ -1385,6 +2000,7 @@ export async function syncSalesInventoryLineItems(
 							id: true,
 							deletedAt: true,
 							totalDoors: true,
+							meta: true,
 							stepProduct: {
 								select: {
 									uid: true,
@@ -1404,6 +2020,9 @@ export async function syncSalesInventoryLineItems(
 								select: {
 									id: true,
 									totalQty: true,
+									dimension: true,
+									unitPrice: true,
+									lineTotal: true,
 									stepProduct: {
 										select: {
 											uid: true,
@@ -1433,16 +2052,23 @@ export async function syncSalesInventoryLineItems(
 		const title = normalizeItemTitle(item);
 		const description = normalizeItemDescription(item);
 		const uid = normalizeItemUid(item);
-		const lineQty = Number(item.qty || 0);
+		const lineQty = asPositiveNumber(
+			item.qty,
+			housePackageDoorQty(
+				item.housePackageTool && !item.housePackageTool.deletedAt
+					? item.housePackageTool
+					: metadataHousePackageTool(item),
+			),
+		);
 		const itemComponents = new Map<string, SyncComponentCandidate>();
 
 		for (const candidate of buildInventorySyncComponentCandidatesForItem(
 			item,
+			{
+				profileCoefficient: sale.salesProfile?.coefficient ?? null,
+			},
 		)) {
-			itemComponents.set(
-				makeSourceKey(candidate.sourceType, candidate.sourceUid),
-				candidate,
-			);
+			itemComponents.set(makeCandidateKey(candidate), candidate);
 		}
 
 		const mapping = await resolveInventoryMappingForItem(db, item);
@@ -1479,21 +2105,21 @@ export async function syncSalesInventoryLineItems(
 			inventoryVariantId: mapping.inventoryVariantId,
 			inventoryCategoryId: mapping.inventoryCategoryId,
 			deletedAt: null,
-				meta: {
-					...(itemMeta as Record<string, unknown>),
-					production: {
-						...asRecord(itemMeta.production),
-						produceable: productionEligible,
-					},
-					inventorySync: {
-						source,
-						triggeredByUserId: input.triggeredByUserId ?? null,
-						syncedAt: new Date().toISOString(),
-						inventoryUid: mapping.inventoryUid,
-						componentCount: itemComponents.size,
-						productionProduceable: productionEligible,
-					},
-				} as Record<string, unknown>,
+			meta: {
+				...(itemMeta as Record<string, unknown>),
+				production: {
+					...asRecord(itemMeta.production),
+					produceable: productionEligible,
+				},
+				inventorySync: {
+					source,
+					triggeredByUserId: input.triggeredByUserId ?? null,
+					syncedAt: new Date().toISOString(),
+					inventoryUid: mapping.inventoryUid,
+					componentCount: itemComponents.size,
+					productionProduceable: productionEligible,
+				},
+			} as Record<string, unknown>,
 		};
 
 		let lineItemId: number;
@@ -1531,6 +2157,7 @@ export async function syncSalesInventoryLineItems(
 					select: {
 						id: true,
 						subComponentId: true,
+						inventoryVariantId: true,
 					},
 				},
 			},
@@ -1545,6 +2172,24 @@ export async function syncSalesInventoryLineItems(
 				db,
 				candidate,
 			);
+			const componentQty = Math.max(1, Math.round(candidate.qty));
+			const componentPricingInput = {
+				...componentMapping,
+				qty: componentQty,
+			};
+			const inventoryPricing = await resolveComponentLinePricingSnapshot(
+				db,
+				componentPricingInput,
+			);
+			const candidatePricing = resolveCandidateLinePricingSnapshot(
+				candidate,
+				componentPricingInput,
+			);
+			const componentPricing = mergeComponentLinePricingSnapshots(
+				inventoryPricing,
+				candidatePricing,
+				componentPricingInput,
+			);
 
 			const subComponent = await ensureSubComponentRecord(db, {
 				parentInventoryId: refreshedLineItem.inventoryId,
@@ -1553,7 +2198,9 @@ export async function syncSalesInventoryLineItems(
 			});
 
 			const existingComponent = refreshedLineItem.components.find(
-				(component) => component.subComponentId === subComponent.id,
+				(component) =>
+					component.subComponentId === subComponent.id &&
+					component.inventoryVariantId === componentMapping.inventoryVariantId,
 			);
 
 			const componentData = {
@@ -1562,7 +2209,7 @@ export async function syncSalesInventoryLineItems(
 				inventoryCategoryId: componentMapping.inventoryCategoryId,
 				inventoryId: componentMapping.inventoryId,
 				inventoryVariantId: componentMapping.inventoryVariantId,
-				qty: Math.max(1, Math.round(candidate.qty)),
+				qty: componentQty,
 				required: candidate.required,
 				qtyAllocated: 0,
 				qtyInbound: 0,
@@ -1591,10 +2238,29 @@ export async function syncSalesInventoryLineItems(
 				syncedComponentIds.add(createdComponent.id);
 			}
 
+			if (componentPricing) {
+				await db.linePricing.upsert({
+					where: {
+						componentId: lineItemComponentId,
+					},
+					create: {
+						componentId: lineItemComponentId,
+						...componentPricing,
+					},
+					update: componentPricing,
+				});
+			} else {
+				await db.linePricing.deleteMany({
+					where: {
+						componentId: lineItemComponentId,
+					},
+				});
+			}
+
 			const fulfillment = await syncComponentFulfillment(db, {
 				lineItemComponentId,
 				inventoryVariantId: componentMapping.inventoryVariantId,
-				qtyRequired: Math.max(1, Math.round(candidate.qty)),
+				qtyRequired: componentQty,
 				orderInventoryStatus: sale.inventoryStatus,
 			});
 

@@ -640,6 +640,7 @@ export const inventoryInboundActivitySchema = z.object({
 	supplierId: z.number().optional().nullable(),
 	supplierName: z.string().optional().nullable(),
 	reference: z.string().optional().nullable(),
+	lifecycleEventId: z.string().optional(),
 	activityType: z.enum([
 		"created",
 		"documents_uploaded",
@@ -648,6 +649,7 @@ export const inventoryInboundActivitySchema = z.object({
 		"extraction_failed",
 		"extraction_applied",
 		"demands_assigned",
+		"status_updated",
 		"received",
 	]),
 	documentIds: z.array(z.string()).optional(),
@@ -662,6 +664,7 @@ export const inventoryInboundActivityTags = actityTagsSchema.extend({
 	supplierId: z.coerce.number().optional(),
 	supplierName: z.string().optional(),
 	reference: z.string().optional(),
+	lifecycleEventId: z.string().optional(),
 	activityType: z.enum([
 		"created",
 		"documents_uploaded",
@@ -670,6 +673,7 @@ export const inventoryInboundActivityTags = actityTagsSchema.extend({
 		"extraction_failed",
 		"extraction_applied",
 		"demands_assigned",
+		"status_updated",
 		"received",
 	]),
 	documentIds: documentIdsTagSchema.optional(),

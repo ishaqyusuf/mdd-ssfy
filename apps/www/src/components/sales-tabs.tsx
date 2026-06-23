@@ -4,11 +4,16 @@ import { useAuth } from "@/hooks/use-auth";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
+import { Button } from "@gnd/ui/button";
+import { ButtonGroup } from "@gnd/ui/button-group";
 import { cn } from "@gnd/ui/cn";
-import { HeaderTab } from "@gnd/ui/header-tab";
+import { type IconKeys, Icons } from "@gnd/ui/icons";
 import { useQueryClient } from "@gnd/ui/tanstack";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import * as React from "react";
 import { useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { type Access, _perm, validateRules } from "./sidebar-links";
 
 const salesTabs: {
@@ -44,6 +49,12 @@ const salesTabs: {
 		icon: "products",
 		rules: [_perm.is("editOrders")],
 	},
+	{
+		href: "/sales-book/inbounds",
+		label: "Inbounds",
+		icon: "Warehouse",
+		rules: [_perm.is("editOrders")],
+	},
 ];
 
 type SalesTabsProps = {
@@ -52,6 +63,22 @@ type SalesTabsProps = {
 	className?: string;
 	hideWhenOrdersV2Scrolled?: boolean;
 };
+
+function usePortalNode(portalNodeId: string, enabled: boolean) {
+	const [portalNode, setPortalNode] = React.useState<HTMLElement | null>(null);
+
+	React.useEffect(() => {
+		if (!enabled) return;
+
+		setPortalNode(document.getElementById(portalNodeId));
+	}, [enabled, portalNodeId]);
+
+	return portalNode;
+}
+
+function getTabIcon(icon: string) {
+	return Icons[icon as IconKeys];
+}
 
 export function SalesTabs({
 	portal = true,
@@ -78,6 +105,7 @@ export function SalesTabs({
 	);
 	const hideSalesTabs =
 		hideWhenOrdersV2Scrolled && isOrdersPage && isOrdersV2TableScrolled;
+	const portalNode = usePortalNode("pageTab", portal);
 
 	useEffect(() => {
 		if (hideSalesTabs) return;
@@ -119,27 +147,59 @@ export function SalesTabs({
 
 	if (!visibleTabs.length) return null;
 
-	return (
-		<HeaderTab
+	const content = (
+		<nav
 			aria-label="Sales sections"
-			portal={portal}
 			className={cn(
-				"transition-[height,min-height,opacity,border-color,padding] duration-200 ease-out",
+				"flex h-12 min-h-12 w-full items-center overflow-x-auto border-b bg-muted/30 px-4 py-1.5 shadow-[inset_0_1px_0_hsl(var(--background))] transition-[height,min-height,opacity,border-color,padding] duration-200 ease-out [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden",
 				compact &&
-					"h-9 min-h-9 rounded-md border bg-muted/35 px-1 py-1 shadow-none sm:px-1 [&_a]:h-7 [&_a]:gap-1.5 [&_a]:px-2 [&_a]:text-xs [&_a_span:first-child]:size-5 [&_svg]:size-3",
+					"h-9 min-h-9 rounded-md border bg-muted/35 px-1 py-1 shadow-none sm:px-1",
 				hideSalesTabs &&
 					"pointer-events-none h-0 min-h-0 overflow-hidden border-transparent py-0 opacity-0",
 				className,
 			)}
 		>
-			{visibleTabs.map((tab) => (
-				<HeaderTab.Tab
-					key={tab.href}
-					href={tab.href}
-					label={tab.label}
-					icon={tab.icon}
-				/>
-			))}
-		</HeaderTab>
+			<ButtonGroup className="shrink-0">
+				{visibleTabs.map((tab) => {
+					const Icon = getTabIcon(tab.icon);
+					const isActive =
+						pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+
+					return (
+						<Button
+							asChild
+							className={cn(
+								"uppercase",
+								compact && "h-7 gap-1.5 px-2 text-xs",
+								isActive
+									? "bg-foreground text-background hover:bg-foreground/90"
+									: "text-muted-foreground",
+							)}
+							key={tab.href}
+							size={compact ? "sm" : "default"}
+							variant={isActive ? "default" : "outline"}
+						>
+							<Link
+								aria-current={isActive ? "page" : undefined}
+								href={tab.href}
+							>
+								{Icon ? (
+									<Icon
+										aria-hidden="true"
+										className={cn("size-4", compact && "size-3")}
+									/>
+								) : null}
+								<span>{tab.label}</span>
+							</Link>
+						</Button>
+					);
+				})}
+			</ButtonGroup>
+		</nav>
 	);
+
+	if (!portal) return content;
+	if (!portalNode) return null;
+
+	return createPortal(content, portalNode);
 }

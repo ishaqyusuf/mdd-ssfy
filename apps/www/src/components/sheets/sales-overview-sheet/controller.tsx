@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { SalesOverviewInbox } from "@/components/chat";
+import { SalesOverviewInventoryContent } from "@/components/sales-overview-system/tabs/inventory-tab";
 import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 
@@ -11,11 +12,18 @@ import { DispatchTab } from "./dispatch-tab";
 import { GeneralTab } from "./general-tab";
 import { PackingTab } from "./packing-tab";
 import { ProductionTab } from "./production-tab";
+import { useSaleOverview } from "./context";
 import type {
 	LegacySalesOverviewMode,
 	LegacySalesOverviewTabDefinition,
 	LegacySalesOverviewTabId,
 } from "./types";
+
+function LegacySalesOverviewInventoryTab() {
+	const { data } = useSaleOverview();
+
+	return <SalesOverviewInventoryContent salesOrderId={data?.id} />;
+}
 
 export function shouldRenderLegacySalesOverviewSheet({
 	legacyOverviewId,
@@ -148,6 +156,13 @@ export function createLegacySalesOverviewTabs({
 							/>
 						</div>
 					),
+				},
+				{
+					value: "inventory",
+					label: "Inventory",
+					hidden: isQuote,
+					badge: "New",
+					content: <LegacySalesOverviewInventoryTab />,
 				},
 				{
 					value: "dispatch",

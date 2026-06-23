@@ -15,6 +15,7 @@ export type LegacySalesOverviewTabId =
 	| "transactions"
 	| "activity"
 	| "inbound"
+	| "inventory"
 	| "dispatch"
 	| "packing";
 

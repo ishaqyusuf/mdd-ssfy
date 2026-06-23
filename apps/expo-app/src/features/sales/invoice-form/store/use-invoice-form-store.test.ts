@@ -46,6 +46,18 @@ describe("useInvoiceFormStore customer selection", () => {
     expect(lineItems[0]?.title).toBe("New Line");
     expect(firstStepTitle(lineItems[0])).toBe("Item Type");
   });
+
+  it("stores visible save error messages", () => {
+    useInvoiceFormStore.getState().actions.markSaving();
+    useInvoiceFormStore
+      .getState()
+      .actions.markError("Could not save invoice. Check your connection and try again.");
+
+    expect(useInvoiceFormStore.getState().saveStatus).toBe("error");
+    expect(useInvoiceFormStore.getState().validationError).toBe(
+      "Could not save invoice. Check your connection and try again.",
+    );
+  });
 });
 
 function firstStepTitle(

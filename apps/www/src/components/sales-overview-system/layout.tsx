@@ -8,6 +8,7 @@ import {
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -15,7 +16,7 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
-import { TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { TabsContent } from "@gnd/ui/tabs";
 
 import { useSalesOverviewSystem } from "./provider";
 import { useSalesOverviewTabs } from "./tab-registry";
@@ -88,26 +89,48 @@ export function SalesOverviewHeader({
 						))}
 					</DropdownMenuContent>
 				</DropdownMenu>
-				<TabsList className="hidden w-full justify-start sm:flex">
-					{tabs.map((tab) => (
-						<TabsTrigger
-							key={tab.value}
-							value={tab.value}
-							disabled={tab.disabled}
-							onClick={() => onTabChange(tab.value)}
-						>
-							<span>{tab.label}</span>
-							{tab.badge !== undefined ? (
-								<Badge
-									className="ml-2"
-									variant={tab.badge ? "default" : "outline"}
-								>
-									{tab.badge}
-								</Badge>
-							) : null}
-						</TabsTrigger>
-					))}
-				</TabsList>
+				<div
+					aria-label="Sales overview tabs"
+					className="hidden h-auto w-fit max-w-full flex-wrap justify-start gap-1 rounded-md border border-border bg-muted/40 p-1 sm:flex"
+					role="tablist"
+				>
+					{tabs.map((tab) => {
+						const isActive = tab.value === activeTab;
+
+						return (
+							<Button
+								aria-selected={isActive}
+								className={cn(
+									"h-8 rounded-sm px-3 text-xs uppercase",
+									isActive
+										? "bg-foreground text-background shadow-sm hover:bg-foreground/90"
+										: "text-muted-foreground hover:bg-background hover:text-foreground",
+								)}
+								disabled={tab.disabled}
+								key={tab.value}
+								onClick={() => onTabChange(tab.value)}
+								role="tab"
+								size="sm"
+								tabIndex={isActive ? 0 : -1}
+								type="button"
+								variant={isActive ? "default" : "ghost"}
+							>
+								<span>{tab.label}</span>
+								{tab.badge !== undefined ? (
+									<Badge
+										className={cn(
+											"ml-1.5 h-4 px-1.5 text-[10px] leading-none",
+											isActive && "bg-background/15 text-background",
+										)}
+										variant={tab.badge ? "default" : "outline"}
+									>
+										{tab.badge}
+									</Badge>
+								) : null}
+							</Button>
+						);
+					})}
+				</div>
 				{activeTabDef?.description ? (
 					<p className="text-xs text-muted-foreground">
 						{activeTabDef.description}
@@ -132,6 +155,7 @@ export function SalesOverviewPanels({
 					key={tab.value}
 					value={tab.value}
 					forceMount={tab.value === activeTab ? true : undefined}
+					className="min-w-0"
 				>
 					{tab.content}
 				</TabsContent>

@@ -25,6 +25,7 @@ import {
 import { useEffect, useLayoutEffect, useState } from "react";
 import { FormWatcher } from "./form-watcher";
 import { SalesFormSave } from "./sales-form-save";
+import { LegacySalesCustomerSelectorDialog } from "./sales-customer-input";
 import { SalesFormSidebar } from "./sales-form-sidebar";
 import TakeOff from "./take-off";
 import { TakeoffSwitch } from "./take-off/takeoff-switch";
@@ -51,6 +52,8 @@ function Content({ data }) {
 	const [takeOff, setTakeOff] = useState(false);
 	const isMobilePanel = useMediaQuery("(max-width: 1279px)");
 	const previewId = zus.metaData?.id ?? null;
+	const shouldRequireCustomerSelection =
+		!previewId && !zus.metaData?.customer?.id;
 
 	function preview() {
 		if (!previewId) return;
@@ -64,6 +67,10 @@ function Content({ data }) {
 
 	return (
 		<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 md:left-[84px]">
+			<LegacySalesCustomerSelectorDialog
+				open={shouldRequireCustomerSelection}
+				type={zus.metaData?.type}
+			/>
 			<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-white/80 shadow-sm">
 				<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 					<div className="shrink-0 flex border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur md:px-6">
