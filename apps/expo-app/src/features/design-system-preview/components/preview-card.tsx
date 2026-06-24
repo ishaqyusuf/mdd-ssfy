@@ -9,14 +9,17 @@ export function PreviewRecordCard({
 	record,
 	system,
 	dense = false,
+	onPress,
 }: {
 	record: PreviewRecord;
 	system: ResolvedPreviewDesignSystem;
 	dense?: boolean;
+	onPress?: () => void;
 }) {
 	return (
 		<Pressable
 			transition
+			onPress={onPress}
 			style={{
 				borderRadius: system.radius.card,
 				borderWidth: 1,

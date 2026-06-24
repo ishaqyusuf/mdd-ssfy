@@ -2,6 +2,7 @@ import type { FooterData, FooterLine, PrintMode } from "../types";
 import type { PrintSalesData } from "../query";
 import { formatCurrency, sum } from "@gnd/utils";
 import { salesTaxByCode, type SalesTaxCode } from "../constants";
+import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
 
 export function composeFooter(
   sale: PrintSalesData,
@@ -9,6 +10,12 @@ export function composeFooter(
 ): FooterData | null {
   const hideBalanceDue = mode === "production" || mode === "packing-slip";
   const meta: any = sale.meta;
+  const dueCharge = calculatePaymentChannelCharge({
+    paymentMethod:
+      typeof meta?.payment_option === "string" ? meta.payment_option : null,
+    paymentAmount: sale.amountDue,
+    cccPercentage: meta?.ccc_percentage,
+  });
   const totalPaid = sum(
     sale.payments
       .filter((p) => !p.deletedAt && p.status === "success")
@@ -73,10 +80,10 @@ export function composeFooter(
   }
 
   // C.C.C
-  if (meta?.ccc) {
+  if (dueCharge.amount) {
     lines.push({
       label: "C.C.C",
-      value: `$${formatCurrency(meta.ccc || 0)}`,
+      value: `$${formatCurrency(dueCharge.amount)}`,
       bold: true,
     });
   }
@@ -101,7 +108,7 @@ export function composeFooter(
   if (!hideBalanceDue) {
     lines.push({
       label: "Total Due",
-      value: `$${formatCurrency(sale.amountDue || 0)}`,
+      value: `$${formatCurrency(dueCharge.chargeAmount || 0)}`,
       bold: true,
       large: true,
     });

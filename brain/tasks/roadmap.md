@@ -15,6 +15,25 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Mobile Invoice Save Web Control Diff
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-24-bug-fix-mobile-invoice-save-web-control-diff.md`.
+- Related Feature: Mobile invoice form save reliability
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-24-bug-fix-mobile-invoice-save-web-control-diff.md
+- Intake File: brain/intake/2026-06-24-mobile-invoice-save-web-control-diff.md
+- Created Date: 2026-06-24
+
+### Mobile Invoice Web Parity And Save Reliability Gap Closure
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-23-bug-fix-mobile-invoice-web-parity-and-save-reliability-gap-closure.md`.
+- Related Feature: Mobile invoice form save reliability and web parity
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-23-bug-fix-mobile-invoice-web-parity-and-save-reliability-gap-closure.md
+- Created Date: 2026-06-23
+
 ### Mobile Invoice Form Architecture Refactor
 - Priority: High
 - Description: Track plan in `brain/plans/2026-06-19-feature-mobile-invoice-form-architecture-refactor.md`.
@@ -184,3 +203,43 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Intake File: brain/intake/2026-06-15-inventory-cutover-pending-scope.md
 - Created Date: 2026-06-15
 - Completed Date: 2026-06-15
+
+### Mobile Template Interaction Architecture
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-template-interaction-architecture.md`.
+- Related Feature: Mobile design-system preview templates
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-23-ux-ui-mobile-template-interaction-architecture.md
+- Intake File: brain/intake/2026-06-23-mobile-template-completion.md
+- Created Date: 2026-06-23
+
+### Mobile Field Flow Complete Tabs And Route Overview
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-field-flow-tabs-route-overview.md`.
+- Related Feature: Mobile design-system preview templates
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-23-ux-ui-mobile-field-flow-tabs-route-overview.md
+- Intake File: brain/intake/2026-06-23-mobile-template-completion.md
+- Created Date: 2026-06-23
+
+### Mobile Ops Console Complete Tabs Search And Work Overview
+- Priority: High
+- Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-ops-console-tabs-search-work-overview.md`.
+- Related Feature: Mobile design-system preview templates
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-23-ux-ui-mobile-ops-console-tabs-search-work-overview.md
+- Intake File: brain/intake/2026-06-23-mobile-template-completion.md
+- Created Date: 2026-06-23
+
+### Mobile Sales Ledger Complete Tabs Search And Order Overview
+- Priority: Medium
+- Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-sales-ledger-tabs-search-order-overview.md`.
+- Related Feature: Mobile design-system preview templates
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-23-ux-ui-mobile-sales-ledger-tabs-search-order-overview.md
+- Intake File: brain/intake/2026-06-23-mobile-template-completion.md
+- Created Date: 2026-06-23

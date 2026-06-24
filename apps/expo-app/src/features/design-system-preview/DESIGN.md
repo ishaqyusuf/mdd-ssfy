@@ -37,6 +37,8 @@ The previews adapt those ideas to GND's actual mobile domains: jobs, dispatch, w
 - Preview screens resolve the active palette from the app color scheme.
 - Template screens expose the app theme toggle in the top-right header slot.
 - Template bottom tabs render as a floating overlay outside the scroll view, with transparent surrounding space so content remains visible around the tab card.
+- **Interactivity**: Previews implement shared local state for bottom tabs, global search, status filters, and active-record selection.
+- **Record Details**: Selecting a record transitions the view from the list tab to a detailed view with its own nested tabs.
 - Header text, search controls, and native status bar style derive from header luminance so dark chrome uses light system icons and near-white chrome keeps dark text.
 - Header theme-toggle icons also derive from the header foreground instead of the global app theme artwork.
 - Header back, search, and filter icons use the shared `Icon` `inverted` option when the custom header surface is opposite the current app theme.

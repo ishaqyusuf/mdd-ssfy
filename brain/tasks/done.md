@@ -4,6 +4,7 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+- [x] Mobile Invoice Save Stuck: completed `brain/plans/2026-06-23-bug-fix-mobile-invoice-save-stuck.md` by adding a bounded mobile save await path, driving the saving overlay from store `saveStatus`, and returning hung invoice/quote saves to a retryable error state (2026-06-23).
 - [x] Completed Inventory Pending 16 operations dashboard stock controls with tracked/untracked stock cards, low/out-of-stock alerts, inbound demand, pending allocation, backorder, production blocker metrics, and drilldowns from `/inventory` (2026-06-15).
 - [x] Completed Inventory Pending 14 stock audit verification with an audit matrix/report for stock in/out, return, correction, consume, and release plus stock operations UI evidence and focused tests (2026-06-15).
 - [x] Completed Inventory Pending 13 top-sales analytics by adding inventory-backed item/variant rankings for ordered quantity, shipped/consumed allocation quantity, revenue, cost, and margin with reliability counts on `/inventory` and `/inventory/[id]` (2026-06-15).

@@ -78,8 +78,8 @@ export const Modal = React.forwardRef(
     ref: ModalRef,
   ) => {
     const detachedProps = React.useMemo(
-      () => getDetachedProps(detached),
-      [detached],
+      () => getDetachedProps(detached, props.style, props.containerStyle),
+      [detached, props.style, props.containerStyle],
     );
     const modal = useModal();
     const snapPoints = React.useMemo(() => _snapPoints, [_snapPoints]);
@@ -90,22 +90,46 @@ export const Modal = React.forwardRef(
     );
     const colors = useColors();
     const backgroundStyle = React.useMemo(
-      () => ({
-        backgroundColor: colors.background,
-      }),
-      [colors],
+      () => [
+        {
+          backgroundColor: colors.background,
+        },
+        detached
+          ? {
+              borderRadius: 40,
+              borderBottomLeftRadius: 40,
+              borderBottomRightRadius: 40,
+              borderTopLeftRadius: 40,
+              borderTopRightRadius: 40,
+            }
+          : null,
+        props.backgroundStyle,
+      ],
+      [colors, detached, props.backgroundStyle],
     );
     const renderHandleComponent = React.useCallback(
       () =>
         hideHeader ? (
-          <View className="mb-2 mt-2 h-1 w-12 self-center rounded-lg bg-background" />
+          <View
+            className={
+              detached
+                ? "mb-4 mt-3 h-1.5 w-12 self-center rounded-full bg-muted-foreground/25"
+                : "mb-2 mt-2 h-1 w-12 self-center rounded-lg bg-background"
+            }
+          />
         ) : (
           <>
-            <View className="mb-8 mt-2 h-1 w-12 self-center rounded-lg bg-background" />
+            <View
+              className={
+                detached
+                  ? "mb-8 mt-3 h-1.5 w-12 self-center rounded-full bg-muted-foreground/25"
+                  : "mb-8 mt-2 h-1 w-12 self-center rounded-lg bg-background"
+              }
+            />
             <ModalHeader title={title} dismiss={modal.dismiss} />
           </>
         ),
-      [hideHeader, title, modal.dismiss],
+      [detached, hideHeader, title, modal.dismiss],
     );
 
     return (
@@ -117,7 +141,11 @@ export const Modal = React.forwardRef(
         snapPoints={snapPoints}
         backdropComponent={props.backdropComponent || renderBackdrop}
         enableDynamicSizing={enableDynamicSizing}
-        handleComponent={renderHandleComponent}
+        handleComponent={
+          "handleComponent" in props
+            ? props.handleComponent
+            : renderHandleComponent
+        }
         backgroundStyle={backgroundStyle}
       />
     );
@@ -155,12 +183,27 @@ export const renderBackdrop = (props: BottomSheetBackdropProps) => (
  * In case the modal is detached, we need to add some extra props to the modal to make it look like a detached modal.
  */
 
-const getDetachedProps = (detached: boolean) => {
+const getDetachedProps = (
+  detached: boolean,
+  style: BottomSheetModalProps["style"],
+  containerStyle: BottomSheetModalProps["containerStyle"],
+) => {
   if (detached) {
     return {
       detached: true,
-      bottomInset: 46,
-      style: { marginHorizontal: 16, overflow: "hidden" },
+      bottomInset: 0,
+      containerStyle: [containerStyle, { marginHorizontal: 8 }],
+      style: [
+        style,
+        {
+          overflow: "hidden",
+          borderRadius: 40,
+          borderBottomLeftRadius: 40,
+          borderBottomRightRadius: 40,
+          borderTopLeftRadius: 40,
+          borderTopRightRadius: 40,
+        },
+      ],
     } as Partial<BottomSheetModalProps>;
   }
   return {} as Partial<BottomSheetModalProps>;

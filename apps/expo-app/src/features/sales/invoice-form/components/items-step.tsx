@@ -242,11 +242,14 @@ export function ItemsStep({
         paddingBottom: ITEMS_STEP_BOTTOM_PADDING,
       }}
     >
-		{activeSection ? (
-			<View className="relative min-h-[640px]" {...panResponder.panHandlers}>
-				<View className="w-full">
-					{invoiceDescriptionLine ? (
-						<View className="px-4 pb-2 pt-1">
+      {activeSection ? (
+        <View
+          style={{ minHeight: 640, position: "relative" }}
+          {...panResponder.panHandlers}
+        >
+          <View className="w-full">
+            {invoiceDescriptionLine ? (
+              <View className="px-4 pb-2 pt-1">
                 <TextInput
                   value={invoiceDescriptionValue}
                   placeholder={`Item ${activeIndex + 1}`}

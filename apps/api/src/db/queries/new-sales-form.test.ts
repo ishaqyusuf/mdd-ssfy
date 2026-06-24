@@ -1552,6 +1552,7 @@ describe("new-sales-form relational parity", () => {
     expect(line!.lineTotal).toBe(1000);
     expect(loaded.form.paymentMethod).toBe("Credit Card");
     expect(state.orders[0]?.meta?.payment_option).toBe("Credit Card");
+    expect(state.orders[0]?.meta).not.toHaveProperty("ccc");
     expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
   });
 
@@ -2670,7 +2671,10 @@ describe("new-sales-form relational parity", () => {
       salesCoefficient: 0.72,
     });
     expect(state.orders[0]?.taxPercentage).toBe(7.5);
-    expect(state.orders[0]?.amountDue).toBe(saved.summary.grandTotal);
+    expect(state.orders[0]?.amountDue).toBe(
+      saved.summary.grandTotal - (saved.summary.ccc || 0),
+    );
+    expect(state.orders[0]?.meta).not.toHaveProperty("ccc");
 
     const loaded = await getNewSalesForm(ctx, {
       type: "order",

@@ -91,12 +91,12 @@ describe("legacy sales form metadata", () => {
 			qb: "QB-1",
 			payment_option: "Check",
 			paymentMethodReviewDismissed: true,
-			ccc: 3.5,
 			ccc_percentage: 3.5,
 			discount: 10,
 			deliveryCost: 25,
 			labor_cost: 40,
 		});
+		expect(meta).not.toHaveProperty("ccc");
 	});
 
 	it("migrates legacy sales_percentage to salesCoefficient without re-saving the old key", () => {

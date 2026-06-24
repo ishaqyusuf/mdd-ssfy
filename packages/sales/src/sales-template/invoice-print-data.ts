@@ -23,6 +23,7 @@ import { z } from "zod";
 import { INVOICE_PRINT_MODES } from "../constants";
 import { CSSProperties } from "react";
 import { buildCustomerNameLines } from "../print/compose/customer-name-lines";
+import { calculatePaymentChannelCharge } from "../payment-system/domain/payment-channel-charge";
 export const printInvoiceSchema = z.object({
 	ids: z.array(z.number()).optional().nullable(),
 	slugs: z.array(z.string()).optional().nullable(),
@@ -83,6 +84,24 @@ function metadataArray(value: unknown) {
 	return Array.isArray(value) ? value : [];
 }
 
+function saleMetaRecord(sale: Data): Record<string, any> {
+	return sale?.meta &&
+		typeof sale.meta === "object" &&
+		!Array.isArray(sale.meta)
+		? (sale.meta as Record<string, any>)
+		: {};
+}
+
+function salesPaymentCharge(sale: Data, amount?: number | null) {
+	const meta = saleMetaRecord(sale);
+	return calculatePaymentChannelCharge({
+		paymentMethod:
+			typeof meta.payment_option === "string" ? meta.payment_option : null,
+		paymentAmount: amount ?? sale.grandTotal,
+		cccPercentage: meta.ccc_percentage,
+	});
+}
+
 function printableShelfItems(item: DataItem) {
 	return item.shelfItems?.length
 		? item.shelfItems
@@ -101,6 +120,7 @@ function metaData(data: Data): PrintData["meta"] {
 	const isQuote = query.mode == "quote";
 	const hideBalanceDue =
 		query.mode == "packing slip" || query.mode == "production";
+	const printGrandTotal = salesPaymentCharge(data).chargeAmount;
 	function detail(label, value, style?: CSSProperties) {
 		const _ctx = {
 			data: {
@@ -121,7 +141,7 @@ function metaData(data: Data): PrintData["meta"] {
 		!hideBalanceDue &&
 			detail("Invoice Status", data.amountDue! > 0 ? "Pending" : "Paid"),
 		!hideBalanceDue &&
-			detail("Invoice Total", formatCurrency(data?.grandTotal), {
+			detail("Invoice Total", formatCurrency(printGrandTotal), {
 				fontWeight: "bold",
 				fontSize: "20px",
 			}),
@@ -144,6 +164,8 @@ function metaData(data: Data): PrintData["meta"] {
 	};
 }
 function transformSalesPrint(data: Data) {
+	const printGrandTotal = salesPaymentCharge(data).chargeAmount;
+	const printAmountDue = salesPaymentCharge(data, data.amountDue).chargeAmount;
 	const res: PrintData = {
 		meta: metaData(data),
 		label: query.mode as any,
@@ -160,12 +182,12 @@ function transformSalesPrint(data: Data) {
 		date: formatDate(data.createdAt),
 		salesRep: data?.salesRep?.name!,
 		poNo: (data.meta as any as SalesMeta)?.po!,
-		total: `${formatMoney(data.grandTotal)}`,
+		total: `${formatMoney(printGrandTotal)}`,
 		due:
 			query.mode == "packing slip" || query.mode == "production"
 				? undefined
 				: data.amountDue
-					? `$${formatMoney(data.amountDue)}`
+					? `$${formatMoney(printAmountDue)}`
 					: undefined,
 		type: query.type,
 		linesSection: [],

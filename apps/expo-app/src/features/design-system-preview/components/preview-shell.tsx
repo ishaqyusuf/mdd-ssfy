@@ -12,7 +12,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { type ReactNode, useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, TextInput } from "react-native";
 import type { ResolvedPreviewDesignSystem } from "../design-systems/types";
 
 export function PreviewShell({
@@ -21,12 +21,20 @@ export function PreviewShell({
 	eyebrow,
 	system,
 	title,
+	searchValue,
+	onSearchChange,
+	onFilterPress,
+	searchPlaceholder = "Search...",
 }: {
 	bottomNavigation?: ReactNode;
 	children: ReactNode;
 	eyebrow: string;
 	system: ResolvedPreviewDesignSystem;
 	title: string;
+	searchValue?: string;
+	onSearchChange?: (text: string) => void;
+	onFilterPress?: () => void;
+	searchPlaceholder?: string;
 }) {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
@@ -130,10 +138,15 @@ export function PreviewShell({
 						name="Search"
 						size={17}
 					/>
-					<Text style={{ color: headerSearchText, flex: 1, fontSize: 13 }}>
-						Search jobs, orders, routes
-					</Text>
-					<View
+					<TextInput
+						placeholderTextColor={headerSearchText}
+						placeholder={searchPlaceholder}
+						value={searchValue}
+						onChangeText={onSearchChange}
+						style={{ color: headerSearchText, flex: 1, fontSize: 13 }}
+					/>
+					<Pressable
+						onPress={onFilterPress}
 						style={{
 							alignItems: "center",
 							backgroundColor: headerIsLight
@@ -151,7 +164,7 @@ export function PreviewShell({
 							name="SlidersHorizontal"
 							size={16}
 						/>
-					</View>
+					</Pressable>
 				</View>
 			</View>
 
@@ -268,10 +281,12 @@ export function PreviewBottomNav({
 	active,
 	items,
 	system,
+	onSelect,
 }: {
 	active: string;
 	items: { icon: IconKeys; label: string }[];
 	system: ResolvedPreviewDesignSystem;
+	onSelect?: (label: string) => void;
 }) {
 	return (
 		<View
@@ -291,7 +306,11 @@ export function PreviewBottomNav({
 			{items.map((item) => {
 				const isActive = item.label === active;
 				return (
-					<View key={item.label} style={{ alignItems: "center", gap: 4 }}>
+					<Pressable
+						key={item.label}
+						onPress={() => onSelect?.(item.label)}
+						style={{ alignItems: "center", gap: 4 }}
+					>
 						<Icon
 							name={item.icon}
 							color={isActive ? system.colors.primary : system.colors.muted}
@@ -306,7 +325,7 @@ export function PreviewBottomNav({
 						>
 							{item.label}
 						</Text>
-					</View>
+					</Pressable>
 				);
 			})}
 		</View>

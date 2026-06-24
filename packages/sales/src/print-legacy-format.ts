@@ -12,6 +12,7 @@ import { getSalesSetting, type SalesSetting } from "./sales-control/settings";
 import { AddressBookMeta, CustomerMeta, StepComponentMeta } from "./types";
 import { SalesPrintModes } from "./constants";
 import { buildCustomerNameLines } from "./print/compose/customer-name-lines";
+import { calculatePaymentChannelCharge } from "./payment-system/domain/payment-channel-charge";
 
 function formatCurrency(value) {
   const v = _formatCurrency(value);
@@ -792,8 +793,23 @@ function lineItems(data: PrintData, { isProd, isPacking }) {
 function header(title, colSpan = 1) {
   return { title, colSpan };
 }
+function salesPaymentCharge(order, amount?: number | null) {
+  return calculatePaymentChannelCharge({
+    paymentMethod:
+      typeof order?.meta?.payment_option === "string"
+        ? order.meta.payment_option
+        : null,
+    paymentAmount: amount ?? order?.grandTotal,
+    cccPercentage: order?.meta?.ccc_percentage,
+  });
+}
 function printFooter(data: PrintData, notPrintable) {
   if (notPrintable) return null;
+  const ccc = salesPaymentCharge(data.order).amount;
+  const amountDue = salesPaymentCharge(
+    data.order,
+    data.order.amountDue,
+  ).chargeAmount;
   const totalPaid = sum(
     data.order.payments
       .filter((p) => !p.deletedAt && p.status == "success")
@@ -852,8 +868,8 @@ function printFooter(data: PrintData, notPrintable) {
       ...data.order?.extraCosts?.map((ec) =>
         styled(ec.label, formatCurrency(ec.amount || 0), "font-bold"),
       ),
-      data.order.meta?.ccc
-        ? styled("C.C.C", formatCurrency(data.order.meta.ccc || 0), "font-bold")
+      ccc
+        ? styled("C.C.C", formatCurrency(ccc), "font-bold")
         : null,
       data.order.meta.deliveryCost > 0
         ? styled(
@@ -871,7 +887,7 @@ function printFooter(data: PrintData, notPrintable) {
         : null,
       styled(
         "Total Due",
-        formatCurrency(data.order.amountDue || 0),
+        formatCurrency(amountDue || 0),
         "text-base font-bold",
       ),
       // styled("Total", formatCurrency.format(data.order.grandTotal || 0), {

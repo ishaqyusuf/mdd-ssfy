@@ -2,6 +2,60 @@ import { describe, expect, it } from "bun:test";
 import { getInvoicePrintData } from "./invoice-print-data";
 
 describe("getInvoicePrintData", () => {
+	it("derives credit-card ccc into printed totals without stored order ccc", async () => {
+		const db = {
+			salesOrders: {
+				findMany: async () => [
+					{
+						id: 1,
+						orderId: "03000PC",
+						type: "order",
+						isDyke: true,
+						createdAt: new Date("2026-06-24T10:00:00.000Z"),
+						amountDue: 100,
+						grandTotal: 100,
+						meta: {
+							payment_option: "Credit Card",
+							ccc_percentage: 3.5,
+						},
+						goodUntil: null,
+						paymentTerm: null,
+						customer: {
+							name: "Card Buyer",
+							businessName: "Card Customer",
+							phoneNo: null,
+							email: null,
+							address: null,
+						},
+						billingAddress: null,
+						shippingAddress: null,
+						salesRep: { name: "Rep" },
+						deliveries: [],
+						items: [],
+					},
+				],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as any;
+
+		const [printData] = await getInvoicePrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			access: "internal",
+			type: "order",
+			dispatchId: null,
+		});
+
+		expect(Number(printData?.total)).toBe(103.5);
+		expect(Number(printData?.due?.replace("$", ""))).toBe(103.5);
+		expect(
+			printData?.meta.details.find((detail) => detail.label === "Invoice Total")
+				?.value,
+		).toBe("103.50");
+	});
+
 	it("prints a fallback row for garage items saved without persisted door rows", async () => {
 		const db = {
 			salesOrders: {

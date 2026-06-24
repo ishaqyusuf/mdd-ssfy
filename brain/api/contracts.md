@@ -27,7 +27,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - API hydration treats DB grouping identity as authoritative and only uses persisted `order.meta.newSalesForm` for current editable row values
   - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; rows with `salesItemId` update/revive that legacy sibling, while newly added grouped rows without row-level legacy identity create new siblings instead of reusing the grouped parent line id
   - grouped moulding rows also write per-row `HousePackageTools`; rows with `hptId` update/revive that legacy HPT row, while newly added moulding rows without row-level HPT identity create new HPT rows instead of reusing the grouped parent HPT id
-  - legacy-strategy summaries include credit-card convenience charges in `summary.grandTotal` as well as `summary.ccc`, so saved and hydrated sales/quote totals remain payable-total aligned
+  - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option` plus `ccc_percentage` remain available to evaluate printable/payable totals
 - Product report contract:
   - `sales.getProductReport` returns enabled sales-form step components only: the component row and parent step must not be deleted, archived custom components with `meta.deletedAt` are excluded, and the row must have scoped order-backed usage through priced step forms, sales doors, or house-package moulding records
   - default ordering is by computed sales usage count descending, then units descending, then product name/id tie-breakers
@@ -37,8 +37,9 @@ Tracks important request/response contracts and shared schema boundaries.
   - `newSalesForm.get` / `bootstrap` return top-level `inventoryStatus`
   - `notes.saveInboundNote` updates the order-level status and creates an `inventory_inbound` order note; `PENDING ORDER` also creates unread recipients for inbound-channel subscribers
 - New sales form save completion contract:
-  - `newSalesForm.saveDraft` / `saveFinal` return after the sales form record is persisted and current sales-document snapshot state is expired
-  - follow-up Trigger queue work for sales inventory line-item sync and document snapshot warmups is best-effort and bounded; queue timeout/failure must not change the save response payload or leave clients waiting indefinitely
+  - `newSalesForm.saveDraft` / `saveFinal` return after the sales form record is persisted
+  - follow-up sales-document snapshot expiration, Trigger queue work for sales inventory line-item sync, and document snapshot warmups are best-effort and bounded; timeout/failure must not change the save response payload or leave clients waiting indefinitely
+  - in development only, the API captures parsed save payloads for debugging under `debug/new-sales-form-save-payloads/YYYY-MM-DD/*.json`; this capture has no request/response shape impact, is not active in production, and file-write failures are logged without failing the save
 - Mobile sales dashboard contract:
   - `sales.mobileDashboardOverview.recentSales[]` returns card-ready recent order rows with `id`, `orderId`, `customerName`, `customerPhone`, `total`, `due`, `paid`, `createdAt`, and `deliveryOption`
 - Inventory browser validation fixture report contract:

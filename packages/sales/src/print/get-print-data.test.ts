@@ -223,6 +223,45 @@ describe("getPrintData", () => {
 		);
 	});
 
+	it("adds derived credit-card ccc to preview total due", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 1621.05,
+			grandTotal: 1621.05,
+			subTotal: 1515,
+			tax: 106.05,
+			taxPercentage: 7,
+			meta: {
+				payment_option: "Credit Card",
+				ccc_percentage: 3,
+			},
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(result.pages[0]?.meta.total).toBe("$1,669.68");
+		expect(result.pages[0]?.meta.balanceDue).toBe("$1,669.68");
+		expect(footerLines.find((line) => line.label === "C.C.C")?.value).toBe(
+			"$48.63",
+		);
+		expect(footerLines.find((line) => line.label === "Total Due")?.value).toBe(
+			"$1,669.68",
+		);
+	});
+
 	it("supports comma-separated invoice and packing slip modes from one sales fetch", async () => {
 		let findManyCalls = 0;
 		const db = {

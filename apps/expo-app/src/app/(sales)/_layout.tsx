@@ -1,4 +1,8 @@
 import { Stack } from "expo-router";
+import { Platform } from "react-native";
+
+const fullScreenHelperPresentation =
+  Platform.OS === "android" ? "card" : "fullScreenModal";
 
 export default function SalesLayout() {
   return (
@@ -10,21 +14,21 @@ export default function SalesLayout() {
         name="invoices/customer-selector"
         options={{
           headerShown: false,
-          presentation: "fullScreenModal",
+          presentation: fullScreenHelperPresentation,
         }}
       />
       <Stack.Screen
         name="invoices/sales-details"
         options={{
           headerShown: false,
-          presentation: "fullScreenModal",
+          presentation: fullScreenHelperPresentation,
         }}
       />
       <Stack.Screen
         name="invoices/door-size"
         options={{
           headerShown: false,
-          presentation: "fullScreenModal",
+          presentation: fullScreenHelperPresentation,
         }}
       />
       <Stack.Screen name="orders/index" options={{ headerShown: false }} />

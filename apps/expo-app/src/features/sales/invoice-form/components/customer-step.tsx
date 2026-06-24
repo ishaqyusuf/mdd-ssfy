@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { useEffect, useState } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormCustomerSearch } from "../api/use-invoice-form-search";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
@@ -63,9 +64,11 @@ function CustomerRow({
 
 export function CustomerStep({
   onCustomerSelected,
+  searchPlacement = "header",
   type: routeType,
 }: {
   onCustomerSelected?: () => void;
+  searchPlacement?: "header" | "bottom";
   type?: NewSalesFormType;
 }) {
   const [query, setQuery] = useState("");
@@ -86,6 +89,7 @@ export function CustomerStep({
   const previousProfileCoefficient = getProfileCoefficient(currentProfileId);
   const loadingCustomers =
     isLoadingCustomers || isLoadingProfiles || isSearchingCustomers;
+  const isBottomSearch = searchPlacement === "bottom";
   const handleSelectCustomer = (item: InvoiceCustomer) => {
     actions.selectCustomer(item, {
       previousProfileCoefficient,
@@ -99,20 +103,17 @@ export function CustomerStep({
       <FlatList
         data={loadingCustomers ? [] : customers}
         keyExtractor={(item) => String(item.id)}
+        keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingBottom: isBottomSearch ? 104 : 24,
+        }}
         ListHeaderComponent={
           <View className="gap-3 pb-2">
-            <View className="h-12 flex-row items-center rounded-lg bg-muted/70 px-3">
-              <Icon name="Search" className="text-muted-foreground" size={18} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search customer, phone, email"
-                placeholderTextColor="#8A8A8A"
-                className="ml-2 flex-1 text-foreground"
-              />
-            </View>
+            {isBottomSearch ? null : (
+              <CustomerSearchInput query={query} onQueryChange={setQuery} />
+            )}
             <Text className="text-[11px] font-semibold uppercase text-muted-foreground">
               {hasSearchText
                 ? "Search results"
@@ -143,6 +144,44 @@ export function CustomerStep({
             onPress={() => handleSelectCustomer(item)}
           />
         )}
+      />
+      {isBottomSearch ? (
+        <KeyboardStickyView
+          offset={{ closed: 0, opened: 0 }}
+          pointerEvents="box-none"
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 20,
+          }}
+        >
+          <View className="bg-background px-4 pb-5 pt-2">
+            <CustomerSearchInput query={query} onQueryChange={setQuery} />
+          </View>
+        </KeyboardStickyView>
+      ) : null}
+    </View>
+  );
+}
+
+function CustomerSearchInput({
+  query,
+  onQueryChange,
+}: {
+  query: string;
+  onQueryChange: (query: string) => void;
+}) {
+  return (
+    <View className="h-12 flex-row items-center rounded-lg bg-muted/70 px-3">
+      <Icon name="Search" className="text-muted-foreground" size={18} />
+      <TextInput
+        value={query}
+        onChangeText={onQueryChange}
+        placeholder="Search customer, phone, email"
+        placeholderTextColor="#8A8A8A"
+        className="ml-2 flex-1 text-foreground"
       />
     </View>
   );

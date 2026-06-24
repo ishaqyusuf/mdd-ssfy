@@ -2,6 +2,101 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Moved the dedicated mobile invoice customer-selector search to a fixed bottom input.
+  - Added an opt-in bottom search mode to `CustomerStep` using `react-native-keyboard-controller` `KeyboardStickyView`, preserving the virtualized `FlatList` and adding bottom padding so customer rows do not sit under the fixed input.
+  - Wired the dedicated `CustomerSelectorScreen` to use the bottom search mode while leaving the inline initial customer step inside the invoice form on its existing header search layout.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API/database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed; focused Biome and Expo TypeScript checks were not clean because of pre-existing lint/type issues in the touched files and wider workspace, including `customer-skeleton-${index}` key lint, existing `invoice-form-screen.tsx` hook/`any` lint, and unresolved `@sales/*` typecheck paths.
+
+- Made credit-card convenience charge a derived payable/display amount instead of an order-stored charge.
+  - New sales-form save/update/delete paths now store base `SalesOrders.grandTotal` and `amountDue` without derived C.C.C while still returning hydrated display summaries with `summary.ccc` and C.C.C-inclusive `summary.grandTotal` when credit card is selected.
+  - Legacy root order metadata no longer persists `ccc`; it keeps payment method and `ccc_percentage` for derivation.
+  - Sales print/PDF data and legacy print footer now derive displayed invoice/due totals from the stored base amount plus the applicable payment-channel charge.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/mobile-invoice-form.md`, `brain/decisions/ADR-011-derived-ccc-payment-channel-charge.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: `bun test packages/sales/src/sales-form/application/legacy-metadata.test.ts packages/sales/src/sales-template/invoice-print-data.test.ts apps/api/src/db/queries/new-sales-form.test.ts` passed with 30 tests and 173 assertions.
+
+- Extracted the mobile inline Sales/Quote chooser into a reusable component.
+  - Added `FloatingFooterActionChooser` as a standalone native floating-footer action chooser that reuses the flat sales list-row style without Gorhom, portals, or the shared modal wrapper.
+  - Reworked `NewSalesTypeSheet` into a thin adapter that supplies the New Invoice trigger, Sales/Quote options, and route action to the reusable chooser.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile UI component structure only.
+  - Validation: focused Biome check for the chooser and route helper files passed; focused new-sales route helper and invoice form store tests passed; scoped `git diff --check` passed; search confirms the chooser components do not import Gorhom or the shared modal wrapper.
+
+- Restored the dedicated mobile customer-selector route for New Invoice after confirming the inline Sales/Quote chooser fixed the crash.
+  - The New Invoice action still uses the inline Sales/Quote chooser with no bottom sheet or portal-backed modal.
+  - Selecting Sales or Quote now routes to `/(sales)/invoices/customer-selector` with the selected type and `source=new`, restoring the customer-selector screen before entering the invoice form.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile navigation behavior only.
+  - Validation: focused new-sales route helper and invoice form store tests passed; scoped Biome check for the chooser/route helper files and scoped `git diff --check` passed; search confirms the chooser still does not import Gorhom or the shared modal wrapper.
+
+- Removed the portal-backed bottom sheet from the mobile New Invoice Sales/Quote chooser.
+  - Replaced the detached `@gorhom/bottom-sheet` modal with an inline expanded chooser under the New Invoice action.
+  - Selecting Sales or Quote now resets/applies the form type and routes to the typed invoice form without dismissing a bottom sheet during navigation.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile UI/navigation behavior only.
+  - Validation: focused new-sales route helper and invoice form store tests passed; scoped Biome check for the chooser and scoped `git diff --check` passed; search confirms the chooser no longer imports Gorhom or the shared modal wrapper.
+
+- Disabled Android edge-to-edge for the Expo app after the mobile invoice customer-selection crash continued inside `EdgeToEdgeReactViewGroup`.
+  - Changed `apps/expo-app/app.config.ts` to set `android.edgeToEdgeEnabled` to `false`.
+  - This is a native build setting, so the mitigation requires a fresh Android EAS/dev build and cannot be validated through only Metro reload or OTA update.
+  - Updated docs: `brain/features/mobile-build-variants.md`, `brain/features/mobile-invoice-form.md`, and `brain/progress.md`; no API or database docs were needed because this is native mobile shell configuration only.
+  - Validation: scoped Biome check for `apps/expo-app/app.config.ts` and scoped `git diff --check` passed.
+
+- Restored the default mobile New Invoice customer selector.
+  - Reverted the no-customer start path from the Sales/Quote chooser and removed the temporary `startWithoutCustomer` store action.
+  - New invoice/quote creation again opens the typed invoice form with the inline `CustomerStep` first, then switches to the item workflow after selecting a customer; the selector still avoids the separate native stack route.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile navigation/UI behavior only.
+  - Validation: focused new-sales type route helper, invoice item helper, and invoice form store tests passed; scoped `git diff --check` passed.
+
+- Fixed the Android crash when selecting a customer during new mobile invoice creation.
+  - Changed the sales stack's customer-selector, sales-details, and door-size helper routes to use ordinary card presentation on Android while preserving native full-screen modal presentation on iOS.
+  - Follow-up: the crash still reproduced, so the new Sales/Quote start flow now routes directly to the typed invoice form and renders `CustomerStep` inline until a customer is selected. This removes the separate customer-selector route replacement from the initial create path.
+  - Follow-up: removed the exact `react-native-css` warning source by replacing `className="relative min-h-[640px]"` on the invoice item swipe/workflow wrapper with stable React Native `style={{ minHeight: 640, position: "relative" }}`, avoiding variable-set child remounts during the customer-to-items transition.
+  - Follow-up: per request, the default create path now hides the customer selector completely. The Sales/Quote chooser calls a focused no-customer start action that seeds the first blank workflow line and opens the item workflow directly.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile navigation presentation only.
+  - Validation: focused new-sales type route helper, invoice item helper, and invoice form store tests passed; exact `min-h-[640px]` source no longer appears in the invoice item area; scoped `git diff --check` passed. Broad Biome check was not clean because of pre-existing lint warnings in the large invoice screen/items files.
+
+- Added a dev-only new sales form save payload capture for debugging the mobile invoice timeout.
+  - `newSalesForm.saveDraft` and `saveFinal` now capture the parsed API payload before the core save transaction when `NODE_ENV === "development"`.
+  - Payloads are written under `debug/new-sales-form-save-payloads/YYYY-MM-DD/*.json` at the project root with summary metadata plus the full payload, and the folder ignores captured JSON files so customer/order data is not staged.
+  - Capture failures are logged and do not fail invoice saves.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: `bun test apps/api/src/db/queries/new-sales-form-debug.test.ts`, scoped Biome check for the new helper/test, and scoped `git diff --check` passed.
+
+- Created a focused Brain intake for the persistent mobile invoice save timeout using the working web new sales form as the control path.
+  - Added `brain/intake/2026-06-24-mobile-invoice-save-web-control-diff.md`.
+  - Added proposed plan `brain/plans/2026-06-24-bug-fix-mobile-invoice-save-web-control-diff.md`, narrowing the next slice to payload/transport/API-stage/post-save comparison instead of broad parity work.
+  - Added the companion roadmap task `Mobile Invoice Save Web Control Diff`.
+  - Documented existing related work: completed stuck-save UI recovery plan and the broader proposed web/mobile parity reliability plan.
+  - This was a planning/documentation pass only; no app code or tests were changed/run.
+
+- Created a full Brain gap plan for the still-persistent mobile invoice save timeout and web/mobile invoice form parity closure.
+  - The plan identifies save reliability as Phase 0: trace mobile resolved API URL, request id, payload size, server ingress, schema/auth handling, core transaction stage timings, and bounded post-save timings before changing business behavior or extending the timeout.
+  - Documented parity gaps across save orchestration, runtime target/connection handling, customer/address/profile/tax metadata, costing/tax/labor/CCC, workflow routing/component selection, Door/HPT, Moulding, Service, Shelf, quote/order saved-record actions, recovery/autosave/conflict handling, and test architecture.
+  - Added the proposed roadmap task for `brain/plans/2026-06-23-bug-fix-mobile-invoice-web-parity-and-save-reliability-gap-closure.md` and linked the known gap from `brain/features/mobile-invoice-form.md`.
+  - This was a planning/documentation pass only; no app code or tests were changed/run.
+
+- Completed interactive architecture for mobile design-system preview templates.
+  - Implemented shared hooks for tab navigation, global search, status filtering, and master-detail record selection.
+  - Rewrote Template A (Ops Console), Template B (Field Flow), and Template C (Sales Ledger) to use the new interaction architecture.
+  - Added bottom-sheet filter functionality, top-level tabs, and detail-view tabs for selected records across all three templates.
+  - Follow-up fix: changed Template A, B, and C detail tab state to use the `usePreviewTabs` object return shape, fixing the Template A runtime crash from tuple destructuring a non-iterable hook result.
+  - Updated docs: `apps/expo-app/src/features/design-system-preview/DESIGN.md`, `apps/expo-app/DESIGN.md`, and `brain/progress.md`.
+  - Validation: focused Biome check passed for the preview tab hook and all three template screens; scoped `git diff --check` passed. No dev server, broad typecheck/build, or UI automation was run per fast-command-discipline request.
+
+
+- Fixed the mobile invoice create/save UI getting stuck on `Saving invoice...` when the client-side save request does not settle.
+  - Added a pure mobile save timeout helper around `newSalesForm.saveDraft` / `newSalesForm.saveFinal` calls.
+  - Changed the Expo invoice form overlay/footer saving state to follow the invoice form store's `saveStatus` instead of React Query mutation pending state, allowing timeout failures to clear the blocking overlay.
+  - Follow-up fix: bounded sales-document snapshot expiration as best-effort post-save work too, so slow document/cache invalidation cannot hold the mobile save response open until the client timeout.
+  - Follow-up fix: routed Expo tRPC mutations through an unbatched `httpLink` while keeping queries batched, so invoice saves no longer share a batch response with unrelated slow queries.
+  - Hung mobile saves now show a retryable footer error while successful saves still hydrate the server result and navigate to the saved edit route.
+  - Updated docs: `brain/plans/2026-06-23-bug-fix-mobile-invoice-save-stuck.md`, `brain/tasks/done.md`, `brain/features/mobile-invoice-form.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: focused mobile save timeout helper tests, invoice form store tests, and API bounded post-save tests passed; new helper files pass scoped Biome.
+
+- Created Brain intake for mobile design-system template completion.
+  - Split the request to finish Ops Console, Field Flow, and Sales Ledger into four proposed plans: shared interaction architecture/folder structure, Field Flow tabs and route overview, Ops Console tabs/search/work overview, and Sales Ledger tabs/search/order overview.
+  - Included standard architecture guidance from the Expo preview boundary, Brain architecture guide, and mobile coding standards.
+  - Added companion roadmap tasks for all four proposed plans.
+  - Documented the existing implemented preview foundation as a duplicate/existing item and kept production migration out of scope until a template is selected.
+
 - Created Brain intake for sales overview inventory workflows.
   - Split the requested sales-overview Inventory tab, line-level inventory status, smart inbound creation, stock allocation, category policy, and all-product-in-stock behavior into four proposed plans.
   - Added companion roadmap tasks for projection/API foundation, Inventory tab UI, stock allocation/availability actions, and smart inbound creator.

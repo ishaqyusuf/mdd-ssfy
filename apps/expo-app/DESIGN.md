@@ -46,6 +46,7 @@ Preview header text/search contrast and native status bar style are computed fro
 
 The shared `Icon` component supports an `inverted` option for custom surfaces that need icon colors from the opposite app theme, such as dark preview chrome inside light mode.
 
+**Interactivity**: The preview screens share a common interaction architecture simulating tab navigation, global search, status filtering via bottom sheets, and master-detail record selection. Selecting a record replaces the list view with a detailed tabbed view, demonstrating how the layout scales from list to detail within the same screen boundary.
 ## Candidate Templates
 
 ### Template A: Ops Console

@@ -57,6 +57,7 @@ import {
 } from "@gnd/sales/sales-form";
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
+import { captureNewSalesFormSavePayload } from "./new-sales-form-debug";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -496,6 +497,18 @@ function recalculateSummary(
   };
 }
 
+function storedOrderSummary<T extends { grandTotal?: number; ccc?: number }>(
+  summary: T,
+) {
+  return {
+    ...summary,
+    grandTotal: roundCurrency(
+      Number(summary.grandTotal || 0) - Number(summary.ccc || 0),
+    ),
+    ccc: 0,
+  };
+}
+
 function normalizeLineItems(lines: NewSalesFormLineItem[]) {
   return lines.map((line, index) => {
     const normalizedHptLine = normalizeHptLineForLegacy(line as any) as any;
@@ -887,9 +900,10 @@ function toBootstrapPayload(
           type: cost.type as any,
           amount: Number(cost.amount || 0),
           taxxable: cost.taxxable ?? false,
-        })),
+    })),
     lineItems,
   });
+  const hasComputedSummary = Number(summary.subTotal || 0) > 0;
   const paymentTotal = (order.payments || []).reduce(
     (total, payment) => total + Number(payment.amount || 0),
     0,
@@ -966,7 +980,9 @@ function toBootstrapPayload(
       adjustedSubTotal: Number(summary.adjustedSubTotal ?? summary.subTotal),
       taxRate,
       taxTotal: Number(order.tax ?? summary.taxTotal),
-      grandTotal: Number(order.grandTotal ?? summary.grandTotal),
+      grandTotal: hasComputedSummary
+        ? Number(summary.grandTotal || 0)
+        : Number(order.grandTotal ?? summary.grandTotal),
       discount: Number(summary.discount || 0),
       discountPct: Number(summary.discountPct || 0),
       percentDiscountValue: Number(summary.percentDiscountValue || 0),
@@ -2168,6 +2184,7 @@ async function saveNewSalesFormInternal(
     paymentMethod: payload.meta.paymentMethod || null,
     cccPercentage: settings.cccPercentage,
   });
+  const persistedSummary = storedOrderSummary(summary);
 
   return ctx.db.$transaction(async (tx) => {
     const isNew = !(payload.salesId || payload.slug);
@@ -2296,7 +2313,7 @@ async function saveNewSalesFormInternal(
         autosave: payload.autosave,
         lineItems: normalizedLines,
         extraCosts: payload.extraCosts,
-        summary,
+        summary: persistedSummary,
         form: nextFormMeta,
       },
     };
@@ -2304,10 +2321,10 @@ async function saveNewSalesFormInternal(
       order?.id != null
         ? projectLegacyOrderPayments({
             salesOrderId: order.id,
-            grandTotal: summary.grandTotal,
+            grandTotal: persistedSummary.grandTotal,
             payments: order.payments || [],
           }).amountDue
-        : summary.grandTotal;
+        : persistedSummary.grandTotal;
 
     if (!order) {
       const identity = await generateSalesIdentity(ctx, payload.type);
@@ -2331,10 +2348,10 @@ async function saveNewSalesFormInternal(
             payload.meta.deliveryOption || DEFAULT_DELIVERY_OPTION,
           inventoryStatus:
             payload.type === "order" ? payload.inventoryStatus || null : null,
-          taxPercentage: summary.taxRate,
-          subTotal: summary.subTotal,
-          tax: summary.taxTotal,
-          grandTotal: summary.grandTotal,
+          taxPercentage: persistedSummary.taxRate,
+          subTotal: persistedSummary.subTotal,
+          tax: persistedSummary.taxTotal,
+          grandTotal: persistedSummary.grandTotal,
           amountDue: nextAmountDue,
           meta: nextMeta as any,
         },
@@ -2383,10 +2400,10 @@ async function saveNewSalesFormInternal(
             payload.type === "order"
               ? payload.inventoryStatus || order.inventoryStatus || null
               : null,
-          taxPercentage: summary.taxRate,
-          subTotal: summary.subTotal,
-          tax: summary.taxTotal,
-          grandTotal: summary.grandTotal,
+          taxPercentage: persistedSummary.taxRate,
+          subTotal: persistedSummary.subTotal,
+          tax: persistedSummary.taxTotal,
+          grandTotal: persistedSummary.grandTotal,
           amountDue: nextAmountDue,
           meta: nextMeta as any,
         },
@@ -2918,14 +2935,15 @@ async function runNewSalesFormPostSaveTasks(
 ) {
   const isQuote = result.type === "quote";
 
-  await expireCurrentSalesDocumentSnapshots({
-    db: ctx.db,
-    salesOrderId: result.salesId,
-    reason: "invoice_updated",
-    documentPrefixes: getSalesDocumentPrefixes(isQuote),
-  });
-
   await Promise.all([
+    runBoundedPostSaveTask("expire-current-sales-document-snapshots", () =>
+      expireCurrentSalesDocumentSnapshots({
+        db: ctx.db,
+        salesOrderId: result.salesId,
+        reason: "invoice_updated",
+        documentPrefixes: getSalesDocumentPrefixes(isQuote),
+      }),
+    ),
     runBoundedPostSaveTask("queue-sales-inventory-line-items-sync", () =>
       queueSalesInventoryLineItemsSync({
         salesOrderId: result.salesId,
@@ -2946,6 +2964,11 @@ export async function saveDraftNewSalesForm(
   input: SaveDraftNewSalesFormSchema,
 ) {
   const payload = saveDraftNewSalesFormSchema.parse(input);
+  await captureNewSalesFormSavePayload({
+    action: "save-draft",
+    payload,
+    userId: ctx.userId,
+  });
   const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
   await runNewSalesFormPostSaveTasks(ctx, result);
   return result;
@@ -2956,6 +2979,11 @@ export async function saveFinalNewSalesForm(
   input: SaveFinalNewSalesFormSchema,
 ) {
   const payload = saveFinalNewSalesFormSchema.parse(input);
+  await captureNewSalesFormSavePayload({
+    action: "save-final",
+    payload,
+    userId: ctx.userId,
+  });
   const result = await saveNewSalesFormInternal(ctx, payload, "Active");
   await runNewSalesFormPostSaveTasks(ctx, result);
   return result;
@@ -3096,10 +3124,13 @@ export async function deleteNewSalesFormLineItem(
           })),
         })
       : null;
+    const persistedNextSummary = nextSummary
+      ? storedOrderSummary(nextSummary)
+      : null;
     const nextAmountDue = nextSummary
       ? projectLegacyOrderPayments({
           salesOrderId: line.salesOrderId,
-          grandTotal: nextSummary.grandTotal,
+          grandTotal: persistedNextSummary!.grandTotal,
           payments: order?.payments || [],
         }).amountDue
       : null;
@@ -3111,7 +3142,7 @@ export async function deleteNewSalesFormLineItem(
             version: nextVersion,
             updatedAt,
             lineItems: nextLineItems,
-            summary: nextSummary,
+            summary: persistedNextSummary,
           },
         }
       : container;
@@ -3122,9 +3153,9 @@ export async function deleteNewSalesFormLineItem(
       data: {
         ...(nextSummary
           ? {
-              subTotal: nextSummary.subTotal,
-              tax: nextSummary.taxTotal,
-              grandTotal: nextSummary.grandTotal,
+              subTotal: persistedNextSummary!.subTotal,
+              tax: persistedNextSummary!.taxTotal,
+              grandTotal: persistedNextSummary!.grandTotal,
               amountDue: nextAmountDue,
             }
           : {}),

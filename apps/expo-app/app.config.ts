@@ -1,6 +1,6 @@
 import type { ExpoConfig } from "expo/config";
 
-export const UPDATE_VERSION = "2026.06.15";
+export const UPDATE_VERSION = "2026.06.23";
 
 const appVariant =
 	process.env.APP_VARIANT ??
@@ -75,7 +75,7 @@ const config: ExpoConfig = {
 			backgroundColor: variantConfig.iconBackgroundColor,
 			foregroundImage: variantConfig.icons.adaptive,
 		},
-		edgeToEdgeEnabled: true,
+		edgeToEdgeEnabled: false,
 		predictiveBackGestureEnabled: false,
 		package: variantConfig.androidPackage,
 	},

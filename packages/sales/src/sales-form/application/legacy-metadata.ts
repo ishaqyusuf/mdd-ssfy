@@ -144,6 +144,7 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		sales_percentage: legacySalesPercentage,
 		...existingMetaWithoutDeprecated
 	} = existingMeta;
+	delete existingMetaWithoutDeprecated.ccc;
 	const form = input.form || {};
 	const summary = input.summary || {};
 	const delivery = firstDefined(
@@ -169,7 +170,6 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		...(salesCoefficient == null
 			? {}
 			: { salesCoefficient: finiteNumber(salesCoefficient) }),
-		ccc: finiteNumber(summary.ccc),
 		ccc_percentage: finiteNumber(
 			input.cccPercentage ?? existingMeta.ccc_percentage,
 			3.5,
