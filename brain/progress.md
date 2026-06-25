@@ -2,6 +2,13 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Extended C.C.C display handling to the legacy sales form and old overview sheet.
+  - Legacy costing now uses the shared payment-channel C.C.C helper, keeps `pricing.grandTotal` and stored order totals base/principal-only, exposes `pricing.totalWithCcc` for the visible payable total, and hydrates fallback C.C.C for existing credit-card orders missing root `meta.ccc`.
+  - The legacy form footer and cost summary now show the C.C.C-inclusive total when applicable.
+  - Old and new overview payment progress now keep order/principal paid/pending separate while adding card-inclusive `Card Paid` / `Card Pending` values when recorded or estimated C.C.C changes the customer-facing amount.
+  - Updated docs: `brain/api/contracts.md` and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: scoped `git diff --check` passed for touched files; no dev server, broad typecheck/build, or browser automation was run per fast Bun monorepo discipline.
+
 - Implemented C.C.C meta persistence and display fallback for sales list/form totals.
   - Added a shared sales display C.C.C resolver that uses `meta.ccc` when present and calculates fallback C.C.C for C.C.C-applicable payment methods.
   - Updated new sales form save/hydration so root `SalesOrders.meta.ccc` is persisted for display while stored `grandTotal` and `amountDue` remain base/principal-only.

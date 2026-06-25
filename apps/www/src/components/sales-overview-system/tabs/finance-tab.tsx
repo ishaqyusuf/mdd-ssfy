@@ -82,6 +82,14 @@ function formatPaymentMethod(value?: string | null) {
 	);
 }
 
+function sumCostLineAmounts(costLines: CostLine[], targetLabel: string) {
+	return costLines.reduce((sum, line) => {
+		const label = (line.label || line.title || "").toLowerCase();
+		if (label !== targetLabel.toLowerCase()) return sum;
+		return sum + Number(line.amount || line.value || 0);
+	}, 0);
+}
+
 export function SalesOverviewFinanceTab() {
 	const {
 		state: { data, isQuote },
@@ -93,6 +101,43 @@ export function SalesOverviewFinanceTab() {
 	const balance = getPaymentBalance(data?.invoice);
 	const paymentPct = total > 0 ? (paid / total) * 100 : 0;
 	const paymentMethod = formatPaymentMethod(data?.paymentMethod);
+	const cardCharged = sumCostLineAmounts(costLines, "Charged to Card");
+	const cardPending = sumCostLineAmounts(costLines, "Total Due With C.C.C");
+	const progressStats = [
+		{
+			label: "Order Total",
+			value: total,
+			color: "text-foreground",
+		},
+		{
+			label: "Paid (Order)",
+			value: paid,
+			color: "text-emerald-600",
+		},
+		...(cardCharged > paid
+			? [
+					{
+						label: "Card Paid",
+						value: cardCharged,
+						color: "text-emerald-600",
+					},
+				]
+			: []),
+		{
+			label: "Pending (Order)",
+			value: balance,
+			color: balance > 0 ? "text-amber-600" : "text-emerald-600",
+		},
+		...(cardPending > balance
+			? [
+					{
+						label: "Card Pending",
+						value: cardPending,
+						color: "text-amber-600",
+					},
+				]
+			: []),
+	];
 
 	return (
 		<div className="space-y-5 p-1">
@@ -115,24 +160,8 @@ export function SalesOverviewFinanceTab() {
 							colorClass={paymentPct >= 100 ? "bg-emerald-500" : "bg-blue-500"}
 						/>
 					</div>
-					<div className="grid grid-cols-3 gap-3">
-						{[
-							{
-								label: "Invoice Total",
-								value: total,
-								color: "text-foreground",
-							},
-							{
-								label: "Collected",
-								value: paid,
-								color: "text-emerald-600",
-							},
-							{
-								label: "Balance",
-								value: balance,
-								color: balance > 0 ? "text-amber-600" : "text-emerald-600",
-							},
-						].map((stat) => (
+					<div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+						{progressStats.map((stat) => (
 							<div
 								key={stat.label}
 								className="rounded-lg bg-muted/40 p-3 text-center"

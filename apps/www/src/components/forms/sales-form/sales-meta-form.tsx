@@ -49,6 +49,11 @@ function SummaryTab({}) {
     const taxList = setting.taxList();
     const displaySubTotal =
         (md.pricing?.grandTotal || 0) - (md.pricing?.taxValue || 0);
+    const displayGrandTotal = Number(
+        md.pricing?.totalWithCcc ??
+            Number(md.pricing?.grandTotal || 0) +
+                Number(md.pricing?.ccc || 0),
+    );
     const isOrder = md?.type === "order";
     const shouldReviewPaymentMethod =
         isOrder &&
@@ -233,7 +238,7 @@ function SummaryTab({}) {
                     </div>
                 </div>
                 <div className="space-y-3 p-4">
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                         <SummaryStat
                             label="Sub Total"
                             value={<AnimatedNumber value={displaySubTotal || 0} />}
@@ -245,6 +250,10 @@ function SummaryTab({}) {
                         <SummaryStat
                             label="Estimated CCC"
                             value={<AnimatedNumber value={md.pricing?.ccc || 0} />}
+                        />
+                        <SummaryStat
+                            label="Grand Total Due"
+                            value={<AnimatedNumber value={displayGrandTotal || 0} />}
                         />
                     </div>
                     {

@@ -35,12 +35,17 @@ Tracks important request/response contracts and shared schema boundaries.
 - Sales print C.C.C footer contract:
   - `print.salesV2` footer/meta payloads keep stored `SalesOrders.grandTotal` and `amountDue` as principal-only values
   - unpaid card-selected records split principal due from the payable card total: `Order Due Amount`, estimated `C.C.C`, and `Total Due With C.C.C`
-  - fully paid single-card records can show C.C.C, total charged as `Paid`, and `Total Due = $0.00`
+  - fully paid single-card records show principal payment progress separately from the card-inclusive customer charge; footer/cost lines label the card-inclusive amount as `Charged to Card` and keep `Total Due = $0.00`
   - partial or mixed-payment records show order total, paid-toward-order principal, recorded card charge details when safely matched, and principal-only `Balance Due`
   - print loads `SalesPayments.meta`, linked `CustomerTransaction.meta`, and linked `SquarePayments.meta` for recorded C.C.C extraction, but shared transaction metadata is ignored when its base amount does not match the printed order's payment row
 - Sales overview invoice breakdown contract:
   - overview DTO `costLines` use the same C.C.C/payment state helper as print so the old overview sheet, new overview Finance tab, and overview summary tab render the same labels and amounts without client-side C.C.C calculation
   - `sales.getSaleOverview` includes non-deleted payment rows plus linked transaction/Square metadata for recorded C.C.C extraction
+  - overview payment progress remains principal/order-based; when cost lines expose card-inclusive actuals, both old and new overview surfaces may add `Card Paid` or `Card Pending` alongside the principal paid/pending values
+- Legacy sales form C.C.C display contract:
+  - legacy form pricing keeps `pricing.grandTotal` as the base order total used for persistence and due calculations
+  - legacy form pricing exposes `pricing.totalWithCcc = pricing.grandTotal + pricing.ccc` for the visible payable total when the selected payment method applies C.C.C
+  - legacy form hydration derives fallback display C.C.C from `payment_option`, `ccc_percentage`, and stored base `grandTotal` when root `meta.ccc` is missing
 - Sales overview transaction contract:
   - `sales.getSaleTransactions({ orderNo?, accountNo? })` returns display-ready customer transaction rows for the overview Transactions tab
   - when `orderNo` is supplied, both the transaction query and nested `salesPayments` rows are scoped to that order so multi-order customer transactions do not display unrelated order payments

@@ -172,7 +172,10 @@ function commonListData(data: Item, bin?: boolean) {
   } else if (paymentState?.kind === "paid-single-full-card") {
     const charge = paymentState.recordedCardCharges[0];
     if (charge?.cccAmount) _cost("C.C.C", charge.cccAmount);
-    _cost("Paid", charge?.customerChargedAmount ?? paymentState.principalPaid);
+    _cost(
+      charge?.customerChargedAmount ? "Charged to Card" : "Paid",
+      charge?.customerChargedAmount ?? paymentState.principalPaid,
+    );
     _cost("Total Due", 0);
   } else if (paymentState?.kind === "paid-single-full-non-card") {
     _cost("Paid", paymentState.principalPaid);

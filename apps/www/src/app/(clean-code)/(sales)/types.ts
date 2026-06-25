@@ -401,6 +401,7 @@ export interface PricingMetaData {
     taxId?: number;
     ccc?: number;
     cccPercentage?: number;
+    totalWithCcc?: number;
 }
 export type PaymentTerms = "None" | "Net10" | "Net20" | "Net30";
 

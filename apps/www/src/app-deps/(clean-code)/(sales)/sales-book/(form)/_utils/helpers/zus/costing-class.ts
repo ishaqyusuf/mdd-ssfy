@@ -2,6 +2,7 @@ import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
 import { PricingMetaData } from "@/app/(clean-code)/(sales)/types";
 import { formatMoney } from "@/lib/use-number";
 import { addPercentage, dotArray, percentageValue, sum } from "@/lib/utils";
+import { calculatePaymentChannelCharge } from "@sales/payment-system/domain/payment-channel-charge";
 import { toast } from "sonner";
 
 import { ZusGroupItem } from "../../../_common/_stores/form-data-store";
@@ -356,14 +357,7 @@ export class CostingClass {
             : 0;
         const subGrandTot = sum([subTotalAfterDiscount, estimate.taxValue]);
 
-        if (data.metaData.paymentMethod == "Credit Card") {
-            estimate.ccc = percentageValue(
-                sum([subGrandTot, extraCosts, Labor]),
-                this.cccPercentage,
-            );
-        } else estimate.ccc = 0;
-        estimate.cccPercentage = this.cccPercentage;
-        estimate.grandTotal = formatMoney(
+        const baseGrandTotal = formatMoney(
             sum([
                 estimate.labour,
                 estimate.delivery,
@@ -373,6 +367,16 @@ export class CostingClass {
                 subGrandTot,
             ]),
         );
+        const channelCharge = calculatePaymentChannelCharge({
+            paymentMethod: data.metaData.paymentMethod,
+            paymentAmount: baseGrandTotal,
+            cccPercentage: this.cccPercentage,
+        });
+
+        estimate.ccc = channelCharge.amount;
+        estimate.cccPercentage = channelCharge.percentage;
+        estimate.grandTotal = baseGrandTotal;
+        estimate.totalWithCcc = channelCharge.chargeAmount;
         const labor = this.getLaborCosts();
         if (labor.index > -1)
             if (this.setting?.staticZus) {

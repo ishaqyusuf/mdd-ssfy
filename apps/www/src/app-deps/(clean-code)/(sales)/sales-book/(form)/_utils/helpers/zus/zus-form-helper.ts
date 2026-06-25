@@ -5,6 +5,7 @@ import {
 } from "@/app/(clean-code)/(sales)/types";
 import { formatMoney } from "@/lib/use-number";
 import { generateRandomString } from "@/lib/utils";
+import { resolveSalesDisplayCcc } from "@sales/payment-system/domain/display-ccc";
 import { orderInboundStatuses, type OrderInboundStatus } from "@gnd/utils/constants";
 import dayjs from "dayjs";
 
@@ -39,6 +40,13 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
             data.order?.meta?.ccc_percentage ||
             3.5,
     );
+    const baseGrandTotal = Number(data.order?.grandTotal || 0);
+    const displayCcc = resolveSalesDisplayCcc({
+        baseTotal: baseGrandTotal,
+        paymentMethod: data.order?.meta?.payment_option || null,
+        cccPercentage,
+        meta: data.order?.meta,
+    });
     if (copy && selectedTax) selectedTax.salesTaxId = null;
     const isLegacy =
         dayjs("2025-02-12").diff(dayjs(data._rawData?.createdAt), "days") > 0;
@@ -91,10 +99,11 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                 labour: data.order?.meta?.labor_cost,
                 taxValue: data.order?.tax,
                 taxCode: selectedTax?.taxCode,
-                ccc: data.order?.meta?.ccc,
+                ccc: displayCcc.ccc,
                 cccPercentage,
                 subTotal: data.order?.subTotal,
-                grandTotal: data.order?.grandTotal,
+                grandTotal: baseGrandTotal,
+                totalWithCcc: displayCcc.totalWithCcc,
                 paid: copy ? 0 : data.paidAmount || 0,
             },
             laborConfig: data?.order?.id ? data?.laborConfig : ({} as any),

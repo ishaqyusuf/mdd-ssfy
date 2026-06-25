@@ -24,6 +24,22 @@ import { DeliveryOption } from "./delivery-option";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
 
+type CostLine = {
+    id?: number | string | null;
+    label?: string | null;
+    title?: string | null;
+    amount?: number | null;
+    value?: number | null;
+};
+
+function sumCostLineAmounts(costLines: CostLine[], targetLabel: string) {
+    return costLines.reduce((sum, line) => {
+        const label = (line.label || line.title || "").toLowerCase();
+        if (label !== targetLabel.toLowerCase()) return sum;
+        return sum + Number(line.amount || line.value || 0);
+    }, 0);
+}
+
 export function GeneralTab({}) {
     const { data } = useSaleOverview();
     const isQuote = data?.type === "quote";
@@ -47,9 +63,15 @@ export function GeneralTab({}) {
         },
     } as Partial<typeof data>;
     const saleData = data || ph;
+    const invoiceTotal = Number(saleData?.invoice?.total || 0);
+    const invoicePaid = Number(saleData?.invoice?.paid || 0);
+    const invoicePending = Number(saleData?.invoice?.pending || 0);
+    const costLines = (saleData?.costLines ?? []) as CostLine[];
+    const cardCharged = sumCostLineAmounts(costLines, "Charged to Card");
+    const cardPending = sumCostLineAmounts(costLines, "Total Due With C.C.C");
     const paymentPercentage =
-        saleData?.invoice?.total > 0
-            ? (saleData?.invoice?.paid / saleData?.invoice?.total) * 100
+        invoiceTotal > 0
+            ? (invoicePaid / invoiceTotal) * 100
             : 0;
     const productionPercentage = saleData?.stats?.prodCompleted?.percentage;
     const assignmentPercentage = saleData?.stats?.prodAssigned?.percentage;
@@ -63,6 +85,46 @@ export function GeneralTab({}) {
     const deliveryStatusColor = saleData?.status?.delivery?.color ?? "warmGray";
     const dispatchCount = saleData?.dispatchList?.length ?? 0;
     const customerEmail = saleData?.email;
+    const paymentStats = [
+        {
+            label: "Order Total",
+            value: invoiceTotal,
+            icon: Icons.FileText,
+            color: "text-foreground",
+        },
+        {
+            label: "Paid (Order)",
+            value: invoicePaid,
+            icon: Icons.CheckCircle2,
+            color: "text-green-500",
+        },
+        ...(cardCharged > invoicePaid
+            ? [
+                  {
+                      label: "Card Paid",
+                      value: cardCharged,
+                      icon: Icons.CreditCardIcon,
+                      color: "text-green-500",
+                  },
+              ]
+            : []),
+        {
+            label: "Pending (Order)",
+            value: invoicePending,
+            icon: Icons.Clock,
+            color: invoicePending > 0 ? "text-amber-500" : "text-green-500",
+        },
+        ...(cardPending > invoicePending
+            ? [
+                  {
+                      label: "Card Pending",
+                      value: cardPending,
+                      icon: Icons.CreditCardIcon,
+                      color: "text-amber-500",
+                  },
+              ]
+            : []),
+    ];
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -327,45 +389,40 @@ export function GeneralTab({}) {
                                         className="h-2"
                                     />
                                 </DataSkeleton>
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                    <div className="flex items-center gap-2">
-                                        <Icons.CheckCircle2 className="h-4 w-4 text-green-500" />
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">
-                                                Paid
-                                            </p>
-                                            <DataSkeleton
-                                                className="text-sm font-medium"
-                                                placeholder="$0.00"
+                                <div className="grid grid-cols-2 gap-4 pt-2 sm:grid-cols-5">
+                                    {paymentStats.map((stat) => {
+                                        const Icon = stat.icon;
+                                        return (
+                                            <div
+                                                key={stat.label}
+                                                className="flex items-center gap-2"
                                             >
-                                                <p className="text-sm font-medium">
-                                                    $
-                                                    {saleData?.invoice?.paid?.toFixed(
-                                                        2,
+                                                <Icon
+                                                    className={cn(
+                                                        "h-4 w-4",
+                                                        stat.color,
                                                     )}
-                                                </p>
-                                            </DataSkeleton>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Icons.Clock className="h-4 w-4 text-amber-500" />
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">
-                                                Pending
-                                            </p>
-                                            <DataSkeleton
-                                                className="text-sm font-medium"
-                                                placeholder="$3,217.63"
-                                            >
-                                                <p className="text-sm font-medium">
-                                                    $
-                                                    {saleData?.invoice?.pending?.toFixed(
-                                                        2,
-                                                    )}
-                                                </p>
-                                            </DataSkeleton>
-                                        </div>
-                                    </div>
+                                                />
+                                                <div>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {stat.label}
+                                                    </p>
+                                                    <DataSkeleton
+                                                        className="text-sm font-medium"
+                                                        placeholder="$0.00"
+                                                    >
+                                                        <p className="text-sm font-medium">
+                                                            <Money
+                                                                value={
+                                                                    stat.value
+                                                                }
+                                                            />
+                                                        </p>
+                                                    </DataSkeleton>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                                 <div className="mt-2 grid grid-cols-2 gap-4 border-t border-border/40  pt-3">
                                     <div>
@@ -427,7 +484,7 @@ export function GeneralTab({}) {
                             <Card className="border-border/40">
                                 <CardContent className="p-4">
                                     <div className="space-y-2">
-                                        {saleData?.costLines?.map((c, ci) => (
+                                        {costLines.map((c, ci) => (
                                             <div
                                                 key={ci}
                                                 className="flex justify-between text-sm"

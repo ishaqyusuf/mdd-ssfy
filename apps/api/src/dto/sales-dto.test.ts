@@ -93,6 +93,56 @@ describe("sales dto cost lines", () => {
     ]);
   });
 
+  it("labels full card payment total as charged to card", () => {
+    const dto = salesOrderDto(
+      makeSale({
+        type: "order",
+        grandTotal: 846.67,
+        amountDue: 0,
+        subTotal: 825,
+        taxes: [{ tax: 55.39, taxConfig: { title: "County & State Tax" } }],
+        extraCosts: [{ label: "Discount", totalAmount: -33.72 }],
+        meta: {
+          payment_option: "Credit Card",
+          ccc_percentage: 3,
+        },
+        payments: [
+          {
+            amount: 846.67,
+            status: "success",
+            deletedAt: null,
+            createdAt: new Date("2026-06-24T12:00:00.000Z"),
+            meta: {
+              salesAmount: 846.67,
+              feeAmount: 25.4,
+              customerChargeAmount: 872.07,
+              paymentCharges: [
+                {
+                  type: "ccc",
+                  label: "C.C.C",
+                  baseAmount: 846.67,
+                  percentage: 3,
+                  amount: 25.4,
+                },
+              ],
+            },
+            transaction: { meta: null, paymentMethod: "credit-card" },
+            squarePayments: null,
+          },
+        ],
+      }),
+    );
+
+    expect(dto.costLines).toEqual([
+      { label: "Sub total", amount: 825 },
+      { label: "Discount", amount: -33.72 },
+      { label: "County & State Tax", amount: 55.39 },
+      { label: "C.C.C", amount: 25.4 },
+      { label: "Charged to Card", amount: 872.07 },
+      { label: "Total Due", amount: 0 },
+    ]);
+  });
+
   it("separates recorded card ccc in partial mixed overview lines", () => {
     const dto = salesOrderDto(
       makeSale({
