@@ -2,6 +2,12 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Reduced the canonical sales orders table row height.
+  - Lowered the `tables-2/sales-orders` virtual row height and matching sales-orders table config from 57px to 48px.
+  - Kept quotes, shared table core primitives, sales queries, filters, sticky columns, and row actions unchanged.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API or database docs were needed because this is presentation-only.
+  - Validation: scoped `git diff --check` passed for the touched sales-orders table files.
+
 - Refined the sales overview action row controls.
   - Renamed the packing action from `Send for Packing` to `Pack` and added a tooltip explaining that it sends remaining order items to the packing queue.
   - Standardized the visible overview action-row buttons to the same height, flex width, minimum width, icon/text layout, and added a same-sized `More` menu trigger.

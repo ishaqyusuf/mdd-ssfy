@@ -29,7 +29,7 @@ import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["select", "invoiceTotal", "actions"]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = 57;
+const ROW_HEIGHT = 48;
 
 type Props = {
 	initialSettings?: Partial<TableSettings>;

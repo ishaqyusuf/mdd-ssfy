@@ -125,7 +125,7 @@ export const NON_REORDERABLE_COLUMNS: Record<TableId, Set<string>> = {
 };
 
 export const ROW_HEIGHTS: Record<TableId, number> = {
-	"sales-orders": 57,
+	"sales-orders": 48,
 	"sales-quotes": 57,
 	customers: 64,
 	"sales-dispatch": 64,
