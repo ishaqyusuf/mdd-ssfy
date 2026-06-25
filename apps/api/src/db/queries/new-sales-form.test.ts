@@ -1411,6 +1411,7 @@ describe("new-sales-form relational parity", () => {
       po: "PO-NEW",
       payment_option: "Check",
       ccc_percentage: 3.5,
+      ccc: 0,
       deliveryCost: 40,
       labor_cost: 25,
     });
@@ -1552,7 +1553,8 @@ describe("new-sales-form relational parity", () => {
     expect(line!.lineTotal).toBe(1000);
     expect(loaded.form.paymentMethod).toBe("Credit Card");
     expect(state.orders[0]?.meta?.payment_option).toBe("Credit Card");
-    expect(state.orders[0]?.meta).not.toHaveProperty("ccc");
+    expect(state.orders[0]?.meta?.ccc).toBe(35);
+    expect(state.orders[0]?.grandTotal).toBe(1000);
     expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
   });
 
@@ -2674,7 +2676,8 @@ describe("new-sales-form relational parity", () => {
     expect(state.orders[0]?.amountDue).toBe(
       saved.summary.grandTotal - (saved.summary.ccc || 0),
     );
-    expect(state.orders[0]?.meta).not.toHaveProperty("ccc");
+    expect(state.orders[0]?.meta?.ccc).toBe(3.76);
+    expect(state.orders[0]?.grandTotal).toBe(107.5);
 
     const loaded = await getNewSalesForm(ctx, {
       type: "order",

@@ -10,6 +10,7 @@ import {
 	withSalesControl,
 	withSalesListControl,
 } from "@gnd/sales";
+import { resolveSalesDisplayCcc } from "@gnd/sales/payment-system";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import {
 	INVOICE_FILTER_OPTIONS,
@@ -170,11 +171,16 @@ type ControlAwareOrderRow = ReturnType<typeof normalizeOrderRow> & {
 	};
 };
 
-function normalizeOrderRow(
+export function normalizeOrderRow(
 	row: Parameters<typeof salesOrderDto>[0],
 	noteCount = 0,
 ) {
 	const dto = salesOrderDto(row, false);
+	const baseInvoiceTotal = dto.invoice.total || 0;
+	const displayCcc = resolveSalesDisplayCcc({
+		baseTotal: baseInvoiceTotal,
+		meta: row.meta,
+	}).ccc;
 	const productionState = dto.status?.production?.status || "pending";
 	const fulfillmentState = dto.deliveryStatus || "pending";
 	const lifecycleStatus = getSalesOrderLifecycleStatusInfo({
@@ -207,7 +213,9 @@ function normalizeOrderRow(
 		deliveryOption: dto.deliveryOption || "pickup",
 		priority: normalizeSalesPriority(row.priority),
 		priorityLabel: getSalesPriorityLabel(row.priority),
-		invoiceTotal: dto.invoice.total || 0,
+		baseInvoiceTotal,
+		displayCcc,
+		invoiceTotal: baseInvoiceTotal + displayCcc,
 		amountDue: dto.invoice.pending || 0,
 		due: dto.due,
 		paymentDueDate: dto.dueDate,

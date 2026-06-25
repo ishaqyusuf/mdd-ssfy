@@ -44,6 +44,7 @@ import { getSalesCustomer } from "@api/db/queries/customer";
 import { salesAddressLines } from "@api/utils/sales";
 import { TRPCError } from "@trpc/server";
 import { projectLegacyOrderPayments } from "@gnd/sales";
+import { resolveSalesDisplayCcc } from "@gnd/sales/payment-system";
 import { generateRandomString } from "@gnd/utils";
 import {
   calculateLegacyPaymentDueDate,
@@ -509,6 +510,27 @@ function storedOrderSummary<T extends { grandTotal?: number; ccc?: number }>(
   };
 }
 
+function displayOrderSummary<T extends { grandTotal?: number; ccc?: number }>(
+  summary: T,
+  input: {
+    paymentMethod?: string | null;
+    cccPercentage?: number | null;
+    meta?: unknown;
+  },
+) {
+  const displayCcc = resolveSalesDisplayCcc({
+    baseTotal: summary.grandTotal,
+    paymentMethod: input.paymentMethod,
+    cccPercentage: input.cccPercentage,
+    meta: input.meta,
+  });
+  return {
+    ...summary,
+    grandTotal: displayCcc.totalWithCcc,
+    ccc: displayCcc.ccc,
+  };
+}
+
 function normalizeLineItems(lines: NewSalesFormLineItem[]) {
   return lines.map((line, index) => {
     const normalizedHptLine = normalizeHptLineForLegacy(line as any) as any;
@@ -927,6 +949,18 @@ function toBootstrapPayload(
       deliveryOption: DEFAULT_DELIVERY_OPTION,
     },
   });
+  const baseHydratedSummary = {
+    ...summary,
+    grandTotal: hasComputedSummary
+      ? Number(storedOrderSummary(summary).grandTotal || 0)
+      : Number(order.grandTotal ?? summary.grandTotal),
+    ccc: 0,
+  };
+  const displayHydratedSummary = displayOrderSummary(baseHydratedSummary, {
+    paymentMethod,
+    cccPercentage: settings.cccPercentage,
+    meta: container,
+  });
 
   return {
     salesId: order.id,
@@ -980,16 +1014,14 @@ function toBootstrapPayload(
       adjustedSubTotal: Number(summary.adjustedSubTotal ?? summary.subTotal),
       taxRate,
       taxTotal: Number(order.tax ?? summary.taxTotal),
-      grandTotal: hasComputedSummary
-        ? Number(summary.grandTotal || 0)
-        : Number(order.grandTotal ?? summary.grandTotal),
+      grandTotal: Number(displayHydratedSummary.grandTotal || 0),
       discount: Number(summary.discount || 0),
       discountPct: Number(summary.discountPct || 0),
       percentDiscountValue: Number(summary.percentDiscountValue || 0),
       labor: Number(summary.labor || 0),
       delivery: Number(summary.delivery || 0),
       otherCosts: Number(summary.otherCosts || 0),
-      ccc: Number(summary.ccc || 0),
+      ccc: Number(displayHydratedSummary.ccc || 0),
     },
   };
 }
@@ -2137,9 +2169,14 @@ export async function recalculateNewSalesForm(
       meta: true,
     },
   });
-  return recalculateSummary({
+  const settings = deriveNewSalesFormSettings(setting?.meta);
+  const summary = recalculateSummary({
     ...data,
-    cccPercentage: deriveNewSalesFormSettings(setting?.meta).cccPercentage,
+    cccPercentage: settings.cccPercentage,
+  });
+  return displayOrderSummary(storedOrderSummary(summary), {
+    paymentMethod: data.paymentMethod,
+    cccPercentage: settings.cccPercentage,
   });
 }
 
@@ -2185,6 +2222,11 @@ async function saveNewSalesFormInternal(
     cccPercentage: settings.cccPercentage,
   });
   const persistedSummary = storedOrderSummary(summary);
+  const displayCcc = resolveSalesDisplayCcc({
+    baseTotal: persistedSummary.grandTotal,
+    paymentMethod: payload.meta.paymentMethod || null,
+    cccPercentage: settings.cccPercentage,
+  });
 
   return ctx.db.$transaction(async (tx) => {
     const isNew = !(payload.salesId || payload.slug);
@@ -2301,7 +2343,10 @@ async function saveNewSalesFormInternal(
               ...nextFormMeta,
               salesCoefficient,
             },
-      summary,
+      summary: {
+        ...summary,
+        ccc: displayCcc.ccc,
+      },
       extraCosts: payload.extraCosts,
       cccPercentage: settings.cccPercentage,
     });
@@ -3127,6 +3172,13 @@ export async function deleteNewSalesFormLineItem(
     const persistedNextSummary = nextSummary
       ? storedOrderSummary(nextSummary)
       : null;
+    const nextDisplayCcc = persistedNextSummary
+      ? resolveSalesDisplayCcc({
+          baseTotal: persistedNextSummary.grandTotal,
+          paymentMethod: persisted?.form?.paymentMethod || null,
+          cccPercentage: settings.cccPercentage,
+        })
+      : null;
     const nextAmountDue = nextSummary
       ? projectLegacyOrderPayments({
           salesOrderId: line.salesOrderId,
@@ -3137,6 +3189,9 @@ export async function deleteNewSalesFormLineItem(
     const nextMeta: NewSalesFormContainer = persisted
       ? {
           ...container,
+          ccc: nextDisplayCcc?.ccc || 0,
+          ccc_percentage: settings.cccPercentage,
+          payment_option: persisted.form?.paymentMethod || null,
           newSalesForm: {
             ...persisted,
             version: nextVersion,

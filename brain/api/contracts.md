@@ -27,7 +27,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - API hydration treats DB grouping identity as authoritative and only uses persisted `order.meta.newSalesForm` for current editable row values
   - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; rows with `salesItemId` update/revive that legacy sibling, while newly added grouped rows without row-level legacy identity create new siblings instead of reusing the grouped parent line id
   - grouped moulding rows also write per-row `HousePackageTools`; rows with `hptId` update/revive that legacy HPT row, while newly added moulding rows without row-level HPT identity create new HPT rows instead of reusing the grouped parent HPT id
-  - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option` plus `ccc_percentage` remain available to evaluate printable/payable totals
+  - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option`, `ccc_percentage`, and display/backfill `ccc` remain available to evaluate printable/payable totals
+- Sales orders list C.C.C display contract:
+  - `sales.getOrdersV2` keeps `amountDue` and stored `grandTotal` principal/base-only
+  - order rows expose `baseInvoiceTotal`, `displayCcc`, and C.C.C-inclusive `invoiceTotal`
+  - when `meta.ccc` is missing or zero but the selected payment option applies C.C.C, the API calculates fallback `displayCcc` from `baseInvoiceTotal` and `ccc_percentage`
 - Sales print C.C.C footer contract:
   - `print.salesV2` footer/meta payloads keep stored `SalesOrders.grandTotal` and `amountDue` as principal-only values
   - unpaid card-selected records split principal due from the payable card total: `Order Due Amount`, estimated `C.C.C`, and `Total Due With C.C.C`

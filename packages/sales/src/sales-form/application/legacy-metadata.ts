@@ -3,6 +3,7 @@ import type {
 	SalesFormMetaRecord,
 	SalesFormSummaryRecord,
 } from "./record-normalization";
+import { appliesPaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
 
 export type LegacySalesFormMetaContainer = Record<string, unknown> & {
 	newSalesForm?: {
@@ -144,7 +145,6 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		sales_percentage: legacySalesPercentage,
 		...existingMetaWithoutDeprecated
 	} = existingMeta;
-	delete existingMetaWithoutDeprecated.ccc;
 	const form = input.form || {};
 	const summary = input.summary || {};
 	const delivery = firstDefined(
@@ -164,6 +164,9 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		existingMeta.salesCoefficient as number | string | null | undefined,
 		legacySalesPercentage as number | string | null | undefined,
 	);
+	const ccc = appliesPaymentChannelCharge(form.paymentMethod as string | null)
+		? finiteNumber(summary.ccc)
+		: 0;
 
 	return {
 		...existingMetaWithoutDeprecated,
@@ -174,6 +177,7 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 			input.cccPercentage ?? existingMeta.ccc_percentage,
 			3.5,
 		),
+		ccc,
 		discount: finiteNumber(summary.discount),
 		deliveryCost: finiteNumber(delivery),
 		labor_cost: finiteNumber(labor),

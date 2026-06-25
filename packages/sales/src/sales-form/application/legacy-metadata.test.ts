@@ -92,11 +92,29 @@ describe("legacy sales form metadata", () => {
 			payment_option: "Check",
 			paymentMethodReviewDismissed: true,
 			ccc_percentage: 3.5,
+			ccc: 0,
 			discount: 10,
 			deliveryCost: 25,
 			labor_cost: 40,
 		});
-		expect(meta).not.toHaveProperty("ccc");
+	});
+
+	it("persists projected ccc for credit-card payment metadata", () => {
+		const meta = projectSalesFormMetaToLegacyMeta({
+			form: {
+				paymentMethod: "Credit Card",
+			},
+			summary: {
+				ccc: 35,
+			},
+			cccPercentage: 3.5,
+		});
+
+		expect(meta).toMatchObject({
+			payment_option: "Credit Card",
+			ccc_percentage: 3.5,
+			ccc: 35,
+		});
 	});
 
 	it("migrates legacy sales_percentage to salesCoefficient without re-saving the old key", () => {

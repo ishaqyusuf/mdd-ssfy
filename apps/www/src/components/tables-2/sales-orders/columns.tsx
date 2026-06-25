@@ -31,14 +31,18 @@ export type SalesOrder = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
 
 type Column = ColumnDef<SalesOrder>;
 
+function baseInvoiceTotal(item: SalesOrder) {
+	return item.baseInvoiceTotal ?? item.invoiceTotal;
+}
+
 function amountTone(item: SalesOrder) {
-    if (item.amountDue === item.invoiceTotal) return "text-red-600";
+    if (item.amountDue === baseInvoiceTotal(item)) return "text-red-600";
     if (item.amountDue > 0) return "text-violet-600";
     return "text-emerald-600";
 }
 
 function paymentHint(item: SalesOrder) {
-    if (item.amountDue === item.invoiceTotal) return "Unpaid";
+    if (item.amountDue === baseInvoiceTotal(item)) return "Unpaid";
     if (item.amountDue > 0)
         return `Due ${formatCurrency.format(item.amountDue)}`;
     return "Paid";
@@ -493,7 +497,9 @@ function InvoiceCell({ item }: { item: SalesOrder }) {
     const buttonRef = useRef<HTMLButtonElement>(null);
     const pending = item.amountDue;
     const total = item.invoiceTotal;
-    const paid = Math.max(total - pending, 0);
+    const baseTotal = baseInvoiceTotal(item);
+    const ccc = item.displayCcc || 0;
+    const paid = Math.max(baseTotal - pending, 0);
     const hasPendingBalance = pending > 0;
 
     if (!hasPendingBalance) {
@@ -551,6 +557,16 @@ function InvoiceCell({ item }: { item: SalesOrder }) {
                         }}
                     >
                         <div className="space-y-2">
+                            <InvoiceBreakdownLine
+                                label="Base Total"
+                                value={baseTotal}
+                            />
+                            {ccc > 0 ? (
+                                <InvoiceBreakdownLine
+                                    label="C.C.C"
+                                    value={ccc}
+                                />
+                            ) : null}
                             <InvoiceBreakdownLine
                                 label="Pending"
                                 value={pending}

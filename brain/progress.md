@@ -2,6 +2,17 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Implemented C.C.C meta persistence and display fallback for sales list/form totals.
+  - Added a shared sales display C.C.C resolver that uses `meta.ccc` when present and calculates fallback C.C.C for C.C.C-applicable payment methods.
+  - Updated new sales form save/hydration so root `SalesOrders.meta.ccc` is persisted for display while stored `grandTotal` and `amountDue` remain base/principal-only.
+  - Updated `sales.getOrdersV2` and the canonical sales orders Invoice column to render C.C.C-inclusive totals with Base Total/C.C.C tooltip lines.
+  - Updated docs: `brain/decisions/ADR-011-derived-ccc-payment-channel-charge.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+
+- Fixed the Vercel `@gnd/db` build failure in local sync tests.
+  - Replaced the local-sync reset helper's raw target type with the minimal `$executeRawUnsafe` contract it actually awaits, avoiding PrismaPromise branding requirements for focused test doubles.
+  - Updated docs: `brain/progress.md`; no database schema, migration, API, or feature docs were needed because this is a type-only build/test compatibility fix.
+  - Validation: `bun test packages/db/src/local-sync.test.ts` passed with 21 tests and 41 assertions; scoped `git diff --check -- packages/db/src/local-sync.ts` passed.
+
 - Reduced the canonical sales orders table row height.
   - Lowered the `tables-2/sales-orders` virtual row height and matching sales-orders table config from 57px to 48px.
   - Kept quotes, shared table core primitives, sales queries, filters, sticky columns, and row actions unchanged.

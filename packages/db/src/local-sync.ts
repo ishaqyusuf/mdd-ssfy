@@ -88,7 +88,9 @@ type KeyColumnRow = {
 	seq_in_index: bigint | number;
 };
 
-type RawTargetClient = Pick<PrismaClient, "$executeRawUnsafe">;
+type RawTargetClient = {
+	$executeRawUnsafe: (query: string, ...values: unknown[]) => PromiseLike<unknown>;
+};
 
 class DuplicateKeySyncError extends Error {
 	context: Omit<DuplicateConflictContext, "resetAttempted">;
