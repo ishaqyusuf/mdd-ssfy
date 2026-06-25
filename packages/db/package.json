@@ -24,9 +24,9 @@
     "pull": "bun run with-env prisma db pull",
     "push": "bun run with-env:prod prisma db push",
     "studio": "bun run with-env prisma studio --port 5556",
-    "sync:prod-to-local": "bun scripts/sync-prod-to-local.ts --on-duplicate prompt",
-    "sync:prod-to-local:dry-run": "bun scripts/sync-prod-to-local.ts --dry-run",
-    "sync:prod-to-local:table": "bun scripts/sync-prod-to-local.ts --table",
+    "db:sync": "bun scripts/sync-prod-to-local.ts --on-duplicate prompt",
+    "db:sync:dry-run": "bun scripts/sync-prod-to-local.ts --dry-run",
+    "db:sync:table": "bun scripts/sync-prod-to-local.ts --table",
     "typecheck": "tsc --noEmit",
     "with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
     "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"

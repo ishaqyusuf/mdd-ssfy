@@ -1,4 +1,5 @@
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
+import { generateToken } from "@/actions/token-action";
 import Link from "@/components/link";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
@@ -7,14 +8,16 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { openLink } from "@/lib/open-link";
-import { newSalesHelper } from "@/lib/sales";
-import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
+import {
+	buildSalesPdfDownloadUrlFromQuery,
+	resolveSalesPrintMode,
+} from "@/modules/sales-print/application/sales-print-service";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
+import type { SalesPdfToken } from "@gnd/utils/tokenizer";
 import type { UpdateSalesControl } from "@sales/schema";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -22,6 +25,8 @@ import { DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
+import { share } from "@gnd/utils/share";
+import { addDays } from "date-fns";
 import {
 	type ComponentProps,
 	type ReactNode,
@@ -437,15 +442,21 @@ function useSalesPrintAction() {
 		);
 
 		if (options?.share) {
-			const sp = newSalesHelper();
-			await sp.generateTokenSalesIds(
-				state.salesIds,
-				params?.mode || state.type || "order",
-			);
-			await sp.share(
-				`Hello! download your sales ${sp.shareUrl}`,
-				"+234 8186877306",
-			);
+			const token = await generateToken({
+				salesIds: state.salesIds,
+				expiry: addDays(new Date(), 7).toISOString(),
+				mode: params?.mode || state.type || "order",
+			} satisfies SalesPdfToken);
+			const shareUrl = buildSalesPdfDownloadUrlFromQuery({
+				token,
+				preview: false,
+				origin: window.location.origin,
+			});
+			await share({
+				url: shareUrl,
+				msg: `Hello! download your sales ${shareUrl}`,
+				recipient: "+234 8186877306",
+			});
 			actions.closeMenu();
 			return;
 		}

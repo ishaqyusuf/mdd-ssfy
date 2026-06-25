@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { salesQuoteDto } from "./sales-dto";
+import { salesOrderDto, salesQuoteDto } from "./sales-dto";
 
 function makeSale(overrides: Record<string, unknown> = {}) {
   return {
@@ -61,6 +61,94 @@ describe("sales dto cost lines", () => {
       "Total Invoice",
       "Paid",
       "Due Amount",
+    ]);
+  });
+
+  it("splits unpaid selected-card due from calculated ccc total", () => {
+    const dto = salesOrderDto(
+      makeSale({
+        type: "order",
+        grandTotal: 1621.05,
+        amountDue: 1621.05,
+        subTotal: 1515,
+        taxes: [{ tax: 106.05, taxConfig: { title: "Tax" } }],
+        meta: {
+          newSalesForm: {
+            form: {
+              paymentMethod: "Credit Card",
+            },
+          },
+          ccc_percentage: 3,
+        },
+        payments: [],
+      }),
+    );
+
+    expect(dto.costLines).toEqual([
+      { label: "Sub total", amount: 1515 },
+      { label: "Tax", amount: 106.05 },
+      { label: "Order Due Amount", amount: 1621.05 },
+      { label: "C.C.C", amount: 48.63 },
+      { label: "Total Due With C.C.C", amount: 1669.68 },
+    ]);
+  });
+
+  it("separates recorded card ccc in partial mixed overview lines", () => {
+    const dto = salesOrderDto(
+      makeSale({
+        type: "order",
+        grandTotal: 5000,
+        amountDue: 1500,
+        subTotal: 5000,
+        taxes: [],
+        meta: {
+          payment_option: "Credit Card",
+          ccc_percentage: 3.5,
+        },
+        payments: [
+          {
+            amount: 2500,
+            status: "success",
+            deletedAt: null,
+            createdAt: new Date("2026-06-24T12:00:00.000Z"),
+            meta: {
+              salesAmount: 2500,
+              feeAmount: 87.5,
+              customerChargeAmount: 2587.5,
+              paymentCharges: [
+                {
+                  type: "ccc",
+                  label: "C.C.C",
+                  baseAmount: 2500,
+                  percentage: 3.5,
+                  amount: 87.5,
+                },
+              ],
+            },
+            transaction: { meta: null, paymentMethod: "credit-card" },
+            squarePayments: null,
+          },
+          {
+            amount: 1000,
+            status: "success",
+            deletedAt: null,
+            createdAt: new Date("2026-06-24T13:00:00.000Z"),
+            meta: {},
+            transaction: { meta: null, paymentMethod: "cash" },
+            squarePayments: null,
+          },
+        ],
+      }),
+    );
+
+    expect(dto.costLines).toEqual([
+      { label: "Sub total", amount: 5000 },
+      { label: "Order Total", amount: 5000 },
+      { label: "Paid Toward Order", amount: 3500 },
+      { label: "Card Payment", amount: 2500 },
+      { label: "C.C.C on Card Payment", amount: 87.5 },
+      { label: "Charged to Card", amount: 2587.5 },
+      { label: "Balance Due", amount: 1500 },
     ]);
   });
 });

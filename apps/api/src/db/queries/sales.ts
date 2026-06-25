@@ -19,6 +19,7 @@ import {
   FullSalesSelect,
   getItemStatConfig,
   SalesListInclude,
+  SalesOverviewInclude,
 } from "@api/utils/sales";
 import { getSalesSetting } from "./settings";
 import {
@@ -263,7 +264,7 @@ export async function getSaleOverview(
 
   const sale = await db.salesOrders.findFirst({
     where,
-    include: SalesListInclude,
+    include: SalesOverviewInclude,
   });
 
   if (!sale) return null;

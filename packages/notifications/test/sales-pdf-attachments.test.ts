@@ -28,7 +28,7 @@ describe("sales PDF email attachments", () => {
 				salesRep: "Sales Rep",
 				salesRepEmail: "rep@gndprodesk.com",
 				paymentLink: "https://example.com/checkout/token",
-				pdfLink: "https://example.com/api/download/sales?token=pdf-token",
+				pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
 				pdfAttachment,
 				sales: [sale],
 			} as never,
@@ -41,7 +41,7 @@ describe("sales PDF email attachments", () => {
 		expect(email?.data).toMatchObject({
 			hasPdfAttachment: true,
 			paymentLink: "https://example.com/checkout/token",
-			pdfLink: "https://example.com/api/download/sales?token=pdf-token",
+			pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
 		});
 	});
 
@@ -107,7 +107,7 @@ describe("sales PDF email attachments", () => {
 				subject: "Invoice ready",
 				message: "Please review your invoice.",
 				paymentLink: null,
-				pdfLink: "https://example.com/api/download/sales?token=pdf-token",
+				pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
 				pdfAttachment: null,
 				sales: [sale],
 			} as never,
@@ -119,7 +119,7 @@ describe("sales PDF email attachments", () => {
 		expect(email?.attachments).toBeUndefined();
 		expect(email?.data).toMatchObject({
 			subject: "Invoice ready",
-			pdfLink: "https://example.com/api/download/sales?token=pdf-token",
+			pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
 		});
 	});
 

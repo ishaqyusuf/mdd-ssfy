@@ -28,6 +28,18 @@ Tracks important request/response contracts and shared schema boundaries.
   - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; rows with `salesItemId` update/revive that legacy sibling, while newly added grouped rows without row-level legacy identity create new siblings instead of reusing the grouped parent line id
   - grouped moulding rows also write per-row `HousePackageTools`; rows with `hptId` update/revive that legacy HPT row, while newly added moulding rows without row-level HPT identity create new HPT rows instead of reusing the grouped parent HPT id
   - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option` plus `ccc_percentage` remain available to evaluate printable/payable totals
+- Sales print C.C.C footer contract:
+  - `print.salesV2` footer/meta payloads keep stored `SalesOrders.grandTotal` and `amountDue` as principal-only values
+  - unpaid card-selected records split principal due from the payable card total: `Order Due Amount`, estimated `C.C.C`, and `Total Due With C.C.C`
+  - fully paid single-card records can show C.C.C, total charged as `Paid`, and `Total Due = $0.00`
+  - partial or mixed-payment records show order total, paid-toward-order principal, recorded card charge details when safely matched, and principal-only `Balance Due`
+  - print loads `SalesPayments.meta`, linked `CustomerTransaction.meta`, and linked `SquarePayments.meta` for recorded C.C.C extraction, but shared transaction metadata is ignored when its base amount does not match the printed order's payment row
+- Sales overview invoice breakdown contract:
+  - overview DTO `costLines` use the same C.C.C/payment state helper as print so the old overview sheet, new overview Finance tab, and overview summary tab render the same labels and amounts without client-side C.C.C calculation
+  - `sales.getSaleOverview` includes non-deleted payment rows plus linked transaction/Square metadata for recorded C.C.C extraction
+- Sales overview transaction contract:
+  - `sales.getSaleTransactions({ orderNo?, accountNo? })` returns display-ready customer transaction rows for the overview Transactions tab
+  - when `orderNo` is supplied, both the transaction query and nested `salesPayments` rows are scoped to that order so multi-order customer transactions do not display unrelated order payments
 - Product report contract:
   - `sales.getProductReport` returns enabled sales-form step components only: the component row and parent step must not be deleted, archived custom components with `meta.deletedAt` are excluded, and the row must have scoped order-backed usage through priced step forms, sales doors, or house-package moulding records
   - default ordering is by computed sales usage count descending, then units descending, then product name/id tie-breakers

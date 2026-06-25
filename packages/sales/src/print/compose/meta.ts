@@ -2,7 +2,7 @@ import type { PageMeta, PrintMode } from "../types";
 import type { PrintSalesData } from "../query";
 import { formatDate } from "@gnd/utils/dayjs";
 import { formatCurrency } from "@gnd/utils";
-import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
+import { getPrintPaymentFooterState } from "./payment-footer-state";
 
 function calculatePaymentTerm(
   paymentTerm: string,
@@ -52,18 +52,20 @@ export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
   }
 
   const meta: any = sale.meta;
-  const totalCharge = calculatePaymentChannelCharge({
-    paymentMethod:
-      typeof meta?.payment_option === "string" ? meta.payment_option : null,
-    paymentAmount: sale.grandTotal,
-    cccPercentage: meta?.ccc_percentage,
-  });
-  const balanceCharge = calculatePaymentChannelCharge({
-    paymentMethod:
-      typeof meta?.payment_option === "string" ? meta.payment_option : null,
-    paymentAmount: sale.amountDue,
-    cccPercentage: meta?.ccc_percentage,
-  });
+  const paymentState = getPrintPaymentFooterState(sale);
+  if (isPaid && paymentState.latestPaymentDate) {
+    paymentDate = formatDate(paymentState.latestPaymentDate);
+  }
+  const headerTotal =
+    paymentState.kind === "unpaid-card-estimate"
+      ? paymentState.estimatedDueCharge?.customerChargedAmount
+      : paymentState.kind === "paid-single-full-card"
+        ? paymentState.recordedCardCharges[0]?.customerChargedAmount
+        : paymentState.orderTotal;
+  const headerBalanceDue =
+    paymentState.kind === "unpaid-card-estimate"
+      ? paymentState.estimatedDueCharge?.customerChargedAmount
+      : paymentState.amountDue;
 
   return {
     title: modeTitles[mode],
@@ -74,10 +76,10 @@ export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
     status,
     balanceDue:
       !hideBalanceDue && !isPaid
-        ? `$${formatCurrency(balanceCharge.chargeAmount)}`
+        ? `$${formatCurrency(headerBalanceDue || 0)}`
         : undefined,
     dueDate: hideBalanceDue ? undefined : dueDate,
-    total: `$${formatCurrency(totalCharge.chargeAmount)}`,
+    total: `$${formatCurrency(headerTotal || 0)}`,
     paymentDate,
     goodUntil:
       isQuote && sale.goodUntil ? formatDate(sale.goodUntil) : undefined,

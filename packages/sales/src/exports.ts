@@ -22,5 +22,4 @@ export * from "./production-v2";
 export * from "./resolution-system/contracts";
 export * from "./resolution-system/domain";
 export * from "./sales-form";
-export * from "./sales-template/invoice-print-data";
 export * from "./schema";

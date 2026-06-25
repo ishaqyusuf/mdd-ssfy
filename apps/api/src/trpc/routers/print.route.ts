@@ -21,7 +21,6 @@ import {
 	printSalesV2Schema,
 } from "@gnd/sales/print";
 import { tokenSchemas, validateToken } from "@gnd/utils/tokenizer";
-import { generateLegacyPrintData } from "@sales/print-legacy-format";
 import z from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
@@ -87,38 +86,6 @@ export const printRouter = createTRPCRouter({
 			return {
 				...printData,
 				title,
-			};
-		}),
-	sales: publicProcedure
-		.input(
-			z.object({
-				token: z.string(),
-				preview: z.boolean().optional().default(false),
-			}),
-		)
-		.query(async (props) => {
-			const payload = await validateToken(
-				props.input.token,
-				tokenSchemas.salesPdfToken,
-			);
-
-			if (!payload) return null;
-
-			const printData = await generateLegacyPrintData(props.ctx.db, payload);
-
-			const title = printData.map((a) => a.orderNo).join("-");
-			const safeTitle = title.replace(/[^\w\-]+/g, "_");
-			const { preview } = props.input;
-			const pages = printData.map((a) => a.pageData);
-			// const watermark = await getGrayscaleWatermark();
-			// return sales(props.ctx, props.input);
-			return {
-				pages,
-				watermark: null,
-				title: safeTitle,
-				template: {
-					size: "A4",
-				},
 			};
 		}),
 	salesV2: publicProcedure

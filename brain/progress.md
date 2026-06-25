@@ -2,6 +2,48 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Refined the sales overview action row controls.
+  - Renamed the packing action from `Send for Packing` to `Pack` and added a tooltip explaining that it sends remaining order items to the packing queue.
+  - Standardized the visible overview action-row buttons to the same height, flex width, minimum width, icon/text layout, and added a same-sized `More` menu trigger.
+  - Removed the overview `Inbound` button and `Update Inbound` menu item from both the shared sales overview system and the legacy sheet action bar. The shared inbound status modal remains because inbound-management still depends on it.
+  - Swapped the Preview icon from file-search to eye and moved the legacy general-tab priority dropdown onto the next line beneath the action row.
+  - Updated docs: `brain/features/order-inbound-status.md` and `brain/progress.md`; no API/database docs were needed because this is a presentation/navigation-only change.
+  - Validation: scoped `git diff --check` passed for the touched sales overview files; targeted search confirmed the old overview label and inbound action references were removed from the touched action-row components.
+
+- Matched the `/sales-rep` tab selector to the sales overview/sales-book button-group navigation pattern.
+  - Replaced the `TabsList`/`TabsTrigger` header with shared `ButtonGroup` + `Button` links using the same active styling pattern as `SalesTabs`.
+  - Added URL-backed tab links for Requests, Recent Sales, Recent Quotes, and Commission while preserving `start`/`end` query params and the existing active-tab server hydration behavior.
+  - Updated docs: `brain/features/sales-rep-dashboard.md` and `brain/progress.md`; no API/database docs were needed because this is a presentation/navigation-only change.
+  - Validation: scoped `git diff --check` passed for the sales-rep route file. Broad build/typecheck/browser validation was not run under fast Bun monorepo command discipline.
+
+- Renamed the production-to-local database sync command.
+  - Replaced the root `db:sync:prod-to-local` script family with `db:sync`, `db:sync:dry-run`, and `db:sync:table`.
+  - Renamed the package-level `sync:prod-to-local` script family to `db:sync`, `db:sync:dry-run`, and `db:sync:table`, and updated the script help text plus agent command guidance.
+  - Updated docs: `brain/database/migrations.md` and `brain/progress.md`; no database schema, API contract, or migration behavior changed.
+  - Validation: targeted script search confirmed no old sync command names remain in active `package.json` scripts; old names only remain in Brain history describing the rename. No sync command was executed because it can write local database data.
+
+- Added a Receive Payment action to the sales overview Transactions tab.
+  - Reused the existing `SalesPaymentProcessor` with the loaded sales overview context so unpaid orders can open the payment flow directly from transaction history.
+  - The action is hidden for quotes and fully paid orders.
+  - Moved the transaction list load from the web server action to `sales.getSaleTransactions` in the API tRPC router, and scoped multi-order payment rows to the opened order so unrelated order payments do not appear from a shared customer transaction.
+
+- Implemented C.C.C-aware sales print footer handling for partial and mixed payments.
+  - Added `packages/sales/src/print/compose/payment-footer-state.ts` to classify unpaid card estimates, unpaid non-card records, full single card payments, full single non-card payments, and partial/mixed payment records.
+  - Updated print `composeFooter` so unpaid card-selected invoices split `Order Due Amount`, calculated `C.C.C`, and `Total Due With C.C.C`; partial/mixed invoices separate `Order Total`, `Paid Toward Order`, principal `Balance Due`, and recorded `Card Payment` / `C.C.C on Card Payment` / `Charged to Card` lines when exact per-payment C.C.C metadata is available.
+  - Updated print `composeMeta` so header total/balance due follows the same state machine and partial/mixed balance due is not inflated by estimated C.C.C.
+  - Extended the print financial include to load linked payment transaction and Square metadata for C.C.C extraction.
+  - Updated sales overview invoice breakdown `costLines` and the overview Finance tab so overview sheet/preview/print labels are driven by the same payment-state semantics.
+  - Added print-data regression tests for unpaid card estimate, fully paid single card payment, and partial card plus cash payment.
+  - Updated docs: `brain/plans/2026-06-24-feature-sales-print-ccc-partial-payment-footer.md`, `brain/tasks/done.md`, `brain/tasks/roadmap.md`, `brain/features/sales-pdf-system.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: scoped `git diff --check` passed. Focused unit tests were added but not run under fast Bun monorepo command discipline; recommended check is `bun test packages/sales/src/print/get-print-data.test.ts`.
+
+- Cleaned up old sales print routes and legacy PDF logic after the v2 template-system cutover.
+  - Normalized the remaining sales Share action and notification email PDF links onto `/api/download/sales-v2`.
+  - Removed the old `SalesHelper` wrapper, retired `trpc.print.sales` and `trpc.sales.printInvoice`, deleted orphaned legacy sales print data/rendering modules, and removed the `@gnd/pdf/sales` export.
+  - Kept `/api/download/sales` as a thin compatibility redirect to `/api/download/sales-v2` and left `/p/sales-invoice` as a v2 viewer compatibility shell for older links.
+  - Updated docs: `brain/features/sales-pdf-system.md`, `brain/api/endpoints.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: focused `rg` checks showed no remaining active references to `SalesHelper`, `trpc.print.sales`, `sales.printInvoice`, `generateLegacyPrintData`, `getInvoicePrintData`, or `@gnd/pdf/sales`; broad typecheck/build/browser validation was not run under fast Bun command discipline.
+
 - Moved the dedicated mobile invoice customer-selector search to a fixed bottom input.
   - Added an opt-in bottom search mode to `CustomerStep` using `react-native-keyboard-controller` `KeyboardStickyView`, preserving the virtualized `FlatList` and adding bottom padding so customer rows do not sit under the fixed input.
   - Wired the dedicated `CustomerSelectorScreen` to use the bottom search mode while leaving the inline initial customer step inside the invoice form on its existing header search layout.

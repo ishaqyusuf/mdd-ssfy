@@ -28,6 +28,10 @@ import {
 	getSalesAccountings,
 	getSalesAccountingsSchema,
 } from "@api/db/queries/sales-accounting";
+import {
+	getSaleTransactions,
+	getSaleTransactionsSchema,
+} from "@api/db/queries/sales-transactions";
 import { copySale, moveSale } from "@api/db/queries/sales-actions";
 import { getMobileSalesDashboardOverview } from "@api/db/queries/sales-dashboard";
 import {
@@ -76,8 +80,6 @@ import { createNoteAction } from "@notifications/note";
 import { EmailService } from "@gnd/notifications/services/email-service";
 import { buildFullPaymentToken } from "@api/db/queries/checkout";
 import {
-	getInvoicePrintData,
-	printInvoiceSchema,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
 	salesProductionQueryParamsSchema,
@@ -185,6 +187,7 @@ async function sendDealerRejectedEmail(
 		},
 	});
 }
+
 export const salesRouter = createTRPCRouter({
 	dealerOrderRequestCount: protectedProcedure.query(async (props) => {
 		return getDealerOrderRequestCount(props.ctx.db, props.ctx.userId);
@@ -324,6 +327,11 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getSaleOverview(props.ctx, props.input);
 		}),
+	getSaleTransactions: publicProcedure
+		.input(getSaleTransactionsSchema)
+		.query(async (props) => {
+			return getSaleTransactions(props.ctx, props.input);
+		}),
 	getSalesResolutions: publicProcedure
 		.input(getSalesResolutionsSchema)
 		.query(async (props) => {
@@ -458,12 +466,6 @@ export const salesRouter = createTRPCRouter({
 			});
 			return true;
 		}),
-	printInvoice: publicProcedure
-		.input(printInvoiceSchema)
-		.query(async (props) => {
-			return getInvoicePrintData(props.ctx.db, props.input);
-		}),
-
 	// sales statistics
 	getProductReport: publicProcedure
 		.input(productReportSchema)

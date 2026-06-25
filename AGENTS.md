@@ -32,7 +32,7 @@ Final responses must include the Brain files updated, or `No Brain documentation
 - Start mobile work with `bun run mobile`.
 - Run database generation with `bun run db:generate`.
 - Run database migrations with `bun run db:migrate`.
-- Sync production data locally only when asked, using the dry run first: `bun run db:update:local:dry-run`.
+- Sync production data locally only when asked, using the dry run first: `bun run db:sync:dry-run`.
 - Validate broad changes with `bun run typecheck` and the narrowest relevant build, lint, or script-level test.
 
 ## Engineering Rules

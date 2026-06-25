@@ -20,7 +20,23 @@ const packingInclude = {
 
 const financialInclude = {
 	extraCosts: true,
-	payments: { where: excludeDeletedWhere },
+	payments: {
+		where: excludeDeletedWhere,
+		include: {
+			transaction: {
+				select: {
+					meta: true,
+					paymentMethod: true,
+				},
+			},
+			squarePayments: {
+				select: {
+					meta: true,
+					paymentMethod: true,
+				},
+			},
+		},
+	},
 	taxes: {
 		where: excludeDeletedWhere,
 		include: { taxConfig: true },

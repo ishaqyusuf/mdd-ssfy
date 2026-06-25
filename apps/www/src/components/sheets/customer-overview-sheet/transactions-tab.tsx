@@ -1,8 +1,8 @@
-import { getCustomerTransactionsAction } from "@/actions/get-customer-tx-action";
 import { getCustomerWalletHistoryAction } from "@/actions/get-customer-wallet-history";
 
 import { EmptyState } from "@/components/empty-state";
 import { CustomerTxDataTable } from "@/components/tables/sales-accounting/table.customer-transaction";
+import { useTRPC } from "@/trpc/client";
 import {
     DataSkeletonProvider,
     useCreateDataSkeletonCtx,
@@ -12,38 +12,44 @@ import { formatMoney } from "@/lib/use-number";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
+import { useQuery } from "@gnd/ui/tanstack";
 
 interface Props {
     accountNo?: string;
     salesId?: string;
 }
 export function TransactionsTab({ accountNo, salesId }: Props) {
-    const loader = async () => {
-        const [resp, walletHistory] = await Promise.all([
-            getCustomerTransactionsAction({
+    const trpc = useTRPC();
+    const transactionsQuery = useQuery(
+        trpc.sales.getSaleTransactions.queryOptions(
+            {
                 orderNo: salesId,
-                "account.no": salesId ? undefined : accountNo,
-            }),
-            salesId
-                ? Promise.resolve({ balance: 0, data: [] })
-                : getCustomerWalletHistoryAction(accountNo),
-        ]);
-        return {
-            status: "Loaded",
-            transactions: resp.data,
-            walletHistory,
-        };
+                accountNo: salesId ? undefined : accountNo,
+            },
+            {
+                enabled: Boolean(salesId || accountNo),
+            },
+        ),
+    );
+    const walletLoader = async () => {
+        if (salesId || !accountNo) {
+            return { balance: 0, data: [] };
+        }
+        return getCustomerWalletHistoryAction(accountNo);
     };
     const skel = useCreateDataSkeletonCtx({
-        loader,
+        loader: walletLoader,
         autoLoad: true,
+        deps: [salesId, accountNo],
     });
-    const data = skel?.data;
+    const transactions = transactionsQuery.data?.data || [];
+    const walletHistory = skel?.data;
+    const hasLoaded = !transactionsQuery.isPending;
 
     return (
         <div className="flex flex-col">
             <EmptyState
-                empty={data?.status && data?.transactions?.length == 0}
+                empty={hasLoaded && transactions.length == 0}
                 title="Empty Transactions"
                 description={
                     salesId
@@ -55,12 +61,12 @@ export function TransactionsTab({ accountNo, salesId }: Props) {
                     <div className="flex flex-col w-full gap-4 overflow-auto">
                         {!salesId ? (
                             <WalletHistoryPanel
-                                balance={data?.walletHistory?.balance || 0}
-                                items={data?.walletHistory?.data || []}
+                                balance={walletHistory?.balance || 0}
+                                items={walletHistory?.data || []}
                             />
                         ) : null}
                         <CustomerTxDataTable
-                            data={(data?.transactions as any) || []}
+                            data={(transactions as any) || []}
                         />
                     </div>
                 </DataSkeletonProvider>

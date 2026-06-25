@@ -15,6 +15,15 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Sales Payment C.C.C Record Visibility
+- Priority: Medium
+- Description: Track plan in `brain/plans/2026-06-24-feature-sales-payment-ccc-record-visibility.md`.
+- Related Feature: Sales payment v2 checkout
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-06-24-feature-sales-payment-ccc-record-visibility.md
+- Created Date: 2026-06-24
+
 ### Mobile Invoice Save Web Control Diff
 - Priority: High
 - Description: Track plan in `brain/plans/2026-06-24-bug-fix-mobile-invoice-save-web-control-diff.md`.

@@ -14,6 +14,12 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
+- Sales print routes now include:
+  - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`
+  - `/p/sales-document-v2`: canonical signed HTML sales document preview route
+  - `/p/sales-invoice-v2`: PDF print viewer route for direct print flows
+  - `/api/download/sales-v2`: canonical sales PDF download/export route
+  - `/api/download/sales`: compatibility redirect to `/api/download/sales-v2`; legacy `print.sales` and `sales.printInvoice` tRPC procedures are retired
 - Dealership/dealer-program routes now include:
   - `dealerPortal.dashboard`: dealer-scoped summary for open quotes, pending requests, active orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent activity
   - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used by the dealer order overview and print/payment surfaces; payload now includes `createdAt`

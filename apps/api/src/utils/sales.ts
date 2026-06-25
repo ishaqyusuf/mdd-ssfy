@@ -208,6 +208,34 @@ export const SalesListInclude = {
     },
   },
 } satisfies Prisma.SalesOrdersInclude;
+
+export const SalesOverviewInclude = {
+  ...SalesListInclude,
+  payments: {
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      amount: true,
+      status: true,
+      deletedAt: true,
+      createdAt: true,
+      meta: true,
+      transaction: {
+        select: {
+          meta: true,
+          paymentMethod: true,
+        },
+      },
+      squarePayments: {
+        select: {
+          meta: true,
+          paymentMethod: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.SalesOrdersInclude;
 export const excludeDeleted = {
   where: { deletedAt: null },
 };

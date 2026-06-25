@@ -8,7 +8,6 @@ import { cn } from "@gnd/ui/cn";
 
 import { useSalesOverviewSystem } from "../provider";
 import {
-	OverviewEmptyState,
 	OverviewProgressBar,
 	OverviewSectionCard,
 	OverviewSectionLabel,
@@ -169,61 +168,64 @@ export function SalesOverviewFinanceTab() {
 			<OverviewSectionCard>
 				<OverviewSectionLabel icon={Icons.FileText} label="Invoice Details" />
 				<DetailRow label="Selected Payment Option" value={paymentMethod} />
-				<AmountRow label="Invoice Total" value={total} bold />
-				<AmountRow label="Amount Collected" value={paid} highlight="positive" />
-				{pending > 0 && (
+				{costLines.length ? (
+					costLines.map((line, i) => {
+						const label = line.label || line.title || `Line ${i + 1}`;
+						const normalizedLabel = label.toLowerCase();
+						const isBalance =
+							normalizedLabel.includes("due") ||
+							normalizedLabel.includes("balance");
+						const isPaid =
+							normalizedLabel.includes("paid") ||
+							normalizedLabel.includes("charged");
+						const isTotal =
+							normalizedLabel.includes("total") ||
+							normalizedLabel.includes("invoice");
+						return (
+							<AmountRow
+								key={String(
+									line.id ??
+										`${label}-${line.amount ?? line.value ?? i}`,
+								)}
+								label={label}
+								value={Number(line.amount || line.value || 0)}
+								highlight={
+									isBalance && Number(line.amount || line.value || 0) > 0
+										? "warning"
+										: isPaid
+											? "positive"
+											: "neutral"
+								}
+								bold={isTotal || isBalance}
+							/>
+						);
+					})
+				) : (
+					<>
+						<AmountRow label="Invoice Total" value={total} bold />
+						<AmountRow
+							label="Amount Collected"
+							value={paid}
+							highlight="positive"
+						/>
+					</>
+				)}
+				{!costLines.length && pending > 0 && (
 					<AmountRow
 						label="Pending Verification"
 						value={pending}
 						highlight="warning"
 					/>
 				)}
-				<AmountRow
-					label="Outstanding Balance"
-					value={balance}
-					highlight={balance > 0 ? "warning" : "positive"}
-					bold
-				/>
-			</OverviewSectionCard>
-
-			{/* Cost lines */}
-			{costLines.length ? (
-				<OverviewSectionCard>
-					<OverviewSectionLabel
-						icon={Icons.TrendingDown}
-						label="Cost Breakdown"
+				{!costLines.length && (
+					<AmountRow
+						label="Outstanding Balance"
+						value={balance}
+						highlight={balance > 0 ? "warning" : "positive"}
+						bold
 					/>
-					<div className="divide-y divide-border/40">
-						{costLines.map((line, i) => (
-							<div
-								key={String(
-									line.id ??
-										`${line.label ?? line.title ?? "line"}-${line.amount ?? line.value ?? i}`,
-								)}
-								className="flex items-start justify-between py-3"
-							>
-								<div>
-									<p className="text-sm font-medium">
-										{line.label || line.title || `Line ${i + 1}`}
-									</p>
-									{line.description && (
-										<p className="text-xs text-muted-foreground">
-											{line.description}
-										</p>
-									)}
-								</div>
-								<p className="text-sm font-semibold">
-									{formatCurrency(Number(line.amount || line.value || 0))}
-								</p>
-							</div>
-						))}
-					</div>
-				</OverviewSectionCard>
-			) : (
-				<OverviewEmptyState className="p-6">
-					No cost line breakdown available for this order.
-				</OverviewEmptyState>
-			)}
+				)}
+			</OverviewSectionCard>
 		</div>
 	);
 }

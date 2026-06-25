@@ -4,6 +4,12 @@ import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { toast } from "sonner";
 
 export function SendForPackingButton({
@@ -65,19 +71,28 @@ export function SendForPackingButton({
 	);
 
 	return (
-		<Button
-			type="button"
-			size={size}
-			variant={variant}
-			className={className}
-			disabled={!salesId || mutation.isPending}
-			onClick={() => {
-				if (!salesId) return;
-				mutation.mutate({ salesId });
-			}}
-		>
-			<Icons.packingList className="size-3.5" />
-			<span>{mutation.isPending ? "Sending..." : "Send for Packing"}</span>
-		</Button>
+		<TooltipProvider delayDuration={100}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						type="button"
+						size={size}
+						variant={variant}
+						className={className}
+						disabled={!salesId || mutation.isPending}
+						onClick={() => {
+							if (!salesId) return;
+							mutation.mutate({ salesId });
+						}}
+					>
+						<Icons.packingList className="size-3.5" />
+						<span>{mutation.isPending ? "Packing..." : "Pack"}</span>
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" className="max-w-64 text-xs">
+					Send remaining order items to the packing queue.
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
 	);
 }

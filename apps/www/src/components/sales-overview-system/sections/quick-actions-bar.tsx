@@ -6,12 +6,12 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { SalesMenu } from "@/components/sales-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
-import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { toast } from "sonner";
 
@@ -20,13 +20,15 @@ import { SendForPackingButton } from "@/components/sales/send-for-packing-button
 import { _perm } from "@/components/sidebar-links";
 import { useSalesOverviewSystem } from "../provider";
 
+const actionButtonClass =
+	"h-9 min-w-[7.5rem] flex-1 items-center justify-center gap-2";
+
 export function QuickActionsBar() {
 	const {
 		state: { data, isQuote },
 	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
 	const batchSales = useBatchSales();
-	const inboundStatusModal = useInboundStatusModal();
 	const auth = useAuth();
 	const [loading, startTransition] = useTransition();
 	const canSendForPacking =
@@ -43,16 +45,6 @@ export function QuickActionsBar() {
 		});
 	}
 
-	function updateInboundStatus() {
-		if (!data?.id || !data?.orderId || isQuote) return;
-		inboundStatusModal.setParams({
-			inboundOrderId: data.id,
-			inboundOrderNo: data.orderId,
-			inboundOrderStatus: data.inboundStatus || null,
-			updateInboundStatus: true,
-		});
-	}
-
 	function reset() {
 		startTransition(async () => {
 			try {
@@ -65,12 +57,12 @@ export function QuickActionsBar() {
 	}
 
 	return (
-		<div className="flex gap-2">
+		<div className="flex flex-wrap gap-2">
 			{canSendForPacking ? (
 				<SendForPackingButton
 					salesId={data.id}
 					orderNo={data.orderId}
-					className="flex-1 items-center gap-2"
+					className={actionButtonClass}
 					variant="outline"
 				/>
 			) : null}
@@ -78,15 +70,15 @@ export function QuickActionsBar() {
 				onClick={preview}
 				size="sm"
 				variant="default"
-				className="flex flex-1 items-center gap-2 hover:bg-secondary"
+				className={cn(actionButtonClass, "hover:bg-secondary")}
 			>
-				<Icons.FileSearch className="size-3.5" />
+				<Icons.Eye className="size-3.5" />
 				<span>Preview</span>
 			</Button>
 			<Button
 				size="sm"
 				variant="secondary"
-				className="flex-1 items-center gap-2 hover:bg-secondary"
+				className={cn(actionButtonClass, "hover:bg-secondary")}
 				onClick={() => {
 					openLink(
 						salesFormUrl(data.type, data.orderId, data.isDyke),
@@ -98,19 +90,19 @@ export function QuickActionsBar() {
 				<Icons.Edit className="size-3.5" />
 				<span>Edit</span>
 			</Button>
-			{isQuote ? null : (
-				<Button
-					size="sm"
-					variant="secondary"
-					className="flex-1 items-center gap-2 hover:bg-secondary"
-					onClick={updateInboundStatus}
-				>
-					<Icons.PackageOpen className="size-3.5" />
-					<span>Inbound</span>
-				</Button>
-			)}
 			<SalesMenu
 				triggerVariant="secondary"
+				trigger={
+					<Button
+						type="button"
+						size="sm"
+						variant="secondary"
+						className={actionButtonClass}
+					>
+						<Icons.Menu className="size-3.5" />
+						<span>More</span>
+					</Button>
+				}
 				id={data.id}
 				slug={data.uuid}
 				type={data.type}
@@ -146,16 +138,6 @@ export function QuickActionsBar() {
 								</SalesMenu.Item>
 							</SalesMenu.SubContent>
 						</SalesMenu.Sub>
-						<SalesMenu.Separator />
-						<SalesMenu.Item
-							onSelect={(e) => {
-								e.preventDefault();
-								updateInboundStatus();
-							}}
-						>
-							<Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />
-							Update Inbound
-						</SalesMenu.Item>
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
 						<SalesMenu.SalesPrintMenuItems />

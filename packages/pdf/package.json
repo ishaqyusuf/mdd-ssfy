@@ -12,7 +12,6 @@
     "./*": "./src/*",
     ".": "./src/index.ts",
     "./customer-statement": "./src/customer-statement/index.ts",
-    "./sales": "./src/sales/index.tsx",
     "./sales-v2": "./src/sales-v2/index.ts"
   },
   "dependencies": {

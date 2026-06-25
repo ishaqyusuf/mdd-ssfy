@@ -50,6 +50,7 @@
     "./resolution-system": "./src/resolution-system/index.ts",
     "./print/types": "./src/print/types.ts",
     "./print/modes": "./src/print/modes.ts",
+    "./print/payment-footer-state": "./src/print/compose/payment-footer-state.ts",
     "./print/customer-name-lines": "./src/print/compose/customer-name-lines.ts",
     "./print": "./src/print/index.ts",
     "./priority": "./src/priority.ts"

@@ -34,7 +34,7 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 - The sales orders table exposes an `Inbound` badge column.
 - `AVAILABLE` is green, `ORDERED` is blue, and `PENDING ORDER` is amber with row emphasis.
 - The order action menu opens the existing inbound status modal for later manual updates.
-- Sales overview action bars expose an `Inbound` / `Update Inbound` action for orders so the status can be changed without leaving the overview.
+- Sales overview action bars no longer expose the old `Inbound` / `Update Inbound` shortcut. Order inbound status updates remain available from inbound-management workflows and inventory-oriented surfaces that use the shared inbound status modal.
 - The inbound status modal fetches the order's active mapped inventory demand and can submit selected `InboundDemand` rows through `demandIds` for line-scoped prompt changes.
 - `/inventory/inbounds` includes an inbound reconciliation panel showing orders where the manual prompt and open inventory demand disagree.
 

@@ -14,15 +14,17 @@ import { SalesNav } from "@/components/sales-nav";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { Badge } from "@gnd/ui/badge";
+import { Button, buttonVariants } from "@gnd/ui/button";
+import { ButtonGroup } from "@gnd/ui/button-group";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import NextLink from "next/link";
 import nextDynamic from "next/dynamic";
 import { Suspense } from "react";
 
-import { buttonVariants } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { PageTitle } from "@gnd/ui/custom/page-title";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { Tabs, TabsContent } from "@gnd/ui/tabs";
 
 import { searchParamsCache } from "./search-params";
 
@@ -68,6 +70,47 @@ const CustomerProfile = nextDynamic(
         loading: () => <SummaryCardSkeleton />,
     },
 );
+
+const salesRepTabs = [
+    {
+        value: "requests",
+        label: "Requests",
+        icon: Icons.Bell,
+        badge: true,
+    },
+    {
+        value: "recent-sales",
+        label: "Recent Sales",
+        icon: Icons.orders,
+        badge: false,
+    },
+    {
+        value: "recent-quotes",
+        label: "Recent Quotes",
+        icon: Icons.quotes,
+        badge: false,
+    },
+    {
+        value: "commission",
+        label: "Commission",
+        icon: Icons.dollar,
+        badge: false,
+    },
+] as const;
+
+type SalesRepTabValue = (typeof salesRepTabs)[number]["value"];
+
+function getSalesRepTabHref(
+    tab: SalesRepTabValue,
+    params: { start?: string | null; end?: string | null },
+) {
+    const searchParams = new URLSearchParams({ tab });
+
+    if (params.start) searchParams.set("start", params.start);
+    if (params.end) searchParams.set("end", params.end);
+
+    return `/sales-rep?${searchParams.toString()}`;
+}
 
 export async function generateMetadata() {
     return constructMetadata({
@@ -171,26 +214,47 @@ export default async function SalesRepProfile(props: {
                         </Card>
                     </div>
                     <div className="flex flex-col">
-                        <Tabs defaultValue={defaultTab} className="space-y-4">
+                        <Tabs value={defaultTab} className="space-y-4">
                             <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
-                                <TabsList className="inline-flex min-w-max bg-muted">
-                                    <TabsTrigger value="requests">
-                                        Requests
-                                        <SalesRepRequestCountBadge />
-                                    </TabsTrigger>
-                                    <TabsTrigger value="recent-sales">
-                                        Recent Sales
-                                    </TabsTrigger>
-                                    <TabsTrigger value="recent-quotes">
-                                        Recent Quotes
-                                    </TabsTrigger>
-                                    {/* <TabsTrigger  value="customer-profile">
-                        Customer Profile
-                    </TabsTrigger> */}
-                                    <TabsTrigger value="commission">
-                                        Commission
-                                    </TabsTrigger>
-                                </TabsList>
+                                <ButtonGroup className="shrink-0">
+                                    {salesRepTabs.map((tab) => {
+                                        const Icon = tab.icon;
+                                        const isActive = defaultTab === tab.value;
+
+                                        return (
+                                            <Button
+                                                asChild
+                                                className={cn(
+                                                    "uppercase",
+                                                    isActive
+                                                        ? "bg-foreground text-background hover:bg-foreground/90"
+                                                        : "text-muted-foreground",
+                                                )}
+                                                key={tab.value}
+                                                variant={isActive ? "default" : "outline"}
+                                            >
+                                                <NextLink
+                                                    aria-current={
+                                                        isActive ? "page" : undefined
+                                                    }
+                                                    href={getSalesRepTabHref(tab.value, {
+                                                        end: parsedSearchParams.end,
+                                                        start: parsedSearchParams.start,
+                                                    })}
+                                                >
+                                                    <Icon
+                                                        aria-hidden="true"
+                                                        className="size-4"
+                                                    />
+                                                    <span>{tab.label}</span>
+                                                    {tab.badge ? (
+                                                        <SalesRepRequestCountBadge />
+                                                    ) : null}
+                                                </NextLink>
+                                            </Button>
+                                        );
+                                    })}
+                                </ButtonGroup>
                             </div>
                             <TabsContent value="requests" className="space-y-4">
                                 <SalesRepDealerRequests />

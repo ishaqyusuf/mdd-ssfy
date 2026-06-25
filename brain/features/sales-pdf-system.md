@@ -12,6 +12,8 @@ Build a clean, isolated sales PDF system with zero legacy dependencies, typed da
 
 One shared data pipeline produces typed `PrintPage` payloads. Templates never touch the database.
 
+The print data layer owns C.C.C/payment footer semantics. `composeFooter` and `composeMeta` use a shared payment footer state helper so unpaid card estimates split `Order Due Amount`, calculated `C.C.C`, and `Total Due With C.C.C`; full single card payments can show C.C.C plus paid/due-zero; and partial or mixed payments keep order principal separate from recorded card-charge C.C.C details. HTML preview and PDF templates render the shared `PrintPage` payload and do not calculate C.C.C themselves. Sales overview `costLines` use the same helper so invoice breakdowns match print/preview semantics.
+
 ```
 packages/sales/src/print/
 ├── index.ts                    # public barrel: getPrintData, types
@@ -28,6 +30,7 @@ packages/sales/src/print/
 │   ├── shelf-sections.ts       # shelf items → ShelfSection with image, rows
 │   ├── line-item-sections.ts   # generic invoice line items excluded from dyke/shelf sections
 │   ├── footer.ts               # subtotal, tax, labor, extra costs, paid, due
+│   ├── payment-footer-state.ts # C.C.C/payment footer state and recorded charge extraction
 │   └── packing.ts              # dispatch/packing qty resolution
 └── constants.ts                # tax codes, office addresses, mode visibility config
 ```
@@ -199,12 +202,18 @@ type PrintSection =
 
 ---
 
-## What stays untouched
+## Legacy cleanup
 
-- `print-legacy-format.ts` — existing `trpc.print.sales`
-- `invoice-print-data.ts` — existing `trpc.sales.printInvoice`
-- All current PDF components in `packages/pdf/src/components/`
-- Public page at `(public)/p/sales-invoice/page.tsx`
+- `trpc.print.sales` and `trpc.sales.printInvoice` have been retired; `trpc.print.salesV2` is the supported sales print data endpoint.
+- Legacy sales PDF data/rendering modules were removed:
+  - `packages/sales/src/print-legacy-format.ts`
+  - `packages/sales/src/sales-template/invoice-print-data.ts`
+  - `packages/sales/src/templates/pdf/*`
+  - `packages/pdf/src/sales/*`
+  - `packages/pdf/src/components/sales-print-*`
+- `@gnd/pdf` no longer exports `./sales`; sales print consumers should import `@gnd/pdf/sales-v2`.
+- `/api/download/sales` remains only as a compatibility redirect to `/api/download/sales-v2`, preserving existing token query strings for older links.
+- `/p/sales-invoice` remains a compatibility route shell that renders the v2 print viewer.
 
 ---
 

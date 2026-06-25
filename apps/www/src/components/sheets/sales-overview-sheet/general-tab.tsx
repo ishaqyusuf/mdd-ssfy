@@ -100,18 +100,20 @@ export function GeneralTab({}) {
     return (
         <DataSkeletonProvider value={{ loading: !saleData?.id } as any}>
             <div className="relative mt-0 space-y-6 p-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-3">
                     <GeneralActionBar
                         salesNo={saleData?.orderId}
                         type={data?.type}
                         salesId={data?.id!}
                     />
                     {!isQuote ? (
-                        <SalesPrioritySelect
-                            salesId={data?.id}
-                            orderId={saleData?.orderId}
-                            priority={(saleData as any)?.priority}
-                        />
+                        <div className="flex justify-start">
+                            <SalesPrioritySelect
+                                salesId={data?.id}
+                                orderId={saleData?.orderId}
+                                priority={(saleData as any)?.priority}
+                            />
+                        </div>
                     ) : null}
                 </div>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

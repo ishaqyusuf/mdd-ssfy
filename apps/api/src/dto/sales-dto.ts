@@ -23,10 +23,20 @@ import {
 	getSalesPriorityLabel,
 	normalizeSalesPriority,
 } from "@sales/priority";
+import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 export type Item = Prisma.SalesOrdersGetPayload<{
   include: typeof SalesListInclude;
-}> &
-  Partial<{}>;
+}> & {
+  payments?: Array<{
+    amount: number | null;
+    status: string | null;
+    deletedAt: Date | null;
+    createdAt: Date | null;
+    meta?: unknown;
+    transaction?: { meta?: unknown; paymentMethod?: string | null } | null;
+    squarePayments?: { meta?: unknown; paymentMethod?: string | null } | null;
+  }>;
+};
 export function salesOrderDto(data: Item, bin?: boolean) {
   const deliveryOption: DeliveryOption =
     (data?.deliveryOption as any) || "pickup";
@@ -143,22 +153,54 @@ function commonListData(data: Item, bin?: boolean) {
   const creditCardFee = toNumber(meta?.ccc);
   const creditCardFeePercentage = toNumber(meta?.ccc_percentage);
   const paymentMethod = resolveSalesPaymentMethod(meta);
+  const paymentState = Array.isArray(data.payments)
+    ? getPrintPaymentFooterState(data as any)
+    : null;
   _cost("Sub total", data.subTotal);
   data.extraCosts.map((e) => {
     _cost(e.label, e.totalAmount || e.amount);
   });
   data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
-  if (creditCardFee > 0) {
+  if (paymentState?.kind === "unpaid-card-estimate") {
+    const charge = paymentState.estimatedDueCharge;
+    _cost("Order Due Amount", paymentState.amountDue);
+    if (charge?.cccAmount) _cost("C.C.C", charge.cccAmount);
+    _cost(
+      "Total Due With C.C.C",
+      charge?.customerChargedAmount ?? paymentState.amountDue,
+    );
+  } else if (paymentState?.kind === "paid-single-full-card") {
+    const charge = paymentState.recordedCardCharges[0];
+    if (charge?.cccAmount) _cost("C.C.C", charge.cccAmount);
+    _cost("Paid", charge?.customerChargedAmount ?? paymentState.principalPaid);
+    _cost("Total Due", 0);
+  } else if (paymentState?.kind === "paid-single-full-non-card") {
+    _cost("Paid", paymentState.principalPaid);
+    _cost("Total Due", 0);
+  } else if (paymentState?.kind === "partial-or-mixed") {
+    _cost("Order Total", paymentState.orderTotal);
+    _cost("Paid Toward Order", paymentState.principalPaid);
+    for (const charge of paymentState.recordedCardCharges) {
+      _cost("Card Payment", charge.principalAmount);
+      _cost("C.C.C on Card Payment", charge.cccAmount);
+      _cost("Charged to Card", charge.customerChargedAmount);
+    }
+    _cost("Balance Due", paymentState.amountDue);
+  } else if (creditCardFee > 0) {
     _cost(
       creditCardFeePercentage > 0
         ? `Credit Card Fee (${creditCardFeePercentage}%)`
         : "Credit Card Fee",
       creditCardFee,
     );
+    _cost("Total Invoice", data.grandTotal);
+    _cost("Paid", paid);
+    _cost("Due Amount", data.amountDue);
+  } else {
+    _cost("Total Invoice", data.grandTotal);
+    _cost("Paid", paid);
+    _cost("Due Amount", data.amountDue);
   }
-  _cost("Total Invoice", data.grandTotal);
-  _cost("Paid", paid);
-  _cost("Due Amount", data.amountDue);
 
   const customerId = data?.customer?.id;
   let accountNo = data.customer?.phoneNo

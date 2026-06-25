@@ -22,7 +22,7 @@ type DuplicatePromptChoice = {
 
 function printHelp() {
 	console.log(`Usage:
-  bun run sync:prod-to-local [options]
+  bun run db:sync [options]
 
 Options:
   --dry-run                         Inspect changed rows without writing locally

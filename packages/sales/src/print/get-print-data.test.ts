@@ -182,6 +182,10 @@ function createSale() {
 	};
 }
 
+function lineValue(lines: Array<{ label: string; value: string }>, label: string) {
+	return lines.find((line) => line.label === label)?.value;
+}
+
 describe("getPrintData", () => {
 	it("orders mixed new-form and legacy sections and excludes grouped rows from generic lines", async () => {
 		const db = {
@@ -232,7 +236,11 @@ describe("getPrintData", () => {
 			tax: 106.05,
 			taxPercentage: 7,
 			meta: {
-				payment_option: "Credit Card",
+				newSalesForm: {
+					form: {
+						paymentMethod: "Credit Card",
+					},
+				},
 				ccc_percentage: 3,
 			},
 		};
@@ -257,9 +265,137 @@ describe("getPrintData", () => {
 		expect(footerLines.find((line) => line.label === "C.C.C")?.value).toBe(
 			"$48.63",
 		);
-		expect(footerLines.find((line) => line.label === "Total Due")?.value).toBe(
-			"$1,669.68",
-		);
+		expect(lineValue(footerLines, "Order Due Amount")).toBe("$1,621.05");
+		expect(lineValue(footerLines, "Total Due With C.C.C")).toBe("$1,669.68");
+	});
+
+	it("prints a simple paid footer for a full single card payment", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 0,
+			grandTotal: 5000,
+			subTotal: 5000,
+			meta: {
+				payment_option: "Credit Card",
+				ccc_percentage: 3.5,
+			},
+			payments: [
+				{
+					amount: 5000,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T12:00:00.000Z"),
+					meta: {
+						salesAmount: 5000,
+						feeAmount: 175,
+						customerChargeAmount: 5175,
+						paymentCharges: [
+							{
+								type: "ccc",
+								label: "C.C.C",
+								baseAmount: 5000,
+								percentage: 3.5,
+								amount: 175,
+							},
+						],
+					},
+					transaction: { meta: null, paymentMethod: "credit-card" },
+					squarePayments: null,
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(result.pages[0]?.meta.total).toBe("$5,175.00");
+		expect(result.pages[0]?.meta.balanceDue).toBeUndefined();
+		expect(lineValue(footerLines, "C.C.C")).toBe("$175.00");
+		expect(lineValue(footerLines, "Paid")).toBe("($5,175.00)");
+		expect(lineValue(footerLines, "Total Due")).toBe("$0.00");
+	});
+
+	it("separates order balance from recorded card charge details for partial mixed payments", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 1500,
+			grandTotal: 5000,
+			subTotal: 5000,
+			meta: {
+				payment_option: "Credit Card",
+				ccc_percentage: 3.5,
+			},
+			payments: [
+				{
+					amount: 2500,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T12:00:00.000Z"),
+					meta: {
+						salesAmount: 2500,
+						feeAmount: 87.5,
+						customerChargeAmount: 2587.5,
+						paymentCharges: [
+							{
+								type: "ccc",
+								label: "C.C.C",
+								baseAmount: 2500,
+								percentage: 3.5,
+								amount: 87.5,
+							},
+						],
+					},
+					transaction: { meta: null, paymentMethod: "credit-card" },
+					squarePayments: null,
+				},
+				{
+					amount: 1000,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T13:00:00.000Z"),
+					meta: {},
+					transaction: { meta: null, paymentMethod: "cash" },
+					squarePayments: null,
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(result.pages[0]?.meta.total).toBe("$5,000.00");
+		expect(result.pages[0]?.meta.balanceDue).toBe("$1,500.00");
+		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Paid Toward Order")).toBe("($3,500.00)");
+		expect(lineValue(footerLines, "Card Payment")).toBe("$2,500.00");
+		expect(lineValue(footerLines, "C.C.C on Card Payment")).toBe("$87.50");
+		expect(lineValue(footerLines, "Charged to Card")).toBe("$2,587.50");
+		expect(lineValue(footerLines, "Balance Due")).toBe("$1,500.00");
+		expect(lineValue(footerLines, "Total Due")).toBeUndefined();
 	});
 
 	it("supports comma-separated invoice and packing slip modes from one sales fetch", async () => {

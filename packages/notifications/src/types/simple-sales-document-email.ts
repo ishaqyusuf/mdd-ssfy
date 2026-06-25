@@ -201,7 +201,7 @@ async function buildSalesDocumentEmailData(
 	} satisfies SalesPdfToken);
 	const pdfLink =
 		pdfToken && appUrl
-			? `${appUrl}/api/download/sales?token=${encodeURIComponent(
+			? `${appUrl}/api/download/sales-v2?token=${encodeURIComponent(
 					pdfToken,
 				)}&preview=false`
 			: null;

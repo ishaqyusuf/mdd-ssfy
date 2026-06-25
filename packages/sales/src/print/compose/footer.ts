@@ -1,8 +1,8 @@
 import type { FooterData, FooterLine, PrintMode } from "../types";
 import type { PrintSalesData } from "../query";
-import { formatCurrency, sum } from "@gnd/utils";
+import { formatCurrency } from "@gnd/utils";
 import { salesTaxByCode, type SalesTaxCode } from "../constants";
-import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
+import { getPrintPaymentFooterState } from "./payment-footer-state";
 
 export function composeFooter(
   sale: PrintSalesData,
@@ -10,17 +10,7 @@ export function composeFooter(
 ): FooterData | null {
   const hideBalanceDue = mode === "production" || mode === "packing-slip";
   const meta: any = sale.meta;
-  const dueCharge = calculatePaymentChannelCharge({
-    paymentMethod:
-      typeof meta?.payment_option === "string" ? meta.payment_option : null,
-    paymentAmount: sale.amountDue,
-    cccPercentage: meta?.ccc_percentage,
-  });
-  const totalPaid = sum(
-    sale.payments
-      .filter((p) => !p.deletedAt && p.status === "success")
-      .map((p) => p.amount),
-  );
+  const paymentState = getPrintPaymentFooterState(sale);
 
   const lines: FooterLine[] = [];
   const notes: string[] = [];
@@ -79,15 +69,6 @@ export function composeFooter(
     });
   }
 
-  // C.C.C
-  if (dueCharge.amount) {
-    lines.push({
-      label: "C.C.C",
-      value: `$${formatCurrency(dueCharge.amount)}`,
-      bold: true,
-    });
-  }
-
   // Delivery
   if (meta?.deliveryCost > 0) {
     lines.push({
@@ -96,22 +77,129 @@ export function composeFooter(
     });
   }
 
-  // Total Paid
-  if (totalPaid > 0) {
-    lines.push({
-      label: "Total Paid",
-      value: `($${formatCurrency(totalPaid || 0)})`,
-      bold: true,
-    });
-  }
-
-  if (!hideBalanceDue) {
-    lines.push({
-      label: "Total Due",
-      value: `$${formatCurrency(dueCharge.chargeAmount || 0)}`,
-      bold: true,
-      large: true,
-    });
+  switch (paymentState.kind) {
+    case "unpaid-card-estimate": {
+      lines.push({
+        label: "Order Due Amount",
+        value: `$${formatCurrency(paymentState.amountDue)}`,
+        bold: true,
+      });
+      if (paymentState.estimatedDueCharge?.cccAmount) {
+        lines.push({
+          label: "C.C.C",
+          value: `$${formatCurrency(paymentState.estimatedDueCharge.cccAmount)}`,
+          bold: true,
+        });
+      }
+      if (!hideBalanceDue) {
+        lines.push({
+          label: "Total Due With C.C.C",
+          value: `$${formatCurrency(
+            paymentState.estimatedDueCharge?.customerChargedAmount ||
+              paymentState.amountDue,
+          )}`,
+          bold: true,
+          large: true,
+        });
+      }
+      break;
+    }
+    case "paid-single-full-card": {
+      const charge = paymentState.recordedCardCharges[0];
+      if (charge?.cccAmount) {
+        lines.push({
+          label: "C.C.C",
+          value: `$${formatCurrency(charge.cccAmount)}`,
+          bold: true,
+        });
+        lines.push({
+          label: "Paid",
+          value: `($${formatCurrency(charge.customerChargedAmount)})`,
+          bold: true,
+        });
+      } else {
+        lines.push({
+          label: "Paid",
+          value: `($${formatCurrency(paymentState.principalPaid)})`,
+          bold: true,
+        });
+      }
+      if (!hideBalanceDue) {
+        lines.push({
+          label: "Total Due",
+          value: "$0.00",
+          bold: true,
+          large: true,
+        });
+      }
+      break;
+    }
+    case "paid-single-full-non-card": {
+      lines.push({
+        label: "Paid",
+        value: `($${formatCurrency(paymentState.principalPaid)})`,
+        bold: true,
+      });
+      if (!hideBalanceDue) {
+        lines.push({
+          label: "Total Due",
+          value: "$0.00",
+          bold: true,
+          large: true,
+        });
+      }
+      break;
+    }
+    case "partial-or-mixed": {
+      lines.push({
+        label: "Order Total",
+        value: `$${formatCurrency(paymentState.orderTotal)}`,
+        bold: true,
+      });
+      if (paymentState.principalPaid > 0) {
+        lines.push({
+          label: "Paid Toward Order",
+          value: `($${formatCurrency(paymentState.principalPaid)})`,
+          bold: true,
+        });
+      }
+      for (const charge of paymentState.recordedCardCharges) {
+        lines.push({
+          label: "Card Payment",
+          value: `$${formatCurrency(charge.principalAmount)}`,
+        });
+        lines.push({
+          label: "C.C.C on Card Payment",
+          value: `$${formatCurrency(charge.cccAmount)}`,
+        });
+        lines.push({
+          label: "Charged to Card",
+          value: `$${formatCurrency(charge.customerChargedAmount)}`,
+          bold: true,
+        });
+      }
+      if (!hideBalanceDue) {
+        lines.push({
+          label: "Balance Due",
+          value: `$${formatCurrency(paymentState.amountDue)}`,
+          bold: true,
+          large: true,
+        });
+      }
+      break;
+    }
+    case "unpaid-no-card":
+    default: {
+      if (!hideBalanceDue) {
+        lines.push({
+          label: "Total Due",
+          value: `$${formatCurrency(paymentState.amountDue)}`,
+          bold: true,
+          large: true,
+        });
+      }
+      break;
+    }
   }
 
   return { lines, notes };

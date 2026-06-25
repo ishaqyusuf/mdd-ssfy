@@ -189,7 +189,7 @@ function buildPdfLink(sales: LoadedSale[], type: "order" | "quote") {
 	} satisfies SalesPdfToken);
 
 	return pdfToken
-		? `${appUrl}/api/download/sales?token=${encodeURIComponent(
+		? `${appUrl}/api/download/sales-v2?token=${encodeURIComponent(
 				pdfToken,
 			)}&preview=false`
 		: null;

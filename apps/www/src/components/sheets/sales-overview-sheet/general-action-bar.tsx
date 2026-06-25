@@ -5,17 +5,20 @@ import { SendForPackingButton } from "@/components/sales/send-for-packing-button
 import { _perm } from "@/components/sidebar-links";
 import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
-import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { useSaleOverview } from "./context";
 type SalesType = "order" | "quote";
+const actionButtonClass =
+	"h-9 min-w-[7.5rem] flex-1 items-center justify-center gap-2";
+
 export function GeneralActionBar({ type, salesNo, salesId }) {
 	const { data } = useSaleOverview() as {
 		data?: {
@@ -31,7 +34,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 	};
 	const isQuote = data?.type === "quote";
 	const batchSales = useBatchSales();
-	const inboundStatusModal = useInboundStatusModal();
 	const sPreview = useSalesPreview();
 	const auth = useAuth();
 	const canSendForPacking =
@@ -42,15 +44,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		void sPreview.preview(data?.id, data?.type, {
 			customerEmail: data?.email,
 			customerName: data?.displayName,
-		});
-	}
-	function updateInboundStatus() {
-		if (!data?.id || !data?.orderId || isQuote) return;
-		inboundStatusModal.setParams({
-			inboundOrderId: data.id,
-			inboundOrderNo: data.orderId,
-			inboundOrderStatus: data.inboundStatus || null,
-			updateInboundStatus: true,
 		});
 	}
 	const [loading, startTransition] = useTransition();
@@ -71,12 +64,12 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		});
 	}
 	return (
-		<div className="flex gap-2">
+		<div className="flex flex-wrap gap-2">
 			{canSendForPacking ? (
 				<SendForPackingButton
 					salesId={salesId}
 					orderNo={data?.orderId}
-					className="flex-1 items-center gap-2"
+					className={actionButtonClass}
 					variant="outline"
 				/>
 			) : null}
@@ -86,15 +79,15 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				}}
 				size="sm"
 				variant="default"
-				className="flex items-center space-x-2 hover:bg-secondary flex-1"
+				className={cn(actionButtonClass, "hover:bg-secondary")}
 			>
-				<Icons.FileSearch className="size-3.5" />
+				<Icons.Eye className="size-3.5" />
 				<span>Preview</span>
 			</Button>
 			<Button
 				size="sm"
 				variant="secondary"
-				className="flex-1 items-center space-x-2 hover:bg-secondary"
+				className={cn(actionButtonClass, "hover:bg-secondary")}
 				disabled={!salesNo && !data?.orderId}
 				onClick={() => {
 					openLink(
@@ -111,20 +104,19 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				<Icons.Edit className="size-3.5" />
 				<span>Edit</span>
 			</Button>
-			{isQuote ? null : (
-				<Button
-					size="sm"
-					variant="secondary"
-					className="flex-1 items-center space-x-2 hover:bg-secondary"
-					disabled={!data?.id || !data?.orderId}
-					onClick={updateInboundStatus}
-				>
-					<Icons.PackageOpen className="size-3.5" />
-					<span>Inbound</span>
-				</Button>
-			)}
 			<SalesMenu
 				triggerVariant="secondary"
+				trigger={
+					<Button
+						type="button"
+						size="sm"
+						variant="secondary"
+						className={actionButtonClass}
+					>
+						<Icons.Menu className="size-3.5" />
+						<span>More</span>
+					</Button>
+				}
 				id={data?.id}
 				slug={data?.uuid}
 				type={data?.type}
@@ -160,16 +152,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 								</SalesMenu.Item>
 							</SalesMenu.SubContent>
 						</SalesMenu.Sub>
-						<SalesMenu.Separator />
-						<SalesMenu.Item
-							onSelect={(e) => {
-								e.preventDefault();
-								updateInboundStatus();
-							}}
-						>
-							<Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />
-							Update Inbound
-						</SalesMenu.Item>
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
 						<SalesMenu.SalesPrintMenuItems />
