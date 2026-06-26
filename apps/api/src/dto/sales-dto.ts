@@ -1,4 +1,4 @@
-import { SalesListInclude } from "@api/utils/sales";
+import type { SalesListInclude } from "@api/utils/sales";
 import type {
   AddressBookMeta,
   QtyControlType,
@@ -14,16 +14,17 @@ import {
   salesLinks,
 } from "@api/utils/sales";
 import type { Prisma } from "@gnd/db";
+import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
+import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
 import { getNameInitials, sum, toNumber } from "@gnd/utils";
-
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { DeliveryOption } from "@gnd/utils/sales";
 import {
 	getSalesPriorityLabel,
 	normalizeSalesPriority,
 } from "@sales/priority";
-import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
+
 export type Item = Prisma.SalesOrdersGetPayload<{
   include: typeof SalesListInclude;
 }> & {
@@ -150,9 +151,12 @@ function commonListData(data: Item, bin?: boolean) {
   }[] = [];
   const _cost = (label, amount) => costLines.push({ label, amount });
   const paid = sum([data.grandTotal! - data.amountDue!]);
-  const creditCardFee = toNumber(meta?.ccc);
-  const creditCardFeePercentage = toNumber(meta?.ccc_percentage);
   const paymentMethod = resolveSalesPaymentMethod(meta);
+  const invoiceCccDisplay = repairSalesInvoiceCccDisplay({
+    baseTotal: data.grandTotal,
+    paymentMethod,
+    meta,
+  });
   const paymentState = Array.isArray(data.payments)
     ? getPrintPaymentFooterState(data as any)
     : null;
@@ -162,12 +166,17 @@ function commonListData(data: Item, bin?: boolean) {
   });
   data.taxes.map((t) => _cost(t.taxConfig?.title, t.tax));
   if (paymentState?.kind === "unpaid-card-estimate") {
-    const charge = paymentState.estimatedDueCharge;
+    const charge = repairSalesInvoiceCccDisplay({
+      baseTotal: paymentState.amountDue,
+      paymentMethod: paymentState.selectedPaymentMethod,
+      cccPercentage: paymentState.estimatedDueCharge?.percentage,
+      meta,
+    });
     _cost("Order Due Amount", paymentState.amountDue);
-    if (charge?.cccAmount) _cost("C.C.C", charge.cccAmount);
+    if (charge.ccc) _cost("C.C.C", charge.ccc);
     _cost(
       "Total Due With C.C.C",
-      charge?.customerChargedAmount ?? paymentState.amountDue,
+      charge.totalWithCcc,
     );
   } else if (paymentState?.kind === "paid-single-full-card") {
     const charge = paymentState.recordedCardCharges[0];
@@ -189,12 +198,12 @@ function commonListData(data: Item, bin?: boolean) {
       _cost("Charged to Card", charge.customerChargedAmount);
     }
     _cost("Balance Due", paymentState.amountDue);
-  } else if (creditCardFee > 0) {
+  } else if (invoiceCccDisplay.ccc > 0) {
     _cost(
-      creditCardFeePercentage > 0
-        ? `Credit Card Fee (${creditCardFeePercentage}%)`
+      invoiceCccDisplay.cccPercentage > 0
+        ? `Credit Card Fee (${invoiceCccDisplay.cccPercentage}%)`
         : "Credit Card Fee",
-      creditCardFee,
+      invoiceCccDisplay.ccc,
     );
     _cost("Total Invoice", data.grandTotal);
     _cost("Paid", paid);
@@ -206,7 +215,7 @@ function commonListData(data: Item, bin?: boolean) {
   }
 
   const customerId = data?.customer?.id;
-  let accountNo = data.customer?.phoneNo
+  const accountNo = data.customer?.phoneNo
     ? data.customer?.phoneNo
     : !customerId
       ? null

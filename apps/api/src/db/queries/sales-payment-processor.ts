@@ -226,11 +226,15 @@ async function applySalesPayment(
 	const walletCreditAmount = roundMoney(
 		Math.max(externalAmount - externalPrincipalAmount, 0),
 	);
-	const paymentCharge = calculatePaymentChannelCharge({
+	const paymentChargeResult = calculatePaymentChannelCharge({
 		paymentMethod: props.paymentMethod,
-		paymentAmount: externalAmount,
+		paymentAmount: externalPrincipalAmount,
 		cccPercentage: resolveSalesCccPercentage(selectedOrders),
 	});
+	const paymentCharge = {
+		...paymentChargeResult,
+		chargeAmount: roundMoney(externalAmount + paymentChargeResult.amount),
+	};
 	const paymentChargeMeta = {
 		...buildPaymentChannelChargeMeta(paymentCharge),
 		cccPercentage: paymentCharge.percentage,
@@ -423,15 +427,22 @@ async function createTerminalPayment(
 	if (externalAmount <= 0) {
 		throw new Error("Terminal payment amount must be greater than zero.");
 	}
-	const paymentCharge = calculatePaymentChannelCharge({
+	const externalPrincipalAmount = roundMoney(
+		Math.min(externalAmount, remainingAfterWallet),
+	);
+	const paymentChargeResult = calculatePaymentChannelCharge({
 		paymentMethod: "terminal" as SalesPaymentMethods,
-		paymentAmount: externalAmount,
+		paymentAmount: externalPrincipalAmount,
 		cccPercentage: resolveSalesCccPercentage(selectedOrders),
 	});
+	const paymentCharge = {
+		...paymentChargeResult,
+		chargeAmount: roundMoney(externalAmount + paymentChargeResult.amount),
+	};
 	const paymentChargeMeta = {
 		...buildPaymentChannelChargeMeta(paymentCharge),
 		cccPercentage: paymentCharge.percentage,
-		externalAppliedAmount: Math.min(externalAmount, remainingAfterWallet),
+		externalAppliedAmount: externalPrincipalAmount,
 		walletAppliedAmount,
 		walletCreditAmount: Math.max(externalAmount - remainingAfterWallet, 0),
 	};

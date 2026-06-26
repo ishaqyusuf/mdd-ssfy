@@ -4,7 +4,7 @@ import { VirtualRow } from "@/components/tables-2/core";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { Table, TableBody } from "@gnd/ui/table";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
@@ -28,7 +28,7 @@ const NON_CLICKABLE_COLUMNS = new Set([
 	"importedRows",
 ]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT = ROW_HEIGHTS["inventory-import"];
 
 type Props = {
 	data?: InventoryImportRow[];

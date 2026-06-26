@@ -8,7 +8,7 @@ import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Table, TableBody } from "@gnd/ui/table";
@@ -37,7 +37,7 @@ const NON_CLICKABLE_COLUMNS = new Set([
 	"actions",
 ]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT = ROW_HEIGHTS["customer-service"];
 
 type CustomerServiceInput =
 	RouterInputs["customerService"]["getCustomerServices"];

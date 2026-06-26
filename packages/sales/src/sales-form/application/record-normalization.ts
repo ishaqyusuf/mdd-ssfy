@@ -26,6 +26,8 @@ type SalesFormRecordLike = {
 	} | null;
 };
 
+const DEFAULT_ORDER_PAYMENT_METHOD = "Credit Card";
+
 export type SalesFormLineItemRecord = Record<string, any> & {
 	id?: number | null;
 	uid?: string | null;
@@ -118,7 +120,9 @@ function readObject(value: unknown): Record<string, any> | null {
 }
 
 function deriveShelfLineTotalForSummary(shelfRows: any[]) {
-	const rowsWithStoredTotals = shelfRows.filter((row) => row?.totalPrice != null);
+	const rowsWithStoredTotals = shelfRows.filter(
+		(row) => row?.totalPrice != null,
+	);
 	if (rowsWithStoredTotals.length) {
 		return roundCurrency(
 			rowsWithStoredTotals.reduce(
@@ -172,10 +176,7 @@ function normalizeGroupedLineTitle(line: Partial<SalesFormLineItemRecord>) {
 	return itemTypeTitle;
 }
 
-function getSaveLineTitle(
-	line: Partial<SalesFormLineItemRecord>,
-	index = 0,
-) {
+function getSaveLineTitle(line: Partial<SalesFormLineItemRecord>, index = 0) {
 	return (
 		normalizeSyntheticLineTitle(line.title) ||
 		getItemTypeTitle(line) ||
@@ -308,7 +309,10 @@ export function normalizeSalesFormLineItem(
 	const normalizedHptLine =
 		Array.isArray(baseLine.housePackageTool?.doors) &&
 		baseLine.housePackageTool.doors.length > 0
-			? normalizeHptLineForLegacy(baseLine, readWorkflowDoorRouteConfig(baseLine))
+			? normalizeHptLineForLegacy(
+					baseLine,
+					readWorkflowDoorRouteConfig(baseLine),
+				)
 			: null;
 	if (normalizedHptLine) {
 		baseLine.housePackageTool = normalizedHptLine.housePackageTool;
@@ -385,6 +389,19 @@ export function normalizeSalesFormMeta(meta: Partial<SalesFormMetaRecord>) {
 		paymentMethod: meta.paymentMethod ?? null,
 		taxCode: meta.taxCode ?? null,
 	};
+}
+
+function normalizeSalesFormRecordMeta(
+	record: Pick<SalesFormRecordLike, "type" | "form">,
+) {
+	const meta = normalizeSalesFormMeta(record.form || {});
+	if (record.type === "order" && !meta.paymentMethod) {
+		return {
+			...meta,
+			paymentMethod: DEFAULT_ORDER_PAYMENT_METHOD,
+		};
+	}
+	return meta;
 }
 
 export function normalizeSalesFormInitialCustomerId(
@@ -500,7 +517,7 @@ export function hydrateSalesFormRecord<TRecord extends SalesFormRecordLike>(
 	const lineItems = normalized.length
 		? normalized
 		: [createEmptySalesFormLineItem(0)];
-	const form = normalizeSalesFormMeta(record.form || {});
+	const form = normalizeSalesFormRecordMeta(record);
 	const extraCosts = normalizeSalesFormExtraCosts(record.extraCosts || []);
 	const summary = computeSalesFormSummary(
 		lineItems,
@@ -532,7 +549,7 @@ export function toSalesFormSaveDraftPayload<
 		}),
 	);
 	const extraCosts = normalizeSalesFormExtraCosts(source.extraCosts || []);
-	const meta = normalizeSalesFormMeta(source.form || {});
+	const meta = normalizeSalesFormRecordMeta(source);
 	const summary = computeSalesFormSummary(
 		lineItems,
 		source.summary?.taxRate || 0,

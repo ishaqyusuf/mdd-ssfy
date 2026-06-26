@@ -58,7 +58,7 @@ export function InvoiceFormFooter({
       pointerEvents={hidden ? "none" : "auto"}
       style={{ opacity, transform: [{ translateY }] }}
     >
-      <View className="bg-background px-4 pb-4 pt-2">
+      <View className="bg-background px-4 pb-4 border-t border-muted pt-2">
         {validationError ? (
           <View className="mb-3 bg-red-50 px-3 py-2">
             <Text className="text-xs font-semibold text-red-700">
@@ -100,7 +100,11 @@ export function InvoiceFormFooter({
               disabled={isSaving}
               onPress={onOpenItemsSheet}
             >
-              <Icon name="ClipboardList" className="text-foreground" size={18} />
+              <Icon
+                name="ClipboardList"
+                className="text-foreground"
+                size={18}
+              />
             </Button>
           ) : null}
         </View>

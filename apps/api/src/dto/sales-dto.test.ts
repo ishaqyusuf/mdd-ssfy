@@ -32,12 +32,15 @@ function makeSale(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales dto cost lines", () => {
-  it("includes persisted credit card fee before invoice total", () => {
+  it("includes repaired credit card fee before invoice total", () => {
     const dto = salesQuoteDto(
       makeSale({
+        grandTotal: 110,
+        amountDue: 110,
         meta: {
           ccc: 3.85,
           ccc_percentage: 3.5,
+          payment_option: "Credit Card",
         },
       }),
     );
@@ -46,9 +49,9 @@ describe("sales dto cost lines", () => {
       { label: "Sub total", amount: 100 },
       { label: "Tax", amount: 10 },
       { label: "Credit Card Fee (3.5%)", amount: 3.85 },
-      { label: "Total Invoice", amount: 113.85 },
+      { label: "Total Invoice", amount: 110 },
       { label: "Paid", amount: 0 },
-      { label: "Due Amount", amount: 113.85 },
+      { label: "Due Amount", amount: 110 },
     ]);
   });
 
@@ -79,6 +82,7 @@ describe("sales dto cost lines", () => {
             },
           },
           ccc_percentage: 3,
+          ccc: 1,
         },
         payments: [],
       }),
@@ -199,6 +203,41 @@ describe("sales dto cost lines", () => {
       { label: "C.C.C on Card Payment", amount: 87.5 },
       { label: "Charged to Card", amount: 2587.5 },
       { label: "Balance Due", amount: 1500 },
+    ]);
+  });
+
+  it("does not infer unrecorded partial card ccc", () => {
+    const dto = salesOrderDto(
+      makeSale({
+        type: "order",
+        grandTotal: 5000,
+        amountDue: 2500,
+        subTotal: 5000,
+        taxes: [],
+        meta: {
+          payment_option: "Credit Card",
+          ccc_percentage: 3.5,
+          ccc: 175,
+        },
+        payments: [
+          {
+            amount: 2500,
+            status: "success",
+            deletedAt: null,
+            createdAt: new Date("2026-06-24T12:00:00.000Z"),
+            meta: {},
+            transaction: { meta: null, paymentMethod: "credit-card" },
+            squarePayments: null,
+          },
+        ],
+      }),
+    );
+
+    expect(dto.costLines).toEqual([
+      { label: "Sub total", amount: 5000 },
+      { label: "Order Total", amount: 5000 },
+      { label: "Paid Toward Order", amount: 2500 },
+      { label: "Balance Due", amount: 2500 },
     ]);
   });
 });

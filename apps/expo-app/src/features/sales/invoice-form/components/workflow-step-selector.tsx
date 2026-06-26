@@ -123,6 +123,7 @@ export type WorkflowStickyHeaderEntry = {
 
 export type WorkflowFloatingActionEntry = {
   key: string;
+  label: string;
   footerOffset: number;
   onPress: () => void;
 };
@@ -1233,7 +1234,7 @@ export function WorkflowStepSelector({
       refreshKey={workflowProceedActionKey}
     >
       <Button
-        className="h-12 w-[220px] rounded-full px-8 shadow-lg"
+        className="h-12 w-55 rounded-full px-8 shadow-lg"
         onPress={handleProceed}
         style={{ width: 220 }}
       >
@@ -1250,6 +1251,7 @@ export function WorkflowStepSelector({
     }
     onInlineProceedActionChange({
       key: workflowProceedActionKey,
+      label: "Proceed",
       footerOffset: workflowProceedOffset,
       onPress: handleInlineProceedPress,
     });
@@ -1279,9 +1281,7 @@ export function WorkflowStepSelector({
 
       {activeHousePackageToolStep ? (
         housePackageToolContent
-      ) : activeGroupedRowEditorStep ? (
-        null
-      ) : inline ? (
+      ) : activeGroupedRowEditorStep ? null : inline ? (
         <View className="relative">
           <View
             style={{
@@ -1375,6 +1375,7 @@ export function WorkflowStepSelector({
           components={components}
           profileCoefficient={getProfileCoefficient(customerProfileId) || 1}
           footerOffset={getCustomComponentFloatingOffset({
+            inline,
             proceedVisible: effectiveProceedActionVisible,
             footerActionsHidden,
           })}
@@ -1683,11 +1684,11 @@ export function DoorSizePickerScreen({
   rows: DoorStoredRow[];
   supplierUid?: string | null;
   supplierName?: string | null;
-  suppliers?: Array<{
+  suppliers?: {
     id?: number | null;
     uid?: string | null;
     name?: string | null;
-  }>;
+  }[];
   isLoadingSuppliers?: boolean;
   noHandle?: boolean;
   disabled?: boolean;
@@ -1934,13 +1935,14 @@ export function DoorSizePickerScreen({
           }}
         />
         <KeyboardStickyView
-          offset={{ closed: 0, opened: 0 }}
-          className="bg-background px-4 pb-7 pt-2"
+          // offset={{ closed: 0, opened: 0 }}
+          // className=""
+          className=""
         >
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center bg-background gap-4 px-4 py-4 border-t border-muted">
             {showSecondaryAction ? (
               <Button
-                variant="ghost"
+                variant="secondary"
                 className="h-11 flex-1 px-3"
                 disabled={disabled}
                 onPress={onOk}

@@ -67,6 +67,7 @@ const FORM_SCROLL_BOTTOM_PADDING = 25;
 const FORM_KEYBOARD_BOTTOM_OFFSET = 160;
 const INLINE_WORKFLOW_PROCEED_BUTTON_HEIGHT = 44;
 const INLINE_WORKFLOW_PROCEED_BUTTON_WIDTH = 184;
+const SHOW_LOCAL_RECOVERY_ALERT = false;
 
 function getShellTitle(input: {
   type: NewSalesFormType;
@@ -82,11 +83,13 @@ function getShellTitle(input: {
   return labels.noun;
 }
 
-function InlineWorkflowProceedActionFrame({
+function InlineWorkflowFloatingActionFrame({
   footerOffset,
+  label,
   onPress,
 }: {
   footerOffset: number;
+  label: string;
   onPress: () => void;
 }) {
   const animatedBottom = useMemo(() => new Animated.Value(footerOffset), []);
@@ -144,7 +147,7 @@ function InlineWorkflowProceedActionFrame({
             fontWeight: "700",
           }}
         >
-          Proceed
+          {label}
         </NativeText>
       </Pressable>
     </Animated.View>
@@ -646,6 +649,7 @@ export function InvoiceFormScreen({
         if (!entry) return current ? null : current;
         if (
           current?.key === entry.key &&
+          current.label === entry.label &&
           current.footerOffset === entry.footerOffset &&
           current.onPress === entry.onPress
         ) {
@@ -703,7 +707,7 @@ export function InvoiceFormScreen({
                 paddingBottom: formBottomPadding,
               }}
             >
-              {recoverySnapshot ? (
+              {SHOW_LOCAL_RECOVERY_ALERT && recoverySnapshot ? (
                 <View className="mx-4 mb-4 gap-3 bg-amber-50 p-3">
                   <Text className="text-sm font-semibold text-amber-950">
                     Unsaved local edits were found
@@ -750,8 +754,9 @@ export function InvoiceFormScreen({
             </View>
           ) : null}
           {!shouldShowInitialCustomerStep && inlineWorkflowProceedAction ? (
-            <InlineWorkflowProceedActionFrame
+            <InlineWorkflowFloatingActionFrame
               footerOffset={inlineWorkflowProceedAction.footerOffset}
+              label={inlineWorkflowProceedAction.label}
               onPress={inlineWorkflowProceedAction.onPress}
             />
           ) : null}

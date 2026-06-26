@@ -147,10 +147,26 @@ describe("sales payment processor utils", () => {
 				cccPercentage: 3.5,
 			}),
 		).toMatchObject({
-			baseAmount: 600,
-			feeAmount: 21,
-			chargeAmount: 621,
+			baseAmount: 500,
+			feeAmount: 17.5,
+			chargeAmount: 617.5,
 			walletCreditAmount: 100,
+		});
+	});
+
+	it("previews ccc from remaining amount due after prior payments", () => {
+		expect(
+			calculatePaymentPlanPreview({
+				paymentMethod: "Credit Card",
+				selectedBalance: 250,
+				externalAmount: 250,
+				cccPercentage: 3.5,
+			}),
+		).toMatchObject({
+			baseAmount: 250,
+			feeAmount: 8.75,
+			chargeAmount: 258.75,
+			walletCreditAmount: 0,
 		});
 	});
 });

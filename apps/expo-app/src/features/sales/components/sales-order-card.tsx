@@ -1,10 +1,11 @@
-import { SalesDocumentCard } from "./sales-document-card";
+import type { SalesDocumentListItem } from "./sales-document-list";
+import { SalesInvoiceListCard2 } from "./sales-invoice-list-card-2";
 
 type Props = {
-  item: any;
-  onPress: () => void;
+	item: SalesDocumentListItem;
+	onPress: () => void;
 };
 
 export function SalesOrderCard({ item, onPress }: Props) {
-  return <SalesDocumentCard type="order" item={item} onPress={onPress} />;
+	return <SalesInvoiceListCard2 type="order" item={item} onPress={onPress} />;
 }

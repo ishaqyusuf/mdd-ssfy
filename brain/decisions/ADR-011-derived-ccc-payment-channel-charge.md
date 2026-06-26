@@ -16,7 +16,7 @@ C.C.C is a derived payment-channel charge, not a stored order charge.
 
 Sales order persistence keeps `SalesOrders.grandTotal` and `SalesOrders.amountDue` as base sales totals excluding the derived C.C.C amount. Order metadata retains the selected payment method, `ccc_percentage`, and a display/backfill `ccc` amount so sales form, overview, list, print, preview, and payment surfaces can evaluate a payable/display total consistently without mutating principal totals.
 
-Returned and hydrated sales-form summaries may include derived C.C.C in `summary.ccc` and `summary.grandTotal` for display. If `meta.ccc` is missing or zero while the selected payment method applies C.C.C, display surfaces derive a fallback C.C.C from the base total and configured percentage. Print/PDF data derives displayed invoice totals from the stored base total plus the applicable payment-channel C.C.C. Actual charged C.C.C belongs to the payment/checkout/terminal transaction metadata or ledger, where the payment amount and channel are known.
+Returned and hydrated sales-form summaries may include derived C.C.C in `summary.ccc` and `summary.grandTotal` for display. If `meta.ccc` is missing, zero, stale, or present on a non-card order, display surfaces repair C.C.C from the selected payment method, principal base amount, and configured percentage instead of trusting the cached value. Print/PDF data derives displayed invoice totals from the stored base total plus the applicable payment-channel C.C.C. Actual charged C.C.C belongs to the payment/checkout/terminal transaction metadata or ledger, where the payment amount and channel are known.
 
 ## Consequences
 - New sales-form saves persist display C.C.C in root order metadata, but not in the stored order grand total.

@@ -23,6 +23,7 @@ import { cn } from "@gnd/ui/cn";
 import { DeliveryOption } from "./delivery-option";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
+import { SalesOverviewPaymentMethodSelect } from "@/components/sales-overview-payment-method-select";
 
 type CostLine = {
     id?: number | string | null;
@@ -484,6 +485,15 @@ export function GeneralTab({}) {
                             <Card className="border-border/40">
                                 <CardContent className="p-4">
                                     <div className="space-y-2">
+                                        <SalesOverviewPaymentMethodSelect
+                                            salesId={saleData?.id}
+                                            value={saleData?.paymentMethod}
+                                            disabled={
+                                                isQuote ||
+                                                Number(invoicePending || 0) <= 0
+                                            }
+                                            className="py-2"
+                                        />
                                         {costLines.map((c, ci) => (
                                             <div
                                                 key={ci}
@@ -497,9 +507,7 @@ export function GeneralTab({}) {
                                                     placeholder="$0.00"
                                                 >
                                                     <span>
-                                                        <Money
-                                                            value={c?.amount}
-                                                        />
+                                                        <Money value={c?.amount} />
                                                     </span>
                                                 </DataSkeleton>
                                             </div>

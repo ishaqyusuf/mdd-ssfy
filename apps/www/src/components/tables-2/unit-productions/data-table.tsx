@@ -9,7 +9,7 @@ import { useTableSettings } from "@/hooks/use-table-settings";
 import { useUnitProductionFilterParams } from "@/hooks/use-unit-productions-filter-params";
 import { useUnitProductionParams } from "@/hooks/use-unit-productions-params";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Table, TableBody } from "@gnd/ui/table";
@@ -34,7 +34,7 @@ import { useUnitProductionsTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["select", "actions"]);
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT = ROW_HEIGHTS["unit-productions"];
 
 type UnitProductionsInput = RouterInputs["community"]["getUnitProductions"];
 type UnitProductionsPage = {

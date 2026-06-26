@@ -88,6 +88,7 @@
   - delivery method
   - status
   - actions
+- Invoice total display repairs C.C.C before rendering: `grandTotal` stays base/principal-only, `displayCcc` is recalculated from the selected card/link/terminal method and `ccc_percentage` when cached `meta.ccc` is missing or stale, and non-card rows stay base-only even if old metadata contains C.C.C.
 - Row interaction
   - clicking a row opens the existing sales sheet
   - the actions column exposes a compact overview icon with a hover preview

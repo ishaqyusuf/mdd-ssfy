@@ -21,8 +21,7 @@ export function normalizePaymentMethod(value?: string | null) {
 				.replaceAll("_", "-")
 				.replaceAll(" ", "-");
 			return method.value === normalized || normalizedLabel === normalized;
-		})?.value ||
-		null
+		})?.value || null
 	);
 }
 
@@ -141,10 +140,11 @@ export function calculatePaymentPlanPreview(input: {
 			? 0
 			: Math.round(Number(input.externalAmount || 0) * 100) / 100;
 	const walletCreditAmount =
-		Math.round(Math.max(externalAmount - remainingAfterWallet, 0) * 100) /
-		100;
+		Math.round(Math.max(externalAmount - remainingAfterWallet, 0) * 100) / 100;
+	const feeBaseAmount =
+		Math.round(Math.min(externalAmount, remainingAfterWallet) * 100) / 100;
 	const charge = calculatePaymentChannelChargePreview({
-		amount: externalAmount,
+		amount: feeBaseAmount,
 		cccPercentage: input.cccPercentage,
 		paymentMethod: input.paymentMethod,
 	});
@@ -156,6 +156,7 @@ export function calculatePaymentPlanPreview(input: {
 		externalAmount,
 		walletCreditAmount,
 		...charge,
+		chargeAmount: Math.round((externalAmount + charge.feeAmount) * 100) / 100,
 	};
 }
 

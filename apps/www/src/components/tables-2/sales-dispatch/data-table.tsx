@@ -10,7 +10,7 @@ import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -35,7 +35,7 @@ const NON_CLICKABLE_COLUMNS = new Set([
 	"status",
 	"actions",
 ]);
-const ROW_HEIGHT = 64;
+const ROW_HEIGHT = ROW_HEIGHTS[TABLE_ID];
 
 type DispatchInput = RouterInputs["dispatch"]["index"];
 type DispatchPage = {

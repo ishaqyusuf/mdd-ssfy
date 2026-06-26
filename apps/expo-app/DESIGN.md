@@ -47,6 +47,13 @@ Preview header text/search contrast and native status bar style are computed fro
 The shared `Icon` component supports an `inverted` option for custom surfaces that need icon colors from the opposite app theme, such as dark preview chrome inside light mode.
 
 **Interactivity**: The preview screens share a common interaction architecture simulating tab navigation, global search, status filtering via bottom sheets, and master-detail record selection. Selecting a record replaces the list view with a detailed tabbed view, demonstrating how the layout scales from list to detail within the same screen boundary.
+
+## Sales Invoice List Cards
+
+- `sales-invoice-list-card-2` is the current production mobile sales order/quote card used by the sales dashboard, orders list, quotes list, and dispatch order search.
+- `sales-invoice-list-card-1` preserves the previous rounded production card as the old template.
+- Shared neutral helpers for initials, money, reference labels, status labels, and payment percentage live in `sales-invoice-list-card-utils`; visual treatment stays owned by each card template.
+
 ## Candidate Templates
 
 ### Template A: Ops Console

@@ -2,6 +2,120 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Reduced the mobile invoice item-title edit sheet height.
+  - Lowered the edit sheet's keyboard-aware content minimum height and bottom padding while preserving the working `BottomSheetKeyboardAwareScrollView`/`BottomSheetTextInput` structure.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed for the touched item-sheet and Brain docs; targeted search confirmed the edit sheet keeps `BottomSheetKeyboardAwareScrollView` while using the shorter content sizing.
+
+- Corrected the mobile invoice item-title edit keyboard behavior.
+  - Replaced the nested `KeyboardStickyView` inside the floating bottom sheet with sheet-owned `BottomSheetKeyboardAwareScrollView` content, keeping the title input and Cancel/Proceed actions visible when Android opens the keyboard.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed for the touched item-sheet/item-selector files and docs; targeted search confirmed the edit sheet uses `BottomSheetKeyboardAwareScrollView`/`BottomSheetTextInput` and no longer contains the nested `KeyboardStickyView` or manual keyboard listener path.
+
+- Updated the mobile Select items footer input behavior.
+  - Moved Select items search from the header into a bottom `KeyboardStickyView` footer shared with Clear/Add actions, and increased list bottom padding so results do not sit under the sticky footer.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed for the touched item-sheet/item-selector files and docs; targeted search confirmed Select items uses `KeyboardStickyView` and the old manual keyboard listener path is absent from `items-step.tsx`.
+
+- Fixed the mobile invoice item title edit sheet interaction.
+  - Collapsed the item list/edit/delete flow into one `FloatingBottomSheet` instance so Cancel and Proceed return to the item list reliably instead of racing separate modal dismiss/present lifecycles.
+  - Swapped the edit title field to `BottomSheetTextInput`, added delayed autofocus when edit mode opens, enabled interactive keyboard handling on the shared floating bottom sheet, and moved the input plus Cancel/Proceed actions into the sheet's keyboard-aware content.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/state behavior only.
+  - Validation: scoped `git diff --check` passed for the touched item-sheet and bottom-sheet files; targeted search confirmed the edit field uses `BottomSheetTextInput` and the shared bottom sheet has keyboard handling enabled.
+
+- Implemented the mobile invoice item sheet edit/delete refactor.
+  - Removed the inline top item title/description input from the mobile invoice item workflow so the header and item sheet own item title interactions.
+  - Replaced item-sheet row chevrons with edit/delete icon actions, added an `Edit Item x Title` floating sheet that returns to the list on Cancel or Proceed, and added a delete confirmation floating sheet that returns to the list when canceled.
+  - Added focused item-sheet helpers for edit labels, edit/delete line targets, and active-index clamping after deletion.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/state behavior only.
+  - Validation: scoped `git diff --check` passed for the touched item-sheet files and docs; targeted searches confirmed the removed inline-input helper and item-row chevron are no longer present in `items-step.tsx`. Focused Bun tests were not run under fast Bun monorepo command discipline.
+
+- Planned the mobile invoice item sheet edit/delete refactor.
+  - Added `brain/plans/2026-06-26-mobile-invoice-item-sheet-edit-delete-plan.md` for removing the top `Item 1` input, replacing item-row chevrons with edit/delete icon actions, and adding edit/delete confirmation bottom sheets that return to the item list sheet.
+  - No implementation was started; this is a planning-only entry.
+
+- Fixed the mobile service Unit input so zero can be cleared.
+  - `NumberField` now supports a narrow zero-as-placeholder display mode, and the Service row `Unit` field opts into it with a `0` placeholder.
+  - Clearing Unit still patches the existing numeric zero value for save compatibility, but the mobile input renders empty instead of immediately restoring a sticky `0`.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile editor presentation behavior only.
+  - Validation: focused Biome check passed for `mobile-editor-primitives.tsx` and `service-rows-editor.tsx`; scoped `git diff --check` passed.
+
+- Moved the mobile inline Service `+ Add service` control into the centered bottom floating footer lane.
+  - `WorkflowServiceLineItemEditor` now exposes its add-row callback to `ItemsStep`, and `ItemsStep` registers `+ Add service` ahead of shelf/proceed actions when the Service line-item editor is active.
+  - `ServiceRowsEditor` can hide its inline add button for the inline workflow path while preserving the existing inline button for other callers.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/interaction behavior only.
+  - Validation: focused Biome check passed for `workflow-service-line-item-editor.tsx` and `service-rows-editor.tsx`; scoped `git diff --check` passed. `items-step.tsx` still reports existing file-wide formatting drift when checked directly, with no syntax/lint errors surfaced beyond formatting.
+
+- Centered the empty shelf message vertically in the mobile invoice shelf step.
+  - The empty `No shelf items selected` state now fills a responsive screen-height area and centers its copy horizontally and vertically, so the message appears in the middle of the shelf step while `+ Add shelf` remains in the floating footer lane.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed. Scoped Biome remains blocked by existing formatter/import-order and skeleton index-key diagnostics in `shelf-rows-editor.tsx`.
+
+- Matched the mobile invoice item switcher sheet to the invoice type select sheet.
+  - Replaced the item switcher's generic modal wrapper with the shared `FloatingBottomSheet` primitive used by the New Invoice Sales/Quote chooser, preserving the existing item rows, selected state, New item action, and Cancel row while gaining detached floating presentation, backdrop close, pan-down dismissal, and dynamic content sizing.
+  - Removed the now-unused item-sheet snap-point helper and its obsolete test expectations because the shared floating sheet owns sizing.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/interaction behavior only.
+  - Validation: `bun test apps/expo-app/src/features/sales/components/new-sales-type-options.test.ts apps/expo-app/src/features/sales/invoice-form/components/items-step-sections.test.ts apps/expo-app/src/features/sales/invoice-form/components/items-step-sheet.test.ts` passed; scoped `git diff --check` passed; Biome passed for `items-step-sheet.ts` and `items-step-sheet.test.ts`. Scoped Biome for `items-step.tsx` remains blocked by existing file-wide formatting debt.
+
+- Moved the mobile shelf Add action into the centered floating footer lane.
+  - The inline final Shelf step now registers `+ Add shelf` through the same screen-owned centered floating action frame used by workflow Proceed, keeping it fixed above the invoice footer instead of inside the shelf section.
+  - The Custom workflow action now uses the inline Proceed footer offset when it is the only floating workflow action, so its centered footer position matches Proceed's lane.
+  - Centered the `No shelf items selected` empty message and set the shelf picker search input to auto-focus when the fullscreen Add shelf modal opens.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/interaction behavior only.
+  - Validation: `bun test apps/expo-app/src/features/sales/invoice-form/components/floating-invoice-action-layout.test.ts` passed; scoped `git diff --check` passed. Biome passed for the small layout helper/test files, while the broader touched mobile TSX set remains blocked by existing formatter/lint debt in `items-step.tsx`, `shelf-rows-editor.tsx`, `invoice-form-screen.tsx`, and `workflow-step-selector.tsx`.
+
+- Hid the visible mobile invoice local-edit recovery alert.
+  - The invoice form screen now gates off the amber `Unsaved local edits were found` banner while leaving local recovery snapshot read/write and clear-on-save behavior intact.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+  - Validation: scoped `git diff --check` passed for the touched screen. Scoped Biome remains blocked by pre-existing diagnostics in `invoice-form-screen.tsx` (`any`, hook dependency, `forEach`, and formatting/import-sort debt).
+
+- Added a display-only sales invoice C.C.C price repairer.
+  - Shared payment-system display logic now treats root `meta.ccc` as a cache, repairs stale or missing C.C.C from selected payment method, principal base amount, and `ccc_percentage`, and suppresses stale C.C.C for non-card methods.
+  - `sales.getOrdersV2` invoice rows now expose repaired `displayCcc` and C.C.C-inclusive `invoiceTotal` while keeping stored `grandTotal` and `amountDue` base/principal-only.
+  - Sales overview invoice breakdown estimate lines now use repaired remaining-due C.C.C for unpaid card-selected records, while partial/mixed payment records continue to rely only on safely matched recorded card-charge metadata.
+  - Updated docs: `brain/api/contracts.md`, `brain/decisions/ADR-011-derived-ccc-payment-channel-charge.md`, `brain/features/sales-orders-v2.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: `bun test packages/sales/src/payment-system/domain/display-ccc.test.ts apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/dto/sales-dto.test.ts` passed with 16 tests and 22 assertions; scoped `git diff --check` passed. Scoped Biome remains blocked by pre-existing `any`, `==`, and non-null assertion diagnostics in `apps/api/src/dto/sales-dto.ts` and the existing test factories.
+
+- Renamed and split the mobile sales invoice/order list card templates.
+  - Replaced the old `sales-document-card` wrapper with `sales-invoice-list-card-1`, preserving the previous rounded production card template.
+  - Added `sales-invoice-list-card-2` as the attached flat ledger design with low-radius border styling, customer-first header, status chip, total/due columns, and compact fulfillment/payment metadata.
+  - Added `sales-invoice-list-card-utils` for shared neutral formatting/state helpers while keeping each card's visual logic inside its own template file.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `apps/expo-app/DESIGN.md`, `apps/expo-app/src/features/design-system-preview/DESIGN.md`, and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/component structure only.
+  - Validation: focused Biome check passed for the card templates, shared helpers, list screen, dashboard screen, and order-card adapter; scoped `git diff --check` passed.
+
+- Made `sales-invoice-list-card-2` the default mobile sales invoice/order list card.
+  - Switched the shared orders/quotes list, Sales Dashboard recent-sales section, and `SalesOrderCard` adapter from `SalesInvoiceListCard1` to `SalesInvoiceListCard2`.
+  - Kept `sales-invoice-list-card-1` available as the old rounded template and left shared formatting helpers unchanged.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `apps/expo-app/DESIGN.md`, `apps/expo-app/src/features/design-system-preview/DESIGN.md`, and `brain/progress.md`; no API or database docs were needed because this is a mobile presentation default only.
+  - Validation: focused Biome check passed for the card templates, shared helpers, list screen, dashboard screen, and order-card adapter; scoped `git diff --check` passed.
+
+- Fixed first-save mobile invoice C.C.C defaulting.
+  - The dev save payload captures showed mobile final-save requests were reaching the API with `paymentMethod: null` and `summary.ccc: 0`, despite the intended Credit Card default.
+  - Shared sales-form record normalization now defaults missing order payment methods to `Credit Card` before hydration/save payload summary calculation, so create/bootstrap mobile orders persist payment metadata and C.C.C display values on the first save.
+  - Added regression coverage in the shared sales-form record-normalization tests and mobile invoice form store tests.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+  - Validation: `bun test packages/sales/src/sales-form/application/record-normalization.test.ts apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.test.ts`, scoped Biome check for the touched tests, and scoped `git diff --check` passed.
+
+- Added editable payment method handling to sales overview invoice details and bounded C.C.C calculation to remaining due.
+  - Added `sales.updatePaymentMethod` for unpaid orders, updating order metadata plus persisted new-sales-form payment metadata and recalculating display/backfill C.C.C from current principal `amountDue`.
+  - Showed `Payment Method` in both the shared sales overview Finance tab and legacy overview sheet, with a selectable control only while the order still has principal due.
+  - Updated sales payment previews and payment writes so credit-card convenience charge is calculated from remaining external principal due after wallet/prior payments, while any overpayment credit can still be included in the customer charge.
+  - Pinned the mobile invoice form's fresh-state payment method default as `Credit Card` with a focused store regression test.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/sales-payment-v2-checkout.md`, `brain/features/mobile-invoice-form.md`, and `brain/progress.md`; no database docs or ADR were needed because there are no schema/migration changes and the derived C.C.C architecture is already covered by ADR-011.
+  - Validation: focused Bun tests passed for payment processor utilities, mobile invoice-form store default, sales DTOs, and payment-channel-charge domain helpers; scoped Biome passed for the clean touched app/schema files; scoped `git diff --check` passed. Biome on the touched API router/processor is still blocked by pre-existing route-wide lint/format issues outside this change.
+
+- Fixed the mobile New Invoice Sales/Quote chooser so the footer sheet uses the shared floating bottom sheet primitive and swipes down to close.
+  - Reworked `FloatingFooterActionChooser` to render its Sales/Quote action rows inside `FloatingBottomSheet`, keeping backdrop tap, Cancel, and option selection behavior intact while relying on Gorhom pan-down dismissal.
+  - Removed the temporary manual gesture helper/test from the PanResponder version because the close gesture now belongs to the shared sheet primitive.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/interaction behavior only.
+  - Validation: `bun test apps/expo-app/src/features/sales/components/new-sales-type-options.test.ts`, scoped `bunx biome check`, and scoped `git diff --check` passed.
+
+- Standardized migrated table row-height sourcing.
+  - Updated the remaining `apps/www/src/components/tables-2/*/data-table.tsx` modules with local numeric `ROW_HEIGHT` constants to read from `ROW_HEIGHTS` in `apps/www/src/utils/table-configs.ts`, matching the sales-orders table pattern.
+  - Left `components/tables-2/core/*`, table queries, filters, sticky columns, column settings, and row behavior unchanged.
+  - No API or database docs were needed because this is a presentation/config-source cleanup only.
+  - Validation: targeted search found no remaining numeric `ROW_HEIGHT` constants in `tables-2` data tables; scoped `git diff --check` passed for touched files.
+
 - Extended C.C.C display handling to the legacy sales form and old overview sheet.
   - Legacy costing now uses the shared payment-channel C.C.C helper, keeps `pricing.grandTotal` and stored order totals base/principal-only, exposes `pricing.totalWithCcc` for the visible payable total, and hydrates fallback C.C.C for existing credit-card orders missing root `meta.ccc`.
   - The legacy form footer and cost summary now show the C.C.C-inclusive total when applicable.

@@ -12,12 +12,12 @@ import {
 	View,
 } from "react-native";
 import { OrdersFilterModal } from "./orders-filter-modal";
-import { SalesDocumentCard } from "./sales-document-card";
 import {
 	type SalesDocumentListItem,
 	type SalesDocumentListType,
 	getQuoteEditRoute,
 } from "./sales-document-list";
+import { SalesInvoiceListCard2 } from "./sales-invoice-list-card-2";
 
 type ListHookInput = {
 	q?: string;
@@ -166,7 +166,7 @@ export function SalesDocumentListScreen({
 							const disabled = type === "quote" && !quoteRoute;
 
 							return (
-								<SalesDocumentCard
+								<SalesInvoiceListCard2
 									type={type}
 									item={item}
 									disabled={disabled}

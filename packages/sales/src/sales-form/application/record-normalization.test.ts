@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import {
 	hydrateSalesFormRecord,
+	toSalesFormSaveDraftPayload,
 	validateSalesFormBeforeSave,
 } from "./record-normalization";
 
@@ -27,6 +28,35 @@ describe("record-normalization application", () => {
 				lineItems: [{ uid: "line-1" }],
 			}),
 		).toEqual({ valid: true, code: null, title: null, message: null });
+	});
+
+	it("defaults new order save payloads to credit card and derived ccc", () => {
+		const payload = toSalesFormSaveDraftPayload(
+			{
+				type: "order",
+				salesId: null,
+				slug: null,
+				form: { customerId: 101, paymentMethod: null },
+				lineItems: [
+					{
+						uid: "line-1",
+						title: "Door",
+						qty: 1,
+						unitPrice: 100,
+						lineTotal: 100,
+						taxxable: true,
+					},
+				],
+				extraCosts: [],
+				summary: { taxRate: 0 },
+				settings: { cccPercentage: 3.5 },
+			},
+			false,
+		);
+
+		expect(payload.meta.paymentMethod).toBe("Credit Card");
+		expect(payload.summary.ccc).toBe(3.5);
+		expect(payload.summary.grandTotal).toBe(103.5);
 	});
 
 	it("hydrates shelf rows from row totals instead of stale line totals", () => {

@@ -8,7 +8,7 @@ import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { openLink } from "@/lib/open-link";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type {
 	InventoryList,
@@ -35,7 +35,7 @@ import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["select", "actions"]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT = ROW_HEIGHTS["inventory-products"];
 
 type InventoryProductsInput = InventoryList;
 type InventoryProductsPage = {

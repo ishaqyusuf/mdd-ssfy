@@ -129,6 +129,11 @@ Tradeoff:
 - best for sales/accounting clarity
 - less expressive for dispatch or installer workflows
 
+Related production card templates:
+
+- `sales-invoice-list-card-2` adapts the attached flat ledger HTML reference and is now the current production mobile invoice/order list card.
+- `sales-invoice-list-card-1` preserves the previous rounded card as the old template.
+
 ## Recommendation
 
 Use Template A as the likely overall mobile shell direction, then selectively borrow Template B's active-task card and bottom action model for field workflows. Template C should inform the invoice and sales order surfaces even if it is not selected as the global shell.

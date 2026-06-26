@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useInvoiceFormSearch } from "../api/use-invoice-form-search";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { formatMoney } from "../lib/format";
@@ -237,22 +238,10 @@ export function ItemSelector() {
           </View>
         </View>
 
-        <View className="mt-4 h-12 flex-row items-center rounded-xl border border-border bg-card px-3">
-          <Icon name="Search" className="text-muted-foreground" size={18} />
-          <TextInput
-            defaultValue={query}
-            onChangeText={setQuery}
-            placeholder="Search SKU, product, service"
-            placeholderTextColor="#8A8A8A"
-            className="ml-2 flex-1 text-foreground"
-          />
-          <Icon name="SlidersHorizontal" className="text-muted-foreground" size={18} />
-        </View>
-
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          className="mt-3"
+          className="mt-4"
           contentContainerStyle={{ gap: 8 }}
         >
           {categories.map((item) => (
@@ -308,7 +297,7 @@ export function ItemSelector() {
         data={data}
         keyExtractor={(item) => item.uid}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 196 }}
         ListHeaderComponent={
           <View className="mb-2 gap-2">
             <Text className="text-xs font-bold uppercase text-muted-foreground">
@@ -370,27 +359,56 @@ export function ItemSelector() {
         )}
       />
 
-      <View className="absolute inset-x-0 bottom-0 border-t border-border bg-card px-4 pb-4 pt-3">
-        <Text className="mb-2 text-xs font-semibold text-muted-foreground">
-          {selectedRows.length} selected - {formatMoney(subtotal)} subtotal
-        </Text>
-        <View className="flex-row gap-2">
-          <Button
-            variant="outline"
-            className="h-11 rounded-xl px-4"
-            onPress={() => setSelection({})}
-          >
-            <Text>Clear</Text>
-          </Button>
-          <Button
-            className="h-11 flex-1 rounded-xl"
-            disabled={!selectedRows.length}
-            onPress={addSelectedToInvoice}
-          >
-            <Text>Add to {labels.lowerNoun}</Text>
-          </Button>
+      <KeyboardStickyView
+        offset={{ closed: 0, opened: 0 }}
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 20,
+        }}
+      >
+        <View className="gap-3 border-t border-border bg-card px-4 pb-4 pt-3">
+          <View className="h-12 flex-row items-center rounded-xl border border-border bg-background px-3">
+            <Icon name="Search" className="text-muted-foreground" size={18} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search SKU, product, service"
+              placeholderTextColor="#8A8A8A"
+              className="ml-2 flex-1 text-foreground"
+            />
+            <Icon
+              name="SlidersHorizontal"
+              className="text-muted-foreground"
+              size={18}
+            />
+          </View>
+          <View>
+            <Text className="mb-2 text-xs font-semibold text-muted-foreground">
+              {selectedRows.length} selected - {formatMoney(subtotal)} subtotal
+            </Text>
+            <View className="flex-row gap-2">
+              <Button
+                variant="outline"
+                className="h-11 rounded-xl px-4"
+                onPress={() => setSelection({})}
+              >
+                <Text>Clear</Text>
+              </Button>
+              <Button
+                className="h-11 flex-1 rounded-xl"
+                disabled={!selectedRows.length}
+                onPress={addSelectedToInvoice}
+              >
+                <Text>Add to {labels.lowerNoun}</Text>
+              </Button>
+            </View>
+          </View>
         </View>
-      </View>
+      </KeyboardStickyView>
     </View>
   );
 }

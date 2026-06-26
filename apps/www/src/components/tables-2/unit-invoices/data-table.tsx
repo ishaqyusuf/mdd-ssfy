@@ -9,7 +9,7 @@ import { useTableSettings } from "@/hooks/use-table-settings";
 import { useUnitInvoiceParams } from "@/hooks/use-unit-invoice-params";
 import { useUnitInvoiceFilterParams } from "@/hooks/use-unit-invoices-filter-params";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Table, TableBody } from "@gnd/ui/table";
@@ -25,204 +25,212 @@ import { useUnitInvoicesTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["actions"]);
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT = ROW_HEIGHTS["unit-invoices"];
 
 type UnitInvoicesInput = RouterInputs["community"]["getUnitInvoices"];
 type UnitInvoicesPage = {
-	data?: UnitInvoiceRow[];
-	meta?: {
-		cursor?: string | number | null;
-	};
+    data?: UnitInvoiceRow[];
+    meta?: {
+        cursor?: string | number | null;
+    };
 };
 
 type Props = {
-	initialSettings?: Partial<TableSettings>;
-	defaultFilters?: UnitInvoicesInput;
-	embedded?: boolean;
-	columns?: ColumnDef<UnitInvoiceRow>[];
-	singlePage?: boolean;
+    initialSettings?: Partial<TableSettings>;
+    defaultFilters?: UnitInvoicesInput;
+    embedded?: boolean;
+    columns?: ColumnDef<UnitInvoiceRow>[];
+    singlePage?: boolean;
 };
 
 export function DataTable({
-	initialSettings,
-	defaultFilters,
-	embedded,
-	columns: activeColumns = columns,
-	singlePage,
+    initialSettings,
+    defaultFilters,
+    embedded,
+    columns: activeColumns = columns,
+    singlePage,
 }: Props) {
-	const trpc = useTRPC();
-	const { params } = useSortParams();
-	const { filters, hasFilters } = useUnitInvoiceFilterParams();
-	const { setParams: setInvoiceParams } = useUnitInvoiceParams();
-	const parentRef = useRef<HTMLDivElement>(null);
-	const columnIds = useMemo(() => getColumnIds(activeColumns), [activeColumns]);
-	const setColumns = useUnitInvoicesTableStore((state) => state.setColumns);
-	const bindShowColumnDividers = useUnitInvoicesTableStore(
-		(state) => state.bindShowColumnDividers,
-	);
+    const trpc = useTRPC();
+    const { params } = useSortParams();
+    const { filters, hasFilters } = useUnitInvoiceFilterParams();
+    const { setParams: setInvoiceParams } = useUnitInvoiceParams();
+    const parentRef = useRef<HTMLDivElement>(null);
+    const columnIds = useMemo(
+        () => getColumnIds(activeColumns),
+        [activeColumns],
+    );
+    const setColumns = useUnitInvoicesTableStore((state) => state.setColumns);
+    const bindShowColumnDividers = useUnitInvoicesTableStore(
+        (state) => state.bindShowColumnDividers,
+    );
 
-	const {
-		columnVisibility,
-		setColumnVisibility,
-		columnSizing,
-		setColumnSizing,
-		columnOrder,
-		setColumnOrder,
-		showColumnDividers,
-		setShowColumnDividers,
-	} = useTableSettings({
-		tableId: "unit-invoices",
-		initialSettings,
-		columnIds,
-		showColumnDividers: true,
-	});
+    const {
+        columnVisibility,
+        setColumnVisibility,
+        columnSizing,
+        setColumnSizing,
+        columnOrder,
+        setColumnOrder,
+        showColumnDividers,
+        setShowColumnDividers,
+    } = useTableSettings({
+        tableId: "unit-invoices",
+        initialSettings,
+        columnIds,
+        showColumnDividers: true,
+    });
 
-	const queryInput = {
-		...filters,
-		...(defaultFilters || {}),
-		sort: params.sort,
-	} as UnitInvoicesInput;
+    const queryInput = {
+        ...filters,
+        ...(defaultFilters || {}),
+        sort: params.sort,
+    } as UnitInvoicesInput;
 
-	const infiniteQueryOptions =
-		trpc.community.getUnitInvoices.infiniteQueryOptions(queryInput, {
-			getNextPageParam: ({ meta }) =>
-				(meta as { cursor?: string | number | null } | undefined)?.cursor,
-		});
+    const infiniteQueryOptions =
+        trpc.community.getUnitInvoices.infiniteQueryOptions(queryInput, {
+            getNextPageParam: ({ meta }) =>
+                (meta as { cursor?: string | number | null } | undefined)
+                    ?.cursor,
+        });
 
-	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
-		useSuspenseInfiniteQuery<UnitInvoicesPage>(infiniteQueryOptions as never);
+    const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
+        useSuspenseInfiniteQuery<UnitInvoicesPage>(
+            infiniteQueryOptions as never,
+        );
 
-	const tableData = useMemo(() => {
-		return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
-	}, [data]);
+    const tableData = useMemo(() => {
+        return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
+    }, [data]);
 
-	const table = useReactTable({
-		data: tableData,
-		getRowId: getUnitInvoiceRowId,
-		columns: activeColumns,
-		getCoreRowModel: getCoreRowModel(),
-		onColumnVisibilityChange: setColumnVisibility,
-		enableColumnResizing: true,
-		columnResizeMode: "onChange",
-		onColumnSizingChange: setColumnSizing,
-		onColumnOrderChange: setColumnOrder,
-		state: {
-			columnVisibility,
-			columnSizing,
-			columnOrder,
-		},
-	});
+    const table = useReactTable({
+        data: tableData,
+        getRowId: getUnitInvoiceRowId,
+        columns: activeColumns,
+        getCoreRowModel: getCoreRowModel(),
+        onColumnVisibilityChange: setColumnVisibility,
+        enableColumnResizing: true,
+        columnResizeMode: "onChange",
+        onColumnSizingChange: setColumnSizing,
+        onColumnOrderChange: setColumnOrder,
+        state: {
+            columnVisibility,
+            columnSizing,
+            columnOrder,
+        },
+    });
 
-	const { getStickyStyle, getStickyClassName } = useStickyColumns({
-		columnVisibility,
-		table,
-		stickyColumns: STICKY_COLUMNS["unit-invoices"],
-	});
-	const tableScroll = useTableScroll({
-		useColumnWidths: true,
-		startFromColumn: 1,
-	});
-	const rows = table.getRowModel().rows;
-	const rowVirtualizer = useVirtualizer({
-		count: rows.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => ROW_HEIGHT,
-		overscan: 10,
-	});
+    const { getStickyStyle, getStickyClassName } = useStickyColumns({
+        columnVisibility,
+        table,
+        stickyColumns: STICKY_COLUMNS["unit-invoices"],
+    });
+    const tableScroll = useTableScroll({
+        useColumnWidths: true,
+        startFromColumn: 1,
+    });
+    const rows = table.getRowModel().rows;
+    const rowVirtualizer = useVirtualizer({
+        count: rows.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => ROW_HEIGHT,
+        overscan: 10,
+    });
 
-	useEffect(() => {
-		setColumns(table.getAllLeafColumns());
-	}, [setColumns, table]);
+    useEffect(() => {
+        setColumns(table.getAllLeafColumns());
+    }, [setColumns, table]);
 
-	useEffect(() => {
-		bindShowColumnDividers(showColumnDividers, setShowColumnDividers);
-	}, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
+    useEffect(() => {
+        bindShowColumnDividers(showColumnDividers, setShowColumnDividers);
+    }, [bindShowColumnDividers, showColumnDividers, setShowColumnDividers]);
 
-	useInfiniteScroll<HTMLDivElement>({
-		scrollRef: parentRef,
-		rowVirtualizer,
-		rowCount: rows.length,
-		hasNextPage: singlePage ? false : hasNextPage,
-		isFetchingNextPage,
-		fetchNextPage,
-	});
+    useInfiniteScroll<HTMLDivElement>({
+        scrollRef: parentRef,
+        rowVirtualizer,
+        rowCount: rows.length,
+        hasNextPage: singlePage ? false : hasNextPage,
+        isFetchingNextPage,
+        fetchNextPage,
+    });
 
-	const handleCellClick = useCallback(
-		(rowId: string) => {
-			const editUnitInvoiceId = Number(rowId);
-			if (!Number.isFinite(editUnitInvoiceId)) return;
+    const handleCellClick = useCallback(
+        (rowId: string) => {
+            const editUnitInvoiceId = Number(rowId);
+            if (!Number.isFinite(editUnitInvoiceId)) return;
 
-			setInvoiceParams({
-				editUnitInvoiceId,
-			});
-		},
-		[setInvoiceParams],
-	);
+            setInvoiceParams({
+                editUnitInvoiceId,
+            });
+        },
+        [setInvoiceParams],
+    );
 
-	if (hasFilters && tableData.length === 0) {
-		return <NoResults />;
-	}
+    if (hasFilters && tableData.length === 0) {
+        return <NoResults />;
+    }
 
-	if (tableData.length === 0) {
-		return <EmptyState embedded={embedded} />;
-	}
+    if (tableData.length === 0) {
+        return <EmptyState embedded={embedded} />;
+    }
 
-	const virtualItems = rowVirtualizer.getVirtualItems();
+    const virtualItems = rowVirtualizer.getVirtualItems();
 
-	return (
-		<div className="relative">
-			<div className="w-full">
-				<div
-					ref={(element) => {
-						parentRef.current = element;
-						tableScroll.containerRef.current = element;
-					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
-					style={{
-						height: embedded
-							? "min(520px, calc(100vh - 260px + var(--header-offset, 0px)))"
-							: "calc(100vh - 240px + var(--header-offset, 0px))",
-					}}
-				>
-					<Table className="w-full min-w-full">
-						<DataTableHeader
-							table={table}
-							tableScroll={tableScroll}
-							showColumnDividers={showColumnDividers}
-						/>
+    return (
+        <div className="relative">
+            <div className="w-full">
+                <div
+                    ref={(element) => {
+                        parentRef.current = element;
+                        tableScroll.containerRef.current = element;
+                    }}
+                    className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
+                    style={{
+                        height: embedded
+                            ? "min(520px, calc(100vh - 260px + var(--header-offset, 0px)))"
+                            : "calc(100vh - 240px + var(--header-offset, 0px))",
+                    }}
+                >
+                    <Table className="w-full min-w-full">
+                        <DataTableHeader
+                            table={table}
+                            tableScroll={tableScroll}
+                            showColumnDividers={showColumnDividers}
+                        />
 
-						<TableBody
-							className="block border-l-0 border-r-0"
-							style={{
-								height: `${rowVirtualizer.getTotalSize()}px`,
-								position: "relative",
-							}}
-						>
-							{virtualItems.map((virtualRow: VirtualItem) => {
-								const row = rows[virtualRow.index];
-								if (!row) return null;
+                        <TableBody
+                            className="block border-l-0 border-r-0"
+                            style={{
+                                height: `${rowVirtualizer.getTotalSize()}px`,
+                                position: "relative",
+                            }}
+                        >
+                            {virtualItems.map((virtualRow: VirtualItem) => {
+                                const row = rows[virtualRow.index];
+                                if (!row) return null;
 
-								return (
-									<VirtualRow
-										key={row.id}
-										row={row}
-										virtualStart={virtualRow.start}
-										rowHeight={ROW_HEIGHT}
-										getStickyStyle={getStickyStyle}
-										getStickyClassName={getStickyClassName}
-										nonClickableColumns={NON_CLICKABLE_COLUMNS}
-										onCellClick={handleCellClick}
-										columnSizing={columnSizing}
-										columnOrder={columnOrder}
-										columnVisibility={columnVisibility}
-										showColumnDividers={showColumnDividers}
-									/>
-								);
-							})}
-						</TableBody>
-					</Table>
-				</div>
-			</div>
-		</div>
-	);
+                                return (
+                                    <VirtualRow
+                                        key={row.id}
+                                        row={row}
+                                        virtualStart={virtualRow.start}
+                                        rowHeight={ROW_HEIGHT}
+                                        getStickyStyle={getStickyStyle}
+                                        getStickyClassName={getStickyClassName}
+                                        nonClickableColumns={
+                                            NON_CLICKABLE_COLUMNS
+                                        }
+                                        onCellClick={handleCellClick}
+                                        columnSizing={columnSizing}
+                                        columnOrder={columnOrder}
+                                        columnVisibility={columnVisibility}
+                                        showColumnDividers={showColumnDividers}
+                                    />
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+        </div>
+    );
 }

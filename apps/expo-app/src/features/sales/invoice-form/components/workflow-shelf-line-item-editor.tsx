@@ -31,6 +31,7 @@ export function WorkflowShelfLineItemEditor({
   disabled,
   profileCoefficient,
   onWorkflowPatch,
+  onOpenPickerChange,
   syncOnMount = true,
   forceShelfItem = false,
 }: {
@@ -38,6 +39,7 @@ export function WorkflowShelfLineItemEditor({
   disabled?: boolean;
   profileCoefficient?: number | null;
   onWorkflowPatch?: (patch: Partial<NewSalesFormLineItem>) => void;
+  onOpenPickerChange?: (presenter: (() => void) | null) => void;
   syncOnMount?: boolean;
   forceShelfItem?: boolean;
 }) {
@@ -257,6 +259,7 @@ export function WorkflowShelfLineItemEditor({
       onSelectProduct={addShelfProduct}
       onProductUpdated={updateShelfProductRows}
       onProductDeleted={deleteShelfProductRows}
+      onOpenPickerChange={onOpenPickerChange}
       onChange={updateShelfRow}
       onRemoveRow={removeShelfRow}
     />

@@ -7,7 +7,7 @@ import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useTRPC } from "@/trpc/client";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type {
 	InventoryCategories,
@@ -34,7 +34,7 @@ import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["select", "actions", "stockMode"]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = 64;
+const ROW_HEIGHT = ROW_HEIGHTS["inventory-categories"];
 
 type InventoryCategoriesInput = InventoryCategories;
 type InventoryCategoriesPage = {

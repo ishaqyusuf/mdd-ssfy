@@ -1,6 +1,6 @@
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import {
 	Pressable,
 	type StyleProp,
@@ -80,6 +80,8 @@ export function NumberField({
 	onChange,
 	style,
 	keyboardType = "decimal-pad",
+	placeholder,
+	zeroAsPlaceholder = false,
 }: {
 	label: string;
 	value?: number | string | null;
@@ -87,17 +89,35 @@ export function NumberField({
 	onChange: (value: number) => void;
 	style?: StyleProp<TextStyle>;
 	keyboardType?: TextInputProps["keyboardType"];
+	placeholder?: string;
+	zeroAsPlaceholder?: boolean;
 }) {
+	const [draftValue, setDraftValue] = useState<string | null>(null);
+	const inputValue =
+		draftValue ??
+		(zeroAsPlaceholder && Number(value || 0) === 0 ? "" : String(value ?? 0));
+
 	return (
 		<View className="min-w-0 flex-1 gap-1">
 			<Text className="text-[10px] font-bold uppercase text-muted-foreground">
 				{label}
 			</Text>
 			<StepTextInput
-				value={String(value ?? 0)}
+				value={inputValue}
 				keyboardType={keyboardType}
-				onChangeText={(nextValue) => onChange(parseCurrencyInput(nextValue))}
+				onChangeText={(nextValue) => {
+					if (zeroAsPlaceholder) {
+						setDraftValue(nextValue);
+					}
+					onChange(parseCurrencyInput(nextValue));
+				}}
+				onBlur={() => {
+					if (zeroAsPlaceholder) {
+						setDraftValue(null);
+					}
+				}}
 				editable={!disabled}
+				placeholder={placeholder}
 				fontWeight="bold"
 				style={[styles.numberInput, style]}
 			/>

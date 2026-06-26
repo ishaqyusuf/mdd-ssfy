@@ -16,8 +16,14 @@ import {
 } from "@gnd/sales/sales-form-core";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { FlatList, Modal as NativeModal, Pressable, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  Modal as NativeModal,
+  Pressable,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { formatMoney, parseCurrencyInput } from "../../lib/format";
 import {
@@ -53,6 +59,7 @@ export function ShelfRowsEditor({
   onSelectProduct,
   onProductUpdated,
   onProductDeleted,
+  onOpenPickerChange,
   onChange,
   onRemoveRow,
 }: {
@@ -66,6 +73,7 @@ export function ShelfRowsEditor({
   onSelectProduct: (product: ShelfProductOption) => void;
   onProductUpdated: (product: ShelfProductOption) => void;
   onProductDeleted: (productId: number) => void;
+  onOpenPickerChange?: (presenter: (() => void) | null) => void;
   onChange: (
     sectionIndex: number,
     rowIndex: number,
@@ -73,6 +81,7 @@ export function ShelfRowsEditor({
   ) => void;
   onRemoveRow: (sectionIndex: number, rowIndex: number) => void;
 }) {
+  const { height: windowHeight } = useWindowDimensions();
   const queryClient = useQueryClient();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editingProduct, setEditingProduct] =
@@ -96,6 +105,7 @@ export function ShelfRowsEditor({
       ),
     [sections],
   );
+  const emptyStateMinHeight = Math.max(340, Math.round(windowHeight * 0.52));
 
   const invalidateShelfProducts = async () => {
     await Promise.all([
@@ -127,11 +137,11 @@ export function ShelfRowsEditor({
     }),
   );
 
-  const openPicker = () => {
+  const openPicker = useCallback(() => {
     onProductSearchChange("");
     setEditingProduct(null);
     setPickerOpen(true);
-  };
+  }, [onProductSearchChange]);
 
   const closePicker = () => {
     setPickerOpen(false);
@@ -191,6 +201,15 @@ export function ShelfRowsEditor({
     });
   };
 
+  useEffect(() => {
+    if (disabled) {
+      onOpenPickerChange?.(null);
+      return;
+    }
+    onOpenPickerChange?.(openPicker);
+    return () => onOpenPickerChange?.(null);
+  }, [disabled, onOpenPickerChange, openPicker]);
+
   return (
     <View className="border-t border-border pt-3">
       <StepSectionHeader title="Shelf items" />
@@ -207,23 +226,25 @@ export function ShelfRowsEditor({
             />
           ))
         ) : (
-          <View className="border-y border-border py-4">
-            <Text className="text-sm font-bold text-foreground">
-              No shelf items selected
-            </Text>
-            <Text className="text-xs text-muted-foreground">
-              Add a shelf item to attach products to this line.
-            </Text>
+          <View className="border-y border-border">
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: emptyStateMinHeight,
+                paddingHorizontal: 24,
+                paddingVertical: 32,
+              }}
+            >
+              <Text className="text-center text-sm font-bold text-foreground">
+                No shelf items selected
+              </Text>
+              <Text className="text-center text-xs text-muted-foreground">
+                Add a shelf item to attach products to this line.
+              </Text>
+            </View>
           </View>
         )}
-        <Pressable
-          onPress={openPicker}
-          disabled={disabled}
-          className="mt-3 h-12 flex-row items-center justify-center gap-2 rounded-xl border border-primary bg-primary/5 disabled:opacity-40"
-        >
-          <Icon name="Plus" className="text-primary" size={16} />
-          <Text className="text-sm font-bold text-primary">Add shelf</Text>
-        </Pressable>
       </View>
 
       <NativeModal
@@ -567,6 +588,7 @@ function ShelfProductSearchList({
         >
           <Icon name="Search" className="text-muted-foreground" size={15} />
           <StepTextInput
+            autoFocus
             value={query}
             onChangeText={onQueryChange}
             editable={!disabled}

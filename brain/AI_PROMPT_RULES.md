@@ -13,3 +13,14 @@ Short prompt-level guardrails for future AI sessions working in this repository.
   - `vercel-react-best-practices`
   - `agency-engineering` using the Frontend Developer specialist unless the task clearly routes elsewhere
 - Apply this React/Next.js UI skill set especially to App Router pages/layouts, React components, data-fetching adapters, forms, shared package UI, and dealership quote/new-sales-form work.
+
+<!-- personal-coding-rules:start -->
+## Global Personal Coding Rules
+
+Agents must treat these global coding rule references as non-negotiable:
+
+- `/Users/M1PRO/.codex/skills/personal-coding-rules/references/global.md`
+- `/Users/M1PRO/.codex/skills/personal-coding-rules/references/expo.md`
+
+Project-specific exceptions require an ADR in `brain/decisions/` before agents may diverge.
+<!-- personal-coding-rules:end -->

@@ -54,7 +54,7 @@ describe("sales orders v2 ccc display totals", () => {
 		expect(row.amountDue).toBe(1000);
 	});
 
-	it("uses stored meta ccc when present", () => {
+	it("repairs stale stored ccc when present", () => {
 		const row = normalizeOrderRow(
 			makeOrder({
 				meta: {
@@ -65,8 +65,23 @@ describe("sales orders v2 ccc display totals", () => {
 			}),
 		);
 
-		expect(row.displayCcc).toBe(12.34);
-		expect(row.invoiceTotal).toBe(1012.34);
+		expect(row.displayCcc).toBe(35);
+		expect(row.invoiceTotal).toBe(1035);
+	});
+
+	it("uses matching stored ccc when present", () => {
+		const row = normalizeOrderRow(
+			makeOrder({
+				meta: {
+					payment_option: "Credit Card",
+					ccc_percentage: 3.5,
+					ccc: 35,
+				},
+			}),
+		);
+
+		expect(row.displayCcc).toBe(35);
+		expect(row.invoiceTotal).toBe(1035);
 	});
 
 	it("keeps non-card invoice display base-only", () => {
@@ -75,6 +90,7 @@ describe("sales orders v2 ccc display totals", () => {
 				meta: {
 					payment_option: "Check",
 					ccc_percentage: 3.5,
+					ccc: 35,
 				},
 			}),
 		);

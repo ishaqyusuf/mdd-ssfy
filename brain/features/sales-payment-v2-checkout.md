@@ -60,6 +60,7 @@
 - Preferred payment option is unavailable for the order/customer/store context.
 - Wallet balance exists but is insufficient for full payment.
 - Guest checkout and logged-in checkout must remain consistent for order/payment status.
+- Credit-card convenience charge calculation is bounded to the current amount due after wallet credit and prior payments; any overpayment wallet credit can remain part of the external charge, but it does not increase the C.C.C fee base.
 
 ## Permissions
 

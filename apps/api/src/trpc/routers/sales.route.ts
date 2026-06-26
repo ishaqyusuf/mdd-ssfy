@@ -71,6 +71,7 @@ import {
 	salesQueryParamsSchema,
 	saveOrderProductionGateSchema,
 	startNewSalesSchema,
+	updateSalesPaymentMethodSchema,
 } from "@api/schemas/sales";
 import { saveSupplierSchema } from "@api/schemas/sales-form";
 import { transformSalesFilterQuery } from "@api/utils/sales";
@@ -97,6 +98,7 @@ import {
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { z } from "zod";
 import { getAppUrl } from "@gnd/utils/envs";
+import { calculatePaymentChannelCharge } from "@gnd/sales/payment-system";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -186,6 +188,30 @@ async function sendDealerRejectedEmail(
 			reason: result.reason,
 		},
 	});
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: null;
+}
+
+function finiteNumber(value: unknown): number | null {
+	const numberValue = Number(value);
+	return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function resolveCccPercentageFromMeta(meta: Record<string, unknown> | null) {
+	const newSalesForm = asRecord(meta?.newSalesForm);
+	const settings = asRecord(newSalesForm?.settings);
+	const summary = asRecord(newSalesForm?.summary);
+	return (
+		finiteNumber(meta?.ccc_percentage) ??
+		finiteNumber(meta?.cccPercentage) ??
+		finiteNumber(settings?.cccPercentage) ??
+		finiteNumber(summary?.cccPercentage) ??
+		3.5
+	);
 }
 
 export const salesRouter = createTRPCRouter({
@@ -430,6 +456,78 @@ export const salesRouter = createTRPCRouter({
 					id: true,
 					orderId: true,
 					priority: true,
+				},
+			});
+		}),
+	updatePaymentMethod: protectedProcedure
+		.input(updateSalesPaymentMethodSchema)
+		.mutation(async (props) => {
+			const paymentMethod = props.input.paymentMethod.trim();
+			const order = await props.ctx.db.salesOrders.findUniqueOrThrow({
+				where: {
+					id: props.input.salesId,
+				},
+				select: {
+					id: true,
+					orderId: true,
+					type: true,
+					amountDue: true,
+					meta: true,
+				},
+			});
+
+			if (order.type !== "order") {
+				throw new Error("Payment method can only be changed on orders.");
+			}
+
+			const amountDue = Math.max(Number(order.amountDue || 0), 0);
+			if (amountDue <= 0) {
+				throw new Error(
+					"Payment method cannot be changed after payment is complete.",
+				);
+			}
+
+			const meta = asRecord(order.meta) ?? {};
+			const cccPercentage = resolveCccPercentageFromMeta(meta);
+			const charge = calculatePaymentChannelCharge({
+				paymentMethod,
+				paymentAmount: amountDue,
+				cccPercentage,
+			});
+			const newSalesForm = asRecord(meta.newSalesForm);
+			const form = asRecord(newSalesForm?.form);
+			const nextNewSalesForm = newSalesForm
+				? {
+						...newSalesForm,
+						form: {
+							...(form ?? {}),
+							paymentMethod,
+						},
+					}
+				: undefined;
+
+			return props.ctx.db.salesOrders.update({
+				where: {
+					id: order.id,
+				},
+				data: {
+					meta: {
+						...meta,
+						...(nextNewSalesForm
+							? {
+									newSalesForm: nextNewSalesForm,
+								}
+							: {}),
+						payment_option: paymentMethod,
+						ccc_percentage: cccPercentage,
+						ccc: charge.amount,
+					},
+				},
+				select: {
+					id: true,
+					orderId: true,
+					amountDue: true,
+					meta: true,
 				},
 			});
 		}),

@@ -2,8 +2,8 @@
 
 import { Icons } from "@gnd/ui/icons";
 
+import { SalesOverviewPaymentMethodSelect } from "@/components/sales-overview-payment-method-select";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
-import { salesPaymentMethods } from "@/utils/constants";
 import { cn } from "@gnd/ui/cn";
 
 import { useSalesOverviewSystem } from "../provider";
@@ -61,27 +61,6 @@ function AmountRow({
 	);
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="flex items-center justify-between border-b border-border/40 py-3 last:border-b-0">
-			<span className="text-sm text-muted-foreground">{label}</span>
-			<span className="text-sm font-medium">{value}</span>
-		</div>
-	);
-}
-
-function formatPaymentMethod(value?: string | null) {
-	if (!value) return "Credit Card";
-	const normalized = value
-		.toLowerCase()
-		.replaceAll("_", "-")
-		.replaceAll(" ", "-");
-	return (
-		salesPaymentMethods.find((method) => method.value === normalized)?.label ||
-		value
-	);
-}
-
 function sumCostLineAmounts(costLines: CostLine[], targetLabel: string) {
 	return costLines.reduce((sum, line) => {
 		const label = (line.label || line.title || "").toLowerCase();
@@ -100,7 +79,6 @@ export function SalesOverviewFinanceTab() {
 	const pending = Number(data?.invoice?.pending || 0);
 	const balance = getPaymentBalance(data?.invoice);
 	const paymentPct = total > 0 ? (paid / total) * 100 : 0;
-	const paymentMethod = formatPaymentMethod(data?.paymentMethod);
 	const cardCharged = sumCostLineAmounts(costLines, "Charged to Card");
 	const cardPending = sumCostLineAmounts(costLines, "Total Due With C.C.C");
 	const progressStats = [
@@ -196,7 +174,11 @@ export function SalesOverviewFinanceTab() {
 			{/* Invoice details */}
 			<OverviewSectionCard>
 				<OverviewSectionLabel icon={Icons.FileText} label="Invoice Details" />
-				<DetailRow label="Selected Payment Option" value={paymentMethod} />
+				<SalesOverviewPaymentMethodSelect
+					salesId={data?.id}
+					value={data?.paymentMethod}
+					disabled={isQuote || balance <= 0}
+				/>
 				{costLines.length ? (
 					costLines.map((line, i) => {
 						const label = line.label || line.title || `Line ${i + 1}`;
@@ -213,8 +195,7 @@ export function SalesOverviewFinanceTab() {
 						return (
 							<AmountRow
 								key={String(
-									line.id ??
-										`${label}-${line.amount ?? line.value ?? i}`,
+									line.id ?? `${label}-${line.amount ?? line.value ?? i}`,
 								)}
 								label={label}
 								value={Number(line.amount || line.value || 0)}

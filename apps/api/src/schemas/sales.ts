@@ -9,8 +9,8 @@ import {
 	salesType,
 } from "@gnd/utils/constants";
 import { paginationSchema } from "@gnd/utils/schema";
-import { salesPrioritySchema } from "@sales/priority";
 import { SALES_HAS_FILTER_OPTIONS } from "@sales/filter-constants";
+import { salesPrioritySchema } from "@sales/priority";
 import { z } from "zod";
 
 const dispatchQueryParamsShape = {
@@ -131,6 +131,14 @@ export const getSaleOverviewSchema = z.object({
 	salesType: z.enum(salesType).optional().nullable(),
 });
 export type GetSaleOverviewSchema = z.infer<typeof getSaleOverviewSchema>;
+
+export const updateSalesPaymentMethodSchema = z.object({
+	salesId: z.number(),
+	paymentMethod: z.string().trim().min(1).max(64),
+});
+export type UpdateSalesPaymentMethodSchema = z.infer<
+	typeof updateSalesPaymentMethodSchema
+>;
 
 export const inboundQuerySchema = z
 	.object({

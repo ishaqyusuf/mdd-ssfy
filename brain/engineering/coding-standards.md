@@ -31,3 +31,14 @@ Repository-level implementation rules that recur across active workstreams.
   - use `/Users/M1PRO/Documents/code/_kitchen_sink/midday` as the primary local reference for page architecture decisions
   - follow Midday's structural patterns first: thin route shells, section-based composition, and on-demand secondary data
   - use existing in-repo reference patterns from `apps/www/src/(midday)` and `ai/midday-example` only as secondary examples
+
+<!-- personal-coding-rules:start -->
+## Global Personal Coding Rules
+
+Agents must treat these global coding rule references as non-negotiable:
+
+- `/Users/M1PRO/.codex/skills/personal-coding-rules/references/global.md`
+- `/Users/M1PRO/.codex/skills/personal-coding-rules/references/expo.md`
+
+Project-specific exceptions require an ADR in `brain/decisions/` before agents may diverge.
+<!-- personal-coding-rules:end -->
