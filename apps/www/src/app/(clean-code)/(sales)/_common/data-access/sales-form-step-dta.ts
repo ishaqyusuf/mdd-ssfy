@@ -38,32 +38,6 @@ export async function getSalesFormStepByIdDta(id) {
         },
     };
 }
-export async function getStepDta(dyekStepId) {
-    const step = await prisma.dykeSteps.findUnique({
-        where: {
-            id: dyekStepId,
-        },
-        include: {
-            stepProducts: {
-                include: {
-                    product: true,
-                },
-            },
-        },
-    });
-    return {
-        title: step?.title,
-        value: null,
-        stepId: step?.id,
-        stepFormId: null,
-        stepUid: step.uid,
-    };
-}
-
-interface ValidateNextStepIdProps {
-    nextStepId;
-}
-export async function validateNextStepIdDta({}: ValidateNextStepIdProps) {}
 export type GetStepsForRoutingProps = AsyncFnType<typeof getStepsForRoutingDta>;
 export async function getStepsForRoutingDta() {
     // await fixStepsDta();

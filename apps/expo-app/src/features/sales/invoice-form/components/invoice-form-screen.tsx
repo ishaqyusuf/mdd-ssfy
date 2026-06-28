@@ -10,14 +10,22 @@ import {
 } from "@gnd/sales/sales-form-core";
 import type { Href } from "expo-router";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Animated,
   Easing,
+  Modal,
+  Text as NativeText,
   Pressable,
   ScrollView,
-  Text as NativeText,
   View,
 } from "react-native";
 import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
@@ -27,16 +35,16 @@ import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormRecord } from "../api/use-invoice-form-record";
 import { useInvoiceFormResolvedCustomer } from "../api/use-invoice-form-resolved-customer";
 import { useInvoiceFormTaxProfiles } from "../api/use-invoice-form-tax-profiles";
+import { formatDate, formatMoney } from "../lib/format";
 import {
+  type InvoiceFormRecoverySnapshot,
   clearInvoiceFormRecoverySnapshot,
   createInvoiceFormPayloadFingerprint,
   getInvoiceFormRecoveryKey,
   isInvoiceFormRecoverySnapshotNewer,
   readInvoiceFormRecoverySnapshot,
-  type InvoiceFormRecoverySnapshot,
   writeInvoiceFormRecoverySnapshot,
 } from "../lib/local-recovery";
-import { formatMoney } from "../lib/format";
 import {
   isMobileInvoiceSaveTimeoutError,
   runMobileInvoiceSaveRequest,
@@ -46,6 +54,7 @@ import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type {
   InvoiceCustomer,
   InvoiceFormMode,
+  InvoiceFormSaveResult,
   NewSalesFormMeta,
   NewSalesFormSummary,
   NewSalesFormType,
@@ -56,10 +65,10 @@ import { FloatingInvoiceActionHost } from "./floating-invoice-action";
 import { InvoiceFormFooter } from "./invoice-form-footer";
 import { InvoiceFormHeader } from "./invoice-form-header";
 import { ItemSelector } from "./item-selector";
-import { ItemsStep, type InvoiceItemNavigationEntry } from "./items-step";
+import { type InvoiceItemNavigationEntry, ItemsStep } from "./items-step";
 import {
-  WorkflowStepSelector,
   type WorkflowFloatingActionEntry,
+  WorkflowStepSelector,
   type WorkflowStickyHeaderEntry,
 } from "./workflow-step-selector";
 
@@ -68,6 +77,14 @@ const FORM_KEYBOARD_BOTTOM_OFFSET = 160;
 const INLINE_WORKFLOW_PROCEED_BUTTON_HEIGHT = 44;
 const INLINE_WORKFLOW_PROCEED_BUTTON_WIDTH = 184;
 const SHOW_LOCAL_RECOVERY_ALERT = false;
+
+type FormScrollHandle = {
+  scrollTo?: (options: { y?: number; animated?: boolean }) => void;
+};
+
+type FormScrollOptions = {
+  animated?: boolean;
+};
 
 function getShellTitle(input: {
   type: NewSalesFormType;
@@ -184,6 +201,149 @@ function FixedInvoiceItemNavigation({
   );
 }
 
+type InvoiceSaveSuccessState = {
+  mode: InvoiceFormMode;
+  type: NewSalesFormType;
+  slug?: string | null;
+  salesId?: number | null;
+  orderId?: string | null;
+};
+
+function getSaveSuccessTitle(state: InvoiceSaveSuccessState) {
+  const labels = getSalesDocumentLabels(state.type);
+  if (state.mode === "create") return `${labels.noun} created`;
+  return `${labels.noun} updated`;
+}
+
+function getSaveSuccessReference(state: InvoiceSaveSuccessState) {
+  const labels = getSalesDocumentLabels(state.type);
+  if (state.orderId) return state.orderId;
+  if (state.salesId) return `${labels.referencePrefix}${state.salesId}`;
+  if (state.slug) return state.slug;
+  return labels.noun;
+}
+
+function getSaveSuccessOverviewRoute(state: InvoiceSaveSuccessState | null) {
+  const documentNo = state?.orderId?.trim();
+  if (!documentNo) return null;
+
+  return state?.type === "quote"
+    ? ({
+        pathname: "/(sales)/quotes/[quoteNo]",
+        params: { quoteNo: documentNo },
+      } as const)
+    : ({
+        pathname: "/(sales)/orders/[orderNo]",
+        params: { orderNo: documentNo },
+      } as const);
+}
+
+function InvoiceSaveSuccessModal({
+  state,
+  onContinueEditing,
+  onGoToOverview,
+  onCreateNew,
+  onGoHome,
+}: {
+  state: InvoiceSaveSuccessState | null;
+  onContinueEditing: () => void;
+  onGoToOverview: () => void;
+  onCreateNew: () => void;
+  onGoHome: () => void;
+}) {
+  const labels = getSalesDocumentLabels(state?.type || "order");
+  const reference = state ? getSaveSuccessReference(state) : labels.noun;
+  const canGoToOverview = Boolean(getSaveSuccessOverviewRoute(state));
+
+  return (
+    <Modal
+      visible={Boolean(state)}
+      animationType="fade"
+      presentationStyle="fullScreen"
+      onRequestClose={onContinueEditing}
+    >
+      <SafeArea style={{ flex: 1 }}>
+        <View className="flex-1 bg-background px-5 py-6">
+          <View className="flex-1 justify-center">
+            <View className="items-center">
+              <View className="h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                <Icon name="Check" className="text-primary" size={34} />
+              </View>
+              <Text className="mt-6 text-center text-3xl font-black text-foreground">
+                {state ? getSaveSuccessTitle(state) : "Saved"}
+              </Text>
+              <Text className="mt-3 max-w-xs text-center text-sm leading-6 text-muted-foreground">
+                Your {labels.lowerNoun} is saved. Choose what you want to do
+                next.
+              </Text>
+            </View>
+
+            <View className="mt-8 rounded-2xl border border-border bg-card p-4 shadow-sm">
+              <View className="flex-row items-center justify-between gap-3">
+                <View>
+                  <Text className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Reference
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    className="mt-1 max-w-56 text-lg font-black text-foreground"
+                  >
+                    {reference}
+                  </Text>
+                </View>
+                <View className="rounded-full bg-primary/10 px-3 py-1.5">
+                  <Text className="text-xs font-bold text-primary">Saved</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View className="gap-3 pb-2">
+            <Button
+              className="h-12 rounded-xl"
+              disabled={!canGoToOverview}
+              onPress={onGoToOverview}
+            >
+              <Text>Go to overview</Text>
+              <Icon
+                name="ReceiptText"
+                className="text-primary-foreground"
+                size={16}
+              />
+            </Button>
+            <Button
+              variant="outline"
+              className="h-12 rounded-xl"
+              onPress={onContinueEditing}
+            >
+              <Text>Continue editing</Text>
+              <Icon name="Pencil" className="text-foreground" size={16} />
+            </Button>
+            <View className="flex-row gap-3">
+              <Button
+                variant="outline"
+                className="h-12 flex-1 rounded-xl"
+                onPress={onCreateNew}
+              >
+                <Icon name="Plus" className="text-foreground" size={16} />
+                <Text>Create new</Text>
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-12 flex-1 rounded-xl"
+                onPress={onGoHome}
+              >
+                <Icon name="House" className="text-foreground" size={16} />
+                <Text>Go home</Text>
+              </Button>
+            </View>
+          </View>
+        </View>
+      </SafeArea>
+    </Modal>
+  );
+}
+
 export function InvoiceFormScreen({
   mode,
   skipInitialCustomerSelector = false,
@@ -269,10 +429,13 @@ export function InvoiceFormScreen({
     useState<WorkflowFloatingActionEntry | null>(null);
   const [itemNavigation, setItemNavigation] =
     useState<InvoiceItemNavigationEntry | null>(null);
+  const [saveSuccess, setSaveSuccess] =
+    useState<InvoiceSaveSuccessState | null>(null);
   const hydratedVersionRef = useRef<string | null>(null);
   const recoveryReadRef = useRef<string | null>(null);
   const initialCustomerRouteOpenedRef = useRef(false);
   const lastScrollYRef = useRef(0);
+  const formScrollRef = useRef<FormScrollHandle | null>(null);
   const shouldShowInitialCustomerStep =
     mode === "create" &&
     skipInitialCustomerSelector &&
@@ -559,12 +722,63 @@ export function InvoiceFormScreen({
     setRecoverySnapshot(null);
   };
 
+  const showSaveSuccess = (result?: InvoiceFormSaveResult) => {
+    setSaveSuccess({
+      mode,
+      type: (result?.type || type) as NewSalesFormType,
+      slug: result?.slug ?? recoverySlug ?? slug ?? null,
+      salesId: result?.salesId ?? recoverySalesId ?? null,
+      orderId: result?.orderId ?? orderId ?? null,
+    });
+  };
+
   const navigateToSavedEditRoute = (result?: { slug?: string | null }) => {
     if (mode !== "create" || !result?.slug) return;
     router.replace({
       pathname: "/(sales)/invoices/[slug]",
       params: { slug: result.slug, type },
     });
+  };
+
+  const continueEditingSavedDocument = () => {
+    const success = saveSuccess;
+    setSaveSuccess(null);
+    if (mode !== "create" || !success?.slug) return;
+    router.replace({
+      pathname: "/(sales)/invoices/[slug]",
+      params: { slug: success.slug, type: success.type },
+    });
+  };
+
+  const replaceSalesStack = useCallback(
+    (route: Href) => {
+      router.dismissAll();
+      router.replace(route);
+    },
+    [router],
+  );
+
+  const goToOverviewAfterSave = () => {
+    const route = getSaveSuccessOverviewRoute(saveSuccess);
+    if (!route) return;
+    setSaveSuccess(null);
+    replaceSalesStack(route as Href);
+  };
+
+  const createNewAfterSave = () => {
+    const nextType = saveSuccess?.type || type;
+    setSaveSuccess(null);
+    actions.reset();
+    actions.setFormType(nextType);
+    replaceSalesStack({
+      pathname: "/(sales)/invoices/customer-selector",
+      params: { type: nextType, source: "new" },
+    } as Href);
+  };
+
+  const goHomeAfterSave = () => {
+    setSaveSuccess(null);
+    replaceSalesStack("/(sales)" as Href);
   };
 
   const handleSaveDraft = async () => {
@@ -597,7 +811,7 @@ export function InvoiceFormScreen({
         slug: result.slug,
         salesId: result.salesId,
       });
-      navigateToSavedEditRoute(result);
+      showSaveSuccess(result);
     } catch (error) {
       markSaveFailure(error);
     }
@@ -630,6 +844,19 @@ export function InvoiceFormScreen({
       if (delta < -8) {
         setFooterActionsHidden(false);
       }
+    },
+    [],
+  );
+  const handleRequestFormScrollTo = useCallback(
+    (y: number, options?: FormScrollOptions) => {
+      const nextY = Math.max(0, y);
+      formScrollRef.current?.scrollTo?.({
+        y: nextY,
+        animated: options?.animated ?? false,
+      });
+      lastScrollYRef.current = nextY;
+      setFormScrollY(nextY);
+      setFooterActionsHidden(false);
     },
     [],
   );
@@ -694,6 +921,9 @@ export function InvoiceFormScreen({
             </View>
           ) : (
             <KeyboardAwareScrollView
+              ref={(node) => {
+                formScrollRef.current = node as FormScrollHandle | null;
+              }}
               className="flex-1"
               bottomOffset={FORM_KEYBOARD_BOTTOM_OFFSET}
               disableScrollOnKeyboardHide
@@ -737,6 +967,9 @@ export function InvoiceFormScreen({
               <ItemsStep
                 onItemsSheetPresenterChange={handleItemsSheetPresenterChange}
                 footerActionsHidden={footerActionsHidden}
+                initialWorkflowStepPreference={
+                  mode === "edit" ? "last" : undefined
+                }
                 onComponentScroll={handleFormScroll}
                 formScrollY={formScrollY}
                 onStickyWorkflowHeaderChange={handleStickyWorkflowHeaderChange}
@@ -745,6 +978,7 @@ export function InvoiceFormScreen({
                 }
                 onActiveItemTitleChange={setActiveItemHeaderTitle}
                 onItemNavigationChange={setItemNavigation}
+                onRequestScrollTo={handleRequestFormScrollTo}
               />
             </KeyboardAwareScrollView>
           )}
@@ -799,6 +1033,13 @@ export function InvoiceFormScreen({
               onStickyHeaderChange={handleStickyWorkflowHeaderChange}
             />
           ) : null}
+          <InvoiceSaveSuccessModal
+            state={saveSuccess}
+            onContinueEditing={continueEditingSavedDocument}
+            onGoToOverview={goToOverviewAfterSave}
+            onCreateNew={createNewAfterSave}
+            onGoHome={goHomeAfterSave}
+          />
           {isSaving ? (
             <View className="absolute inset-0 items-center justify-center bg-background/30">
               <View className="items-center gap-2 rounded-2xl border border-border bg-card p-4">
@@ -881,14 +1122,16 @@ export function SalesDetailsScreen({
   const createdAtLabel = type === "quote" ? "Quote date" : "Invoice date";
   const dueLabel = type === "quote" ? "Good until" : "Due date";
   const dueValue = type === "quote" ? meta.goodUntil : meta.paymentDueDate;
+  const referenceValue = orderId || slug || salesId;
+  const resolvedStatus = status || saveStatus || "Draft";
 
   return (
     <SafeArea>
       <View className="flex-1 bg-background">
-        <View className="relative h-14 flex-row items-center justify-between px-3">
+        <View className="relative h-16 flex-row items-center justify-between border-b border-border px-3">
           <Pressable
             onPress={onClose}
-            className="h-11 w-11 items-center justify-center active:opacity-60"
+            className="h-11 w-11 items-center justify-center rounded-full active:bg-muted"
           >
             <Icon name="X" className="text-foreground" size={22} />
           </Pressable>
@@ -901,74 +1144,78 @@ export function SalesDetailsScreen({
         </View>
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 112 }}
         >
-          <SectionTitle title="Customer" />
-          {customer ? (
-            <View className="pb-5">
-              <Text className="text-xl font-semibold text-foreground">
-                {customer.name}
+          <DetailsSection title="Customer">
+            {customer ? (
+              <View>
+                <Text
+                  numberOfLines={2}
+                  adjustsFontSizeToFit
+                  className="text-xl font-semibold text-foreground"
+                >
+                  {customer.name}
+                </Text>
+                <Text className="mt-1 text-sm font-medium text-muted-foreground">
+                  {getCustomerContactLine(customer)}
+                </Text>
+                <View className="mt-5">
+                  <DetailsRow label="Phone" value={customer.phone} />
+                  <DetailsRow label="Email" value={customer.email} />
+                  <DetailsRow
+                    label="Billing"
+                    value={customer.billingAddress}
+                    multiline
+                  />
+                  <DetailsRow
+                    label="Shipping"
+                    value={customer.shippingAddress}
+                    multiline
+                  />
+                </View>
+              </View>
+            ) : (
+              <Text className="text-sm font-medium text-muted-foreground">
+                No customer selected.
               </Text>
-              <Text className="mt-1 text-sm text-muted-foreground">
-                {getCustomerContactLine(customer)}
-              </Text>
-              <DetailLine label="Phone" value={customer.phone} />
-              <DetailLine label="Email" value={customer.email} />
-              <DetailLine label="Billing" value={customer.billingAddress} />
-              <DetailLine label="Shipping" value={customer.shippingAddress} />
-            </View>
-          ) : (
-            <Text className="pb-5 text-sm text-muted-foreground">
-              No customer selected.
-            </Text>
-          )}
+            )}
+          </DetailsSection>
 
-          <SectionTitle title={labels.detailsTitle} />
-          <View className="pb-5">
-            <DetailLine
-              label={labels.referenceLabel}
-              value={orderId || slug || salesId}
-            />
-            <DetailLine
+          <DetailsSection title={labels.detailsTitle}>
+            <DetailsRow label={labels.referenceLabel} value={referenceValue} />
+            <DetailsRow
               label="Status"
-              value={status || saveStatus || "Draft"}
+              value={<StatusBadge status={resolvedStatus} />}
             />
-            <DetailLine label={createdAtLabel} value={meta.createdAt} />
-            <DetailLine label={dueLabel} value={dueValue} />
-            <DetailLine label="Payment term" value={meta.paymentTerm} />
-            <DetailLine label="Payment method" value={meta.paymentMethod} />
-            <DetailLine label="Delivery" value={meta.deliveryOption} />
-            <DetailLine label="PO" value={meta.po} />
-            <DetailLine label="Tax code" value={meta.taxCode} />
-            <DetailLine label="Notes" value={meta.notes} multiline />
-          </View>
+            <DetailsRow
+              label={createdAtLabel}
+              value={formatDate(meta.createdAt)}
+            />
+            <DetailsRow label={dueLabel} value={formatDate(dueValue)} />
+            <DetailsRow label="Payment term" value={meta.paymentTerm} />
+            <DetailsRow label="Payment method" value={meta.paymentMethod} />
+            <DetailsRow label="Delivery" value={meta.deliveryOption} />
+            <DetailsRow label="PO" value={meta.po} />
+            <DetailsRow label="Tax code" value={meta.taxCode} />
+            <DetailsRow label="Notes" value={meta.notes} multiline />
+          </DetailsSection>
 
-          <SectionTitle title="Totals" />
-          <View>
-            <DetailLine
-              label="Subtotal"
-              value={formatMoney(summary.subTotal)}
-            />
-            <DetailLine
-              label="Discount"
-              value={formatMoney(-(summary.discount || 0))}
-            />
-            <DetailLine
-              label="Delivery"
-              value={formatMoney(summary.delivery || 0)}
-            />
-            <DetailLine label="Labor" value={formatMoney(summary.labor || 0)} />
-            <DetailLine label="Tax" value={formatMoney(summary.taxTotal)} />
-          </View>
+          <TotalsPanel summary={summary} />
         </ScrollView>
-        <View className="bg-background px-4 pb-4 pt-3">
-          <View className="flex-row items-end justify-between gap-4">
-            <Text className="text-xs font-semibold uppercase text-muted-foreground">
-              Grand total
-            </Text>
-            <Text className="text-2xl font-bold text-foreground">
-              {formatMoney(summary.grandTotal)}
-            </Text>
+        <View className="border-t border-border bg-card px-4 pb-4 pt-3">
+          <View className="rounded-2xl bg-primary/5 px-4 py-3">
+            <View className="flex-row items-end justify-between gap-4">
+              <Text className="text-sm font-bold text-muted-foreground">
+                Grand total
+              </Text>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                className="shrink text-right text-2xl font-bold text-foreground"
+              >
+                {formatMoney(summary.grandTotal)}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -976,33 +1223,92 @@ export function SalesDetailsScreen({
   );
 }
 
-function SectionTitle({ title }: { title: string }) {
+function DetailsSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
-    <Text className="mb-3 mt-5 text-[11px] font-semibold uppercase text-muted-foreground">
-      {title}
-    </Text>
+    <View className="mt-4 rounded-2xl border border-border bg-card p-4">
+      <Text className="text-base font-bold text-foreground">{title}</Text>
+      <View className="mt-3">{children}</View>
+    </View>
   );
 }
 
-function DetailLine({
+function DetailsRow({
   label,
   value,
   multiline,
 }: {
   label: string;
-  value?: string | number | null;
+  value?: ReactNode;
   multiline?: boolean;
 }) {
-  const resolved = value == null || value === "" ? "-" : String(value);
+  const resolved =
+    value == null || value === ""
+      ? "-"
+      : typeof value === "number"
+        ? String(value)
+        : value;
   return (
-    <View className="flex-row gap-4 py-2">
-      <Text className="w-28 text-sm text-muted-foreground">{label}</Text>
-      <Text
-        numberOfLines={multiline ? undefined : 2}
-        className="min-w-0 flex-1 text-right text-sm font-medium text-foreground"
-      >
-        {resolved}
-      </Text>
+    <View className="border-b border-border/40 py-2.5">
+      <View className="flex-row gap-4">
+        <Text className="w-28 text-sm font-medium text-muted-foreground">
+          {label}
+        </Text>
+        {typeof resolved === "string" ? (
+          <Text
+            numberOfLines={multiline ? undefined : 2}
+            className="min-w-0 flex-1 text-right text-sm font-semibold text-foreground"
+          >
+            {resolved}
+          </Text>
+        ) : (
+          <View className="min-w-0 flex-1 items-end">{resolved}</View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const label = status == null || status === "" ? "Draft" : status;
+  return (
+    <View className="rounded-full bg-muted px-3 py-1">
+      <Text className="text-xs font-semibold text-foreground">{label}</Text>
+    </View>
+  );
+}
+
+function TotalsPanel({ summary }: { summary: NewSalesFormSummary }) {
+  return (
+    <View className="mb-4 mt-4 rounded-2xl border border-border bg-card p-4">
+      <Text className="text-base font-bold text-foreground">Totals</Text>
+      <View className="mt-3 gap-2">
+        <TotalRow label="Subtotal" value={formatMoney(summary.subTotal)} />
+        <TotalRow
+          label="Discount"
+          value={formatMoney(-(summary.discount || 0))}
+        />
+        <TotalRow label="Delivery" value={formatMoney(summary.delivery || 0)} />
+        <TotalRow label="Labor" value={formatMoney(summary.labor || 0)} />
+        {Math.abs(Number(summary.ccc || 0)) > 0 ? (
+          <TotalRow label="C.C.C" value={formatMoney(summary.ccc || 0)} />
+        ) : null}
+        <TotalRow label="Tax" value={formatMoney(summary.taxTotal)} />
+      </View>
+    </View>
+  );
+}
+
+function TotalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-center justify-between gap-4 py-1.5">
+      <Text className="text-sm font-medium text-muted-foreground">{label}</Text>
+      <Text className="text-sm font-semibold text-foreground">{value}</Text>
     </View>
   );
 }

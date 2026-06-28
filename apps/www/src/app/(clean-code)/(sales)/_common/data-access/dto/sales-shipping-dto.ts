@@ -154,7 +154,7 @@ export function salesShippingDto(
         orderId: data.id,
     };
 }
-export function deliveriesByStatus(
+function deliveriesByStatus(
     items: { qty; status: SalesDispatchStatus }[]
 ): DeliveryBreakdown {
     const resp: DeliveryBreakdown = {

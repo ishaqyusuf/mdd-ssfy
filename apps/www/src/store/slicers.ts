@@ -9,7 +9,6 @@ import {
     Roles,
     Users,
 } from "@/db";
-import { deepCopy } from "@/lib/deep-copy";
 import { formatDate } from "@/lib/use-day";
 import {
     ExtendedHome,
@@ -22,8 +21,6 @@ import { IProduct } from "@/types/product";
 import { IOrderPrintMode, ISalesOrder, ISalesOrderItem } from "@/types/sales";
 import { InstallCostSettings } from "@/types/settings";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-
-import { store } from ".";
 
 export interface ISlicer {
     installCostSetting: InstallCostSettings;
@@ -163,30 +160,4 @@ export function transformReduxObject(data) {
     } catch (error) {}
     return data;
 }
-export const { updateSlice } = headerNavSlice.actions;
-export function dispatchSlice(key: keyof ISlicer, data: any = null) {
-    // if (data) data = deepCopy(data);
-    store.dispatch(
-        updateSlice({
-            key,
-            data: deepCopy(data),
-        })
-    );
-}
-
-export async function loadStaticList(key: keyof ISlicer, list, _loader) {
-    if (!list || list == undefined) {
-        const data = await _loader();
-        dispatchSlice(key, deepCopy(data));
-    }
-}
-export function navigateTo(href) {
-    store.dispatch(
-        updateSlice({
-            key: "href",
-            data: href,
-        })
-    );
-}
-
 export default headerNavSlice.reducer;

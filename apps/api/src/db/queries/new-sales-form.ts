@@ -16,6 +16,7 @@ import {
   saveDraftNewSalesFormSchema,
   saveFinalNewSalesFormSchema,
   searchNewSalesCustomersSchema,
+  searchNewSalesFormServiceSuggestionsSchema,
   searchNewSalesFormShelfProductsSchema,
   updateNewSalesFormShelfProductSchema,
   resolveNewSalesCustomerSchema,
@@ -36,6 +37,7 @@ import {
   type SaveDraftNewSalesFormSchema,
   type SaveFinalNewSalesFormSchema,
   type SearchNewSalesCustomersSchema,
+  type SearchNewSalesFormServiceSuggestionsSchema,
   type SearchNewSalesFormShelfProductsSchema,
   type UpdateNewSalesFormShelfProductSchema,
   type ResolveNewSalesCustomerSchema,
@@ -2154,6 +2156,175 @@ export async function searchNewSalesFormShelfProducts(
     ...product,
     categoryPath: shelfCategoryPathForProduct(product, categories),
   }));
+}
+
+type ServiceSuggestionEntry = {
+  service: string;
+  unitPrice: number;
+  usageCount: number;
+  lastUsedAt: string | null;
+  sortTime: number;
+};
+
+function normalizeServiceSuggestionName(value: unknown) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+}
+
+function serviceSuggestionPrice(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function addServiceSuggestion(
+  suggestions: Map<string, ServiceSuggestionEntry>,
+  serviceValue: unknown,
+  unitPrice: number,
+  usedAt: Date,
+  query: string,
+) {
+  const service = normalizeServiceSuggestionName(serviceValue);
+  if (!service) return;
+  if (query && !service.includes(query)) return;
+  const sortTime = usedAt.getTime();
+  const existing = suggestions.get(service);
+  if (!existing) {
+    suggestions.set(service, {
+      service,
+      unitPrice,
+      usageCount: 1,
+      lastUsedAt: usedAt.toISOString(),
+      sortTime,
+    });
+    return;
+  }
+  existing.usageCount += 1;
+  if (sortTime >= existing.sortTime) {
+    existing.unitPrice = unitPrice;
+    existing.lastUsedAt = usedAt.toISOString();
+    existing.sortTime = sortTime;
+  }
+}
+
+function serviceRowsFromLineMeta(line: { meta?: unknown }) {
+  const rows = getLineMetaRows(line, "serviceRows");
+  return rows.map((row) => safeRecord(row));
+}
+
+export async function searchNewSalesFormServiceSuggestions(
+  ctx: TRPCContext,
+  input: SearchNewSalesFormServiceSuggestionsSchema,
+) {
+  const payload = searchNewSalesFormServiceSuggestionsSchema.parse(input);
+  const query = normalizeServiceSuggestionName(payload.query);
+  const orders = await ctx.db.salesOrders.findMany({
+    where: {
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      meta: true,
+      items: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          description: true,
+          dykeProduction: true,
+          meta: true,
+          multiDykeUid: true,
+          qty: true,
+          rate: true,
+          total: true,
+        },
+      },
+    },
+    orderBy: [{ updatedAt: "desc" }],
+    take: 150,
+  });
+  const suggestions = new Map<string, ServiceSuggestionEntry>();
+
+  for (const order of orders) {
+    const usedAt = order.updatedAt || order.createdAt || new Date();
+    const orderMeta = safeRecord(order.meta);
+    const persistedForm = safeRecord(orderMeta.newSalesForm);
+    const persistedLines = Array.isArray(persistedForm.lineItems)
+      ? persistedForm.lineItems
+      : [];
+    let foundPersistedServiceRows = false;
+
+    for (const line of persistedLines) {
+      const lineRecord = safeRecord(line);
+      for (const row of serviceRowsFromLineMeta(lineRecord)) {
+        foundPersistedServiceRows = true;
+        addServiceSuggestion(
+          suggestions,
+          row.service ?? row.description,
+          serviceSuggestionPrice(row.unitPrice, row.rate, row.salesPrice),
+          usedAt,
+          query,
+        );
+      }
+    }
+
+    if (foundPersistedServiceRows) continue;
+
+    for (const item of order.items || []) {
+      const itemMeta = safeRecord(item.meta);
+      const nestedMeta = safeRecord(itemMeta.meta);
+      const nestedRows = Array.isArray(nestedMeta.serviceRows)
+        ? nestedMeta.serviceRows.map((row) => safeRecord(row))
+        : [];
+      if (nestedRows.length) {
+        for (const row of nestedRows) {
+          addServiceSuggestion(
+            suggestions,
+            row.service ?? row.description,
+            serviceSuggestionPrice(row.unitPrice, row.rate, row.salesPrice),
+            usedAt,
+            query,
+          );
+        }
+        continue;
+      }
+      const looksLikeLegacyService =
+        itemMeta.tax != null ||
+        Boolean(item.dykeProduction) ||
+        String(item.multiDykeUid || "").toLowerCase().includes("service");
+      if (!looksLikeLegacyService) continue;
+      addServiceSuggestion(
+        suggestions,
+        item.description,
+        serviceSuggestionPrice(item.rate, item.total),
+        usedAt,
+        query,
+      );
+    }
+  }
+
+  return Array.from(suggestions.values())
+    .sort((a, b) => {
+      if (query) {
+        const aStarts = a.service.startsWith(query) ? 0 : 1;
+        const bStarts = b.service.startsWith(query) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+      }
+      return b.sortTime - a.sortTime || b.usageCount - a.usageCount;
+    })
+    .slice(0, payload.limit)
+    .map((suggestion) => ({
+      service: suggestion.service,
+      unitPrice: suggestion.unitPrice,
+      usageCount: suggestion.usageCount,
+      lastUsedAt: suggestion.lastUsedAt,
+    }));
 }
 
 export async function recalculateNewSalesForm(

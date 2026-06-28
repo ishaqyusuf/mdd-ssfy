@@ -4,19 +4,14 @@ import { Pressable } from "@/components/ui/pressable";
 import type { FilterItem } from "@/features/sales/types/sales.types";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import {
-	ActivityIndicator,
-	FlatList,
-	Text,
-	TextInput,
-	View,
-} from "react-native";
-import { OrdersFilterModal } from "./orders-filter-modal";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 import {
 	type SalesDocumentListItem,
 	type SalesDocumentListType,
-	getQuoteEditRoute,
+	getOrderOverviewRoute,
+	getQuoteOverviewRoute,
 } from "./sales-document-list";
+import { SalesDocumentSearchFilterSheet } from "./sales-document-search-filter-sheet";
 import { SalesInvoiceListCard2 } from "./sales-invoice-list-card-2";
 
 type ListHookInput = {
@@ -62,7 +57,7 @@ export function SalesDocumentListScreen({
 }: SalesDocumentListScreenProps) {
 	const router = useRouter();
 	const [search, setSearch] = useState("");
-	const [filterOpen, setFilterOpen] = useState(false);
+	const [searchFilterOpen, setSearchFilterOpen] = useState(false);
 	const [selectedFilters, setSelectedFilters] = useState<
 		Record<string, string | null | undefined>
 	>({});
@@ -72,24 +67,35 @@ export function SalesDocumentListScreen({
 		() => (rawFilters || []) as FilterItem[],
 		[rawFilters],
 	);
+	const selectableFilters = useMemo(
+		() => filters.filter((filter) => filter.value !== "q"),
+		[filters],
+	);
 	const { data, isPending, isRefetching, refetch } = useList({
 		q: search,
 		filters: selectedFilters,
 	});
 	const items = ((data as { data?: SalesDocumentListItem[] })?.data ||
 		[]) as SalesDocumentListItem[];
+	const activeFilterCount = useMemo(
+		() =>
+			Object.values(selectedFilters).filter(
+				(value) => value != null && value !== "",
+			).length,
+		[selectedFilters],
+	);
+	const activeSearchFilterCount =
+		activeFilterCount + (search.trim().length > 0 ? 1 : 0);
+	const searchSheetTitle = filtersEnabled
+		? "Search & filters"
+		: "Search orders";
 
 	const handleDefaultPress = (item: SalesDocumentListItem) => {
-		if (type === "quote") {
-			const route = getQuoteEditRoute(item);
-			if (route) router.push(route);
-			return;
-		}
-
-		router.push({
-			pathname: "/(sales)/orders/[orderNo]",
-			params: { orderNo: item.orderId },
-		});
+		const route =
+			type === "quote"
+				? getQuoteOverviewRoute(item)
+				: getOrderOverviewRoute(item);
+		if (route) router.push(route);
 	};
 
 	return (
@@ -110,31 +116,6 @@ export function SalesDocumentListScreen({
 							<Text className="text-sm text-muted-foreground">{subtitle}</Text>
 						</View>
 					</View>
-
-					<View className="mb-4 flex-row items-center gap-2">
-						<View className="h-12 flex-1 flex-row items-center rounded-xl border border-border bg-card px-3">
-							<Icon name="Search" className="text-muted-foreground" size={18} />
-							<TextInput
-								value={search}
-								onChangeText={setSearch}
-								placeholder={searchPlaceholder}
-								placeholderTextColor="#8A8A8A"
-								className="ml-2 flex-1 text-foreground"
-							/>
-						</View>
-						{filtersEnabled ? (
-							<Pressable
-								onPress={() => setFilterOpen(true)}
-								className="h-12 w-12 items-center justify-center rounded-xl border border-border bg-card active:opacity-80"
-							>
-								<Icon
-									name="SlidersHorizontal"
-									className="text-foreground"
-									size={18}
-								/>
-							</Pressable>
-						) : null}
-					</View>
 				</View>
 
 				{isPending ? (
@@ -149,7 +130,10 @@ export function SalesDocumentListScreen({
 						}
 						refreshing={isRefetching}
 						onRefresh={() => refetch()}
-						contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
+						contentContainerStyle={{
+							paddingHorizontal: 16,
+							paddingBottom: 120,
+						}}
 						ListEmptyComponent={
 							<View className="mt-8 items-center rounded-xl border border-dashed border-border p-8">
 								<Text className="text-base font-semibold text-foreground">
@@ -161,9 +145,11 @@ export function SalesDocumentListScreen({
 							</View>
 						}
 						renderItem={({ item }) => {
-							const quoteRoute =
-								type === "quote" ? getQuoteEditRoute(item) : null;
-							const disabled = type === "quote" && !quoteRoute;
+							const route =
+								type === "quote"
+									? getQuoteOverviewRoute(item)
+									: getOrderOverviewRoute(item);
+							const disabled = !route;
 
 							return (
 								<SalesInvoiceListCard2
@@ -183,17 +169,63 @@ export function SalesDocumentListScreen({
 						}}
 					/>
 				)}
+
+				<View
+					pointerEvents="box-none"
+					className="absolute bottom-5 left-0 right-0 z-20 items-center px-4"
+				>
+					<Pressable
+						haptic
+						accessibilityRole="button"
+						accessibilityLabel={searchSheetTitle}
+						onPress={() => setSearchFilterOpen(true)}
+						className="min-h-14 w-full max-w-[420px] flex-row items-center gap-3 rounded-full border border-border bg-card px-4 shadow-md active:opacity-90"
+					>
+						<View className="h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+							<Icon
+								name={filtersEnabled ? "SlidersHorizontal" : "Search"}
+								className="text-primary"
+								size={18}
+							/>
+						</View>
+						<View className="min-w-0 flex-1">
+							<Text
+								numberOfLines={1}
+								className="text-sm font-semibold text-foreground"
+							>
+								{searchSheetTitle}
+							</Text>
+							<Text numberOfLines={1} className="text-xs text-muted-foreground">
+								{activeSearchFilterCount > 0
+									? `${activeSearchFilterCount} active`
+									: searchPlaceholder}
+							</Text>
+						</View>
+						{activeSearchFilterCount > 0 ? (
+							<View className="h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2">
+								<Text className="text-xs font-bold text-primary-foreground">
+									{activeSearchFilterCount}
+								</Text>
+							</View>
+						) : null}
+					</Pressable>
+				</View>
 			</View>
 
-			{filtersEnabled ? (
-				<OrdersFilterModal
-					open={filterOpen}
-					onClose={() => setFilterOpen(false)}
-					filters={filters.filter((filter) => filter.value !== "q")}
-					selected={selectedFilters}
-					onApply={(next) => setSelectedFilters(next)}
-				/>
-			) : null}
+			<SalesDocumentSearchFilterSheet
+				visible={searchFilterOpen}
+				onClose={() => setSearchFilterOpen(false)}
+				search={search}
+				selectedFilters={selectedFilters}
+				filters={selectableFilters}
+				filtersEnabled={filtersEnabled}
+				searchPlaceholder={searchPlaceholder}
+				title={searchSheetTitle}
+				onApply={(next) => {
+					setSearch(next.search);
+					setSelectedFilters(next.filters);
+				}}
+			/>
 		</SafeArea>
 	);
 }

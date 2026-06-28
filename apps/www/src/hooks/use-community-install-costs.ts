@@ -5,7 +5,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 type CommunityInstallCostRateContextProps = ReturnType<
     typeof useCreateCommunityInstallCostRateContext
 >;
-export const CommunityInstallCostRateContext =
+const CommunityInstallCostRateContext =
     createContext<CommunityInstallCostRateContextProps>(undefined as any);
 export const CommunityInstallCostRateProvider =
     CommunityInstallCostRateContext.Provider;

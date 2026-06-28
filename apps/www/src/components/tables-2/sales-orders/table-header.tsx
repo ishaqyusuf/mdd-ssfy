@@ -35,7 +35,6 @@ interface Props<TData> {
     tableScroll?: TableScrollState;
     showColumnDividers?: boolean;
 }
-
 const HEADER_BACKGROUND_CLASS = "!bg-sidebar-accent";
 const HEADER_TEXT_CLASS =
     "text-[11px] font-semibold uppercase text-slate-600 dark:text-slate-300";
@@ -234,7 +233,6 @@ export function DataTableHeader<TData>({
         </TableHeader>
     );
 }
-
 function renderHeaderContent<TData>(
     header: Header<TData, unknown>,
     columnId: string,
@@ -373,5 +371,3 @@ function SortButton({
         </Button>
     );
 }
-
-export { DataTableHeader as TableHeader };

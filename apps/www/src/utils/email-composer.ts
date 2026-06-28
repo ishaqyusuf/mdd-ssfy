@@ -14,7 +14,7 @@ export const composeStackLine = (lines: NodeLine[]): NodeStacks => ({
     type: "stack",
     lines,
 });
-export const composeInline = (lines: NodeLine[]): NodeStacks => ({
+const composeInline = (lines: NodeLine[]): NodeStacks => ({
     type: "inline",
     lines,
 });
@@ -23,13 +23,13 @@ export const composeText = (text, style?): NodeLine => ({
     text,
     style,
 });
-export const composeLink = (text, href, style?): NodeLine => ({
+const composeLink = (text, href, style?): NodeLine => ({
     type: "link",
     text,
     href,
     style,
 });
-export const composeTable = (
+const composeTable = (
     rows: string[],
     lines?: NodeLine[][]
 ): NodeLine => ({

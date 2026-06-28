@@ -466,7 +466,7 @@ export function deriveServiceRows({
       return {
         ...row,
         uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
-        service: String(row?.service ?? row?.description ?? ""),
+        service: normalizeServiceText(row?.service ?? row?.description ?? ""),
         taxxable: Boolean(row?.taxxable),
         produceable: Boolean(row?.produceable),
         qty,
@@ -480,7 +480,7 @@ export function deriveServiceRows({
   return [
     {
       uid: `service-${lineUid}-1`,
-      service: String(lineDescription || "").trim(),
+      service: normalizeServiceText(lineDescription || "").trim(),
       taxxable: Boolean(lineTaxxable),
       produceable: Boolean(lineProduceable),
       qty,
@@ -497,7 +497,7 @@ export function summarizeServiceRows(lineUid: string, nextRowsRaw: any[]) {
     return {
       ...row,
       uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
-      service: String(row?.service ?? "").trim(),
+      service: normalizeServiceText(row?.service ?? ""),
       taxxable: Boolean(row?.taxxable),
       produceable: Boolean(row?.produceable),
       qty,
@@ -526,6 +526,10 @@ export function summarizeServiceRows(lineUid: string, nextRowsRaw: any[]) {
       .filter(Boolean)
       .join(" | "),
   };
+}
+
+function normalizeServiceText(value: unknown) {
+  return String(value ?? "").toUpperCase();
 }
 
 export function summarizeShelfRows(

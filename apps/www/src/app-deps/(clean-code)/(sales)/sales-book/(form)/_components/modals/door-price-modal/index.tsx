@@ -24,7 +24,7 @@ type PricingOption = (typeof pricingOptions)[number];
 export function openDoorPriceModal(cls: ComponentHelperClass) {
     _modal.openModal(<DoorPriceModal cls={cls} />);
 }
-export function useInitContext(cls: ComponentHelperClass) {
+function useInitContext(cls: ComponentHelperClass) {
     const priceModel = cls.getDoorPriceModel(cls.componentUid);
 
     const form = useForm({
@@ -62,7 +62,7 @@ export function useInitContext(cls: ComponentHelperClass) {
         sizeList: priceModel.sizeList,
     };
 }
-export default function DoorPriceModal({ cls }: Props) {
+function DoorPriceModal({ cls }: Props) {
     const ctx = useInitContext(cls);
 
     return (

@@ -21,25 +21,3 @@ export function useIsMobile() {
 
     return !!isMobile;
 }
-export function useMobile() {
-    const [isMobile, setIsMobile] = React.useState(false);
-
-    React.useEffect(() => {
-        const checkIfMobile = () => {
-            setIsMobile(window.innerWidth < 768);
-        };
-
-        // Initial check
-        checkIfMobile();
-
-        // Add event listener
-        window.addEventListener("resize", checkIfMobile);
-
-        // Clean up
-        return () => {
-            window.removeEventListener("resize", checkIfMobile);
-        };
-    }, []);
-
-    return isMobile;
-}

@@ -2,25 +2,27 @@ import { SafeArea } from "@/components/safe-area";
 import { _trpc } from "@/components/static-trpc";
 import { Icon } from "@/components/ui/icon";
 import { Modal as BottomSheetModal, useModal } from "@/components/ui/modal";
+import { Pressable as HapticPressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { SalesClickListRow } from "@/features/sales/components/sales-click-list-row";
 import {
-  getShelfRowDisplayUnitPrice,
-  patchShelfRowPrice,
-  patchShelfRowQty,
   type ShelfCategoryRecord,
   type ShelfProductOption,
   type ShelfRowDraft,
   type ShelfSectionDraft,
+  getShelfRowDisplayUnitPrice,
+  patchShelfRowPrice,
+  patchShelfRowQty,
 } from "@gnd/sales/sales-form-core";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Modal as NativeModal,
   Pressable,
+  type TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -47,6 +49,17 @@ type EditingShelfProduct = {
   title: string;
   price: string;
 };
+
+const SHELF_PRODUCT_SKELETON_KEYS = [
+  "shelf-product-skeleton-0",
+  "shelf-product-skeleton-1",
+  "shelf-product-skeleton-2",
+  "shelf-product-skeleton-3",
+  "shelf-product-skeleton-4",
+  "shelf-product-skeleton-5",
+  "shelf-product-skeleton-6",
+  "shelf-product-skeleton-7",
+];
 
 export function ShelfRowsEditor({
   sections,
@@ -282,6 +295,7 @@ export function ShelfRowsEditor({
               />
             ) : (
               <ShelfProductSearchList
+                visible={pickerOpen}
                 products={products}
                 categories={categories}
                 query={productSearch}
@@ -445,6 +459,7 @@ function ShelfSelectedRow({
 }
 
 function ShelfProductSearchList({
+  visible,
   products,
   categories,
   query,
@@ -457,6 +472,7 @@ function ShelfProductSearchList({
   onCancelDelete,
   onDelete,
 }: {
+  visible: boolean;
   products: ShelfProductOption[];
   categories: ShelfCategoryRecord[];
   query: string;
@@ -469,6 +485,16 @@ function ShelfProductSearchList({
   onCancelDelete: () => void;
   onDelete: (product: ShelfProductOption) => void;
 }) {
+  const searchInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [visible]);
+
   return (
     <View className="flex-1">
       <FlatList
@@ -491,10 +517,11 @@ function ShelfProductSearchList({
         renderItem={({ item }) => (
           <View className="border-b border-border py-3">
             <View className="flex-row items-center gap-3">
-              <Pressable
+              <HapticPressable
+                haptic
                 onPress={() => onSelect(item)}
                 disabled={disabled}
-                className="min-w-0 flex-1 active:opacity-80 disabled:opacity-40"
+                className="min-w-0 flex-1 active:opacity-90 disabled:opacity-40"
               >
                 <Text
                   numberOfLines={1}
@@ -513,18 +540,19 @@ function ShelfProductSearchList({
                     {formatMoney(numberOrZero(item.salesPrice, item.unitPrice))}
                   </Text>
                 </View>
-              </Pressable>
-              <Pressable
+              </HapticPressable>
+              <HapticPressable
+                haptic
                 onPress={() => onOpenOptions(item)}
                 disabled={disabled}
-                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted disabled:opacity-40"
+                className="h-10 w-10 items-center justify-center rounded-full active:bg-muted active:opacity-90 disabled:opacity-40"
               >
                 <Icon
                   name="ChevronRight"
                   className="text-muted-foreground"
                   size={18}
                 />
-              </Pressable>
+              </HapticPressable>
             </View>
             {pendingDeleteProductId === Number(item.id || 0) ? (
               <View className="mt-3 gap-2 border-t border-red-200 bg-red-50 p-3">
@@ -588,7 +616,9 @@ function ShelfProductSearchList({
         >
           <Icon name="Search" className="text-muted-foreground" size={15} />
           <StepTextInput
-            autoFocus
+            ref={searchInputRef}
+            autoFocus={visible}
+            showSoftInputOnFocus
             value={query}
             onChangeText={onQueryChange}
             editable={!disabled}
@@ -610,9 +640,9 @@ function ShelfProductSearchList({
 function ShelfProductListSkeleton() {
   return (
     <View>
-      {Array.from({ length: 8 }).map((_, index) => (
+      {SHELF_PRODUCT_SKELETON_KEYS.map((key) => (
         <View
-          key={`shelf-product-skeleton-${index}`}
+          key={key}
           className="flex-row items-center gap-3 border-b border-border py-3"
         >
           <View className="min-w-0 flex-1">

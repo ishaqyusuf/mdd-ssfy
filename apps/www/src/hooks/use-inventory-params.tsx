@@ -1,7 +1,6 @@
 import { CamelCaseType } from "@gnd/utils/types";
 import { InventoryForm } from "@gnd/inventory/schema";
 import {
-    createLoader,
     parseAsInteger,
     parseAsJson,
     parseAsString,
@@ -42,5 +41,3 @@ export function useInventoryParams() {
         _mode,
     };
 }
-
-export const loadInventoryParams = createLoader(inventoryParamsSchema);

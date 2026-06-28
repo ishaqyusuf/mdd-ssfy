@@ -62,7 +62,7 @@ export type NewSalesFormLineItem = NewSalesFormRecord["lineItems"][number];
 export type NewSalesFormExtraCost = NewSalesFormRecord["extraCosts"][number];
 export type NewSalesFormMeta = NewSalesFormRecord["form"];
 
-export const saveStatusSchema = z.enum([
+const saveStatusSchema = z.enum([
 	"idle",
 	"saving",
 	"saved",
@@ -71,7 +71,7 @@ export const saveStatusSchema = z.enum([
 ]);
 export type SaveStatus = z.infer<typeof saveStatusSchema>;
 
-export const newSalesFormUiStateSchema = z.object({
+const newSalesFormUiStateSchema = z.object({
 	saveStatus: saveStatusSchema.default("idle"),
 	dirty: z.boolean().default(false),
 	lastSavedAt: z.string().nullable().default(null),

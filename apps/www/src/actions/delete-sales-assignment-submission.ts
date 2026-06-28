@@ -8,7 +8,7 @@ import z from "zod";
 import { actionClient } from "./safe-action";
 import { deleteSalesAssignmentSubmissionSchema } from "./schema";
 
-export async function deleteSalesAssignmentSubmission(
+async function deleteSalesAssignmentSubmission(
     data: z.infer<typeof deleteSalesAssignmentSubmissionSchema>,
     tx: typeof prisma = prisma,
 ) {

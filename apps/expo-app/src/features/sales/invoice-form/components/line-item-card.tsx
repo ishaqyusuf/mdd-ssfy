@@ -1,6 +1,7 @@
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { _trpc } from "@/components/static-trpc";
+import { useAuthContext } from "@/hooks/use-auth";
 import {
   buildStepComponentOverrideMap,
   addWorkflowHptDoorOption,
@@ -69,6 +70,7 @@ import {
 } from "../steps/service/service-rows-editor";
 import type { NewSalesFormLineItem } from "../types";
 import { WorkflowMouldingLineItemEditor } from "./workflow-moulding-line-item-editor";
+import { canEditMobileServiceLinePricing } from "./workflow-mobile-capabilities";
 import { WorkflowShelfLineItemEditor } from "./workflow-shelf-line-item-editor";
 
 function TextInput({
@@ -128,6 +130,7 @@ export function LineItemCard({
   customerProfileCoefficient?: number | null;
   disabled?: boolean;
 }) {
+  const auth = useAuthContext();
   const router = useRouter();
   const setDoorSizePicker = useInvoiceFormModalStore(
     (state) => state.actions.setDoorSizePicker,
@@ -151,6 +154,9 @@ export function LineItemCard({
   const serviceRows = serviceItem
     ? buildWorkflowServiceRowsContext(workflowLine).rows
     : [];
+  const canEditServicePricing = canEditMobileServiceLinePricing(
+    auth.profile?.role?.name,
+  );
   const hasHousePackageToolStep = workflowSteps.some((step) =>
     isHousePackageToolStepTitle(step.step?.title || step.title),
   );
@@ -257,6 +263,7 @@ export function LineItemCard({
     const patch = buildWorkflowServiceRowsPatch({
       line: workflowLine,
       rows: serviceRows,
+      syncDescription: false,
     }) as Partial<NewSalesFormLineItem>;
     if (!linePatchChanged(item, patch)) return;
     onWorkflowPatch(patch);
@@ -270,6 +277,7 @@ export function LineItemCard({
       buildWorkflowServiceRowsPatch({
         line: workflowLine,
         rows,
+        syncDescription: false,
       }) as Partial<NewSalesFormLineItem>,
     );
   };
@@ -279,6 +287,7 @@ export function LineItemCard({
       buildWorkflowServiceRowsPatch({
         line: workflowLine,
         rows: [...serviceRows, createServiceRow(serviceRows.length + 1)],
+        syncDescription: false,
       }) as Partial<NewSalesFormLineItem>,
     );
   };
@@ -288,6 +297,7 @@ export function LineItemCard({
       buildWorkflowServiceRowsPatch({
         line: workflowLine,
         rows: serviceRows.filter((_row, rowIndex) => rowIndex !== index),
+        syncDescription: false,
       }) as Partial<NewSalesFormLineItem>,
     );
   };
@@ -595,6 +605,7 @@ export function LineItemCard({
             <ServiceRowsEditor
               rows={serviceRows}
               disabled={disabled}
+              canEditPricing={canEditServicePricing}
               onChange={updateServiceRow}
               onAdd={addServiceRow}
               onRemove={removeServiceRow}

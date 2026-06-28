@@ -1,4 +1,5 @@
 import { LoginQuickAccess } from "@/components/login-quick-access";
+import { shouldUsePasswordMaskTypography } from "@/components/login-password-style";
 import { SafeArea } from "@/components/safe-area";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -188,7 +189,10 @@ export function LoginTemplate0() {
                           selectionColor={colors.primary}
                           style={[
                             textInputStyle,
-                            !isPasswordVisible && passwordDotsStyle,
+                            shouldUsePasswordMaskTypography({
+                              value,
+                              isPasswordVisible,
+                            }) && passwordDotsStyle,
                           ]}
                           className="h-14 flex-1 border-0 bg-transparent px-3 shadow-none"
                         />

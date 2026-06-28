@@ -1,6 +1,6 @@
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { type ReactNode, useState } from "react";
+import { forwardRef, type ReactNode, useState } from "react";
 import {
 	Pressable,
 	type StyleProp,
@@ -46,32 +46,34 @@ export function StepSectionHeader({
 	);
 }
 
-export function StepTextInput({
-	style,
-	multiline,
-	textAlign,
-	fontWeight,
-	...props
-}: TextInputProps & {
+type StepTextInputProps = TextInputProps & {
 	textAlign?: "left" | "center" | "right";
 	fontWeight?: "normal" | "bold";
-}) {
-	return (
-		<TextInput
-			{...props}
-			multiline={multiline}
-			placeholderTextColor={props.placeholderTextColor || "#8A8A8A"}
-			style={[
-				styles.input,
-				multiline ? styles.multiline : null,
-				textAlign === "right" ? styles.textRight : null,
-				textAlign === "center" ? styles.textCenter : null,
-				fontWeight === "bold" ? styles.bold : null,
-				style,
-			]}
-		/>
-	);
-}
+};
+
+export const StepTextInput = forwardRef<TextInput, StepTextInputProps>(
+	function StepTextInput(
+		{ style, multiline, textAlign, fontWeight, ...props },
+		ref,
+	) {
+		return (
+			<TextInput
+				ref={ref}
+				{...props}
+				multiline={multiline}
+				placeholderTextColor={props.placeholderTextColor || "#8A8A8A"}
+				style={[
+					styles.input,
+					multiline ? styles.multiline : null,
+					textAlign === "right" ? styles.textRight : null,
+					textAlign === "center" ? styles.textCenter : null,
+					fontWeight === "bold" ? styles.bold : null,
+					style,
+				]}
+			/>
+		);
+	},
+);
 
 export function NumberField({
 	label,

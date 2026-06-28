@@ -254,3 +254,315 @@ Knip baseline without widening scope or deleting live compatibility code.
 - [x] Replace deleted private v2 form-action imports with a local structural legacy form type.
 - [x] Refresh full Knip snapshot to the 0 unresolved import baseline.
 - [x] Update Brain report/progress with the unresolved cleanup result.
+
+## Unlisted Dependency Cleanup Slice
+
+- [x] Verify `server-only` is imported directly by `apps/www` server-only modules.
+- [x] Add `server-only` to `@gnd/www` dependencies.
+- [x] Refresh `bun.lock` with `bun install --lockfile-only`.
+- [x] Refresh full Knip snapshot to the 0 unlisted dependency baseline.
+- [x] Update Brain report/progress with the unlisted cleanup result.
+
+## Retained Tooling Candidate Decision
+
+- [x] Verify `eslint` and `eslint-config-next` are retained for package/root lint workflows.
+- [x] Verify `puppeteer-core` is retained by Next `serverExternalPackages`.
+- [x] Verify `tailwindcss` is retained for Tailwind/PostCSS/shadcn tooling.
+- [x] Record the retained-tooling rationale in the cleanup report.
+
+## Export Candidate Triage Slice 1
+
+- [x] Inspect low-risk auth/routing/test-backed export candidates.
+- [x] Retain exports that are imported by focused tests.
+- [x] Remove only verified unused auth exports: `emptyAuthSnapshot`, `signOut`, and exported `AUTH_LOGIN_ROUTE`.
+- [x] Refresh full Knip snapshot to the 550 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 2
+
+- [x] Exact-scan routing, sales-print, payment, and new-sales-form export candidates.
+- [x] Demote local-only helpers instead of changing runtime behavior.
+- [x] Remove unreferenced new-sales-form hooks/mapper wrappers and unused sales-print wrapper functions.
+- [x] Retain test-facing exports in auth, routing, local recovery, payment preview, and sales-print access code.
+- [x] Refresh full Knip snapshot to the 525 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 3
+
+- [x] Exact-scan small utility/component export candidates.
+- [x] Remove definition-only utility exports while keeping still-imported module helpers.
+- [x] Remove now-unused `@date-fns/tz` from `@gnd/www` and refresh `bun.lock`.
+- [x] Demote or remove local-only component exports without changing live imports.
+- [x] Refresh full Knip snapshot to the 503 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 4
+
+- [x] Exact-scan module-live export candidates where files still have active imports.
+- [x] Remove only dead exports from task notification, unit-invoice report definitions, employee list, and community project analytics modules.
+- [x] Delete the unmounted debug modal and follow-on `use-debug-params` leaf.
+- [x] Refresh full Knip snapshot to the 498 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 5
+
+- [x] Exact-scan filter/query-param hook export candidates.
+- [x] Demote private schemas while preserving live hook and loader exports.
+- [x] Remove unreferenced inventory/sales-print loaders and duplicate customer-filter inbound view export.
+- [x] Remove dead static-trpc path/invalidate helpers while keeping legacy `_trpc` / `_qc` globals.
+- [x] Refresh full Knip snapshot to the 482 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 6
+
+- [x] Exact-scan schema/constants/helper export candidates.
+- [x] Demote local-only auth schemas and keep live auth form schemas.
+- [x] Remove unused legacy payment, dispatch, HRM, numeric, and currency helper exports.
+- [x] Demote `queryMeta` and remove stale constants/type exports.
+- [x] Refresh full Knip snapshot to the 469 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 7
+
+- [x] Exact-scan small UI/context/table export candidates.
+- [x] Demote local-only context and component helper exports while keeping providers, hooks, and compound components live.
+- [x] Remove unused Midday search-filter exports, stale table hook/aliases, and duplicate legacy sales-orders columns.
+- [x] Delete the unused generic `tables-2/core` bottom bar after confirming migrated tables use domain-specific bottom bars.
+- [x] Refresh full Knip snapshot to the 448 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 8
+
+- [x] Exact-scan small helper export candidates.
+- [x] Demote local-only status/id/loader/note context helpers behind live public wrappers.
+- [x] Remove the unused dev-flow `logError` wrapper while keeping active flow logger exports.
+- [x] Refresh full Knip snapshot to the 443 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 9
+
+- [x] Exact-scan small clean-code UI and helper export candidates.
+- [x] Demote local-only combo-box/table, sales-form, shelf, door, product variant, and sales-meta helpers.
+- [x] Remove definition-only upload/task-monitor helpers and unused `_v1/icons` `Icon` re-export.
+- [x] Refresh full Knip snapshot to the 428 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 10
+
+- [x] Exact-scan legacy clean-code sales-form modal export candidates.
+- [x] Demote local-only `useInitContext` helpers while keeping live modal opener exports.
+- [x] Demote unused modal component default/named exports and keep directly imported `door-size-modal` default export.
+- [x] Refresh full Knip snapshot to the 413 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 11
+
+- [x] Exact-scan sales DTO and utility mirror export candidates.
+- [x] Remove empty `salesStatisticDto` stubs from app/app-deps mirrors.
+- [x] Demote private DTO/dispatch helpers while preserving the live app-deps delivery helper import.
+- [x] Refresh full Knip snapshot to the 404 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 12
+
+- [x] Exact-scan low-risk UI/table export candidates.
+- [x] Delete unused page-tab TRPC wrapper file while keeping live `PageTabs` barrel export.
+- [x] Demote private scroll-header constants and remove unused aggregate table config accessor.
+- [x] Refresh full Knip snapshot to the 394 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 13
+
+- [x] Exact-scan clean-code data-table and sales utility export candidates.
+- [x] Demote private search-param parser/schema internals while keeping live parser/cache/serializer/type exports.
+- [x] Remove unused duplicate `composeStepFormDisplay` helpers from app/app-deps sales step utility mirrors.
+- [x] Demote item-control UID implementation helpers and remove the unused app-side shelf/generate helper path while keeping the live app-deps generate export.
+- [x] Refresh full Knip snapshot to the 386 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 14
+
+- [x] Exact-scan clean-code utility, table-settings, and percentile export candidates.
+- [x] Remove unused duplicate `dotArray` / `dotKeys` helpers while preserving live `dotObject` / `dotSet` utility exports.
+- [x] Demote table-settings default helpers behind exported `mergeWithDefaults`.
+- [x] Remove dead percentile value helpers while keeping the type export used by data-table query options.
+- [x] Refresh full Knip snapshot to the 376 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 15
+
+- [x] Exact-scan barrel and internal-helper export candidates.
+- [x] Demote email composer primitives behind the exported `mailComposer` object.
+- [x] Trim notification-center and table-core barrel re-exports while keeping live public barrel entries.
+- [x] Demote community-template v1 `FormSection` / `styler` internals while keeping concrete section exports.
+- [x] Refresh full Knip snapshot to the 366 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 16
+
+- [x] Exact-scan v2 unit invoice/production table export candidates.
+- [x] Remove unused `projectTabColumns` and card component exports from the v2 unit table column modules.
+- [x] Preserve live table `columns`, row types, and row id helpers imported by current skeleton/store/data-table modules.
+- [x] Refresh full Knip snapshot to the 362 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 17
+
+- [x] Exact-scan private helper export candidates.
+- [x] Demote custom-component combobox and model-install context internals while preserving live public builders/providers/hooks.
+- [x] Demote sidebar access-rule plumbing and remove unused active-link helper.
+- [x] Remove unused debug-toast hook/helper while keeping `useDebugConsole`.
+- [x] Refresh full Knip snapshot to the 354 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 18
+
+- [x] Exact-scan legacy helper export candidates.
+- [x] Remove unused packing item context exports while keeping the live packing provider/hook.
+- [x] Remove unused legacy Redux dispatch/static-list/navigation helper exports and stale breadcrumb while keeping the store reducer and live transform helper.
+- [x] Remove old unreferenced app-local DB query-builder/search helpers while keeping `transformDate`.
+- [x] Refresh full Knip snapshot to the 346 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 19
+
+- [x] Exact-scan dashboard params and app-local sales-control utility exports.
+- [x] Demote dashboard date/default-param internals while preserving live dashboard public APIs.
+- [x] Remove unused app-local sales-control stat composer and private-only quantity helpers while preserving live quantity exports.
+- [x] Remove the follow-on app-deps `generateItemControlUid` helper that only fed the deleted path.
+- [x] Refresh full Knip snapshot to the 337 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 20
+
+- [x] Exact-scan old static-data hooks, note/community helpers, filter-command helpers, and app-local sales data access.
+- [x] Trim `_v2` static-data hooks to the live `useBuilders` export and delete now-orphan static-loader action files.
+- [x] Remove unused note/community helper exports while preserving live note tag and community model/search helpers.
+- [x] Remove the detached sales filter preset/type island while preserving the live `__findFilterField` import.
+- [x] Delete the old app-local `data-access/sales.ts` module and remove its now-dead legacy date query helper.
+- [x] Refresh full Knip snapshot to the 302 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 21
+
+- [x] Exact-scan raw data-table/community-template context exports and legacy utility helper exports.
+- [x] Demote raw React context exports while preserving provider and hook exports.
+- [x] Demote the local-only clean-code `useDataTable` implementation export.
+- [x] Remove unused v1 action utility exports and root sales utility helper exports while preserving live neighboring APIs.
+- [x] Refresh full Knip snapshot to the 288 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 22
+
+- [x] Exact-scan action/static helper exports with no current imports.
+- [x] Remove unused cached sales-accounting filter, sidebar auth override, token validation, static tRPC bootstrap, and single-query tRPC prefetch exports while preserving live sibling APIs.
+- [x] Demote file-local role creation, takeoff root-component loading, and sales-settings tag constants.
+- [x] Convert value-dead `salesHaving` to the still-live type-only `SalesHaving` union.
+- [x] Refresh full Knip snapshot to the 279 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 23
+
+- [x] Exact-scan utility DB query-builder exports and shared `lib/utils.ts` export candidates.
+- [x] Demote internal DB `where*` helpers and the sales search parser while preserving live metadata/query exports.
+- [x] Remove unused `mergePermissionsQuery` while preserving `whereUsers`.
+- [x] Remove unused shared utility exports and demote `removeEmptyValues` to private use by `transformData`.
+- [x] Refresh full Knip snapshot to the 248 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 24
+
+- [x] Exact-scan chat barrel, old sales-accounting table, v1 cache helper, and old sales overview data-access candidates.
+- [x] Trim unused chat barrel and legacy sales-accounting table column exports while preserving live imports.
+- [x] Remove obsolete v1 cache read/write helpers while preserving `_cache`.
+- [x] Delete the old sales overview data-access/type utility pair and remove the now-stranded app-deps `SalesIncludeAll` include object.
+- [x] Refresh full Knip snapshot to the 242 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 25
+
+- [x] Exact-scan clean-code DB utility include/date helper candidates in app and app-deps mirrors.
+- [x] Remove unused infinite-list, Dyke-form include, app-side `SalesIncludeAll`, and app-side `composeQuery` export surfaces while preserving live include/filter imports.
+- [x] Remove unused generic date helper exports while keeping app-deps `anyDateQuery` and pagination helpers that still have callers.
+- [x] Demote the step price count include to file-local use by `SalesBookFormIncludes`.
+- [x] Refresh full Knip snapshot to the 227 export-candidate baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 26
+
+- [x] Exact-scan utility/action helper export candidates in sales utility mirrors, cached HRM, v1 session utilities, generic DB utils, and sales-form helper code.
+- [x] Remove unused exports while preserving live sales status/sort/URL/payment helpers, permissions cache, session/user/auth ID helpers, and current pagination imports.
+- [x] Remove the now-unused `bcrypt-ts` app dependency after exact source scans found no remaining `apps/www` import.
+- [x] Refresh split Knip snapshots to the 208 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 27
+
+- [x] Exact-scan legacy `_v1` table helper export candidates in row actions, base columns, and follow-on color helpers.
+- [x] Remove unused row-action wrapper exports while preserving live `DeleteRowAction` and `MenuItem`.
+- [x] Remove unused old base-column helper exports while preserving live `Cell`.
+- [x] Remove the follow-on unused `getBadgeColor` / `statusColor` helper path.
+- [x] Refresh split Knip snapshots to the 194 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 28
+
+- [x] Exact-scan legacy community unit modal, invoice item component slice, and sales type re-export candidates.
+- [x] Demote the unused `HomeModal` default export while preserving the live `useHomeModal` opener.
+- [x] Remove unused invoice item component action creator exports while preserving the mounted reducer.
+- [x] Remove the unused app-side `HousePackageToolMeta` re-export while preserving file-local type use and the app-deps type surface.
+- [x] Refresh split Knip snapshots to the 185 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 29
+
+- [x] Exact-scan legacy Cloudinary and revalidate helper exports.
+- [x] Remove the unused no-op Cloudinary `saveToDatabase` export while preserving live `getSignature`.
+- [x] Remove the unused raw `__revalidatePath` export while preserving live keyed `_revalidate`.
+- [x] Refresh split Knip snapshots to the 183 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 30
+
+- [x] Exact-scan old v1 community builder/project action exports and v1 action pagination utilities.
+- [x] Remove unused builder table/task mutation exports while preserving live `staticBuildersAction`.
+- [x] Remove unused community project table/update wrappers while preserving live `saveProject`, `staticProjectsAction`, and `updateProjectMeta`.
+- [x] Remove follow-on unused `queryFilter` / `getPageInfo` v1 action utilities while preserving live date helpers.
+- [x] Refresh split Knip snapshots to the 174 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 31
+
+- [x] Exact-scan old v1 auth, notification, community-template, and follow-on utility exports.
+- [x] Remove unused legacy auth reset/login exports while preserving live reset-request, email-login-link, and quick-login helpers.
+- [x] Remove unused old notification action exports while preserving live `INotification` and `_notify`.
+- [x] Remove unused old community-template mutation/import exports while preserving live `staticCommunity`.
+- [x] Remove follow-on unused app-local community cost/pivot and numeric helper exports.
+- [x] Refresh split Knip snapshots to the 153 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 32
+
+- [x] Exact-scan old sales-form wrapper and step-helper export candidates.
+- [x] Demote the app-local `getSalesBookFormUseCase` value export while preserving the live `GetSalesBookForm` type surface.
+- [x] Remove unused app/app-deps `getStepDta` and `validateNextStepIdDta` helpers.
+- [x] Remove the unused v1 `_getSalesFormAction` wrapper while preserving live `salesFormData`.
+- [x] Refresh split Knip snapshots to the 147 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 33
+
+- [x] Exact-scan app-deps sales-form step mirror exports.
+- [x] Remove unused app-deps step routing/delete/meta/update helpers that current callers do not import.
+- [x] Preserve app-deps `getSalesFormStepByIdDta`, which remains imported by app-deps sales-form data access.
+- [x] Refresh split Knip snapshots to the 140 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.
+
+## Export Candidate Triage Slice 34
+
+- [x] Exact-scan app-deps sales-book use-case, production list, production assignment, labor-cost, and customer-transaction candidates.
+- [x] Remove unused app-deps sales-book settings/copy/move use-case exports while preserving live form load/create/save exports.
+- [x] Demote internal production list/customer transaction helpers while preserving live exported entry points.
+- [x] Demote raw production assignment and labor-cost mutation helpers while preserving public safe-action wrappers.
+- [x] Refresh split Knip snapshots to the 129 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
+- [x] Update Brain report/progress with the export cleanup result.

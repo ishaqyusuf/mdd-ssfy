@@ -1,4 +1,5 @@
 import { LoginQuickAccess } from "@/components/login-quick-access";
+import { shouldUsePasswordMaskTypography } from "@/components/login-password-style";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useZodForm } from "@/components/use-zod-form";
@@ -240,7 +241,10 @@ export function LoginTemplate1() {
                               fontSize: 16,
                             },
                             inputStyle,
-                            !isPasswordVisible && passwordDotsStyle,
+                            shouldUsePasswordMaskTypography({
+                              value,
+                              isPasswordVisible,
+                            }) && passwordDotsStyle,
                           ]}
                         />
                         <Pressable

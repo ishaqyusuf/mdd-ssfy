@@ -8,7 +8,6 @@ import {
 } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { ICan } from "@/types/auth";
-import { cookies } from "next/headers";
 import {
     getUserSpecificPermissions,
     mergePermissionRecords,
@@ -98,13 +97,4 @@ export async function getLoggedInProfile(debugMode = false) {
     // return (await unstable_cache(fn, tags, {
     //     tags,
     // })()) as AsyncFnType<typeof fn>;
-}
-export async function setSidebarAuthId(userId, e) {
-    (await cookies()).set(
-        "side-bar-auth-id",
-        JSON.stringify({
-            userId,
-            roleId: e.role?.id,
-        })
-    );
 }

@@ -566,7 +566,7 @@ type ChatContentProps = {
 	placeholder?: string;
 };
 
-export function ChatContent({
+function ChatContent({
 	className,
 	placeholder = "Write a note...",
 }: ChatContentProps) {

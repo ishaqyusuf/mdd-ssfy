@@ -4,7 +4,7 @@ import { InventoryImport } from "@gnd/inventory/schema";
 import { parseAsStringEnum } from "nuqs/server";
 type FilterKeys = keyof InventoryImport;
 
-export const inventoryImportFilterParamsSchema = {
+const inventoryImportFilterParamsSchema = {
     q: parseAsString,
     scope: parseAsStringEnum(["active", "all"]),
 } satisfies Partial<Record<FilterKeys, any>>;

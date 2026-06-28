@@ -11,7 +11,7 @@ const deleteSalesAssignmentSchema = z.object({
     assignmentId: z.number(),
     itemUid: z.string(),
 });
-export async function deleteSalesAssignment(
+async function deleteSalesAssignment(
     data: z.infer<typeof deleteSalesAssignmentSchema>,
     tx: typeof prisma = prisma,
 ) {

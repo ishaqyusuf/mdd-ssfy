@@ -1,50 +1,15 @@
 import {
 	computeNormalizedSalesFormSummary,
 	composeSalesFormSavePayload,
-	createEmptySalesFormLineItem,
-	createSalesFormLineItemUid,
-	hydrateSalesFormRecord,
-	normalizeSalesFormExtraCosts,
-	normalizeSalesFormLineItem,
-	normalizeSalesFormLineItems,
-	normalizeSalesFormMeta,
 	repriceSalesFormLineItemsForProfile,
 } from "@gnd/sales/sales-form";
 import type {
 	NewSalesFormExtraCost,
 	NewSalesFormLineItem,
-	NewSalesFormMeta,
 	NewSalesFormRecord,
 	NewSalesFormSaveDraftInput,
 	NewSalesFormSummary,
 } from "./schema";
-
-export function createLineItemUid(index = 0) {
-	return createSalesFormLineItemUid(index);
-}
-
-export function createEmptyLineItem(index = 0): NewSalesFormLineItem {
-	return createEmptySalesFormLineItem(index) as NewSalesFormLineItem;
-}
-
-export function normalizeLineItem(
-	line: Partial<NewSalesFormLineItem>,
-	index = 0,
-): NewSalesFormLineItem {
-	return normalizeSalesFormLineItem(line, index) as NewSalesFormLineItem;
-}
-
-export function normalizeLineItems(
-	lines: Partial<NewSalesFormLineItem>[],
-): NewSalesFormLineItem[] {
-	return normalizeSalesFormLineItems(lines) as NewSalesFormLineItem[];
-}
-
-export function normalizeMeta(
-	meta: Partial<NewSalesFormMeta>,
-): NewSalesFormMeta {
-	return normalizeSalesFormMeta(meta) as NewSalesFormMeta;
-}
 
 export function repriceLineItemsByProfile(
 	lineItems: NewSalesFormLineItem[],
@@ -72,16 +37,6 @@ export function computeSummary(
 		paymentMethod,
 		cccPercentage,
 	) as NewSalesFormSummary;
-}
-
-export function normalizeExtraCosts(
-	costs: Partial<NewSalesFormExtraCost>[] = [],
-): NewSalesFormExtraCost[] {
-	return normalizeSalesFormExtraCosts(costs) as NewSalesFormExtraCost[];
-}
-
-export function hydrateRecord(record: NewSalesFormRecord): NewSalesFormRecord {
-	return hydrateSalesFormRecord(record) as NewSalesFormRecord;
 }
 
 export function toSaveDraftInput(

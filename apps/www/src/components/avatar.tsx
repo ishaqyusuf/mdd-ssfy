@@ -76,22 +76,3 @@ export function Avatar({
 		</AvatarRoot>
 	);
 }
-
-export function AvatarGroup({
-	users,
-}: {
-	users: { name?: string | null; url?: string | null }[];
-}) {
-	return (
-		<div className="flex -space-x-2">
-			{users.map((user, index) => (
-				<Avatar
-					key={`${user.name ?? "user"}-${user.url ?? index}`}
-					url={user.url}
-					name={user.name}
-					className="size-8 border-2 border-white dark:border-gray-800"
-				/>
-			))}
-		</div>
-	);
-}

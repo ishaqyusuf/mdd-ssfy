@@ -101,6 +101,14 @@ export type SearchNewSalesFormShelfProductsSchema = z.infer<
   typeof searchNewSalesFormShelfProductsSchema
 >;
 
+export const searchNewSalesFormServiceSuggestionsSchema = z.object({
+  query: z.string().trim().max(100).default(""),
+  limit: z.number().int().positive().max(50).default(12),
+});
+export type SearchNewSalesFormServiceSuggestionsSchema = z.infer<
+  typeof searchNewSalesFormServiceSuggestionsSchema
+>;
+
 export const updateNewSalesFormShelfProductSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().trim().min(1).max(255),

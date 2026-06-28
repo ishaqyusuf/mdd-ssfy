@@ -171,10 +171,6 @@ export async function getSaleByOrderIdDta(orderId) {
         },
     });
 }
-export async function deleteSalesByOrderId(orderId) {
-    const data = await getSaleByOrderIdDta(orderId);
-    await deleteSalesDta(data.id);
-}
 export async function deleteSalesDta(id) {
     return await prisma.salesOrders.update({
         where: {

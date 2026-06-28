@@ -615,7 +615,10 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
         const nextShared = preserveEmptyCreateLineItems
           ? recomputeSharedSummary(shared)
           : shared;
+        const isSavedRecord = Boolean(hydrated.salesId || hydrated.slug);
+
         set({
+          step: isSavedRecord ? "review" : current.step,
           type: (hydrated.type || "order") as NewSalesFormType,
           salesId: hydrated.salesId ?? null,
           slug: hydrated.slug ?? null,

@@ -27,11 +27,16 @@ export function getInvoiceListCardState(
 	type: SalesDocumentListType,
 	item: SalesDocumentListItem,
 ) {
-	const total = Number(item?.invoice?.total || 0);
-	const paid = Number(item?.invoice?.paid || 0);
-	const due = Number(item?.invoice?.pending || 0);
+	const principalTotal = Number(item?.invoice?.total || 0);
+	const principalPaid = Number(item?.invoice?.paid || 0);
+	const principalDue = Number(item?.invoice?.pending || 0);
+	const total = Number(item?.invoice?.displayTotal ?? principalTotal);
+	const paid = Number(item?.invoice?.displayPaid ?? principalPaid);
+	const due = Number(item?.invoice?.displayPending ?? principalDue);
 	const paidPct =
-		total > 0 ? Math.min(100, Math.max(0, (paid / total) * 100)) : 0;
+		principalTotal > 0
+			? Math.min(100, Math.max(0, (principalPaid / principalTotal) * 100))
+			: 0;
 	const quoteStatus = getQuoteInvoiceStatus(item);
 	const statusLabel =
 		type === "quote" ? quoteStatus : item?.deliveryStatus || "pending";
@@ -46,6 +51,29 @@ export function getInvoiceListCardState(
 		statusLabel,
 		total,
 	};
+}
+
+export function getInvoiceListLedgerLabels(
+	type: SalesDocumentListType,
+	due: number,
+) {
+	if (type === "quote") {
+		return {
+			total: "Quote Total",
+			due: null,
+		};
+	}
+
+	return {
+		total: "Total Amount",
+		due: due > 0 ? "Remaining Due" : "Balance",
+	};
+}
+
+export function shouldShowInvoiceListProgressFooter(
+	type: SalesDocumentListType,
+) {
+	return type === "order";
 }
 
 type Tone = {
@@ -101,7 +129,11 @@ export function getInvoiceListLedgerTone(
 			dueText: "text-emerald-700 dark:text-emerald-300",
 		};
 	}
-	if (normalized.includes("progress") || normalized.includes("part")) {
+	if (
+		normalized.includes("progress") ||
+		normalized.includes("part") ||
+		normalized === "open"
+	) {
 		return {
 			chip: "border-amber-200 dark:border-amber-800",
 			chipText: "text-amber-700 dark:text-amber-300",

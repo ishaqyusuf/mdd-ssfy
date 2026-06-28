@@ -25,7 +25,7 @@ import { authUser } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { createNoteAction } from "@/modules/notes/actions/create-note-action";
 export type GetSalesBookForm = AsyncFnType<typeof getSalesBookFormUseCase>;
-export async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
+async function getSalesBookFormUseCase(data: GetSalesBookFormDataProps) {
     const result = await getTransformedSalesBookFormDataDta(data);
     return await composeBookForm(result);
 }

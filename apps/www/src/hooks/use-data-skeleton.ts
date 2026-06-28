@@ -4,7 +4,7 @@ import { AsyncFnType } from "@/types";
 import { skeletonListData } from "@/utils/format";
 import { createContext, useContext, useEffect, useState } from "react";
 
-export const DataSkeletonContext = createContext<ReturnType<
+const DataSkeletonContext = createContext<ReturnType<
     typeof useCreateDataSkeletonCtx
 > | null>(null);
 

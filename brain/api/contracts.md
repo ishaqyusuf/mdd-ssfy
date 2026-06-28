@@ -27,12 +27,14 @@ Tracks important request/response contracts and shared schema boundaries.
   - API hydration treats DB grouping identity as authoritative and only uses persisted `order.meta.newSalesForm` for current editable row values
   - API save expands grouped projections back into legacy sibling `SalesOrderItems` rows sharing `multiDykeUid`; rows with `salesItemId` update/revive that legacy sibling, while newly added grouped rows without row-level legacy identity create new siblings instead of reusing the grouped parent line id
   - grouped moulding rows also write per-row `HousePackageTools`; rows with `hptId` update/revive that legacy HPT row, while newly added moulding rows without row-level HPT identity create new HPT rows instead of reusing the grouped parent HPT id
+  - `newSalesForm.searchServiceSuggestions({ query, limit })` returns unique uppercase service names from saved grouped service rows with `unitPrice`, `usageCount`, and `lastUsedAt`; blank query is recent-first, typed query filters by normalized service name, and the latest observed price wins per service
   - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option`, `ccc_percentage`, and display/backfill `ccc` remain available to evaluate printable/payable totals
   - order save payload composition defaults missing `form.paymentMethod` to `Credit Card` before summary calculation, so create/bootstrap mobile records persist payment metadata and C.C.C display values consistently with the visible default
 - Sales orders list C.C.C display contract:
   - `sales.getOrdersV2` keeps `amountDue` and stored `grandTotal` principal/base-only
   - order rows expose `baseInvoiceTotal`, `displayCcc`, and C.C.C-inclusive `invoiceTotal`
   - when the selected payment option applies C.C.C, the API repairs display C.C.C from `baseInvoiceTotal` and `ccc_percentage`; root `meta.ccc` is treated as a display cache and is ignored when stale or when a non-card method is selected
+  - legacy `sales.getOrders` / `sales.quotes` DTO rows keep `invoice.total`, `invoice.paid`, and `invoice.pending` principal/base-only while also exposing display-only `invoice.baseTotal`, `invoice.displayCcc`, `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for mobile cards and overview surfaces
 - Sales print C.C.C footer contract:
   - `print.salesV2` footer/meta payloads keep stored `SalesOrders.grandTotal` and `amountDue` as principal-only values
   - unpaid card-selected records split principal due from the payable card total: `Order Due Amount`, estimated `C.C.C`, and `Total Due With C.C.C`
@@ -43,7 +45,10 @@ Tracks important request/response contracts and shared schema boundaries.
   - overview DTO `costLines` use the same C.C.C/payment state helper as print so the old overview sheet, new overview Finance tab, and overview summary tab render the same labels and amounts without client-side C.C.C calculation
   - unpaid card-selected estimate lines repair C.C.C from the current principal `amountDue` before rendering `Order Due Amount`, `C.C.C`, and `Total Due With C.C.C`; partial/mixed records continue to show only safely matched recorded card-charge metadata
   - `sales.getSaleOverview` includes non-deleted payment rows plus linked transaction/Square metadata for recorded C.C.C extraction
+  - `sales.getSaleOverview` is a single-document contract and resolves by exact `orderId` plus sales `type`; list/search-style partial order matching belongs to list endpoints, not the overview fetch
+  - `sales.getSaleOverview` also returns `overviewItems[]` for mobile/document overview surfaces, with bounded non-deleted sales line rows containing `id`, display `title`, `subtitle`, `qty`, and `total`; order views may still prefer dispatch-enriched item rows when dispatch data is available
   - overview payment progress remains principal/order-based; when cost lines expose card-inclusive actuals, both old and new overview surfaces may add `Card Paid` or `Card Pending` alongside the principal paid/pending values
+  - mobile overview consumers may use `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for visible card-adjusted amounts, while `invoice.total`, `invoice.pending`, and `invoice.paid` remain the principal/order progress source
   - `sales.updatePaymentMethod({ salesId, paymentMethod })` updates order metadata for unpaid orders only, mirrors the value into `meta.newSalesForm.form.paymentMethod` when present, and rejects fully paid orders whose principal `amountDue` is zero or below
   - changing an unpaid order to a C.C.C-applicable payment method recalculates display/backfill `meta.ccc` from the current principal `amountDue`, not the original order total, so prior payments do not inflate the remaining card-payable estimate
 - Sales payment processor C.C.C contract:
@@ -70,6 +75,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - in development only, the API captures parsed save payloads for debugging under `debug/new-sales-form-save-payloads/YYYY-MM-DD/*.json`; this capture has no request/response shape impact, is not active in production, and file-write failures are logged without failing the save
 - Mobile sales dashboard contract:
   - `sales.mobileDashboardOverview.recentSales[]` returns card-ready recent order rows with `id`, `orderId`, `customerName`, `customerPhone`, `total`, `due`, `paid`, `createdAt`, and `deliveryOption`
+  - recent sales rows also include display-only `displayTotal`, `displayPending`, and `displayCcc` so mobile recent-sales cards can show C.C.C-adjusted card totals without changing principal `total`, `due`, or `paid`
 - Inventory browser validation fixture report contract:
   - `inventories.inventoryBrowserValidationFixtureReport` returns `status`, `summary`, `fixtures`, `missingFixtures`, `diagnostics`, and `nextAction`
   - every fixture row includes package-owned `workspaceHref`, `recommendedAction`, `seedFixtureId`, `seedPlanHref`, bounded `samples`, and `countDiagnostic`

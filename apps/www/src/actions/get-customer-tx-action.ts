@@ -204,10 +204,10 @@ export async function getCustomerTransactionsAction(query: SearchParamsType) {
     );
 }
 
-export type GetSalesCustomerTxOverview = AsyncFnType<
+type GetSalesCustomerTxOverview = AsyncFnType<
     typeof getSalesCustomerTxOverviewAction
 >;
-export async function getSalesCustomerTxOverviewAction(id) {
+async function getSalesCustomerTxOverviewAction(id) {
     const resp = await prisma.customerTransaction.findUnique({
         where: {
             id,

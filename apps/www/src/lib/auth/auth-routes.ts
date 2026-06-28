@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-export const AUTH_LOGIN_ROUTE = "/login/v2";
+const AUTH_LOGIN_ROUTE = "/login/v2";
 export const AUTH_LOGIN_ALIASES = ["/login", AUTH_LOGIN_ROUTE] as const;
 
 export function isAuthLoginPath(pathname: string) {

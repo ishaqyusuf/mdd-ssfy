@@ -1,106 +1,35 @@
 "use client";
 
-import { Fragment, useState } from "react";
 import { useTransition } from "@/utils/use-safe-transistion";
 
 import { useRouter } from "next/navigation";
 import { typedMemo } from "@/lib/hocs/typed-memo";
 import { useBool } from "@/lib/use-loader";
-import { cn } from "@/lib/utils";
 
-import { VariantProps } from "class-variance-authority";
 import { toast } from "sonner";
 
-import { Button, ButtonProps, buttonVariants } from "@gnd/ui/button";
+import { Button } from "@gnd/ui/button";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuItemProps,
+    type DropdownMenuItemProps,
     DropdownMenuShortcut,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
-    DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 
-import { IconKeys, Icons } from "../icons";
+import { type IconKeys, Icons } from "../icons";
 import LinkableNode from "../link-node";
 
-export function RowActionCell({ children }: { children? }) {
-    return (
-        <div className="flex items-center justify-end space-x-2">
-            {children}
-        </div>
-    );
-}
-interface RowActionMoreMenuProps {
-    children;
-    disabled?: boolean;
-    label?;
-    Icon?;
-    Trigger?;
-    noSize?: boolean;
-    variant?: VariantProps<typeof buttonVariants>["variant"];
-    open?;
-    onOpenChanged?;
-}
-export function RowActionMoreMenu({
-    children,
-    Icon = MoreHorizontal,
-    label,
-    disabled,
-    Trigger,
-    noSize,
-    open,
-    onOpenChanged,
-    variant = "outline",
-}: RowActionMoreMenuProps) {
-    const [_open, _onOpenChanged] = useState(open);
-    return (
-        <DropdownMenu
-            open={onOpenChanged ? open : _open}
-            onOpenChange={(e) => {
-                _onOpenChanged(e);
-                onOpenChanged?.(e);
-            }}
-        >
-            <DropdownMenuTrigger asChild>
-                {Trigger ? (
-                    Trigger
-                ) : (
-                    <Button
-                        disabled={disabled}
-                        variant={variant}
-                        className={cn(
-                            "flex h-8 space-x-4 ",
-                            !label && "w-8 p-0",
-                            variant == "default"
-                                ? "data-[state=open]:bg-muted-foreground"
-                                : "data-[state=open]:bg-muted",
-                        )}
-                    >
-                        {Icon && <Icon className="h-4 w-4" />}
-                        {label && <span className="">{label}</span>}
-                    </Button>
-                )}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className={!noSize && "w-[185px]"}>
-                {children}
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-}
-export const Menu = RowActionMoreMenu;
 type MenuItemProps = {
     link?;
     href?;
     Icon?;
     SubMenu?;
-    _blank?: Boolean;
+    _blank?: boolean;
     icon?: IconKeys;
 } & DropdownMenuItemProps; // PrimitiveDivProps &
-export function RowActionMenuItem({
+function RowActionMenuItem({
     link,
     href,
     children,
@@ -144,27 +73,6 @@ export function RowActionMenuItem({
     return <Frag />;
 }
 export const MenuItem = RowActionMenuItem;
-export function ActionButton({
-    Icon,
-    label,
-    className,
-    ...props
-}: ButtonProps & {
-    Icon?;
-    label?;
-}) {
-    if (Icon)
-        return (
-            <Button
-                variant="outline"
-                className={cn("flex h-8 w-8 p-0", className)}
-                {...props}
-            >
-                <Icon className={`h-4 w-4`} />
-                <span className="sr-only">{label}</span>
-            </Button>
-        );
-}
 interface DeleteRowActionProps {
     row?: any;
     action;
@@ -176,47 +84,6 @@ interface DeleteRowActionProps {
     loadingText?: string;
 }
 
-export const EditRowAction = typedMemo(
-    ({ onClick, menu, disabled }: { menu?: boolean } & ButtonProps) => {
-        const [isPending, startTransition] = useTransition();
-        const router = useRouter();
-
-        function _edit(e) {
-            onClick && onClick(e);
-        }
-        if (!menu)
-            return (
-                <Button
-                    variant="outline"
-                    disabled={isPending || disabled}
-                    className="flex h-8 w-8 p-0 "
-                    onClick={_edit}
-                >
-                    <Icons.edit
-                        className={`${
-                            isPending ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4"
-                        }`}
-                    />
-                    <span className="sr-only">Delete</span>
-                </Button>
-            );
-        return (
-            <DropdownMenuItem
-                disabled={isPending || disabled}
-                className=""
-                onClick={_edit}
-            >
-                <Icons.edit
-                    className={`mr-2 ${
-                        isPending ? "h-3.5 w-3.5 animate-spin" : "h-4 w-4"
-                    }`}
-                />
-
-                <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
-            </DropdownMenuItem>
-        );
-    },
-);
 export const DeleteRowAction = typedMemo(
     ({
         row,
@@ -257,7 +124,7 @@ export const DeleteRowAction = typedMemo(
                             // revalidatePath("");
                         },
                         {
-                            loading: loadingText || `Deleting...`,
+                            loading: loadingText || "Deleting...",
                             success(data) {
                                 return "Deleted Successfully";
                             },

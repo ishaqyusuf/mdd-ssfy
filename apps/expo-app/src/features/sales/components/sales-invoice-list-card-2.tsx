@@ -6,7 +6,9 @@ import {
 	getInvoiceListCardState,
 	getInvoiceListDeliveryIcon,
 	getInvoiceListInitials,
+	getInvoiceListLedgerLabels,
 	getInvoiceListLedgerTone,
+	shouldShowInvoiceListProgressFooter,
 	toInvoiceListMoney,
 } from "./sales-invoice-list-card-utils";
 
@@ -18,7 +20,8 @@ export function SalesInvoiceListCard2({
 }: SalesInvoiceListCardProps) {
 	const state = getInvoiceListCardState(type, item);
 	const tone = getInvoiceListLedgerTone(state.statusLabel, state.due);
-	const dueLabel = state.due > 0 ? "Remaining Due" : "Balance";
+	const ledgerLabels = getInvoiceListLedgerLabels(type, state.due);
+	const showProgressFooter = shouldShowInvoiceListProgressFooter(type);
 	const deliveryIcon = getInvoiceListDeliveryIcon(item?.deliveryOption);
 
 	return (
@@ -71,20 +74,22 @@ export function SalesInvoiceListCard2({
 			<View className="flex-row gap-4">
 				<LedgerAmount
 					accentClassName="border-primary"
-					label="Total Amount"
+					label={ledgerLabels.total}
 					value={toInvoiceListMoney(state.total)}
 					valueClassName="text-foreground"
 				/>
-				<LedgerAmount
-					accentClassName={tone.dueAccent}
-					label={dueLabel}
-					value={toInvoiceListMoney(state.due)}
-					valueClassName={tone.dueText}
-				/>
+				{ledgerLabels.due ? (
+					<LedgerAmount
+						accentClassName={tone.dueAccent}
+						label={ledgerLabels.due}
+						value={toInvoiceListMoney(state.due)}
+						valueClassName={tone.dueText}
+					/>
+				) : null}
 			</View>
 
-			<View className="flex-row flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3">
-				{type === "order" ? (
+			{showProgressFooter ? (
+				<View className="flex-row flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3">
 					<View className="flex-row items-center gap-1.5">
 						<Icon
 							name={deliveryIcon}
@@ -95,18 +100,20 @@ export function SalesInvoiceListCard2({
 							{item?.deliveryOption || "Standard"}
 						</Text>
 					</View>
-				) : null}
-				<View className="flex-row items-center gap-1.5">
-					<Icon
-						name="CircleDollarSign"
-						className="text-muted-foreground"
-						size={16}
-					/>
-					<Text className="text-[11px] font-medium text-muted-foreground">
-						{state.due <= 0 ? "Full Paid" : `${state.paidPct.toFixed(0)}% Paid`}
-					</Text>
+					<View className="flex-row items-center gap-1.5">
+						<Icon
+							name="CircleDollarSign"
+							className="text-muted-foreground"
+							size={16}
+						/>
+						<Text className="text-[11px] font-medium text-muted-foreground">
+							{state.due <= 0
+								? "Full Paid"
+								: `${state.paidPct.toFixed(0)}% Paid`}
+						</Text>
+					</View>
 				</View>
-			</View>
+			) : null}
 		</Pressable>
 	);
 }

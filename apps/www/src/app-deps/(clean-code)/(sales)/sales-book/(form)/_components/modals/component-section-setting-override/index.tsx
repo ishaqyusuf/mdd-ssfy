@@ -31,7 +31,7 @@ const useCtx = () => useContext(Context);
 export function openSectionSettingOverride(cls: ComponentHelperClass) {
     _modal.openModal(<ComponentVariantModal cls={cls} />);
 }
-export function useInitContext(cls: ComponentHelperClass, componentsUid) {
+function useInitContext(cls: ComponentHelperClass, componentsUid) {
     const [componentUid, ...rest] = componentsUid;
     const stepUid = cls.stepUid;
     const zus = useFormDataStore();
@@ -73,7 +73,7 @@ export function useInitContext(cls: ComponentHelperClass, componentsUid) {
         componentsUid,
     };
 }
-export default function ComponentVariantModal({ cls }: Props) {
+function ComponentVariantModal({ cls }: Props) {
     const form = useForm({
         defaultValues: cls.component?.sectionOverride || {
             hasSwing: false,

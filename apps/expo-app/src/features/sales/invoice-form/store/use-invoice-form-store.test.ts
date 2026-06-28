@@ -53,6 +53,19 @@ describe("useInvoiceFormStore customer selection", () => {
 		expect(firstStepTitle(lineItems[0])).toBe("Item Type");
 	});
 
+	it("opens persisted edit records on the final review step", () => {
+		const record = {
+			...createMockNewSalesFormRecord("order"),
+			salesId: 4812,
+			slug: "order-4812",
+		};
+
+		useInvoiceFormStore.getState().actions.setStep("customer");
+		useInvoiceFormStore.getState().actions.hydrateFromRecord(record);
+
+		expect(useInvoiceFormStore.getState().step).toBe("review");
+	});
+
 	it("keeps credit card default through create bootstrap save payloads", () => {
 		const customer = invoiceCustomers[0];
 		if (!customer) throw new Error("Expected an invoice customer fixture.");

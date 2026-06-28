@@ -15,7 +15,7 @@ export function DoorSupplierBadge({ itemStepUid }) {
         </Suspense>
     );
 }
-export function Content({ itemStepUid }) {
+function Content({ itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
     const isDoor = ctx.cls.isDoor();
     const door = ctx.cls?.getDoorStepForm2();
@@ -70,4 +70,3 @@ export function Content({ itemStepUid }) {
         </>
     );
 }
-

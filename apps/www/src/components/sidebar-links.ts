@@ -116,7 +116,7 @@ export type Access = {
 	equator: "is" | "isNot" | "in" | "notIn" | "every" | "some";
 	values: string[];
 };
-export const __access = (
+const __access = (
 	type: Access["type"],
 	equator: Access["equator"],
 	...values
@@ -772,25 +772,4 @@ export function getLinkModules(_linkModules = linkModules) {
 		totalLinks,
 		noSidebar,
 	};
-}
-
-export function getActiveLinkFromMap(
-	pathName: string | null | undefined,
-	linksNameMap: ReturnType<typeof getLinkModules>["linksNameMap"],
-) {
-	const normalizedPath = pathName?.toLocaleLowerCase();
-	if (!normalizedPath) return undefined;
-
-	const exactMatch = Object.entries(linksNameMap || {}).find(
-		([href]) => href?.toLocaleLowerCase() === normalizedPath,
-	)?.[1];
-	if (exactMatch) return exactMatch;
-
-	return Object.entries(linksNameMap || {})
-		.filter(
-			([href, data]) =>
-				data.match === "part" &&
-				normalizedPath.startsWith(href?.toLocaleLowerCase()),
-		)
-		.sort(([hrefA], [hrefB]) => hrefB.length - hrefA.length)?.[0]?.[1];
 }

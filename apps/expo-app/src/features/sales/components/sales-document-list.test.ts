@@ -1,9 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import {
 	buildSalesDocumentListQueryInput,
+	getOrderOverviewRoute,
 	getQuoteEditRoute,
 	getQuoteInvoiceStatus,
+	getQuoteOverviewRoute,
 } from "./sales-document-list";
+import {
+	getInvoiceListCardState,
+	getInvoiceListLedgerLabels,
+	shouldShowInvoiceListProgressFooter,
+} from "./sales-invoice-list-card-utils";
 
 describe("mobile sales document list helpers", () => {
 	it("normalizes order list query input without changing the sales type", () => {
@@ -56,6 +63,28 @@ describe("mobile sales document list helpers", () => {
 		expect(getQuoteEditRoute({})).toBeNull();
 	});
 
+	it("builds quote overview routes from quote numbers without requiring a slug", () => {
+		expect(getQuoteOverviewRoute({ orderId: " 03214LM " })).toEqual({
+			pathname: "/(sales)/quotes/[quoteNo]",
+			params: {
+				quoteNo: "03214LM",
+			},
+		});
+		expect(getQuoteOverviewRoute({ orderId: "" })).toBeNull();
+		expect(getQuoteOverviewRoute({})).toBeNull();
+	});
+
+	it("keeps order overview routes pointed at the existing order detail screen", () => {
+		expect(getOrderOverviewRoute({ orderId: " 08499PC " })).toEqual({
+			pathname: "/(sales)/orders/[orderNo]",
+			params: {
+				orderNo: "08499PC",
+			},
+		});
+		expect(getOrderOverviewRoute({ orderId: "" })).toBeNull();
+		expect(getOrderOverviewRoute({})).toBeNull();
+	});
+
 	it("labels quote invoice status from pending and total amounts", () => {
 		expect(getQuoteInvoiceStatus({ invoice: { total: 100, pending: 0 } })).toBe(
 			"Paid",
@@ -66,5 +95,46 @@ describe("mobile sales document list helpers", () => {
 		expect(
 			getQuoteInvoiceStatus({ invoice: { total: 100, pending: 25 } }),
 		).toBe("Part paid");
+	});
+
+	it("uses quote-specific list ledger labels without remaining due copy", () => {
+		expect(getInvoiceListLedgerLabels("quote", 25)).toEqual({
+			total: "Quote Total",
+			due: null,
+		});
+		expect(shouldShowInvoiceListProgressFooter("quote")).toBe(false);
+	});
+
+	it("preserves order list ledger labels and progress footer", () => {
+		expect(getInvoiceListLedgerLabels("order", 25)).toEqual({
+			total: "Total Amount",
+			due: "Remaining Due",
+		});
+		expect(getInvoiceListLedgerLabels("order", 0)).toEqual({
+			total: "Total Amount",
+			due: "Balance",
+		});
+		expect(shouldShowInvoiceListProgressFooter("order")).toBe(true);
+	});
+
+	it("uses card-adjusted display amounts while keeping principal progress", () => {
+		expect(
+			getInvoiceListCardState("order", {
+				orderId: "08499PC",
+				deliveryStatus: "pending",
+				invoice: {
+					total: 1000,
+					paid: 250,
+					pending: 750,
+					displayTotal: 1035,
+					displayPending: 776.25,
+				},
+			}),
+		).toMatchObject({
+			due: 776.25,
+			paid: 250,
+			paidPct: 25,
+			total: 1035,
+		});
 	});
 });

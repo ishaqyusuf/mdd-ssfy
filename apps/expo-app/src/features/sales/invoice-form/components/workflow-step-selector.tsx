@@ -13,7 +13,6 @@ import {
   clearUnpricedDoorRowQty,
   computeHptSharedDoorSurcharge,
   deriveDoorSizeRows,
-  firstPendingStepIndex,
   getItemWorkflowStepFamily,
   getRouteConfigForLine,
   getDoorSupplierMeta,
@@ -101,6 +100,10 @@ import {
   shouldShowWorkflowProceedAction,
 } from "./workflow-proceed-visibility";
 import {
+  getWorkflowInitialStepIndex,
+  type WorkflowInitialStepPreference,
+} from "./workflow-step-initial-step";
+import {
   filterWorkflowComponentsBySearch,
   getWorkflowProceedFallbackSelectedCount,
   limitWorkflowComponents,
@@ -170,6 +173,7 @@ export function WorkflowStepSelector({
   line,
   onClose,
   presentation = "overlay",
+  initialStepPreference,
   footerActionsHidden = false,
   onComponentScroll,
   formScrollY = 0,
@@ -177,10 +181,12 @@ export function WorkflowStepSelector({
   onStickyHeaderChange,
   onInlineProceedActionChange,
   onLineItemEditorChange,
+  onActiveStepOpened,
 }: {
   line: NewSalesFormLineItem;
   onClose: () => void;
   presentation?: "overlay" | "inline";
+  initialStepPreference?: WorkflowInitialStepPreference;
   footerActionsHidden?: boolean;
   onComponentScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   formScrollY?: number;
@@ -190,6 +196,7 @@ export function WorkflowStepSelector({
     entry: WorkflowFloatingActionEntry | null,
   ) => void;
   onLineItemEditorChange?: (entry: WorkflowLineItemEditorEntry | null) => void;
+  onActiveStepOpened?: () => void;
 }) {
   const inline = presentation === "inline";
   const currentLine =
@@ -198,9 +205,16 @@ export function WorkflowStepSelector({
     ) || line;
   const steps = useMemo(() => getWorkflowSteps(currentLine), [currentLine]);
   const [activeStepIndex, setActiveStepIndex] = useState(() =>
-    initialStepIndex(steps, presentation),
+    getWorkflowInitialStepIndex({
+      steps,
+      presentation,
+      preference: initialStepPreference,
+    }),
   );
   const activeLineUidRef = useRef(currentLine.uid);
+  const activeStepOpenedInitializedRef = useRef(false);
+  const onActiveStepOpenedRef = useRef(onActiveStepOpened);
+  onActiveStepOpenedRef.current = onActiveStepOpened;
   const [doorSizeComponent, setDoorSizeComponent] =
     useState<WorkflowComponentRecord | null>(null);
   const [doorSizeRows, setDoorSizeRows] = useState<DoorStoredRow[]>([]);
@@ -464,12 +478,28 @@ export function WorkflowStepSelector({
   useEffect(() => {
     if (activeLineUidRef.current === currentLine.uid) return;
     activeLineUidRef.current = currentLine.uid;
-    setActiveStepIndex(initialStepIndex(steps, presentation));
-  }, [currentLine.uid, presentation, steps]);
+    activeStepOpenedInitializedRef.current = false;
+    setActiveStepIndex(
+      getWorkflowInitialStepIndex({
+        steps,
+        presentation,
+        preference: initialStepPreference,
+      }),
+    );
+  }, [currentLine.uid, initialStepPreference, presentation, steps]);
 
   useEffect(() => {
     setComponentSearchQuery("");
   }, [activeStepUid]);
+
+  useEffect(() => {
+    if (!inline) return;
+    if (!activeStepOpenedInitializedRef.current) {
+      activeStepOpenedInitializedRef.current = true;
+      return;
+    }
+    onActiveStepOpenedRef.current?.();
+  }, [activeStepIndex, inline]);
 
   useEffect(() => {
     if (!pendingMultiSelectCount) return;
@@ -1467,18 +1497,6 @@ function WorkflowStepPills({
       })}
     </ScrollView>
   );
-}
-
-function firstEditableStepIndex(steps: WorkflowStepRecord[]) {
-  return resolveInteractiveStepIndex(steps, firstPendingStepIndex(steps));
-}
-
-function initialStepIndex(
-  steps: WorkflowStepRecord[],
-  presentation: "overlay" | "inline",
-) {
-  if (presentation === "inline") return 0;
-  return firstEditableStepIndex(steps);
 }
 
 function resolveWorkflowSelectorNotice({

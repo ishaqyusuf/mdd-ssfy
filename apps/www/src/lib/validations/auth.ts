@@ -1,5 +1,5 @@
 import { z } from "zod";
-export const authSchema = z.object({
+const authSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address",
   }),
@@ -14,7 +14,7 @@ export const authSchema = z.object({
   //     "Password must contain at least 6 characters, one uppercase, one lowercase, one number and one special character",
   // }),
 });
-export const loginSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email(),
   password: z.string(), //.min(4).max(12)
 });
@@ -22,14 +22,6 @@ export const loginSchema = z.object({
 export type ILogin = z.infer<typeof loginSchema>;
 export const checkEmailSchema = z.object({
   email: authSchema.shape.email,
-});
-export const verfifyEmailSchema = z.object({
-  code: z
-    .string()
-    .min(6, {
-      message: "Verification code must be 6 characters long",
-    })
-    .max(6),
 });
 export const resetPasswordSchema = z
   .object({

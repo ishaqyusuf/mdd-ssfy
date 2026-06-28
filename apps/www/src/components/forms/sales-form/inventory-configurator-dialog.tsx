@@ -18,7 +18,7 @@ type InventoryConfiguratorDialogProps = {
 	onOpenChange: (open: boolean) => void;
 };
 
-export function InventoryConfiguratorDialog({
+function InventoryConfiguratorDialog({
 	open,
 	salesOrderId,
 	onOpenChange,

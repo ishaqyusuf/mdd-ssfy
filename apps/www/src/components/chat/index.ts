@@ -1,4 +1,4 @@
-export { Chat, ChatContent, useChat } from "./chat";
+export { Chat, useChat } from "./chat";
 export type {
   ChatProps,
   ChatOption,

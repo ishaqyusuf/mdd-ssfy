@@ -4,7 +4,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 
 type JobOverviewContextProps = ReturnType<typeof useCreateJobOverviewContext>;
-export const JobOverviewContext = createContext<JobOverviewContextProps>(
+const JobOverviewContext = createContext<JobOverviewContextProps>(
     undefined as any,
 );
 export const JobOverviewProvider = JobOverviewContext.Provider;

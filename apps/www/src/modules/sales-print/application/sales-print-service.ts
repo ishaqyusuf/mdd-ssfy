@@ -123,7 +123,7 @@ export function resolveSalesPrintMode(
     return normalizeSalesPrintMode(mode, salesType);
 }
 
-export function buildSalesPrintViewerUrl(
+function buildSalesPrintViewerUrl(
     access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
     options?: {
         preview?: boolean;
@@ -136,7 +136,7 @@ export function buildSalesPrintViewerUrl(
     return buildSalesDocumentRouteUrl(PRINT_VIEWER_PATH, access, options);
 }
 
-export function buildSalesDocumentPreviewUrl(
+function buildSalesDocumentPreviewUrl(
     access: Pick<ResolveSalesDocumentAccessResult, "accessToken" | "kind">,
     options?: {
         templateId?: string | null;
@@ -396,17 +396,6 @@ export async function regenerateSalesPrintDocument(
     );
 }
 
-export async function prepareSalesPrintPreview(
-    request: SalesPrintRequest,
-    dependencies: SalesPrintDependencies = defaultDependencies,
-) {
-    const access = await resolveSalesPrintAccess(request, dependencies);
-    return buildSalesDocumentPreviewUrl(access, {
-        templateId: request.templateId,
-        pricingMode: request.pricingMode ?? null,
-    });
-}
-
 export async function prepareSalesHtmlPreview(
     request: SalesPrintRequest,
     dependencies: SalesPrintDependencies = defaultDependencies,
@@ -418,26 +407,12 @@ export async function prepareSalesHtmlPreview(
     });
 }
 
-export function printOrder(request: Omit<SalesPrintRequest, "mode">) {
-    return openSalesPrintDocument({ ...request, mode: "invoice" });
-}
-
-export function printOrderWithPacking(
-    request: Omit<SalesPrintRequest, "mode">,
-) {
-    return openSalesPrintDocument({ ...request, mode: "order-packing" });
-}
-
 export function printPackingSlip(request: Omit<SalesPrintRequest, "mode">) {
     return openSalesPrintDocument({ ...request, mode: "packing-slip" });
 }
 
 export function printProduction(request: Omit<SalesPrintRequest, "mode">) {
     return openSalesPrintDocument({ ...request, mode: "production" });
-}
-
-export function printQuote(request: Omit<SalesPrintRequest, "mode">) {
-    return openSalesPrintDocument({ ...request, mode: "quote" });
 }
 
 function buildSalesDocumentRouteUrl(

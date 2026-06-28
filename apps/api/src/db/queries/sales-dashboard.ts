@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import { Prisma } from "@gnd/db";
 import type { SalesType } from "@sales/types";
 import {
@@ -335,6 +336,7 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
         createdAt: true,
         grandTotal: true,
         amountDue: true,
+        meta: true,
         deliveryOption: true,
         customer: {
           select: {
@@ -383,17 +385,35 @@ export async function getMobileSalesDashboardOverview(ctx: TRPCContext) {
     },
     production,
     delivery,
-    recentSales: recentOrders.map((order) => ({
-      id: order.id,
-      orderId: order.orderId,
-      customerName: order.customer?.businessName || order.customer?.name || "-",
-      customerPhone: order.customer?.phoneNo || null,
-      total: Number(order.grandTotal || 0),
-      due: Number(order.amountDue || 0),
-      paid: Number(order.grandTotal || 0) - Number(order.amountDue || 0),
-      createdAt: order.createdAt?.toISOString() || null,
-      deliveryOption: order.deliveryOption || null,
-    })),
+    recentSales: recentOrders.map((order) => {
+      const invoiceDisplay = repairSalesInvoiceCccDisplay({
+        baseTotal: order.grandTotal,
+        meta: order.meta,
+      });
+      const pendingDisplay = repairSalesInvoiceCccDisplay({
+        baseTotal: order.amountDue,
+        paymentMethod: invoiceDisplay.paymentMethod,
+        cccPercentage: invoiceDisplay.cccPercentage,
+        meta: order.meta,
+      });
+      const total = Number(order.grandTotal || 0);
+      const due = Number(order.amountDue || 0);
+
+      return {
+        id: order.id,
+        orderId: order.orderId,
+        customerName: order.customer?.businessName || order.customer?.name || "-",
+        customerPhone: order.customer?.phoneNo || null,
+        total,
+        due,
+        paid: total - due,
+        displayTotal: invoiceDisplay.totalWithCcc,
+        displayPending: pendingDisplay.totalWithCcc,
+        displayCcc: invoiceDisplay.ccc,
+        createdAt: order.createdAt?.toISOString() || null,
+        deliveryOption: order.deliveryOption || null,
+      };
+    }),
     updatedAt: new Date().toISOString(),
   };
 }

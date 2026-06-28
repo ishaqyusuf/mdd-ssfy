@@ -34,7 +34,7 @@ const dynamicRedirectMaps = {
     "/jobs/:taskType": "/jobs-dashboard",
     // "/sales-book/productions/:salesNo": "/sales-book/productions/v2/:salesNo",
 } as const;
-export const redirectRules: RedirectRule[] = [
+const redirectRules: RedirectRule[] = [
     ...Object.entries(exactRedirectMaps).map(([from, to]) => ({
         from,
         to,

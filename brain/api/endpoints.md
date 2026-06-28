@@ -32,6 +32,7 @@ Tracks notable API surfaces and where they are implemented.
   - `filters.salesOrdersV2`: filter metadata query used by `SalesOrdersV2Header`
 - New sales form shelf product routes now include:
   - `newSalesForm.searchShelfProducts`: mobile and web shelf picker search; blank query returns up to 10 visible recently used shelf products ordered by latest saved shelf line usage, skipping archived/hidden recent products without filling from unused active products; unused active shelf products are only shown through typed search or selected-product hydration
+  - `newSalesForm.searchServiceSuggestions`: mobile Service line suggestion search; blank query returns unique recent service names derived from saved grouped service rows, while typed query filters by normalized service name and returns the latest observed unit price for each service
   - `newSalesForm.updateShelfProduct`: updates a shelf product title and unit price for the mobile shelf search edit action
   - `newSalesForm.deleteShelfProduct`: soft-deletes a shelf product for the mobile shelf search delete action
 - Dispatch / pickup packing routes now include:

@@ -49,7 +49,7 @@ export function ProductionItemAssignments() {
         </ProductionItemAssignmentsProvider>
     );
 }
-export function Content() {
+function Content() {
     const ctx = useProductionAssignments();
     const { data, item } = ctx;
     const [open, setOpen] = useState(

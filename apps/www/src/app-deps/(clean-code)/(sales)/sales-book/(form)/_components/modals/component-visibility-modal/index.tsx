@@ -35,7 +35,7 @@ export function openComponentVariantModal(
         <ComponentVariantModal componentsUid={componentsUid} cls={cls} />,
     );
 }
-export function useInitContext(cls: ComponentHelperClass, componentsUid) {
+function useInitContext(cls: ComponentHelperClass, componentsUid) {
     const [componentUid, ...rest] = componentsUid;
     const stepUid = cls.stepUid;
     const zus = useFormDataStore();
@@ -82,7 +82,7 @@ export function useInitContext(cls: ComponentHelperClass, componentsUid) {
         componentsUid,
     };
 }
-export default function ComponentVariantModal({ cls, componentsUid }: Props) {
+function ComponentVariantModal({ cls, componentsUid }: Props) {
     const ctx = useInitContext(cls, componentsUid);
 
     return (

@@ -1,7 +1,4 @@
-import type {
-	AddressBookMeta,
-	SalesDispatchStatus,
-} from "@/app-deps/(clean-code)/(sales)/types";
+import type { AddressBookMeta } from "@/app-deps/(clean-code)/(sales)/types";
 import type { DeliveryOption } from "@/types/sales";
 import { salesPaymentProcessorApplyPaymentSchema } from "@gnd/sales/payment-system/contracts";
 import {
@@ -94,46 +91,7 @@ export const createCustomerSchema = z
 			});
 		}
 	});
-export const createPaymentSchemaOld = z
-	.object({
-		paymentMethod: z.enum([
-			"link",
-			"terminal",
-			"check",
-			"cash",
-			"zelle",
-			"credit-card",
-			"wire",
-		]),
-		amount: z.number(),
-		checkNo: z.string().optional(),
-		deviceId: z.string().optional(),
-		enableTip: z.boolean().optional(),
-	})
-	.superRefine((data, ctx) => {
-		if (data.paymentMethod === "check" && !data.checkNo) {
-			ctx.addIssue({
-				path: ["checkNo"],
-				message: "Check No is required",
-				code: "custom",
-			});
-		}
-		if (data.paymentMethod === "terminal" && !data.deviceId) {
-			ctx.addIssue({
-				path: ["deviceId"],
-				message: "Device Id is required",
-				code: "custom",
-			});
-		} else {
-		}
-	});
 export const createPaymentSchema = salesPaymentProcessorApplyPaymentSchema;
-export const updateDispatchStatusSchema = z.object({
-	orderId: z.number(),
-	deliveryId: z.number(),
-	status: z.string() as z.ZodType<SalesDispatchStatus>,
-	oldStatus: z.string() as z.ZodType<SalesDispatchStatus>,
-});
 export const createSalesDispatchItemsSchema = z.object({
 	// deliveryMode: z.string(),
 	orderId: z.number(),

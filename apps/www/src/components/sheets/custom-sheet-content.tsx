@@ -67,7 +67,7 @@ export function CustomSheet(props: Props) {
         </SheetProvider>
     );
 }
-export function CustomSheetBase({
+function CustomSheetBase({
     children,
     open,
     onOpenChange,

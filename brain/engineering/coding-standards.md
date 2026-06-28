@@ -37,8 +37,9 @@ Repository-level implementation rules that recur across active workstreams.
 
 Agents must treat these global coding rule references as non-negotiable:
 
-- `/Users/M1PRO/.codex/skills/personal-coding-rules/references/global.md`
-- `/Users/M1PRO/.codex/skills/personal-coding-rules/references/expo.md`
+- `/Users/M1PRO/.me/coding-standards/global.md`
+- `/Users/M1PRO/.me/coding-standards/nextjs.md`
+- `/Users/M1PRO/.me/coding-standards/expo.md`
 
 Project-specific exceptions require an ADR in `brain/decisions/` before agents may diverge.
 <!-- personal-coding-rules:end -->

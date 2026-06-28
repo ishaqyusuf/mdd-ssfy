@@ -14,6 +14,7 @@ import {
 	saveDraftNewSalesForm,
 	saveFinalNewSalesForm,
 	searchNewSalesCustomers,
+	searchNewSalesFormServiceSuggestions,
 	searchNewSalesFormShelfProducts,
 	updateNewSalesFormShelfProduct,
 } from "@api/db/queries/new-sales-form";
@@ -32,6 +33,7 @@ import {
 	saveDraftNewSalesFormSchema,
 	saveFinalNewSalesFormSchema,
 	searchNewSalesCustomersSchema,
+	searchNewSalesFormServiceSuggestionsSchema,
 	searchNewSalesFormShelfProductsSchema,
 	updateNewSalesFormShelfProductSchema,
 } from "@api/schemas/new-sales-form";
@@ -74,6 +76,11 @@ export const newSalesFormRouter = createTRPCRouter({
 		.input(searchNewSalesFormShelfProductsSchema)
 		.query(async (props) => {
 			return searchNewSalesFormShelfProducts(props.ctx, props.input);
+		}),
+	searchServiceSuggestions: protectedProcedure
+		.input(searchNewSalesFormServiceSuggestionsSchema)
+		.query(async (props) => {
+			return searchNewSalesFormServiceSuggestions(props.ctx, props.input);
 		}),
 	updateShelfProduct: protectedProcedure
 		.input(updateNewSalesFormShelfProductSchema)

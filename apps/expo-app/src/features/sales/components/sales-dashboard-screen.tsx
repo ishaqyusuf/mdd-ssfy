@@ -3,17 +3,15 @@ import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { Pressable } from "@/components/ui/pressable";
 import { useSalesDashboardOverview } from "@/features/sales/api/use-sales-dashboard-overview";
-import { useAuthContext } from "@/hooks/use-auth";
 import { useRouter } from "expo-router";
 import { RefreshControl, ScrollView, Text, View } from "react-native";
-import { NewSalesTypeSheet } from "./new-sales-type-sheet";
+import { SalesDashboardActionSheet } from "./sales-dashboard-action-sheet";
 import { toRecentSalesDocumentItem } from "./sales-dashboard-recent-sales";
 import { SalesDashboardSkeleton } from "./sales-dashboard-skeleton";
 import { SalesInvoiceListCard2 } from "./sales-invoice-list-card-2";
 
 export function SalesDashboardScreen() {
 	const router = useRouter();
-	const auth = useAuthContext();
 	const { data, isPending, refetch, isRefetching } =
 		useSalesDashboardOverview();
 
@@ -64,8 +62,6 @@ export function SalesDashboardScreen() {
 							</View>
 
 							<View className="gap-3">
-								<NewSalesTypeSheet />
-
 								<Pressable
 									onPress={() => router.push("/(sales)/orders")}
 									className="rounded-2xl border border-border bg-card p-4 active:opacity-80"
@@ -114,7 +110,7 @@ export function SalesDashboardScreen() {
 													Quotes
 												</Text>
 												<Text className="text-xs text-muted-foreground">
-													Search and edit customer quotes
+													Search and review customer quotes
 												</Text>
 											</View>
 										</View>
@@ -168,16 +164,9 @@ export function SalesDashboardScreen() {
 					)}
 				</View>
 			</View>
-			{auth.isAdmin ? (
-				<View className="absolute bottom-8 right-5">
-					<Pressable
-						onPress={() => router.push("/(sales)/dispatch/new")}
-						className="h-14 w-14 items-center justify-center rounded-full bg-primary shadow-md active:opacity-85"
-					>
-						<Icon name="Plus" className="text-primary-foreground" size={24} />
-					</Pressable>
-				</View>
-			) : null}
+			<View className="absolute bottom-8 right-5">
+				<SalesDashboardActionSheet />
+			</View>
 		</SafeArea>
 	);
 }

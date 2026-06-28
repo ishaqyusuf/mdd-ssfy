@@ -42,7 +42,7 @@ export async function getTakeOffContext() {
         sections,
     };
 }
-export async function getRootStepComponents(uids) {
+async function getRootStepComponents(uids) {
     const tags = [Tags.rootStepComponents];
     return unstable_cache(
         async () => {

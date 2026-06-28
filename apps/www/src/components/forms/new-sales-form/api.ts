@@ -1,5 +1,5 @@
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import type {
 	NewSalesFormBootstrapInput,
 	NewSalesFormDeleteLineItemInput,
@@ -102,22 +102,6 @@ export function useNewSalesFormShelfProductSearchQuery(
 			enabled,
 			refetchOnWindowFocus: false,
 		}),
-	);
-}
-
-export function useNewSalesFormSearchCustomersQuery(query?: string | null) {
-	const trpc = useTRPC();
-	const q = query?.trim();
-	return useQuery(
-		trpc.newSalesForm.searchCustomers.queryOptions(
-			{
-				query: q || "",
-				limit: 10,
-			},
-			{
-				enabled: !!q,
-			},
-		),
 	);
 }
 
@@ -238,11 +222,6 @@ export function useNewSalesFormResolveCustomerQuery(
 	);
 }
 
-export function useRecalculateNewSalesFormMutation() {
-	const trpc = useTRPC();
-	return useMutation(trpc.newSalesForm.recalculate.mutationOptions());
-}
-
 export function useSaveDraftNewSalesFormMutation() {
 	const trpc = useTRPC();
 	return useMutation(trpc.newSalesForm.saveDraft.mutationOptions());
@@ -251,30 +230,6 @@ export function useSaveDraftNewSalesFormMutation() {
 export function useSaveFinalNewSalesFormMutation() {
 	const trpc = useTRPC();
 	return useMutation(trpc.newSalesForm.saveFinal.mutationOptions());
-}
-
-export function useDeleteNewSalesFormLineItemMutation() {
-	const trpc = useTRPC();
-	return useMutation(trpc.newSalesForm.deleteLineItem.mutationOptions());
-}
-
-export function useNewSalesFormCache() {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	return {
-		async invalidateGet(input: Partial<NewSalesFormGetInput>) {
-			if (!input.slug || !input.type) return;
-			await queryClient.invalidateQueries({
-				queryKey: trpc.newSalesForm.get.queryKey({
-					slug: input.slug,
-					type: input.type,
-				}),
-			});
-		},
-		async setGet(input: NewSalesFormGetInput, updater: (oldData: any) => any) {
-			queryClient.setQueryData(trpc.newSalesForm.get.queryKey(input), updater);
-		},
-	};
 }
 
 export type NewSalesFormApiInputs = {

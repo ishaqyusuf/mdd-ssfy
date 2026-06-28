@@ -211,7 +211,7 @@ describe("workflow row patches", () => {
 		const context = buildWorkflowServiceRowsContext(line);
 
 		expect(context.rows).toHaveLength(1);
-		expect(context.rows[0]?.service).toBe("Install");
+		expect(context.rows[0]?.service).toBe("INSTALL");
 
 		const patch = buildWorkflowServiceRowsPatch({
 			line,
@@ -219,7 +219,7 @@ describe("workflow row patches", () => {
 		});
 		expect(patch.qty).toBe(2);
 		expect(patch.lineTotal).toBe(60);
-		expect(patch.description).toBe("Install");
+		expect(patch.description).toBe("INSTALL");
 		expect((patch.meta as any).taxxable).toBe(true);
 	});
 
@@ -244,7 +244,7 @@ describe("workflow row patches", () => {
 		} as any);
 
 		expect(context.rows).toHaveLength(1);
-		expect(context.rows[0]?.service).toBe("Install");
+		expect(context.rows[0]?.service).toBe("INSTALL");
 		expect(context.rows[0]?.qty).toBe(3);
 		expect(context.rows[0]?.taxxable).toBe(true);
 		expect(context.rows[0]?.produceable).toBe(true);
@@ -278,10 +278,40 @@ describe("workflow row patches", () => {
 
 		expect(patch.qty).toBe(3);
 		expect(patch.lineTotal).toBe(65);
-		expect(patch.description).toBe("Install | Cleanup");
+		expect(patch.description).toBe("INSTALL | CLEANUP");
 		expect((patch.meta as any).taxxable).toBe(true);
 		expect((patch.meta as any).produceable).toBe(true);
 		expect((patch.meta as any).serviceRows).toHaveLength(2);
+	});
+
+	it("can keep service rows from renaming the parent line description", () => {
+		const patch = buildWorkflowServiceRowsPatch({
+			line: {
+				uid: "service-line",
+				description: "Item 1",
+				meta: {},
+			},
+			rows: [
+				{
+					uid: "svc-1",
+					service: "Install",
+					qty: 1,
+					unitPrice: 80,
+				},
+				{
+					uid: "svc-2",
+					service: "Delivery",
+					qty: 1,
+					unitPrice: 30,
+				},
+			],
+			syncDescription: false,
+		});
+
+		expect(patch.description).toBeUndefined();
+		const meta = patch.meta as { serviceRows?: unknown[] };
+		expect(meta.serviceRows).toHaveLength(2);
+		expect(patch.lineTotal).toBe(110);
 	});
 
 	it("builds service patches from JSON line metadata without spreading string keys", () => {

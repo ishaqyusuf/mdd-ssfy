@@ -18,8 +18,6 @@ import { GetSalesBookForm } from "./_common/use-case/sales-book-form-use-case";
 import { SalesPaymentMethods } from "@sales/constants";
 import type { StepComponentData } from "@api/db/queries/sales-form";
 
-export { HousePackageToolMeta };
-
 export type SalesType = "order" | "quote";
 export type SalesPriority = "Low" | "High" | "Medium" | "Non";
 export type PaymentMethods = SalesPaymentMethods;

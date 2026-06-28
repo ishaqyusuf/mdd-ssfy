@@ -1,4 +1,4 @@
-import { createLoader, parseAsInteger, useQueryStates } from "nuqs";
+import { parseAsInteger, useQueryStates } from "nuqs";
 
 const inventoryInboundParamsSchema = {
     editInboundId: parseAsInteger,
@@ -12,8 +12,3 @@ export function useInventoryInboundParams() {
         setParams,
     };
 }
-
-export const loadInventoryInboundParams = createLoader(
-    inventoryInboundParamsSchema,
-);
-

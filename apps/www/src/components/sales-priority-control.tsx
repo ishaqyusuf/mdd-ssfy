@@ -20,9 +20,8 @@ import {
 	normalizeSalesPriority,
 	type SalesPriorityValue,
 } from "@sales/priority";
-import { SalesMenu } from "./sales-menu";
 
-export function salesPriorityTone(priority?: string | null) {
+function salesPriorityTone(priority?: string | null) {
 	switch (normalizeSalesPriority(priority)) {
 		case "CRITICAL":
 			return "border-red-200 bg-red-50 text-red-700";
@@ -120,51 +119,6 @@ function useUpdateSalesPriority({
 				});
 			},
 		}),
-	);
-}
-
-export function SalesPriorityMenuItems({
-	salesId,
-	orderId,
-	priority,
-}: {
-	salesId?: number | null;
-	orderId?: string | null;
-	priority?: string | null;
-}) {
-	const updatePriority = useUpdateSalesPriority({ salesId, orderId });
-	const currentPriority = normalizeSalesPriority(priority);
-
-	return (
-		<SalesMenu.Sub>
-			<SalesMenu.SubTrigger>
-				<Icons.AlertTriangle className="mr-2 size-4 text-muted-foreground/70" />
-				Set priority
-			</SalesMenu.SubTrigger>
-			<SalesMenu.SubContent>
-				{SALES_PRIORITY_OPTIONS.map((option) => (
-					<SalesMenu.Item
-						key={option.value}
-						disabled={updatePriority.isPending || currentPriority === option.value}
-						onSelect={(event) => {
-							event.preventDefault();
-							updatePriority.mutate({
-								salesId: salesId || undefined,
-								orderId: orderId || undefined,
-								priority: option.value,
-							});
-						}}
-					>
-						<span className="mr-2 flex size-4 items-center justify-center">
-							{currentPriority === option.value ? (
-								<Icons.Check className="size-4 text-muted-foreground/70" />
-							) : null}
-						</span>
-						{option.label}
-					</SalesMenu.Item>
-				))}
-			</SalesMenu.SubContent>
-		</SalesMenu.Sub>
 	);
 }
 

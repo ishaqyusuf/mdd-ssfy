@@ -26,7 +26,7 @@ interface Props {
 
 const Context = createContext<ReturnType<typeof useInitContext>>(null);
 const useCtx = () => useContext(Context);
-export function useInitContext(cls: StepHelperClass) {
+function useInitContext(cls: StepHelperClass) {
     const zus = useFormDataStore();
     // const variations = cls.getStepForm().meta?.doorSizeVariation;
     const data = cls.getComponentVariantData();

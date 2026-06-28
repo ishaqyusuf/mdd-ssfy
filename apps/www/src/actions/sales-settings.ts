@@ -5,7 +5,7 @@ import { getStepsForRoutingDta } from "../app/(clean-code)/(sales)/_common/data-
 import { AsyncFnType } from "@/app-deps/(clean-code)/type";
 import { revalidateTag, unstable_cache } from "next/cache";
 
-export const salesSettingsKey: SettingType = "sales-settings";
+const salesSettingsKey: SettingType = "sales-settings";
 export async function loadSalesSetting() {
     const fn = async () => {
         const s = await prisma.settings.findFirst({

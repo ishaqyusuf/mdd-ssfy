@@ -6,27 +6,27 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   AuthProvider,
   useAuthContext,
   useCreateAuthContext,
 } from "@/hooks/use-auth";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-import Toast from "react-native-toast-message";
-import { ToastProviderWithViewport } from "@/components/ui/toast";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import FlashMessage from "react-native-flash-message";
-import { TRPCReactProvider } from "@/trpc/client";
-import { StaticTrpc } from "@/components/static-trpc";
-import { StatusBar } from "expo-status-bar";
-import { View } from "react-native";
+import { AppAutoUpdateModal } from "@/components/app-auto-update-modal";
 import { StaticRouter } from "@/components/static-router";
-import { KeyboardProvider } from "react-native-keyboard-controller";
-import * as Updates from "expo-updates";
+import { StaticTrpc } from "@/components/static-trpc";
+import { ToastProviderWithViewport } from "@/components/ui/toast";
 import { useColorScheme } from "@/hooks/use-color";
 import { NAV_THEME } from "@/lib/theme";
 import { getThemeOverride } from "@/lib/theme-preference";
+import { TRPCReactProvider } from "@/trpc/client";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
+import FlashMessage from "react-native-flash-message";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import Toast from "react-native-toast-message";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -47,12 +47,6 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  const { isUpdatePending } = Updates.useUpdates();
-  useEffect(() => {
-    if (isUpdatePending) {
-      Updates.reloadAsync();
-    }
-  }, [isUpdatePending]);
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
@@ -87,6 +81,7 @@ const InitialLayout = () => {
       <TRPCReactProvider>
         <StaticTrpc />
         <StaticRouter />
+        <AppAutoUpdateModal />
         <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
         <Stack

@@ -9,7 +9,7 @@ export const employeeSearchFilterParams = {
 	profile: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;
 
-export const employeeFilterParams = {
+const employeeFilterParams = {
 	...employeeSearchFilterParams,
 	accessStatus: parseAsStringLiteral([
 		"active",

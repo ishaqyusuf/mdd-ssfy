@@ -101,13 +101,3 @@ const orderItemComponentSlice = createSlice({
     },
 });
 export default orderItemComponentSlice.reducer;
-export const {
-    open: openItemComponent,
-    close: closeItemComponent,
-    updateFooterInfo,
-    resetFooterInfo,
-    itemQuoteUpdated,
-    closeCostUpdater,
-    toggleMockup,
-} = orderItemComponentSlice.actions;
-

@@ -1,5 +1,5 @@
 import { _trpc } from "@/components/static-trpc";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
   DeleteNewSalesFormLineItemPayload,
   InvoiceFormSaveResult,
@@ -23,6 +23,7 @@ type DeleteLineItemResult = InvoiceFormSaveResult & {
 };
 
 export function useInvoiceFormActions() {
+  const queryClient = useQueryClient();
   const realSaveDraft = useMutation(
     _trpc.newSalesForm.saveDraft.mutationOptions(),
   );
@@ -41,20 +42,47 @@ export function useInvoiceFormActions() {
     typeof realRecalculate.mutateAsync
   >[0];
 
+  const invalidateSalesDocumentQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: _trpc.sales.mobileDashboardOverview.queryKey(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: _trpc.sales.getOrders.queryKey(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: _trpc.sales.quotes.queryKey(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: _trpc.sales.getSaleOverview.queryKey(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: _trpc.filters.salesOrders.queryKey(),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: _trpc.filters.salesQuotes.queryKey(),
+      }),
+    ]);
+  };
+
   const saveDraft = async (
     payload: SaveDraftNewSalesFormPayload,
   ): Promise<InvoiceFormSaveResult> => {
-    return realSaveDraft.mutateAsync(
+    const result = (await realSaveDraft.mutateAsync(
       payload as SaveDraftInput,
-    ) as Promise<InvoiceFormSaveResult>;
+    )) as InvoiceFormSaveResult;
+    await invalidateSalesDocumentQueries();
+    return result;
   };
 
   const saveFinal = async (
     payload: SaveDraftNewSalesFormPayload,
   ): Promise<InvoiceFormSaveResult> => {
-    return realSaveFinal.mutateAsync(
+    const result = (await realSaveFinal.mutateAsync(
       payload as SaveFinalInput,
-    ) as Promise<InvoiceFormSaveResult>;
+    )) as InvoiceFormSaveResult;
+    await invalidateSalesDocumentQueries();
+    return result;
   };
 
   const deleteLineItem = async (

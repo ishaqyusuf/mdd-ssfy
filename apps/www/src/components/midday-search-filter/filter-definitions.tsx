@@ -52,19 +52,6 @@ export type FilterDefinition = {
 	formatValue?: (value: unknown, context: FilterFormatContext) => ReactNode;
 };
 
-type CreateFilterConfigInput = {
-	search?: {
-		key?: string;
-		placeholder?: string;
-		debounceMs?: number;
-	};
-	filters?: FilterDefinition[];
-};
-
-export function createFilterConfig(config: CreateFilterConfigInput) {
-	return config;
-}
-
 export function normalizeFilterDefinitions(
 	filterList: Array<PageFilterData | FilterDefinition> = [],
 ): FilterDefinition[] {

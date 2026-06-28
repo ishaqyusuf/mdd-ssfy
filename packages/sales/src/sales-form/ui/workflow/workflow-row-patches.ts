@@ -134,6 +134,7 @@ export function buildWorkflowServiceRowsContext(
 export function buildWorkflowServiceRowsPatch(input: {
 	line: WorkflowLineItemRecord;
 	rows: ServiceRow[];
+	syncDescription?: boolean;
 }) {
 	const next = summarizeServiceRows(String(input.line.uid || ""), input.rows);
 	return {
@@ -146,7 +147,9 @@ export function buildWorkflowServiceRowsPatch(input: {
 		qty: next.qtyTotal,
 		unitPrice: next.unitPrice,
 		lineTotal: next.lineTotal,
-		description: next.description,
+		...(input.syncDescription === false
+			? {}
+			: { description: next.description }),
 	};
 }
 

@@ -5,6 +5,7 @@ import {
 	buildWorkflowServiceRowsPatch,
 	isServiceItem,
 } from "@gnd/sales/sales-form-core";
+import { useAuthContext } from "@/hooks/use-auth";
 import { useCallback, useEffect, useMemo } from "react";
 import { linePatchChanged } from "../steps/line-workflow-helpers";
 import {
@@ -12,6 +13,7 @@ import {
 	createServiceRow,
 } from "../steps/service/service-rows-editor";
 import type { NewSalesFormLineItem } from "../types";
+import { canEditMobileServiceLinePricing } from "./workflow-mobile-capabilities";
 
 export function WorkflowServiceLineItemEditor({
 	line,
@@ -28,8 +30,12 @@ export function WorkflowServiceLineItemEditor({
 	syncOnMount?: boolean;
 	hideAddButton?: boolean;
 }) {
+	const auth = useAuthContext();
 	const workflowLine = line as unknown as WorkflowLineItemRecord;
 	const serviceItem = isServiceItem(workflowLine);
+	const canEditPricing = canEditMobileServiceLinePricing(
+		auth.profile?.role?.name,
+	);
 	const serviceContext = useMemo(
 		() => (serviceItem ? buildWorkflowServiceRowsContext(workflowLine) : null),
 		[serviceItem, workflowLine],
@@ -50,6 +56,7 @@ export function WorkflowServiceLineItemEditor({
 		const patch = buildWorkflowServiceRowsPatch({
 			line: workflowLine,
 			rows: serviceRows,
+			syncDescription: false,
 		}) as Partial<NewSalesFormLineItem>;
 		if (!linePatchChanged(line, patch)) return;
 		onWorkflowPatch(patch);
@@ -60,6 +67,7 @@ export function WorkflowServiceLineItemEditor({
 			buildWorkflowServiceRowsPatch({
 				line: workflowLine,
 				rows: [...serviceRows, createServiceRow(serviceRows.length + 1)],
+				syncDescription: false,
 			}) as Partial<NewSalesFormLineItem>,
 		);
 	}, [patchWorkflowLine, serviceRows, workflowLine]);
@@ -83,6 +91,7 @@ export function WorkflowServiceLineItemEditor({
 			buildWorkflowServiceRowsPatch({
 				line: workflowLine,
 				rows,
+				syncDescription: false,
 			}) as Partial<NewSalesFormLineItem>,
 		);
 	};
@@ -92,6 +101,7 @@ export function WorkflowServiceLineItemEditor({
 			buildWorkflowServiceRowsPatch({
 				line: workflowLine,
 				rows: serviceRows.filter((_row, rowIndex) => rowIndex !== index),
+				syncDescription: false,
 			}) as Partial<NewSalesFormLineItem>,
 		);
 	};
@@ -100,6 +110,7 @@ export function WorkflowServiceLineItemEditor({
 		<ServiceRowsEditor
 			rows={serviceRows}
 			disabled={disabled}
+			canEditPricing={canEditPricing}
 			hideAddButton={hideAddButton}
 			onChange={updateServiceRow}
 			onAdd={addServiceRow}

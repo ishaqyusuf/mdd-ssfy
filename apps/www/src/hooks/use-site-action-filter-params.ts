@@ -4,7 +4,7 @@ import { inboundFilterStatus } from "@gnd/utils/constants";
 import { RouterInputs } from "@api/trpc/routers/_app";
 type FilterKeys = keyof Exclude<RouterInputs["sales"]["inboundIndex"], void>;
 
-export const siteActionFilterParamsSchema = {
+const siteActionFilterParamsSchema = {
     status: parseAsStringLiteral(inboundFilterStatus),
     q: parseAsString,
 } satisfies Partial<Record<FilterKeys, any>>;

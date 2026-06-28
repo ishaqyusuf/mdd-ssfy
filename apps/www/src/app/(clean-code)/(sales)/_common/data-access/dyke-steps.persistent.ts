@@ -1,14 +1,14 @@
-import { prisma, Prisma } from "@/db";
-import { SettingType } from "@/types/settings";
+import { prisma } from "@/db";
+import type { SettingType } from "@/types/settings";
 
-import { HousePackageToolSettings } from "../../types";
+import type { HousePackageToolSettings } from "../../types";
 import { ftToIn } from "../utils/sales-utils";
 
 export async function getDykeStepTitlesDta() {
     const sections = await prisma.dykeSteps.findMany({});
     const unique = sections
         .filter(
-            (s, si) => si == sections.findIndex((s1) => s1.title == s.title),
+            (s, si) => si === sections.findIndex((s1) => s1.title === s.title),
         )
         .filter((s) => s.title?.trim());
 
@@ -37,7 +37,7 @@ export async function getDoorSizesDta(height) {
         dimFt: string;
     }[] = [];
     const heightIn =
-        setting.data.sizes.find((s) => s.ft == height && s.height)?.in ||
+        setting.data.sizes.find((s) => s.ft === height && s.height)?.in ||
         ftToIn(height);
     setting.data.sizes
         // .filter((s) => (_bifold ? s.type == "Bifold" : s.type != "Bifold"))
@@ -51,8 +51,8 @@ export async function getDoorSizesDta(height) {
         });
     return list.sort((a, b) => {
         // Split each element of the array by '-' to separate the numbers
-        let [aFirst, aSecond] = a.width.split("-").map(Number) as any;
-        let [bFirst, bSecond] = b.width.split("-").map(Number) as any;
+        const [aFirst, aSecond] = a.width.split("-").map(Number) as any;
+        const [bFirst, bSecond] = b.width.split("-").map(Number) as any;
 
         // Compare the first numbers
         if (aFirst !== bFirst) {
@@ -63,7 +63,7 @@ export async function getDoorSizesDta(height) {
         return aSecond - bSecond;
     });
 }
-export async function getHptSettings() {
+async function getHptSettings() {
     const s = await prisma.settings.findFirst({
         where: {
             type: "house-package-tools" as SettingType,

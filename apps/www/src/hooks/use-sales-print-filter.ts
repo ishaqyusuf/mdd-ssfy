@@ -1,7 +1,7 @@
 import { useQueryStates } from "nuqs";
-import { createLoader, parseAsBoolean, parseAsString } from "nuqs/server";
+import { parseAsBoolean, parseAsString } from "nuqs/server";
 
-export const salesPrintFilterSchema = {
+const salesPrintFilterSchema = {
 	pt: parseAsString,
 	token: parseAsString,
 	accessToken: parseAsString,
@@ -19,4 +19,3 @@ export function useSalesPrintFilter() {
 		setFilters,
 	};
 }
-export const loadSalesPrintFilterParams = createLoader(salesPrintFilterSchema);

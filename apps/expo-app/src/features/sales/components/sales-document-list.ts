@@ -15,6 +15,11 @@ export type SalesDocumentListItem = {
 		total?: number | null;
 		paid?: number | null;
 		pending?: number | null;
+		baseTotal?: number | null;
+		displayCcc?: number | null;
+		displayPaid?: number | null;
+		displayPending?: number | null;
+		displayTotal?: number | null;
 	} | null;
 };
 
@@ -63,6 +68,32 @@ export function getQuoteEditRoute(item: Pick<SalesDocumentListItem, "slug">) {
 	return {
 		pathname: "/(sales)/invoices/[slug]",
 		params: { slug, type: "quote" },
+	} as const;
+}
+
+export function getOrderOverviewRoute(
+	item: Pick<SalesDocumentListItem, "orderId">,
+) {
+	const orderNo = item.orderId?.trim();
+
+	if (!orderNo) return null;
+
+	return {
+		pathname: "/(sales)/orders/[orderNo]",
+		params: { orderNo },
+	} as const;
+}
+
+export function getQuoteOverviewRoute(
+	item: Pick<SalesDocumentListItem, "orderId">,
+) {
+	const quoteNo = item.orderId?.trim();
+
+	if (!quoteNo) return null;
+
+	return {
+		pathname: "/(sales)/quotes/[quoteNo]",
+		params: { quoteNo },
 	} as const;
 }
 

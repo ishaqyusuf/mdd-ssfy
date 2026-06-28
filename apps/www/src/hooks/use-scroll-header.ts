@@ -3,8 +3,8 @@
 import { usePathname } from "next/navigation";
 import { type RefObject, useEffect, useRef } from "react";
 
-export const HEADER_OFFSET_VAR = "--header-offset";
-export const HEADER_TRANSITION_VAR = "--header-transition";
+const HEADER_OFFSET_VAR = "--header-offset";
+const HEADER_TRANSITION_VAR = "--header-transition";
 
 const HEADER_HEIGHT = 70;
 

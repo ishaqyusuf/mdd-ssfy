@@ -1,8 +1,9 @@
 import { Icon } from "@/components/ui/icon";
+import { Pressable as HapticPressable } from "@/components/ui/pressable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { useEffect, useState } from "react";
-import { FlatList, Pressable, TextInput, View } from "react-native";
+import { FlatList, TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useInvoiceFormProfiles } from "../api/use-invoice-form-profiles";
 import { useInvoiceFormCustomerSearch } from "../api/use-invoice-form-search";
@@ -12,6 +13,15 @@ import {
   getCustomerAddressLine,
   getCustomerContactLine,
 } from "./customer-display";
+
+const CUSTOMER_LIST_SKELETON_KEYS = [
+  "customer-skeleton-0",
+  "customer-skeleton-1",
+  "customer-skeleton-2",
+  "customer-skeleton-3",
+  "customer-skeleton-4",
+  "customer-skeleton-5",
+];
 
 function CustomerRow({
   customer,
@@ -23,9 +33,10 @@ function CustomerRow({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <HapticPressable
+      haptic
       onPress={onPress}
-      className="border-b border-border/40 py-4 active:opacity-70"
+      className="border-b border-border/40 py-4 active:opacity-90"
     >
       <View className="flex-row items-center gap-3">
         <View className="h-10 w-10 items-center justify-center rounded-full bg-muted">
@@ -58,7 +69,7 @@ function CustomerRow({
           />
         )}
       </View>
-    </Pressable>
+    </HapticPressable>
   );
 }
 
@@ -190,9 +201,9 @@ function CustomerSearchInput({
 function CustomerListSkeleton() {
   return (
     <View>
-      {Array.from({ length: 6 }).map((_, index) => (
+      {CUSTOMER_LIST_SKELETON_KEYS.map((key) => (
         <View
-          key={`customer-skeleton-${index}`}
+          key={key}
           className="flex-row items-center gap-3 border-b border-border/40 py-4"
         >
           <Skeleton className="h-10 w-10 rounded-full" />

@@ -340,5 +340,3 @@ function SortButton({
 		</Button>
 	);
 }
-
-export { DataTableHeader as TableHeader };

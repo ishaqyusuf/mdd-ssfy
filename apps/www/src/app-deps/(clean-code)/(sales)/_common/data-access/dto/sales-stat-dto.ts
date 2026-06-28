@@ -31,7 +31,7 @@ export function salesItemsStatsDto(
     };
 }
 
-export function calculatedStatsDto(
+function calculatedStatsDto(
     itemGroup: ItemGroup,
     data: GetFullSalesDataDta,
 ) {

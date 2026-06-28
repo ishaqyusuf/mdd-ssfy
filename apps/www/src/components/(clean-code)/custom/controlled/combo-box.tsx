@@ -1,7 +1,6 @@
 import { Icons } from "@gnd/ui/icons";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { cva } from "class-variance-authority";
 import { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
 
 import { Badge } from "@gnd/ui/badge";
@@ -18,11 +17,6 @@ import { FacetedFilterItem } from "@gnd/ui/faceted-filter";
 import { FormControl, FormField, FormItem, FormLabel } from "@gnd/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 
-export const comboBoxVariants = cva("", {
-    variants: {
-        container: {},
-    },
-});
 interface Props<T> {
     label?;
     options?: (T | { label: string; value: string })[];

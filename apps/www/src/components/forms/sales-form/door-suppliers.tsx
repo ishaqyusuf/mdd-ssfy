@@ -23,7 +23,7 @@ export function DoorSuppliers({ itemStepUid }) {
         </Suspense>
     );
 }
-export function Content({ itemStepUid }) {
+function Content({ itemStepUid }) {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(trpc.sales.getSuppliers.queryOptions({}));
     const [supplierFormData, setSupplierFormData] =

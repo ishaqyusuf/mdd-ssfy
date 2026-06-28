@@ -7,7 +7,7 @@ export const formatPaymentAmount = (value?: number | string | null) =>
 		currency: "USD",
 	}).format(Number(value || 0));
 
-export function normalizePaymentMethod(value?: string | null) {
+function normalizePaymentMethod(value?: string | null) {
 	if (!value) return null;
 	const normalized = value
 		.toLowerCase()

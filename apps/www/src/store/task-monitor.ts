@@ -155,12 +155,6 @@ export const useTaskMonitorStore = create<TaskMonitorStore>()(
     ),
 );
 
-export function serializeTaskMonitorTask(task: TaskMonitorTask) {
-    return [task.runId, task.accessToken, task.title, task.description]
-        .map((value) => value || "")
-        .join(";");
-}
-
 export function getTaskMonitorTaskDefaults(
     taskName?: TaskName | string,
     payload?: unknown,

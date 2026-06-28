@@ -62,7 +62,7 @@ export function normalizeCustomComponentTitleInput(value: string) {
 	return value.toUpperCase();
 }
 
-export function isCustomMarkedComponent(component: CustomComponentSource) {
+function isCustomMarkedComponent(component: CustomComponentSource) {
 	return component?._metaData?.custom === true || component?.custom === true;
 }
 
@@ -80,7 +80,7 @@ function buildCustomComponentOptionId(
 	].join("|");
 }
 
-export function getCustomComponentPricing(component: CustomComponentSource) {
+function getCustomComponentPricing(component: CustomComponentSource) {
 	const pricing = component?.pricing;
 	const entries =
 		pricing && typeof pricing === "object" && !Array.isArray(pricing)

@@ -1,10 +1,3 @@
-export const InboundStatus = [
-    "Pending",
-    "Order Placed",
-    "In Transit",
-    "Arrived Warehouse",
-    // "Stocked",
-];
 export interface Progressor {
     color;
     percentage;

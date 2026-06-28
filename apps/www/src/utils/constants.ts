@@ -4,16 +4,6 @@ export const Cookies = {
     QuotesRoute: "quote-route",
     LastSquareTerminalUsed: "last-square-terminal",
 };
-export const ROUTE_VERSIONS = {
-    sales: {
-        old: "/sales",
-        new: "",
-    },
-    quotes: {
-        old: "",
-        new: "",
-    },
-};
 export const Tags = {
     accountConflicts: "accounting-conflicts",
     salesAssignments: "sales_assingments",
@@ -30,7 +20,7 @@ export const Tags = {
     rootStepComponents: "root-step-components",
     takeOffTemplates: "takeoff-templates",
 };
-export const Events = {
+const Events = {
     salesCreated: "sales_created",
     salesDeleted: "sales_deleted",
     salesUpdated: "sales_updated",
@@ -68,12 +58,10 @@ export const paymentMethods = [
     "wire",
     "wallet",
 ] as const;
-export const salesHaving = [
-    "Single Payment",
-    "Multiple Payments",
-    "Duplicate Payment",
-] as const;
-export type SalesHaving = (typeof salesHaving)[number];
+export type SalesHaving =
+    | "Single Payment"
+    | "Multiple Payments"
+    | "Duplicate Payment";
 export const salesPaymentMethods: {
     label?: string;
     value?: PaymentMethods;
@@ -106,24 +94,6 @@ export const actionTicketEvents = [
     "cancelled",
 ] as const;
 export const doorSwings = ["IN-SWING", "OUT-SWING", "NONE"];
-
-export type CustomerTransactionStatus =
-    (typeof customerTransactionStatus)[number];
-export const customerTransactionStatus = [
-    "cancelled",
-    "canceled",
-    "draft",
-    "completed",
-    "success",
-] as const;
-
-export type SalesResolutionConflictType = (typeof conflictType)[number];
-export const conflictType = [
-    "duplicate payments",
-    "payment not up to date",
-    "overpayment",
-    "resolved",
-] as const;
 
 export const resolutionActions = ["cancel", "update sales payment"] as const;
 export const resolutionReasons = ["refund-wallet"] as const;

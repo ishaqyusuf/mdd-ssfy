@@ -264,19 +264,6 @@ export async function signInWithGoogle(options: SignInOptions = {}) {
     } satisfies SignInResult;
 }
 
-export async function signOut(options: { callbackUrl?: string } = {}) {
-    const response = await fetch("/api/auth/sign-out", {
-        method: "POST",
-    });
-    const url = options.callbackUrl ?? "/login/v2";
-
-    if (response.ok) {
-        window.location.assign(url);
-    }
-
-    return response;
-}
-
 async function fetchSession() {
     const response = await fetch("/api/auth-session", {
         method: "GET",

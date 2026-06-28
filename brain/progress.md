@@ -2,6 +2,304 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Added a smooth tab transition to the mobile sales overview More sheet.
+  - The sheet's headless `actions` / `copy` tab body and title now animate with a short eased fade/slide when moving into the Copy tab or back to the main actions tab.
+  - The animation uses React Native `Animated` style-only wrappers so Expo components do not mix NativeWind `className` and custom `style` on the same element.
+  - Validation: focused action-config Bun test, scoped Expo Biome check, and scoped whitespace check passed; no broad typecheck/build or device UI automation was run.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+
+- Completed the mobile sales overview Financial C.C.C parity pass.
+  - Added a pure mobile overview financial presenter that derives website-equivalent principal progress stats, conditional `Card Paid` / `Card Pending` stats, selected payment method display, and invoice ledger rows from the existing `sales.getSaleOverview` invoice/cost-line payload.
+  - Updated the Expo sales order/quote overview Financial card to render payment method, card-aware progress cues, and the full server-provided cost-line breakdown instead of only the compact total/paid/tax/discount rows.
+  - Added focused presenter coverage for unpaid credit-card pending totals, recorded full card payments, and quote ledger-only behavior.
+  - Validation: `bun test apps/api/src/dto/sales-dto.test.ts apps/expo-app/src/features/sales/components/sales-document-overview-model.test.ts apps/expo-app/src/features/sales/components/sales-document-list.test.ts apps/expo-app/src/features/sales/components/sales-dashboard-recent-sales.test.ts` passed with 26 tests and 52 assertions; scoped `bunx biome check` and `git diff --check` passed for the touched mobile overview files.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this uses the existing overview invoice/cost-line contract without schema, migration, or endpoint changes.
+
+- Refined the mobile sales overview copy action into a tabbed Copy flow.
+  - Renamed the main More-sheet action from `Copy as Quote` to `Copy`.
+  - Added sheet-local tab history with a custom title header and back chevron for non-main tabs.
+  - The Copy tab now offers `As Order` and `As Quote`, both backed by `sales.copySale`, shared sales dashboard/list/overview invalidation, endpoint error handling, and copied-document editor navigation by returned slug.
+  - This folds the planned Phase 3 `Copy as Order` behavior into the Phase 2 copy-tab UX while keeping the action dev-only pending validation/promotion.
+  - Validation: focused action-config Bun test, scoped Expo Biome check, and scoped whitespace check passed; no broad typecheck/build or device UI automation was run.
+  - Updated docs: `brain/plans/2026-06-28-mobile-sales-overview-more-actions-rollout.md`, `brain/features/mobile-invoice-form.md`, and `brain/progress.md`; no API or database docs were needed because this reuses the existing `sales.copySale` contract without schema or migration changes.
+
+- Implemented Phase 2 of the mobile sales overview More-actions rollout.
+  - Added a dev-only `Copy as Quote` action for order and quote overviews when the current sale has a slug.
+  - Wired the mobile overview action to `sales.copySale` with `as: "quote"`, invalidating dashboard, order list, quote list, and overview queries before opening the copied quote editor when the mutation returns a slug.
+  - Added focused action-config coverage for quote/order action rows, dev gating, and missing slug behavior.
+  - Validation: focused Bun test, scoped Expo Biome check, and scoped whitespace check passed; no broad typecheck/build or device UI automation was run.
+  - Updated docs: `brain/plans/2026-06-28-mobile-sales-overview-more-actions-rollout.md`, `brain/features/mobile-invoice-form.md`, and `brain/progress.md`; no API or database docs were needed because this reuses the existing `sales.copySale` contract without schema or migration changes.
+
+- Restored mobile C.C.C/payment-option display parity with the website for sales forms, overviews, and list cards.
+  - Sales DTOs now keep principal `invoice.total`, `invoice.paid`, and `invoice.pending` untouched while exposing display-only `invoice.displayTotal`, `invoice.displayPending`, `invoice.displayPaid`, `invoice.displayCcc`, and `invoice.baseTotal`.
+  - Mobile Recent Sales, Orders/Quotes list cards, and sales overview amount presenters now prefer display-only card-adjusted totals/pending values while keeping progress percentages based on principal order totals.
+  - The mobile read-only sales form details totals panel now renders `C.C.C` when the selected payment method derives a convenience charge.
+  - Validation: focused API/mobile Bun tests passed; scoped whitespace check passed. Broad `bun run typecheck` was attempted but failed before this change surface with `packages/app-store` missing the `node` type definition file; scoped `bun run --filter @gnd/api typecheck` was also attempted but is blocked by existing API/shared-package type errors unrelated to this display change.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/mobile-invoice-form.md`, and `brain/progress.md`; no database docs were needed because this is display contract/UI behavior only with no schema or migration change.
+
+- Validated Phase 1 of the mobile sales overview More-actions rollout.
+  - User confirmed the Phase 1 `Edit Order` / `Edit Quote` action is validated.
+  - Updated `brain/plans/2026-06-28-mobile-sales-overview-more-actions-rollout.md` to mark Phase 1 validated and identify Phase 2 - Copy As Quote as the next rollout slice.
+  - No code was changed in this status update.
+
+- Updated the mobile invoice/quote save-success and edit navigation flow.
+  - Persisted mobile edit records now hydrate onto the final review step by default.
+  - The create/update success modal now includes `Go to overview` in addition to continue editing, create new, and go home.
+  - Overview, create-new, and go-home success actions dismiss the sales stack before replacing routes, so the success form state is not left behind for swipe/back navigation.
+  - The success modal Go home CTA now uses the supported `House` icon instead of the unsupported `Home` icon that rendered as the fallback X.
+  - Mobile order/quote overview back affordances and Android hardware back route users to Sales home.
+  - Fixed a mobile Service final-step update-depth loop by registering the hidden `+ Add service line` footer handler only when the handler identity truly changes and by stabilizing the active line patch callback on the store `patchLineItem` action instead of the whole actions object.
+  - Validation: focused `bun test apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.test.ts` passed; scoped `git diff --check` passed. Scoped Biome check was attempted but still reports pre-existing style/lint issues in touched mobile files, so no broad formatting was applied.
+
+- Planned the mobile sales order/quote overview overflow-action rollout as gated phases.
+  - Phase 0 is the shared footer More button and floating bottom sheet shell only.
+  - Each later phase adds exactly one action to the menu behind a dev-only gate, validates it, then promotes it to ready for preview/production by removing the gate.
+  - The phase plan is based on the existing web sales overview `SalesMenu` capability set while keeping mobile payment, print, share, status, and destructive actions incremental instead of exposing unfinished options.
+  - No code was changed in this planning pass.
+
+- Kicked off the mobile sales overview More-actions rollout with Phase 0 and Phase 1.
+  - Added the persisted rollout plan at `brain/plans/2026-06-28-mobile-sales-overview-more-actions-rollout.md`.
+  - Added a custom-pressable horizontal More button beside the sticky mobile overview primary action, rendering only when visible actions exist for the current environment and document type.
+  - Added a floating bottom sheet for sales document options, reusing `FloatingBottomSheet` and `SalesClickListRow`.
+  - Added the first dev-only action: `Edit Order` / `Edit Quote`, routed through the existing invoice edit route with the current sale type and hidden outside development builds.
+  - Added focused action-config tests for order, quote, missing slug, and dev gating.
+  - Validation: focused Bun tests, scoped Expo Biome check, and scoped whitespace checks passed; no dev server, broad typecheck/build, or UI automation was run.
+
+- Updated mobile sales form edit-entry workflow pill behavior.
+  - Edit-mode invoice/order/quote forms now pass an initial inline workflow-step preference of `last`, so the sales form step pill starts on the last usable pill when a saved document is opened for editing.
+  - Create-mode forms preserve the previous first-pill starting behavior.
+  - Added a pure workflow initial-step helper with focused coverage for default inline creation, edit last-pill initialization, and redirected/disabled final-step fallback.
+  - Validation: focused Bun tests and scoped whitespace checks passed; Biome passes for the new helper/test files, while a broader check of the existing large form files still reports pre-existing `any`, hook dependency, formatter, and skeleton index-key diagnostics.
+  - Follow-up hotfix: aliased the `WorkflowInitialStepPreference` type import in `items-step.tsx` so Metro/Babel cannot see a duplicate local identifier if nearby imports drift or a stale transform references the old selector export.
+
+- Refined the mobile Orders/Quotes overview from the attached flat ledger template.
+  - `sales.getSaleOverview` now returns bounded `overviewItems[]` so quote overviews can show line items without querying dispatch, while order overviews still prefer dispatch-enriched rows when available.
+  - The Expo overview now uses a shared presenter helper for quote/order labels, amounts, item mapping, and primary action selection; quote hides order logistics and gets sticky `Edit Quote`, while order keeps shipping/activity/delivery sections and sticky `Create Delivery`.
+  - Restored the overview data contract as the source of truth for mobile by making `sales.getSaleOverview` resolve exact `orderId` plus type, guarding list navigation without document numbers, and showing explicit unavailable/not-found states instead of fallback zero/customer data.
+  - Fixed the `sales.getSaleOverview` 500 from selecting `title` directly on `DykeStepForm`; overview item subtitles now read the related `step.title` while preserving `value` fallback.
+  - Added swipe-down refresh for overview data and lifted the sticky primary action above the device bottom inset so `Create Delivery` remains visible on order overviews.
+  - Added focused DTO and presenter test coverage files. Validation was kept lightweight under fast Bun monorepo discipline; no dev server, broad typecheck/build, or UI automation was run.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/mobile-invoice-form.md`, and `brain/progress.md`; no database docs were needed because this adds selected fields to an existing query without schema or migration changes.
+
+- Tightened the mobile Orders/Quotes overview visual parity pass.
+  - Reordered the order overview to match the supplied template flow: Summary, Financial, Customer Contact, Items, Activities, and Deliveries.
+  - Removed the main Shipping section from the primary overview scan, reduced type/icon/card visual weight, made pending status use the primary chip treatment, removed per-row dividers from the Financial ledger rows, and kept Customer Contact row dividers.
+  - Customer Contact and Items row dividers now span to the card edges while each row keeps padded content.
+  - Increased the top Summary Total/Paid/Due amount typography for clearer scan priority.
+  - Added first-five item preview behavior with a `View more` affordance and updated empty-state copy to match the template.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+
+- Added haptic feedback to the mobile invoice form footer actions.
+  - Back, Save Draft, Continue/Create/Save, and the item switcher icon now trigger a light haptic before running their existing action.
+  - Kept the change scoped to the invoice form footer instead of changing the shared Button component globally.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile interaction behavior only.
+
+- Continued the `apps/www` unused/old-code export triage with a conservative action/use-case slice.
+  - Removed unused app-deps sales-book settings/copy/move use-case exports while preserving live app-deps form load/create/save exports.
+  - Demoted internal app-deps production-list and customer-transaction overview helpers while preserving live exported entry points.
+  - Demoted raw production assignment mutation helpers and the sales-labor-cost update helper while preserving public safe-action wrappers current UI imports.
+  - Refreshed split Knip snapshots to 22 file candidates, 34 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 129 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with old sales-form wrapper/step-helper slices.
+  - Demoted the unused app-local `getSalesBookFormUseCase` value export while preserving the live `GetSalesBookForm` type surface current app/app-deps types import.
+  - Removed unused app and app-deps `getStepDta` / `validateNextStepIdDta` sales-form step helpers after exact scans showed no callers.
+  - Removed the unused old v1 `_getSalesFormAction` wrapper while preserving live `salesFormData` imports used by current clean-code sales-form data access.
+  - Removed unused app-deps sales-form step routing/delete/meta/update helper exports while preserving live `getSalesFormStepByIdDta`.
+  - Refreshed split Knip snapshots to 22 file candidates, 42 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 140 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with an old v1 auth/notification/community action slice.
+  - Removed unused legacy auth reset/login exports while preserving live reset-request, email-login-link, and quick-login helpers.
+  - Removed unused old notification action exports while preserving live `INotification` type use and `_notify`.
+  - Removed unused old community-template mutation/import exports while preserving live `staticCommunity`.
+  - Removed follow-on unused app-local community cost/pivot and generic numeric helper exports after exact scans showed no remaining `apps/www` imports.
+  - Refreshed split Knip snapshots to 22 file candidates, 46 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 153 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with an old v1 community action slice.
+  - Removed unused builder table/task mutation exports while preserving the live `staticBuildersAction` loader used by old static-data code.
+  - Removed unused community project table/update wrappers while preserving live `saveProject`, `staticProjectsAction`, and `updateProjectMeta`.
+  - Removed follow-on unused v1 action pagination exports from `action-utils.ts` while preserving live date helper exports.
+  - Refreshed split Knip snapshots to 22 file candidates, 48 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 174 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a tiny legacy helper slice.
+  - Removed the unused no-op Cloudinary `saveToDatabase` export while preserving the live `getSignature` upload helper.
+  - Removed the unused raw `__revalidatePath` export while preserving the live keyed `_revalidate` helper.
+  - Refreshed split Knip snapshots to 22 file candidates, 50 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 183 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a legacy UI/store/type slice.
+  - Demoted the unused default export on the legacy community unit `HomeModal` while preserving the live `useHomeModal` opener.
+  - Removed unused Redux action creator exports from the old invoice item component slice while preserving the mounted reducer.
+  - Removed the unused app-side `HousePackageToolMeta` type re-export while preserving file-local type use and the app-deps type surface current sales code imports.
+  - Refreshed split Knip snapshots to 22 file candidates, 52 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 185 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a legacy `_v1` table helper slice.
+  - Removed unused row-action wrapper exports while preserving the live `DeleteRowAction` and `MenuItem` imports.
+  - Removed unused old base-column helper exports while preserving the live `Cell` import.
+  - Removed the follow-on unused `getBadgeColor` / `statusColor` helper path while preserving the live color helpers.
+  - Refreshed split Knip snapshots to 22 file candidates, 55 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 194 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a utility/action helper slice.
+  - Removed unused clean-code sales utility exports in both app and app-deps mirrors while preserving live dimension/status/sort/URL/payment helpers.
+  - Removed unused cached HRM filter/role/profile exports and unused v1 session utility exports while preserving live permissions/session/user/auth ID APIs.
+  - Removed unused generic pagination/form helper exports, demoted app-side `getHptSettings`, and removed the now-unused `bcrypt-ts` app dependency.
+  - Refreshed split Knip snapshots to 22 file candidates, 57 combined issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 208 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export/package-surface cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a DB utility include/date helper slice.
+  - Removed unused app/app-deps clean-code sales DB utility exports for old infinite-list helpers, Dyke-form include builders, and the app-side unused `SalesIncludeAll`/`composeQuery` surface while preserving live sales list, overview, form, dispatch, and root filter imports.
+  - Removed unused generic clean-code date helper exports while preserving app-deps `anyDateQuery` and pagination helpers that current filters/actions still import.
+  - Refreshed Knip to 22 file candidates, 64 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 227 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with an overview/cache/table helper slice.
+  - Trimmed the chat barrel, old sales-accounting table columns, obsolete v1 cache read/write helpers, and the old sales overview data-access/type utility pair after exact scans showed no live imports.
+  - Removed the now-stranded app-deps `SalesIncludeAll` include object while preserving live list/overview include exports.
+  - Refreshed Knip to 22 file candidates, 67 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 242 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a utility DB/shared-helper slice.
+  - Demoted internal DB `where*` query builders and the sales search parser while preserving live metadata/query exports imported by current action/data modules.
+  - Removed unused `mergePermissionsQuery` from `where.users.ts` while keeping the live `whereUsers` query builder.
+  - Removed unused legacy exports from `lib/utils.ts` and kept the live shared helpers used by sales, community, table, print, and UI surfaces.
+  - Refreshed Knip to 22 file candidates, 70 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 248 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with an action/static helper slice.
+  - Removed unused cached sales-accounting filter, sidebar auth override, token validation, static tRPC bootstrap, and single-query tRPC prefetch exports while preserving live sibling APIs.
+  - Demoted file-local role creation, takeoff root-component loading, and sales-settings tag constants that still serve local callers.
+  - Converted the value-dead `salesHaving` constant to the still-live type-only `SalesHaving` union.
+  - Refreshed Knip to 22 file candidates, 78 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 279 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a context/legacy utility slice.
+  - Demoted raw clean-code data-table and community-template React contexts while preserving the live provider and hook exports imported by current callers.
+  - Demoted the legacy clean-code data-table `useDataTable` implementation export, which is only used for local type inference.
+  - Removed unused v1 action utility exports and unused root sales utility helpers while preserving the legacy date/page helpers and live sales URL/stat/address/payment/payroll/labor helpers.
+  - Refreshed Knip to 22 file candidates, 87 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 288 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a leaf utility/static-loader slice.
+  - Trimmed the old `_v2` static-data hook to the one live `useBuilders` export used by the legacy project modal, then deleted seven now-orphan static-loader action files that only fed the removed hooks.
+  - Removed unused note tag token/filter helpers while preserving `TagFilters` and `noteTagFilter`, which are still imported by note creation and sales/inbound note surfaces.
+  - Removed unused community helper exports while preserving `homeSearchMeta`, `calculateCommunitModelCost`, and `getPivotModel`, which are still imported by legacy community actions/modals.
+  - Removed the detached clean-code sales filter preset island plus its now-orphan filter field type file while preserving `__findFilterField`, the only live import from that filter-command module.
+  - Deleted the old app-local `data-access/sales.ts` module after exact scans showed no live imports, and removed the now-dead `dateQuery` export / demoted `anyDateQuery` in the legacy action utilities.
+  - Refreshed Knip to 22 file candidates, 91 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 302 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a dashboard/control helper slice.
+  - Demoted dashboard date/default-param internals while preserving the exported dashboard parser/formatter, period option builder, resolver, type, and hook used by the sales dashboard route and widgets.
+  - Removed the unused app-local sales-control stat composer and its private-only quantity helpers while preserving the live `Qty`, `qtyMatrixDifference`, and `transformQtyHandle` exports.
+  - Removed the now-stranded app-deps `generateItemControlUid`/shelf helper pair that only fed the deleted app-local control-stat path; current item-control utilities still expose their live direct UID helpers.
+  - Refreshed Knip to 22 file candidates, 99 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 337 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a legacy helper slice.
+  - Removed the unused packing item context export pair from `use-sales-packing` while preserving the live packing provider/hook used by the dispatch packing overview.
+  - Removed unused legacy Redux dispatch/static-list/navigation helper exports from `store/slicers` and dropped a stale commented `dispatchSlice` breadcrumb from the old `_v2` static-data hook; the store reducer and `transformReduxObject` export used by `static-data-slice` remain.
+  - Removed the old unreferenced app-local DB query-builder/search helpers from `lib/db-utils` while preserving the live `transformDate` export imported by sales filtering code.
+  - Refreshed Knip to 22 file candidates, 101 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 346 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage with a clean-code utility slice.
+  - Demoted private clean-code data-table `parseAsSort` / `searchSchema` internals while keeping exported parser/cache/serializer/type APIs live.
+  - Removed unused duplicate `composeStepFormDisplay` helpers from the app and app-deps sales step utility mirrors.
+  - Demoted item-control UID implementation helpers and removed the unused app-side shelf/generate helper path while preserving the app-deps `generateItemControlUid` export used by `utils/sales-control-util.ts`.
+  - Removed unused duplicate `dotArray` / `dotKeys` helpers, demoted table-settings default helpers, and removed dead percentile value helpers while keeping live dot utilities, table APIs, and the `Percentile` type export.
+  - Trimmed unused barrel/internal-helper exports from email composer, notification-center, community-template v1 form sections, and table-core while preserving live public exports and direct sibling imports.
+  - Removed unused v2 unit invoice/production `projectTabColumns` and card component exports while preserving the active table column arrays, row types, and row id helpers.
+  - Demoted private custom-component, model-install, and sidebar access helpers, and removed the unused debug-toast helper path while preserving live public wrappers/hooks.
+  - Refreshed Knip to 22 file candidates, 104 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 354 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Continued the `apps/www` unused/old-code export triage.
+  - Demoted local-only context/component exports, removed unused Midday search-filter compatibility exports, stale table hook/aliases, and duplicate legacy sales-orders columns.
+  - Deleted the unused generic `components/tables-2/core/bottom-bar.tsx`; migrated tables use their own domain bottom bars.
+  - Demoted local-only status/id/loader/note context helpers and removed the unused dev-flow `logError` wrapper.
+  - Demoted local-only clean-code UI/table and sales-form helper exports, removed definition-only upload/task-monitor helpers, and removed the unused `_v1/icons` `Icon` re-export.
+  - Demoted local-only legacy sales-form modal helpers and unused modal component exports while keeping the live opener exports and directly imported `door-size-modal` default export.
+  - Removed empty sales DTO stubs, demoted private app/app-deps DTO and dispatch helper exports, and removed the unused app-side delivery-breakdown helper mirror while preserving the live app-deps import.
+  - Deleted the unused page-tabs TRPC wrapper file, demoted private scroll-header constants, and removed the unused aggregate table config accessor.
+  - Refreshed Knip to 22 file candidates, 123 issue entries, 3 retained runtime dependency candidates, 1 retained dev dependency candidate, 0 unlisted, 0 unresolved, and 394 export candidates.
+  - Updated docs: `brain/reports/2026-06-17-www-unused-old-code-analysis.md`, `ai/plan.md`, and `brain/progress.md`; no API or database docs were needed because this is an export-surface/dead-code cleanup only.
+
+- Added tactile press feedback across mobile sales creation lists.
+  - New Invoice, the Sales/Quote type chooser, customer rows, invoice item sheet rows/actions, shelf product search rows, and service suggestion rows now match the Orders/Quotes/Recent Sales card press feel with haptics, Android ripple, and `active:opacity-90`.
+  - Preserved existing layouts, disabled states, keyboard behavior, and sheet/modal behavior.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile interaction behavior only.
+
+- Implemented the GND mobile update experience.
+  - Expo updates now use app-owned checks with `updates.checkAutomatically: "NEVER"`, while keeping the EAS update URL and `runtimeVersion.policy = "appVersion"`.
+  - Removed the root pending-update auto-reload path and added a preview-only launch auto-update modal for installed builds.
+  - Upgraded Settings > App Updates with clearer check/download/restart states, progress UI, error handling, and build/update diagnostics.
+  - Added focused helper coverage for preview gating, step state, modal visibility, and progress mapping; removed the unused updates demo surface.
+  - Updated docs: `brain/features/mobile-build-variants.md` and `brain/progress.md`; no API or database docs were needed because this is Expo client/update configuration behavior only.
+
+- Implemented mobile quote overview reuse.
+  - Mobile quote list rows now route to a new `/(sales)/quotes/[quoteNo]` overview route instead of opening the quote form directly.
+  - The quote overview reuses the existing order overview structure with quote-specific labels and an explicit `Edit Quote` action when a saved slug is available.
+  - Shared quote list cards no longer show `Remaining Due` or payment-progress footer copy, while order cards keep their existing due/progress behavior.
+  - Added Brain plan tracking at `brain/plans/2026-06-28-bug-fix-mobile-quote-overview-reuse.md` and the companion done task in `brain/tasks/done.md`; no API or database docs were needed because this reused the existing `sales.getSaleOverview` quote contract.
+
+- Polished the mobile Service quantity input design.
+  - Reworked the Quantity editor into a clearer framed mobile stepper with rounded minus/plus hit targets and a centered numeric input.
+  - Matched the adjacent Unit Price field height so the Service card control row aligns cleanly.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+
+- Focused the mobile Service suggestion search on open.
+  - The shared `StepTextInput` primitive now forwards refs, allowing fullscreen native modals to imperatively focus their search fields.
+  - The Service suggestion modal focuses its search input shortly after opening and keeps `showSoftInputOnFocus` enabled so the keyboard opens with the modal.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/focus behavior only.
+
+- Added mobile Service suggestions and a multiline service input.
+  - Service row names now use an expandable multiline all-caps field with a fixed right-side search icon.
+  - The search icon opens a fullscreen native suggestion modal matching the Add shelf picker pattern, with recent unique saved service names by default, typed search, displayed prices, and one-tap fill for the selected service line.
+  - Added `newSalesForm.searchServiceSuggestions` to return unique DB-backed service names from saved grouped service rows with latest observed price, usage count, and last-used timestamp.
+  - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+
+- Fixed the mobile Service step opening with a stale scroll offset.
+  - When the final Service editor activates, `ItemsStep` now requests the existing invoice scroll container to move just above the service editor after layout.
+  - This keeps the normal inline Service total/quantity summary visible on open, while the compact sticky summary still appears only after the user scrolls past it.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/scroll behavior only.
+
+- Fixed mobile sales dashboard/list cache invalidation after invoice save.
+  - Successful mobile invoice/quote saves now invalidate the sales dashboard overview, orders list, quotes list, sales overview, and sales filter query caches.
+  - This lets newly created or updated sales documents appear in mobile Recent Sales and list screens without requiring a manual dashboard refresh.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile client cache behavior only.
+
+- Added sticky mobile Service totals and a full-screen create/update success modal.
+  - The inline Service step now reuses the same total/quantity summary inside the invoice screen's sticky workflow header lane once the Service editor scrolls under the header.
+  - Successful mobile create/update finalization shows a full-screen success modal with a clean hierarchy, saved reference, and actions for Continue editing, Create new, and Go home; draft save keeps its lighter existing flow.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation/navigation behavior only.
+
+- Implemented the provided mobile service line-item content UI.
+  - Updated the native service content area to use the provided large `Line Total` summary strip, rounded service configuration cards, underlined all-caps Service input, Quantity/Unit Price control row, and right-aligned row subtotal.
+  - Left the add-service placement, header contents, and footer actions unchanged.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
+
+- Fixed mobile service row text entry casing and trailing-space typing.
+  - Service row names now normalize to uppercase from the mobile input and shared service-row summarizer.
+  - The shared service-row summarizer no longer trims the stored row `service` value on every patch, so a trailing space remains in the controlled input while the user types multi-word service names; generated descriptions still trim each row label for clean summaries.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile/shared form normalization behavior with no schema or endpoint change.
+
+- Completed the mobile service line-item parity gap pass.
+  - Mobile service row Unit/Tax/Prod controls now use a Super Admin-only line-pricing capability helper matching the website boundary; non-Super Admin roles can still edit service text and quantity while Unit is display-only.
+  - Service row deletion now opens a shared floating confirmation sheet before removal, and service add actions now say `Add service line` / `+ Add service line` to make multi-line service items explicit.
+  - Added focused helper coverage for mobile service line-pricing role normalization and updated service-row patch coverage from the previous title-decoupling slice.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile UI/shared patch-helper behavior with no contract or schema change.
+
+- Decoupled mobile service row labels from the parent invoice item title.
+  - Added an opt-out to the shared workflow service-row patcher so mobile service row edits can keep `meta.serviceRows`, totals, tax, and production flags synced without overwriting the parent line `description`.
+  - Wired the mobile inline service editor and line-card service editor to preserve the invoice item title/description when adding, editing, removing, or mount-syncing service rows.
+  - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is a mobile/shared UI patch behavior change with no contract or schema change.
+  - Validation: focused `bun test packages/sales/src/sales-form/ui/workflow/workflow-row-patches.test.ts` passed; scoped `git diff --check` passed. Focused Biome remains blocked by pre-existing `any` diagnostics in `line-item-card.tsx` and `workflow-row-patches.test.ts`.
+
 - Reduced the mobile invoice item-title edit sheet height.
   - Lowered the edit sheet's keyboard-aware content minimum height and bottom padding while preserving the working `BottomSheetKeyboardAwareScrollView`/`BottomSheetTextInput` structure.
   - Updated docs: `brain/features/mobile-invoice-form.md` and `brain/progress.md`; no API or database docs were needed because this is mobile presentation behavior only.
@@ -4362,3 +4660,18 @@
 - 2026-06-23: Updated the `/sales-book/inbounds` activity panel to reuse the jobs overview shared activity-history timeline design instead of custom mini-cards. In-app browser validation confirmed the inbound detail now renders the uppercase Activity History heading, dated timeline item, subject, headline, and By line for inbound #4; focused Biome passed and filtered `@gnd/www` typecheck grep reported no touched-file diagnostics.
 - 2026-06-23: Replaced the pre-save "Is all product in stock?" sales-form prompt with a post-save inventory configuration modal for both legacy and new order save flows. The new modal reuses `SalesOverviewInventoryContent` as a standalone workbench by saved `salesOrderId`, supports the existing stock/non-stock/inbounds configuration actions, and blocks Save & Close / Save & New navigation until the operator closes it. The old stock-status dialog file was removed. Validation: no remaining static references to the old prompt, focused Biome passed for the new dialog and both save components, filtered `@gnd/www` typecheck grep reported no touched-file diagnostics, and whitespace checks passed. In-app browser navigation could open the target order overview (`08609DB`) but automation clicks into the edit form were intercepted by the orders/overview surface, so full browser save acceptance was not completed in this pass.
 - 2026-06-23: Added required customer-selection-on-open behavior to the legacy `/sales-book/create-order` form. Fresh unsaved legacy forms without `metaData.customer.id` now open a required `Create Order: Select Customer` dialog that reuses the existing legacy customer lookup and closes naturally once the customer is selected. Validation: filtered `@gnd/www` typecheck grep reported no diagnostics for `sales-form.tsx` / `sales-customer-input.tsx`, scoped whitespace check passed, and the in-app browser on `/sales-book/create-order` showed `Create Order: Select Customer` on load with no console errors.
+- 2026-06-28: Polished the mobile invoice-item left/right switcher. The active item now follows horizontal drags with edge resistance at the first/last item, springs back on short or unavailable swipes, and uses the same slide-out/slide-in transition when switching by fixed side chevrons. Validation: focused invoice-item swipe helper tests and scoped Expo Biome/diff checks were run; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-28: Updated the mobile Shelf Items entry flow. When the inline workflow reaches the final Shelf Items step, `ItemsStep` now auto-opens the registered `+ Add shelf` picker once for that active shelf editor, and the fullscreen shelf picker search input now requests focus plus soft keyboard display after the modal opens. Validation: scoped Expo Biome/diff checks were run; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-28: Redesigned the mobile invoice/quote details helper route. `SalesDetailsScreen` now uses a Swiss-inspired read-only layout with a strong header divider, uppercase section labels, larger customer identity block, structured detail rows, status badge, formatted dates, and a bordered totals panel with an oversized grand total while preserving the existing route props and navigation behavior. Validation: scoped Expo Biome/diff checks were run; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-28: Tuned the mobile invoice/quote details helper route to better match the sales-form UI. The strong foreground dividers were replaced with the app's rounded card and soft row-divider treatment, the poster-style typography was reduced, and the grand total moved into a fixed bottom summary bar while the subtotal/tax rows remain in the scrollable details area. Validation: scoped `git diff --check` passed; scoped Biome still reports the existing `invoice-form-screen.tsx` diagnostics around `any`, `forEach`, and hook dependencies; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-28: Fixed mobile inline workflow step transitions retaining the previous component-list scroll offset. `WorkflowStepSelector` now reports inline active-step changes to `ItemsStep`, and the invoice form scroll handler supports animated requests so newly opened workflow steps smoothly reset to the top of the workflow content. Validation: scoped `git diff --check` passed; targeted Biome on the touched workflow files exited 137 before producing diagnostics; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-28: Updated the mobile sales dashboard floating `+` action to open a general Sales/Quote/Dispatch/Cancel bottom sheet and removed the inline `New Invoice` dashboard card. Sales and Quote still route through the typed customer selector, while Dispatch opens the existing sales dispatch search route. Validation: focused sales dashboard action-option tests and scoped diff checks were run; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-28: Continued the `apps/www` unused/old-code cleanup by resolving the remaining Knip unlisted dependency tail. `@gnd/www` now declares `server-only` because five app modules import it directly (`trpc/server`, auth session/web-auth, geolocation, and sales visibility). After `bun install --lockfile-only`, `/tmp/gnd-www-knip-after-server-only.json` reports 22 file candidates, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 553 export candidates.
+- 2026-06-28: Documented the retained `apps/www` package-tooling candidates from Knip. `eslint` and `eslint-config-next` stay for the package/root lint workflows, `puppeteer-core` stays because `next.config.mjs` externalizes it, and `tailwindcss` stays for Tailwind/PostCSS/shadcn tooling. No package removal was made in this retained-tooling decision slice.
+- 2026-06-28: Started conservative `apps/www` export-candidate triage with a tiny auth slice. `AUTH_LOGIN_ROUTE` is now file-local, and unused exported `emptyAuthSnapshot` / `signOut` helpers were removed after exact symbol scans found no call sites. Test-backed exports in auth/routing/print/recovery/payment helpers were retained. `/tmp/gnd-www-knip-after-export-auth1.json` reports 22 file candidates, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 550 export candidates.
+- 2026-06-28: Continued conservative `apps/www` export-candidate triage across routing, sales-print, payment, and new-sales-form modules. Local-only helpers were demoted, unreferenced new-sales-form hooks/mapper wrappers and unused print wrappers were removed, and test-facing exports were retained. `/tmp/gnd-www-knip-after-export-forms-print1.json` reports 22 file candidates, 214 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 525 export candidates.
+- 2026-06-28: Continued conservative `apps/www` export-candidate triage with a focused utility/component slice. Removed definition-only utility exports from small helper modules, trimmed old formatter exports, demoted local-only component helpers, removed unused `AvatarGroup` / `useMobile` / `SalesPriorityMenuItems`, and removed now-unused `@date-fns/tz` from `@gnd/www` with a refreshed lockfile. `/tmp/gnd-www-knip-after-export-utils3.json` reports 22 file candidates, 205 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 503 export candidates.
+- 2026-06-28: Continued conservative `apps/www` export-candidate triage with module-live cleanup. Removed dead exports from still-imported task notification, unit-invoice report definition, employee list, and community project analytics modules, then deleted the unmounted debug modal plus its now-orphan `use-debug-params` hook. `/tmp/gnd-www-knip-after-export-modulelive2.json` reports 22 file candidates, 201 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 498 export candidates.
+- 2026-06-28: Continued conservative `apps/www` export-candidate triage with filter-param/static-helper cleanup. Private query-param schemas were demoted across print/filter hooks, unreferenced inventory/sales-print loaders and a duplicate `useInboundView` export were removed, and dead static-trpc path/invalidate helpers were trimmed while retaining legacy `_trpc` / `_qc` globals. `/tmp/gnd-www-knip-after-export-filterparams-static1.json` reports 22 file candidates, 189 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 482 export candidates.
+- 2026-06-28: Continued conservative `apps/www` export-candidate triage with schema/constants/helper cleanup. Local-only auth schemas were demoted, unused legacy payment/dispatch/HRM/numeric helpers were removed, `queryMeta` became private, and stale constants/type exports were removed while preserving live event types and form schemas. `/tmp/gnd-www-knip-after-export-schemas-constants1.json` reports 22 file candidates, 183 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 469 export candidates.
+- 2026-06-28: Converted the mobile Orders/Quotes list search and filters into a floating bottom-sheet flow. The header controls were replaced by a bottom floating pill with active-count feedback, the shared `FloatingBottomSheet` now owns search/filter drafting with Apply/Cancel semantics, dispatch search uses the same sheet in search-only mode, and the old transparent orders filter modal was removed. Validation: scoped diff checks were run; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.

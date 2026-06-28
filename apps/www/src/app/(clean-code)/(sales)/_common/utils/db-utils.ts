@@ -1,97 +1,14 @@
-import {
-    getPageInfo,
-    pageQueryFilter,
-    whereNotTrashed,
-} from "@/app-deps/(clean-code)/_common/utils/db-utils";
-import { Prisma } from "@/db";
+import { whereNotTrashed } from "@/app-deps/(clean-code)/_common/utils/db-utils";
+import type { Prisma } from "@/db";
 import salesData from "@sales/sales-data";
 
-import { GetSalesDispatchListQuery } from "../data-access/sales-dispatch-dta";
+import type { GetSalesDispatchListQuery } from "../data-access/sales-dispatch-dta";
 
 export function whereDispatch(query: GetSalesDispatchListQuery) {
     const whereAnd: Prisma.OrderDeliveryWhereInput[] = [];
     return whereAnd.length > 1 ? { AND: whereAnd } : whereAnd[0];
 }
 
-export function composeQuery<T>(queries: T[]): T | undefined {
-    if (!Array.isArray(queries) || queries.length === 0) {
-        return undefined;
-    }
-    return queries.length > 1
-        ? ({
-              AND: queries,
-          } as T)
-        : queries[0];
-}
-interface InfiniteListQueryProps<T> {
-    table: T;
-    where?;
-    query?;
-    whereFn?;
-}
-export async function infinitListQuery<T>(props: InfiniteListQueryProps<T>) {
-    if (!props.where && props.whereFn) props.where = props.whereFn(props.query);
-    interface ResponseProps<T1> {
-        data: T1[];
-        transform?(item: T1);
-    }
-    async function response<T1>({ data, transform }: ResponseProps<T1>) {
-        const pageInfo = await getPageInfo(
-            props.query,
-            props.where,
-            props.table
-        );
-        return {
-            pageCount: pageInfo?.pageCount,
-            pageInfo,
-            data: data.map(transform),
-            meta: {
-                totalRowCount: pageInfo.totalItems,
-            },
-        };
-    }
-    return {
-        table: props.table,
-        response,
-        ...props.table,
-        where: props.where,
-        pageFilters: pageQueryFilter(props.query),
-    };
-}
-// export async function infiniteListQuery<T, T1>({
-//     table,
-//     query,
-//     include,
-//     where,
-// }: {
-//     table: T;
-//     where;
-//     query: any;
-//     include: T1;
-// }) {
-//     const data = await (table).findMany({
-//         where,
-//         ...pageQueryFilter(query),
-//         include,
-//     });
-//     const pageInfo = await getPageInfo(query, {}, table);
-//     const response = {
-//         pageCount: pageInfo.pageCount,
-//         pageInfo,
-//         data,
-//     };
-//     function transform(
-//         fn: (item: (typeof data)[number]) => (typeof data)[number]
-//     ) {
-//         response.data = response.data?.map((item) => {
-//             return fn(item);
-//         });
-//     }
-//     return {
-//         response,
-//         transform,
-//     };
-// }
 export const excludeDeleted = {
     where: { deletedAt: null },
 };
@@ -194,66 +111,6 @@ const AssignmentsInclude = {
 } satisfies
     | Prisma.DykeSalesDoors$productionsArgs
     | Prisma.SalesOrderItems$assignmentsArgs;
-export const SalesIncludeAll = {
-    extraCosts: true,
-    items: {
-        where: { deletedAt: null },
-        include: {
-            formSteps: {
-                ...excludeDeleted,
-                include: {
-                    step: true,
-                },
-            },
-            salesDoors: {
-                include: {
-                    housePackageTool: {
-                        include: {
-                            door: true,
-                        },
-                    },
-                    productions: AssignmentsInclude,
-                },
-                where: {
-                    doorType: {
-                        in: salesData.productionDoorTypes,
-                    },
-                    ...excludeDeleted.where,
-                },
-            },
-            assignments: AssignmentsInclude,
-            shelfItems: {
-                where: { deletedAt: null },
-                include: {
-                    shelfProduct: true,
-                },
-            },
-            housePackageTool: {
-                ...excludeDeleted,
-                include: {
-                    casing: excludeDeleted,
-                    door: excludeDeleted,
-                    jambSize: excludeDeleted,
-                    doors: {
-                        ...excludeDeleted,
-                    },
-                    molding: excludeDeleted,
-                },
-            },
-        },
-    },
-    customer: excludeDeleted,
-    shippingAddress: excludeDeleted,
-    billingAddress: excludeDeleted,
-    producer: excludeDeleted,
-    salesRep: excludeDeleted,
-    productions: excludeDeleted,
-    payments: excludeDeleted,
-    stat: excludeDeleted,
-    deliveries: excludeDeleted,
-    itemDeliveries: excludeDeleted,
-    taxes: excludeDeleted,
-} satisfies Prisma.SalesOrdersInclude;
 export const SalesOverviewIncludes = {
     items: {
         where: { deletedAt: null },
@@ -314,76 +171,7 @@ export const SalesOverviewIncludes = {
     // itemDeliveries: excludeDeleted,
 } satisfies Prisma.SalesOrdersInclude;
 
-export const dykeFormIncludes = (restoreQuery) =>
-    ({
-        items: {
-            where: {
-                ...restoreQuery,
-            },
-            include: {
-                formSteps: {
-                    where: {
-                        ...restoreQuery,
-                    },
-                    include: {
-                        step: {
-                            include: {
-                                _count: includeStepPriceCount,
-                            },
-                        },
-                    },
-                },
-                shelfItems: {
-                    where: {
-                        ...restoreQuery,
-                    },
-                },
-                housePackageTool: {
-                    // where: {
-                    //     ...restoreQuery
-                    // },
-                    include: {
-                        stepProduct: {
-                            include: {
-                                door: true,
-                            },
-                        },
-                        doors: {
-                            where: {
-                                ...restoreQuery,
-                            },
-                        },
-                        door: {
-                            where: {
-                                ...restoreQuery,
-                            },
-                        },
-                        molding: {
-                            where: {
-                                ...restoreQuery,
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        payments: true,
-        salesRep: {
-            select: {
-                id: true,
-                name: true,
-            },
-        },
-        taxes: {
-            where: {
-                deletedAt: null,
-            },
-        },
-        customer: true,
-        shippingAddress: true,
-        billingAddress: true,
-    } satisfies Prisma.SalesOrdersInclude);
-export const includeStepPriceCount = {
+const includeStepPriceCount = {
     select: {
         priceSystem: {
             where: {

@@ -39,10 +39,6 @@ export function getPaymentBalance(
 	return total - paid;
 }
 
-export function getProgressValue(value?: number | null) {
-	return Math.max(0, Math.min(100, Number(value || 0)));
-}
-
 export function getStatusLabel(value?: string | null) {
 	if (!value) return "Not set";
 	return value.replaceAll("-", " ");

@@ -14,7 +14,7 @@ const zeroCacheQueryOptions = {
 type ModelInstallConfigContextProps = ReturnType<
     typeof useCreateModelInstallConfigContext
 >;
-export const ModelInstallConfigContext =
+const ModelInstallConfigContext =
     createContext<ModelInstallConfigContextProps>(undefined as any);
 export const ModelInstallConfigProvider = ModelInstallConfigContext.Provider;
 export const useCreateModelInstallConfigContext = () => {
@@ -83,7 +83,7 @@ export const useModelInstallConfigContext = () => {
 type BuilderModelInstallsContextProps = ReturnType<
     typeof useCreateBuilderModelInstallsContext
 >;
-export const BuilderModelInstallsContext =
+const BuilderModelInstallsContext =
     createContext<BuilderModelInstallsContextProps>(undefined as any);
 export const BuilderModelInstallsProvider =
     BuilderModelInstallsContext.Provider;

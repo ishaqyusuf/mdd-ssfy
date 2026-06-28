@@ -1,580 +1,860 @@
 import { SafeArea } from "@/components/safe-area";
-import { Icon } from "@/components/ui/icon";
-import { useSalesOrderOverview } from "@/features/sales/api/use-sales-order-overview";
+import { _trpc } from "@/components/static-trpc";
+import { Icon, type IconKeys } from "@/components/ui/icon";
+import { Pressable as AppPressable } from "@/components/ui/pressable";
+import { useSalesDocumentOverview } from "@/features/sales/api/use-sales-order-overview";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { useFocusEffect } from "@react-navigation/native";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { useRouter } from "expo-router";
-import { useMemo } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { type Href, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import {
+	ActivityIndicator,
+	Alert,
+	BackHandler,
+	Pressable,
+	RefreshControl,
+	ScrollView,
+	Text,
+	View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import type { NewSalesFormType } from "../invoice-form/types";
+import {
+	type SalesDocumentOverviewAction,
+	getSalesDocumentOverviewMoreActions,
+} from "./sales-document-overview-actions";
+import {
+	type SalesDocumentOverviewItem,
+	type SalesDocumentOverviewSale,
+	buildSalesDocumentOverviewItems,
+	getSalesDocumentOverviewAmounts,
+	getSalesDocumentOverviewCopy,
+	getSalesDocumentOverviewFinancialDetails,
+	getSalesDocumentOverviewPrimaryAction,
+	toSalesOverviewMoney,
+} from "./sales-document-overview-model";
+import { SalesDocumentOverviewMoreSheet } from "./sales-document-overview-more-sheet";
+
+type OverviewAddress = {
+	lines?: Array<string | null | undefined>;
+	address?: string | null;
+} | null;
+type SalesOverviewData =
+	| (NonNullable<RouterOutputs["sales"]["getSaleOverview"]> &
+			SalesDocumentOverviewSale & {
+				addressData?: {
+					billing?: OverviewAddress;
+					shipping?: OverviewAddress;
+				} | null;
+			})
+	| null
+	| undefined;
+type DispatchOverviewData = RouterOutputs["dispatch"]["orderDispatchOverview"];
 
 type Props = {
-  orderNo: string;
+	orderNo: string;
 };
 
 export function SalesOrderDetailScreen({ orderNo }: Props) {
-  const router = useRouter();
+	return <SalesDocumentOverviewScreen documentNo={orderNo} type="order" />;
+}
 
-  const { sale, dispatch } = useSalesOrderOverview(orderNo);
+type SalesDocumentOverviewScreenProps = {
+	documentNo: string;
+	type: NewSalesFormType;
+};
 
-  const saleData = sale.data as any;
-  const dispatchData = dispatch.data as any;
+export function SalesDocumentOverviewScreen({
+	documentNo,
+	type,
+}: SalesDocumentOverviewScreenProps) {
+	const router = useRouter();
+	const insets = useSafeAreaInsets();
+	const queryClient = useQueryClient();
+	const copySaleMutation = useMutation(_trpc.sales.copySale.mutationOptions());
+	const goSalesHome = useCallback(() => {
+		router.dismissAll();
+		router.replace("/(sales)" as Href);
+	}, [router]);
 
-  const taxAmount = useMemo(() => {
-    const lines = saleData?.costLines || [];
-    return lines
-      .filter((line) => String(line?.label || "").toLowerCase().includes("tax"))
-      .reduce((acc, line) => acc + Number(line?.amount || 0), 0);
-  }, [saleData?.costLines]);
+	useFocusEffect(
+		useCallback(() => {
+			const subscription = BackHandler.addEventListener(
+				"hardwareBackPress",
+				() => {
+					goSalesHome();
+					return true;
+				},
+			);
 
-  const discountAmount = useMemo(() => {
-    const lines = saleData?.costLines || [];
-    return lines
-      .filter((line) =>
-        String(line?.label || "").toLowerCase().includes("discount"),
-      )
-      .reduce((acc, line) => acc + Number(line?.amount || 0), 0);
-  }, [saleData?.costLines]);
+			return () => subscription.remove();
+		}, [goSalesHome]),
+	);
 
-  const deliveryItems = dispatchData?.deliveries || [];
-  const orderItems = dispatchData?.dispatchables || [];
+	const { sale, dispatch } = useSalesDocumentOverview(documentNo, type);
 
-  const paid = Number(saleData?.invoice?.paid || 0);
-  const total = Number(saleData?.invoice?.total || 0);
-  const due = Number(saleData?.invoice?.pending || 0);
-  const paidPct = total > 0 ? Math.min(100, Math.max(0, (paid / total) * 100)) : 0;
+	const saleData = sale.data as SalesOverviewData;
+	const dispatchData = dispatch.data as DispatchOverviewData | null | undefined;
 
-  if (sale.isPending || dispatch.isPending) {
-    return (
-      <SafeArea>
-        <View className="flex-1 items-center justify-center bg-background">
-          <ActivityIndicator />
-        </View>
-      </SafeArea>
-    );
-  }
+	const deliveryItems = dispatchData?.deliveries || [];
+	const overviewItems = buildSalesDocumentOverviewItems({
+		sale: saleData,
+		dispatch: dispatchData,
+	});
+	const [showAllItems, setShowAllItems] = useState(false);
+	const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+	const visibleItems = showAllItems ? overviewItems : overviewItems.slice(0, 5);
+	const hiddenItemCount = Math.max(
+		0,
+		overviewItems.length - visibleItems.length,
+	);
+	const amounts = getSalesDocumentOverviewAmounts(saleData);
+	const copy = getSalesDocumentOverviewCopy(type, saleData, documentNo);
+	const financialDetails = getSalesDocumentOverviewFinancialDetails(
+		saleData,
+		type,
+	);
+	const primaryAction = getSalesDocumentOverviewPrimaryAction(type, saleData);
+	const moreActions = getSalesDocumentOverviewMoreActions({
+		type,
+		sale: saleData,
+	});
+	const hasFooterActions = !!primaryAction || moreActions.length > 0;
+	const refreshing = sale.isRefetching || dispatch.isRefetching;
+	const refreshOverview = () => {
+		sale.refetch();
+		if (type === "order") dispatch.refetch();
+	};
+	const invalidateSalesDocumentQueries = async () => {
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: _trpc.sales.mobileDashboardOverview.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: _trpc.sales.getOrders.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: _trpc.sales.quotes.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: _trpc.sales.getSaleOverview.queryKey(),
+			}),
+		]);
+	};
+	const openPrimaryAction = () => {
+		if (!primaryAction) return;
 
-  const tone = statusTone(saleData?.deliveryStatus);
+		if (primaryAction.kind === "edit-quote") {
+			router.push({
+				pathname: "/(sales)/invoices/[slug]",
+				params: { slug: primaryAction.slug, type: "quote" },
+			} as Href);
+			return;
+		}
 
-  return (
-    <SafeArea>
-      <View className="flex-1 bg-background">
-        <View className="bg-background px-4 pb-2 pt-4">
-          <View className="mb-2.5 flex-row items-center gap-3">
-            <Pressable
-              onPress={() => router.back()}
-              className="h-10 w-10 items-center justify-center rounded-full active:bg-muted"
-            >
-              <Icon name="ArrowLeft" className="text-foreground" size={20} />
-            </Pressable>
-            <View className="flex-1">
-              <Text className="text-xl font-bold text-foreground">Order #{saleData?.orderId}</Text>
-              <Text className="text-xs text-muted-foreground">Sales order overview</Text>
-            </View>
-            <View className={`flex-row items-center gap-1 rounded-full px-2.5 py-1 ${tone.chip}`}>
-              <View className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-              <Text className={`text-[10px] font-bold uppercase ${tone.text}`}>
-                {saleData?.deliveryStatus || "pending"}
-              </Text>
-            </View>
-          </View>
+		router.push({
+			pathname: "/(sales)/orders/[orderNo]/delivery/create",
+			params: { orderNo: documentNo },
+		} as Href);
+	};
+	const copyDocument = async (as: NewSalesFormType) => {
+		const slug = saleData?.slug?.trim();
+		if (!slug) return;
 
-          <OverviewCard className="border border-border/70 bg-card px-4 pb-4 pt-3">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {saleData?.displayName || "Customer"}
-            </Text>
-            <View className="mt-3 flex-row gap-2">
-              <MetricPill label="Total" value={money(total)} icon="ReceiptText" />
-              <MetricPill label="Paid" value={money(paid)} icon="CircleDollarSign" />
-              <MetricPill label="Due" value={money(due)} icon="Wallet" />
-            </View>
-            <View className="mt-3">
-              <View className="mb-1.5 flex-row items-center justify-between">
-                <Text className="text-[11px] text-muted-foreground">Payment Progress</Text>
-                <Text className="text-[11px] font-semibold text-foreground">{paidPct.toFixed(0)}%</Text>
-              </View>
-              <View className="h-1.5 overflow-hidden rounded-full bg-muted">
-                <View style={{ width: `${paidPct}%`, height: "100%" }}>
-                  <View className="h-full rounded-full bg-primary" />
-                </View>
-              </View>
-            </View>
-          </OverviewCard>
-        </View>
+		try {
+			const result = await copySaleMutation.mutateAsync({
+				salesUid: slug,
+				as,
+				type,
+			});
+			await invalidateSalesDocumentQueries();
 
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingTop: 12,
-            paddingBottom: 28,
-          }}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled
-          scrollEnabled
-          bounces
-          alwaysBounceVertical
-          scrollEventThrottle={16}
-        >
-          <View className="gap-4">
-            <FinancialOverviewCard
-              total={total}
-              paid={paid}
-              due={due}
-              taxAmount={taxAmount}
-              discountAmount={discountAmount}
-              paidPct={paidPct}
-            />
+			if (result.error) {
+				Alert.alert("Unable to copy", String(result.error));
+				return;
+			}
 
-            <ContactOverviewCard
-              name={saleData?.displayName || "-"}
-              phone={saleData?.customerPhone || "-"}
-              email={saleData?.email || "-"}
-              billingAddress={saleData?.addressData?.billing}
-            />
+			if (result.slug) {
+				router.push({
+					pathname: "/(sales)/invoices/[slug]",
+					params: { slug: result.slug, type: as },
+				} as Href);
+				return;
+			}
 
-            <ShippingOverviewCard address={saleData?.addressData?.shipping} />
+			Alert.alert(
+				as === "quote" ? "Quote copied" : "Order copied",
+				"The copied document was created.",
+			);
+		} catch {
+			Alert.alert("Unable to copy", "Please try again.");
+		}
+	};
 
-            <Section title="Activities" icon="Clock">
-              {deliveryItems.length ? (
-                <View className="gap-2">
-                  {deliveryItems.slice(0, 8).map((delivery) => (
-                    <View
-                      key={delivery.id}
-                      className="rounded-2xl border border-border/60 bg-background px-3 py-3"
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <Text className="text-sm font-semibold text-foreground">
-                          Delivery #{delivery.id}
-                        </Text>
-                        <Text className="text-xs uppercase text-muted-foreground">
-                          {delivery.status || "queue"}
-                        </Text>
-                      </View>
-                      <Text className="mt-1 text-xs text-muted-foreground">
-                        {delivery.dueDate
-                          ? new Date(delivery.dueDate).toDateString()
-                          : "No due date"}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text className="text-sm text-muted-foreground">No activities yet.</Text>
-              )}
-            </Section>
+	const handleMoreAction = (action: SalesDocumentOverviewAction) => {
+		setMoreSheetOpen(false);
+		if (action.id === "edit-document") {
+			router.push(action.route as Href);
+		}
+	};
 
-            <Section title="Items" icon="LayoutGrid">
-              {orderItems.length ? (
-                <View className="gap-2">
-                  {orderItems.map((item) => (
-                    <View
-                      key={item.uid}
-                      className="flex-row items-center gap-3 rounded-2xl border border-border/60 bg-background p-2.5"
-                    >
-                      {item?.img ? (
-                        <Image
-                          source={{ uri: item.img }}
-                          style={{ width: 56, height: 56, borderRadius: 12 }}
-                          contentFit="cover"
-                        />
-                      ) : (
-                        <View className="h-14 w-14 items-center justify-center rounded-xl bg-muted">
-                          <Icon name="LayoutGrid" className="text-muted-foreground" size={18} />
-                        </View>
-                      )}
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">{item.title}</Text>
-                        <Text className="text-xs uppercase text-muted-foreground">
-                          {item.subtitle || "No subtitle"}
-                        </Text>
-                      </View>
-                      <View className="rounded-full border border-border/70 px-2.5 py-1">
-                        <Text className="text-xs font-medium text-muted-foreground">
-                          Qty {Number(item?.totalQty?.qty || 0)}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <Text className="text-sm text-muted-foreground">No items found.</Text>
-              )}
-            </Section>
+	if (sale.isPending || dispatch.isPending) {
+		return (
+			<SafeArea>
+				<View className="flex-1 items-center justify-center bg-background">
+					<ActivityIndicator />
+				</View>
+			</SafeArea>
+		);
+	}
 
-            <Section title="Deliveries" icon="Truck">
-              {deliveryItems.length ? (
-                <View className="gap-2">
-                  {deliveryItems.map((delivery) => (
-                    <Pressable
-                      key={delivery.id}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/(sales)/orders/[orderNo]/delivery/[dispatchId]",
-                          params: {
-                            orderNo,
-                            dispatchId: String(delivery.id),
-                          },
-                        } as any)
-                      }
-                      className="rounded-2xl border border-border/60 bg-background px-3 py-3 active:opacity-80"
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <Text className="text-sm font-semibold text-foreground">
-                          Delivery #{delivery.id}
-                        </Text>
-                        <Icon name="ChevronRight" className="text-muted-foreground" size={16} />
-                      </View>
-                      <Text className="mt-1 text-xs text-muted-foreground">
-                        {delivery.status || "queue"}
-                        {delivery?.driver?.name ? ` • ${delivery.driver.name}` : ""}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <Text className="text-sm text-muted-foreground">No deliveries yet.</Text>
-              )}
-            </Section>
+	if (sale.isError) {
+		return (
+			<OverviewUnavailableState
+				title={`${copy.documentLabel} unavailable`}
+				message="We couldn't load the live sales overview data for this document."
+				actionLabel="Try again"
+				onAction={() => sale.refetch()}
+			/>
+		);
+	}
 
-            <Pressable
-              disabled={!saleData?.id}
-              onPress={() =>
-                router.push({
-                  pathname: "/(sales)/orders/[orderNo]/delivery/create",
-                  params: { orderNo },
-                } as any)
-              }
-              className="mb-1 mt-1 h-12 items-center justify-center rounded-xl bg-primary disabled:opacity-50"
-            >
-              <Text className="text-sm font-semibold text-primary-foreground">Create Delivery</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </View>
-    </SafeArea>
-  );
+	if (!saleData) {
+		return (
+			<OverviewUnavailableState
+				title={`${copy.documentLabel} not found`}
+				message={`${copy.documentLabel} #${documentNo} was not found in the sales database.`}
+				actionLabel="Go home"
+				onAction={goSalesHome}
+			/>
+		);
+	}
+
+	const tone = statusTone(copy.statusLabel);
+
+	return (
+		<SafeArea>
+			<View className="flex-1 bg-muted/30">
+				<View className="border-b border-border bg-card px-4 pb-4 pt-4">
+					<View className="flex-row items-center gap-3">
+						<Pressable
+							onPress={goSalesHome}
+							className="h-9 w-9 items-center justify-center rounded-md active:bg-muted"
+						>
+							<Icon name="ArrowLeft" className="text-foreground" size={18} />
+						</Pressable>
+						<View className="flex-1">
+							<Text className="text-xs font-bold uppercase tracking-widest text-foreground">
+								{copy.title}
+							</Text>
+							<Text className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+								{copy.subtitle}
+							</Text>
+						</View>
+						<View className={`rounded-md px-2 py-1 ${tone.chip}`}>
+							<Text className={`text-[10px] font-bold uppercase ${tone.text}`}>
+								{copy.statusLabel}
+							</Text>
+						</View>
+					</View>
+				</View>
+
+				<ScrollView
+					style={{ flex: 1 }}
+					contentContainerStyle={{
+						paddingHorizontal: 16,
+						paddingTop: 16,
+						paddingBottom: hasFooterActions ? 112 + insets.bottom : 28,
+					}}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={refreshOverview}
+						/>
+					}
+					showsVerticalScrollIndicator={false}
+					nestedScrollEnabled
+					scrollEnabled
+					bounces
+					alwaysBounceVertical
+					scrollEventThrottle={16}
+				>
+					<View className="gap-4">
+						<OverviewCard className="border border-border bg-card">
+							<View className="border-b border-border bg-muted/20 px-4 py-3">
+								<View className="flex-row items-center justify-between gap-3">
+									<Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+										Customer:{" "}
+										<Text className="text-foreground">
+											{saleData?.displayName || "Customer"}
+										</Text>
+									</Text>
+									<Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+										{amounts.paidPct.toFixed(0)}% Paid
+									</Text>
+								</View>
+							</View>
+							<View className="flex-row divide-x divide-border">
+								<MetricPill
+									label={copy.totalLabel}
+									value={toSalesOverviewMoney(amounts.total)}
+								/>
+								<MetricPill
+									label="Paid"
+									value={toSalesOverviewMoney(amounts.paid)}
+									valueClassName="text-emerald-700 dark:text-emerald-300"
+								/>
+								<MetricPill
+									label={copy.openAmountLabel}
+									value={toSalesOverviewMoney(amounts.due)}
+									valueClassName="text-red-600 dark:text-red-300"
+								/>
+							</View>
+						</OverviewCard>
+
+						<FinancialOverviewCard
+							balanceLabel={copy.balanceLabel}
+							ledgerRows={financialDetails.ledgerRows}
+							paymentMethod={financialDetails.paymentMethod}
+							progressStats={financialDetails.progressStats}
+							due={amounts.due}
+							paidPct={amounts.paidPct}
+						/>
+
+						<ContactOverviewCard
+							name={saleData?.displayName || "-"}
+							phone={saleData?.customerPhone || "Not provided"}
+							email={saleData?.email || "Not provided"}
+							billingAddress={
+								saleData?.addressData?.billing || {
+									address: saleData?.address || "No billing address set",
+								}
+							}
+						/>
+
+						<Section title="Items" icon="LayoutGrid" contentClassName="p-0">
+							{visibleItems.length ? (
+								<View>
+									{visibleItems.map((item) => (
+										<OverviewItemRow key={item.key} item={item} />
+									))}
+									{hiddenItemCount > 0 ? (
+										<Pressable
+											onPress={() => setShowAllItems(true)}
+											className="border-t border-border/70 px-4 py-3 active:opacity-70"
+										>
+											<Text className="text-[11px] font-bold uppercase tracking-wider text-primary">
+												View {hiddenItemCount} more item
+												{hiddenItemCount === 1 ? "" : "s"}
+											</Text>
+										</Pressable>
+									) : null}
+								</View>
+							) : (
+								<Text className="px-4 py-4 text-xs text-muted-foreground">
+									{copy.emptyItemsLabel}
+								</Text>
+							)}
+						</Section>
+
+						{copy.showOrderLogistics ? (
+							<Section title="Activities" icon="Clock">
+								{deliveryItems.length ? (
+									<View className="gap-2">
+										{deliveryItems.slice(0, 8).map((delivery) => (
+											<View
+												key={delivery.id}
+												className="rounded-2xl border border-border/60 bg-background px-3 py-3"
+											>
+												<View className="flex-row items-center justify-between">
+													<Text className="text-sm font-semibold text-foreground">
+														Delivery #{delivery.id}
+													</Text>
+													<Text className="text-xs uppercase text-muted-foreground">
+														{delivery.status || "queue"}
+													</Text>
+												</View>
+												<Text className="mt-1 text-xs text-muted-foreground">
+													{delivery.dueDate
+														? new Date(delivery.dueDate).toDateString()
+														: "No due date"}
+												</Text>
+											</View>
+										))}
+									</View>
+								) : (
+									<Text className="text-xs text-muted-foreground">
+										{copy.emptyActivitiesLabel}
+									</Text>
+								)}
+							</Section>
+						) : null}
+
+						{copy.showOrderLogistics ? (
+							<Section title="Deliveries" icon="Truck">
+								{deliveryItems.length ? (
+									<View>
+										{deliveryItems.map((delivery) => (
+											<Pressable
+												key={delivery.id}
+												onPress={() =>
+													router.push({
+														pathname:
+															"/(sales)/orders/[orderNo]/delivery/[dispatchId]",
+														params: {
+															orderNo: documentNo,
+															dispatchId: String(delivery.id),
+														},
+													} as Href)
+												}
+												className="border-b border-border/70 py-3 active:opacity-80"
+											>
+												<View className="flex-row items-center justify-between">
+													<Text className="text-[13px] font-semibold text-foreground">
+														Delivery #{delivery.id}
+													</Text>
+													<Icon
+														name="ChevronRight"
+														className="text-muted-foreground"
+														size={15}
+													/>
+												</View>
+												<Text className="mt-1 text-xs text-muted-foreground">
+													{delivery.status || "queue"}
+													{delivery?.driver?.name
+														? ` • ${delivery.driver.name}`
+														: ""}
+												</Text>
+											</Pressable>
+										))}
+									</View>
+								) : (
+									<Text className="text-xs text-muted-foreground">
+										{copy.emptyDeliveriesLabel}
+									</Text>
+								)}
+							</Section>
+						) : null}
+					</View>
+				</ScrollView>
+
+				{hasFooterActions ? (
+					<View
+						pointerEvents="box-none"
+						style={{
+							position: "absolute",
+							left: 0,
+							right: 0,
+							bottom: Math.max(insets.bottom, 0),
+						}}
+					>
+						<View className="border-t border-border bg-card/95 px-4 py-4">
+							<View className="flex-row items-center gap-3">
+								{primaryAction ? (
+									<Pressable
+										onPress={openPrimaryAction}
+										className="h-12 flex-1 flex-row items-center justify-center gap-2 rounded-lg bg-primary active:opacity-85"
+									>
+										<Icon
+											name={
+												primaryAction.kind === "edit-quote" ? "Pencil" : "Truck"
+											}
+											className="text-primary-foreground"
+											size={16}
+										/>
+										<Text className="text-[13px] font-bold uppercase tracking-widest text-primary-foreground">
+											{primaryAction.label}
+										</Text>
+									</Pressable>
+								) : null}
+								{moreActions.length > 0 ? (
+									<AppPressable
+										haptic
+										accessibilityRole="button"
+										accessibilityLabel="More sales document options"
+										onPress={() => setMoreSheetOpen(true)}
+										className="h-12 w-12 items-center justify-center rounded-lg border border-border bg-background active:opacity-80"
+									>
+										<Icon
+											name="more"
+											className="text-muted-foreground"
+											size={21}
+										/>
+									</AppPressable>
+								) : null}
+							</View>
+						</View>
+					</View>
+				) : null}
+				<SalesDocumentOverviewMoreSheet
+					visible={moreSheetOpen}
+					actions={moreActions}
+					onClose={() => setMoreSheetOpen(false)}
+					onSelect={handleMoreAction}
+					onCopy={copyDocument}
+				/>
+			</View>
+		</SafeArea>
+	);
 }
 
 function money(value?: number | null) {
-  return `$${Number(value || 0).toFixed(2)}`;
+	return toSalesOverviewMoney(value);
+}
+
+function addressLines(address?: OverviewAddress) {
+	return (address?.lines ?? []).filter((line): line is string => !!line);
 }
 
 function statusTone(status?: string | null) {
-  const value = String(status || "").toLowerCase();
-  if (value.includes("completed")) {
-    return {
-      chip: "border border-emerald-200 bg-emerald-50",
-      text: "text-emerald-700 dark:text-emerald-300",
-      dot: "bg-emerald-500",
-    };
-  }
-  if (value.includes("progress")) {
-    return {
-      chip: "border border-amber-200 bg-amber-50",
-      text: "text-amber-700 dark:text-amber-300",
-      dot: "bg-amber-500",
-    };
-  }
-  return {
-    chip: "border border-border bg-muted",
-    text: "text-muted-foreground",
-    dot: "bg-muted-foreground",
-  };
+	const value = String(status || "").toLowerCase();
+	if (value.includes("completed") || value === "paid") {
+		return {
+			chip: "border border-emerald-200 bg-emerald-50",
+			text: "text-emerald-700 dark:text-emerald-300",
+			dot: "bg-emerald-500",
+		};
+	}
+	if (
+		value.includes("progress") ||
+		value.includes("part") ||
+		value === "open"
+	) {
+		return {
+			chip: "border border-amber-200 bg-amber-50",
+			text: "text-amber-700 dark:text-amber-300",
+			dot: "bg-amber-500",
+		};
+	}
+	return {
+		chip: "border border-primary/20 bg-primary/10",
+		text: "text-primary",
+		dot: "bg-primary",
+	};
 }
 
 function OverviewCard({
-  children,
-  className,
+	children,
+	className,
 }: {
-  children: React.ReactNode;
-  className?: string;
+	children: React.ReactNode;
+	className?: string;
 }) {
-  return (
-    <View className={`overflow-hidden rounded-3xl bg-card ${className || "p-4"}`}>
-      {children}
-    </View>
-  );
+	return (
+		<View
+			className={`overflow-hidden rounded-lg bg-card ${className || "p-4"}`}
+		>
+			{children}
+		</View>
+	);
+}
+
+function OverviewUnavailableState({
+	title,
+	message,
+	actionLabel,
+	onAction,
+}: {
+	title: string;
+	message: string;
+	actionLabel: string;
+	onAction: () => void;
+}) {
+	return (
+		<SafeArea>
+			<View className="flex-1 items-center justify-center bg-muted/30 px-6">
+				<View className="w-full max-w-[360px] items-center rounded-lg border border-border/70 bg-card px-5 py-6">
+					<View className="mb-4 h-10 w-10 items-center justify-center rounded-full bg-muted">
+						<Icon
+							name="AlertCircle"
+							className="text-muted-foreground"
+							size={18}
+						/>
+					</View>
+					<Text className="text-center text-base font-bold text-foreground">
+						{title}
+					</Text>
+					<Text className="mt-2 text-center text-sm text-muted-foreground">
+						{message}
+					</Text>
+					<Pressable
+						onPress={onAction}
+						className="mt-5 h-11 w-full items-center justify-center rounded-lg bg-primary active:opacity-85"
+					>
+						<Text className="text-xs font-bold uppercase tracking-widest text-primary-foreground">
+							{actionLabel}
+						</Text>
+					</Pressable>
+				</View>
+			</View>
+		</SafeArea>
+	);
 }
 
 function Section({
-  title,
-  icon,
-  children,
+	title,
+	icon,
+	children,
+	contentClassName = "p-4",
 }: {
-  title: string;
-  icon: any;
-  children: React.ReactNode;
+	title: string;
+	icon: IconKeys;
+	children: React.ReactNode;
+	contentClassName?: string;
 }) {
-  return (
-    <View className="rounded-3xl border border-border/70 bg-card p-3">
-      <View className="mb-3 flex-row items-center gap-2">
-        <View className="rounded-full bg-muted p-1.5">
-          <Icon name={icon} className="text-foreground" size={14} />
-        </View>
-        <Text className="text-sm font-bold text-foreground">{title}</Text>
-      </View>
-      <View className="rounded-2xl bg-background p-3">{children}</View>
-    </View>
-  );
+	return (
+		<View className="overflow-hidden rounded-lg border border-border/70 bg-card">
+			<View className="flex-row items-center gap-2 border-b border-border/70 bg-muted/10 px-4 py-3">
+				<Icon name={icon} className="text-muted-foreground" size={14} />
+				<Text className="text-[10px] font-bold uppercase tracking-widest text-foreground">
+					{title}
+				</Text>
+			</View>
+			<View className={contentClassName}>{children}</View>
+		</View>
+	);
 }
 
 function MetricPill({
-  label,
-  value,
-  icon,
+	label,
+	value,
+	valueClassName,
 }: {
-  label: string;
-  value: string;
-  icon: any;
+	label: string;
+	value: string;
+	valueClassName?: string;
 }) {
-  return (
-    <View className="flex-1 rounded-xl border border-border/60 bg-background px-2.5 py-2">
-      <View className="mb-1 flex-row items-center gap-1.5">
-        <Icon name={icon} className="text-muted-foreground" size={12} />
-        <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-          {label}
-        </Text>
-      </View>
-      <Text className="text-xs font-bold text-foreground">{value}</Text>
-    </View>
-  );
+	return (
+		<View className="flex-1 px-4 py-4">
+			<Text className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+				{label}
+			</Text>
+			<Text
+				className={`text-base font-bold text-foreground ${valueClassName || ""}`}
+			>
+				{value}
+			</Text>
+		</View>
+	);
+}
+
+function AmountRow({
+	label,
+	value,
+	divider = true,
+	labelUppercase = false,
+	mutedValue = false,
+	edgeToEdge = false,
+	valueClassName,
+}: {
+	label: string;
+	value: string;
+	divider?: boolean;
+	labelUppercase?: boolean;
+	mutedValue?: boolean;
+	edgeToEdge?: boolean;
+	valueClassName?: string;
+}) {
+	return (
+		<View
+			className={`flex-row items-center justify-between gap-4 py-2.5 ${
+				edgeToEdge ? "px-4" : ""
+			} ${divider ? "border-b border-border/70 last:border-b-0" : ""}`}
+		>
+			<Text
+				className={
+					labelUppercase
+						? "text-[11px] font-bold uppercase tracking-wider text-muted-foreground"
+						: "text-sm text-muted-foreground"
+				}
+			>
+				{label}
+			</Text>
+			<Text
+				className={`text-sm font-medium ${
+					mutedValue ? "italic text-muted-foreground" : "text-foreground"
+				} ${valueClassName || ""}`}
+			>
+				{value}
+			</Text>
+		</View>
+	);
+}
+
+function OverviewItemRow({ item }: { item: SalesDocumentOverviewItem }) {
+	return (
+		<View className="flex-row items-start gap-4 border-b border-border/70 px-4 py-3 last:border-b-0">
+			{item.image ? (
+				<Image
+					source={{ uri: item.image }}
+					style={{ width: 44, height: 44, borderRadius: 6 }}
+					contentFit="cover"
+				/>
+			) : null}
+			<View className="flex-1">
+				<Text className="text-[13px] font-bold leading-snug text-foreground">
+					{item.title}
+				</Text>
+				<Text className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+					{item.subtitle}
+				</Text>
+			</View>
+			<View className="rounded border border-border/70 bg-muted/30 px-1.5 py-0.5">
+				<Text className="text-[11px] font-bold text-muted-foreground">
+					x{item.quantity}
+				</Text>
+			</View>
+		</View>
+	);
 }
 
 function FinancialOverviewCard({
-  total,
-  paid,
-  due,
-  taxAmount,
-  discountAmount,
-  paidPct,
+	balanceLabel,
+	due,
+	ledgerRows,
+	paymentMethod,
+	progressStats,
+	paidPct,
 }: {
-  total: number;
-  paid: number;
-  due: number;
-  taxAmount: number;
-  discountAmount: number;
-  paidPct: number;
+	balanceLabel: string;
+	due: number;
+	ledgerRows: Array<{
+		key: string;
+		label: string;
+		value: number;
+		tone: "neutral" | "positive" | "warning";
+		bold: boolean;
+	}>;
+	paymentMethod: string;
+	progressStats: Array<{
+		key: string;
+		label: string;
+		value: number;
+		tone: "neutral" | "positive" | "warning";
+	}>;
+	paidPct: number;
 }) {
-  return (
-    <OverviewCard className="border border-border/70 p-4">
-      <View className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/10" />
-      <View className="absolute -bottom-8 -left-8 h-20 w-20 rounded-full bg-secondary/60" />
+	return (
+		<Section title="Financial" icon="Wallet">
+			<View className="mb-5 flex-row items-baseline justify-between gap-3">
+				<View>
+					<Text className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+						{balanceLabel}
+					</Text>
+					<Text className="text-2xl font-extrabold text-foreground">
+						{money(due)}
+					</Text>
+				</View>
+				<Text className="text-[10px] font-bold uppercase text-primary">
+					{paidPct.toFixed(0)}% settled
+				</Text>
+			</View>
 
-      <View className="mb-3 flex-row items-center gap-2">
-        <View className="rounded-full bg-primary/10 p-1.5">
-          <Icon name="Wallet" className="text-primary" size={14} />
-        </View>
-        <Text className="text-sm font-bold text-foreground">Financial</Text>
-      </View>
+			{progressStats.length ? (
+				<View className="mb-4 gap-2">
+					{progressStats.map((stat) => (
+						<View
+							key={stat.key}
+							className="flex-row items-center justify-between rounded-md bg-muted/30 px-3 py-2"
+						>
+							<Text className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+								{stat.label}
+							</Text>
+							<Text
+								className={`text-sm font-bold ${financialToneValueClass(
+									stat.tone,
+								)}`}
+							>
+								{money(stat.value)}
+							</Text>
+						</View>
+					))}
+				</View>
+			) : null}
 
-      <View className="mb-3 rounded-2xl border border-border/60 bg-background p-3">
-        <View className="mb-2 flex-row items-center justify-between">
-          <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Outstanding Balance
-          </Text>
-          <Text className="text-[11px] font-semibold text-muted-foreground">
-            {paidPct.toFixed(0)}% paid
-          </Text>
-        </View>
-        <Text className="text-2xl font-black text-foreground">{money(due)}</Text>
-        <View className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-          <View style={{ width: `${paidPct}%`, height: "100%" }}>
-            <View className="h-full rounded-full bg-primary" />
-          </View>
-        </View>
-      </View>
+			<View className="border-t border-border/70 pt-3">
+				<AmountRow
+					label="Payment method"
+					value={paymentMethod}
+					divider={ledgerRows.length > 0}
+				/>
+				{ledgerRows.map((row, index) => (
+					<AmountRow
+						key={row.key}
+						label={row.label}
+						value={money(row.value)}
+						divider={index < ledgerRows.length - 1}
+						valueClassName={`${financialToneValueClass(row.tone)} ${
+							row.bold ? "font-bold" : ""
+						}`}
+					/>
+				))}
+			</View>
+		</Section>
+	);
+}
 
-      <View className="mb-2 flex-row gap-2">
-        <View className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2.5">
-          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Total
-          </Text>
-          <Text className="mt-1 text-sm font-bold text-foreground">{money(total)}</Text>
-        </View>
-        <View className="flex-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
-          <Text className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-            Paid
-          </Text>
-          <Text className="mt-1 text-sm font-bold text-emerald-700 dark:text-emerald-300">
-            {money(paid)}
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row gap-2">
-        <View className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2.5">
-          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Tax
-          </Text>
-          <Text className="mt-1 text-sm font-semibold text-foreground">{money(taxAmount)}</Text>
-        </View>
-        <View className="flex-1 rounded-xl border border-border/60 bg-background px-3 py-2.5">
-          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Discount
-          </Text>
-          <Text className="mt-1 text-sm font-semibold text-foreground">{money(discountAmount)}</Text>
-        </View>
-      </View>
-    </OverviewCard>
-  );
+function financialToneValueClass(tone: "neutral" | "positive" | "warning") {
+	if (tone === "positive") return "text-emerald-700 dark:text-emerald-300";
+	if (tone === "warning") return "text-amber-700 dark:text-amber-300";
+	return "text-foreground";
 }
 
 function ContactOverviewCard({
-  name,
-  phone,
-  email,
-  billingAddress,
+	name,
+	phone,
+	email,
+	billingAddress,
 }: {
-  name: string;
-  phone: string;
-  email: string;
-  billingAddress?: {
-    lines?: string[];
-    address?: string;
-  } | null;
+	name: string;
+	phone: string;
+	email: string;
+	billingAddress?: OverviewAddress;
 }) {
-  const billingLines = (billingAddress?.lines || []).filter(Boolean);
+	const billingLines = addressLines(billingAddress);
 
-  return (
-    <OverviewCard className="border border-border/70 p-4">
-      <View className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-primary/15" />
-      <View className="absolute -left-8 -bottom-8 h-20 w-20 rounded-full bg-secondary/70" />
-
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <View className="rounded-full bg-primary/10 p-1.5">
-            <Icon name="User" className="text-primary" size={14} />
-          </View>
-          <Text className="text-sm font-bold text-foreground">Customer Contact</Text>
-        </View>
-        <View className="rounded-full border border-border/70 bg-background px-2.5 py-1">
-          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Billing Source
-          </Text>
-        </View>
-      </View>
-
-      <View className="mb-3 rounded-2xl border border-border/60 bg-background p-3">
-        <View className="flex-row items-center gap-2">
-          <View className="h-11 w-11 items-center justify-center rounded-full bg-primary/15">
-            <Icon name="User" className="text-primary" size={18} />
-          </View>
-          <View>
-            <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Primary Contact
-            </Text>
-            <Text className="text-base font-black text-foreground">{name}</Text>
-          </View>
-        </View>
-      </View>
-
-      <View className="gap-2">
-        <View className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
-          <View className="flex-row items-center gap-2">
-            <View className="h-7 w-7 items-center justify-center rounded-full bg-secondary">
-              <Icon name="Phone" className="text-muted-foreground" size={13} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Phone
-              </Text>
-              <Text className="text-sm font-semibold text-foreground">{phone}</Text>
-            </View>
-          </View>
-        </View>
-        <View className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
-          <View className="flex-row items-center gap-2">
-            <View className="h-7 w-7 items-center justify-center rounded-full bg-secondary">
-              <Icon name="Mail" className="text-muted-foreground" size={13} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Email
-              </Text>
-              <Text className="text-sm font-semibold text-foreground">{email}</Text>
-            </View>
-          </View>
-        </View>
-        <View className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
-          <View className="flex-row items-start gap-2">
-            <View className="mt-0.5 h-7 w-7 items-center justify-center rounded-full bg-secondary">
-              <Icon name="MapPin" className="text-muted-foreground" size={13} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Billing Address
-              </Text>
-              {billingLines.length ? (
-                <View className="mt-0.5 gap-0.5">
-                  {billingLines.map((line, index) => (
-                    <Text key={`${line}-${index}`} className="text-sm font-semibold text-foreground">
-                      {line}
-                    </Text>
-                  ))}
-                </View>
-              ) : (
-                <Text className="text-sm font-semibold text-foreground">
-                  {billingAddress?.address || "No billing address"}
-                </Text>
-              )}
-            </View>
-          </View>
-        </View>
-      </View>
-    </OverviewCard>
-  );
-}
-
-function ShippingOverviewCard({ address }: { address?: any }) {
-  const lines = (address?.lines || []).filter(Boolean);
-
-  return (
-    <OverviewCard className="border border-border/70 p-4">
-      <View className="absolute -left-10 -top-10 h-24 w-24 rounded-full bg-primary/15" />
-      <View className="absolute -right-8 -bottom-8 h-20 w-20 rounded-full bg-secondary/70" />
-
-      <View className="mb-3 flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <View className="rounded-full bg-primary/10 p-1.5">
-            <Icon name="Truck" className="text-primary" size={14} />
-          </View>
-          <Text className="text-sm font-bold text-foreground">Shipping Destination</Text>
-        </View>
-        <View className="rounded-full border border-border/70 bg-background px-2.5 py-1">
-          <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Active
-          </Text>
-        </View>
-      </View>
-
-      {lines.length ? (
-        <View className="gap-2 rounded-2xl border border-border/60 bg-background p-3">
-          {lines.map((line: string, index: number) => (
-            <View
-              key={String(index)}
-              className="flex-row items-start gap-2 rounded-xl border border-border/60 bg-card px-3 py-2.5"
-            >
-              <View className="mt-0.5 h-5 w-5 items-center justify-center rounded-full bg-primary/10">
-                <Icon name="MapPin" className="text-primary" size={12} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  {index === 0 ? "Street" : "Address Line"}
-                </Text>
-                <Text className="text-sm font-semibold text-foreground">{line}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      ) : (
-        <View className="rounded-xl border border-dashed border-border bg-background px-3 py-4">
-          <View className="flex-row items-center gap-2">
-            <View className="h-7 w-7 items-center justify-center rounded-full bg-muted">
-              <Icon name="MapPin" className="text-muted-foreground" size={12} />
-            </View>
-            <Text className="text-sm text-muted-foreground">No shipping address.</Text>
-          </View>
-        </View>
-      )}
-    </OverviewCard>
-  );
+	return (
+		<Section title="Customer Contact" icon="User" contentClassName="p-0">
+			<View>
+				<AmountRow label="Primary" value={name} labelUppercase edgeToEdge />
+				<AmountRow
+					label="Phone"
+					value={phone}
+					labelUppercase
+					mutedValue={phone === "Not provided"}
+					edgeToEdge
+				/>
+				<AmountRow
+					label="Email"
+					value={email}
+					labelUppercase
+					mutedValue={email === "Not provided"}
+					edgeToEdge
+				/>
+				<View className="flex-row items-start justify-between gap-4 border-b border-border/70 px-4 py-2.5 last:border-b-0">
+					<Text className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+						Address
+					</Text>
+					<View className="max-w-[62%] items-end">
+						{billingLines.length ? (
+							billingLines.map((line) => (
+								<Text
+									key={line}
+									className="text-right text-sm font-medium text-foreground"
+								>
+									{line}
+								</Text>
+							))
+						) : (
+							<Text className="text-right text-sm font-medium text-foreground">
+								{billingAddress?.address || "No billing address"}
+							</Text>
+						)}
+					</View>
+				</View>
+			</View>
+		</Section>
+	);
 }

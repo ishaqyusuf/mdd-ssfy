@@ -13,7 +13,7 @@ export function useBool(defaultState: boolean = false) {
     reset: loader.reset,
   };
 }
-export function useLoader(defaultState: boolean = false) {
+function useLoader(defaultState: boolean = false) {
   const [isLoading, setLoading] = useState<boolean>(defaultState);
   return {
     reset() {

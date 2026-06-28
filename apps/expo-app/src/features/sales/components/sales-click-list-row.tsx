@@ -1,6 +1,7 @@
 import { Icon, type IconKeys } from "@/components/ui/icon";
+import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 
 type SalesClickListRowProps = {
   title: string;
@@ -19,8 +20,9 @@ export function SalesClickListRow({
 }: SalesClickListRowProps) {
   return (
     <Pressable
+      haptic
       onPress={onPress}
-      className="min-h-[64px] border-b border-border/40 px-3 py-4 active:opacity-70"
+      className="min-h-[64px] border-b border-border/40 px-3 py-4 active:opacity-90"
     >
       <View className="flex-row items-center gap-3">
         <View

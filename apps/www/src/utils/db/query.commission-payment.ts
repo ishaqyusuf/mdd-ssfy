@@ -4,20 +4,20 @@ import { Prisma } from "@/db";
 import { composeQueryData, queryResponse } from "../query-response";
 import { SearchParamsType } from "@/components/(clean-code)/data-table/search-params";
 
-export function whereCommissionPayment(query: SearchParamsType) {
-    const userId = query["user.id"];
-    const where: Prisma.CommissionPaymentWhereInput[] = [];
-    return composeQuery(where);
+function whereCommissionPayment(query: SearchParamsType) {
+	const userId = query["user.id"];
+	const where: Prisma.CommissionPaymentWhereInput[] = [];
+	return composeQuery(where);
 }
 export async function commissionPaymentQueryMetaData(query: SearchParamsType) {
-    const model = prisma.commissionPayment;
-    const qd = await composeQueryData(
-        query,
-        whereCommissionPayment(query),
-        model
-    );
-    return {
-        ...qd,
-        model,
-    };
+	const model = prisma.commissionPayment;
+	const qd = await composeQueryData(
+		query,
+		whereCommissionPayment(query),
+		model,
+	);
+	return {
+		...qd,
+		model,
+	};
 }

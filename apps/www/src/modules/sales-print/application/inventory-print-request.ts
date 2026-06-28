@@ -5,7 +5,7 @@ export type SalesInventoryPrintRawParams = Record<
 	string | string[] | undefined
 >;
 
-export function readSalesInventoryPrintIds(
+function readSalesInventoryPrintIds(
 	rawParams: SalesInventoryPrintRawParams,
 ) {
 	const rawIds = readStringParam(rawParams.ids || rawParams.salesIds);

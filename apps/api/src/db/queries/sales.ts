@@ -257,19 +257,21 @@ export async function getSaleOverview(
   query: GetSaleOverviewSchema,
 ) {
   const { db } = ctx;
-  const where = whereSales({
-    ...query,
-    showing: "all sales",
-  });
+  const orderNo = query.orderNo?.trim();
+  if (!orderNo) return null;
+  const salesType = (query.salesType ?? "order") as SalesType;
 
   const sale = await db.salesOrders.findFirst({
-    where,
+    where: {
+      orderId: orderNo,
+      type: salesType,
+      deletedAt: null,
+    },
     include: SalesOverviewInclude,
   });
 
   if (!sale) return null;
 
-  const salesType = (query.salesType ?? sale.type) as SalesType;
   const overview =
     salesType === "quote" ? salesQuoteDto(sale) : salesOrderDto(sale);
 

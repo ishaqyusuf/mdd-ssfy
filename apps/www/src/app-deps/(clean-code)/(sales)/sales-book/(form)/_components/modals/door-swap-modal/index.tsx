@@ -514,7 +514,7 @@ export const openDoorItemTypeSwapModal = (door: Door, itemUid) => {
     );
 };
 
-export function DoorSwapModal({ door, itemStepUid }) {
+function DoorSwapModal({ door, itemStepUid }) {
     const ctx = useStepContext(itemStepUid);
     const { cls } = ctx;
     const [view, setView] = useState<"doors" | "visibility">("doors");

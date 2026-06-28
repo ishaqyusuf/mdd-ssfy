@@ -20,7 +20,7 @@ export type ItemControl = {
     hptId?;
     shelfId?;
 };
-export function itemControlUid(props: ItemControl) {
+function itemControlUid(props: ItemControl) {
     const stacks = [props.type];
     if (props.doorId) {
         stacks.push(props.doorId);
@@ -46,12 +46,6 @@ export function itemControlUidObject(str) {
     }
     return obj;
 }
-export function shelfItemControlUid(shelfId) {
-    return itemControlUid({
-        type: "shelf",
-        shelfId,
-    });
-}
 export function itemItemControlUid(itemId) {
     return itemControlUid({
         type: "item",
@@ -64,18 +58,6 @@ export function doorItemControlUid(doorId, dim) {
         doorId,
         dim,
     });
-}
-export function generateItemControlUid({
-    itemId = null,
-    hptId = null,
-    doorId = null,
-    dim = null,
-    shelfId = null,
-}) {
-    if (shelfId) return shelfItemControlUid(shelfId);
-    if (doorId) return doorItemControlUid(doorId, dim);
-    if (hptId) return mouldingItemControlUid(itemId, hptId);
-    return itemControlUid(itemId);
 }
 export function mouldingItemControlUid(itemId, hptId) {
     return itemControlUid({

@@ -3,16 +3,7 @@ import {
     colorsObject,
     getColorFromName as baseGetColorFromName,
 } from "@gnd/utils/colors";
-export function getBadgeColor(status: string | null, _default = "slate") {
-    return _getStatusColor(statusColor(status, _default));
-}
-export function statusColor(status, _default = "slate") {
-    if (!status) return _default;
-    let color: Colors | undefined = status
-        ? StatusColorMap[(status?.toLowerCase() || "").replace(" ", "_")]
-        : _default || ("slate" as any);
-    return color || _default;
-}
+
 export function getColorFromName(name) {
     // if name is "6/8", "8/10" convert to percentage and get color for percentage level
     if (/^\d+\/\d+$/.test(name)) {

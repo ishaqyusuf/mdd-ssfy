@@ -5,7 +5,7 @@ import type {
 
 const DEFAULT_PRINT_RENDER_SETTLE_MS = 2500;
 
-export function waitForNextPrintFrame() {
+function waitForNextPrintFrame() {
 	return new Promise<void>((resolve) => {
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => resolve());
@@ -35,7 +35,7 @@ async function waitForDocumentImages(document: Document) {
 	);
 }
 
-export async function waitForPrintableFrame(
+async function waitForPrintableFrame(
 	iframe: HTMLIFrameElement,
 	settleMs = DEFAULT_PRINT_RENDER_SETTLE_MS,
 ) {

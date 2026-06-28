@@ -11,7 +11,7 @@ import { createPayrollAction } from "./create-payroll";
 import { actionClient } from "./safe-action";
 import { createSubmissionSchema } from "./schema";
 
-export async function submitSalesAssignment(
+async function submitSalesAssignment(
     data: z.infer<typeof createSubmissionSchema>,
     tx: typeof prisma = prisma,
 ) {

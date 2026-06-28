@@ -277,11 +277,3 @@ export const { Provider: PackingProvider, useContext: usePacking } =
             submitDispatch,
         };
     });
-export const { Provider: PackingItemProvider, useContext: usePackingItem } =
-    createContextFactory(
-        ({ item }: { item: Props["data"]["dispatchItems"][number] }) => {
-            return {
-                item,
-            };
-        },
-    );

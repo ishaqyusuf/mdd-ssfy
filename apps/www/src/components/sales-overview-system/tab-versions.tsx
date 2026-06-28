@@ -33,7 +33,7 @@ type SalesOverviewTabVersionRegistry = Record<
 	}
 >;
 
-export const DEFAULT_SALES_OVERVIEW_TAB_VERSIONS: Partial<
+const DEFAULT_SALES_OVERVIEW_TAB_VERSIONS: Partial<
 	Record<SalesOverviewTabId, string>
 > = {
 	overview: "v1",

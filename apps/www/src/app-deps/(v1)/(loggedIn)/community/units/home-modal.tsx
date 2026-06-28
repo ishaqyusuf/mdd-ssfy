@@ -47,7 +47,7 @@ export function useHomeModal() {
 interface Props {
     home?;
 }
-export default function HomeModal({ home }: Props) {
+function HomeModal({ home }: Props) {
     const modal = useModal();
     const [, startTransition] = useTransition();
     const form = useForm<FormProps>({

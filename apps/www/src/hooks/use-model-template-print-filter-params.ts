@@ -8,7 +8,7 @@ import {
     parseAsStringEnum,
 } from "nuqs/server";
 
-export const modelTemplatePrintFilterParamsSchema = {
+const modelTemplatePrintFilterParamsSchema = {
     preview: parseAsBoolean,
     homeIds: parseAsArrayOf(parseAsInteger),
     version: parseAsStringEnum(["v1", "v2"]),
@@ -28,4 +28,3 @@ export function useModelTemplatePrintFilterParams() {
 export const loadModelTemplatePrintFilterParams = createLoader(
     modelTemplatePrintFilterParamsSchema
 );
-

@@ -13,10 +13,12 @@ Analysis and first cleanup slice for `apps/www` dead, stale, and migration-era c
 ## Topline Results
 
 - Initial Knip file candidates: 653.
-- Current Knip file candidates after cleanup: 20.
-- Last full-audit Knip issue entries: 225.
+- Current Knip file candidates after cleanup: 22.
+- Current split Knip issue entries: 34.
 - Current unused package dependency candidates: 3 runtime dependencies and 1 dev dependency.
+- Current unlisted dependency candidates: 0.
 - Current unresolved import candidates: 0.
+- Current export candidates: 129.
 - `apps/www/src/app` route-convention files: 152.
 - `apps/www/src/app-deps` route-convention files at audit start: 21, all stale `loading.tsx` or `not-found.tsx` style files rather than live `page.tsx` routes.
 - `apps/www/src/app-deps` is not globally removable. Live code still imports auth helpers, old sales form stores, types, query utilities, and community helpers from `@/app-deps/...`.
@@ -159,6 +161,197 @@ Started on 2026-06-17 after the read-only audit and continued on 2026-06-18:
   - Retargeted stale `@/app/(v2)/(loggedIn)/sales-v2/type` imports to the existing `@/app-deps/(v2)/(loggedIn)/sales-v2/type` path.
   - Replaced deleted private v2 form-action imports inside `apps/www/src/app-deps/(v2)/(loggedIn)/sales-v2/type.ts` with a local structural legacy form type so live old-sales-form type consumers no longer depend on missing files.
   - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-full-20260618-after-unresolved1.json` reports 20 file candidates, 225 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 5 unlisted candidates, 0 unresolved candidates, and 551 export candidates.
+- Added `server-only` to `@gnd/www` dependencies because five `apps/www` server-only modules import it directly.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-server-only.json` reports 22 file candidates, 223 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 553 export candidates.
+- Retained the remaining package candidates as tooling/config-owned instead of removing them:
+  - `eslint` and `eslint-config-next` are kept for the package-local `lint` script (`next lint`) and root Turbo lint workflows.
+  - `puppeteer-core` is kept because `apps/www/next.config.mjs` lists it in `serverExternalPackages`.
+  - `tailwindcss` is kept because `apps/www` declares `@tailwindcss/postcss`, delegates PostCSS to `@gnd/ui/postcss.config`, and still has shadcn/Tailwind component tooling metadata.
+- Removed a tiny high-confidence auth export slice:
+  - `AUTH_LOGIN_ROUTE` is now file-local because only `auth-routes.ts` uses it.
+  - Removed unused exported `emptyAuthSnapshot` and `signOut` helpers after exact symbol scans found no call sites.
+  - Test-backed auth/routing exports such as `isTransientAuthSessionFetchError`, `isLocalDevHost`, and `resolveRedirectPathWithRules` were retained because their tests import them directly.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-auth1.json` reports 22 file candidates, 220 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 550 export candidates.
+- Removed conservative export-candidate slices from routing, print, payment, and new-sales-form code:
+  - Demoted local-only exports to file-local declarations: `redirectRules`, `waitForNextPrintFrame`, `waitForPrintableFrame`, `readSalesInventoryPrintIds`, `normalizePaymentMethod`, and `normalizeWorkflowRoleTitle`.
+  - Removed unreferenced new-sales-form hooks and mapper wrappers: `useNewSalesFormSearchCustomersQuery`, `useRecalculateNewSalesFormMutation`, `useDeleteNewSalesFormLineItemMutation`, `useNewSalesFormCache`, `createLineItemUid`, `createEmptyLineItem`, `normalizeLineItem`, `normalizeLineItems`, `normalizeMeta`, `normalizeExtraCosts`, and `hydrateRecord`.
+  - Demoted schema internals `saveStatusSchema` and `newSalesFormUiStateSchema` while keeping their exported inferred types.
+  - Demoted internal sales-print URL builders and removed unused print wrappers: `prepareSalesPrintPreview`, `printOrder`, `printOrderWithPacking`, and `printQuote`.
+  - Retained test-facing exports such as `resolveRedirectPathWithRules`, sales-print access resolvers, local-recovery helpers, and payment preview helpers.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-forms-print1.json` reports 22 file candidates, 214 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 525 export candidates.
+- Removed a focused utility/component export slice after exact symbol and import scans:
+  - Removed definition-only utility exports from `lib/is-array.ts`, `lib/delimiters.ts`, `data/data-util.ts`, `envs.ts`, and `utils/format.ts` while keeping the still-imported helpers in those modules.
+  - Removed the now-unused `@date-fns/tz` package declaration from `@gnd/www` and refreshed `bun.lock` because it was only used by the deleted `utils/format.ts` date-range helper.
+  - Demoted `salesPriorityTone` to file-local and removed the unreferenced `SalesPriorityMenuItems` wrapper while retaining live priority badge/select behavior.
+  - Removed unused component/hook exports `AvatarGroup` and `useMobile`, and demoted `CurrencyInput` to a file-local helper for the still-live `NumberInput`.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-utils3.json` reports 22 file candidates, 205 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 503 export candidates.
+- Removed a module-live export slice where files still have active imports but specific exports were dead:
+  - Removed unused exports `useTaskNotificationParams`, `getUnitInvoiceReportDefinition`, `useEmployeesList`, `CommunityProjectUnitsAnalytics`, and `CommunityProjectsDashboardTab` while preserving the live neighboring exports in each module.
+  - Deleted the unmounted debug modal and follow-on `use-debug-params` hook; the live dev toast helper remains, without the dead modal expansion path.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-modulelive2.json` reports 22 file candidates, 201 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 498 export candidates.
+- Removed a filter-param/static-helper export slice:
+  - Demoted private query-param schemas in site action, jobs print, contractor payout print, model-template print, community-invoice print, sales print, employee, inventory import, and sort hooks.
+  - Removed unreferenced `loadInventoryParams`, `loadInventoryInboundParams`, `loadSalesPrintFilterParams`, and the duplicate `useInboundView` export from the customer filter hook; live hook and loader call sites were preserved.
+  - Removed dead `_path`, `_invalidate`, and `_pathIs` exports from `components/static-trpc.tsx` while retaining the legacy `_trpc` / `_qc` globals.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-filterparams-static1.json` reports 22 file candidates, 189 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 482 export candidates.
+- Removed a schema/constants/helper export slice:
+  - Demoted local auth base schemas and removed unused verification/auth exports, while retaining the reset/check-email exports still used by forms.
+  - Removed unused legacy payment, dispatch, HRM employee-profile, numeric, and currency helper exports.
+  - Demoted `queryMeta` to a private helper inside `utils/query-response.ts`.
+  - Removed stale constants/type exports from `utils/constants.ts` and kept the live `EventTypes` type with a file-local backing map.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-schemas-constants1.json` reports 22 file candidates, 183 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 469 export candidates.
+- Removed a UI/context/table export slice:
+  - Demoted local-only React context objects for job form, job overview, data skeleton, and community install-cost rates while keeping their provider and hook exports live.
+  - Demoted local-only UI helpers including `ChatContent`, `CustomSheetBase`, `ControlledCombox`, `ProductionV2OrderCardSkeleton`, sales-overview tab defaults, and `ProgressItem`.
+  - Removed unused Midday search-filter compatibility exports, the stale `getProgressValue` helper, the old local `useTableData` table hook, duplicate table-header aliases, and the unused legacy `columns2` sales-orders column set.
+  - Deleted the unused generic `components/tables-2/core/bottom-bar.tsx`; current migrated tables use domain-specific bottom bars instead.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-ui1.json` reports 22 file candidates, 164 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 448 export candidates.
+- Removed a small helper export slice:
+  - Demoted local-only `statusColor`, `lastId`, `useLoader`, and `noteContext` helpers while keeping the live public wrappers/hooks/providers.
+  - Removed the unused dev-flow `logError` wrapper; existing `startFlow`, `logStage`, and `endFlow` exports remain.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-helpers1.json` reports 22 file candidates, 159 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 443 export candidates.
+- Removed another UI/helper export slice:
+  - Demoted local-only clean-code combo-box/table helpers, sales-form dialog/content helpers, shelf/door subcomponents, product variant empty state, and sales-meta local select helper.
+  - Removed the unused `InboundStatus` constant while retaining live `Progressor` and `getProgress` exports.
+  - Removed definition-only helpers `cldUploadFiles` and `serializeTaskMonitorTask`, and removed the unused `_v1/icons` `Icon` re-export while keeping `Icons` and `IconKeys`.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-ui3.json` reports 22 file candidates, 144 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 428 export candidates.
+- Removed a legacy sales-form modal export slice:
+  - Demoted local-only `useInitContext` helpers in the old clean-code sales-form modal files while retaining the externally imported modal opener functions.
+  - Demoted unused default/named modal component exports for component form, component pricing, section override, component visibility, door pricing, step pricing, door swap, and image gallery modals.
+  - Kept the live `door-size-modal` default export because current component-item-card and old components-section code import it directly.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-modals3.json` reports 22 file candidates, 135 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 413 export candidates.
+- Removed a DTO/helper export slice:
+  - Removed empty `salesStatisticDto` stubs from the app and app-deps sales list DTO mirrors.
+  - Demoted private `deliveriesByStatus`, `calculatedStatsDto`, and `generateDispatchId` helpers in app/app-deps sales DTO and dispatch utility mirrors.
+  - Removed the unused app-side `calculateDeliveryBreakdownPercentage` mirror while preserving the app-deps version imported by current sales shipping DTOs.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-dto2.json` reports 22 file candidates, 127 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 404 export candidates.
+- Removed a UI/table-config export slice:
+  - Deleted the unused `components/page-tabs/trpc-page-tabs.tsx` wrapper file and removed its stale barrel re-exports while keeping the live `PageTabs` barrel export.
+  - Demoted private scroll-header CSS variable constants.
+  - Removed the unused aggregate `TABLE_CONFIGS`/`getTableConfig` path while preserving the direct table config exports used by current tables.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-ui-tabs2.json` reports 22 file candidates, 123 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 394 export candidates.
+- Removed a utility export-surface slice:
+  - Demoted private `parseAsSort` and `searchSchema` internals inside the clean-code data-table search params module while keeping exported parser/cache/serializer/types intact.
+  - Removed unused duplicate `composeStepFormDisplay` helpers from the app and app-deps sales step utility mirrors; `composeStepRouting` remains live in both mirrors.
+  - Demoted item-control UID implementation helpers and removed the app-side unused `generateItemControlUid`/shelf helper path while keeping the app-deps `generateItemControlUid` export imported by `utils/sales-control-util.ts`.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-utils4.json` reports 22 file candidates, 118 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 386 export candidates.
+- Removed another small utility export-surface slice:
+  - Removed unused duplicate `dotArray` / `dotKeys` helpers from the app and app-deps clean-code utility mirrors while preserving live `dotObject` / `dotSet` imports.
+  - Demoted table-settings default helpers that are only used by the exported `mergeWithDefaults` function.
+  - Removed dead percentile calculation/color helpers while keeping the `Percentile` type export used by clean-code data-table query options.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-utils5.json` reports 22 file candidates, 114 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 376 export candidates.
+- Removed a barrel/internal-helper export-surface slice:
+  - Demoted internal email composer primitives while keeping `composeStackLine`, `composeText`, and `mailComposer` exports used by sales event actions.
+  - Removed unused notification-center barrel re-exports for `EmptyState` and `NotificationItem` while keeping the live `NotificationCenter` barrel export.
+  - Demoted the internal `FormSection` helper and removed the unused `styler` export from the community-template v1 form sections file while keeping the concrete form section components exported.
+  - Removed unused table-core barrel re-exports for `SkeletonCell`, `ACTIONS_FULL_WIDTH_CELL_CLASS`, and `getColumnId`; sibling table-core files still import those directly from their source modules.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-barrels1.json` reports 22 file candidates, 110 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 366 export candidates.
+- Removed a v2 table export-surface slice:
+  - Removed unused `projectTabColumns` and card component exports from `tables-2/unit-invoices` and `tables-2/unit-productions`.
+  - Preserved the live table `columns`, row types, and row id helpers imported by current skeleton/store/data-table modules.
+  - Removed the now-unused unit-invoice card-only status-tone helper and unit-production card-only imports/helper.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-tables3.json` reports 22 file candidates, 108 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 362 export candidates.
+- Removed a private-helper export-surface slice:
+  - Demoted custom-component combobox internals that are only used by the exported option builder.
+  - Demoted model-install raw React contexts while preserving the exported providers and hooks used by the install-cost modal/panel.
+  - Demoted sidebar access-rule construction behind `_role` / `_perm` and removed an unused active-link helper.
+  - Removed the unused debug-toast hook/helper path while preserving the live `useDebugConsole` hook.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-private-helpers1.json` reports 22 file candidates, 104 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 354 export candidates.
+- Removed a legacy helper export-surface slice:
+  - Removed the unused packing item context export pair from `use-sales-packing` while preserving the live packing provider/hook used by the dispatch packing overview.
+  - Removed unused legacy Redux dispatch/static-list/navigation helper exports from `store/slicers` and dropped a stale commented `dispatchSlice` breadcrumb from the old `_v2` static-data hook; the store reducer and `transformReduxObject` export used by `static-data-slice` remain.
+  - Removed the old unreferenced app-local DB query-builder/search helpers from `lib/db-utils` while preserving the live `transformDate` export imported by sales filtering code.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-legacy-helpers1.json` reports 22 file candidates, 101 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 346 export candidates.
+- Removed a dashboard/control helper export-surface slice:
+  - Demoted dashboard date/default-param internals while preserving the exported dashboard parser/formatter, period option builder, resolver, type, and hook used by the sales dashboard route and widgets.
+  - Removed the unused app-local sales-control stat composer and its private-only quantity helpers while preserving the live `Qty`, `qtyMatrixDifference`, and `transformQtyHandle` exports.
+  - Removed the now-stranded app-deps `generateItemControlUid`/shelf helper pair that only fed the deleted app-local control-stat path; current item-control utilities still expose their live direct UID helpers.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-dashboard-control2.json` reports 22 file candidates, 99 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 337 export candidates.
+- Removed a leaf utility/static-loader export-surface slice:
+  - Trimmed the old `_v2` static-data hook to the one live `useBuilders` export used by the legacy project modal, then deleted seven now-orphan static-loader action files that only fed the removed hooks.
+  - Removed unused note tag token/filter helpers while preserving `TagFilters` and `noteTagFilter`, which are still imported by note creation and sales/inbound note surfaces.
+  - Removed unused community helper exports while preserving `homeSearchMeta`, `calculateCommunitModelCost`, and `getPivotModel`, which are still imported by legacy community actions/modals.
+  - Removed the detached clean-code sales filter preset island plus its now-orphan filter field type file while preserving `__findFilterField`, the only live import from that filter-command module.
+  - Deleted the old app-local `data-access/sales.ts` module after exact scans showed no live imports, and removed the now-dead `dateQuery` export / demoted `anyDateQuery` in the legacy action utilities.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-leaf-utils6.json` reports 22 file candidates, 91 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 302 export candidates.
+- Removed a context/legacy utility export-surface slice:
+  - Demoted raw clean-code data-table and community-template React contexts while preserving the provider and hook exports imported by current callers.
+  - Demoted the legacy clean-code data-table `useDataTable` implementation that is only used for local type inference.
+  - Removed unused v1 action utility exports `queryParams`, `withDeleted`, and `serverDate` while preserving the date/page helper exports still imported by legacy sales and community paths.
+  - Removed unused root sales utility exports for old quantity formatting, dispatch control type mapping, item stat config, and payroll UID parsing while preserving live sales URL, sales stat, address, payment-note, payroll UID, and labor-rate helpers.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-context-utils7.json` reports 22 file candidates, 87 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 288 export candidates.
+- Removed an action/static helper export-surface slice:
+  - Removed unused action/helper exports from cached sales-accounting filters, sidebar auth override, token validation, static tRPC bootstrap, and the single-query tRPC prefetch wrapper while preserving live sibling exports.
+  - Demoted file-local role creation, takeoff root-component loading, and sales-settings tag constants that are still used inside their own modules.
+  - Replaced the now value-dead `salesHaving` constant with a type-only `SalesHaving` union because current callers only use the type contract.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-action-utils9.json` reports 22 file candidates, 78 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 279 export candidates.
+- Removed a DB query/helper export-surface slice:
+  - Demoted internal `where*` query builder helpers inside commission, commission-payment, employee-profile, employee, and role metadata modules while preserving the live metadata exports imported by action loaders.
+  - Demoted the sales search parser inside `where.sales.ts`, where it is only used by the module-local search filter.
+  - Removed the unused `mergePermissionsQuery` helper from `where.users.ts` while preserving the live `whereUsers` export.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-db-query10.json` reports 22 file candidates, 71 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 272 export candidates.
+- Removed a shared utility export-surface slice:
+  - Removed unused legacy helpers from `lib/utils.ts` after exact scans showed no external imports for the flagged symbols.
+  - Kept live shared utilities such as `cn`, `sum`, `generateRandomString`, `formatCurrency`, `labelIdOptions`, `transformData`, and sales-form dimension helpers.
+  - Demoted `removeEmptyValues` because it is still used privately by `transformData`.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-lib-utils11.json` reports 22 file candidates, 70 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 248 export candidates.
+- Removed an overview/cache/table export-surface slice:
+  - Trimmed the chat barrel and old sales-accounting table columns while preserving live chat internals and `customerTransactionsColumn`.
+  - Removed the obsolete v1 cache read/write helpers while preserving the still-imported `_cache` wrapper.
+  - Deleted the old sales overview data-access/type utility pair after exact scans showed no live imports, and trimmed the now-stranded app-deps `SalesIncludeAll` include object.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-overview-cache12.json` reports 22 file candidates, 67 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 242 export candidates.
+- Removed a DB utility include/date export-surface slice:
+  - Removed unused app/app-deps clean-code sales DB utility exports for old infinite-list helpers, Dyke-form include builders, and the app-side unused `SalesIncludeAll`/`composeQuery` surface while preserving live sales list, overview, form, dispatch, and root filter imports.
+  - Removed unused generic clean-code date helper exports while preserving app-deps `anyDateQuery` and pagination helpers still imported by current filters/actions.
+  - Demoted the shared step price count include to file-local use inside the live `SalesBookFormIncludes` builders.
+  - The refreshed full Knip snapshot at `/tmp/gnd-www-knip-after-export-db-utils13.json` reports 22 file candidates, 64 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 227 export candidates.
+- Removed a utility/action export-surface slice:
+  - Removed unused app/app-deps clean-code sales utility exports for old stat creation, item UID parsing, new-sales detection, and quantity-difference helpers while preserving live dimension, status, sorting, URL, and payment due-date helpers.
+  - Removed unused cached HRM filter/role/profile exports while preserving the live permissions cache.
+  - Removed unused v1 session utility exports for old permission, DB-user, metadata, password, and dealer-mode helpers while preserving live session/user/auth ID exports.
+  - Removed unused app-deps generic `inifinitePageInfo`, unused `zhItemUidFromStepUid`, and demoted app-side `getHptSettings`.
+  - Removed the now-unused `bcrypt-ts` dependency declaration from `@gnd/www` and refreshed `bun.lock`.
+  - The refreshed split Knip snapshots at `/tmp/gnd-www-knip-after-export-utils26-exports.json` and `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 57 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 208 export candidates. The combined full JSON reporter was killed under memory pressure after the lockfile refresh, so the current baseline uses separate export and non-export Knip runs.
+- Removed a legacy `_v1` table helper export-surface slice:
+  - Removed unused row-action wrapper exports while preserving live `DeleteRowAction` and `MenuItem`.
+  - Removed unused old base-column helper exports while preserving live `Cell`.
+  - Removed the follow-on unused `getBadgeColor` / `statusColor` color helper path while preserving live color helpers.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-ui27-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 55 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 194 export candidates.
+- Removed a small legacy UI/store/type export-surface slice:
+  - Demoted the unused default export on the legacy community unit `HomeModal` while preserving the live `useHomeModal` opener.
+  - Removed unused Redux action creator exports from the old invoice item component slice while preserving the still-mounted reducer.
+  - Removed the unused app-side `HousePackageToolMeta` type re-export while preserving the file-local type use and the app-deps type surface that current sales code imports.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-ui28-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 52 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 185 export candidates.
+- Removed a tiny legacy helper export-surface slice:
+  - Removed the unused no-op Cloudinary `saveToDatabase` export while preserving the live `getSignature` upload helper.
+  - Removed the unused raw `__revalidatePath` export while preserving the live keyed `_revalidate` helper.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-helpers29-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 50 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 183 export candidates.
+- Removed an old v1 community action export-surface slice:
+  - Removed unused builder table/task mutation exports while preserving the live `staticBuildersAction` loader used by old static-data code.
+  - Removed unused community project table/update wrappers while preserving live `saveProject`, `staticProjectsAction`, and `updateProjectMeta`.
+  - Removed follow-on unused v1 action pagination exports from `action-utils.ts` while preserving live date helper exports.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-community30b-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 48 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 174 export candidates.
+- Removed an old v1 auth/notification/community action export-surface slice:
+  - Removed unused legacy auth reset/login exports while preserving live reset-request, email-login-link, and quick-login helpers.
+  - Removed unused old notification action exports while preserving live `INotification` type use and `_notify`.
+  - Removed unused old community-template mutation/import exports while preserving live `staticCommunity`.
+  - Removed follow-on unused app-local community cost/pivot and generic numeric helper exports after exact scans showed no remaining `apps/www` imports.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-v1actions31d-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 46 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 153 export candidates.
+- Removed a small old sales-form wrapper/step-helper export slice:
+  - Demoted the app-local `getSalesBookFormUseCase` value export while preserving its exported `GetSalesBookForm` type surface for current app/app-deps type imports.
+  - Removed unused app and app-deps `getStepDta` / `validateNextStepIdDta` sales-form step helpers after exact symbol scans showed no callers.
+  - Removed the unused old v1 `_getSalesFormAction` wrapper while preserving live `salesFormData` imports used by current clean-code sales-form data access.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-v1form32-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 43 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 147 export candidates.
+- Removed an app-deps sales-form step mirror export slice:
+  - Removed unused app-deps `getStepsForRoutingDta`, step-product delete/meta helpers, and update helpers after exact scans showed current callers use the app-side live mirror instead.
+  - Preserved app-deps `getSalesFormStepByIdDta`, which current app-deps sales-form data access still imports.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-stepmirror33-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 42 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 140 export candidates.
+- Removed a conservative action/use-case export-surface slice:
+  - Removed unused app-deps sales-book settings/copy/move use-case exports while preserving live app-deps form load/create/save exports.
+  - Demoted the internal app-deps production list loader behind the still-exported page-list actions used by infinite production routes.
+  - Demoted raw production assignment mutation helpers and the sales-labor-cost update helper while preserving the public safe-action wrappers used by current UI.
+  - Demoted the unused customer transaction overview helper while preserving live transaction list/type exports used by payment and resolution code.
+  - The refreshed export Knip snapshot at `/tmp/gnd-www-knip-after-export-actions35b-exports.json` plus the existing non-export snapshot at `/tmp/gnd-www-knip-after-export-utils26-nonexports.json` report 22 file candidates, 34 combined issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 129 export candidates.
 - Fixed active sidebar route issues:
   - `Unit Production` now points to `/community/unit-productions`.
   - `Mobile App` now points to `/settings/app-download`.
@@ -181,17 +374,18 @@ Started on 2026-06-17 after the read-only audit and continued on 2026-06-18:
 | `apps/www/src/app-deps` | 3 | Remaining app-deps candidates are tests and were retained by default. |
 | `apps/www/src/app` | 1 | Remaining app candidate is test-read production assignment code. |
 | `apps/www/src/actions` | 4 | Remaining action candidates include test-read production/inventory reset fixtures and should not be bulk-deleted. |
-| `apps/www/src/lib` | 1 | Remaining lib candidate is test-backed routing support and should not be bulk-deleted. |
+| `apps/www/src/lib` | 3 | Remaining lib candidates are auth/routing tests and should not be bulk-deleted. |
 | `apps/www/src/modules` | 4 | Remaining module candidates are sales-print tests and other false-positive-prone integration/test helpers. |
 | `apps/www/src/hooks` | 1 | Remaining hook candidate is test-backed URL-param behavior and should not be bulk-deleted. |
 | `apps/www/src/styles` | 1 | Remaining stylesheet is referenced by `components.json` tooling but not imported by the app runtime. |
 
 ## Current Remaining Candidate Notes
 
-- 16 of the remaining 20 candidates are `*.test.*` files and were retained by default.
+- 18 of the remaining 22 candidates are `*.test.*` files and were retained by default.
 - `create-sales-dispatch-items-action.ts`, `sales-progress-fallback.ts`, and `item-assign-action.ts` are read by `production-control-reset.test.ts`; they should not be removed without intentionally redesigning that regression coverage.
 - `styles/globals.css` is not imported by the app runtime, but `components.json` still points shadcn tooling at it; treat it as a tooling/config cleanup candidate rather than a runtime-dead file.
 - Current conservative status: no further high-confidence tracked-file deletion remains in the file-only Knip candidate list without either deleting tests, redesigning production-control regression coverage, or migrating shadcn CSS tooling config.
+- Export-candidate triage is still in progress. The latest split snapshot has 129 export candidates; many live in broad utility or domain modules and need manual review rather than pattern deletion.
 
 ## High-Confidence Cleanup Candidates
 
@@ -299,13 +493,8 @@ Do not remove `puppeteer`, `puppeteer-core`, `@react-pdf/renderer`, `@trpc/*`, `
 
 ## Unlisted And Unresolved Findings
 
-- `server-only` is imported from several server-only files but is not listed in `apps/www/package.json`.
-  - Files: `src/trpc/server.tsx`, `src/lib/auth/session.ts`, `src/lib/auth/web-auth.ts`, `src/utils/get-geolocation.ts`, `src/lib/sales-visibility.ts`.
-  - Action: add `server-only` to `@gnd/www` dependencies or verify it is intentionally provided transitively by Next.
-- Unresolved legacy aliases:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/types.ts` imports `@/app/(v2)/(loggedIn)/sales-v2/type`.
-  - `apps/www/src/app-deps/(v2)/(loggedIn)/sales-v2/type.ts` imports `.d.ts`-only old form action modules that no longer resolve as runtime files.
-  - `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/sales-tax.persistent.ts` imports `@/app/(v2)/(loggedIn)/sales-v2/type`.
+- `server-only` is now listed in `apps/www/package.json` because `src/trpc/server.tsx`, `src/lib/auth/session.ts`, `src/lib/auth/web-auth.ts`, `src/utils/get-geolocation.ts`, and `src/lib/sales-visibility.ts` import it directly.
+- Current Knip unresolved import count is 0 after the legacy sales type import repair.
 
 ## Recommended Cleanup Order
 

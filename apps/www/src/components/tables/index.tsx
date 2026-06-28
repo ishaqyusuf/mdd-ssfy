@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import createContextFactory from "@/utils/context-factory";
 import {
     getCoreRowModel,
@@ -11,7 +11,6 @@ import {
 import { useInView } from "react-intersection-observer";
 import { PageDataMeta, PageFilterData } from "@/types/type";
 
-import { useSuspenseInfiniteQuery } from "@gnd/ui/tanstack";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { screens } from "@/lib/responsive";
 import { useMediaQuery } from "react-responsive";
@@ -154,52 +153,3 @@ export const { useContext: useTable, Provider: TableProvider } =
             tableScroll,
         };
     });
-
-export const useTableData = ({ filter, route }) => {
-    // const trpc = useTRPC();
-    const { ref, inView } = useInView();
-
-    const deferredSearch = useDeferredValue(filter.q);
-
-    const infiniteQueryOptions = route.infiniteQueryOptions(
-        {
-            ...filter,
-            q: deferredSearch,
-        },
-        {
-            getNextPageParam: ({ meta }) => {
-                return meta?.cursor;
-            },
-        }
-    );
-    const { data, fetchNextPage, hasNextPage, isFetching } =
-        useSuspenseInfiniteQuery(infiniteQueryOptions);
-    const tableData = useMemo(() => {
-        const list =
-            data?.pages.flatMap((page) => {
-                return (page as any)?.data ?? [];
-            }) ?? [];
-        const meta = (data?.pages?.reverse()?.[0] as any)?.meta;
-        const { cursor, count } = meta || {};
-        return {
-            data: list,
-            resultCount: cursor,
-            total: count,
-        };
-    }, [data]);
-
-    useEffect(() => {
-        if (isFetching) return;
-        if (inView) {
-            fetchNextPage();
-        }
-    }, [inView, isFetching]);
-    return {
-        ref,
-        // data: tableData,
-        ...tableData,
-        queryData: data,
-        hasNextPage,
-        // from: data?.
-    };
-};

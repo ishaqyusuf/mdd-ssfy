@@ -1,7 +1,7 @@
 import { createLoader, parseAsBoolean, parseAsString } from "nuqs/server";
 import { useQueryStates } from "nuqs";
 
-export const communityInvoicePrintFilterParams = {
+const communityInvoicePrintFilterParams = {
 	token: parseAsString,
 	preview: parseAsBoolean.withDefault(false),
 };

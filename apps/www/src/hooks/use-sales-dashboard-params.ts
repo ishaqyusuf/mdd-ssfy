@@ -14,7 +14,7 @@ import {
 } from "date-fns";
 import { parseAsString, useQueryStates } from "nuqs";
 
-export const salesDashboardDateParamFormat = "yyyy-MM-dd";
+const salesDashboardDateParamFormat = "yyyy-MM-dd";
 
 export function formatSalesDashboardDateParam(date: Date) {
     return format(date, salesDashboardDateParamFormat);
@@ -88,9 +88,7 @@ export function getSalesDashboardPeriodOptions(now = new Date()) {
     ];
 }
 
-export const chartPeriodOptions = getSalesDashboardPeriodOptions();
-
-export function getDefaultSalesDashboardParams(now = new Date()) {
+function getDefaultSalesDashboardParams(now = new Date()) {
     const defaultSalesDashboardPeriod = getSalesDashboardPeriodOptions(now)[1];
 
     return {
@@ -102,9 +100,6 @@ export function getDefaultSalesDashboardParams(now = new Date()) {
         chart: "revenue",
     } as const;
 }
-
-export const defaultSalesDashboardPeriod = chartPeriodOptions[1];
-export const defaultSalesDashboardParams = getDefaultSalesDashboardParams();
 
 export type SalesDashboardParamsState = {
     from: string;

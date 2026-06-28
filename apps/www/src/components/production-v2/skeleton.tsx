@@ -104,7 +104,7 @@ export function ProductionV2OrderFeedSkeleton({ rows = 4 }: { rows?: number }) {
 	);
 }
 
-export function ProductionV2OrderCardSkeleton({
+function ProductionV2OrderCardSkeleton({
 	index = 0,
 }: {
 	index?: number;

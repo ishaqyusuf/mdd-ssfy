@@ -3,7 +3,7 @@ import {
     type SalesFormWorkflowCapabilities,
 } from "@gnd/sales/sales-form";
 
-export function normalizeWorkflowRoleTitle(roleTitle?: string | null) {
+function normalizeWorkflowRoleTitle(roleTitle?: string | null) {
     return String(roleTitle || "")
         .trim()
         .toLowerCase()

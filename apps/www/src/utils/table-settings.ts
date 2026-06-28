@@ -38,7 +38,7 @@ export type AllTableSettings = {
 
 export const TABLE_SETTINGS_COOKIE = "gnd-table-settings";
 
-export const defaultHiddenColumns: Record<TableId, string[]> = {
+const defaultHiddenColumns: Record<TableId, string[]> = {
 	"sales-orders": [
 		"amountDue",
 		"productionLabel",
@@ -61,7 +61,7 @@ export const defaultHiddenColumns: Record<TableId, string[]> = {
 	"unit-productions": [],
 };
 
-export function getDefaultColumnVisibility(tableId: TableId): VisibilityState {
+function getDefaultColumnVisibility(tableId: TableId): VisibilityState {
 	return defaultHiddenColumns[tableId].reduce(
 		(acc, columnId) => {
 			acc[columnId] = false;
@@ -71,7 +71,7 @@ export function getDefaultColumnVisibility(tableId: TableId): VisibilityState {
 	);
 }
 
-export function getDefaultTableSettings(tableId: TableId): TableSettings {
+function getDefaultTableSettings(tableId: TableId): TableSettings {
 	return {
 		columns: getDefaultColumnVisibility(tableId),
 		sizing: {},

@@ -23,7 +23,7 @@ type PricingOption = (typeof pricingOptions)[number];
 export function openStepPricingModal(stepUid) {
     _modal.openModal(<StepPricingModal stepUid={stepUid} />);
 }
-export function useInitContext(itemStepUid) {
+function useInitContext(itemStepUid) {
     const cls = useMemo(() => {
         return new StepHelperClass(itemStepUid);
     }, [itemStepUid]);
@@ -71,7 +71,7 @@ export function useInitContext(itemStepUid) {
         pricingOption,
     };
 }
-export default function StepPricingModal({ stepUid }: Props) {
+function StepPricingModal({ stepUid }: Props) {
     const ctx = useInitContext(stepUid);
     return (
         <Context.Provider value={ctx}>

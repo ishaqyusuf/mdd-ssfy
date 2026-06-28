@@ -8,6 +8,10 @@ export type RecentDashboardSale = {
   total?: number | null;
   due?: number | null;
   paid?: number | null;
+  displayTotal?: number | null;
+  displayPending?: number | null;
+  displayPaid?: number | null;
+  displayCcc?: number | null;
   createdAt?: string | null;
   deliveryOption?: string | null;
 };
@@ -30,6 +34,12 @@ export function toRecentSalesDocumentItem(
       total,
       paid,
       pending: due,
+      ...(sale.displayCcc != null ? { displayCcc: sale.displayCcc } : {}),
+      ...(sale.displayPaid != null ? { displayPaid: sale.displayPaid } : {}),
+      ...(sale.displayPending != null
+        ? { displayPending: sale.displayPending }
+        : {}),
+      ...(sale.displayTotal != null ? { displayTotal: sale.displayTotal } : {}),
     },
   };
 }

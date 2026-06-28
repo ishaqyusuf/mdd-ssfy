@@ -13,17 +13,6 @@ export type AuthSnapshot = {
 
 type SessionLike = Pick<AppSession, "user" | "role" | "can">;
 
-export function emptyAuthSnapshot(): AuthSnapshot {
-    return {
-        userId: null,
-        role: null,
-        roleId: null,
-        can: {} as ICan,
-        name: null,
-        email: null,
-    };
-}
-
 export function toAuthSnapshot(source?: SessionLike | null) {
     // console.log("toAuthSnapshot", { source });
     if (!source?.user?.id) {
@@ -39,4 +28,3 @@ export function toAuthSnapshot(source?: SessionLike | null) {
         email: source.user.email ?? null,
     } satisfies AuthSnapshot;
 }
-

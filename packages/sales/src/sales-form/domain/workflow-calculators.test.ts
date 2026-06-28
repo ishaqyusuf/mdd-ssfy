@@ -245,6 +245,7 @@ describe("workflow-calculators domain", () => {
 		expect(summary.qtyTotal).toBe(2);
 		expect(summary.lineTotal).toBe(20);
 		expect(summary.taxxable).toBe(true);
+		expect(summary.description).toBe("INSTALL");
 	});
 
 	it("summarizes empty service rows to zero state", () => {
@@ -545,7 +546,21 @@ describe("workflow-calculators domain", () => {
 		expect(summary.lineTotal).toBe(70);
 		expect(summary.taxxable).toBe(true);
 		expect(summary.produceable).toBe(true);
-		expect(summary.description).toBe("Install | Wrap");
+		expect(summary.description).toBe("INSTALL | WRAP");
+	});
+
+	it("uppercases service row text without trimming the active edit value", () => {
+		const summary = summarizeServiceRows("line-svc", [
+			{
+				uid: "row-1",
+				service: "Install labor ",
+				qty: 1,
+				unitPrice: 10,
+			},
+		]);
+
+		expect(summary.rows[0]?.service).toBe("INSTALL LABOR ");
+		expect(summary.description).toBe("INSTALL LABOR");
 	});
 
 	it("returns zero when supplier-specific pricing has not been normalized to supplier variants", () => {

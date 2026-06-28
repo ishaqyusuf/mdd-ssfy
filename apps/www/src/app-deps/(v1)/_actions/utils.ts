@@ -1,9 +1,6 @@
 "use server";
 
-import { prisma } from "@/db";
 import { getServerAuthSession } from "@/lib/auth/session";
-import { IUser } from "@/types/hrm";
-import { hash } from "bcrypt-ts";
 
 export async function serverSession() {
     const data = await getServerAuthSession();
@@ -12,12 +9,8 @@ export async function serverSession() {
 }
 export async function dealerSession() {
     const auth = await serverSession();
-    const dealerMode = auth.role?.name == "Dealer";
+    const dealerMode = auth.role?.name === "Dealer";
     return dealerMode;
-}
-export async function getSessionPermissions() {
-    const session = await serverSession();
-    return session.can;
 }
 export async function user() {
     const data = await getServerAuthSession();
@@ -35,39 +28,3 @@ export async function userId() {
     return (await user())?.id;
 }
 export const authId = userId;
-export async function _dbUser() {
-    return (await prisma.users.findUnique({
-        where: { id: await userId() },
-    })) as any as IUser;
-}
-export async function streamlineMeta(meta: any = null) {
-    if (meta == null) return {};
-
-    function _streamline(value) {
-        let _str: any = null;
-        if (value != null) {
-            if (typeof value === "object" && value?.length <= 0) {
-                _str = {};
-                Object.entries(value).map(([k, v]) => {
-                    const _val = _streamline(v);
-                    if (_val) _str[k] = _val;
-                });
-                return _str;
-            } else {
-                return value;
-            }
-        }
-    }
-    return _streamline(meta);
-}
-export async function hashPassword(pwrd) {
-    return await hash(pwrd, 10);
-}
-export async function sessionIsDealerMode() {
-    const s = await serverSession();
-    let isDealerMode = s.role.name == "Dealer";
-    if (!isDealerMode) return null;
-    return {
-        id: s.user.id,
-    };
-}
