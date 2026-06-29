@@ -24,6 +24,7 @@ import { DeliveryOption } from "./delivery-option";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
 import { SalesOverviewPaymentMethodSelect } from "@/components/sales-overview-payment-method-select";
+import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 
 type CostLine = {
     id?: number | string | null;
@@ -68,8 +69,10 @@ export function GeneralTab({}) {
     const invoicePaid = Number(saleData?.invoice?.paid || 0);
     const invoicePending = Number(saleData?.invoice?.pending || 0);
     const costLines = (saleData?.costLines ?? []) as CostLine[];
-    const cardCharged = sumCostLineAmounts(costLines, "Charged to Card");
     const cardPending = sumCostLineAmounts(costLines, "Total Due With C.C.C");
+    const payableDue = Math.max(invoicePending, cardPending);
+    const cccPending = Math.max(payableDue - invoicePending, 0);
+    const paymentStatusLabel = payableDue > 0 ? "Due now" : "Settled";
     const paymentPercentage =
         invoiceTotal > 0
             ? (invoicePaid / invoiceTotal) * 100
@@ -86,47 +89,7 @@ export function GeneralTab({}) {
     const deliveryStatusColor = saleData?.status?.delivery?.color ?? "warmGray";
     const dispatchCount = saleData?.dispatchList?.length ?? 0;
     const customerEmail = saleData?.email;
-    const paymentStats = [
-        {
-            label: "Order Total",
-            value: invoiceTotal,
-            icon: Icons.FileText,
-            color: "text-foreground",
-        },
-        {
-            label: "Paid (Order)",
-            value: invoicePaid,
-            icon: Icons.CheckCircle2,
-            color: "text-green-500",
-        },
-        ...(cardCharged > invoicePaid
-            ? [
-                  {
-                      label: "Card Paid",
-                      value: cardCharged,
-                      icon: Icons.CreditCardIcon,
-                      color: "text-green-500",
-                  },
-              ]
-            : []),
-        {
-            label: "Pending (Order)",
-            value: invoicePending,
-            icon: Icons.Clock,
-            color: invoicePending > 0 ? "text-amber-500" : "text-green-500",
-        },
-        ...(cardPending > invoicePending
-            ? [
-                  {
-                      label: "Card Pending",
-                      value: cardPending,
-                      icon: Icons.CreditCardIcon,
-                      color: "text-amber-500",
-                  },
-              ]
-            : []),
-    ];
-
+    const documentStatus = getSalesOverviewDocumentStatus(saleData);
     const getStatusColor = (status: string) => {
         switch (status) {
             case "green":
@@ -257,13 +220,13 @@ export function GeneralTab({}) {
                         <div>
                             <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                 <Icons.Calendar className="h-4 w-4" />
-                                ORDER DETAILS
+                                {isQuote ? "QUOTE DETAILS" : "ORDER DETAILS"}
                             </h3>
                             <div className="space-y-3">
                                 <div className="grid grid-cols-2 gap-2 text-sm">
                                     <div>
                                         <p className="text-muted-foreground">
-                                            Order Number
+                                            {isQuote ? "Quote Number" : "Order Number"}
                                         </p>
                                         <DataSkeleton
                                             className="font-medium"
@@ -292,6 +255,26 @@ export function GeneralTab({}) {
                                                 />
                                                 <Icons.ExternalLink className="ml-1 h-4 w-4" />
                                             </Button>
+                                        </DataSkeleton>
+                                    </div>
+                                    <div>
+                                        <p className="text-muted-foreground">
+                                            {documentStatus.labelText}
+                                        </p>
+                                        <DataSkeleton
+                                            className="font-medium"
+                                            placeholder={
+                                                isQuote
+                                                    ? "Open"
+                                                    : "Awaiting production"
+                                            }
+                                        >
+                                            <Badge
+                                                variant="outline"
+                                                className={documentStatus.className}
+                                            >
+                                                {documentStatus.label}
+                                            </Badge>
                                         </DataSkeleton>
                                     </div>
                                     <div>
@@ -368,63 +351,84 @@ export function GeneralTab({}) {
                                 PAYMENT STATUS
                             </h3>
                             <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm">
-                                        Payment Progress
-                                    </span>
-                                    <DataSkeleton
-                                        className="text-sm font-medium"
-                                        placeholder="0%"
-                                    >
-                                        <span className="text-sm font-medium">
-                                            {paymentPercentage.toFixed(0)}%
-                                        </span>
-                                    </DataSkeleton>
-                                </div>
-                                <DataSkeleton
-                                    className="h-2 w-full"
-                                    placeholder=""
-                                >
-                                    <Progress
-                                        value={paymentPercentage}
-                                        className="h-2"
-                                    />
-                                </DataSkeleton>
-                                <div className="grid grid-cols-2 gap-4 pt-2 sm:grid-cols-5">
-                                    {paymentStats.map((stat) => {
-                                        const Icon = stat.icon;
-                                        return (
-                                            <div
-                                                key={stat.label}
-                                                className="flex items-center gap-2"
-                                            >
-                                                <Icon
-                                                    className={cn(
-                                                        "h-4 w-4",
-                                                        stat.color,
-                                                    )}
-                                                />
-                                                <div>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {stat.label}
+                                <Card className="border-border/40 bg-muted/20">
+                                    <CardContent className="p-4">
+                                        <div className="flex flex-wrap items-end justify-between gap-3">
+                                            <div>
+                                                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                                                    {paymentStatusLabel}
+                                                </p>
+                                                <DataSkeleton
+                                                    as="div"
+                                                    className="text-2xl font-bold"
+                                                    placeholder="$0.00"
+                                                >
+                                                    <p
+                                                        className={cn(
+                                                            "mt-1 text-2xl font-bold",
+                                                            payableDue > 0
+                                                                ? "text-amber-600"
+                                                                : "text-green-600",
+                                                        )}
+                                                    >
+                                                        <Money value={payableDue} />
                                                     </p>
+                                                </DataSkeleton>
+                                            </div>
+                                            <div className="text-right">
+                                                <DataSkeleton
+                                                    as="div"
+                                                    className="text-sm font-semibold"
+                                                    placeholder="0% settled"
+                                                >
+                                                    <p className="text-sm font-semibold">
+                                                        {paymentPercentage.toFixed(0)}%
+                                                        settled
+                                                    </p>
+                                                </DataSkeleton>
+                                                <p className="text-xs text-muted-foreground">
                                                     <DataSkeleton
-                                                        className="text-sm font-medium"
+                                                        className="inline"
                                                         placeholder="$0.00"
                                                     >
-                                                        <p className="text-sm font-medium">
-                                                            <Money
-                                                                value={
-                                                                    stat.value
-                                                                }
-                                                            />
-                                                        </p>
+                                                        <Money value={invoicePaid} />
+                                                    </DataSkeleton>{" "}
+                                                    paid of{" "}
+                                                    <DataSkeleton
+                                                        className="inline"
+                                                        placeholder="$0.00"
+                                                    >
+                                                        <Money value={invoiceTotal} />
                                                     </DataSkeleton>
-                                                </div>
+                                                </p>
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                        </div>
+                                        <DataSkeleton
+                                            as="div"
+                                            className="mt-4 h-2 w-full"
+                                            placeholder=""
+                                        >
+                                            <Progress
+                                                value={paymentPercentage}
+                                                className="mt-4 h-2"
+                                            />
+                                        </DataSkeleton>
+                                        <p className="mt-3 text-xs text-muted-foreground">
+                                            {cccPending > 0 ? (
+                                                <>
+                                                    <Money value={invoicePending} /> order
+                                                    balance +{" "}
+                                                    <Money value={cccPending} /> C.C.C
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Money value={invoicePending} /> order
+                                                    balance remaining
+                                                </>
+                                            )}
+                                        </p>
+                                    </CardContent>
+                                </Card>
                                 <div className="mt-2 grid grid-cols-2 gap-4 border-t border-border/40  pt-3">
                                     <div>
                                         <p className="text-sm text-muted-foreground">

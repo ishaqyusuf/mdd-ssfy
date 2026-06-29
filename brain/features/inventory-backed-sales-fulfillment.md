@@ -493,6 +493,7 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - Direct legacy production assignment/submission/delete/mark-complete paths now call `syncInventoryProductionLifecycleForSale` after their existing sales-control/stat reset mutation.
 - Covered paths include standalone production assignment actions, clean-code production data-access helpers, mirrored `app-deps` helpers, batch assignment, old mark-complete actions, sales-progress fallback deletion, and the older production item action helpers.
 - The canonical `update-sales-control` task still owns the modern task path; package-level sales-control tasks were not changed to avoid double-syncing modern flows.
+- Sales overview Mark As actions now render the shared `SalesMenu.MarkAs` component in both the legacy overview sheet action bar and the newer sales overview system quick actions, so production-complete and fulfillment-complete run through the same `update-sales-control` job-backed path used by the orders table.
 - Validation: `bun test apps/www/src/actions/production-control-reset.test.ts` passed with 2 tests and 42 assertions; focused sales inventory/fulfillment tests still passed with 29 tests and 74 assertions; `bun test packages/sales/src/inventory-production-lifecycle.test.ts` passed with 5 tests and 10 assertions.
 
 ## 2026-06-16 Inbound Prompt Reconciliation Update

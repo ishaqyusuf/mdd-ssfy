@@ -36,6 +36,7 @@
   - sales rep
   - actions
 - Row clicks open the existing sales overview flow with quote context.
+- Quote overview sheets render the same invoice-based quote status as the table (`Paid`, `Open`, or `Part paid`) near the quote number, using the shared overview badge presenter.
 - The actions cell keeps existing quote edit/open/preview/menu behavior, with heavier menu/preview work kept out of first render.
 - Search uses the existing `q` URL param from the current quote search filter.
 - The route-level quotes table intentionally does not render a P.O column. P.O remains searchable/filterable through the existing quote filter params, but it is not part of the default table surface.

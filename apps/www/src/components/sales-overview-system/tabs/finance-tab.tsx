@@ -79,43 +79,10 @@ export function SalesOverviewFinanceTab() {
 	const pending = Number(data?.invoice?.pending || 0);
 	const balance = getPaymentBalance(data?.invoice);
 	const paymentPct = total > 0 ? (paid / total) * 100 : 0;
-	const cardCharged = sumCostLineAmounts(costLines, "Charged to Card");
 	const cardPending = sumCostLineAmounts(costLines, "Total Due With C.C.C");
-	const progressStats = [
-		{
-			label: "Order Total",
-			value: total,
-			color: "text-foreground",
-		},
-		{
-			label: "Paid (Order)",
-			value: paid,
-			color: "text-emerald-600",
-		},
-		...(cardCharged > paid
-			? [
-					{
-						label: "Card Paid",
-						value: cardCharged,
-						color: "text-emerald-600",
-					},
-				]
-			: []),
-		{
-			label: "Pending (Order)",
-			value: balance,
-			color: balance > 0 ? "text-amber-600" : "text-emerald-600",
-		},
-		...(cardPending > balance
-			? [
-					{
-						label: "Card Pending",
-						value: cardPending,
-						color: "text-amber-600",
-					},
-				]
-			: []),
-	];
+	const payableDue = Math.max(balance, cardPending);
+	const cccPending = Math.max(payableDue - balance, 0);
+	const paymentStatusLabel = payableDue > 0 ? "Due now" : "Settled";
 
 	return (
 		<div className="space-y-5 p-1">
@@ -126,32 +93,39 @@ export function SalesOverviewFinanceTab() {
 						icon={Icons.CreditCard}
 						label="Payment Progress"
 					/>
-					<div className="mb-4 space-y-2">
-						<div className="flex justify-between text-sm">
-							<span className="text-muted-foreground">
-								{formatCurrency(paid)} collected of {formatCurrency(total)}
-							</span>
-							<span className="font-semibold">{Math.round(paymentPct)}%</span>
+					<div className="space-y-4">
+						<div className="flex flex-wrap items-end justify-between gap-3">
+							<div>
+								<p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+									{paymentStatusLabel}
+								</p>
+								<p
+									className={cn(
+										"mt-1 text-2xl font-bold",
+										payableDue > 0 ? "text-amber-600" : "text-emerald-600",
+									)}
+								>
+									{formatCurrency(payableDue)}
+								</p>
+							</div>
+							<div className="text-right">
+								<p className="text-sm font-semibold">
+									{Math.round(paymentPct)}% settled
+								</p>
+								<p className="text-xs text-muted-foreground">
+									{formatCurrency(paid)} paid of {formatCurrency(total)}
+								</p>
+							</div>
 						</div>
 						<OverviewProgressBar
 							value={paymentPct}
 							colorClass={paymentPct >= 100 ? "bg-emerald-500" : "bg-blue-500"}
 						/>
-					</div>
-					<div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-						{progressStats.map((stat) => (
-							<div
-								key={stat.label}
-								className="rounded-lg bg-muted/40 p-3 text-center"
-							>
-								<p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-									{stat.label}
-								</p>
-								<p className={cn("mt-1 text-base font-bold", stat.color)}>
-									{formatCurrency(stat.value)}
-								</p>
-							</div>
-						))}
+						<p className="text-xs text-muted-foreground">
+							{cccPending > 0
+								? `${formatCurrency(balance)} order balance + ${formatCurrency(cccPending)} C.C.C`
+								: `${formatCurrency(balance)} order balance remaining`}
+						</p>
 					</div>
 				</OverviewSectionCard>
 			)}

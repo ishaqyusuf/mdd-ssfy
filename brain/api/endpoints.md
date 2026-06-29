@@ -7,7 +7,7 @@ Tracks notable API surfaces and where they are implemented.
 - Primary API implementation lives in `apps/api`.
 - The codebase uses route/query organization around domain-specific files and tRPC routers.
 - App download route:
-  - `apps/www/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `QG5-xn0VgAxDwj58KqyTLdN1aXKiQRpUOYxLc1rFr5s.apk` while preserving query-string overrides for `url` and `name`
+  - `apps/www/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk` while preserving query-string overrides for `url` and `name`
 - Sales production routes now include:
   - `sales.productions`: admin-facing production queue list with due-date/status filtering
   - `sales.productionTasks`: worker-scoped production queue list using the authenticated user as `workerId`

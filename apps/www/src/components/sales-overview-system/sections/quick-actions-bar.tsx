@@ -5,7 +5,6 @@ import { useTransition } from "react";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { SalesMenu } from "@/components/sales-menu";
 import { useAuth } from "@/hooks/use-auth";
-import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -28,7 +27,6 @@ export function QuickActionsBar() {
 		state: { data, isQuote },
 	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
-	const batchSales = useBatchSales();
 	const auth = useAuth();
 	const [loading, startTransition] = useTransition();
 	const canSendForPacking =
@@ -114,30 +112,7 @@ export function QuickActionsBar() {
 				) : (
 					<>
 						<SalesMenu.SalesEmailMenuItems />
-						<SalesMenu.Sub>
-							<SalesMenu.SubTrigger>
-								<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
-								Mark as
-							</SalesMenu.SubTrigger>
-							<SalesMenu.SubContent>
-								<SalesMenu.Item
-									onSelect={(e) => {
-										e.preventDefault();
-										batchSales.markAsProductionCompleted(data.id);
-									}}
-								>
-									Production Complete
-								</SalesMenu.Item>
-								<SalesMenu.Item
-									onSelect={(e) => {
-										e.preventDefault();
-										batchSales.markAsFulfilled(data.id);
-									}}
-								>
-									Fulfillment Complete
-								</SalesMenu.Item>
-							</SalesMenu.SubContent>
-						</SalesMenu.Sub>
+						<SalesMenu.MarkAs />
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
 						<SalesMenu.SalesPrintMenuItems />

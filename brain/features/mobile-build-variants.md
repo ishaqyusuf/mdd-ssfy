@@ -12,6 +12,7 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - Expo updates are app-owned with `updates.checkAutomatically: "NEVER"` and `runtimeVersion.policy = "appVersion"`; installed apps do not let Expo automatically check on launch.
 - Launch-time auto-update checks are enabled only for installed preview builds where `extra.appVariant === "preview"` and `expo-updates` is enabled. Development and production builds keep updates manual-only.
 - Settings > App Updates is the manual update surface for all installed builds, showing OTA status, check/download/restart actions, and build diagnostics including channel, runtime, running source, update id, created time, and `UPDATE_VERSION`.
+- Support > Mobile App opens a download-only web support page whose only action is the `/api/download-app` APK download button; Super Admin app-download configuration remains under Settings > App Download.
 - Android edge-to-edge is disabled in native config because the Expo/RN Android edge-to-edge container was crashing during mobile invoice customer selection with `EdgeToEdgeReactViewGroup contains null child`. This requires a fresh Android EAS/dev build to take effect; OTA updates and Metro reloads cannot change the installed native container.
 
 ## Key Files
@@ -22,3 +23,4 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - `apps/expo-app/src/components/app-auto-update-modal.tsx`
 - `apps/expo-app/src/screens/updates-screen.tsx`
 - `apps/expo-app/assets/icons/*`
+- `apps/www/src/components/settings/app-download-support-page.tsx`

@@ -334,6 +334,8 @@ function commonListData(data: Item, bin?: boolean) {
 		shippingId: data.shippingAddressId,
 		type: data.type as SalesType,
 		isQuote: (data.type as SalesType) == "quote",
+		orderStatus: data.status,
+		prodStatus: data.prodStatus,
 		productionGate: data.productionGate,
 		hasProductionDefinition: gateState.hasProductionDefinition,
 		productionGateStatus: gateState.productionGateStatus,

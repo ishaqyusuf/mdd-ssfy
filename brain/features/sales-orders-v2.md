@@ -93,6 +93,7 @@
   - clicking a row opens the existing sales sheet
   - the actions column exposes a compact overview icon with a hover preview
   - the hover preview is intentionally compact and composed as a single overview panel instead of multiple cards
+  - order overview sheets render the same lifecycle status label/tone near the order number, using the shared order lifecycle helper plus a `cva`-backed overview badge presenter
 - Row density
   - the canonical orders table uses compact 48px virtual rows so more orders fit in the working viewport while preserving the existing action buttons, sticky columns, and row-open behavior
 - Smart funnel status

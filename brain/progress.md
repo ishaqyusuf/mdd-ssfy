@@ -2,6 +2,34 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Added a download-only Mobile App support page.
+  - Added `/support/mobile-app` under the sidebar app shell with a single `/api/download-app` button for the GND mobile APK.
+  - Updated Support > Mobile App navigation to use the download-only page while keeping the Super Admin Settings > App Download configuration page unchanged.
+  - Updated docs: `brain/features/mobile-build-variants.md` and `brain/progress.md`; no API or database docs were needed because the existing download endpoint and schema were unchanged.
+
+- Updated the app download API default APK source.
+  - Changed `/api/download-app` to default to Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk`.
+  - Updated API documentation: `brain/api/endpoints.md`.
+  - Validation: scoped whitespace check passed; focused route Biome check remains blocked by existing full-file import ordering/formatting baseline in `apps/www/src/app/api/download-app/route.ts`.
+
+- Added exact quote/order status badges to web sales overview details.
+  - Added a shared `cva`-backed sales overview document status presenter so order overview badges mirror the orders table lifecycle label/tone and quote overview badges mirror the quote table invoice status (`Paid`, `Open`, or `Part paid`).
+  - Exposed raw `orderStatus` and `prodStatus` through the sales overview DTO so order overview lifecycle status can match table edge cases like cancelled or fulfilled records instead of relying only on nested progress summaries.
+  - Rendered the document status near the order/quote number in both the legacy sales overview sheet and the newer sales overview system overview tab.
+  - Updated docs: `brain/features/sales-orders-v2.md`, `brain/features/sales-quotes-table.md`, and `brain/progress.md`; no database docs were needed because this is DTO/UI presentation behavior without schema or migration changes.
+
+- Unified sales overview Mark As actions with the shared task-backed SalesMenu flow.
+  - Replaced the hand-written `Mark as` submenu in both the legacy sales overview sheet action bar and the newer sales overview system quick actions with `SalesMenu.MarkAs`, matching the orders table action column and batch bar.
+  - `Production Complete` and `Fulfillment Complete` from sales overview now route through the shared `update-sales-control` job-task flow instead of the older direct `useBatchSales` server-action shortcut.
+  - Validation: focused Biome passed for both touched action bar files, and scoped `git diff --check` passed.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md` and `brain/progress.md`; no API or database docs were needed because this reuses the existing task contract and does not change schema, endpoints, or permissions.
+
+- Simplified web sales overview Payment Status presentation.
+  - Replaced the equal-weight `Order Total` / `Paid (Order)` / `Pending (Order)` / `Card Pending` stat grid in both the shared sales overview Finance tab and legacy sales overview sheet with one primary `Due now` / `Settled` amount, paid-of-total progress, and a concise C.C.C breakdown only when the card-inclusive payable amount exceeds the principal order balance.
+  - Kept the underlying principal order totals, payment progress calculation, C.C.C derivation, payment processor, and invoice detail ledger intact; this is presentation-only and preserves ADR-011 derived C.C.C behavior.
+  - Validation: scoped `git diff --check` passed and focused Biome passed for `apps/www/src/components/sales-overview-system/tabs/finance-tab.tsx`. Focused Biome across the legacy sheet remains blocked by pre-existing lint/format diagnostics in that file, and `bun run --filter @gnd/www typecheck` remains blocked by unrelated repo-wide TypeScript errors outside this payment-status change.
+  - Updated docs: `brain/features/sales-payment-v2-checkout.md` and `brain/progress.md`; no API or database docs were needed because the data contract, permissions, and schema did not change.
+
 - Added a smooth tab transition to the mobile sales overview More sheet.
   - The sheet's headless `actions` / `copy` tab body and title now animate with a short eased fade/slide when moving into the Copy tab or back to the main actions tab.
   - The animation uses React Native `Animated` style-only wrappers so Expo components do not mix NativeWind `className` and custom `style` on the same element.

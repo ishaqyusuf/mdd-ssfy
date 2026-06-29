@@ -28,6 +28,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 
 import { DeliveryOption } from "../../sheets/sales-overview-sheet/delivery-option";
 import { SalesPO } from "../../sheets/sales-overview-sheet/inline-data-edit";
+import { getSalesOverviewDocumentStatus } from "../lib/document-status";
 import { useSalesOverviewSystem } from "../provider";
 import { QuickActionsBar } from "../sections/quick-actions-bar";
 
@@ -114,7 +115,9 @@ function getInventoryReadinessTone(value: string | null | undefined) {
 	}
 }
 
-function SalesInventoryHealthCard({ salesOrderId }: { salesOrderId?: number | null }) {
+function SalesInventoryHealthCard({
+	salesOrderId,
+}: { salesOrderId?: number | null }) {
 	const trpc = useTRPC();
 	const inventoryQuery = useQuery(
 		trpc.inventories.salesInventoryOverview.queryOptions(
@@ -275,6 +278,7 @@ export function SalesOverviewOverviewTab() {
 		data?.addressData?.shipping,
 	] as Array<AddressEntry | null | undefined>;
 	const costLines = (data?.costLines ?? []) as CostLine[];
+	const documentStatus = getSalesOverviewDocumentStatus(data);
 
 	return (
 		<DataSkeletonProvider value={skeletonContext}>
@@ -353,11 +357,15 @@ export function SalesOverviewOverviewTab() {
 						</div>
 
 						<div>
-							<SectionTitle icon={Icons.Calendar}>ORDER DETAILS</SectionTitle>
+							<SectionTitle icon={Icons.Calendar}>
+								{isQuote ? "QUOTE DETAILS" : "ORDER DETAILS"}
+							</SectionTitle>
 							<div className="space-y-3">
 								<div className="grid grid-cols-2 gap-2 text-sm">
 									<div>
-										<p className="text-muted-foreground">Order Number</p>
+										<p className="text-muted-foreground">
+											{isQuote ? "Quote Number" : "Order Number"}
+										</p>
 										<DataSkeleton className="font-medium" placeholder="03527PC">
 											<Button
 												variant="secondary"
@@ -378,6 +386,22 @@ export function SalesOverviewOverviewTab() {
 												/>
 												<Icons.ExternalLink className="ml-1 h-4 w-4" />
 											</Button>
+										</DataSkeleton>
+									</div>
+									<div>
+										<p className="text-muted-foreground">
+											{documentStatus.labelText}
+										</p>
+										<DataSkeleton
+											className="font-medium"
+											placeholder={isQuote ? "Open" : "Awaiting production"}
+										>
+											<Badge
+												variant="outline"
+												className={documentStatus.className}
+											>
+												{documentStatus.label}
+											</Badge>
 										</DataSkeleton>
 									</div>
 									<div>

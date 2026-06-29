@@ -4,7 +4,6 @@ import { SalesMenu } from "@/components/sales-menu";
 import { SendForPackingButton } from "@/components/sales/send-for-packing-button";
 import { _perm } from "@/components/sidebar-links";
 import { useAuth } from "@/hooks/use-auth";
-import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { openLink } from "@/lib/open-link";
@@ -33,7 +32,6 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 		};
 	};
 	const isQuote = data?.type === "quote";
-	const batchSales = useBatchSales();
 	const sPreview = useSalesPreview();
 	const auth = useAuth();
 	const canSendForPacking =
@@ -128,30 +126,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				) : (
 					<>
 						<SalesMenu.SalesEmailMenuItems />
-						<SalesMenu.Sub>
-							<SalesMenu.SubTrigger>
-								<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
-								Mark as
-							</SalesMenu.SubTrigger>
-							<SalesMenu.SubContent>
-								<SalesMenu.Item
-									onSelect={(e) => {
-										e.preventDefault();
-										batchSales.markAsProductionCompleted(salesId);
-									}}
-								>
-									Production Complete
-								</SalesMenu.Item>
-								<SalesMenu.Item
-									onSelect={(e) => {
-										e.preventDefault();
-										batchSales.markAsFulfilled(salesId);
-									}}
-								>
-									Fulfillment Complete
-								</SalesMenu.Item>
-							</SalesMenu.SubContent>
-						</SalesMenu.Sub>
+						<SalesMenu.MarkAs />
 						<SalesMenu.Separator />
 						<SalesMenu.Share />
 						<SalesMenu.SalesPrintMenuItems />
