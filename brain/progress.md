@@ -2,6 +2,17 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Removed the Super Admin App Download settings page.
+  - Deleted the `/settings/app-download` route and its `AppDownloadSettingsPage` component.
+  - Removed only the Settings > App Download sidebar entry while keeping Support > Mobile App and `/api/download-app` available for APK downloads.
+  - Validation: strict `/settings/app-download` reference scan passed, support/download reference scan confirmed `/support/mobile-app` and `/api/download-app` remain wired, focused Biome passed for `sidebar-links.ts`, and `git diff --check` passed. `bun run --filter @gnd/www typecheck` remains blocked by pre-existing repo-wide TypeScript errors outside this settings-page removal.
+  - Updated docs: `brain/features/mobile-build-variants.md`, `brain/features/site-navigation.md`, `brain/plans/2026-06-29-remove-app-download-feature.md`, and `brain/progress.md`; no API or database docs were needed because the download endpoint, settings contract, and schema remain unchanged.
+
+- Hid sales-orders top analytic cards below the `xl` breakpoint.
+  - Wrapped the canonical `/sales-book/orders` summary card block in an `xl`-only container so tablet/mobile widths move directly from the Sales title into the orders controls and table.
+  - Kept the existing summary components, contracts, and desktop `xl` five-column layout intact.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API or database docs were needed because this is a responsive presentation-only change.
+
 - Added a download-only Mobile App support page.
   - Added `/support/mobile-app` under the sidebar app shell with a single `/api/download-app` button for the GND mobile APK.
   - Updated Support > Mobile App navigation to use the download-only page while keeping the Super Admin Settings > App Download configuration page unchanged.

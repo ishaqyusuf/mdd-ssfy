@@ -67,6 +67,7 @@
 - The canonical page intentionally avoids the older route-local coupling from the legacy `sales-book/orders` table implementation.
 - The route prefetches only the list and summary queries.
 - Summary metrics render as separate page-level cards instead of piggybacking on table-only state.
+- Summary metrics are desktop-only at the `xl` breakpoint and above; smaller viewports go straight from the Sales page title to the orders header/table to preserve working space.
 - The table payload omits legacy note-count and extra enrichment work that is not required for first paint.
 - The page keeps existing sales overview integration by opening rows through `useSalesOverviewQuery`.
 - The table now uses a unified sales funnel status contract so UI surfaces do not have to reason separately about invoice, production, and fulfillment state for list presentation.

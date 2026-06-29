@@ -62,25 +62,27 @@ export default async function Page(props: Props) {
 				<ScrollableContent>
 					<div className="flex flex-col gap-6">
 						<PageTitle>Sales</PageTitle>
-						<CollapsibleSummary>
-							<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-								<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
-									<SalesOrdersV2TotalOrders />
-								</Suspense>
-								<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
-									<SalesOrdersV2InvoiceValue />
-								</Suspense>
-								<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
-									<SalesOrdersV2Outstanding />
-								</Suspense>
-								<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
-									<SalesOrdersV2Paid />
-								</Suspense>
-								<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
-									<SalesOrdersV2Evaluating />
-								</Suspense>
-							</div>
-						</CollapsibleSummary>
+						<div className="hidden xl:block">
+							<CollapsibleSummary>
+								<div className="grid gap-4 xl:grid-cols-5">
+									<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
+										<SalesOrdersV2TotalOrders />
+									</Suspense>
+									<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
+										<SalesOrdersV2InvoiceValue />
+									</Suspense>
+									<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
+										<SalesOrdersV2Outstanding />
+									</Suspense>
+									<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
+										<SalesOrdersV2Paid />
+									</Suspense>
+									<Suspense fallback={<SalesOrdersV2SummarySkeleton />}>
+										<SalesOrdersV2Evaluating />
+									</Suspense>
+								</div>
+							</CollapsibleSummary>
+						</div>
 						<SalesOrdersV2Header />
 						<ErrorBoundary errorComponent={ErrorFallbackSales}>
 							<Suspense

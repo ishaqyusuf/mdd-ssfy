@@ -671,7 +671,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
                         <span className="sr-only">More order actions</span>
                     </Button>
                 }
-                contentClassName="min-w-52"
+                contentClassName="min-w-56"
             >
                 <SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
                 <SalesMenu.Item
