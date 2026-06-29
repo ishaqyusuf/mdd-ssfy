@@ -5,6 +5,7 @@ import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { triggerTask } from "@/actions/trigger-task";
 import {
     getTaskMonitorTaskDefaults,
+    type TaskMonitorIntent,
     useTaskMonitorStore,
 } from "@/store/task-monitor";
 import { useAuth } from "./use-auth";
@@ -29,6 +30,15 @@ type TriggerTaskInput = {
     payload?: any;
 };
 
+type TriggerTaskOptions = {
+    intent?: TaskMonitorIntent;
+};
+
+type PendingTrigger = {
+    input: TriggerTaskInput;
+    options?: TriggerTaskOptions;
+};
+
 export function useTaskTrigger(props?: Props) {
     const {
         successToast = "Success!",
@@ -46,7 +56,7 @@ export function useTaskTrigger(props?: Props) {
     });
     const auth = useAuth();
     const addTask = useTaskMonitorStore((state) => state.addTask);
-    const lastInputRef = useRef<TriggerTaskInput | null>(null);
+    const pendingTriggersRef = useRef<PendingTrigger[]>([]);
     useEffect(() => {
         if (status === "FAILED") {
             // setIsImporting(false);
@@ -97,9 +107,7 @@ export function useTaskTrigger(props?: Props) {
         }
     }, [status]);
     const _action = useAction(triggerTask, {
-        onExecute(args) {
-            const input = ((args as any)?.input ?? args) as TriggerTaskInput;
-            if (input?.taskName) lastInputRef.current = input;
+        onExecute() {
             setStatus("SYNCING");
             // if (executingToast)
             //     if (!props.silent)
@@ -110,6 +118,7 @@ export function useTaskTrigger(props?: Props) {
             //         });
         },
         onSuccess({ data }) {
+            const pending = pendingTriggersRef.current.shift();
             // if (props?.debug) console.log({ data });
             if (!data?.id || !data?.publicAccessToken) {
                 setRunId(undefined);
@@ -127,10 +136,9 @@ export function useTaskTrigger(props?: Props) {
             setRunId(data.id);
             setAccessToken(data.publicAccessToken);
             if (props?.monitor ?? !props?.silent) {
-                const input = lastInputRef.current;
                 const taskDefaults = getTaskMonitorTaskDefaults(
-                    input?.taskName,
-                    input?.payload,
+                    pending?.input.taskName,
+                    pending?.input.payload,
                 );
 
                 addTask({
@@ -147,12 +155,15 @@ export function useTaskTrigger(props?: Props) {
                         taskDefaults.description ||
                         executingToast,
                     metadata: taskDefaults.metadata,
+                    intent: pending?.options?.intent,
                 });
             }
             props?.onStarted?.();
         },
         onError(e) {
+            pendingTriggersRef.current.shift();
             setRunId(undefined);
+            props?.onError?.();
             if (!props.silent)
                 toast({
                     duration: 3500,
@@ -162,8 +173,8 @@ export function useTaskTrigger(props?: Props) {
                 });
         },
     });
-    const trigger = (input: TriggerTaskInput) => {
-        lastInputRef.current = input;
+    const trigger = (input: TriggerTaskInput, options?: TriggerTaskOptions) => {
+        pendingTriggersRef.current.push({ input, options });
         return _action.execute(input);
     };
     const ctx = {

@@ -2,6 +2,7 @@
 
 import { cancelTaskRunAction } from "@/actions/cancel-task-run";
 import { useTaskMonitorTasks } from "@/hooks/use-task-notification-params";
+import { useTaskMonitorEffects } from "@/hooks/use-task-monitor-effects";
 import { useSession } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 import {
@@ -138,6 +139,7 @@ export function TaskNotification() {
 function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
     const updateTask = useTaskMonitorStore((state) => state.updateTask);
     const removeTask = useTaskMonitorStore((state) => state.removeTask);
+    const { runTaskEffect } = useTaskMonitorEffects();
     const { run, error, stop } = useRealtimeRun(task.runId, {
         enabled:
             task.status === "SYNCING" && !!task.runId && !!task.accessToken,
@@ -158,12 +160,39 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
         if (!run?.status) return;
 
         if (run.status === "COMPLETED") {
-            updateTask(task.runId, {
-                status: "COMPLETED",
-                completedAt: Date.now(),
-            });
-            window.setTimeout(() => removeTask(task.runId), 2500);
-            stop?.();
+            const completeTask = async () => {
+                if (!task.handledEffects?.success) {
+                    const handledEffects = {
+                        ...task.handledEffects,
+                        success: Date.now(),
+                    };
+                    updateTask(task.runId, { handledEffects });
+
+                    try {
+                        await runTaskEffect(
+                            {
+                                ...task,
+                                handledEffects,
+                            },
+                            "success",
+                        );
+                    } catch (effectError) {
+                        console.error("Unable to run task success effect", {
+                            effectError,
+                            runId: task.runId,
+                        });
+                    }
+                }
+
+                updateTask(task.runId, {
+                    status: "COMPLETED",
+                    completedAt: Date.now(),
+                });
+                window.setTimeout(() => removeTask(task.runId), 2500);
+                stop?.();
+            };
+
+            void completeTask();
             return;
         }
 
@@ -184,7 +213,7 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
             });
             stop?.();
         }
-    }, [error, removeTask, run?.status, stop, task.runId, updateTask]);
+    }, [error, removeTask, run?.status, runTaskEffect, stop, task, updateTask]);
 
     return null;
 }

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { TaskName } from "@jobs/schema";
+import { z } from "zod";
 
 export type TaskMonitorStatus =
     | "SYNCING"
@@ -17,6 +18,32 @@ export type TaskMonitorMetadata = {
     entityLabel?: string | null;
 };
 
+export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
+    z.object({
+        name: z.literal("sales.mark-as-fulfilled"),
+        version: z.literal(1),
+        args: z.object({
+            salesIds: z.array(z.number()).min(1),
+            dispatchIds: z.array(z.number()).optional(),
+        }),
+    }),
+    z.object({
+        name: z.literal("sales.mark-as-production-completed"),
+        version: z.literal(1),
+        args: z.object({
+            salesIds: z.array(z.number()).min(1),
+        }),
+    }),
+]);
+
+export type TaskMonitorIntent = z.infer<typeof taskMonitorIntentSchema>;
+
+export type TaskMonitorHandledEffects = {
+    success?: number;
+    error?: number;
+    canceled?: number;
+};
+
 export type TaskMonitorTask = {
     id: string;
     runId: string;
@@ -27,6 +54,8 @@ export type TaskMonitorTask = {
     status: TaskMonitorStatus;
     error?: string;
     metadata?: TaskMonitorMetadata;
+    intent?: TaskMonitorIntent;
+    handledEffects?: TaskMonitorHandledEffects;
     createdAt: number;
     updatedAt: number;
     completedAt?: number;
@@ -39,6 +68,7 @@ type AddTaskInput = {
     title?: string;
     description?: string;
     metadata?: TaskMonitorMetadata;
+    intent?: TaskMonitorIntent;
 };
 
 type TaskPatch = Partial<
@@ -49,6 +79,7 @@ type TaskPatch = Partial<
         | "title"
         | "description"
         | "metadata"
+        | "handledEffects"
         | "completedAt"
     >
 >;
@@ -74,6 +105,9 @@ export const useTaskMonitorStore = create<TaskMonitorStore>()(
                 const existing = tasks.find(
                     (task) => task.runId === input.runId,
                 );
+                const parsedIntent = input.intent
+                    ? taskMonitorIntentSchema.safeParse(input.intent)
+                    : null;
                 const nextTask: TaskMonitorTask = {
                     id: existing?.id ?? input.runId,
                     runId: input.runId,
@@ -84,6 +118,10 @@ export const useTaskMonitorStore = create<TaskMonitorStore>()(
                     status: existing?.status ?? "SYNCING",
                     error: existing?.error,
                     metadata: input.metadata ?? existing?.metadata,
+                    intent: parsedIntent?.success
+                        ? parsedIntent.data
+                        : existing?.intent,
+                    handledEffects: existing?.handledEffects,
                     createdAt: existing?.createdAt ?? now,
                     updatedAt: now,
                     completedAt: existing?.completedAt,

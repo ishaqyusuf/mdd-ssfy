@@ -1484,7 +1484,7 @@ export async function getCustomerPayPortal(
 	query: GetCustomerPayPortalSchema,
 ) {
 	const { db } = ctx;
-	const terminalPaymentsEnabled = process.env.NODE_ENV !== "production";
+	const terminalPaymentsEnabled = true;
 	const pendingSales = await getCustomerPendingSales(ctx, query.accountNo);
 	const wallet = await getCustomerWallet(db, query.accountNo);
 	const totalPayable = sum(pendingSales, "amountDue");

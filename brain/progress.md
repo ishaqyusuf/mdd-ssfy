@@ -2,6 +2,26 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Re-enabled Sales Payment Processor terminal payments for production.
+  - Removed the API production hard stop that rejected `paymentMethod === "terminal"` before creating a Square Terminal checkout.
+  - Re-enabled production terminal device loading in the customer pay portal and removed the web widget's `NODE_ENV=production` filter that hid `Terminal Payment`.
+  - Validation: `git diff --check` passed; focused sales payment processor utility tests passed with 12 tests; a production-mode Square device load returned two available terminals for location `LV48D0CPNT7XM`.
+  - Updated docs: `brain/features/sales-payment-v2-checkout.md`, `brain/tasks/backlog.md`, and `brain/progress.md`; no API/database contract docs were needed because this re-enables an existing payment option without schema, endpoint, or payload changes.
+
+- Switched Square terminal debugging to production and validated the live authorization failure.
+  - Forced the shared Square package out of sandbox mode during local debugging, scoped production device listing to the configured `SQUARE_LOCATION_ID`, and included that location on terminal checkout creation requests.
+  - In-app Sales Overview validation for order `08624PC` showed production terminals, selected `Square Terminal 2443`, and failed checkout creation with Square `BAD_REQUEST`, `Merchant not authorized for device_id=device:238CS149B2002443`.
+  - A direct package-level production checkout test against location `LV48D0CPNT7XM` produced the same Square response, confirming the remaining blocker is Square-side device authorization/pairing/token/app linkage rather than the browser UI.
+  - Follow-up diagnosis found the paired device-code records for production location `LV48D0CPNT7XM` are authorized with unprefixed Terminal API ids (`238CS149B2002443`), while `Devices.list` returns UI ids prefixed as `device:238CS149B2002443`; Square Terminal Checkout accepts the unprefixed id and rejects the prefixed id as unauthorized.
+  - Added checkout-side device-id normalization so both Sales Overview's prefixed selection value and direct unprefixed values create terminal checkouts with the authorized Square id shape.
+  - Validation: `git diff --check` passed; a focused Bun import check confirmed the Square package resolves production location `LV48D0CPNT7XM`; direct production checkout tests with both raw `238CS149B2002443` and prefixed `device:238CS149B2002443` succeeded and were immediately canceled. `bun --filter @gnd/square typecheck` remains blocked by the existing missing Node type definitions for `process`/`crypto` in the package and `@gnd/db`, and focused Biome remains blocked by the existing file-wide lint/format baseline in `packages/square/src/index.ts`.
+  - Updated docs: `brain/features/sales-payment-v2-checkout.md`, `brain/tasks/backlog.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
+
+- Added durable task-monitor completion effects for sales Mark As actions.
+  - Extended the web task monitor with serializable intents and handled-effect tracking, added a global task effect registry, and wired `SalesMenu.MarkAs` production completion / fulfillment jobs to register sales intents when their Trigger runs start.
+  - The bottom-right task monitor now invalidates the sales orders list, v2 summary, production overview, and sale overview after those Trigger jobs complete, preserving final refresh even after the dropdown unmounts.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API or database docs were needed because this is client-side task monitoring and cache invalidation behavior without schema, endpoint, or permission changes.
+
 - Removed the Super Admin App Download settings page.
   - Deleted the `/settings/app-download` route and its `AppDownloadSettingsPage` component.
   - Removed only the Settings > App Download sidebar entry while keeping Support > Mobile App and `/api/download-app` available for APK downloads.

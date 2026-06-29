@@ -793,6 +793,8 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	const sq = useSalesQueryClient();
 	const salesIds = state.salesIds;
 	const isDisabled = disabled || !salesIds.length;
+	const expectedTaskStartsRef = useRef(0);
+	const completedTaskStartsRef = useRef(0);
 	const createDispatchMutation = useMutation(
 		trpc.dispatch.createDispatch.mutationOptions(),
 	);
@@ -809,6 +811,18 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 			}),
 		]);
 	};
+	const closeMenuAfterExpectedTaskStarts = () => {
+		completedTaskStartsRef.current += 1;
+
+		if (
+			expectedTaskStartsRef.current > 0 &&
+			completedTaskStartsRef.current >= expectedTaskStartsRef.current
+		) {
+			expectedTaskStartsRef.current = 0;
+			completedTaskStartsRef.current = 0;
+			actions.closeMenu();
+		}
+	};
 	const salesControlTask = useTaskTrigger({
 		successToast: "Sales control updated",
 		errorToast: "Unable to update sales control",
@@ -816,9 +830,12 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		monitor: true,
 		onStarted() {
 			void invalidateOrders();
+			closeMenuAfterExpectedTaskStarts();
 		},
-		onSuccess() {
-			void invalidateOrders();
+		onError() {
+			expectedTaskStartsRef.current = 0;
+			completedTaskStartsRef.current = 0;
+			actions.closeMenu();
 		},
 	});
 
@@ -866,17 +883,29 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	};
 
 	const markProductionCompleted = async () => {
-		actions.closeMenu();
 		loader.loading("Marking as production completed...");
 		try {
+			expectedTaskStartsRef.current = salesIds.length;
+			completedTaskStartsRef.current = 0;
 			for (const salesId of salesIds) {
-				salesControlTask.trigger({
-					taskName: "update-sales-control",
-					payload: {
-						meta: getTaskMeta(salesId),
-						submitAll: {},
-					} as UpdateSalesControl,
-				});
+				salesControlTask.trigger(
+					{
+						taskName: "update-sales-control",
+						payload: {
+							meta: getTaskMeta(salesId),
+							submitAll: {},
+						} as UpdateSalesControl,
+					},
+					{
+						intent: {
+							name: "sales.mark-as-production-completed",
+							version: 1,
+							args: {
+								salesIds: [salesId],
+							},
+						},
+					},
+				);
 			}
 			await invalidateOrders();
 			loader.success("Production completion task started");
@@ -886,22 +915,35 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	};
 
 	const markFulfilled = async () => {
-		actions.closeMenu();
 		loader.loading("Marking as fulfilled...");
 		try {
+			expectedTaskStartsRef.current = salesIds.length;
+			completedTaskStartsRef.current = 0;
 			for (const salesId of salesIds) {
 				const dispatchId = await resolveDispatchId(salesId);
-				salesControlTask.trigger({
-					taskName: "update-sales-control",
-					payload: {
-						meta: getTaskMeta(salesId),
-						markAsCompleted: {
-							dispatchId,
-							receivedBy: auth.name || "System",
-							receivedDate: new Date(),
+				salesControlTask.trigger(
+					{
+						taskName: "update-sales-control",
+						payload: {
+							meta: getTaskMeta(salesId),
+							markAsCompleted: {
+								dispatchId,
+								receivedBy: auth.name || "System",
+								receivedDate: new Date(),
+							},
+						} as UpdateSalesControl,
+					},
+					{
+						intent: {
+							name: "sales.mark-as-fulfilled",
+							version: 1,
+							args: {
+								salesIds: [salesId],
+								dispatchIds: [dispatchId],
+							},
 						},
-					} as UpdateSalesControl,
-				});
+					},
+				);
 			}
 			await invalidateOrders();
 			loader.success("Fulfillment task started");
@@ -912,10 +954,22 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 
 	const items = (
 		<>
-			<SalesMenuItem disabled={isDisabled} onSelect={markProductionCompleted}>
+			<SalesMenuItem
+				disabled={isDisabled}
+				onSelect={(event) => {
+					event.preventDefault();
+					void markProductionCompleted();
+				}}
+			>
 				Production completed
 			</SalesMenuItem>
-			<SalesMenuItem disabled={isDisabled} onSelect={markFulfilled}>
+			<SalesMenuItem
+				disabled={isDisabled}
+				onSelect={(event) => {
+					event.preventDefault();
+					void markFulfilled();
+				}}
+			>
 				Fulfilled
 			</SalesMenuItem>
 		</>

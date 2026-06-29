@@ -161,8 +161,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			accountNo,
 		}),
 	);
-	const terminalPaymentsEnabled =
-		data?.terminalPaymentsEnabled !== false && process.env.NODE_ENV !== "production";
+	const terminalPaymentsEnabled = data?.terminalPaymentsEnabled !== false;
 	const availableSalesPaymentMethods = salesPaymentMethods.filter(
 		(method) => terminalPaymentsEnabled || method.value !== "terminal",
 	);

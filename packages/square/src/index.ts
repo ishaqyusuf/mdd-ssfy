@@ -9,7 +9,7 @@ import { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
 const isProd = env.NODE_ENV === "production";
 
-const isDebugging = false;
+const isDebugging = true;
 
 let devMode = !isProd && !isDebugging;
 export const squareClient = new Client({
@@ -90,7 +90,9 @@ interface Devices {
 export async function getSquareDevices(): Promise<Devices> {
   try {
     // const terminals = await squareClient.devices.codes
-    const devices = await squareClient.devices.list();
+    const devices = await squareClient.devices.list(
+      SQUARE_LOCATION_ID ? { locationId: SQUARE_LOCATION_ID } : undefined,
+    );
     const _ = devices?.data
       ?.map((device) => ({
         label: device?.attributes.name,
@@ -203,6 +205,9 @@ const toSquareSalesNote = (orderIds?: string[]) => {
   )}`;
 };
 
+const normalizeTerminalDeviceId = (deviceId: string) =>
+  deviceId.replace(/^device:/, "");
+
 export async function createSquareTerminalCheckout(
   props: CreateTerminalCheckoutProps,
 ) {
@@ -219,9 +224,10 @@ export async function createSquareTerminalCheckout(
         amount,
         currency: "USD",
       },
+      locationId: SQUARE_LOCATION_ID,
       note: toSquareSalesNote(props.orderIds),
       deviceOptions: {
-        deviceId: props.deviceId,
+        deviceId: normalizeTerminalDeviceId(props.deviceId),
         tipSettings: {
           allowTipping: props.allowTipping,
         },
@@ -254,8 +260,9 @@ export async function createTerminalCheckout({
           amount: BigInt(Number(amount) * 100),
           currency: "USD",
         },
+        locationId: SQUARE_LOCATION_ID,
         deviceOptions: {
-          deviceId,
+          deviceId: normalizeTerminalDeviceId(deviceId),
           tipSettings: {
             allowTipping,
           },

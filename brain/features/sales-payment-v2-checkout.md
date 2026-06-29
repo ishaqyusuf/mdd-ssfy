@@ -34,6 +34,16 @@
 - Additional customer/wallet/dashboard query surfaces are required for logged-in checkout and dashboard loading.
 - TODO: Document the exact route names once implementation contracts are finalized.
 
+## Square Terminal Production Notes
+
+- 2026-06-29: Local Square package debugging was switched to production credentials for live terminal diagnosis.
+- Production device listing is scoped to `SQUARE_LOCATION_ID` so Sales Overview terminal selection only shows devices for the configured production location.
+- Terminal checkout creation now sends `locationId: SQUARE_LOCATION_ID` with the selected `deviceId`.
+- Live browser validation from Sales Overview order `08624PC` still failed after the code-side location fix with Square `BAD_REQUEST`, `Merchant not authorized for device_id=device:238CS149B2002443`.
+- Direct package-level validation against `device:238CS149B2002443` and production location `LV48D0CPNT7XM` failed with the same Square response, which points to Square-side device authorization, pairing, token/app scope, or merchant-account linkage rather than the Sales Overview UI flow.
+- Follow-up diagnosis found the paired Terminal API device-code record uses unprefixed `deviceId` values such as `238CS149B2002443`, while `Devices.list` returns ids prefixed as `device:238CS149B2002443`. Terminal checkout creation succeeds when the prefix is removed, so checkout helpers normalize `device:` prefixes before calling Square.
+- Production terminal payments are re-enabled in the Sales Payment Processor: the API no longer blocks terminal payment creation in `NODE_ENV=production`, the customer pay portal loads Square devices in production, and the web payment widget no longer hides `Terminal Payment` based on `NODE_ENV`.
+
 ## UI Screens
 
 - Public checkout v2 page for token-based payment.
