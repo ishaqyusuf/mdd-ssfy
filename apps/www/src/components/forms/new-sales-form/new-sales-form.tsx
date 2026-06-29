@@ -10,6 +10,7 @@ import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
@@ -386,6 +387,7 @@ export function NewSalesForm(props: Props) {
     const salesPrint = useSalesPrintController();
     const salesPreview = useSalesPreview();
     const overviewQuery = useSalesOverviewQuery();
+    const salesQueryClient = useSalesQueryClient();
     const trpc = useTRPC();
     const queryClient = useQueryClient();
     const auth = useAuth();
@@ -892,6 +894,7 @@ export function NewSalesForm(props: Props) {
             if (resp?.type === "order" && resp?.salesId && resp?.orderId) {
                 await resetSalesStatAction(resp.salesId, resp.orderId);
             }
+            await salesQueryClient.invalidate.salesDocumentChanged(resp?.type);
             if (resp?.salesId) {
                 await triggerEvent(
                     resp?.isNew ? "salesCreated" : "salesUpdated",
@@ -899,7 +902,7 @@ export function NewSalesForm(props: Props) {
                 );
             }
         },
-        [clearRecoveryKeys, markSaved, patchRecord, taskTrigger],
+        [clearRecoveryKeys, markSaved, patchRecord, salesQueryClient, taskTrigger],
     );
 
     const configureInventoryAfterSave = useCallback(

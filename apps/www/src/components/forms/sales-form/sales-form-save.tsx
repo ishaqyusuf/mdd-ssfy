@@ -102,11 +102,7 @@ export function SalesFormSave({
 				resp.salesId,
 				zus.metaData?.extraCosts,
 			);
-			if (savedSalesType === "quote") {
-				await sq.invalidate.quoteList();
-			} else {
-				await sq.invalidate.salesList();
-			}
+			await sq.invalidate.salesDocumentChanged(savedSalesType);
 			if (resp.salesId) zus.dotUpdate("metaData.id", resp.salesId);
 			if (resp.salesNo) zus.dotUpdate("metaData.salesId", resp.salesNo);
 			if (savedSalesType === "order" && resp.salesId) {

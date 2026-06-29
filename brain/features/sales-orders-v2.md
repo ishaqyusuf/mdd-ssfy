@@ -98,6 +98,7 @@
   - order overview sheets render the same lifecycle status label/tone near the order number, using the shared order lifecycle helper plus a `cva`-backed overview badge presenter
 - Row density
   - the canonical orders table uses compact 48px virtual rows so more orders fit in the working viewport while preserving the existing action buttons, sticky columns, and row-open behavior
+  - the legacy `/sales-rep` recent-sales mobile/list fallback now uses `ItemCard2`, a flat divider-based row instead of the older rounded card layout; it keeps customer, order id, invoice amount/status, lifecycle status, priority/dealer/inbound badges, phone/address, and row actions while targeting 3-5 visible rows in the sales-rep viewport.
 - Smart funnel status
   - `pending`
     - no active production or fulfillment progress

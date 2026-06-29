@@ -75,7 +75,7 @@ export function usePayPortal() {
 	const sq = useSalesQueryClient();
 	const makePaymentMutation = useMutation(
 		trpc.salesPaymentProcessor.applyPayment.mutationOptions({
-			onSuccess: (data, variables) => {
+			onSuccess: async (data, variables) => {
 				if (data?.terminalPaymentSession) {
 					toast;
 					//toast.loading("", toastDetail("terminal-waiting") as any);
@@ -87,7 +87,7 @@ export function usePayPortal() {
 					if (data.status) {
 						form.setValue("terminalPaymentSession", null);
 						//toast.success("", toastDetail("payment-success") as any);
-						sq.invalidate.salesList();
+						await sq.invalidate.salesPaymentChanged();
 						query.setParams({
 							"pay-selections": null,
 							tab: "transactions",

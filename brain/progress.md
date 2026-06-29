@@ -2,6 +2,18 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Fixed web sales refresh after create/copy/payment actions.
+  - Expanded `useSalesQueryClient` into a shared sales document/payment invalidation contract that refreshes legacy and v2 order lists, quote lists, sales overview data, filters, dashboard widgets, mobile dashboard overview, transaction reads, and accounting/payment reads.
+  - Wired the new invalidation through the current `NewSalesForm` save success path, legacy sales form saves, `SalesMenu` copy/move/delete actions, and customer pay-portal payment success; the main payment widget reuses the widened `salesPaymentUpdated` event.
+  - Validation: focused Biome passed for `use-sales-query-client.ts`, legacy save, sales menu, and pay portal; `git diff --check` passed. Full `@gnd/www` typecheck remains blocked by existing repo-wide errors, and a filtered rerun only surfaced pre-existing `sales-menu.tsx` diagnostics unrelated to the invalidation changes.
+  - Updated docs: `brain/tasks/in-progress.md`, `brain/features/sales-payment-v2-checkout.md`, and `brain/progress.md`; no API or database docs were needed because this changes client cache invalidation only.
+
+- Added compact `ItemCard2` for the sales-rep recent-sales list fallback.
+  - Replaced the oversized rounded mobile sales-order card with a flat divider row that keeps the same order/customer/payment/status/action signals in a shorter three-line layout.
+  - The `/sales-rep` recent-sales mobile column now renders `ItemCard2`; desktop table columns and row-open behavior remain unchanged.
+  - Validation: `git diff --check` passed; focused Biome lint passed; focused Biome check passed with formatter and import organization disabled. Full focused Biome check remains blocked by the file's existing format/import-order baseline.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API/database docs were needed because this is a presentation-only sales list change with no schema, endpoint, or payload changes.
+
 - Re-enabled Sales Payment Processor terminal payments for production.
   - Removed the API production hard stop that rejected `paymentMethod === "terminal"` before creating a Square Terminal checkout.
   - Re-enabled production terminal device loading in the customer pay portal and removed the web widget's `NODE_ENV=production` filter that hid `Terminal Payment`.

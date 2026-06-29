@@ -17,15 +17,15 @@ import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
-import type { SalesPdfToken } from "@gnd/utils/tokenizer";
-import type { UpdateSalesControl } from "@sales/schema";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation } from "@tanstack/react-query";
 import { share } from "@gnd/utils/share";
+import type { SalesPdfToken } from "@gnd/utils/tokenizer";
+import type { UpdateSalesControl } from "@sales/schema";
+import { useMutation } from "@tanstack/react-query";
 import { addDays } from "date-fns";
 import {
 	type ComponentProps,
@@ -191,11 +191,7 @@ function SalesMenuRoot({
 							),
 						});
 					}
-					if (as === "order") {
-						await sq.invalidate.salesList();
-					} else {
-						await sq.invalidate.quoteList();
-					}
+					await sq.invalidate.salesDocumentChanged(as);
 					setOpen(false);
 				} catch {
 					loader.error("Unable to complete");
@@ -236,10 +232,7 @@ function SalesMenuRoot({
 							),
 						});
 					}
-					await Promise.all([
-						sq.invalidate.salesList(),
-						sq.invalidate.quoteList(),
-					]);
+					await sq.invalidate.salesDocumentChanged(to);
 					setOpen(false);
 				} catch {
 					loader.error("Unable to complete");
@@ -731,12 +724,8 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 	const [confirm, setConfirm] = useState(false);
 	const mutation = useMutation(
 		useTRPC().sales.deleteSale.mutationOptions({
-			onSuccess: () => {
-				if (state.type === "order") {
-					sq.invalidate.salesList();
-				} else {
-					sq.invalidate.quoteList();
-				}
+			onSuccess: async () => {
+				await sq.invalidate.salesDocumentChanged(state.type);
 				onDeleted?.();
 				actions.closeMenu();
 			},

@@ -53,6 +53,7 @@
 - Quick create-password/login affordance within checkout.
 - Customer dashboard entry screen after login/checkout.
 - Sales overview payment status cards use a compact summary instead of equal-weight payment stat grids: one primary `Due now` / `Settled` amount, paid-of-total progress, and a C.C.C breakdown only when the card-inclusive payable amount differs from the principal order balance. Full principal and C.C.C ledger rows remain in invoice details.
+- Successful web payment application now uses the shared sales query invalidation path so order lists, overview balances, dashboard summaries, sales transactions, and accounting/payment reads refresh without a manual browser reload.
 
 ## Quote Acceptance Flow
 

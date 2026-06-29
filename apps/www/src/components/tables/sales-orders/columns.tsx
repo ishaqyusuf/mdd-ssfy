@@ -13,20 +13,20 @@ import { Button } from "@gnd/ui/button";
 import { buttonVariants } from "@gnd/ui/button";
 import { cells } from "@gnd/ui/custom/data-table/cells";
 import { Icons } from "@gnd/ui/icons";
-import { Item } from "@gnd/ui/namespace";
+import { Item as ListItem } from "@gnd/ui/namespace";
 import { InvoiceColumn } from "./column.invoice";
 
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
     parseAsInteger,
     parseAsString,
     parseAsStringEnum,
     useQueryStates,
 } from "nuqs";
-import { usePathname } from "next/navigation";
 
 const SalesOrderMoreActionsMenu = dynamic(() =>
     import("./row-actions-menu").then((mod) => mod.SalesOrderMoreActionsMenu),
@@ -38,6 +38,16 @@ export type SalesOrderItem = RouterOutputs["sales"]["index"]["data"][number];
 export type Item = SalesOrderItem;
 interface ItemProps {
     item: SalesOrderItem;
+}
+
+type SalesOrderListMeta = SalesOrderItem & {
+    inboundStatus?: string | null;
+    isDealerSale?: boolean | null;
+    priority?: string | null;
+};
+
+function getSalesOrderListMeta(item: SalesOrderItem) {
+    return item as SalesOrderListMeta;
 }
 
 type LifecycleQtySnapshot = {
@@ -222,7 +232,9 @@ export function salesInboundRowClassName(status?: string | null) {
 }
 
 function SalesInboundBadge({ item }: { item: SalesOrderItem }) {
-    const status = normalizeInboundStatus((item as any).inboundStatus);
+    const status = normalizeInboundStatus(
+        getSalesOrderListMeta(item).inboundStatus,
+    );
     if (!status) return <span className="text-muted-foreground">-</span>;
 
     return (
@@ -239,7 +251,7 @@ function SalesInboundBadge({ item }: { item: SalesOrderItem }) {
 }
 
 function DealerSaleBadge({ item }: { item: SalesOrderItem }) {
-    if (!(item as any).isDealerSale) return null;
+    if (!getSalesOrderListMeta(item).isDealerSale) return null;
 
     return (
         <Badge
@@ -254,7 +266,7 @@ function DealerSaleBadge({ item }: { item: SalesOrderItem }) {
 function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
     return (
         <div className="max-w-[220px] xl:max-w-[300px]">
-            <Item.Title
+            <ListItem.Title
                 className={cn(
                     "flex max-w-[220px] items-center gap-1 xl:max-w-[300px]",
                     item.isBusiness && "text-blue-700",
@@ -268,13 +280,13 @@ function CompactCustomerCell({ item }: { item: SalesOrderItem }) {
                     {" - "}
                     {item.customerPhone || "-"}
                 </span>
-            </Item.Title>
-            <Item.Description>
+            </ListItem.Title>
+            <ListItem.Description>
                 <TextWithTooltip
                     className="min-w-max max-w-[220px] truncate"
                     text={item.address || "no address"}
                 />
-            </Item.Description>
+            </ListItem.Description>
         </div>
     );
 }
@@ -357,7 +369,9 @@ export const columns: ColumnDef<SalesOrderItem>[] = [
             <TCell.Secondary className="whitespace-nowrap inline-flex items-center gap-1">
                 <span>{item.orderId}</span>
                 <DealerSaleBadge item={item} />
-                <SalesPriorityBadge priority={(item as any).priority} />
+                <SalesPriorityBadge
+                    priority={getSalesOrderListMeta(item).priority}
+                />
                 {!item.orderId
                     ?.toUpperCase()
                     .endsWith(item.salesRepInitial) && (
@@ -549,7 +563,7 @@ export const mobileColumn: ColumnDef<SalesOrderItem>[] = [
             className: "flex-1 p-0",
         },
         cell: ({ row: { original: item } }) => {
-            return <ItemCard item={item} />;
+            return <ItemCard2 item={item} />;
         },
     },
 ];
@@ -594,19 +608,141 @@ function getInvoiceToneClass(item: SalesOrderItem) {
 // 	);
 // }
 
+function ItemCard2({ item }: ItemProps) {
+    const invoiceStatus = getInvoiceStatusLabel(item);
+    const lifecycle = getLifecycleStatusInfo(item);
+    const isUnpaid = item.invoice.pending >= item.invoice.total;
+    const isPartPaid = item.invoice.pending > 0 && !isUnpaid;
+
+    return (
+        <div
+            className={cn(
+                "group w-full border-border/60 border-b bg-background px-3 py-2.5 text-left transition-colors active:bg-muted/50",
+                isUnpaid && "bg-red-50/25",
+            )}
+        >
+            <div className="flex min-w-0 items-start gap-2.5">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <p
+                            className={cn(
+                                "min-w-0 flex-1 truncate text-sm font-semibold leading-5 text-foreground",
+                                item.isBusiness && "text-blue-700",
+                            )}
+                        >
+                            {item.displayName || "Unknown customer"}
+                        </p>
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                "h-5 shrink-0 rounded-md px-1.5 py-0 text-[10px] font-semibold",
+                                getInvoiceToneClass(item),
+                            )}
+                        >
+                            {invoiceStatus}
+                        </Badge>
+                    </div>
+
+                    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                        <span className="inline-flex h-5 max-w-[92px] items-center truncate rounded-md border border-border/70 bg-muted/40 px-1.5 font-mono text-[11px] font-semibold uppercase text-foreground">
+                            {item.orderId || "-"}
+                        </span>
+                        <span className="inline-flex h-5 items-center rounded-md border border-border/60 px-1.5 text-[10px] font-medium text-muted-foreground">
+                            {item.salesDate || "No date"}
+                        </span>
+                        <Badge
+                            className={cn(
+                                "h-5 max-w-[96px] rounded-md border-0 px-1.5 py-0 text-[10px] font-semibold",
+                                lifecycle.badgeClassName,
+                            )}
+                        >
+                            <span className="truncate">{lifecycle.label}</span>
+                        </Badge>
+                        <SalesPriorityBadge
+                            priority={getSalesOrderListMeta(item).priority}
+                            className="h-5 rounded-md px-1.5 py-0 text-[10px]"
+                        />
+                        <DealerSaleBadge item={item} />
+                        <SalesInboundBadge item={item} />
+                        {!item.orderId
+                            ?.toUpperCase()
+                            .endsWith(item.salesRepInitial) && (
+                            <span className="inline-flex h-5 items-center rounded-md bg-primary/10 px-1.5 text-[10px] font-semibold uppercase text-primary">
+                                {item.salesRepInitial}
+                            </span>
+                        )}
+                        {!item.noteCount || (
+                            <span className="inline-flex h-5 items-center rounded-md bg-muted px-1.5 text-[10px] font-semibold text-muted-foreground">
+                                <Icons.StickyNote className="mr-1 size-3" />
+                                {item.noteCount}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-muted-foreground">
+                        <Icons.Phone className="size-3 shrink-0" />
+                        <span className="max-w-[100px] truncate">
+                            {item.customerPhone || "No phone"}
+                        </span>
+                        <span className="text-border">/</span>
+                        <Icons.MapPin className="size-3 shrink-0" />
+                        <TextWithTooltip
+                            className="max-w-full truncate"
+                            text={item.address || "No address"}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex shrink-0 items-start gap-1.5">
+                    <div className="min-w-[76px] text-right">
+                        <TCell.Money
+                            value={item.invoice.total}
+                            className={cn(
+                                "block text-sm font-semibold leading-5",
+                                isUnpaid
+                                    ? "text-red-600"
+                                    : isPartPaid
+                                      ? "text-amber-600"
+                                      : "text-emerald-600",
+                            )}
+                        />
+                        {item.poNo ? (
+                            <p className="mt-0.5 max-w-[86px] truncate text-[10px] leading-3 text-muted-foreground">
+                                PO {item.poNo}
+                            </p>
+                        ) : null}
+                    </div>
+                    <div
+                        className="-mt-0.5"
+                        onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }}
+                        onKeyDown={(event) => {
+                            event.stopPropagation();
+                        }}
+                    >
+                        <Actions item={item} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Preview/restore version of the previous roomier mobile card. The active
+// sales-rep fallback renders ItemCard2 above.
 function ItemCard({ item }: ItemProps) {
     const invoiceStatus = getInvoiceStatusLabel(item);
     const lifecycle = getLifecycleStatusInfo(item);
-    // Previous separate mobile status values:
-    // const productionStatus = getProductionStatusLabel(item) || "-";
-    // const fulfillmentStatus = getFulfillmentStatusLabel(item) || "-";
+    const isUnpaid = item.invoice.pending >= item.invoice.total;
+    const isPartPaid = item.invoice.pending > 0 && !isUnpaid;
 
     return (
         <div
             className={cn(
                 "group flex w-full flex-col gap-3 rounded-3xl border border-border/70 bg-card p-4 text-left shadow-sm transition duration-200 active:scale-[0.995]",
-                item.invoice.pending >= item.invoice.total &&
-                    "border-red-200/80 bg-red-50/30",
+                isUnpaid && "border-red-200/80 bg-red-50/30",
             )}
         >
             <div className="flex items-start justify-between gap-3">
@@ -627,7 +763,7 @@ function ItemCard({ item }: ItemProps) {
                             {item.orderId || "-"}
                         </span>
                         <SalesPriorityBadge
-                            priority={(item as any).priority}
+                            priority={getSalesOrderListMeta(item).priority}
                             className="px-2 py-1"
                         />
                         <DealerSaleBadge item={item} />
@@ -702,9 +838,9 @@ function ItemCard({ item }: ItemProps) {
                         value={item.invoice.total}
                         className={cn(
                             "mt-1 block text-base font-semibold",
-                            item.invoice.pending === item.invoice.total
+                            isUnpaid
                                 ? "text-red-600"
-                                : item.invoice.pending > 0
+                                : isPartPaid
                                   ? "text-amber-600"
                                   : "text-emerald-600",
                         )}
@@ -735,23 +871,6 @@ function ItemCard({ item }: ItemProps) {
                     </div>
                 </div>
             </div>
-            {/*
-			Previous two-block mobile production/fulfillment display, replaced by
-			the unified lifecycle Status block above.
-
-			<div className="grid grid-cols-2 gap-2">
-				<MobileStatusBlock
-					label="Production"
-					value={productionStatus}
-					icon={Icons.Factory}
-				/>
-				<MobileStatusBlock
-					label="Fulfillment"
-					value={fulfillmentStatus}
-					icon={Icons.Package2}
-				/>
-			</div>
-			*/}
 
             <div className="flex items-center justify-between border-border/70 border-t pt-3 text-sm">
                 <span className="text-muted-foreground">Open sales order</span>
