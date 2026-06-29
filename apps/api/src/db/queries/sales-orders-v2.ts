@@ -35,6 +35,8 @@ const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 const ordersV2FilterShape = {
 	q: z.string().optional().nullable(),
 	dateRange: z.array(z.string()).optional().nullable(),
+	salesIds: z.array(z.number()).optional().nullable(),
+	"address.id": z.number().optional().nullable(),
 	customerName: z.string().optional().nullable(),
 	"customer.name": z.string().optional().nullable(),
 	phone: z.string().optional().nullable(),
@@ -62,18 +64,18 @@ const ordersV2FilterShape = {
 	showing: z.enum(["all sales"]).optional().nullable(),
 };
 
-export const getOrdersV2Schema = z
+export const getOrdersSchema = z
 	.object(ordersV2FilterShape)
 	.extend(paginationSchema.shape);
 
-export type GetOrdersV2Schema = z.infer<typeof getOrdersV2Schema>;
+export type GetOrdersSchema = z.infer<typeof getOrdersSchema>;
 
-export const getOrdersV2SummarySchema = z.object({
+export const getOrdersSummarySchema = z.object({
 	...ordersV2FilterShape,
 	bin: paginationSchema.shape.bin,
 });
 
-export type GetOrdersV2SummarySchema = z.infer<typeof getOrdersV2SummarySchema>;
+export type GetOrdersSummarySchema = z.infer<typeof getOrdersSummarySchema>;
 
 type LegacyOrdersQuery = Partial<SalesQueryParamsSchema> &
 	Record<string, unknown> & {
@@ -84,13 +86,15 @@ type LegacyOrdersQuery = Partial<SalesQueryParamsSchema> &
 	};
 
 function toLegacyOrdersQuery(
-	query: GetOrdersV2SummarySchema,
+	query: GetOrdersSummarySchema,
 	userId?: number | null,
 ) {
 	const legacyQuery: LegacyOrdersQuery = {
 		salesType: "order",
 		q: query.q,
 		dateRange: query.dateRange,
+		salesIds: query.salesIds,
+		"address.id": query["address.id"],
 		"customer.name": query["customer.name"] ?? query.customerName,
 		phone: query.phone,
 		po: query.po,
@@ -177,6 +181,8 @@ export function normalizeOrderRow(
 ) {
 	const dto = salesOrderDto(row, false);
 	const baseInvoiceTotal = dto.invoice.total || 0;
+	const amountPaid = dto.invoice.paid || 0;
+	const amountDue = dto.invoice.pending || 0;
 	const repairedInvoiceTotal = repairSalesInvoiceCccDisplay({
 		baseTotal: baseInvoiceTotal,
 		meta: row.meta,
@@ -204,6 +210,7 @@ export function normalizeOrderRow(
 		customerId: dto.customerId,
 		email: dto.email,
 		accountNo: dto.accountNo,
+		type: dto.type,
 		address: dto.address || "No address",
 		salesRepName: dto.salesRep || "Unassigned",
 		salesRepInitial: dto.salesRepInitial || "",
@@ -217,7 +224,10 @@ export function normalizeOrderRow(
 		baseInvoiceTotal: repairedInvoiceTotal.baseTotal,
 		displayCcc,
 		invoiceTotal: repairedInvoiceTotal.totalWithCcc,
-		amountDue: dto.invoice.pending || 0,
+		amountPaid,
+		amountDue,
+		displayAmountPaid: dto.invoice.displayPaid ?? amountPaid,
+		displayAmountDue: dto.invoice.displayPending ?? amountDue,
 		due: dto.due,
 		paymentDueDate: dto.dueDate,
 		invoiceStatus: toInvoiceStatus(dto.invoice.pending),
@@ -305,7 +315,7 @@ function ordersV2Sort(
 	}
 }
 
-export async function getOrdersV2(ctx: TRPCContext, query: GetOrdersV2Schema) {
+export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
 	const { db } = ctx;
 	const legacyQuery = toLegacyOrdersQuery(query, ctx.userId);
 	const { response, searchMeta, where } = await composeQueryData(
@@ -340,9 +350,9 @@ export async function getOrdersV2(ctx: TRPCContext, query: GetOrdersV2Schema) {
 	return response(data);
 }
 
-export async function getOrdersV2Summary(
+export async function getOrdersSummary(
 	ctx: TRPCContext,
-	query: GetOrdersV2SummarySchema,
+	query: GetOrdersSummarySchema,
 ) {
 	const { db } = ctx;
 	const where = whereSales(toLegacyOrdersQuery(query, ctx.userId)) ?? {};

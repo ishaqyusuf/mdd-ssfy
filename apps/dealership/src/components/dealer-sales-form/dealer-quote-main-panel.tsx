@@ -12,7 +12,9 @@ type DealerQuoteMainPanelProps = {
 	record: DealerSalesFormRecord;
 	pricingView?: "internal" | "dealer";
 	profileCoefficient?: number | null;
+	internalProfileLabel?: string | null;
 	dealerSalesPercentage?: number | null;
+	dealerProfileLabel?: string | null;
 	onAddLineItem: () => void;
 	onRemoveLineItem: (uid: string) => void;
 	onUpdateLineItem: (
@@ -36,9 +38,11 @@ export function DealerQuoteMainPanel(props: DealerQuoteMainPanelProps) {
 					pricing={{
 						activeView: props.pricingView || "dealer",
 						dealerSalesPercentage: props.dealerSalesPercentage,
+						dealerProfileLabel: props.dealerProfileLabel,
 						lineTotalMode: workflowCapabilities.canEditLinePricing
 							? "editable"
 							: "readonly",
+						internalProfileLabel: props.internalProfileLabel,
 						profileCoefficient: props.profileCoefficient,
 						labels: {
 							doorPrice: dealerPricingTerms.doorSalesPrice,
@@ -46,6 +50,11 @@ export function DealerQuoteMainPanel(props: DealerQuoteMainPanelProps) {
 							customPrice: dealerPricingTerms.customSalesPrice,
 							priceBreakdown: dealerPricingTerms.priceBreakdown,
 							costPrice: dealerPricingTerms.costView,
+							dealerProfile: "Dealer profile",
+							dealerProfileSalesPrice: "Dealer sales price",
+							customerProfile: "Customer profile",
+							customerSalesPrice: "Customer sales price",
+							displayedPrice: "Displayed price",
 							salesPrice: dealerPricingTerms.salesPriceView,
 							margin: dealerPricingTerms.margin,
 						},

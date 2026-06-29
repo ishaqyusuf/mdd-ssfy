@@ -24,7 +24,7 @@ export function BatchActions() {
 		trpc.sales.deleteSalesByOrderIds.mutationOptions({
 			onSuccess() {
 				queryClient.invalidateQueries({
-					queryKey: trpc.sales.getOrders.infiniteQueryKey(),
+					queryKey: trpc.sales.index.infiniteQueryKey(),
 				});
 			},
 		}),

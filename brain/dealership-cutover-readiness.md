@@ -1,7 +1,7 @@
 # Dealership Cutover Readiness
 
-Date: 2026-05-23
-Status: Non-browser ready; browser QA pending
+Date: 2026-06-29
+Status: Non-browser ready; authenticated browser QA partial pass with fixture/mobile coverage pending
 Owner: Sales Form Rebuild Team
 
 ## Ready Signals
@@ -16,6 +16,13 @@ Owner: Sales Form Rebuild Team
 - Dealer tax/production flags persist from package-authored metadata.
 - Dealership UI treats line totals as read-only derived dealer totals.
 - Dealership save payload now sends computed dealer line totals.
+- Dealer quote create/update stays on the saved order-number edit route instead
+  of resetting into a blank composer.
+- Dealer quote edit routes use order-number slugs and redirect legacy numeric
+  quote ids to `/quotes/{orderNo}/edit`.
+- Dealer structured line totals now resolve from shelf/service/moulding/HPT row
+  totals before dealer percentage pricing, keeping item headers, persisted line
+  totals, and summaries aligned.
 - Dealer mobile footer uses Save/Update quote labels.
 - Dealership typecheck passes in the focused migration gate.
 
@@ -34,12 +41,15 @@ Latest Phase 22 gate passed with:
 
 ## Not Yet Ready For Production
 
-Production cutover still requires browser phases 27-30:
+Production cutover still requires browser phases 27-30. The 2026-06-29
+authenticated dealership pass proved quick-login access, shelf quote save,
+reopen, edit/resave, and dealer request-order persistence for quote `00002DPP`,
+and the 2026-06-29 follow-up fixed the post-save reset, slug route, and shelf
+line total mismatch. Production signoff still needs the remaining coverage:
 
-- Authenticated dealership create quote.
-- Authenticated dealership edit/reopen quote.
-- Authenticated dealership save and convert quote.
-- Screenshot/notes for totals, line families, and absence of internal controls.
+- Current local Door/HPT and Moulding size fixtures expose empty size tables,
+  blocking priced browser rows for those families.
+- Final desktop/mobile screenshots are still needed after the fixes.
 
 ## Rollback
 

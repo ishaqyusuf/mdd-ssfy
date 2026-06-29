@@ -1,6 +1,7 @@
 "use client";
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
+import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
 import { cn } from "@/lib/utils";
 import type { ColumnDef } from "@/types/type";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -198,55 +199,11 @@ function getLifecycleStatusInfo(item: SalesOrderItem) {
 // 	return item?.deliveryStatus || "-";
 // }
 
-function normalizeInboundStatus(status?: string | null) {
-    const value = String(status || "")
-        .trim()
-        .toUpperCase();
-    if (
-        value === "AVAILABLE" ||
-        value === "ORDERED" ||
-        value === "PENDING ORDER"
-    ) {
-        return value;
-    }
-    return null;
-}
-
-function getInboundToneClass(status?: string | null) {
-    switch (normalizeInboundStatus(status)) {
-        case "AVAILABLE":
-            return "border-emerald-200 bg-emerald-50 text-emerald-700";
-        case "ORDERED":
-            return "border-blue-200 bg-blue-50 text-blue-700";
-        case "PENDING ORDER":
-            return "border-amber-300 bg-amber-50 text-amber-800";
-        default:
-            return "border-slate-200 bg-slate-50 text-slate-600";
-    }
-}
-
-export function salesInboundRowClassName(status?: string | null) {
-    return normalizeInboundStatus(status) === "PENDING ORDER"
-        ? "bg-amber-50/60 hover:bg-amber-100/70"
-        : "";
-}
-
 function SalesInboundBadge({ item }: { item: SalesOrderItem }) {
-    const status = normalizeInboundStatus(
-        getSalesOrderListMeta(item).inboundStatus,
-    );
-    if (!status) return <span className="text-muted-foreground">-</span>;
-
     return (
-        <Badge
-            variant="outline"
-            className={cn(
-                "rounded-full text-[11px] font-semibold uppercase whitespace-nowrap",
-                getInboundToneClass(status),
-            )}
-        >
-            {status}
-        </Badge>
+        <SalesInboundStatusBadge
+            status={getSalesOrderListMeta(item).inboundStatus}
+        />
     );
 }
 

@@ -55,6 +55,8 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 		if (status === "rejected") return "Rejected";
 		return null;
 	};
+	const quoteEditHref = (document: { id?: number; orderId?: string | null }) =>
+		`/quotes/${encodeURIComponent(document.orderId || String(document.id || ""))}/edit`;
 
 	return (
 		<div className="space-y-6">
@@ -117,7 +119,7 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 													type="button"
 													variant="ghost"
 												>
-													<Link href={`/quotes/${document.id}/edit`}>Edit</Link>
+													<Link href={quoteEditHref(document)}>Edit</Link>
 												</Button>
 												<Button
 													disabled={

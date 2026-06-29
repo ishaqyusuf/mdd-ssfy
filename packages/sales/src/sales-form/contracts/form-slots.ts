@@ -12,5 +12,6 @@ export type SalesFormSlots = {
 	MainPanel?: ReactNode;
 	SummaryPanel?: ReactNode;
 	SummaryFooterActions?: ReactNode;
+	GrandTotalValue?: ReactNode;
 	FloatingActions?: ReactNode;
 };

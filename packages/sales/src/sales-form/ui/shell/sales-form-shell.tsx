@@ -197,6 +197,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 							mobileOpen={Boolean(props.mobileSummaryOpen)}
 							orderId={props.orderId}
 							grandTotal={props.grandTotal}
+							grandTotalSlot={slots.GrandTotalValue}
 							capabilities={props.capabilities}
 							permissions={props.permissions}
 							summaryPanel={summaryPanel}
@@ -225,7 +226,7 @@ export function SalesFormShell(props: SalesFormShellProps) {
 										Review Totals
 									</span>
 									<span className="text-lg font-bold text-foreground">
-										{currency(props.grandTotal)}
+										{slots.GrandTotalValue || currency(props.grandTotal)}
 									</span>
 								</button>
 								<MobileCountdownSave

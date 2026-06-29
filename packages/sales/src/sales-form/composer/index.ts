@@ -1,4 +1,8 @@
 import {
+  type SalesFormExtraCostRecord,
+  type SalesFormLineItemRecord,
+  type SalesFormMetaRecord,
+  type SalesFormSummaryRecord,
   applySalesFormInitialCustomerSelection,
   computeNormalizedSalesFormSummary,
   createEmptySalesFormLineItem,
@@ -6,15 +10,12 @@ import {
   normalizeSalesFormExtraCosts,
   normalizeSalesFormLineItems,
   toSalesFormSaveDraftPayload,
-  type SalesFormExtraCostRecord,
-  type SalesFormLineItemRecord,
-  type SalesFormMetaRecord,
-  type SalesFormSummaryRecord,
 } from "../application";
 import {
-  buildDualSalesFormPricingSnapshot,
   type DualPricingSnapshot,
   type SalesFormPricingProfile,
+  buildDualSalesFormPricingSnapshot,
+  calculateSalesFormSummary,
 } from "../domain";
 
 export type SalesFormComposerSurface = "www" | "dealership";
@@ -39,13 +40,13 @@ export type SalesFormComposerConfig = {
   pricing?: SalesFormPricingAdapter | null;
 };
 
-export type SalesFormComposerRecord = Record<string, any> & {
+export type SalesFormComposerRecord = Record<string, unknown> & {
   type?: "order" | "quote" | string | null;
   salesId?: number | null;
   slug?: string | null;
   inventoryStatus?: string | null;
   version?: string | null;
-  form?: Record<string, any> | null;
+  form?: Record<string, unknown> | null;
   lineItems?: SalesFormLineItemRecord[];
   extraCosts?: SalesFormExtraCostRecord[];
   summary?: SalesFormSummaryRecord | null;
@@ -124,9 +125,9 @@ export type DealerSalesFormQuoteLineItemRecord = SalesFormLineItemRecord & {
   qty: number;
   unitPrice: number;
   lineTotal: number;
-  formSteps?: any[];
-  shelfItems?: any[];
-  housePackageTool?: any | null;
+  formSteps?: Record<string, unknown>[];
+  shelfItems?: Record<string, unknown>[];
+  housePackageTool?: Record<string, unknown> | null;
 };
 
 export type DealerSalesFormQuoteRecord = {
@@ -306,6 +307,32 @@ function safeObjectArray(value: unknown): Record<string, unknown>[] {
     : [];
 }
 
+function hasStructuredLinePricing(
+  line: SalesFormLineItemRecord & Record<string, unknown>,
+) {
+  const meta = safeObject(line.meta);
+  return (
+    (Array.isArray(line.shelfItems) && line.shelfItems.length > 0) ||
+    Boolean(safeObject(line.housePackageTool).totalPrice) ||
+    (Array.isArray(meta.serviceRows) && meta.serviceRows.length > 0) ||
+    (Array.isArray(meta.mouldingRows) && meta.mouldingRows.length > 0)
+  );
+}
+
+export function resolveDealerSalesFormStructuredLineTotal(
+  line: SalesFormLineItemRecord & Record<string, unknown>,
+) {
+  if (!hasStructuredLinePricing(line)) return null;
+  return roundCurrency(
+    calculateSalesFormSummary({
+      strategy: "legacy",
+      taxRate: 0,
+      lineItems: [line],
+      extraCosts: [],
+    }).subTotal,
+  );
+}
+
 export function createDealerSalesFormLineItem(
   index = 0,
 ): DealerSalesFormQuoteLineItemRecord {
@@ -430,6 +457,9 @@ export function composeDealerSalesFormQuoteSaveInput(input: {
       const fallbackLineTotal = roundCurrency(
         Number(line.lineTotal ?? qty * unitPrice),
       );
+      const structuredLineTotal = resolveDealerSalesFormStructuredLineTotal(
+        line as SalesFormLineItemRecord & Record<string, unknown>,
+      );
 
       return {
         uid: String(line.uid || ""),
@@ -438,7 +468,9 @@ export function composeDealerSalesFormQuoteSaveInput(input: {
         qty,
         unitPrice,
         lineTotal:
-          input.lineTotalsByUid?.[String(line.uid || "")] ?? fallbackLineTotal,
+          structuredLineTotal ??
+          input.lineTotalsByUid?.[String(line.uid || "")] ??
+          fallbackLineTotal,
         meta: safeObject(line.meta),
         formSteps: safeObjectArray(line.formSteps),
         shelfItems: safeObjectArray(line.shelfItems),

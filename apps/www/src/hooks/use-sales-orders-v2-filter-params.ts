@@ -16,7 +16,7 @@ import {
 } from "@gnd/utils/constants";
 import { SALES_HAS_FILTER_OPTIONS } from "@sales/filter-constants";
 
-type FilterKeys = keyof Exclude<RouterInputs["sales"]["getOrdersV2"], void>;
+type FilterKeys = keyof Exclude<RouterInputs["sales"]["getOrders"], void>;
 
 export const salesOrdersV2FilterParams = {
   q: parseAsString,

@@ -1,5 +1,8 @@
 import { _trpc } from "@/components/static-trpc";
-import { buildSalesDocumentListQueryInput } from "@/features/sales/components/sales-document-list";
+import {
+	adaptSalesOrderListResponse,
+	buildSalesDocumentListQueryInput,
+} from "@/features/sales/components/sales-document-list";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
@@ -22,7 +25,17 @@ export function useSalesOrdersList(input: {
 		});
 	}, [input.filters, q]);
 
-	return useQuery(
+	const query = useQuery(
 		_trpc.sales.getOrders.queryOptions(queryInput as SalesOrdersQueryInput),
 	);
+
+	const data = useMemo(
+		() => adaptSalesOrderListResponse(query.data),
+		[query.data],
+	);
+
+	return {
+		...query,
+		data,
+	};
 }

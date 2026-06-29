@@ -10,7 +10,8 @@ import { getCustomers } from "./customer";
 import { getDispatches } from "./dispatch";
 import { getEmployees } from "./hrm";
 import { getProjectUnits } from "./project-units";
-import { getOrders, getQuotes } from "./sales";
+import { getQuotes } from "./sales";
+import { getOrders } from "./sales-orders-v2";
 
 export interface GlobalSearchResult {
 	id: string;

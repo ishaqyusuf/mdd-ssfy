@@ -23,6 +23,31 @@ export type SalesDocumentListItem = {
 	} | null;
 };
 
+export type SalesOrdersListApiItem = {
+	id?: string | number | null;
+	orderId?: string | null;
+	slug?: string | null;
+	displayName?: string | null;
+	customerName?: string | null;
+	customerPhone?: string | null;
+	fulfillmentLabel?: string | null;
+	statusLabel?: string | null;
+	deliveryOption?: string | null;
+	salesDate?: string | null;
+	baseInvoiceTotal?: number | null;
+	invoiceTotal?: number | null;
+	amountPaid?: number | null;
+	amountDue?: number | null;
+	displayAmountPaid?: number | null;
+	displayAmountDue?: number | null;
+	displayCcc?: number | null;
+};
+
+export type SalesOrdersListApiResponse = {
+	data?: SalesOrdersListApiItem[];
+	[key: string]: unknown;
+};
+
 type SalesDocumentListInput = {
 	type: SalesDocumentListType;
 	q?: string | null;
@@ -58,6 +83,46 @@ export function buildSalesDocumentListQueryInput({
 	}
 
 	return normalized;
+}
+
+export function adaptSalesOrderListItem(
+	row: SalesOrdersListApiItem,
+): SalesDocumentListItem {
+	const displayName = row.displayName ?? row.customerName ?? null;
+	const amountPaid = Number(row.amountPaid || 0);
+	const amountDue = Number(row.amountDue || 0);
+
+	return {
+		id: row.id,
+		orderId: row.orderId,
+		slug: row.slug,
+		displayName,
+		customerPhone: row.customerPhone,
+		deliveryStatus: row.fulfillmentLabel ?? row.statusLabel ?? null,
+		deliveryOption: row.deliveryOption,
+		salesDate: row.salesDate,
+		invoice: {
+			total: row.baseInvoiceTotal ?? null,
+			paid: amountPaid,
+			pending: amountDue,
+			baseTotal: row.baseInvoiceTotal ?? null,
+			displayCcc: row.displayCcc ?? null,
+			displayPaid: row.displayAmountPaid ?? amountPaid,
+			displayPending: row.displayAmountDue ?? amountDue,
+			displayTotal: row.invoiceTotal ?? row.baseInvoiceTotal ?? null,
+		},
+	};
+}
+
+export function adaptSalesOrderListResponse<T extends SalesOrdersListApiResponse>(
+	response: T | undefined,
+) {
+	if (!response) return response;
+
+	return {
+		...response,
+		data: (response.data || []).map(adaptSalesOrderListItem),
+	};
 }
 
 export function getQuoteEditRoute(item: Pick<SalesDocumentListItem, "slug">) {

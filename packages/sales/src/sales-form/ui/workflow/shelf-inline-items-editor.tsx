@@ -26,6 +26,7 @@ import {
 import {
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
+	getShelfRowBasePrice,
 } from "./shelf-inputs";
 import {
 	buildShelfProductRowPatch,
@@ -33,6 +34,10 @@ import {
 	patchShelfRowPrice,
 	patchShelfRowQty,
 } from "./shelf-row-products";
+import {
+	CostPriceBreakdownHover,
+	type CostPriceBreakdownContext,
+} from "./cost-price-breakdown-hover";
 
 type InlineRowEntry = {
 	section: ShelfSectionDraft;
@@ -47,6 +52,7 @@ export type ShelfInlineItemsEditorProps = {
 	products: ShelfProductOption[];
 	profileCoefficient: number;
 	canEditPricing?: boolean;
+	priceBreakdown?: CostPriceBreakdownContext | null;
 	formatMoney: (value?: number | null) => string | null;
 	onSectionsChange: (sections: ShelfSectionDraft[]) => void;
 	headerSlot?: ReactNode;
@@ -466,41 +472,87 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 						</tr>
 					</thead>
 					<tbody>
-						{entries.map((entry, index) => (
-							<tr
-								key={`shelf-inline-row-${entry.section.uid}-${entry.row.uid}-${index}`}
-								className="border-t align-top"
-							>
-								<td className="min-w-0 px-3 py-2">
-									<ShelfInlineProductCell
-										row={entry.row}
-										products={props.products}
-										categories={props.categories}
-										formatMoney={props.formatMoney}
-										onSelectProduct={(product) =>
-											void selectEntryProduct(entry, product)
-										}
-										onProductSearchChange={props.onProductSearchChange}
-										isSearchingProducts={props.isSearchingProducts}
-										isLoadingProduct={
-											loadingProductRowUid === entry.row.uid
-										}
-										productLoadError={
-											productErrorsByRowUid[entry.row.uid] || null
-										}
-									/>
-								</td>
-								<td className="px-3 py-2">
-									{canEditPricing ? (
+						{entries.map((entry, index) => {
+							const unitPrice = getShelfRowDisplayUnitPrice(entry.row);
+							const totalPrice = getShelfRowDisplayTotal(entry.row);
+							const costPrice = getShelfRowBasePrice(entry.row);
+							const qty = Number(entry.row.qty || 0);
+							const unitBreakdown = {
+								costPrice,
+								displayPrice: unitPrice,
+							};
+							const totalBreakdown = {
+								costPrice: Number((costPrice * qty).toFixed(2)),
+								unitCostPrice: costPrice,
+								quantity: qty,
+								displayPrice: totalPrice,
+							};
+
+							return (
+								<tr
+									key={`shelf-inline-row-${entry.section.uid}-${entry.row.uid}-${index}`}
+									className="border-t align-top"
+								>
+									<td className="min-w-0 px-3 py-2">
+										<ShelfInlineProductCell
+											row={entry.row}
+											products={props.products}
+											categories={props.categories}
+											formatMoney={props.formatMoney}
+											onSelectProduct={(product) =>
+												void selectEntryProduct(entry, product)
+											}
+											onProductSearchChange={props.onProductSearchChange}
+											isSearchingProducts={props.isSearchingProducts}
+											isLoadingProduct={loadingProductRowUid === entry.row.uid}
+											productLoadError={
+												productErrorsByRowUid[entry.row.uid] || null
+											}
+										/>
+									</td>
+									<td className="px-3 py-2">
+										{canEditPricing ? (
+											<CostPriceBreakdownHover
+												breakdown={unitBreakdown}
+												context={props.priceBreakdown}
+											>
+												<Input
+													aria-label={`Shelf line ${index + 1} price`}
+													type="number"
+													step="0.01"
+													value={unitPrice}
+													onChange={(event) =>
+														patchEntry(
+															entry,
+															patchShelfRowPrice(
+																entry.row,
+																Number(event.target.value || 0),
+															),
+														)
+													}
+													className="h-8 text-right"
+												/>
+											</CostPriceBreakdownHover>
+										) : (
+											<p className="text-right text-xs font-semibold">
+												<CostPriceBreakdownHover
+													breakdown={unitBreakdown}
+													context={props.priceBreakdown}
+												>
+													<span>{props.formatMoney(unitPrice) || "$0.00"}</span>
+												</CostPriceBreakdownHover>
+											</p>
+										)}
+									</td>
+									<td className="px-3 py-2">
 										<Input
-											aria-label={`Shelf line ${index + 1} price`}
+											aria-label={`Shelf line ${index + 1} quantity`}
 											type="number"
-											step="0.01"
-											value={getShelfRowDisplayUnitPrice(entry.row)}
+											value={entry.row.qty || 0}
 											onChange={(event) =>
 												patchEntry(
 													entry,
-													patchShelfRowPrice(
+													patchShelfRowQty(
 														entry.row,
 														Number(event.target.value || 0),
 													),
@@ -508,51 +560,32 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 											}
 											className="h-8 text-right"
 										/>
-									) : (
-										<p className="text-right text-xs font-semibold">
-											{props.formatMoney(
-												getShelfRowDisplayUnitPrice(entry.row),
-											) || "$0.00"}
-										</p>
-									)}
-								</td>
-								<td className="px-3 py-2">
-									<Input
-										aria-label={`Shelf line ${index + 1} quantity`}
-										type="number"
-										value={entry.row.qty || 0}
-										onChange={(event) =>
-											patchEntry(
-												entry,
-												patchShelfRowQty(
-													entry.row,
-													Number(event.target.value || 0),
-												),
-											)
-										}
-										className="h-8 text-right"
-									/>
-								</td>
-								<td className="px-3 py-2 text-right text-xs font-bold">
-									{props.formatMoney(getShelfRowDisplayTotal(entry.row)) ||
-										"$0.00"}
-								</td>
-								<td className="px-3 py-2 text-right">
-									<ConfirmBtn
-										type="button"
-										size="icon"
-										variant="ghost"
-										trash
-										aria-label={`Delete shelf line ${index + 1}`}
-										onClick={() =>
-											props.onSectionsChange(
-												deleteSectionRow(props.sections, entry),
-											)
-										}
-									/>
-								</td>
-							</tr>
-						))}
+									</td>
+									<td className="px-3 py-2 text-right text-xs font-bold">
+										<CostPriceBreakdownHover
+											breakdown={totalBreakdown}
+											context={props.priceBreakdown}
+										>
+											<span>{props.formatMoney(totalPrice) || "$0.00"}</span>
+										</CostPriceBreakdownHover>
+									</td>
+									<td className="px-3 py-2 text-right">
+										<ConfirmBtn
+											type="button"
+											size="icon"
+											variant="ghost"
+											trash
+											aria-label={`Delete shelf line ${index + 1}`}
+											onClick={() =>
+												props.onSectionsChange(
+													deleteSectionRow(props.sections, entry),
+												)
+											}
+										/>
+									</td>
+								</tr>
+							);
+						})}
 					</tbody>
 				</table>
 			</div>

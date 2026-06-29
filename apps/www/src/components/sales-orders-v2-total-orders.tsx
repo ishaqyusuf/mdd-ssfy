@@ -10,7 +10,7 @@ export function SalesOrdersV2TotalOrders() {
     const trpc = useTRPC();
     const { filters } = useSalesOrdersV2FilterParams();
     const { data } = useSuspenseQuery(
-        trpc.sales.getOrdersV2Summary.queryOptions(filters),
+        trpc.sales.getOrdersSummary.queryOptions(filters),
     );
 
     return (

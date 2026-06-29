@@ -1,6 +1,7 @@
 "use client";
 
 import { useSalesInventoryConfiguratorPrompt } from "@/components/forms/sales-form/inventory-configurator-dialog";
+import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
@@ -27,7 +28,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useRef, useState } from "react";
 
-export type SalesOrder = RouterOutputs["sales"]["getOrdersV2"]["data"][number];
+export type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
 type Column = ColumnDef<SalesOrder>;
 
@@ -46,58 +47,6 @@ function paymentHint(item: SalesOrder) {
     if (item.amountDue > 0)
         return `Due ${formatCurrency.format(item.amountDue)}`;
     return "Paid";
-}
-
-function normalizeInboundStatus(status?: string | null) {
-    const value = String(status || "")
-        .trim()
-        .toUpperCase();
-
-    if (
-        value === "AVAILABLE" ||
-        value === "ORDERED" ||
-        value === "PENDING ORDER"
-    ) {
-        return value;
-    }
-
-    return null;
-}
-
-function getInboundToneClass(status?: string | null) {
-    switch (normalizeInboundStatus(status)) {
-        case "AVAILABLE":
-            return "border-emerald-200 bg-emerald-50 text-emerald-700";
-        case "ORDERED":
-            return "border-blue-200 bg-blue-50 text-blue-700";
-        case "PENDING ORDER":
-            return "border-amber-300 bg-amber-50 text-amber-800";
-        default:
-            return "border-slate-200 bg-slate-50 text-slate-600";
-    }
-}
-
-export function salesInboundRowClassName(status?: string | null) {
-    return normalizeInboundStatus(status) === "PENDING ORDER"
-        ? "bg-amber-50/60 hover:bg-amber-100/70"
-        : "";
-}
-
-function SalesInboundBadge({ item }: { item: SalesOrder }) {
-    const status = normalizeInboundStatus(item.inboundStatus);
-    if (!status) return <span className="text-muted-foreground">-</span>;
-
-    return (
-        <Badge
-            variant="outline"
-            className={cn(
-                "rounded-full text-[11px] font-semibold uppercase whitespace-nowrap",
-                getInboundToneClass(status),
-            )}
-        >
-            {status}
-        </Badge>
-    );
 }
 
 function DealerSaleBadge({ item }: { item: SalesOrder }) {
@@ -145,9 +94,9 @@ const orderIdColumn: Column = {
     id: "orderId",
     header: "Order #",
     accessorKey: "orderId",
-    size: 220,
-    minSize: 180,
-    maxSize: 320,
+    size: 180,
+    minSize: 150,
+    maxSize: 280,
     enableResizing: true,
     meta: {
         sticky: true,
@@ -155,7 +104,7 @@ const orderIdColumn: Column = {
         headerLabel: "Order #",
         sortField: "orderId",
         className:
-            "w-[220px] min-w-[180px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+            "w-[180px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
     },
     cell: ({ row }) => (
         <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
@@ -311,7 +260,9 @@ const inboundColumn: Column = {
         headerLabel: "Inbound",
         className: "w-[130px] min-w-[110px]",
     },
-    cell: ({ row }) => <SalesInboundBadge item={row.original} />,
+    cell: ({ row }) => (
+        <SalesInboundStatusBadge status={row.original.inboundStatus} />
+    ),
 };
 
 const invoiceTotalColumn: Column = {
@@ -438,14 +389,14 @@ const addressColumn: Column = {
     id: "address",
     header: "Address",
     accessorKey: "address",
-    size: 260,
-    minSize: 180,
-    maxSize: 420,
+    size: 220,
+    minSize: 150,
+    maxSize: 360,
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-40" },
         headerLabel: "Address",
-        className: "w-[260px] min-w-[180px]",
+        className: "w-[220px] min-w-[150px]",
     },
     cell: ({ row }) => (
         <TextWithTooltip
@@ -695,11 +646,11 @@ function ActionCell({ item }: { item: SalesOrder }) {
                         await Promise.all([
                             queryClient.invalidateQueries({
                                 queryKey:
-                                    trpc.sales.getOrdersV2.infiniteQueryKey(),
+                                    trpc.sales.getOrders.infiniteQueryKey(),
                             }),
                             queryClient.invalidateQueries({
                                 queryKey:
-                                    trpc.sales.getOrdersV2Summary.queryKey(),
+                                    trpc.sales.getOrdersSummary.queryKey(),
                             }),
                         ]);
                     }}

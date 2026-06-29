@@ -23,10 +23,10 @@ export function useTaskMonitorEffects() {
                         sq.invalidate.productionOverview(),
                         sq.invalidate.saleOverview(),
                         sq.qc.invalidateQueries({
-                            queryKey: trpc.sales.getOrdersV2.infiniteQueryKey(),
+                            queryKey: trpc.sales.getOrders.infiniteQueryKey(),
                         }),
                         sq.qc.invalidateQueries({
-                            queryKey: trpc.sales.getOrdersV2Summary.queryKey(),
+                            queryKey: trpc.sales.getOrdersSummary.queryKey(),
                         }),
                     ]);
                     return;

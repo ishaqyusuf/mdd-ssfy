@@ -1,6 +1,7 @@
 "use client";
 
 import { DataSkeleton } from "@/components/data-skeleton";
+import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
@@ -41,14 +42,32 @@ export function LegacySalesOverviewHeader({
 	const skeletonContext = {
 		loading: !data?.id,
 	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
+	const showInboundStatus = !!data?.id && data?.type !== "quote";
 
 	return (
 		<SheetHeader>
 			<DataSkeletonProvider value={skeletonContext}>
 				<SheetTitle>
 					<DataSkeleton pok="textLg">
-						<span>
-							{[data?.orderId, data?.displayName].filter(Boolean).join(" | ")}
+						<span className="flex flex-wrap items-center gap-2">
+							<span>
+								{[data?.orderId, data?.displayName]
+									.filter(Boolean)
+									.join(" | ")}
+							</span>
+							{showInboundStatus ? (
+								<span className="inline-flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+									<span className="text-[10px] font-semibold uppercase">
+										Inbound
+									</span>
+									<SalesInboundStatusBadge
+										status={data?.inboundStatus}
+										emptyFallback="No status"
+										className="h-5 px-2 text-[10px]"
+										emptyClassName="text-[11px] font-medium"
+									/>
+								</span>
+							) : null}
 						</span>
 					</DataSkeleton>
 				</SheetTitle>

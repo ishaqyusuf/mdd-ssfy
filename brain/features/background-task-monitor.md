@@ -11,6 +11,7 @@ Give users persistent visibility into long-running background jobs after a job i
 - `useTaskTrigger` registers Trigger.dev run ids into the monitor after `triggerTask` returns an id and public access token.
 - `TaskNotification` is mounted globally in the sidebar and clean-code layouts, rehydrates tasks after navigation or reload, and resumes monitoring with `useRealtimeRun`.
 - Completed tasks are removed automatically.
+- Watchers process realtime run status only while a task is still `SYNCING`; completed runs record the success-effect guard and terminal status in the same store update so stale realtime terminal statuses cannot trigger repeated React updates.
 - Failed tasks remain visible until dismissed.
 - Running tasks that do not report progress for six hours are marked failed with a stale-run message.
 - Tasks carry lightweight metadata only: task name, type, entity id, and entity label. Full payloads are not persisted.

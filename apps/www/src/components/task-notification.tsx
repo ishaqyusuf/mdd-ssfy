@@ -147,6 +147,8 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
     });
 
     useEffect(() => {
+        if (task.status !== "SYNCING") return;
+
         if (error) {
             updateTask(task.runId, {
                 status: "FAILED",
@@ -161,18 +163,31 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 
         if (run.status === "COMPLETED") {
             const completeTask = async () => {
-                if (!task.handledEffects?.success) {
-                    const handledEffects = {
-                        ...task.handledEffects,
-                        success: Date.now(),
-                    };
-                    updateTask(task.runId, { handledEffects });
+                const alreadyHandledSuccess = Boolean(
+                    task.handledEffects?.success,
+                );
+                const completedAt = Date.now();
+                const handledEffects = alreadyHandledSuccess
+                    ? task.handledEffects
+                    : {
+                          ...task.handledEffects,
+                          success: completedAt,
+                      };
 
+                updateTask(task.runId, {
+                    status: "COMPLETED",
+                    handledEffects,
+                    completedAt,
+                });
+
+                if (!alreadyHandledSuccess) {
                     try {
                         await runTaskEffect(
                             {
                                 ...task,
+                                status: "COMPLETED",
                                 handledEffects,
+                                completedAt,
                             },
                             "success",
                         );
@@ -184,10 +199,6 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
                     }
                 }
 
-                updateTask(task.runId, {
-                    status: "COMPLETED",
-                    completedAt: Date.now(),
-                });
                 window.setTimeout(() => removeTask(task.runId), 2500);
                 stop?.();
             };

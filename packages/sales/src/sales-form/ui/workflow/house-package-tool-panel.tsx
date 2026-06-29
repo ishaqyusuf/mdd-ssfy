@@ -25,8 +25,10 @@ import {
 import {
 	DoorPriceCell,
 	patchDoorRowCustomPrice,
+	type DoorPriceBreakdownContext,
 	updateDoorRowBasePrice,
 } from "./door-price-cell";
+import { CostPriceBreakdownHover } from "./cost-price-breakdown-hover";
 import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 import type {
 	DoorStoredRow,
@@ -59,6 +61,7 @@ export type HousePackageToolPanelProps = {
 	hasSwing: boolean;
 	sharedDoorSurcharge: number;
 	profileCoefficient: number;
+	priceBreakdown?: DoorPriceBreakdownContext | null;
 	canSwapDoor: boolean;
 	canEditPricing: boolean;
 	pricingLabels?: {
@@ -298,6 +301,17 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												profileCoefficient: props.profileCoefficient,
 											},
 										);
+										const lineBreakdown = {
+											costPrice: Number(
+												(
+													Number(row?.meta?.baseUnitPrice || 0) *
+													Number(row.totalQty || 0)
+												).toFixed(2),
+											),
+											unitCostPrice: row?.meta?.baseUnitPrice,
+											quantity: row.totalQty,
+											displayPrice: row.lineTotal,
+										};
 
 										return (
 											<tr
@@ -386,6 +400,13 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													<DoorPriceCell
 														row={row}
 														profileCoefficient={props.profileCoefficient}
+														priceBreakdown={{
+															...props.priceBreakdown,
+															displayUnitPrice: getHptDoorSalesUnitPrice(row, {
+																sharedDoorSurcharge: props.sharedDoorSurcharge,
+																profileCoefficient: props.profileCoefficient,
+															}),
+														}}
 														readOnly={!props.canEditPricing}
 														onSave={(nextBase) =>
 															props.onPatchRow(
@@ -408,7 +429,15 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 														Icon={null}
 														label={
 															<span className="cursor-pointer underline decoration-dotted underline-offset-2">
-																{props.formatMoney(row.lineTotal) || "$0.00"}
+																<CostPriceBreakdownHover
+																	breakdown={lineBreakdown}
+																	context={props.priceBreakdown}
+																>
+																	<span>
+																		{props.formatMoney(row.lineTotal) ||
+																			"$0.00"}
+																	</span>
+																</CostPriceBreakdownHover>
 															</span>
 														}
 													>
@@ -536,20 +565,23 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 															<div className="flex items-center justify-between gap-3">
 																<span>{pricingLabels.customPrice}</span>
 																{props.canEditPricing ? (
-																		<Input
-																			type="number"
-																			step="0.01"
-																			value={row.customPrice ?? ""}
-																			onChange={(event) => {
-																				const customPrice =
-																					event.target.value === ""
-																						? null
-																						: Number(event.target.value || 0);
-																				props.onPatchRow(
+																	<Input
+																		type="number"
+																		step="0.01"
+																		value={row.customPrice ?? ""}
+																		onChange={(event) => {
+																			const customPrice =
+																				event.target.value === ""
+																					? null
+																					: Number(event.target.value || 0);
+																			props.onPatchRow(
+																				row,
+																				patchDoorRowCustomPrice(
 																					row,
-																					patchDoorRowCustomPrice(row, customPrice),
-																				);
-																			}}
+																					customPrice,
+																				),
+																			);
+																		}}
 																		className={priceInputClassName}
 																	/>
 																) : (

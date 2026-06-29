@@ -31,10 +31,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option`, `ccc_percentage`, and display/backfill `ccc` remain available to evaluate printable/payable totals
   - order save payload composition defaults missing `form.paymentMethod` to `Credit Card` before summary calculation, so create/bootstrap mobile records persist payment metadata and C.C.C display values consistently with the visible default
 - Sales orders list C.C.C display contract:
-  - `sales.getOrdersV2` keeps `amountDue` and stored `grandTotal` principal/base-only
-  - order rows expose `baseInvoiceTotal`, `displayCcc`, and C.C.C-inclusive `invoiceTotal`
+  - `sales.getOrders` keeps `amountDue` and stored `grandTotal` principal/base-only
+  - order rows expose `baseInvoiceTotal`, `displayCcc`, C.C.C-inclusive `invoiceTotal`, principal `amountPaid`, and display-only `displayAmountPaid` / `displayAmountDue` for mobile card adapters
   - when the selected payment option applies C.C.C, the API repairs display C.C.C from `baseInvoiceTotal` and `ccc_percentage`; root `meta.ccc` is treated as a display cache and is ignored when stale or when a non-card method is selected
-  - legacy `sales.getOrders` / `sales.quotes` DTO rows keep `invoice.total`, `invoice.paid`, and `invoice.pending` principal/base-only while also exposing display-only `invoice.baseTotal`, `invoice.displayCcc`, `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for mobile cards and overview surfaces
+  - Expo order list cards adapt the flat `sales.getOrders` row into their stable nested mobile view model; quote lists still consume `sales.quotes`
+  - legacy `sales.index` / `sales.quotes` DTO rows keep `invoice.total`, `invoice.paid`, and `invoice.pending` principal/base-only while also exposing display-only `invoice.baseTotal`, `invoice.displayCcc`, `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for legacy/mobile quote card and overview surfaces
 - Sales print C.C.C footer contract:
   - `print.salesV2` footer/meta payloads keep stored `SalesOrders.grandTotal` and `amountDue` as principal-only values
   - unpaid card-selected records split principal due from the payable card total: `Order Due Amount`, estimated `C.C.C`, and `Total Due With C.C.C`

@@ -42,6 +42,9 @@
 - The route-level quotes table intentionally does not render a P.O column. P.O remains searchable/filterable through the existing quote filter params, but it is not part of the default table surface.
 - The remaining legacy quote table used by the unmigrated sales-rep quote embed also no longer renders a P.O table column or mobile PO badge while that surface awaits its `tables-2` migration.
 - Quote table sorting is limited to existing query-safe fields (`orderId`, `createdAt`, and `grandTotal`) so stale URLs such as `sort=displayName.asc` cannot send derived UI fields to the existing `sales.quotes` query.
+- Row density now matches the canonical orders table with 40px virtual rows.
+- The sticky `Quote #` column defaults to the same compact 180px width and 150px minimum as orders, so the table exposes more downstream columns without changing row actions or sort behavior.
+- The `Address` column defaults to a compact 220px width with a 150px minimum while preserving truncation and tooltip access to full addresses.
 
 ## Validation
 - 2026-06-16:

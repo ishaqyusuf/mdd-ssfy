@@ -9,7 +9,7 @@ import {
     useTaskMonitorStore,
 } from "@/store/task-monitor";
 import { useAuth } from "./use-auth";
-import { TaskName } from "@jobs/schema";
+import type { TaskName } from "@jobs/schema";
 import { useAfterState } from "@gnd/ui/hooks/use-after-state";
 interface Props {
     successToast?: string;
@@ -27,7 +27,7 @@ interface Props {
 
 type TriggerTaskInput = {
     taskName: TaskName;
-    payload?: any;
+    payload?: unknown;
 };
 
 type TriggerTaskOptions = {
@@ -44,7 +44,15 @@ export function useTaskTrigger(props?: Props) {
         successToast = "Success!",
         errorToast = "Something went wrong please try again.",
         executingToast,
+        taskTitle,
+        taskDescription,
+        onError,
+        onSuccess,
+        onStarted,
+        silent,
+        monitor,
     } = props || {};
+    const shouldShowSuccessToast = !silent && !monitor;
     const [runId, setRunId] = useState<string | undefined>();
     const [accessToken, setAccessToken] = useState<string | undefined>();
     const [status, setStatus] = useState<
@@ -67,9 +75,9 @@ export function useTaskTrigger(props?: Props) {
             //         variant: "error",
             //         title: errorToast,
             //     });
-            props?.onError?.();
+            onError?.();
         }
-    }, [status]);
+    }, [onError, status]);
     useEffect(() => {
         if (error || run?.status === "FAILED") {
             setStatus("FAILED");
@@ -77,9 +85,9 @@ export function useTaskTrigger(props?: Props) {
 
         if (run?.status === "COMPLETED") {
             setStatus("COMPLETED");
-            props?.onSuccess?.();
+            onSuccess?.();
         }
-    }, [error, run]);
+    }, [error, onSuccess, run]);
     useEffect(() => {
         if (status === "COMPLETED") {
             setRunId(undefined);
@@ -99,13 +107,15 @@ export function useTaskTrigger(props?: Props) {
             //     queryKey: trpc.metrics.pathKey(),
             // });
 
-            toast({
-                duration: 3500,
-                variant: "success",
-                title: successToast,
-            });
+            if (shouldShowSuccessToast) {
+                toast({
+                    duration: 3500,
+                    variant: "success",
+                    title: successToast,
+                });
+            }
         }
-    }, [status]);
+    }, [shouldShowSuccessToast, status, successToast]);
     const _action = useAction(triggerTask, {
         onExecute() {
             setStatus("SYNCING");
@@ -124,7 +134,7 @@ export function useTaskTrigger(props?: Props) {
                 setRunId(undefined);
                 setAccessToken(undefined);
                 setStatus("FAILED");
-                if (!props.silent)
+                if (!silent)
                     toast({
                         duration: 3500,
                         variant: "error",
@@ -135,7 +145,7 @@ export function useTaskTrigger(props?: Props) {
             }
             setRunId(data.id);
             setAccessToken(data.publicAccessToken);
-            if (props?.monitor ?? !props?.silent) {
+            if (monitor ?? !silent) {
                 const taskDefaults = getTaskMonitorTaskDefaults(
                     pending?.input.taskName,
                     pending?.input.payload,
@@ -146,25 +156,25 @@ export function useTaskTrigger(props?: Props) {
                     accessToken: data.publicAccessToken,
                     ownerId: auth.id == null ? null : String(auth.id),
                     title:
-                        props.taskTitle ||
+                        taskTitle ||
                         executingToast ||
                         taskDefaults.title ||
                         successToast,
                     description:
-                        props.taskDescription ||
+                        taskDescription ||
                         taskDefaults.description ||
                         executingToast,
                     metadata: taskDefaults.metadata,
                     intent: pending?.options?.intent,
                 });
             }
-            props?.onStarted?.();
+            onStarted?.();
         },
         onError(e) {
             pendingTriggersRef.current.shift();
             setRunId(undefined);
-            props?.onError?.();
-            if (!props.silent)
+            onError?.();
+            if (!silent)
                 toast({
                     duration: 3500,
                     variant: "error",
@@ -179,7 +189,7 @@ export function useTaskTrigger(props?: Props) {
     };
     const ctx = {
         trigger,
-        triggerWithAuth(taskName: TaskName, payload) {
+        triggerWithAuth(taskName: TaskName, payload: Record<string, unknown>) {
             return trigger({
                 taskName,
                 payload: {
@@ -195,7 +205,7 @@ export function useTaskTrigger(props?: Props) {
         runId,
         accessToken,
         status,
-        isLoading: status == "SYNCING",
+        isLoading: status === "SYNCING",
     };
     return ctx;
 }

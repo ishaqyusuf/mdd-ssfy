@@ -5,6 +5,10 @@ import type { ReactNode } from "react";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import {
+	CostPriceBreakdownHover,
+	type CostPriceBreakdownContext,
+} from "./cost-price-breakdown-hover";
 
 export type MouldingLineItemEditorRow = {
 	uid?: string | null;
@@ -14,6 +18,8 @@ export type MouldingLineItemEditorRow = {
 	addon?: number | null;
 	customPrice?: number | string | null;
 	estimateUnit?: number | null;
+	basePrice?: number | null;
+	salesPrice?: number | null;
 	lineTotal?: number | null;
 	[key: string]: unknown;
 };
@@ -33,6 +39,7 @@ export type MouldingLineItemsEditorProps<
 		onCalculate: (qty: number) => void;
 	}) => ReactNode;
 	canEditPricing?: boolean;
+	priceBreakdown?: CostPriceBreakdownContext | null;
 	onRowsChange: (rows: TRow[]) => void;
 	onRemoveRow: (uid: string) => void;
 };
@@ -80,6 +87,17 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 				<tbody>
 					{props.rows.map((row, index) => {
 						const rowImageSrc = props.resolveImageSrc(row.img || null);
+						const unitBreakdown = {
+							costPrice: row.basePrice,
+							displayPrice: row.estimateUnit,
+						};
+						const qty = Number(row.qty || 0);
+						const lineBreakdown = {
+							costPrice: Number((Number(row.basePrice || 0) * qty).toFixed(2)),
+							unitCostPrice: row.basePrice,
+							quantity: qty,
+							displayPrice: row.lineTotal,
+						};
 
 						return (
 							<tr key={`moulding-row-${row.uid}-${index}`} className="border-t">
@@ -125,7 +143,14 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 									</div>
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">
-									{props.formatMoney(row.estimateUnit) || "$0.00"}
+									<CostPriceBreakdownHover
+										breakdown={unitBreakdown}
+										context={props.priceBreakdown}
+									>
+										<span>
+											{props.formatMoney(row.estimateUnit) || "$0.00"}
+										</span>
+									</CostPriceBreakdownHover>
 								</td>
 								<td className="px-3 py-2">
 									{canEditPricing ? (
@@ -175,7 +200,12 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 									)}
 								</td>
 								<td className="px-3 py-2 text-right text-xs font-bold">
-									{props.formatMoney(row.lineTotal) || "$0.00"}
+									<CostPriceBreakdownHover
+										breakdown={lineBreakdown}
+										context={props.priceBreakdown}
+									>
+										<span>{props.formatMoney(row.lineTotal) || "$0.00"}</span>
+									</CostPriceBreakdownHover>
 								</td>
 								<td className="px-3 py-2 text-right">
 									<Button

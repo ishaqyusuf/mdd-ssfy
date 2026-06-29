@@ -56,7 +56,6 @@ import type { GetJobsSchema } from "./jobs";
 import type { GetContractorPayoutsSchema } from "./jobs";
 import type { GetEmployeesSchema } from "@api/schemas/hrm";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
-import type { GetOrdersV2Schema } from "./sales-orders-v2";
 
 export async function notificationChannelFilters(ctx: TRPCContext) {
   type T = keyof GetNotificationChannelsSchema;
@@ -788,15 +787,6 @@ export async function getSalesOrderFilters(
     ),
   ].filter(Boolean);
   return resp as FilterData[];
-}
-export async function getSalesOrderFiltersV2(
-  ctx: TRPCContext,
-  isSalesManager?,
-) {
-  type T = keyof GetOrdersV2Schema;
-  type FilterData = PageFilterData<T>;
-
-  return getSalesOrderFilters(ctx, isSalesManager) as Promise<FilterData[]>;
 }
 export async function getResolutionFilters(ctx: TRPCContext) {
   const baseFilters = await getSalesOrderFilters(ctx);

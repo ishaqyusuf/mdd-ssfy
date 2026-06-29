@@ -204,7 +204,10 @@ function getVerifiedSocialEmail(input: {
 	return normalizeEmail(input.email);
 }
 
-export function getActiveDealerAuthUserWhere(email: string, authUserId?: string) {
+export function getActiveDealerAuthUserWhere(
+	email: string,
+	authUserId?: string,
+) {
 	return {
 		email: normalizeEmail(email),
 		authUserId: authUserId || {
@@ -216,6 +219,13 @@ export function getActiveDealerAuthUserWhere(email: string, authUserId?: string)
 			in: ["active", "approved"],
 		},
 	};
+}
+
+export function isDealerDevQuickLoginEnabled() {
+	return (
+		process.env.NODE_ENV !== "production" &&
+		process.env.VERCEL_ENV !== "production"
+	);
 }
 
 export function getActiveDealerSocialAuthWhere(email: string) {
@@ -374,6 +384,91 @@ function dealerMasterPasswordPlugin(): BetterAuthPlugin {
 					});
 				},
 			),
+			dealerDevQuickSignIn: createAuthEndpoint(
+				"/dealer-dev-quick-sign-in",
+				{
+					method: "POST",
+					body: z.object({
+						callbackURL: z.string().optional(),
+						dealerAuthId: z.number().int().positive(),
+					}),
+				},
+				async (ctx) => {
+					if (!isDealerDevQuickLoginEnabled()) {
+						throw new APIError("NOT_FOUND", {
+							message: "Not found.",
+						});
+					}
+
+					const dealer = await db.dealerAuth.findFirst({
+						where: {
+							id: ctx.body.dealerAuthId,
+							authUserId: {
+								not: null,
+							},
+							deletedAt: null,
+							OR: [{ restricted: false }, { restricted: null }],
+							status: {
+								in: ["active", "approved"],
+							},
+						},
+						select: {
+							authUserId: true,
+							companyName: true,
+							email: true,
+							name: true,
+						},
+					});
+					if (!dealer?.authUserId) {
+						throw new APIError("UNAUTHORIZED", {
+							message: "Dealer quick login is unavailable.",
+						});
+					}
+
+					const user = await ctx.context.internalAdapter.findUserByEmail(
+						dealer.email,
+					);
+					if (!user?.user || user.user.id !== dealer.authUserId) {
+						throw new APIError("UNAUTHORIZED", {
+							message: "Dealer quick login is unavailable.",
+						});
+					}
+
+					const session = await ctx.context.internalAdapter.createSession(
+						user.user.id,
+					);
+					if (!session) {
+						throw new APIError("UNAUTHORIZED", {
+							message: "Failed to create session.",
+						});
+					}
+
+					await setSessionCookie(ctx, {
+						session,
+						user: user.user,
+					});
+
+					console.info("[auth] dealer dev quick login", {
+						accountEmail: dealer.email,
+						accountName: dealer.companyName || dealer.name || null,
+						appSurface: "dealership",
+						event: "dealer_dev_quick_login",
+						sessionId: session.id,
+						userId: session.userId,
+					});
+
+					if (ctx.body.callbackURL) {
+						ctx.setHeader("Location", ctx.body.callbackURL);
+					}
+
+					return ctx.json({
+						redirect: !!ctx.body.callbackURL,
+						token: session.token,
+						url: ctx.body.callbackURL,
+						user: parseUserOutput(ctx.context.options, user.user),
+					});
+				},
+			),
 		},
 	};
 }
@@ -493,7 +588,8 @@ export const dealerAuth = betterAuth({
 							email: dealer.email,
 							emailVerified: true,
 							image: typeof user.image === "string" ? user.image : null,
-							name: dealer.companyName || dealer.name || user.name || dealer.email,
+							name:
+								dealer.companyName || dealer.name || user.name || dealer.email,
 						},
 					};
 				},

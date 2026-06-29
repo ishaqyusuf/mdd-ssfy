@@ -30,6 +30,10 @@ import type {
 } from "../../contracts";
 import { createSalesFormWorkflowCapabilities } from "../../contracts";
 import {
+	CostPriceBreakdownHover,
+	type CostPriceBreakdownContext,
+} from "./cost-price-breakdown-hover";
+import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
 	deriveDoorSizeCandidates,
@@ -263,10 +267,8 @@ export function SalesFormWorkflowPanel<
 			const details = await dataSource.getShelfProductDetails({
 				ids: [productId],
 			});
-			return (
-				(details.find((entry) => Number(entry?.id || 0) === productId) ||
-					null) as ShelfProductOption | null
-			);
+			return (details.find((entry) => Number(entry?.id || 0) === productId) ||
+				null) as ShelfProductOption | null;
 		},
 		[dataSource],
 	);
@@ -338,13 +340,37 @@ export function SalesFormWorkflowPanel<
 			: activeProfileCoefficient;
 	const dealerDoorPriceBreakdown = {
 		enabled:
+			process.env.NODE_ENV !== "production" &&
 			workflowCapabilities.isDealershipMode &&
 			(props.pricing?.showDealerPriceBreakdown ?? true),
 		internalProfileCoefficient: activeProfileCoefficient,
 		dealerSalesPercentage: activeDealerSalesPercentage,
+		internalProfileLabel: props.pricing?.internalProfileLabel,
+		dealerProfileLabel: props.pricing?.dealerProfileLabel,
 		labels: props.pricing?.labels,
 	};
 	const pricingLabels = props.pricing?.labels;
+	const renderCostPriceBreakdown = (
+		label: string,
+		input: {
+			costPrice?: unknown;
+			dealerProfileSalesPrice?: unknown;
+			customerSalesPrice?: unknown;
+			displayPrice?: unknown;
+		},
+	) => (
+		<CostPriceBreakdownHover
+			breakdown={{
+				displayPrice: input.displayPrice,
+				costPrice: input.costPrice,
+				dealerProfileSalesPrice: input.dealerProfileSalesPrice,
+				customerSalesPrice: input.customerSalesPrice,
+			}}
+			context={dealerDoorPriceBreakdown}
+		>
+			<span>{label}</span>
+		</CostPriceBreakdownHover>
+	);
 	const rootStepId = routeData?.rootStepUid
 		? routeData?.stepsByUid?.[routeData.rootStepUid]?.id
 		: null;
@@ -800,6 +826,7 @@ export function SalesFormWorkflowPanel<
 				hasSwing={hasSwing}
 				sharedDoorSurcharge={sharedDoorSurcharge}
 				profileCoefficient={activeDisplayProfileCoefficient}
+				priceBreakdown={dealerDoorPriceBreakdown}
 				canSwapDoor={Boolean(swapDoorCandidates.length)}
 				canEditPricing={workflowCapabilities.canEditLinePricing}
 				pricingLabels={pricingLabels}
@@ -971,6 +998,13 @@ export function SalesFormWorkflowPanel<
 									alt={component.title || component.uid || "Component"}
 									title={componentLabel(component.title || component.uid)}
 									price={moneyIfPositive(component.salesPrice)}
+									priceSlot={renderCostPriceBreakdown(
+										moneyIfPositive(component.salesPrice) || "$0.00",
+										{
+											costPrice: component.basePrice,
+											displayPrice: component.salesPrice,
+										},
+									)}
 								/>
 							</button>
 						)}
@@ -1103,6 +1137,15 @@ export function SalesFormWorkflowPanel<
 				}
 				redirectOptions={componentRedirectOptions}
 				formatPrice={(value) => moneyIfPositive(Number(value || 0)) || ""}
+				priceSlot={(component) =>
+					renderCostPriceBreakdown(
+						moneyIfPositive(Number(component.salesPrice || 0)) || "$0.00",
+						{
+							costPrice: component.basePrice,
+							displayPrice: component.salesPrice,
+						},
+					)
+				}
 				componentLabel={componentLabel}
 				resolveImageSrc={(src) =>
 					dataSource.resolveImageSrc?.(src) || src || null
@@ -1271,6 +1314,7 @@ export function SalesFormWorkflowPanel<
 							totalQty={mouldingContext.totalQty}
 							totalAmount={mouldingContext.totalAmount}
 							canEditPricing={workflowCapabilities.canEditLinePricing}
+							priceBreakdown={dealerDoorPriceBreakdown}
 							formatMoney={(value) => moneyIfPositive(value) || null}
 							componentLabel={componentLabel}
 							resolveImageSrc={(src) =>
@@ -1407,6 +1451,7 @@ export function SalesFormWorkflowPanel<
 									productsByCategory={shelfProductsByCategory}
 									profileCoefficient={activeDisplayProfileCoefficient}
 									canEditPricing={workflowCapabilities.canEditLinePricing}
+									priceBreakdown={dealerDoorPriceBreakdown}
 									onSectionsChange={updateShelfSections}
 								/>
 							</div>
@@ -1417,6 +1462,7 @@ export function SalesFormWorkflowPanel<
 								products={shelfProducts}
 								profileCoefficient={activeDisplayProfileCoefficient}
 								canEditPricing={workflowCapabilities.canEditLinePricing}
+								priceBreakdown={dealerDoorPriceBreakdown}
 								formatMoney={(value) => moneyIfPositive(value) || null}
 								headerSlot={versionToggle}
 								onProductSearchChange={setShelfProductSearch}
@@ -1774,9 +1820,7 @@ function priceComponent(
 		profileCoefficient,
 	);
 	const dealerMultiplier =
-		pricingView === "dealer"
-			? 1 + Number(dealerSalesPercentage || 0) / 100
-			: 1;
+		pricingView === "dealer" ? 1 + Number(dealerSalesPercentage || 0) / 100 : 1;
 	return {
 		...component,
 		...(override || {}),
@@ -1893,6 +1937,7 @@ function DefaultShelfPanel(props: {
 	productsByCategory: Map<number, ShelfProductOption[]>;
 	profileCoefficient: number;
 	canEditPricing: boolean;
+	priceBreakdown?: CostPriceBreakdownContext | null;
 	onSectionsChange: (sections: ShelfSectionDraft[]) => void;
 }) {
 	const [pendingShelfClear, setPendingShelfClear] = useState<{
@@ -2150,276 +2195,313 @@ function DefaultShelfPanel(props: {
 								<span className="md:col-span-1" />
 							</div>
 							{(section?.rows || []).map(
-								(row: ShelfRowDraft, rowIndex: number) => (
-									<div
-										key={`shelf-row-${section.uid || sectionIndex}-${row.uid || rowIndex}`}
-										className="grid gap-2 rounded-lg border border-white/80 bg-white p-2 md:grid-cols-12"
-									>
-										<div className="md:col-span-5">
-											<ShelfProductCombobox
-												products={productOptions}
-												value={row.productId}
-												disabled={!categoryIds.length}
-												formatMoney={(value) =>
-													moneyIfPositive(Number(value || 0)) || ""
-												}
-												onClearRequest={() =>
-													patchSection(sectionIndex, (current) => ({
-														...current,
-														rows: (current?.rows || []).map(
-															(item: ShelfRowDraft, i: number) =>
-																i === rowIndex
-																	? {
-																			...item,
-																			productId: null,
-																			description: "",
-																			basePrice: 0,
-																			salesPrice: 0,
-																			customPrice: null,
-																			unitPrice: 0,
-																			totalPrice: 0,
-																			meta: {
-																				...(item?.meta || {}),
+								(row: ShelfRowDraft, rowIndex: number) => {
+									const unitPrice = getShelfRowDisplayUnitPrice(row);
+									const totalPrice = getShelfRowDisplayTotal(row);
+									const costPrice = getShelfRowBasePrice(row);
+									const qty = Number(row.qty || 0);
+									const priceBreakdown = {
+										costPrice,
+										displayPrice: unitPrice,
+									};
+									const totalBreakdown = {
+										costPrice: Number((costPrice * qty).toFixed(2)),
+										unitCostPrice: costPrice,
+										quantity: qty,
+										displayPrice: totalPrice,
+									};
+
+									return (
+										<div
+											key={`shelf-row-${section.uid || sectionIndex}-${row.uid || rowIndex}`}
+											className="grid gap-2 rounded-lg border border-white/80 bg-white p-2 md:grid-cols-12"
+										>
+											<div className="md:col-span-5">
+												<ShelfProductCombobox
+													products={productOptions}
+													value={row.productId}
+													disabled={!categoryIds.length}
+													formatMoney={(value) =>
+														moneyIfPositive(Number(value || 0)) || ""
+													}
+													onClearRequest={() =>
+														patchSection(sectionIndex, (current) => ({
+															...current,
+															rows: (current?.rows || []).map(
+																(item: ShelfRowDraft, i: number) =>
+																	i === rowIndex
+																		? {
+																				...item,
+																				productId: null,
+																				description: "",
 																				basePrice: 0,
 																				salesPrice: 0,
 																				customPrice: null,
-																			},
-																		}
-																	: item,
-														),
-													}))
-												}
-												onChange={(productId) => {
-													const selectedProduct =
-														productsById.get(Number(productId || 0)) || null;
-													const basePrice = Number(
-														selectedProduct?.unitPrice || 0,
-													);
-													const salesPrice = profileAdjustedDoorSalesPrice(
-														null,
-														basePrice,
-														props.profileCoefficient,
-													);
-													patchSection(sectionIndex, (current) => ({
-														...current,
-														rows: (current?.rows || []).map(
-															(item: ShelfRowDraft, i: number) =>
-																i === rowIndex
-																	? {
-																			...item,
-																			categoryId: current?.categoryId ?? null,
-																			productId,
-																			description:
-																				selectedProduct?.title ??
-																				item.description,
-																			basePrice,
-																			salesPrice,
-																			unitPrice: salesPrice,
-																			totalPrice: Number(
-																				(
-																					Number(item?.qty ?? 1) * salesPrice
-																				).toFixed(2),
-																			),
-																			meta: {
-																				...(item?.meta || {}),
-																				categoryIds: current?.categoryIds || [],
-																				shelfParentCategoryId:
-																					current?.parentCategoryId ?? null,
+																				unitPrice: 0,
+																				totalPrice: 0,
+																				meta: {
+																					...(item?.meta || {}),
+																					basePrice: 0,
+																					salesPrice: 0,
+																					customPrice: null,
+																				},
+																			}
+																		: item,
+															),
+														}))
+													}
+													onChange={(productId) => {
+														const selectedProduct =
+															productsById.get(Number(productId || 0)) || null;
+														const basePrice = Number(
+															selectedProduct?.unitPrice || 0,
+														);
+														const salesPrice = profileAdjustedDoorSalesPrice(
+															null,
+															basePrice,
+															props.profileCoefficient,
+														);
+														patchSection(sectionIndex, (current) => ({
+															...current,
+															rows: (current?.rows || []).map(
+																(item: ShelfRowDraft, i: number) =>
+																	i === rowIndex
+																		? {
+																				...item,
+																				categoryId: current?.categoryId ?? null,
+																				productId,
+																				description:
+																					selectedProduct?.title ??
+																					item.description,
 																				basePrice,
 																				salesPrice,
-																				customPrice: null,
 																				unitPrice: salesPrice,
-																			},
-																		}
-																	: item,
-														),
-													}));
-												}}
-											/>
-										</div>
-										<div className="md:col-span-2">
-											{props.canEditPricing ? (
-												<Menu
-													noSize
-													Icon={null}
-													label={
-														<Button
-															type="button"
-															variant="outline"
-															className="h-10 w-full justify-end text-xs font-semibold"
-														>
-															{moneyIfPositive(
-																getShelfRowDisplayUnitPrice(row),
-															) || "$0.00"}
-														</Button>
-													}
-												>
-													<div className="min-w-[260px] space-y-3 p-2">
-														<div className="space-y-1">
-															<p className="text-xs font-bold uppercase text-muted-foreground">
-																Edit Shelf Price
-															</p>
-															<p className="text-xs text-muted-foreground">
-																Base price recalculates sales price. Custom
-																price overrides the final line price.
-															</p>
-														</div>
-														<div className="space-y-2">
-															<Label className="text-xs">Base Price</Label>
-															<Input
-																type="number"
-																step="0.01"
-																value={getShelfRowBasePrice(row)}
-																onChange={(event) =>
-																	patchSection(sectionIndex, (current) => ({
-																		...current,
-																		rows: (current?.rows || []).map(
-																			(item: ShelfRowDraft, i: number) => {
-																				if (i !== rowIndex) return item;
-																				const nextBase = Number(
-																					event.target.value || 0,
-																				);
-																				const nextSales =
-																					profileAdjustedDoorSalesPrice(
-																						null,
-																						nextBase,
-																						props.profileCoefficient,
+																				totalPrice: Number(
+																					(
+																						Number(item?.qty ?? 1) * salesPrice
+																					).toFixed(2),
+																				),
+																				meta: {
+																					...(item?.meta || {}),
+																					categoryIds:
+																						current?.categoryIds || [],
+																					shelfParentCategoryId:
+																						current?.parentCategoryId ?? null,
+																					basePrice,
+																					salesPrice,
+																					customPrice: null,
+																					unitPrice: salesPrice,
+																				},
+																			}
+																		: item,
+															),
+														}));
+													}}
+												/>
+											</div>
+											<div className="md:col-span-2">
+												{props.canEditPricing ? (
+													<Menu
+														noSize
+														Icon={null}
+														label={
+															<Button
+																type="button"
+																variant="outline"
+																className="h-10 w-full justify-end text-xs font-semibold"
+															>
+																<CostPriceBreakdownHover
+																	breakdown={priceBreakdown}
+																	context={props.priceBreakdown}
+																>
+																	<span>
+																		{moneyIfPositive(unitPrice) || "$0.00"}
+																	</span>
+																</CostPriceBreakdownHover>
+															</Button>
+														}
+													>
+														<div className="min-w-[260px] space-y-3 p-2">
+															<div className="space-y-1">
+																<p className="text-xs font-bold uppercase text-muted-foreground">
+																	Edit Shelf Price
+																</p>
+																<p className="text-xs text-muted-foreground">
+																	Base price recalculates sales price. Custom
+																	price overrides the final line price.
+																</p>
+															</div>
+															<div className="space-y-2">
+																<Label className="text-xs">Base Price</Label>
+																<Input
+																	type="number"
+																	step="0.01"
+																	value={getShelfRowBasePrice(row)}
+																	onChange={(event) =>
+																		patchSection(sectionIndex, (current) => ({
+																			...current,
+																			rows: (current?.rows || []).map(
+																				(item: ShelfRowDraft, i: number) => {
+																					if (i !== rowIndex) return item;
+																					const nextBase = Number(
+																						event.target.value || 0,
 																					);
-																				const customPrice =
-																					item?.customPrice ??
-																					item?.meta?.customPrice ??
-																					null;
-																				const unitPrice =
-																					customPrice != null
-																						? Number(customPrice)
-																						: nextSales;
-																				return {
-																					...item,
-																					basePrice: nextBase,
-																					salesPrice: nextSales,
-																					unitPrice,
-																					totalPrice: Number(
-																						(
-																							Number(item?.qty ?? 1) * unitPrice
-																						).toFixed(2),
-																					),
-																					meta: {
-																						...(item?.meta || {}),
+																					const nextSales =
+																						profileAdjustedDoorSalesPrice(
+																							null,
+																							nextBase,
+																							props.profileCoefficient,
+																						);
+																					const customPrice =
+																						item?.customPrice ??
+																						item?.meta?.customPrice ??
+																						null;
+																					const unitPrice =
+																						customPrice != null
+																							? Number(customPrice)
+																							: nextSales;
+																					return {
+																						...item,
 																						basePrice: nextBase,
 																						salesPrice: nextSales,
 																						unitPrice,
-																					},
-																				};
-																			},
-																		),
-																	}))
-																}
-															/>
-														</div>
-														<div className="flex justify-between text-xs">
-															<span className="text-muted-foreground">
-																Calculated Sales
-															</span>
-															<span className="font-semibold">
-																{moneyIfPositive(getShelfRowSalesPrice(row)) ||
-																	"$0.00"}
-															</span>
-														</div>
-														<div className="space-y-2">
-															<Label className="text-xs">Custom Price</Label>
-															<Input
-																type="number"
-																step="0.01"
-																value={row?.meta?.customPrice ?? ""}
-																onChange={(event) =>
-																	patchSection(sectionIndex, (current) => ({
-																		...current,
-																		rows: (current?.rows || []).map(
-																			(item: ShelfRowDraft, i: number) =>
-																				i === rowIndex
-																					? {
-																							...item,
-																							customPrice:
-																								event.target.value === ""
-																									? null
-																									: Number(
-																											event.target.value || 0,
-																										),
-																							unitPrice:
-																								event.target.value === ""
-																									? Number(
-																											item?.salesPrice ??
-																												item?.meta
-																													?.salesPrice ??
-																												item?.unitPrice ??
-																												0,
-																										)
-																									: Number(
-																											event.target.value || 0,
-																										),
-																							meta: {
-																								...(item?.meta || {}),
+																						totalPrice: Number(
+																							(
+																								Number(item?.qty ?? 1) *
+																								unitPrice
+																							).toFixed(2),
+																						),
+																						meta: {
+																							...(item?.meta || {}),
+																							basePrice: nextBase,
+																							salesPrice: nextSales,
+																							unitPrice,
+																						},
+																					};
+																				},
+																			),
+																		}))
+																	}
+																/>
+															</div>
+															<div className="flex justify-between text-xs">
+																<span className="text-muted-foreground">
+																	Calculated Sales
+																</span>
+																<span className="font-semibold">
+																	{moneyIfPositive(
+																		getShelfRowSalesPrice(row),
+																	) || "$0.00"}
+																</span>
+															</div>
+															<div className="space-y-2">
+																<Label className="text-xs">Custom Price</Label>
+																<Input
+																	type="number"
+																	step="0.01"
+																	value={row?.meta?.customPrice ?? ""}
+																	onChange={(event) =>
+																		patchSection(sectionIndex, (current) => ({
+																			...current,
+																			rows: (current?.rows || []).map(
+																				(item: ShelfRowDraft, i: number) =>
+																					i === rowIndex
+																						? {
+																								...item,
 																								customPrice:
 																									event.target.value === ""
 																										? null
 																										: Number(
 																												event.target.value || 0,
 																											),
-																							},
-																						}
-																					: item,
-																		),
-																	}))
-																}
-															/>
-														</div>
-													</div>
-												</Menu>
-											) : (
-												<div className="flex h-10 items-center justify-end rounded-md border bg-muted/20 px-3 text-xs font-semibold">
-													{moneyIfPositive(getShelfRowDisplayUnitPrice(row)) ||
-														"$0.00"}
-												</div>
-											)}
-										</div>
-										<Input
-											className="text-right md:col-span-1"
-											type="number"
-											value={row.qty || 0}
-											onChange={(event) =>
-												patchSection(sectionIndex, (current) => ({
-													...current,
-													rows: (current?.rows || []).map(
-														(item: ShelfRowDraft, i: number) =>
-															i === rowIndex
-																? {
-																		...item,
-																		qty: Number(event.target.value || 0),
+																								unitPrice:
+																									event.target.value === ""
+																										? Number(
+																												item?.salesPrice ??
+																													item?.meta
+																														?.salesPrice ??
+																													item?.unitPrice ??
+																													0,
+																											)
+																										: Number(
+																												event.target.value || 0,
+																											),
+																								meta: {
+																									...(item?.meta || {}),
+																									customPrice:
+																										event.target.value === ""
+																											? null
+																											: Number(
+																													event.target.value ||
+																														0,
+																												),
+																								},
+																							}
+																						: item,
+																			),
+																		}))
 																	}
-																: item,
-													),
-												}))
-											}
-										/>
-										<div className="flex h-10 items-center justify-end rounded-md border bg-muted/20 px-3 text-xs font-semibold md:col-span-2">
-											{moneyIfPositive(getShelfRowDisplayTotal(row)) || "$0.00"}
+																/>
+															</div>
+														</div>
+													</Menu>
+												) : (
+													<div className="flex h-10 items-center justify-end rounded-md border bg-muted/20 px-3 text-xs font-semibold">
+														<CostPriceBreakdownHover
+															breakdown={priceBreakdown}
+															context={props.priceBreakdown}
+														>
+															<span>
+																{moneyIfPositive(unitPrice) || "$0.00"}
+															</span>
+														</CostPriceBreakdownHover>
+													</div>
+												)}
+											</div>
+											<Input
+												className="text-right md:col-span-1"
+												type="number"
+												value={row.qty || 0}
+												onChange={(event) =>
+													patchSection(sectionIndex, (current) => ({
+														...current,
+														rows: (current?.rows || []).map(
+															(item: ShelfRowDraft, i: number) =>
+																i === rowIndex
+																	? {
+																			...item,
+																			qty: Number(event.target.value || 0),
+																		}
+																	: item,
+														),
+													}))
+												}
+											/>
+											<div className="flex h-10 items-center justify-end rounded-md border bg-muted/20 px-3 text-xs font-semibold md:col-span-2">
+												<CostPriceBreakdownHover
+													breakdown={totalBreakdown}
+													context={props.priceBreakdown}
+												>
+													<span>{moneyIfPositive(totalPrice) || "$0.00"}</span>
+												</CostPriceBreakdownHover>
+											</div>
+											<Button
+												className="md:col-span-2"
+												variant="destructive"
+												onClick={() =>
+													patchSection(sectionIndex, (current) => ({
+														...current,
+														rows: (current?.rows || []).filter(
+															(_item: unknown, i: number) => i !== rowIndex,
+														),
+													}))
+												}
+											>
+												Remove
+											</Button>
 										</div>
-										<Button
-											className="md:col-span-2"
-											variant="destructive"
-											onClick={() =>
-												patchSection(sectionIndex, (current) => ({
-													...current,
-													rows: (current?.rows || []).filter(
-														(_item: unknown, i: number) => i !== rowIndex,
-													),
-												}))
-											}
-										>
-											Remove
-										</Button>
-									</div>
-								),
+									);
+								},
 							)}
 						</div>
 					</section>

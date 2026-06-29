@@ -16,7 +16,6 @@ import {
 	productReportSchema,
 } from "@api/db/queries/product-report";
 import {
-	getOrders,
 	getQuotes,
 	getSaleOverview,
 	getSales,
@@ -49,10 +48,10 @@ import {
 } from "@api/db/queries/sales-form";
 import { getSalesHx, getSalesHxSchema } from "@api/db/queries/sales-hx";
 import {
-	getOrdersV2,
-	getOrdersV2Schema,
-	getOrdersV2Summary,
-	getOrdersV2SummarySchema,
+	getOrders,
+	getOrdersSchema,
+	getOrdersSummary,
+	getOrdersSummarySchema,
 } from "@api/db/queries/sales-orders-v2";
 import {
 	getSalesResolutions,
@@ -407,17 +406,14 @@ export const salesRouter = createTRPCRouter({
 			return saveOrderProductionGate(props.ctx, props.input);
 		}),
 	getOrders: publicProcedure
-		.input(salesQueryParamsSchema)
+		.input(getOrdersSchema)
 		.query(async (props) => {
-			return getOrders(props.ctx, transformSalesFilterQuery(props.input));
+			return getOrders(props.ctx, props.input);
 		}),
-	getOrdersV2: publicProcedure.input(getOrdersV2Schema).query(async (props) => {
-		return getOrdersV2(props.ctx, props.input);
-	}),
-	getOrdersV2Summary: publicProcedure
-		.input(getOrdersV2SummarySchema)
+	getOrdersSummary: publicProcedure
+		.input(getOrdersSummarySchema)
 		.query(async (props) => {
-			return getOrdersV2Summary(props.ctx, props.input);
+			return getOrdersSummary(props.ctx, props.input);
 		}),
 	updatePriority: protectedProcedure
 		.input(

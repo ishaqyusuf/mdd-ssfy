@@ -1,9 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
   composeDealerSalesFormQuotePricingSnapshot,
+  composeDealerSalesFormQuoteSaveInput,
   composeSalesFormPricingSnapshot,
   composeSalesFormRecord,
   composeSalesFormSavePayload,
+  resolveDealerSalesFormStructuredLineTotal,
 } from ".";
 
 describe("sales form composer", () => {
@@ -222,5 +224,66 @@ describe("sales form composer", () => {
     expect(snapshot.profiles.dealer.label).toBe("Retail");
     expect(snapshot.internalPricing.grandTotal).toBe(327.8);
     expect(snapshot.dealerPricing.grandTotal).toBe(393.36);
+  });
+
+  it("keeps dealer quote shelf line totals aligned with shelf rows when saving", () => {
+    const shelfLine = {
+      uid: "dealer-line-1",
+      title: "Shelf Items",
+      description: "",
+      qty: 2,
+      unitPrice: 6.94,
+      lineTotal: 25.66,
+      meta: {},
+      formSteps: [],
+      shelfItems: [
+        {
+          uid: "shelf-product-1",
+          description: "PC 3.5X3.5 5/8R, PRIMED HINGE",
+          qty: 2,
+          unitPrice: 6.94,
+          totalPrice: 13.88,
+          meta: {
+            basePrice: 3.75,
+            salesPrice: 6.94,
+          },
+        },
+      ],
+      housePackageTool: null,
+    };
+
+    expect(resolveDealerSalesFormStructuredLineTotal(shelfLine)).toBe(13.88);
+
+    const payload = composeDealerSalesFormQuoteSaveInput({
+      record: {
+        id: 23562,
+        type: "quote",
+        salesId: 23562,
+        orderId: "00002DPP",
+        status: "Draft",
+        version: "23562",
+        updatedAt: null,
+        form: {
+          customerId: 3154,
+          customerProfileId: 6,
+          po: "PH27-QA-20260629-EDIT",
+          paymentTerm: "None",
+          deliveryOption: "pickup",
+        },
+        lineItems: [shelfLine],
+        extraCosts: [],
+        summary: {
+          taxRate: 0,
+        },
+      },
+      id: 23562,
+      customerProfileId: 6,
+      lineTotalsByUid: {
+        "dealer-line-1": 25.66,
+      },
+    });
+
+    expect(payload?.lineItems[0]?.lineTotal).toBe(13.88);
+    expect(payload?.lineItems[0]?.unitPrice).toBe(6.94);
   });
 });

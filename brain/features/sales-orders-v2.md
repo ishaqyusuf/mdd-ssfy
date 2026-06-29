@@ -22,26 +22,26 @@
 - `/sales-book/orders/bin`
   - deleted orders route
   - renders the same `apps/www/src/components/tables-2/sales-orders/*` table with `bin` enabled
-  - uses the existing `SalesOrdersV2Header` and sales-orders v2 URL filter contract
+  - uses the existing `SalesOrdersV2Header` and canonical sales-orders URL filter contract
 
 ## Backend Contracts
-- `sales.getOrdersV2`
-  - existing current orders list query used by the canonical orders page
+- `sales.getOrders`
+  - canonical orders list query used by the canonical orders page, supporting web helpers and Expo order lists
   - reuses established sales filtering semantics through an internal legacy-query adapter
   - returns a slimmer row payload focused on list presentation instead of the legacy table shape
   - honors the existing pagination `bin` input for deleted-order table views
-- `sales.getOrdersV2Summary`
+- `sales.getOrdersSummary`
   - returns page-level summary metrics for:
     - total orders
     - invoice value
     - outstanding balance
     - paid orders
     - evaluating orders
-- `filters.salesOrdersV2`
-  - existing current filter metadata source for the canonical orders page
-  - uses cleaner query keys than the older sales-order filter path
+- `filters.salesOrders`
+  - filter metadata source for the canonical orders page
 - Migration note:
-  - These existing orders contracts are reused as-is.
+  - The former `sales.getOrdersV2`, `sales.getOrdersV2Summary`, and `filters.salesOrdersV2` public names were promoted into the default order routes.
+  - Expo order lists adapt the flat default row into their stable mobile card model instead of depending on the old nested legacy DTO.
   - Future table migrations should not create new `*V2` queries or `filters.*V2` metadata solely to adopt the `tables-2` UI.
 
 ## Frontend Structure
@@ -55,6 +55,7 @@
 - Table
   - `apps/www/src/components/tables-2/sales-orders/columns.tsx`
   - `apps/www/src/components/tables-2/sales-orders/data-table.tsx`
+  - `apps/www/src/components/tables-2/sales-orders/bottom-bar.tsx`
   - `apps/www/src/components/tables-2/sales-orders/table-header.tsx`
   - `apps/www/src/components/tables-2/sales-orders/skeleton.tsx`
   - `apps/www/src/components/tables-2/sales-orders/empty-states.tsx`
@@ -76,6 +77,7 @@
 - `components/tables-2/core/*` remains unchanged for this migration.
 - Legacy `/sales-book/create-order` fresh-create forms require customer selection on open. When the hydrated legacy form has no saved sales id and no `metaData.customer.id`, it opens a required `Create Order: Select Customer` dialog that reuses the existing legacy customer lookup; selecting a customer updates the same legacy form store and closes the dialog.
 - Sales control tasks launched from `SalesMenu.MarkAs` register serializable task-monitor intents for production completion and fulfillment. The global bottom-right task monitor now handles those intents on Trigger completion and invalidates the sales list, sales summary, production overview, and sale overview queries so status changes refresh even after the dropdown unmounts.
+- Since the task monitor owns Mark As progress/completion feedback, `SalesMenu.MarkAs` suppresses duplicate start/completion toasts. Startup failures that happen before a task can be monitored still surface as destructive toast errors.
 
 ## Current Table Shape
 - Columns
@@ -96,8 +98,14 @@
   - the actions column exposes a compact overview icon with a hover preview
   - the hover preview is intentionally compact and composed as a single overview panel instead of multiple cards
   - order overview sheets render the same lifecycle status label/tone near the order number, using the shared order lifecycle helper plus a `cva`-backed overview badge presenter
+- Batch interaction
+  - selecting one or more orders opens the floating bottom batch bar
+  - the batch bar exposes a dedicated `Mark as` dropdown backed by `SalesMenu.MarkAs` for multi-order `Production completed` and `Fulfilled` updates
+  - print remains a print-only batch menu so status changes are no longer hidden inside the print action
 - Row density
   - the canonical orders table uses compact 48px virtual rows so more orders fit in the working viewport while preserving the existing action buttons, sticky columns, and row-open behavior
+  - the sticky `Order #` column defaults to a narrower 180px width with a 150px minimum so the table exposes more downstream columns without changing row actions or sort behavior
+  - the `Address` column defaults to a compact 220px width with a 150px minimum while preserving truncation and tooltip access to full addresses
   - the legacy `/sales-rep` recent-sales mobile/list fallback now uses `ItemCard2`, a flat divider-based row instead of the older rounded card layout; it keeps customer, order id, invoice amount/status, lifecycle status, priority/dealer/inbound badges, phone/address, and row actions while targeting 3-5 visible rows in the sales-rep viewport.
 - Smart funnel status
   - `pending`
@@ -112,9 +120,9 @@
     - order has been delivered or fully completed
 
 ## Follow-up Ideas
-- Add dedicated batch actions for the v2 table once the row model is stable.
+- Continue filling out dedicated batch actions for the v2 table where shared sales workflows already exist.
 - Add cleaner sales manager scoping controls to the v2 filter contract if needed.
-- Keep `/sales-book/orders/bin` on the shared `tables-2/sales-orders` table and `sales.getOrdersV2` query path; do not reintroduce the legacy sales-orders table for this route.
+- Keep `/sales-book/orders/bin` on the shared `tables-2/sales-orders` table and `sales.getOrders` query path; do not reintroduce the legacy sales-orders table for this route.
 - Move more of the sales list/query normalization into shared package-layer application code if the current orders query becomes a shared model for other clients.
 
 ## Validation

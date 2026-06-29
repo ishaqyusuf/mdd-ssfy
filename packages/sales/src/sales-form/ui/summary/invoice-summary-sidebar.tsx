@@ -9,6 +9,7 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import type {
 	SalesFormCapabilities,
@@ -23,6 +24,7 @@ export type SalesFormSummarySidebarProps = {
 	mobileOpen: boolean;
 	orderId?: string | null;
 	grandTotal?: number | null;
+	grandTotalSlot?: ReactNode;
 	capabilities: Pick<SalesFormCapabilities, "salesHistory">;
 	permissions: Pick<SalesFormPermissions, "canSaveDraft" | "canFinalize">;
 	summaryPanel: React.ReactNode;
@@ -115,7 +117,7 @@ export function SalesFormSummarySidebar(props: SalesFormSummarySidebarProps) {
 								Grand Total
 							</span>
 							<span className="text-lg font-bold text-foreground">
-								{currency(props.grandTotal)}
+								{props.grandTotalSlot || currency(props.grandTotal)}
 							</span>
 						</div>
 						<div className="flex items-center gap-2">

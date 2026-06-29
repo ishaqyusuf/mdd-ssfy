@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeOrderRow } from "./sales-orders-v2";
+import { getOrdersSchema, normalizeOrderRow } from "./sales-orders-v2";
 
 function makeOrder(overrides: Record<string, unknown> = {}) {
 	return {
@@ -37,7 +37,29 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 	} as any;
 }
 
-describe("sales orders v2 ccc display totals", () => {
+describe("sales orders default query contract", () => {
+	it("accepts the promoted v2 filter aliases on the default schema", () => {
+		expect(
+			getOrdersSchema.parse({
+				q: "08499",
+				customerName: "Acme",
+				invoiceStatus: "outstanding",
+				priority: "HIGH",
+				orderNo: "08499PC",
+				bin: true,
+				sort: ["invoiceTotal", "desc"],
+			}),
+		).toEqual({
+			q: "08499",
+			customerName: "Acme",
+			invoiceStatus: "outstanding",
+			priority: "HIGH",
+			orderNo: "08499PC",
+			bin: true,
+			sort: ["invoiceTotal", "desc"],
+		});
+	});
+
 	it("calculates fallback ccc for credit-card invoice display", () => {
 		const row = normalizeOrderRow(
 			makeOrder({
@@ -52,6 +74,8 @@ describe("sales orders v2 ccc display totals", () => {
 		expect(row.displayCcc).toBe(35);
 		expect(row.invoiceTotal).toBe(1035);
 		expect(row.amountDue).toBe(1000);
+		expect(row.amountPaid).toBe(0);
+		expect(row.displayAmountDue).toBe(1035);
 	});
 
 	it("repairs stale stored ccc when present", () => {
@@ -97,5 +121,23 @@ describe("sales orders v2 ccc display totals", () => {
 
 		expect(row.displayCcc).toBe(0);
 		expect(row.invoiceTotal).toBe(1000);
+	});
+
+	it("exposes flat paid and display paid amounts for mobile adapters", () => {
+		const row = normalizeOrderRow(
+			makeOrder({
+				grandTotal: 1000,
+				amountDue: 250,
+				meta: {
+					payment_option: "Credit Card",
+					ccc_percentage: 3.5,
+				},
+			}),
+		);
+
+		expect(row.amountPaid).toBe(750);
+		expect(row.amountDue).toBe(250);
+		expect(row.displayAmountPaid).toBe(750);
+		expect(row.displayAmountDue).toBe(258.75);
 	});
 });

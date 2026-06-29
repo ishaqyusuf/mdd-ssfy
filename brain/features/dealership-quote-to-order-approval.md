@@ -35,6 +35,30 @@ payload guarantees.
 - 2026-06-18 follow-up pass added payment links to dealer approval emails,
   bounded dealer logo image upload via data URL persistence, and OpenPanel
   progress tracking in the dealer app.
+- 2026-06-29 authenticated dealership browser QA proved the dealer-side request
+  action on quote `00002DPP`: clicking `Request order` changed the quotes list
+  status to `Order requested`, disabled duplicate requests as `Requested`, and
+  persisted a pending `DealerSalesRequest` row with `request = make_order` for
+  `SalesOrders.id = 23562`. A follow-up fix made dealer quote edit routes use
+  order-number slugs (`/quotes/00002DPP/edit`), redirect legacy numeric quote
+  ids, keep users on the saved quote after create/update, and persist structured
+  shelf line totals from the package summary so item headers and summaries agree.
+- 2026-06-29 follow-up added dealership dev-mode price breakdown hovers for
+  visible cost/sales price surfaces including component cards, shelf rows, door
+  size/HPT unit and line prices, moulding rows, subtotal, invoice grand total,
+  sticky sidebar total, and mobile footer total. The hover chain is office cost
+  price -> dealer profile sales price with profile name/coefficient -> customer
+  profile sales price with profile name/markup percentage, and only renders in
+  non-production dealership mode when an office/base cost is available.
+- A same-day correction made the hover chain calculation-driven instead of
+  trusting stored row `salesPrice` fields, because dealership row `salesPrice`
+  can already be customer-facing. Dealer sales price now derives from office
+  cost and the dealer profile coefficient, and customer sales price derives from
+  that dealer sales price plus the customer profile markup. Quantity line totals
+  use rounded unit dealer/customer prices before multiplying so the displayed
+  customer total matches quote line rounding.
+  Full production readiness is still blocked by missing Door/HPT plus Moulding
+  size fixture coverage and final responsive screenshot evidence.
 
 ## Scope
 

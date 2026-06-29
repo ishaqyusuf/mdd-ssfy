@@ -43,7 +43,7 @@ export default async function Page(props: Props) {
 	const initialSettings = await getInitialTableSettings("sales-orders");
 
 	batchPrefetch([
-		trpc.sales.getOrdersV2.infiniteQueryOptions(
+		trpc.sales.getOrders.infiniteQueryOptions(
 			{
 				...filter,
 				sort,
@@ -53,7 +53,7 @@ export default async function Page(props: Props) {
 					(meta as { cursor?: string | number | null } | undefined)?.cursor,
 			},
 		),
-		trpc.sales.getOrdersV2Summary.queryOptions(filter),
+		trpc.sales.getOrdersSummary.queryOptions(filter),
 	]);
 
 	return (

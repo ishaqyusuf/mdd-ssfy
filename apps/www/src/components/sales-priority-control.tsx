@@ -91,9 +91,6 @@ function useUpdateSalesPriority({
 						queryKey: trpc.sales.getOrders.pathKey(),
 					}),
 					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrdersV2.pathKey(),
-					}),
-					queryClient.invalidateQueries({
 						queryKey: trpc.sales.productionOverview.pathKey(),
 					}),
 					queryClient.invalidateQueries({

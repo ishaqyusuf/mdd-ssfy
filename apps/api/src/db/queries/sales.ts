@@ -183,46 +183,6 @@ export async function sales(ctx: TRPCContext, query: SalesQueryParamsSchema) {
       })),
   );
 }
-export async function getOrders(
-  ctx: TRPCContext,
-  query: SalesQueryParamsSchema,
-) {
-  query.salesType = "order";
-  query = applyDefaultSalesRepScope(query, ctx.userId);
-  const { db } = ctx;
-
-  const { response, searchMeta, where } = await composeQueryData(
-    query,
-    whereSales(query),
-    db.salesOrders,
-  );
-
-  const data = await db.salesOrders.findMany({
-    where,
-    ...searchMeta,
-    include: SalesListInclude,
-  });
-  const notCounts = await salesNotesCount(
-    data.map((sale) => ({
-      id: sale.id,
-      orderId: sale.orderId,
-    })),
-    ctx.db,
-  );
-
-  const rows = data
-    .map((o) => salesOrderDto(o, !!query.bin))
-    .map((d) => ({
-      ...d,
-      noteCount: 0,
-      ...(notCounts[d.id.toString()] || {}),
-    }));
-  const rowsWithControl = isControlReadV2Enabled()
-    ? await withSalesListControl(rows, db)
-    : await withSalesControl(rows, db);
-  const result = await response(rowsWithControl as any);
-  return result;
-}
 export async function getQuotes(
   ctx: TRPCContext,
   query: SalesQueryParamsSchema,

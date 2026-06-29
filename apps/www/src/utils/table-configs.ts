@@ -4,11 +4,11 @@ import type { TableId } from "@/utils/table-settings";
 export const STICKY_COLUMNS: Record<TableId, StickyColumnConfig[]> = {
     "sales-orders": [
         { id: "select", width: 50 },
-        { id: "orderId", width: 220 },
+        { id: "orderId", width: 180 },
     ],
     "sales-quotes": [
         { id: "select", width: 50 },
-        { id: "orderId", width: 220 },
+        { id: "orderId", width: 180 },
     ],
     customers: [{ id: "customer", width: 300 }],
     "sales-dispatch": [
@@ -123,7 +123,7 @@ export const NON_REORDERABLE_COLUMNS: Record<TableId, Set<string>> = {
 
 export const ROW_HEIGHTS: Record<TableId, number> = {
     "sales-orders": 40,
-    "sales-quotes": 57,
+    "sales-quotes": 40,
     customers: 64,
     "sales-dispatch": 64,
     "inbound-management": 64,

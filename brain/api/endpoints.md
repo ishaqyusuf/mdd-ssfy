@@ -21,15 +21,16 @@ Tracks notable API surfaces and where they are implemented.
   - `/api/download/sales-v2`: canonical sales PDF download/export route
   - `/api/download/sales`: compatibility redirect to `/api/download/sales-v2`; legacy `print.sales` and `sales.printInvoice` tRPC procedures are retired
 - Dealership/dealer-program routes now include:
+  - `apps/dealership` Better Auth `/api/auth/dealer-dev-quick-sign-in`: development-only quick-login endpoint for active linked dealer accounts; disabled outside non-production environments and used only to unblock local dealership browser QA
   - `dealerPortal.dashboard`: dealer-scoped summary for open quotes, pending requests, active orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent activity
   - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used by the dealer order overview and print/payment surfaces; payload now includes `createdAt`
   - `dealerPortal.createPaymentLink`: dealer-owned approved-order checkout-link mutation for orders with outstanding balance
   - `dealerPortal.saveSettings`: dealer settings mutation accepts external logo URLs and bounded uploaded image data URLs for dealer invoice branding
   - `sales.approveDealerSalesRequest`: internal approval mutation now accepts optional reviewed `deliveryCost` and `approverNote`, assigns first approver ownership, stamps approval metadata, and sends the dealer approval email with a checkout URL when payment is due
-- Sales orders v2 routes now include:
-  - `sales.getOrdersV2`: canonical sales orders list query for `/sales-book/orders` and `/sales-book/orders/bin`; accepts the existing pagination `bin` flag and forwards it through the legacy sales filter adapter for deleted-order views
-  - `sales.getOrdersV2Summary`: canonical sales orders summary query for `/sales-book/orders`
-  - `filters.salesOrdersV2`: filter metadata query used by `SalesOrdersV2Header`
+- Sales orders routes now include:
+  - `sales.getOrders`: canonical sales orders list query for `/sales-book/orders`, `/sales-book/orders/bin`, web reminder/search helpers, and Expo order lists; uses the former V2 flat row contract, accepts the existing pagination `bin` flag, and forwards supported filters through the legacy sales filter adapter
+  - `sales.getOrdersSummary`: canonical sales orders summary query for `/sales-book/orders`
+  - `filters.salesOrders`: filter metadata query used by `SalesOrdersV2Header`
 - New sales form shelf product routes now include:
   - `newSalesForm.searchShelfProducts`: mobile and web shelf picker search; blank query returns up to 10 visible recently used shelf products ordered by latest saved shelf line usage, skipping archived/hidden recent products without filling from unused active products; unused active shelf products are only shown through typed search or selected-product hydration
   - `newSalesForm.searchServiceSuggestions`: mobile Service line suggestion search; blank query returns unique recent service names derived from saved grouped service rows, while typed query filters by normalized service name and returns the latest observed unit price for each service

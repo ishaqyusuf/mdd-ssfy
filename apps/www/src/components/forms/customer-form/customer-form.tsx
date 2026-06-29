@@ -77,14 +77,31 @@ export function CustomerForm() {
 			...(quotesQuery.data?.data ?? []),
 		];
 
-		return rows.map((sale) => ({
-			id: sale.orderId ?? sale.id,
-			status: sale.isQuote
-				? "Quote"
-				: sale.deliveryStatus || sale.status?.delivery?.status || "Order",
-			date: sale.createdAt,
-			salesRep: sale.salesRep || "-",
-		}));
+		return rows.map((sale) => {
+			const row = sale as {
+				fulfillmentLabel?: string | null;
+				isQuote?: boolean | null;
+				orderId?: string | null;
+				id?: number | string | null;
+				salesRep?: string | null;
+				salesRepName?: string | null;
+				status?: { delivery?: { status?: string | null } } | string | null;
+				statusLabel?: string | null;
+				createdAt?: Date | string | null;
+			};
+
+			return {
+				id: row.orderId ?? row.id,
+				status: row.isQuote
+					? "Quote"
+					: row.fulfillmentLabel ||
+						row.statusLabel ||
+						(typeof row.status === "object" ? row.status?.delivery?.status : null) ||
+						"Order",
+				date: row.createdAt,
+				salesRep: row.salesRepName || row.salesRep || "-",
+			};
+		});
 	}, [ordersQuery.data?.data, quotesQuery.data?.data]);
 
 	useEffect(() => {

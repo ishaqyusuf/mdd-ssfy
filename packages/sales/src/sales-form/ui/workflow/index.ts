@@ -1,4 +1,12 @@
 export { snapshotSelectedComponent } from "./component-utils";
+export {
+  CostPriceBreakdownHover,
+  resolveCostPriceBreakdown,
+  type CostPriceBreakdown,
+  type CostPriceBreakdownContext,
+  type CostPriceBreakdownInput,
+  type CostPriceBreakdownLabels,
+} from "./cost-price-breakdown-hover";
 export { ComponentCardSkeletonGrid } from "./component-card-skeleton-grid";
 export {
   DoorPriceCell,

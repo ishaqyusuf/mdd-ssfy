@@ -96,9 +96,9 @@ const quoteIdColumn: Column = {
 	id: "orderId",
 	header: "Quote #",
 	accessorKey: "orderId",
-	size: 220,
-	minSize: 180,
-	maxSize: 320,
+	size: 180,
+	minSize: 150,
+	maxSize: 280,
 	enableResizing: true,
 	meta: {
 		sticky: true,
@@ -106,7 +106,7 @@ const quoteIdColumn: Column = {
 		headerLabel: "Quote #",
 		sortField: "orderId",
 		className:
-			"w-[220px] min-w-[180px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			"w-[180px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 	},
 	cell: ({ row }) => (
 		<div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
@@ -200,14 +200,14 @@ const addressColumn: Column = {
 	id: "address",
 	header: "Address",
 	accessorKey: "address",
-	size: 300,
-	minSize: 180,
-	maxSize: 480,
+	size: 220,
+	minSize: 150,
+	maxSize: 360,
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Address",
-		className: "w-[300px] min-w-[180px]",
+		className: "w-[220px] min-w-[150px]",
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip

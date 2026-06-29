@@ -2,6 +2,99 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Added a dedicated batch Mark as action to the canonical sales orders table.
+  - The selected-orders bottom bar now counts actionable selected rows, keeps Print scoped to print/PDF actions, and adds a separate `Mark as` dropdown for multi-order `Production completed` and `Fulfilled` updates through the existing task-backed `SalesMenu.MarkAs` flow.
+  - Added a viewport-constrained horizontal overflow wrapper to keep the expanded batch bar usable on narrow screens without forcing page-level horizontal overflow.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API or database docs were needed because this reuses the existing sales control task/menu contract without schema, endpoint, permission, or payload changes.
+
+- Showed order inbound status in the sales overview side sheet.
+  - Added a shared web inbound-status badge presenter for `AVAILABLE`, `ORDERED`, and `PENDING ORDER`, then reused it in both sales orders table variants and their row highlight helper.
+  - Rendered the existing `sales.getSaleOverview.inboundStatus` value in the legacy sales overview side-sheet header and Order Details section, and in the new sales overview system sheet header and Overview tab for orders only.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md` and `brain/progress.md`; no API or database docs were needed because this reuses the existing overview DTO field without schema, endpoint, permission, or contract changes.
+
+- Added dealership dev-mode pricing breakdown hovers through the quote form.
+  - Shared sales-form cost/sales price surfaces now show a dev-only hover chain
+    for office cost, dealer profile name/coefficient, dealer-profile sales price,
+    customer profile name/markup percentage, customer sales price, and displayed
+    override where applicable.
+  - Covered component prices, shelf unit/line totals, HPT door-size unit/line
+    totals, moulding unit/line totals, invoice subtotal/grand total, sticky
+    sidebar grand total, and mobile footer grand total.
+  - Docker DB confirmation for quote `00002DPP` showed `SalesOrders.id = 23562`,
+    subtotal/grand total `$13.88`, shelf office cost `$3.75`, qty `2`, internal
+    profile `Tier 1 65%` coefficient `0.65`, and customer profile `Tier 1`
+    markup `20%`, matching `$3.75 -> $5.78 -> $6.94` and line total `$13.88`.
+  - Validation: focused door-price/workflow Bun tests passed; focused Biome
+    lint passed for touched feature files; filtered dealership typecheck produced
+    no touched-file errors while the full package typecheck remains blocked by
+    unrelated repo-wide errors; browser reload on `/quotes/00002DPP/edit`
+    rendered six breakdown triggers with no fresh console errors.
+  - Updated docs: `brain/features/dealership-quote-to-order-approval.md` and
+    `brain/progress.md`; no API/database docs were needed because this is
+    dev-mode UI instrumentation over existing quote/profile data without schema,
+    endpoint, permission, or payload changes.
+  - Follow-up correction: stored dealership row `salesPrice` values can already
+    be customer-facing, so the hover no longer passes them as dealer sales price.
+    Dealer sales price is calculated from office cost plus dealer profile
+    coefficient, customer sales price is calculated on top of dealer sales price,
+    and quantity line totals multiply rounded unit dealer/customer prices so
+    quote `00002DPP` resolves line total `$7.50 -> $11.56 -> $13.88`.
+
+- Fixed the background task monitor terminal-status update loop.
+  - `TaskNotificationWatcher` now ignores realtime run updates after a task leaves `SYNCING`, and completed runs write `handledEffects.success`, `status: "COMPLETED"`, and `completedAt` in one store update before running success invalidation effects.
+  - This prevents stale Trigger realtime `COMPLETED` status from repeatedly calling `updateTask` with a fresh `completedAt`, which caused React's maximum update depth error in `task-monitor.ts`.
+  - Updated docs: `brain/features/background-task-monitor.md` and `brain/progress.md`; no API or database docs were needed because this is client-side monitor behavior only.
+
+- Reduced the canonical sales orders `Order #` table column width.
+  - Changed the sticky `Order #` column default from 220px to 180px, lowered the minimum to 150px, and updated the sticky-column reservation so pinned column offsets remain aligned.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API or database docs were needed because this is a presentation-only table layout change.
+
+- Reduced the canonical sales quotes `Quote #` table column width.
+  - Changed the sticky `Quote #` column default from 220px to 180px, lowered the minimum to 150px, and updated the sticky-column reservation so pinned column offsets remain aligned with the orders table.
+  - Updated docs: `brain/features/sales-quotes-table.md` and `brain/progress.md`; no API or database docs were needed because this is a presentation-only table layout change.
+
+- Reduced the canonical sales orders and quotes `Address` table column widths.
+  - Changed the orders and quotes Address columns to a shared 220px default with a 150px minimum while preserving existing truncation and tooltip behavior.
+  - Updated docs: `brain/features/sales-orders-v2.md`, `brain/features/sales-quotes-table.md`, and `brain/progress.md`; no API or database docs were needed because this is a presentation-only table layout change.
+
+- Fixed dealership quote edit slug routing and structured quote total persistence.
+  - Renamed the dealership quote edit route to order-number slug semantics and
+    made legacy numeric quote urls redirect to `/quotes/{orderNo}/edit`; quote
+    list edit links now prefer `orderId`.
+  - Dealer quote create/update success now stays on the saved quote edit route
+    instead of resetting into a blank composer.
+  - Structured dealer quote line totals now resolve from shelf/service/moulding
+    or HPT row summaries before dealer percentage pricing, keeping item header
+    totals, saved `meta.newSalesForm.lineItems`, subtotal, and grand total in
+    agreement.
+  - Validation: focused composer Bun test passed; filtered dealership
+    typecheck produced no touched-file errors; authenticated browser verification
+    showed `/quotes/23562/edit` redirecting to `/quotes/00002DPP/edit`, visible
+    totals at `$13.88`, no stale `$25.66` header, and save persistence with
+    row/subtotal/grand total all `13.88`. Focused Biome check remains blocked by
+    existing formatter baseline in large touched files, not behavior errors.
+  - Updated docs: `brain/new-sales-form-phase27-browser-qa.md`,
+    `brain/dealership-cutover-readiness.md`,
+    `brain/features/dealership-quote-to-order-approval.md`, and
+    `brain/progress.md`; no database/API docs were needed because this reused
+    existing fields and endpoints without schema or contract changes.
+
+- Matched canonical quotes table row height to orders.
+  - Updated the shared `tables-2` row-height config so `/sales-book/quotes` uses the same 40px virtual row height as `/sales-book/orders`.
+  - Updated docs: `brain/features/sales-quotes-table.md` and `brain/progress.md`; no API or database docs were needed because this is presentation-only UI behavior with no contract or schema change.
+
+- Removed duplicate Mark As toasts now that task monitor owns progress feedback.
+  - `SalesMenu.MarkAs` no longer shows loading or task-started toasts for production completion / fulfillment actions; the bottom-right task monitor remains the user-facing progress/completion surface.
+  - `useTaskTrigger` now suppresses completion success toasts for monitored or silent tasks, matching existing monitor/silent caller expectations.
+  - Validation: `git diff --check` passed; focused Biome lint and focused Biome check passed for `sales-menu.tsx` and `use-task-trigger.ts`. Broad `bun run --filter @gnd/www typecheck` was attempted and remains blocked by existing repo-wide TypeScript errors outside this toast change.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API/database docs were needed because this changes client-side notification behavior only.
+
+- Promoted Sales Orders V2 to the default `sales.getOrders` contract.
+  - The former V2 flat orders query is now exposed as `sales.getOrders`, with `sales.getOrdersSummary` replacing `sales.getOrdersV2Summary`; public `getOrdersV2`, `getOrdersV2Summary`, and `filters.salesOrdersV2` routes were removed.
+  - Added flat mobile-safe paid/due display fields to order rows and normalized the Expo order list hook through a local adapter so mobile cards no longer depend on the legacy nested order DTO.
+  - Kept the old rich sales list shape available through `sales.index` for legacy web table surfaces that have not moved to `tables-2`.
+  - Updated docs: `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/features/sales-orders-v2.md`, and `brain/progress.md`; no database docs were needed because this is an API/UI contract migration without schema or migration changes.
+
 - Fixed web sales refresh after create/copy/payment actions.
   - Expanded `useSalesQueryClient` into a shared sales document/payment invalidation contract that refreshes legacy and v2 order lists, quote lists, sales overview data, filters, dashboard widgets, mobile dashboard overview, transaction reads, and accounting/payment reads.
   - Wired the new invalidation through the current `NewSalesForm` save success path, legacy sales form saves, `SalesMenu` copy/move/delete actions, and customer pay-portal payment success; the main payment widget reuses the widened `salesPaymentUpdated` event.
@@ -4746,3 +4839,6 @@
 - 2026-06-28: Continued conservative `apps/www` export-candidate triage with filter-param/static-helper cleanup. Private query-param schemas were demoted across print/filter hooks, unreferenced inventory/sales-print loaders and a duplicate `useInboundView` export were removed, and dead static-trpc path/invalidate helpers were trimmed while retaining legacy `_trpc` / `_qc` globals. `/tmp/gnd-www-knip-after-export-filterparams-static1.json` reports 22 file candidates, 189 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 482 export candidates.
 - 2026-06-28: Continued conservative `apps/www` export-candidate triage with schema/constants/helper cleanup. Local-only auth schemas were demoted, unused legacy payment/dispatch/HRM/numeric helpers were removed, `queryMeta` became private, and stale constants/type exports were removed while preserving live event types and form schemas. `/tmp/gnd-www-knip-after-export-schemas-constants1.json` reports 22 file candidates, 183 issue entries, 3 runtime dependency candidates, 1 dev dependency candidate, 0 unlisted candidates, 0 unresolved candidates, and 469 export candidates.
 - 2026-06-28: Converted the mobile Orders/Quotes list search and filters into a floating bottom-sheet flow. The header controls were replaced by a bottom floating pill with active-count feedback, the shared `FloatingBottomSheet` now owns search/filter drafting with Apply/Cancel semantics, dispatch search uses the same sheet in search-only mode, and the old transparent orders filter modal was removed. Validation: scoped diff checks were run; no dev server, broad typecheck/build, or UI automation was run per fast Bun monorepo discipline.
+- 2026-06-29: Corrected the dealership Phase 27 QA blocker after confirming dealership uses the same database context as `www`. Loading root `.env.local` plus `apps/dealership/.env.local` resolves `DATABASE_URL` to local MySQL on `127.0.0.1:3307`; a masked Prisma count probe found 5 dealer accounts, 2 active dealers, 2 Better Auth users, 7 sessions, and 1 dealer quote. Remaining QA blocker is a usable authenticated dealership browser session or valid dealer credentials, not database availability. Updated `brain/new-sales-form-phase27-browser-qa.md`.
+- 2026-06-29: Added dev-only quick login to the dealership login page. `/login` now server-loads active linked dealer accounts in non-production and renders a `Dev Quick Login` dropdown; Better Auth exposes `/api/auth/dealer-dev-quick-sign-in` only outside production and creates a dealer session after rechecking active dealer ownership. Validation: focused Biome check passed for touched login/auth files, `git diff --check` passed, filtered dealership typecheck reported no diagnostics for touched files while the broad dealership typecheck remains blocked by unrelated baseline errors, `/login` rendered the quick-login control, and a dev endpoint smoke returned a redirect/session response. Updated `brain/api/endpoints.md` and `brain/new-sales-form-phase27-browser-qa.md`.
+- 2026-06-29: Ran authenticated dealership Phase 27 browser QA through the in-app browser as Cipron Concept. Created shelf quote `00002DPP`, verified save persistence in `SalesOrders.id = 23562`, reopened `/quotes/23562/edit`, edited quantity/PO, confirmed the quote list total updated to `$13.88`, and clicked `Request order`, which persisted a pending `DealerSalesRequest` with `request = make_order`. QA found three remaining blockers before production signoff: create/save can reset the composer to a blank unsaved quote, dealer-facing item/persisted line totals can disagree with the dealer summary, and local Door/HPT plus Moulding size fixtures expose empty size tables. Updated `brain/new-sales-form-phase27-browser-qa.md`, `brain/dealership-cutover-readiness.md`, and `brain/features/dealership-quote-to-order-approval.md`.

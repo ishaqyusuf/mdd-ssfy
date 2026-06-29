@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import type { Icon } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
 
-type SalesOrdersV2SummaryData = RouterOutputs["sales"]["getOrdersV2Summary"];
+type SalesOrdersV2SummaryData = RouterOutputs["sales"]["getOrdersSummary"];
 
 type Props = {
     data: SalesOrdersV2SummaryData;

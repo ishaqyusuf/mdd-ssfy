@@ -15,9 +15,7 @@ export function useSalesQueryClient() {
 			Promise.all([
 				_invalidate(trpc.sales.getOrders.pathKey()),
 				_invalidate(trpc.sales.getOrders.infiniteQueryKey()),
-				_invalidate(trpc.sales.getOrdersV2.pathKey()),
-				_invalidate(trpc.sales.getOrdersV2.infiniteQueryKey()),
-				_invalidate(trpc.sales.getOrdersV2Summary.pathKey()),
+				_invalidate(trpc.sales.getOrdersSummary.pathKey()),
 			]),
 		quoteList: () =>
 			Promise.all([
@@ -33,7 +31,6 @@ export function useSalesQueryClient() {
 				invalidate.quoteList(),
 				invalidate.saleOverview(),
 				_invalidate(trpc.filters.salesOrders.pathKey()),
-				_invalidate(trpc.filters.salesOrdersV2.pathKey()),
 				_invalidate(trpc.filters.salesQuotes.pathKey()),
 				_invalidate(trpc.salesDashboard.getKpis.pathKey()),
 				_invalidate(trpc.salesDashboard.getRecentSales.pathKey()),

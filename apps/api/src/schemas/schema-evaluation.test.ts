@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { getOrdersV2SummarySchema } from "@api/db/queries/sales-orders-v2";
+import { getOrdersSummarySchema } from "@api/db/queries/sales-orders-v2";
 import {
 	getUnitInvoiceAgingReportSchema,
 	getUnitInvoiceTaskDetailReportSchema,
@@ -32,7 +32,7 @@ describe("server schema evaluation", () => {
 		expect(dealerPortalRouter).toBeDefined();
 		expect(dispatchRouters).toBeDefined();
 
-		expect(getOrdersV2SummarySchema.parse({ bin: true })).toEqual({
+		expect(getOrdersSummarySchema.parse({ bin: true })).toEqual({
 			bin: true,
 		});
 		expect(getUnitInvoiceAgingReportSchema.parse({ bin: false })).toEqual({

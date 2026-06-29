@@ -47,6 +47,10 @@ function requestStatusLabel(status?: string | null) {
 	return "Draft";
 }
 
+function quoteEditHref(item: Pick<Item, "id" | "orderId">) {
+	return `/quotes/${encodeURIComponent(item.orderId || String(item.id))}/edit`;
+}
+
 function QuoteActions({ item }: { item: Item }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -109,7 +113,7 @@ function QuoteActions({ item }: { item: Item }) {
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end" className="w-[190px]">
 					<DropdownMenu.Item asChild>
-						<Link href={`/quotes/${item.id}/edit`}>Edit</Link>
+						<Link href={quoteEditHref(item)}>Edit</Link>
 					</DropdownMenu.Item>
 					<DropdownMenu.Separator />
 					<DropdownMenu.Item

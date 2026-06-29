@@ -190,7 +190,9 @@ export type SalesFormWorkflowPricingSurface<
 > = {
 	activeView?: "internal" | "dealer";
 	dealerSalesPercentage?: number | null;
+	dealerProfileLabel?: string | null;
 	lineTotalMode?: "editable" | "readonly";
+	internalProfileLabel?: string | null;
 	profileCoefficient?: number | null;
 	showDealerPriceBreakdown?: boolean;
 	labels?: SalesFormWorkflowPricingLabels;
@@ -203,6 +205,11 @@ export type SalesFormWorkflowPricingLabels = {
 	customPrice?: string;
 	priceBreakdown?: string;
 	costPrice?: string;
+	dealerProfile?: string;
+	dealerProfileSalesPrice?: string;
+	customerProfile?: string;
+	customerSalesPrice?: string;
+	displayedPrice?: string;
 	salesPrice?: string;
 	margin?: string;
 };

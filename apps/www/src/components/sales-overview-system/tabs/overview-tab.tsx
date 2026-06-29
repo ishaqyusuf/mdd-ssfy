@@ -17,6 +17,7 @@ import { useTRPC } from "@/trpc/client";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
@@ -412,6 +413,22 @@ export function SalesOverviewOverviewTab() {
 											</p>
 										</DataSkeleton>
 									</div>
+									{isQuote ? null : (
+										<div>
+											<p className="text-muted-foreground">
+												Inbound Status
+											</p>
+											<DataSkeleton
+												className="font-medium"
+												placeholder="PENDING ORDER"
+											>
+												<SalesInboundStatusBadge
+													status={data?.inboundStatus}
+													emptyFallback="No status"
+												/>
+											</DataSkeleton>
+										</div>
+									)}
 								</div>
 								<div className="grid grid-cols-2 gap-2 text-sm">
 									<div>

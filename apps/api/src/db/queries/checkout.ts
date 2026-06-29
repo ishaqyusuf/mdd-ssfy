@@ -37,7 +37,7 @@ import { resolveReminderAmount } from "@sales/utils/reminder-pay-plan";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { addDays } from "date-fns";
 import z from "zod";
-import { createPayrollAction, getOrders } from "./sales";
+import { createPayrollAction } from "./sales";
 import type { SquarePaymentStatus } from "./sales-accounting";
 
 function isTokenExpired(expiry?: string | null) {

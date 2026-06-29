@@ -27,7 +27,7 @@ export function BottomBar({ data }: Props) {
     const salesIds = selectedOrders.map((order) => order.id);
     const orderIds = selectedOrders.map((order) => order.orderId);
     const firstOrder = selectedOrders[0];
-    const selectedCount = Object.keys(rowSelection).length;
+    const selectedCount = selectedOrders.length;
     const customerPhone =
         firstOrder?.customerPhone && firstOrder.customerPhone !== "-"
             ? firstOrder.customerPhone
@@ -43,10 +43,10 @@ export function BottomBar({ data }: Props) {
                 setRowSelection({});
                 await Promise.all([
                     queryClient.invalidateQueries({
-                        queryKey: trpc.sales.getOrdersV2.infiniteQueryKey(),
+                        queryKey: trpc.sales.getOrders.infiniteQueryKey(),
                     }),
                     queryClient.invalidateQueries({
-                        queryKey: trpc.sales.getOrdersV2Summary.queryKey(),
+                        queryKey: trpc.sales.getOrdersSummary.queryKey(),
                     }),
                 ]);
             },
@@ -73,7 +73,7 @@ export function BottomBar({ data }: Props) {
             exit={{ y: 100 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
         >
-            <div className="pointer-events-auto relative h-12 min-w-[400px]">
+            <div className="pointer-events-auto relative h-12 max-w-[calc(100vw-1rem)] overflow-x-auto scrollbar-hide sm:min-w-[400px]">
                 <motion.div
                     className="absolute inset-0 bg-[rgba(247,247,247,0.85)] backdrop-blur-lg backdrop-filter dark:bg-[rgba(19,19,19,0.7)]"
                     initial={{ opacity: 0 }}
@@ -81,7 +81,7 @@ export function BottomBar({ data }: Props) {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.15 }}
                 />
-                <div className="relative flex h-12 items-center justify-between pl-4 pr-2">
+                <div className="relative flex h-12 min-w-max items-center justify-between gap-6 pl-4 pr-2">
                     <span className="text-sm">{selectedCount} selected</span>
 
                     <div className="flex items-center space-x-2">
@@ -97,15 +97,33 @@ export function BottomBar({ data }: Props) {
                             type="order"
                             salesIds={salesIds}
                             trigger={
-                                <Button variant="ghost">
+                                <Button
+                                    variant="ghost"
+                                    disabled={!salesIds.length}
+                                >
                                     <Icons.print className="mr-2 size-4" />
                                     Print
                                 </Button>
                             }
                         >
                             <SalesMenu.SalesPrintMenuItems />
-                            <SalesMenu.Separator />
-                            <SalesMenu.MarkAs />
+                        </SalesMenu>
+
+                        <SalesMenu
+                            type="order"
+                            salesIds={salesIds}
+                            trigger={
+                                <Button
+                                    variant="ghost"
+                                    disabled={!salesIds.length}
+                                >
+                                    <Icons.CheckCheck className="mr-2 size-4" />
+                                    Mark as
+                                    <Icons.ChevronDown className="ml-1 size-3.5" />
+                                </Button>
+                            }
+                        >
+                            <SalesMenu.MarkAs asSubmenu={false} />
                         </SalesMenu>
 
                         <SalesPaymentNotificationsMenu

@@ -1,6 +1,7 @@
 "use client";
 
 import { VirtualRow } from "@/components/tables-2/core";
+import { salesInboundRowClassName } from "@/components/sales-inbound-status-badge";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -27,7 +28,7 @@ import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { BottomBar } from "./bottom-bar";
-import { columns, salesInboundRowClassName } from "./columns";
+import { columns } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { DataTableHeader } from "./table-header";
 
@@ -74,7 +75,7 @@ export function DataTable({ initialSettings, bin }: Props) {
         (state) => state.bindShowColumnDividers,
     );
 
-    const infiniteQueryOptions = trpc.sales.getOrdersV2.infiniteQueryOptions(
+    const infiniteQueryOptions = trpc.sales.getOrders.infiniteQueryOptions(
         {
             ...filters,
             bin,
@@ -291,4 +292,3 @@ export function DataTable({ initialSettings, bin }: Props) {
         </div>
     );
 }
-

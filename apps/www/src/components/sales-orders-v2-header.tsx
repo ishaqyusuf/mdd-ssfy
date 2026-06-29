@@ -44,7 +44,7 @@ function SalesOrdersV2SearchFilterContent() {
 	const isTableScrolled = useSalesOrdersStore((state) => state.isTableScrolled);
 	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
-		...trpc.filters.salesOrdersV2.queryOptions({
+		...trpc.filters.salesOrders.queryOptions({
 			salesManager: auth?.can?.viewSalesManager,
 		}),
 	});

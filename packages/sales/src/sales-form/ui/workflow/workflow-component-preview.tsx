@@ -2,11 +2,13 @@
 "use client";
 
 import { Icons } from "@gnd/ui/icons";
+import type { ReactNode } from "react";
 
 export type WorkflowComponentPreviewProps = {
 	imageSrc?: string | null;
 	title: string;
 	price?: string | null;
+	priceSlot?: ReactNode;
 	alt?: string | null;
 	customAvatar?: boolean;
 };
@@ -35,7 +37,11 @@ export function WorkflowComponentPreview(props: WorkflowComponentPreviewProps) {
 			</div>
 			<div className="space-y-1 p-3">
 				<p className="font-semibold leading-tight">{props.title}</p>
-				{props.price ? (
+				{props.priceSlot ? (
+					<div className="text-xs font-medium text-primary">
+						{props.priceSlot}
+					</div>
+				) : props.price ? (
 					<p className="text-xs font-medium text-primary">{props.price}</p>
 				) : null}
 			</div>

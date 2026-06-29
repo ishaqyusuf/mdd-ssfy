@@ -1,6 +1,7 @@
 import React from "react";
 import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
+import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
@@ -292,6 +293,22 @@ export function GeneralTab({}) {
                                             </p>
                                         </DataSkeleton>
                                     </div>
+                                    {!isQuote ? (
+                                        <div>
+                                            <p className="text-muted-foreground">
+                                                Inbound Status
+                                            </p>
+                                            <DataSkeleton
+                                                className="font-medium"
+                                                placeholder="PENDING ORDER"
+                                            >
+                                                <SalesInboundStatusBadge
+                                                    status={saleData?.inboundStatus}
+                                                    emptyFallback="No status"
+                                                />
+                                            </DataSkeleton>
+                                        </div>
+                                    ) : null}
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 text-sm">
                                     <div>

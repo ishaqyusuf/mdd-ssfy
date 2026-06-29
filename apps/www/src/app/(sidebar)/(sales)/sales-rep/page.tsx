@@ -127,7 +127,7 @@ export default async function SalesRepProfile(props: {
     const [_activeTabData, user] = await Promise.all([
         defaultTab === "recent-sales"
             ? queryClient.fetchInfiniteQuery(
-                  trpc.sales.getOrders.infiniteQueryOptions({
+                  trpc.sales.index.infiniteQueryOptions({
                       size: 5,
                   }) as any,
               )

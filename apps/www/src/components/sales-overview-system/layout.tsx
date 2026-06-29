@@ -1,6 +1,7 @@
 "use client";
 
 import { DataSkeleton } from "@/components/data-skeleton";
+import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
@@ -30,7 +31,7 @@ export function SalesOverviewHeader({
 	onTabChange: (tab: SalesOverviewTabId) => void;
 }) {
 	const {
-		state: { data, title },
+		state: { data, surface, title },
 		meta: { isLoading },
 	} = useSalesOverviewSystem();
 	const tabs = useSalesOverviewTabs();
@@ -38,6 +39,8 @@ export function SalesOverviewHeader({
 	const skeletonContext = {
 		loading: isLoading && !data?.id,
 	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
+	const showInboundStatus =
+		surface === "sheet" && !!data?.id && data?.type !== "quote";
 
 	return (
 		<div className="flex flex-col space-y-2 text-center sm:text-left">
@@ -47,6 +50,19 @@ export function SalesOverviewHeader({
 						<div className="flex flex-wrap items-center gap-3">
 							<span>{title || "Sales Overview"}</span>
 							{data?.type ? <Badge variant="outline">{data.type}</Badge> : null}
+							{showInboundStatus ? (
+								<span className="inline-flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
+									<span className="text-[10px] font-semibold uppercase">
+										Inbound
+									</span>
+									<SalesInboundStatusBadge
+										status={data?.inboundStatus}
+										emptyFallback="No status"
+										className="h-5 px-2 text-[10px]"
+										emptyClassName="text-[11px] font-medium"
+									/>
+								</span>
+							) : null}
 						</div>
 					</DataSkeleton>
 				</div>

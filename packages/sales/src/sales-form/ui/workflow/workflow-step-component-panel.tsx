@@ -52,6 +52,7 @@ export type WorkflowStepComponentPanelProps<
 	isMouldingSelectionStep?: boolean;
 	redirectOptions: WorkflowStepComponentPanelRedirectOption[];
 	formatPrice: (value: unknown) => string;
+	priceSlot?: (component: TComponent) => ReactNode;
 	componentLabel: (value?: string | null) => string;
 	resolveImageSrc: (value?: string | null) => string | null;
 	calculatorSlot?: (component: TComponent) => ReactNode;
@@ -132,13 +133,18 @@ export function WorkflowStepComponentPanel<
 					String(candidate?.uid || "") === String(component?.uid || ""),
 			),
 	);
-	const filteredComponents = [...selectedCustomFallbacks, ...props.filteredComponents]
+	const filteredComponents = [
+		...selectedCustomFallbacks,
+		...props.filteredComponents,
+	]
 		.slice()
 		.sort((a, b) => {
 			const aSelectedCustom =
-				props.selectedUids.has(String(a.uid || "")) && isCustomWorkflowComponent(a);
+				props.selectedUids.has(String(a.uid || "")) &&
+				isCustomWorkflowComponent(a);
 			const bSelectedCustom =
-				props.selectedUids.has(String(b.uid || "")) && isCustomWorkflowComponent(b);
+				props.selectedUids.has(String(b.uid || "")) &&
+				isCustomWorkflowComponent(b);
 			if (aSelectedCustom === bSelectedCustom) return 0;
 			return aSelectedCustom ? -1 : 1;
 		});
@@ -235,6 +241,7 @@ export function WorkflowStepComponentPanel<
 											alt={component.title || componentUid}
 											title={props.componentLabel(component.title)}
 											price={props.formatPrice(component.salesPrice)}
+											priceSlot={props.priceSlot?.(component)}
 											customAvatar={isSelectedCustom}
 										/>
 									</button>
@@ -256,6 +263,7 @@ export function WorkflowStepComponentPanel<
 									alt={component.title || componentUid}
 									title={props.componentLabel(component.title)}
 									price={props.formatPrice(component.salesPrice)}
+									priceSlot={props.priceSlot?.(component)}
 									customAvatar={isSelectedCustom}
 								/>
 							</button>

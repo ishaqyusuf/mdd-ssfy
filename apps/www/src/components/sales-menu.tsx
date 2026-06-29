@@ -777,7 +777,6 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	const { state, actions } = useSalesMenuContext();
 	const auth = useAuth();
-	const loader = useLoadingToast();
 	const trpc = useTRPC();
 	const sq = useSalesQueryClient();
 	const salesIds = state.salesIds;
@@ -792,12 +791,6 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 			sq.invalidate.salesList(),
 			sq.invalidate.productionOverview(),
 			sq.invalidate.saleOverview(),
-			sq.qc.invalidateQueries({
-				queryKey: trpc.sales.getOrdersV2.infiniteQueryKey(),
-			}),
-			sq.qc.invalidateQueries({
-				queryKey: trpc.sales.getOrdersV2Summary.queryKey(),
-			}),
 		]);
 	};
 	const closeMenuAfterExpectedTaskStarts = () => {
@@ -872,7 +865,6 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	};
 
 	const markProductionCompleted = async () => {
-		loader.loading("Marking as production completed...");
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
@@ -897,14 +889,15 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 				);
 			}
 			await invalidateOrders();
-			loader.success("Production completion task started");
 		} catch {
-			loader.error("Unable to mark production completed");
+			toast({
+				title: "Unable to mark production completed",
+				variant: "destructive",
+			});
 		}
 	};
 
 	const markFulfilled = async () => {
-		loader.loading("Marking as fulfilled...");
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
@@ -935,9 +928,11 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 				);
 			}
 			await invalidateOrders();
-			loader.success("Fulfillment task started");
 		} catch {
-			loader.error("Unable to mark fulfilled");
+			toast({
+				title: "Unable to mark fulfilled",
+				variant: "destructive",
+			});
 		}
 	};
 

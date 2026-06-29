@@ -15,7 +15,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 
 import { salesPriorityRowClassName } from "@/components/sales-priority-control";
-import { salesInboundRowClassName } from "./columns";
+import { salesInboundRowClassName } from "@/components/sales-inbound-status-badge";
 import { TableSkeleton } from "../skeleton";
 import { columns, mobileColumn } from "./columns";
 
@@ -27,7 +27,7 @@ const BatchActions = dynamic(
 );
 
 interface Props {
-    defaultFilters?: RouterInputs["sales"]["getOrders"];
+    defaultFilters?: RouterInputs["sales"]["index"];
     singlePage?: boolean;
     bin?: boolean;
     hideFloatingPagination?: boolean;
@@ -52,7 +52,7 @@ export function DataTable(props: Props) {
             ...(props.defaultFilters || {}),
             bin: props.bin,
         },
-        route: trpc.sales.getOrders,
+        route: trpc.sales.index,
     });
     const tableScroll = useTableScroll({
         useColumnWidths: true,

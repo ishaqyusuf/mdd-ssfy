@@ -11,6 +11,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
+import {
+	CostPriceBreakdownHover,
+	type CostPriceBreakdownContext,
+	type CostPriceBreakdownInput,
+} from "../workflow/cost-price-breakdown-hover";
 import { formatSalesFormCurrency } from "./format";
 
 export type SalesFormSelectOption = {
@@ -36,6 +41,11 @@ export type SalesFormPricingOverviewProps = {
 	showLaborCost?: boolean;
 	showAddOnCost?: boolean;
 	showGrandTotal?: boolean;
+	totalBreakdown?: {
+		context?: CostPriceBreakdownContext | null;
+		subTotal?: CostPriceBreakdownInput;
+		grandTotal?: CostPriceBreakdownInput;
+	};
 	onPaymentMethodChange?: (value: string) => void;
 	onTaxCodeChange?: (value: string) => void;
 	onLaborCostChange?: (value: number) => void;
@@ -63,7 +73,17 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 						Subtotal (All Items)
 					</span>
 					<span className="text-sm font-bold text-foreground">
-						{formatSalesFormCurrency(props.subTotal)}
+						<CostPriceBreakdownHover
+							breakdown={{
+								...props.totalBreakdown?.subTotal,
+								displayPrice:
+									props.totalBreakdown?.subTotal?.displayPrice ??
+									props.subTotal,
+							}}
+							context={props.totalBreakdown?.context}
+						>
+							<span>{formatSalesFormCurrency(props.subTotal)}</span>
+						</CostPriceBreakdownHover>
 					</span>
 				</div>
 
@@ -198,7 +218,17 @@ export function SalesFormPricingOverview(props: SalesFormPricingOverviewProps) {
 							</span>
 						</div>
 						<span className="text-2xl font-black text-primary">
-							{formatSalesFormCurrency(props.grandTotal)}
+							<CostPriceBreakdownHover
+								breakdown={{
+									...props.totalBreakdown?.grandTotal,
+									displayPrice:
+										props.totalBreakdown?.grandTotal?.displayPrice ??
+										props.grandTotal,
+								}}
+								context={props.totalBreakdown?.context}
+							>
+								<span>{formatSalesFormCurrency(props.grandTotal)}</span>
+							</CostPriceBreakdownHover>
 						</span>
 					</div>
 				) : null}
