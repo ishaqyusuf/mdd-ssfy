@@ -9,14 +9,18 @@ import { useTableSettings } from "@/hooks/use-table-settings";
 import { openLink } from "@/lib/open-link";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { FormatAmount } from "@gnd/ui/custom/format-amount";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
-import { getCoreRowModel, type Row, useReactTable } from "@tanstack/react-table";
+import {
+	type Row,
+	getCoreRowModel,
+	useReactTable,
+} from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
@@ -32,7 +36,8 @@ import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set<string>();
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = ROW_HEIGHTS["sales-statistics"];
+const TABLE_ID = "sales-statistics";
+const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type ProductReportInput = RouterInputs["sales"]["getProductReport"];
 type ProductReportPage = {
@@ -225,7 +230,7 @@ export function DataTable({
 	const { getStickyStyle, getStickyClassName } = useStickyColumns({
 		columnVisibility,
 		table,
-		stickyColumns: STICKY_COLUMNS["sales-statistics"],
+		stickyColumns: tableConfig.stickyColumns,
 	});
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
@@ -235,7 +240,7 @@ export function DataTable({
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => ROW_HEIGHT,
+		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
 	});
 
@@ -283,14 +288,7 @@ export function DataTable({
 		});
 
 		return () => scrollElement.removeEventListener("scroll", checkLoadMore);
-	}, [
-		fetchNextPage,
-		hasNextPage,
-		isFetchingNextPage,
-		rows.length,
-		singlePage,
-		viewMode,
-	]);
+	}, [fetchNextPage, hasNextPage, isFetchingNextPage, singlePage, viewMode]);
 
 	const handleCellClick = useCallback((rowId: string) => {
 		const productId = Number(rowId);
@@ -318,11 +316,7 @@ export function DataTable({
 					scrollRef={parentRef}
 					isFetchingNextPage={isFetchingNextPage}
 					renderItem={(row) => (
-						<ProductGridCard
-							key={row.id}
-							row={row}
-							onOpen={handleCellClick}
-						/>
+						<ProductGridCard key={row.id} row={row} onOpen={handleCellClick} />
 					)}
 				/>
 			) : (
@@ -360,7 +354,8 @@ export function DataTable({
 											key={row.id}
 											row={row}
 											virtualStart={virtualRow.start}
-											rowHeight={ROW_HEIGHT}
+											rowHeight={tableConfig.rowHeight}
+											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}
 											nonClickableColumns={NON_CLICKABLE_COLUMNS}

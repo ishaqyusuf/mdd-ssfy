@@ -9,7 +9,7 @@ import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useTRPC } from "@/trpc/client";
-import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Table, TableBody } from "@gnd/ui/table";
@@ -29,7 +29,8 @@ import { DataTableHeader } from "./table-header";
 
 const NON_CLICKABLE_COLUMNS = new Set(["actions"]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = ROW_HEIGHTS["community-builders"];
+const TABLE_ID = "community-builders";
+const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type BuildersInput = RouterInputs["community"]["getBuilders"];
 type BuildersPage = {
@@ -119,7 +120,7 @@ export function DataTable({
 	const { getStickyStyle, getStickyClassName } = useStickyColumns({
 		columnVisibility,
 		table,
-		stickyColumns: STICKY_COLUMNS["community-builders"],
+		stickyColumns: tableConfig.stickyColumns,
 	});
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
@@ -129,7 +130,7 @@ export function DataTable({
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => ROW_HEIGHT,
+		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
 	});
 
@@ -208,7 +209,8 @@ export function DataTable({
 										key={row.id}
 										row={row}
 										virtualStart={virtualRow.start}
-										rowHeight={ROW_HEIGHT}
+										rowHeight={tableConfig.rowHeight}
+										tableStyle={tableConfig.style}
 										getStickyStyle={getStickyStyle}
 										getStickyClassName={getStickyClassName}
 										nonClickableColumns={NON_CLICKABLE_COLUMNS}

@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useCustomerServiceParams } from "@/hooks/use-customer-service-params";
 import { getColorFromName } from "@/lib/color";
 import { labelIdOptions } from "@/lib/utils";
@@ -38,17 +39,18 @@ export function getCustomerServiceRowId(item: CustomerServiceRow) {
 
 const selectColumn: Column = {
 	id: "select",
-	size: 50,
-	minSize: 50,
-	maxSize: 50,
+	...sizes.custom(50, 50),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		sticky: true,
 		skeleton: { type: "checkbox" },
-		className:
-			"w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(50, 50),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
 	},
 	cell: ({ row }) => (
 		<Checkbox
@@ -68,9 +70,7 @@ const appointmentColumn: Column = {
 	id: "appointment",
 	header: "Appointment",
 	accessorFn: (row) => row.scheduleDate,
-	size: 180,
-	minSize: 150,
-	maxSize: 240,
+	...sizes.custom(150, 240, 180),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -78,8 +78,10 @@ const appointmentColumn: Column = {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Appointment",
 		sortField: "scheduleDate",
-		className:
-			"w-[180px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(150, 240, 180),
+			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -95,14 +97,12 @@ const customerColumn: Column = {
 	id: "customer",
 	header: "Customer",
 	accessorFn: (row) => row.homeOwner,
-	size: 220,
-	minSize: 180,
-	maxSize: 320,
+	...sizes.custom(180, 320, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Customer",
-		className: "w-[220px] min-w-[180px]",
+		className: sizeClass(sizes.custom(180, 320, 220)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -121,14 +121,12 @@ const descriptionColumn: Column = {
 	id: "description",
 	header: "Description",
 	accessorFn: (row) => row.description,
-	size: 320,
-	minSize: 240,
-	maxSize: 520,
+	...sizes.custom(240, 520, 320),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-48" },
 		headerLabel: "Description",
-		className: "w-[320px] min-w-[240px]",
+		className: sizeClass(sizes.custom(240, 520, 320)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -148,15 +146,13 @@ const assignedToColumn: Column = {
 	id: "assignedTo",
 	header: "Assigned To",
 	accessorFn: (row) => row.tech?.name,
-	size: 190,
-	minSize: 160,
-	maxSize: 260,
+	...sizes.custom(160, 260, 190),
 	enableResizing: true,
 	meta: {
 		preventDefault: true,
 		skeleton: { type: "button", width: "w-28" },
 		headerLabel: "Assigned To",
-		className: "w-[190px] min-w-[160px]",
+		className: sizeClass(sizes.custom(160, 260, 190)),
 	},
 	cell: ({ row, table }) => {
 		const meta = table.options.meta as TableMeta | undefined;
@@ -169,15 +165,13 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorFn: (row) => row.status,
-	size: 150,
-	minSize: 130,
-	maxSize: 200,
+	...sizes.custom(130, 200, 150),
 	enableResizing: true,
 	meta: {
 		preventDefault: true,
 		skeleton: { type: "badge" },
 		headerLabel: "Status",
-		className: "w-[150px] min-w-[130px]",
+		className: sizeClass(sizes.custom(130, 200, 150)),
 	},
 	cell: ({ row }) => <StatusCell item={row.original} />,
 };
@@ -185,9 +179,7 @@ const statusColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	size: 100,
-	minSize: 88,
-	maxSize: 120,
+	...sizes.custom(88, 120, 100),
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -195,7 +187,7 @@ const actionsColumn: Column = {
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-16" },
-		className: "w-[100px] min-w-[88px]",
+		className: sizeClass(sizes.custom(88, 120, 100)),
 	},
 	cell: ({ row }) => <Actions item={row.original} />,
 };

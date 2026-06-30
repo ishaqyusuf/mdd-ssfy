@@ -10,7 +10,7 @@ import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useTRPC } from "@/trpc/client";
-import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { DndContext, closestCenter } from "@dnd-kit/core";
@@ -35,7 +35,7 @@ const NON_CLICKABLE_COLUMNS = new Set([
 	"status",
 	"actions",
 ]);
-const ROW_HEIGHT = ROW_HEIGHTS[TABLE_ID];
+const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type DispatchInput = RouterInputs["dispatch"]["index"];
 type DispatchPage = {
@@ -136,7 +136,7 @@ export function DataTable({
 	const { getStickyStyle, getStickyClassName } = useStickyColumns({
 		columnVisibility,
 		table,
-		stickyColumns: STICKY_COLUMNS[TABLE_ID],
+		stickyColumns: tableConfig.stickyColumns,
 	});
 	const { sensors, handleDragEnd } = useTableDnd(table);
 	const tableScroll = useTableScroll({
@@ -147,7 +147,7 @@ export function DataTable({
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => ROW_HEIGHT,
+		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
 	});
 
@@ -245,7 +245,8 @@ export function DataTable({
 											key={row.id}
 											row={row}
 											virtualStart={virtualRow.start}
-											rowHeight={ROW_HEIGHT}
+											rowHeight={tableConfig.rowHeight}
+											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}
 											nonClickableColumns={NON_CLICKABLE_COLUMNS}

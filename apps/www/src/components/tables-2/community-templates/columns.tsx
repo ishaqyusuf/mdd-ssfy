@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { Menu } from "@gnd/ui/custom/menu";
 
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
@@ -45,9 +46,7 @@ const modelColumn: Column = {
 	id: "model",
 	header: "Model",
 	accessorFn: (row) => row.modelName,
-	size: 320,
-	minSize: 240,
-	maxSize: 440,
+	...sizes.custom(240, 440, 320),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -55,8 +54,10 @@ const modelColumn: Column = {
 		skeleton: { type: "text", width: "w-44" },
 		headerLabel: "Model",
 		sortField: "modelName",
-		className:
-			"w-[320px] min-w-[240px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(240, 440, 320),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => {
 		const template = row.original;
@@ -84,14 +85,12 @@ const projectColumn: Column = {
 	id: "project",
 	header: "Project",
 	accessorFn: (row) => row.project?.title,
-	size: 280,
-	minSize: 220,
-	maxSize: 420,
+	...sizes.custom(220, 420, 280),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Project",
-		className: "w-[280px] min-w-[220px]",
+		className: sizeClass(sizes.custom(220, 420, 280)),
 	},
 	cell: ({ row }) => {
 		const project = row.original.project;
@@ -114,14 +113,12 @@ const unitsColumn: Column = {
 	id: "units",
 	header: "Units",
 	accessorFn: (row) => row._count?.homes ?? 0,
-	size: 120,
-	minSize: 100,
-	maxSize: 160,
+	...sizes.custom(100, 160, 120),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-10" },
 		headerLabel: "Units",
-		className: "w-[120px] min-w-[100px]",
+		className: sizeClass(sizes.custom(100, 160, 120)),
 	},
 	cell: ({ row }) => {
 		const template = row.original;
@@ -142,14 +139,12 @@ const unitsColumn: Column = {
 const modelCostColumn: Column = {
 	id: "modelCost",
 	header: "Model Cost",
-	size: 170,
-	minSize: 150,
-	maxSize: 220,
+	...sizes.custom(150, 220, 170),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Model Cost",
-		className: "w-[170px] min-w-[150px]",
+		className: sizeClass(sizes.custom(150, 220, 170)),
 	},
 	cell: ({ row }) => <ModelCostCell template={row.original} />,
 };
@@ -157,14 +152,12 @@ const modelCostColumn: Column = {
 const installCostColumn: Column = {
 	id: "installCost",
 	header: "Install Cost",
-	size: 190,
-	minSize: 160,
-	maxSize: 240,
+	...sizes.custom(160, 240, 190),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "button", width: "w-28" },
 		headerLabel: "Install Cost",
-		className: "w-[190px] min-w-[160px]",
+		className: sizeClass(sizes.custom(160, 240, 190)),
 	},
 	cell: ({ row }) => <InstallCostCell template={row.original} />,
 };
@@ -173,14 +166,12 @@ const configuredColumn: Column = {
 	id: "configured",
 	header: "Configured",
 	accessorFn: (row) => row.templateSummary?.configuredCount ?? 0,
-	size: 140,
-	minSize: 120,
-	maxSize: 180,
+	...sizes.custom(120, 180, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-16" },
 		headerLabel: "Configured",
-		className: "w-[140px] min-w-[120px]",
+		className: sizeClass(sizes.custom(120, 180, 140)),
 	},
 	cell: ({ row }) => {
 		const summary = row.original.templateSummary;
@@ -197,9 +188,7 @@ const configuredColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	size: 84,
-	minSize: 72,
-	maxSize: 100,
+	...sizes.xs,
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -207,7 +196,7 @@ const actionsColumn: Column = {
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-10" },
-		className: "w-[84px] min-w-[72px]",
+		className: sizeClass(sizes.xs),
 	},
 	cell: ({ row }) => <Actions template={row.original} />,
 };

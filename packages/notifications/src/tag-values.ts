@@ -25,9 +25,14 @@ export function explodeTagEntries(tags: Record<string, unknown>) {
   return Object.entries(tags).flatMap(([tagName, tagValue]) => {
     if (tagValue === undefined) return [];
     if (Array.isArray(tagValue)) {
-      return tagValue
-        .filter((value) => value !== undefined)
-        .map((value) => ({ tagName, tagValue: serializeTagValue(value) }));
+      const seen = new Set<string>();
+      return tagValue.flatMap((value) => {
+        if (value === undefined) return [];
+        const serialized = serializeTagValue(value);
+        if (seen.has(serialized)) return [];
+        seen.add(serialized);
+        return [{ tagName, tagValue: serialized }];
+      });
     }
     return [{ tagName, tagValue: serializeTagValue(tagValue) }];
   });

@@ -3,144 +3,164 @@
 import { cn } from "@gnd/ui/cn";
 import { TableCell, TableRow } from "@gnd/ui/table";
 import type {
-    Cell,
-    ColumnOrderState,
-    ColumnSizingState,
-    Row,
-    VisibilityState,
+	Cell,
+	ColumnOrderState,
+	ColumnSizingState,
+	Row,
+	VisibilityState,
 } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import { memo } from "react";
 import type React from "react";
 import type { CSSProperties } from "react";
 
-import { ACTIONS_FULL_WIDTH_CELL_CLASS, type TableColumnMeta } from "./types";
+import { getTableColumnSizeStyle } from "./table-sizes";
+import { getTableCellPaddingClass } from "./table-style";
+import {
+	ACTIONS_FULL_WIDTH_CELL_CLASS,
+	type TableColumnMeta,
+	type TableStyle,
+} from "./types";
 
 interface VirtualRowProps<TData> {
-    row: Row<TData>;
-    virtualStart: number;
-    rowHeight: number;
-    onCellClick?: (rowId: string, columnId: string) => void;
-    getStickyStyle: (columnId: string) => CSSProperties;
-    getStickyClassName: (columnId: string, baseClassName?: string) => string;
-    nonClickableColumns?: Set<string>;
-    columnSizing?: ColumnSizingState;
-    columnOrder?: ColumnOrderState;
-    columnVisibility?: VisibilityState;
-    isSelected?: boolean;
-    isExporting?: boolean;
-    showColumnDividers?: boolean;
-    rowClassName?: (row: Row<TData>) => string;
+	row: Row<TData>;
+	virtualStart: number;
+	rowHeight: number;
+	onCellClick?: (rowId: string, columnId: string) => void;
+	getStickyStyle: (columnId: string) => CSSProperties;
+	getStickyClassName: (columnId: string, baseClassName?: string) => string;
+	nonClickableColumns?: Set<string>;
+	columnSizing?: ColumnSizingState;
+	columnOrder?: ColumnOrderState;
+	columnVisibility?: VisibilityState;
+	isSelected?: boolean;
+	isExporting?: boolean;
+	showColumnDividers?: boolean;
+	tableStyle?: TableStyle;
+	rowClassName?: (row: Row<TData>) => string;
 }
 
 function VirtualRowInner<TData>({
-    row,
-    virtualStart,
-    rowHeight,
-    onCellClick,
-    getStickyStyle,
-    getStickyClassName,
-    nonClickableColumns = new Set(["select", "actions"]),
-    showColumnDividers = false,
-    rowClassName,
+	row,
+	virtualStart,
+	rowHeight,
+	onCellClick,
+	getStickyStyle,
+	getStickyClassName,
+	nonClickableColumns = new Set(["select", "actions"]),
+	showColumnDividers = false,
+	tableStyle = "default",
+	rowClassName,
 }: VirtualRowProps<TData>) {
-    const cells = row.getVisibleCells();
-    const lastCellId = cells[cells.length - 1]?.column.id ?? "";
-    const hasNonStickyBeforeActions = cells.some((cell) => {
-        if (cell.column.id === "actions") return false;
-        const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
-        return !(meta?.sticky ?? false);
-    });
+	const cells = row.getVisibleCells();
+	const lastCellId = cells[cells.length - 1]?.column.id ?? "";
+	const hasNonStickyBeforeActions = cells.some((cell) => {
+		if (cell.column.id === "actions") return false;
+		const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
+		return !(meta?.sticky ?? false);
+	});
 
-    return (
-        <TableRow
-            data-index={row.index}
-            className={cn(
-                "group cursor-pointer select-text",
-                "hover:bg-[#F2F1EF] hover:dark:bg-secondary",
-                "flex items-center border-0",
-                "absolute left-0 top-0 w-full min-w-full",
-                rowClassName?.(row),
-            )}
-            style={{
-                height: rowHeight,
-                transform: `translateY(${virtualStart}px)`,
-                contain: "layout style paint",
-            }}
-        >
-            {cells.map((cell: Cell<TData, unknown>, cellIndex: number) => {
-                const columnId = cell.column.id;
-                const meta = cell.column.columnDef.meta as
-                    | TableColumnMeta
-                    | undefined;
-                const isSticky = meta?.sticky ?? false;
-                const isActions = columnId === "actions";
-                const isLastBeforeActions =
-                    cellIndex === cells.length - 2 && lastCellId === "actions";
-                const actionsFullWidth =
-                    isActions && !hasNonStickyBeforeActions;
-                const shouldFlex =
-                    (isLastBeforeActions && !isSticky) || actionsFullWidth;
+	return (
+		<TableRow
+			data-index={row.index}
+			className={cn(
+				"group cursor-pointer select-text",
+				"hover:bg-[#F2F1EF] hover:dark:bg-secondary",
+				"flex items-center border-0",
+				"absolute left-0 top-0 w-full min-w-full",
+				rowClassName?.(row),
+			)}
+			style={{
+				height: rowHeight,
+				transform: `translateY(${virtualStart}px)`,
+				contain: "layout style paint",
+			}}
+		>
+			{cells.map((cell: Cell<TData, unknown>, cellIndex: number) => {
+				const columnId = cell.column.id;
+				const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
+				const isSticky = meta?.sticky ?? false;
+				const isActions = columnId === "actions";
+				const isLastBeforeActions =
+					cellIndex === cells.length - 2 && lastCellId === "actions";
+				const actionsFullWidth = isActions && !hasNonStickyBeforeActions;
+				const shouldFlex =
+					(isLastBeforeActions && !isSticky) || actionsFullWidth;
+				const columnSize = cell.column.getSize();
+				const minSize = cell.column.columnDef.minSize ?? columnSize;
+				const maxSize = cell.column.columnDef.maxSize ?? columnSize;
 
-                const cellStyle: CSSProperties = {
-                    width: actionsFullWidth ? undefined : cell.column.getSize(),
-                    ...(!actionsFullWidth && getStickyStyle(columnId)),
-                    ...(shouldFlex && { flex: 1 }),
-                };
+				const cellStyle: CSSProperties = {
+					...(!actionsFullWidth &&
+						getTableColumnSizeStyle({
+							size: columnSize,
+							minSize,
+							maxSize,
+						})),
+					width: actionsFullWidth ? undefined : columnSize,
+					minWidth: actionsFullWidth ? undefined : minSize,
+					maxWidth: actionsFullWidth ? undefined : maxSize,
+					...(!actionsFullWidth && getStickyStyle(columnId)),
+					...(shouldFlex && { flex: 1 }),
+				};
 
-                const cellClassName = actionsFullWidth
-                    ? ACTIONS_FULL_WIDTH_CELL_CLASS
-                    : getStickyClassName(columnId, meta?.className);
+				const cellClassName = actionsFullWidth
+					? ACTIONS_FULL_WIDTH_CELL_CLASS
+					: getStickyClassName(columnId, meta?.className);
 
-                return (
-                    <TableCell
-                        key={cell.id}
-                        className={cn(
-                            "flex h-full items-center border-b border-border",
-                            showColumnDividers &&
-                                cells.length - 1 !== cellIndex &&
-                                "border-r",
-                            cellClassName,
-                            isActions && "justify-center",
-                        )}
-                        style={cellStyle}
-                        onClick={() => {
-                            if (!nonClickableColumns.has(columnId)) {
-                                onCellClick?.(row.id, columnId);
-                            }
-                        }}
-                    >
-                        <div className="w-full overflow-hidden truncate">
-                            {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                            )}
-                        </div>
-                    </TableCell>
-                );
-            })}
-        </TableRow>
-    );
+				return (
+					<TableCell
+						key={cell.id}
+						className={cn(
+							"flex h-full items-center border-b border-border",
+							getTableCellPaddingClass(tableStyle),
+							showColumnDividers &&
+								cells.length - 1 !== cellIndex &&
+								"border-r",
+							cellClassName,
+							isActions && "justify-center",
+						)}
+						style={cellStyle}
+						onClick={() => {
+							if (!nonClickableColumns.has(columnId)) {
+								onCellClick?.(row.id, columnId);
+							}
+						}}
+					>
+						<div
+							className={cn(
+								"w-full overflow-hidden truncate",
+								meta?.contentClassName,
+							)}
+						>
+							{flexRender(cell.column.columnDef.cell, cell.getContext())}
+						</div>
+					</TableCell>
+				);
+			})}
+		</TableRow>
+	);
 }
 
 function arePropsEqual<TData>(
-    prevProps: VirtualRowProps<TData>,
-    nextProps: VirtualRowProps<TData>,
+	prevProps: VirtualRowProps<TData>,
+	nextProps: VirtualRowProps<TData>,
 ): boolean {
-    return (
-        prevProps.row.id === nextProps.row.id &&
-        prevProps.virtualStart === nextProps.virtualStart &&
-        prevProps.rowHeight === nextProps.rowHeight &&
-        prevProps.isSelected === nextProps.isSelected &&
-        prevProps.isExporting === nextProps.isExporting &&
-        prevProps.columnSizing === nextProps.columnSizing &&
-        prevProps.columnOrder === nextProps.columnOrder &&
-        prevProps.columnVisibility === nextProps.columnVisibility &&
-        prevProps.showColumnDividers === nextProps.showColumnDividers &&
-        prevProps.row.original === nextProps.row.original
-    );
+	return (
+		prevProps.row.id === nextProps.row.id &&
+		prevProps.virtualStart === nextProps.virtualStart &&
+		prevProps.rowHeight === nextProps.rowHeight &&
+		prevProps.isSelected === nextProps.isSelected &&
+		prevProps.isExporting === nextProps.isExporting &&
+		prevProps.columnSizing === nextProps.columnSizing &&
+		prevProps.columnOrder === nextProps.columnOrder &&
+		prevProps.columnVisibility === nextProps.columnVisibility &&
+		prevProps.showColumnDividers === nextProps.showColumnDividers &&
+		prevProps.tableStyle === nextProps.tableStyle &&
+		prevProps.row.original === nextProps.row.original
+	);
 }
 
 export const VirtualRow = memo(VirtualRowInner, arePropsEqual) as <TData>(
-    props: VirtualRowProps<TData>,
+	props: VirtualRowProps<TData>,
 ) => React.ReactNode;

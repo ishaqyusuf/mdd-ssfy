@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { cn } from "@/lib/utils";
@@ -29,16 +30,16 @@ const orderColumn: Column = {
 	id: "orderId",
 	header: "Order",
 	accessorKey: "orderId",
-	size: 180,
-	minSize: 150,
-	maxSize: 240,
+	...sizes.custom(150, 240, 180),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Order",
-		className:
-			"w-[180px] min-w-[150px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(150, 240, 180),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -57,14 +58,12 @@ const customerColumn: Column = {
 	id: "customer",
 	header: "Customer",
 	accessorKey: "displayName",
-	size: 300,
-	minSize: 220,
-	maxSize: 420,
+	...sizes.custom(220, 420, 300),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Customer",
-		className: "w-[300px] min-w-[220px]",
+		className: sizeClass(sizes.custom(220, 420, 300)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -84,14 +83,12 @@ const salesRepColumn: Column = {
 	id: "salesRep",
 	header: "Sales Rep",
 	accessorKey: "salesRep",
-	size: 180,
-	minSize: 140,
-	maxSize: 260,
+	...sizes.custom(140, 260, 180),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Sales Rep",
-		className: "w-[180px] min-w-[140px]",
+		className: sizeClass(sizes.custom(140, 260, 180)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -105,14 +102,12 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorKey: "inboundStatus",
-	size: 180,
-	minSize: 150,
-	maxSize: 240,
+	...sizes.custom(150, 240, 180),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge" },
 		headerLabel: "Status",
-		className: "w-[180px] min-w-[150px]",
+		className: sizeClass(sizes.custom(150, 240, 180)),
 	},
 	cell: ({ row }) => {
 		const label = getStatusLabel(row.original.inboundStatus);
@@ -130,17 +125,17 @@ const statusColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	size: 92,
-	minSize: 92,
-	maxSize: 92,
+	...sizes.custom(92, 92),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
-		className:
-			"w-[92px] min-w-[92px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(92, 92),
+			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => <InboundActions item={row.original} />,
 };

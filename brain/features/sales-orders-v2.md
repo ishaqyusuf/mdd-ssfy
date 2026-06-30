@@ -106,6 +106,7 @@
   - the canonical orders table uses compact 48px virtual rows so more orders fit in the working viewport while preserving the existing action buttons, sticky columns, and row-open behavior
   - the sticky `Order #` column defaults to a narrower 180px width with a 150px minimum so the table exposes more downstream columns without changing row actions or sort behavior
   - the `Address` column defaults to a compact 220px width with a 150px minimum while preserving truncation and tooltip access to full addresses
+  - the `Invoice` column defaults to 120px with a 100px minimum so money totals stay readable while freeing horizontal space for adjacent order columns
   - the legacy `/sales-rep` recent-sales mobile/list fallback now uses `ItemCard2`, a flat divider-based row instead of the older rounded card layout; it keeps customer, order id, invoice amount/status, lifecycle status, priority/dealer/inbound badges, phone/address, and row actions while targeting 3-5 visible rows in the sales-rep viewport.
 - Smart funnel status
   - `pending`

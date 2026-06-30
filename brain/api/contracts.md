@@ -95,7 +95,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - `inventories.orderInboundShipments({ salesOrderId })` returns inbound shipments linked to a sale through `InboundDemand`, including shipment items, stock-line received/ordered quantities, demand rows, and order-scoped counts for the sales overview Inventory `INBOUNDS` segment
   - `inventories.inboundShipments` returns general inbound rows with `linkedOrders[]` summary data, including order id, type/status, customer name/business name/phone, demand qty, received qty, demand count, and amount due/grand total where available
   - `inventories.updateInboundShipmentStatus` updates an inbound shipment lifecycle status and records an `inventory_inbound_activity` lifecycle event with `activityType=status_updated`
-  - inbound lifecycle activity payloads carry a `lifecycleEventId`; the notification channel is synced before writing, and the API ensures a timeline note exists for the event even when no channel recipients are configured
+  - inbound lifecycle activity payloads carry a `lifecycleEventId`; the notification channel is synced before writing, and `inventory_inbound_activity` creates the timeline note through the standard notification handler even when no channel recipients are configured. Repeated array tag values such as duplicate `orderNos` are deduped before `NoteTags` writes.
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.

@@ -1,6 +1,7 @@
 "use client";
 
 import Money from "@/components/_v1/money";
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useUnitInvoiceParams } from "@/hooks/use-unit-invoice-params";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
@@ -26,15 +27,13 @@ const dateColumn: Column = {
 	id: "date",
 	header: "Date",
 	accessorFn: (row) => row.createdAt,
-	size: 150,
-	minSize: 130,
-	maxSize: 190,
+	...sizes.custom(130, 190, 150),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Date",
 		sortField: "date",
-		className: "w-[150px] min-w-[130px]",
+		className: sizeClass(sizes.custom(130, 190, 150)),
 	},
 	cell: ({ row }) => (
 		<span className="font-mono text-sm">
@@ -47,15 +46,13 @@ const projectColumn: Column = {
 	id: "project",
 	header: "Project",
 	accessorFn: (row) => row.project?.title,
-	size: 300,
-	minSize: 220,
-	maxSize: 420,
+	...sizes.custom(220, 420, 300),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-44" },
 		headerLabel: "Project",
 		sortField: "project",
-		className: "w-[300px] min-w-[220px]",
+		className: sizeClass(sizes.custom(220, 420, 300)),
 	},
 	cell: ({ row }) => {
 		const project = row.original.project;
@@ -96,9 +93,7 @@ const unitColumn: Column = {
 	id: "lotBlock",
 	header: "Unit",
 	accessorFn: (row) => row.lotBlock,
-	size: 280,
-	minSize: 220,
-	maxSize: 380,
+	...sizes.custom(220, 380, 280),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -106,8 +101,10 @@ const unitColumn: Column = {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Unit",
 		sortField: "lotBlock",
-		className:
-			"w-[280px] min-w-[220px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(220, 380, 280),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -137,14 +134,12 @@ const statusColumn: Column = {
 	header: "Status",
 	accessorFn: (row) =>
 		row.jobCount ? "Installed" : row.production?.status || "Idle",
-	size: 170,
-	minSize: 140,
-	maxSize: 220,
+	...sizes.custom(140, 220, 170),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge" },
 		headerLabel: "Status",
-		className: "w-[170px] min-w-[140px]",
+		className: sizeClass(sizes.custom(140, 220, 170)),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -168,14 +163,12 @@ const invoiceColumn: Column = {
 	id: "invoice",
 	header: "Invoice",
 	accessorFn: (row) => row.invoice?.due ?? 0,
-	size: 160,
-	minSize: 140,
-	maxSize: 210,
+	...sizes.custom(140, 210, 160),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Invoice",
-		className: "w-[160px] min-w-[140px] text-right",
+		className: sizeClass(sizes.custom(140, 210, 160), "text-right"),
 	},
 	cell: ({ row }) => {
 		const invoice = row.original.invoice;
@@ -196,14 +189,12 @@ const invoiceTasksColumn: Column = {
 	id: "invoiceTasks",
 	header: "Tasks",
 	accessorFn: (row) => row.invoiceTaskCount || 0,
-	size: 110,
-	minSize: 90,
-	maxSize: 140,
+	...sizes.custom(90, 140, 110),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-10" },
 		headerLabel: "Tasks",
-		className: "w-[110px] min-w-[90px]",
+		className: sizeClass(sizes.custom(90, 140, 110)),
 	},
 	cell: ({ row }) => (
 		<span className="font-mono text-sm">
@@ -215,9 +206,7 @@ const invoiceTasksColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	size: 96,
-	minSize: 84,
-	maxSize: 120,
+	...sizes.custom(84, 120, 96),
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -225,7 +214,7 @@ const actionsColumn: Column = {
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-16" },
-		className: "w-[96px] min-w-[84px]",
+		className: sizeClass(sizes.custom(84, 120, 96)),
 	},
 	cell: ({ row }) => <Actions item={row.original} />,
 };

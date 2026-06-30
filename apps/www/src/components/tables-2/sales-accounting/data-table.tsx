@@ -9,7 +9,7 @@ import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useSalesAccountingStore } from "@/store/saless-account-store";
 import { useTRPC } from "@/trpc/client";
-import { ROW_HEIGHTS, STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Table, TableBody } from "@gnd/ui/table";
@@ -30,7 +30,7 @@ import { DataTableHeader } from "./table-header";
 const TABLE_ID = "sales-accounting";
 const NON_CLICKABLE_COLUMNS = new Set(["select", "actions"]);
 const COLUMN_IDS = getColumnIds(columns);
-const ROW_HEIGHT = ROW_HEIGHTS[TABLE_ID];
+const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 type SalesAccountingInput = RouterInputs["sales"]["getSalesAccountings"];
 type SalesAccountingPage = {
@@ -119,7 +119,7 @@ export function DataTable({
 	const { getStickyStyle, getStickyClassName } = useStickyColumns({
 		columnVisibility,
 		table,
-		stickyColumns: STICKY_COLUMNS[TABLE_ID],
+		stickyColumns: tableConfig.stickyColumns,
 	});
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
@@ -129,7 +129,7 @@ export function DataTable({
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => ROW_HEIGHT,
+		estimateSize: () => tableConfig.rowHeight,
 		overscan: 10,
 	});
 
@@ -211,7 +211,8 @@ export function DataTable({
 										key={row.id}
 										row={row}
 										virtualStart={virtualRow.start}
-										rowHeight={ROW_HEIGHT}
+										rowHeight={tableConfig.rowHeight}
+										tableStyle={tableConfig.style}
 										getStickyStyle={getStickyStyle}
 										getStickyClassName={getStickyClassName}
 										nonClickableColumns={NON_CLICKABLE_COLUMNS}

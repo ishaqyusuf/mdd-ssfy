@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { Badge } from "@gnd/ui/badge";
 import { cn } from "@gnd/ui/cn";
 import { Progress } from "@gnd/ui/custom/progress";
@@ -132,31 +133,29 @@ export const columns: Column[] = [
 		id: "category",
 		header: "Category",
 		accessorKey: "title",
-		size: 340,
-		minSize: 260,
-		maxSize: 540,
+		...sizes.custom(260, 540, 340),
 		enableResizing: true,
 		enableHiding: false,
 		meta: {
 			sticky: true,
 			skeleton: { type: "icon-text" },
 			headerLabel: "Category",
-			className:
-				"w-[340px] min-w-[260px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			className: sizeClass(
+				sizes.custom(260, 540, 340),
+				"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			),
 		},
 		cell: ({ row }) => <CategoryCell item={row.original} />,
 	},
 	{
 		id: "scope",
 		header: "Scope",
-		size: 220,
-		minSize: 180,
-		maxSize: 280,
+		...sizes.custom(180, 280, 220),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "tags" },
 			headerLabel: "Scope",
-			className: "w-[220px] min-w-[180px]",
+			className: sizeClass(sizes.custom(180, 280, 220)),
 		},
 		cell: ({ row }) => <ScopeCell item={row.original} />,
 	},
@@ -164,14 +163,12 @@ export const columns: Column[] = [
 		id: "importStatus",
 		header: "Import Status",
 		accessorKey: "categoryUid",
-		size: 160,
-		minSize: 130,
-		maxSize: 200,
+		...sizes.custom(130, 200, 160),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "badge" },
 			headerLabel: "Import Status",
-			className: "w-[160px] min-w-[130px]",
+			className: sizeClass(sizes.custom(130, 200, 160)),
 		},
 		cell: ({ row }) => <ImportStatusBadge item={row.original} />,
 	},
@@ -179,14 +176,12 @@ export const columns: Column[] = [
 		id: "productCount",
 		header: "Product Count",
 		accessorKey: "totalProducts",
-		size: 170,
-		minSize: 150,
-		maxSize: 220,
+		...sizes.custom(150, 220, 170),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Product Count",
-			className: "w-[170px] min-w-[150px] text-center",
+			className: sizeClass(sizes.custom(150, 220, 170), "text-center"),
 		},
 		cell: ({ row }) => <ProductCountCell item={row.original} />,
 	},
@@ -195,14 +190,12 @@ export const columns: Column[] = [
 		header: "Imported Rows",
 		accessorFn: (row) =>
 			(row.importedStandardCount ?? 0) + (row.importedCustomCount ?? 0),
-		size: 170,
-		minSize: 150,
-		maxSize: 220,
+		...sizes.custom(150, 220, 170),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Imported Rows",
-			className: cn("w-[170px] min-w-[150px] text-center"),
+			className: sizeClass(sizes.custom(150, 220, 170), "text-center"),
 		},
 		cell: ({ row }) => <ImportedRowsCell item={row.original} />,
 	},

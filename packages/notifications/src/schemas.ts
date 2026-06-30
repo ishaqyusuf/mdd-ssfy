@@ -655,6 +655,7 @@ export const inventoryInboundActivitySchema = z.object({
 	documentIds: z.array(z.string()).optional(),
 	orderNos: z.array(z.string()).optional(),
 	note: z.string().optional().nullable(),
+	meta: z.record(z.string(), z.unknown()).optional(),
 });
 export type InventoryInboundActivityInput = z.infer<
 	typeof inventoryInboundActivitySchema

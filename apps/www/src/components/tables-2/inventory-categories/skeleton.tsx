@@ -1,10 +1,12 @@
 "use client";
 
 import { TableSkeleton } from "@/components/tables-2/core";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableSettings } from "@/utils/table-settings";
 
 import { columns } from "./columns";
+
+const tableConfig = TABLE_CONFIGS["inventory-categories"];
 
 type Props = {
 	initialSettings?: Partial<TableSettings>;
@@ -25,9 +27,7 @@ export function InventoryCategoriesSkeleton({
 			columnVisibility={initialSettings?.columns}
 			columnSizing={initialSettings?.sizing}
 			columnOrder={initialSettings?.order}
-			stickyColumnIds={STICKY_COLUMNS["inventory-categories"].map(
-				({ id }) => id,
-			)}
+			tableConfig={tableConfig}
 		/>
 	);
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -66,17 +67,18 @@ function getInvoiceToneClass(item: SalesQuote) {
 
 const selectColumn: Column = {
 	id: "select",
-	size: 50,
-	minSize: 50,
-	maxSize: 50,
+	...sizes.custom(50, 50),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		sticky: true,
 		skeleton: { type: "checkbox" },
-		className:
-			"w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(50, 50),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
 	},
 	cell: ({ row }) => (
 		<Checkbox
@@ -96,17 +98,17 @@ const quoteIdColumn: Column = {
 	id: "orderId",
 	header: "Quote #",
 	accessorKey: "orderId",
-	size: 180,
-	minSize: 150,
-	maxSize: 280,
+	...sizes.custom(150, 280, 180),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Quote #",
 		sortField: "orderId",
-		className:
-			"w-[180px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(150, 280, 180),
+			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => (
 		<div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
@@ -134,15 +136,13 @@ const salesDateColumn: Column = {
 	id: "salesDate",
 	header: "Date",
 	accessorKey: "salesDate",
-	size: 120,
-	minSize: 100,
-	maxSize: 180,
+	...sizes.sm,
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Date",
 		sortField: "createdAt",
-		className: "w-[120px] min-w-[100px]",
+		className: sizeClass(sizes.sm),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">
@@ -155,14 +155,12 @@ const customerColumn: Column = {
 	id: "displayName",
 	header: "Customer",
 	accessorKey: "displayName",
-	size: 260,
-	minSize: 180,
-	maxSize: 420,
+	...sizes.custom(180, 420, 260),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Customer",
-		className: "w-[260px] min-w-[180px]",
+		className: sizeClass(sizes.custom(180, 420, 260)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -179,14 +177,12 @@ const phoneColumn: Column = {
 	id: "customerPhone",
 	header: "Phone",
 	accessorKey: "customerPhone",
-	size: 150,
-	minSize: 120,
-	maxSize: 200,
+	...sizes.custom(120, 200, 150),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Phone",
-		className: "w-[150px] min-w-[120px]",
+		className: sizeClass(sizes.custom(120, 200, 150)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -200,14 +196,12 @@ const addressColumn: Column = {
 	id: "address",
 	header: "Address",
 	accessorKey: "address",
-	size: 220,
-	minSize: 150,
-	maxSize: 360,
+	...sizes.lg,
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Address",
-		className: "w-[220px] min-w-[150px]",
+		className: sizeClass(sizes.lg),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -221,15 +215,13 @@ const invoiceColumn: Column = {
 	id: "invoiceTotal",
 	header: "Invoice",
 	accessorFn: (row) => row.invoice.total,
-	size: 140,
-	minSize: 110,
-	maxSize: 200,
+	...sizes.custom(110, 200, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Invoice",
 		sortField: "grandTotal",
-		className: "w-[140px] min-w-[110px] text-right",
+		className: sizeClass(sizes.custom(110, 200, 140), "text-right"),
 	},
 	cell: ({ row }) => <InvoiceCell item={row.original} />,
 };
@@ -238,14 +230,12 @@ const statusColumn: Column = {
 	id: "invoiceStatus",
 	header: "Status",
 	accessorFn: (row) => getInvoiceStatusLabel(row),
-	size: 130,
-	minSize: 110,
-	maxSize: 180,
+	...sizes.custom(110, 180, 130),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-20" },
 		headerLabel: "Status",
-		className: "w-[130px] min-w-[110px]",
+		className: sizeClass(sizes.custom(110, 180, 130)),
 	},
 	cell: ({ row }) => (
 		<Badge
@@ -264,14 +254,12 @@ const salesRepColumn: Column = {
 	id: "salesRepInitial",
 	header: "Sales rep",
 	accessorKey: "salesRepInitial",
-	size: 120,
-	minSize: 90,
-	maxSize: 160,
+	...sizes.custom(90, 160, 120),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-16" },
 		headerLabel: "Sales rep",
-		className: "w-[120px] min-w-[90px]",
+		className: sizeClass(sizes.custom(90, 160, 120)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">
@@ -283,17 +271,17 @@ const salesRepColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	size: 144,
-	minSize: 144,
-	maxSize: 144,
+	...sizes.custom(144, 144),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
-		className:
-			"w-[144px] min-w-[144px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(144, 144),
+			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => <ActionCell item={row.original} />,
 };

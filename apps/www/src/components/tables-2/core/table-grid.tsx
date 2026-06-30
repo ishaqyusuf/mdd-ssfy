@@ -2,7 +2,7 @@
 
 import { cn } from "@gnd/ui/cn";
 import type { Row } from "@tanstack/react-table";
-import type { RefObject, ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 
 interface TableGridProps<TData> {
 	rows: Row<TData>[];

@@ -1,9 +1,11 @@
 import { TableSkeleton } from "@/components/tables-2/core";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableSettings } from "@/utils/table-settings";
 import type { ColumnDef } from "@tanstack/react-table";
 
 import { type UnitProductionRow, columns } from "./columns";
+
+const tableConfig = TABLE_CONFIGS["unit-productions"];
 
 type Props = {
 	initialSettings?: Partial<TableSettings>;
@@ -26,7 +28,7 @@ export function UnitProductionsSkeleton({
 			columnVisibility={initialSettings?.columns}
 			columnSizing={initialSettings?.sizing}
 			columnOrder={initialSettings?.order}
-			stickyColumnIds={STICKY_COLUMNS["unit-productions"].map(({ id }) => id)}
+			tableConfig={tableConfig}
 		/>
 	);
 }

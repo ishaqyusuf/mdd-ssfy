@@ -6,8 +6,12 @@ import {
 
 export const inventoryInboundActivity: NotificationHandler = {
 	schema: inventoryInboundActivitySchema,
+	createActivityWithoutContact: true,
 	createActivity(data, author) {
-		const payload: InventoryInboundActivityTags = {
+		const documentIds = Array.from(new Set(data.documentIds ?? []));
+		const orderNos = Array.from(new Set(data.orderNos ?? []));
+		const payload: InventoryInboundActivityTags & Record<string, unknown> = {
+			...(data.meta ?? {}),
 			type: "inventory_inbound_activity",
 			source: "user",
 			priority: 5,
@@ -19,8 +23,8 @@ export const inventoryInboundActivity: NotificationHandler = {
 				? { lifecycleEventId: data.lifecycleEventId }
 				: {}),
 			activityType: data.activityType,
-			...(data.documentIds?.length ? { documentIds: data.documentIds } : {}),
-			...(data.orderNos?.length ? { orderNos: data.orderNos } : {}),
+			...(documentIds.length ? { documentIds } : {}),
+			...(orderNos.length ? { orderNos } : {}),
 		};
 
 		const subjectMap = {

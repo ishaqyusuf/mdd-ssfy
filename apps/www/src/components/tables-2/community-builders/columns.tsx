@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -31,17 +32,17 @@ const builderColumn: Column = {
 	id: "builder",
 	header: "Builder",
 	accessorFn: (row) => row.name,
-	size: 340,
-	minSize: 240,
-	maxSize: 480,
+	...sizes.custom(240, 480, 340),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-44" },
 		headerLabel: "Builder",
 		sortField: "name",
-		className:
-			"w-[340px] min-w-[240px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(240, 480, 340),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => {
 		const builder = row.original;
@@ -70,14 +71,12 @@ const projectsColumn: Column = {
 	id: "projects",
 	header: "Projects",
 	accessorFn: (row) => row._count?.projects ?? 0,
-	size: 140,
-	minSize: 110,
-	maxSize: 180,
+	...sizes.custom(110, 180, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-12" },
 		headerLabel: "Projects",
-		className: "w-[140px] min-w-[110px]",
+		className: sizeClass(sizes.custom(110, 180, 140)),
 	},
 	cell: ({ row }) => (
 		<span className="font-mono text-sm">
@@ -90,14 +89,12 @@ const tasksColumn: Column = {
 	id: "tasks",
 	header: "Tasks",
 	accessorFn: (row) => row._count?.tasks ?? 0,
-	size: 140,
-	minSize: 110,
-	maxSize: 180,
+	...sizes.custom(110, 180, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-12" },
 		headerLabel: "Tasks",
-		className: "w-[140px] min-w-[110px]",
+		className: sizeClass(sizes.custom(110, 180, 140)),
 	},
 	cell: ({ row }) => (
 		<span className="font-mono text-sm">{row.original._count?.tasks ?? 0}</span>
@@ -108,14 +105,12 @@ const homesColumn: Column = {
 	id: "homes",
 	header: "Homes",
 	accessorFn: (row) => row._count?.homes ?? 0,
-	size: 140,
-	minSize: 110,
-	maxSize: 180,
+	...sizes.custom(110, 180, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-12" },
 		headerLabel: "Homes",
-		className: "w-[140px] min-w-[110px]",
+		className: sizeClass(sizes.custom(110, 180, 140)),
 	},
 	cell: ({ row }) => (
 		<span className="font-mono text-sm">{row.original._count?.homes ?? 0}</span>
@@ -125,9 +120,7 @@ const homesColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	size: 84,
-	minSize: 72,
-	maxSize: 100,
+	...sizes.xs,
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -135,7 +128,7 @@ const actionsColumn: Column = {
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-10" },
-		className: "w-[84px] min-w-[72px]",
+		className: sizeClass(sizes.xs),
 	},
 	cell: ({ row }) => <Actions builder={row.original} />,
 };

@@ -35,6 +35,7 @@ Migrate route-level table pages in `apps/www` to the current `components/tables-
   - Reuse existing route queries and filter hooks.
   - Reuse existing page headers.
   - Do not change `components/tables-2/core`.
+  - 2026-06-30 core exception: `components/tables-2/core` now owns configurable table style padding and config-driven row/header height consumption so migrated domains do not duplicate spacing and height constants.
   - The older `apps/www/src/components/tables/sales-orders-v2/*` directory was unused by imports and has been removed.
   - `apps/www/src/components/tables/.DS_Store` was a tracked filesystem artifact and has been removed.
 - Legacy table generations still active:
@@ -64,7 +65,10 @@ Migrate route-level table pages in `apps/www` to the current `components/tables-
    - If a domain needs a modified header, keep that change inside `components/tables-2/<domain>/table-header.tsx`.
 3. Add or reuse table settings only where required by the Orders V2 table behavior.
    - Prefer minimal table config additions outside core.
-   - Do not block a migration on broad table-registry redesign.
+  - Do not block a migration on broad table-registry redesign.
+  - 2026-06-30 update: current `tables-2` domains should consume `TABLE_CONFIGS[tableId]` for sticky columns, sort maps, non-reorderable columns, row height, header height, and table style. Existing migrated domains are set to compact style.
+  - 2026-06-30 update: `components/tables-2/core/table-sizes.ts` owns reusable local column size tokens (`xs`, `sm`, `md`, `lg`, and `custom`) plus `sizeClass(...)` for `meta.className`. Current migrated `tables-2` column definitions use those tokens for TanStack sizing and table cell width classes, while `TABLE_CONFIGS` sticky widths reference the same size source where applicable.
+  - 2026-06-30 update: `TableColumnMeta.contentClassName` is available for inner cell content alignment. Select/checkbox columns use it to center row checkboxes while header select-all cells add `justify-center` in their local header classes.
 4. Create a migration checklist per domain.
    - Track route, old table component, existing query, existing filter hook, existing header, new `tables-2` folder, cleanup candidate, validation status.
 5. Validation.

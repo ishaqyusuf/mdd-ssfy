@@ -7,16 +7,13 @@ import {
 	type TableColumnMeta,
 	type TableScrollState,
 	getHeaderLabel,
+	getTableCellPaddingClass,
 } from "@/components/tables-2/core";
 import { DraggableHeader } from "@/components/tables-2/draggable-header";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
-import {
-	NON_REORDERABLE_COLUMNS,
-	SORT_FIELD_MAPS,
-	STICKY_COLUMNS,
-} from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableId } from "@/utils/table-settings";
 import {
 	SortableContext,
@@ -45,6 +42,7 @@ const HEADER_CELL_BACKGROUND_STYLE = {
 		"color-mix(in oklab, var(--sidebar-accent) 88%, var(--foreground))",
 };
 const TABLE_ID = "sales-dispatch" satisfies TableId;
+const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 export function DataTableHeader<TData>({
 	table,
@@ -56,14 +54,14 @@ export function DataTableHeader<TData>({
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,
-		stickyColumns: STICKY_COLUMNS[TABLE_ID],
+		stickyColumns: tableConfig.stickyColumns,
 	});
 	const sortableColumnIds = useMemo(() => {
 		if (!table) return [];
 
 		return table
 			.getAllLeafColumns()
-			.filter((column) => !NON_REORDERABLE_COLUMNS[TABLE_ID].has(column.id))
+			.filter((column) => !tableConfig.nonReorderableColumns.has(column.id))
 			.map((column) => column.id);
 	}, [table]);
 
@@ -79,7 +77,8 @@ export function DataTableHeader<TData>({
 			{table.getHeaderGroups().map((headerGroup) => (
 				<TableRow
 					key={headerGroup.id}
-					className="flex h-[45px] min-w-full items-center !border-b-0 hover:bg-transparent"
+					className="flex min-w-full items-center !border-b-0 hover:bg-transparent"
+					style={{ height: tableConfig.headerHeight }}
 				>
 					<SortableContext
 						items={sortableColumnIds}
@@ -93,7 +92,7 @@ export function DataTableHeader<TData>({
 							const isSticky = meta?.sticky ?? false;
 							const isActions = columnId === "actions";
 							const canReorder =
-								!NON_REORDERABLE_COLUMNS[TABLE_ID].has(columnId);
+								!tableConfig.nonReorderableColumns.has(columnId);
 
 							if (!isVisible(columnId)) return null;
 
@@ -143,19 +142,23 @@ export function DataTableHeader<TData>({
 								const stickyClass = getStickyClassName(
 									columnId,
 									cn(
-										"group/header relative h-full px-4 border-t border-border flex items-center",
+										"group/header relative h-full border-t border-border flex items-center",
+										getTableCellPaddingClass(tableConfig.style),
 										showRightDivider && "border-r",
+										columnId === "select" && "justify-center",
 									),
 								);
 								const finalClassName = isActions
 									? actionsFullWidth
 										? cn(
 												ACTIONS_FULL_WIDTH_HEADER_CLASS,
+												getTableCellPaddingClass(tableConfig.style),
 												HEADER_BACKGROUND_CLASS,
 												showRightDivider && "border-r",
 											)
 										: cn(
 												ACTIONS_STICKY_HEADER_CLASS,
+												getTableCellPaddingClass(tableConfig.style),
 												HEADER_BACKGROUND_CLASS,
 												showRightDivider && "border-r",
 											)
@@ -190,6 +193,7 @@ export function DataTableHeader<TData>({
 										HEADER_BACKGROUND_CLASS,
 										showRightDivider && "border-r",
 									)}
+									tableStyle={tableConfig.style}
 								>
 									<div className="flex min-w-0 flex-1 items-center overflow-hidden">
 										{renderHeaderContent(
@@ -223,7 +227,7 @@ function renderHeaderContent<TData>(
 	tableScroll?: TableScrollState,
 ) {
 	const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
-	const sortField = meta?.sortField ?? SORT_FIELD_MAPS[TABLE_ID][columnId];
+	const sortField = meta?.sortField ?? tableConfig.sortFieldMap[columnId];
 	const isRightAligned = meta?.className?.split(/\s+/).includes("text-right");
 
 	if (columnId === "select") {

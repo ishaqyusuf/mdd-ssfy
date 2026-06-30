@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useSalesAccountingParams } from "@/hooks/use-sales-accounting-params";
 import { formatCurrency } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -68,17 +69,18 @@ function getStatusLabel(item: SalesAccountingRow) {
 
 const selectColumn: Column = {
 	id: "select",
-	size: 50,
-	minSize: 50,
-	maxSize: 50,
+	...sizes.custom(50, 50),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		sticky: true,
 		skeleton: { type: "checkbox" },
-		className:
-			"w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(50, 50),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
 	},
 	cell: ({ row }) => (
 		<Checkbox
@@ -102,16 +104,16 @@ const dateColumn: Column = {
 	id: "createdAt",
 	header: "Date",
 	accessorKey: "createdAt",
-	size: 150,
-	minSize: 130,
-	maxSize: 210,
+	...sizes.custom(130, 210, 150),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Date",
-		className:
-			"w-[150px] min-w-[130px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(130, 210, 150),
+			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -129,14 +131,12 @@ const amountColumn: Column = {
 	id: "amount",
 	header: "Amount",
 	accessorKey: "amount",
-	size: 140,
-	minSize: 120,
-	maxSize: 190,
+	...sizes.custom(120, 190, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Amount",
-		className: "w-[140px] min-w-[120px]",
+		className: sizeClass(sizes.custom(120, 190, 140)),
 	},
 	cell: ({ row }) => {
 		const amount = toMoneyNumber(row.original.amount);
@@ -158,14 +158,12 @@ const descriptionColumn: Column = {
 	id: "description",
 	header: "Description",
 	accessorKey: "description",
-	size: 300,
-	minSize: 220,
-	maxSize: 460,
+	...sizes.custom(220, 460, 300),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-44" },
 		headerLabel: "Description",
-		className: "w-[300px] min-w-[220px]",
+		className: sizeClass(sizes.custom(220, 460, 300)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -184,14 +182,12 @@ const orderColumn: Column = {
 	id: "orderIds",
 	header: "Order #",
 	accessorKey: "orderIds",
-	size: 220,
-	minSize: 170,
-	maxSize: 320,
+	...sizes.custom(170, 320, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-32" },
 		headerLabel: "Order #",
-		className: "w-[220px] min-w-[170px]",
+		className: sizeClass(sizes.custom(170, 320, 220)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -215,14 +211,12 @@ const salesRepColumn: Column = {
 	id: "salesReps",
 	header: "Sales Rep",
 	accessorFn: (row) => row.salesReps?.join(", "),
-	size: 220,
-	minSize: 160,
-	maxSize: 320,
+	...sizes.custom(160, 320, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-32" },
 		headerLabel: "Sales Rep",
-		className: "w-[220px] min-w-[160px]",
+		className: sizeClass(sizes.custom(160, 320, 220)),
 	},
 	cell: ({ row }) => {
 		const reps = row.original.salesReps?.filter(Boolean) ?? [];
@@ -247,14 +241,12 @@ const processedByColumn: Column = {
 	id: "processedBy",
 	header: "Processed By",
 	accessorKey: "authorName",
-	size: 190,
-	minSize: 150,
-	maxSize: 260,
+	...sizes.custom(150, 260, 190),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Processed By",
-		className: "w-[190px] min-w-[150px]",
+		className: sizeClass(sizes.custom(150, 260, 190)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -268,14 +260,12 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Payment Status",
 	accessorKey: "status",
-	size: 210,
-	minSize: 160,
-	maxSize: 280,
+	...sizes.custom(160, 280, 210),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-28" },
 		headerLabel: "Payment Status",
-		className: "w-[210px] min-w-[160px]",
+		className: sizeClass(sizes.custom(160, 280, 210)),
 	},
 	cell: ({ row }) => (
 		<Progress>
@@ -288,14 +278,12 @@ const subTotalColumn: Column = {
 	id: "subTotal",
 	header: "Sub Total",
 	accessorKey: "subTotal",
-	size: 130,
-	minSize: 110,
-	maxSize: 180,
+	...sizes.custom(110, 180, 130),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Sub Total",
-		className: "w-[130px] min-w-[110px]",
+		className: sizeClass(sizes.custom(110, 180, 130)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate font-mono text-sm text-muted-foreground">
@@ -308,14 +296,12 @@ const laborColumn: Column = {
 	id: "labor",
 	header: "Labor",
 	accessorKey: "laborCost",
-	size: 120,
-	minSize: 100,
-	maxSize: 170,
+	...sizes.custom(100, 170, 120),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Labor",
-		className: "w-[120px] min-w-[100px]",
+		className: sizeClass(sizes.custom(100, 170, 120)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate font-mono text-sm text-muted-foreground">
@@ -328,14 +314,12 @@ const deliveryColumn: Column = {
 	id: "delivery",
 	header: "Delivery",
 	accessorKey: "deliveryCost",
-	size: 120,
-	minSize: 100,
-	maxSize: 170,
+	...sizes.custom(100, 170, 120),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Delivery",
-		className: "w-[120px] min-w-[100px]",
+		className: sizeClass(sizes.custom(100, 170, 120)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate font-mono text-sm text-muted-foreground">
@@ -347,17 +331,17 @@ const deliveryColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	size: 92,
-	minSize: 92,
-	maxSize: 92,
+	...sizes.custom(92, 92),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
-		className:
-			"w-[92px] min-w-[92px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(92, 92),
+			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => <SalesAccountingActions item={row.original} />,
 };

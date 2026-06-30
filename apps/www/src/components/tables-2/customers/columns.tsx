@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useCustomerOverviewV2SheetQuery } from "@/hooks/use-customer-overview-v2-sheet-query";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -35,17 +36,17 @@ const customerColumn: Column = {
 	id: "customer",
 	header: "Customer",
 	accessorFn: (row) => getDisplayName(row),
-	size: 300,
-	minSize: 220,
-	maxSize: 440,
+	...sizes.custom(220, 440, 300),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Customer",
 		sortField: "name",
-		className:
-			"w-[300px] min-w-[220px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(220, 440, 300),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => {
 		const customer = row.original;
@@ -88,15 +89,13 @@ const phoneColumn: Column = {
 	id: "phoneNo",
 	header: "Phone",
 	accessorKey: "phoneNo",
-	size: 160,
-	minSize: 130,
-	maxSize: 220,
+	...sizes.custom(130, 220, 160),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Phone",
 		sortField: "phoneNo",
-		className: "w-[160px] min-w-[130px]",
+		className: sizeClass(sizes.custom(130, 220, 160)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -110,14 +109,12 @@ const secondaryContactColumn: Column = {
 	id: "secondaryContact",
 	header: "Secondary",
 	accessorFn: (row) => row.phoneNo2 || row.email,
-	size: 220,
-	minSize: 160,
-	maxSize: 320,
+	...sizes.custom(160, 320, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-32" },
 		headerLabel: "Secondary",
-		className: "w-[220px] min-w-[160px]",
+		className: sizeClass(sizes.custom(160, 320, 220)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -133,15 +130,13 @@ const emailColumn: Column = {
 	id: "email",
 	header: "Email",
 	accessorKey: "email",
-	size: 260,
-	minSize: 180,
-	maxSize: 360,
+	...sizes.custom(180, 360, 260),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Email",
 		sortField: "email",
-		className: "w-[260px] min-w-[180px]",
+		className: sizeClass(sizes.custom(180, 360, 260)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -155,15 +150,13 @@ const addressColumn: Column = {
 	id: "address",
 	header: "Address",
 	accessorKey: "address",
-	size: 340,
-	minSize: 220,
-	maxSize: 520,
+	...sizes.custom(220, 520, 340),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-44" },
 		headerLabel: "Address",
 		sortField: "address",
-		className: "w-[340px] min-w-[220px]",
+		className: sizeClass(sizes.custom(220, 520, 340)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -176,17 +169,17 @@ const addressColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	size: 92,
-	minSize: 92,
-	maxSize: 92,
+	...sizes.custom(92, 92),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
-		className:
-			"w-[92px] min-w-[92px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(92, 92),
+			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => <CustomerActions customer={row.original} />,
 };

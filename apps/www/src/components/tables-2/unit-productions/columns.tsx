@@ -1,6 +1,7 @@
 "use client";
 
 import UnitTaskProductionAction from "@/components/_v1/actions/unit-task-production-actions";
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import type { IHomeTask } from "@/types/community";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -20,17 +21,18 @@ export function getUnitProductionRowId(item: UnitProductionRow) {
 
 const selectColumn: Column = {
 	id: "select",
-	size: 50,
-	minSize: 50,
-	maxSize: 50,
+	...sizes.custom(50, 50),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		sticky: true,
 		skeleton: { type: "checkbox" },
-		className:
-			"w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(50, 50),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
 	},
 	cell: ({ row }) => (
 		<Checkbox
@@ -50,9 +52,7 @@ const dueDateColumn: Column = {
 	id: "dueDate",
 	header: "# / Due Date",
 	accessorFn: (row) => row.productionDueDate,
-	size: 170,
-	minSize: 150,
-	maxSize: 220,
+	...sizes.custom(150, 220, 170),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -60,8 +60,10 @@ const dueDateColumn: Column = {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "# / Due Date",
 		sortField: "dueDate",
-		className:
-			"w-[170px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(150, 220, 170),
+			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -83,15 +85,13 @@ const taskColumn: Column = {
 	id: "task",
 	header: "Task",
 	accessorFn: (row) => row.taskName,
-	size: 260,
-	minSize: 220,
-	maxSize: 380,
+	...sizes.custom(220, 380, 260),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Task",
 		sortField: "task",
-		className: "w-[260px] min-w-[220px]",
+		className: sizeClass(sizes.custom(220, 380, 260)),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -114,15 +114,13 @@ const unitColumn: Column = {
 	id: "unit",
 	header: "Unit",
 	accessorFn: (row) => row.home?.lotBlock,
-	size: 240,
-	minSize: 190,
-	maxSize: 340,
+	...sizes.custom(190, 340, 240),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Unit",
 		sortField: "unit",
-		className: "w-[240px] min-w-[190px]",
+		className: sizeClass(sizes.custom(190, 340, 240)),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -146,15 +144,13 @@ const projectColumn: Column = {
 	id: "project",
 	header: "Project",
 	accessorFn: (row) => row.project?.title,
-	size: 260,
-	minSize: 210,
-	maxSize: 380,
+	...sizes.custom(210, 380, 260),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Project",
 		sortField: "project",
-		className: "w-[260px] min-w-[210px]",
+		className: sizeClass(sizes.custom(210, 380, 260)),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -178,14 +174,12 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorFn: (row) => row.status,
-	size: 180,
-	minSize: 150,
-	maxSize: 240,
+	...sizes.custom(150, 240, 180),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge" },
 		headerLabel: "Status",
-		className: "w-[180px] min-w-[150px]",
+		className: sizeClass(sizes.custom(150, 240, 180)),
 	},
 	cell: ({ row }) => {
 		const item = row.original;
@@ -210,9 +204,7 @@ const statusColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	size: 124,
-	minSize: 112,
-	maxSize: 150,
+	...sizes.custom(112, 150, 124),
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -220,7 +212,7 @@ const actionsColumn: Column = {
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-24" },
-		className: "w-[124px] min-w-[112px]",
+		className: sizeClass(sizes.custom(112, 150, 124)),
 	},
 	cell: ({ row }) => (
 		<div className="relative z-10 flex items-center justify-end gap-2">

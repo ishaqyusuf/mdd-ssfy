@@ -14,7 +14,6 @@ import {
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
 import { stripSpecialCharacters } from "@gnd/utils";
-import { createActivity } from "@notifications/activities";
 import { getSubscribersAccount } from "@notifications/channel-subscribers";
 import { syncChannels } from "@notifications/channels-query";
 import { mergeTagRows } from "@notifications/tag-values";
@@ -102,66 +101,23 @@ async function createInboundActivity(
 			}
 		: undefined;
 
-	try {
-		const notifications = new Notifications(ctx.db);
-		await notifications.create(
-			"inventory_inbound_activity",
-			{
-				inboundId: input.inboundId,
-				supplierId: input.supplierId ?? null,
-				supplierName: input.supplierName ?? null,
-				reference: input.reference ?? null,
-				lifecycleEventId,
-				activityType: input.activityType,
-				note: input.note ?? null,
-				documentIds: input.documentIds ?? [],
-				orderNos: input.orderNos ?? [],
-			},
-			notificationOptions,
-		);
-	} catch {
-		// The timeline note below is the durable lifecycle record for the UI.
-	}
-
-	const existingTimelineEvent = await ctx.db.notePad.findFirst({
-		where: {
-			deletedAt: null,
-			tags: {
-				some: {
-					tagName: "lifecycleEventId",
-					tagValue: lifecycleEventId,
-				},
-			},
+	const notifications = new Notifications(ctx.db);
+	await notifications.create(
+		"inventory_inbound_activity",
+		{
+			inboundId: input.inboundId,
+			supplierId: input.supplierId ?? null,
+			supplierName: input.supplierName ?? null,
+			reference: input.reference ?? null,
+			lifecycleEventId,
+			activityType: input.activityType,
+			note: input.note ?? null,
+			documentIds: input.documentIds ?? [],
+			orderNos: input.orderNos ?? [],
+			meta: input.meta ?? {},
 		},
-		select: {
-			id: true,
-		},
-	});
-
-	if (!existingTimelineEvent && authorContact?.id) {
-		await createActivity(
-			ctx.db,
-			{
-				type: "inventory_inbound_activity",
-				source: "user",
-				subject: input.subject,
-				headline: input.headline,
-				note: input.note ?? undefined,
-				tags: {
-					inboundId: input.inboundId,
-					supplierId: input.supplierId ?? null,
-					supplierName: input.supplierName ?? null,
-					reference: input.reference ?? null,
-					lifecycleEventId,
-					activityType: input.activityType,
-					documentIds: input.documentIds ?? [],
-					orderNos: input.orderNos ?? [],
-					...(input.meta ?? {}),
-				},
-			},
-			authorContact.id,
-		);
-	}
+		notificationOptions,
+	);
 }
 
 async function matchExtractionLines(ctx: TRPCContext, extractionId: number) {

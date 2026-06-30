@@ -1,5 +1,6 @@
 "use client";
 
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { env } from "@/env.mjs";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -97,17 +98,17 @@ export const columns: Column[] = [
 		id: "productName",
 		header: "Product",
 		accessorKey: "name",
-		size: 320,
-		minSize: 260,
-		maxSize: 520,
+		...sizes.custom(260, 520, 320),
 		enableResizing: true,
 		enableHiding: false,
 		meta: {
 			sticky: true,
 			skeleton: { type: "avatar-text" },
 			headerLabel: "Product",
-			className:
-				"w-[320px] min-w-[260px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			className: sizeClass(
+				sizes.custom(260, 520, 320),
+				"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			),
 		},
 		cell: ({ row }) => <ProductCell item={row.original} />,
 	},
@@ -115,14 +116,12 @@ export const columns: Column[] = [
 		id: "category",
 		header: "Category",
 		accessorKey: "category",
-		size: 180,
-		minSize: 140,
-		maxSize: 260,
+		...sizes.custom(140, 260, 180),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "badge" },
 			headerLabel: "Category",
-			className: "w-[180px] min-w-[140px]",
+			className: sizeClass(sizes.custom(140, 260, 180)),
 		},
 		cell: ({ row }) =>
 			row.original.category ? (
@@ -137,14 +136,12 @@ export const columns: Column[] = [
 		id: "units",
 		header: "Units Sold",
 		accessorKey: "units",
-		size: 120,
-		minSize: 100,
-		maxSize: 160,
+		...sizes.custom(100, 160, 120),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-16" },
 			headerLabel: "Units Sold",
-			className: "w-[120px] min-w-[100px] text-right",
+			className: sizeClass(sizes.custom(100, 160, 120), "text-right"),
 		},
 		cell: ({ row }) => (
 			<span className="block text-right font-mono font-medium">
@@ -156,14 +153,12 @@ export const columns: Column[] = [
 		id: "revenue",
 		header: "Revenue",
 		accessorKey: "revenue",
-		size: 140,
-		minSize: 120,
-		maxSize: 180,
+		...sizes.custom(120, 180, 140),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Revenue",
-			className: "w-[140px] min-w-[120px] text-right",
+			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
 		},
 		cell: ({ row }) => <MoneyCell value={row.original.revenue} />,
 	},
@@ -171,14 +166,12 @@ export const columns: Column[] = [
 		id: "costPrice",
 		header: "Cost Price",
 		accessorKey: "costPrice",
-		size: 140,
-		minSize: 120,
-		maxSize: 180,
+		...sizes.custom(120, 180, 140),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Cost Price",
-			className: "w-[140px] min-w-[120px] text-right",
+			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
 		},
 		cell: ({ row }) => <MoneyCell value={row.original.costPrice} />,
 	},
@@ -186,28 +179,24 @@ export const columns: Column[] = [
 		id: "salesPrice",
 		header: "Sales Price",
 		accessorKey: "salesPrice",
-		size: 140,
-		minSize: 120,
-		maxSize: 180,
+		...sizes.custom(120, 180, 140),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Sales Price",
-			className: "w-[140px] min-w-[120px] text-right",
+			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
 		},
 		cell: ({ row }) => <MoneyCell value={row.original.salesPrice} />,
 	},
 	{
 		id: "margin",
 		header: "Margin",
-		size: 120,
-		minSize: 100,
-		maxSize: 160,
+		...sizes.custom(100, 160, 120),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-16" },
 			headerLabel: "Margin",
-			className: "w-[120px] min-w-[100px] text-right",
+			className: sizeClass(sizes.custom(100, 160, 120), "text-right"),
 		},
 		cell: ({ row }) => <MarginCell item={row.original} />,
 	},

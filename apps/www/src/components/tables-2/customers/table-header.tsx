@@ -7,11 +7,12 @@ import {
 	type TableColumnMeta,
 	type TableScrollState,
 	getHeaderLabel,
+	getTableCellPaddingClass,
 } from "@/components/tables-2/core";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
-import { SORT_FIELD_MAPS, STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableId } from "@/utils/table-settings";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
@@ -34,6 +35,7 @@ const HEADER_CELL_BACKGROUND_STYLE = {
 		"color-mix(in oklab, var(--sidebar-accent) 88%, var(--foreground))",
 };
 const TABLE_ID = "customers" satisfies TableId;
+const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
 export function DataTableHeader<TData>({
 	table,
@@ -45,7 +47,7 @@ export function DataTableHeader<TData>({
 	const { getStickyStyle, getStickyClassName, isVisible } = useStickyColumns({
 		table,
 		loading,
-		stickyColumns: STICKY_COLUMNS[TABLE_ID],
+		stickyColumns: tableConfig.stickyColumns,
 	});
 
 	if (!table) return null;
@@ -60,7 +62,8 @@ export function DataTableHeader<TData>({
 			{table.getHeaderGroups().map((headerGroup) => (
 				<TableRow
 					key={headerGroup.id}
-					className="flex h-[45px] min-w-full items-center !border-b-0 hover:bg-transparent"
+					className="flex min-w-full items-center !border-b-0 hover:bg-transparent"
+					style={{ height: tableConfig.headerHeight }}
 				>
 					{headerGroup.headers.map((header, headerIndex, headers) => {
 						const columnId = header.column.id;
@@ -114,7 +117,8 @@ export function DataTableHeader<TData>({
 						const stickyClass = getStickyClassName(
 							columnId,
 							cn(
-								"group/header relative h-full px-4 border-t border-border flex items-center",
+								"group/header relative h-full border-t border-border flex items-center",
+								getTableCellPaddingClass(tableConfig.style),
 								showRightDivider && "border-r",
 							),
 						);
@@ -122,11 +126,13 @@ export function DataTableHeader<TData>({
 							? actionsFullWidth
 								? cn(
 										ACTIONS_FULL_WIDTH_HEADER_CLASS,
+										getTableCellPaddingClass(tableConfig.style),
 										HEADER_BACKGROUND_CLASS,
 										showRightDivider && "border-r",
 									)
 								: cn(
 										ACTIONS_STICKY_HEADER_CLASS,
+										getTableCellPaddingClass(tableConfig.style),
 										HEADER_BACKGROUND_CLASS,
 										showRightDivider && "border-r",
 									)
@@ -166,7 +172,7 @@ function renderHeaderContent<TData>(
 ) {
 	const meta = header.column.columnDef.meta as TableColumnMeta | undefined;
 	const label = getHeaderLabel(header);
-	const sortField = meta?.sortField ?? SORT_FIELD_MAPS[TABLE_ID][columnId];
+	const sortField = meta?.sortField ?? tableConfig.sortFieldMap[columnId];
 	const isActiveSort = Boolean(sortField) && sortColumn === sortField;
 	const sortDirection = isActiveSort ? sortValue : null;
 

@@ -2,9 +2,10 @@
 
 import { useSalesInventoryConfiguratorPrompt } from "@/components/forms/sales-form/inventory-configurator-dialog";
 import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
-import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
+import { SalesPriorityBadge } from "@/components/sales-priority-control";
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
@@ -14,8 +15,8 @@ import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-sta
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
-import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { cn } from "@gnd/ui/cn";
+import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import { useQueryClient } from "@gnd/ui/tanstack";
 import {
@@ -33,7 +34,7 @@ export type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 type Column = ColumnDef<SalesOrder>;
 
 function baseInvoiceTotal(item: SalesOrder) {
-	return item.baseInvoiceTotal ?? item.invoiceTotal;
+    return item.baseInvoiceTotal ?? item.invoiceTotal;
 }
 
 function amountTone(item: SalesOrder) {
@@ -64,17 +65,18 @@ function DealerSaleBadge({ item }: { item: SalesOrder }) {
 
 const selectColumn: Column = {
     id: "select",
-    size: 50,
-    minSize: 50,
-    maxSize: 50,
+    ...sizes.xs,
     enableResizing: false,
     enableHiding: false,
     enableSorting: false,
     meta: {
         sticky: true,
         skeleton: { type: "checkbox" },
-        className:
-            "w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+        className: sizeClass(
+            sizes.xs,
+            "md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+        ),
+        contentClassName: "flex items-center justify-center",
     },
     cell: ({ row }) => (
         <Checkbox
@@ -94,17 +96,17 @@ const orderIdColumn: Column = {
     id: "orderId",
     header: "Order #",
     accessorKey: "orderId",
-    size: 180,
-    minSize: 150,
-    maxSize: 280,
+    ...sizes.md,
     enableResizing: true,
     meta: {
         sticky: true,
         skeleton: { type: "text", width: "w-24" },
         headerLabel: "Order #",
         sortField: "orderId",
-        className:
-            "w-[180px] min-w-[150px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+        className: sizeClass(
+            sizes.md,
+            "md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+        ),
     },
     cell: ({ row }) => (
         <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
@@ -141,15 +143,13 @@ const statusColumn: Column = {
     id: "status",
     header: "Status",
     accessorKey: "status",
-    size: 160,
-    minSize: 130,
-    maxSize: 240,
+    ...sizes.md,
     enableResizing: true,
     meta: {
         skeleton: { type: "badge", width: "w-28" },
         headerLabel: "Status",
         sortField: "status",
-        className: "w-[160px] min-w-[130px]",
+        className: sizeClass(sizes.md),
     },
     cell: ({ row }) => (
         <Badge
@@ -167,15 +167,13 @@ const salesDateColumn: Column = {
     id: "salesDate",
     header: "Date",
     accessorKey: "salesDate",
-    size: 120,
-    minSize: 100,
-    maxSize: 180,
+    ...sizes.sm,
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-20" },
         headerLabel: "Date",
         sortField: "createdAt",
-        className: "w-[120px] min-w-[100px]",
+        className: sizeClass(sizes.sm),
     },
     cell: ({ row }) => (
         <span className="truncate text-muted-foreground">
@@ -188,15 +186,13 @@ const customerColumn: Column = {
     id: "customerName",
     header: "Customer",
     accessorKey: "customerName",
-    size: 240,
-    minSize: 180,
-    maxSize: 380,
+    ...sizes.custom(180, 380, 240),
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-36" },
         headerLabel: "Customer",
         sortField: "customerName",
-        className: "w-[240px] min-w-[180px]",
+        className: sizeClass(sizes.custom(180, 380, 240)),
     },
     cell: ({ row }) => (
         <TextWithTooltip
@@ -210,14 +206,12 @@ const phoneColumn: Column = {
     id: "customerPhone",
     header: "Phone",
     accessorKey: "customerPhone",
-    size: 150,
-    minSize: 120,
-    maxSize: 200,
+    ...sizes.custom(120, 200, 150),
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-24" },
         headerLabel: "Phone",
-        className: "w-[150px] min-w-[120px]",
+        className: sizeClass(sizes.custom(120, 200, 150)),
     },
     cell: ({ row }) => (
         <TextWithTooltip
@@ -231,14 +225,12 @@ const poColumn: Column = {
     id: "poNo",
     header: "P.O",
     accessorKey: "poNo",
-    size: 120,
-    minSize: 90,
-    maxSize: 180,
+    ...sizes.custom(90, 180, 120),
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-16" },
         headerLabel: "P.O",
-        className: "w-[120px] min-w-[90px]",
+        className: sizeClass(sizes.custom(90, 180, 120)),
     },
     cell: ({ row }) => (
         <span className="truncate text-muted-foreground">
@@ -251,14 +243,12 @@ const inboundColumn: Column = {
     id: "inboundStatus",
     header: "Inbound",
     accessorKey: "inboundStatus",
-    size: 130,
-    minSize: 110,
-    maxSize: 180,
+    ...sizes.custom(110, 180, 130),
     enableResizing: true,
     meta: {
         skeleton: { type: "badge", width: "w-24" },
         headerLabel: "Inbound",
-        className: "w-[130px] min-w-[110px]",
+        className: sizeClass(sizes.custom(110, 180, 130)),
     },
     cell: ({ row }) => (
         <SalesInboundStatusBadge status={row.original.inboundStatus} />
@@ -269,15 +259,13 @@ const invoiceTotalColumn: Column = {
     id: "invoiceTotal",
     header: "Invoice",
     accessorKey: "invoiceTotal",
-    size: 140,
-    minSize: 110,
-    maxSize: 200,
+    ...sizes.sm,
     enableResizing: true,
     meta: {
-        skeleton: { type: "text", width: "w-20" },
+        skeleton: { type: "text", width: "w-16" },
         headerLabel: "Invoice",
         sortField: "grandTotal",
-        className: "w-[140px] min-w-[110px] text-right",
+        className: sizeClass(sizes.sm, "text-right"),
     },
     cell: ({ row }) => <InvoiceCell item={row.original} />,
 };
@@ -286,15 +274,13 @@ const amountDueColumn: Column = {
     id: "amountDue",
     header: "Balance",
     accessorKey: "amountDue",
-    size: 140,
-    minSize: 110,
-    maxSize: 200,
+    ...sizes.custom(110, 200, 140),
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-20" },
         headerLabel: "Balance",
         sortField: "amountDue",
-        className: "w-[140px] min-w-[110px] text-right",
+        className: sizeClass(sizes.custom(110, 200, 140), "text-right"),
     },
     cell: ({ row }) => (
         <span className="block truncate text-right font-mono text-muted-foreground">
@@ -307,14 +293,12 @@ const deliveryColumn: Column = {
     id: "deliveryOption",
     header: "Method",
     accessorKey: "deliveryOption",
-    size: 130,
-    minSize: 100,
-    maxSize: 180,
+    ...sizes.custom(100, 180, 130),
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-20" },
         headerLabel: "Method",
-        className: "w-[130px] min-w-[100px]",
+        className: sizeClass(sizes.custom(100, 180, 130)),
     },
     cell: ({ row }) => (
         <span className="truncate capitalize text-muted-foreground">
@@ -327,15 +311,13 @@ const productionColumn: Column = {
     id: "productionLabel",
     header: "Production",
     accessorKey: "productionLabel",
-    size: 160,
-    minSize: 130,
-    maxSize: 240,
+    ...sizes.md,
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-24" },
         headerLabel: "Production",
         sortField: "prodStatus",
-        className: "w-[160px] min-w-[130px]",
+        className: sizeClass(sizes.md),
     },
     cell: ({ row }) => (
         <span className="truncate text-muted-foreground">
@@ -348,14 +330,12 @@ const fulfillmentColumn: Column = {
     id: "fulfillmentLabel",
     header: "Fulfillment",
     accessorKey: "fulfillmentLabel",
-    size: 160,
-    minSize: 130,
-    maxSize: 240,
+    ...sizes.md,
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-24" },
         headerLabel: "Fulfillment",
-        className: "w-[160px] min-w-[130px]",
+        className: sizeClass(sizes.md),
     },
     cell: ({ row }) => (
         <span className="truncate text-muted-foreground">
@@ -368,15 +348,13 @@ const salesRepColumn: Column = {
     id: "salesRepName",
     header: "Sales rep",
     accessorKey: "salesRepName",
-    size: 160,
-    minSize: 130,
-    maxSize: 240,
+    ...sizes.md,
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-24" },
         headerLabel: "Sales rep",
         sortField: "salesRepName",
-        className: "w-[160px] min-w-[130px]",
+        className: sizeClass(sizes.md),
     },
     cell: ({ row }) => (
         <span className="truncate text-muted-foreground">
@@ -389,14 +367,12 @@ const addressColumn: Column = {
     id: "address",
     header: "Address",
     accessorKey: "address",
-    size: 220,
-    minSize: 150,
-    maxSize: 360,
+    ...sizes.md,
     enableResizing: true,
     meta: {
         skeleton: { type: "text", width: "w-40" },
         headerLabel: "Address",
-        className: "w-[220px] min-w-[150px]",
+        className: sizeClass(sizes.md),
     },
     cell: ({ row }) => (
         <TextWithTooltip
@@ -409,17 +385,17 @@ const addressColumn: Column = {
 const actionsColumn: Column = {
     id: "actions",
     header: "Actions",
-    size: 144,
-    minSize: 144,
-    maxSize: 144,
+    ...sizes.custom(144, 144),
     enableResizing: false,
     enableHiding: false,
     enableSorting: false,
     meta: {
         skeleton: { type: "icon" },
         headerLabel: "Actions",
-        className:
-            "w-[144px] min-w-[144px] md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+        className: sizeClass(
+            sizes.custom(144, 144),
+            "md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+        ),
     },
     cell: ({ row }) => <ActionCell item={row.original} />,
 };
@@ -592,69 +568,72 @@ function ActionCell({ item }: { item: SalesOrder }) {
                     </Link>
                 </Button>
 
-            <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={(event) => {
-                    event.stopPropagation();
-                    overviewQuery.open2(item.uuid, "sales");
-                }}
-            >
-                <Icons.ArrowUpRight className="size-4" />
-                <span className="sr-only">Open order</span>
-            </Button>
-            <SalesMenu
-                id={item.id}
-                slug={item.slug}
-                type="order"
-                orderNo={item.orderId}
-                customerEmail={item.email}
-                customerName={item.customerName}
-                trigger={
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                        onClick={(event) => event.stopPropagation()}
-                    >
-                        <Icons.MoreHoriz className="size-4" />
-                        <span className="sr-only">More order actions</span>
-                    </Button>
-                }
-                contentClassName="min-w-56"
-            >
-                <SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
-                <SalesMenu.Item
-                    disabled={!item.id}
-                    onSelect={() => {
-                        void openSalesInventoryConfigurator(item.id);
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        overviewQuery.open2(item.uuid, "sales");
                     }}
                 >
-                    <Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />
-                    Inventory
-                </SalesMenu.Item>
-                <SalesMenu.Separator />
-                <SalesMenu.SalesEmailMenuItems />
-                <SalesMenu.MarkAs />
-                <SalesMenu.SalesPrintMenuItems />
-                <SalesMenu.Copy />
-                <SalesMenu.Move />
-                <SalesMenu.Separator />
-                <SalesMenu.Delete
-                    onDeleted={async () => {
-                        await Promise.all([
-                            queryClient.invalidateQueries({
-                                queryKey:
-                                    trpc.sales.getOrders.infiniteQueryKey(),
-                            }),
-                            queryClient.invalidateQueries({
-                                queryKey:
-                                    trpc.sales.getOrdersSummary.queryKey(),
-                            }),
-                        ]);
-                    }}
-                />
+                    <Icons.ArrowUpRight className="size-4" />
+                    <span className="sr-only">Open order</span>
+                </Button>
+                <SalesMenu
+                    id={item.id}
+                    slug={item.slug}
+                    type="order"
+                    orderNo={item.orderId}
+                    customerEmail={item.email}
+                    customerName={item.customerName}
+                    trigger={
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <Icons.MoreHoriz className="size-4" />
+                            <span className="sr-only">More order actions</span>
+                        </Button>
+                    }
+                    contentClassName="min-w-56"
+                >
+                    <SalesOverviewVersionMenuItems
+                        type="order"
+                        uuid={item.uuid}
+                    />
+                    <SalesMenu.Item
+                        disabled={!item.id}
+                        onSelect={() => {
+                            void openSalesInventoryConfigurator(item.id);
+                        }}
+                    >
+                        <Icons.PackageOpen className="mr-2 size-4 text-muted-foreground/70" />
+                        Inventory
+                    </SalesMenu.Item>
+                    <SalesMenu.Separator />
+                    <SalesMenu.SalesEmailMenuItems />
+                    <SalesMenu.MarkAs />
+                    <SalesMenu.SalesPrintMenuItems />
+                    <SalesMenu.Copy />
+                    <SalesMenu.Move />
+                    <SalesMenu.Separator />
+                    <SalesMenu.Delete
+                        onDeleted={async () => {
+                            await Promise.all([
+                                queryClient.invalidateQueries({
+                                    queryKey:
+                                        trpc.sales.getOrders.infiniteQueryKey(),
+                                }),
+                                queryClient.invalidateQueries({
+                                    queryKey:
+                                        trpc.sales.getOrdersSummary.queryKey(),
+                                }),
+                            ]);
+                        }}
+                    />
                 </SalesMenu>
             </div>
         </>

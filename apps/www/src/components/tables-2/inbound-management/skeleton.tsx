@@ -1,10 +1,12 @@
 "use client";
 
 import { TableSkeleton } from "@/components/tables-2/core";
-import { STICKY_COLUMNS } from "@/utils/table-configs";
+import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableSettings } from "@/utils/table-settings";
 
 import { columns } from "./columns";
+
+const tableConfig = TABLE_CONFIGS["inbound-management"];
 
 type Props = {
 	initialSettings?: Partial<TableSettings>;
@@ -25,7 +27,7 @@ export function InboundManagementSkeleton({
 			columnVisibility={initialSettings?.columns}
 			columnSizing={initialSettings?.sizing}
 			columnOrder={initialSettings?.order}
-			stickyColumnIds={STICKY_COLUMNS["inbound-management"].map(({ id }) => id)}
+			tableConfig={tableConfig}
 		/>
 	);
 }

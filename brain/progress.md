@@ -2,6 +2,34 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Centered select checkboxes in current `tables-2` tables.
+  - Added `TableColumnMeta.contentClassName` and applied it to the `VirtualRow` inner cell wrapper so checkbox cells can center their actual content instead of only styling the outer cell.
+  - Updated current select columns to opt into centered row checkbox content and updated their corresponding table headers to center select-all checkboxes.
+  - Validation: targeted `rg` checks confirmed the select-column/header opt-ins and scoped `git diff --check` passed for `apps/www/src/components/tables-2` and `apps/www/src/types/react-table.d.ts`.
+  - Updated docs: `brain/plans/2026-06-16-orders-v2-table-standard-migration.md` and `brain/progress.md`; no API or database docs were needed because this is shared table presentation behavior without schema, endpoint, permission, or payload changes.
+
+- Added local reusable column size tokens to the `tables-2` table system.
+  - Created `apps/www/src/components/tables-2/core/table-sizes.ts` with `sizes.xs`, `sizes.sm`, `sizes.md`, `sizes.lg`, `sizes.custom(...)`, and `sizeClass(...)` for width-aware `meta.className` values.
+  - Migrated current `tables-2/*/columns.tsx` files from repeated `size` / `minSize` / `maxSize` triples and raw width/min-width class pairs to the shared local size helpers.
+  - Updated table row rendering to set column size CSS variables plus inline min/max width from the column definition, and pointed `TABLE_CONFIGS` sticky column widths at the same local size source where applicable.
+  - Validation: focused Biome check passed for `apps/www/src/components/tables-2` and `apps/www/src/utils/table-configs.ts`; targeted scans found no remaining raw `size/minSize/maxSize` triples or pixel width/min-width pairs in current `tables-2` column files; scoped `git diff --check` passed.
+  - Updated docs: `brain/plans/2026-06-16-orders-v2-table-standard-migration.md` and `brain/progress.md`; no API or database docs were needed because this is shared table presentation/config behavior without schema, endpoint, permission, or payload changes.
+
+- Reduced the canonical sales orders `Invoice` table column width.
+  - Changed the Invoice column default from 140px to 120px, lowered the minimum to 100px, and reduced its skeleton width while preserving right-aligned currency rendering and invoice sorting.
+  - Updated docs: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no API or database docs were needed because this is a presentation-only table layout change.
+
+- Added configurable compact/default styling to the `tables-2` table core.
+  - `TABLE_CONFIGS` now centralizes sticky columns, sort maps, non-reorderable columns, row height, header height, and table style for current migrated table domains.
+  - Added compact/default cva padding variants for table header/body cells (`default: p-2 px-4`, `compact: p-2`) and wired `VirtualRow`, `DraggableHeader`, and `TableSkeleton` through the config style.
+  - Updated current `tables-2` data tables, table headers, and skeletons to use compact style and config-driven row/header heights.
+  - Updated docs: `brain/plans/2026-06-16-orders-v2-table-standard-migration.md` and `brain/progress.md`; no API or database docs were needed because this is shared table presentation/config behavior without schema, endpoint, permission, or payload changes.
+
+- Planned sales inventory inbound-status guardrails.
+  - Added `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` with phased implementation for inventory-owned inbound status after inbound creation, legacy/manual status locks before first inventory setup, inbound-status click-through to inventory inbound details, and Mark As production/fulfilled preflight prompts when configured inventory is not available.
+  - Updated `brain/features/inventory-backed-sales-fulfillment.md` with a discoverability breadcrumb to the new plan.
+  - No code was changed in this planning pass.
+
 - Added a dedicated batch Mark as action to the canonical sales orders table.
   - The selected-orders bottom bar now counts actionable selected rows, keeps Print scoped to print/PDF actions, and adds a separate `Mark as` dropdown for multi-order `Production completed` and `Fulfilled` updates through the existing task-backed `SalesMenu.MarkAs` flow.
   - Added a viewport-constrained horizontal overflow wrapper to keep the expanded batch bar usable on narrow screens without forcing page-level horizontal overflow.
@@ -4842,3 +4870,4 @@
 - 2026-06-29: Corrected the dealership Phase 27 QA blocker after confirming dealership uses the same database context as `www`. Loading root `.env.local` plus `apps/dealership/.env.local` resolves `DATABASE_URL` to local MySQL on `127.0.0.1:3307`; a masked Prisma count probe found 5 dealer accounts, 2 active dealers, 2 Better Auth users, 7 sessions, and 1 dealer quote. Remaining QA blocker is a usable authenticated dealership browser session or valid dealer credentials, not database availability. Updated `brain/new-sales-form-phase27-browser-qa.md`.
 - 2026-06-29: Added dev-only quick login to the dealership login page. `/login` now server-loads active linked dealer accounts in non-production and renders a `Dev Quick Login` dropdown; Better Auth exposes `/api/auth/dealer-dev-quick-sign-in` only outside production and creates a dealer session after rechecking active dealer ownership. Validation: focused Biome check passed for touched login/auth files, `git diff --check` passed, filtered dealership typecheck reported no diagnostics for touched files while the broad dealership typecheck remains blocked by unrelated baseline errors, `/login` rendered the quick-login control, and a dev endpoint smoke returned a redirect/session response. Updated `brain/api/endpoints.md` and `brain/new-sales-form-phase27-browser-qa.md`.
 - 2026-06-29: Ran authenticated dealership Phase 27 browser QA through the in-app browser as Cipron Concept. Created shelf quote `00002DPP`, verified save persistence in `SalesOrders.id = 23562`, reopened `/quotes/23562/edit`, edited quantity/PO, confirmed the quote list total updated to `$13.88`, and clicked `Request order`, which persisted a pending `DealerSalesRequest` with `request = make_order`. QA found three remaining blockers before production signoff: create/save can reset the composer to a blank unsaved quote, dealer-facing item/persisted line totals can disagree with the dealer summary, and local Door/HPT plus Moulding size fixtures expose empty size tables. Updated `brain/new-sales-form-phase27-browser-qa.md`, `brain/dealership-cutover-readiness.md`, and `brain/features/dealership-quote-to-order-approval.md`.
+- 2026-06-29: Fixed the create-inbound activity failure in `inventories.createInboundShipmentFromDemands`. Inbound lifecycle rows now use the standard `inventory_inbound_activity` notification handler for recipientless timeline notes instead of falling back to direct `NotePad` activity writes, and notification tag array values are deduped before `NoteTags.createMany` so multiple demand rows for the same order do not violate the `NoteTags_tagName_tagValue_notePadId_key` constraint. Validation: `bun test packages/notifications/test/inventory-inbound-activity.test.ts` passed with 2 tests / 4 assertions; scoped `git diff --check` passed.

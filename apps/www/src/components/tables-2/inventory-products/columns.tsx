@@ -2,6 +2,7 @@
 
 import ConfirmBtn from "@/components/confirm-button";
 import { StockModeStatus } from "@/components/stock-mode-status";
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { cn } from "@/lib/utils";
@@ -142,17 +143,18 @@ function InventoryProductActions({ item }: { item: InventoryProduct }) {
 
 const selectColumn: Column = {
 	id: "select",
-	size: 50,
-	minSize: 50,
-	maxSize: 50,
+	...sizes.custom(50, 50),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		sticky: true,
 		skeleton: { type: "checkbox" },
-		className:
-			"w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(50, 50),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
 	},
 	cell: ({ row }) => (
 		<Checkbox
@@ -174,17 +176,17 @@ export const columns: Column[] = [
 		id: "product",
 		header: "Product",
 		accessorKey: "title",
-		size: 320,
-		minSize: 260,
-		maxSize: 520,
+		...sizes.custom(260, 520, 320),
 		enableResizing: true,
 		enableHiding: false,
 		meta: {
 			sticky: true,
 			skeleton: { type: "avatar-text" },
 			headerLabel: "Product",
-			className:
-				"w-[320px] min-w-[260px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			className: sizeClass(
+				sizes.custom(260, 520, 320),
+				"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			),
 		},
 		cell: ({ row }) => <ProductCell item={row.original} />,
 	},
@@ -192,14 +194,12 @@ export const columns: Column[] = [
 		id: "status",
 		header: "Status",
 		accessorKey: "status",
-		size: 130,
-		minSize: 110,
-		maxSize: 180,
+		...sizes.custom(110, 180, 130),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "badge" },
 			headerLabel: "Status",
-			className: "w-[130px] min-w-[110px]",
+			className: sizeClass(sizes.custom(110, 180, 130)),
 		},
 		cell: ({ row }) => <StatusCell item={row.original} />,
 	},
@@ -207,14 +207,12 @@ export const columns: Column[] = [
 		id: "stockMode",
 		header: "Stock Mode",
 		accessorKey: "stockMode",
-		size: 170,
-		minSize: 140,
-		maxSize: 220,
+		...sizes.custom(140, 220, 170),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "icon-text" },
 			headerLabel: "Stock Mode",
-			className: "w-[170px] min-w-[140px]",
+			className: sizeClass(sizes.custom(140, 220, 170)),
 		},
 		cell: ({ row }) => <StockModeStatus status={row.original.stockMode} />,
 	},
@@ -222,14 +220,12 @@ export const columns: Column[] = [
 		id: "variantCount",
 		header: "Variants",
 		accessorKey: "variantCount",
-		size: 110,
-		minSize: 90,
-		maxSize: 140,
+		...sizes.custom(90, 140, 110),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-12" },
 			headerLabel: "Variants",
-			className: "w-[110px] min-w-[90px] text-center",
+			className: sizeClass(sizes.custom(90, 140, 110), "text-center"),
 		},
 		cell: ({ row }) => (
 			<span className="block text-center font-mono font-medium">
@@ -241,14 +237,12 @@ export const columns: Column[] = [
 		id: "totalStocks",
 		header: "Total Stock",
 		accessorKey: "totalStocks",
-		size: 130,
-		minSize: 110,
-		maxSize: 170,
+		...sizes.custom(110, 170, 130),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-16" },
 			headerLabel: "Total Stock",
-			className: "w-[130px] min-w-[110px] text-center",
+			className: sizeClass(sizes.custom(110, 170, 130), "text-center"),
 		},
 		cell: ({ row }) => (
 			<span className="block text-center text-muted-foreground">
@@ -260,31 +254,27 @@ export const columns: Column[] = [
 		id: "stockValue",
 		header: "Stock Value",
 		accessorKey: "stockValue",
-		size: 140,
-		minSize: 120,
-		maxSize: 180,
+		...sizes.custom(120, 180, 140),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Stock Value",
-			className: "w-[140px] min-w-[120px] text-right",
+			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
 		},
 		cell: ({ row }) => <StockValueCell value={row.original.stockValue} />,
 	},
 	{
 		id: "actions",
 		header: "",
-		size: 150,
-		minSize: 130,
-		maxSize: 170,
+		...sizes.custom(130, 170, 150),
 		enableResizing: false,
 		enableHiding: false,
 		enableSorting: false,
 		meta: {
 			skeleton: { type: "icon" },
 			headerLabel: "Actions",
-			className: cn(
-				"w-[150px] min-w-[130px]",
+			className: sizeClass(
+				sizes.custom(130, 170, 150),
 				"bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary",
 			),
 		},

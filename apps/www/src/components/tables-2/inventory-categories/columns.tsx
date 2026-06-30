@@ -2,6 +2,7 @@
 
 import ConfirmBtn from "@/components/confirm-button";
 import { StockModeStatus } from "@/components/stock-mode-status";
+import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInventoryCategoryParams } from "@/hooks/use-inventory-category-params";
 import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
 import { cn } from "@/lib/utils";
@@ -156,17 +157,18 @@ function InventoryCategoryActions({ item }: { item: InventoryCategory }) {
 
 const selectColumn: Column = {
 	id: "select",
-	size: 50,
-	minSize: 50,
-	maxSize: 50,
+	...sizes.custom(50, 50),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
 	meta: {
 		sticky: true,
 		skeleton: { type: "checkbox" },
-		className:
-			"w-[50px] min-w-[50px] md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		className: sizeClass(
+			sizes.custom(50, 50),
+			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20 justify-center",
+		),
+		contentClassName: "flex items-center justify-center",
 	},
 	cell: ({ row }) => (
 		<Checkbox
@@ -188,17 +190,17 @@ export const columns: Column[] = [
 		id: "category",
 		header: "Category",
 		accessorKey: "title",
-		size: 320,
-		minSize: 260,
-		maxSize: 520,
+		...sizes.custom(260, 520, 320),
 		enableResizing: true,
 		enableHiding: false,
 		meta: {
 			sticky: true,
 			skeleton: { type: "icon-text" },
 			headerLabel: "Category",
-			className:
-				"w-[320px] min-w-[260px] md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			className: sizeClass(
+				sizes.custom(260, 520, 320),
+				"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			),
 		},
 		cell: ({ row }) => <CategoryCell item={row.original} />,
 	},
@@ -206,14 +208,12 @@ export const columns: Column[] = [
 		id: "description",
 		header: "Description",
 		accessorKey: "description",
-		size: 320,
-		minSize: 240,
-		maxSize: 520,
+		...sizes.custom(240, 520, 320),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-40" },
 			headerLabel: "Description",
-			className: "w-[320px] min-w-[240px]",
+			className: sizeClass(sizes.custom(240, 520, 320)),
 		},
 		cell: ({ row }) => <DescriptionCell item={row.original} />,
 	},
@@ -221,14 +221,12 @@ export const columns: Column[] = [
 		id: "stockMode",
 		header: "Stock Mode",
 		accessorKey: "stockMode",
-		size: 190,
-		minSize: 160,
-		maxSize: 240,
+		...sizes.custom(160, 240, 190),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "icon-text" },
 			headerLabel: "Stock Mode",
-			className: "w-[190px] min-w-[160px]",
+			className: sizeClass(sizes.custom(160, 240, 190)),
 		},
 		cell: ({ row }) => <CategoryStockModeCell item={row.original} />,
 	},
@@ -236,14 +234,12 @@ export const columns: Column[] = [
 		id: "variationCategories",
 		header: "Variation Categories",
 		accessorFn: (row) => row._count?.categoryVariantAttributes ?? 0,
-		size: 180,
-		minSize: 150,
-		maxSize: 230,
+		...sizes.custom(150, 230, 180),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-12" },
 			headerLabel: "Variation Categories",
-			className: "w-[180px] min-w-[150px] text-center",
+			className: sizeClass(sizes.custom(150, 230, 180), "text-center"),
 		},
 		cell: ({ row }) => (
 			<span className="block text-center font-mono font-medium">
@@ -255,14 +251,12 @@ export const columns: Column[] = [
 		id: "inventories",
 		header: "Inventories",
 		accessorFn: (row) => row._count?.inventories ?? 0,
-		size: 130,
-		minSize: 110,
-		maxSize: 170,
+		...sizes.custom(110, 170, 130),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-12" },
 			headerLabel: "Inventories",
-			className: "w-[130px] min-w-[110px] text-center",
+			className: sizeClass(sizes.custom(110, 170, 130), "text-center"),
 		},
 		cell: ({ row }) => (
 			<span className="block text-center font-mono font-medium">
@@ -273,17 +267,15 @@ export const columns: Column[] = [
 	{
 		id: "actions",
 		header: "",
-		size: 130,
-		minSize: 120,
-		maxSize: 160,
+		...sizes.custom(120, 160, 130),
 		enableResizing: false,
 		enableHiding: false,
 		enableSorting: false,
 		meta: {
 			skeleton: { type: "icon" },
 			headerLabel: "Actions",
-			className: cn(
-				"w-[130px] min-w-[120px]",
+			className: sizeClass(
+				sizes.custom(120, 160, 130),
 				"bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary",
 			),
 		},
