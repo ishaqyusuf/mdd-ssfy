@@ -19,6 +19,15 @@ import {
 	upsertInventoriesForDykeShelfProductsSchema,
 } from "@api/db/queries/inventory.generate";
 import { invalidateSalesWorkflowForStepComponent } from "@api/db/queries/sales-form";
+import {
+	getSalesInventoryInboundStatusBackfillPreview,
+	repairSalesInventoryInboundStatusBackfill,
+} from "@api/db/queries/sales-inventory-inbound-ownership";
+import {
+	approveBulkStockAllocationQuery,
+	approveStockAllocationQuery,
+	rejectStockAllocationQuery,
+} from "@api/db/queries/stock-allocation-review";
 import { idSchema } from "@api/schemas/common";
 import {
 	saveCommunityInput,
@@ -26,8 +35,6 @@ import {
 } from "@community/community-template-schemas";
 import {
 	adjustInventoryStock,
-	approveBulkStockAllocation,
-	approveStockAllocation,
 	archiveDykeCustomStepComponent,
 	backfillInventoryImportSources,
 	backfillInventoryProductKinds,
@@ -64,7 +71,6 @@ import {
 	queueDykeStepToInventorySync,
 	queueInventoryToDykeSync,
 	receiveInboundShipment,
-	rejectStockAllocation,
 	reportInboundItemIssue,
 	resetInventorySystem,
 	resolveInboundItemIssue,
@@ -144,7 +150,15 @@ import {
 	setSalesInventoryLineFulfillmentHold,
 	shipAvailableSalesInventory,
 } from "@gnd/sales/sales-fulfillment-plan";
-import { getSalesInventoryOverview } from "@gnd/sales/sales-inventory-overview";
+import { resolveSalesInventoryLegacyStatusSetup as resolveSalesInventoryLegacyStatusSetupMutation } from "@gnd/sales/sales-inventory-legacy-status-setup";
+import {
+	getSalesInventoryMarkAsPreflight,
+	resolveSalesInventoryMarkAsAvailabilityForContinue,
+} from "@gnd/sales/sales-inventory-mark-as-preflight";
+import {
+	getSalesInventoryOverview,
+	getSalesInventoryTrackingChangeRepairPreview,
+} from "@gnd/sales/sales-inventory-overview";
 import {
 	cleanupStaleSalesInventoryLineItems,
 	getSalesInventorySyncMonitor,
@@ -171,28 +185,125 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 //   weightBasedFormSchema,
 //   zoneBasedFormSchema,
 // } from "@sales/shipping";
-const inventoryDispatchTransitionSchema = z.object({
-	salesOrderId: z.number().optional().nullable(),
-	lineItemIds: z.array(z.number()).optional(),
-	allocationIds: z.array(z.number()).optional(),
+export const inventoryPositiveIdSchema = z.number().int().positive();
+const inventoryPositiveIdsSchema = z.array(inventoryPositiveIdSchema);
+
+export const inventoryDispatchTransitionSchema = z.object({
+	salesOrderId: inventoryPositiveIdSchema.optional().nullable(),
+	lineItemIds: inventoryPositiveIdsSchema.optional(),
+	allocationIds: inventoryPositiveIdsSchema.optional(),
 	note: z.string().optional().nullable(),
 });
 
-const inventoryDispatchFulfillSchema = z.object({
-	salesOrderId: z.number(),
-	lineItemIds: z.array(z.number()).optional(),
-	allocationIds: z.array(z.number()).optional(),
+export const inventoryDispatchFulfillSchema = z.object({
+	salesOrderId: inventoryPositiveIdSchema,
+	lineItemIds: inventoryPositiveIdsSchema.optional(),
+	allocationIds: inventoryPositiveIdsSchema.optional(),
 	deliveryMode: z.string().optional().nullable(),
 	deliveredTo: z.string().optional().nullable(),
 	authorName: z.string().optional().nullable(),
 	note: z.string().optional().nullable(),
 });
 
-const inventoryLineFulfillmentHoldSchema = z.object({
-	lineItemId: z.number(),
+export const inventoryLineFulfillmentHoldSchema = z.object({
+	lineItemId: inventoryPositiveIdSchema,
 	holdUntilComplete: z.boolean(),
 	note: z.string().optional().nullable(),
 });
+
+export const shipAvailableSalesInventorySchema = z.object({
+	salesOrderId: inventoryPositiveIdSchema,
+	lineItemIds: inventoryPositiveIdsSchema.optional(),
+	deliveryMode: z.string().optional().nullable(),
+	deliveredTo: z.string().optional().nullable(),
+	authorName: z.string().optional().nullable(),
+	note: z.string().optional().nullable(),
+});
+
+export const cleanupStaleSalesInventoryLineItemsSchema = z
+	.object({
+		lineItemIds: z.array(inventoryPositiveIdSchema).min(1).optional(),
+		limit: z.number().int().min(1).max(500).optional(),
+		dryRun: z.boolean().optional().default(true),
+	})
+	.optional();
+
+const inboundShipmentStatusSchema = z.enum([
+	"pending",
+	"in_progress",
+	"completed",
+	"issue_open",
+	"closed",
+	"cancelled",
+]);
+const inboundReceiptQuantitySchema = z.number().nonnegative();
+const inboundReceiptIssueTypeSchema = z.enum([
+	"damaged",
+	"missing",
+	"wrong_item",
+	"over_received",
+	"quality_hold",
+]);
+
+export const updateInboundShipmentStatusSchema = z.object({
+	inboundId: inventoryPositiveIdSchema,
+	status: inboundShipmentStatusSchema,
+});
+
+export const receiveInboundShipmentSchema = z.object({
+	inboundId: inventoryPositiveIdSchema,
+	receivedAt: z.date().optional().nullable(),
+	items: z
+		.array(
+			z.object({
+				inboundShipmentItemId: inventoryPositiveIdSchema,
+				qtyReceived: inboundReceiptQuantitySchema.optional().nullable(),
+				qtyGood: inboundReceiptQuantitySchema.optional().nullable(),
+				qtyIssue: inboundReceiptQuantitySchema.optional().nullable(),
+				unitPrice: inboundReceiptQuantitySchema.optional().nullable(),
+				issueType: inboundReceiptIssueTypeSchema.optional().nullable(),
+				issueNotes: z.string().optional().nullable(),
+			}),
+		)
+		.optional(),
+});
+
+const inboundRequestedQuantitySchema = z.number().positive();
+
+export const assignInboundDemandsSchema = z.object({
+	inboundId: inventoryPositiveIdSchema,
+	demandIds: inventoryPositiveIdsSchema.min(1),
+});
+
+export const createInboundShipmentFromDemandsSchema = z.object({
+	supplierId: inventoryPositiveIdSchema,
+	demandIds: inventoryPositiveIdsSchema.optional(),
+	lineItemComponentIds: inventoryPositiveIdsSchema.optional(),
+	componentSelections: z
+		.array(
+			z.object({
+				lineItemComponentIds: inventoryPositiveIdsSchema.min(1),
+				qty: inboundRequestedQuantitySchema,
+			}),
+		)
+		.optional(),
+	reference: z.string().optional().nullable(),
+	expectedAt: z.date().optional().nullable(),
+});
+
+const salesInventoryMarkAsActionSchema = z.enum([
+	"production_completed",
+	"fulfilled",
+]);
+export const salesInventoryOrderIdSchema = inventoryPositiveIdSchema;
+export const salesInventoryOrderIdsSchema = z
+	.array(salesInventoryOrderIdSchema)
+	.min(1)
+	.max(100);
+const salesInventoryLegacyStatusSetupActionSchema = z.enum([
+	"reset",
+	"override",
+]);
 
 export const inventoriesRouter = createTRPCRouter({
 	pendingAllocations: protectedProcedure
@@ -203,7 +314,7 @@ export const inventoriesRouter = createTRPCRouter({
 	approveStockAllocation: protectedProcedure
 		.input(approveStockAllocationSchema)
 		.mutation(async (props) => {
-			return approveStockAllocation(props.ctx.db, {
+			return approveStockAllocationQuery(props.ctx, {
 				...props.input,
 				authorName: props.input.authorName || String(props.ctx.userId),
 			});
@@ -211,12 +322,12 @@ export const inventoriesRouter = createTRPCRouter({
 	rejectStockAllocation: protectedProcedure
 		.input(rejectStockAllocationSchema)
 		.mutation(async (props) => {
-			return rejectStockAllocation(props.ctx.db, props.input);
+			return rejectStockAllocationQuery(props.ctx, props.input);
 		}),
 	approveBulkStockAllocation: protectedProcedure
 		.input(bulkApproveStockAllocationSchema)
 		.mutation(async (props) => {
-			return approveBulkStockAllocation(props.ctx.db, {
+			return approveBulkStockAllocationQuery(props.ctx, {
 				...props.input,
 				authorName: props.input.authorName || String(props.ctx.userId),
 			});
@@ -370,12 +481,7 @@ export const inventoriesRouter = createTRPCRouter({
 			return applyInboundExtractionQuery(props.ctx, props.input);
 		}),
 	assignInboundDemands: protectedProcedure
-		.input(
-			z.object({
-				inboundId: z.number(),
-				demandIds: z.array(z.number()).min(1),
-			}),
-		)
+		.input(assignInboundDemandsSchema)
 		.mutation(async (props) => {
 			return assignInboundDemandsQuery(props.ctx, props.input);
 		}),
@@ -389,77 +495,24 @@ export const inventoriesRouter = createTRPCRouter({
 			return getInboundActivityQuery(props.ctx, props.input.inboundId);
 		}),
 	createInboundShipmentFromDemands: protectedProcedure
-		.input(
-			z.object({
-				supplierId: z.number(),
-				demandIds: z.array(z.number()).optional(),
-				lineItemComponentIds: z.array(z.number()).optional(),
-				componentSelections: z
-					.array(
-						z.object({
-							lineItemComponentIds: z.array(z.number()),
-							qty: z.number(),
-						}),
-					)
-					.optional(),
-				reference: z.string().optional().nullable(),
-				expectedAt: z.date().optional().nullable(),
-			}),
-		)
+		.input(createInboundShipmentFromDemandsSchema)
 		.mutation(async (props) => {
 			return createInboundShipmentFromDemandsQuery(props.ctx, props.input);
 		}),
 	updateInboundShipmentStatus: protectedProcedure
-		.input(
-			z.object({
-				inboundId: z.number(),
-				status: z.enum([
-					"pending",
-					"in_progress",
-					"completed",
-					"issue_open",
-					"closed",
-					"cancelled",
-				]),
-			}),
-		)
+		.input(updateInboundShipmentStatusSchema)
 		.mutation(async (props) => {
 			return updateInboundShipmentStatusQuery(props.ctx, props.input);
 		}),
 	receiveInboundShipment: protectedProcedure
-		.input(
-			z.object({
-				inboundId: z.number(),
-				receivedAt: z.date().optional().nullable(),
-				items: z
-					.array(
-						z.object({
-							inboundShipmentItemId: z.number(),
-							qtyReceived: z.number().optional().nullable(),
-							qtyGood: z.number().optional().nullable(),
-							qtyIssue: z.number().optional().nullable(),
-							unitPrice: z.number().optional().nullable(),
-							issueType: z
-								.enum([
-									"damaged",
-									"missing",
-									"wrong_item",
-									"over_received",
-									"quality_hold",
-								])
-								.optional()
-								.nullable(),
-							issueNotes: z.string().optional().nullable(),
-						}),
-					)
-					.optional(),
-			}),
-		)
+		.input(receiveInboundShipmentSchema)
 		.mutation(async (props) => {
-			const result = await receiveInboundShipment(props.ctx.db, {
-				...props.input,
-				authorName: String(props.ctx.userId),
-			});
+			const result = await props.ctx.db.$transaction((tx) =>
+				receiveInboundShipment(tx, {
+					...props.input,
+					authorName: String(props.ctx.userId),
+				}),
+			);
 			let allocationJob: Awaited<ReturnType<typeof tasks.trigger>> | null =
 				null;
 			if (result.lineItemComponentIds.length > 0) {
@@ -793,48 +846,118 @@ export const inventoriesRouter = createTRPCRouter({
 	salesInventoryOverview: protectedProcedure
 		.input(
 			z.object({
-				salesOrderId: z.number(),
+				salesOrderId: salesInventoryOrderIdSchema,
 			}),
 		)
 		.query(async (props) => {
 			return getSalesInventoryOverview(props.ctx.db, props.input);
 		}),
-	syncSalesInventoryOverview: protectedProcedure
+	salesInventoryMarkAsPreflight: protectedProcedure
 		.input(
 			z.object({
-				salesOrderId: z.number(),
+				salesOrderIds: salesInventoryOrderIdsSchema,
+				action: salesInventoryMarkAsActionSchema,
+			}),
+		)
+		.query(async (props) => {
+			return getSalesInventoryMarkAsPreflight(props.ctx.db, props.input);
+		}),
+	resolveSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure
+		.input(
+			z.object({
+				salesOrderIds: salesInventoryOrderIdsSchema,
+				action: salesInventoryMarkAsActionSchema,
 			}),
 		)
 		.mutation(async (props) => {
+			return resolveSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
+				...props.input,
+				authorName: String(props.ctx.userId ?? "System"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			});
+		}),
+	syncSalesInventoryOverview: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: salesInventoryOrderIdSchema,
+			}),
+		)
+		.mutation(async (props) => {
+			const overview = await getSalesInventoryOverview(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+			});
+
+			if (overview && !overview.capabilities.canSync) {
+				throw new Error(
+					overview.inventoryActionBlockReason ||
+						"Inventory sync is not available for this order.",
+				);
+			}
+
 			return syncSalesInventoryLineItems(props.ctx.db, {
 				salesOrderId: props.input.salesOrderId,
 				source: "manual",
 				triggeredByUserId: props.ctx.userId,
 			});
 		}),
+	resolveSalesInventoryLegacyStatusSetup: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: salesInventoryOrderIdSchema,
+				action: salesInventoryLegacyStatusSetupActionSchema,
+			}),
+		)
+		.mutation(async (props) => {
+			return resolveSalesInventoryLegacyStatusSetupMutation(props.ctx.db, {
+				...props.input,
+				authorName: String(props.ctx.userId ?? "System"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			});
+		}),
 	salesInventorySyncMonitor: protectedProcedure
 		.input(
 			z
 				.object({
-					sampleLimit: z.number().min(1).max(20).optional(),
+					sampleLimit: z.number().int().min(1).max(20).optional(),
 					includeReconciliation: z.boolean().optional(),
-					reconciliationLimit: z.number().min(1).max(200).optional(),
+					reconciliationLimit: z.number().int().min(1).max(200).optional(),
 				})
 				.optional(),
 		)
 		.query(async (props) => {
 			return getSalesInventorySyncMonitor(props.ctx.db, props.input ?? {});
 		}),
-	cleanupStaleSalesInventoryLineItems: protectedProcedure
+	salesInventoryInboundStatusBackfillPreview: protectedProcedure
 		.input(
 			z
 				.object({
-					lineItemIds: z.array(z.number().int().positive()).optional(),
-					limit: z.number().int().min(1).max(500).optional(),
-					dryRun: z.boolean().optional().default(true),
+					limit: z.number().int().min(1).max(200).optional(),
+					cursor: z.number().int().positive().nullable().optional(),
 				})
 				.optional(),
 		)
+		.query(async (props) => {
+			return getSalesInventoryInboundStatusBackfillPreview(
+				props.ctx.db,
+				props.input ?? {},
+			);
+		}),
+	repairSalesInventoryInboundStatusBackfill: protectedProcedure
+		.input(
+			z.object({
+				salesOrderIds: z.array(z.number().int().positive()).min(1).max(200),
+				dryRun: z.boolean().optional().default(true),
+			}),
+		)
+		.mutation(async (props) => {
+			return repairSalesInventoryInboundStatusBackfill(props.ctx.db, {
+				...props.input,
+				authorName: String(props.ctx.userId ?? "System"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			});
+		}),
+	cleanupStaleSalesInventoryLineItems: protectedProcedure
+		.input(cleanupStaleSalesInventoryLineItemsSchema)
 		.mutation(async (props) => {
 			return cleanupStaleSalesInventoryLineItems(
 				props.ctx.db,
@@ -930,16 +1053,7 @@ export const inventoriesRouter = createTRPCRouter({
 			return getSalesProductionPlan(props.ctx.db, props.input);
 		}),
 	shipAvailableSalesInventory: protectedProcedure
-		.input(
-			z.object({
-				salesOrderId: z.number(),
-				lineItemIds: z.array(z.number()).optional(),
-				deliveryMode: z.string().optional().nullable(),
-				deliveredTo: z.string().optional().nullable(),
-				authorName: z.string().optional().nullable(),
-				note: z.string().optional().nullable(),
-			}),
-		)
+		.input(shipAvailableSalesInventorySchema)
 		.mutation(async (props) => {
 			return shipAvailableSalesInventory(props.ctx.db, {
 				...props.input,
@@ -1002,7 +1116,7 @@ export const inventoriesRouter = createTRPCRouter({
 	repairSalesInventorySync: protectedProcedure
 		.input(
 			z.object({
-				salesOrderId: z.number(),
+				salesOrderId: salesInventoryOrderIdSchema,
 			}),
 		)
 		.mutation(async (props) => {
@@ -1183,6 +1297,19 @@ export const inventoriesRouter = createTRPCRouter({
 		.input(updateCategoryStockModeSchema)
 		.mutation(async (props) => {
 			return updateCategoryStockMode(props.ctx.db, props.input);
+		}),
+	salesInventoryTrackingChangeRepairPreview: protectedProcedure
+		.input(
+			z.object({
+				inventoryCategoryId: inventoryPositiveIdSchema,
+				limit: z.number().int().min(1).max(50).optional(),
+			}),
+		)
+		.mutation(async (props) => {
+			return getSalesInventoryTrackingChangeRepairPreview(props.ctx.db, {
+				inventoryCategoryId: props.input.inventoryCategoryId,
+				limit: props.input.limit,
+			});
 		}),
 	updateInventoryProductKind: publicProcedure
 		.input(updateInventoryProductKindSchema)

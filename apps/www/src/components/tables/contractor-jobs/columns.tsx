@@ -253,6 +253,7 @@ function Actions({ item }: ItemProps) {
 	const { setParams } = useJobFormParams();
 	const isAdmin = useJobRole().isAdmin;
 	const isLocked = !isAdmin && isLockedWorkerJob(item);
+	const canDelete = item.deletionEligibility?.canDelete ?? !isLockedWorkerJob(item);
 	return (
 		<div className="relative flex items-center justify-end gap-2 z-10">
 			{isAdmin ? <StatusActionsDropdown item={item} /> : null}
@@ -272,7 +273,7 @@ function Actions({ item }: ItemProps) {
 			<DeleteButton
 				// size="xs"
 				size="sm"
-				disabled={isLocked}
+				disabled={!canDelete}
 				route="jobs.deleteJob"
 				input={{ id: item.id }}
 				onDelete={() => {

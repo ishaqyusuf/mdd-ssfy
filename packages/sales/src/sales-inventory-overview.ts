@@ -1,5 +1,31 @@
 import type { Db } from "@gnd/db";
 
+import {
+	type SalesOrderLifecycleStatus,
+	getSalesOrderLifecycleStatusInfo,
+} from "./order-status";
+import {
+	type SalesInventoryRequirementDisplayStatus,
+	hasPassedInventoryTrackingRepairBoundary,
+	resolveSalesInventoryFulfillmentStatus,
+	resolveSalesInventoryOperationPolicy,
+	resolveSalesInventoryOverviewSetupMode,
+	resolveSalesInventoryRequirementDisplay,
+} from "./sales-inventory-policy";
+export {
+	hasPassedInventoryTrackingRepairBoundary,
+	resolveSalesInventoryFulfillmentStatus,
+	resolveSalesInventoryOperationPolicy,
+	resolveSalesInventoryOverviewSetupMode,
+	resolveSalesInventoryRequirementDisplay,
+} from "./sales-inventory-policy";
+export type {
+	SalesInventoryOperationMode,
+	SalesInventoryOperationPolicy,
+	SalesInventoryOverviewSetupMode,
+	SalesInventoryRequirementDisplayStatus,
+} from "./sales-inventory-policy";
+
 const FULFILLED_COMPONENT_STATUSES = new Set(["allocated", "fulfilled"]);
 const INBOUND_COMPONENT_STATUSES = new Set([
 	"inbound_required",
@@ -201,6 +227,10 @@ export type SalesOverviewInventoryLine = {
 	cost: number | null;
 	salesPrice: number | null;
 	status: SalesOverviewInventoryLineStatus;
+	requirementStatus: SalesInventoryRequirementDisplayStatus;
+	requirementLabel: string;
+	requirementShortLabel: string;
+	canEditInboundStatus: boolean;
 	sourceStatus: string | null;
 	trackingPolicy: SalesOverviewInventoryTrackingPolicy;
 	inventoryId: number | null;
@@ -560,6 +590,10 @@ export function buildSalesOverviewInventoryGroups(
 					inboundOpenQty: qtyInboundOpen,
 					sourceStatus: component.status,
 				});
+				const requirementDisplay = resolveSalesInventoryRequirementDisplay({
+					trackingPolicy,
+					requiredQty: qtyRequired,
+				});
 				const cost = linePricingCostValue(component.price, qtyRequired);
 				const salesPrice = linePricingSalesValue(component.price, qtyRequired);
 				const inboundDemands = component.inboundDemands || [];
@@ -616,6 +650,10 @@ export function buildSalesOverviewInventoryGroups(
 					cost,
 					salesPrice,
 					status,
+					requirementStatus: requirementDisplay.status,
+					requirementLabel: requirementDisplay.label,
+					requirementShortLabel: requirementDisplay.shortLabel,
+					canEditInboundStatus: requirementDisplay.canEditInboundStatus,
 					sourceStatus: component.status ?? null,
 					trackingPolicy,
 					inventoryId,
@@ -763,6 +801,10 @@ export function buildSalesOverviewInventoryMergedRows(
 				rows.find((row) => row.inventoryId)?.inventoryId ??
 				null;
 			const trackingPolicy = base.trackingPolicy;
+			const requirementDisplay = resolveSalesInventoryRequirementDisplay({
+				trackingPolicy,
+				requiredQty: qtyRequired,
+			});
 
 			return [
 				{
@@ -784,6 +826,10 @@ export function buildSalesOverviewInventoryMergedRows(
 						? sumCurrencyBy(rows, (row) => numberValue(row.salesPrice))
 						: null,
 					status: aggregateLineStatus(rows),
+					requirementStatus: requirementDisplay.status,
+					requirementLabel: requirementDisplay.label,
+					requirementShortLabel: requirementDisplay.shortLabel,
+					canEditInboundStatus: requirementDisplay.canEditInboundStatus,
 					sourceStatus: null,
 					inventoryId,
 					inventoryVariantId:
@@ -896,6 +942,207 @@ export function summarizeSalesInventoryOverview(
 	};
 }
 
+export type SalesInventoryTrackingChangeRepairPreviewInput = {
+	inventoryCategoryId: number;
+	limit?: number | null;
+};
+
+export type SalesInventoryTrackingChangeRepairPreviewOrder = {
+	salesOrderId: number;
+	orderId: string;
+	lifecycleStatus: SalesOrderLifecycleStatus;
+	lifecycleLabel: string;
+	pendingQty: number;
+	componentCount: number;
+	componentNames: string[];
+};
+
+export type SalesInventoryTrackingChangeRepairPreview = {
+	inventoryCategoryId: number;
+	eligibleOrderCount: number;
+	skippedReadOnlyOrderCount: number;
+	totalPendingQty: number;
+	orders: SalesInventoryTrackingChangeRepairPreviewOrder[];
+	truncated: boolean;
+};
+
+export async function getSalesInventoryTrackingChangeRepairPreview(
+	db: Db,
+	input: SalesInventoryTrackingChangeRepairPreviewInput,
+): Promise<SalesInventoryTrackingChangeRepairPreview> {
+	const limit = Math.min(Math.max(Number(input.limit || 25), 1), 50);
+	const components = await db.lineItemComponents.findMany({
+		where: {
+			inventoryCategoryId: input.inventoryCategoryId,
+			parent: {
+				deletedAt: null,
+				lineItemType: "SALE",
+				sale: {
+					is: {
+						deletedAt: null,
+					},
+				},
+			},
+		},
+		orderBy: {
+			id: "desc",
+		},
+		take: 1000,
+		select: {
+			id: true,
+			qty: true,
+			qtyAllocated: true,
+			qtyReceived: true,
+			inventory: {
+				select: {
+					name: true,
+				},
+			},
+			inventoryVariant: {
+				select: {
+					sku: true,
+					uid: true,
+				},
+			},
+			inventoryCategory: {
+				select: {
+					title: true,
+				},
+			},
+			parent: {
+				select: {
+					saleId: true,
+					salesItem: {
+						select: {
+							description: true,
+							dykeDescription: true,
+						},
+					},
+					sale: {
+						select: {
+							id: true,
+							orderId: true,
+							status: true,
+							prodStatus: true,
+							deliveries: {
+								where: {
+									deletedAt: null,
+								},
+								select: {
+									status: true,
+									_count: {
+										select: {
+											items: true,
+										},
+									},
+								},
+							},
+							stat: {
+								where: {
+									deletedAt: null,
+									type: {
+										in: [
+											"dispatchCompleted",
+											"dispatchInProgress",
+											"dispatchAssigned",
+										],
+									},
+								},
+								select: {
+									type: true,
+									status: true,
+									percentage: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+
+	const ordersById = new Map<
+		number,
+		SalesInventoryTrackingChangeRepairPreviewOrder
+	>();
+	const skippedReadOnlyOrderIds = new Set<number>();
+
+	for (const component of components) {
+		const sale = component.parent.sale;
+		if (!sale) continue;
+
+		const pendingQty = Math.max(
+			0,
+			numberValue(component.qty) -
+				numberValue(component.qtyAllocated) -
+				numberValue(component.qtyReceived),
+		);
+		if (pendingQty <= 0) continue;
+
+		const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
+			deliveries: sale.deliveries,
+			stats: sale.stat,
+		});
+		const lifecycle = getSalesOrderLifecycleStatusInfo({
+			orderStatus: sale.status,
+			legacyProductionStatus: sale.prodStatus,
+			fulfillmentStatus,
+		});
+
+		if (hasPassedInventoryTrackingRepairBoundary(lifecycle.status)) {
+			skippedReadOnlyOrderIds.add(sale.id);
+			continue;
+		}
+
+		const name =
+			component.inventory?.name ||
+			component.inventoryVariant?.sku ||
+			component.inventoryVariant?.uid ||
+			component.inventoryCategory?.title ||
+			component.parent.salesItem?.description ||
+			component.parent.salesItem?.dykeDescription ||
+			"Inventory component";
+		const current = ordersById.get(sale.id) ?? {
+			salesOrderId: sale.id,
+			orderId: sale.orderId,
+			lifecycleStatus: lifecycle.status,
+			lifecycleLabel: lifecycle.label,
+			pendingQty: 0,
+			componentCount: 0,
+			componentNames: [],
+		};
+
+		current.pendingQty += pendingQty;
+		current.componentCount += 1;
+		if (!current.componentNames.includes(name)) {
+			current.componentNames.push(name);
+		}
+		ordersById.set(sale.id, current);
+	}
+
+	const allOrders = Array.from(ordersById.values()).sort((a, b) => {
+		const qty = b.pendingQty - a.pendingQty;
+		if (qty) return qty;
+		return b.salesOrderId - a.salesOrderId;
+	});
+	const orders = allOrders.slice(0, limit).map((order) => ({
+		...order,
+		pendingQty: positiveNumberValue(order.pendingQty),
+		componentNames: order.componentNames.slice(0, 4),
+	}));
+
+	return {
+		inventoryCategoryId: input.inventoryCategoryId,
+		eligibleOrderCount: allOrders.length,
+		skippedReadOnlyOrderCount: skippedReadOnlyOrderIds.size,
+		totalPendingQty: positiveNumberValue(
+			allOrders.reduce((total, order) => total + order.pendingQty, 0),
+		),
+		orders,
+		truncated: allOrders.length > orders.length,
+	};
+}
+
 export async function getSalesInventoryOverview(
 	db: Db,
 	input: GetSalesInventoryOverviewInput,
@@ -910,6 +1157,41 @@ export async function getSalesInventoryOverview(
 			status: true,
 			inventoryStatus: true,
 			prodStatus: true,
+			deliveries: {
+				where: {
+					deletedAt: null,
+				},
+				orderBy: [
+					{
+						deliveredAt: "desc",
+					},
+					{
+						id: "desc",
+					},
+				],
+				select: {
+					id: true,
+					status: true,
+					_count: {
+						select: {
+							items: true,
+						},
+					},
+				},
+			},
+			stat: {
+				where: {
+					deletedAt: null,
+					type: {
+						in: ["dispatchCompleted", "dispatchInProgress", "dispatchAssigned"],
+					},
+				},
+				select: {
+					type: true,
+					status: true,
+					percentage: true,
+				},
+			},
 			lineItems: {
 				where: {
 					deletedAt: null,
@@ -1104,12 +1386,42 @@ export async function getSalesInventoryOverview(
 
 	if (!sale) return null;
 
+	const { deliveries, stat, ...saleSnapshot } = sale;
 	const groups = buildSalesOverviewInventoryGroups(sale.lineItems);
+	const rows = buildSalesOverviewInventoryMergedRows(groups);
+	const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
+		deliveries,
+		stats: stat,
+	});
+	const lifecycle = getSalesOrderLifecycleStatusInfo({
+		orderStatus: sale.status,
+		legacyProductionStatus: sale.prodStatus,
+		fulfillmentStatus,
+	});
+	const setupMode = resolveSalesInventoryOverviewSetupMode({
+		lifecycleStatus: lifecycle.status,
+		inventoryRowCount: rows.length,
+		inventoryStatus: sale.inventoryStatus,
+	});
+	const operationPolicy = resolveSalesInventoryOperationPolicy({
+		lifecycleStatus: lifecycle.status,
+		setupMode,
+	});
 
 	return {
-		...sale,
+		...saleSnapshot,
+		lifecycleStatus: lifecycle.status,
+		lifecycleLabel: lifecycle.label,
+		lifecycleTone: lifecycle.tone,
+		fulfillmentStatus,
+		setupMode,
+		operationMode: operationPolicy.mode,
+		capabilities: operationPolicy.capabilities,
+		isInventoryReadOnly: operationPolicy.isReadOnly,
+		inventoryActionBlockReason: operationPolicy.reason,
+		hasInventoryIntegration: rows.length > 0,
 		summary: summarizeSalesInventoryOverview(sale.lineItems),
 		groups,
-		rows: buildSalesOverviewInventoryMergedRows(groups),
+		rows,
 	};
 }

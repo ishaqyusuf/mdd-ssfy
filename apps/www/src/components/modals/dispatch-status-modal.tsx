@@ -25,6 +25,7 @@ import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upl
 
 import { useDispatchstatusModal } from "@/hooks/use-dispatch-status-modal";
 import { AttachmentGallery } from "../attachment-gallery";
+import { toast } from "@gnd/ui/use-toast";
 
 // get schema from zod input
 const formSchema = saveInboundNoteSchema;
@@ -58,7 +59,13 @@ export function DispatchStatusModal({}) {
                 });
                 setParams(null);
             },
-            onError(e) {},
+            onError(error) {
+                toast({
+                    title: "Unable to update inbound status",
+                    description: error.message,
+                    variant: "destructive",
+                });
+            },
         }),
     );
     const statusList = [...orderInboundStatuses];

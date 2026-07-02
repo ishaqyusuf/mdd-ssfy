@@ -20,6 +20,7 @@ import {
 	getJobAnalyticsSchema,
 	getJobForm,
 	getJobFormSchema,
+	getJobDeletionEligibility,
 	getJobs,
 	getJobsSchema,
 	getPaymentDashboard,
@@ -37,7 +38,9 @@ import { sum } from "@gnd/utils";
 import { saveNote } from "@gnd/utils/note";
 import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { TRPCError } from "@trpc/server";
 import z from "zod";
+import { auth } from "@api/db/queries/user";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -164,38 +167,78 @@ export async function reviewJobStatus(
 	return job;
 }
 
+export async function deleteJob(
+	ctx: {
+		db: TRPCContext["db"];
+		userId: number;
+	},
+	input: {
+		id: number;
+	},
+	options: {
+		notificationTasks?: NotificationTasks;
+	} = {},
+) {
+	const session = await auth(ctx);
+	const job = await ctx.db.jobs.findFirst({
+		where: {
+			id: input.id,
+			deletedAt: null,
+		},
+		select: {
+			id: true,
+			userId: true,
+			status: true,
+			paymentId: true,
+			approvedAt: true,
+		},
+	});
+	if (!job) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Job not found",
+		});
+	}
+	if (job.userId !== ctx.userId && !session.can?.editJobs) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have permission to delete this job.",
+		});
+	}
+	const deletionEligibility = getJobDeletionEligibility(job);
+	if (!deletionEligibility.canDelete) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: deletionEligibility.reason || "This job cannot be deleted.",
+		});
+	}
+	await ctx.db.jobs.update({
+		where: { id: input.id },
+		data: {
+			deletedAt: new Date(),
+		},
+	});
+	const notification = new NotificationService(
+		options.notificationTasks ?? tasks,
+		ctx,
+	);
+	if (job.userId) {
+		notification.setEmployeeRecipients(job.userId);
+	}
+	await notification.channel.jobDeleted({
+		jobId: job.id,
+	});
+}
+
 export const jobRoutes = createTRPCRouter({
-	deleteJob: publicProcedure
+	deleteJob: protectedProcedure
 		.input(
 			z.object({
-				id: z.number(),
+				id: z.number().int().positive(),
 			}),
 		)
 		.mutation(async (props) => {
-			const job = await props.ctx.db.jobs.findFirst({
-				where: {
-					id: props.input.id,
-					deletedAt: null,
-				},
-				select: {
-					id: true,
-					userId: true,
-				},
-			});
-			if (!job) throw new Error("Job not found");
-			await props.ctx.db.jobs.update({
-				where: { id: props.input.id },
-				data: {
-					deletedAt: new Date(),
-				},
-			});
-			const notification = new NotificationService(tasks, props.ctx);
-			if (job.userId) {
-				notification.setEmployeeRecipients(job.userId);
-			}
-			await notification.channel.jobDeleted({
-				jobId: job.id,
-			});
+			return deleteJob(props.ctx, props.input);
 		}),
 	getJobActivityHistory: publicProcedure
 		.input(

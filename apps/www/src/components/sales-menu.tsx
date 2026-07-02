@@ -19,10 +19,14 @@ import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { DropdownMenu } from "@gnd/ui/namespace";
+import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { share } from "@gnd/utils/share";
+import type {
+	SalesInventoryMarkAsAction,
+	SalesInventoryMarkAsPreflightResult,
+} from "@gnd/sales/sales-inventory-mark-as-preflight";
 import type { SalesPdfToken } from "@gnd/utils/tokenizer";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useMutation } from "@tanstack/react-query";
@@ -306,6 +310,24 @@ type ActionProps = {
 type MarkAsProps = ActionProps & {
 	asSubmenu?: boolean;
 };
+
+const markAsActionLabels: Record<SalesInventoryMarkAsAction, string> = {
+	production_completed: "Production completed",
+	fulfilled: "Fulfilled",
+};
+
+function markAsInventoryReasonLabel(
+	reason: SalesInventoryMarkAsPreflightResult["blockers"][number]["reason"],
+) {
+	if (reason === "awaiting_inbound") return "Awaiting inbound";
+	return "Needs allocation";
+}
+
+function formatInventoryQty(value: number) {
+	return new Intl.NumberFormat("en-US", {
+		maximumFractionDigits: 2,
+	}).format(Number(value || 0));
+}
 
 type EmailOptions = {
 	withPayment?: boolean;
@@ -780,11 +802,18 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	const trpc = useTRPC();
 	const sq = useSalesQueryClient();
 	const salesIds = state.salesIds;
+	const [inventoryPreflight, setInventoryPreflight] =
+		useState<SalesInventoryMarkAsPreflightResult | null>(null);
+	const [preflightLoadingAction, setPreflightLoadingAction] =
+		useState<SalesInventoryMarkAsAction | null>(null);
 	const isDisabled = disabled || !salesIds.length;
 	const expectedTaskStartsRef = useRef(0);
 	const completedTaskStartsRef = useRef(0);
 	const createDispatchMutation = useMutation(
 		trpc.dispatch.createDispatch.mutationOptions(),
+	);
+	const resolveInventoryMarkAsMutation = useMutation(
+		trpc.inventories.resolveSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
 	);
 	const invalidateOrders = async () => {
 		await Promise.all([
@@ -831,6 +860,36 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		authorName: auth.name || "System",
 	});
 
+	const runInventoryMarkAsPreflight = async (
+		action: SalesInventoryMarkAsAction,
+	) => {
+		setPreflightLoadingAction(action);
+		try {
+			const preflight = await sq.qc.fetchQuery(
+				trpc.inventories.salesInventoryMarkAsPreflight.queryOptions({
+					salesOrderIds: salesIds,
+					action,
+				}),
+			);
+
+			if (!preflight.ok) {
+				setInventoryPreflight(preflight);
+				return false;
+			}
+
+			return true;
+		} catch {
+			toast({
+				title: "Unable to verify inventory readiness",
+				description: "Please review the Inventory tab before using Mark as.",
+				variant: "destructive",
+			});
+			return false;
+		} finally {
+			setPreflightLoadingAction(null);
+		}
+	};
+
 	const resolveDispatchId = async (salesId: number) => {
 		const deliveryInfo = await sq.qc.fetchQuery(
 			trpc.dispatch.salesDeliveryInfo.queryOptions({ salesId }),
@@ -864,7 +923,7 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		return createdDispatch.id;
 	};
 
-	const markProductionCompleted = async () => {
+	const startMarkProductionCompletedTask = async () => {
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
@@ -897,7 +956,7 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		}
 	};
 
-	const markFulfilled = async () => {
+	const startMarkFulfilledTask = async () => {
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
@@ -936,10 +995,69 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		}
 	};
 
+	const markProductionCompleted = async () => {
+		const inventoryReady = await runInventoryMarkAsPreflight(
+			"production_completed",
+		);
+		if (!inventoryReady) return;
+		await startMarkProductionCompletedTask();
+	};
+
+	const markFulfilled = async () => {
+		const inventoryReady = await runInventoryMarkAsPreflight("fulfilled");
+		if (!inventoryReady) return;
+		await startMarkFulfilledTask();
+	};
+
+	const resolveInventoryAndContinue = async () => {
+		if (!inventoryPreflight) return;
+
+		try {
+			const result = await resolveInventoryMarkAsMutation.mutateAsync({
+				salesOrderIds: salesIds,
+				action: inventoryPreflight.action,
+			});
+
+			if (!result.continueAllowed) {
+				setInventoryPreflight(result.remainingPreflight);
+				toast({
+					title: "Inventory still needs review",
+					description:
+						result.remainingPreflight.totals.unresolvableComponentCount > 0
+							? "Some stock work is linked to inbound receiving or still needs allocation."
+							: "Inventory was refreshed, but this order is not ready to continue yet.",
+					variant: "destructive",
+				});
+				return;
+			}
+
+			setInventoryPreflight(null);
+			toast({
+				title: "Inventory marked available",
+				description: `${result.cancelledDemandCount} pending demand row${
+					result.cancelledDemandCount === 1 ? "" : "s"
+				} resolved before continuing.`,
+				variant: "success",
+			});
+
+			if (result.action === "production_completed") {
+				await startMarkProductionCompletedTask();
+			} else {
+				await startMarkFulfilledTask();
+			}
+		} catch {
+			toast({
+				title: "Unable to resolve inventory",
+				description: "Please review the Inventory tab before using Mark as.",
+				variant: "destructive",
+			});
+		}
+	};
+
 	const items = (
 		<>
 			<SalesMenuItem
-				disabled={isDisabled}
+				disabled={isDisabled || preflightLoadingAction !== null}
 				onSelect={(event) => {
 					event.preventDefault();
 					void markProductionCompleted();
@@ -948,7 +1066,7 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 				Production completed
 			</SalesMenuItem>
 			<SalesMenuItem
-				disabled={isDisabled}
+				disabled={isDisabled || preflightLoadingAction !== null}
 				onSelect={(event) => {
 					event.preventDefault();
 					void markFulfilled();
@@ -958,19 +1076,153 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 			</SalesMenuItem>
 		</>
 	);
+	const blockerPreview = inventoryPreflight?.blockers.slice(0, 4) || [];
+	const canResolveInventoryAndContinue = Boolean(
+		inventoryPreflight?.canResolveAndContinue,
+	);
+	const isResolvingInventory = resolveInventoryMarkAsMutation.isPending;
+	const dialog = (
+		<AlertDialog
+			open={Boolean(inventoryPreflight)}
+			onOpenChange={(open) => {
+				if (!open) setInventoryPreflight(null);
+			}}
+		>
+			<AlertDialog.Content>
+				<AlertDialog.Header>
+					<AlertDialog.Title>Inventory needs attention</AlertDialog.Title>
+					<AlertDialog.Description>
+						{inventoryPreflight
+							? `${markAsActionLabels[inventoryPreflight.action]} is paused because configured inventory still has unresolved stock work.`
+							: "Configured inventory still has unresolved stock work."}
+					</AlertDialog.Description>
+				</AlertDialog.Header>
+				{inventoryPreflight ? (
+					<div className="space-y-3">
+						<div className="grid gap-2 sm:grid-cols-3">
+							<div className="rounded-md border bg-muted/30 px-3 py-2">
+								<div className="text-[11px] uppercase text-muted-foreground">
+									Orders blocked
+								</div>
+								<div className="text-base font-semibold">
+									{inventoryPreflight.blockedSaleCount}
+								</div>
+							</div>
+							<div className="rounded-md border bg-muted/30 px-3 py-2">
+								<div className="text-[11px] uppercase text-muted-foreground">
+									Pending qty
+								</div>
+								<div className="text-base font-semibold">
+									{formatInventoryQty(inventoryPreflight.totals.pendingQty)}
+								</div>
+							</div>
+							<div className="rounded-md border bg-muted/30 px-3 py-2">
+								<div className="text-[11px] uppercase text-muted-foreground">
+									Open inbound
+								</div>
+								<div className="text-base font-semibold">
+									{formatInventoryQty(inventoryPreflight.totals.openInboundQty)}
+								</div>
+							</div>
+						</div>
+						<div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+							{canResolveInventoryAndContinue
+								? "Only unlinked pending inbound demand will be marked available. Shipment-linked receiving and allocation work are not changed here."
+								: "This inventory state cannot be safely marked available from Mark as. Resolve linked receiving or allocation work in the Inventory tab first."}
+						</div>
+						<div className="max-h-64 overflow-y-auto rounded-md border">
+							{blockerPreview.map((blocker) => (
+								<div
+									key={blocker.salesOrderId}
+									className="border-b px-3 py-2 last:border-b-0"
+								>
+									<div className="flex items-start justify-between gap-3">
+										<div className="min-w-0">
+											<div className="truncate text-sm font-medium">
+												{blocker.orderId || blocker.title || blocker.salesOrderId}
+											</div>
+											<div className="text-xs text-muted-foreground">
+												{markAsInventoryReasonLabel(blocker.reason)} ·{" "}
+												{blocker.unresolvedComponentCount} component
+												{blocker.unresolvedComponentCount === 1 ? "" : "s"}
+											</div>
+										</div>
+										<div className="shrink-0 text-right text-xs text-muted-foreground">
+											{formatInventoryQty(blocker.pendingQty)} pending
+										</div>
+									</div>
+									{blocker.components.length ? (
+										<div className="mt-2 space-y-1">
+											{blocker.components.slice(0, 2).map((component, index) => (
+												<div
+													key={`${blocker.salesOrderId}-${component.componentId ?? component.lineItemId ?? index}`}
+													className="flex items-center justify-between gap-2 text-xs"
+												>
+													<span className="min-w-0 truncate text-muted-foreground">
+														{component.name || component.sku || "Inventory component"}
+													</span>
+													<span className="shrink-0 text-muted-foreground">
+														{markAsInventoryReasonLabel(component.reason)}
+													</span>
+												</div>
+											))}
+										</div>
+									) : null}
+								</div>
+							))}
+							{inventoryPreflight.blockers.length > blockerPreview.length ? (
+								<div className="px-3 py-2 text-xs text-muted-foreground">
+									+{inventoryPreflight.blockers.length - blockerPreview.length}{" "}
+									more blocked order
+									{inventoryPreflight.blockers.length - blockerPreview.length ===
+									1
+										? ""
+										: "s"}
+								</div>
+							) : null}
+						</div>
+					</div>
+				) : null}
+				<AlertDialog.Footer>
+					<AlertDialog.Cancel disabled={isResolvingInventory}>
+						Review inventory first
+					</AlertDialog.Cancel>
+					<AlertDialog.Action
+						disabled={!canResolveInventoryAndContinue || isResolvingInventory}
+						onClick={(event) => {
+							event.preventDefault();
+							void resolveInventoryAndContinue();
+						}}
+					>
+						{isResolvingInventory
+							? "Resolving..."
+							: "Mark available and continue"}
+					</AlertDialog.Action>
+				</AlertDialog.Footer>
+			</AlertDialog.Content>
+		</AlertDialog>
+	);
 
 	if (!asSubmenu) {
-		return items;
+		return (
+			<>
+				{items}
+				{dialog}
+			</>
+		);
 	}
 
 	return (
-		<SalesMenuSub>
-			<SalesMenuSubTrigger disabled={isDisabled}>
-				<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
-				Mark as
-			</SalesMenuSubTrigger>
-			<SalesMenuSubContent>{items}</SalesMenuSubContent>
-		</SalesMenuSub>
+		<>
+			<SalesMenuSub>
+				<SalesMenuSubTrigger disabled={isDisabled}>
+					<Icons.CheckCheck className="mr-2 size-4 text-muted-foreground/70" />
+					Mark as
+				</SalesMenuSubTrigger>
+				<SalesMenuSubContent>{items}</SalesMenuSubContent>
+			</SalesMenuSub>
+			{dialog}
+		</>
 	);
 }
 

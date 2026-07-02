@@ -487,14 +487,43 @@ export async function cleanupStaleSalesInventoryLineItems(
 	const now = new Date();
 	let releasedAllocationCount = 0;
 	let cancelledInboundDemandCount = 0;
+	let cleanedComponentCount = 0;
+	const cleanedLineItems = await db.lineItem.updateMany({
+		where: staleInventoryLineItemWhere({
+			lineItemIds,
+		}),
+		data: {
+			deletedAt: now,
+		},
+	});
 
-	if (componentIds.length) {
-		const releasedAllocations = await db.stockAllocation.updateMany({
-			where: {
-				lineItemComponentId: {
-					in: componentIds,
+	if (componentIds.length && cleanedLineItems.count > 0) {
+		const cleanedLineItemWhere = {
+			id: {
+				in: lineItemIds,
+			},
+			deletedAt: now,
+		};
+		const staleComponentWhere = {
+			id: {
+				in: componentIds,
+			},
+			parent: cleanedLineItemWhere,
+		};
+		const staleResidueWhere = {
+			lineItemComponentId: {
+				in: componentIds,
+			},
+			lineItemComponent: {
+				is: {
+					parent: {
+						is: cleanedLineItemWhere,
+					},
 				},
 			},
+		};
+		const releasedAllocations = await db.stockAllocation.updateMany({
+			where: staleResidueWhere,
 			data: {
 				deletedAt: now,
 				status: "released",
@@ -504,18 +533,14 @@ export async function cleanupStaleSalesInventoryLineItems(
 
 		await db.stockAllocation.deleteMany({
 			where: {
-				lineItemComponentId: {
-					in: componentIds,
-				},
+				...staleResidueWhere,
+				deletedAt: now,
+				status: "released",
 			},
 		});
 
 		const cancelledInboundDemands = await db.inboundDemand.updateMany({
-			where: {
-				lineItemComponentId: {
-					in: componentIds,
-				},
-			},
+			where: staleResidueWhere,
 			data: {
 				deletedAt: now,
 				status: "cancelled",
@@ -525,37 +550,23 @@ export async function cleanupStaleSalesInventoryLineItems(
 
 		await db.inboundDemand.deleteMany({
 			where: {
-				lineItemComponentId: {
-					in: componentIds,
-				},
+				...staleResidueWhere,
+				deletedAt: now,
+				status: "cancelled",
 			},
 		});
 
-		await db.lineItemComponents.deleteMany({
-			where: {
-				id: {
-					in: componentIds,
-				},
-			},
+		const cleanedComponents = await db.lineItemComponents.deleteMany({
+			where: staleComponentWhere,
 		});
+		cleanedComponentCount = cleanedComponents.count;
 	}
-
-	const cleanedLineItems = await db.lineItem.updateMany({
-		where: {
-			id: {
-				in: lineItemIds,
-			},
-		},
-		data: {
-			deletedAt: now,
-		},
-	});
 
 	return {
 		dryRun,
 		matchedCount: staleLineItems.length,
 		cleanedLineItemCount: cleanedLineItems.count,
-		componentCount: componentIds.length,
+		componentCount: cleanedComponentCount,
 		releasedAllocationCount,
 		cancelledInboundDemandCount,
 		lineItemIds,

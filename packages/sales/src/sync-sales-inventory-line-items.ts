@@ -385,10 +385,30 @@ function normalizeDykeDependencyUid(value: unknown): string | null {
 	const dependency =
 		supplierSeparatorIndex > 0 ? raw.slice(0, supplierSeparatorIndex) : raw;
 	const doorSizeMatch = dependency.match(/^(\d+-\d+)\s*x\s*(\d+-\d+)$/i);
-	if (!doorSizeMatch) return dependency.trim() || null;
+	if (doorSizeMatch) {
+		const [, width, height] = doorSizeMatch;
+		return `w${width.replace(/-/g, "_")}-h${height.replace(/-/g, "_")}`;
+	}
 
-	const [, width, height] = doorSizeMatch;
-	return `w${width.replace(/-/g, "_")}-h${height.replace(/-/g, "_")}`;
+	const inchSizeMatch = dependency.match(
+		/^(\d+(?:\.\d+)?)\s*(?:"|in(?:ch(?:es)?)?)?\s*x\s*(\d+(?:\.\d+)?)\s*(?:"|in(?:ch(?:es)?)?)?$/i,
+	);
+	if (inchSizeMatch) {
+		const hasInchMarker = /"|in(?:ch(?:es)?)?/i.test(dependency);
+		const widthInches = Number(inchSizeMatch[1]);
+		const heightInches = Number(inchSizeMatch[2]);
+		if (hasInchMarker || widthInches > 12 || heightInches > 12) {
+			const formatInches = (inches: number) => {
+				const rounded = Math.round(inches);
+				return `${Math.floor(rounded / 12)}-${rounded % 12}`;
+			};
+			const width = formatInches(widthInches);
+			const height = formatInches(heightInches);
+			return `w${width.replace(/-/g, "_")}-h${height.replace(/-/g, "_")}`;
+		}
+	}
+
+	return dependency.trim() || null;
 }
 
 function readDependencyUidFromParts(value: unknown): string | null {
@@ -1184,7 +1204,7 @@ export function buildInventorySyncComponentCandidatesForItem(
 			);
 		}
 		for (const door of doors) {
-			addCandidate(buildDoorCandidate(door));
+			addCandidate(buildDoorCandidate(door, housePackageTool.stepProduct));
 		}
 	}
 
@@ -1429,18 +1449,29 @@ function buildDoorCandidate(door: {
 		name: string | null;
 		step: { uid: string | null; title: string | null } | null;
 	} | null;
-}): SyncComponentCandidate | null {
-	const sourceUid = door.stepProduct?.uid;
-	const categoryUid = door.stepProduct?.step?.uid;
+}, fallbackStepProduct?: {
+	uid: string | null;
+	name: string | null;
+	step: { uid: string | null; title: string | null } | null;
+} | null): SyncComponentCandidate | null {
+	const stepProduct =
+		door.stepProduct?.uid && door.stepProduct.step?.uid
+			? door.stepProduct
+			: fallbackStepProduct;
+	const sourceUid = stepProduct?.uid;
+	const categoryUid = stepProduct?.step?.uid;
 	if (!sourceUid || !categoryUid) return null;
 
-	const title = door.stepProduct?.name || sourceUid;
+	const title = stepProduct?.name || sourceUid;
 	const variantUid =
 		readDependencyUidFromRecord(asRecord(door.meta)) ??
 		normalizeDykeDependencyUid(door.dependenciesUid) ??
 		normalizeDykeDependencyUid(door.dimension) ??
 		sourceUid;
-	const qty = asPositiveNumber(door.totalQty, 1);
+	const qty = asPositiveNumber(
+		door.totalQty,
+		firstPositiveNumber(numberSafeDivide(door.lineTotal, door.unitPrice)) ?? 1,
+	);
 	const unitSalesPrice =
 		firstFiniteNumber(door.unitPrice) ??
 		(door.lineTotal == null ? null : numberSafeDivide(door.lineTotal, qty));
@@ -1454,7 +1485,7 @@ function buildDoorCandidate(door: {
 		inventoryUid: sourceUid,
 		variantUid,
 		inventoryCategoryUid: categoryUid,
-		inventoryCategoryTitle: door.stepProduct?.step?.title || "Dyke Component",
+		inventoryCategoryTitle: stepProduct?.step?.title || "Dyke Component",
 		inventoryName: title,
 		unitSalesPrice,
 	};
@@ -2282,47 +2313,61 @@ export async function syncSalesInventoryLineItems(
 			.map((component) => component.id);
 
 		if (staleComponentIds.length) {
-			await db.stockAllocation.updateMany({
-				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
-					},
+			const now = new Date();
+			const staleComponentBaselines = refreshedLineItem.components.filter(
+				(component) => staleComponentIds.includes(component.id),
+			);
+			const staleComponentIdentityWhere = {
+				OR: staleComponentBaselines.map((component) => ({
+					id: component.id,
+					lineItemId: refreshedLineItem.id,
+					subComponentId: component.subComponentId,
+					inventoryVariantId: component.inventoryVariantId,
+				})),
+			};
+			const staleComponentResidueWhere = {
+				lineItemComponentId: {
+					in: staleComponentIds,
 				},
+				lineItemComponent: {
+					is: staleComponentIdentityWhere,
+				},
+			};
+			await db.stockAllocation.updateMany({
+				where: staleComponentResidueWhere,
 				data: {
-					deletedAt: new Date(),
+					deletedAt: now,
 					status: "released",
 				},
 			});
 			await db.stockAllocation.deleteMany({
 				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
+					...staleComponentResidueWhere,
+					deletedAt: {
+						not: null,
 					},
+					status: "released",
 				},
 			});
 			await db.inboundDemand.updateMany({
-				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
-					},
-				},
+				where: staleComponentResidueWhere,
 				data: {
-					deletedAt: new Date(),
+					deletedAt: now,
 					status: "cancelled",
 				},
 			});
 			await db.inboundDemand.deleteMany({
 				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
+					...staleComponentResidueWhere,
+					deletedAt: {
+						not: null,
 					},
+					status: "cancelled",
 				},
 			});
 			await db.lineItemComponents.deleteMany({
 				where: {
-					id: {
-						in: staleComponentIds,
-					},
+					...staleComponentIdentityWhere,
 				},
 			});
 		}
@@ -2335,73 +2380,116 @@ export async function syncSalesInventoryLineItems(
 
 	if (staleLineItems.length) {
 		const staleIds = staleLineItems.map((lineItem) => lineItem.id);
-		const staleComponents = await db.lineItemComponents.findMany({
-			where: {
-				lineItemId: {
-					in: staleIds,
-				},
-			},
-			select: {
-				id: true,
-			},
-		});
-		const staleComponentIds = staleComponents.map((component) => component.id);
-		if (staleComponentIds.length) {
-			await db.stockAllocation.updateMany({
-				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
-					},
-				},
-				data: {
-					deletedAt: new Date(),
-					status: "released",
-				},
-			});
-			await db.stockAllocation.deleteMany({
-				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
-					},
-				},
-			});
-			await db.inboundDemand.updateMany({
-				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
-					},
-				},
-				data: {
-					deletedAt: new Date(),
-					status: "cancelled",
-				},
-			});
-			await db.inboundDemand.deleteMany({
-				where: {
-					lineItemComponentId: {
-						in: staleComponentIds,
-					},
-				},
-			});
-		}
-		await db.lineItemComponents.deleteMany({
-			where: {
-				lineItemId: {
-					in: staleIds,
-				},
-			},
-		});
-		await db.lineItem.updateMany({
+		const staleSalesItemIds = staleLineItems
+			.map((lineItem) => lineItem.salesItemId)
+			.filter((salesItemId): salesItemId is number =>
+				Number.isInteger(salesItemId),
+			);
+		const now = new Date();
+		const cleanedLineItems = await db.lineItem.updateMany({
 			where: {
 				id: {
 					in: staleIds,
 				},
+				deletedAt: null,
+				lineItemType: "SALE",
+				saleId: sale.id,
+				salesItemId: {
+					in: staleSalesItemIds,
+				},
 			},
 			data: {
-				deletedAt: new Date(),
+				deletedAt: now,
 			},
 		});
-		deletedCount = staleIds.length;
+		if (cleanedLineItems.count > 0) {
+			const staleComponents = await db.lineItemComponents.findMany({
+				where: {
+					lineItemId: {
+						in: staleIds,
+					},
+					parent: {
+						is: {
+							deletedAt: {
+								not: null,
+							},
+						},
+					},
+				},
+				select: {
+					id: true,
+				},
+			});
+			const staleComponentIds = staleComponents.map((component) => component.id);
+			if (staleComponentIds.length) {
+				const staleLineResidueWhere = {
+					lineItemComponentId: {
+						in: staleComponentIds,
+					},
+					lineItemComponent: {
+						is: {
+							parent: {
+								is: {
+									id: {
+										in: staleIds,
+									},
+									deletedAt: {
+										not: null,
+									},
+								},
+							},
+						},
+					},
+				};
+				await db.stockAllocation.updateMany({
+					where: staleLineResidueWhere,
+					data: {
+						deletedAt: now,
+						status: "released",
+					},
+				});
+				await db.stockAllocation.deleteMany({
+					where: {
+						...staleLineResidueWhere,
+						deletedAt: {
+							not: null,
+						},
+						status: "released",
+					},
+				});
+				await db.inboundDemand.updateMany({
+					where: staleLineResidueWhere,
+					data: {
+						deletedAt: now,
+						status: "cancelled",
+					},
+				});
+				await db.inboundDemand.deleteMany({
+					where: {
+						...staleLineResidueWhere,
+						deletedAt: {
+							not: null,
+						},
+						status: "cancelled",
+					},
+				});
+				await db.lineItemComponents.deleteMany({
+					where: {
+						id: {
+							in: staleComponentIds,
+						},
+						parent: {
+							is: {
+								deletedAt: {
+									not: null,
+								},
+							},
+						},
+					},
+				});
+			}
+		}
+		deletedCount = cleanedLineItems.count;
 	}
 
 	return {

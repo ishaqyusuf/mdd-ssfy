@@ -79,31 +79,70 @@ describe("canOrderInboundPromptMutateDemand", () => {
       canOrderInboundPromptMutateDemand({
         orderInventoryStatus: "AVAILABLE",
         demandStatus: "pending",
+        qtyReceived: 0,
       }),
     ).toBe(true);
     expect(
       canOrderInboundPromptMutateDemand({
         orderInventoryStatus: "ORDERED",
         demandStatus: "ordered",
+        qtyReceived: 0,
       }),
     ).toBe(true);
   });
 
-  test("keeps pending-order prompts from downgrading shipment-linked demand", () => {
+  test("protects shipment-linked demand for every prompt status", () => {
+    for (const orderInventoryStatus of [
+      "AVAILABLE",
+      "ORDERED",
+      "PENDING ORDER",
+    ]) {
+      expect(
+        canOrderInboundPromptMutateDemand({
+          orderInventoryStatus,
+          demandStatus: "ordered",
+          qtyReceived: 0,
+          inboundShipmentItemId: 99,
+        }),
+      ).toBe(false);
+    }
+
     expect(
       canOrderInboundPromptMutateDemand({
-        orderInventoryStatus: "PENDING ORDER",
+        orderInventoryStatus: "ORDERED",
         demandStatus: "ordered",
-        inboundShipmentItemId: 99,
+        qtyReceived: 0,
+        inboundShipmentItemId: 0,
       }),
     ).toBe(false);
+  });
+
+  test("keeps pending-order prompts mutable for unassigned open demand", () => {
     expect(
       canOrderInboundPromptMutateDemand({
         orderInventoryStatus: "PENDING ORDER",
         demandStatus: "ordered",
+        qtyReceived: 0,
         inboundShipmentItemId: null,
       }),
     ).toBe(true);
+  });
+
+  test("protects demand that has already received quantity", () => {
+    for (const orderInventoryStatus of [
+      "AVAILABLE",
+      "ORDERED",
+      "PENDING ORDER",
+    ]) {
+      expect(
+        canOrderInboundPromptMutateDemand({
+          orderInventoryStatus,
+          demandStatus: "ordered",
+          qtyReceived: 1,
+          inboundShipmentItemId: null,
+        }),
+      ).toBe(false);
+    }
   });
 
   test("protects non-prompt-mutable demand statuses", () => {
@@ -112,6 +151,7 @@ describe("canOrderInboundPromptMutateDemand", () => {
         canOrderInboundPromptMutateDemand({
           orderInventoryStatus: "ORDERED",
           demandStatus,
+          qtyReceived: 0,
         }),
       ).toBe(false);
     }

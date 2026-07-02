@@ -1,12 +1,15 @@
 "use client";
 
 import { DataSkeleton } from "@/components/data-skeleton";
+import { getProductionTabItemCount } from "@/components/sales-overview-system/lib/production-items";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOverviewV2PageQuery } from "@/hooks/use-sales-overview-v2-page-query";
 import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
+import { useTRPC } from "@/trpc/client";
 import { Tabs } from "@gnd/ui/tabs";
+import { useQuery } from "@gnd/ui/tanstack";
 
 import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { SalesOverviewProvider, useSaleOverview } from "./context";
@@ -42,9 +45,28 @@ function Modal() {
 function Content() {
 	usePageTitle();
 	const query = useSalesOverviewQuery();
+	const trpc = useTRPC();
 	const { data } = useSaleOverview();
-	const prodQty = data?.salesStat?.prodAssigned?.total || 0;
-	const isQuote = data?.type === "quote";
+	const isQuote =
+		data?.type === "quote" || query.params["sales-type"] === "quote";
+	const overviewId = query.params["sales-overview-id"];
+	const numericAssignedToId = Number(query.assignedTo);
+	const assignedToId =
+		query.assignedTo && Number.isFinite(numericAssignedToId)
+			? numericAssignedToId
+			: null;
+	const { data: productionOverview } = useQuery(
+		trpc.sales.productionOverview.queryOptions(
+			{
+				salesNo: overviewId,
+				assignedToId,
+			},
+			{
+				enabled: !!overviewId && !isQuote,
+			},
+		),
+	);
+	const prodQty = getProductionTabItemCount(productionOverview?.items);
 	const mode = resolveLegacySalesOverviewMode({
 		assignedTo: query.assignedTo,
 		viewMode: query.viewMode,

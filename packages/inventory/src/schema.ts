@@ -86,9 +86,11 @@ export const stockAllocationReviewSchema = z
   .extend(paginationSchema.shape);
 export type StockAllocationReview = z.infer<typeof stockAllocationReviewSchema>;
 
+const positiveIntegerIdSchema = z.number().int().positive();
+
 export const approveStockAllocationSchema = z.object({
-  allocationId: z.number(),
-  approvedQty: z.number().optional().nullable(),
+  allocationId: positiveIntegerIdSchema,
+  approvedQty: z.number().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
   authorName: z.string().optional().nullable(),
 });
@@ -97,13 +99,13 @@ export type ApproveStockAllocation = z.infer<
 >;
 
 export const rejectStockAllocationSchema = z.object({
-  allocationId: z.number(),
+  allocationId: positiveIntegerIdSchema,
   notes: z.string().optional().nullable(),
 });
 export type RejectStockAllocation = z.infer<typeof rejectStockAllocationSchema>;
 
 export const bulkApproveStockAllocationSchema = z.object({
-  allocationIds: z.array(z.number()).min(1),
+  allocationIds: z.array(positiveIntegerIdSchema).min(1),
   authorName: z.string().optional().nullable(),
 });
 export type BulkApproveStockAllocation = z.infer<
@@ -275,23 +277,23 @@ export const variantFormSchema = z.object({
 export type VariantForm = z.infer<typeof variantFormSchema>;
 
 export const inboundItemIssueFormSchema = z.object({
-  id: z.number().optional().nullable(),
-  inboundShipmentItemId: z.number(),
+  id: positiveIntegerIdSchema.optional().nullable(),
+  inboundShipmentItemId: positiveIntegerIdSchema,
   issueType: inboundIssueTypeSchema,
-  reportedQty: z.number(),
+  reportedQty: z.number().positive(),
   notes: z.string().optional().nullable(),
   status: inboundIssueStatusSchema.optional().nullable(),
   resolutionType: inboundIssueResolutionTypeSchema.optional().nullable(),
-  resolvedQty: z.number().optional().nullable(),
+  resolvedQty: z.number().nonnegative().optional().nullable(),
   authorName: z.string().optional().nullable(),
 });
 export type InboundItemIssueForm = z.infer<typeof inboundItemIssueFormSchema>;
 
 export const resolveInboundItemIssueSchema = z.object({
-  issueId: z.number(),
+  issueId: positiveIntegerIdSchema,
   status: inboundIssueStatusSchema.optional().nullable(),
   resolutionType: inboundIssueResolutionTypeSchema.optional().nullable(),
-  resolvedQty: z.number().optional().nullable(),
+  resolvedQty: z.number().nonnegative().optional().nullable(),
   notes: z.string().optional().nullable(),
   authorName: z.string().optional().nullable(),
 });

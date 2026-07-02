@@ -38,6 +38,45 @@ function getJobType(meta?: JobMeta | null) {
 	return meta?.costData ? "v1" : "v2";
 }
 
+const JOB_DELETE_LOCKED_STATUSES = new Set([
+	"approved",
+	"completed",
+	"paid",
+	"payment cancelled",
+	"payment canceled",
+]);
+
+export function getJobDeletionEligibility(job: {
+	status?: string | null;
+	paymentId?: number | null;
+	payment?: { id?: number | null } | null;
+	approvedAt?: Date | string | null;
+}) {
+	if (job.paymentId || job.payment?.id) {
+		return {
+			canDelete: false,
+			reason: "This job is already tied to a contractor payout.",
+		};
+	}
+	if (
+		job.approvedAt ||
+		JOB_DELETE_LOCKED_STATUSES.has(
+			String(job.status || "")
+				.toLowerCase()
+				.replace(/[_\s]+/g, " "),
+		)
+	) {
+		return {
+			canDelete: false,
+			reason: "Approved or paid jobs cannot be deleted.",
+		};
+	}
+	return {
+		canDelete: true,
+		reason: null,
+	};
+}
+
 type PaymentJobSnapshot = {
 	id: number;
 	title: string | null;
@@ -147,6 +186,8 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 			meta: true,
 			id: true,
 			status: true,
+			paymentId: true,
+			approvedAt: true,
 			note: true,
 			statusDate: true,
 			createdAt: true,
@@ -240,6 +281,8 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 				home,
 				id,
 				payment,
+				paymentId,
+				approvedAt,
 				project,
 				status,
 				statusDate,
@@ -273,6 +316,11 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 					note,
 					id,
 					payment,
+					deletionEligibility: getJobDeletionEligibility({
+						status,
+						paymentId,
+						approvedAt,
+					}),
 					project,
 					status: status as JobStatus,
 					statusDate,

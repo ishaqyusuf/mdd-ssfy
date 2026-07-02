@@ -29,6 +29,10 @@ import {
 } from "@sales/priority";
 import { z } from "zod";
 import { salesNotesCount } from "./sales";
+import {
+	emptySalesInventoryInboundOwnership,
+	getSalesInventoryInboundOwnershipMap,
+} from "./sales-inventory-inbound-ownership";
 
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 
@@ -338,9 +342,15 @@ export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
 		})),
 		db,
 	);
-	const normalizedRows = rows.map((row) =>
-		normalizeOrderRow(row, noteCounts[row.id.toString()]?.noteCount ?? 0),
+	const inboundOwnershipMap = await getSalesInventoryInboundOwnershipMap(
+		db,
+		rows.map((row) => row.id),
 	);
+	const normalizedRows = rows.map((row) => ({
+		...normalizeOrderRow(row, noteCounts[row.id.toString()]?.noteCount ?? 0),
+		inventoryInboundOwnership:
+			inboundOwnershipMap.get(row.id) ?? emptySalesInventoryInboundOwnership(),
+	}));
 	const rowsWithControl = isControlReadV2Enabled()
 		? await withSalesListControl(normalizedRows, db)
 		: await withSalesControl(normalizedRows, db);

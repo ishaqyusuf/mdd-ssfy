@@ -1,12 +1,21 @@
 "use client";
 
 import { useSalesInventoryConfiguratorPrompt } from "@/components/forms/sales-form/inventory-configurator-dialog";
-import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
+import {
+    getInventoryInboundOwnershipLabel,
+    getInventoryInboundOwnershipStatus,
+    getInventoryInboundOwnershipTitle,
+    getInventoryInboundStatusToneClassName,
+    getSingleInventoryInboundId,
+    SalesInboundStatusBadge,
+} from "@/components/sales-inbound-status-badge";
 import { SalesMenu } from "@/components/sales-menu";
+import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -250,10 +259,91 @@ const inboundColumn: Column = {
         headerLabel: "Inbound",
         className: sizeClass(sizes.custom(110, 180, 130)),
     },
-    cell: ({ row }) => (
-        <SalesInboundStatusBadge status={row.original.inboundStatus} />
-    ),
+    cell: ({ row }) => <InboundStatusCell item={row.original} />,
 };
+
+function InboundStatusCell({ item }: { item: SalesOrder }) {
+    const { setParams: setInboundStatusParams } = useInboundStatusModal();
+    const overviewQuery = useSalesOverviewQuery();
+    const { setInventorySegment } = useSalesInventorySegmentQuery();
+    const inventoryInboundOwnership = item.inventoryInboundOwnership;
+    const hasInventoryInbound =
+        !!inventoryInboundOwnership?.hasInventoryInbound;
+
+    if (hasInventoryInbound) {
+        const status = getInventoryInboundOwnershipStatus(
+            inventoryInboundOwnership,
+        );
+
+        return (
+            <Button
+                type="button"
+                variant="ghost"
+                className="h-auto max-w-full justify-start rounded-full p-0 hover:bg-transparent"
+                title={getInventoryInboundOwnershipTitle(inventoryInboundOwnership)}
+                onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setInventorySegment("inbounds", {
+                        inboundId: getSingleInventoryInboundId(
+                            inventoryInboundOwnership,
+                        ),
+                    });
+                    overviewQuery.setParams({
+                        "sales-overview-id": item.uuid,
+                        "sales-type": "order",
+                        mode: "sales",
+                        salesTab: "inventory",
+                        "prod-item-tab": null,
+                        "prod-item-view": null,
+                        dispatchOverviewId: null,
+                    });
+                }}
+            >
+                <Badge
+                    variant="outline"
+                    className={cn(
+                        "h-5 max-w-full gap-1 rounded-full px-2 text-[10px] font-semibold uppercase",
+                        getInventoryInboundStatusToneClassName(status),
+                    )}
+                >
+                    <Icons.PackageOpen className="size-3 shrink-0" />
+                    <span className="truncate">
+                        {getInventoryInboundOwnershipLabel(
+                            inventoryInboundOwnership,
+                        )}
+                    </span>
+                </Badge>
+            </Button>
+        );
+    }
+
+    return (
+        <Button
+            type="button"
+            variant="ghost"
+            className="h-auto max-w-full justify-start rounded-full p-0 hover:bg-transparent"
+            title="Manual order status - update inbound prompt"
+            onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setInboundStatusParams({
+                    inboundOrderId: item.id,
+                    inboundOrderNo: item.orderId,
+                    inboundOrderStatus: item.inboundStatus,
+                    updateInboundStatus: true,
+                });
+            }}
+        >
+            <SalesInboundStatusBadge
+                status={item.inboundStatus}
+                emptyFallback="Set status"
+                title="Manual order status"
+                emptyClassName="text-[11px] font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            />
+        </Button>
+    );
+}
 
 const invoiceTotalColumn: Column = {
     id: "invoiceTotal",

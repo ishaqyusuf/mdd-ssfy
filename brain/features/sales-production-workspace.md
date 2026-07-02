@@ -61,6 +61,7 @@ Provide a cleaner production operations surface for both admins and production w
 - `sales.productionDashboard`: summary counts, alert buckets, and next-10-day calendar counts
 - `productionDueDate`: exact queue filter used by the compact calendar
 - `show`: alert preset selector for `due-today`, `due-tomorrow`, and `past-due`
+- Sales overview Production tab badges count the same production-capable `sales.productionOverview.items` rows rendered in the tab, instead of using `prodAssigned.total` quantity totals. This keeps the badge inline with visible production cards for both the v2 sales overview system and the legacy sales overview sheet.
 
 ## V2 Data Contract
 - `sales.productionsV2`: v2 list query for worker/admin boards

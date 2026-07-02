@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	fulfillInventoryDispatch,
+	shipAvailableSalesInventory,
 	transitionInventoryDispatchAllocations,
 } from "./sales-fulfillment-plan";
 
@@ -24,15 +25,15 @@ describe("transitionInventoryDispatchAllocations", () => {
 				},
 			},
 			lineItemComponents: {
-				findUnique: async () => ({
+				findFirst: async () => ({
 					id: 101,
 					qty: 1,
 					inboundDemands: [],
 					stockAllocations: [{ qty: 1 }],
 				}),
-				update: async (payload: unknown) => {
-					calls.push({ name: "lineItemComponents.update", payload });
-					return {};
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.updateMany", payload });
+					return { count: 1 };
 				},
 			},
 		};
@@ -78,10 +79,11 @@ describe("transitionInventoryDispatchAllocations", () => {
 			},
 		});
 		expect(calls[1]).toMatchObject({
-			name: "lineItemComponents.update",
+			name: "lineItemComponents.updateMany",
 			payload: {
 				where: {
 					id: 101,
+					deletedAt: null,
 				},
 				data: {
 					qtyAllocated: 1,
@@ -109,13 +111,13 @@ describe("transitionInventoryDispatchAllocations", () => {
 				},
 			},
 			lineItemComponents: {
-				findUnique: async () => {
-					calls.push("lineItemComponents.findUnique");
+				findFirst: async () => {
+					calls.push("lineItemComponents.findFirst");
 					return null;
 				},
-				update: async () => {
-					calls.push("lineItemComponents.update");
-					return {};
+				updateMany: async () => {
+					calls.push("lineItemComponents.updateMany");
+					return { count: 1 };
 				},
 			},
 		};
@@ -145,6 +147,339 @@ describe("transitionInventoryDispatchAllocations", () => {
 				},
 			],
 		});
+		expect(calls).toEqual(["stockAllocation.updateMany"]);
+	});
+
+	test("does not release consumed allocations while releasing eligible picked rows", async () => {
+		const calls: Array<{ name: string; payload?: unknown }> = [];
+		const tx = {
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 7,
+						status: "consumed",
+						lineItemComponentId: 101,
+						notes: "Already fulfilled",
+					},
+					{
+						id: 8,
+						status: "picked",
+						lineItemComponentId: 102,
+						notes: "Picked for release",
+					},
+				],
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "stockAllocation.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 102,
+					qty: 1,
+					inboundDemands: [],
+					stockAllocations: [],
+				}),
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+		};
+
+		const result = await transitionInventoryDispatchAllocations(
+			db as any,
+			"release",
+			{
+				allocationIds: [7, 8],
+				note: "Released from dispatch mode.",
+			},
+		);
+
+		expect(result).toMatchObject({
+			ok: true,
+			transitionedCount: 1,
+			skippedCount: 1,
+			touchedComponentCount: 1,
+			transitions: [
+				{
+					allocationId: 8,
+					lineItemComponentId: 102,
+					fromStatus: "picked",
+					toStatus: "released",
+				},
+			],
+			skipped: [
+				{
+					allocationId: 7,
+					lineItemComponentId: 101,
+					status: "consumed",
+					reason: "already_consumed",
+				},
+			],
+		});
+		expect(calls).toEqual([
+			{
+				name: "stockAllocation.updateMany",
+				payload: {
+					where: {
+						id: 8,
+						deletedAt: null,
+						status: "picked",
+					},
+					data: {
+						status: "released",
+						notes: "Released from dispatch mode.",
+					},
+				},
+			},
+			{
+				name: "lineItemComponents.updateMany",
+				payload: {
+					where: {
+						id: 102,
+						deletedAt: null,
+					},
+					data: {
+						qtyAllocated: 0,
+						qtyInbound: 0,
+						qtyReceived: 0,
+						status: "pending",
+					},
+				},
+			},
+		]);
+	});
+});
+
+describe("shipAvailableSalesInventory", () => {
+	function saleWithAvailableAllocation() {
+		return {
+			id: 600,
+			orderId: "08500LM",
+			deliveryOption: "delivery",
+			lineItems: [
+				{
+					id: 31,
+					qty: 3,
+					salesItemId: 401,
+					salesItem: {
+						id: 401,
+						qty: 3,
+						itemDeliveries: [],
+					},
+					components: [
+						{
+							id: 201,
+							required: true,
+							qty: 6,
+							inventoryVariantId: 55,
+							stockAllocations: [{ qty: 6 }],
+							inboundDemands: [],
+						},
+					],
+				},
+			],
+		};
+	}
+
+	test("consumes available allocations before writing partial shipment delivery rows", async () => {
+		const calls: string[] = [];
+		const updatePayloads: unknown[] = [];
+		const deliveryPayloads: unknown[] = [];
+		const tx = {
+			salesOrders: {
+				findFirst: async () => saleWithAvailableAllocation(),
+				update: async () => {
+					calls.push("salesOrders.update");
+					return {};
+				},
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 17,
+						qty: 6,
+						status: "reserved",
+						inventoryStockId: 19,
+						inventoryVariantId: 55,
+						lineItemComponentId: 201,
+						notes: "Reserved",
+					},
+				],
+				updateMany: async (payload: unknown) => {
+					calls.push("stockAllocation.updateMany");
+					updatePayloads.push(payload);
+					return { count: 1 };
+				},
+				create: async () => {
+					calls.push("stockAllocation.create");
+					return {};
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 201,
+					qty: 6,
+					inboundDemands: [],
+					stockAllocations: [{ qty: 6 }],
+				}),
+				updateMany: async () => {
+					calls.push("lineItemComponents.updateMany");
+					return { count: 1 };
+				},
+			},
+			inboundDemand: {
+				findMany: async () => [],
+				create: async () => {
+					calls.push("inboundDemand.create");
+					return {};
+				},
+			},
+			orderDelivery: {
+				create: async () => {
+					calls.push("orderDelivery.create");
+					return { id: 87 };
+				},
+			},
+			orderItemDelivery: {
+				createMany: async (payload: unknown) => {
+					calls.push("orderItemDelivery.createMany");
+					deliveryPayloads.push(payload);
+					return { count: 1 };
+				},
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+		};
+
+		const result = await shipAvailableSalesInventory(db as any, {
+			salesOrderId: 600,
+		});
+
+		expect(result).toMatchObject({
+			ok: true,
+			deliveryId: 87,
+			shippedLineCount: 1,
+			shippedQty: 3,
+			consumedAllocationQty: 6,
+		});
+		expect(calls).toEqual([
+			"stockAllocation.updateMany",
+			"lineItemComponents.updateMany",
+			"orderDelivery.create",
+			"orderItemDelivery.createMany",
+			"salesOrders.update",
+		]);
+		expect(updatePayloads[0]).toMatchObject({
+			where: {
+				id: 17,
+				deletedAt: null,
+				status: "reserved",
+				qty: 6,
+			},
+			data: {
+				status: "consumed",
+			},
+		});
+		expect(deliveryPayloads[0]).toMatchObject({
+			data: [
+				{
+					orderId: 600,
+					orderItemId: 401,
+					orderDeliveryId: 87,
+					qty: 3,
+					status: "completed",
+					packingStatus: "packed",
+					meta: {
+						source: "inventory_partial_shipment",
+						lineItemId: 31,
+						backorderedQty: 0,
+					},
+				},
+			],
+		});
+	});
+
+	test("does not write partial shipment delivery rows when allocation consumption is stale", async () => {
+		const calls: string[] = [];
+		const tx = {
+			salesOrders: {
+				findFirst: async () => saleWithAvailableAllocation(),
+				update: async () => {
+					calls.push("salesOrders.update");
+					return {};
+				},
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 17,
+						qty: 6,
+						status: "reserved",
+						inventoryStockId: 19,
+						inventoryVariantId: 55,
+						lineItemComponentId: 201,
+						notes: "Reserved",
+					},
+				],
+				updateMany: async () => {
+					calls.push("stockAllocation.updateMany");
+					return { count: 0 };
+				},
+				create: async () => {
+					calls.push("stockAllocation.create");
+					return {};
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => {
+					calls.push("lineItemComponents.findFirst");
+					return null;
+				},
+				updateMany: async () => {
+					calls.push("lineItemComponents.updateMany");
+					return { count: 1 };
+				},
+			},
+			inboundDemand: {
+				findMany: async () => {
+					calls.push("inboundDemand.findMany");
+					return [];
+				},
+				create: async () => {
+					calls.push("inboundDemand.create");
+					return {};
+				},
+			},
+			orderDelivery: {
+				create: async () => {
+					calls.push("orderDelivery.create");
+					return { id: 87 };
+				},
+			},
+			orderItemDelivery: {
+				createMany: async () => {
+					calls.push("orderItemDelivery.createMany");
+					return { count: 1 };
+				},
+			},
+		};
+		const db = {
+			$transaction: async (callback: (tx: any) => Promise<unknown>) => callback(tx),
+		};
+
+		await expect(
+			shipAvailableSalesInventory(db as any, {
+				salesOrderId: 600,
+			}),
+		).rejects.toThrow(
+			"Available inventory allocation was already claimed before partial shipment completed.",
+		);
 		expect(calls).toEqual(["stockAllocation.updateMany"]);
 	});
 });
@@ -209,15 +544,15 @@ describe("fulfillInventoryDispatch", () => {
 				},
 			},
 			lineItemComponents: {
-				findUnique: async () => ({
+				findFirst: async () => ({
 					id: 101,
 					qty: 1,
 					inboundDemands: [],
 					stockAllocations: [{ qty: 1 }],
 				}),
-				update: async () => {
-					calls.push("lineItemComponents.update");
-					return {};
+				updateMany: async () => {
+					calls.push("lineItemComponents.updateMany");
+					return { count: 1 };
 				},
 			},
 			orderDelivery: {
@@ -250,7 +585,7 @@ describe("fulfillInventoryDispatch", () => {
 		});
 		expect(calls).toEqual([
 			"stockAllocation.updateMany",
-			"lineItemComponents.update",
+			"lineItemComponents.updateMany",
 			"orderDelivery.create",
 			"orderItemDelivery.createMany",
 		]);
@@ -305,15 +640,15 @@ describe("fulfillInventoryDispatch", () => {
 				},
 			},
 			lineItemComponents: {
-				findUnique: async () => ({
+				findFirst: async () => ({
 					id: 101,
 					qty: 2,
 					inboundDemands: [],
 					stockAllocations: [{ qty: 2 }],
 				}),
-				update: async () => {
-					calls.push("lineItemComponents.update");
-					return {};
+				updateMany: async () => {
+					calls.push("lineItemComponents.updateMany");
+					return { count: 1 };
 				},
 			},
 			orderDelivery: {
@@ -347,7 +682,7 @@ describe("fulfillInventoryDispatch", () => {
 		expect(calls).toEqual([
 			"stockAllocation.updateMany",
 			"stockAllocation.create",
-			"lineItemComponents.update",
+			"lineItemComponents.updateMany",
 			"orderDelivery.create",
 			"orderItemDelivery.createMany",
 		]);
@@ -401,13 +736,13 @@ describe("fulfillInventoryDispatch", () => {
 				},
 			},
 			lineItemComponents: {
-				findUnique: async () => {
-					calls.push("lineItemComponents.findUnique");
+				findFirst: async () => {
+					calls.push("lineItemComponents.findFirst");
 					return null;
 				},
-				update: async () => {
-					calls.push("lineItemComponents.update");
-					return {};
+				updateMany: async () => {
+					calls.push("lineItemComponents.updateMany");
+					return { count: 1 };
 				},
 			},
 			orderDelivery: {

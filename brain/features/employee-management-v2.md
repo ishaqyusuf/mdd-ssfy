@@ -230,6 +230,7 @@ Current bridge implementation in legacy contractor flows:
 - Admin and Super Admin users can upload a document directly from employee overview on behalf of the employee.
 - Expo Documents screen supports employee self-upload for image-based insurance/workers comp documents using the mobile gallery flow.
 - Web contractor job submission blocks when insurance is missing, pending, rejected, or expired.
+- Contractor job deletion now supports mistake recovery for unlocked submissions: the assigned contractor or an `editJobs` admin may soft-delete a job before approval/payment, while approved, completed, paid, payment-cancelled, and payout-linked jobs are locked by the API and exposed to web/Expo through `deletionEligibility`.
 
 ---
 

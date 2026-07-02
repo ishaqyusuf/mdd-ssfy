@@ -1,12 +1,18 @@
 import React from "react";
 import { Icons } from "@gnd/ui/icons";
 import Money from "@/components/_v1/money";
-import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
+import {
+    getSingleInventoryInboundId,
+    InventoryInboundStatusBadge,
+    SalesInboundStatusBadge,
+} from "@/components/sales-inbound-status-badge";
+import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { middleTruncate } from "@/lib/truncate-middle";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -45,6 +51,8 @@ function sumCostLineAmounts(costLines: CostLine[], targetLabel: string) {
 
 export function GeneralTab({}) {
     const { data } = useSaleOverview();
+    const query = useSalesOverviewQuery();
+    const { setInventorySegment } = useSalesInventorySegmentQuery();
     const isQuote = data?.type === "quote";
     const customerQuery = useCustomerOverviewQuery();
     // data.id
@@ -91,6 +99,20 @@ export function GeneralTab({}) {
     const dispatchCount = saleData?.dispatchList?.length ?? 0;
     const customerEmail = saleData?.email;
     const documentStatus = getSalesOverviewDocumentStatus(saleData);
+    const hasInventoryInbound =
+        !!saleData?.inventoryInboundOwnership?.hasInventoryInbound;
+    const selectedInventoryInboundId = getSingleInventoryInboundId(
+        saleData?.inventoryInboundOwnership,
+    );
+    const openInventoryInbounds = () => {
+        if (!hasInventoryInbound) return;
+        setInventorySegment("inbounds", {
+            inboundId: selectedInventoryInboundId,
+        });
+        query.setParams({
+            salesTab: "inventory",
+        });
+    };
     const getStatusColor = (status: string) => {
         switch (status) {
             case "green":
@@ -302,10 +324,31 @@ export function GeneralTab({}) {
                                                 className="font-medium"
                                                 placeholder="PENDING ORDER"
                                             >
-                                                <SalesInboundStatusBadge
-                                                    status={saleData?.inboundStatus}
-                                                    emptyFallback="No status"
-                                                />
+                                                {hasInventoryInbound ? (
+                                                    <InventoryInboundStatusBadge
+                                                        ownership={
+                                                            saleData?.inventoryInboundOwnership
+                                                        }
+                                                    />
+                                                ) : (
+                                                    <SalesInboundStatusBadge
+                                                        status={saleData?.inboundStatus}
+                                                        emptyFallback="No status"
+                                                        title="Manual order status"
+                                                    />
+                                                )}
+                                                {hasInventoryInbound ? (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="mt-1 h-6 px-0 text-[11px] text-primary hover:bg-transparent hover:underline"
+                                                        onClick={openInventoryInbounds}
+                                                    >
+                                                        <Icons.ExternalLink className="mr-1 size-3" />
+                                                        Open inbounds
+                                                    </Button>
+                                                ) : null}
                                             </DataSkeleton>
                                         </div>
                                     ) : null}

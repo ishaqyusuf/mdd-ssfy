@@ -124,7 +124,7 @@ function DeleteJobAction() {
       meta: {},
     }),
   );
-  const show = [job.isAdmin && job.isAssigned].every(Boolean);
+  const show = [job.isAdmin && job.isAssigned, job.canDelete].every(Boolean);
   if (!show) return null;
   return (
     <>
@@ -184,6 +184,7 @@ function useComposer() {
     isApproved: status === "approved",
     isRejected: status === "rejected",
     isSubmitted: status === "submitted",
+    canDelete: ctx?.job?.deletionEligibility?.canDelete ?? false,
     recentActivity: {
       // note: ctx?.job?.notes?.[0],
       date: "",

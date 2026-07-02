@@ -20,6 +20,7 @@ export function isPromptMutableDemand(
     return canOrderInboundPromptMutateDemand({
         orderInventoryStatus: status,
         demandStatus: demand.status,
+        qtyReceived: demand.qtyReceived,
         inboundShipmentItemId: demand.inboundShipmentItemId,
     });
 }

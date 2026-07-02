@@ -41,6 +41,19 @@ export type CreateInboundShipmentFromDemandsResult = {
   inboundId: number;
   createdItemCount: number;
   linkedDemandCount: number;
+  linkedDemandIds: number[];
+};
+
+export type AssignInboundDemandsToShipmentResult = {
+  inboundId: number;
+  linkedDemandCount: number;
+  linkedDemandIds: number[];
+};
+
+export type ReleaseCancelledInboundShipmentDemandResult = {
+  inboundId: number;
+  releasedDemandCount: number;
+  recomputedComponentCount: number;
 };
 
 export type InboundDemandQueueInput = {
@@ -63,6 +76,7 @@ export type ApplyOrderInboundStatusToInventoryDemandResult = {
   saleId: number;
   status: OrderInboundStatus;
   updatedDemandCount: number;
+  recomputedComponentCount?: number;
   skipped: boolean;
   reason?:
     | "available_status_does_not_mutate_shortage_demand"
@@ -440,30 +454,65 @@ export async function applyOrderInboundStatusToInventoryDemand(
 
   if (input.status === "AVAILABLE") {
     if (selectedDemandIds.length) {
-      const result = await db.inboundDemand.updateMany({
-        where: {
-          deletedAt: null,
-          status: {
-            in: [...ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES],
-          },
-          ...selectedDemandFilter,
-          lineItemComponent: {
-            parent: {
-              saleId: input.saleId,
-              deletedAt: null,
-            },
+      const mutableDemandWhere = {
+        deletedAt: null,
+        status: {
+          in: [...ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES],
+        },
+        ...selectedDemandFilter,
+        qtyReceived: 0,
+        inboundShipmentItemId: null,
+        lineItemComponent: {
+          parent: {
+            saleId: input.saleId,
+            deletedAt: null,
           },
         },
-        data: {
-          status: "cancelled",
-          notes: "Order inbound prompt: AVAILABLE",
+      };
+      const candidateDemands = await db.inboundDemand.findMany({
+        where: mutableDemandWhere,
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          lineItemComponentId: true,
         },
       });
+
+      let updatedDemandCount = 0;
+      const componentIds = new Set<number>();
+      for (const demand of candidateDemands) {
+        const result = await db.inboundDemand.updateMany({
+          where: {
+            ...mutableDemandWhere,
+            id: demand.id,
+          },
+          data: {
+            status: "cancelled",
+            notes: "Order inbound prompt: AVAILABLE",
+          },
+        });
+        if (result.count > 0) {
+          updatedDemandCount += result.count;
+          componentIds.add(demand.lineItemComponentId);
+        }
+      }
+
+      let recomputedComponentCount = 0;
+      for (const componentId of componentIds.values()) {
+        const recomputed = await recomputeLineItemComponentDemandState(
+          db,
+          componentId,
+        );
+        if (recomputed) recomputedComponentCount += 1;
+      }
 
       return {
         saleId: input.saleId,
         status: input.status,
-        updatedDemandCount: result.count,
+        updatedDemandCount,
+        recomputedComponentCount,
         skipped: false,
       };
     }
@@ -478,7 +527,6 @@ export async function applyOrderInboundStatusToInventoryDemand(
   }
 
   const demandStatus = input.status === "ORDERED" ? "ordered" : "pending";
-  const shouldOnlyUpdateUnassignedDemand = input.status === "PENDING ORDER";
   const result = await db.inboundDemand.updateMany({
     where: {
       deletedAt: null,
@@ -486,11 +534,8 @@ export async function applyOrderInboundStatusToInventoryDemand(
         in: [...ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES],
       },
       ...selectedDemandFilter,
-      ...(shouldOnlyUpdateUnassignedDemand
-        ? {
-            inboundShipmentItemId: null,
-          }
-        : {}),
+      qtyReceived: 0,
+      inboundShipmentItemId: null,
       lineItemComponent: {
         parent: {
           saleId: input.saleId,
@@ -1011,10 +1056,20 @@ export async function createInboundShipment(
   });
 }
 
+function outstandingInboundDemandQty(demand: {
+  qty?: number | null;
+  qtyReceived?: number | null;
+}) {
+  return Math.max(
+    0,
+    Number(demand.qty || 0) - Number(demand.qtyReceived || 0),
+  );
+}
+
 export async function assignInboundDemandsToShipment(
   db: DbLike,
   input: AssignInboundDemandsToShipmentInput,
-) {
+): Promise<AssignInboundDemandsToShipmentResult> {
   const demandIds = Array.from(new Set(input.demandIds.filter(Boolean)));
   if (!demandIds.length) {
     throw new Error("At least one inbound demand is required.");
@@ -1026,8 +1081,20 @@ export async function assignInboundDemandsToShipment(
     },
     select: {
       id: true,
+      status: true,
+      deletedAt: true,
     },
   });
+  if (
+    shipment.deletedAt ||
+    shipment.status === "closed" ||
+    shipment.status === "cancelled"
+  ) {
+    const reason = shipment.deletedAt ? "deleted" : `${shipment.status} status`;
+    throw new Error(
+      `Inbound shipment #${shipment.id} is not assignable in ${reason}.`,
+    );
+  }
 
   const demands = await db.inboundDemand.findMany({
     where: {
@@ -1055,6 +1122,13 @@ export async function assignInboundDemandsToShipment(
     throw new Error("No eligible inbound demand rows were found.");
   }
 
+  const unlinkedDemands = demands.filter(
+    (demand) => !demand.inboundShipmentItemId,
+  );
+  if (!unlinkedDemands.length) {
+    throw new Error("No unassigned inbound demand rows were found.");
+  }
+
   const existingItems = await db.inboundShipmentItem.findMany({
     where: {
       inboundId: shipment.id,
@@ -1072,9 +1146,10 @@ export async function assignInboundDemandsToShipment(
   );
 
   let linkedDemandCount = 0;
+  const linkedDemandIds: number[] = [];
 
-  const groupedByVariant = new Map<number, typeof demands>();
-  for (const demand of demands) {
+  const groupedByVariant = new Map<number, typeof unlinkedDemands>();
+  for (const demand of unlinkedDemands) {
     const rows = groupedByVariant.get(demand.inventoryVariantId) || [];
     rows.push(demand);
     groupedByVariant.set(demand.inventoryVariantId, rows);
@@ -1082,10 +1157,7 @@ export async function assignInboundDemandsToShipment(
 
   for (const [inventoryVariantId, variantDemands] of groupedByVariant.entries()) {
     const plannedQty = variantDemands.reduce((sum, demand) => {
-      const outstanding = Math.max(
-        0,
-        Number(demand.qty || 0) - Number(demand.qtyReceived || 0),
-      );
+      const outstanding = outstandingInboundDemandQty(demand);
       return sum + outstanding;
     }, 0);
 
@@ -1093,46 +1165,101 @@ export async function assignInboundDemandsToShipment(
 
     const existingItem = existingItemsByVariant.get(inventoryVariantId);
     const inboundItem = existingItem
-      ? await db.inboundShipmentItem.update({
-          where: {
-            id: existingItem.id,
-          },
-          data: {
-            qty: Number(existingItem.qty || 0) + plannedQty,
-          },
-          select: {
-            id: true,
-          },
-        })
+      ? { id: existingItem.id }
       : await db.inboundShipmentItem.create({
           data: {
             inboundId: shipment.id,
             inventoryVariantId,
-            qty: plannedQty,
+            qty: 0,
           },
           select: {
             id: true,
           },
         });
 
-    const linkableDemandIds = variantDemands.map((demand) => demand.id);
-    await db.inboundDemand.updateMany({
-      where: {
-        id: {
-          in: linkableDemandIds,
+    let confirmedLinkedQty = 0;
+    for (const demand of variantDemands) {
+      const linked = await db.inboundDemand.updateMany({
+        where: {
+          id: demand.id,
+          deletedAt: null,
+          status: {
+            in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+          },
+          qtyReceived: demand.qtyReceived,
+          inboundShipmentItemId: null,
         },
-      },
-      data: {
-        inboundShipmentItemId: inboundItem.id,
-        status: "ordered",
-      },
-    });
-    linkedDemandCount += linkableDemandIds.length;
+        data: {
+          inboundShipmentItemId: inboundItem.id,
+          status: "ordered",
+        },
+      });
+      if (linked.count > 0) {
+        linkedDemandCount += 1;
+        linkedDemandIds.push(demand.id);
+        confirmedLinkedQty += outstandingInboundDemandQty(demand);
+      }
+    }
+
+    if (confirmedLinkedQty > 0) {
+      const committedItemQty = await db.inboundShipmentItem.updateMany({
+        where: {
+          id: inboundItem.id,
+          inboundId: shipment.id,
+          deletedAt: null,
+          inbound: {
+            deletedAt: null,
+            status: {
+              notIn: ["closed", "cancelled"],
+            },
+          },
+        },
+        data: {
+          qty: existingItem
+            ? {
+                increment: confirmedLinkedQty,
+              }
+            : confirmedLinkedQty,
+        },
+      });
+      if (committedItemQty.count <= 0) {
+        throw new Error(
+          `Inbound shipment #${shipment.id} changed before demand assignment could be committed.`,
+        );
+      }
+    } else if (!existingItem) {
+      const cleanedEmptyItem = await db.inboundShipmentItem.updateMany({
+        where: {
+          id: inboundItem.id,
+          inboundId: shipment.id,
+          deletedAt: null,
+          inbound: {
+            deletedAt: null,
+            status: {
+              notIn: ["closed", "cancelled"],
+            },
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+      if (cleanedEmptyItem.count <= 0) {
+        throw new Error(
+          `Inbound shipment #${shipment.id} changed before empty item cleanup could be committed.`,
+        );
+      }
+    }
+  }
+
+  if (!linkedDemandCount) {
+    throw new Error("No unassigned inbound demand rows were linked.");
   }
 
   return {
     inboundId: shipment.id,
     linkedDemandCount,
+    linkedDemandIds,
   };
 }
 
@@ -1279,8 +1406,14 @@ export function planInboundReceiptDelta(
   const plannedQty = positiveNumber(input.plannedQty);
   const previousGoodQty = positiveNumber(input.previousGoodQty);
   const previousIssueQty = positiveNumber(input.previousIssueQty);
+  const previousReceivedQty = previousGoodQty + previousIssueQty;
+  const maxTargetReceivedQty = Math.max(plannedQty, previousReceivedQty);
   const targetIssueCandidate =
     input.qtyIssue == null ? previousIssueQty : positiveNumber(input.qtyIssue);
+  const targetIssueQty = Math.min(
+    Math.max(previousIssueQty, targetIssueCandidate),
+    Math.max(previousIssueQty, maxTargetReceivedQty - previousGoodQty),
+  );
   const targetGoodCandidate =
     input.qtyGood == null
       ? Math.max(
@@ -1290,8 +1423,10 @@ export function planInboundReceiptDelta(
             : positiveNumber(input.qtyReceived)) - targetIssueCandidate,
         )
       : positiveNumber(input.qtyGood);
-  const targetGoodQty = Math.max(previousGoodQty, targetGoodCandidate);
-  const targetIssueQty = Math.max(previousIssueQty, targetIssueCandidate);
+  const targetGoodQty = Math.min(
+    Math.max(previousGoodQty, targetGoodCandidate),
+    Math.max(previousGoodQty, maxTargetReceivedQty - targetIssueQty),
+  );
   const deltaGoodQty = Math.max(0, targetGoodQty - previousGoodQty);
   const deltaIssueQty = Math.max(0, targetIssueQty - previousIssueQty);
   const deltaReceivedQty = deltaGoodQty + deltaIssueQty;
@@ -1349,9 +1484,10 @@ async function recomputeLineItemComponentDemandState(
   db: DbLike,
   lineItemComponentId: number,
 ) {
-  const component = await db.lineItemComponents.findUnique({
+  const component = await db.lineItemComponents.findFirst({
     where: {
       id: lineItemComponentId,
+      deletedAt: null,
     },
     select: {
       id: true,
@@ -1404,14 +1540,108 @@ async function recomputeLineItemComponentDemandState(
     qtyReceived,
   });
 
-  await db.lineItemComponents.update({
+  const updatedComponent = await db.lineItemComponents.updateMany({
     where: {
       id: component.id,
+      deletedAt: null,
     },
     data: nextState,
   });
+  if (updatedComponent.count <= 0) return null;
 
   return nextState;
+}
+
+export async function releaseCancelledInboundShipmentDemand(
+  db: DbLike,
+  inboundId: number,
+): Promise<ReleaseCancelledInboundShipmentDemandResult> {
+  const linkedDemands = await db.inboundDemand.findMany({
+    where: {
+      deletedAt: null,
+      qtyReceived: 0,
+      status: {
+        in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+      },
+      inboundShipmentItem: {
+        inboundId,
+        deletedAt: null,
+        inbound: {
+          status: "cancelled",
+          deletedAt: null,
+        },
+      },
+    },
+    select: {
+      id: true,
+      lineItemComponentId: true,
+    },
+  });
+
+  if (!linkedDemands.length) {
+    return {
+      inboundId,
+      releasedDemandCount: 0,
+      recomputedComponentCount: 0,
+    };
+  }
+
+  let releasedDemandCount = 0;
+  const componentIds = new Set<number>();
+
+  for (const demand of linkedDemands) {
+    const released = await db.inboundDemand.updateMany({
+      where: {
+        id: demand.id,
+        deletedAt: null,
+        qtyReceived: 0,
+        status: {
+          in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+        },
+        inboundShipmentItem: {
+          inboundId,
+          deletedAt: null,
+          inbound: {
+            status: "cancelled",
+            deletedAt: null,
+          },
+        },
+      },
+      data: {
+        inboundShipmentItemId: null,
+        status: "pending",
+        notes: `Released from cancelled inbound shipment #${inboundId}`,
+      },
+    });
+
+    if (released.count > 0) {
+      releasedDemandCount += released.count;
+      componentIds.add(demand.lineItemComponentId);
+    }
+  }
+
+  if (releasedDemandCount <= 0) {
+    return {
+      inboundId,
+      releasedDemandCount: 0,
+      recomputedComponentCount: 0,
+    };
+  }
+
+  let recomputedComponentCount = 0;
+  for (const componentId of componentIds.values()) {
+    const recomputed = await recomputeLineItemComponentDemandState(
+      db,
+      componentId,
+    );
+    if (recomputed) recomputedComponentCount += 1;
+  }
+
+  return {
+    inboundId,
+    releasedDemandCount,
+    recomputedComponentCount,
+  };
 }
 
 export async function createInboundShipmentFromDemands(
@@ -1449,6 +1679,13 @@ export async function createInboundShipmentFromDemands(
     throw new Error("No eligible inbound demand rows were found.");
   }
 
+  const unlinkedDemands = demands.filter(
+    (demand) => !demand.inboundShipmentItemId,
+  );
+  if (!unlinkedDemands.length) {
+    throw new Error("No unassigned inbound demand rows were found.");
+  }
+
   const shipment = await db.inboundShipment.create({
     data: {
       supplierId: input.supplierId,
@@ -1462,8 +1699,8 @@ export async function createInboundShipmentFromDemands(
     },
   });
 
-  const groupedByVariant = new Map<number, typeof demands>();
-  for (const demand of demands) {
+  const groupedByVariant = new Map<number, typeof unlinkedDemands>();
+  for (const demand of unlinkedDemands) {
     const rows = groupedByVariant.get(demand.inventoryVariantId) || [];
     rows.push(demand);
     groupedByVariant.set(demand.inventoryVariantId, rows);
@@ -1471,13 +1708,11 @@ export async function createInboundShipmentFromDemands(
 
   let createdItemCount = 0;
   let linkedDemandCount = 0;
+  const linkedDemandIds: number[] = [];
 
   for (const [inventoryVariantId, variantDemands] of groupedByVariant.entries()) {
     const plannedQty = variantDemands.reduce((sum, demand) => {
-      const outstanding = Math.max(
-        0,
-        Number(demand.qty || 0) - Number(demand.qtyReceived || 0),
-      );
+      const outstanding = outstandingInboundDemandQty(demand);
       return sum + outstanding;
     }, 0);
 
@@ -1487,38 +1722,111 @@ export async function createInboundShipmentFromDemands(
       data: {
         inboundId: shipment.id,
         inventoryVariantId,
-        qty: plannedQty,
+        qty: 0,
       },
       select: {
         id: true,
       },
     });
-    createdItemCount += 1;
+    let confirmedLinkedQty = 0;
 
-    const linkableDemandIds = variantDemands
-      .filter((demand) => !demand.inboundShipmentItemId)
-      .map((demand) => demand.id);
-
-    if (linkableDemandIds.length) {
-      await db.inboundDemand.updateMany({
+    for (const demand of variantDemands) {
+      const linked = await db.inboundDemand.updateMany({
         where: {
-          id: {
-            in: linkableDemandIds,
+          id: demand.id,
+          deletedAt: null,
+          status: {
+            in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
           },
+          qtyReceived: demand.qtyReceived,
+          inboundShipmentItemId: null,
         },
         data: {
           inboundShipmentItemId: inboundItem.id,
           status: "ordered",
         },
       });
-      linkedDemandCount += linkableDemandIds.length;
+      if (linked.count > 0) {
+        linkedDemandCount += 1;
+        linkedDemandIds.push(demand.id);
+        confirmedLinkedQty += outstandingInboundDemandQty(demand);
+      }
     }
+
+    if (confirmedLinkedQty > 0) {
+      const committedItemQty = await db.inboundShipmentItem.updateMany({
+        where: {
+          id: inboundItem.id,
+          inboundId: shipment.id,
+          deletedAt: null,
+          inbound: {
+            deletedAt: null,
+            status: {
+              notIn: ["closed", "cancelled"],
+            },
+          },
+        },
+        data: {
+          qty: confirmedLinkedQty,
+        },
+      });
+      if (committedItemQty.count <= 0) {
+        throw new Error(
+          `Inbound shipment #${shipment.id} changed before demand assignment could be committed.`,
+        );
+      }
+      createdItemCount += 1;
+    } else {
+      const cleanedEmptyItem = await db.inboundShipmentItem.updateMany({
+        where: {
+          id: inboundItem.id,
+          inboundId: shipment.id,
+          deletedAt: null,
+          inbound: {
+            deletedAt: null,
+            status: {
+              notIn: ["closed", "cancelled"],
+            },
+          },
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+      if (cleanedEmptyItem.count <= 0) {
+        throw new Error(
+          `Inbound shipment #${shipment.id} changed before empty item cleanup could be committed.`,
+        );
+      }
+    }
+  }
+
+  if (!linkedDemandCount) {
+    const cleanedEmptyShipment = await db.inboundShipment.updateMany({
+      where: {
+        id: shipment.id,
+        deletedAt: null,
+        status: {
+          notIn: ["closed", "cancelled"],
+        },
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+    if (cleanedEmptyShipment.count <= 0) {
+      throw new Error(
+        `Inbound shipment #${shipment.id} changed before empty shipment cleanup could be committed.`,
+      );
+    }
+    throw new Error("No unassigned inbound demand rows were linked.");
   }
 
   return {
     inboundId: shipment.id,
     createdItemCount,
     linkedDemandCount,
+    linkedDemandIds,
   };
 }
 
@@ -1534,6 +1842,9 @@ export async function receiveInboundShipment(
       id: true,
       supplierId: true,
       reference: true,
+      receivedAt: true,
+      status: true,
+      deletedAt: true,
       items: {
         where: {
           deletedAt: null,
@@ -1548,6 +1859,15 @@ export async function receiveInboundShipment(
           inventoryVariant: {
             select: {
               inventoryId: true,
+            },
+          },
+          issues: {
+            where: {
+              deletedAt: null,
+              status: "open",
+            },
+            select: {
+              id: true,
             },
           },
           inboundDemands: {
@@ -1571,9 +1891,31 @@ export async function receiveInboundShipment(
       },
     },
   });
+  if (
+    shipment.deletedAt ||
+    shipment.status === "closed" ||
+    shipment.status === "cancelled"
+  ) {
+    throw new Error(
+      `Inbound shipment #${shipment.id} is not receivable in ${shipment.status} status.`,
+    );
+  }
 
+  const hasExplicitItems = Array.isArray(input.items);
+  const explicitReceiveItems = input.items || [];
+  if (hasExplicitItems) {
+    const seenItemIds = new Set<number>();
+    for (const item of explicitReceiveItems) {
+      if (seenItemIds.has(item.inboundShipmentItemId)) {
+        throw new Error(
+          `Inbound shipment item ${item.inboundShipmentItemId} was provided more than once.`,
+        );
+      }
+      seenItemIds.add(item.inboundShipmentItemId);
+    }
+  }
   const receivedQtyByItemId = new Map(
-    (input.items || []).map((item) => [
+    explicitReceiveItems.map((item) => [
       item.inboundShipmentItemId,
       {
         qtyReceived: asPositiveNumber(item.qtyReceived, 0),
@@ -1586,6 +1928,17 @@ export async function receiveInboundShipment(
       },
     ]),
   );
+  if (hasExplicitItems) {
+    const shipmentItemIds = new Set(shipment.items.map((item) => item.id));
+    const invalidItemIds = Array.from(receivedQtyByItemId.keys()).filter(
+      (itemId) => !shipmentItemIds.has(itemId),
+    );
+    if (invalidItemIds.length) {
+      throw new Error(
+        `Inbound shipment item ${invalidItemIds[0]} was not found on shipment #${shipment.id}.`,
+      );
+    }
+  }
 
   let receivedItemCount = 0;
   let stockMovementCount = 0;
@@ -1600,8 +1953,23 @@ export async function receiveInboundShipment(
   const touchedInventoryVariantIds = new Set<number>();
 
   for (const item of shipment.items) {
+    if (item.issues.length > 0) {
+      hasOpenIssues = true;
+    }
+
     const override = receivedQtyByItemId.get(item.id);
+    if (hasExplicitItems && !override) {
+      const previouslyReceivedQty =
+        positiveNumber(item.qtyGood) + positiveNumber(item.qtyIssue);
+      totalPlannedQty += Number(item.qty || 0);
+      totalReceivedQty += previouslyReceivedQty;
+      alreadyReceivedQty += previouslyReceivedQty;
+      continue;
+    }
+
     const plannedQty = Number(item.qty || 0);
+    const previousReceivedQty =
+      positiveNumber(item.qtyGood) + positiveNumber(item.qtyIssue);
     const receipt = planInboundReceiptDelta({
       plannedQty,
       previousGoodQty: item.qtyGood,
@@ -1620,14 +1988,36 @@ export async function receiveInboundShipment(
         : override.unitPrice;
 
     totalPlannedQty += plannedQty;
-    totalReceivedQty += receipt.targetReceivedQty;
-    newlyReceivedQty += receipt.deltaReceivedQty;
-    alreadyReceivedQty +=
-      positiveNumber(item.qtyGood) + positiveNumber(item.qtyIssue);
 
     if (receipt.duplicate) {
       skippedItemCount += 1;
     }
+
+    if (receipt.deltaReceivedQty > 0) {
+      const committedReceipt = await db.inboundShipmentItem.updateMany({
+        where: {
+          id: item.id,
+          deletedAt: null,
+          qtyGood: item.qtyGood,
+          qtyIssue: item.qtyIssue,
+        },
+        data: {
+          qtyGood: receipt.targetGoodQty,
+          qtyIssue: receipt.targetIssueQty,
+          unitPrice,
+        },
+      });
+      if (committedReceipt.count <= 0) {
+        skippedItemCount += 1;
+        totalReceivedQty += previousReceivedQty;
+        alreadyReceivedQty += previousReceivedQty;
+        continue;
+      }
+    }
+
+    totalReceivedQty += receipt.targetReceivedQty;
+    newlyReceivedQty += receipt.deltaReceivedQty;
+    alreadyReceivedQty += previousReceivedQty;
 
     if (receipt.targetReceivedQty <= 0) continue;
 
@@ -1636,7 +2026,7 @@ export async function receiveInboundShipment(
     }
     touchedInventoryVariantIds.add(item.inventoryVariantId);
 
-    let stock: { id: number } | null = null;
+    let stock: { id: number; qty?: number | null } | null = null;
     if (qtyGood > 0) {
       const existingStock = await db.inventoryStock.findFirst({
         where: {
@@ -1653,33 +2043,60 @@ export async function receiveInboundShipment(
         },
       });
 
-      const prevQty = Number(existingStock?.qty || 0);
-      const currentQty = prevQty + qtyGood;
+      let prevQty = Number(existingStock?.qty || 0);
+      let currentQty = prevQty + qtyGood;
 
-      stock = existingStock
-        ? await db.inventoryStock.update({
-            where: {
-              id: existingStock.id,
+      if (existingStock) {
+        const committedStock = await db.inventoryStock.updateMany({
+          where: {
+            id: existingStock.id,
+            inventoryVariantId: item.inventoryVariantId,
+            supplierId: shipment.supplierId,
+            deletedAt: null,
+          },
+          data: {
+            qty: {
+              increment: qtyGood,
             },
-            data: {
-              qty: currentQty,
-              price: unitPrice,
-            },
-            select: {
-              id: true,
-            },
-          })
-        : await db.inventoryStock.create({
-            data: {
-              inventoryVariantId: item.inventoryVariantId,
-              supplierId: shipment.supplierId,
-              qty: qtyGood,
-              price: unitPrice,
-            },
-            select: {
-              id: true,
-            },
-          });
+            price: unitPrice,
+          },
+        });
+        if (committedStock.count <= 0) {
+          throw new Error(
+            `Inventory stock #${existingStock.id} changed before inbound receipt could be committed.`,
+          );
+        }
+        stock = await db.inventoryStock.findFirst({
+          where: {
+            id: existingStock.id,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            qty: true,
+          },
+        });
+        if (!stock) {
+          throw new Error(
+            `Inventory stock #${existingStock.id} changed before inbound receipt could be committed.`,
+          );
+        }
+      } else {
+        stock = await db.inventoryStock.create({
+          data: {
+            inventoryVariantId: item.inventoryVariantId,
+            supplierId: shipment.supplierId,
+            qty: qtyGood,
+            price: unitPrice,
+          },
+          select: {
+            id: true,
+            qty: true,
+          },
+        });
+      }
+      currentQty = Number(stock.qty || currentQty);
+      prevQty = currentQty - qtyGood;
 
       await db.stockMovement.create({
         data: {
@@ -1712,11 +2129,15 @@ export async function receiveInboundShipment(
 
       const appliedQty = Math.min(outstanding, remainingQty);
       const nextQtyReceived = Number(demand.qtyReceived || 0) + appliedQty;
-      remainingQty -= appliedQty;
 
-      await db.inboundDemand.update({
+      const receivedDemand = await db.inboundDemand.updateMany({
         where: {
           id: demand.id,
+          deletedAt: null,
+          qtyReceived: demand.qtyReceived,
+          status: {
+            in: [...ACTIVE_INBOUND_DEMAND_STATUSES],
+          },
         },
         data: {
           qtyReceived: nextQtyReceived,
@@ -1726,21 +2147,12 @@ export async function receiveInboundShipment(
               : "partially_received",
         },
       });
+      if (receivedDemand.count <= 0) continue;
 
+      remainingQty -= appliedQty;
       touchedComponentIds.add(demand.lineItemComponentId);
       touchedLineItemComponentIds.add(demand.lineItemComponentId);
     }
-
-    await db.inboundShipmentItem.update({
-      where: {
-        id: item.id,
-      },
-      data: {
-        qtyGood: receipt.targetGoodQty,
-        qtyIssue: receipt.targetIssueQty,
-        unitPrice,
-      },
-    });
 
     if (qtyGood > 0 && stock) {
       await db.inventoryLog.create({
@@ -1787,17 +2199,28 @@ export async function receiveInboundShipment(
         ? "completed"
         : "in_progress";
 
-  await db.inboundShipment.update({
+  const committedShipmentStatus = await db.inboundShipment.updateMany({
     where: {
       id: shipment.id,
+      deletedAt: null,
+      status: {
+        notIn: ["closed", "cancelled"],
+      },
     },
     data: {
       receivedAt:
-        shipmentStatus === "completed" ? input.receivedAt ?? new Date() : null,
+        shipmentStatus === "completed"
+          ? shipment.receivedAt || input.receivedAt || new Date()
+          : null,
       progress,
       status: shipmentStatus,
     },
   });
+  if (committedShipmentStatus.count <= 0) {
+    throw new Error(
+      `Inbound shipment #${shipment.id} is no longer receivable.`,
+    );
+  }
 
   return {
     inboundId: shipment.id,

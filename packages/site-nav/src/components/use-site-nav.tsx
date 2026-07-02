@@ -1,9 +1,20 @@
-import { createContext, useContext, useMemo, useRef, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	getActiveLinkFromMap,
 	getLinkModules,
 	validateLinks,
 } from "../lib/utils";
+
+const NAV_HOVER_EXPAND_DELAY_MS = 140;
+const NAV_HOVER_COLLAPSE_DELAY_MS = 80;
 
 type SiteNavContext = ReturnType<typeof createSiteNavContext>;
 export const SiteNavContext = createContext<SiteNavContext>(undefined);
@@ -23,6 +34,69 @@ interface Props {
 export const createSiteNavContext = (props: Props) => {
 	const mainMenuRef = useRef<HTMLDivElement>(null);
 	const [isExpanded, setIsExpanded] = useState(false);
+	const hoverExpandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	const hoverCollapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	const hoverCollapsePendingRef = useRef(false);
+
+	const clearHoverExpandTimeout = useCallback(() => {
+		if (!hoverExpandTimeoutRef.current) return;
+		clearTimeout(hoverExpandTimeoutRef.current);
+		hoverExpandTimeoutRef.current = null;
+	}, []);
+
+	const clearHoverCollapseTimeout = useCallback(() => {
+		if (!hoverCollapseTimeoutRef.current) return;
+		clearTimeout(hoverCollapseTimeoutRef.current);
+		hoverCollapseTimeoutRef.current = null;
+	}, []);
+
+	const expandSiteNav = useCallback(() => {
+		hoverCollapsePendingRef.current = false;
+		clearHoverExpandTimeout();
+		clearHoverCollapseTimeout();
+		setIsExpanded(true);
+	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
+
+	const collapseSiteNav = useCallback(() => {
+		clearHoverExpandTimeout();
+		clearHoverCollapseTimeout();
+		setIsExpanded(false);
+	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
+
+	const handleNavMouseEnter = useCallback(() => {
+		hoverCollapsePendingRef.current = false;
+		clearHoverCollapseTimeout();
+		if (isExpanded || hoverExpandTimeoutRef.current) return;
+		hoverExpandTimeoutRef.current = setTimeout(() => {
+			setIsExpanded(true);
+			hoverExpandTimeoutRef.current = null;
+		}, NAV_HOVER_EXPAND_DELAY_MS);
+	}, [clearHoverCollapseTimeout, isExpanded]);
+
+	const handleNavMouseLeave = useCallback(() => {
+		hoverCollapsePendingRef.current = true;
+		clearHoverExpandTimeout();
+		clearHoverCollapseTimeout();
+		hoverCollapseTimeoutRef.current = setTimeout(() => {
+			setIsExpanded(false);
+			hoverCollapseTimeoutRef.current = null;
+		}, NAV_HOVER_COLLAPSE_DELAY_MS);
+	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
+
+	const isNavHoverCollapsePending = useCallback(() => {
+		return hoverCollapsePendingRef.current;
+	}, []);
+
+	useEffect(() => {
+		return () => {
+			clearHoverExpandTimeout();
+			clearHoverCollapseTimeout();
+		};
+	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
 
 	const { activeLink, linkModules, modules, currentModule } = useMemo(() => {
 		const linkModules = getLinkModules(
@@ -66,6 +140,11 @@ export const createSiteNavContext = (props: Props) => {
 		mainMenuRef,
 		isExpanded,
 		setIsExpanded,
+		expandSiteNav,
+		collapseSiteNav,
+		handleNavMouseEnter,
+		handleNavMouseLeave,
+		isNavHoverCollapsePending,
 		activeLink,
 		modules,
 		linkModules,

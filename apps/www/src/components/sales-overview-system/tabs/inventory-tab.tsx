@@ -5,11 +5,20 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { useTRPC } from "@/trpc/client";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 
+import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Calendar } from "@gnd/ui/calendar";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -20,6 +29,14 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import {
+	Empty,
+	EmptyContent,
+	EmptyDescription,
+	EmptyHeader,
+	EmptyMedia,
+	EmptyTitle,
+} from "@gnd/ui/empty";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import {
@@ -32,19 +49,27 @@ import {
 	ItemTitle,
 } from "@gnd/ui/item";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
+import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
+import {
+	type SalesInventorySegment,
+	useSalesInventorySegmentQuery,
+} from "../hooks/use-sales-inventory-segment-query";
 import { useSalesOverviewSystem } from "../provider";
 import { OverviewEmptyState } from "../section-primitives";
 
 type InventoryOverview = RouterOutputs["inventories"]["salesInventoryOverview"];
 type InventoryLine = NonNullable<InventoryOverview>["rows"][number];
+type InventoryCapabilities = NonNullable<InventoryOverview>["capabilities"];
+type TrackingRepairPreview =
+	RouterOutputs["inventories"]["salesInventoryTrackingChangeRepairPreview"];
 type OrderInboundShipment =
 	RouterOutputs["inventories"]["orderInboundShipments"][number];
-type InventoryStockFilter = "stock" | "non_stock" | "inbounds";
+type InventoryStockFilter = SalesInventorySegment;
 type InventoryProductKind = "inventory" | "component";
 type InventoryStockMode = "monitored" | "unmonitored";
 type InboundShipmentStatus =
@@ -152,6 +177,16 @@ function isShortageInventoryLine(row: InventoryLine) {
 	return row.status === "shortage" || row.status === "needs_allocation";
 }
 
+function requirementStatusClassName(row: InventoryLine) {
+	if (row.requirementStatus === "not_applicable") {
+		return "border-slate-200 bg-slate-50 text-slate-600";
+	}
+	if (isShortageInventoryLine(row)) {
+		return "border-amber-200 bg-amber-50 text-amber-700";
+	}
+	return "border-emerald-200 bg-emerald-50 text-emerald-700";
+}
+
 function inboundStatusClassName(status: string | null | undefined) {
 	switch (status) {
 		case "completed":
@@ -236,6 +271,340 @@ function InventorySyncState({
 	);
 }
 
+function InventoryReadonlyMetric({
+	label,
+	value,
+	description,
+}: {
+	label: string;
+	value: ReactNode;
+	description: string;
+}) {
+	return (
+		<div className="flex min-h-24 flex-col justify-between gap-3 rounded-md border bg-background p-4">
+			<div className="text-[11px] font-semibold uppercase text-muted-foreground">
+				{label}
+			</div>
+			<div>
+				<div className="text-sm font-medium text-foreground">{value}</div>
+				<p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+					{description}
+				</p>
+			</div>
+		</div>
+	);
+}
+
+function FulfilledInventoryNoIntegrationState({
+	overview,
+}: {
+	overview: NonNullable<InventoryOverview>;
+}) {
+	const lifecycleLabel = overview.lifecycleLabel || "Fulfilled";
+	const inventoryStatusLabel = overview.inventoryStatus
+		? titleCaseLabel(overview.inventoryStatus)
+		: "No manual inbound status";
+	const lineItemCount = overview.summary.lineItemCount;
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="grid gap-3 md:grid-cols-3">
+				<InventoryReadonlyMetric
+					label="Order lifecycle"
+					value={lifecycleLabel}
+					description="The sales workflow has already reached a terminal fulfillment state."
+				/>
+				<InventoryReadonlyMetric
+					label="Inventory setup"
+					value="Not previously configured"
+					description={`${formatQty(lineItemCount)} synced line item${
+						lineItemCount === 1 ? "" : "s"
+					}; no inventory demand rows are attached.`}
+				/>
+				<InventoryReadonlyMetric
+					label="Inbound status"
+					value={inventoryStatusLabel}
+					description="Any legacy status is preserved as history, not converted into new inventory work."
+				/>
+			</div>
+
+			<Empty className="items-stretch justify-start border bg-background p-0 text-left">
+				<div className="flex flex-col gap-5 p-5">
+					<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+						<div className="flex min-w-0 gap-3">
+							<EmptyMedia
+								variant="icon"
+								className="border border-emerald-200 bg-emerald-50 text-emerald-700"
+							>
+								<Icons.CheckCircle2 />
+							</EmptyMedia>
+							<EmptyHeader className="max-w-none items-start text-left">
+								<EmptyTitle>Fulfilled outside inventory</EmptyTitle>
+								<EmptyDescription>
+									This order was completed before inventory-backed fulfillment
+									was configured, so the Inventory tab is keeping it in a
+									read-only historical state.
+								</EmptyDescription>
+							</EmptyHeader>
+						</div>
+						<Badge
+							variant="outline"
+							className="w-fit border-emerald-200 bg-emerald-50 text-emerald-700"
+						>
+							No open inventory task
+						</Badge>
+					</div>
+
+					<EmptyContent className="max-w-none items-stretch">
+						<Alert className="border-dashed bg-muted/20 text-left">
+							<Icons.Info />
+							<AlertTitle>Inventory sync is intentionally paused</AlertTitle>
+							<AlertDescription>
+								Creating new stock demand after fulfillment would make the order
+								look unfinished again. Future orders still configure inventory
+								as usual; this completed order remains review-only unless a
+								repair workflow is run intentionally.
+							</AlertDescription>
+						</Alert>
+
+						<Separator />
+
+						<ItemGroup className="gap-2" aria-label="Inventory history notes">
+							<Item
+								variant="outline"
+								size="sm"
+								className="items-start rounded-md bg-background/80 px-3 py-2.5"
+							>
+								<ItemContent>
+									<ItemHeader>
+										<ItemTitle>Historical sale preserved</ItemTitle>
+									</ItemHeader>
+									<ItemDescription>
+										No allocations, inbound shipments, or availability prompts
+										were created for this completed record.
+									</ItemDescription>
+								</ItemContent>
+								<ItemActions>
+									<Badge variant="outline">Read-only</Badge>
+								</ItemActions>
+							</Item>
+							<Item
+								variant="outline"
+								size="sm"
+								className="items-start rounded-md bg-background/80 px-3 py-2.5"
+							>
+								<ItemContent>
+									<ItemHeader>
+										<ItemTitle>New inventory work stays current</ItemTitle>
+									</ItemHeader>
+									<ItemDescription>
+										Open and newly saved orders still use the inventory
+										workbench for stock, allocation, and inbound planning.
+									</ItemDescription>
+								</ItemContent>
+								<ItemActions>
+									<Badge variant="outline">Current orders</Badge>
+								</ItemActions>
+							</Item>
+						</ItemGroup>
+					</EmptyContent>
+				</div>
+			</Empty>
+		</div>
+	);
+}
+
+function LegacyInventoryStatusLockedState({
+	overview,
+}: {
+	overview: NonNullable<InventoryOverview>;
+}) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const inventoryStatusLabel = overview.inventoryStatus
+		? titleCaseLabel(overview.inventoryStatus)
+		: "Manual status";
+	const salesOrderId = overview.id;
+	const resolveLegacyStatus = useMutation(
+		trpc.inventories.resolveSalesInventoryLegacyStatusSetup.mutationOptions({
+			onSuccess: async (data) => {
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.inventories.salesInventoryOverview.queryKey({
+							salesOrderId,
+						}),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.inventories.inboundDemandQueue.queryKey({}),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getSaleOverview.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrders.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrdersSummary.pathKey(),
+					}),
+				]);
+				toast({
+					title:
+						data.action === "reset"
+							? "Inbound status reset"
+							: "Inventory setup overridden",
+					description: `${data.createdCount + data.updatedCount} inventory row${
+						data.createdCount + data.updatedCount === 1 ? "" : "s"
+					} synced.`,
+					variant: "success",
+				});
+			},
+			onError: (error) => {
+				toast({
+					title: "Unable to configure inventory",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const isResolving = resolveLegacyStatus.isPending;
+
+	return (
+		<div className="flex flex-col gap-4">
+			<div className="grid gap-3 md:grid-cols-3">
+				<InventoryReadonlyMetric
+					label="Inbound status"
+					value={inventoryStatusLabel}
+					description="This order already has a manual inbound prompt saved on the sales record."
+				/>
+				<InventoryReadonlyMetric
+					label="Inventory setup"
+					value="Paused"
+					description="Inventory setup is held until the manual status is reset or intentionally overridden."
+				/>
+				<InventoryReadonlyMetric
+					label="Order lifecycle"
+					value={overview.lifecycleLabel || "Active"}
+					description="The order can continue normal sales work, but inventory setup will not auto-run."
+				/>
+			</div>
+
+			<Empty className="items-stretch justify-start border bg-background p-0 text-left">
+				<div className="flex flex-col gap-5 p-5">
+					<div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+						<div className="flex min-w-0 gap-3">
+							<EmptyMedia
+								variant="icon"
+								className="border border-amber-200 bg-amber-50 text-amber-700"
+							>
+								<Icons.LockKeyhole />
+							</EmptyMedia>
+							<EmptyHeader className="max-w-none items-start text-left">
+								<EmptyTitle>Manual inbound status needs review</EmptyTitle>
+								<EmptyDescription>
+									This order has a legacy inbound status but no inventory-backed
+									line items yet. Inventory setup is paused so that status does
+									not get converted into stock demand by accident.
+								</EmptyDescription>
+							</EmptyHeader>
+						</div>
+						<Badge
+							variant="outline"
+							className="w-fit border-amber-200 bg-amber-50 text-amber-700"
+						>
+							Setup locked
+						</Badge>
+					</div>
+
+					<EmptyContent className="max-w-none items-stretch">
+						<Alert className="border-dashed bg-muted/20 text-left">
+							<Icons.Info />
+							<AlertTitle>Inventory sync is waiting for intent</AlertTitle>
+							<AlertDescription>
+								Reset the manual inbound status or run an explicit override
+								workflow before configuring inventory for this order.
+							</AlertDescription>
+						</Alert>
+
+						<div className="flex flex-col gap-2 sm:flex-row">
+							<Button
+								type="button"
+								size="sm"
+								variant="default"
+								disabled={isResolving}
+								onClick={() =>
+									resolveLegacyStatus.mutate({
+										salesOrderId,
+										action: "reset",
+									})
+								}
+							>
+								Reset status and configure
+							</Button>
+							<Button
+								type="button"
+								size="sm"
+								variant="outline"
+								disabled={isResolving}
+								onClick={() =>
+									resolveLegacyStatus.mutate({
+										salesOrderId,
+										action: "override",
+									})
+								}
+							>
+								Override and configure
+							</Button>
+						</div>
+
+						<ItemGroup
+							className="gap-2"
+							aria-label="Manual inbound status lock notes"
+						>
+							<Item
+								variant="outline"
+								size="sm"
+								className="items-start rounded-md bg-background/80 px-3 py-2.5"
+							>
+								<ItemContent>
+									<ItemHeader>
+										<ItemTitle>Manual prompt preserved</ItemTitle>
+									</ItemHeader>
+									<ItemDescription>
+										The saved status remains on the order for review and sales
+										list visibility.
+									</ItemDescription>
+								</ItemContent>
+								<ItemActions>
+									<Badge variant="outline">{inventoryStatusLabel}</Badge>
+								</ItemActions>
+							</Item>
+							<Item
+								variant="outline"
+								size="sm"
+								className="items-start rounded-md bg-background/80 px-3 py-2.5"
+							>
+								<ItemContent>
+									<ItemHeader>
+										<ItemTitle>No stock demand created</ItemTitle>
+									</ItemHeader>
+									<ItemDescription>
+										The Inventory tab will not create allocations, inbound
+										demand, or stock tasks until the legacy prompt is handled.
+									</ItemDescription>
+								</ItemContent>
+								<ItemActions>
+									<Badge variant="outline">Read-only</Badge>
+								</ItemActions>
+							</Item>
+						</ItemGroup>
+					</EmptyContent>
+				</div>
+			</Empty>
+		</div>
+	);
+}
+
 function InventoryActionBar({
 	overview,
 	salesOrderId,
@@ -245,7 +614,9 @@ function InventoryActionBar({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const rows = overview.rows || [];
+	const capabilities = overview.capabilities;
 	const stockActionRows = rows.filter(isStockInventoryLine);
 	const pendingQty = stockActionRows.reduce(
 		(total, row) => total + row.qtyPending,
@@ -373,6 +744,9 @@ function InventoryActionBar({
 				setSelectedInboundRowIds([]);
 				setReference("");
 				setExpectedAt("");
+				setInventorySegment("inbounds", {
+					inboundId: data.inboundId,
+				});
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: trpc.inventories.salesInventoryOverview.queryKey({
@@ -389,6 +763,15 @@ function InventoryActionBar({
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.inventories.inboundDemandQueue.queryKey({}),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getSaleOverview.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrders.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrdersSummary.pathKey(),
 					}),
 				]);
 				toast({
@@ -445,6 +828,16 @@ function InventoryActionBar({
 	};
 
 	const submitInbound = () => {
+		if (!capabilities.canCreateInbound) {
+			toast({
+				title: "Inventory actions locked",
+				description:
+					overview.inventoryActionBlockReason ||
+					"Create inbound is not available for this order.",
+				variant: "destructive",
+			});
+			return;
+		}
 		if (!supplierId) {
 			toast({
 				title: "Select a supplier",
@@ -469,6 +862,19 @@ function InventoryActionBar({
 		});
 	};
 
+	if (overview.isInventoryReadOnly) {
+		return (
+			<Alert className="border-dashed bg-muted/20 text-left">
+				<Icons.Info />
+				<AlertTitle>Inventory actions are locked</AlertTitle>
+				<AlertDescription>
+					{overview.inventoryActionBlockReason ||
+						"This order is locked for inventory review."}
+				</AlertDescription>
+			</Alert>
+		);
+	}
+
 	return (
 		<div className="space-y-3">
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -482,7 +888,7 @@ function InventoryActionBar({
 						type="button"
 						size="sm"
 						variant="outline"
-						disabled={!inboundRows.length}
+						disabled={!capabilities.canCreateInbound || !inboundRows.length}
 						onClick={() => setIsInboundFormOpen((value) => !value)}
 					>
 						Create inbound
@@ -683,9 +1089,15 @@ function InventoryActionBar({
 function InventoryMergedTable({
 	rows,
 	salesOrderId,
+	capabilities,
+	isReadOnly,
+	readOnlyReason,
 }: {
 	rows: InventoryLine[];
 	salesOrderId: number;
+	capabilities: InventoryCapabilities;
+	isReadOnly: boolean;
+	readOnlyReason: string | null;
 }) {
 	return (
 		<div className="min-w-0 w-full max-w-full overflow-hidden [contain:inline-size]">
@@ -696,6 +1108,9 @@ function InventoryMergedTable({
 							key={row.id}
 							row={row}
 							salesOrderId={salesOrderId}
+							capabilities={capabilities}
+							isReadOnly={isReadOnly}
+							readOnlyReason={readOnlyReason}
 						/>
 					))}
 				</ItemGroup>
@@ -735,7 +1150,7 @@ function InventoryStockFilterGroup({
 				className="h-8 gap-2 rounded-sm px-3"
 				onClick={() => onChange("stock")}
 			>
-				STOCK
+				Stock
 				<Badge
 					variant={value === "stock" ? "secondary" : "outline"}
 					className="h-5 px-1.5 text-[10px]"
@@ -746,33 +1161,33 @@ function InventoryStockFilterGroup({
 			<Button
 				type="button"
 				size="sm"
-				variant={value === "non_stock" ? "default" : "ghost"}
-				aria-pressed={value === "non_stock"}
-				className="h-8 gap-2 rounded-sm px-3"
-				onClick={() => onChange("non_stock")}
-			>
-				NON STOCK
-				<Badge
-					variant={value === "non_stock" ? "secondary" : "outline"}
-					className="h-5 px-1.5 text-[10px]"
-				>
-					{nonStockCount}
-				</Badge>
-			</Button>
-			<Button
-				type="button"
-				size="sm"
 				variant={value === "inbounds" ? "default" : "ghost"}
 				aria-pressed={value === "inbounds"}
 				className="h-8 gap-2 rounded-sm px-3"
 				onClick={() => onChange("inbounds")}
 			>
-				INBOUNDS
+				Inbounds
 				<Badge
 					variant={value === "inbounds" ? "secondary" : "outline"}
 					className="h-5 px-1.5 text-[10px]"
 				>
 					{inboundCount}
+				</Badge>
+			</Button>
+			<Button
+				type="button"
+				size="sm"
+				variant={value === "non_stock" ? "default" : "ghost"}
+				aria-pressed={value === "non_stock"}
+				className="h-8 gap-2 rounded-sm px-3"
+				onClick={() => onChange("non_stock")}
+			>
+				Non Stock
+				<Badge
+					variant={value === "non_stock" ? "secondary" : "outline"}
+					className="h-5 px-1.5 text-[10px]"
+				>
+					{nonStockCount}
 				</Badge>
 			</Button>
 		</div>
@@ -783,13 +1198,19 @@ function InventoryInboundsPanel({
 	salesOrderId,
 	shipments,
 	isLoading,
+	isReadOnly,
+	readOnlyReason,
 }: {
 	salesOrderId: number;
 	shipments: OrderInboundShipment[];
 	isLoading: boolean;
+	isReadOnly: boolean;
+	readOnlyReason: string | null;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { selectedInventoryInboundId, setSelectedInventoryInboundId } =
+		useSalesInventorySegmentQuery();
 	const [selectedInboundId, setSelectedInboundId] = useState<number | null>(
 		null,
 	);
@@ -866,16 +1287,25 @@ function InventoryInboundsPanel({
 			return;
 		}
 		if (
+			selectedInventoryInboundId &&
+			shipments.some((row) => row.id === selectedInventoryInboundId)
+		) {
+			if (selectedInboundId !== selectedInventoryInboundId) {
+				setSelectedInboundId(selectedInventoryInboundId);
+			}
+			return;
+		}
+		if (
 			selectedInboundId &&
 			shipments.some((row) => row.id === selectedInboundId)
 		) {
 			return;
 		}
 		setSelectedInboundId(shipments[0]?.id ?? null);
-	}, [selectedInboundId, shipments]);
+	}, [selectedInboundId, selectedInventoryInboundId, shipments]);
 
 	const receiveAll = () => {
-		if (!selectedShipment) return;
+		if (!selectedShipment || isReadOnly) return;
 		receiveInbound.mutate({
 			inboundId: selectedShipment.id,
 			items: selectedShipment.items.map((item) => ({
@@ -889,6 +1319,7 @@ function InventoryInboundsPanel({
 	};
 	const canReceive =
 		!!selectedShipment &&
+		!isReadOnly &&
 		!["completed", "closed", "cancelled"].includes(selectedShipment.status) &&
 		selectedShipment.items.some(
 			(item) =>
@@ -918,7 +1349,10 @@ function InventoryInboundsPanel({
 								"w-full rounded-md border bg-background p-3 text-left transition hover:bg-muted/40",
 								isSelected && "border-primary bg-primary/5",
 							)}
-							onClick={() => setSelectedInboundId(shipment.id)}
+							onClick={() => {
+								setSelectedInboundId(shipment.id);
+								setSelectedInventoryInboundId(shipment.id);
+							}}
 						>
 							<div className="flex items-start justify-between gap-3">
 								<div className="min-w-0">
@@ -958,6 +1392,16 @@ function InventoryInboundsPanel({
 			</div>
 			{selectedShipment ? (
 				<div className="min-w-0 rounded-md border bg-background p-3">
+					{isReadOnly ? (
+						<Alert className="mb-3 border-dashed bg-muted/20 text-left">
+							<Icons.LockKeyhole />
+							<AlertTitle>Inbound actions are locked</AlertTitle>
+							<AlertDescription>
+								{readOnlyReason ||
+									"This order is locked for inventory review and repair only."}
+							</AlertDescription>
+						</Alert>
+					) : null}
 					<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
 						<div>
 							<div className="flex flex-wrap items-center gap-2">
@@ -986,7 +1430,7 @@ function InventoryInboundsPanel({
 										type="button"
 										size="sm"
 										variant="outline"
-										disabled={updateStatus.isPending}
+										disabled={isReadOnly || updateStatus.isPending}
 									>
 										Update status
 									</Button>
@@ -1007,15 +1451,17 @@ function InventoryInboundsPanel({
 										<DropdownMenuItem
 											key={status}
 											disabled={
+												isReadOnly ||
 												updateStatus.isPending ||
 												status === selectedShipment.status
 											}
-											onSelect={() =>
+											onSelect={() => {
+												if (isReadOnly) return;
 												updateStatus.mutate({
 													inboundId: selectedShipment.id,
 													status,
-												})
-											}
+												});
+											}}
 										>
 											{titleCaseLabel(status)}
 										</DropdownMenuItem>
@@ -1102,9 +1548,15 @@ function InventoryInboundsPanel({
 function InventoryLineRow({
 	row,
 	salesOrderId,
+	capabilities,
+	isReadOnly,
+	readOnlyReason,
 }: {
 	row: InventoryLine;
 	salesOrderId: number;
+	capabilities: InventoryCapabilities;
+	isReadOnly: boolean;
+	readOnlyReason: string | null;
 }) {
 	const variantLabel = inventoryVariantLabel(row);
 	const categoryStepLabel = formatCategoryStepLabel(row.stepName);
@@ -1158,10 +1610,21 @@ function InventoryLineRow({
 						</ItemDescription>
 					</div>
 					<ItemActions className="shrink-0">
-						<InventoryLineActions row={row} salesOrderId={salesOrderId} />
+						<InventoryLineActions
+							row={row}
+							salesOrderId={salesOrderId}
+							capabilities={capabilities}
+							isReadOnly={isReadOnly}
+							readOnlyReason={readOnlyReason}
+						/>
 					</ItemActions>
 				</ItemHeader>
 				<div className="flex flex-wrap gap-1.5">
+					<InventoryMetric
+						label="INBOUND"
+						value={row.requirementShortLabel}
+						className={requirementStatusClassName(row)}
+					/>
 					<InventoryMetric label="QTY" value={formatQty(row.qtyRequired)} />
 					<InventoryMetric label="STOCK" value={stockCell} />
 					<InventoryMetric
@@ -1186,10 +1649,12 @@ function InventoryMetric({
 	label,
 	value,
 	tone = "default",
+	className,
 }: {
 	label: string;
 	value: ReactNode;
 	tone?: "default" | "success" | "warning";
+	className?: string;
 }) {
 	return (
 		<Badge
@@ -1198,6 +1663,7 @@ function InventoryMetric({
 				"h-6 gap-1 rounded-full border bg-muted/20 px-2 text-[10px] font-medium uppercase tabular-nums",
 				tone === "success" && "border-emerald-200 bg-emerald-50/80",
 				tone === "warning" && "border-amber-200 bg-amber-50/80",
+				className,
 			)}
 		>
 			<span className="text-muted-foreground">{label}:</span>
@@ -1206,15 +1672,135 @@ function InventoryMetric({
 	);
 }
 
+function TrackingRepairPreviewDialog({
+	preview,
+	open,
+	onOpenChange,
+	onCheckStock,
+	onCreateInbound,
+}: {
+	preview: TrackingRepairPreview | null;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	onCheckStock: () => void;
+	onCreateInbound: () => void;
+}) {
+	if (!preview) return null;
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-h-[86dvh] max-w-2xl overflow-y-auto">
+				<DialogHeader>
+					<DialogTitle>Stock tracking changed</DialogTitle>
+					<DialogDescription>
+						These orders were previously treated as not needing tracked stock.
+						The new tracking setting may require inventory review before
+						production.
+					</DialogDescription>
+				</DialogHeader>
+				<div className="space-y-3">
+					<div className="grid gap-2 sm:grid-cols-3">
+						<InventoryMetric
+							label="ORDERS"
+							value={preview.eligibleOrderCount}
+							tone={preview.eligibleOrderCount ? "warning" : "default"}
+						/>
+						<InventoryMetric
+							label="PENDING"
+							value={formatQty(preview.totalPendingQty)}
+							tone={preview.totalPendingQty ? "warning" : "default"}
+						/>
+						<InventoryMetric
+							label="SKIPPED"
+							value={preview.skippedReadOnlyOrderCount}
+						/>
+					</div>
+					{preview.orders.length ? (
+						<ItemGroup className="gap-2">
+							{preview.orders.map((order) => (
+								<Item
+									key={order.salesOrderId}
+									variant="outline"
+									size="sm"
+									className="items-start rounded-md bg-background/80 px-3 py-2.5"
+								>
+									<ItemContent>
+										<ItemHeader>
+											<ItemTitle className="text-sm">{order.orderId}</ItemTitle>
+											<Badge
+												variant="outline"
+												className="h-5 px-1.5 text-[10px]"
+											>
+												{order.lifecycleLabel}
+											</Badge>
+										</ItemHeader>
+										<ItemDescription className="line-clamp-none text-[11px]">
+											{order.componentNames.join(", ")}
+											{order.componentCount > order.componentNames.length
+												? ` +${
+														order.componentCount - order.componentNames.length
+													} more`
+												: ""}
+										</ItemDescription>
+									</ItemContent>
+									<ItemActions>
+										<InventoryMetric
+											label="PENDING"
+											value={formatQty(order.pendingQty)}
+											tone="warning"
+										/>
+									</ItemActions>
+								</Item>
+							))}
+						</ItemGroup>
+					) : (
+						<Alert className="border-dashed bg-muted/20">
+							<Icons.Info />
+							<AlertTitle>No eligible repair work</AlertTitle>
+							<AlertDescription>
+								Orders already past production or fulfillment were skipped, and
+								no open pre-production order currently needs stock from this
+								category.
+							</AlertDescription>
+						</Alert>
+					)}
+					{preview.truncated ? (
+						<p className="text-xs text-muted-foreground">
+							Only the first {preview.orders.length} affected orders are shown.
+						</p>
+					) : null}
+				</div>
+				<DialogFooter>
+					<Button type="button" variant="outline" onClick={onCheckStock}>
+						Check the stock
+					</Button>
+					<Button type="button" onClick={onCreateInbound}>
+						Create inbound
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
 function InventoryLineActions({
 	row,
 	salesOrderId,
+	capabilities,
+	isReadOnly,
+	readOnlyReason,
 }: {
 	row: InventoryLine;
 	salesOrderId: number;
+	capabilities: InventoryCapabilities;
+	isReadOnly: boolean;
+	readOnlyReason: string | null;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { setInventorySegment } = useSalesInventorySegmentQuery();
+	const [repairPreview, setRepairPreview] =
+		useState<TrackingRepairPreview | null>(null);
 	const categoryProductKind = normalizedProductKind(
 		row.inventoryCategoryProductKind,
 	);
@@ -1223,7 +1809,10 @@ function InventoryLineActions({
 		row.inventoryCategoryStockMode ?? row.inventoryStockMode,
 	);
 	const categoryStepLabel = formatCategoryStepLabel(row.stepName);
+	const canConfigureTracking = capabilities.canConfigureTracking && !isReadOnly;
 	const canAllocateFromStock =
+		capabilities.canAllocateStock &&
+		!isReadOnly &&
 		isStockInventoryLine(row) &&
 		(row.pendingStockAllocationIds?.length || 0) > 0;
 	const refreshOverview = async () => {
@@ -1255,14 +1844,45 @@ function InventoryLineActions({
 			},
 		}),
 	);
+	const previewTrackingRepair = useMutation(
+		trpc.inventories.salesInventoryTrackingChangeRepairPreview.mutationOptions({
+			onSuccess: (preview) => {
+				if (preview.eligibleOrderCount > 0) {
+					setRepairPreview(preview);
+					return;
+				}
+				toast({
+					title: "No open orders need repair",
+					description: preview.skippedReadOnlyOrderCount
+						? `${preview.skippedReadOnlyOrderCount} order${
+								preview.skippedReadOnlyOrderCount === 1 ? "" : "s"
+							} already past production or fulfillment were skipped.`
+						: "No pre-production order currently needs stock from this category.",
+					variant: "success",
+				});
+			},
+			onError: (error) => {
+				toast({
+					title: "Unable to check affected orders",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 	const updateCategoryStockMode = useMutation(
 		trpc.inventories.updateCategoryStockMode.mutationOptions({
-			onSuccess: async () => {
+			onSuccess: async (data) => {
 				await refreshOverview();
 				toast({
 					title: "Stock setting updated",
 					variant: "success",
 				});
+				if (data.becameTracked) {
+					previewTrackingRepair.mutate({
+						inventoryCategoryId: data.id,
+					});
+				}
 			},
 		}),
 	);
@@ -1295,23 +1915,42 @@ function InventoryLineActions({
 		updateCategoryKind.isPending ||
 		updateComponentKind.isPending ||
 		updateCategoryStockMode.isPending ||
+		previewTrackingRepair.isPending ||
 		approveAllocations.isPending;
 	const setCategoryKind = (productKind: InventoryProductKind) => {
-		if (!row.inventoryCategoryId || productKind === categoryProductKind) return;
+		if (
+			!canConfigureTracking ||
+			!row.inventoryCategoryId ||
+			productKind === categoryProductKind
+		) {
+			return;
+		}
 		updateCategoryKind.mutate({
 			id: row.inventoryCategoryId,
 			productKind,
 		});
 	};
 	const setComponentKind = (productKind: InventoryProductKind) => {
-		if (!row.inventoryId || productKind === componentProductKind) return;
+		if (
+			!canConfigureTracking ||
+			!row.inventoryId ||
+			productKind === componentProductKind
+		) {
+			return;
+		}
 		updateComponentKind.mutate({
 			id: row.inventoryId,
 			productKind,
 		});
 	};
 	const setCategoryStockMode = (stockMode: InventoryStockMode) => {
-		if (!row.inventoryCategoryId || stockMode === categoryStockMode) return;
+		if (
+			!canConfigureTracking ||
+			!row.inventoryCategoryId ||
+			stockMode === categoryStockMode
+		) {
+			return;
+		}
 		updateCategoryStockMode.mutate({
 			id: row.inventoryCategoryId,
 			stockMode,
@@ -1319,127 +1958,166 @@ function InventoryLineActions({
 	};
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button
-					type="button"
-					size="icon"
-					variant="ghost"
-					className="size-8 rounded-full"
-					aria-label={`Edit ${row.componentName}`}
-				>
-					<Icons.MoreHorizontal className="size-4" />
-				</Button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-64">
-				<DropdownMenuLabel>
-					<div className="truncate text-xs font-semibold uppercase">
-						{row.componentName}
-					</div>
-					{categoryStepLabel ? (
-						<div className="mt-0.5 text-[11px] font-normal text-muted-foreground">
-							{categoryStepLabel}
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Button
+						type="button"
+						size="icon"
+						variant="ghost"
+						className="size-8 rounded-full"
+						aria-label={`Edit ${row.componentName}`}
+					>
+						<Icons.MoreHorizontal className="size-4" />
+					</Button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="w-64">
+					<DropdownMenuLabel>
+						<div className="truncate text-xs font-semibold uppercase">
+							{row.componentName}
 						</div>
+						{categoryStepLabel ? (
+							<div className="mt-0.5 text-[11px] font-normal text-muted-foreground">
+								{categoryStepLabel}
+							</div>
+						) : null}
+					</DropdownMenuLabel>
+					{isReadOnly ? (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="whitespace-normal text-xs font-normal leading-relaxed text-muted-foreground">
+								<span className="flex items-start gap-2">
+									<Icons.LockKeyhole className="mt-0.5 size-3.5 shrink-0" />
+									<span>
+										{readOnlyReason ||
+											"This order is locked for inventory review and repair only."}
+									</span>
+								</span>
+							</DropdownMenuLabel>
+						</>
 					) : null}
-				</DropdownMenuLabel>
-				<DropdownMenuSeparator />
-				<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-					Category Kind
-				</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={categoryProductKind}
-					onValueChange={(value) =>
-						setCategoryKind(value as InventoryProductKind)
-					}
-				>
-					<DropdownMenuRadioItem
-						value="inventory"
-						disabled={!row.inventoryCategoryId || isSaving}
+					<DropdownMenuSeparator />
+					<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+						Category Kind
+					</DropdownMenuLabel>
+					<DropdownMenuRadioGroup
+						value={categoryProductKind}
+						onValueChange={(value) =>
+							setCategoryKind(value as InventoryProductKind)
+						}
 					>
-						Inventory
-					</DropdownMenuRadioItem>
-					<DropdownMenuRadioItem
-						value="component"
-						disabled={!row.inventoryCategoryId || isSaving}
-					>
-						Component
-					</DropdownMenuRadioItem>
-				</DropdownMenuRadioGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-					Component kind
-				</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={componentProductKind}
-					onValueChange={(value) =>
-						setComponentKind(value as InventoryProductKind)
-					}
-				>
-					<DropdownMenuRadioItem
-						value="inventory"
-						disabled={!row.inventoryId || isSaving}
-					>
-						Inventory
-					</DropdownMenuRadioItem>
-					<DropdownMenuRadioItem
-						value="component"
-						disabled={!row.inventoryId || isSaving}
-					>
-						Component
-					</DropdownMenuRadioItem>
-				</DropdownMenuRadioGroup>
-				<DropdownMenuSeparator />
-				<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-					Stock tracking
-				</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={categoryStockMode}
-					onValueChange={(value) =>
-						setCategoryStockMode(value as InventoryStockMode)
-					}
-				>
-					<DropdownMenuRadioItem
-						value="monitored"
-						disabled={!row.inventoryCategoryId || isSaving}
-					>
-						Track
-					</DropdownMenuRadioItem>
-					<DropdownMenuRadioItem
-						value="unmonitored"
-						disabled={!row.inventoryCategoryId || isSaving}
-					>
-						Do not track
-					</DropdownMenuRadioItem>
-				</DropdownMenuRadioGroup>
-				{canAllocateFromStock ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							disabled={isSaving}
-							onSelect={() =>
-								approveAllocations.mutate({
-									allocationIds: row.pendingStockAllocationIds,
-								})
+						<DropdownMenuRadioItem
+							value="inventory"
+							disabled={
+								!canConfigureTracking || !row.inventoryCategoryId || isSaving
 							}
 						>
-							<Icons.Warehouse className="mr-2 size-4" />
-							Allocate available stock
-						</DropdownMenuItem>
-					</>
-				) : null}
-				{row.inventoryId ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem asChild>
-							<a href={`/inventory/${row.inventoryId}`}>
-								<Icons.ExternalLink className="mr-2 size-4" />
-								Open inventory item
-							</a>
-						</DropdownMenuItem>
-					</>
-				) : null}
-			</DropdownMenuContent>
-		</DropdownMenu>
+							Inventory
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem
+							value="component"
+							disabled={
+								!canConfigureTracking || !row.inventoryCategoryId || isSaving
+							}
+						>
+							Component
+						</DropdownMenuRadioItem>
+					</DropdownMenuRadioGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+						Component kind
+					</DropdownMenuLabel>
+					<DropdownMenuRadioGroup
+						value={componentProductKind}
+						onValueChange={(value) =>
+							setComponentKind(value as InventoryProductKind)
+						}
+					>
+						<DropdownMenuRadioItem
+							value="inventory"
+							disabled={!canConfigureTracking || !row.inventoryId || isSaving}
+						>
+							Inventory
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem
+							value="component"
+							disabled={!canConfigureTracking || !row.inventoryId || isSaving}
+						>
+							Component
+						</DropdownMenuRadioItem>
+					</DropdownMenuRadioGroup>
+					<DropdownMenuSeparator />
+					<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+						Stock tracking
+					</DropdownMenuLabel>
+					<DropdownMenuRadioGroup
+						value={categoryStockMode}
+						onValueChange={(value) =>
+							setCategoryStockMode(value as InventoryStockMode)
+						}
+					>
+						<DropdownMenuRadioItem
+							value="monitored"
+							disabled={
+								!canConfigureTracking || !row.inventoryCategoryId || isSaving
+							}
+						>
+							Track
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem
+							value="unmonitored"
+							disabled={
+								!canConfigureTracking || !row.inventoryCategoryId || isSaving
+							}
+						>
+							Do not track
+						</DropdownMenuRadioItem>
+					</DropdownMenuRadioGroup>
+					{canAllocateFromStock ? (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem
+								disabled={isSaving}
+								onSelect={() =>
+									approveAllocations.mutate({
+										allocationIds: row.pendingStockAllocationIds,
+									})
+								}
+							>
+								<Icons.Warehouse className="mr-2 size-4" />
+								Allocate available stock
+							</DropdownMenuItem>
+						</>
+					) : null}
+					{row.inventoryId ? (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem asChild>
+								<a href={`/inventory/${row.inventoryId}`}>
+									<Icons.ExternalLink className="mr-2 size-4" />
+									Open inventory item
+								</a>
+							</DropdownMenuItem>
+						</>
+					) : null}
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<TrackingRepairPreviewDialog
+				preview={repairPreview}
+				open={!!repairPreview}
+				onOpenChange={(open) => {
+					if (!open) setRepairPreview(null);
+				}}
+				onCheckStock={() => {
+					setRepairPreview(null);
+					setInventorySegment("stock");
+				}}
+				onCreateInbound={() => {
+					setRepairPreview(null);
+					setInventorySegment("inbounds");
+				}}
+			/>
+		</>
 	);
 }
 
@@ -1451,7 +2129,8 @@ export function SalesOverviewInventoryContent({
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [autoSyncOrderId, setAutoSyncOrderId] = useState<number | null>(null);
-	const [stockFilter, setStockFilter] = useState<InventoryStockFilter>("stock");
+	const { inventorySegment: stockFilter, setInventorySegment: setStockFilter } =
+		useSalesInventorySegmentQuery();
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
 	const inventoryQuery = useQuery(
 		trpc.inventories.salesInventoryOverview.queryOptions(
@@ -1471,7 +2150,7 @@ export function SalesOverviewInventoryContent({
 				salesOrderId: normalizedSalesOrderId,
 			},
 			{
-				enabled: !!normalizedSalesOrderId,
+				enabled: !!normalizedSalesOrderId && stockFilter === "inbounds",
 				staleTime: 60 * 1000,
 				refetchOnWindowFocus: false,
 			},
@@ -1494,7 +2173,13 @@ export function SalesOverviewInventoryContent({
 	const stockRows = rows.filter(isStockInventoryLine);
 	const nonStockRows = rows.filter((row) => !isStockInventoryLine(row));
 	const orderInboundShipments = orderInboundsQuery.data ?? [];
-	const inboundCount = orderInboundShipments.length;
+	const overviewLinkedInboundRowCount = rows.filter(
+		(row) => Number(row.qtyInboundLinkedOpen || 0) > 0,
+	).length;
+	const inboundCount =
+		stockFilter === "inbounds" && orderInboundsQuery.data
+			? orderInboundShipments.length
+			: overviewLinkedInboundRowCount;
 	const filteredRows =
 		stockFilter === "stock"
 			? stockRows
@@ -1511,6 +2196,8 @@ export function SalesOverviewInventoryContent({
 	const shouldAutoSync =
 		!!normalizedSalesOrderId &&
 		!!overview &&
+		overview.capabilities.canSync &&
+		overview.setupMode === "not_configured" &&
 		!groups.length &&
 		autoSyncOrderId !== normalizedSalesOrderId &&
 		!syncInventory.isPending;
@@ -1553,6 +2240,14 @@ export function SalesOverviewInventoryContent({
 		);
 	}
 
+	if (overview.setupMode === "completed_readonly") {
+		return <FulfilledInventoryNoIntegrationState overview={overview} />;
+	}
+
+	if (overview.setupMode === "legacy_status_locked") {
+		return <LegacyInventoryStatusLockedState overview={overview} />;
+	}
+
 	if (!rows.length) {
 		return (
 			<div className="space-y-4">
@@ -1570,6 +2265,7 @@ export function SalesOverviewInventoryContent({
 					type="button"
 					size="sm"
 					variant="outline"
+					disabled={!overview.capabilities.canSync}
 					onClick={() =>
 						syncInventory.mutate({
 							salesOrderId: normalizedSalesOrderId,
@@ -1634,11 +2330,16 @@ export function SalesOverviewInventoryContent({
 					salesOrderId={normalizedSalesOrderId}
 					shipments={orderInboundShipments}
 					isLoading={orderInboundsQuery.isLoading}
+					isReadOnly={overview.isInventoryReadOnly}
+					readOnlyReason={overview.inventoryActionBlockReason}
 				/>
 			) : (
 				<InventoryMergedTable
 					rows={filteredRows}
 					salesOrderId={normalizedSalesOrderId}
+					capabilities={overview.capabilities}
+					isReadOnly={overview.isInventoryReadOnly}
+					readOnlyReason={overview.inventoryActionBlockReason}
 				/>
 			)}
 		</div>

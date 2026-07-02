@@ -1,7 +1,14 @@
 "use client";
 
+import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
+import {
+	getInventoryInboundOwnershipLabel,
+	getInventoryInboundOwnershipTitle,
+	getSingleInventoryInboundId,
+} from "@/components/sales-inbound-status-badge";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -110,10 +117,17 @@ const statusColumn: Column = {
 		className: sizeClass(sizes.custom(150, 240, 180)),
 	},
 	cell: ({ row }) => {
-		const label = getStatusLabel(row.original.inboundStatus);
+		const hasInventoryInbound =
+			!!row.original.inventoryInboundOwnership?.hasInventoryInbound;
+		const label = hasInventoryInbound
+			? getInventoryInboundOwnershipLabel(row.original.inventoryInboundOwnership)
+			: getStatusLabel(row.original.inboundStatus);
+		const title = hasInventoryInbound
+			? getInventoryInboundOwnershipTitle(row.original.inventoryInboundOwnership)
+			: `Manual order status - ${label}`;
 
 		return (
-			<div className="flex min-w-0 items-center">
+			<div className="flex min-w-0 items-center" title={title}>
 				<Progress>
 					<Progress.Status>{label}</Progress.Status>
 				</Progress>
@@ -150,7 +164,14 @@ export const columns: Column[] = [
 
 function InboundActions({ item }: { item: InboundManagementRow }) {
 	const { setParams } = useInboundStatusModal();
+	const overviewQuery = useSalesOverviewQuery();
+	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const salesPreview = useSalesPreview();
+	const hasInventoryInbound =
+		!!item.inventoryInboundOwnership?.hasInventoryInbound;
+	const selectedInventoryInboundId = getSingleInventoryInboundId(
+		item.inventoryInboundOwnership,
+	);
 
 	return (
 		<Button
@@ -161,11 +182,36 @@ function InboundActions({ item }: { item: InboundManagementRow }) {
 				"size-8 rounded-full text-muted-foreground",
 				"hover:bg-muted hover:text-foreground",
 			)}
-			aria-label={`Update inbound for ${item.orderId || `sale ${item.id}`}`}
-			title="Update inbound"
+			aria-label={`${hasInventoryInbound ? "Open inventory inbounds" : "Update inbound"} for ${
+				item.orderId || `sale ${item.id}`
+			}`}
+			title={
+				hasInventoryInbound
+					? getInventoryInboundOwnershipTitle(item.inventoryInboundOwnership)
+					: "Update inbound"
+			}
 			onClick={(event) => {
 				event.preventDefault();
 				event.stopPropagation();
+				if (hasInventoryInbound) {
+					const orderNo = String(item.uuid || item.orderId || "");
+					if (!orderNo) return;
+
+					setInventorySegment("inbounds", {
+						inboundId: selectedInventoryInboundId,
+					});
+					overviewQuery.setParams({
+						"sales-overview-id": orderNo,
+						"sales-type": "order",
+						mode: "sales",
+						salesTab: "inventory",
+						"prod-item-tab": null,
+						"prod-item-view": null,
+						dispatchOverviewId: null,
+					});
+					return;
+				}
+
 				setParams({
 					inboundOrderId: item.id,
 					inboundOrderNo: item.orderId,
@@ -175,8 +221,14 @@ function InboundActions({ item }: { item: InboundManagementRow }) {
 				});
 			}}
 		>
-			<Icons.Edit className="size-4" />
-			<span className="sr-only">Update inbound</span>
+			{hasInventoryInbound ? (
+				<Icons.PackageOpen className="size-4" />
+			) : (
+				<Icons.Edit className="size-4" />
+			)}
+			<span className="sr-only">
+				{hasInventoryInbound ? "Open inventory inbounds" : "Update inbound"}
+			</span>
 		</Button>
 	);
 }

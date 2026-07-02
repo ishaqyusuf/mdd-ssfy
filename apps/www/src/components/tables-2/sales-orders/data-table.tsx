@@ -28,7 +28,12 @@ import { columns } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { DataTableHeader } from "./table-header";
 
-const NON_CLICKABLE_COLUMNS = new Set(["select", "invoiceTotal", "actions"]);
+const NON_CLICKABLE_COLUMNS = new Set([
+	"select",
+	"inboundStatus",
+	"invoiceTotal",
+	"actions",
+]);
 const COLUMN_IDS = getColumnIds(columns);
 const TABLE_ID = "sales-orders";
 const tableConfig = TABLE_CONFIGS[TABLE_ID];

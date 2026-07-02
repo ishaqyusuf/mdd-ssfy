@@ -128,6 +128,18 @@ function allocationQty(
 	);
 }
 
+function suggestedAllocationQty(
+	component: InventoryReconciliationComponentLike,
+) {
+	return allocationQty(component, [
+		"pending_review",
+		"approved",
+		"reserved",
+		"picked",
+		"consumed",
+	]);
+}
+
 function unitsCoveredByComponents(
 	line: InventoryReconciliationLineLike,
 	readComponentQty: (component: InventoryReconciliationComponentLike) => number,
@@ -179,6 +191,7 @@ export function expectedComponentFulfillmentStatus(
 		"picked",
 		"consumed",
 	]);
+	const qtySuggested = Math.max(qtyAllocated, suggestedAllocationQty(component));
 	const qtyInbound = sumBy(component.inboundDemands, (demand) =>
 		demand.status === "cancelled" ? 0 : numberValue(demand.qty),
 	);
@@ -194,7 +207,7 @@ export function expectedComponentFulfillmentStatus(
 			: "partially_received";
 	}
 	if (qtyAllocated >= qtyRequired && qtyInbound <= 0) return "allocated";
-	if (qtyAllocated > 0 && qtyInbound > 0) return "partially_allocated";
+	if (qtySuggested > 0) return "partially_allocated";
 	if (qtyInbound > 0) return "inbound_required";
 	return "pending";
 }

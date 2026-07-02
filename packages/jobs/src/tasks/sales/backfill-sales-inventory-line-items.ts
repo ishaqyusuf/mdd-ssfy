@@ -1,12 +1,24 @@
 import { schemaTask } from "@trigger.dev/sdk/v3";
 import {
   backfillSalesInventoryLineItemsSchemaTask,
+  type BackfillSalesInventoryLineItemsSchemaTask,
   type TaskName,
 } from "../../schema";
 import { db } from "@gnd/db";
 import { syncSalesInventoryLineItems } from "@gnd/sales/sync-sales-inventory-line-items";
 
 const id: TaskName = "backfill-sales-inventory-line-items";
+
+export function getBackfillSalesInventoryLineItemsTake(
+  payload: Pick<
+    BackfillSalesInventoryLineItemsSchemaTask,
+    "salesOrderIds" | "batchSize"
+  >,
+) {
+  return payload.salesOrderIds?.length
+    ? payload.salesOrderIds.length
+    : (payload.batchSize ?? 50);
+}
 
 export const backfillSalesInventoryLineItemsTask = schemaTask({
   id,
@@ -47,7 +59,7 @@ export const backfillSalesInventoryLineItemsTask = schemaTask({
       orderBy: {
         id: "asc",
       },
-      take: payload.batchSize,
+      take: getBackfillSalesInventoryLineItemsTake(payload),
       select: {
         id: true,
         orderId: true,

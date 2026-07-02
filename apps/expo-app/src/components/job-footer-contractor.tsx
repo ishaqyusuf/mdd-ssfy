@@ -23,6 +23,7 @@ export function JobFooterContractor() {
   ].includes(status);
   const isSubmitDisabled = status === "Config Requested";
   const submitLabel = status === "Submitted" ? "Update Submission" : "Submit";
+  const canDelete = ctx.job?.deletionEligibility?.canDelete ?? false;
   const { mutate: deleteJob, isPending: isDeleting } = useMutation(
     _trpc.jobs.deleteJob.mutationOptions({
       onSuccess() {
@@ -64,19 +65,21 @@ export function JobFooterContractor() {
                   {submitLabel}
                 </Text>
               </Pressable>
-              <Pressable
-                onPress={() => {
-                  if (!ctx.job?.id || isDeleting) return;
-                  deleteJob({
-                    id: ctx.job.id,
-                  });
-                }}
-                className={cn(
-                  "h-14 w-14 flex-row items-center justify-center rounded-xl border border-destructive/40 bg-destructive/10",
-                )}
-              >
-                <Icon name="Trash" className="text-destructive" />
-              </Pressable>
+              {canDelete ? (
+                <Pressable
+                  onPress={() => {
+                    if (!ctx.job?.id || isDeleting) return;
+                    deleteJob({
+                      id: ctx.job.id,
+                    });
+                  }}
+                  className={cn(
+                    "h-14 w-14 flex-row items-center justify-center rounded-xl border border-destructive/40 bg-destructive/10",
+                  )}
+                >
+                  <Icon name="Trash" className="text-destructive" />
+                </Pressable>
+              ) : null}
             </View>
           </View>
         </View>

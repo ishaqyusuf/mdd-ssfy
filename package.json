@@ -59,6 +59,8 @@
     "inventory:seed-partial-fixture": "bun ./scripts/inventory-validation-seed-partial-fixture.ts",
     "inventory:seed-received-fixture": "bun ./scripts/inventory-validation-seed-received-fixture.ts",
     "inventory:seed-stock-fixtures": "bun ./scripts/inventory-validation-seed-stock-fixtures.ts",
+    "inventory:reconciliation-evidence": "bun ./scripts/inventory-reconciliation-evidence.ts",
+    "inventory:reconciliation-repair": "bun ./scripts/inventory-reconciliation-repair.ts",
     "inventory:validation-fixtures": "bun ./scripts/inventory-validation-fixture-report.ts",
     "jobs": "bun run dev:prepare && GND_DEV_SERVICES_STARTED=1 turbo dev --parallel --filter @gnd/jobs",
     "jobs:deploy": "bun run --filter @gnd/jobs deploy",

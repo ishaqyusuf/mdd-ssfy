@@ -1,7 +1,11 @@
 import { DataSkeleton } from "@/components/data-skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Env } from "@/components/env";
-import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
+import { getProductionTabItems } from "@/components/sales-overview-system/lib/production-items";
+import {
+	DataSkeletonProvider,
+	type useCreateDataSkeletonCtx,
+} from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useAfterTaskTrigger } from "@/hooks/use-task-trigger";
 import { cn } from "@/lib/utils";
@@ -36,14 +40,20 @@ export function ProductionTab() {
 }
 function Content() {
 	const { data, query } = useProduction();
-	const items = data?.items?.filter((a) => a?.itemConfig?.production);
+	const items = getProductionTabItems(data?.items);
 	const itemCount = items?.length || 0;
 	const queryCtx = useSalesOverviewQuery();
 	useAfterTaskTrigger(() => {
 		queryCtx.salesQuery.assignmentUpdated();
 	});
 	return (
-		<DataSkeletonProvider value={{ loading: !data?.orderId }}>
+		<DataSkeletonProvider
+			value={
+				{
+					loading: !data?.orderId,
+				} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>
+			}
+		>
 			<div className="mt-0 space-y-6">
 				<Accordion
 					type="multiple"

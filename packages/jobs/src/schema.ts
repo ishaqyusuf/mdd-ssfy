@@ -193,8 +193,10 @@ export type SendStorefrontWelcomeEmailPayload = z.infer<
 	typeof sendStorefrontWelcomeEmailSchema
 >;
 
+const positiveIntegerId = z.number().int().positive();
+
 export const syncSalesInventoryLineItemsSchemaTask = z.object({
-	salesOrderId: z.number(),
+	salesOrderId: positiveIntegerId,
 	source: z
 		.enum(["old-form", "new-form", "copy-sales", "manual", "repair"])
 		.default("manual"),
@@ -205,9 +207,9 @@ export type SyncSalesInventoryLineItemsSchemaTask = z.infer<
 >;
 
 export const backfillSalesInventoryLineItemsSchemaTask = z.object({
-	salesOrderIds: z.array(z.number()).optional(),
-	cursorId: z.number().optional().nullable(),
-	batchSize: z.number().min(1).max(200).optional().default(50),
+	salesOrderIds: z.array(positiveIntegerId).min(1).max(200).optional(),
+	cursorId: z.number().int().nonnegative().optional().nullable(),
+	batchSize: z.number().int().min(1).max(200).optional().default(50),
 	includeAlreadySynced: z.boolean().optional().default(false),
 	source: z
 		.enum(["old-form", "new-form", "copy-sales", "manual", "repair"])
@@ -219,20 +221,20 @@ export type BackfillSalesInventoryLineItemsSchemaTask = z.infer<
 >;
 
 export const inventoryReconciliationReportSchemaTask = z.object({
-	salesOrderId: z.number().optional().nullable(),
-	cursorId: z.number().optional().nullable(),
-	limit: z.number().min(1).max(200).optional().default(50),
-	sampleLimit: z.number().min(1).max(50).optional().default(10),
+	salesOrderId: positiveIntegerId.optional().nullable(),
+	cursorId: z.number().int().nonnegative().optional().nullable(),
+	limit: z.number().int().min(1).max(200).optional().default(50),
+	sampleLimit: z.number().int().min(1).max(50).optional().default(10),
 });
 export type InventoryReconciliationReportSchemaTask = z.infer<
 	typeof inventoryReconciliationReportSchemaTask
 >;
 
 export const allocateReceivedInboundToBackordersSchemaTask = z.object({
-	salesOrderId: z.number().optional().nullable(),
-	lineItemComponentIds: z.array(z.number()).optional(),
-	inventoryVariantId: z.number().optional().nullable(),
-	limit: z.number().min(1).max(200).optional().default(50),
+	salesOrderId: positiveIntegerId.optional().nullable(),
+	lineItemComponentIds: z.array(positiveIntegerId).optional(),
+	inventoryVariantId: positiveIntegerId.optional().nullable(),
+	limit: z.number().int().min(1).max(200).optional().default(50),
 	authorName: z.string().optional().nullable(),
 	note: z.string().optional().nullable(),
 });

@@ -2,6 +2,772 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Implemented guarded contractor job deletion for mistaken submissions.
+  - `jobs.deleteJob` now requires authentication, checks the actor through existing `auth(ctx)` permissions, allows the assigned contractor or an `editJobs` admin to delete only unlocked jobs, and rejects approved, completed, paid, payment-cancelled, or payout-linked jobs.
+  - `jobs.getJobs` and `jobs.overview` expose `deletionEligibility`, and the web contractor jobs table, web job overview modal, and Expo job footer/actions now use that server-derived eligibility for delete affordances.
+  - Added focused route-helper coverage for owner delete, admin delete, non-owner rejection, approved rejection, and payout-linked rejection.
+  - Validation: scoped `git diff --check` passed for touched API/web/Expo files; targeted tests were not run in this pass per fast Bun monorepo discipline.
+  - Brain files updated: `brain/api/endpoints.md`, `brain/api/permissions.md`, `brain/features/employee-management-v2.md`, and `brain/progress.md`; no database docs were needed because no schema or migration changed.
+
+- Completed the Sales Inventory Non-Stock Status And Tracking Change Repair work unit from the July 1 sales inventory/inbounds/table polish intake.
+  - Added a derived sales inventory requirement display policy so non-stock, not-inventory, untracked, and zero-required rows show `Not Applicable` / `N/A` instead of editable `Available`; this does not persist a new status or mutate inbound demand.
+  - Added a shared lifecycle boundary helper that skips future stock-tracking repair effects for `ready_to_fulfill`, fulfillment-stage, fulfilled, and cancelled orders.
+  - Extended sales inventory overview rows with requirement display fields and surfaced an `INBOUND: N/A` metric in the Inventory tab.
+  - Extended category stock-mode updates with `previousStockMode` / `becameTracked` metadata, added `inventories.salesInventoryTrackingChangeRepairPreview`, and wired the Inventory tab row action to open a bounded read-only repair preview dialog after a category changes from untracked to tracked.
+  - The repair preview modal lists eligible not-yet-production/in-production affected orders and skipped read-only counts, with review actions for the current order Stock/Inbounds segments. It intentionally does not run silent repair writes while broad inventory repairs remain stopped by user request.
+  - Changed source files: `packages/sales/src/sales-inventory-policy.ts`, `packages/sales/src/sales-inventory-overview.ts`, `packages/sales/src/sales-inventory-overview.test.ts`, `packages/inventory/src/inventory.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, and `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx`.
+  - Brain files updated: `brain/plans/2026-07-01-feature-sales-inventory-non-stock-status-tracking-repair.md`, `brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/features/order-inbound-status.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, and `brain/progress.md`.
+  - Validation: `bun test packages/sales/src/sales-inventory-overview.test.ts` passed with 24 tests; `bunx biome check` passed for the touched sales/API/UI files except `packages/inventory/src/inventory.ts`, whose pre-existing lint debt still fails a whole-file check. Full `bun run typecheck` remains blocked by existing `@gnd/documents` NodeNext/Buffer errors; package typechecks for `@gnd/sales`, `@gnd/api`, and `@gnd/www` still fail on existing repo-wide errors, but filtered greps found no touched-file diagnostics beyond the known `bun:test` type issue in the sales test file.
+
+- Created a user-requested Brain plan for production-only Sentry across web and mobile.
+  - Added `brain/plans/2026-07-02-bug-fix-production-only-sentry-for-web-and-mobile-app.md` with a Midday-aligned web approach and al-ghurobaa-aligned Expo app approach.
+  - Added a companion roadmap task in `brain/tasks/roadmap.md`.
+  - Current findings: `apps/www` already has production-only server/edge config and production-only `withSentryConfig`, but the web client initializes Sentry unconditionally with a hardcoded DSN; `apps/expo-app` has no Sentry wiring yet.
+  - No code, database schema, API contract, permissions, env files, build, typecheck, Sentry project settings, or runtime behavior changed; this was planning only.
+
+- Created a user-requested Brain intake for sales document WhatsApp and SMS delivery.
+  - Added `brain/intake/2026-07-02-sales-document-whatsapp-sms-delivery.md` to capture the request to extend quote/order document sending beyond email.
+  - Added proposed plan `brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md` with current-state findings: email delivery exists, WhatsApp transport and channel flags are partially present, short links are already implemented, and SMS transport/provider selection remains unresolved.
+  - Added a companion roadmap task in `brain/tasks/roadmap.md`.
+  - No code, schema, API contract, permission, runtime behavior, browser check, build, typecheck, WhatsApp send, SMS send, or short-link data changed; this was planning/intake only.
+
+- Created a user-requested Brain intake for sales inventory, inbound, and table polish work.
+  - Added `brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md` to capture the raw batch and split it into six proposed implementation-sized plans.
+  - Added proposed plans for non-stock/stock-mode repair semantics, order-update inventory repair, sales overview Inbounds action/count/layout fixes, Sales Book Inbounds table-core upgrade, community table density polish, and community projects/project-units table/action standardization.
+  - Added companion roadmap tasks in `brain/tasks/roadmap.md` for each proposed plan.
+  - Deduped against existing inventory-owned inbound status docs, the active Sales Inventory Inbound Status Guardrails plan, the June 22 sales overview inventory intake, and the tables-2 migration plan.
+  - No code, database schema, API contract, permission, browser check, dev server, build, typecheck, or repair command changed; this was planning/intake only.
+
+- Created a user-requested pending-gates intake for the active Inventory System Correctness Cutover.
+  - Added `brain/intake/2026-07-01-inventory-correctness-pending-gates.md` to consolidate the remaining Phase 8 reconciliation decisions, Phase 1-7 operator proof gaps, Phase 9 UI polish, Phase 10 browser proof matrix, and Phase 11 release gates.
+  - Preserved the live repair-stop instruction: no more repair dry-runs or applies should run unless the user explicitly resumes repairs.
+  - Linked the intake from the active cutover plan, roadmap ledger, in-progress ledger, and done ledger as documentation capture only.
+  - No code, database, API, permission, schema, runtime behavior, evidence commands, browser checks, builds, or typechecks changed.
+
+- Applied two additional reviewed materializable active/order backfill batches for the inventory correctness cutover, then stopped repairs on user request.
+  - Dry-ran explicit batch `2587`, `2588`, `2591`, `2592`, `2593`, `2601`, `2602`, `2603`, `2605`, `2607`, `2612`, `2614`, `2615`, `2619`, `2627`, `2629`, `2631`, `2632`, `2633`, `2634`, `2635`, `2638`, `2639`, `2641`, `2642`, `2643`, `2644`, `2646`, `2650`, `2651`, `2652`, `2653`, `2654`, `2655`, `2657`, `2663`, `2664`, `2666`, `2669`, `2673`, `2674`, `2675`, `2676`, `2680`, `2682`, `2684`, `2685`, `2686`, `2687`, and `2688`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `70` inventory sale lines created, `26` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Reran evidence: `needs_backfill`, sync coverage `2.82%`, missing sales `20499`, componentless/stale rows `0`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - Dry-ran explicit batch `2690`, `2691`, `2692`, `2695`, `2696`, `2697`, `2699`, `2700`, `2704`, `2705`, `2709`, `2710`, `2711`, `2712`, `2713`, `2715`, `2716`, `2721`, `2722`, `2723`, `2724`, `2727`, `2728`, `2731`, `2733`, `2734`, `2737`, `2738`, `2740`, `2742`, `2746`, `2747`, `2748`, `2749`, `2750`, `2752`, `2755`, `2762`, `2768`, `2769`, `2771`, `2772`, `2775`, `2776`, `2777`, `2780`, `2781`, `2782`, `2789`, and `2791`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `82` inventory sale lines created, `58` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Latest successful evidence: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed with sync coverage `3.05%`, missing sales `20449`, componentless lines `0`, componentless sales `0`, stale lines `0`, stale stock allocations `0`, stale inbound demand `0`, failed risk count `10`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - Next reviewed materializable batch ids, if repairs are explicitly resumed, are `2792`, `2793`, `2794`, `2795`, `2799`, `2800`, `2803`, `2805`, `2806`, `2807`, `2808`, `2809`, `2810`, `2815`, `2820`, `2824`, `2825`, `2826`, `2828`, `2829`, `2830`, `2832`, `2833`, `2835`, `2836`, `2837`, `2838`, `2839`, `2842`, `2845`, `2846`, `2847`, `2849`, `2853`, `2856`, `2857`, `2858`, `2859`, `2865`, `2866`, `2867`, `2868`, `2873`, `2874`, `2875`, `2876`, `2878`, `2879`, `2880`, and `2884`; `244` reviewed materializable candidates and `1380` mapping-blocked active/order candidates remain.
+  - Repair loop status: stopped by user request. No further repair dry-runs or applies should run unless the user explicitly resumes repairs.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this records reviewed local repair data through existing guarded sync entry points without schema or route contract changes.
+
+- Applied one additional reviewed materializable active/order backfill batch for the inventory correctness cutover and aligned the Brain ledgers.
+  - Dry-ran explicit batch `2485`, `2487`, `2488`, `2489`, `2493`, `2494`, `2495`, `2496`, `2497`, `2498`, `2500`, `2501`, `2503`, `2504`, `2506`, `2508`, `2509`, `2510`, `2511`, `2512`, `2514`, `2515`, `2516`, `2519`, `2522`, `2523`, `2526`, `2528`, `2531`, `2533`, `2535`, `2537`, `2539`, `2540`, `2549`, `2550`, `2553`, `2556`, `2557`, `2558`, `2560`, `2562`, `2567`, `2569`, `2570`, `2572`, `2573`, `2574`, `2577`, and `2581`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `81` inventory sale lines created, `44` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - At that checkpoint, successful evidence: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed with sync coverage `2.58%`, missing sales `20549`, componentless lines `0`, componentless sales `0`, stale lines `0`, stale stock allocations `0`, stale inbound demand `0`, failed risk count `10`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - At that checkpoint, next reviewed materializable batch ids were `2587`, `2588`, `2591`, `2592`, `2593`, `2601`, `2602`, `2603`, `2605`, `2607`, `2612`, `2614`, `2615`, `2619`, `2627`, `2629`, `2631`, `2632`, `2633`, `2634`, `2635`, `2638`, `2639`, `2641`, `2642`, `2643`, `2644`, `2646`, `2650`, `2651`, `2652`, `2653`, `2654`, `2655`, `2657`, `2663`, `2664`, `2666`, `2669`, `2673`, `2674`, `2675`, `2676`, `2680`, `2682`, `2684`, `2685`, `2686`, `2687`, and `2688`; `344` reviewed materializable candidates and `1380` mapping-blocked active/order candidates remained. This checkpoint has since been superseded by continued materializable backfill applies.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this records reviewed local repair data through existing guarded sync entry points without schema or route contract changes.
+
+- Applied two additional reviewed materializable active/order backfill batches for the inventory correctness cutover.
+  - Dry-ran explicit batch `2275`, `2276`, `2278`, `2279`, `2280`, `2284`, `2285`, `2287`, `2288`, `2292`, `2293`, `2294`, `2295`, `2297`, `2298`, `2308`, `2310`, `2313`, `2314`, `2315`, `2318`, `2320`, `2322`, `2323`, `2325`, `2326`, `2327`, `2328`, `2332`, `2333`, `2337`, `2338`, `2339`, `2340`, `2341`, `2344`, `2348`, `2350`, `2351`, `2352`, `2354`, `2356`, `2358`, `2359`, `2386`, `2391`, `2392`, `2393`, `2395`, and `2397`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `77` inventory sale lines created, `77` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Dry-ran explicit batch `2398`, `2399`, `2400`, `2401`, `2405`, `2407`, `2408`, `2409`, `2410`, `2413`, `2415`, `2416`, `2419`, `2420`, `2421`, `2422`, `2423`, `2424`, `2426`, `2427`, `2428`, `2429`, `2432`, `2433`, `2434`, `2436`, `2441`, `2442`, `2444`, `2445`, `2447`, `2448`, `2451`, `2456`, `2457`, `2460`, `2461`, `2463`, `2465`, `2470`, `2471`, `2472`, `2473`, `2474`, `2477`, `2479`, `2480`, `2481`, `2482`, and `2484`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `83` inventory sale lines created, `50` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - At that checkpoint, successful evidence: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed with sync coverage `2.34%`, missing sales `20599`, componentless lines `0`, componentless sales `0`, stale lines `0`, stale stock allocations `0`, stale inbound demand `0`, failed risk count `10`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - At that checkpoint, next reviewed materializable batch ids were `2485`, `2487`, `2488`, `2489`, `2493`, `2494`, `2495`, `2496`, `2497`, `2498`, `2500`, `2501`, `2503`, `2504`, `2506`, `2508`, `2509`, `2510`, `2511`, `2512`, `2514`, `2515`, `2516`, `2519`, `2522`, `2523`, `2526`, `2528`, `2531`, `2533`, `2535`, `2537`, `2539`, `2540`, `2549`, `2550`, `2553`, `2556`, `2557`, `2558`, `2560`, `2562`, `2567`, `2569`, `2570`, `2572`, `2573`, `2574`, `2577`, and `2581`; `394` reviewed materializable candidates and `1380` mapping-blocked active/order candidates remained. This checkpoint has since been superseded by continued materializable backfill applies.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this records reviewed local repair data through existing guarded sync entry points without schema or route contract changes.
+
+- Applied two more reviewed materializable active/order backfill batches for the inventory correctness cutover.
+  - Dry-ran explicit batch `1927`, `1928`, `1931`, `1932`, `1933`, `1934`, `1939`, `1942`, `1947`, `1953`, `1954`, `1955`, `1963`, `1966`, `1967`, `1972`, `1973`, `1974`, `1975`, `1978`, `1979`, `1982`, `1983`, `1984`, `1985`, `1986`, `1993`, `1994`, `2002`, `2003`, `2008`, `2013`, `2014`, `2015`, `2017`, `2019`, `2024`, `2032`, `2033`, `2035`, `2044`, `2049`, `2058`, `2061`, `2072`, `2079`, `2080`, `2081`, `2086`, and `2087`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `110` inventory sale lines created, `65` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Dry-ran explicit batch `2088`, `2094`, `2099`, `2103`, `2105`, `2106`, `2112`, `2113`, `2117`, `2148`, `2149`, `2153`, `2154`, `2164`, `2167`, `2171`, `2172`, `2173`, `2175`, `2176`, `2177`, `2180`, `2181`, `2182`, `2185`, `2188`, `2194`, `2203`, `2204`, `2211`, `2212`, `2216`, `2218`, `2219`, `2220`, `2222`, `2224`, `2228`, `2229`, `2233`, `2250`, `2253`, `2261`, `2262`, `2263`, `2265`, `2267`, `2269`, `2272`, and `2274`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `82` inventory sale lines created, `99` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - At that checkpoint, successful evidence: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed with sync coverage `1.87%`, missing sales `20699`, componentless lines `0`, componentless sales `0`, stale lines `0`, stale stock allocations `0`, stale inbound demand `0`, failed risk count `10`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - Next reviewed materializable batch ids are `2275`, `2276`, `2278`, `2279`, `2280`, `2284`, `2285`, `2287`, `2288`, `2292`, `2293`, `2294`, `2295`, `2297`, `2298`, `2308`, `2310`, `2313`, `2314`, `2315`, `2318`, `2320`, `2322`, `2323`, `2325`, `2326`, `2327`, `2328`, `2332`, `2333`, `2337`, `2338`, `2339`, `2340`, `2341`, `2344`, `2348`, `2350`, `2351`, `2352`, `2354`, `2356`, `2358`, `2359`, `2386`, `2391`, `2392`, `2393`, `2395`, and `2397`; `494` reviewed materializable candidates and `1380` mapping-blocked active/order candidates remain.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this records reviewed local repair data through existing guarded sync entry points without schema or route contract changes.
+
+- Updated the inventory correctness cutover Brain ledgers after intake confirmation and pending-phase review.
+  - Confirmed the cutover has source intake at `brain/intake/2026-06-15-inventory-cutover-pending-scope.md` and related Sales Overview Inventory workflow intake at `brain/intake/2026-06-22-sales-overview-inventory-workflows.md`.
+  - Updated the plan, roadmap, in-progress ledger, done ledger, and progress log so they state the same live posture: completed repair/proof/backfill slices are done evidence only, and the full cutover remains In Progress until Phase 11 release acceptance is recorded.
+  - At that checkpoint, preserved the then-authoritative Phase 8 evidence without running a new repair or evidence command: sync coverage `1.39%`, missing sales `20799`, componentless/stale rows `0`, shipment/allocation drift `9`, skipped comparison `1`, `hasMore=true`, and next cursor `208`.
+  - Next pending order remains Phase 8 clean reconciliation, Phase 1-7 operator proof gaps, Phase 9 UI polish, Phase 10 browser proof matrix, and Phase 11 release gates.
+  - No database, API route, permission, schema, or runtime feature docs were needed because this is a Brain tracking alignment only.
+
+- Applied four additional reviewed materializable active/order backfill batches for the inventory correctness cutover.
+  - Dry-ran explicit batch `1523`, `1525`, `1526`, `1528`, `1530`, `1531`, `1532`, `1534`, `1537`, `1538`, `1539`, `1541`, `1542`, `1547`, `1548`, `1549`, `1551`, `1552`, `1554`, `1555`, `1556`, `1557`, `1560`, `1561`, `1565`, `1566`, `1567`, `1572`, `1573`, `1574`, `1579`, `1582`, `1588`, `1594`, `1596`, `1598`, `1606`, `1607`, `1613`, `1614`, `1622`, `1627`, `1628`, `1629`, `1633`, `1636`, `1637`, `1638`, `1639`, and `1640`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `186` inventory sale lines created, `41` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Dry-ran explicit batch `1641`, `1646`, `1647`, `1649`, `1650`, `1651`, `1653`, `1654`, `1655`, `1656`, `1658`, `1660`, `1661`, `1662`, `1663`, `1665`, `1670`, `1671`, `1673`, `1674`, `1675`, `1676`, `1678`, `1679`, `1680`, `1681`, `1682`, `1683`, `1684`, `1685`, `1687`, `1688`, `1689`, `1691`, `1692`, `1693`, `1701`, `1703`, `1704`, `1705`, `1706`, `1709`, `1710`, `1711`, `1712`, `1713`, `1715`, `1716`, `1717`, and `1718`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `215` inventory sale lines created, `45` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Dry-ran explicit batch `1720`, `1721`, `1727`, `1730`, `1731`, `1732`, `1734`, `1738`, `1741`, `1742`, `1743`, `1744`, `1750`, `1753`, `1754`, `1761`, `1762`, `1763`, `1764`, `1766`, `1768`, `1769`, `1770`, `1771`, `1774`, `1776`, `1778`, `1783`, `1784`, `1785`, `1786`, `1787`, `1788`, `1789`, `1790`, `1792`, `1793`, `1801`, `1803`, `1805`, `1806`, `1807`, `1808`, `1809`, `1810`, `1811`, `1812`, `1819`, `1820`, and `1821`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `156` inventory sale lines created, `52` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - Dry-ran explicit batch `1822`, `1823`, `1826`, `1828`, `1834`, `1837`, `1841`, `1843`, `1844`, `1845`, `1848`, `1852`, `1853`, `1854`, `1855`, `1862`, `1863`, `1864`, `1865`, `1866`, `1869`, `1879`, `1881`, `1883`, `1885`, `1886`, `1889`, `1890`, `1891`, `1892`, `1893`, `1894`, `1896`, `1897`, `1898`, `1900`, `1901`, `1904`, `1906`, `1907`, `1908`, `1910`, `1912`, `1915`, `1920`, `1921`, `1922`, `1924`, `1925`, and `1926`; it planned `50`, skipped `0`, and mutated no data.
+  - Applied that batch with `--apply --confirm-review`: `50` orders material-applied, `181` inventory sale lines created, `23` unmapped sales items skipped as mapping warnings, and `0` failed.
+  - At that checkpoint, successful evidence: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed with sync coverage `1.39%`, missing sales `20799`, componentless lines `0`, componentless sales `0`, stale lines `0`, stale stock allocations `0`, stale inbound demand `0`, failed risk count `10`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - Next reviewed materializable batch ids are `1927`, `1928`, `1931`, `1932`, `1933`, `1934`, `1939`, `1942`, `1947`, `1953`, `1954`, `1955`, `1963`, `1966`, `1967`, `1972`, `1973`, `1974`, `1975`, `1978`, `1979`, `1982`, `1983`, `1984`, `1985`, `1986`, `1993`, `1994`, `2002`, `2003`, `2008`, `2013`, `2014`, `2015`, `2017`, `2019`, `2024`, `2032`, `2033`, `2035`, `2044`, `2049`, `2058`, `2061`, `2072`, `2079`, `2080`, `2081`, `2086`, and `2087`; `594` reviewed materializable candidates and `1380` mapping-blocked active/order candidates remain.
+  - A later `--json --sample-limit 1` extraction attempt failed because the local database became unavailable again at `127.0.0.1:3307`, so the latest authoritative checkpoint is the successful Markdown evidence run.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this records reviewed local repair data through existing guarded sync entry points without schema or route contract changes.
+
+- Resolved the Phase 8 HPT zero-component blocker and realigned the inventory correctness cutover Brain state.
+  - `syncSalesInventoryLineItems` now lets HPT child door rows without their own mapped `stepProduct` fall back to the HPT root product, normalizes inch-marked door dimensions such as `34" x 80"` and `36" x 80"` to Dyke variant UIDs, and derives door quantity from `lineTotal / unitPrice` when `totalQty` is zero.
+  - Focused coverage was added for HPT root-product fallback on child door rows, and `bun test packages/sales/src/sync-sales-inventory-line-items.test.ts` passed.
+  - Reviewed dry-run/apply of the `43` zero-component sales orders planned `43`, applied `43`, failed `0`, material-applied `43`, updated `131` line items, skipped `10` unmapped sales items, and emitted `10` mapping warnings.
+  - At that checkpoint, successful evidence after the apply remained not clean but cleared the HPT blocker: monitor status `needs_backfill`, missing sales `20999`, componentless inventory sale lines `0`, componentless sales `0`, sales-inventory-sync drift `0`, component-fulfillment drift `0`, shipment/allocation drift `9`, skipped comparisons `1`, `hasMore=true`, and next cursor `208`.
+  - A documentation-time rerun of `bun --env-file=.env.local run inventory:reconciliation-evidence --json --sample-limit 1` failed because the local database was unavailable at `127.0.0.1:3307`; rerun evidence once the DB is back before any release acceptance claim.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this records package sync behavior and reviewed local repair data without schema or route contract changes.
+
+- Added zero-component source-shape classification to Phase 8 reconciliation evidence.
+  - `bun run inventory:reconciliation-evidence` now classifies zero-component componentless rows by source shape and prints reason counts plus sample shape metrics in Markdown/JSON.
+  - Validation: `bun --env-file=.env.local run inventory:reconciliation-evidence --json --sample-limit 1` and `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed.
+  - At that checkpoint, all `86` zero-component componentless rows were `house_package_doors_missing_component_mapping_fields`; linked sales items and deterministic parent mappings existed, but form/HPT source rows had zero component candidate hints.
+  - At that checkpoint, Phase 8 clean reconciliation remained open: monitor status `needs_backfill`, missing sales `20999`, reconciliation drift `61`, skipped comparisons `105`, `hasMore=true`, next cursor `208`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this adds read-only evidence classification without changing runtime contracts.
+
+- Updated the inventory correctness cutover Brain ledgers after the materializable backfill checkpoint.
+  - Realigned the cutover plan, roadmap, in-progress ledger, done ledger, and progress log so the latest live state points to the first materializable active/order backfill apply and zero-component review classification instead of the earlier stale/componentless repair checkpoint.
+  - At that checkpoint, evidence remained not clean: monitor status `needs_backfill`, `20999` missing sales, `86` zero-component componentless lines across `43` orders, `61` drift, `105` skipped comparisons, `hasMore=true`, and next cursor `208`.
+  - Completed slices remain done evidence only. The full cutover stays `In Progress` until Phase 11 release acceptance is recorded.
+  - Next gates at that checkpoint were zero-component component mapping/product-scope decision, next materializable active/order backfill decision, non-active and mapping-blocked missing-sales scope decision, shipment/allocation review, and then clean Phase 8 reconciliation evidence.
+  - No database, API route, permission, schema, or runtime feature docs were needed because this is a Brain tracking correction only.
+
+- Applied the first materializable active/order missing-sales backfill batch and classified the zero-component follow-up blocker.
+  - The first old active/order reviewed batch (`271` through `609`) dry-ran with `50` planned and no skipped explicit ids, but apply produced `0` material writes and mapping warnings for every sales item. This proved the original active/order batch was mapping-blocked, not a useful repair batch.
+  - Updated `scripts/inventory-reconciliation-evidence.ts` so active/order missing-sales candidates are split into materializable candidates and mapping-blocked candidates before the repair plan recommends a batch.
+  - Updated `scripts/inventory-reconciliation-repair.ts` so repair output reports `materialAppliedCount`, `noOpCount`, `mappingBlockedCount`, write totals, skipped item totals, and warning totals instead of relying only on exception-free `appliedCount`.
+  - Applied the first materializable active/order batch (`1366`, `1375`, `1379`, `1380`, `1384`, `1386`, `1400`, `1403`, `1433`, `1434`, `1435`, `1437`, `1438`, `1439`, `1442`, `1450`, `1451`, `1454`, `1455`, `1457`, `1461`, `1463`, `1467`, `1469`, `1473`, `1475`, `1480`, `1481`, `1482`, `1485`, `1486`, `1487`, `1488`, `1491`, `1492`, `1493`, `1494`, `1495`, `1499`, `1501`, `1503`, `1504`, `1505`, `1509`, `1510`, `1511`, `1512`, `1513`, `1517`, and `1521`): `50` orders material-applied, `147` inventory sale lines were created, `17` sales items were skipped with missing deterministic mapping warnings, and missing sales dropped from `21049` to `20999`.
+  - A reviewed componentless re-sync of the resulting `43` componentless orders updated `131` line items and skipped `10` unmapped sales items, but componentless evidence remained because those lines recorded `inventorySync.componentCount=0`.
+  - Updated the evidence command so componentless rows with known zero component candidates are routed to `componentless_zero_component_review` instead of another re-sync loop.
+  - At that checkpoint, evidence remained not clean: monitor status `needs_backfill`, sync coverage `0.45%`, missing sales `20999`, inventory sale lines `259`, componentless lines `86`, failed risk count `209`, reconciliation drift `61`, skipped comparisons `105`, `hasMore=true`, and next cursor `208`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this changes local evidence/repair planning and applies reviewed local repair data through existing guarded sync entry points.
+
+- Added scoped active/order missing-sales backfill batch evidence for the inventory correctness cutover.
+  - `bun run inventory:reconciliation-evidence` now emits a `missing_sales_scoped_backfill` repair-plan step with the first explicit reviewed `active_order_candidates` batch instead of making broad cursor backfill the default next repair payload.
+  - Latest batch: `50` sales order ids (`271`, `275`, `302`, `303`, `332`, `347`, `350`, `354`, `366`, `374`, `400`, `405`, `407`, `413`, `416`, `417`, `426`, `428`, `429`, `430`, `438`, `439`, `440`, `454`, `456`, `464`, `467`, `469`, `470`, `493`, `494`, `500`, `513`, `514`, `520`, `525`, `527`, `535`, `543`, `544`, `557`, `568`, `569`, `573`, `585`, `595`, `596`, `606`, `608`, and `609`) from `2224` active/statusless-order candidates, leaving `2174` later active/order candidates.
+  - Non-active buckets now remain behind an explicit product-scope decision before broad cursor backfill: quote, terminal/history, completed-production, manual inventory prompt, statusless quote, and unknown-status rows.
+  - `bun run inventory:reconciliation-repair` now accepts reviewed explicit missing-sales ids through `--include-missing-backfill --missing-sales-order-ids <csv>` while remaining dry-run by default and still requiring `--apply --confirm-review` for mutation.
+  - Validation: `bun --env-file=.env.local run inventory:reconciliation-evidence --json`, `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown`, and `bun --env-file=.env.local run inventory:reconciliation-repair --markdown --include-missing-backfill --missing-sales-order-ids <first-reviewed-batch>` passed. The repair dry-run planned `50` rows, skipped `0` explicit ids, applied `0`, failed `0`, and mutated no data.
+  - Phase 8 clean reconciliation remains open because the scoped missing-sales batch has not been applied or deferred, non-active missing-sales scope still needs a product decision, shipment/allocation drift remains `9`, and skipped comparisons remain `1`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this adds read-only evidence and dry-run repair planning around existing guarded sync entry points.
+
+- Added read-only missing-sales scope classification to Phase 8 reconciliation evidence.
+  - `bun run inventory:reconciliation-evidence` now emits a `missingSalesScope` section in JSON and Markdown output, grouping the broad `needs_backfill` blocker before any broad repair/backfill decision.
+  - Validation: `bun --env-file=.env.local run inventory:reconciliation-evidence --json` and `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed.
+  - Latest classification: `21049` missing-sale rows split into `2209` active-status candidates, `15` statusless order-id candidates, `12` statusless quote-id rows, `63` quote-status rows, `167` terminal/history rows, `725` completed-production rows, `1` manual inventory-status row, and `17857` still-unknown statusless rows.
+  - Phase 8 clean reconciliation remains open because missing-sales scope still needs product/data decision or reviewed backfill, shipment/allocation drift remains `9`, and skipped comparisons remain `1`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this adds read-only evidence classification without schema or route contract changes.
+
+- Added read-only shipment/allocation classification to Phase 8 reconciliation evidence.
+  - `bun run inventory:reconciliation-evidence` now emits a `shipmentAllocation` section in JSON and Markdown output, grouping the remaining shipment/allocation blockers by class.
+  - Validation: `bun --env-file=.env.local run inventory:reconciliation-evidence --json` and `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed.
+  - Latest classification: `8` completed-delivery-without-consumed-allocation rows, `1` consumed-allocation-without-completed-delivery row, and `1` missing legacy sales-item link skipped comparison.
+  - Phase 8 clean reconciliation remains open because monitor status is still `needs_backfill`, shipment/allocation drift is still `9`, and skipped comparisons are still `1`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this adds read-only evidence classification without schema or route contract changes.
+
+- Corrected the inventory correctness cutover Brain live-state ledgers.
+  - Updated the cutover plan, roadmap, in-progress ledger, done ledger, progress log, and reconciliation evidence so they agree that the reviewed stale/componentless repair candidates are cleared.
+  - Preserved the full cutover as `In Progress`; Phase 8 clean reconciliation is still blocked by broad missing-sales scope (`needs_backfill`), `9` shipment/allocation drift rows, and `1` skipped comparison.
+  - Corrected historical/live wording so old baseline counts (`56` componentless lines, `3` stale lines, `65` drift, `117` skipped comparisons) remain historical evidence instead of looking like the current state.
+  - No database, API route, permission, schema, or runtime docs were needed because this is a documentation-only Brain ledger correction.
+
+- Applied the reviewed Phase 8 stale/componentless repair slice and reran reconciliation evidence.
+  - Ran `bun --env-file=.env.local run inventory:reconciliation-repair --apply --confirm-review --json`, excluding broad missing-sales backfill.
+  - Stale cleanup removed line ids `99`, `94`, and `43`; componentless sales re-sync initially succeeded for `20` of `22` candidate sales orders.
+  - The two failed componentless syncs exposed a timestamp precision bug in stale component cleanup: required child allocation/demand rows could remain because cleanup deleted by exact `deletedAt` timestamp equality.
+  - Hardened `syncSalesInventoryLineItems` stale-component and stale-line cleanup to delete child residue by guarded component/parent identity plus `deletedAt not null` and status, preserving the confirmed-write guard without exact timestamp dependence.
+  - Validation: `bun test packages/sales/src/sync-sales-inventory-line-items.test.ts` passed.
+  - Retried the remaining componentless ids with `bun --env-file=.env.local run inventory:reconciliation-repair --apply --confirm-review --componentless-sales-order-ids 23525,23675 --json`; `2` of `2` succeeded.
+  - Latest evidence: `bun --env-file=.env.local run inventory:reconciliation-evidence --json` and `--markdown` passed. Componentless lines are `0`, stale lines are `0`, sales-inventory-sync drift is `0`, component-fulfillment drift is `0`, total drift is `9`, skipped comparisons are `1`, and monitor status remains `needs_backfill`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this changes local repair evidence and package cleanup behavior without schema or route contract changes.
+
+- Added the Phase 8 dry-run-first reconciliation repair runner.
+  - `bun run inventory:reconciliation-repair` now gives the reviewed repair plan an executable local runner without mutating by default.
+  - Default dry-run output reports stale cleanup candidates (`99`, `94`, `43`), `22` componentless sales order ids to re-sync, and no missing-sales backfill unless explicitly requested.
+  - Mutation is blocked unless both `--apply` and `--confirm-review` are passed; `--apply` alone exits before running repair work.
+  - Validation: `bun --env-file=.env.local run inventory:reconciliation-repair --markdown`, `bun --env-file=.env.local run inventory:reconciliation-repair --json`, `bun --env-file=.env.local run inventory:reconciliation-repair --apply` (expected guard failure), and `bun --env-file=.env.local run inventory:reconciliation-repair --markdown --include-missing-backfill` passed.
+  - Phase 8 clean reconciliation remains open because no repair was applied and the latest evidence is still `needs_backfill` with unresolved drift/skipped comparisons.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this adds a local script around existing guarded package repair paths.
+
+- Added reviewed repair-plan output to the Phase 8 reconciliation evidence command.
+  - `bun run inventory:reconciliation-evidence` now emits a read-only `repairPlan` in both Markdown and JSON, mapping the current blockers to existing guarded entrypoints instead of leaving operators to copy ids from prose.
+  - The plan includes stale-line cleanup dry-run/apply review payloads for line ids `43`, `94`, and `99`, explicit componentless-sales re-sync for the 22 candidate sales order ids, a bounded missing-sales backfill payload starting at cursor `55`, and the evidence rerun command.
+  - Validation: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` and `bun --env-file=.env.local run inventory:reconciliation-evidence --json` passed.
+  - The command remains read-only; Phase 8 clean reconciliation is still open until reviewed repairs or an explicit scope decision are applied and a rerun reports clean evidence.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, permission, or schema docs were needed because this only extends a local read-only evidence script.
+
+- Aligned Phase 8 reconciliation component-fulfillment semantics with sales inventory sync.
+  - `pending_review` stock allocations now count as suggested allocation coverage when deriving expected component fulfillment status, matching the sync planner's `planComponentDemandState` behavior.
+  - Updated the reconciliation evidence command to print exact repair candidate ids for componentless sales orders and stale line items.
+  - Validation: `bun test packages/sales/src/inventory-reconciliation-report.test.ts` passed, and `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` passed.
+  - That evidence run remained not clean, but component-fulfillment drift was `0`; remaining blockers were monitor status `needs_backfill`, reconciliation drift `65`, skipped comparisons `117`, componentless manual lines `56`, and stale lines `3`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API route, or permission docs were needed because response shapes and schema did not change.
+
+- Added a read-only Phase 8 reconciliation evidence command and recorded the first baseline for the inventory correctness cutover.
+  - `bun run inventory:reconciliation-evidence` now produces Markdown or JSON evidence from the sales inventory sync monitor, inventory reconciliation report, stale cleanup dry-run, and componentless-line classification.
+  - Validation command: `bun --env-file=.env.local run inventory:reconciliation-evidence --json` passed.
+  - The run is not clean: monitor status `needs_backfill`, sync coverage `0.22%`, missing sales `21047`, componentless inventory sale lines `56`, stale inventory sale lines `3`, reconciliation status `needs_review`, drift count `67`, skipped comparisons `117`, and `hasMore=false`.
+  - Stale cleanup dry-run matched line ids `99`, `94`, and `43` with 5 component rows; no cleanup was applied.
+  - Componentless lines are all `manual` sync source rows; top affected orders include `08579AD`, `08691PC`, `08356AD`, `08585DB`, `08692AD`, `08695AD`, and `08708PC`.
+  - Updated docs: `brain/reports/2026-07-01-inventory-reconciliation-evidence.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no API, database, or permission docs were needed because this adds a read-only local evidence script and no schema/API behavior.
+
+- Completed the Phase 8 repair-path audit checkpoint for the inventory correctness cutover.
+  - Targeted review covered the inventory tRPC repair/backfill/cleanup/reconciliation routes plus the sales/jobs package repair surfaces that power them.
+  - The Phase 8 sales inventory correctness repair scope now has focused proof across reviewed inbound-status repair, sales inventory sync/repair/backfill entry validation, explicit backfill repair coverage, stale sale-line cleanup, sync stale-line/component cleanup, legacy-status setup exact-baseline guards, and reconciliation dry-run input validation.
+  - Inventory import/source-label/product-kind backfills and Dyke sync were excluded from this Phase 8 repair gate because they belong to separate inventory import/integration workstreams, not sales inventory correctness reconciliation.
+  - The next gate is clean Phase 8 reconciliation evidence with no partial cursors, skipped comparisons, or unexplained remaining mismatches.
+  - Updated docs: `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no API, feature, or database docs were needed because this was a documentation/evidence checkpoint without runtime behavior changes.
+
+- Added Phase 8 explicit backfill repair coverage proof for the inventory correctness cutover.
+  - `backfillSalesInventoryLineItemsSchemaTask` now caps explicit `salesOrderIds` at 200 positive integers before the repair job can be queued.
+  - `backfill-sales-inventory-line-items` now uses the explicit id count as the query limit for targeted backfills, so an explicit repair list is not silently truncated by the default `batchSize`; cursor-based backfills still use bounded `batchSize`.
+  - Added focused jobs coverage proving oversized explicit id batches are rejected, targeted backfills use the explicit id count, and cursor-based backfills still use batch size.
+  - Validation: `bun test packages/jobs/src/schema.test.ts packages/jobs/src/tasks/sales/backfill-sales-inventory-line-items.test.ts` passed.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema.
+
+- Added Phase 8 legacy-status setup exact-baseline proof for the inventory correctness cutover.
+  - `inventories.resolveSalesInventoryLegacyStatusSetup` now delegates reset/override work to `@gnd/sales/sales-inventory-legacy-status-setup` instead of keeping the repair transaction inline in the tRPC router.
+  - Reset and override both revalidate the exact reviewed manual `SalesOrders.inventoryStatus` inside the transaction before writing `SalesHistory` or running single-sale inventory sync.
+  - Focused package coverage proves reset clears the manual status only when the reviewed baseline still matches, stale reset attempts do not write audit history or sync, and override checks the same baseline before audit/sync evidence.
+  - Validation: `bun test packages/sales/src/sales-inventory-legacy-status-setup.test.ts` passed, and `bun test apps/api/src/trpc/routers/inventories-route-import.test.ts` passed after the router import was moved to the package service.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema.
+
+- Added Phase 8 stale cleanup repair input validation proof for the inventory correctness cutover.
+  - `cleanupStaleSalesInventoryLineItemsSchema` now rejects explicit empty `lineItemIds`, non-positive or decimal line-item ids, and non-integer or out-of-bounds cleanup limits before stale cleanup scanning can run.
+  - This prevents a targeted stale-line repair request with an empty id list from widening into the default repair scan.
+  - Added focused route schema coverage proving undefined/default dry-run input and valid targeted cleanup payloads still parse while empty ids, invalid ids, and invalid limits are rejected.
+  - The import smoke test timeout was raised to 10 seconds because the cold route import can exceed Bun's default 5-second test timeout while still loading successfully.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route input validation without schema changes.
+
+- Added Phase 4 inbound issue route input validation proof for the inventory correctness cutover.
+  - `inboundItemIssueFormSchema` now rejects non-positive or decimal inbound issue ids and inbound shipment item ids before manual issue report/update work starts.
+  - Manual reported issue quantities must be positive, and issue report/resolve `resolvedQty` values cannot be negative before inbound issue rows are created or updated.
+  - Added focused schema coverage proving valid issue report/resolve payloads still parse and invalid ids, non-positive reported quantities, and negative resolved quantities are rejected.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens shared route input validation without schema changes.
+
+- Added Phase 5 allocation review route input validation proof for the inventory correctness cutover.
+  - `approveStockAllocationSchema`, `rejectStockAllocationSchema`, and `bulkApproveStockAllocationSchema` now reject non-positive or decimal allocation ids before stock allocation review mutation planning runs.
+  - Bulk approval now rejects empty allocation id batches, and single approval rejects non-positive override quantities when `approvedQty` is supplied.
+  - Added focused schema coverage proving valid approve/reject/bulk-approve payloads still parse and invalid ids, empty bulk batches, and non-positive override quantities are rejected.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens shared route input validation without schema changes.
+
+- Added Phase 3 inbound create/assign route input validation proof for the inventory correctness cutover.
+  - `inventories.createInboundShipmentFromDemands` now rejects non-positive or decimal supplier, demand, and line-item component ids at the tRPC schema boundary, and rejects non-positive component-selected requested quantities before demand preparation can run.
+  - `inventories.assignInboundDemands` now rejects non-positive or decimal inbound shipment ids and demand ids, and rejects empty assignment batches before assignment planning can run.
+  - Added focused route schema coverage proving valid inbound create/assign payloads still parse and invalid ids, empty assignment demand arrays, and non-positive selected quantities are rejected.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route input validation without schema changes.
+
+- Added Phase 4 inbound receive/status route input validation proof for the inventory correctness cutover.
+  - `inventories.receiveInboundShipment` now rejects non-positive or decimal inbound shipment ids and inbound shipment item ids at the tRPC schema boundary, and rejects negative `qtyReceived`, `qtyGood`, `qtyIssue`, or `unitPrice` values before receive transaction work starts.
+  - `inventories.updateInboundShipmentStatus` now rejects non-positive or decimal inbound shipment ids before status transition/cancellation release planning runs.
+  - Added focused route schema coverage proving valid receive/status payloads still parse and invalid shipment ids, item ids, and negative receive values are rejected.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route input validation without schema changes.
+
+- Added Phase 5/7 ship and dispatch route input validation proof for the inventory correctness cutover.
+  - `inventories.shipAvailableSalesInventory`, `inventories.setSalesInventoryLineFulfillmentHold`, `inventories.assignInventoryDispatchAllocations`, `inventories.packInventoryDispatchAllocations`, `inventories.fulfillInventoryDispatch`, and `inventories.releaseInventoryDispatchAllocations` now reject non-positive or decimal order, line, and allocation ids at the tRPC schema boundary.
+  - Added focused route schema coverage proving valid ship/dispatch/hold payloads still parse and invalid zero, negative, and decimal ids are rejected before partial-shipment or dispatch mutation planning runs.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route input validation without schema changes.
+
+- Corrected the inventory correctness cutover Brain ledgers.
+  - `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` now records the latest documentation-only ledger correction and keeps the full cutover `In Progress`.
+  - `brain/tasks/roadmap.md` and `brain/tasks/in-progress.md` now call out that completed proof slices are evidence only and that Phase 11 release acceptance is still required before closing the workstream.
+  - `brain/tasks/done.md` now records this correction as a completed documentation checkpoint, not as completion of the inventory correctness cutover.
+  - No API, database, feature-contract, or runtime docs were needed because this update only corrects Brain task tracking and does not change code, schema, routes, or UI behavior.
+
+- Added Phase 6 Mark As batch input validation proof for the inventory correctness cutover.
+  - `inventories.salesInventoryMarkAsPreflight` and `inventories.resolveSalesInventoryMarkAsAvailabilityForContinue` now share `salesInventoryOrderIdsSchema`, requiring a non-empty positive-integer sales order id array capped at 100 before production-complete or fulfilled inventory gates run.
+  - Added focused route schema coverage proving empty, zero, negative, and decimal Mark As order-id batches are rejected.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route input validation without schema changes.
+
+- Added received-backorder retry input validation proof for the inventory correctness cutover.
+  - `allocateReceivedInboundToBackordersSchemaTask` now requires optional sales order, line-item component, and inventory variant filters to be positive integers, and requires retry allocation `limit` to be integer-bounded before the received-demand scan runs.
+  - Empty `lineItemComponentIds` arrays remain valid and continue to mean no component filter, matching the existing allocator behavior.
+  - Extended focused jobs schema coverage to prove invalid received-backorder retry filters and limits are rejected.
+  - Updated docs: `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route/task input validation without schema changes.
+
+- Added Phase 8 reconciliation dry-run input validation proof for the inventory correctness cutover.
+  - `inventoryReconciliationReportSchemaTask` now requires optional `salesOrderId` to be positive-integer only, `cursorId` to be non-negative-integer only, and `limit` / `sampleLimit` to be integer-bounded before direct reports or queued Trigger runs can produce dry-run reconciliation evidence.
+  - `inventories.salesInventorySyncMonitor` now integer-guards `sampleLimit` and `reconciliationLimit` before embedding reconciliation summaries into the monitor review-risk gate.
+  - Extended focused jobs schema coverage to prove invalid reconciliation dry-run ids, cursors, and limits are rejected.
+  - Updated docs: `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route/task input validation without schema changes.
+
+- Added Phase 8 repair-entry positive-id validation proof for the inventory correctness cutover.
+  - `inventories.syncSalesInventoryOverview`, `inventories.repairSalesInventorySync`, and `inventories.resolveSalesInventoryLegacyStatusSetup` now require positive integer `salesOrderId` input before overview sync, repair sync, or legacy-status setup work can start.
+  - `sync-sales-inventory-line-items` and `backfill-sales-inventory-line-items` Trigger schemas now enforce positive integer sales order ids, while backfill cursor and batch size inputs are integer-guarded.
+  - Added focused jobs schema coverage proving decimal, negative, zero, and empty explicit-id payloads are rejected for sales inventory sync/backfill repair boundaries.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this only tightens route/task input validation without schema changes.
+
+- Realigned the inventory correctness cutover Brain ledgers after the latest Phase 8 proof slices.
+  - `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` now states the ledger rules explicitly: completed slices can be recorded as done evidence, but the overall cutover remains `In Progress` until Phase 11 release acceptance is recorded.
+  - At that checkpoint, `brain/tasks/roadmap.md` and `brain/tasks/in-progress.md` shared the then-current pending phase order: remaining Phase 8 repair audit, clean reconciliation evidence, Phase 1-7 operator proof gaps, Phase 9 UI polish, Phase 10 browser proof matrix, and Phase 11 release gates.
+  - That checkpoint is now superseded by the later Phase 8 repair-path audit checkpoint; the live next gate is clean Phase 8 reconciliation evidence.
+  - `brain/tasks/done.md` scoped the Brain tracking checkpoint as documentation alignment only, with historical next-gate wording now marked as superseded by the repair-path audit checkpoint.
+  - No API, database, or feature-contract docs were needed because this is a documentation tracking update with no code, schema, route, or runtime behavior change.
+
+- Added Phase 8 sync stale-component cleanup exact-identity proof for the inventory correctness cutover.
+  - `syncSalesInventoryLineItems` now guards stale component cleanup on still-active synced lines by exact pre-read component identity: component id, parent line id, sub-component id, and inventory variant id.
+  - Child stock allocation cleanup, inbound demand cleanup, and component removal now share that exact identity guard, preventing stale pre-read component ids from cleaning a component that was concurrently repurposed.
+  - Added focused package coverage asserting the guarded cleanup payload for stale component residue.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema.
+
+- Added Phase 8 sync stale-line cleanup confirmed-write proof for the inventory correctness cutover.
+  - `syncSalesInventoryLineItems` now soft-deletes removed-sales-item stale lines through a guarded write requiring the same sale, active inventory sale-line type, stale sales item ids, and non-deleted state.
+  - Child stock allocation, inbound demand, and component cleanup now runs only under line items confirmed by that sync cleanup write, and `deletedCount` reports the confirmed soft-delete count instead of the pre-read stale id count.
+  - Added focused package coverage proving confirmed sync cleanup runs child cleanup after the line soft-delete and a stale apply with zero confirmed line writes skips all child cleanup.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema.
+
+- Added Phase 8 stale inventory sale-line cleanup confirmed-write proof for the inventory correctness cutover.
+  - `cleanupStaleSalesInventoryLineItems` now first soft-deletes only line items still matching the stale missing/deleted-parent predicate, then releases stock allocations, cancels inbound demand, and removes components only under line items confirmed by that cleanup write.
+  - Apply results now report cleaned component count from confirmed component cleanup instead of the pre-read component list, and focused package coverage proves a stale pre-read line restored or reassigned before apply does not trigger child cleanup.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema.
+
+- Added Phase 8 reviewed inbound-status repair exact-baseline proof for the inventory correctness cutover.
+  - `repairSalesInventoryInboundStatusBackfill` now guards apply writes by the exact reviewed legacy `SalesOrders.inventoryStatus` baseline in addition to active inventory-owned inbound ownership and stale status, so concurrent stale-to-stale prompt changes no longer get overwritten with audit history that cites an older pre-read status.
+  - Added focused API-query coverage proving the repair defaults to dry-run without entering the mutation transaction, confirmed applies write audit history from the guarded baseline, and stale apply skips are classified as `changed_before_apply` without writing `SalesHistory`.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema.
+
+- Updated Brain tracking for the inventory correctness cutover checkpoint.
+  - `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` now includes an explicit pending-phase checklist, keeping the full cutover in progress while naming the remaining repair, reconciliation, operator/browser, UI polish, and release gates.
+  - `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, and `brain/tasks/done.md` now distinguish completed hardening slices from the next Phase 8 repair/reconciliation gate and later Phase 10/11 proof and release work.
+  - Confirmed the source intake remains `brain/intake/2026-06-15-inventory-cutover-pending-scope.md`, with related sales overview workflow intake linked from the cutover plan.
+  - No API, database, or feature-contract docs were needed for this documentation-only tracking update; no code or schema behavior changed.
+
+- Added Phase 6 production lifecycle confirmed-write proof for the inventory correctness cutover.
+  - `syncInventoryProductionLifecycleForSale` now updates `LineItem.meta.production` through an active-row guarded `updateMany` and reports `updated` only for rows confirmed by the write count.
+  - Added focused package coverage proving the lifecycle sync still runs inventory line sync first, writes projection payloads with `deletedAt=null` guards, and does not count stale line-item writes as updated.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema, and no API contract docs were needed because route shapes and response contracts remain unchanged.
+
+- Added received-backorder active-component proof for the inventory correctness cutover.
+  - `allocateReceivedInboundToBackorders` now pre-reads only active line-item component rows before planning stock reservation, so stale or inactive component demand is skipped before stock lookup, stock allocation creation, touched-component evidence, or recompute.
+  - Updated focused package coverage for the guarded component pre-read, guarded recompute write expectation, and inactive-component skip path.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema, and no API contract docs were needed because route shapes and response contracts remain unchanged.
+
+- Added Phase 7 dispatch release-safety proof for the inventory correctness cutover.
+  - `recomputeLineItemComponentFulfillment` now reads an active line-item component row and commits derived fulfillment state through a guarded `updateMany`, so assign, pack, release, ship-available, and dispatch fulfillment recompute evidence follows confirmed component writes.
+  - Added focused package coverage proving dispatch release skips already-consumed allocations, releases only eligible picked allocations, and recomputes only touched components after confirmed release writes.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema, and no API contract docs were needed because route shapes and response contracts remain unchanged.
+
+- Added Phase 6 Mark As stale-blocker continue proof for the inventory correctness cutover.
+  - `resolveSalesInventoryMarkAsAvailabilityForContinue` now recomputes line-item component demand state through an active-row guarded `updateMany`, matching the confirmed-write-only pattern used by inbound demand recomputes.
+  - Added focused package coverage proving stale preview demand that fails the guarded cancellation apply does not recompute components, mark `SalesOrders.inventoryStatus` as `AVAILABLE`, write Mark As audit history, or allow continue.
+  - Added focused package coverage proving confirmed demand cancellation is the only path that recomputes components, updates the order to `AVAILABLE`, writes `SalesHistory`, and returns `continueAllowed=true`.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`, `brain/tasks/roadmap.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database docs were needed because this changes no schema, and no API contract docs were needed because the route shape and response contract remain unchanged.
+
+- Recorded the Phase 0 inventory correctness invariant matrix.
+  - Added `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md` with ownership, current evidence, status, and remaining proof gates for all eight non-negotiable inventory correctness invariants.
+  - Updated the July 1 cutover plan, roadmap, in-progress ledger, and done ledger to link the matrix and mark Phase 0 satisfied at the documentation ownership level.
+  - The full cutover remains in progress; browser/operator proof, reconciliation evidence, and remaining mutation proof gates are still open.
+  - No API, database, or feature-contract docs were needed because this is a Phase 0 documentation/evidence mapping update.
+
+- Normalized Brain task tracking for the inventory correctness cutover plan.
+  - `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` now has `Status: In Progress`, explicit Brain tracking links, and a phase-status snapshot showing which phases are started versus still pending.
+  - `brain/tasks/roadmap.md` now tracks Inventory System Correctness Cutover as a high-priority in-progress durable workstream tied to the July 1 plan and parent inventory intakes.
+  - `brain/tasks/in-progress.md` now surfaces the cutover as active work with completed slices and the next evidence gates.
+  - `brain/tasks/done.md` now records the completed July 1 hardening slices without marking the full cutover complete.
+  - No API, database, or feature-contract docs were needed for this documentation-only tracking update.
+
+- Guarded ship-available partial shipment delivery rows behind confirmed allocation consumption.
+  - `shipAvailableSalesInventory` now consumes planned component allocations with guarded status/quantity writes before creating completed `OrderDelivery` / `OrderItemDelivery` compatibility rows.
+  - A stale or concurrently claimed allocation now rejects the partial shipment before delivery rows, sales inventory status updates, inbound backorder creation, or component recompute evidence can proceed.
+  - Added focused package coverage proving successful partial shipment reconciles line-grain `OrderItemDelivery.qty` with component-grain consumed `StockAllocation.qty`, and stale allocation consumption writes no delivery rows.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, and `brain/progress.md`; no database docs were needed because this tightens transaction behavior without changing schema.
+
+- Added received-backorder allocation retry proof.
+  - Added `packages/sales/src/received-backorder-allocation.test.ts` for `allocateReceivedInboundToBackorders`.
+  - Coverage proves received demand already covered by active allocations is skipped with `alreadyCoveredDemandCount` and does not create duplicate stock allocation rows.
+  - Coverage also proves partially covered received demand reserves only the uncovered quantity and recomputes the component from confirmed allocation state.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, and `brain/progress.md`; no API, endpoint, contract, or database docs were needed because this adds focused package evidence without changing route shape or schema.
+
+- Guarded stock allocation review mutations by parent sale lifecycle.
+  - Added `apps/api/src/db/queries/stock-allocation-review.ts` as the API query boundary for stock allocation approve/reject/bulk-approve.
+  - `inventories.approveStockAllocation`, `inventories.rejectStockAllocation`, and `inventories.approveBulkStockAllocation` now run through a transaction-scoped preflight that resolves active pending allocation parent sales and applies the shared sales inventory operation policy.
+  - Fulfilled/cancelled parent sales are rejected before stock allocation writes or line-item component recomputes run.
+  - Added focused API-query coverage for single approve on fulfilled parent sale, bulk approve on cancelled parent sale, and reject when fulfillment is derived from completed delivery evidence.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, and `brain/progress.md`; no database docs were needed because this tightens mutation eligibility without changing schema.
+
+- Locked read-only Sales Overview Inventory controls across linked inbounds and row actions.
+  - Fulfilled/cancelled orders with existing inventory rows still show inspectable stock, non-stock, and linked inbound history.
+  - The Inventory tab now passes the shared read-only operation policy into the linked inbounds panel and row action menus.
+  - Receive-stock and inbound status controls are disabled with a lock alert when the opened order is inventory read-only.
+  - Stock/non-stock row menus now show the same lock reason and disable category kind, component kind, stock tracking, and allocation actions when policy capabilities are false.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, and `brain/progress.md`; no API contract or database docs were needed because this wires existing operation policy into the UI without changing route shape or schema.
+
+- Guarded existing-inbound assignment by parent sale lifecycle.
+  - `assignInboundDemandsQuery` now reuses the same terminal parent-sale guard as create-inbound before calling the package assignment helper.
+  - Fulfilled or cancelled parent-sale demand is rejected before target shipment lookup, demand linking, inbound item quantity writes, or assignment activity evidence.
+  - Added focused API-query coverage for fulfilled and cancelled parent demand assignment attempts.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, and `brain/progress.md`; no API contract or database docs were needed because this tightens existing mutation eligibility without changing request/response shape or schema.
+
+- Expanded terminal-order proof for inventory inbound creation.
+  - `packages/sales/src/sales-inventory-overview.test.ts` now asserts cancelled orders with existing inventory rows resolve to read-only inventory operation capabilities.
+  - `apps/api/src/db/queries/inbound-receiving.test.ts` now proves `createInboundShipmentFromDemandsQuery` rejects inbound creation when fulfillment is derived from completed delivery evidence or completed dispatch-stat evidence, before demand preparation or inbound shipment writes.
+  - Updated docs: `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` and `brain/progress.md`; no API contract or database docs were needed because this adds regression evidence for existing policy behavior without changing request/response shape or schema.
+
+- Deferred Sales Overview Inventory inbounds loading to the active segment.
+  - `SalesOverviewInventoryContent` now enables `inventories.orderInboundShipments` only when the `Inbounds` segment is active.
+  - The inactive `Inbounds` badge uses already-loaded overview rows with linked open inbound quantity as a lightweight hint, preserving first paint for the Stock and Non Stock views.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`, and `brain/progress.md`; no API or database docs were needed because this changes client query timing only.
+
+- Added API guard coverage for fulfilled/cancelled inbound creation.
+  - `apps/api/src/db/queries/inbound-receiving.test.ts` now exercises `createInboundShipmentFromDemandsQuery` directly with fake transaction contexts.
+  - Coverage proves component-selected inbound creation for fulfilled parent orders and demand-id inbound creation for cancelled parent orders fail before demand preparation or inbound shipment writes.
+  - Updated docs: `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` and `brain/progress.md`; no API contract or database docs were needed because this adds regression evidence for existing server-side read-only behavior without changing request/response shape or schema.
+
+- Created the inventory system correctness cutover plan.
+  - Added `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md` to consolidate the path to fully correct inventory behavior across setup modes, demand projection, inbound creation/assignment, receiving, cancellation, allocation, production, dispatch, reconciliation, UI capability gates, and browser/operator proof.
+  - The plan treats "100% correctly" as source-of-truth alignment plus guarded mutation evidence, dry-run-first repair, focused tests, and recorded operator validation rather than a rewrite.
+  - No code or database schema changes were made in this planning pass.
+
+- Matched prompt policy linked-demand checks to exact null semantics.
+  - `canOrderInboundPromptMutateDemand` now treats any non-null `inboundShipmentItemId` as linked demand, including malformed zero values.
+  - This mirrors the server mutation filter's `inboundShipmentItemId=null` requirement exactly.
+  - Updated focused policy coverage for a zero inbound shipment item id.
+  - Updated docs: `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` and `brain/progress.md`; no API, feature, endpoint, or database docs were needed because this only tightens a package helper edge case without changing route shape or schema.
+
+- Aligned shared prompt policy with unassigned-demand guards.
+  - `canOrderInboundPromptMutateDemand` now rejects shipment-linked demand for `AVAILABLE`, `ORDERED`, and `PENDING ORDER` prompts.
+  - This keeps the manual inbound-status selector aligned with the server mutation filter that requires `inboundShipmentItemId=null` for every prompt-driven demand update.
+  - Updated focused policy expectations for shipment-linked demand across all prompt statuses and unassigned pending-order demand.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no API, endpoint, or database docs were needed because this narrows a shared package policy without changing route shape or schema.
+
+- Passed received-demand state into the manual inbound selector policy.
+  - The `InboundDemandSelection` UI now passes each demand row's `qtyReceived` into `canOrderInboundPromptMutateDemand`.
+  - `CanOrderInboundPromptMutateDemandInput` now requires `qtyReceived`, preventing future callers from accidentally omitting the received-demand guard.
+  - This disables already-received prompt demand in the modal before submit, matching the server mutation filter.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no API, endpoint, or database docs were needed because this aligns an existing UI selector with an existing package policy.
+
+- Aligned the shared prompt-mutation policy with received-demand guards.
+  - `canOrderInboundPromptMutateDemand` now accepts `qtyReceived` and returns false for any demand row with received quantity.
+  - This keeps future order-prompt callers aligned with the current `notes.saveInboundNote` mutation filter that requires `qtyReceived=0`.
+  - Updated focused policy expectations for available, ordered, pending-order, received, and non-prompt-mutable demand states.
+  - Updated docs: `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this narrows a shared policy helper without schema changes.
+
+- Scoped cancellation cleanup to cancelled parent inbounds.
+  - `releaseCancelledInboundShipmentDemand` now requires candidate and guarded release rows to be linked through an `InboundShipmentItem` whose parent inbound is still non-deleted and `cancelled`.
+  - This prevents direct helper misuse or stale cleanup from releasing demand attached to an active inbound shipment.
+  - Updated focused package expectations for cancellation release filters and no-op behavior when no cancelled-parent demand qualifies.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing relation filters without schema changes.
+
+- Scoped manual order prompt demand mutations to unreceived demand.
+  - `applyOrderInboundStatusToInventoryDemand` now requires `qtyReceived=0` alongside `inboundShipmentItemId=null` for `ORDERED`, `PENDING ORDER`, and selected `AVAILABLE` mutations.
+  - This prevents stale `ordered` rows with received quantity from being relabeled or cancelled by legacy/manual prompt saves.
+  - Updated focused package expectations for ordered, pending, and selected-available prompt filters.
+  - Updated docs: `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this narrows existing mutation filters without schema changes.
+
+- Scoped manual order prompt demand mutations to unassigned demand.
+  - `applyOrderInboundStatusToInventoryDemand` now requires `inboundShipmentItemId=null` for `ORDERED`, `PENDING ORDER`, and selected `AVAILABLE` demand mutations.
+  - This prevents legacy/manual order prompt saves from relabeling demand already owned by an active inventory inbound shipment item.
+  - Updated focused package expectations for ordered and selected-available prompt filters.
+  - Updated docs: `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this narrows an existing mutation filter without schema changes.
+
+- Guarded line-item component demand recompute by active component row.
+  - `recomputeLineItemComponentDemandState` now reads only non-deleted `LineItemComponents` rows and commits the derived demand state through a guarded `updateMany`.
+  - Receive and cancellation cleanup no longer count recompute evidence when the component row was deleted or changed before the recompute write.
+  - Updated focused package expectations for active-component lookups, guarded recompute writes, and skipped recompute counts.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no endpoint or database docs were needed because this tightens internal recompute evidence without changing response shape or schema.
+
+- Scoped cancellation cleanup recompute to confirmed released demand.
+  - `releaseCancelledInboundShipmentDemand` now releases candidate demand rows with per-demand guarded writes and records component ids only from rows that actually changed.
+  - This prevents a partially stale cancellation cleanup from recomputing or reporting components for candidate rows that were not released.
+  - Updated focused package expectations for per-demand release writes and partial stale cleanup.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no endpoint or database docs were needed because this tightens existing cleanup evidence without changing response shape or schema.
+
+- Guarded zero-link inbound cleanup by parent active state.
+  - `assignInboundDemandsToShipment` and `createInboundShipmentFromDemands` now soft-delete newly-created empty `InboundShipmentItem` rows through a guarded `updateMany` requiring the parent inbound to remain non-deleted and non-terminal.
+  - `createInboundShipmentFromDemands` also guards empty newly-created inbound shipment cleanup before reporting the zero-confirmed-link failure.
+  - Added focused package expectations for guarded empty-item cleanup and stale empty-shipment cleanup.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing cleanup writes without schema changes.
+
+- Guarded inbound receive existing-stock increments by active row identity.
+  - `receiveInboundShipment` now commits existing `InventoryStock` increments through a guarded write requiring the stock row to still be active for the same variant and supplier.
+  - If the stock row is deleted or replaced after the pre-read, receive fails before stock movement or inventory log evidence is written; API callers run receive in a transaction, so the item receipt guard rolls back with the failed stock commit.
+  - Updated focused package expectations so existing-stock receive asserts the guarded `updateMany`, post-increment re-read, and stale-stock failure behavior.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive writes without schema changes.
+
+- Prevented duplicate inbound receives from rewriting item rows.
+  - `receiveInboundShipment` now skips the fallback `InboundShipmentItem` update when a receive attempt has no new good/issue delta, so duplicate receives cannot rewrite persisted item quantity or unit-price fields.
+  - Shipment progress/status still recomputes from persisted receipt totals, preserving duplicate retry status behavior without adding item-level writes.
+  - Updated focused package expectations for completed and issue-open duplicate receives to assert no item-row rewrite.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive idempotency without schema changes.
+
+- Guarded inbound demand link writes by received baseline.
+  - `createInboundShipmentFromDemands` and `assignInboundDemandsToShipment` now require the pre-read `InboundDemand.qtyReceived` value when linking demand rows to inbound shipment items.
+  - This prevents demand rows that were concurrently received or otherwise advanced from contributing stale outstanding quantity to new/existing inbound item plans.
+  - Updated focused package expectations for create-inbound and existing-inbound assignment link writes to include the `qtyReceived` baseline guard.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing link guards without schema changes.
+
+- Guarded create-inbound item quantity commits.
+  - `createInboundShipmentFromDemands` now commits newly-created `InboundShipmentItem.qty` through a guarded `updateMany` requiring the item to remain active and the parent inbound shipment to still be non-deleted and not `closed` / `cancelled`.
+  - If the new inbound becomes terminal between demand linking and item quantity commit, the mutation fails before quantity is committed; API callers run this package service inside a transaction, so the demand link and new inbound artifact roll back.
+  - Added focused package coverage for a stale parent inbound during create-inbound item quantity commit.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing create-inbound writes without schema changes.
+
+- Guarded final existing-inbound assignment item quantity commits.
+  - `assignInboundDemandsToShipment` now commits `InboundShipmentItem.qty` through a guarded `updateMany` requiring the item to remain active and the parent inbound shipment to still be non-deleted and not `closed` / `cancelled`.
+  - If the target inbound becomes terminal between demand linking and the item quantity write, assignment fails before quantity is committed; API callers run the package assignment inside a transaction, so the demand link rolls back with the failed quantity commit.
+  - Added focused package coverage for a stale parent inbound during final item quantity commit.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing assignment writes without schema changes.
+
+- Blocked assignment into terminal inbound shipments.
+  - `assignInboundDemandsToShipment` now rejects deleted, closed, or cancelled target inbound shipments before demand lookup, link writes, or shipment item quantity updates begin.
+  - Added focused package coverage proving cancelled target inbounds fail before demand lookup.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing assignment guards without schema changes.
+
+- Made existing-inbound assignment item quantity updates atomic.
+  - `assignInboundDemandsToShipment` now increments existing `InboundShipmentItem.qty` by the quantity from demand rows confirmed linked by guarded writes, instead of rewriting quantity from a stale pre-read.
+  - Newly-created inbound shipment items still receive the confirmed absolute linked quantity, while existing items are additive under concurrent assignment.
+  - Updated focused package coverage so existing-item assignment expects `qty.increment` for the confirmed linked demand quantity.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing assignment writes without schema changes.
+
+- Guarded inbound lifecycle status updates against stale controls.
+  - `inventories.updateInboundShipmentStatus` now commits the lifecycle status change with a guarded update requiring the shipment to still be non-deleted and at the previously observed status.
+  - If the inbound changed between the pre-read and mutation, the status update fails before cancellation cleanup or timeline activity writes, preventing stale controls from overwriting concurrent lifecycle changes.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens an existing mutation guard without schema changes.
+
+- Guarded inbound receive against terminal shipment overwrites.
+  - `receiveInboundShipment` now rejects closed, cancelled, or deleted inbound shipments before receipt writes begin.
+  - The final shipment status commit now uses a guarded update that requires the inbound shipment to still be non-deleted and not `closed` / `cancelled`, so a concurrent terminal change cannot be overwritten; API callers already run this inside a transaction, so a skipped final guard rolls the receive attempt back.
+  - Added focused package coverage for rejecting an already-cancelled shipment before item writes and for throwing when the final guarded status commit skips.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive guards without schema changes.
+
+- Guarded inbound demand receipt updates.
+  - `receiveInboundShipment` now updates linked `InboundDemand` receipt quantities through guarded `updateMany` calls that require the expected prior `qtyReceived` and an active inbound-demand status.
+  - A stale skipped demand row no longer consumes the new received quantity; later eligible demand rows can still receive it, and only confirmed demand receipt writes trigger component recompute evidence.
+  - Added focused package coverage for a stale first demand row followed by an eligible second row, proving only the confirmed component is recomputed.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive writes without schema changes.
+
+- Made inbound receive existing-stock updates atomic.
+  - `receiveInboundShipment` now increments existing `InventoryStock.qty` with an atomic update instead of writing an absolute quantity computed from a prior read.
+  - Stock movement evidence now uses the returned post-increment stock quantity to derive `prevQty` and `currentQty`, keeping movement rows aligned with the committed stock row.
+  - Added focused package coverage proving existing-stock receive uses `qty.increment` and still writes stock movement and inventory log evidence from the committed receipt.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive writes without schema changes.
+
+- Guarded inbound item receipt commits before downstream receive writes.
+  - `receiveInboundShipment` now updates the shipment item good/issue target with a guarded baseline match before stock, movement, demand receipt, issue creation, inventory log, or component recompute writes run for a new receive delta.
+  - If the item row was already changed by a concurrent receive, the stale receive attempt is counted as skipped and no downstream receive writes run for that item.
+  - Added focused package coverage proving a skipped item receipt guard does not write stock, demand receipt, or item updates from stale evidence.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive write ordering without schema changes.
+
+- Capped new inbound receipt deltas at planned item quantity.
+  - `planInboundReceiptDelta` now prevents new good/issue receive deltas from pushing an inbound shipment item above its planned quantity, while preserving already-persisted received totals.
+  - This keeps stale or oversized receive payloads from inflating stock, movement, and demand receipt evidence beyond the shipment plan.
+  - Added focused planner coverage for over-received quantity and over-issue inputs.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive planning without schema changes.
+
+- Rejected duplicate explicit inbound receive item ids.
+  - `receiveInboundShipment` now validates explicit receive payloads for duplicate `inboundShipmentItemId` values before building the receipt map.
+  - Conflicting duplicate rows now fail before stock, demand, item, or shipment status writes instead of silently using the last row.
+  - Added focused package coverage proving duplicate explicit item ids fail before shipment status update.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive validation without schema changes.
+
+- Rejected stale explicit inbound receive item ids.
+  - `receiveInboundShipment` now validates explicit `items[]` ids against the target shipment before applying any receive writes.
+  - Stale, deleted, or cross-shipment item ids now fail instead of producing a misleading no-op receive result.
+  - Added focused package coverage proving an invalid explicit item id fails before shipment status update.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive validation without schema changes.
+
+- Scoped explicit inbound receive payloads to provided item rows.
+  - `receiveInboundShipment` now treats an omitted `items` field as legacy receive-all, but treats an explicit item list as the full set of rows the caller wants to receive.
+  - Omitted rows in an explicit list keep their persisted good/issue quantities and are not updated, stocked, logged, or counted as skipped receive attempts.
+  - Added focused package coverage for `items: []` so an explicit empty receive payload does not auto-receive every shipment item.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive semantics without schema changes.
+
+- Tightened cancellation cleanup recompute evidence.
+  - `releaseCancelledInboundShipmentDemand` now recomputes line-item component demand state only when the guarded release actually updates at least one demand row.
+  - This prevents stale pre-update candidates from reporting recompute work when all rows were concurrently received, deleted, or otherwise became ineligible before release.
+  - Added focused package coverage for candidate rows with zero guarded release updates.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing cleanup evidence without schema changes.
+
+- Tightened inbound receive retry and transaction behavior.
+  - `receiveInboundShipment` now selects existing open item issues and existing `receivedAt`, preserving `issue_open` on duplicate issue receives and preserving the original completed timestamp on duplicate completed receives.
+  - `inventories.receiveInboundShipment` now runs the package receive service inside one transaction before queuing the received-backorder allocation job.
+  - Added focused package tests for duplicate completed receive timestamp preservation and duplicate issue receive status preservation.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing receive behavior without schema changes.
+
+- Rejected no-op existing-inbound assignments after guarded revalidation.
+  - `assignInboundDemandsToShipment` now throws when no demand rows are confirmed linked after guarded updates, matching create-inbound's no-confirmed-link behavior.
+  - If assignment had to create a new shipment item and then links zero demand rows, the empty item is soft-deleted for direct package callers; API callers run inside a transaction, so the empty create rolls back.
+  - Added focused package tests for zero-link existing-item and zero-link new-item assignment races.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens mutation behavior without schema changes.
+
+- Made existing-inbound demand assignment atomic in the API mutation path.
+  - `inventories.assignInboundDemands` now runs `assignInboundDemandsToShipment` inside a database transaction before reading the inbound summary and writing timeline activity.
+  - This keeps confirmed demand links and inbound shipment item quantity updates from splitting if an assignment write fails midway.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens the existing mutation boundary without schema changes.
+
+- Scoped inbound API orchestration to confirmed linked demand rows.
+  - `createInboundShipmentFromDemands` and `assignInboundDemandsToShipment` now return confirmed linked demand ids in their package results.
+  - `inventories.createInboundShipmentFromDemands` uses those confirmed ids, not original request/candidate ids, to find affected sales and set `SalesOrders.inventoryStatus=ORDERED`.
+  - Inbound create/assign timeline order references now come from confirmed linked demand rows so concurrent claims cannot mislabel activity.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing orchestration evidence without schema changes.
+
+- Tightened confirmed-link evidence for inbound shipment quantities.
+  - `createInboundShipmentFromDemands` and `assignInboundDemandsToShipment` now add inbound shipment item quantity only from demand rows whose guarded link update actually succeeds.
+  - New inbound creation cleans up empty shipment/item artifacts for direct service callers and fails if every candidate demand row is concurrently claimed before linking.
+  - Added focused package tests for guarded-link races on both create-inbound and assign-existing-inbound flows.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing write evidence without schema changes.
+
+- Prevented duplicate inbound assignment from already-linked demand rows.
+  - `assignInboundDemandsToShipment` now plans existing-inbound item quantity only from active demand rows that are not already linked to an inbound shipment item.
+  - A retry/request containing only already-linked demand now fails before mutating shipment items, and mixed linked/unlinked input only links and adds quantity for the unlinked rows.
+  - Added focused package tests for mixed linked/unlinked assignment and all-linked assignment retry behavior.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing service filtering.
+
+- Prevented duplicate inbound creation from already-linked demand rows.
+  - `createInboundShipmentFromDemands` now plans new inbound shipment items only from active demand rows that are not already linked to an inbound shipment item.
+  - A retry/request containing only already-linked demand now fails before creating a new inbound shipment, and mixed linked/unlinked input only links and plans quantity for the unlinked rows.
+  - Added focused package tests for mixed linked/unlinked demand and already-linked retry behavior.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this tightens existing service filtering.
+
+- Confirmed Mark As availability apply evidence from persisted demand rows.
+  - `inventories.resolveSalesInventoryMarkAsAvailabilityForContinue` now stamps cancelled demand rows with a per-mutation operation id and re-reads only rows carrying that note before recomputing components, setting orders to `AVAILABLE`, writing audit history, and reporting `cancelledDemandCount`.
+  - This prevents the continue path from updating or auditing an order based on rows that were merely safe before `updateMany` but were not actually changed by this mutation.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no endpoint or database docs were needed because this tightens mutation evidence without changing routes or schema.
+
+- Tightened Mark As continue mutation-time revalidation.
+  - `inventories.resolveSalesInventoryMarkAsAvailabilityForContinue` now updates `SalesOrders.inventoryStatus=AVAILABLE` and writes `SalesHistory` audit rows only for orders whose mutable demand rows still pass the final transaction-time safety filter.
+  - If a previously resolvable demand row becomes shipment-linked, received, deleted, or otherwise ineligible before apply, that order is left for the remaining preflight instead of being marked available from stale preview evidence.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no endpoint or database docs were needed because this tightens mutation semantics without changing routes or schema.
+
+- Added audit evidence for Mark As inventory availability resolution.
+  - `inventories.resolveSalesInventoryMarkAsAvailabilityForContinue` now writes a `SalesHistory` row for each affected order when it cancels safe unlinked mutable demand and sets `SalesOrders.inventoryStatus=AVAILABLE`.
+  - The mutation returns `auditHistoryCount`, and each audit row records the Mark As action, previous/next order inbound status, order-scoped cancelled demand ids, recomputed component ids, and triggering user metadata.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this uses the existing `SalesHistory` table.
+
+- Made sales inventory inbound creation atomic with legacy status sync.
+  - `inventories.createInboundShipmentFromDemands` now runs parent-sale guard checks, selected demand preparation/splitting, inbound shipment creation, demand linking, and affected `SalesOrders.inventoryStatus=ORDERED` updates inside one transaction.
+  - This prevents inventory-created inbound work from being committed while the legacy order inbound badge remains stale because of a later failure.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this only tightens the existing write boundary.
+
+- Made inbound cancellation cleanup atomic.
+  - `inventories.updateInboundShipmentStatus` now runs the inbound status update and unreceived-demand release inside one transaction when cancelling an inbound shipment.
+  - This keeps cancelled shipment state, released pending demand, and recomputed component demand state from splitting across partial failures.
+  - Updated docs: `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` and `brain/progress.md`; no API, feature, or database docs were needed because this preserves the existing mutation response and schema while tightening the transaction boundary.
+
+- Added focused coverage for inbound cancellation cleanup.
+  - `packages/inventory/src/application/inbound/inbound-demand.test.ts` now covers `releaseCancelledInboundShipmentDemand` releasing unreceived active demand, unassigning it from the cancelled shipment, recomputing touched components, and no-op behavior when no eligible demand is linked.
+  - Updated docs: `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` and `brain/progress.md`; no API, feature, or database docs were needed because this adds focused coverage for the existing cancellation cleanup contract.
+
+- Released unreceived demand when cancelling inventory inbounds.
+  - `@gnd/inventory` now exposes `releaseCancelledInboundShipmentDemand`, which unassigns unreceived active demand from a cancelled inbound shipment, returns it to `pending`, and recomputes affected line-item components.
+  - `inventories.updateInboundShipmentStatus` calls that helper only for `cancelled` status changes and returns/records `releasedDemandCount` plus `recomputedComponentCount`.
+  - Received or partially received demand is left untouched by cancellation cleanup.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this uses existing demand assignment/status fields.
+
+- Centralized the stale inbound-status backfill candidate predicate.
+  - Preview samples, preview `totalMismatchCount`, reviewed candidate lookup, and mutation-time apply revalidation now use the same `salesInventoryInboundStatusBackfillCandidateWhere` predicate.
+  - This reduces the risk that dry-run evidence and apply behavior diverge as the Phase 7 repair path evolves.
+  - Updated docs: `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` and `brain/progress.md`; no API, feature, or database docs were needed because the qualifying row set is unchanged.
+
+- Added global mismatch counts to stale inbound-status preview.
+  - `inventories.salesInventoryInboundStatusBackfillPreview` now returns `totalMismatchCount` for all current active inventory-owned inbound orders whose legacy `SalesOrders.inventoryStatus` is null or not `ORDERED`.
+  - The preview still returns bounded samples with `sampledMismatchCount`, `nextCursor`, and `hasMore`; `status` now reflects the global total so a cursor page cannot look clean while older stale rows still exist.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this adds a count over existing sales/inbound fields.
+
+- Aligned sales inventory inbound ownership id sanitization.
+  - `getSalesInventoryInboundOwnershipMap` now reuses the same positive-integer sales order id sanitizer as the reviewed inbound-status backfill repair path.
+  - This keeps the shared ownership guard used by sales overview, orders/inbound list routing, manual status blocking, preview, and repair from querying decimal or otherwise invalid ids.
+  - Updated docs: `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` and `brain/progress.md`; no API, database, or feature contract docs were needed because this only tightens internal helper input sanitization.
+
+- Tightened reviewed inbound-status repair evidence.
+  - `inventories.repairSalesInventoryInboundStatusBackfill` now rechecks the requested sales order ids after apply and returns `remainingMismatchCount` plus `remainingCandidates`.
+  - Dry-run responses also expose the same remaining-candidate shape, making preview, dry-run repair, and apply evidence easier to compare.
+  - The repair result now includes `status=clean|needs_backfill`, matching the preview result vocabulary for simple operator gates.
+  - Skipped ids now include `skippedSalesOrderReasons`, distinguishing already-clean ids, missing/ineligible orders, orders without active inventory-owned inbound, and ids that changed before mutation-time apply.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this only extends the repair response over existing rows.
+
+- Added a reviewed stale inbound-status backfill repair path.
+  - `inventories.repairSalesInventoryInboundStatusBackfill` now accepts explicit reviewed sales order ids and defaults to dry-run, so preview samples can be checked before any data change.
+  - Apply mode revalidates each order against active inventory-owned inbound demand and stale legacy `SalesOrders.inventoryStatus` before setting the order to `ORDERED`.
+  - Applied orders receive `SalesHistory` audit rows with previous status, linked inbound ids, linked demand count, and trigger metadata; skipped ids and post-run remaining mismatch candidates are reported back for reconciliation.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this uses existing sales order, inbound demand, and history tables.
+
+- Added a dry-run stale inbound-status backfill preview.
+  - `inventories.salesInventoryInboundStatusBackfillPreview` now returns bounded samples of active inventory-owned inbound orders whose legacy `SalesOrders.inventoryStatus` is null or not `ORDERED`.
+  - The preview reuses the shared active `inventoryInboundOwnership` rule and returns linked inbound summaries, `sampledMismatchCount`, `nextCursor`, and `hasMore` without mutating data.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this adds a bounded read-only query over existing sales/inbound fields.
+
+- Tightened active inventory-owned inbound status detection.
+  - The shared `inventoryInboundOwnership` lookup now counts only non-deleted demand linked to non-deleted, non-cancelled inbound shipments, preventing cancelled/deleted inbound work from continuing to own the order inbound status.
+  - `notes.saveInboundNote` now reuses the same ownership helper before rejecting manual order-status edits, keeping the manual-status guard aligned with sales overview/list routing.
+  - Inventory and manual inbound badges now expose source titles: `Inventory inbound status` for inventory-owned rows and `Manual order status` for manual-only rows.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this changes filtering/presentation over existing inbound shipment fields.
+
+- Added status-aware inventory-owned inbound badges.
+  - `inventoryInboundOwnership` now includes compact linked inbound shipment summaries and `primaryInboundStatus` while preserving `linkedInboundIds` for navigation.
+  - Sales overview headers/detail rows, the canonical sales orders inbound column, and inbound-management rows now display inventory-owned inbound shipment labels such as `In progress`, `Received`, or a multi-inbound count instead of showing only the legacy manual order prompt.
+  - Single-linked inventory inbound rows still deep-link directly to that inbound in the Sales Overview Inventory `Inbounds` segment; manual-only rows keep the existing manual status update flow.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this uses existing `InboundShipment` status data with no schema or migration changes.
+
+- Added selected-inbound deep-link polish for sales overview Inventory.
+  - The shared Inventory tab segment query now carries optional `inventoryInboundId` alongside `inventorySegment`, and the `Inbounds` panel selects that inbound when it is present.
+  - Single-linked inbound clicks from sales overview headers/details, canonical sales orders, and inbound-management pass the linked inbound id so operators land directly on the relevant inbound detail; multi-linked rows still open the full `Inbounds` list.
+  - Creating inbound from the Inventory tab now switches immediately to the `Inbounds` segment with the newly created inbound selected.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no API or database docs were needed because this is query-state/UI navigation behavior over existing inbound data.
+
+- Added table/workspace click-through for inventory-owned inbound status.
+  - Added a shared API ownership lookup for sales inventory inbound work and reused it from `sales.getSaleOverview`, `sales.getOrders`, and `sales.inboundIndex`.
+  - `sales.getOrders` and `sales.inboundIndex` now return a stable `inventoryInboundOwnership` object so list/workspace rows can distinguish manual order prompts from inventory-owned inbound shipments.
+  - The canonical sales orders inbound column now opens the manual inbound status modal only for rows without linked inventory inbound. Inventory-owned rows show an `Inbound #...` badge and open the order's Inventory tab on the `Inbounds` segment.
+  - The inbound-management action now routes inventory-owned rows to the same Inventory/Inbounds workspace instead of opening the preview-plus-manual-update path; manual-only rows keep the existing update flow.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this uses existing `InboundDemand`, `InboundShipmentItem`, `LineItemComponents`, and `LineItem` relationships without schema changes.
+
+- Added sales overview click-through for inventory-owned inbound status.
+  - `sales.getSaleOverview` now returns `inventoryInboundOwnership` for orders by detecting non-cancelled inventory `InboundDemand` rows linked to inbound shipment items for the opened sale.
+  - The shared sales overview header, legacy sales overview header, new Overview tab, and legacy General tab now treat inventory-owned inbound status as a navigation affordance, switching to the Inventory tab and opening the `Inbounds` segment instead of steering operators toward manual order-level status editing.
+  - The Inventory tab segment state is now query-backed through `inventorySegment`, so linked status navigation can deep-link to `Stock`, `Inbounds`, or `Non Stock` while preserving the existing workbench behavior.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md`, and `brain/progress.md`; no database docs were needed because this uses existing `InboundDemand`, `InboundShipmentItem`, `LineItemComponents`, and `LineItem` relationships without schema changes.
+
+- Added explicit legacy inbound-status unlock actions to the Sales Overview Inventory tab.
+  - `inventories.resolveSalesInventoryLegacyStatusSetup` now handles `setupMode=legacy_status_locked` orders with `reset` or `override` actions. Reset clears `SalesOrders.inventoryStatus` before sync; override preserves the manual status, and both paths write a `SalesHistory` audit row before running single-sale inventory sync.
+  - The locked Inventory tab now renders `Reset status and configure` and `Override and configure` actions and refreshes inventory overview, sales overview, sales orders, and inbound demand queues after completion.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this uses existing `SalesOrders`, `SalesHistory`, and inventory sync fields with no schema or migration changes.
+
+- Added the guarded Mark As "mark available and continue" path.
+  - `salesInventoryMarkAsPreflight` now reports safe-resolve eligibility, resolvable demand ids, and unresolvable component counts.
+  - `inventories.resolveSalesInventoryMarkAsAvailabilityForContinue` cancels only unlinked mutable pending/ordered inbound demand with no received quantity, recomputes affected line component demand state, updates only affected resolved orders to `SalesOrders.inventoryStatus=AVAILABLE`, and reruns the preflight before allowing the existing Mark As task to continue.
+  - The shared `SalesMenu.MarkAs` alert dialog now includes a `Mark available and continue` action, disabled when blockers are shipment-linked, partially received, or allocation-required, and only starts the production/fulfilled task after the server returns a clean post-mutation preflight.
+  - Validation: focused `bun test packages/sales/src/sales-inventory-mark-as-preflight.test.ts packages/sales/src/sales-inventory-overview.test.ts` passed with 22 tests and 35 assertions.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this uses existing demand/component/order fields with no schema or migration changes.
+
+- Added an inventory preflight gate to shared web Mark As actions.
+  - `@gnd/sales` now exposes `sales-inventory-mark-as-preflight`, which preserves legacy Mark As behavior for orders without inventory-backed rows while blocking configured orders whose required components are still awaiting inbound or allocation.
+  - `inventories.salesInventoryMarkAsPreflight` exposes the batch-safe preflight contract for `production_completed` and `fulfilled` actions, returning blocker counts, pending/open inbound totals, and bounded component previews.
+  - `SalesMenu.MarkAs` now calls the preflight before triggering the existing `update-sales-control` tasks and shows a shadcn alert dialog when inventory must be reviewed first.
+  - Validation: focused `bun test packages/sales/src/sales-inventory-mark-as-preflight.test.ts packages/sales/src/sales-inventory-overview.test.ts` passed with 21 tests and 32 assertions.
+  - Updated docs: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this is a policy/API/UI guard without schema or migration changes.
+
+- Added a legacy inbound-status lock for first-time sales inventory setup.
+  - `salesInventoryOverview` now returns `setupMode=legacy_status_locked` for active orders that have a manual `SalesOrders.inventoryStatus` but no inventory-backed rows.
+  - The shared inventory operation policy blocks sync, inbound creation, allocation, mark-available, and tracking configuration while that legacy status is unresolved.
+  - The Sales Overview Inventory tab now renders a locked review state instead of auto-syncing or showing the normal no-rows Sync button for those orders.
+  - Validation: focused `bun test packages/sales/src/sales-inventory-overview.test.ts` passed with 17 tests and 28 assertions.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this is a policy/UI contract change without schema or migration changes.
+
+- Blocked manual inbound status edits after inventory inbound ownership begins.
+  - `notes.saveInboundNote` rejects manual `SalesOrders.inventoryStatus` updates when the order has non-cancelled inventory demand linked to an active inbound shipment item, keeping inventory-created inbound as the owner of status changes.
+  - The current inbound status modals now show destructive toasts for mutation errors instead of swallowing the new server-side guard.
+  - Validation: targeted scans confirmed both `notes.saveInboundNote` modal callers now surface mutation errors; scoped `git diff --check` passed for touched files.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this uses existing inventory demand/shipment links with no schema change.
+
+- Added terminal-order guardrails for sales overview inventory operations.
+  - Introduced a shared sales inventory operation policy that keeps fulfilled/cancelled orders read-only for inventory mutations while still allowing existing inventory rows to be inspected.
+  - `inventories.salesInventoryOverview` now returns operation mode, capability flags, read-only state, and action block reason; the Inventory tab uses those flags to suppress Create inbound for fulfilled orders with existing inventory rows.
+  - `inventories.createInboundShipmentFromDemands` now preflights selected demand/component parent sales before preparing or splitting demand rows, rejects terminal orders, and updates affected `SalesOrders.inventoryStatus` values to `ORDERED` after linking inventory-created inbound demand.
+  - `inventories.syncSalesInventoryOverview` now rejects manual sync when the overview policy disallows sync.
+  - Validation: focused `bun test packages/sales/src/sales-inventory-overview.test.ts` passed with 15 tests and 26 assertions.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this slice adds policy/API/UI behavior without schema or migration changes.
+
+- Reordered the Sales Overview Inventory tab segments.
+  - The inventory workbench control now renders `Stock | Inbounds | Non Stock`, preserving the existing stock, inbound shipment, and non-stock counts/actions.
+  - Validation: scoped Biome passed for `inventory-tab.tsx`; scoped `git diff --check` passed; filtered `@gnd/www` typecheck grep reported no `inventory-tab` diagnostics; browser verification on order `08661LM` showed `Stock1`, `Inbounds0`, `Non Stock8` in that order.
+  - Updated docs: `brain/features/inventory-backed-sales-fulfillment.md` and `brain/progress.md`; no API or database docs were needed because this is a presentation-only order/copy change.
+
+- Fixed Sales Overview Production tab count parity with rendered results.
+  - Added a shared production-tab item helper so the v2 sales overview provider, legacy sheet badge, production tab body, page fallback, and footer all count the same production-capable `sales.productionOverview.items` rows.
+  - The Productions tab badge now reflects visible production result cards instead of `prodAssigned.total` quantity totals, preserving worker assignment scoping where applicable.
+  - Added an `apps/www` Bun test type shim plus focused helper tests for production item filtering/counting.
+  - Validation: focused production-items Bun test passed; scoped Biome passed for touched production overview files; `git diff --check` passed; filtered `@gnd/www` typecheck grep reported no touched production-count diagnostics; browser verification on order `08661LM` showed Productions badge `1` with 1 visible production item card.
+  - Updated docs: `brain/features/sales-production-workspace.md` and `brain/progress.md`; no API or database docs were needed because this reuses the existing production overview contract and changes UI count derivation only.
+
+- Added a fulfilled/no-inventory-integration state to the sales overview Inventory tab.
+  - `inventories.salesInventoryOverview` now returns lifecycle/setup metadata (`lifecycleStatus`, `lifecycleLabel`, `lifecycleTone`, `fulfillmentStatus`, `setupMode`, and `hasInventoryIntegration`) derived from order status plus delivery/stat completion signals.
+  - Fulfilled orders with no merged inventory rows return `setupMode=completed_readonly`, so the shared Inventory tab no longer auto-syncs or exposes Create inbound / Mark all available / manual Sync actions for historical completed orders.
+  - The shared Inventory tab now renders a shadcn/Midday-style read-only information state with compact status metrics, an explanatory alert, and read-only history notes for those completed historical orders.
+  - Validation: `bun test packages/sales/src/sales-inventory-overview.test.ts packages/sales/src/order-status.test.ts` passed with 21 tests and 43 assertions; targeted `bunx biome check` passed for the sales overview projection/test and Inventory tab files; `bun --filter @gnd/sales typecheck` and `bun --filter @gnd/www typecheck` remain blocked by existing repo-wide TypeScript errors, and a filtered web typecheck grep reported no touched-file diagnostics.
+  - Updated docs: `brain/api/contracts.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database docs were needed because this changes projection/UI contract behavior without schema or migration changes.
+
 - Centered select checkboxes in current `tables-2` tables.
   - Added `TableColumnMeta.contentClassName` and applied it to the `VirtualRow` inner cell wrapper so checkbox cells can center their actual content instead of only styling the outer cell.
   - Updated current select columns to opt into centered row checkbox content and updated their corresponding table headers to center select-all checkboxes.

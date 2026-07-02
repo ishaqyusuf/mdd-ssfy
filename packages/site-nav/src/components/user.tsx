@@ -10,7 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useSiteNav } from "./use-site-nav";
 
 type SiteNavUserData = {
@@ -32,7 +32,29 @@ function getInitials(name?: string) {
 }
 
 export function User({ user, onLogout, children }: SiteNavUserProps) {
-	const { isExpanded } = useSiteNav();
+	const {
+		isExpanded,
+		expandSiteNav,
+		handleNavMouseEnter,
+		handleNavMouseLeave,
+		isNavHoverCollapsePending,
+	} = useSiteNav();
+	const [isMenuRequestedOpen, setIsMenuRequestedOpen] = useState(false);
+	const isMenuOpen = isExpanded && isMenuRequestedOpen;
+
+	const handleOpenChange = (open: boolean) => {
+		if (open) {
+			expandSiteNav();
+			setIsMenuRequestedOpen(true);
+			return;
+		}
+		if (isNavHoverCollapsePending()) {
+			return;
+		}
+		if (isExpanded) {
+			setIsMenuRequestedOpen(false);
+		}
+	};
 
 	return (
 		<div
@@ -43,7 +65,7 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 					: "w-auto border-transparent bg-transparent",
 			)}
 		>
-			<DropdownMenu>
+			<DropdownMenu open={isMenuOpen} onOpenChange={handleOpenChange}>
 				<DropdownMenuTrigger asChild>
 					<Button
 						size="lg"
@@ -74,38 +96,43 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 						)}
 					</Button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent
-					className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-					side="right"
-					align="end"
-					sideOffset={4}
-				>
-					<DropdownMenuLabel className="p-0 font-normal">
-						<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-							<Avatar className="h-8 w-8 rounded-xl">
-								<AvatarImage src={user?.avatar} alt={user?.name} />
-								<AvatarFallback className="rounded-xl">
-									{getInitials(user?.name)}
-								</AvatarFallback>
-							</Avatar>
-							<div className="grid flex-1 text-left text-sm leading-tight">
-								<span className="truncate font-semibold">{user?.name}</span>
-								<span className="truncate text-xs">{user?.email}</span>
+				{isExpanded ? (
+					<DropdownMenuContent
+						data-site-nav-hover-surface="true"
+						onMouseEnter={handleNavMouseEnter}
+						onMouseLeave={handleNavMouseLeave}
+						className="w-[244px] min-w-[244px] rounded-lg border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[0_16px_42px_rgba(15,23,42,0.16)]"
+						side="top"
+						align="start"
+						sideOffset={8}
+					>
+						<DropdownMenuLabel className="p-0 font-normal">
+							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+								<Avatar className="h-8 w-8 rounded-xl">
+									<AvatarImage src={user?.avatar} alt={user?.name} />
+									<AvatarFallback className="rounded-xl">
+										{getInitials(user?.name)}
+									</AvatarFallback>
+								</Avatar>
+								<div className="grid flex-1 text-left text-sm leading-tight">
+									<span className="truncate font-semibold">{user?.name}</span>
+									<span className="truncate text-xs">{user?.email}</span>
+								</div>
 							</div>
-						</div>
-					</DropdownMenuLabel>
-					{children ? <DropdownMenuSeparator /> : null}
-					{children}
-					{onLogout ? (
-						<>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={onLogout}>
-								<Icons.ExitToApp className="size-4 mr-2" />
-								Log out
-							</DropdownMenuItem>
-						</>
-					) : null}
-				</DropdownMenuContent>
+						</DropdownMenuLabel>
+						{children ? <DropdownMenuSeparator /> : null}
+						{children}
+						{onLogout ? (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem onClick={onLogout}>
+									<Icons.ExitToApp className="size-4 mr-2" />
+									Log out
+								</DropdownMenuItem>
+							</>
+						) : null}
+					</DropdownMenuContent>
+				) : null}
 			</DropdownMenu>
 		</div>
 	);

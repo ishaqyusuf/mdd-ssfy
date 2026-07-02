@@ -12,7 +12,26 @@ import {
 	syncChannels,
 } from "@notifications/channels-query";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
+import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 import { getAuthUser } from "./user";
+
+async function assertManualInboundStatusCanUpdate(
+	ctx: TRPCContext,
+	input: {
+		salesId: number;
+	},
+) {
+	const ownership = await getSalesInventoryInboundOwnership(
+		ctx.db,
+		input.salesId,
+	);
+
+	if (!ownership.canUseManualInboundStatus) {
+		throw new Error(
+			"This order has inventory-created inbound work. Update the inbound shipment from the Inventory tab instead.",
+		);
+	}
+}
 
 export async function getNotificationChannels(
 	ctx: TRPCContext,
@@ -131,6 +150,9 @@ export async function saveInboundNote(
 	const previousStatus = order.inventoryStatus || null;
 	const nextStatus = data.status;
 	const changed = previousStatus !== nextStatus;
+	await assertManualInboundStatusCanUpdate(ctx, {
+		salesId: order.id,
+	});
 	const subscribers =
 		nextStatus === "PENDING ORDER"
 			? await getSubscribersForNotificationType(ctx.db, "inventory_inbound")

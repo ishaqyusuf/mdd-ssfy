@@ -361,6 +361,7 @@ function JobOverviewActionsCard({
 		"submitted",
 	].includes(normalizedStatus);
 	const showReviewAction = isAdmin && (isSubmitted || isApproved || isRejected);
+	const canDelete = job?.deletionEligibility?.canDelete ?? false;
 
 	const { mutate: deleteJob, isPending: isDeleting } = useMutation(
 		trpc.jobs.deleteJob.mutationOptions({
@@ -598,12 +599,14 @@ function JobOverviewActionsCard({
 									type="button"
 									variant="destructive"
 									size="icon"
-									disabled={isDeleting}
+									disabled={isDeleting || !canDelete}
 									onClick={() => {
 										if (!job?.id) return;
 										deleteJob({ id: job.id });
 									}}
-									title="Delete job"
+									title={
+										job?.deletionEligibility?.reason || "Delete job"
+									}
 								>
 									<Icons.Trash2 className="h-4 w-4" />
 								</Button>
@@ -617,7 +620,7 @@ function JobOverviewActionsCard({
 						type="button"
 						variant="destructive"
 						className="w-full"
-						disabled={isDeleting}
+						disabled={isDeleting || !canDelete}
 						onClick={() => {
 							if (!job?.id) return;
 							deleteJob({ id: job.id });

@@ -1,7 +1,13 @@
 "use client";
 
 import { DataSkeleton } from "@/components/data-skeleton";
-import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
+import {
+	getInventoryInboundOwnershipTitle,
+	getSingleInventoryInboundId,
+	InventoryInboundStatusBadge,
+	SalesInboundStatusBadge,
+} from "@/components/sales-inbound-status-badge";
+import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
@@ -36,6 +42,7 @@ export function LegacySalesOverviewHeader({
 	onTabChange?: (tab: LegacySalesOverviewTabId) => void;
 }) {
 	const { data } = useSaleOverview();
+	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const visibleTabs = tabs.filter((tab) => !tab.hidden);
 	const activeTabDef =
 		visibleTabs.find((tab) => tab.value === activeTab) ?? visibleTabs[0];
@@ -43,6 +50,18 @@ export function LegacySalesOverviewHeader({
 		loading: !data?.id,
 	} as unknown as ReturnType<typeof useCreateDataSkeletonCtx>;
 	const showInboundStatus = !!data?.id && data?.type !== "quote";
+	const hasInventoryInbound =
+		!!data?.inventoryInboundOwnership?.hasInventoryInbound;
+	const selectedInventoryInboundId = getSingleInventoryInboundId(
+		data?.inventoryInboundOwnership,
+	);
+	const openInventoryInbounds = () => {
+		if (!hasInventoryInbound) return;
+		setInventorySegment("inbounds", {
+			inboundId: selectedInventoryInboundId,
+		});
+		onTabChange?.("inventory");
+	};
 
 	return (
 		<SheetHeader>
@@ -60,12 +79,30 @@ export function LegacySalesOverviewHeader({
 									<span className="text-[10px] font-semibold uppercase">
 										Inbound
 									</span>
-									<SalesInboundStatusBadge
-										status={data?.inboundStatus}
-										emptyFallback="No status"
-										className="h-5 px-2 text-[10px]"
-										emptyClassName="text-[11px] font-medium"
-									/>
+									{hasInventoryInbound ? (
+										<Button
+											type="button"
+											variant="ghost"
+											className="h-auto rounded-full p-0 hover:bg-transparent"
+											onClick={openInventoryInbounds}
+											title={getInventoryInboundOwnershipTitle(
+												data?.inventoryInboundOwnership,
+											)}
+										>
+											<InventoryInboundStatusBadge
+												ownership={data?.inventoryInboundOwnership}
+												className="h-5 px-2 text-[10px]"
+											/>
+										</Button>
+									) : (
+										<SalesInboundStatusBadge
+											status={data?.inboundStatus}
+											emptyFallback="No status"
+											title="Manual order status"
+											className="h-5 px-2 text-[10px]"
+											emptyClassName="text-[11px] font-medium"
+										/>
+									)}
 								</span>
 							) : null}
 						</span>

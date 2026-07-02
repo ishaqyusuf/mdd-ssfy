@@ -78,6 +78,12 @@ describe("expectedComponentFulfillmentStatus", () => {
 		expect(
 			expectedComponentFulfillmentStatus({
 				qty: 5,
+				stockAllocations: [{ qty: 2, status: "pending_review" }],
+			}),
+		).toBe("partially_allocated");
+		expect(
+			expectedComponentFulfillmentStatus({
+				qty: 5,
 				inboundDemands: [{ qty: 5, qtyReceived: 0, status: "ordered" }],
 			}),
 		).toBe("inbound_required");
@@ -215,7 +221,7 @@ describe("buildInventoryReconciliationReportFromLines", () => {
 		expect(report.domains.component_fulfillment.samples[0]).toMatchObject({
 			severity: "warning",
 			componentId: 300,
-			expected: "pending",
+			expected: "partially_allocated",
 			actual: "allocated",
 		});
 	});

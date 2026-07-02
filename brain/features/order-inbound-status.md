@@ -21,6 +21,7 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 - This feature updates existing open `InboundDemand` status from the order prompt, but it does not create supplier rows, purchase orders, shipments, partially received regressions, or new demand rows by itself. Missing demand is handled by sales inventory line sync, which now projects the saved order inbound status onto created demand rows, and reconciliation.
 - Order-wide `AVAILABLE` remains non-destructive; selected `demandIds` let future line-aware prompts cancel only explicitly chosen pending/ordered demand rows.
 - Inbound demand status semantics are owned by inventory and documented in `brain/decisions/ADR-009-inventory-owned-inbound-demand-status.md`.
+- Sales overview inventory rows that are non-stock, not-inventory, untracked, or have zero required quantity use derived `Not Applicable` / `N/A` display. This is intentionally not a `SalesOrders.inventoryStatus` value and does not imply order-level `AVAILABLE` stock.
 
 ## API And Notifications
 - `notes.saveInboundNote` updates `SalesOrders.inventoryStatus`, writes an order note tagged to `inventory_inbound`, and applies `ORDERED` / `PENDING ORDER` to existing open `InboundDemand` rows for the sale.
@@ -33,6 +34,7 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 ## UI
 - The sales orders table exposes an `Inbound` badge column.
 - `AVAILABLE` is green, `ORDERED` is blue, and `PENDING ORDER` is amber with row emphasis.
+- Inventory row-level `N/A` appears only in the Inventory tab requirement display for stock-not-required rows; it is not editable through the manual order inbound status modal.
 - The order action menu opens the existing inbound status modal for later manual updates.
 - Sales overview action bars no longer expose the old `Inbound` / `Update Inbound` shortcut. Order inbound status updates remain available from inbound-management workflows and inventory-oriented surfaces that use the shared inbound status modal.
 - The inbound status modal fetches the order's active mapped inventory demand and can submit selected `InboundDemand` rows through `demandIds` for line-scoped prompt changes.

@@ -5,6 +5,10 @@ import type {
 import type { TRPCContext } from "@api/trpc/init";
 import type { InboundFilterStatus, NoteTagNames } from "@gnd/utils/constants";
 import { getSales } from "./sales";
+import {
+  emptySalesInventoryInboundOwnership,
+  getSalesInventoryInboundOwnershipMap,
+} from "./sales-inventory-inbound-ownership";
 
 export async function getInboundStatuses(
   ctx: TRPCContext,
@@ -102,6 +106,10 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
       ctx,
       sales.data.map((a) => a.id)
     );
+  const inboundOwnershipMap = await getSalesInventoryInboundOwnershipMap(
+    ctx.db,
+    sales.data.map((sale) => sale.id)
+  );
 
   return {
     ...sales,
@@ -109,6 +117,8 @@ export async function getInbounds(ctx: TRPCContext, query: InboundQuerySchema) {
       uid: String(sale?.id),
       ...sale,
       inboundStatus: statusList?.find((a) => a.orderId == sale?.id)?.status,
+      inventoryInboundOwnership:
+        inboundOwnershipMap.get(sale.id) ?? emptySalesInventoryInboundOwnership(),
     })),
   };
 }

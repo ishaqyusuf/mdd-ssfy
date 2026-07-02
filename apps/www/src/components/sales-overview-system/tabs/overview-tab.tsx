@@ -17,7 +17,11 @@ import { useTRPC } from "@/trpc/client";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
-import { SalesInboundStatusBadge } from "@/components/sales-inbound-status-badge";
+import {
+	getSingleInventoryInboundId,
+	InventoryInboundStatusBadge,
+	SalesInboundStatusBadge,
+} from "@/components/sales-inbound-status-badge";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
@@ -29,6 +33,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 
 import { DeliveryOption } from "../../sheets/sales-overview-sheet/delivery-option";
 import { SalesPO } from "../../sheets/sales-overview-sheet/inline-data-edit";
+import { useSalesInventorySegmentQuery } from "../hooks/use-sales-inventory-segment-query";
 import { getSalesOverviewDocumentStatus } from "../lib/document-status";
 import { useSalesOverviewSystem } from "../provider";
 import { QuickActionsBar } from "../sections/quick-actions-bar";
@@ -253,7 +258,9 @@ function SalesInventoryHealthCard({
 export function SalesOverviewOverviewTab() {
 	const {
 		state: { data, isQuote },
+		actions: { setCurrentTab },
 	} = useSalesOverviewSystem();
+	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const customerQuery = useCustomerOverviewQuery();
 	const skeletonContext = {
 		loading: !data?.id,
@@ -280,6 +287,18 @@ export function SalesOverviewOverviewTab() {
 	] as Array<AddressEntry | null | undefined>;
 	const costLines = (data?.costLines ?? []) as CostLine[];
 	const documentStatus = getSalesOverviewDocumentStatus(data);
+	const hasInventoryInbound =
+		!!data?.inventoryInboundOwnership?.hasInventoryInbound;
+	const selectedInventoryInboundId = getSingleInventoryInboundId(
+		data?.inventoryInboundOwnership,
+	);
+	const openInventoryInbounds = () => {
+		if (!hasInventoryInbound) return;
+		setInventorySegment("inbounds", {
+			inboundId: selectedInventoryInboundId,
+		});
+		setCurrentTab("inventory");
+	};
 
 	return (
 		<DataSkeletonProvider value={skeletonContext}>
@@ -422,10 +441,29 @@ export function SalesOverviewOverviewTab() {
 												className="font-medium"
 												placeholder="PENDING ORDER"
 											>
-												<SalesInboundStatusBadge
-													status={data?.inboundStatus}
-													emptyFallback="No status"
-												/>
+												{hasInventoryInbound ? (
+													<InventoryInboundStatusBadge
+														ownership={data?.inventoryInboundOwnership}
+													/>
+												) : (
+													<SalesInboundStatusBadge
+														status={data?.inboundStatus}
+														emptyFallback="No status"
+														title="Manual order status"
+													/>
+												)}
+												{hasInventoryInbound ? (
+													<Button
+														type="button"
+														size="sm"
+														variant="ghost"
+														className="mt-1 h-6 px-0 text-[11px] text-primary hover:bg-transparent hover:underline"
+														onClick={openInventoryInbounds}
+													>
+														<Icons.ExternalLink className="mr-1 size-3" />
+														Open inbounds
+													</Button>
+												) : null}
 											</DataSkeleton>
 										</div>
 									)}

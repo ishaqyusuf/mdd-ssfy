@@ -3,8 +3,197 @@ import { describe, expect, test } from "bun:test";
 import {
 	buildSalesOverviewInventoryGroups,
 	buildSalesOverviewInventoryMergedRows,
+	hasPassedInventoryTrackingRepairBoundary,
+	resolveSalesInventoryOperationPolicy,
+	resolveSalesInventoryOverviewSetupMode,
+	resolveSalesInventoryRequirementDisplay,
 	summarizeSalesInventoryOverview,
 } from "./sales-inventory-overview";
+
+describe("resolveSalesInventoryOverviewSetupMode", () => {
+	test("keeps fulfilled orders without inventory rows read-only", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "fulfilled",
+				inventoryRowCount: 0,
+			}),
+		).toBe("completed_readonly");
+	});
+
+	test("keeps active orders without inventory rows configurable", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 0,
+			}),
+		).toBe("not_configured");
+	});
+
+	test("locks active orders with a manual inbound status before inventory setup", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 0,
+				inventoryStatus: "ORDERED",
+			}),
+		).toBe("legacy_status_locked");
+	});
+
+	test("keeps fulfilled orders with inventory rows inspectable as active setup", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "fulfilled",
+				inventoryRowCount: 1,
+			}),
+		).toBe("active");
+	});
+});
+
+describe("resolveSalesInventoryOperationPolicy", () => {
+	test("blocks new inventory work for fulfilled orders with inventory rows", () => {
+		const policy = resolveSalesInventoryOperationPolicy({
+			lifecycleStatus: "fulfilled",
+			setupMode: "active",
+		});
+
+		expect(policy).toMatchObject({
+			mode: "completed_readonly",
+			isReadOnly: true,
+			capabilities: {
+				canSync: false,
+				canCreateInbound: false,
+				canAllocateStock: false,
+				canMarkAvailable: false,
+				canConfigureTracking: false,
+			},
+		});
+	});
+
+	test("blocks new inventory work for cancelled orders with inventory rows", () => {
+		const policy = resolveSalesInventoryOperationPolicy({
+			lifecycleStatus: "cancelled",
+			setupMode: "active",
+		});
+
+		expect(policy).toMatchObject({
+			mode: "cancelled_readonly",
+			isReadOnly: true,
+			capabilities: {
+				canSync: false,
+				canCreateInbound: false,
+				canAllocateStock: false,
+				canMarkAvailable: false,
+				canConfigureTracking: false,
+			},
+		});
+	});
+
+	test("allows active non-terminal orders to create inbound", () => {
+		const policy = resolveSalesInventoryOperationPolicy({
+			lifecycleStatus: "awaiting_production",
+			setupMode: "active",
+		});
+
+		expect(policy).toMatchObject({
+			mode: "active",
+			isReadOnly: false,
+			capabilities: {
+				canCreateInbound: true,
+				canAllocateStock: true,
+			},
+		});
+	});
+
+	test("blocks first-time inventory setup behind legacy manual status", () => {
+		const policy = resolveSalesInventoryOperationPolicy({
+			lifecycleStatus: "awaiting_production",
+			setupMode: "legacy_status_locked",
+		});
+
+		expect(policy).toMatchObject({
+			mode: "legacy_status_locked",
+			isReadOnly: true,
+			capabilities: {
+				canSync: false,
+				canCreateInbound: false,
+			},
+		});
+	});
+});
+
+describe("sales inventory requirement display policy", () => {
+	test("marks untracked and not-inventory rows as not applicable", () => {
+		expect(
+			resolveSalesInventoryRequirementDisplay({
+				trackingPolicy: "untracked",
+				requiredQty: 4,
+			}),
+		).toMatchObject({
+			status: "not_applicable",
+			label: "Not Applicable",
+			shortLabel: "N/A",
+			canEditInboundStatus: false,
+		});
+		expect(
+			resolveSalesInventoryRequirementDisplay({
+				trackingPolicy: "not_inventory",
+				requiredQty: 4,
+			}).status,
+		).toBe("not_applicable");
+	});
+
+	test("marks zero required tracked rows as not applicable", () => {
+		expect(
+			resolveSalesInventoryRequirementDisplay({
+				trackingPolicy: "tracked",
+				requiredQty: 0,
+			}),
+		).toMatchObject({
+			status: "not_applicable",
+			shortLabel: "N/A",
+			canEditInboundStatus: false,
+		});
+	});
+
+	test("keeps positive tracked rows applicable for inventory work", () => {
+		expect(
+			resolveSalesInventoryRequirementDisplay({
+				trackingPolicy: "tracked",
+				requiredQty: 1,
+			}),
+		).toMatchObject({
+			status: "required",
+			shortLabel: "Required",
+			canEditInboundStatus: true,
+		});
+	});
+});
+
+describe("hasPassedInventoryTrackingRepairBoundary", () => {
+	test("excludes ready-to-fulfill and fulfillment-stage orders from tracking repair", () => {
+		expect(hasPassedInventoryTrackingRepairBoundary("ready_to_fulfill")).toBe(
+			true,
+		);
+		expect(hasPassedInventoryTrackingRepairBoundary("fulfillment_queued")).toBe(
+			true,
+		);
+		expect(hasPassedInventoryTrackingRepairBoundary("packing")).toBe(true);
+		expect(hasPassedInventoryTrackingRepairBoundary("fulfilled")).toBe(true);
+		expect(hasPassedInventoryTrackingRepairBoundary("cancelled")).toBe(true);
+	});
+
+	test("keeps pre-production and active-production orders eligible for review", () => {
+		expect(
+			hasPassedInventoryTrackingRepairBoundary("awaiting_production"),
+		).toBe(false);
+		expect(hasPassedInventoryTrackingRepairBoundary("production_queued")).toBe(
+			false,
+		);
+		expect(hasPassedInventoryTrackingRepairBoundary("in_production")).toBe(
+			false,
+		);
+	});
+});
 
 describe("summarizeSalesInventoryOverview", () => {
 	test("marks sales without synced inventory components as not synced", () => {
@@ -499,8 +688,51 @@ describe("buildSalesOverviewInventoryGroups", () => {
 			componentName: "Width",
 			stepName: "Width",
 			status: "not_inventory",
+			requirementStatus: "not_applicable",
+			requirementShortLabel: "N/A",
+			canEditInboundStatus: false,
 			trackingPolicy: "not_inventory",
 			actions: ["configure_tracking", "mark_not_inventory"],
+		});
+	});
+
+	test("marks zero-quantity tracked rows as not applicable for inbound display", () => {
+		const groups = buildSalesOverviewInventoryGroups([
+			{
+				id: 30,
+				components: [
+					{
+						id: 3,
+						required: true,
+						qty: 0,
+						inventoryId: 500,
+						inventoryVariantId: 501,
+						inventoryCategoryId: 502,
+						inventory: {
+							id: 500,
+							name: "Trackable part",
+							stockMode: "monitored",
+						},
+						inventoryVariant: {
+							id: 501,
+							sku: "TRACKED",
+						},
+						inventoryCategory: {
+							id: 502,
+							title: "Tracked",
+							stockMode: "monitored",
+						},
+					},
+				],
+			},
+		]);
+
+		expect(groups[0]?.rows[0]).toMatchObject({
+			status: "allocated",
+			requirementStatus: "not_applicable",
+			requirementShortLabel: "N/A",
+			canEditInboundStatus: false,
+			trackingPolicy: "tracked",
 		});
 	});
 });

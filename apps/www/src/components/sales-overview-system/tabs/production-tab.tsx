@@ -12,6 +12,7 @@ import { Accordion } from "@gnd/ui/accordion";
 import { Card, CardHeader } from "@gnd/ui/card";
 import { useQuery } from "@gnd/ui/tanstack";
 
+import { getProductionTabItems } from "../lib/production-items";
 import { useSalesOverviewSystem } from "../provider";
 
 export function SalesOverviewProductionTab() {
@@ -61,8 +62,7 @@ function ProductionPageFallback() {
 			{ enabled: !!overviewId && currentTab === "production" },
 		),
 	);
-	const items =
-		data?.items?.filter((item) => item?.itemConfig?.production) || [];
+	const items = getProductionTabItems(data?.items);
 
 	return (
 		<div className="mt-0 space-y-6">

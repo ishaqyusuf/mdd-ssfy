@@ -21,6 +21,7 @@ export type ResolveOrderInboundDemandStatusInput = {
 export type CanOrderInboundPromptMutateDemandInput = {
   orderInventoryStatus?: string | null;
   demandStatus?: string | null;
+  qtyReceived: number | null | undefined;
   inboundShipmentItemId?: number | null;
 };
 
@@ -44,6 +45,9 @@ export function resolveOrderInboundDemandStatus(
 export function canOrderInboundPromptMutateDemand(
   input: CanOrderInboundPromptMutateDemandInput,
 ) {
+  const qtyReceived = Math.max(0, Number(input.qtyReceived || 0));
+  if (qtyReceived > 0) return false;
+
   if (
     !ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES.includes(
       input.demandStatus as (typeof ORDER_PROMPT_MUTABLE_INBOUND_DEMAND_STATUSES)[number],
@@ -52,12 +56,11 @@ export function canOrderInboundPromptMutateDemand(
     return false;
   }
 
-  if (input.orderInventoryStatus === "PENDING ORDER") {
-    return !input.inboundShipmentItemId;
-  }
+  if (input.inboundShipmentItemId != null) return false;
 
   return (
     input.orderInventoryStatus === "AVAILABLE" ||
-    input.orderInventoryStatus === "ORDERED"
+    input.orderInventoryStatus === "ORDERED" ||
+    input.orderInventoryStatus === "PENDING ORDER"
   );
 }

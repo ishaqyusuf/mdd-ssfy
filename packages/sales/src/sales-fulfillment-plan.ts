@@ -2622,9 +2622,10 @@ async function recomputeLineItemComponentFulfillment(
 	db: DbLike,
 	lineItemComponentId: number,
 ) {
-	const component = await db.lineItemComponents.findUnique({
+	const component = await db.lineItemComponents.findFirst({
 		where: {
 			id: lineItemComponentId,
+			deletedAt: null,
 		},
 		select: {
 			id: true,
@@ -2686,9 +2687,10 @@ async function recomputeLineItemComponentFulfillment(
 		status = "inbound_required";
 	}
 
-	return db.lineItemComponents.update({
+	const updatedComponent = await db.lineItemComponents.updateMany({
 		where: {
 			id: component.id,
+			deletedAt: null,
 		},
 		data: {
 			qtyAllocated,
@@ -2697,6 +2699,14 @@ async function recomputeLineItemComponentFulfillment(
 			status,
 		},
 	});
+	if (updatedComponent.count <= 0) return null;
+
+	return {
+		qtyAllocated,
+		qtyInbound,
+		qtyReceived,
+		status,
+	};
 }
 
 async function getAvailableStockRows(
@@ -2851,9 +2861,10 @@ export async function allocateReceivedInboundToBackorders(
 		let alreadyCoveredDemandCount = 0;
 
 		for (const demand of demands) {
-			const component = await tx.lineItemComponents.findUnique({
+			const component = await tx.lineItemComponents.findFirst({
 				where: {
 					id: demand.lineItemComponentId,
+					deletedAt: null,
 				},
 				select: {
 					qty: true,
@@ -3145,6 +3156,56 @@ export async function shipAvailableSalesInventory(
 		let consumedAllocationQty = 0;
 		let inboundDemandCreatedQty = 0;
 
+		for (const { plan, decision } of mutationLines) {
+			for (const componentPlan of plan.components) {
+				if (componentPlan.consumeQty > 0) {
+					const consumeQty =
+						plan.shipQty > 0
+							? roundQuantity(
+									componentPlan.consumeQty *
+										(decision.shipQty / plan.shipQty),
+								)
+							: 0;
+					const consumed = await consumeComponentAllocations(tx, {
+						lineItemComponentId: componentPlan.componentId,
+						consumeQty,
+						note: input.note || "Consumed by inventory partial shipment.",
+					});
+					if (consumed.consumedQty < consumeQty) {
+						throw new Error(
+							"Available inventory allocation was already claimed before partial shipment completed.",
+						);
+					}
+					consumedAllocationQty = roundQuantity(
+						consumedAllocationQty + consumed.consumedQty,
+					);
+				}
+
+				if (componentPlan.backorderedQty > 0 && decision.backorderedQty > 0) {
+					const inboundDemand = await ensureBackorderInboundDemand(tx, {
+						lineItemComponentId: componentPlan.componentId,
+						inventoryVariantId: componentPlan.inventoryVariantId,
+						backorderedQty:
+							plan.backorderedQty > 0
+								? roundQuantity(
+										componentPlan.backorderedQty *
+											(decision.backorderedQty / plan.backorderedQty),
+									)
+								: 0,
+						note: input.note || "Backorder demand from partial shipment.",
+					});
+					inboundDemandCreatedQty = roundQuantity(
+						inboundDemandCreatedQty + inboundDemand.createdQty,
+					);
+				}
+
+				await recomputeLineItemComponentFulfillment(
+					tx,
+					componentPlan.componentId,
+				);
+			}
+		}
+
 		if (shippableLines.length) {
 			const delivery = await tx.orderDelivery.create({
 				data: {
@@ -3184,50 +3245,6 @@ export async function shipAvailableSalesInventory(
 					},
 				})),
 			});
-		}
-
-		for (const { plan, decision } of mutationLines) {
-			for (const componentPlan of plan.components) {
-				if (componentPlan.consumeQty > 0) {
-					const consumed = await consumeComponentAllocations(tx, {
-						lineItemComponentId: componentPlan.componentId,
-						consumeQty:
-							plan.shipQty > 0
-								? roundQuantity(
-										componentPlan.consumeQty *
-											(decision.shipQty / plan.shipQty),
-									)
-								: 0,
-						note: input.note || "Consumed by inventory partial shipment.",
-					});
-					consumedAllocationQty = roundQuantity(
-						consumedAllocationQty + consumed.consumedQty,
-					);
-				}
-
-				if (componentPlan.backorderedQty > 0 && decision.backorderedQty > 0) {
-					const inboundDemand = await ensureBackorderInboundDemand(tx, {
-						lineItemComponentId: componentPlan.componentId,
-						inventoryVariantId: componentPlan.inventoryVariantId,
-						backorderedQty:
-							plan.backorderedQty > 0
-								? roundQuantity(
-										componentPlan.backorderedQty *
-											(decision.backorderedQty / plan.backorderedQty),
-									)
-								: 0,
-						note: input.note || "Backorder demand from partial shipment.",
-					});
-					inboundDemandCreatedQty = roundQuantity(
-						inboundDemandCreatedQty + inboundDemand.createdQty,
-					);
-				}
-
-				await recomputeLineItemComponentFulfillment(
-					tx,
-					componentPlan.componentId,
-				);
-			}
 		}
 
 		const shippedQty = sumBy(shippableLines, ({ decision }) => decision.shipQty);

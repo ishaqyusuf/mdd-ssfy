@@ -5263,7 +5263,15 @@ export async function updateCategoryStockMode(
   db: Db,
   data: UpdateCategoryStockMode,
 ) {
-  return db.inventoryCategory.update({
+  const previous = await db.inventoryCategory.findUnique({
+    where: {
+      id: data.id,
+    },
+    select: {
+      stockMode: true,
+    },
+  });
+  const updated = await db.inventoryCategory.update({
     where: {
       id: data.id,
     },
@@ -5275,6 +5283,13 @@ export async function updateCategoryStockMode(
       stockMode: true,
     },
   });
+
+  return {
+    ...updated,
+    previousStockMode: previous?.stockMode ?? null,
+    becameTracked:
+      previous?.stockMode !== "monitored" && updated.stockMode === "monitored",
+  };
 }
 
 export async function updateInventoryProductKind(

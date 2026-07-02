@@ -15,6 +15,97 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Production-Only Sentry For Web And Mobile App
+- Priority: Medium
+- Description: Track plan in `brain/plans/2026-07-02-bug-fix-production-only-sentry-for-web-and-mobile-app.md`.
+- Related Feature: Observability and mobile app reliability
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-02-bug-fix-production-only-sentry-for-web-and-mobile-app.md
+- Created Date: 2026-07-02
+
+### Sales Document WhatsApp And SMS Delivery
+- Priority: High
+- Description: Track plan in `brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md`.
+- Related Feature: Sales quote/order document delivery
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md
+- Intake File: brain/intake/2026-07-02-sales-document-whatsapp-sms-delivery.md
+- Created Date: 2026-07-02
+
+### Sales Order Inventory Repair On Order Updates
+- Priority: High
+- Description: Track plan in `brain/plans/2026-07-01-feature-sales-order-inventory-repair-on-updates.md`.
+- Related Feature: Inventory-backed sales fulfillment
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-01-feature-sales-order-inventory-repair-on-updates.md
+- Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
+- Created Date: 2026-07-01
+
+### Sales Overview Inventory Inbounds UX And Action Gating
+- Priority: High
+- Description: Track plan in `brain/plans/2026-07-01-bug-fix-sales-overview-inventory-inbounds-ux-action-gating.md`.
+- Related Feature: Sales overview inventory workflows
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-01-bug-fix-sales-overview-inventory-inbounds-ux-action-gating.md
+- Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
+- Created Date: 2026-07-01
+
+### Sales Book Inbounds Workspace Table Core Upgrade
+- Priority: Medium
+- Description: Track plan in `brain/plans/2026-07-01-ux-ui-sales-book-inbounds-table-core-upgrade.md`.
+- Related Feature: Sales inbound management and inventory inbound workspace
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-01-ux-ui-sales-book-inbounds-table-core-upgrade.md
+- Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
+- Created Date: 2026-07-01
+
+### Community Table Density And Viewport Polish
+- Priority: Medium
+- Description: Track plan in `brain/plans/2026-07-01-ux-ui-community-table-density-viewport-polish.md`.
+- Related Feature: Community operations tables
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-01-ux-ui-community-table-density-viewport-polish.md
+- Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
+- Created Date: 2026-07-01
+
+### Community Projects Table Migration And Action Menu Standardization
+- Priority: Medium
+- Description: Track plan in `brain/plans/2026-07-01-ux-ui-community-projects-table-action-standardization.md`.
+- Related Feature: Community operations tables
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-01-ux-ui-community-projects-table-action-standardization.md
+- Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
+- Created Date: 2026-07-01
+
+### Inventory System Correctness Cutover
+- Priority: High
+- Description: Execute the hardening and cutover readiness plan for inventory-backed sales fulfillment, covering terminal-order read-only policy, demand/inbound mutation guards, receiving retry safety, allocation/backorder correctness, production/dispatch gates, reconciliation, browser proof, and final release gates.
+- Related Feature: Inventory-backed sales fulfillment cutover
+- Status: In Progress
+- Plan Status: In Progress
+- Plan File: brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md
+- Source Intake: brain/intake/2026-06-15-inventory-cutover-pending-scope.md
+- Related Intake: brain/intake/2026-06-22-sales-overview-inventory-workflows.md
+- Pending Gate Intake: brain/intake/2026-07-01-inventory-correctness-pending-gates.md
+- Intake Status: Confirmed. The June 15 source intake and June 22 related workflow intake remain the source intakes; the July 1 pending-gates intake is a user-requested consolidation of the active remaining gates and does not expand scope.
+- Created Date: 2026-07-01
+- Latest Completed Slices: Phase 0 invariant matrix, fulfilled/cancelled inventory read-only enforcement, Sales Overview Inventory active-tab/read-only UI, inbound create/assign parent-sale guards, route input validation and confirmed-write proof slices, Phase 8 repair-path audit/evidence runner/repair runner, reviewed stale/componentless repair apply evidence, sync stale-cleanup timestamp precision hardening, shipment/allocation classification evidence, missing-sales scope classification evidence, scoped active/order missing-sales batch evidence, materializable/mapping-blocked backfill classification, materializable active/order backfill apply evidence, zero-component componentless review evidence, zero-component source-shape classification evidence, HPT door component fallback, reviewed zero-component repair apply evidence, and eleven additional reviewed materializable backfill applies.
+- Phase 0 Evidence: brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md
+- Latest Phase 8 Evidence: brain/reports/2026-07-01-inventory-reconciliation-evidence.md; current result is not clean (`needs_backfill`, `20449` missing sales, `0` componentless lines, `0` componentless sales, `9` shipment/allocation drift, `1` skipped comparison, `hasMore=true`, next cursor `208`). The previous `86` HPT zero-component lines were resolved, and eleven additional reviewed materializable active/order batches created `1323` more inventory sale lines while keeping componentless/stale evidence clear. Repairs are stopped by user request; if explicitly resumed, the latest repair plan starts with the next 50-id materializable active/order missing-sales batch (`244` materializable active/order candidates remain, `1380` active/order candidates are mapping-blocked), followed by non-active/mapping-blocked scope decisions and shipment/allocation review.
+- Latest Ledger Correction: 2026-07-01 documentation-only alignment of the cutover plan, roadmap, in-progress ledger, done ledger, progress log, and reconciliation evidence after eleven additional reviewed materializable active/order backfill applies; this does not close the cutover.
+- Latest Documentation Alignment: 2026-07-01 intake and pending-phase audit confirmed the roadmap state without new data repair or new evidence collection. Completed slices remain done evidence only; the roadmap workstream remains In Progress until Phase 11 release acceptance is recorded.
+- Ledger Rule: Completed slices are recorded in `brain/tasks/done.md`, but the roadmap workstream stays In Progress until Phase 11 release acceptance is recorded in the cutover plan.
+- Open Gates: clean Phase 8 reconciliation evidence after the stopped repair loop is explicitly resumed or product-scoped, non-active and mapping-blocked missing-sales scope is decided, and classified shipment/allocation blockers are resolved; Phase 1/2/3/4/5/6/7 operator proof gaps; Phase 9 UI polish; Phase 10 browser proof matrix; and Phase 11 release acceptance.
+- Pending Phase Order: Phase 8 clean reconciliation -> Phase 1-7 operator proof gaps -> Phase 9 UI polish -> Phase 10 browser proof matrix -> Phase 11 release gates.
+- Next Gate: repairs are stopped by user request. Do not run more repair dry-runs or applies unless repairs are explicitly resumed; if resumed, the next 50-id materializable active/order backfill batch is `2792` through `2884`. Meanwhile, decide the non-active/mapping-blocked missing-sales buckets and review the remaining shipment/allocation mismatch classes. Clean Phase 8 reconciliation evidence must be recorded before moving to the broad browser/operator proof matrix.
+
 ### Sales Payment C.C.C Record Visibility
 - Priority: Medium
 - Description: Track plan in `brain/plans/2026-06-24-feature-sales-payment-ccc-record-visibility.md`.

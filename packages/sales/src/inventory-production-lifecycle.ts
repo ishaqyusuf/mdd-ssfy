@@ -181,15 +181,16 @@ export async function syncInventoryProductionLifecycleForSale(
       now,
     );
 
-    await db.lineItem.update({
+    const updatedLineItem = await db.lineItem.updateMany({
       where: {
         id: lineItem.id,
+        deletedAt: null,
       },
       data: {
         meta: mergeMetaWithProduction(lineItem.meta, production),
       },
     });
-    updated += 1;
+    if (updatedLineItem.count > 0) updated += 1;
   }
 
   return {

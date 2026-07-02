@@ -4,6 +4,7 @@ import {
 	planComponentDemandState,
 	resolveProjectedInboundDemandStatus,
 	resolveSalesItemProductionEligibility,
+	syncSalesInventoryLineItems,
 } from "./sync-sales-inventory-line-items";
 
 const emptyItem = {
@@ -496,6 +497,67 @@ describe("sync sales inventory line items", () => {
 		]);
 	});
 
+	it("uses the HPT root product for door rows missing their own product mapping", () => {
+		const candidates = buildInventorySyncComponentCandidatesForItem({
+			...emptyItem,
+			id: 32,
+			description: "House Package Tool",
+			housePackageTool: {
+				deletedAt: null,
+				totalDoors: 5,
+				stepProduct: {
+					uid: "carrara-door",
+					name: "Carrara Door",
+					step: {
+						uid: "door-step",
+						title: "Door",
+					},
+				},
+				doors: [
+					{
+						totalQty: 0,
+						dimension: '34" x 80"',
+						unitPrice: 95.5,
+						lineTotal: 191,
+						stepProduct: null,
+					},
+					{
+						totalQty: 0,
+						dimension: '36" x 80"',
+						unitPrice: 95.5,
+						lineTotal: 286.5,
+						stepProduct: null,
+					},
+				],
+			},
+		});
+
+		expect(
+			candidates.map((candidate) => ({
+				sourceType: candidate.sourceType,
+				sourceUid: candidate.sourceUid,
+				variantUid: candidate.variantUid,
+				qty: candidate.qty,
+				unitSalesPrice: candidate.unitSalesPrice,
+			})),
+		).toEqual([
+			{
+				sourceType: "dyke-door-product",
+				sourceUid: "carrara-door",
+				variantUid: "w2_10-h6_8",
+				qty: 2,
+				unitSalesPrice: 95.5,
+			},
+			{
+				sourceType: "dyke-door-product",
+				sourceUid: "carrara-door",
+				variantUid: "w3_0-h6_8",
+				qty: 3,
+				unitSalesPrice: 95.5,
+			},
+		]);
+	});
+
 	it("preserves produceable semantics for persisted mixed grouped metadata rows", () => {
 		const hptLine = {
 			...emptyItem,
@@ -810,5 +872,359 @@ describe("sync sales inventory line items", () => {
 				},
 			}),
 		).toBe(false);
+	});
+
+	it("cleans removed sales-item inventory lines only after the stale line soft-delete is confirmed", async () => {
+		const calls: Array<{ name: string; payload?: unknown }> = [];
+		const db = {
+			salesOrders: {
+				findFirstOrThrow: async () => {
+					calls.push({ name: "salesOrders.findFirstOrThrow" });
+					return {
+						id: 9001,
+						inventoryStatus: null,
+						salesProfile: null,
+						items: [],
+						lineItems: [
+							{
+								id: 91,
+								salesItemId: 10,
+								inventoryId: 20,
+								components: [],
+							},
+						],
+					};
+				},
+			},
+			lineItem: {
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "lineItem.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.findMany", payload });
+					return [{ id: 501 }, { id: 502 }];
+				},
+				deleteMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.deleteMany", payload });
+					return { count: 2 };
+				},
+			},
+			stockAllocation: {
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "stockAllocation.updateMany", payload });
+					return { count: 2 };
+				},
+				deleteMany: async (payload: unknown) => {
+					calls.push({ name: "stockAllocation.deleteMany", payload });
+					return { count: 2 };
+				},
+			},
+			inboundDemand: {
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.updateMany", payload });
+					return { count: 1 };
+				},
+				deleteMany: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.deleteMany", payload });
+					return { count: 1 };
+				},
+			},
+		};
+
+		const result = await syncSalesInventoryLineItems(db as any, {
+			salesOrderId: 9001,
+			source: "repair",
+		});
+		const lineUpdate = calls.find((call) => call.name === "lineItem.updateMany");
+		const componentRead = calls.find(
+			(call) => call.name === "lineItemComponents.findMany",
+		);
+		const childCleanup = calls.filter((call) =>
+			[
+				"stockAllocation.updateMany",
+				"stockAllocation.deleteMany",
+				"inboundDemand.updateMany",
+				"inboundDemand.deleteMany",
+				"lineItemComponents.deleteMany",
+			].includes(call.name),
+		);
+
+		expect(result.deletedCount).toBe(1);
+		expect(lineUpdate?.payload).toMatchObject({
+			where: {
+				id: {
+					in: [91],
+				},
+				deletedAt: null,
+				lineItemType: "SALE",
+				saleId: 9001,
+				salesItemId: {
+					in: [10],
+				},
+			},
+		});
+		expect(componentRead?.payload).toMatchObject({
+			where: {
+				lineItemId: {
+					in: [91],
+				},
+				parent: {
+					is: {
+						deletedAt: {
+							not: null,
+						},
+					},
+				},
+			},
+		});
+		expect(childCleanup.map((call) => call.name)).toEqual([
+			"stockAllocation.updateMany",
+			"stockAllocation.deleteMany",
+			"inboundDemand.updateMany",
+			"inboundDemand.deleteMany",
+			"lineItemComponents.deleteMany",
+		]);
+	});
+
+	it("guards stale component cleanup by the exact pre-read component identity", async () => {
+		const calls: Array<{ name: string; payload?: unknown }> = [];
+		let lineItemFindCount = 0;
+		const db = {
+			salesOrders: {
+				findFirstOrThrow: async () => ({
+					id: 9001,
+					inventoryStatus: null,
+					salesProfile: null,
+					items: [
+						{
+							id: 10,
+							description: "Configured line",
+							dykeProduction: true,
+							qty: 1,
+							rate: 100,
+							total: 100,
+							meta: {
+								inventoryId: 20,
+								inventoryVariantId: 30,
+								inventoryCategoryId: 40,
+							},
+							formSteps: [],
+							shelfItems: [],
+							housePackageTool: null,
+						},
+					],
+					lineItems: [
+						{
+							id: 91,
+							salesItemId: 10,
+							inventoryId: 20,
+							components: [],
+						},
+					],
+				}),
+			},
+			inventory: {
+				findFirst: async () => ({
+					uid: "configured-line",
+				}),
+			},
+			lineItem: {
+				findUnique: async () => {
+					lineItemFindCount += 1;
+					if (lineItemFindCount === 1) {
+						return { id: 91 };
+					}
+					return {
+						id: 91,
+						inventoryId: 20,
+						components: [
+							{
+								id: 501,
+								subComponentId: 601,
+								inventoryVariantId: 701,
+							},
+						],
+					};
+				},
+				update: async (payload: unknown) => {
+					calls.push({ name: "lineItem.update", payload });
+					return { id: 91 };
+				},
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "lineItem.updateMany", payload });
+					return { count: 0 };
+				},
+			},
+			stockAllocation: {
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "stockAllocation.updateMany", payload });
+					return { count: 1 };
+				},
+				deleteMany: async (payload: unknown) => {
+					calls.push({ name: "stockAllocation.deleteMany", payload });
+					return { count: 1 };
+				},
+			},
+			inboundDemand: {
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.updateMany", payload });
+					return { count: 1 };
+				},
+				deleteMany: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.deleteMany", payload });
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				deleteMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.deleteMany", payload });
+					return { count: 1 };
+				},
+			},
+		};
+
+		await syncSalesInventoryLineItems(db as any, {
+			salesOrderId: 9001,
+			source: "repair",
+		});
+		const allocationUpdate = calls.find(
+			(call) => call.name === "stockAllocation.updateMany",
+		);
+		const allocationDelete = calls.find(
+			(call) => call.name === "stockAllocation.deleteMany",
+		);
+		const inboundDelete = calls.find(
+			(call) => call.name === "inboundDemand.deleteMany",
+		);
+		const componentDelete = calls.find(
+			(call) => call.name === "lineItemComponents.deleteMany",
+		);
+		const exactComponentIdentity = {
+			OR: [
+				{
+					id: 501,
+					lineItemId: 91,
+					subComponentId: 601,
+					inventoryVariantId: 701,
+				},
+			],
+		};
+
+		expect(allocationUpdate?.payload).toMatchObject({
+			where: {
+				lineItemComponentId: {
+					in: [501],
+				},
+				lineItemComponent: {
+					is: exactComponentIdentity,
+				},
+			},
+		});
+		expect(allocationDelete?.payload).toMatchObject({
+			where: {
+				lineItemComponentId: {
+					in: [501],
+				},
+				lineItemComponent: {
+					is: exactComponentIdentity,
+				},
+				deletedAt: {
+					not: null,
+				},
+				status: "released",
+			},
+		});
+		expect(inboundDelete?.payload).toMatchObject({
+			where: {
+				lineItemComponentId: {
+					in: [501],
+				},
+				lineItemComponent: {
+					is: exactComponentIdentity,
+				},
+				deletedAt: {
+					not: null,
+				},
+				status: "cancelled",
+			},
+		});
+		expect(componentDelete?.payload).toMatchObject({
+			where: exactComponentIdentity,
+		});
+	});
+
+	it("skips removed sales-item child cleanup when stale line soft-delete is not confirmed", async () => {
+		const calls: string[] = [];
+		const db = {
+			salesOrders: {
+				findFirstOrThrow: async () => {
+					calls.push("salesOrders.findFirstOrThrow");
+					return {
+						id: 9001,
+						inventoryStatus: null,
+						salesProfile: null,
+						items: [],
+						lineItems: [
+							{
+								id: 91,
+								salesItemId: 10,
+								inventoryId: 20,
+								components: [],
+							},
+						],
+					};
+				},
+			},
+			lineItem: {
+				updateMany: async () => {
+					calls.push("lineItem.updateMany");
+					return { count: 0 };
+				},
+			},
+			lineItemComponents: {
+				findMany: async () => {
+					calls.push("lineItemComponents.findMany");
+					return [{ id: 501 }];
+				},
+				deleteMany: async () => {
+					calls.push("lineItemComponents.deleteMany");
+					return { count: 1 };
+				},
+			},
+			stockAllocation: {
+				updateMany: async () => {
+					calls.push("stockAllocation.updateMany");
+					return { count: 1 };
+				},
+				deleteMany: async () => {
+					calls.push("stockAllocation.deleteMany");
+					return { count: 1 };
+				},
+			},
+			inboundDemand: {
+				updateMany: async () => {
+					calls.push("inboundDemand.updateMany");
+					return { count: 1 };
+				},
+				deleteMany: async () => {
+					calls.push("inboundDemand.deleteMany");
+					return { count: 1 };
+				},
+			},
+		};
+
+		const result = await syncSalesInventoryLineItems(db as any, {
+			salesOrderId: 9001,
+			source: "repair",
+		});
+
+		expect(result.deletedCount).toBe(0);
+		expect(calls).toEqual([
+			"salesOrders.findFirstOrThrow",
+			"lineItem.updateMany",
+		]);
 	});
 });

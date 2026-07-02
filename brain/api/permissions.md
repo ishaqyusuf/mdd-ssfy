@@ -14,6 +14,7 @@ Tracks authentication and authorization patterns across API surfaces.
   - it gets read-style community access for projects, units, and templates
   - install-cost queries and mutations are explicitly blocked server-side for that role
 - Custom job access can now be granted either globally through jobs settings (`allowCustomJobs`) or per-employee through the `submitCustomJob` permission.
+- `jobs.deleteJob` is authenticated and permission-aware: the assigned contractor can delete their own unlocked mistaken submission, while admins need `editJobs`; approved, completed, paid, payment-cancelled, and payout-linked jobs cannot be deleted by either path.
 - Admins use the same route but get extra controls:
   - an additional `Cancelled` tab
   - lifecycle actions like `Mark Completed`, `Cancel`, and move-back-to-queue

@@ -631,12 +631,72 @@ describe("buildSalesInventorySyncMonitor", () => {
 			lineItemIds: [91],
 		});
 		expect(calls).toEqual([
+			"lineItem.updateMany",
 			"stockAllocation.updateMany",
 			"stockAllocation.deleteMany",
 			"inboundDemand.updateMany",
 			"inboundDemand.deleteMany",
 			"lineItemComponents.deleteMany",
-			"lineItem.updateMany",
 		]);
+	});
+
+	test("skips stale inventory sale-line child cleanup when the line is no longer stale at apply time", async () => {
+		const calls: string[] = [];
+		const db = {
+			lineItem: {
+				findMany: async () => [
+					{
+						id: 91,
+						components: [{ id: 501 }, { id: 502 }],
+					},
+				],
+				updateMany: async () => {
+					calls.push("lineItem.updateMany");
+					return { count: 0 };
+				},
+			},
+			stockAllocation: {
+				updateMany: async () => {
+					calls.push("stockAllocation.updateMany");
+					return { count: 2 };
+				},
+				deleteMany: async () => {
+					calls.push("stockAllocation.deleteMany");
+					return { count: 2 };
+				},
+			},
+			inboundDemand: {
+				updateMany: async () => {
+					calls.push("inboundDemand.updateMany");
+					return { count: 1 };
+				},
+				deleteMany: async () => {
+					calls.push("inboundDemand.deleteMany");
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				deleteMany: async () => {
+					calls.push("lineItemComponents.deleteMany");
+					return { count: 2 };
+				},
+			},
+		};
+
+		const result = await cleanupStaleSalesInventoryLineItems(db as any, {
+			lineItemIds: [91],
+			dryRun: false,
+		});
+
+		expect(result).toEqual({
+			dryRun: false,
+			matchedCount: 1,
+			cleanedLineItemCount: 0,
+			componentCount: 0,
+			releasedAllocationCount: 0,
+			cancelledInboundDemandCount: 0,
+			lineItemIds: [91],
+		});
+		expect(calls).toEqual(["lineItem.updateMany"]);
 	});
 });

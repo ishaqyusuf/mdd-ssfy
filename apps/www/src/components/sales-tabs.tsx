@@ -159,7 +159,7 @@ export function SalesTabs({
 				className,
 			)}
 		>
-			<ButtonGroup className="shrink-0">
+			<ButtonGroup className={cn("shrink-0", !compact && "[&>*]:rounded-none")}>
 				{visibleTabs.map((tab) => {
 					const Icon = getTabIcon(tab.icon);
 					const isActive =
@@ -177,7 +177,7 @@ export function SalesTabs({
 							)}
 							key={tab.href}
 							size={compact ? "sm" : "default"}
-							variant={isActive ? "default" : "outline"}
+							variant={isActive ? "default" : compact ? "outline" : "ghost"}
 						>
 							<Link
 								aria-current={isActive ? "page" : undefined}

@@ -33,6 +33,7 @@ import {
 import { consoleLog, formatCurrency, formatMoney } from "@gnd/utils";
 import { calculateSalesDueAmount } from "@sales/sales-transaction";
 import { payrollUid } from "@sales/utils/utils";
+import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 import {
   isControlReadV2Enabled,
   withSalesControl,
@@ -237,11 +238,20 @@ export async function getSaleOverview(
 
   if (salesType === "quote") return overview;
 
-  const [saleWithControl] = isControlReadV2Enabled()
-    ? await withSalesListControl([overview], db)
-    : await withSalesControl([overview], db);
+  const inventoryInboundOwnership = await getSalesInventoryInboundOwnership(
+    db,
+    sale.id,
+  );
+  const overviewWithInventoryInboundOwnership = {
+    ...overview,
+    inventoryInboundOwnership,
+  };
 
-  return saleWithControl ?? overview;
+  const [saleWithControl] = isControlReadV2Enabled()
+    ? await withSalesListControl([overviewWithInventoryInboundOwnership], db)
+    : await withSalesControl([overviewWithInventoryInboundOwnership], db);
+
+  return saleWithControl ?? overviewWithInventoryInboundOwnership;
 }
 
 type SalesNoteCountReference = {

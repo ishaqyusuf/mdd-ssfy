@@ -99,7 +99,13 @@ export function InboundSalesModal({}) {
                 });
                 setParams(null);
             },
-            onError(e) {},
+            onError(error) {
+                toast({
+                    title: "Unable to update inbound status",
+                    description: error.message,
+                    variant: "destructive",
+                });
+            },
         }),
     );
     const statusList = [...orderInboundStatuses];

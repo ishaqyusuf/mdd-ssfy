@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import type { TransactionClient } from "@gnd/db";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import {
 	createStoredDocumentRegistry,
@@ -11,8 +12,15 @@ import {
 	createInboundShipmentFromDemands,
 	getInboundShipmentDetail,
 	listInboundShipments,
+	releaseCancelledInboundShipmentDemand,
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
+import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
+import {
+	resolveSalesInventoryFulfillmentStatus,
+	resolveSalesInventoryOperationPolicy,
+	resolveSalesInventoryOverviewSetupMode,
+} from "@gnd/sales/sales-inventory-policy";
 import { stripSpecialCharacters } from "@gnd/utils";
 import { getSubscribersAccount } from "@notifications/channel-subscribers";
 import { syncChannels } from "@notifications/channels-query";
@@ -52,6 +60,175 @@ async function getInboundActor(ctx: TRPCContext) {
 			name: true,
 		},
 	});
+}
+
+type InboundGuardSale = {
+	id: number;
+	orderId: string;
+	status: string | null;
+	prodStatus: string | null;
+	deliveries: Array<{
+		status: string | null;
+		_count: {
+			items: number;
+		};
+	}>;
+	stat: Array<{
+		type: string;
+		status: string | null;
+		percentage: number | null;
+	}>;
+};
+
+type InboundDbContext = {
+	db: TRPCContext["db"] | TransactionClient;
+};
+
+const inboundGuardSaleSelect = {
+	id: true,
+	orderId: true,
+	status: true,
+	prodStatus: true,
+	deliveries: {
+		where: {
+			deletedAt: null,
+		},
+		select: {
+			status: true,
+			_count: {
+				select: {
+					items: true,
+				},
+			},
+		},
+	},
+	stat: {
+		where: {
+			deletedAt: null,
+			type: {
+				in: ["dispatchCompleted", "dispatchInProgress", "dispatchAssigned"],
+			},
+		},
+		select: {
+			type: true,
+			status: true,
+			percentage: true,
+		},
+	},
+} as const;
+
+function assertSaleCanCreateInbound(sale: InboundGuardSale) {
+	const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
+		deliveries: sale.deliveries,
+		stats: sale.stat,
+	});
+	const lifecycle = getSalesOrderLifecycleStatusInfo({
+		orderStatus: sale.status,
+		legacyProductionStatus: sale.prodStatus,
+		fulfillmentStatus,
+	});
+	const setupMode = resolveSalesInventoryOverviewSetupMode({
+		lifecycleStatus: lifecycle.status,
+		inventoryRowCount: 1,
+	});
+	const policy = resolveSalesInventoryOperationPolicy({
+		lifecycleStatus: lifecycle.status,
+		setupMode,
+	});
+
+	if (!policy.capabilities.canCreateInbound) {
+		throw new Error(
+			policy.reason ||
+				`Order ${sale.orderId} cannot create new inventory inbound work.`,
+		);
+	}
+}
+
+async function assertInboundRequestCanCreateDemand(
+	ctx: InboundDbContext,
+	input: {
+		demandIds?: number[];
+		lineItemComponentIds?: number[];
+		componentSelections?: Array<{
+			lineItemComponentIds: number[];
+			qty: number;
+		}>;
+	},
+) {
+	const componentIds = Array.from(
+		new Set(
+			[
+				...(input.lineItemComponentIds || []),
+				...(input.componentSelections || []).flatMap(
+					(selection) => selection.lineItemComponentIds || [],
+				),
+			].filter((id) => Number.isFinite(id)),
+		),
+	);
+	const demandIds = Array.from(
+		new Set((input.demandIds || []).filter((id) => Number.isFinite(id))),
+	);
+	const salesById = new Map<number, InboundGuardSale>();
+
+	if (componentIds.length) {
+		const components = await ctx.db.lineItemComponents.findMany({
+			where: {
+				id: {
+					in: componentIds,
+				},
+				parent: {
+					deletedAt: null,
+				},
+			},
+			select: {
+				parent: {
+					select: {
+						sale: {
+							select: inboundGuardSaleSelect,
+						},
+					},
+				},
+			},
+		});
+
+		for (const component of components) {
+			const sale = component.parent.sale;
+			if (sale) salesById.set(sale.id, sale);
+		}
+	}
+
+	if (demandIds.length) {
+		const demands = await ctx.db.inboundDemand.findMany({
+			where: {
+				id: {
+					in: demandIds,
+				},
+				deletedAt: null,
+			},
+			select: {
+				lineItemComponent: {
+					select: {
+						parent: {
+							select: {
+								sale: {
+									select: inboundGuardSaleSelect,
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+
+		for (const demand of demands) {
+			const sale = demand.lineItemComponent.parent.sale;
+			if (sale) salesById.set(sale.id, sale);
+		}
+	}
+
+	for (const sale of salesById.values()) {
+		assertSaleCanCreateInbound(sale);
+	}
 }
 
 async function createInboundActivity(
@@ -819,17 +996,42 @@ export async function updateInboundShipmentStatusQuery(
 		data.progress = 0;
 	}
 
-	const updated = await ctx.db.inboundShipment.update({
-		where: {
-			id: input.inboundId,
-		},
-		data,
-		select: {
-			id: true,
-			status: true,
-			progress: true,
-			receivedAt: true,
-		},
+	const { updated, releasedDemand } = await ctx.db.$transaction(async (tx) => {
+		const committedStatus = await tx.inboundShipment.updateMany({
+			where: {
+				id: input.inboundId,
+				deletedAt: null,
+				status: previous.status,
+			},
+			data,
+		});
+		if (committedStatus.count <= 0) {
+			throw new Error(
+				`Inbound shipment #${input.inboundId} changed before the status update could be applied.`,
+			);
+		}
+
+		const updated = await tx.inboundShipment.findFirstOrThrow({
+			where: {
+				id: input.inboundId,
+				deletedAt: null,
+			},
+			select: {
+				id: true,
+				status: true,
+				progress: true,
+				receivedAt: true,
+			},
+		});
+		const releasedDemand =
+			input.status === "cancelled"
+				? await releaseCancelledInboundShipmentDemand(tx, input.inboundId)
+				: null;
+
+		return {
+			updated,
+			releasedDemand,
+		};
 	});
 
 	await createInboundActivity(ctx, {
@@ -843,10 +1045,18 @@ export async function updateInboundShipmentStatusQuery(
 		meta: {
 			previousStatus: previous.status,
 			status: input.status,
+			releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
+			recomputedComponentCount:
+				releasedDemand?.recomputedComponentCount ?? 0,
 		},
 	});
 
-	return updated;
+	return {
+		...updated,
+		releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
+		recomputedComponentCount:
+			releasedDemand?.recomputedComponentCount ?? 0,
+	};
 }
 
 export async function createInboundShipmentQuery(
@@ -898,18 +1108,6 @@ export async function createInboundShipmentFromDemandsQuery(
 	},
 ) {
 	const actor = await getInboundActor(ctx);
-	const ensuredDemandIds = input.componentSelections?.length
-		? await ensureSelectedInboundDemandsForStockComponents(
-				ctx,
-				input.componentSelections,
-			)
-		: await ensurePendingInboundDemandsForStockComponents(
-				ctx,
-				input.lineItemComponentIds || [],
-			);
-	const demandIds = Array.from(
-		new Set([...(input.demandIds || []), ...ensuredDemandIds]),
-	);
 	const supplier = await ctx.db.supplier.findFirst({
 		where: {
 			id: input.supplierId,
@@ -920,12 +1118,79 @@ export async function createInboundShipmentFromDemandsQuery(
 			name: true,
 		},
 	});
-	const result = await createInboundShipmentFromDemands(ctx.db, {
-		supplierId: input.supplierId,
-		demandIds,
-		reference: input.reference,
-		expectedAt: input.expectedAt,
-	});
+
+	const { result, linkedSales, updatedSalesOrderCount } =
+		await ctx.db.$transaction(async (tx) => {
+			await assertInboundRequestCanCreateDemand({ db: tx }, input);
+			const ensuredDemandIds = input.componentSelections?.length
+				? await ensureSelectedInboundDemandsForStockComponents(
+						{ db: tx },
+						input.componentSelections,
+					)
+				: await ensurePendingInboundDemandsForStockComponents(
+						{ db: tx },
+						input.lineItemComponentIds || [],
+					);
+			const demandIds = Array.from(
+				new Set([...(input.demandIds || []), ...ensuredDemandIds]),
+			);
+			const result = await createInboundShipmentFromDemands(tx, {
+				supplierId: input.supplierId,
+				demandIds,
+				reference: input.reference,
+				expectedAt: input.expectedAt,
+			});
+			const linkedDemandSales = await tx.inboundDemand.findMany({
+				where: {
+					id: {
+						in: result.linkedDemandIds,
+					},
+				},
+				select: {
+					lineItemComponent: {
+						select: {
+							parent: {
+								select: {
+									sale: {
+										select: {
+											id: true,
+											orderId: true,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const linkedSalesById = new Map<number, { id: number; orderId: string }>();
+			for (const row of linkedDemandSales) {
+				const sale = row.lineItemComponent.parent.sale;
+				if (sale) linkedSalesById.set(sale.id, sale);
+			}
+			const linkedSales = Array.from(linkedSalesById.values());
+			const updatedSalesOrderCount = linkedSales.length
+				? (
+						await tx.salesOrders.updateMany({
+							where: {
+								id: {
+									in: linkedSales.map((sale) => sale.id),
+								},
+								deletedAt: null,
+							},
+							data: {
+								inventoryStatus: "ORDERED",
+							},
+						})
+					).count
+				: 0;
+
+			return {
+				result,
+				linkedSales,
+				updatedSalesOrderCount,
+			};
+		});
 	const inbound = await ctx.db.inboundShipment.findFirst({
 		where: {
 			id: result.inboundId,
@@ -934,28 +1199,6 @@ export async function createInboundShipmentFromDemandsQuery(
 		select: {
 			id: true,
 			reference: true,
-		},
-	});
-	const orderNos = await ctx.db.inboundDemand.findMany({
-		where: {
-			id: {
-				in: demandIds,
-			},
-		},
-		select: {
-			lineItemComponent: {
-				select: {
-					parent: {
-						select: {
-							sale: {
-								select: {
-									orderId: true,
-								},
-							},
-						},
-					},
-				},
-			},
 		},
 	});
 
@@ -967,20 +1210,24 @@ export async function createInboundShipmentFromDemandsQuery(
 		activityType: "created",
 		subject: "Inbound created from demand",
 		headline: `${actor.name || "Unknown"} created inbound #${result.inboundId} from ${result.linkedDemandCount} demand row${result.linkedDemandCount === 1 ? "" : "s"}${supplier?.name ? ` for ${supplier.name}` : ""}.`,
-		orderNos: orderNos
-			.map((row) => row.lineItemComponent.parent.sale?.orderId)
-			.filter((value): value is string => Boolean(value)),
+		orderNos: linkedSales.map((sale) => sale.orderId),
 		meta: {
 			createdItemCount: result.createdItemCount,
 			linkedDemandCount: result.linkedDemandCount,
+			updatedSalesOrderCount,
 		},
 	});
 
-	return result;
+	return {
+		inboundId: result.inboundId,
+		createdItemCount: result.createdItemCount,
+		linkedDemandCount: result.linkedDemandCount,
+		updatedSalesOrderCount,
+	};
 }
 
 async function ensurePendingInboundDemandsForStockComponents(
-	ctx: TRPCContext,
+	ctx: InboundDbContext,
 	lineItemComponentIds: number[],
 ) {
 	return ensureSelectedInboundDemandsForStockComponents(
@@ -995,7 +1242,7 @@ async function ensurePendingInboundDemandsForStockComponents(
 }
 
 async function ensureSelectedInboundDemandsForStockComponents(
-	ctx: TRPCContext,
+	ctx: InboundDbContext,
 	selections: Array<{
 		lineItemComponentIds: number[];
 		qty: number;
@@ -1227,28 +1474,35 @@ export async function assignInboundDemandsQuery(
 	},
 ) {
 	const actor = await getInboundActor(ctx);
-	const result = await assignInboundDemandsToShipment(ctx.db, input);
-	const inbound = await ctx.db.inboundShipment.findFirst({
-		where: {
-			id: input.inboundId,
-			deletedAt: null,
-		},
-		select: {
-			id: true,
-			reference: true,
-			supplier: {
-				select: {
-					id: true,
-					name: true,
+	const { result, inbound } = await ctx.db.$transaction(async (tx) => {
+		await assertInboundRequestCanCreateDemand({ db: tx }, input);
+		const result = await assignInboundDemandsToShipment(tx, input);
+		const inbound = await tx.inboundShipment.findFirst({
+			where: {
+				id: input.inboundId,
+				deletedAt: null,
+			},
+			select: {
+				id: true,
+				reference: true,
+				supplier: {
+					select: {
+						id: true,
+						name: true,
+					},
 				},
 			},
-		},
+		});
+		return {
+			result,
+			inbound,
+		};
 	});
 
 	const orderNos = await ctx.db.inboundDemand.findMany({
 		where: {
 			id: {
-				in: input.demandIds,
+				in: result.linkedDemandIds,
 			},
 		},
 		select: {
@@ -1281,7 +1535,10 @@ export async function assignInboundDemandsQuery(
 			.filter((value): value is string => Boolean(value)),
 	});
 
-	return result;
+	return {
+		inboundId: result.inboundId,
+		linkedDemandCount: result.linkedDemandCount,
+	};
 }
 
 export async function uploadInboundDocumentsQuery(
