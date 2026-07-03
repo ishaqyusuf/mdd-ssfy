@@ -20,6 +20,10 @@ Tracks important request/response contracts and shared schema boundaries.
   - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
   - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
   - Expo mobile packing uses the same `packingListQuerySchema` tabs and opens the shared dispatch detail screen in a packing-aware mode via route params instead of introducing a second item-detail contract
+- Contractor payout print contracts now include:
+  - `jobs.contractorPayoutOverview` and `print.contractorPayouts` return `description: string | null` on each payout job row, preserving `title`, `subtitle`, project/unit fields, status, and amount semantics.
+  - `createPaymentPortal` stores each selected job's description inside `JobPayments.meta.jobSnapshots[]` so cancelled/reversed payout history can still show what was installed; older snapshots without this field hydrate it as `null`.
+  - The web payout overview and `@gnd/pdf` contractor payout report render the description under the job title before the existing project/unit fallback.
 - New sales form grouped line contract:
   - grouped service UI lines store row projection in `line.meta.serviceRows`
   - grouped moulding UI lines store row projection in `line.meta.mouldingRows`

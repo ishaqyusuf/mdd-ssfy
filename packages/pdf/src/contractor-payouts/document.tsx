@@ -257,6 +257,7 @@ type ContractorPayoutPrintData = {
 			id: number;
 			title: string | null;
 			subtitle: string | null;
+			description: string | null;
 			amount: number;
 			status: string | null;
 			createdAt: Date | string;
@@ -450,6 +451,9 @@ export function ContractorPayoutPdfDocument({
 										#{job.id} {job.title || "Untitled job"}
 										{job.subtitle ? ` - ${job.subtitle}` : ""}
 									</Text>
+									{job.description ? (
+										<Text style={styles.cellText}>{job.description}</Text>
+									) : null}
 									<Text style={styles.muted}>{formatDate(job.createdAt)}</Text>
 								</View>
 								<View style={styles.colMid}>

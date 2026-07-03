@@ -2,6 +2,18 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Fixed contractor payout reports so installer job descriptions appear in payout overview and print output.
+  - Extended payout overview, payout print data, and payout job snapshot payloads with `Jobs.description` while preserving payment totals, statuses, project/unit fallbacks, permissions, and schema.
+  - Updated the web included-jobs cards and `@gnd/pdf` contractor payout report so custom-job install descriptions render under the job title.
+  - Added focused regression coverage for live payout jobs, public print data, cancelled snapshot hydration with old-snapshot tolerance, new payout snapshot persistence, and PDF render output.
+  - Validation: `bun test apps/api/src/db/queries/jobs.payout.test.ts packages/pdf/src/contractor-payouts/document.test.ts` passed with 5 tests; `bun test apps/api/src/trpc/routers/jobs.route.test.ts` passed with 5 tests. `bun run typecheck` stopped in unrelated `@gnd/app-store` because TypeScript could not find the `node` type definition before reaching the touched packages.
+  - Brain files updated: `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/features/employee-management-v2.md`, and `brain/progress.md`; no database docs were needed because `Jobs.description` already exists and no schema or migration changed.
+
+- Published the Expo preview OTA update for Android.
+  - Ran the existing `bun run eas-update:preview` flow, which bumped `apps/expo-app/app.config.ts` `UPDATE_VERSION` from `2026.06.29` to `2026.07.02` and published message `OTA update 2026.07.02`.
+  - Verified the latest EAS preview branch Android update via `eas update:list`: runtime version `1.0.305`, group `f2728b84-8300-41cb-9fa0-a14acaf811c5`, author `pcruz321`.
+  - Brain files updated: `brain/progress.md`; no API, database, permission, or feature docs were needed because this was an Expo preview deployment/config version bump only.
+
 - Implemented guarded contractor job deletion for mistaken submissions.
   - `jobs.deleteJob` now requires authentication, checks the actor through existing `auth(ctx)` permissions, allows the assigned contractor or an `editJobs` admin to delete only unlocked jobs, and rejects approved, completed, paid, payment-cancelled, or payout-linked jobs.
   - `jobs.getJobs` and `jobs.overview` expose `deletionEligibility`, and the web contractor jobs table, web job overview modal, and Expo job footer/actions now use that server-derived eligibility for delete affordances.

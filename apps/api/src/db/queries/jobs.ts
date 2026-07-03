@@ -81,6 +81,7 @@ type PaymentJobSnapshot = {
 	id: number;
 	title: string | null;
 	subtitle: string | null;
+	description?: string | null;
 	amount: number;
 	previousStatus: string | null;
 	restoredStatus?: string | null;
@@ -130,6 +131,7 @@ function getPaymentJobSnapshots(
 		id: Number(item.id || 0),
 		title: item.title || null,
 		subtitle: item.subtitle || null,
+		description: item.description || null,
 		amount: Number(item.amount || 0),
 		previousStatus: item.previousStatus || null,
 		restoredStatus: item.restoredStatus || null,
@@ -959,6 +961,7 @@ export async function getContractorPayoutOverview(
 					id: true,
 					title: true,
 					subtitle: true,
+					description: true,
 					amount: true,
 					status: true,
 					createdAt: true,
@@ -990,6 +993,7 @@ export async function getContractorPayoutOverview(
 					id: job.id,
 					title: job.title,
 					subtitle: job.subtitle,
+					description: job.description || null,
 					amount: Number(job.amount || 0),
 					status: meta.reversedAt
 						? "Paid"
@@ -1003,6 +1007,7 @@ export async function getContractorPayoutOverview(
 					id: job.id,
 					title: job.title,
 					subtitle: job.subtitle,
+					description: job.description || null,
 					amount: Number(job.amount || 0),
 					status: job.status,
 					createdAt: job.createdAt,
@@ -1014,6 +1019,7 @@ export async function getContractorPayoutOverview(
 		id: number;
 		title: string | null;
 		subtitle: string | null;
+		description: string | null;
 		amount: number;
 		status: string | null;
 		createdAt: Date | string | null;
@@ -1122,6 +1128,7 @@ export async function getContractorPayoutPrintData(
 					id: true,
 					title: true,
 					subtitle: true,
+					description: true,
 					amount: true,
 					status: true,
 					createdAt: true,
@@ -1154,6 +1161,7 @@ export async function getContractorPayoutPrintData(
 						id: job.id,
 						title: job.title,
 						subtitle: job.subtitle,
+						description: job.description || null,
 						amount: Number(job.amount || 0),
 						status: meta.reversedAt
 							? "Paid"
@@ -1167,6 +1175,7 @@ export async function getContractorPayoutPrintData(
 						id: job.id,
 						title: job.title,
 						subtitle: job.subtitle,
+						description: job.description || null,
 						amount: Number(job.amount || 0),
 						status: job.status,
 						createdAt: job.createdAt,
@@ -1178,6 +1187,7 @@ export async function getContractorPayoutPrintData(
 			id: number;
 			title: string | null;
 			subtitle: string | null;
+			description: string | null;
 			amount: number;
 			status: string | null;
 			createdAt: Date | string | null;
@@ -1733,6 +1743,7 @@ export async function createPaymentPortal(
 			status: true,
 			title: true,
 			subtitle: true,
+			description: true,
 			createdAt: true,
 			project: {
 				select: {
@@ -1794,6 +1805,7 @@ export async function createPaymentPortal(
 		id: job.id,
 		title: job.title,
 		subtitle: job.subtitle,
+		description: job.description || null,
 		amount: Number(job.amount || 0),
 		previousStatus: job.status || null,
 		createdAt: job.createdAt,
@@ -1954,6 +1966,7 @@ export async function cancelContractorPayment(
 					status: true,
 					title: true,
 					subtitle: true,
+					description: true,
 					amount: true,
 					createdAt: true,
 					project: {
@@ -1998,6 +2011,7 @@ export async function cancelContractorPayment(
 		id: job.id,
 		title: job.title,
 		subtitle: job.subtitle,
+		description: job.description || null,
 		amount: Number(job.amount || 0),
 		previousStatus: job.status || null,
 		createdAt: job.createdAt,

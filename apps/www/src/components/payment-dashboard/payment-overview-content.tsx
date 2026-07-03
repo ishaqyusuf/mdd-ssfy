@@ -200,6 +200,11 @@ export function PaymentOverviewContent({
                                                     ? ` - ${job.subtitle}`
                                                     : ""}
                                             </p>
+                                            {job.description ? (
+                                                <p className="mt-1 line-clamp-2 text-sm text-foreground/80">
+                                                    {job.description}
+                                                </p>
+                                            ) : null}
                                             <p className="mt-1 text-sm text-muted-foreground">
                                                 {[
                                                     job.projectTitle,
