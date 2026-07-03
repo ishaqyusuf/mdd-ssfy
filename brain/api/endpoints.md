@@ -39,7 +39,8 @@ Tracks notable API surfaces and where they are implemented.
 - Contractor jobs routes now include:
   - `jobs.deleteJob`: authenticated soft-delete mutation for contractor job mistakes. It allows the assigned contractor or an `editJobs` admin to delete only unlocked jobs, and rejects jobs that are approved, completed, paid, payment-cancelled, or linked to a contractor payout.
   - `jobs.getJobs` / `jobs.overview`: job rows now expose `deletionEligibility` so web and Expo hide or disable delete actions consistently with the server guard.
-  - `jobs.contractorPayoutOverview`, `jobs.getContractorPayoutPrintData`, and public `print.contractorPayouts`: contractor payout job rows now include `description` so payout overview and printed pay reports show what installers installed, including custom jobs without project/unit links.
+  - `jobs.contractorPayoutOverview`, `jobs.getContractorPayoutPrintData`, and public `print.contractorPayouts`: contractor payout job rows now include `description` and optional `isCustom` so payout overview and printed pay reports show what installers installed, including custom jobs without project/unit links.
+  - `print.contractorPayouts`: contractor payout print data now includes top-level `companyAddress` for the branded cover page. The PDF render path uses the existing public `logo.png` and `logo-grayscale.png` assets passed through `baseUrl`.
 - Dispatch / pickup packing routes now include:
   - `dispatch.sendSaleForPickup`: creates or reuses a pickup `OrderDelivery` in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - `dispatch.packingList`: tab-aware query powering `/sales/packing-list` for `current`, `completed`, and admin-only `cancelled` views

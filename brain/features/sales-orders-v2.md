@@ -75,7 +75,7 @@
 - The current page uses the richer `tables-2/sales-orders` implementation as the table standard.
 - The older `components/tables/sales-orders-v2` files were removed after an import scan confirmed they were unused.
 - `components/tables-2/core/*` remains unchanged for this migration.
-- Legacy `/sales-book/create-order` fresh-create forms require customer selection on open. When the hydrated legacy form has no saved sales id and no `metaData.customer.id`, it opens a required `Create Order: Select Customer` dialog that reuses the existing legacy customer lookup; selecting a customer updates the same legacy form store and closes the dialog.
+- Legacy `/sales-book/create-order` fresh-create forms prompt for customer selection on open. When the hydrated legacy form has no saved sales id and no `metaData.customer.id`, it opens a dismissible `Create Order: Select Customer` dialog that reuses the existing legacy customer lookup; selecting a customer updates the same legacy form store and closes the dialog, while closing the prompt lets the user continue without selecting a customer.
 - Sales control tasks launched from `SalesMenu.MarkAs` register serializable task-monitor intents for production completion and fulfillment. The global bottom-right task monitor now handles those intents on Trigger completion and invalidates the sales list, sales summary, production overview, and sale overview queries so status changes refresh even after the dropdown unmounts.
 - Since the task monitor owns Mark As progress/completion feedback, `SalesMenu.MarkAs` suppresses duplicate start/completion toasts. Startup failures that happen before a task can be monitored still surface as destructive toast errors.
 

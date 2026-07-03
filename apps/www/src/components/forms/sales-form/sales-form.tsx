@@ -50,10 +50,14 @@ function Content({ data }) {
 	const zus = useFormDataStore();
 	const [showMobileSalesPanel, setShowMobileSalesPanel] = useState(false);
 	const [takeOff, setTakeOff] = useState(false);
+	const [customerSelectorDismissed, setCustomerSelectorDismissed] =
+		useState(false);
 	const isMobilePanel = useMediaQuery("(max-width: 1279px)");
 	const previewId = zus.metaData?.id ?? null;
-	const shouldRequireCustomerSelection =
+	const shouldPromptCustomerSelection =
 		!previewId && !zus.metaData?.customer?.id;
+	const shouldShowCustomerSelection =
+		shouldPromptCustomerSelection && !customerSelectorDismissed;
 
 	function preview() {
 		if (!previewId) return;
@@ -65,11 +69,19 @@ function Content({ data }) {
 		setShowMobileSalesPanel(false);
 	}, [isMobilePanel]);
 
+	useEffect(() => {
+		if (shouldPromptCustomerSelection) return;
+		setCustomerSelectorDismissed(false);
+	}, [shouldPromptCustomerSelection]);
+
 	return (
 		<div className="fixed bottom-0 left-0 right-0 top-[var(--header-height)] overflow-hidden bg-gradient-to-b from-slate-50 via-white to-slate-100/70 md:left-[84px]">
 			<LegacySalesCustomerSelectorDialog
-				open={shouldRequireCustomerSelection}
+				open={shouldShowCustomerSelection}
 				type={zus.metaData?.type}
+				onOpenChange={(open) => {
+					if (!open) setCustomerSelectorDismissed(true);
+				}}
 			/>
 			<div className="relative flex h-full min-h-0 overflow-hidden border border-slate-200/80 bg-white/80 shadow-sm">
 				<main className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">

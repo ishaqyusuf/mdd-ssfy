@@ -67,6 +67,7 @@ function createPayoutJob(overrides: Record<string, unknown> = {}) {
 		title: "Custom Job",
 		subtitle: "CUSTOM",
 		description: "Install 8 closet doors and doorstops.",
+		isCustom: true,
 		amount: 2074,
 		status: "Paid",
 		createdAt,
@@ -116,6 +117,7 @@ describe("contractor payout job descriptions", () => {
 		expect(data.jobs[0]?.description).toBe(
 			"Install 8 closet doors and doorstops.",
 		);
+		expect(data.jobs[0]?.isCustom).toBe(true);
 	});
 
 	it("returns live paid job descriptions in payout print data", async () => {
@@ -134,6 +136,11 @@ describe("contractor payout job descriptions", () => {
 		expect(data.payouts[0]?.jobs[0]?.description).toBe(
 			"Install 8 closet doors and doorstops.",
 		);
+		expect(data.payouts[0]?.jobs[0]?.isCustom).toBe(true);
+		expect(data.companyAddress).toMatchObject({
+			address1: "13285 SW 131 ST",
+			phone: "305-278-6555",
+		});
 	});
 
 	it("uses snapshot descriptions for cancelled payouts and tolerates old snapshots", async () => {
@@ -150,6 +157,7 @@ describe("contractor payout job descriptions", () => {
 										title: "Custom Job",
 										subtitle: "CUSTOM",
 										description: "Install 8 closet doors and doorstops.",
+										isCustom: true,
 										amount: 2074,
 										previousStatus: "Approved",
 										createdAt,
@@ -181,7 +189,9 @@ describe("contractor payout job descriptions", () => {
 		expect(data.jobs[0]?.description).toBe(
 			"Install 8 closet doors and doorstops.",
 		);
+		expect(data.jobs[0]?.isCustom).toBe(true);
 		expect(data.jobs[1]?.description).toBeNull();
+		expect(data.jobs[1]?.isCustom).toBeNull();
 	});
 
 	it("stores job descriptions in new payout snapshots", async () => {
@@ -243,6 +253,7 @@ describe("contractor payout job descriptions", () => {
 		expect(createdPayments[0]?.data.meta.jobSnapshots[0]).toMatchObject({
 			id: 20811,
 			description: "Install 8 closet doors and doorstops.",
+			isCustom: true,
 		});
 		expect(notificationCalls.at(-1)).toMatchObject({
 			paymentId: 2653,

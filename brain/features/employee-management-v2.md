@@ -231,7 +231,8 @@ Current bridge implementation in legacy contractor flows:
 - Expo Documents screen supports employee self-upload for image-based insurance/workers comp documents using the mobile gallery flow.
 - Web contractor job submission blocks when insurance is missing, pending, rejected, or expired.
 - Contractor job deletion now supports mistake recovery for unlocked submissions: the assigned contractor or an `editJobs` admin may soft-delete a job before approval/payment, while approved, completed, paid, payment-cancelled, and payout-linked jobs are locked by the API and exposed to web/Expo through `deletionEligibility`.
-- Contractor payout overview and printed payout reports show each job's `Jobs.description` under the job title so installer pay reports explain what was installed; new payout snapshots persist the description for cancelled/reversed history, while older snapshots without it display no description instead of failing.
+- Contractor payout overview and printed payout reports show each job's `Jobs.description` and custom-job status so installer pay reports explain what was installed; new payout snapshots persist both fields for cancelled/reversed history, while older snapshots without them hydrate missing values as `null`.
+- Contractor payout reports treat generic custom jobs specially: description/lot text is promoted into the visible job label, unlinked custom jobs no longer print misleading `No project / No unit` labels, and the PDF uses a branded GND cover page, address/contact block, logo watermark, and cancelled watermark where applicable.
 
 ---
 

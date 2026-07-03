@@ -25,6 +25,80 @@ function formatCurrency(value?: number | null) {
 }
 
 type PaymentOverviewData = RouterOutputs["jobs"]["contractorPayoutOverview"];
+type PaymentOverviewJob = PaymentOverviewData["jobs"][number];
+
+function normalizeInlineText(value?: string | null) {
+    return String(value || "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function isGenericCustomJob(job: PaymentOverviewJob) {
+    const title = normalizeInlineText(job.title).toLowerCase();
+    const subtitle = normalizeInlineText(job.subtitle).toLowerCase();
+
+    return (
+        job.isCustom === true ||
+        title === "custom job" ||
+        subtitle === "custom"
+    );
+}
+
+function splitDescription(value?: string | null) {
+    const description = normalizeInlineText(value);
+    if (!description) {
+        return {
+            lead: null,
+            detail: null,
+        };
+    }
+
+    const parts = description
+        .split(";")
+        .map((part) => part.trim())
+        .filter(Boolean);
+
+    if (parts.length > 1) {
+        return {
+            lead: parts[0],
+            detail: parts.slice(1).join("; "),
+        };
+    }
+
+    return {
+        lead: description,
+        detail: null,
+    };
+}
+
+function getPayoutJobDisplay(job: PaymentOverviewJob) {
+    const genericCustomJob = isGenericCustomJob(job);
+    const description = splitDescription(job.description);
+    const subtitle = normalizeInlineText(job.subtitle);
+    const title = normalizeInlineText(job.title) || "Untitled job";
+    const label =
+        genericCustomJob && description.lead
+            ? description.lead
+            : subtitle && !genericCustomJob
+              ? `${title} - ${subtitle}`
+              : title;
+    const detail =
+        genericCustomJob && description.lead
+            ? description.detail
+            : normalizeInlineText(job.description) || null;
+    const unit = [job.lotBlock, job.modelName]
+        .map((item) => normalizeInlineText(item))
+        .filter(Boolean)
+        .join(" • ");
+
+    return {
+        label,
+        detail,
+        location:
+            [normalizeInlineText(job.projectTitle), unit].filter(Boolean).join(" • ") ||
+            (genericCustomJob ? "Custom job • Details in description" : "No location details"),
+    };
+}
 
 export function PaymentOverviewContent({
     data,
@@ -187,53 +261,47 @@ export function PaymentOverviewContent({
                     </CardHeader>
                     <CardContent className="grid gap-3">
                         {data.jobs.length ? (
-                            data.jobs.map((job) => (
-                                <div
-                                    key={job.id}
-                                    className="rounded-2xl border bg-background/70 p-4"
-                                >
-                                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                        <div className="min-w-0">
-                                            <p className="truncate font-medium text-foreground">
-                                                #{job.id} {job.title}
-                                                {job.subtitle
-                                                    ? ` - ${job.subtitle}`
-                                                    : ""}
-                                            </p>
-                                            {job.description ? (
-                                                <p className="mt-1 line-clamp-2 text-sm text-foreground/80">
-                                                    {job.description}
+                            data.jobs.map((job) => {
+                                const display = getPayoutJobDisplay(job);
+
+                                return (
+                                    <div
+                                        key={job.id}
+                                        className="rounded-2xl border bg-background/70 p-4"
+                                    >
+                                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                            <div className="min-w-0">
+                                                <p className="truncate font-medium text-foreground">
+                                                    #{job.id} {display.label}
                                                 </p>
-                                            ) : null}
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {[
-                                                    job.projectTitle,
-                                                    job.lotBlock,
-                                                    job.modelName,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(" • ") ||
-                                                    "No location details"}
-                                            </p>
+                                                {display.detail ? (
+                                                    <p className="mt-1 line-clamp-2 text-sm text-foreground/80">
+                                                        {display.detail}
+                                                    </p>
+                                                ) : null}
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    {display.location}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-3 md:flex-col md:items-end">
+                                                <Badge variant="secondary">
+                                                    {job.status || "Unknown"}
+                                                </Badge>
+                                                <p className="text-sm font-semibold text-foreground">
+                                                    {formatCurrency(job.amount)}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-3 md:flex-col md:items-end">
-                                            <Badge variant="secondary">
-                                                {job.status || "Unknown"}
-                                            </Badge>
-                                            <p className="text-sm font-semibold text-foreground">
-                                                {formatCurrency(job.amount)}
-                                            </p>
-                                        </div>
+                                        <p className="mt-3 text-xs text-muted-foreground">
+                                            Created{" "}
+                                            {format(
+                                                new Date(job.createdAt),
+                                                "MMM d, yyyy",
+                                            )}
+                                        </p>
                                     </div>
-                                    <p className="mt-3 text-xs text-muted-foreground">
-                                        Created{" "}
-                                        {format(
-                                            new Date(job.createdAt),
-                                            "MMM d, yyyy",
-                                        )}
-                                    </p>
-                                </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <p className="text-sm text-muted-foreground">
                                 No jobs were attached to this payout.

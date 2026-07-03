@@ -252,19 +252,17 @@ export function SalesCustomerInput() {
 export function LegacySalesCustomerSelectorDialog({
     open,
     type,
+    onOpenChange,
 }: {
     open: boolean;
     type?: "order" | "quote";
+    onOpenChange?: (open: boolean) => void;
 }) {
     const heading = type === "quote" ? "Create Quote" : "Create Order";
 
     return (
-        <Dialog open={open}>
-            <DialogContent
-                className="max-w-2xl gap-0 overflow-hidden p-0"
-                onEscapeKeyDown={(event) => event.preventDefault()}
-                onInteractOutside={(event) => event.preventDefault()}
-            >
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl gap-0 overflow-hidden p-0">
                 <DialogHeader className="border-b bg-gradient-to-r from-slate-50 to-white px-6 py-5">
                     <DialogTitle>{heading}: Select Customer</DialogTitle>
                     <DialogDescription>

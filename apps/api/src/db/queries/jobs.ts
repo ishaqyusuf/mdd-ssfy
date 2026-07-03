@@ -8,6 +8,7 @@ import type { InstallCostMeta, JobMeta, JobStatus } from "@community/types";
 import { generateControlId, generateJobId } from "@gnd/community/utils/job";
 import type { Prisma } from "@gnd/db";
 import { Notifications } from "@gnd/notifications";
+import { resolveSalesCompanyAddress } from "@gnd/sales/print";
 import {
 	consoleLog,
 	generateRandomString,
@@ -82,6 +83,7 @@ type PaymentJobSnapshot = {
 	title: string | null;
 	subtitle: string | null;
 	description?: string | null;
+	isCustom?: boolean | null;
 	amount: number;
 	previousStatus: string | null;
 	restoredStatus?: string | null;
@@ -132,6 +134,7 @@ function getPaymentJobSnapshots(
 		title: item.title || null,
 		subtitle: item.subtitle || null,
 		description: item.description || null,
+		isCustom: typeof item.isCustom === "boolean" ? item.isCustom : null,
 		amount: Number(item.amount || 0),
 		previousStatus: item.previousStatus || null,
 		restoredStatus: item.restoredStatus || null,
@@ -962,6 +965,7 @@ export async function getContractorPayoutOverview(
 					title: true,
 					subtitle: true,
 					description: true,
+					isCustom: true,
 					amount: true,
 					status: true,
 					createdAt: true,
@@ -994,6 +998,7 @@ export async function getContractorPayoutOverview(
 					title: job.title,
 					subtitle: job.subtitle,
 					description: job.description || null,
+					isCustom: job.isCustom ?? null,
 					amount: Number(job.amount || 0),
 					status: meta.reversedAt
 						? "Paid"
@@ -1008,6 +1013,7 @@ export async function getContractorPayoutOverview(
 					title: job.title,
 					subtitle: job.subtitle,
 					description: job.description || null,
+					isCustom: job.isCustom ?? null,
 					amount: Number(job.amount || 0),
 					status: job.status,
 					createdAt: job.createdAt,
@@ -1020,6 +1026,7 @@ export async function getContractorPayoutOverview(
 		title: string | null;
 		subtitle: string | null;
 		description: string | null;
+		isCustom: boolean | null;
 		amount: number;
 		status: string | null;
 		createdAt: Date | string | null;
@@ -1129,6 +1136,7 @@ export async function getContractorPayoutPrintData(
 					title: true,
 					subtitle: true,
 					description: true,
+					isCustom: true,
 					amount: true,
 					status: true,
 					createdAt: true,
@@ -1162,6 +1170,7 @@ export async function getContractorPayoutPrintData(
 						title: job.title,
 						subtitle: job.subtitle,
 						description: job.description || null,
+						isCustom: job.isCustom ?? null,
 						amount: Number(job.amount || 0),
 						status: meta.reversedAt
 							? "Paid"
@@ -1176,6 +1185,7 @@ export async function getContractorPayoutPrintData(
 						title: job.title,
 						subtitle: job.subtitle,
 						description: job.description || null,
+						isCustom: job.isCustom ?? null,
 						amount: Number(job.amount || 0),
 						status: job.status,
 						createdAt: job.createdAt,
@@ -1188,6 +1198,7 @@ export async function getContractorPayoutPrintData(
 			title: string | null;
 			subtitle: string | null;
 			description: string | null;
+			isCustom: boolean | null;
 			amount: number;
 			status: string | null;
 			createdAt: Date | string | null;
@@ -1248,6 +1259,7 @@ export async function getContractorPayoutPrintData(
 				? `Payout_${payouts[0]?.id}`
 				: `Payouts_${payouts.map((item) => item.id).join("_")}`,
 		printedAt: new Date(),
+		companyAddress: resolveSalesCompanyAddress(null),
 		summary: {
 			payoutCount: payouts.length,
 			totalAmount,
@@ -1744,6 +1756,7 @@ export async function createPaymentPortal(
 			title: true,
 			subtitle: true,
 			description: true,
+			isCustom: true,
 			createdAt: true,
 			project: {
 				select: {
@@ -1806,6 +1819,7 @@ export async function createPaymentPortal(
 		title: job.title,
 		subtitle: job.subtitle,
 		description: job.description || null,
+		isCustom: job.isCustom ?? null,
 		amount: Number(job.amount || 0),
 		previousStatus: job.status || null,
 		createdAt: job.createdAt,
@@ -1967,6 +1981,7 @@ export async function cancelContractorPayment(
 					title: true,
 					subtitle: true,
 					description: true,
+					isCustom: true,
 					amount: true,
 					createdAt: true,
 					project: {
@@ -2012,6 +2027,7 @@ export async function cancelContractorPayment(
 		title: job.title,
 		subtitle: job.subtitle,
 		description: job.description || null,
+		isCustom: job.isCustom ?? null,
 		amount: Number(job.amount || 0),
 		previousStatus: job.status || null,
 		createdAt: job.createdAt,

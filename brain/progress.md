@@ -2,6 +2,19 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Polished contractor payout print reports with branded cover, watermark, custom-job labels, and page-break fixes.
+  - Extended payout overview/print job rows and `JobPayments.meta.jobSnapshots[]` with optional `isCustom`, while preserving payment totals, statuses, permissions, schema, and old snapshot tolerance.
+  - Added `companyAddress` to contractor payout print data and redesigned the payout PDF cover with GND logo, address/contact, contractor information, payout metadata, summary totals, and logo watermark; cancelled payout pages now include a `CANCELLED` watermark.
+  - Updated PDF and web payout job rendering so generic custom jobs promote description/lot text as the visible label and avoid misleading `No project / No unit` output when no project/home link exists.
+  - Fixed included-job PDF row page breaks with non-wrapping rows; visual validation rendered a 37-job sample PDF to PNG and confirmed Letter page size, white pages, branded cover, watermark, custom labels, and clean row continuation.
+  - Validation: `bun test apps/api/src/db/queries/jobs.payout.test.ts packages/pdf/src/contractor-payouts/document.test.ts apps/api/src/trpc/routers/jobs.route.test.ts` passed with 13 tests / 38 assertions; `git diff --check` passed. `bun run typecheck` remains blocked by unrelated baseline `@gnd/documents` NodeNext/Buffer errors, and package-scoped API/www/pdf typechecks still report baseline diagnostics, including pre-existing diagnostics in touched files that are unrelated to the payout additions.
+  - Brain files updated: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/employee-management-v2.md`, and `brain/progress.md`; no database docs were needed because no schema or migration changed.
+
+- Made the old sales form customer prompt dismissible on fresh create-order drafts.
+  - Fresh legacy `/sales-book/create-order` forms still prompt with `Create Order: Select Customer` when no customer is selected, but the modal now supports the standard close/escape/outside-dismiss behavior without requiring a customer selection.
+  - The local dismissal resets after a customer is selected, an order is saved, or the form otherwise stops matching the fresh-no-customer prompt condition, so clearing a customer later can prompt again.
+  - Brain files updated: `brain/features/sales-orders-v2.md` and `brain/progress.md`; no database, API, permission, or schema docs were needed because this was a client-only modal behavior change.
+
 - Fixed contractor payout reports so installer job descriptions appear in payout overview and print output.
   - Extended payout overview, payout print data, and payout job snapshot payloads with `Jobs.description` while preserving payment totals, statuses, project/unit fallbacks, permissions, and schema.
   - Updated the web included-jobs cards and `@gnd/pdf` contractor payout report so custom-job install descriptions render under the job title.

@@ -21,9 +21,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
   - Expo mobile packing uses the same `packingListQuerySchema` tabs and opens the shared dispatch detail screen in a packing-aware mode via route params instead of introducing a second item-detail contract
 - Contractor payout print contracts now include:
-  - `jobs.contractorPayoutOverview` and `print.contractorPayouts` return `description: string | null` on each payout job row, preserving `title`, `subtitle`, project/unit fields, status, and amount semantics.
-  - `createPaymentPortal` stores each selected job's description inside `JobPayments.meta.jobSnapshots[]` so cancelled/reversed payout history can still show what was installed; older snapshots without this field hydrate it as `null`.
-  - The web payout overview and `@gnd/pdf` contractor payout report render the description under the job title before the existing project/unit fallback.
+  - `jobs.contractorPayoutOverview` and `print.contractorPayouts` return `description: string | null` and optional `isCustom: boolean | null` on each payout job row, preserving status, amount, payment totals, and structured project/unit fields.
+  - `print.contractorPayouts` also returns top-level `companyAddress` for the branded contractor payout cover page.
+  - `createPaymentPortal` stores each selected job's description and custom-job flag inside `JobPayments.meta.jobSnapshots[]` so cancelled/reversed payout history can still show what was installed; older snapshots without these fields hydrate them as `null`.
+  - The web payout overview and `@gnd/pdf` contractor payout report promote generic custom-job descriptions into the visible job label and use a custom-job fallback instead of misleading `No project / No unit` labels when a custom job has no linked project/home.
+  - Contractor payout PDFs keep a branded GND cover page, GND watermark, and cancelled watermark for cancelled payout pages.
 - New sales form grouped line contract:
   - grouped service UI lines store row projection in `line.meta.serviceRows`
   - grouped moulding UI lines store row projection in `line.meta.mouldingRows`
