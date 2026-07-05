@@ -1,11 +1,11 @@
 # Latest Daily GND Codebase Review
 
-Latest report: [2026-07-03](./2026-07-03.md)
+Latest report: [2026-07-04](./2026-07-04.md)
 
 ## Executive Summary
 
-Today's review found the same broad operating pattern as yesterday: GND has strong domain direction, but the risky surfaces are still mid-cutover. Inventory-backed fulfillment, dealer approval, mobile sales capture, shared documents, and outbound customer communication are all represented in Brain; the main product risk is release confidence across overlapping old/new paths.
+Today's review found a product that is moving in the right operational direction, but the riskiest workflows are still mid-cutover: inventory-backed fulfillment, dealer quote approval, shared documents, mobile dispatch proof, and customer communication. The strongest pattern is that Brain already captures most of the work; the highest practical risk is not missing ideas, but unfinished release gates and old/new paths remaining open at the same time.
 
-The highest risks are: full monorepo typecheck is still blocked before broad validation can complete, the web Sentry client is still active outside production with a hardcoded DSN while Expo has no Sentry capture, and inventory reconciliation remains not release-clean while repairs are explicitly stopped by user request.
+The top concerns are: inventory reconciliation is still not release-clean while repair commands are stopped by user request; full monorepo typecheck still fails in `@gnd/documents`; and dealer-submitted quotes can still be edited through the quote save path after a request is pending/approved/rejected. For door manufacturing operations, the dealer quote mutability risk is especially important because it can undermine sales-rep approval, delivery-cost review, customer invoice expectations, and payment handoff trust.
 
-No source files, app/package code, schemas, migrations, environment files, or task ledgers were edited by this automation. `git status --short` showed pre-existing modified files before report writing: `apps/expo-app/app.config.ts` and `brain/progress.md`.
+No source files, app/package code, schemas, migrations, environment files, or task ledgers were edited by this automation. `git status --short` showed one pre-existing untracked file before report writing: `brain/features/sales-installation-jobs.md`.

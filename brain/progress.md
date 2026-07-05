@@ -2,6 +2,12 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Created a user-requested Brain plan for a Midday-style Tauri desktop app with employee feedback recording and an issue board.
+  - Added `brain/plans/2026-07-05-feature-desktop-feedback-issue-board.md` with the recommended remote-shell Tauri approach, Phase 0 screen-recording proof gate, proposed feedback data model, API, storage, UI, desktop packaging, validation, and risk plan.
+  - Added a companion roadmap task in `brain/tasks/roadmap.md`.
+  - Current recommendation: proceed only after a small Tauri proof confirms screen recording, microphone capture, video playback, upload, and login/session persistence on the client's target office machines.
+  - No app code, database schema, API contract, permission constants, build scripts, runtime behavior, desktop package, upload provider, or migration changed; this was planning only.
+
 - Polished contractor payout print reports with branded cover, watermark, custom-job labels, and page-break fixes.
   - Extended payout overview/print job rows and `JobPayments.meta.jobSnapshots[]` with optional `isCustom`, while preserving payment totals, statuses, permissions, schema, and old snapshot tolerance.
   - Added `companyAddress` to contractor payout print data and redesigned the payout PDF cover with GND logo, address/contact, contractor information, payout metadata, summary totals, and logo watermark; cancelled payout pages now include a `CANCELLED` watermark.
