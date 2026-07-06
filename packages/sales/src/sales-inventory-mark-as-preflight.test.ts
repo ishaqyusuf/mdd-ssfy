@@ -1,15 +1,24 @@
 import { describe, expect, test } from "bun:test";
+import type { Db } from "@gnd/db";
 
 import {
 	buildSalesInventoryMarkAsPreflight,
+	resolveSalesInventoryMarkAsAutoForContinue,
 	resolveSalesInventoryMarkAsAvailabilityForContinue,
 } from "./sales-inventory-mark-as-preflight";
+
+type FindManyPayload = {
+	select?: {
+		lineItems?: unknown;
+		deliveries?: unknown;
+	};
+};
 
 function makeDb(tx: Record<string, unknown>) {
 	return {
 		$transaction: async <T>(callback: (transaction: typeof tx) => Promise<T>) =>
 			callback(tx),
-	} as any;
+	} as unknown as Db;
 }
 
 function saleWithResolvableInboundDemand() {
@@ -321,7 +330,7 @@ describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
 		let demandReadCount = 0;
 		const tx = {
 			salesOrders: {
-				findMany: async (payload: any) => {
+				findMany: async (payload: FindManyPayload) => {
 					if (payload.select?.lineItems) {
 						salesPreflightReadCount += 1;
 						return [saleWithResolvableInboundDemand()];
@@ -444,7 +453,7 @@ describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
 		};
 		const tx = {
 			salesOrders: {
-				findMany: async (payload: any) => {
+				findMany: async (payload: FindManyPayload) => {
 					if (payload.select?.lineItems) {
 						salesPreflightReadCount += 1;
 						return salesPreflightReadCount === 1
@@ -522,10 +531,18 @@ describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
 			"salesOrders.updateMany",
 			"salesHistory.create",
 		]);
-		expect(calls[1].payload).toMatchObject({
+		const componentUpdate = calls.find(
+			(call) => call.name === "lineItemComponents.updateMany",
+		);
+		const orderUpdate = calls.find(
+			(call) => call.name === "salesOrders.updateMany",
+		);
+		const historyCreate = calls.find(
+			(call) => call.name === "salesHistory.create",
+		);
+		expect(componentUpdate?.payload).toMatchObject({
 			where: {
 				id: 24,
-				deletedAt: null,
 			},
 			data: {
 				qtyAllocated: 2,
@@ -534,7 +551,7 @@ describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
 				status: "allocated",
 			},
 		});
-		expect(calls[2].payload).toMatchObject({
+		expect(orderUpdate?.payload).toMatchObject({
 			where: {
 				id: {
 					in: [5],
@@ -546,7 +563,7 @@ describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
 				inventoryStatus: "AVAILABLE",
 			},
 		});
-		expect(calls[3].payload).toMatchObject({
+		expect(historyCreate?.payload).toMatchObject({
 			data: {
 				salesId: 5,
 				name: "Inventory availability resolved for Mark As",
@@ -565,5 +582,251 @@ describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
 				},
 			},
 		});
+	});
+});
+
+describe("resolveSalesInventoryMarkAsAutoForContinue", () => {
+	test("approves allocation, creates fallback inbound demand, and allows fulfilled continue", async () => {
+		const calls: Array<{ name: string; payload?: unknown }> = [];
+		let preflightReadCount = 0;
+		const tx = {
+			salesOrders: {
+				findMany: async (payload: FindManyPayload) => {
+					if (payload.select?.deliveries) {
+						return [
+							{
+								id: 5,
+								orderId: "08745DB",
+								status: "ready to fulfill",
+								prodStatus: "completed",
+								deliveries: [],
+								stat: [],
+							},
+						];
+					}
+					if (payload.select?.lineItems) {
+						preflightReadCount += 1;
+						return [
+							{
+								id: 5,
+								orderId: "08745DB",
+								title: "Auto resolve sale",
+								lineItems: [
+									{
+										id: 13,
+										components: [
+											{
+												id: 24,
+												required: true,
+												qty: 3,
+												qtyAllocated: 0,
+												qtyInbound: 0,
+												qtyReceived: 0,
+												status: "pending",
+												inventory: {
+													name: "Moulding",
+													defaultSupplier: null,
+												},
+												inventoryVariant: {
+													id: 501,
+													sku: "FLAT-BOARD",
+													supplierVariants: [],
+												},
+												stockAllocations: [
+													{
+														id: 801,
+														qty: 1,
+														status: "pending_review",
+													},
+												],
+												inboundDemands: [],
+											},
+										],
+									},
+								],
+							},
+						];
+					}
+					return [
+						{
+							id: 5,
+							orderId: "08745DB",
+							inventoryStatus: "PENDING ORDER",
+						},
+					];
+				},
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "salesOrders.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			stockAllocation: {
+				findMany: async () => [
+					{
+						id: 801,
+						lineItemComponentId: 24,
+						lineItemComponent: {
+							parent: {
+								saleId: 5,
+							},
+						},
+					},
+				],
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "stockAllocation.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => ({
+					id: 24,
+					qty: 3,
+					stockAllocations: [{ qty: 1 }],
+					inboundDemands: [{ qty: 2, qtyReceived: 0 }],
+				}),
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			supplier: {
+				upsert: async (payload: unknown) => {
+					calls.push({ name: "supplier.upsert", payload });
+					return { id: 99, name: "Auto-created inbound" };
+				},
+			},
+			inboundDemand: {
+				create: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.create", payload });
+					return { id: 901 };
+				},
+				findMany: async () => [
+					{
+						id: 901,
+						qty: 2,
+						qtyReceived: 0,
+						inboundShipmentItemId: null,
+						inventoryVariantId: 501,
+					},
+				],
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			inboundShipment: {
+				create: async (payload: unknown) => {
+					calls.push({ name: "inboundShipment.create", payload });
+					return { id: 301 };
+				},
+			},
+			inboundShipmentItem: {
+				create: async (payload: unknown) => {
+					calls.push({ name: "inboundShipmentItem.create", payload });
+					return { id: 401 };
+				},
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "inboundShipmentItem.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			salesHistory: {
+				create: async (payload: unknown) => {
+					calls.push({ name: "salesHistory.create", payload });
+					return {};
+				},
+			},
+		};
+
+		const result = await resolveSalesInventoryMarkAsAutoForContinue(
+			makeDb(tx),
+			{
+				salesOrderIds: [5],
+				action: "fulfilled",
+				authorName: "Tester",
+				triggeredByUserId: 10,
+			},
+		);
+
+		expect(result).toMatchObject({
+			action: "fulfilled",
+			continueAllowed: true,
+			approvedAllocationCount: 1,
+			createdDemandCount: 1,
+			createdInboundShipmentCount: 1,
+			createdInboundItemCount: 1,
+			linkedDemandCount: 1,
+			updatedSalesOrderCount: 1,
+			auditHistoryCount: 1,
+		});
+		expect(preflightReadCount).toBe(2);
+		expect(
+			calls.find((call) => call.name === "supplier.upsert")?.payload,
+		).toMatchObject({
+			where: {
+				uid: "auto-created-inbound",
+			},
+			create: {
+				name: "Auto-created inbound",
+			},
+		});
+		expect(
+			calls.find((call) => call.name === "inboundDemand.create")?.payload,
+		).toMatchObject({
+			data: {
+				lineItemComponentId: 24,
+				inventoryVariantId: 501,
+				qty: 2,
+				status: "pending",
+			},
+		});
+		expect(
+			calls.find((call) => call.name === "inboundShipment.create")?.payload,
+		).toMatchObject({
+			data: {
+				supplierId: 99,
+				status: "pending",
+			},
+		});
+		expect(
+			calls.find((call) => call.name === "salesOrders.updateMany")?.payload,
+		).toMatchObject({
+			data: {
+				inventoryStatus: "ORDERED",
+			},
+		});
+	});
+
+	test("refuses terminal fulfilled orders before auto-resolution writes", async () => {
+		const tx = {
+			salesOrders: {
+				findMany: async () => [
+					{
+						id: 5,
+						orderId: "08745DB",
+						status: null,
+						prodStatus: null,
+						deliveries: [
+							{
+								status: "completed",
+								_count: {
+									items: 1,
+								},
+							},
+						],
+						stat: [],
+					},
+				],
+			},
+		};
+
+		await expect(
+			resolveSalesInventoryMarkAsAutoForContinue(makeDb(tx), {
+				salesOrderIds: [5],
+				action: "fulfilled",
+			}),
+		).rejects.toThrow(
+			"Order 08745DB cannot auto-resolve inventory because it is fulfilled.",
+		);
 	});
 });

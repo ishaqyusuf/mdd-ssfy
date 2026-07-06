@@ -17,16 +17,16 @@ import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
 import type { SalesPrintProps } from "@/utils/sales-print-utils";
 import { salesFormUrl } from "@/utils/sales-utils";
+import type {
+	SalesInventoryMarkAsAction,
+	SalesInventoryMarkAsPreflightResult,
+} from "@gnd/sales/sales-inventory-mark-as-preflight";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { share } from "@gnd/utils/share";
-import type {
-	SalesInventoryMarkAsAction,
-	SalesInventoryMarkAsPreflightResult,
-} from "@gnd/sales/sales-inventory-mark-as-preflight";
 import type { SalesPdfToken } from "@gnd/utils/tokenizer";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useMutation } from "@tanstack/react-query";
@@ -815,6 +815,9 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	const resolveInventoryMarkAsMutation = useMutation(
 		trpc.inventories.resolveSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
 	);
+	const autoResolveInventoryMarkAsMutation = useMutation(
+		trpc.inventories.resolveSalesInventoryMarkAsAutoForContinue.mutationOptions(),
+	);
 	const invalidateOrders = async () => {
 		await Promise.all([
 			sq.invalidate.salesList(),
@@ -1013,6 +1016,39 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		if (!inventoryPreflight) return;
 
 		try {
+			if (inventoryPreflight.action === "fulfilled") {
+				const result = await autoResolveInventoryMarkAsMutation.mutateAsync({
+					salesOrderIds: salesIds,
+					action: inventoryPreflight.action,
+				});
+
+				if (!result.continueAllowed) {
+					setInventoryPreflight(result.remainingPreflight);
+					toast({
+						title: "Inventory still needs review",
+						description:
+							"Inventory auto-resolution ran, but this order is not ready to continue.",
+						variant: "destructive",
+					});
+					return;
+				}
+
+				setInventoryPreflight(null);
+				toast({
+					title: "Inventory work auto-created",
+					description: `${result.approvedAllocationCount} allocation${
+						result.approvedAllocationCount === 1 ? "" : "s"
+					} approved, ${result.createdInboundShipmentCount} inbound${
+						result.createdInboundShipmentCount === 1 ? "" : "s"
+					} created, ${result.linkedDemandCount} demand row${
+						result.linkedDemandCount === 1 ? "" : "s"
+					} linked.`,
+					variant: "success",
+				});
+				await startMarkFulfilledTask();
+				return;
+			}
+
 			const result = await resolveInventoryMarkAsMutation.mutateAsync({
 				salesOrderIds: salesIds,
 				action: inventoryPreflight.action,
@@ -1080,7 +1116,21 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	const canResolveInventoryAndContinue = Boolean(
 		inventoryPreflight?.canResolveAndContinue,
 	);
-	const isResolvingInventory = resolveInventoryMarkAsMutation.isPending;
+	const canAutoResolveFulfillment = inventoryPreflight?.action === "fulfilled";
+	const isResolvingInventory =
+		resolveInventoryMarkAsMutation.isPending ||
+		autoResolveInventoryMarkAsMutation.isPending;
+	const primaryInventoryActionLabel = canAutoResolveFulfillment
+		? isResolvingInventory
+			? "Resolving..."
+			: inventoryPreflight?.totals.autoInboundQty ||
+					inventoryPreflight?.totals.autoInboundDemandCount ||
+					inventoryPreflight?.totals.openInboundQty
+				? "Create inbound and continue"
+				: "Resolve inventory and continue"
+		: isResolvingInventory
+			? "Resolving..."
+			: "Mark available and continue";
 	const dialog = (
 		<AlertDialog
 			open={Boolean(inventoryPreflight)}
@@ -1126,9 +1176,11 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 							</div>
 						</div>
 						<div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-							{canResolveInventoryAndContinue
-								? "Only unlinked pending inbound demand will be marked available. Shipment-linked receiving and allocation work are not changed here."
-								: "This inventory state cannot be safely marked available from Mark as. Resolve linked receiving or allocation work in the Inventory tab first."}
+							{canAutoResolveFulfillment
+								? "Fulfillment will approve available allocation suggestions, create and assign inbound demand for remaining shortages, then continue Mark as Fulfilled."
+								: canResolveInventoryAndContinue
+									? "Only unlinked pending inbound demand will be marked available. Shipment-linked receiving and allocation work are not changed here."
+									: "This inventory state cannot be safely marked available from Mark as. Resolve linked receiving or allocation work in the Inventory tab first."}
 						</div>
 						<div className="max-h-64 overflow-y-auto rounded-md border">
 							{blockerPreview.map((blocker) => (
@@ -1139,7 +1191,9 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 									<div className="flex items-start justify-between gap-3">
 										<div className="min-w-0">
 											<div className="truncate text-sm font-medium">
-												{blocker.orderId || blocker.title || blocker.salesOrderId}
+												{blocker.orderId ||
+													blocker.title ||
+													blocker.salesOrderId}
 											</div>
 											<div className="text-xs text-muted-foreground">
 												{markAsInventoryReasonLabel(blocker.reason)} ·{" "}
@@ -1153,19 +1207,23 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 									</div>
 									{blocker.components.length ? (
 										<div className="mt-2 space-y-1">
-											{blocker.components.slice(0, 2).map((component, index) => (
-												<div
-													key={`${blocker.salesOrderId}-${component.componentId ?? component.lineItemId ?? index}`}
-													className="flex items-center justify-between gap-2 text-xs"
-												>
-													<span className="min-w-0 truncate text-muted-foreground">
-														{component.name || component.sku || "Inventory component"}
-													</span>
-													<span className="shrink-0 text-muted-foreground">
-														{markAsInventoryReasonLabel(component.reason)}
-													</span>
-												</div>
-											))}
+											{blocker.components
+												.slice(0, 2)
+												.map((component, index) => (
+													<div
+														key={`${blocker.salesOrderId}-${component.componentId ?? component.lineItemId ?? index}`}
+														className="flex items-center justify-between gap-2 text-xs"
+													>
+														<span className="min-w-0 truncate text-muted-foreground">
+															{component.name ||
+																component.sku ||
+																"Inventory component"}
+														</span>
+														<span className="shrink-0 text-muted-foreground">
+															{markAsInventoryReasonLabel(component.reason)}
+														</span>
+													</div>
+												))}
 										</div>
 									) : null}
 								</div>
@@ -1174,7 +1232,8 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 								<div className="px-3 py-2 text-xs text-muted-foreground">
 									+{inventoryPreflight.blockers.length - blockerPreview.length}{" "}
 									more blocked order
-									{inventoryPreflight.blockers.length - blockerPreview.length ===
+									{inventoryPreflight.blockers.length -
+										blockerPreview.length ===
 									1
 										? ""
 										: "s"}
@@ -1188,15 +1247,16 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 						Review inventory first
 					</AlertDialog.Cancel>
 					<AlertDialog.Action
-						disabled={!canResolveInventoryAndContinue || isResolvingInventory}
+						disabled={
+							(!canAutoResolveFulfillment && !canResolveInventoryAndContinue) ||
+							isResolvingInventory
+						}
 						onClick={(event) => {
 							event.preventDefault();
 							void resolveInventoryAndContinue();
 						}}
 					>
-						{isResolvingInventory
-							? "Resolving..."
-							: "Mark available and continue"}
+						{primaryInventoryActionLabel}
 					</AlertDialog.Action>
 				</AlertDialog.Footer>
 			</AlertDialog.Content>

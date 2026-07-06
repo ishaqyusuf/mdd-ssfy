@@ -2,10 +2,20 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Made Mark As Fulfilled auto-resolve inventory blockers during the transitional inventory cutover.
+  - Extended `inventories.salesInventoryMarkAsPreflight` with pending allocation ids/qty plus auto-inbound demand/component/supplier hints so Mark As can prepare inventory work without opening the Inventory tab.
+  - Added `inventories.resolveSalesInventoryMarkAsAutoForContinue` for active non-terminal orders. It rejects fulfilled/cancelled orders before writes, approves pending-review stock allocations, creates missing inbound demand for remaining monitored-stock shortages, creates/links inbound shipments grouped by preferred supplier, inventory default supplier, or fallback `Auto-created inbound`, updates affected `SalesOrders.inventoryStatus` to `ORDERED` or `AVAILABLE`, writes `SalesHistory` audit evidence, reruns preflight, and returns `continueAllowed` for the Mark As Fulfilled shortcut.
+  - Updated the shared web `SalesMenu.MarkAs` dialog so Fulfilled blockers use the auto-resolution mutation through an enabled `Create inbound and continue` / `Resolve inventory and continue` primary action, then start the existing fulfilled task after successful auto-resolution. Production-complete keeps the stricter availability-only resolver.
+  - Validation: `bun test packages/sales/src/sales-inventory-mark-as-preflight.test.ts` passed with 9 tests; `bun test apps/api/src/trpc/routers/inventories-route-import.test.ts` passed with 12 tests; `bunx biome check packages/sales/src/sales-inventory-mark-as-preflight.ts packages/sales/src/sales-inventory-mark-as-preflight.test.ts apps/api/src/trpc/routers/inventories.route.ts apps/www/src/components/sales-menu.tsx` passed.
+  - `bun --filter @gnd/sales typecheck` remains blocked by existing repo-wide baseline issues, including `LineItemComponentsWhereInput.deletedAt` diagnostics in inventory/sales fulfillment files, many `bun:test` type declaration errors, existing sales-form workflow type mismatches, and shared UI React type/icon diagnostics; after targeted fixes, the new source implementation no longer appears in the typecheck errors.
+  - Brain files updated: `brain/api/contracts.md`, `brain/api/endpoints.md`, `brain/features/inventory-backed-sales-fulfillment.md`, and `brain/progress.md`; no database, migration, or permission docs were needed because this reuses existing Supplier, InboundDemand, InboundShipment, StockAllocation, SalesOrders, and SalesHistory tables plus existing protected inventory routes.
+
 - Created a user-requested Brain plan for a Midday-style Tauri desktop app with employee feedback recording and an issue board.
   - Added `brain/plans/2026-07-05-feature-desktop-feedback-issue-board.md` with the recommended remote-shell Tauri approach, Phase 0 screen-recording proof gate, proposed feedback data model, API, storage, UI, desktop packaging, validation, and risk plan.
+  - Updated the plan with the proposed technology stack covering Tauri v2/Rust/Vite/React desktop shell, Next.js/tRPC/Zod/Prisma backend and UI layers, browser MediaRecorder APIs, `StoredDocument` media storage, packaging, and validation tools.
+  - Added screenshot capture as a first-class feedback mode, including canvas-based screenshot capture, `feedback_screenshot` stored-document metadata, screenshot preview/retake/submit UI, validation, and privacy risks.
   - Added a companion roadmap task in `brain/tasks/roadmap.md`.
-  - Current recommendation: proceed only after a small Tauri proof confirms screen recording, microphone capture, video playback, upload, and login/session persistence on the client's target office machines.
+  - Current recommendation: proceed only after a small Tauri proof confirms screenshot capture, screen recording, microphone capture, media preview/playback, upload, and login/session persistence on the client's target office machines.
   - No app code, database schema, API contract, permission constants, build scripts, runtime behavior, desktop package, upload provider, or migration changed; this was planning only.
 
 - Polished contractor payout print reports with branded cover, watermark, custom-job labels, and page-break fixes.

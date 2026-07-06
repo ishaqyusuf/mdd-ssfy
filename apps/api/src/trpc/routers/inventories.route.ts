@@ -153,6 +153,7 @@ import {
 import { resolveSalesInventoryLegacyStatusSetup as resolveSalesInventoryLegacyStatusSetupMutation } from "@gnd/sales/sales-inventory-legacy-status-setup";
 import {
 	getSalesInventoryMarkAsPreflight,
+	resolveSalesInventoryMarkAsAutoForContinue,
 	resolveSalesInventoryMarkAsAvailabilityForContinue,
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
 import {
@@ -871,6 +872,20 @@ export const inventoriesRouter = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			return resolveSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
+				...props.input,
+				authorName: String(props.ctx.userId ?? "System"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			});
+		}),
+	resolveSalesInventoryMarkAsAutoForContinue: protectedProcedure
+		.input(
+			z.object({
+				salesOrderIds: salesInventoryOrderIdsSchema,
+				action: salesInventoryMarkAsActionSchema,
+			}),
+		)
+		.mutation(async (props) => {
+			return resolveSalesInventoryMarkAsAutoForContinue(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),
 				triggeredByUserId: props.ctx.userId ?? null,

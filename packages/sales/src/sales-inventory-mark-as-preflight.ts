@@ -1,12 +1,13 @@
 import type { Db, TransactionClient } from "@gnd/db";
+import { createInboundShipmentFromDemands } from "@gnd/inventory";
 
+import { getSalesOrderLifecycleStatusInfo } from "./order-status";
 import type { SalesInventoryOverviewReadiness } from "./sales-inventory-overview";
+import { resolveSalesInventoryFulfillmentStatus } from "./sales-inventory-policy";
 
 type DbLike = Db | TransactionClient;
 
-export type SalesInventoryMarkAsAction =
-	| "production_completed"
-	| "fulfilled";
+export type SalesInventoryMarkAsAction = "production_completed" | "fulfilled";
 
 export type SalesInventoryMarkAsBlockReason =
 	| "awaiting_inbound"
@@ -26,6 +27,13 @@ export type SalesInventoryMarkAsPreflightComponent = {
 	reason: SalesInventoryMarkAsBlockReason;
 	canResolveAvailability: boolean;
 	resolvableDemandIds: number[];
+	pendingStockAllocationIds: number[];
+	pendingStockAllocationQty: number;
+	autoInboundDemandIds: number[];
+	autoInboundQty: number;
+	autoInboundSupplierId: number | null;
+	autoInboundSupplierName: string | null;
+	inventoryVariantId: number | null;
 };
 
 export type SalesInventoryMarkAsPreflightBlocker = {
@@ -39,6 +47,14 @@ export type SalesInventoryMarkAsPreflightBlocker = {
 	pendingQty: number;
 	openInboundQty: number;
 	resolvableDemandIds: number[];
+	pendingStockAllocationIds: number[];
+	autoInboundDemandIds: number[];
+	autoInboundSelections: Array<{
+		lineItemComponentIds: number[];
+		qty: number;
+		supplierId: number | null;
+		supplierName: string | null;
+	}>;
 	unresolvableComponentCount: number;
 	components: SalesInventoryMarkAsPreflightComponent[];
 };
@@ -56,6 +72,10 @@ export type SalesInventoryMarkAsPreflightResult = {
 		unresolvedComponentCount: number;
 		resolvableDemandCount: number;
 		unresolvableComponentCount: number;
+		pendingStockAllocationCount: number;
+		pendingStockAllocationQty: number;
+		autoInboundDemandCount: number;
+		autoInboundQty: number;
 	};
 	canResolveAndContinue: boolean;
 	blockers: SalesInventoryMarkAsPreflightBlocker[];
@@ -69,6 +89,12 @@ type DemandLike = {
 	inboundShipmentItemId?: number | null;
 };
 
+type StockAllocationLike = {
+	id?: number | null;
+	qty?: number | null;
+	status?: string | null;
+};
+
 type ComponentLike = {
 	id?: number | null;
 	required?: boolean | null;
@@ -79,12 +105,27 @@ type ComponentLike = {
 	status?: string | null;
 	inventory?: {
 		name?: string | null;
+		defaultSupplier?: {
+			id?: number | null;
+			name?: string | null;
+		} | null;
 	} | null;
 	inventoryVariant?: {
+		id?: number | null;
 		sku?: string | null;
 		uid?: string | null;
+		supplierVariants?: Array<{
+			supplierId?: number | null;
+			active?: boolean | null;
+			preferred?: boolean | null;
+			supplier?: {
+				id?: number | null;
+				name?: string | null;
+			} | null;
+		}> | null;
 	} | null;
 	inboundDemands?: DemandLike[] | null;
+	stockAllocations?: StockAllocationLike[] | null;
 };
 
 type LineItemLike = {
@@ -111,6 +152,8 @@ const INBOUND_COMPONENT_STATUSES = new Set([
 ]);
 const REVIEW_COMPONENT_STATUSES = new Set(["pending", "partially_allocated"]);
 const READY_COMPONENT_STATUSES = new Set(["allocated", "fulfilled"]);
+const AUTO_INBOUND_SUPPLIER_UID = "auto-created-inbound";
+const AUTO_INBOUND_SUPPLIER_NAME = "Auto-created inbound";
 
 function positiveNumber(value?: number | null) {
 	return Math.max(0, Number(value || 0));
@@ -142,7 +185,49 @@ function componentDisplayName(component: ComponentLike) {
 }
 
 function componentSku(component: ComponentLike) {
-	return component.inventoryVariant?.sku || component.inventoryVariant?.uid || null;
+	return (
+		component.inventoryVariant?.sku || component.inventoryVariant?.uid || null
+	);
+}
+
+function uniquePositiveNumbers(values: Array<number | null | undefined>) {
+	return Array.from(
+		new Set(values.map((value) => Number(value || 0)).filter((id) => id > 0)),
+	);
+}
+
+function getPreferredSupplier(component: ComponentLike) {
+	const supplierVariant =
+		(component.inventoryVariant?.supplierVariants || []).find(
+			(variant) => variant.active !== false && variant.preferred,
+		) ||
+		(component.inventoryVariant?.supplierVariants || []).find(
+			(variant) => variant.active !== false,
+		) ||
+		(component.inventoryVariant?.supplierVariants || [])[0] ||
+		null;
+	const supplierId =
+		supplierVariant?.supplierId ?? supplierVariant?.supplier?.id ?? null;
+
+	if (supplierId) {
+		return {
+			id: supplierId,
+			name: supplierVariant?.supplier?.name || "Preferred supplier",
+		};
+	}
+
+	const defaultSupplier = component.inventory?.defaultSupplier;
+	if (defaultSupplier?.id) {
+		return {
+			id: defaultSupplier.id,
+			name: defaultSupplier.name || "Default supplier",
+		};
+	}
+
+	return {
+		id: null,
+		name: null,
+	};
 }
 
 export function buildSalesInventoryMarkAsPreflight(input: {
@@ -156,6 +241,10 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 	let totalUnresolvedComponentCount = 0;
 	let totalResolvableDemandCount = 0;
 	let totalUnresolvableComponentCount = 0;
+	let totalPendingStockAllocationCount = 0;
+	let totalPendingStockAllocationQty = 0;
+	let totalAutoInboundDemandCount = 0;
+	let totalAutoInboundQty = 0;
 	const blockers: SalesInventoryMarkAsPreflightBlocker[] = [];
 
 	for (const sale of input.sales) {
@@ -169,6 +258,17 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 		let allReady = true;
 		let unresolvableComponentCount = 0;
 		const blockerResolvableDemandIds = new Set<number>();
+		const blockerPendingStockAllocationIds = new Set<number>();
+		const blockerAutoInboundDemandIds = new Set<number>();
+		const autoInboundSelectionsByKey = new Map<
+			string,
+			{
+				lineItemComponentIds: number[];
+				qty: number;
+				supplierId: number | null;
+				supplierName: string | null;
+			}
+		>();
 		const componentBlockers: SalesInventoryMarkAsPreflightComponent[] = [];
 
 		for (const lineItem of sale.lineItems || []) {
@@ -187,8 +287,35 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 				const resolvableDemands = (component.inboundDemands || []).filter(
 					isResolvableDemand,
 				);
+				const unlinkedAutoInboundDemands = (
+					component.inboundDemands || []
+				).filter(
+					(demand) =>
+						ACTIVE_INBOUND_DEMAND_STATUSES.has(String(demand.status || "")) &&
+						!demand.inboundShipmentItemId &&
+						openDemandQty(demand) > 0,
+				);
+				const unlinkedAutoInboundDemandQty = unlinkedAutoInboundDemands.reduce(
+					(sum, demand) => sum + openDemandQty(demand),
+					0,
+				);
 				const resolvableDemandQty = resolvableDemands.reduce(
 					(sum, demand) => sum + openDemandQty(demand),
+					0,
+				);
+				const pendingStockAllocations = (
+					component.stockAllocations || []
+				).filter(
+					(allocation) =>
+						String(allocation.status || "") === "pending_review" &&
+						positiveNumber(allocation.qty) > 0 &&
+						Number(allocation.id || 0) > 0,
+				);
+				const pendingStockAllocationIds = uniquePositiveNumbers(
+					pendingStockAllocations.map((allocation) => allocation.id ?? null),
+				);
+				const pendingStockAllocationQty = pendingStockAllocations.reduce(
+					(sum, allocation) => sum + positiveNumber(allocation.qty),
 					0,
 				);
 				const inboundBacklog =
@@ -228,10 +355,46 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 				const componentPendingQty = awaitingInbound
 					? Math.max(uncoveredQty, inboundBacklog)
 					: uncoveredQty;
+				const supplier = getPreferredSupplier(component);
+				const autoInboundQty =
+					Number(component.id || 0) > 0 &&
+					Number(component.inventoryVariant?.id || 0) > 0
+						? Math.max(
+								0,
+								componentPendingQty -
+									pendingStockAllocationQty -
+									unlinkedAutoInboundDemandQty,
+							)
+						: 0;
 
 				unresolvedComponentCount += 1;
 				pendingQty += componentPendingQty;
 				openInboundQtyTotal += inboundBacklog;
+				for (const allocationId of pendingStockAllocationIds) {
+					blockerPendingStockAllocationIds.add(allocationId);
+				}
+				for (const demand of unlinkedAutoInboundDemands) {
+					if (demand.id) blockerAutoInboundDemandIds.add(Number(demand.id));
+				}
+				if (autoInboundQty > 0 && component.id) {
+					const supplierKey = String(supplier.id ?? "fallback");
+					const existing =
+						autoInboundSelectionsByKey.get(supplierKey) ||
+						({
+							lineItemComponentIds: [],
+							qty: 0,
+							supplierId: supplier.id,
+							supplierName: supplier.name,
+						} satisfies {
+							lineItemComponentIds: number[];
+							qty: number;
+							supplierId: number | null;
+							supplierName: string | null;
+						});
+					existing.lineItemComponentIds.push(component.id);
+					existing.qty += autoInboundQty;
+					autoInboundSelectionsByKey.set(supplierKey, existing);
+				}
 				if (canResolveAvailability) {
 					for (const demand of resolvableDemands) {
 						if (demand.id) blockerResolvableDemandIds.add(demand.id);
@@ -258,6 +421,15 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 									.map((demand) => Number(demand.id || 0))
 									.filter((id) => id > 0)
 							: [],
+						pendingStockAllocationIds,
+						pendingStockAllocationQty,
+						autoInboundDemandIds: uniquePositiveNumbers(
+							unlinkedAutoInboundDemands.map((demand) => demand.id ?? null),
+						),
+						autoInboundQty,
+						autoInboundSupplierId: supplier.id,
+						autoInboundSupplierName: supplier.name,
+						inventoryVariantId: component.inventoryVariant?.id ?? null,
 					});
 				}
 			}
@@ -289,6 +461,15 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 		totalUnresolvedComponentCount += unresolvedComponentCount;
 		totalResolvableDemandCount += blockerResolvableDemandIds.size;
 		totalUnresolvableComponentCount += unresolvableComponentCount;
+		totalPendingStockAllocationCount += blockerPendingStockAllocationIds.size;
+		totalPendingStockAllocationQty += Array.from(componentBlockers).reduce(
+			(sum, component) => sum + component.pendingStockAllocationQty,
+			0,
+		);
+		totalAutoInboundDemandCount += blockerAutoInboundDemandIds.size;
+		totalAutoInboundQty += Array.from(
+			autoInboundSelectionsByKey.values(),
+		).reduce((sum, selection) => sum + selection.qty, 0);
 		blockers.push({
 			salesOrderId: sale.id,
 			orderId: sale.orderId ?? null,
@@ -300,6 +481,16 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 			pendingQty,
 			openInboundQty: openInboundQtyTotal,
 			resolvableDemandIds: Array.from(blockerResolvableDemandIds),
+			pendingStockAllocationIds: Array.from(blockerPendingStockAllocationIds),
+			autoInboundDemandIds: Array.from(blockerAutoInboundDemandIds),
+			autoInboundSelections: Array.from(
+				autoInboundSelectionsByKey.values(),
+			).map((selection) => ({
+				...selection,
+				lineItemComponentIds: uniquePositiveNumbers(
+					selection.lineItemComponentIds,
+				),
+			})),
 			unresolvableComponentCount,
 			components: componentBlockers,
 		});
@@ -323,6 +514,10 @@ export function buildSalesInventoryMarkAsPreflight(input: {
 			unresolvedComponentCount: totalUnresolvedComponentCount,
 			resolvableDemandCount: totalResolvableDemandCount,
 			unresolvableComponentCount: totalUnresolvableComponentCount,
+			pendingStockAllocationCount: totalPendingStockAllocationCount,
+			pendingStockAllocationQty: totalPendingStockAllocationQty,
+			autoInboundDemandCount: totalAutoInboundDemandCount,
+			autoInboundQty: totalAutoInboundQty,
 		},
 		canResolveAndContinue,
 		blockers,
@@ -385,12 +580,44 @@ export async function getSalesInventoryMarkAsPreflight(
 							inventory: {
 								select: {
 									name: true,
+									defaultSupplier: {
+										select: {
+											id: true,
+											name: true,
+										},
+									},
 								},
 							},
 							inventoryVariant: {
 								select: {
+									id: true,
 									sku: true,
 									uid: true,
+									supplierVariants: {
+										select: {
+											supplierId: true,
+											active: true,
+											preferred: true,
+											supplier: {
+												select: {
+													id: true,
+													name: true,
+												},
+											},
+										},
+										orderBy: [{ preferred: "desc" }, { id: "asc" }],
+									},
+								},
+							},
+							stockAllocations: {
+								where: {
+									deletedAt: null,
+									status: "pending_review",
+								},
+								select: {
+									id: true,
+									qty: true,
+									status: true,
 								},
 							},
 							inboundDemands: {
@@ -437,6 +664,22 @@ export type ResolveSalesInventoryMarkAsAvailabilityResult = {
 	recomputedComponentCount: number;
 	updatedSalesOrderCount: number;
 	auditHistoryCount: number;
+	preflight: SalesInventoryMarkAsPreflightResult;
+	remainingPreflight: SalesInventoryMarkAsPreflightResult;
+};
+
+export type ResolveSalesInventoryMarkAsAutoResult = {
+	action: SalesInventoryMarkAsAction;
+	continueAllowed: boolean;
+	approvedAllocationCount: number;
+	skippedAllocationCount: number;
+	createdDemandCount: number;
+	createdInboundShipmentCount: number;
+	createdInboundItemCount: number;
+	linkedDemandCount: number;
+	updatedSalesOrderCount: number;
+	auditHistoryCount: number;
+	skippedComponentCount: number;
 	preflight: SalesInventoryMarkAsPreflightResult;
 	remainingPreflight: SalesInventoryMarkAsPreflightResult;
 };
@@ -490,7 +733,6 @@ async function recomputeLineItemComponentDemandState(
 	const component = await db.lineItemComponents.findFirst({
 		where: {
 			id: lineItemComponentId,
-			deletedAt: null,
 		},
 		select: {
 			id: true,
@@ -545,12 +787,392 @@ async function recomputeLineItemComponentDemandState(
 	const updatedComponent = await db.lineItemComponents.updateMany({
 		where: {
 			id: component.id,
-			deletedAt: null,
 		},
 		data: nextState,
 	});
 
 	return updatedComponent.count > 0;
+}
+
+async function assertSalesOrdersCanAutoResolveMarkAs(
+	db: DbLike,
+	salesOrderIds: number[],
+) {
+	if (!salesOrderIds.length) return;
+
+	const sales = await db.salesOrders.findMany({
+		where: {
+			id: {
+				in: salesOrderIds,
+			},
+			deletedAt: null,
+			type: "order",
+		},
+		select: {
+			id: true,
+			orderId: true,
+			status: true,
+			prodStatus: true,
+			deliveries: {
+				where: {
+					deletedAt: null,
+				},
+				select: {
+					status: true,
+					_count: {
+						select: {
+							items: true,
+						},
+					},
+				},
+			},
+			stat: {
+				where: {
+					deletedAt: null,
+					type: {
+						in: ["dispatchCompleted", "dispatchInProgress", "dispatchAssigned"],
+					},
+				},
+				select: {
+					type: true,
+					status: true,
+					percentage: true,
+				},
+			},
+		},
+	});
+
+	for (const sale of sales) {
+		const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
+			deliveries: sale.deliveries,
+			stats: sale.stat,
+		});
+		const lifecycle = getSalesOrderLifecycleStatusInfo({
+			orderStatus: sale.status,
+			legacyProductionStatus: sale.prodStatus,
+			fulfillmentStatus,
+		});
+
+		if (lifecycle.status === "fulfilled" || lifecycle.status === "cancelled") {
+			throw new Error(
+				`Order ${sale.orderId} cannot auto-resolve inventory because it is ${lifecycle.status}.`,
+			);
+		}
+	}
+}
+
+async function ensureAutoCreatedInboundSupplier(db: DbLike) {
+	return db.supplier.upsert({
+		where: {
+			uid: AUTO_INBOUND_SUPPLIER_UID,
+		},
+		update: {
+			name: AUTO_INBOUND_SUPPLIER_NAME,
+			deletedAt: null,
+		},
+		create: {
+			uid: AUTO_INBOUND_SUPPLIER_UID,
+			name: AUTO_INBOUND_SUPPLIER_NAME,
+		},
+		select: {
+			id: true,
+			name: true,
+		},
+	});
+}
+
+export async function resolveSalesInventoryMarkAsAutoForContinue(
+	db: Db,
+	input: {
+		salesOrderIds: number[];
+		action: SalesInventoryMarkAsAction;
+		authorName?: string | null;
+		triggeredByUserId?: number | string | null;
+	},
+): Promise<ResolveSalesInventoryMarkAsAutoResult> {
+	const salesOrderIds = Array.from(new Set(input.salesOrderIds)).filter(
+		(id) => Number.isInteger(id) && id > 0,
+	);
+
+	return db.$transaction(async (tx) => {
+		await assertSalesOrdersCanAutoResolveMarkAs(tx, salesOrderIds);
+		const preflight = await getSalesInventoryMarkAsPreflight(tx, {
+			salesOrderIds,
+			action: input.action,
+		});
+
+		if (preflight.ok) {
+			return {
+				action: input.action,
+				continueAllowed: true,
+				approvedAllocationCount: 0,
+				skippedAllocationCount: 0,
+				createdDemandCount: 0,
+				createdInboundShipmentCount: 0,
+				createdInboundItemCount: 0,
+				linkedDemandCount: 0,
+				updatedSalesOrderCount: 0,
+				auditHistoryCount: 0,
+				skippedComponentCount: 0,
+				preflight,
+				remainingPreflight: preflight,
+			};
+		}
+
+		const operationId = `mark-as-auto-${Date.now()}-${Math.random()
+			.toString(36)
+			.slice(2)}`;
+		const allocationIds = uniquePositiveNumbers(
+			preflight.blockers.flatMap(
+				(blocker) => blocker.pendingStockAllocationIds,
+			),
+		);
+		let approvedAllocationCount = 0;
+		let skippedAllocationCount = 0;
+		const allocationSaleIds = new Set<number>();
+
+		if (allocationIds.length) {
+			const allocations = await tx.stockAllocation.findMany({
+				where: {
+					id: {
+						in: allocationIds,
+					},
+					deletedAt: null,
+					status: "pending_review",
+				},
+				select: {
+					id: true,
+					lineItemComponentId: true,
+					lineItemComponent: {
+						select: {
+							parent: {
+								select: {
+									saleId: true,
+								},
+							},
+						},
+					},
+				},
+			});
+			const activeAllocationIds = allocations.map(
+				(allocation) => allocation.id,
+			);
+			const updated = activeAllocationIds.length
+				? await tx.stockAllocation.updateMany({
+						where: {
+							id: {
+								in: activeAllocationIds,
+							},
+							deletedAt: null,
+							status: "pending_review",
+						},
+						data: {
+							status: "approved",
+							notes: `Mark As auto-resolution approved allocation (${operationId})`,
+						},
+					})
+				: { count: 0 };
+			approvedAllocationCount = updated.count;
+			skippedAllocationCount = Math.max(
+				0,
+				allocationIds.length - updated.count,
+			);
+
+			for (const allocation of allocations) {
+				const saleId = allocation.lineItemComponent.parent.saleId;
+				if (saleId) allocationSaleIds.add(saleId);
+			}
+			for (const componentId of uniquePositiveNumbers(
+				allocations.map((allocation) => allocation.lineItemComponentId),
+			)) {
+				await recomputeLineItemComponentDemandState(tx, componentId);
+			}
+		}
+
+		const fallbackSupplier = await ensureAutoCreatedInboundSupplier(tx);
+		const inboundDemandIdsBySupplier = new Map<number, number[]>();
+		const inboundSaleIds = new Set<number>();
+		let createdDemandCount = 0;
+		let skippedComponentCount = 0;
+
+		const addDemandToSupplier = (supplierId: number, demandId: number) => {
+			inboundDemandIdsBySupplier.set(supplierId, [
+				...(inboundDemandIdsBySupplier.get(supplierId) || []),
+				demandId,
+			]);
+		};
+
+		for (const blocker of preflight.blockers) {
+			for (const component of blocker.components) {
+				const supplierId =
+					component.autoInboundSupplierId || fallbackSupplier.id;
+
+				for (const demandId of component.autoInboundDemandIds) {
+					addDemandToSupplier(supplierId, demandId);
+					inboundSaleIds.add(blocker.salesOrderId);
+				}
+
+				if (component.autoInboundQty <= 0) continue;
+				if (!component.componentId || !component.inventoryVariantId) {
+					skippedComponentCount += 1;
+					continue;
+				}
+
+				const demand = await tx.inboundDemand.create({
+					data: {
+						lineItemComponentId: component.componentId,
+						inventoryVariantId: component.inventoryVariantId,
+						qty: component.autoInboundQty,
+						status: "pending",
+						notes: `Mark As auto-resolution created demand (${operationId})`,
+					},
+					select: {
+						id: true,
+					},
+				});
+				createdDemandCount += 1;
+				addDemandToSupplier(supplierId, demand.id);
+				inboundSaleIds.add(blocker.salesOrderId);
+			}
+		}
+
+		let createdInboundShipmentCount = 0;
+		let createdInboundItemCount = 0;
+		let linkedDemandCount = 0;
+
+		for (const [
+			supplierId,
+			demandIds,
+		] of inboundDemandIdsBySupplier.entries()) {
+			const uniqueDemandIds = uniquePositiveNumbers(demandIds);
+			if (!uniqueDemandIds.length) continue;
+			const result = await createInboundShipmentFromDemands(tx, {
+				supplierId,
+				demandIds: uniqueDemandIds,
+				reference: `Auto Mark As ${input.action.replaceAll("_", " ")} ${operationId}`,
+			});
+			createdInboundShipmentCount += result.inboundId ? 1 : 0;
+			createdInboundItemCount += result.createdItemCount;
+			linkedDemandCount += result.linkedDemandCount;
+		}
+
+		for (const componentId of uniquePositiveNumbers(
+			preflight.blockers.flatMap((blocker) =>
+				blocker.components.map((component) => component.componentId),
+			),
+		)) {
+			await recomputeLineItemComponentDemandState(tx, componentId);
+		}
+
+		const orderedSaleIds = Array.from(inboundSaleIds);
+		const availableSaleIds = Array.from(allocationSaleIds).filter(
+			(saleId) => !inboundSaleIds.has(saleId),
+		);
+		let updatedSalesOrderCount = 0;
+
+		if (orderedSaleIds.length) {
+			updatedSalesOrderCount += (
+				await tx.salesOrders.updateMany({
+					where: {
+						id: {
+							in: orderedSaleIds,
+						},
+						deletedAt: null,
+						type: "order",
+					},
+					data: {
+						inventoryStatus: "ORDERED",
+					},
+				})
+			).count;
+		}
+		if (availableSaleIds.length) {
+			updatedSalesOrderCount += (
+				await tx.salesOrders.updateMany({
+					where: {
+						id: {
+							in: availableSaleIds,
+						},
+						deletedAt: null,
+						type: "order",
+					},
+					data: {
+						inventoryStatus: "AVAILABLE",
+					},
+				})
+			).count;
+		}
+
+		const auditedSales = await tx.salesOrders.findMany({
+			where: {
+				id: {
+					in: uniquePositiveNumbers([
+						...orderedSaleIds,
+						...availableSaleIds,
+						...preflight.blockers.map((blocker) => blocker.salesOrderId),
+					]),
+				},
+				deletedAt: null,
+				type: "order",
+			},
+			select: {
+				id: true,
+				orderId: true,
+				inventoryStatus: true,
+			},
+		});
+		let auditHistoryCount = 0;
+		for (const sale of auditedSales) {
+			await tx.salesHistory.create({
+				data: {
+					salesId: sale.id,
+					name: "Inventory auto-resolved for Mark As",
+					authorName: input.authorName || "System",
+					data: {
+						type: "sales_inventory_mark_as_auto_resolved",
+						action: input.action,
+						orderId: sale.orderId,
+						nextInventoryStatus: orderedSaleIds.includes(sale.id)
+							? "ORDERED"
+							: availableSaleIds.includes(sale.id)
+								? "AVAILABLE"
+								: (sale.inventoryStatus ?? null),
+						approvedAllocationCount,
+						skippedAllocationCount,
+						createdDemandCount,
+						createdInboundShipmentCount,
+						createdInboundItemCount,
+						linkedDemandCount,
+						skippedComponentCount,
+						operationId,
+						triggeredByUserId: input.triggeredByUserId ?? null,
+					},
+				},
+			});
+			auditHistoryCount += 1;
+		}
+
+		const remainingPreflight = await getSalesInventoryMarkAsPreflight(tx, {
+			salesOrderIds,
+			action: input.action,
+		});
+
+		return {
+			action: input.action,
+			continueAllowed: true,
+			approvedAllocationCount,
+			skippedAllocationCount,
+			createdDemandCount,
+			createdInboundShipmentCount,
+			createdInboundItemCount,
+			linkedDemandCount,
+			updatedSalesOrderCount,
+			auditHistoryCount,
+			skippedComponentCount,
+			preflight,
+			remainingPreflight,
+		};
+	});
 }
 
 export async function resolveSalesInventoryMarkAsAvailabilityForContinue(
@@ -695,11 +1317,14 @@ export async function resolveSalesInventoryMarkAsAvailabilityForContinue(
 			new Set(
 				appliedDemandRows
 					.map((demand) => demand.lineItemComponent.parent.saleId)
-					.filter((id) => Number.isInteger(id) && id > 0),
+					.filter(
+						(id): id is number =>
+							typeof id === "number" && Number.isInteger(id) && id > 0,
+					),
 			),
 		);
-		const componentIds = Array.from(
-			new Set(appliedDemandRows.map((demand) => demand.lineItemComponentId)),
+		const componentIds = uniquePositiveNumbers(
+			appliedDemandRows.map((demand) => demand.lineItemComponentId),
 		);
 		let recomputedComponentCount = 0;
 
