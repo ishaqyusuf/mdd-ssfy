@@ -4,6 +4,13 @@ import { cancelTaskRunAction } from "@/actions/cancel-task-run";
 import { useTaskMonitorEffects } from "@/hooks/use-task-monitor-effects";
 import { useTaskMonitorTasks } from "@/hooks/use-task-notification-params";
 import { useSession } from "@/lib/auth/client";
+import {
+	SALES_EMAIL_LEDGER_PATH,
+	getTaskFailureMessage,
+	getTaskFailureTitle,
+	getTaskOutputFailureMessage,
+	isSalesEmailTaskMetadata,
+} from "@/lib/task-feedback";
 import { cn } from "@/lib/utils";
 import {
 	type TaskMonitorStatus,
@@ -13,6 +20,7 @@ import {
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
+import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { useAction } from "next-safe-action/hooks";
@@ -143,27 +151,55 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 	useEffect(() => {
 		if (task.status !== "SYNCING") return;
 
-		if (error) {
+		const failTask = (message: string) => {
+			const completedAt = Date.now();
+			const alreadyHandledError = Boolean(task.handledEffects?.error);
+			const handledEffects = alreadyHandledError
+				? task.handledEffects
+				: {
+						...task.handledEffects,
+						error: completedAt,
+					};
+
 			updateTask(task.runId, {
 				status: "FAILED",
-				error: error.message || "Unable to monitor this task.",
-				completedAt: Date.now(),
+				error: message,
+				handledEffects,
+				completedAt,
 			});
+
+			if (!alreadyHandledError) {
+				toast({
+					duration: 6000,
+					variant: "destructive",
+					title: getTaskFailureTitle({ metadata: task.metadata }),
+					description: message,
+					action: getFailureToastAction(task),
+				});
+			}
+
 			stop?.();
+		};
+
+		if (error) {
+			failTask(
+				getTaskFailureMessage({
+					metadata: task.metadata,
+					errorMessage: error.message || "Unable to monitor this task.",
+				}),
+			);
 			return;
 		}
 
 		if (!run?.status) return;
 
 		if (run.status === "COMPLETED") {
-			const salesEmailFailure = getSalesEmailRunFailure(task, run.output);
-			if (salesEmailFailure) {
-				updateTask(task.runId, {
-					status: "FAILED",
-					error: salesEmailFailure,
-					completedAt: Date.now(),
-				});
-				stop?.();
+			const taskOutputFailure = getTaskOutputFailureMessage({
+				metadata: task.metadata,
+				output: run.output,
+			});
+			if (taskOutputFailure) {
+				failTask(taskOutputFailure);
 				return;
 			}
 
@@ -220,12 +256,12 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 		}
 
 		if (run.status === "FAILED") {
-			updateTask(task.runId, {
-				status: "FAILED",
-				error: error?.message || "Task failed.",
-				completedAt: Date.now(),
-			});
-			stop?.();
+			failTask(
+				getTaskFailureMessage({
+					metadata: task.metadata,
+					errorMessage: error?.message || null,
+				}),
+			);
 		}
 	}, [
 		error,
@@ -237,34 +273,6 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 		task,
 		updateTask,
 	]);
-
-	return null;
-}
-
-function getSalesEmailRunFailure(task: TaskMonitorTask, output: unknown) {
-	if (task.metadata?.type !== "sales-email") return null;
-	const emails = (output as { emails?: unknown } | null)?.emails as
-		| {
-				sent?: number;
-				skipped?: number;
-				failed?: number;
-		  }
-		| undefined;
-	if (!emails) return null;
-
-	const sent = Number(emails.sent || 0);
-	const skipped = Number(emails.skipped || 0);
-	const failed = Number(emails.failed || 0);
-
-	if (failed > 0) {
-		return failed === 1
-			? "Email provider reported 1 failed message."
-			: `Email provider reported ${failed} failed messages.`;
-	}
-
-	if (sent === 0 && skipped > 0) {
-		return "Email was skipped before it could be sent.";
-	}
 
 	return null;
 }
@@ -342,6 +350,11 @@ function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
 					<Icons.Copy className="size-3.5" />
 				)}
 			</Button>
+			{task.status === "FAILED" && isSalesEmailTaskMetadata(task.metadata) ? (
+				<Button variant="ghost" size="xs" asChild>
+					<a href={SALES_EMAIL_LEDGER_PATH}>Emails</a>
+				</Button>
+			) : null}
 			{task.status === "SYNCING" ? (
 				<Button
 					type="button"
@@ -371,6 +384,16 @@ function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
 				</Button>
 			) : null}
 		</div>
+	);
+}
+
+function getFailureToastAction(task: TaskMonitorTask) {
+	if (!isSalesEmailTaskMetadata(task.metadata)) return undefined;
+
+	return (
+		<ToastAction altText="View sales email log" asChild>
+			<a href={SALES_EMAIL_LEDGER_PATH}>View emails</a>
+		</ToastAction>
 	);
 }
 

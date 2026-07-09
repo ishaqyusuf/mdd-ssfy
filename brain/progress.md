@@ -2,6 +2,23 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Added visible user feedback for sales email background failures.
+  - Added a shared `apps/www` task-feedback helper that identifies sales email notification jobs, classifies `emails.sent/skipped/failed` output as user-facing failure copy, and provides safe fallback messages when Trigger does not return an error string.
+  - Hardened `useTaskTrigger` so queue failures produce a visible toast and runtime failures call `onError` with a readable message instead of silently failing when `completionError` is empty.
+  - Updated the floating task monitor to mark runtime failures in the persisted task row, show one-time destructive failure toasts for recovered/background failures, and link failed sales email rows to `/sales-book/emails`.
+  - Updated the compose sales document email dialog to keep the dialog open on failure, show inline failure text, and keep the send button busy while the background run is syncing.
+  - Validation: `bun test apps/www/src/lib/task-feedback.test.ts` passed; targeted Biome passed; targeted `git diff --check` passed.
+  - `bun --filter @gnd/www typecheck` remains blocked by generated `.next/dev/types/routes.d.ts` syntax diagnostics before reaching the touched files.
+  - Brain files updated: `brain/features/sales-email-delivery-ledger.md` and `brain/progress.md`; no API, permission, database schema, or migration docs were needed because this is UI/task-feedback behavior only.
+
+- Added local email-send mocking for notification jobs.
+  - Added local-only `MOCK_EMAIL_SENDS` env support in `@gnd/utils`; production runtimes ignore the flag.
+  - Wired `EmailService` transactional and bulk sends to render and resolve recipients, skip Resend when mocking is enabled, and return mocked accepted/sent delivery results with `providerStatus: "mocked_by_environment"`.
+  - Added `MOCK_EMAIL_SENDS=true` to local env and documented `MOCK_EMAIL_SENDS=` in `.env.example`.
+  - Validation: `bun test packages/notifications/src/services/email-service.test.ts` passed; targeted Biome passed; targeted `git diff --check` passed.
+  - `bun --filter @gnd/notifications typecheck` remains blocked by pre-existing baseline diagnostics in inventory/pdf/sales/ui code and `src/site-actions.ts`.
+  - Brain files updated: `brain/features/sales-email-delivery-ledger.md` and `brain/progress.md`; no API, permission, database schema, or migration docs were needed because this is env-gated local runtime behavior only.
+
 - Fixed the local jobs `SalesEmailAttempt` missing-table error path.
   - Updated `scripts/with-dev-infra.ts` so package-level commands load root env plus package env, and accept Bun package-script arguments without requiring a literal `--` separator.
   - Switched `packages/db` and `packages/jobs` dev `with-env` scripts to use the dev-infra resolver while leaving production env scripts unchanged.

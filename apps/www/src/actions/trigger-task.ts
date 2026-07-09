@@ -1,10 +1,20 @@
 "use server";
 
 import { taskNames } from "@jobs/schema";
-import { actionClient } from "./safe-action";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { actionClient } from "./safe-action";
 
 import { z } from "zod";
+
+function getErrorMessage(error: unknown) {
+    if (error instanceof Error) return error.message;
+    if (typeof error === "string") return error;
+    if (error && typeof error === "object" && "message" in error) {
+        return String((error as { message?: unknown }).message || "");
+    }
+    return "Unable to start the background task.";
+}
+
 export const triggerTask = actionClient
     .schema(
         z.object({
@@ -25,10 +35,9 @@ export const triggerTask = actionClient
             return event;
         } catch (error) {
             return {
-                error,
+                errorMessage: getErrorMessage(error),
                 id: null,
                 publicAccessToken: null,
             };
         }
     });
-

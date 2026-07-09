@@ -344,8 +344,8 @@ function useSendSalesEmailAction() {
 		auth.roleTitle?.toLowerCase() === "super admin" && testEmailMode;
 	const notification = useNotificationTrigger({
 		executingToast: "Sending email...",
-		errorToast: "Failed",
-		successToast: "Sent!",
+		errorToast: "Email sending failed",
+		successToast: "Email sent.",
 		debug: true,
 		onStarted() {
 			actions.closeMenu();
@@ -354,13 +354,16 @@ function useSendSalesEmailAction() {
 			setDidSucceed(true);
 		},
 		onError() {
+			setDidSucceed(false);
 			actions.closeMenu();
 		},
 	});
+	const isSending =
+		notification.isActionPending || notification.status === "SYNCING";
 
 	return {
 		didSucceed,
-		isPending: notification.isActionPending,
+		isPending: isSending,
 		sendEmail(options: EmailOptions = {}) {
 			if (state.customerEmail !== undefined && !state.customerEmail?.trim()) {
 				toast({

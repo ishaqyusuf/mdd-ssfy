@@ -1,5 +1,11 @@
 import { triggerTask } from "@/actions/trigger-task";
 import {
+	getTaskFailureMessage,
+	getTaskFailureTitle,
+	getTaskOutputFailureMessage,
+	getTaskStartFailureTitle,
+} from "@/lib/task-feedback";
+import {
 	type TaskMonitorIntent,
 	getTaskMonitorTaskDefaults,
 	useTaskMonitorStore,
@@ -17,9 +23,9 @@ interface Props {
 	executingToast?: string;
 	taskTitle?: string;
 	taskDescription?: string;
-	onError?;
-	onSuccess?;
-	onStarted?;
+	onError?: (message?: string) => void;
+	onSuccess?: () => void;
+	onStarted?: () => void;
 	debug?: boolean;
 	silent?: boolean;
 	monitor?: boolean;
@@ -39,48 +45,6 @@ type PendingTrigger = {
 	options?: TriggerTaskOptions;
 };
 
-function isSalesEmailTrigger(input?: TriggerTaskInput | null) {
-	if (!input) return false;
-	if (input.taskName === "send-sales-email") return true;
-	if (input.taskName !== "notification") return false;
-	const payload = input.payload as { channel?: string } | null | undefined;
-	return (
-		payload?.channel === "simple_sales_document_email" ||
-		payload?.channel === "composed_sales_document_email"
-	);
-}
-
-function getSalesEmailOutputFailure(
-	input: TriggerTaskInput | null | undefined,
-	output: unknown,
-) {
-	if (!isSalesEmailTrigger(input)) return null;
-	const emails = (output as { emails?: unknown } | null)?.emails as
-		| {
-				sent?: number;
-				skipped?: number;
-				failed?: number;
-		  }
-		| undefined;
-	if (!emails) return null;
-
-	const sent = Number(emails.sent || 0);
-	const skipped = Number(emails.skipped || 0);
-	const failed = Number(emails.failed || 0);
-
-	if (failed > 0) {
-		return failed === 1
-			? "Email provider reported 1 failed message."
-			: `Email provider reported ${failed} failed messages.`;
-	}
-
-	if (sent === 0 && skipped > 0) {
-		return "Email was skipped before it could be sent.";
-	}
-
-	return null;
-}
-
 export function useTaskTrigger(props?: Props) {
 	const {
 		successToast = "Success!",
@@ -95,6 +59,7 @@ export function useTaskTrigger(props?: Props) {
 		monitor,
 	} = props || {};
 	const shouldShowSuccessToast = !silent && !monitor;
+	const shouldMonitorTask = monitor ?? !silent;
 	const [runId, setRunId] = useState<string | undefined>();
 	const [accessToken, setAccessToken] = useState<string | undefined>();
 	const [status, setStatus] = useState<
@@ -109,31 +74,63 @@ export function useTaskTrigger(props?: Props) {
 	const addTask = useTaskMonitorStore((state) => state.addTask);
 	const pendingTriggersRef = useRef<PendingTrigger[]>([]);
 	const activeTriggerRef = useRef<PendingTrigger | null>(null);
+	const handledFailureRef = useRef(false);
 	useEffect(() => {
 		if (status === "FAILED") {
-			// setIsImporting(false);
+			if (handledFailureRef.current) return;
+			handledFailureRef.current = true;
+
+			const failedRunId = runId;
+			const message = getTaskFailureMessage({
+				input: activeTriggerRef.current?.input,
+				errorMessage: completionError,
+			});
+
 			setRunId(undefined);
-			if (!silent && completionError)
+			setAccessToken(undefined);
+			if (!silent && (!failedRunId || !shouldMonitorTask)) {
 				toast({
 					duration: 3500,
 					variant: "error",
-					title: errorToast,
-					description: completionError,
+					title:
+						failedRunId
+							? getTaskFailureTitle({
+									input: activeTriggerRef.current?.input,
+								})
+							: getTaskStartFailureTitle({
+									input: activeTriggerRef.current?.input,
+								}),
+					description: message || errorToast,
 				});
-			onError?.();
+			}
+			activeTriggerRef.current = null;
+			onError?.(message);
 		}
-	}, [completionError, errorToast, onError, silent, status]);
+	}, [
+		completionError,
+		errorToast,
+		onError,
+		runId,
+		shouldMonitorTask,
+		silent,
+		status,
+	]);
 	useEffect(() => {
 		if (error || run?.status === "FAILED") {
-			setCompletionError(error?.message || null);
+			setCompletionError(
+				getTaskFailureMessage({
+					input: activeTriggerRef.current?.input,
+					errorMessage: error?.message || null,
+				}),
+			);
 			setStatus("FAILED");
 		}
 
 		if (run?.status === "COMPLETED") {
-			const outputFailure = getSalesEmailOutputFailure(
-				activeTriggerRef.current?.input,
-				run.output,
-			);
+			const outputFailure = getTaskOutputFailureMessage({
+				input: activeTriggerRef.current?.input,
+				output: run.output,
+			});
 			if (outputFailure) {
 				setCompletionError(outputFailure);
 				setStatus("FAILED");
@@ -142,12 +139,14 @@ export function useTaskTrigger(props?: Props) {
 
 			setCompletionError(null);
 			setStatus("COMPLETED");
+			activeTriggerRef.current = null;
 			onSuccess?.();
 		}
 	}, [error, onSuccess, run]);
 	useEffect(() => {
 		if (status === "COMPLETED") {
 			setRunId(undefined);
+			setAccessToken(undefined);
 			// setIsImporting(false);
 			// onclose();
 
@@ -176,29 +175,32 @@ export function useTaskTrigger(props?: Props) {
 	const _action = useAction(triggerTask, {
 		onExecute() {
 			setStatus("SYNCING");
-			// if (executingToast)
-			//     if (!props.silent)
-			//         toast({
-			//             duration: Number.POSITIVE_INFINITY,
-			//             variant: "spinner",
-			//             title: executingToast,
-			//         });
+			setCompletionError(null);
+			handledFailureRef.current = false;
+			if (executingToast && !silent) {
+				toast({
+					duration: 2500,
+					variant: "spinner",
+					title: executingToast,
+				});
+			}
 		},
 		onSuccess({ data }) {
 			const pending = pendingTriggersRef.current.shift();
 			// if (props?.debug) console.log({ data });
 			if (!data?.id || !data?.publicAccessToken) {
-				activeTriggerRef.current = null;
+				const errorMessage = (data as { errorMessage?: string } | undefined)
+					?.errorMessage;
+				activeTriggerRef.current = pending || null;
 				setRunId(undefined);
 				setAccessToken(undefined);
+				setCompletionError(
+					getTaskFailureMessage({
+						input: pending?.input,
+						errorMessage,
+					}),
+				);
 				setStatus("FAILED");
-				if (!silent)
-					toast({
-						duration: 3500,
-						variant: "error",
-						description: errorToast,
-						title: "Unable to start task",
-					});
 				return;
 			}
 			activeTriggerRef.current = pending || null;
@@ -225,18 +227,12 @@ export function useTaskTrigger(props?: Props) {
 			onStarted?.();
 		},
 		onError(e) {
-			pendingTriggersRef.current.shift();
-			activeTriggerRef.current = null;
+			const pending = pendingTriggersRef.current.shift();
+			activeTriggerRef.current = pending || null;
 			setRunId(undefined);
+			setAccessToken(undefined);
 			setCompletionError(e?.error?.serverError || null);
-			onError?.();
-			if (!silent)
-				toast({
-					duration: 3500,
-					variant: "error",
-					description: errorToast,
-					title: e?.error?.serverError,
-				});
+			setStatus("FAILED");
 		},
 	});
 	const trigger = (input: TriggerTaskInput, options?: TriggerTaskOptions) => {

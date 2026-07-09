@@ -66,6 +66,7 @@ export function SalesDocumentEmailDialog({
 	const [email, setEmail] = useState(customerEmail || "");
 	const [subject, setSubject] = useState(buildDefaultSubject(orderNo));
 	const [message, setMessage] = useState("");
+	const [sendError, setSendError] = useState<string | null>(null);
 	const open = controlledOpen ?? internalOpen;
 	const setOpen = onOpenChange ?? setInternalOpen;
 	const auth = useAuth();
@@ -77,6 +78,7 @@ export function SalesDocumentEmailDialog({
 		successToast: "Email sent.",
 		errorToast: "Unable to send email.",
 		onSuccess: async () => {
+			setSendError(null);
 			setOpen(false);
 			setSubject(buildDefaultSubject(orderNo));
 			setMessage("");
@@ -89,13 +91,18 @@ export function SalesDocumentEmailDialog({
 				}),
 			]);
 		},
+		onError: (message) => {
+			setSendError(message || "Email sending failed. Please try again.");
+		},
 	});
 
 	const isQuote = mode === "quote";
 	const isEmailValid = EMAIL_RE.test(email.trim());
+	const isSending =
+		notification.isActionPending || notification.status === "SYNCING";
 	const canSend =
 		!disabled &&
-		!notification.isActionPending &&
+		!isSending &&
 		!!salesOrderId &&
 		isEmailValid &&
 		subject.trim().length > 0;
@@ -114,6 +121,7 @@ export function SalesDocumentEmailDialog({
 				setEmail(customerEmail || "");
 				setSubject(buildDefaultSubject(orderNo));
 				setMessage("");
+				setSendError(null);
 				setOpen(true);
 			}}
 			className={triggerVariant === "icon" ? "size-8 rounded-full" : undefined}
@@ -135,6 +143,7 @@ export function SalesDocumentEmailDialog({
 		setEmail(customerEmail || "");
 		setSubject(buildDefaultSubject(orderNo));
 		setMessage("");
+		setSendError(null);
 	}, [customerEmail, open, orderNo]);
 
 	useEffect(() => {
@@ -234,6 +243,13 @@ export function SalesDocumentEmailDialog({
 								be included automatically.
 							</p>
 						</div>
+
+						{sendError ? (
+							<div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+								<Icons.AlertCircle className="mt-0.5 size-4 shrink-0" />
+								<p>{sendError}</p>
+							</div>
+						) : null}
 					</div>
 
 					<DialogFooter>
@@ -241,7 +257,7 @@ export function SalesDocumentEmailDialog({
 							type="button"
 							variant="outline"
 							onClick={() => setOpen(false)}
-							disabled={notification.isActionPending}
+							disabled={isSending}
 						>
 							Cancel
 						</Button>
@@ -250,6 +266,7 @@ export function SalesDocumentEmailDialog({
 							disabled={!canSend}
 							onClick={() => {
 								if (!salesOrderId) return;
+								setSendError(null);
 								notification.composedSalesDocumentEmail({
 									printType: isQuote ? "quote" : "order",
 									salesIds: [salesOrderId],
@@ -261,7 +278,7 @@ export function SalesDocumentEmailDialog({
 								});
 							}}
 						>
-							{notification.isActionPending ? (
+							{isSending ? (
 								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
 							) : (
 								<Icons.Send className="mr-2 size-4" />

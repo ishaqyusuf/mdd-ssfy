@@ -25,7 +25,12 @@ import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 import { render } from "@gnd/email/render";
-import { getRecipient, getTestEmails, shouldSkipEmail } from "@gnd/utils/envs";
+import {
+	getRecipient,
+	getTestEmails,
+	shouldMockEmail,
+	shouldSkipEmail,
+} from "@gnd/utils/envs";
 import { nanoid } from "nanoid";
 import { type CreateEmailOptions, Resend } from "resend";
 import type { EmailInput } from "../base";
@@ -89,6 +94,10 @@ function responseErrorCode(error: unknown) {
 	return String((error as { name?: unknown }).name || "");
 }
 
+function mockProviderMessageId(inputIndex: number) {
+	return `mock_${inputIndex}_${nanoid()}`;
+}
+
 export function resolveEmailRecipients(
 	targetRecipients: string | string[],
 	options?: {
@@ -144,6 +153,15 @@ export class EmailService {
 		const html = await render(emailTemplate(data as never));
 
 		const recipients = resolveEmailRecipients([to]);
+
+		if (shouldMockEmail()) {
+			console.info("Mocked transactional email send", {
+				to: recipients,
+				subject,
+				template,
+			});
+			return;
+		}
 
 		const response = await this.client.emails.send({
 			from: from || "GND Millwork <noreply@gndprodesk.com>",
@@ -214,6 +232,24 @@ export class EmailService {
 		const emailPayloads = await Promise.all(
 			eligibleEmails.map(({ email }) => this.#buildEmailPayload(email)),
 		);
+
+		if (shouldMockEmail()) {
+			return {
+				sent: eligibleEmails.length,
+				skipped: emails.length - eligibleEmails.length,
+				failed: 0,
+				deliveries: [
+					...skippedDeliveries,
+					...eligibleEmails.map((entry, index) => ({
+						inputIndex: entry.index,
+						status: "sent" as const,
+						to: normalizePayloadRecipients(emailPayloads[index]),
+						providerMessageId: mockProviderMessageId(entry.index),
+						providerStatus: "mocked_by_environment",
+					})),
+				],
+			};
+		}
 
 		// Check if any emails have attachments - batch send doesn't support attachments
 		const hasAttachments = emailPayloads.some(

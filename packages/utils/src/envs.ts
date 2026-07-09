@@ -70,9 +70,25 @@ export function getDevEmail() {
   return process.env.DEV_EMAIL?.trim() || null;
 }
 
+function isTruthyEnvFlag(value: string | undefined) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
+function isProductionRuntime() {
+  return (
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production"
+  );
+}
+
 export function shouldSkipEmail() {
-  const value = String(process.env.SKIP_EMAIL || "").trim().toLowerCase();
-  return value === "1" || value === "true" || value === "yes";
+  return isTruthyEnvFlag(process.env.SKIP_EMAIL);
+}
+
+export function shouldMockEmail() {
+  if (isProductionRuntime()) return false;
+  return isTruthyEnvFlag(process.env.MOCK_EMAIL_SENDS);
 }
 
 export function getRecipient(email: string | string[]): string | string[] {

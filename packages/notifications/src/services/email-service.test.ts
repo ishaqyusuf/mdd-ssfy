@@ -1,23 +1,31 @@
 // @ts-expect-error package typecheck does not include Bun test types.
 import { afterEach, describe, expect, test } from "bun:test";
-import { shouldSkipEmail } from "@gnd/utils/envs";
+import { shouldMockEmail, shouldSkipEmail } from "@gnd/utils/envs";
 import { resolveEmailRecipients } from "./email-service";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalTestEmails = process.env.TEST_EMAILS;
 const originalSkipEmail = process.env.SKIP_EMAIL;
+const originalMockEmailSends = process.env.MOCK_EMAIL_SENDS;
+const originalVercelEnv = process.env.VERCEL_ENV;
 
 afterEach(() => {
 	process.env.NODE_ENV = originalNodeEnv;
+	process.env.VERCEL_ENV = originalVercelEnv;
 	if (originalTestEmails === undefined) {
-		delete process.env.TEST_EMAILS;
+		process.env.TEST_EMAILS = undefined;
 	} else {
 		process.env.TEST_EMAILS = originalTestEmails;
 	}
 	if (originalSkipEmail === undefined) {
-		delete process.env.SKIP_EMAIL;
+		process.env.SKIP_EMAIL = undefined;
 	} else {
 		process.env.SKIP_EMAIL = originalSkipEmail;
+	}
+	if (originalMockEmailSends === undefined) {
+		process.env.MOCK_EMAIL_SENDS = undefined;
+	} else {
+		process.env.MOCK_EMAIL_SENDS = originalMockEmailSends;
 	}
 });
 
@@ -35,7 +43,7 @@ describe("resolveEmailRecipients", () => {
 
 	test("requires TEST_EMAILS when test email mode is explicit", () => {
 		process.env.NODE_ENV = "production";
-		delete process.env.TEST_EMAILS;
+		process.env.TEST_EMAILS = undefined;
 
 		expect(() =>
 			resolveEmailRecipients(["user@example.com"], {
@@ -58,7 +66,36 @@ describe("shouldSkipEmail", () => {
 	});
 
 	test("leaves email sending enabled by default", () => {
-		delete process.env.SKIP_EMAIL;
+		process.env.SKIP_EMAIL = undefined;
 		expect(shouldSkipEmail()).toBe(false);
+	});
+});
+
+describe("shouldMockEmail", () => {
+	test("treats common truthy MOCK_EMAIL_SENDS values as mock enabled outside production", () => {
+		process.env.NODE_ENV = "development";
+		process.env.VERCEL_ENV = undefined;
+
+		process.env.MOCK_EMAIL_SENDS = "true";
+		expect(shouldMockEmail()).toBe(true);
+
+		process.env.MOCK_EMAIL_SENDS = "1";
+		expect(shouldMockEmail()).toBe(true);
+
+		process.env.MOCK_EMAIL_SENDS = "yes";
+		expect(shouldMockEmail()).toBe(true);
+	});
+
+	test("ignores MOCK_EMAIL_SENDS in production runtimes", () => {
+		process.env.MOCK_EMAIL_SENDS = "true";
+		process.env.NODE_ENV = "production";
+		process.env.VERCEL_ENV = undefined;
+
+		expect(shouldMockEmail()).toBe(false);
+
+		process.env.NODE_ENV = "development";
+		process.env.VERCEL_ENV = "production";
+
+		expect(shouldMockEmail()).toBe(false);
 	});
 });
