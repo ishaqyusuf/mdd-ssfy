@@ -2,6 +2,14 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Implemented Unit Invoice search parity with Project Units.
+  - Updated `whereUnitInvoices` so Unit Invoices base `q` search checks the same visible unit/project/builder fields as Project Units: `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`.
+  - Added focused Community router regression coverage for the shared visible search fields and project-scoped search composition, covering the Breezewood Villas `/01` mismatch class.
+  - Preserved existing Unit Invoices route, filter params, invoice/production/installation/date filters, sort/pagination behavior, invoice totals, chargeback handling, row click, and invoice modal behavior.
+  - Validation: `bun test apps/api/src/trpc/routers/community.route.test.ts` passed; `bunx biome check --formatter-enabled=false apps/api/src/db/queries/unit-invoices.ts apps/api/src/trpc/routers/community.route.test.ts` passed. `bun --filter @gnd/api typecheck` was attempted and remains blocked by unrelated baseline diagnostics outside the Unit Invoices search change. Full Biome formatting was not applied because `unit-invoices.ts` still has a broad pre-existing indentation reformat.
+  - Brain files updated: `brain/features/unit-invoices-table.md`, `brain/features/community-unit-invoice-reporting.md`, `brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, and `brain/progress.md`.
+  - No database schema, migration, API contract shape, or permission change was required.
+
 - Made Mark As Fulfilled auto-resolve inventory blockers during the transitional inventory cutover.
   - Extended `inventories.salesInventoryMarkAsPreflight` with pending allocation ids/qty plus auto-inbound demand/component/supplier hints so Mark As can prepare inventory work without opening the Inventory tab.
   - Added `inventories.resolveSalesInventoryMarkAsAutoForContinue` for active non-terminal orders. It rejects fulfilled/cancelled orders before writes, approves pending-review stock allocations, creates missing inbound demand for remaining monitored-stock shortages, creates/links inbound shipments grouped by preferred supplier, inventory default supplier, or fallback `Auto-created inbound`, updates affected `SalesOrders.inventoryStatus` to `ORDERED` or `AVAILABLE`, writes `SalesHistory` audit evidence, reruns preflight, and returns `continueAllowed` for the Mark As Fulfilled shortcut.

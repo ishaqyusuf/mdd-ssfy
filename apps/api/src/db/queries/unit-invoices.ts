@@ -255,6 +255,7 @@ const unitInvoiceTaskInputSchema = z.object({
   checkDate: z.coerce.date().nullable().optional(),
   createdAt: z.coerce.date().nullable().optional(),
 });
+type UnitInvoiceTaskInput = z.infer<typeof unitInvoiceTaskInputSchema>;
 
 export const saveUnitInvoiceFormSchema = z.object({
   homeId: z.number(),
@@ -278,7 +279,9 @@ export async function saveUnitInvoiceForm(
   });
 
   const createTasks = input.tasks.filter((task) => !task.id && !task.taskUid);
-  const updateTasks = input.tasks.filter((task) => !!task.id);
+  const updateTasks = input.tasks.filter(
+    (task): task is UnitInvoiceTaskInput & { id: number } => !!task.id,
+  );
 
   if (input.duplicateTaskIds.length) {
     await ctx.db.homeTasks.deleteMany({
@@ -312,7 +315,7 @@ export async function saveUnitInvoiceForm(
       updateTasks.map((task) =>
         ctx.db.homeTasks.update({
           where: {
-            id: task.id!,
+            id: task.id,
           },
           data: {
             taskName:
@@ -396,24 +399,37 @@ export function whereUnitInvoices(query: Partial<GetUnitInvoicesSchema>) {
   for (const [k, v] of Object.entries(query)) {
     if (!v) continue;
 
-    const value = v as any;
+    const value = v as string;
     switch (k as keyof GetUnitInvoicesSchema) {
-      case "q":
+      case "q": {
+        const q = { contains: value };
         where.push({
           OR: [
             {
-              search: {
-                contains: value,
+              search: q,
+            },
+            {
+              modelName: q,
+            },
+            {
+              lotBlock: q,
+            },
+            {
+              project: {
+                title: q,
               },
             },
             {
-              modelName: {
-                contains: value,
+              project: {
+                builder: {
+                  name: q,
+                },
               },
             },
           ],
         });
         break;
+      }
       case "projectSlug":
         where.push({
           project: {

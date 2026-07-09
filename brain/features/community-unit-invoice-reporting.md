@@ -61,6 +61,7 @@
 - Shared helpers
   - `whereUnitInvoices`
     - exported so reports can reuse the same base invoice filter contract
+    - base `q` search checks `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`, matching Project Units visible text search for shared unit fields
   - `transformFilterDateToQuery`
     - shared date-range parser used by invoice/report filters
 
@@ -113,6 +114,7 @@
 - Built task-detail reporting on `HomeTasks` so the report is task-grain and grouped by project with unit-level sections.
 - Added compact vertical summary grids for report, project, and unit totals to reduce print whitespace.
 - Standardized invoice report launching so multiple report types can share the same header dropdown and no-filter confirmation flow.
+- Aligned Unit Invoices base search with Project Units for visible unit/project/builder fields so report filters built from the invoice page no longer miss lot/block-only unit matches.
 
 ## Planned Report Types
 - `Unit Invoice Summary Report`

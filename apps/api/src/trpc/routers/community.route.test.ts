@@ -8,6 +8,7 @@ import {
 	getProjectUnitTemplateStatus,
 	whereProjectUnits,
 } from "../../db/queries/project-units";
+import { whereUnitInvoices } from "../../db/queries/unit-invoices";
 import type { TRPCContext } from "../init";
 
 type BuilderTaskWhere = {
@@ -136,6 +137,42 @@ describe("project unit filters", () => {
 				communityModelInstallTasks: [],
 			}),
 		).toBe("not configured");
+	});
+});
+
+describe("unit invoice filters", () => {
+	it("searches the same visible unit fields as project units", () => {
+		expect(whereUnitInvoices({ q: "/01" })).toEqual({
+			OR: [
+				{ search: { contains: "/01" } },
+				{ modelName: { contains: "/01" } },
+				{ lotBlock: { contains: "/01" } },
+				{ project: { title: { contains: "/01" } } },
+				{ project: { builder: { name: { contains: "/01" } } } },
+			],
+		});
+	});
+
+	it("keeps project scope when searching visible unit fields", () => {
+		expect(
+			whereUnitInvoices({
+				q: "/01",
+				projectSlug: "breezewood-villas",
+			}),
+		).toEqual({
+			AND: [
+				{
+					OR: [
+						{ search: { contains: "/01" } },
+						{ modelName: { contains: "/01" } },
+						{ lotBlock: { contains: "/01" } },
+						{ project: { title: { contains: "/01" } } },
+						{ project: { builder: { name: { contains: "/01" } } } },
+					],
+				},
+				{ project: { slug: "breezewood-villas" } },
+			],
+		});
 	});
 });
 

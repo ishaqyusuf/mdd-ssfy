@@ -15,6 +15,18 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Unit Invoice Search Parity With Project Units
+- Priority: High
+- Description: Implemented the spec in GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/38 and plan in `brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md`; fixed the Community Unit Invoices search mismatch where Breezewood Villas plus `/01` returned `8` invoice rows while Project Units returned `19`.
+- Related Feature: Community unit invoices, project units, Community operations search
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/38
+- Created Date: 2026-07-09
+- Completed Date: 2026-07-09
+- Latest Implementation Note: Updated `whereUnitInvoices` so base `q` search includes `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`, matching Project Units visible text search while preserving existing invoice, production, installation, date, sort, pagination, totals, and modal behavior. Focused Community router query coverage now pins the shared visible search fields and project-scoped composition.
+
 ### Desktop Feedback Issue Board
 - Priority: High
 - Description: Track plan in `brain/plans/2026-07-05-feature-desktop-feedback-issue-board.md`.

@@ -10,6 +10,7 @@ The `/community/unit-invoices` route now renders through `apps/www/src/component
 - Existing unit-invoice filters are preserved through `loadUnitInvoiceFilterParams` and `useUnitInvoiceFilterParams`.
 - Existing data loading uses `trpc.community.getUnitInvoices`; no new unit-invoice query was introduced.
 - Existing header behavior is preserved through `UnitInvoicesHeader`, including the existing `SearchFilterAdapter` and `UnitInvoicesReportMenu`.
+- The `q` search now matches Project Units visible unit text search by checking `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`; project-scoped lot/block searches such as Breezewood Villas plus `/01` should no longer drop invoice units that appear on Project Units.
 - Row click and row actions still open the existing `editUnitInvoiceId` URL param and `UnitInvoiceModal`.
 - The table supports persisted table-2 column visibility, sizing, ordering, dividers, sticky Unit column behavior, virtualized rows, existing sort URL state, and table-owned horizontal scrolling.
 
@@ -26,6 +27,10 @@ The `/community/unit-invoices` route now renders through `apps/www/src/component
 - Import scans confirmed the route no longer imports `components/tables/unit-invoices`; the remaining legacy imports are limited to the project overview widget.
 - `git diff -- apps/www/src/components/tables-2/core` was clean.
 - `git diff --check` passed for the unit-invoices slice.
+- Search-parity implementation validation on 2026-07-09:
+  - `bun test apps/api/src/trpc/routers/community.route.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false apps/api/src/db/queries/unit-invoices.ts apps/api/src/trpc/routers/community.route.test.ts` passed.
+  - `bun --filter @gnd/api typecheck` was attempted and remains blocked by unrelated baseline diagnostics outside the Unit Invoices search change.
 - HTTP smoke returned `200` for `/community/unit-invoices`.
 - Browser smoke passed with Quick Login as Pablo Cruz / Super Admin:
   - desktop `/community/unit-invoices` rendered the header, existing `Search unit invoices...` input, table headers, virtualized invoice rows, no app error, no fresh console errors, and no document-level horizontal overflow.

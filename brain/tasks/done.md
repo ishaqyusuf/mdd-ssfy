@@ -4,6 +4,18 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Unit Invoice Search Parity With Project Units
+- Priority: High
+- Description: Aligned Community Unit Invoices `q` search with Project Units visible unit search so selected-project searches include units matching only through lot/block text, project title, or builder name. This fixes the reported Breezewood Villas `/01` mismatch where Unit Invoices returned fewer rows than Project Units.
+- Related Feature: Community unit invoices, project units, Community operations search
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md
+- Feature Files: brain/features/unit-invoices-table.md; brain/features/community-unit-invoice-reporting.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/38
+- Evidence: apps/api/src/db/queries/unit-invoices.ts; apps/api/src/trpc/routers/community.route.test.ts
+- Completed Date: 2026-07-09
+
 ### Sales Inventory Non-Stock Status And Tracking Change Repair
 - Priority: High
 - Description: Added derived `Not Applicable` / `N/A` inbound requirement display for non-stock, not-inventory, untracked, and zero-required sales inventory rows; added a lifecycle boundary for future stock-tracking repair preview; and added a bounded read-only tracking-change repair modal/check after category stock mode becomes tracked.
