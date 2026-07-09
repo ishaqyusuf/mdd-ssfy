@@ -144,6 +144,17 @@ describe("local db sync helpers", () => {
 		).not.toThrow();
 	});
 
+	test("guards remote-dev sync targets behind the explicit write flag", () => {
+		const source = "mysql://user:pass@aws.connect.psdb.cloud/gndprod";
+		const target = "mysql://user:pass@aws.connect.psdb.cloud/gnddev";
+
+		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev" })).toThrow("GND_ALLOW_REMOTE_DEV_DB_SYNC=1");
+		expect(() => assertSafeConnections(source, target, { targetMode: "remote-dev", allowRemoteDevTarget: true })).not.toThrow();
+		expect(() => assertSafeConnections(source, source, { targetMode: "remote-dev", allowRemoteDevTarget: true })).toThrow(
+			"same database",
+		);
+	});
+
 	test("parses cli args and env files", () => {
 		expect(parseArgs(["--dry-run", "--table", "Users", "--read-batch-size", "250"])).toMatchObject({
 			dryRun: true,
@@ -159,7 +170,11 @@ describe("local db sync helpers", () => {
 		expect(parseArgs(["--on-duplicate", "ignore"])).toMatchObject({
 			onDuplicate: "ignore",
 		});
+		expect(parseArgs(["--target-mode", "remote-dev"])).toMatchObject({
+			targetMode: "remote-dev",
+		});
 		expect(() => parseArgs(["--on-duplicate", "merge"])).toThrow("Invalid value for --on-duplicate");
+		expect(() => parseArgs(["--target-mode", "prod"])).toThrow("Invalid value for --target-mode");
 		expect(parseEnvFile("DATABASE_URL='mysql://root@localhost/db'\n# ignored\nOTHER=value")).toEqual({
 			DATABASE_URL: "mysql://root@localhost/db",
 			OTHER: "value",
@@ -194,6 +209,41 @@ describe("local db sync helpers", () => {
 			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod"], cwd);
 
 			expect(options.targetUrl).toBe("mysql://root@localhost:3308/import-db");
+		} finally {
+			await rm(cwd, { recursive: true, force: true });
+		}
+	});
+
+	test("uses separate cursor state files per target mode", async () => {
+		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
+
+		try {
+			const localOptions = await resolveOptions(
+				[
+					"--source-url",
+					"mysql://prod.example.com/prod",
+					"--target-url",
+					"mysql://root@localhost:3306/gnd-prisma2",
+					"--target-mode",
+					"local",
+				],
+				cwd,
+			);
+			const remoteOptions = await resolveOptions(
+				[
+					"--source-url",
+					"mysql://prod.example.com/prod",
+					"--target-url",
+					"mysql://dev.example.com/gnd-dev",
+					"--target-mode",
+					"remote-dev",
+				],
+				cwd,
+			);
+
+			expect(localOptions.stateFile).toContain(".local-db-sync/local/state.json");
+			expect(remoteOptions.stateFile).toContain(".local-db-sync/remote-dev/state.json");
+			expect(localOptions.stateFile).not.toBe(remoteOptions.stateFile);
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
 		}
@@ -376,6 +426,8 @@ function createOptions(onDuplicate: SyncOptions["onDuplicate"]): SyncOptions {
 	return {
 		sourceUrl: "mysql://prod.example.com/gnd",
 		targetUrl: "mysql://root@localhost:3306/gnd-prisma2",
+		targetMode: "local",
+		allowRemoteDevTarget: false,
 		stateFile: "/tmp/local-sync-state.json",
 		initialCursorValue: "2026-05-04 23:59:59.999",
 		dryRun: false,

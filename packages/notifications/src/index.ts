@@ -239,6 +239,31 @@ function isSalesDocumentEmailType(
 	);
 }
 
+function isMissingSalesEmailAttemptTableError(error: unknown) {
+	if (!error || typeof error !== "object") return false;
+
+	const prismaError = error as {
+		code?: unknown;
+		message?: unknown;
+		meta?: {
+			modelName?: unknown;
+			table?: unknown;
+		};
+	};
+	if (prismaError.code !== "P2021") return false;
+
+	const modelName = String(prismaError.meta?.modelName ?? "");
+	const table = String(prismaError.meta?.table ?? "");
+	const message =
+		typeof prismaError.message === "string" ? prismaError.message : "";
+
+	return (
+		modelName === "SalesEmailAttempt" ||
+		table.includes("SalesEmailAttempt") ||
+		message.includes("SalesEmailAttempt")
+	);
+}
+
 function arrayToText(value: unknown[]) {
 	return value.map((item) => String(item)).join(", ");
 }
@@ -578,39 +603,53 @@ export class Notifications {
 		const status = emailInputs.length ? "SENDING" : "SKIPPED";
 		const refs: SalesEmailAttemptRef[] = [];
 
-		for (const [index, emailInput] of inputs.entries()) {
-			const attemptData = salesEmailAttemptData({
-				type: type as SalesDocumentEmailType,
-				data: salesData,
-				author,
-				emailInput,
-				options,
-				status,
-			});
-			const existingAttemptId =
-				typeof salesData.emailAttemptId === "string"
-					? salesData.emailAttemptId
-					: null;
-
-			if (existingAttemptId && index === 0) {
-				await db.updateMany({
-					where: {
-						id: existingAttemptId,
-						deletedAt: null,
-					},
-					data: attemptData,
+		try {
+			for (const [index, emailInput] of inputs.entries()) {
+				const attemptData = salesEmailAttemptData({
+					type: type as SalesDocumentEmailType,
+					data: salesData,
+					author,
+					emailInput,
+					options,
+					status,
 				});
-				refs.push({ id: existingAttemptId, inputIndex: index });
-				continue;
-			}
+				const existingAttemptId =
+					typeof salesData.emailAttemptId === "string"
+						? salesData.emailAttemptId
+						: null;
 
-			const created = await db.create({
-				data: attemptData,
-				select: {
-					id: true,
-				},
-			});
-			refs.push({ id: created.id, inputIndex: index });
+				if (existingAttemptId && index === 0) {
+					await db.updateMany({
+						where: {
+							id: existingAttemptId,
+							deletedAt: null,
+						},
+						data: attemptData,
+					});
+					refs.push({ id: existingAttemptId, inputIndex: index });
+					continue;
+				}
+
+				const created = await db.create({
+					data: attemptData,
+					select: {
+						id: true,
+					},
+				});
+				refs.push({ id: created.id, inputIndex: index });
+			}
+		} catch (error) {
+			if (isMissingSalesEmailAttemptTableError(error)) {
+				logger.warn(
+					"Skipping sales email attempt persistence because the SalesEmailAttempt table is missing.",
+					{
+						type,
+						inputCount: inputs.length,
+					},
+				);
+				return [];
+			}
+			throw error;
 		}
 
 		return refs;
@@ -628,20 +667,33 @@ export class Notifications {
 			result.deliveries.map((delivery) => [delivery.inputIndex, delivery]),
 		);
 
-		await Promise.all(
-			attempts.map(async (attempt) => {
-				const delivery = deliveryByInputIndex.get(attempt.inputIndex);
-				if (!delivery) return;
+		try {
+			await Promise.all(
+				attempts.map(async (attempt) => {
+					const delivery = deliveryByInputIndex.get(attempt.inputIndex);
+					if (!delivery) return;
 
-				await db.updateMany({
-					where: {
-						id: attempt.id,
-						deletedAt: null,
+					await db.updateMany({
+						where: {
+							id: attempt.id,
+							deletedAt: null,
+						},
+						data: statusPatchFromDelivery(delivery),
+					});
+				}),
+			);
+		} catch (error) {
+			if (isMissingSalesEmailAttemptTableError(error)) {
+				logger.warn(
+					"Skipping sales email attempt completion because the SalesEmailAttempt table is missing.",
+					{
+						attemptCount: attempts.length,
 					},
-					data: statusPatchFromDelivery(delivery),
-				});
-			}),
-		);
+				);
+				return;
+			}
+			throw error;
+		}
 	}
 
 	async create<T extends keyof NotificationTypes>(

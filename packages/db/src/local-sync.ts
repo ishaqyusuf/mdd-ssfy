@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 export type SyncMode = "incremental" | "insert-only" | "static-refresh" | "skip";
 export type DuplicateConflictAction = "ignore" | "reset" | "cancel";
 export type DuplicateConflictPolicy = DuplicateConflictAction | "prompt";
+export type SyncTargetMode = "local" | "remote-dev";
 
 export type ColumnInfo = {
 	name: string;
@@ -39,6 +40,8 @@ export type SyncState = {
 export type SyncOptions = {
 	sourceUrl: string;
 	targetUrl: string;
+	targetMode: SyncTargetMode;
+	allowRemoteDevTarget: boolean;
 	stateFile: string;
 	table?: string;
 	initialCursorValue: string | null;
@@ -113,6 +116,7 @@ const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "0.0.0.0", "mysql"]);
 const DUPLICATE_POLICIES = new Set<DuplicateConflictPolicy>(["prompt", "ignore", "reset", "cancel"]);
+const TARGET_MODES = new Set<SyncTargetMode>(["local", "remote-dev"]);
 
 export function quoteIdent(identifier: string): string {
 	return `\`${identifier.replaceAll("`", "``")}\``;
@@ -285,14 +289,26 @@ export function classifyTable(input: {
 	};
 }
 
-export function assertSafeConnections(sourceUrl: string, targetUrl: string): void {
+export function assertSafeConnections(
+	sourceUrl: string,
+	targetUrl: string,
+	options: { targetMode?: SyncTargetMode; allowRemoteDevTarget?: boolean; dryRun?: boolean } = {},
+): void {
 	const source = new URL(sourceUrl);
 	const target = new URL(targetUrl);
 	const sourceDatabase = source.pathname.replace(/^\//, "");
 	const targetDatabase = target.pathname.replace(/^\//, "");
+	const targetMode = options.targetMode ?? "local";
 
 	if (source.hostname === target.hostname && source.port === target.port && sourceDatabase === targetDatabase) {
 		throw new Error("Refusing to sync because source and target point at the same database.");
+	}
+
+	if (targetMode === "remote-dev") {
+		if (!options.dryRun && !options.allowRemoteDevTarget) {
+			throw new Error("Refusing to write to remote-dev target without GND_ALLOW_REMOTE_DEV_DB_SYNC=1.");
+		}
+		return;
 	}
 
 	if (PROD_HOST_PATTERNS.some((pattern) => pattern.test(target.hostname))) {
@@ -303,6 +319,16 @@ export function assertSafeConnections(sourceUrl: string, targetUrl: string): voi
 		throw new Error(
 			`Refusing to write to non-local target host: ${target.hostname}. Set LOCAL_DATABASE_URL to a local MySQL database.`,
 		);
+	}
+}
+
+export function redactDatabaseUrl(databaseUrl: string): string {
+	try {
+		const parsed = new URL(databaseUrl);
+		const credentials = parsed.username || parsed.password ? "<redacted>@" : "";
+		return `${parsed.protocol}//${credentials}${parsed.host}${parsed.pathname}`;
+	} catch {
+		return "<invalid database URL>";
 	}
 }
 
@@ -369,6 +395,14 @@ export function parseArgs(argv: string[]): Partial<SyncOptions> & { help?: boole
 			case "--target-url":
 				parsed.targetUrl = next();
 				break;
+			case "--target-mode": {
+				const value = next();
+				if (!TARGET_MODES.has(value as SyncTargetMode)) {
+					throw new Error(`Invalid value for --target-mode: ${value}. Expected local or remote-dev.`);
+				}
+				parsed.targetMode = value as SyncTargetMode;
+				break;
+			}
 			case "--initial-cursor-value":
 				parsed.initialCursorValue = next();
 				break;
@@ -442,9 +476,15 @@ export async function readFirstEnvValue(files: string[], keys: string[]): Promis
 	return undefined;
 }
 
+function isTruthy(value: string | undefined): boolean {
+	return value === "1" || value === "true" || value === "yes" || value === "on";
+}
+
 export async function resolveOptions(argv: string[], cwd = process.cwd()): Promise<SyncOptions & { help?: boolean }> {
 	const parsed = parseArgs(argv);
 	const repoRoot = cwd.endsWith("packages/db") ? resolve(cwd, "../..") : cwd;
+	const targetMode = parsed.targetMode ?? normalizeTargetMode(process.env.GND_DB_SYNC_TARGET_MODE ?? process.env.GND_DB_MODE ?? "local");
+	const envFiles = [resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")];
 	const sourceUrl =
 		parsed.sourceUrl ??
 		process.env.PROD_DATABASE_URL ??
@@ -457,21 +497,17 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 			[resolve(cwd, ".env.local"), resolve(repoRoot, ".env.local")],
 			["PROD_DATABASE_URL", "SOURCE_DATABASE_URL"],
 		));
-	const targetUrl =
-		parsed.targetUrl ??
-		process.env.LOCAL_DATABASE_URL ??
-		process.env.TARGET_DATABASE_URL ??
-		(await readFirstEnvValue(
-			[resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")],
-			["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"],
-		)) ??
-		DEFAULT_LOCAL_DATABASE_URL;
+	const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, envFiles);
+	const stateFile = parsed.stateFile ?? resolve(repoRoot, ".local-db-sync", targetMode, "state.json");
+	const allowRemoteDevTarget = isTruthy(process.env.GND_ALLOW_REMOTE_DEV_DB_SYNC);
 
 	if (parsed.help) {
 		return {
 			sourceUrl: sourceUrl ?? "",
 			targetUrl: targetUrl ?? "",
-			stateFile: parsed.stateFile ?? resolve(repoRoot, ".local-db-sync/state.json"),
+			targetMode,
+			allowRemoteDevTarget,
+			stateFile,
 			table: parsed.table,
 			initialCursorValue: parsed.initialCursorValue ?? process.env.LOCAL_SYNC_INITIAL_CURSOR_VALUE ?? DEFAULT_INITIAL_CURSOR_VALUE,
 			dryRun: parsed.dryRun ?? false,
@@ -490,13 +526,15 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 	}
 
 	if (!targetUrl) {
-		throw new Error("Missing local database URL. Set LOCAL_DATABASE_URL or packages/db/.env DATABASE_URL.");
+		throw new Error("Missing target database URL. Set LOCAL_DATABASE_URL, REMOTE_DEV_DATABASE_URL, or TARGET_DATABASE_URL.");
 	}
 
 	return {
 		sourceUrl,
 		targetUrl,
-		stateFile: parsed.stateFile ?? resolve(repoRoot, ".local-db-sync/state.json"),
+		targetMode,
+		allowRemoteDevTarget,
+		stateFile,
 		table: parsed.table,
 		initialCursorValue: parsed.initialCursorValue ?? process.env.LOCAL_SYNC_INITIAL_CURSOR_VALUE ?? DEFAULT_INITIAL_CURSOR_VALUE,
 		dryRun: parsed.dryRun ?? false,
@@ -507,6 +545,40 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 		writeBatchSize: parsed.writeBatchSize ?? 500,
 		onDuplicate: parsed.onDuplicate ?? "prompt",
 	};
+}
+
+async function resolveTargetUrl(
+	parsedTargetUrl: string | undefined,
+	targetMode: SyncTargetMode,
+	envFiles: string[],
+): Promise<string | undefined> {
+	if (parsedTargetUrl) {
+		return parsedTargetUrl;
+	}
+
+	if (targetMode === "remote-dev") {
+		return (
+			process.env.REMOTE_DEV_DATABASE_URL ??
+			process.env.DEV_DATABASE_URL ??
+			process.env.TARGET_DATABASE_URL ??
+			(await readFirstEnvValue(envFiles, ["REMOTE_DEV_DATABASE_URL", "DEV_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"]))
+		);
+	}
+
+	return (
+		process.env.LOCAL_DATABASE_URL ??
+		process.env.TARGET_DATABASE_URL ??
+		(await readFirstEnvValue(envFiles, ["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"])) ??
+		DEFAULT_LOCAL_DATABASE_URL
+	);
+}
+
+function normalizeTargetMode(value: string): SyncTargetMode {
+	if (TARGET_MODES.has(value as SyncTargetMode)) {
+		return value as SyncTargetMode;
+	}
+
+	throw new Error(`Invalid target mode: ${value}. Expected local or remote-dev.`);
 }
 
 export async function getTableManifest(
@@ -692,7 +764,11 @@ async function getBestKeyColumns(db: PrismaClient, table: string): Promise<strin
 }
 
 export async function syncDatabases(options: SyncOptions): Promise<SyncReport[]> {
-	assertSafeConnections(options.sourceUrl, options.targetUrl);
+	assertSafeConnections(options.sourceUrl, options.targetUrl, {
+		targetMode: options.targetMode,
+		allowRemoteDevTarget: options.allowRemoteDevTarget,
+		dryRun: options.dryRun,
+	});
 
 	const source = new PrismaClient({ datasources: { db: { url: options.sourceUrl } } });
 	const target = options.dryRun ? undefined : new PrismaClient({ datasources: { db: { url: options.targetUrl } } });

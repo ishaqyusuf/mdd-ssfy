@@ -21,6 +21,31 @@ function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
 }
 
+function isMissingSalesEmailAttemptTableError(error: unknown) {
+	if (!error || typeof error !== "object") return false;
+
+	const prismaError = error as {
+		code?: unknown;
+		message?: unknown;
+		meta?: {
+			modelName?: unknown;
+			table?: unknown;
+		};
+	};
+	if (prismaError.code !== "P2021") return false;
+
+	const modelName = String(prismaError.meta?.modelName ?? "");
+	const table = String(prismaError.meta?.table ?? "");
+	const message =
+		typeof prismaError.message === "string" ? prismaError.message : "";
+
+	return (
+		modelName === "SalesEmailAttempt" ||
+		table.includes("SalesEmailAttempt") ||
+		message.includes("SalesEmailAttempt")
+	);
+}
+
 async function loadSales(props: SendSalesEmailPayload) {
 	const { db } = await import("@gnd/db");
 	const { salesIds, salesNos } = props;
@@ -150,45 +175,58 @@ async function recordSkippedSalesEmails(
 	if (!skippedSales.length) return;
 	const { db } = await import("@gnd/db");
 
-	await Promise.all(
-		skippedSales.map((sale) =>
-			db.salesEmailAttempt.create({
-				data: {
-					status: "SKIPPED",
-					emailKind: "simple_sales_document_email",
-					documentType: props.printType,
-					emailType: props.emailType,
-					subject:
-						props.printType === "quote"
-							? "GND quote email"
-							: "GND invoice email",
-					recipientEmail: sale.customerEmail || null,
-					customerName: sale.customerName || null,
-					customerEmail: sale.customerEmail || null,
-					senderId: sale.salesRepId || null,
-					salesRepId: sale.salesRepId || null,
-					provider: "resend",
-					providerStatus: "missing_recipient_metadata",
-					errorCode: sale.reasons.join(","),
-					errorMessage: `Skipped because ${sale.reasons.join(", ")}.`,
-					salesIds: [sale.id],
-					salesNos: [sale.orderId],
-					salesIdsText: String(sale.id),
-					salesNosText: sale.orderId,
-					skippedAt: new Date(),
-					metadata: {
-						payload: {
-							emailType: props.emailType,
-							printType: props.printType,
-							salesIds: [sale.id],
-							skipPdfAttachment: true,
+	try {
+		await Promise.all(
+			skippedSales.map((sale) =>
+				db.salesEmailAttempt.create({
+					data: {
+						status: "SKIPPED",
+						emailKind: "simple_sales_document_email",
+						documentType: props.printType,
+						emailType: props.emailType,
+						subject:
+							props.printType === "quote"
+								? "GND quote email"
+								: "GND invoice email",
+						recipientEmail: sale.customerEmail || null,
+						customerName: sale.customerName || null,
+						customerEmail: sale.customerEmail || null,
+						senderId: sale.salesRepId || null,
+						salesRepId: sale.salesRepId || null,
+						provider: "resend",
+						providerStatus: "missing_recipient_metadata",
+						errorCode: sale.reasons.join(","),
+						errorMessage: `Skipped because ${sale.reasons.join(", ")}.`,
+						salesIds: [sale.id],
+						salesNos: [sale.orderId],
+						salesIdsText: String(sale.id),
+						salesNosText: sale.orderId,
+						skippedAt: new Date(),
+						metadata: {
+							payload: {
+								emailType: props.emailType,
+								printType: props.printType,
+								salesIds: [sale.id],
+								skipPdfAttachment: true,
+							},
+							reasons: sale.reasons,
 						},
-						reasons: sale.reasons,
 					},
+				}),
+			),
+		);
+	} catch (error) {
+		if (isMissingSalesEmailAttemptTableError(error)) {
+			logger.warn(
+				"Skipping skipped-sales email ledger writes because the SalesEmailAttempt table is missing.",
+				{
+					skippedCount: skippedSales.length,
 				},
-			}),
-		),
-	);
+			);
+			return;
+		}
+		throw error;
+	}
 }
 
 export function createSendSalesEmailTask(id: SalesEmailTaskId) {

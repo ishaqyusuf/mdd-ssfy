@@ -20,10 +20,48 @@ This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-opti
 
 ## Development Database
 
-Local development uses the database URL configured in the root `.env.local`.
-The active development database should point at the hosted dev branch instead of the old local Docker MySQL instance.
+Normal local development uses the hosted dev database and remote dev Redis profile:
 
-The main dev entry points still run `bun run dev:prepare`, but `scripts/start-dev-services.sh` now skips the local MySQL container whenever `DATABASE_URL` points to a non-local host. It also skips the local Redis container whenever `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured.
+```bash
+bun run dev
+```
+
+The root dev command runs through `scripts/with-dev-infra.ts`, which maps `GND_DB_MODE` and `GND_REDIS_MODE` into the active `DATABASE_URL`, Redis/Upstash env, Docker service flags, and `GND_CACHE_NAMESPACE`.
+
+Supported profiles:
+
+```bash
+bun run dev                         # remote-dev DB + remote-dev Redis
+bun run dev:local                   # local Docker MySQL + local Docker Redis
+bun run dev:local-db:remote-redis   # local Docker MySQL + remote-dev Redis
+bun run dev:remote-db:local-redis   # remote-dev DB + local Docker Redis
+```
+
+The underlying env names are:
+
+```bash
+GND_DB_MODE=remote-dev|local
+GND_REDIS_MODE=remote-dev|local
+REMOTE_DEV_DATABASE_URL=
+LOCAL_DATABASE_URL=mysql://root@127.0.0.1:3307/gnd-prisma2
+REMOTE_DEV_REDIS_URL=
+REMOTE_DEV_UPSTASH_REDIS_REST_URL=
+REMOTE_DEV_UPSTASH_REDIS_REST_TOKEN=
+LOCAL_REDIS_URL=redis://localhost:6379
+```
+
+Local Docker services remain available as explicit commands:
+
+```bash
+bun run dev:services:local
+bun run dev:services:local-db
+bun run dev:services:local-redis
+bun run db:docker:up
+bun run db:docker:down
+```
+
+`scripts/start-dev-services.sh` starts Docker MySQL only for a local DB profile and Docker Redis only for a local Redis profile. Remote profiles skip local Docker services.
+If the local MySQL container is stuck on a stale runtime socket lock, the service script recreates the MySQL container once while preserving the named database volume.
 
 Useful commands:
 
@@ -32,16 +70,25 @@ bun run db:generate
 bun run db:migrate
 ```
 
-If you intentionally need the retired local Docker MySQL fallback for recovery work, force it with a local `DATABASE_URL` or `GND_START_MYSQL=1` before running the service script. Normal app development should use the hosted dev database branch.
-
-Local development may point at the shared production Redis account, but cache keys must use a non-production namespace:
+Production-to-dev sync commands are explicit by target:
 
 ```bash
-GND_CACHE_NAMESPACE=local
+bun run db:sync:remote-dev:dry-run
+GND_ALLOW_REMOTE_DEV_DB_SYNC=1 bun run db:sync:remote-dev
+bun run db:sync:local:dry-run
+bun run db:sync:local
+```
+
+Remote-dev sync writes require `GND_ALLOW_REMOTE_DEV_DB_SYNC=1`, refuse source-equals-target, and use a separate cursor state file from local sync.
+
+Development cache keys use a non-production namespace:
+
+```bash
+GND_CACHE_NAMESPACE=dev
 GND_ALLOW_PROD_REDIS_IN_DEV=0
 ```
 
-Production should use `GND_CACHE_NAMESPACE=prod`. If you intentionally need local Docker Redis, force it with a local `REDIS_URL` or `GND_START_REDIS=1`.
+Production should use `GND_CACHE_NAMESPACE=prod`; local Docker Redis profiles use `GND_CACHE_NAMESPACE=local`.
 
 ## Learn More
 

@@ -3,6 +3,7 @@
 import { clearScreenDown, cursorTo, emitKeypressEvents, moveCursor } from "node:readline";
 import { createInterface } from "node:readline/promises";
 import {
+	redactDatabaseUrl,
 	resolveOptions,
 	syncDatabases,
 	type DuplicateConflictAction,
@@ -25,10 +26,11 @@ function printHelp() {
   bun run db:sync [options]
 
 Options:
-  --dry-run                         Inspect changed rows without writing locally
+  --dry-run                         Inspect changed rows without writing
   --table <name>                    Sync one table only
   --source-url <url>                Override production MySQL URL
-  --target-url <url>                Override local MySQL URL
+  --target-url <url>                Override target MySQL URL
+  --target-mode <mode>              Target profile: local or remote-dev
   --state-file <path>               Override cursor state file
   --initial-cursor-value <value>     Floor for fresh/stale cursors (default: 2026-05-04 23:59:59.999)
   --reset-cursor                    Ignore saved cursor for the selected table(s)
@@ -41,10 +43,12 @@ Options:
 
 Environment:
   PROD_DATABASE_URL or SOURCE_DATABASE_URL for production.
-  LOCAL_DATABASE_URL, TARGET_DATABASE_URL, or DATABASE_URL from .env.local for local.
+  LOCAL_DATABASE_URL for local targets.
+  REMOTE_DEV_DATABASE_URL for hosted dev targets.
+  GND_ALLOW_REMOTE_DEV_DB_SYNC=1 is required before writing to remote-dev.
 
 If env vars are not set, the script reads packages/db/.env.production for source
-and packages/db/.env.local for target. Without a local URL, it falls back to
+and packages/db/.env.local for target. Local mode falls back to
 mysql://root@127.0.0.1:3307/gnd-prisma2, the Docker MySQL database.`);
 }
 
@@ -313,7 +317,9 @@ try {
 		process.exit(0);
 	}
 
-	console.log(`${options.dryRun ? "Dry running" : "Syncing"} production DB to local...`);
+	console.log(`${options.dryRun ? "Dry running" : "Syncing"} production DB to ${options.targetMode}...`);
+	console.log(`Source: ${redactDatabaseUrl(options.sourceUrl)}`);
+	console.log(`Target: ${redactDatabaseUrl(options.targetUrl)}`);
 	console.log(`State file: ${options.stateFile}`);
 	if (options.initialCursorValue) {
 		console.log(`Initial cursor floor: ${options.initialCursorValue}`);

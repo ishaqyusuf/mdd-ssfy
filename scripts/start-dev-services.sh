@@ -16,6 +16,8 @@ REDIS_WAIT_ATTEMPTS="${GND_REDIS_WAIT_ATTEMPTS:-30}"
 SLEEP_SECONDS="${GND_DEV_SERVICES_WAIT_SECONDS:-1}"
 DOCKER_MAX_ATTEMPTS="${GND_DOCKER_WAIT_ATTEMPTS:-60}"
 DOCKER_SLEEP_SECONDS="${GND_DOCKER_WAIT_SECONDS:-2}"
+DEFAULT_LOCAL_DATABASE_URL="${LOCAL_DATABASE_URL:-mysql://root@127.0.0.1:3307/gnd-prisma2}"
+DEFAULT_LOCAL_REDIS_URL="${LOCAL_REDIS_URL:-redis://localhost:6379}"
 
 strip_wrapping_quotes() {
   value="$1"
@@ -54,6 +56,39 @@ read_env_value() {
 
   strip_wrapping_quotes "$raw_value"
 }
+
+env_or_file_value() {
+  var_name="$1"
+  env_value="$(printenv "$var_name" 2>/dev/null || true)"
+
+  if [ -n "$env_value" ]; then
+    printf '%s' "$env_value"
+    return 0
+  fi
+
+  read_env_value "$var_name" "$ENV_FILE"
+}
+
+first_env_value() {
+  for var_name in "$@"; do
+    value="$(env_or_file_value "$var_name")"
+    if [ -n "$value" ]; then
+      printf '%s' "$value"
+      return 0
+    fi
+  done
+
+  return 0
+}
+
+database_mode="$(first_env_value GND_DB_MODE)"
+database_mode="${database_mode:-auto}"
+redis_mode="$(first_env_value GND_REDIS_MODE)"
+redis_mode="${redis_mode:-auto}"
+mysql_start_mode="$(first_env_value GND_START_MYSQL)"
+mysql_start_mode="${mysql_start_mode:-auto}"
+redis_start_mode="$(first_env_value GND_START_REDIS)"
+redis_start_mode="${redis_start_mode:-auto}"
 
 url_host() {
   url="$1"
@@ -94,14 +129,57 @@ is_local_host() {
   esac
 }
 
-database_url="${DATABASE_URL:-$(read_env_value DATABASE_URL "$ENV_FILE")}"
+case "$database_mode" in
+  local)
+    database_url="$(first_env_value LOCAL_DATABASE_URL)"
+    database_url="${database_url:-$DEFAULT_LOCAL_DATABASE_URL}"
+    ;;
+  remote-dev)
+    database_url="$(first_env_value REMOTE_DEV_DATABASE_URL DEV_DATABASE_URL DATABASE_URL)"
+    ;;
+  auto | "")
+    database_url="$(first_env_value DATABASE_URL)"
+    ;;
+  *)
+    echo "Invalid GND_DB_MODE value: $database_mode" >&2
+    echo "Use auto, remote-dev, or local." >&2
+    exit 1
+    ;;
+esac
 database_host="$(url_host "$database_url")"
-redis_url="${REDIS_URL:-$(read_env_value REDIS_URL "$ENV_FILE")}"
+
+if [ "$database_mode" = "remote-dev" ] && [ -z "$database_url" ]; then
+  database_host="remote-dev"
+fi
+
+case "$redis_mode" in
+  local)
+    redis_url="$(first_env_value LOCAL_REDIS_URL)"
+    redis_url="${redis_url:-$DEFAULT_LOCAL_REDIS_URL}"
+    upstash_redis_rest_url=""
+    ;;
+  remote-dev)
+    redis_url="$(first_env_value REMOTE_DEV_REDIS_URL REDIS_URL)"
+    upstash_redis_rest_url="$(first_env_value REMOTE_DEV_UPSTASH_REDIS_REST_URL UPSTASH_REDIS_REST_URL)"
+    ;;
+  auto | "")
+    redis_url="$(first_env_value REDIS_URL)"
+    upstash_redis_rest_url="$(first_env_value UPSTASH_REDIS_REST_URL)"
+    ;;
+  *)
+    echo "Invalid GND_REDIS_MODE value: $redis_mode" >&2
+    echo "Use auto, remote-dev, or local." >&2
+    exit 1
+    ;;
+esac
 redis_host="$(url_host "$redis_url")"
-upstash_redis_rest_url="${UPSTASH_REDIS_REST_URL:-$(read_env_value UPSTASH_REDIS_REST_URL "$ENV_FILE")}"
+
+if [ "$redis_mode" = "remote-dev" ] && [ -z "$redis_url" ] && [ -z "$upstash_redis_rest_url" ]; then
+  redis_host="remote-dev"
+fi
 
 should_start_mysql() {
-  case "${GND_START_MYSQL:-auto}" in
+  case "$mysql_start_mode" in
     1 | true | yes)
       return 0
       ;;
@@ -111,7 +189,7 @@ should_start_mysql() {
     auto)
       ;;
     *)
-      echo "Invalid GND_START_MYSQL value: ${GND_START_MYSQL}" >&2
+      echo "Invalid GND_START_MYSQL value: $mysql_start_mode" >&2
       echo "Use auto, 1/true/yes, or 0/false/no." >&2
       exit 1
       ;;
@@ -121,7 +199,7 @@ should_start_mysql() {
 }
 
 should_start_redis() {
-  case "${GND_START_REDIS:-auto}" in
+  case "$redis_start_mode" in
     1 | true | yes)
       return 0
       ;;
@@ -131,13 +209,17 @@ should_start_redis() {
     auto)
       ;;
     *)
-      echo "Invalid GND_START_REDIS value: ${GND_START_REDIS}" >&2
+      echo "Invalid GND_START_REDIS value: $redis_start_mode" >&2
       echo "Use auto, 1/true/yes, or 0/false/no." >&2
       exit 1
       ;;
   esac
 
   if [ -n "$upstash_redis_rest_url" ]; then
+    return 1
+  fi
+
+  if [ "$redis_mode" = "remote-dev" ]; then
     return 1
   fi
 
@@ -148,13 +230,32 @@ should_start_redis() {
   return 0
 }
 
+mysql_skip_message() {
+  case "$mysql_start_mode" in
+    0 | false | no)
+      echo "Skipping local MySQL; GND_START_MYSQL is disabled."
+      ;;
+    *)
+      if [ "$database_mode" = "remote-dev" ]; then
+        echo "Skipping local MySQL; GND_DB_MODE is remote-dev."
+      elif [ -n "$database_url" ] && ! is_local_host "$database_host"; then
+        echo "Skipping local MySQL; DATABASE_URL points to a non-local host."
+      else
+        echo "Skipping local MySQL."
+      fi
+      ;;
+  esac
+}
+
 redis_skip_message() {
-  case "${GND_START_REDIS:-auto}" in
+  case "$redis_start_mode" in
     0 | false | no)
       echo "Skipping local Redis; GND_START_REDIS is disabled."
       ;;
     *)
-      if [ -n "$upstash_redis_rest_url" ]; then
+      if [ "$redis_mode" = "remote-dev" ]; then
+        echo "Skipping local Redis; GND_REDIS_MODE is remote-dev."
+      elif [ -n "$upstash_redis_rest_url" ]; then
         echo "Skipping local Redis; UPSTASH_REDIS_REST_URL is configured."
       elif [ -n "$redis_url" ] && ! is_local_host "$redis_host"; then
         echo "Skipping local Redis; REDIS_URL points to a non-local host."
@@ -180,15 +281,26 @@ wait_for_docker() {
   return 1
 }
 
+mysql_has_stale_socket_lock() {
+  docker compose -f "$COMPOSE_FILE" logs --tail 80 "$MYSQL_SERVICE" 2>/dev/null |
+    grep -q "Invalid pid in unix socket lock file"
+}
+
+recreate_mysql_container_for_stale_lock() {
+  echo "Local MySQL hit a stale runtime socket lock; recreating the service container while preserving the data volume."
+  docker compose -f "$COMPOSE_FILE" up -d --force-recreate --no-deps "$MYSQL_SERVICE"
+}
+
 services=""
 start_mysql=0
 start_redis=0
+mysql_stale_lock_recovered=0
 
 if should_start_mysql; then
   start_mysql=1
   services="$services $MYSQL_SERVICE"
 else
-  echo "Skipping local MySQL; DATABASE_URL points to a non-local host."
+  mysql_skip_message
 fi
 
 if should_start_redis; then
@@ -253,6 +365,14 @@ if [ "$start_mysql" -eq 1 ]; then
     if docker compose -f "$COMPOSE_FILE" exec -T "$MYSQL_SERVICE" mysqladmin ping -h "$MYSQL_HOST" -u "$MYSQL_USER" >/dev/null 2>&1; then
       echo "Local MySQL is ready."
       break
+    fi
+
+    if [ "$mysql_stale_lock_recovered" -eq 0 ] && mysql_has_stale_socket_lock; then
+      mysql_stale_lock_recovered=1
+      recreate_mysql_container_for_stale_lock
+      attempt=1
+      sleep "$SLEEP_SECONDS"
+      continue
     fi
 
     echo "Waiting for local MySQL... ($attempt/$MYSQL_WAIT_ATTEMPTS)"

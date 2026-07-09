@@ -1,8 +1,8 @@
 "use client";
 
 import { AuthStateProvider, type InitialAuthState } from "@/hooks/use-auth";
-import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useAuth } from "@/hooks/use-auth";
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useSession } from "@/lib/auth/client";
 import { useTRPC } from "@/trpc/client";
 import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
@@ -74,7 +74,7 @@ function NavLayoutClient({ children, pageTabDefaults }) {
                     <SiteNav.LogoSm Icon={Icons.Logo} />
                     {/* <TermSwitcher /> */}
                     {/* <ModuleSwitcher /> */}
-                    <div className="relative z-20 flex w-full shrink-0 items-center justify-center border-t border-sidebar-border/80 bg-sidebar px-3 py-2.5 md:justify-start">
+                    <div className="relative z-20 flex w-full shrink-0 items-stretch justify-center border-t border-sidebar-border/80 bg-sidebar md:justify-start">
                         <SiteNav.User
                             user={auth}
                             onLogout={() => {

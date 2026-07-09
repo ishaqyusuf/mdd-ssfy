@@ -4,6 +4,18 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Sidebar Footer Account Menu Hover Loop
+- Priority: Medium
+- Description: Stabilized the desktop sidebar footer account menu so clicking the footer opens the dropdown inside the sidebar, movement between the dropdown and other sidebar areas no longer triggers a close/collapse loop, leaving the sidebar hides the dropdown without resetting requested-open state, and hovering back restores it. The footer user control now renders as a flat full-width row attached to the footer border instead of an inset card.
+- Related Feature: Site navigation
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-09-bug-fix-sidebar-footer-account-menu.md
+- Feature File: brain/features/site-navigation.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/39
+- Evidence: packages/ui/src/components/dropdown-menu.tsx; packages/site-nav/src/components/user.tsx
+- Completed Date: 2026-07-09
+
 ### Unit Invoice Search Parity With Project Units
 - Priority: High
 - Description: Aligned Community Unit Invoices `q` search with Project Units visible unit search so selected-project searches include units matching only through lot/block text, project title, or builder name. This fixes the reported Breezewood Villas `/01` mismatch where Unit Invoices returned fewer rows than Project Units.

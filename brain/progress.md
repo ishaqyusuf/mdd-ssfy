@@ -2,6 +2,34 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Fixed the local jobs `SalesEmailAttempt` missing-table error path.
+  - Updated `scripts/with-dev-infra.ts` so package-level commands load root env plus package env, and accept Bun package-script arguments without requiring a literal `--` separator.
+  - Switched `packages/db` and `packages/jobs` dev `with-env` scripts to use the dev-infra resolver while leaving production env scripts unchanged.
+  - Added narrow migration-lag guards around sales email attempt persistence in `packages/notifications` and skipped-sales ledger writes in `packages/jobs`; only Prisma `P2021` missing-table errors for `SalesEmailAttempt` are swallowed, while other DB errors still fail.
+  - Confirmed hosted dev is the effective jobs DB after the fix, and `db.salesEmailAttempt.count()` succeeds through `bun run --cwd packages/jobs with-env`.
+  - Migration status note: hosted dev reports the configured historical migration files as unapplied, so `migrate dev/deploy` was not run against it; Prisma diff from hosted dev to the current schema returned an empty migration, meaning no dev DB write was needed for this table.
+  - Validation: `bun test scripts/with-dev-infra.test.ts` passed; `bunx biome check --formatter-enabled=false scripts/with-dev-infra.ts scripts/with-dev-infra.test.ts packages/db/package.json packages/jobs/package.json packages/notifications/src/index.ts packages/jobs/src/tasks/sales/create-send-sales-email-task.ts` passed; `bun run --cwd packages/db db:generate` passed; `bun --cwd packages/jobs prisma.ts` passed; `git diff --check` passed for touched files.
+  - `bun --filter @gnd/jobs typecheck` and `bun --filter @gnd/notifications typecheck` remain blocked by pre-existing baseline diagnostics in shared documents/inventory/pdf/sales/ui/utils code and unrelated jobs/notifications files.
+  - Brain files updated: `brain/database/migrations.md`, `brain/features/sales-email-delivery-ledger.md`, and `brain/progress.md`; no API contract, permission, or schema-doc changes were needed because the Prisma model shape and public API contracts did not change in this follow-up.
+
+- Stabilized the desktop sidebar footer account menu follow-up.
+  - Published the synthesized spec to GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/39 with the `ready-for-agent` label.
+  - Added a non-portal dropdown content primitive to shared UI and switched the shared site-nav footer account menu to render its dropdown from the sidebar footer tree.
+  - Removed the footer account menu's floating hover-surface handlers and made the menu non-modal so movement between the dropdown and other sidebar areas no longer schedules competing sidebar collapse/open behavior.
+  - Follow-up hardening lets the footer card use visible overflow only while the menu is open, so the non-portal upward dropdown is no longer clipped by the trigger wrapper.
+  - Visual follow-up removed the footer account card and app-level footer padding so the user control is a flat full-width row attached to the footer border, with the dropdown widened to the expanded sidebar width.
+  - Preserved requested-open menu state while deriving visible state from sidebar expansion, so leaving the sidebar hides the menu without resetting it and hovering back restores it.
+  - Validation: `bun --filter @gnd/site-nav typecheck` passed; `bunx biome check --formatter-enabled=false packages/ui/src/components/dropdown-menu.tsx packages/site-nav/src/components/user.tsx` passed. `bun --filter @gnd/ui typecheck` was attempted and remains blocked by unrelated baseline `@gnd/ui` diagnostics outside this sidebar fix. Browser hover testing was not run per user request.
+  - Brain files updated: `brain/plans/2026-07-09-bug-fix-sidebar-footer-account-menu.md`, `brain/features/site-navigation.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API, permission, or schema docs were needed because this is a client-only navigation behavior change.
+
+- Implemented explicit dev infrastructure profiles for DB and Redis.
+  - Added `scripts/with-dev-infra.ts` plus tests to resolve `GND_DB_MODE=remote-dev|local` and `GND_REDIS_MODE=remote-dev|local` into active database, Redis/Upstash, Docker service, and cache namespace env.
+  - Updated root scripts so `bun run dev` defaults to remote-dev DB plus remote-dev Redis, with `dev:local`, `dev:local-db:remote-redis`, and `dev:remote-db:local-redis` preserving every DB/Redis combination.
+  - Restored local Docker service commands: `dev:services:local`, `dev:services:local-db`, `dev:services:local-redis`, `db:docker:up`, and `db:docker:down`.
+  - Fixed local Docker MySQL startup recovery for containers crash-looping on a stale `/var/run/mysqld/mysqld.sock.lock`; the starter now recreates only the MySQL service container once and preserves the named database volume.
+  - Added explicit sync commands for remote-dev and local targets and hardened `packages/db/src/local-sync.ts` with `--target-mode`, remote-dev write opt-in, source-equals-target refusal, target-mode cursor state paths, and redacted source/target summaries.
+  - Updated `.env.example`, `apps/www/README.md`, and `brain/database/migrations.md` with the profile matrix and sync safety behavior.
+
 - Added remote Redis local-development isolation.
   - Added `GND_CACHE_NAMESPACE` key namespacing in `@gnd/cache`, with a guard that refuses `prod`/`production` cache namespaces outside production unless `GND_ALLOW_PROD_REDIS_IN_DEV` is explicitly enabled.
   - Updated `scripts/start-dev-services.sh` so Docker Redis is skipped automatically when `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured; local Redis remains forceable with `GND_START_REDIS=1`.

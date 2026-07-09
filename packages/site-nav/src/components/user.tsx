@@ -3,14 +3,14 @@ import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import {
 	DropdownMenu,
-	DropdownMenuContent,
+	DropdownMenuContentWithoutPortal,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useSiteNav } from "./use-site-nav";
 
 type SiteNavUserData = {
@@ -32,13 +32,7 @@ function getInitials(name?: string) {
 }
 
 export function User({ user, onLogout, children }: SiteNavUserProps) {
-	const {
-		isExpanded,
-		expandSiteNav,
-		handleNavFloatingMouseEnter,
-		handleNavFloatingMouseLeave,
-		isNavHoverCollapsePending,
-	} = useSiteNav();
+	const { isExpanded, expandSiteNav, isNavHoverCollapsePending } = useSiteNav();
 	const [isMenuRequestedOpen, setIsMenuRequestedOpen] = useState(false);
 	const isMenuOpen = isExpanded && isMenuRequestedOpen;
 
@@ -48,10 +42,7 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 			setIsMenuRequestedOpen(true);
 			return;
 		}
-		if (
-			isMenuRequestedOpen &&
-			(!isExpanded || isNavHoverCollapsePending())
-		) {
+		if (isMenuRequestedOpen && (!isExpanded || isNavHoverCollapsePending())) {
 			return;
 		}
 		setIsMenuRequestedOpen(false);
@@ -60,21 +51,25 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 	return (
 		<div
 			className={cn(
-				"relative overflow-hidden rounded-lg border transition-colors duration-200",
-				isExpanded
-					? "w-full border-sidebar-border/90 bg-white/82 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_rgba(15,23,42,0.06)] backdrop-blur-xl hover:bg-white dark:bg-sidebar-accent/82 dark:hover:bg-sidebar-accent"
-					: "w-auto border-transparent bg-transparent",
+				"relative w-full transition-colors duration-200",
+				isMenuOpen ? "overflow-visible" : "overflow-hidden",
 			)}
 		>
-			<DropdownMenu open={isMenuOpen} onOpenChange={handleOpenChange}>
+			<DropdownMenu
+				modal={false}
+				open={isMenuOpen}
+				onOpenChange={handleOpenChange}
+			>
 				<DropdownMenuTrigger asChild>
 					<Button
 						size="lg"
 						variant="link"
 						aria-label="Open account menu"
 						className={cn(
-							"flex h-full min-h-12 gap-3 py-1.5 text-sidebar-foreground no-underline data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-foreground",
-							isExpanded ? "w-full px-3" : "w-12 justify-center px-1.5",
+							"flex h-full min-h-[72px] rounded-none text-sidebar-foreground no-underline hover:bg-sidebar-accent/70 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-foreground",
+							isExpanded
+								? "w-full justify-start gap-3 px-6 py-3"
+								: "w-full justify-center px-0 py-3",
 						)}
 					>
 						<Avatar className="h-9 w-9 rounded-lg border border-sidebar-border">
@@ -99,11 +94,8 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 					</Button>
 				</DropdownMenuTrigger>
 				{isExpanded ? (
-					<DropdownMenuContent
-						data-site-nav-hover-surface="floating"
-						onMouseEnter={handleNavFloatingMouseEnter}
-						onMouseLeave={handleNavFloatingMouseLeave}
-						className="w-[244px] min-w-[244px] rounded-lg border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[0_16px_42px_rgba(15,23,42,0.16)]"
+					<DropdownMenuContentWithoutPortal
+						className="w-[268px] min-w-[268px] rounded-lg border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[0_16px_42px_rgba(15,23,42,0.16)]"
 						side="top"
 						align="start"
 						sideOffset={8}
@@ -133,7 +125,7 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 								</DropdownMenuItem>
 							</>
 						) : null}
-					</DropdownMenuContent>
+					</DropdownMenuContentWithoutPortal>
 				) : null}
 			</DropdownMenu>
 		</div>

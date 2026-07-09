@@ -4919,3 +4919,4 @@ model SalesPickup {
 
     @@index([pickupApprovedBy])
 }
+
