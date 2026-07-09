@@ -8,6 +8,7 @@ import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
+import { openLink } from "@/lib/open-link";
 import {
 	buildSalesPdfDownloadUrlFromQuery,
 	resolveSalesPrintMode,
@@ -35,6 +36,7 @@ import {
 	type ComponentProps,
 	type ReactNode,
 	createContext,
+	useCallback,
 	useContext,
 	useMemo,
 	useRef,
@@ -54,6 +56,17 @@ type SalesMenuState = {
 	documentTitle?: string | null;
 };
 
+type EmailOptions = {
+	withPayment?: boolean;
+	partPayment?: boolean;
+};
+
+type SalesMenuEmailController = {
+	didSucceed: boolean;
+	isPending: boolean;
+	sendEmail: (options?: EmailOptions) => void;
+};
+
 type SalesMenuActions = {
 	closeMenu: () => void;
 	openComposeEmail: () => void;
@@ -64,6 +77,7 @@ type SalesMenuActions = {
 type SalesMenuContextValue = {
 	state: SalesMenuState;
 	actions: SalesMenuActions;
+	email: SalesMenuEmailController;
 	meta: {
 		isOpen: boolean;
 	};
@@ -253,6 +267,10 @@ function SalesMenuRoot({
 			state.type,
 		],
 	);
+	const email = useSendSalesEmailAction({
+		state,
+		closeMenu: actions.closeMenu,
+	});
 	const composeSalesOrderId = state.id ?? state.salesIds[0] ?? null;
 	const composeDocumentTitle =
 		state.documentTitle ||
@@ -264,11 +282,12 @@ function SalesMenuRoot({
 		() => ({
 			state,
 			actions,
+			email,
 			meta: {
 				isOpen,
 			},
 		}),
-		[actions, isOpen, state],
+		[actions, email, isOpen, state],
 	);
 
 	return (
@@ -329,13 +348,13 @@ function formatInventoryQty(value: number) {
 	}).format(Number(value || 0));
 }
 
-type EmailOptions = {
-	withPayment?: boolean;
-	partPayment?: boolean;
-};
-
-function useSendSalesEmailAction() {
-	const { state, actions } = useSalesMenuContext();
+function useSendSalesEmailAction({
+	state,
+	closeMenu,
+}: {
+	state: SalesMenuState;
+	closeMenu: () => void;
+}): SalesMenuEmailController {
 	const isQuote = state.type === "quote";
 	const [didSucceed, setDidSucceed] = useState(false);
 	const auth = useAuth();
@@ -343,37 +362,26 @@ function useSendSalesEmailAction() {
 	const shouldUseTestEmailMode =
 		auth.roleTitle?.toLowerCase() === "super admin" && testEmailMode;
 	const notification = useNotificationTrigger({
-		executingToast: "Sending email...",
-		errorToast: "Email sending failed",
-		successToast: "Email sent.",
+		monitor: true,
+		silent: true,
+		taskTitle: isQuote ? "Sending quote email" : "Sending invoice email",
+		taskDescription: "Watch this email job in the task monitor.",
 		debug: true,
 		onStarted() {
-			actions.closeMenu();
+			closeMenu();
 		},
 		onSuccess() {
 			setDidSucceed(true);
 		},
 		onError() {
 			setDidSucceed(false);
-			actions.closeMenu();
+			closeMenu();
 		},
 	});
 	const isSending =
 		notification.isActionPending || notification.status === "SYNCING";
-
-	return {
-		didSucceed,
-		isPending: isSending,
-		sendEmail(options: EmailOptions = {}) {
-			if (state.customerEmail !== undefined && !state.customerEmail?.trim()) {
-				toast({
-					title: "Customer email not available",
-					variant: "destructive",
-				});
-				actions.closeMenu();
-				return;
-			}
-
+	const sendEmail = useCallback(
+		(options: EmailOptions = {}) => {
 			setDidSucceed(false);
 			notification.simpleSalesDocumentEmail({
 				emailType: options.withPayment
@@ -383,11 +391,31 @@ function useSendSalesEmailAction() {
 					: "with payment",
 				printType: isQuote ? "quote" : "order",
 				salesIds: state.id ? [state.id] : state.salesIds,
+				customerEmail: state.customerEmail?.trim() || undefined,
+				skipPdfAttachment: true,
 				testEmailMode: shouldUseTestEmailMode,
 			});
-			actions.closeMenu();
+			closeMenu();
 		},
-	};
+		[
+			closeMenu,
+			isQuote,
+			notification,
+			shouldUseTestEmailMode,
+			state.customerEmail,
+			state.id,
+			state.salesIds,
+		],
+	);
+
+	return useMemo(
+		() => ({
+			didSucceed,
+			isPending: isSending,
+			sendEmail,
+		}),
+		[didSucceed, isSending, sendEmail],
+	);
 }
 
 function SalesMenuCopy({ disabled }: ActionProps) {
@@ -695,8 +723,8 @@ function SalesMenuPDF({ disabled }: ActionProps) {
 }
 
 function SalesMenuNotifications({ disabled }: ActionProps) {
-	const { didSucceed, isPending, sendEmail } = useSendSalesEmailAction();
-	const { state } = useSalesMenuContext();
+	const { email, state } = useSalesMenuContext();
+	const { didSucceed, isPending, sendEmail } = email;
 	const isQuote = state.type === "quote";
 
 	return (

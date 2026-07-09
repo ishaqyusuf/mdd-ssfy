@@ -1,8 +1,10 @@
-// @ts-expect-error package typecheck does not include Bun test types.
 import { describe, expect, test } from "bun:test";
 import {
 	DEFAULT_SALES_EMAIL_FAILURE_MESSAGE,
 	DEFAULT_TASK_FAILURE_MESSAGE,
+	getRunErrorMessage,
+	getRunTaskOutputFailureMessage,
+	getRunTerminalState,
 	getSalesEmailOutputFailure,
 	getTaskFailureMessage,
 	getTaskOutputFailureMessage,
@@ -40,6 +42,19 @@ describe("task feedback", () => {
 
 	test("classifies sales email output failures", () => {
 		expect(
+			getSalesEmailOutputFailure({
+				emails: {
+					sent: 0,
+					skipped: 0,
+					failed: 1,
+					errorMessage:
+						"Email was not sent. The selected sales document is missing a customer email, customer name, or sales rep email.",
+				},
+			}),
+		).toBe(
+			"Email was not sent. The selected sales document is missing a customer email, customer name, or sales rep email.",
+		);
+		expect(
 			getSalesEmailOutputFailure({ emails: { sent: 0, skipped: 0, failed: 2 } }),
 		).toBe("Email provider reported 2 failed messages.");
 		expect(
@@ -75,5 +90,38 @@ describe("task feedback", () => {
 		expect(getTaskFailureMessage({ errorMessage: null })).toBe(
 			DEFAULT_TASK_FAILURE_MESSAGE,
 		);
+	});
+
+	test("extracts hard Trigger run failure state and error messages", () => {
+		const run = {
+			status: "FAILED",
+			isFailed: true,
+			error: {
+				message: "No eligible sales found for document email",
+			},
+		};
+
+		expect(getRunTerminalState(run)).toBe("FAILED");
+		expect(getRunErrorMessage(run)).toBe(
+			"No eligible sales found for document email",
+		);
+	});
+
+	test("normalizes Trigger status variants", () => {
+		expect(getRunTerminalState({ status: "ERRORED" })).toBe("FAILED");
+		expect(getRunTerminalState({ status: "CRASHED" })).toBe("FAILED");
+		expect(getRunTerminalState({ status: "TIMED_OUT" })).toBe("FAILED");
+		expect(getRunTerminalState({ status: "COMPLETED" })).toBe("COMPLETED");
+		expect(getRunTerminalState({ status: "CANCELED" })).toBe("CANCELED");
+		expect(getRunTerminalState({ status: "EXECUTING" })).toBe(null);
+	});
+
+	test("reads output failures from Trigger run snapshots", () => {
+		expect(
+			getRunTaskOutputFailureMessage({
+				metadata: { type: "sales-email" },
+				run: { output: { emails: { sent: 0, skipped: 1, failed: 0 } } },
+			}),
+		).toBe("Email was skipped before it could be sent.");
 	});
 });

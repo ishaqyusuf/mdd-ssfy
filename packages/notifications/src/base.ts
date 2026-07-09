@@ -105,6 +105,7 @@ export interface NotificationResult {
 		sent: number;
 		skipped: number;
 		failed?: number;
+		errorMessage?: string | null;
 	};
 	whatsapp?: {
 		sent: number;

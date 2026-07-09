@@ -1,7 +1,7 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-import { getAppUrl } from "@gnd/utils/envs";
+import { getAppUrl, shouldAttachSalesEmailPdf } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
 	type SalesPdfToken,
@@ -19,9 +19,6 @@ import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const LINK_TTL_DAYS = 7;
-const isProd =
-	process.env.VERCEL_ENV === "production" ||
-	process.env.NODE_ENV === "production";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -75,6 +72,8 @@ const resolvedSchema = z.object({
 type ResolvedComposedSalesDocumentEmailInput = z.infer<typeof resolvedSchema>;
 
 async function loadSales(db: Db, input: ComposedSalesDocumentEmailInput) {
+	const inputCustomerEmail = normalizeText(input.customerEmail);
+	const inputCustomerName = normalizeText(input.customerName);
 	const sales = await db.salesOrders.findMany({
 		where: {
 			id: { in: input.salesIds },
@@ -117,11 +116,13 @@ async function loadSales(db: Db, input: ComposedSalesDocumentEmailInput) {
 		.map<LoadedSale | null>((sale) => {
 			const customerEmail =
 				normalizeText(sale.customer?.email) ||
-				normalizeText(sale.billingAddress?.email);
+				normalizeText(sale.billingAddress?.email) ||
+				inputCustomerEmail;
 			const customerName =
 				normalizeText(sale.customer?.name) ||
 				normalizeText(sale.customer?.businessName) ||
-				normalizeText(sale.billingAddress?.name);
+				normalizeText(sale.billingAddress?.name) ||
+				inputCustomerName;
 			const salesRepEmail = normalizeText(sale.salesRep?.email);
 			const salesRep = normalizeText(sale.salesRep?.name) || "Sales Team";
 
@@ -258,9 +259,9 @@ async function buildComposedSalesDocumentEmailData(
 	const type = input.printType === "quote" ? "quote" : "order";
 	const paymentLink = await buildPaymentLink(db, sales);
 	const pdfLink = buildPdfLink(sales, type);
-	const pdfAttachment = isProd
-		? null
-		: await buildPdfAttachment(db, sales, type);
+	const pdfAttachment = shouldAttachSalesEmailPdf()
+		? await buildPdfAttachment(db, sales, type)
+		: null;
 
 	return {
 		type,

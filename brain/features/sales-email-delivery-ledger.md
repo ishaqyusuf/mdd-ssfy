@@ -14,11 +14,16 @@ Give sales reps and Super Admin in-app visibility into sales document email deli
 - Local jobs/dev commands now resolve the development database through `scripts/with-dev-infra.ts`, so `bun run jobs` uses the same remote-dev DB profile as the rest of the dev stack when `GND_DB_MODE=remote-dev`.
 - Sales email attempt writes catch only Prisma missing-table errors for `SalesEmailAttempt`, log a warning, and continue the email send path so a migration-lagged environment does not block customer-facing email delivery.
 - Local/dev runs can set `MOCK_EMAIL_SENDS=true` to mock email sends after rendering, recipient resolution, and notification preference filtering. Mocked sends do not call Resend, but return sent delivery results with `providerStatus: "mocked_by_environment"` so notification tasks and `SalesEmailAttempt` rows behave like provider-accepted sends. The flag is ignored in production runtimes.
+- Sales document email PDF attachments are opt-in through `ATTACH_SALES_EMAIL_PDF=true`; invoice and quote emails otherwise use generated download links only. Simple invoice emails also require the payload to explicitly set `skipPdfAttachment: false` before an attachment can be built.
+- Direct sales document email notification runs treat expected user-fixable validation failures, such as no eligible sale metadata or mixed recipients, as structured failed email results with readable `emails.errorMessage` output instead of throwing raw Trigger errors.
 
 ## User Experience
 - Sales email background tasks now treat provider failed/skipped sales document email output as a visible failure state instead of a generic completed task.
+- A sales document is eligible for direct document email only when the selected order/quote has a saved or provided customer email, customer name or business name, and sales rep email. Missing data is surfaced to the user as an email failure instead of only appearing in job logs.
 - The task monitor labels simple/composed sales document notification runs as sales email tasks.
-- Sales email send actions now show immediate in-app feedback: the click path shows a sending toast, queue/runtime failures produce a visible failure toast, the compose email dialog stays open with inline failure text, and failed sales email monitor rows link to `/sales-book/emails`.
+- Shared `SalesMenu` direct invoice/quote email actions keep their Trigger run watcher on the stable menu root instead of the dropdown item, so closing the dropdown does not drop follow-up success/failure feedback. This covers row actions, sales overview sheet menus, and the sales overview system More menu that reuse `SalesMenu`.
+- Sales email send actions use the bottom-right task monitor as the feedback surface instead of toast notifications. Email task failures automatically open the monitor, expand the failed task row, and show the full error details; failed sales email monitor rows link to `/sales-book/emails`.
+- Task monitor rows can be expanded from the compact list to inspect full run information, including run id, status, task type, entity, timestamps, and full error text.
 - The sales Email page lives at `/sales-book/emails`.
 - Sales reps can review attempts they sent or attempts attached to them as the sales rep.
 - Super Admin can review all attempts and retry `FAILED` or `SKIPPED` attempts.

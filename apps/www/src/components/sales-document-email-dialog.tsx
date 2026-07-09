@@ -74,9 +74,10 @@ export function SalesDocumentEmailDialog({
 	const shouldUseTestEmailMode =
 		auth.roleTitle?.toLowerCase() === "super admin" && testEmailMode;
 	const notification = useNotificationTrigger({
-		executingToast: "Sending email...",
-		successToast: "Email sent.",
-		errorToast: "Unable to send email.",
+		monitor: true,
+		silent: true,
+		taskTitle: `Sending ${mode === "quote" ? "quote" : "invoice"} email`,
+		taskDescription: "Watch this email job in the task monitor.",
 		onSuccess: async () => {
 			setSendError(null);
 			setOpen(false);

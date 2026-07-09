@@ -39,6 +39,10 @@ type Input<T extends NotificationChannel> = NotificationEvent<T>["payload"] & {
 	author?: NotificationAuthor;
 	testEmailMode?: NotificationEvent<T>["testEmailMode"];
 };
+type SimpleSalesDocumentEmailInput =
+	Input<"simple_sales_document_email"> & {
+		customerEmail?: string | null;
+	};
 export function createNotificationChannelTriggers(
 	options: ChannelTriggerFactoryOptions,
 ) {
@@ -344,7 +348,7 @@ export function createNotificationChannelTriggers(
 				testEmailMode,
 			});
 		},
-		simpleSalesDocumentEmail(input: Input<"simple_sales_document_email">) {
+		simpleSalesDocumentEmail(input: SimpleSalesDocumentEmailInput) {
 			const { recipients, author, testEmailMode, ...payload } = input;
 			const resolvedRecipients = resolveRecipients(
 				recipients,

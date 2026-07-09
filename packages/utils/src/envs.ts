@@ -91,6 +91,10 @@ export function shouldMockEmail() {
   return isTruthyEnvFlag(process.env.MOCK_EMAIL_SENDS);
 }
 
+export function shouldAttachSalesEmailPdf() {
+  return isTruthyEnvFlag(process.env.ATTACH_SALES_EMAIL_PDF);
+}
+
 export function getRecipient(email: string | string[]): string | string[] {
   const isDev = process.env.NODE_ENV === "development";
   const testEmails = getTestEmails();

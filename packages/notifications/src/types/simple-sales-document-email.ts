@@ -1,7 +1,7 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-import { getAppUrl } from "@gnd/utils/envs";
+import { getAppUrl, shouldAttachSalesEmailPdf } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
 	type SalesPdfToken,
@@ -43,6 +43,7 @@ type LoadedSale = {
 
 async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 	const { salesIds, salesNos } = input;
+	const inputCustomerEmail = normalizeText(input.customerEmail);
 
 	if (!salesIds?.length && !salesNos?.length) {
 		throw new Error("Invalid sales information");
@@ -91,7 +92,8 @@ async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 		.map<LoadedSale | null>((sale) => {
 			const customerEmail =
 				normalizeText(sale.customer?.email) ||
-				normalizeText(sale.billingAddress?.email);
+				normalizeText(sale.billingAddress?.email) ||
+				inputCustomerEmail;
 			const customerName =
 				normalizeText(sale.customer?.name) ||
 				normalizeText(sale.customer?.businessName) ||
@@ -208,10 +210,10 @@ async function buildSalesDocumentEmailData(
 					pdfToken,
 				)}&preview=false`
 			: null;
-	const skipPdfAttachment = input.skipPdfAttachment !== false;
-	const pdfAttachment = skipPdfAttachment
-		? null
-		: await (async () => {
+	const attachPdf =
+		shouldAttachSalesEmailPdf() && input.skipPdfAttachment === false;
+	const pdfAttachment = attachPdf
+		? await (async () => {
 				try {
 					return await buildSalesPdfAttachment(db, {
 						salesIds,
@@ -228,7 +230,8 @@ async function buildSalesDocumentEmailData(
 					);
 					return null;
 				}
-			})();
+			})()
+		: null;
 
 	return {
 		type: input.printType,
@@ -248,7 +251,7 @@ async function buildSalesDocumentEmailData(
 		salesNos: sales.map((sale) => sale.orderId),
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
-		skipPdfAttachment: input.skipPdfAttachment,
+		skipPdfAttachment: !attachPdf,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,

@@ -1,10 +1,64 @@
 import { db } from "@gnd/db";
-import type { NotificationOptions } from "@notifications/base";
+import type { NotificationOptions, NotificationResult } from "@notifications/base";
 import {
 	type NotificationJobInput,
 	notificationJobSchema,
 } from "@notifications/schemas";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
+
+function isSalesDocumentEmailChannel(channel: NotificationJobInput["channel"]) {
+	return (
+		channel === "simple_sales_document_email" ||
+		channel === "composed_sales_document_email"
+	);
+}
+
+function getErrorMessage(error: unknown) {
+	if (error instanceof Error) return error.message;
+	if (typeof error === "string") return error;
+	if (!error || typeof error !== "object") return null;
+
+	const maybeMessage = (error as { message?: unknown }).message;
+	return typeof maybeMessage === "string" ? maybeMessage : null;
+}
+
+function getSalesDocumentEmailUserErrorMessage(error: unknown) {
+	const message = getErrorMessage(error);
+	if (!message) return null;
+
+	if (message.includes("No eligible sales found")) {
+		return "Email was not sent. The selected sales document is missing a customer email, customer name, or sales rep email.";
+	}
+
+	if (message.includes("requires all sales to belong to one recipient")) {
+		return "Email was not sent. Select documents for one customer email at a time.";
+	}
+
+	return null;
+}
+
+function createFailedSalesDocumentEmailResult(
+	channel: NotificationJobInput["channel"],
+	errorMessage: string,
+): NotificationResult {
+	return {
+		type: channel,
+		activities: 0,
+		activityIds: [],
+		emailAttemptIds: [],
+		emails: {
+			sent: 0,
+			skipped: 0,
+			failed: 1,
+			errorMessage,
+		},
+		whatsapp: {
+			sent: 0,
+			skipped: 0,
+			failed: 0,
+		},
+	};
+}
 
 async function isSuperAdminAuthor(author: NotificationJobInput["author"]) {
 	if (author.role === "customer") return false;
@@ -105,9 +159,33 @@ export const notification = schemaTask({
 					}
 				: {}),
 		};
-		const result = await notifications.create(channel, payload, {
-			...notificationOptions,
-		});
+		const result = await (async () => {
+			try {
+				return await notifications.create(channel, payload, {
+					...notificationOptions,
+				});
+			} catch (error) {
+				const userErrorMessage = isSalesDocumentEmailChannel(channel)
+					? getSalesDocumentEmailUserErrorMessage(error)
+					: null;
+
+				if (!userErrorMessage) {
+					throw error;
+				}
+
+				logger.warn("Sales document email was not sent", {
+					channel,
+					errorMessage: userErrorMessage,
+					originalErrorMessage: getErrorMessage(error),
+					payload,
+				});
+
+				return createFailedSalesDocumentEmailResult(
+					channel,
+					userErrorMessage,
+				);
+			}
+		})();
 		if (
 			channel === "sales_dispatch_completed" &&
 			(payload as { signature?: unknown }).signature

@@ -1,8 +1,10 @@
 import { triggerTask } from "@/actions/trigger-task";
 import {
+	getRunErrorMessage,
+	getRunTaskOutputFailureMessage,
+	getRunTerminalState,
 	getTaskFailureMessage,
 	getTaskFailureTitle,
-	getTaskOutputFailureMessage,
 	getTaskStartFailureTitle,
 } from "@/lib/task-feedback";
 import {
@@ -72,9 +74,17 @@ export function useTaskTrigger(props?: Props) {
 	});
 	const auth = useAuth();
 	const addTask = useTaskMonitorStore((state) => state.addTask);
+	const updateTask = useTaskMonitorStore((state) => state.updateTask);
 	const pendingTriggersRef = useRef<PendingTrigger[]>([]);
 	const activeTriggerRef = useRef<PendingTrigger | null>(null);
 	const handledFailureRef = useRef(false);
+	const executingToastRef = useRef<ReturnType<typeof toast> | null>(null);
+	useEffect(() => {
+		return () => {
+			executingToastRef.current?.dismiss();
+			executingToastRef.current = null;
+		};
+	}, []);
 	useEffect(() => {
 		if (status === "FAILED") {
 			if (handledFailureRef.current) return;
@@ -86,9 +96,33 @@ export function useTaskTrigger(props?: Props) {
 				errorMessage: completionError,
 			});
 
+			const existingTask = failedRunId
+				? useTaskMonitorStore
+						.getState()
+						.tasks.find((task) => task.runId === failedRunId)
+				: null;
+			const alreadyHandledError = Boolean(existingTask?.handledEffects?.error);
+			const handledAt = Date.now();
+
+			if (failedRunId && shouldMonitorTask) {
+				updateTask(failedRunId, {
+					status: "FAILED",
+					error: message,
+					completedAt: handledAt,
+					handledEffects: alreadyHandledError
+						? existingTask?.handledEffects
+						: {
+								...existingTask?.handledEffects,
+								error: handledAt,
+							},
+				});
+			}
+
 			setRunId(undefined);
 			setAccessToken(undefined);
-			if (!silent && (!failedRunId || !shouldMonitorTask)) {
+			executingToastRef.current?.dismiss();
+			executingToastRef.current = null;
+			if (!silent && !alreadyHandledError) {
 				toast({
 					duration: 3500,
 					variant: "error",
@@ -114,22 +148,37 @@ export function useTaskTrigger(props?: Props) {
 		shouldMonitorTask,
 		silent,
 		status,
+		updateTask,
 	]);
 	useEffect(() => {
-		if (error || run?.status === "FAILED") {
+		if (error) {
 			setCompletionError(
 				getTaskFailureMessage({
 					input: activeTriggerRef.current?.input,
-					errorMessage: error?.message || null,
+					errorMessage: error.message || null,
 				}),
 			);
 			setStatus("FAILED");
+			return;
 		}
 
-		if (run?.status === "COMPLETED") {
-			const outputFailure = getTaskOutputFailureMessage({
+		const terminalState = getRunTerminalState(run);
+
+		if (terminalState === "FAILED") {
+			setCompletionError(
+				getTaskFailureMessage({
+					input: activeTriggerRef.current?.input,
+					errorMessage: getRunErrorMessage(run),
+				}),
+			);
+			setStatus("FAILED");
+			return;
+		}
+
+		if (terminalState === "COMPLETED") {
+			const outputFailure = getRunTaskOutputFailureMessage({
 				input: activeTriggerRef.current?.input,
-				output: run.output,
+				run,
 			});
 			if (outputFailure) {
 				setCompletionError(outputFailure);
@@ -147,6 +196,8 @@ export function useTaskTrigger(props?: Props) {
 		if (status === "COMPLETED") {
 			setRunId(undefined);
 			setAccessToken(undefined);
+			executingToastRef.current?.dismiss();
+			executingToastRef.current = null;
 			// setIsImporting(false);
 			// onclose();
 
@@ -178,7 +229,8 @@ export function useTaskTrigger(props?: Props) {
 			setCompletionError(null);
 			handledFailureRef.current = false;
 			if (executingToast && !silent) {
-				toast({
+				executingToastRef.current?.dismiss();
+				executingToastRef.current = toast({
 					duration: 2500,
 					variant: "spinner",
 					title: executingToast,

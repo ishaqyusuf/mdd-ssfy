@@ -6,9 +6,10 @@ import { useTaskMonitorTasks } from "@/hooks/use-task-notification-params";
 import { useSession } from "@/lib/auth/client";
 import {
 	SALES_EMAIL_LEDGER_PATH,
+	getRunErrorMessage,
+	getRunTaskOutputFailureMessage,
+	getRunTerminalState,
 	getTaskFailureMessage,
-	getTaskFailureTitle,
-	getTaskOutputFailureMessage,
 	isSalesEmailTaskMetadata,
 } from "@/lib/task-feedback";
 import { cn } from "@/lib/utils";
@@ -20,11 +21,10 @@ import {
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { useAction } from "next-safe-action/hooks";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function TaskNotification() {
 	const allTasks = useTaskMonitorTasks();
@@ -36,6 +36,7 @@ export function TaskNotification() {
 	const clearCompleted = useTaskMonitorStore((state) => state.clearCompleted);
 	const markStaleTasks = useTaskMonitorStore((state) => state.markStaleTasks);
 	const [open, setOpen] = useState(false);
+	const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 	const runningTasks = tasks.filter((task) => task.status === "SYNCING");
 	const failedTasks = tasks.filter((task) => task.status === "FAILED");
 	const canceledTasks = tasks.filter((task) => task.status === "CANCELED");
@@ -44,10 +45,25 @@ export function TaskNotification() {
 		runningTasks.length + failedTasks.length + canceledTasks.length;
 	const hasRunning = runningTasks.length > 0;
 	const hasFailures = failedTasks.length > 0;
+	const firstFailedRunId = failedTasks[0]?.runId;
 
 	useEffect(() => {
-		if (visibleTasks.length === 0) setOpen(false);
+		if (visibleTasks.length === 0) {
+			setOpen(false);
+			setExpandedRunId(null);
+		}
 	}, [visibleTasks.length]);
+
+	const revealTask = useCallback((runId: string) => {
+		setOpen(true);
+		setExpandedRunId(runId);
+	}, []);
+
+	useEffect(() => {
+		if (!firstFailedRunId) return;
+		setOpen(true);
+		setExpandedRunId((current) => current ?? firstFailedRunId);
+	}, [firstFailedRunId]);
 
 	useEffect(() => {
 		clearCompleted();
@@ -59,7 +75,11 @@ export function TaskNotification() {
 	return (
 		<>
 			{tasks.map((task) => (
-				<TaskNotificationWatcher key={task.runId} task={task} />
+				<TaskNotificationWatcher
+					key={task.runId}
+					task={task}
+					onTaskFailed={revealTask}
+				/>
 			))}
 
 			{visibleCount > 0 ? (
@@ -102,7 +122,16 @@ export function TaskNotification() {
 							</div>
 							<div className="max-h-80 overflow-y-auto p-2">
 								{visibleTasks.map((task) => (
-									<TaskNotificationRow key={task.runId} task={task} />
+									<TaskNotificationRow
+										key={task.runId}
+										task={task}
+										expanded={expandedRunId === task.runId}
+										onToggleExpanded={() =>
+											setExpandedRunId((current) =>
+												current === task.runId ? null : task.runId,
+											)
+										}
+									/>
 								))}
 							</div>
 						</div>
@@ -139,7 +168,13 @@ export function TaskNotification() {
 	);
 }
 
-function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
+function TaskNotificationWatcher({
+	task,
+	onTaskFailed,
+}: {
+	task: TaskMonitorTask;
+	onTaskFailed: (runId: string) => void;
+}) {
 	const updateTask = useTaskMonitorStore((state) => state.updateTask);
 	const removeTask = useTaskMonitorStore((state) => state.removeTask);
 	const { runTaskEffect } = useTaskMonitorEffects();
@@ -167,16 +202,7 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 				handledEffects,
 				completedAt,
 			});
-
-			if (!alreadyHandledError) {
-				toast({
-					duration: 6000,
-					variant: "destructive",
-					title: getTaskFailureTitle({ metadata: task.metadata }),
-					description: message,
-					action: getFailureToastAction(task),
-				});
-			}
+			onTaskFailed(task.runId);
 
 			stop?.();
 		};
@@ -191,12 +217,13 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 			return;
 		}
 
-		if (!run?.status) return;
+		const terminalState = getRunTerminalState(run);
+		if (!terminalState) return;
 
-		if (run.status === "COMPLETED") {
-			const taskOutputFailure = getTaskOutputFailureMessage({
+		if (terminalState === "COMPLETED") {
+			const taskOutputFailure = getRunTaskOutputFailureMessage({
 				metadata: task.metadata,
-				output: run.output,
+				run,
 			});
 			if (taskOutputFailure) {
 				failTask(taskOutputFailure);
@@ -246,7 +273,7 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 			return;
 		}
 
-		if (run.status === "CANCELED") {
+		if (terminalState === "CANCELED") {
 			updateTask(task.runId, {
 				status: "CANCELED",
 				completedAt: Date.now(),
@@ -255,19 +282,19 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 			return;
 		}
 
-		if (run.status === "FAILED") {
+		if (terminalState === "FAILED") {
 			failTask(
 				getTaskFailureMessage({
 					metadata: task.metadata,
-					errorMessage: error?.message || null,
+					errorMessage: getRunErrorMessage(run) || error?.message || null,
 				}),
 			);
 		}
 	}, [
 		error,
+		onTaskFailed,
 		removeTask,
-		run?.output,
-		run?.status,
+		run,
 		runTaskEffect,
 		stop,
 		task,
@@ -277,7 +304,15 @@ function TaskNotificationWatcher({ task }: { task: TaskMonitorTask }) {
 	return null;
 }
 
-function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
+function TaskNotificationRow({
+	task,
+	expanded,
+	onToggleExpanded,
+}: {
+	task: TaskMonitorTask;
+	expanded: boolean;
+	onToggleExpanded: () => void;
+}) {
 	const updateTask = useTaskMonitorStore((state) => state.updateTask);
 	const removeTask = useTaskMonitorStore((state) => state.removeTask);
 	const [copied, setCopied] = useState(false);
@@ -314,86 +349,147 @@ function TaskNotificationRow({ task }: { task: TaskMonitorTask }) {
 	};
 
 	return (
-		<div className="flex items-start gap-3 rounded-md px-2 py-2 hover:bg-muted/60">
-			<TaskStatusIcon status={task.status} />
-			<div className="min-w-0 flex-1">
-				<div className="flex items-center gap-2">
-					<div className="truncate text-sm font-medium">{title}</div>
-					<Badge
-						variant={task.status === "FAILED" ? "destructive" : "secondary"}
-						className="shrink-0"
-					>
-						{statusLabel(task.status)}
-					</Badge>
-				</div>
-				<div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-					{description}
-				</div>
-				<div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-					<span>{shortRunId(task.runId)}</span>
-					{task.metadata?.taskName ? (
-						<span>{String(task.metadata.taskName)}</span>
-					) : null}
-				</div>
-			</div>
-			<Button
-				type="button"
-				variant="ghost"
-				size="icon-xs"
-				onClick={() => void copyRunId()}
-				aria-label={copied ? "Run id copied" : "Copy run id"}
-				title={copied ? "Copied" : "Copy run id"}
-			>
-				{copied ? (
-					<Icons.CheckCircle2 className="size-3.5" />
-				) : (
-					<Icons.Copy className="size-3.5" />
-				)}
-			</Button>
-			{task.status === "FAILED" && isSalesEmailTaskMetadata(task.metadata) ? (
-				<Button variant="ghost" size="xs" asChild>
-					<a href={SALES_EMAIL_LEDGER_PATH}>Emails</a>
-				</Button>
-			) : null}
-			{task.status === "SYNCING" ? (
+		<div className="rounded-md px-2 py-2 hover:bg-muted/60">
+			<div className="flex items-start gap-2">
 				<Button
 					type="button"
 					variant="ghost"
 					size="icon-xs"
-					disabled={cancelTask.isPending}
-					onClick={() => cancelTask.execute({ runId: task.runId })}
-					aria-label="Cancel running task"
-					title="Cancel task"
+					onClick={onToggleExpanded}
+					aria-label={expanded ? "Collapse task details" : "Expand task details"}
+					title={expanded ? "Collapse" : "Expand"}
+					className="mt-0.5 shrink-0"
 				>
-					{cancelTask.isPending ? (
-						<Icons.Loader2 className="size-3.5 animate-spin" />
+					{expanded ? (
+						<Icons.Clock className="size-3.5" />
 					) : (
-						<Icons.Ban className="size-3.5" />
+						<Icons.ChevronRight className="size-3.5" />
 					)}
 				</Button>
-			) : null}
-			{task.status === "FAILED" || task.status === "CANCELED" ? (
+				<TaskStatusIcon status={task.status} />
+				<button
+					type="button"
+					className="min-w-0 flex-1 text-left"
+					onClick={onToggleExpanded}
+				>
+					<div className="flex items-center gap-2">
+						<div className="truncate text-sm font-medium">{title}</div>
+						<Badge
+							variant={task.status === "FAILED" ? "destructive" : "secondary"}
+							className="shrink-0"
+						>
+							{statusLabel(task.status)}
+						</Badge>
+					</div>
+					<div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+						{description}
+					</div>
+					<div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+						<span>{shortRunId(task.runId)}</span>
+						{task.metadata?.taskName ? (
+							<span>{String(task.metadata.taskName)}</span>
+						) : null}
+					</div>
+				</button>
 				<Button
 					type="button"
 					variant="ghost"
 					size="icon-xs"
-					onClick={() => removeTask(task.runId)}
-					aria-label="Dismiss task"
+					onClick={() => void copyRunId()}
+					aria-label={copied ? "Run id copied" : "Copy run id"}
+					title={copied ? "Copied" : "Copy run id"}
 				>
-					<Icons.X className="size-3.5" />
+					{copied ? (
+						<Icons.CheckCircle2 className="size-3.5" />
+					) : (
+						<Icons.Copy className="size-3.5" />
+					)}
 				</Button>
+				{task.status === "FAILED" && isSalesEmailTaskMetadata(task.metadata) ? (
+					<Button variant="ghost" size="xs" asChild>
+						<a href={SALES_EMAIL_LEDGER_PATH}>Emails</a>
+					</Button>
+				) : null}
+				{task.status === "SYNCING" ? (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon-xs"
+						disabled={cancelTask.isPending}
+						onClick={() => cancelTask.execute({ runId: task.runId })}
+						aria-label="Cancel running task"
+						title="Cancel task"
+					>
+						{cancelTask.isPending ? (
+							<Icons.Loader2 className="size-3.5 animate-spin" />
+						) : (
+							<Icons.Ban className="size-3.5" />
+						)}
+					</Button>
+				) : null}
+				{task.status === "FAILED" || task.status === "CANCELED" ? (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon-xs"
+						onClick={() => removeTask(task.runId)}
+						aria-label="Dismiss task"
+					>
+						<Icons.X className="size-3.5" />
+					</Button>
+				) : null}
+			</div>
+			{expanded ? (
+				<div className="mt-2 rounded-md border bg-muted/30 p-2 text-xs">
+					{task.error ? (
+						<div className="mb-2 rounded-sm border border-destructive/20 bg-destructive/10 p-2 text-destructive">
+							<div className="mb-1 font-medium">Error details</div>
+							<div className="whitespace-pre-wrap break-words">{task.error}</div>
+						</div>
+					) : null}
+					<div className="grid gap-1.5 text-muted-foreground">
+						<TaskDetail label="Status" value={statusLabel(task.status)} />
+						<TaskDetail label="Run" value={task.runId} />
+						<TaskDetail
+							label="Task"
+							value={task.metadata?.taskName || task.title || defaultTitle(task)}
+						/>
+						<TaskDetail label="Type" value={task.metadata?.type} />
+						<TaskDetail label="Entity" value={task.metadata?.entityLabel} />
+						<TaskDetail label="Description" value={task.description} />
+						<TaskDetail
+							label="Started"
+							value={formatTaskTime(task.createdAt)}
+						/>
+						<TaskDetail
+							label="Updated"
+							value={formatTaskTime(task.updatedAt)}
+						/>
+						<TaskDetail
+							label="Finished"
+							value={formatTaskTime(task.completedAt)}
+						/>
+					</div>
+				</div>
 			) : null}
 		</div>
 	);
 }
 
-function getFailureToastAction(task: TaskMonitorTask) {
-	if (!isSalesEmailTaskMetadata(task.metadata)) return undefined;
+function TaskDetail({
+	label,
+	value,
+}: {
+	label: string;
+	value?: string | number | null;
+}) {
+	if (value == null || value === "") return null;
 
 	return (
-		<ToastAction altText="View sales email log" asChild>
-			<a href={SALES_EMAIL_LEDGER_PATH}>View emails</a>
-		</ToastAction>
+		<div className="grid grid-cols-[72px_minmax(0,1fr)] gap-2">
+			<span className="text-muted-foreground/70">{label}</span>
+			<span className="break-words text-foreground">{String(value)}</span>
+		</div>
 	);
 }
 
@@ -457,4 +553,14 @@ function shortRunId(runId: string) {
 	return runId.length > 10
 		? `${runId.slice(0, 6)}...${runId.slice(-4)}`
 		: runId;
+}
+
+function formatTaskTime(value?: number) {
+	if (!value) return null;
+	return new Intl.DateTimeFormat(undefined, {
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	}).format(new Date(value));
 }
