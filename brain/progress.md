@@ -2,6 +2,13 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Added remote Redis local-development isolation.
+  - Added `GND_CACHE_NAMESPACE` key namespacing in `@gnd/cache`, with a guard that refuses `prod`/`production` cache namespaces outside production unless `GND_ALLOW_PROD_REDIS_IN_DEV` is explicitly enabled.
+  - Updated `scripts/start-dev-services.sh` so Docker Redis is skipped automatically when `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured; local Redis remains forceable with `GND_START_REDIS=1`.
+  - Copied Redis-related production env values into the ignored root `.env.local` and set the local cache namespace to `local`; production env now has `GND_CACHE_NAMESPACE=prod`.
+  - Updated `.env.example`, `apps/www/README.md`, and `brain/database/migrations.md` with the new cache flags and dev-service behavior.
+  - No database schema, migration, API contract, permission, or runtime product behavior changed.
+
 - Implemented Unit Invoice search parity with Project Units.
   - Updated `whereUnitInvoices` so Unit Invoices base `q` search checks the same visible unit/project/builder fields as Project Units: `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`.
   - Added focused Community router regression coverage for the shared visible search fields and project-scoped search composition, covering the Breezewood Villas `/01` mismatch class.
@@ -9,6 +16,93 @@
   - Validation: `bun test apps/api/src/trpc/routers/community.route.test.ts` passed; `bunx biome check --formatter-enabled=false apps/api/src/db/queries/unit-invoices.ts apps/api/src/trpc/routers/community.route.test.ts` passed. `bun --filter @gnd/api typecheck` was attempted and remains blocked by unrelated baseline diagnostics outside the Unit Invoices search change. Full Biome formatting was not applied because `unit-invoices.ts` still has a broad pre-existing indentation reformat.
   - Brain files updated: `brain/features/unit-invoices-table.md`, `brain/features/community-unit-invoice-reporting.md`, `brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, and `brain/progress.md`.
   - No database schema, migration, API contract shape, or permission change was required.
+
+- Implemented sales email status alerts and a transaction ledger.
+  - Added `SalesEmailAttempt` / `SalesEmailAttemptStatus` schema for durable sales document email attempt rows, with sender, attached sales rep, recipient/customer, document/email kind, subject/message snapshot, sales ids/order numbers, provider id/status, error details, retry metadata, timestamps, and linked resend attempts.
+  - Updated simple and composed sales document notification flows so provider accepted/failed/skipped email results are persisted, and updated the standard sales send task to record skipped attempts when required send context is missing.
+  - Added protected `emails.salesEmailAttempts` and Super Admin-only `emails.resendSalesEmailAttempt`; regular sales users are scoped to attempts they sent or attempts attached to them as sales rep, while Super Admin sees all and can retry failed/skipped rows.
+  - Added `/sales-book/emails` with search, status filtering, pagination, provider/status/error display, and Super Admin resend controls.
+  - Updated background task monitoring so sales document email tasks surface provider failure/skipped output instead of treating Trigger completion alone as email success.
+  - Provider-status semantics are immediate Resend/provider accepted/failed/skipped results, not webhook delivery, open, click, or read analytics.
+  - Validation: Prisma client generation passed for `packages/db`; jobs schema generation passed from `packages/jobs`; targeted Biome and whitespace checks passed for touched implementation files. Package typechecks were attempted but remain blocked by pre-existing unrelated baseline diagnostics outside this sales email ledger change.
+  - Brain files updated: `brain/features/sales-email-delivery-ledger.md`, `brain/features/background-task-monitor.md`, `brain/database/schema.md`, `brain/database/relationships.md`, `brain/database/migrations.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/api/permissions.md`, `brain/plans/2026-07-09-feature-sales-email-status-alerts-and-ledger.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, and `brain/progress.md`.
+  - Database migration/application remains a deployment step before runtime attempts can persist in the target environment.
+
+- Published a PRD for Unit Invoice search parity with Project Units.
+  - Created GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/38 with the `ready-for-agent` label.
+  - Captured the user repro: Breezewood Villas returns `97` results on both Project Units and Unit Invoices, but adding search `/01` returns `19` Project Units results and only `8` Unit Invoices results.
+  - Recorded the proposed implementation direction in `brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md` and added the task to `brain/tasks/roadmap.md`.
+  - Primary testing seam recorded: compare `community.getProjectUnits` and `community.getUnitInvoices` under the same project-scoped `q` search and assert the same `Homes` unit ids/counts before table rendering.
+  - No code, database schema, API contract, permission constant, migration, build, typecheck, or runtime behavior changed in this planning pass.
+
+- Published a PRD for sales email status alerts and a transaction ledger.
+  - Created GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/37 with the `ready-for-agent` label.
+  - Synthesized the request into two linked product outcomes: visible sent/failed alerts for standard quote/invoice and custom composed sales document emails, plus a durable Email page where reps see attached attempts and Super Admin can audit/resend failed emails.
+  - Recorded the proposed implementation direction in `brain/plans/2026-07-09-feature-sales-email-status-alerts-and-ledger.md` and added the task to `brain/tasks/roadmap.md`.
+  - Primary testing seam recorded: the protected sales email delivery/notification contract, covering durable attempt rows, provider status, permission-scoped reads, and resend behavior.
+  - No code, database schema, API contract, permission constant, migration, build, typecheck, or runtime behavior changed in this planning pass.
+
+- Analyzed production database query-insights export and created a performance optimization plan.
+  - Parsed the pasted production query table for the `gndprodesk` keyspace and grouped `75` query rows by hot query family.
+  - Largest total-time family is notes tag lookup via `NotePad` plus repeated `NoteTags EXISTS`: `1007s` total across `2069` executions, weighted p50 `462ms`, worst p99 `1343ms`.
+  - Other major families are auth/session/permission hydration volume (`326s` across `251615` executions), SalesOrders/SalesStat summary predicates (`275s`), Dyke/product aggregate reads (`160s`), sales search/list count pressure (`160s`), other SalesOrders list/detail reads (`120s`), and community/project aggregate lists (`53s`).
+  - Created `brain/plans/2026-07-09-production-database-performance-optimization-plan.md` with phased recommendations: baseline/EXPLAIN, query rewrites for notes and sales summaries, auth/session memoization, targeted composite indexes, product-report/read-model work, and observability guardrails.
+  - Added a roadmap entry for Production Database Performance Optimization.
+  - No runtime code, Prisma schema, database migration, API contract, permission, or feature behavior changed in this planning pass.
+
+- Retired the default local Docker MySQL development flow.
+  - Switched the active root `.env.local` `DATABASE_URL` from the local Docker MySQL port (`127.0.0.1:3307`) to the hosted dev database branch that was already present as a commented value.
+  - Removed the root `db:docker:up`, `db:docker:down`, and `db:docker:migrate` scripts so normal project commands no longer advertise the XAMPP-to-Docker database path.
+  - Updated `scripts/start-dev-services.sh` to read the configured database URL and skip the local MySQL container when the host is non-local; local Redis still starts by default, with `GND_START_REDIS=0` available for remote Redis/Upstash setups and `GND_START_MYSQL=1` available for intentional local-MySQL recovery.
+  - Updated `apps/www/README.md` and `brain/database/migrations.md` to document the hosted dev branch as the normal development database target and leave the old Docker MySQL import script as legacy/manual recovery only.
+  - No Prisma schema, migration file, API contract, permission, or runtime feature behavior changed.
+
+- Implemented sales order sales rep transfer.
+  - Added protected sales tRPC routes `sales.salesRepOptions` and `sales.transferSalesRep` plus `transferSalesRepSchema`.
+  - Reused `SalesOrders.salesRepId` and `SalesHistory`; no database schema or migration changed.
+  - The transfer mutation requires password confirmation, lets `editOrders` users transfer any active order, lets the currently assigned sales rep transfer orders they own, validates an active sales/order-capable target user, rejects quotes/deleted orders/non-owned transfers, updates only the order sales rep, and writes structured audit metadata with previous rep, next rep, actor, order id, and optional reason.
+  - Exposed `salesRepId` in the overview/list DTO so the client can mark the current owner and avoid duplicate transfer history.
+  - Added an inline `Change Rep` control to the sales overview `SALES REPRESENTATIVE` section for orders, visible to managers and current-owner sales reps, with searchable rep selection, optional note, password confirmation modal, success/error toasts, and sales query invalidation.
+  - Validation: `bun test apps/api/src/db/queries/sales-rep-transfer.test.ts` passed with 6 tests; narrowed `bunx biome check` passed for the transfer schema/query/test and overview tab; `git diff --check` passed for touched implementation and Brain files.
+  - Brain files updated: `brain/features/sales-orders-v2.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/api/permissions.md`, `brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, and `brain/progress.md`.
+
+- Published a PRD for changing the sales rep attached to an existing order.
+  - Created GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/36 with the `ready-for-agent` label.
+  - Synthesized the client request into a sales ownership correction workflow: a permission-controlled transfer action for existing orders, backed by the existing `SalesOrders.salesRepId` ownership field, transactional audit history, query/dashboard refreshes, and stable order identity.
+  - Recorded the proposed implementation direction in `brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md` and added the task to `brain/tasks/roadmap.md`.
+  - No code, database schema, API contract, permission constant, migration, build, typecheck, or runtime behavior changed in this planning pass.
+
+- Implemented the first web-only bug reporting workflow slice.
+  - Added `BugReportStatus`, `BugReport`, and `BugReportFollowUp` Prisma schema for employee-submitted bug reports and follow-up threads.
+  - Added `submitBugReport` permission support, including Super Admin employee-row enable/disable actions backed by `hrm.setEmployeeBugReportingAccess`.
+  - Added the header report button for enabled employees with browser screen recording, optional microphone narration, Vercel Blob upload, 1 minute 30 second max duration, and optional description.
+  - Hardened the Vercel Blob path so the recorder uses `@vercel/blob/client` upload with `/api/bug-reports/upload` issuing short-lived, permission-checked client upload tokens scoped to `bug-reports/<userId>/` from server-only `BLOB_READ_WRITE_TOKEN`, instead of importing the raw Blob write token in the recorder component.
+  - Added `/support/bug-reports` issue board where employees see their own reports and Super Admin sees all reports, filters by status, updates status, views recordings, and adds follow-ups.
+  - Recommended/implemented statuses are `NEW`, `IN_REVIEW`, `IN_PROGRESS`, `NEEDS_INFO`, `FIXED`, and `CLOSED`.
+  - Validation: `bun run db:generate` completed; follow-up `bun run --cwd packages/db db:generate` and `bun run --cwd packages/db with-env prisma validate` also passed. `TURBO_UI=true bun run db:migrate` hit Turbo's interactive-task guard; package-level migration/status/apply checks reached the local datasource but failed with Prisma `Schema engine error`, and direct MySQL checks against `127.0.0.1:3307` failed with `ERROR 2002`. The schema still needs to be applied once the local/intended database target is healthy. Broad typecheck/build/browser validation was not run under the active fast Bun monorepo discipline.
+  - Docker recovery attempt on 2026-07-08: the project MySQL Compose restart hung and was cancelled; Docker Desktop was quit and reopened, but the Docker daemon socket still did not respond to `docker info`, so the database migration/apply gate remains blocked by local Docker health.
+  - Brain files updated: `brain/features/web-bug-reporting.md`, `brain/features/employee-management-v2.md`, `brain/database/schema.md`, `brain/database/relationships.md`, `brain/database/migrations.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/api/permissions.md`, `brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md`, `brain/tasks/roadmap.md`, and `brain/progress.md`.
+
+- Updated the desktop sidebar footer account menu interaction.
+  - Clicking the footer user control now explicitly opens the account dropdown while expanding the desktop sidebar.
+  - Hovering out of the sidebar still collapses the sidebar, but an open footer account menu keeps its requested-open state while hidden and reappears when the sidebar is hovered again.
+  - Follow-up hardening split the portal dropdown hover surface from the sidebar hover surface so hovering the open account menu cancels collapse without triggering a collapse/expand loop.
+  - Follow-up boundary handling now treats pointer movement between the sidebar and floating account dropdown as internal movement, preventing collapse timers from firing while moving around the sidebar after opening the menu.
+  - Added Profile and Notification settings entries to the `apps/www` footer account menu while keeping Log out in the shared `SiteNav.User` footer.
+  - Brain files updated: `brain/features/site-navigation.md` and `brain/progress.md`; no database, API, permission, or schema docs were needed because this is a client-only navigation behavior change.
+
+- Implemented production-gated Vercel Web Analytics for the main web app.
+  - `apps/www/src/app/layout.tsx` now imports `Analytics` from `@vercel/analytics/next` and renders it alongside `SpeedInsights` only when `env.NODE_ENV === "production"`.
+  - Moved the production Vercel instrumentation components inside `<body>` while preserving the existing app provider/order for page content.
+  - Validation: confirmed the installed `@vercel/analytics/next` entrypoint exports `Analytics`. `bun --filter @gnd/www typecheck` remains blocked by pre-existing broad `@gnd/www` baseline diagnostics in API query types, cache revalidation arity, and duplicated React types in shared UI; no diagnostics specific to the layout change were identified.
+  - No database, API contract, permission, schema, or feature behavior docs were needed because this is production-only web telemetry wiring using an already-declared dependency.
+
+- Created a user-requested Brain intake and plan for a web-first bug reporting workflow separate from the earlier desktop/Tauri plan.
+  - Added `brain/intake/2026-07-07-web-bug-reporting-workflow.md` to capture the web header bug button, Super Admin employee enable/disable control, browser recording with optional microphone narration, Vercel Blob video persistence, employee submissions/follow-ups, and Super Admin status management.
+  - Added `brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md` with the proposed technology stack, data model, API draft, permission approach, implementation phases, acceptance criteria, testing plan, security/privacy notes, rollout recommendation, and open questions.
+  - Updated the plan from follow-up clarification: web v1 is screen recording only, screenshot capture is out of scope, recordings use Vercel Blob, max duration is 1 minute 30 seconds, only Super Admin can view all reports, and the recommended status flow is `new` -> `in_review` -> `in_progress` / `needs_info` -> `fixed` -> `closed`.
+  - Added a companion roadmap task in `brain/tasks/roadmap.md`.
+  - No code, database schema, API contract, permission constants, storage provider implementation, runtime behavior, build, or typecheck changed; this was planning/intake only.
 
 - Made Mark As Fulfilled auto-resolve inventory blockers during the transitional inventory cutover.
   - Extended `inventories.salesInventoryMarkAsPreflight` with pending allocation ids/qty plus auto-inbound demand/component/supplier hints so Mark As can prepare inventory work without opening the Inventory tab.

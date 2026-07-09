@@ -62,6 +62,8 @@ model Users {
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
     definedProductionGates      OrderProductionGate[]
+    sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
+    salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")

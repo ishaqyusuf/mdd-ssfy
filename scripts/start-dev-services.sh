@@ -6,6 +6,7 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 ROOT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
 
 COMPOSE_FILE="${GND_COMPOSE_FILE:-$ROOT_DIR/apps/www/docker-compose.yml}"
+ENV_FILE="${GND_ENV_FILE:-$ROOT_DIR/.env.local}"
 MYSQL_SERVICE="${GND_MYSQL_SERVICE:-mysql}"
 REDIS_SERVICE="${GND_REDIS_SERVICE:-redis}"
 MYSQL_USER="${GND_MYSQL_USER:-root}"
@@ -15,6 +16,154 @@ REDIS_WAIT_ATTEMPTS="${GND_REDIS_WAIT_ATTEMPTS:-30}"
 SLEEP_SECONDS="${GND_DEV_SERVICES_WAIT_SECONDS:-1}"
 DOCKER_MAX_ATTEMPTS="${GND_DOCKER_WAIT_ATTEMPTS:-60}"
 DOCKER_SLEEP_SECONDS="${GND_DOCKER_WAIT_SECONDS:-2}"
+
+strip_wrapping_quotes() {
+  value="$1"
+  case "$value" in
+    \"*\")
+      value=${value#\"}
+      value=${value%\"}
+      ;;
+    \'*\')
+      value=${value#\'}
+      value=${value%\'}
+      ;;
+  esac
+
+  printf '%s' "$value"
+}
+
+read_env_value() {
+  var_name="$1"
+  file="$2"
+
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+
+  raw_value=$(
+    awk -v key="$var_name" '
+      $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+        sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "")
+        sub(/\r$/, "")
+        print
+        exit
+      }
+    ' "$file"
+  )
+
+  strip_wrapping_quotes "$raw_value"
+}
+
+url_host() {
+  url="$1"
+
+  case "$url" in
+    *://*) rest=${url#*://} ;;
+    *) return 0 ;;
+  esac
+
+  case "$rest" in
+    *@*) rest=${rest#*@} ;;
+  esac
+
+  host_port=${rest%%/*}
+  host_port=${host_port%%\?*}
+
+  case "$host_port" in
+    \[*\]*)
+      host=${host_port#\[}
+      host=${host%%\]*}
+      ;;
+    *)
+      host=${host_port%%:*}
+      ;;
+  esac
+
+  printf '%s' "$host"
+}
+
+is_local_host() {
+  case "$1" in
+    "" | localhost | 127.0.0.1 | ::1 | 0.0.0.0 | mysql)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+database_url="${DATABASE_URL:-$(read_env_value DATABASE_URL "$ENV_FILE")}"
+database_host="$(url_host "$database_url")"
+redis_url="${REDIS_URL:-$(read_env_value REDIS_URL "$ENV_FILE")}"
+redis_host="$(url_host "$redis_url")"
+upstash_redis_rest_url="${UPSTASH_REDIS_REST_URL:-$(read_env_value UPSTASH_REDIS_REST_URL "$ENV_FILE")}"
+
+should_start_mysql() {
+  case "${GND_START_MYSQL:-auto}" in
+    1 | true | yes)
+      return 0
+      ;;
+    0 | false | no)
+      return 1
+      ;;
+    auto)
+      ;;
+    *)
+      echo "Invalid GND_START_MYSQL value: ${GND_START_MYSQL}" >&2
+      echo "Use auto, 1/true/yes, or 0/false/no." >&2
+      exit 1
+      ;;
+  esac
+
+  is_local_host "$database_host"
+}
+
+should_start_redis() {
+  case "${GND_START_REDIS:-auto}" in
+    1 | true | yes)
+      return 0
+      ;;
+    0 | false | no)
+      return 1
+      ;;
+    auto)
+      ;;
+    *)
+      echo "Invalid GND_START_REDIS value: ${GND_START_REDIS}" >&2
+      echo "Use auto, 1/true/yes, or 0/false/no." >&2
+      exit 1
+      ;;
+  esac
+
+  if [ -n "$upstash_redis_rest_url" ]; then
+    return 1
+  fi
+
+  if [ -n "$redis_url" ] && ! is_local_host "$redis_host"; then
+    return 1
+  fi
+
+  return 0
+}
+
+redis_skip_message() {
+  case "${GND_START_REDIS:-auto}" in
+    0 | false | no)
+      echo "Skipping local Redis; GND_START_REDIS is disabled."
+      ;;
+    *)
+      if [ -n "$upstash_redis_rest_url" ]; then
+        echo "Skipping local Redis; UPSTASH_REDIS_REST_URL is configured."
+      elif [ -n "$redis_url" ] && ! is_local_host "$redis_host"; then
+        echo "Skipping local Redis; REDIS_URL points to a non-local host."
+      else
+        echo "Skipping local Redis."
+      fi
+      ;;
+  esac
+}
 
 wait_for_docker() {
   attempt=1
@@ -30,6 +179,29 @@ wait_for_docker() {
 
   return 1
 }
+
+services=""
+start_mysql=0
+start_redis=0
+
+if should_start_mysql; then
+  start_mysql=1
+  services="$services $MYSQL_SERVICE"
+else
+  echo "Skipping local MySQL; DATABASE_URL points to a non-local host."
+fi
+
+if should_start_redis; then
+  start_redis=1
+  services="$services $REDIS_SERVICE"
+else
+  redis_skip_message
+fi
+
+if [ -z "$services" ]; then
+  echo "No local dev services requested."
+  exit 0
+fi
 
 if ! docker info >/dev/null 2>&1; then
   if [ "$(uname -s)" = "Darwin" ] && command -v open >/dev/null 2>&1; then
@@ -54,7 +226,7 @@ EOF
     cat >&2 <<'EOF'
 Docker Engine is not reachable.
 
-The local MySQL and Redis containers need a running Docker-compatible daemon.
+The selected local dev services need a running Docker-compatible daemon.
 
 Terminal-first options:
   1. Start Docker Desktop, then rerun your command.
@@ -72,25 +244,31 @@ EOF
   fi
 fi
 
-echo "Starting local MySQL and Redis containers..."
-docker compose -f "$COMPOSE_FILE" up -d "$MYSQL_SERVICE" "$REDIS_SERVICE"
+echo "Starting local dev services:$services"
+docker compose -f "$COMPOSE_FILE" up -d $services
 
-attempt=1
-while [ "$attempt" -le "$MYSQL_WAIT_ATTEMPTS" ]; do
-  if docker compose -f "$COMPOSE_FILE" exec -T "$MYSQL_SERVICE" mysqladmin ping -h "$MYSQL_HOST" -u "$MYSQL_USER" >/dev/null 2>&1; then
-    echo "Local MySQL is ready."
-    break
+if [ "$start_mysql" -eq 1 ]; then
+  attempt=1
+  while [ "$attempt" -le "$MYSQL_WAIT_ATTEMPTS" ]; do
+    if docker compose -f "$COMPOSE_FILE" exec -T "$MYSQL_SERVICE" mysqladmin ping -h "$MYSQL_HOST" -u "$MYSQL_USER" >/dev/null 2>&1; then
+      echo "Local MySQL is ready."
+      break
+    fi
+
+    echo "Waiting for local MySQL... ($attempt/$MYSQL_WAIT_ATTEMPTS)"
+    attempt=$((attempt + 1))
+    sleep "$SLEEP_SECONDS"
+  done
+
+  if [ "$attempt" -gt "$MYSQL_WAIT_ATTEMPTS" ]; then
+    echo "Local MySQL did not become ready in time." >&2
+    echo "Try: docker compose -f \"$COMPOSE_FILE\" logs \"$MYSQL_SERVICE\"" >&2
+    exit 1
   fi
+fi
 
-  echo "Waiting for local MySQL... ($attempt/$MYSQL_WAIT_ATTEMPTS)"
-  attempt=$((attempt + 1))
-  sleep "$SLEEP_SECONDS"
-done
-
-if [ "$attempt" -gt "$MYSQL_WAIT_ATTEMPTS" ]; then
-  echo "Local MySQL did not become ready in time." >&2
-  echo "Try: docker compose -f \"$COMPOSE_FILE\" logs \"$MYSQL_SERVICE\"" >&2
-  exit 1
+if [ "$start_redis" -eq 0 ]; then
+  exit 0
 fi
 
 attempt=1

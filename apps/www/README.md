@@ -18,33 +18,30 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-## Local MySQL With Docker
+## Development Database
 
-The local Prisma datasource is MySQL. To replace the old XAMPP database with Docker:
+Local development uses the database URL configured in the root `.env.local`.
+The active development database should point at the hosted dev branch instead of the old local Docker MySQL instance.
 
-```bash
-bun run db:docker:up
-bash ./scripts/mysql-xampp-to-docker.sh full
-```
-
-This starts MySQL on `127.0.0.1:3307` and imports the default XAMPP database `gnd-prisma2` from `127.0.0.1:3306`.
-The import resets the Docker `gnd-prisma2` database before loading the dump.
+The main dev entry points still run `bun run dev:prepare`, but `scripts/start-dev-services.sh` now skips the local MySQL container whenever `DATABASE_URL` points to a non-local host. It also skips the local Redis container whenever `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured.
 
 Useful commands:
 
 ```bash
-bash ./scripts/mysql-xampp-to-docker.sh dump
-bash ./scripts/mysql-xampp-to-docker.sh import /path/to/gnd-prisma2.sql
+bun run db:generate
 bun run db:migrate
 ```
 
-Open Adminer at [http://localhost:8080](http://localhost:8080) with:
+If you intentionally need the retired local Docker MySQL fallback for recovery work, force it with a local `DATABASE_URL` or `GND_START_MYSQL=1` before running the service script. Normal app development should use the hosted dev database branch.
 
-- System: `MySQL`
-- Server: `mysql`
-- Username: `root`
-- Password: leave blank
-- Database: `gnd-prisma2`
+Local development may point at the shared production Redis account, but cache keys must use a non-production namespace:
+
+```bash
+GND_CACHE_NAMESPACE=local
+GND_ALLOW_PROD_REDIS_IN_DEV=0
+```
+
+Production should use `GND_CACHE_NAMESPACE=prod`. If you intentionally need local Docker Redis, force it with a local `REDIS_URL` or `GND_START_REDIS=1`.
 
 ## Learn More
 

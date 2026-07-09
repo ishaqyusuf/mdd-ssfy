@@ -35,6 +35,7 @@ type LoadedSale = {
 	customerName: string;
 	salesRep: string;
 	salesRepEmail: string;
+	salesRepId: number | null;
 	customerId: number | null;
 	customerPhone: string | null;
 	customerWalletId: number | null;
@@ -50,6 +51,7 @@ const resolvedSchema = z.object({
 	customerName: z.string(),
 	salesRep: z.string(),
 	salesRepEmail: z.string().email(),
+	salesRepId: z.number().optional().nullable(),
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
 	paymentLink: z.string().optional().nullable(),
@@ -64,6 +66,10 @@ const resolvedSchema = z.object({
 		}),
 	),
 	pdfAttachment: salesPdfAttachmentSchema.optional().nullable(),
+	salesIds: z.array(z.number()).optional().nullable(),
+	salesNos: z.array(z.string()).optional().nullable(),
+	emailAttemptId: z.string().optional().nullable(),
+	sourceAttemptId: z.string().optional().nullable(),
 });
 
 type ResolvedComposedSalesDocumentEmailInput = z.infer<typeof resolvedSchema>;
@@ -99,6 +105,7 @@ async function loadSales(db: Db, input: ComposedSalesDocumentEmailInput) {
 			},
 			salesRep: {
 				select: {
+					id: true,
 					email: true,
 					name: true,
 				},
@@ -130,6 +137,7 @@ async function loadSales(db: Db, input: ComposedSalesDocumentEmailInput) {
 				customerName,
 				salesRep,
 				salesRepEmail,
+				salesRepId: sale.salesRep?.id ?? null,
 				customerId: sale.customer?.id ?? null,
 				customerPhone: sale.customer?.phoneNo ?? null,
 				customerWalletId: sale.customer?.walletId ?? null,
@@ -264,10 +272,15 @@ async function buildComposedSalesDocumentEmailData(
 			"Customer",
 		salesRep: primarySale.salesRep,
 		salesRepEmail: primarySale.salesRepEmail,
+		salesRepId: primarySale.salesRepId,
 		subject: input.subject.trim(),
 		message: normalizeText(input.message),
 		paymentLink,
 		pdfLink,
+		salesIds: sales.map((sale) => sale.id),
+		salesNos: sales.map((sale) => sale.orderId),
+		emailAttemptId: input.emailAttemptId,
+		sourceAttemptId: input.sourceAttemptId,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,

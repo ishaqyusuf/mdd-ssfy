@@ -7,6 +7,7 @@ import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import type { CSSProperties } from "react";
 import { NotificationCenter } from "./notification-center";
+import { BugReportButton } from "./bug-reports/bug-report-button";
 import { OpenSearchButton } from "./search/open-search-button";
 import { SalesRepRequestBadge } from "./sales-rep-request-badge";
 import { UserNav } from "./user-nav";
@@ -95,6 +96,7 @@ export function Header() {
                     <OpenSearchButton />
                 </div>
                 <SalesRepRequestBadge />
+                <BugReportButton />
                 <TestEmailModeButton />
                 <NotificationCenter />
                 <UserNav links={linkModules} />

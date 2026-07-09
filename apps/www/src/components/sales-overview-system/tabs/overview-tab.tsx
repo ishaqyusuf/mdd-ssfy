@@ -1,35 +1,47 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import Money from "@/components/_v1/money";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { SearchInput } from "@/components/search-input";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
 import { middleTruncate } from "@/lib/truncate-middle";
 import { buildSalesInventoryPrintViewerUrl } from "@/modules/sales-print/application/inventory-print-request";
 import { useTRPC } from "@/trpc/client";
 import { salesFormUrl } from "@/utils/sales-utils";
 
-import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import {
-	getSingleInventoryInboundId,
 	InventoryInboundStatusBadge,
 	SalesInboundStatusBadge,
+	getSingleInventoryInboundId,
 } from "@/components/sales-inbound-status-badge";
+import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent } from "@gnd/ui/card";
 import { cn } from "@gnd/ui/cn";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
 import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
 import { Progress } from "@gnd/ui/progress";
-import { useQuery } from "@gnd/ui/tanstack";
+import { useMutation, useQuery } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
 
 import { DeliveryOption } from "../../sheets/sales-overview-sheet/delivery-option";
 import { SalesPO } from "../../sheets/sales-overview-sheet/inline-data-edit";
@@ -255,6 +267,303 @@ function SalesInventoryHealthCard({
 	);
 }
 
+function SalesRepTransferControl() {
+	const {
+		state: { data, auth, isQuote },
+	} = useSalesOverviewSystem();
+	const trpc = useTRPC();
+	const salesQueryClient = useSalesQueryClient();
+	const [isOpen, setIsOpen] = useState(false);
+	const [search, setSearch] = useState("");
+	const [selectedSalesRepId, setSelectedSalesRepId] = useState<number | null>(
+		null,
+	);
+	const [reason, setReason] = useState("");
+	const [isPasswordOpen, setIsPasswordOpen] = useState(false);
+	const [password, setPassword] = useState("");
+	const currentSalesRepId = data?.salesRepId ?? null;
+	const currentUserId = Number(auth?.id || 0) || null;
+	const canTransfer =
+		!!data?.id &&
+		!isQuote &&
+		(!!auth?.can?.editOrders || currentSalesRepId === currentUserId);
+	const salesRepsQuery = useQuery(
+		trpc.sales.salesRepOptions.queryOptions(
+			{ salesId: data?.id ?? undefined },
+			{
+				enabled: canTransfer && isOpen && !!data?.id,
+				staleTime: 5 * 60 * 1000,
+			},
+		),
+	);
+	const resetTransferState = () => {
+		setIsOpen(false);
+		setIsPasswordOpen(false);
+		setSearch("");
+		setSelectedSalesRepId(null);
+		setReason("");
+		setPassword("");
+	};
+	const salesReps = salesRepsQuery.data ?? [];
+	const filteredSalesReps = useMemo(() => {
+		const term = search.trim().toLowerCase();
+		if (!term) return salesReps.slice(0, 12);
+		return salesReps
+			.filter((rep) =>
+				[rep.name, rep.email, ...rep.roles]
+					.filter(
+						(value): value is string =>
+							typeof value === "string" && value.length > 0,
+					)
+					.some((value) => value.toLowerCase().includes(term)),
+			)
+			.slice(0, 12);
+	}, [salesReps, search]);
+	const selectedSalesRep = salesReps.find(
+		(rep) => rep.id === selectedSalesRepId,
+	);
+	const transferMutation = useMutation(
+		trpc.sales.transferSalesRep.mutationOptions({
+			onSuccess: async (result) => {
+				await salesQueryClient.invalidate.salesDocumentChanged("order");
+				if (result.changed) {
+					toast({
+						title: "Sales rep updated.",
+						description: `${result.order.orderId} now belongs to ${result.salesRep.name}.`,
+						variant: "success",
+					});
+				} else {
+					toast({
+						title: "Sales rep already assigned.",
+						description: `${result.order.orderId} is already assigned to ${result.salesRep.name}.`,
+					});
+				}
+				resetTransferState();
+			},
+			onError: (error) => {
+				setPassword("");
+				toast({
+					title: "Unable to transfer sales rep.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+
+	if (!canTransfer) return null;
+
+	const isPending = transferMutation.isPending;
+	const canSubmit =
+		!!data?.id &&
+		!!selectedSalesRep &&
+		selectedSalesRep.id !== currentSalesRepId &&
+		!isPending;
+
+	if (!isOpen) {
+		return (
+			<Button
+				type="button"
+				size="sm"
+				variant="outline"
+				className="mt-3"
+				onClick={() => setIsOpen(true)}
+			>
+				<Icons.UserPlus className="mr-2 size-4" />
+				Change Rep
+			</Button>
+		);
+	}
+
+	return (
+		<div className="mt-3 space-y-3 rounded-md border border-border/60 p-3">
+			<div className="flex items-center justify-between gap-3">
+				<p className="text-xs font-medium uppercase text-muted-foreground">
+					Transfer order to
+				</p>
+				<Button
+					type="button"
+					size="icon"
+					variant="ghost"
+					className="size-7"
+					aria-label="Close sales rep transfer"
+					onClick={() => {
+						resetTransferState();
+					}}
+				>
+					<Icons.X className="size-4" />
+				</Button>
+			</div>
+
+			<SearchInput
+				placeholder="Search sales reps"
+				value={search}
+				onChangeText={setSearch}
+			/>
+
+			<div className="max-h-56 overflow-y-auto rounded-md border border-border/60">
+				{salesRepsQuery.isPending ? (
+					<div className="flex items-center gap-2 px-3 py-4 text-sm text-muted-foreground">
+						<Icons.Loader2 className="size-4 animate-spin" />
+						Loading reps
+					</div>
+				) : filteredSalesReps.length ? (
+					filteredSalesReps.map((rep) => {
+						const isCurrent = rep.id === currentSalesRepId;
+						const isSelected = rep.id === selectedSalesRepId;
+
+						return (
+							<button
+								key={rep.id}
+								type="button"
+								disabled={isCurrent || isPending}
+								className={cn(
+									"flex w-full items-center gap-3 border-b border-border/40 px-3 py-2 text-left last:border-b-0 hover:bg-muted/60 disabled:cursor-not-allowed disabled:opacity-70",
+									isSelected ? "bg-muted" : null,
+								)}
+								onClick={() => setSelectedSalesRepId(rep.id)}
+							>
+								<span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+									{rep.initials}
+								</span>
+								<span className="min-w-0 flex-1">
+									<span className="block truncate text-sm font-medium">
+										{rep.name}
+									</span>
+									{rep.email ? (
+										<span className="block truncate text-xs text-muted-foreground">
+											{rep.email}
+										</span>
+									) : null}
+								</span>
+								{isCurrent ? (
+									<Badge variant="outline">Current</Badge>
+								) : isSelected ? (
+									<Icons.CheckCircle2 className="size-4 text-primary" />
+								) : null}
+							</button>
+						);
+					})
+				) : (
+					<div className="px-3 py-4 text-sm text-muted-foreground">
+						No matching reps
+					</div>
+				)}
+			</div>
+
+			<textarea
+				value={reason}
+				maxLength={500}
+				rows={2}
+				placeholder="Optional note"
+				className="min-h-16 w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+				onChange={(event) => setReason(event.target.value)}
+			/>
+
+			<div className="flex justify-end gap-2">
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					disabled={isPending}
+					onClick={() => {
+						resetTransferState();
+					}}
+				>
+					Cancel
+				</Button>
+				<Button
+					type="button"
+					size="sm"
+					disabled={!canSubmit}
+					onClick={() => {
+						if (!data?.id || !selectedSalesRep) return;
+						setIsPasswordOpen(true);
+					}}
+				>
+					<Icons.UserCheck className="mr-2 size-4" />
+					Transfer
+				</Button>
+			</div>
+
+			<Dialog
+				open={isPasswordOpen}
+				onOpenChange={(open) => {
+					if (isPending) return;
+					setIsPasswordOpen(open);
+					if (!open) setPassword("");
+				}}
+			>
+				<DialogContent className="sm:max-w-md">
+					<form
+						className="space-y-4"
+						onSubmit={(event) => {
+							event.preventDefault();
+							if (!data?.id || !selectedSalesRep || !password) return;
+							transferMutation.mutate({
+								salesId: data.id,
+								salesRepId: selectedSalesRep.id,
+								reason: reason.trim() || null,
+								password,
+							});
+						}}
+					>
+						<DialogHeader>
+							<DialogTitle>Confirm Sales Rep Transfer</DialogTitle>
+							<DialogDescription>
+								Enter your password to move {data?.orderId} to{" "}
+								{selectedSalesRep?.name}.
+							</DialogDescription>
+						</DialogHeader>
+
+						<div className="space-y-2">
+							<label
+								htmlFor="sales-rep-transfer-password"
+								className="text-sm font-medium"
+							>
+								Password
+							</label>
+							<Input
+								id="sales-rep-transfer-password"
+								type="password"
+								autoComplete="current-password"
+								value={password}
+								disabled={isPending}
+								onChange={(event) => setPassword(event.target.value)}
+							/>
+						</div>
+
+						<DialogFooter>
+							<Button
+								type="button"
+								variant="ghost"
+								disabled={isPending}
+								onClick={() => {
+									setIsPasswordOpen(false);
+									setPassword("");
+								}}
+							>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								disabled={!canSubmit || !password || isPending}
+							>
+								{isPending ? (
+									<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+								) : (
+									<Icons.UserCheck className="mr-2 size-4" />
+								)}
+								Confirm Transfer
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+			</Dialog>
+		</div>
+	);
+}
+
 export function SalesOverviewOverviewTab() {
 	const {
 		state: { data, isQuote },
@@ -434,9 +743,7 @@ export function SalesOverviewOverviewTab() {
 									</div>
 									{isQuote ? null : (
 										<div>
-											<p className="text-muted-foreground">
-												Inbound Status
-											</p>
+											<p className="text-muted-foreground">Inbound Status</p>
 											<DataSkeleton
 												className="font-medium"
 												placeholder="PENDING ORDER"
@@ -498,10 +805,11 @@ export function SalesOverviewOverviewTab() {
 								placeholder="Pablo Cruz (PC)"
 							>
 								<p className="text-sm font-medium">
-									{data?.salesRep}{" "}
+									{data?.salesRep || "Unassigned"}{" "}
 									{data?.salesRepInitial ? `(${data.salesRepInitial})` : null}
 								</p>
 							</DataSkeleton>
+							<SalesRepTransferControl />
 						</div>
 					</div>
 

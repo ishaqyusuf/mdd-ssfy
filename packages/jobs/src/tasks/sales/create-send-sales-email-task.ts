@@ -1,4 +1,4 @@
-import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
+import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import {
 	type SendSalesEmailPayload,
 	sendSalesEmailSchema,
@@ -139,7 +139,56 @@ async function loadSales(props: SendSalesEmailPayload) {
 	return {
 		mailables: Object.values(grouped),
 		sales,
+		skippedSales,
 	};
+}
+
+async function recordSkippedSalesEmails(
+	props: SendSalesEmailPayload,
+	skippedSales: Awaited<ReturnType<typeof loadSales>>["skippedSales"],
+) {
+	if (!skippedSales.length) return;
+	const { db } = await import("@gnd/db");
+
+	await Promise.all(
+		skippedSales.map((sale) =>
+			db.salesEmailAttempt.create({
+				data: {
+					status: "SKIPPED",
+					emailKind: "simple_sales_document_email",
+					documentType: props.printType,
+					emailType: props.emailType,
+					subject:
+						props.printType === "quote"
+							? "GND quote email"
+							: "GND invoice email",
+					recipientEmail: sale.customerEmail || null,
+					customerName: sale.customerName || null,
+					customerEmail: sale.customerEmail || null,
+					senderId: sale.salesRepId || null,
+					salesRepId: sale.salesRepId || null,
+					provider: "resend",
+					providerStatus: "missing_recipient_metadata",
+					errorCode: sale.reasons.join(","),
+					errorMessage: `Skipped because ${sale.reasons.join(", ")}.`,
+					salesIds: [sale.id],
+					salesNos: [sale.orderId],
+					salesIdsText: String(sale.id),
+					salesNosText: sale.orderId,
+					skippedAt: new Date(),
+					metadata: {
+						payload: {
+							emailType: props.emailType,
+							printType: props.printType,
+							salesIds: [sale.id],
+							skipPdfAttachment: true,
+						},
+						reasons: sale.reasons,
+					},
+				},
+			}),
+		),
+	);
 }
 
 export function createSendSalesEmailTask(id: SalesEmailTaskId) {
@@ -152,20 +201,24 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 		},
 		run: async (props) => {
 			const data = await loadSales(props);
+			await recordSkippedSalesEmails(props, data.skippedSales);
 
 			logger.info(`Received data: ${JSON.stringify(data)}`);
 			if (!data) {
 				throw new Error(`No data found ${JSON.stringify(props)}`);
 			}
 
-			const [{ NotificationService }, { db }] = await Promise.all([
-				import("@gnd/notifications/services/triggers"),
+			const [{ Notifications }, { db }] = await Promise.all([
+				import("@gnd/notifications"),
 				import("@gnd/db"),
 			]);
-			const notification = new NotificationService(tasks, {
-				db,
-				userId: null,
-			});
+			const notifications = new Notifications(db);
+			const emails = {
+				sent: 0,
+				skipped: data.skippedSales.length,
+				failed: 0,
+			};
+			const emailAttemptIds: string[] = [];
 
 			for (const matchingSales of data.mailables) {
 				const salesIds = matchingSales.map((sale) => sale.id);
@@ -175,6 +228,7 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 						id,
 						salesIds,
 					});
+					emails.skipped += matchingSales.length;
 					continue;
 				}
 				logger.log("Routing sales email through notification system", {
@@ -182,19 +236,34 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 					salesIds,
 					printType: props.printType,
 				});
-				await notification.send("simple_sales_document_email", {
-					author: {
-						id: authorId,
-						role: "employee",
-					},
-					payload: {
+				const result = await notifications.create(
+					"simple_sales_document_email",
+					{
 						emailType: props.emailType,
 						printType: props.printType,
 						salesIds,
 						skipPdfAttachment: true,
 					},
-				});
+					{
+						includeChannelSubscribers: false,
+						allowFallbackRecipient: false,
+						author: {
+							id: authorId,
+							role: "employee",
+						},
+					},
+				);
+				emails.sent += result.emails.sent;
+				emails.skipped += result.emails.skipped;
+				emails.failed += result.emails.failed || 0;
+				emailAttemptIds.push(...(result.emailAttemptIds || []));
 			}
+
+			return {
+				type: id,
+				emails,
+				emailAttemptIds,
+			};
 		},
 	});
 }

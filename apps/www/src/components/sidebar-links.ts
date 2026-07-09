@@ -322,6 +322,9 @@ export const linkModules = [
 				_subLink("Shelf Items", "/sales-book/shelf-items").access(
 					_perm.is("editOrders"),
 				).data,
+				_subLink("Emails", "/sales-book/emails").access(
+					_perm.in("editOrders", "viewOrders", "viewEstimates"),
+				).data,
 				_link("Edit Order", null, undefined)
 					.access(_perm.is("editOrders"))
 					.childPaths("sales-book/edit-order", "sales-form/edit-order")
@@ -338,6 +341,7 @@ export const linkModules = [
 				.access(_perm.in("editOrders", "viewOrders"))
 				.childPaths(
 					"sales-book/orders",
+					"sales-book/emails",
 					// "sales-book/orders/sales-statistics",
 				).data,
 			_link("Quotes", "quotes", "/sales-book/quotes")

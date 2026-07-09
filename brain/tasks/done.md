@@ -16,6 +16,29 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Evidence: apps/api/src/db/queries/unit-invoices.ts; apps/api/src/trpc/routers/community.route.test.ts
 - Completed Date: 2026-07-09
 
+### Sales Email Status Alerts And Transaction Ledger
+- Priority: High
+- Description: Added provider-result feedback for standard quote/order and custom composed sales document emails, plus a durable `/sales-book/emails` ledger. Sales reps see attempts they sent or attempts attached to them as sales rep, while Super Admin can see all attempts and resend failed/skipped rows. Resend creates linked child attempts and leaves original evidence unchanged.
+- Related Feature: Sales quote/order document email, notifications, sales rep dashboard, sales audit
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-09-feature-sales-email-status-alerts-and-ledger.md
+- Feature File: brain/features/sales-email-delivery-ledger.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/37
+- Evidence: packages/db/src/schema/sales-email-attempts.prisma; apps/api/src/db/queries/sales-email-attempts.ts; apps/www/src/components/sales-email-ledger-page.tsx; packages/notifications/src/index.ts; packages/jobs/src/tasks/sales/create-send-sales-email-task.ts
+- Completed Date: 2026-07-09
+
+### Sales Order Sales Rep Transfer
+- Priority: High
+- Description: Added a permission-controlled way to correct the sales rep attached to an existing order from the sales overview. Managers can transfer any active order, current-owner sales reps can transfer orders assigned to them, the mutation requires password confirmation, and the API transfers only `SalesOrders.salesRepId`, records structured `SalesHistory` audit evidence, and refreshes sales list/overview/dashboard query families from the UI.
+- Related Feature: Sales orders, sales overview, sales rep dashboard, sales ownership correction
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/36
+- Evidence: apps/api/src/db/queries/sales-rep-transfer.ts; apps/api/src/db/queries/sales-rep-transfer.test.ts; apps/www/src/components/sales-overview-system/tabs/overview-tab.tsx
+- Completed Date: 2026-07-08
+
 ### Sales Inventory Non-Stock Status And Tracking Change Repair
 - Priority: High
 - Description: Added derived `Not Applicable` / `N/A` inbound requirement display for non-stock, not-inventory, untracked, and zero-required sales inventory rows; added a lifecycle boundary for future stock-tracking repair preview; and added a bounded read-only tracking-change repair modal/check after category stock mode becomes tracked.

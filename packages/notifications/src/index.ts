@@ -5,12 +5,11 @@ import { getTestEmails } from "@gnd/utils/envs";
 import { createActivity, createNote } from "./activities";
 import type {
 	EmailInput,
+	NotificationHandler,
 	NotificationOptions,
 	NotificationResult,
 	UserData,
 } from "./base";
-import { authMasterPasswordLoginAlert } from "./types/auth-master-password-login-alert";
-import { authNewDeviceLogin } from "./types/auth-new-device-login";
 import {
 	getSubscribersAccount,
 	getSubscribersForNotificationType,
@@ -20,8 +19,14 @@ import {
 	type NotificationTypes,
 	createActivitySchema,
 } from "./schemas";
-import { EmailService } from "./services/email-service";
+import {
+	type EmailDeliveryResult,
+	type EmailSendBulkResult,
+	EmailService,
+} from "./services/email-service";
 import { WhatsAppService } from "./services/whatsapp-service";
+import { authMasterPasswordLoginAlert } from "./types/auth-master-password-login-alert";
+import { authNewDeviceLogin } from "./types/auth-new-device-login";
 import { communityDocuments } from "./types/community-documents";
 import { communityUnitProductionBatchUpdated } from "./types/community-unit-production-batch-updated";
 import { communityUnitProductionCompleted } from "./types/community-unit-production-completed";
@@ -29,12 +34,12 @@ import { communityUnitProductionStarted } from "./types/community-unit-productio
 import { communityUnitProductionStopped } from "./types/community-unit-production-stopped";
 import { composedSalesDocumentEmail } from "./types/composed-sales-document-email";
 import { customerStatement } from "./types/customer-statement";
-import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { dealerMagicLoginLink } from "./types/dealer-magic-login-link";
 import { dealerOnboarding } from "./types/dealer-onboarding";
 import { dealerPasswordReset } from "./types/dealer-password-reset";
 import { dealerProfileUpdated } from "./types/dealer-profile-updated";
 import { dealerSalesRequest } from "./types/dealer-sales-request";
+import { dispatchPackingDelay } from "./types/dispatch-packing-delay";
 import { employeeAccessRevoked } from "./types/employee-access-revoked";
 import { employeeDocumentReview } from "./types/employee-document-review";
 import { inventoryInbound } from "./types/inventory-inbound";
@@ -70,8 +75,8 @@ import { salesDispatchUnassigned } from "./types/sales-dispatch-unassigned";
 import { salesEmailReminder } from "./types/sales-email-reminder";
 import { salesInfo } from "./types/sales-info";
 import { salesItemInfo } from "./types/sales-item-info";
-import { salesPackingList } from "./types/sales-packing-list";
 import { salesMarkedAsProductionCompleted } from "./types/sales-marked-as-production-completed";
+import { salesPackingList } from "./types/sales-packing-list";
 import { salesPaymentRecorded } from "./types/sales-payment-recorded";
 import { salesPaymentRefunded } from "./types/sales-payment-refunded";
 import { salesProductionAllCompleted } from "./types/sales-production-all-completed";
@@ -195,14 +200,218 @@ function markActivityAsTestEmail(
 	};
 }
 
+type SalesDocumentEmailType =
+	| "simple_sales_document_email"
+	| "composed_sales_document_email";
+
+type SalesEmailAttemptRef = {
+	id: string;
+	inputIndex: number;
+};
+
+type SalesEmailResolvedData = {
+	[key: string]: unknown;
+	type?: string | null;
+	customerEmail?: string | null;
+	customerName?: string | null;
+	salesRepId?: number | null;
+	emailType?: string | null;
+	subject?: string | null;
+	message?: string | null;
+	note?: string | null;
+	paymentLink?: string | null;
+	pdfLink?: string | null;
+	pdfAttachment?: unknown;
+	salesIds?: unknown[];
+	salesNos?: unknown[];
+	sales?: Array<{ orderId?: string | null }>;
+	emailAttemptId?: string | null;
+	sourceAttemptId?: string | null;
+	skipPdfAttachment?: boolean | null;
+};
+
+function isSalesDocumentEmailType(
+	type: string,
+): type is SalesDocumentEmailType {
+	return (
+		type === "simple_sales_document_email" ||
+		type === "composed_sales_document_email"
+	);
+}
+
+function arrayToText(value: unknown[]) {
+	return value.map((item) => String(item)).join(", ");
+}
+
+function firstEmail(value: unknown) {
+	if (Array.isArray(value)) return value[0] ? String(value[0]) : null;
+	return value ? String(value) : null;
+}
+
+function stringArray(value: unknown) {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => (item == null ? null : String(item)))
+		.filter((item): item is string => Boolean(item));
+}
+
+function numberArray(value: unknown) {
+	if (!Array.isArray(value)) return [];
+	return value
+		.map((item) => Number(item))
+		.filter((item) => Number.isFinite(item));
+}
+
+function getSalesIds(data: SalesEmailResolvedData) {
+	return numberArray(data.salesIds);
+}
+
+function getSalesNos(data: SalesEmailResolvedData) {
+	const explicitSalesNos = stringArray(data.salesNos);
+	if (explicitSalesNos.length) return explicitSalesNos;
+	const sales = Array.isArray(data.sales) ? data.sales : [];
+	return sales
+		.map((sale) => sale?.orderId)
+		.filter((orderId): orderId is string => Boolean(orderId));
+}
+
+function retryPayloadForSalesEmail(
+	type: SalesDocumentEmailType,
+	data: SalesEmailResolvedData,
+) {
+	const salesIds = getSalesIds(data);
+	const printType = data.type === "quote" ? "quote" : "order";
+
+	if (type === "composed_sales_document_email") {
+		return {
+			printType,
+			salesIds,
+			customerEmail: data.customerEmail,
+			customerName: data.customerName,
+			subject: data.subject,
+			message: data.message || undefined,
+		};
+	}
+
+	return {
+		emailType: data.emailType || "with payment",
+		printType,
+		salesIds,
+		customerEmail: data.customerEmail,
+		note: data.note || undefined,
+		skipPdfAttachment: data.skipPdfAttachment ?? true,
+	};
+}
+
+function salesEmailAttemptData({
+	type,
+	data,
+	author,
+	emailInput,
+	options,
+	status,
+}: {
+	type: SalesDocumentEmailType;
+	data: SalesEmailResolvedData;
+	author: UserData;
+	emailInput: EmailInput | null;
+	options?: NotificationOptions;
+	status: "SENDING" | "SKIPPED";
+}) {
+	const salesIds = getSalesIds(data);
+	const salesNos = getSalesNos(data);
+	const recipientEmail =
+		firstEmail(emailInput?.to) || data.customerEmail || null;
+	const subject =
+		emailInput?.subject ||
+		data.subject ||
+		(data.type === "quote" ? "GND quote email" : "GND invoice email");
+	const message = data.message || data.note || null;
+
+	return {
+		status,
+		emailKind: type,
+		documentType: data.type === "quote" ? "quote" : "order",
+		emailType:
+			type === "composed_sales_document_email"
+				? "custom"
+				: data.emailType || "with payment",
+		subject,
+		message,
+		recipientEmail,
+		customerName: data.customerName || null,
+		customerEmail: data.customerEmail || recipientEmail,
+		senderId: author?.id || null,
+		salesRepId: data.salesRepId || null,
+		provider: "resend",
+		providerStatus: status === "SKIPPED" ? "no_valid_recipient" : "pending",
+		salesIds,
+		salesNos,
+		salesIdsText: arrayToText(salesIds),
+		salesNosText: arrayToText(salesNos),
+		originalAttemptId: data.sourceAttemptId || null,
+		metadata: {
+			payload: retryPayloadForSalesEmail(type, data),
+			testEmailMode: Boolean(options?.testEmailMode),
+			sourceAttemptId: data.sourceAttemptId || null,
+			from: emailInput?.from || null,
+			replyTo: emailInput?.replyTo || null,
+			hasAttachment: Boolean(emailInput?.attachments?.length),
+			hasPaymentLink: Boolean(data.paymentLink),
+			hasPdfLink: Boolean(data.pdfLink),
+			hasPdfAttachment: Boolean(data.pdfAttachment),
+		},
+	};
+}
+
+function statusPatchFromDelivery(delivery: EmailDeliveryResult) {
+	const now = new Date();
+	if (delivery.status === "sent") {
+		return {
+			status: "SENT" as const,
+			provider: "resend",
+			providerMessageId: delivery.providerMessageId || null,
+			providerStatus: delivery.providerStatus || "accepted",
+			errorCode: null,
+			errorMessage: null,
+			sentAt: now,
+			failedAt: null,
+			skippedAt: null,
+		};
+	}
+
+	if (delivery.status === "failed") {
+		return {
+			status: "FAILED" as const,
+			provider: "resend",
+			providerStatus: delivery.providerStatus || "failed",
+			errorCode: delivery.errorCode || null,
+			errorMessage:
+				delivery.errorMessage || "Email provider rejected the request.",
+			failedAt: now,
+		};
+	}
+
+	return {
+		status: "SKIPPED" as const,
+		provider: "resend",
+		providerStatus: delivery.providerStatus || "skipped",
+		errorCode: delivery.errorCode || null,
+		errorMessage: delivery.errorMessage || null,
+		skippedAt: now,
+	};
+}
+
 export class Notifications {
 	#emailService: EmailService;
 	#whatsAppService: WhatsAppService;
 	#db: Db;
-	public emailMeta: {
-		from: string;
-		replyTo: string;
-	} = undefined as any;
+	public emailMeta:
+		| {
+				from: string;
+				replyTo: string;
+		  }
+		| undefined;
 
 	constructor(
 		private db: Db,
@@ -214,7 +423,7 @@ export class Notifications {
 	}
 
 	async #createActivities<T extends keyof NotificationTypes>(
-		handler: any,
+		handler: NotificationHandler<NotificationTypes[T]>,
 		validatedData: NotificationTypes[T],
 		groupId: string,
 		// notificationType: string,
@@ -232,7 +441,8 @@ export class Notifications {
 			const activityInput = options?.testEmailMode
 				? markActivityAsTestEmail(rawActivityInput)
 				: rawActivityInput;
-			activityInput.groupId = groupId;
+			(activityInput as CreateActivityInput & { groupId: string }).groupId =
+				groupId;
 			const validatedActivity = createActivitySchema.parse(activityInput);
 			const activity = await createActivity(
 				this.#db,
@@ -282,7 +492,8 @@ export class Notifications {
 					// }
 
 					// activityInput.priority = finalPriority;
-					activityInput.groupId = groupId;
+					(activityInput as CreateActivityInput & { groupId: string }).groupId =
+						groupId;
 
 					// Validate with Zod schema
 					const validatedActivity = createActivitySchema.parse(activityInput);
@@ -296,13 +507,16 @@ export class Notifications {
 		return activityPromises.filter(Boolean);
 	}
 	#createEmailInput<T extends keyof NotificationTypes>(
-		handler: any,
+		handler: NotificationHandler<NotificationTypes[T]>,
 		validatedData: NotificationTypes[T],
 		author: UserData,
 		user: UserData,
 		// teamContext: { id: string; name: string; inboxId: string },
 		options?: NotificationOptions,
 	): EmailInput {
+		if (!handler.createEmail) {
+			throw new Error("Notification handler does not support email.");
+		}
 		// Create email input using handler's createEmail function
 		const customEmail = handler.createEmail(
 			validatedData,
@@ -331,11 +545,14 @@ export class Notifications {
 		return baseEmailInput;
 	}
 	#createWhatsAppInput<T extends keyof NotificationTypes>(
-		handler: any,
+		handler: NotificationHandler<NotificationTypes[T]>,
 		validatedData: NotificationTypes[T],
 		author: UserData,
 		user: UserData,
 	) {
+		if (!handler.createWhatsApp) {
+			throw new Error("Notification handler does not support WhatsApp.");
+		}
 		return handler.createWhatsApp(validatedData, author, user);
 	}
 	async saveNote(
@@ -344,6 +561,89 @@ export class Notifications {
 	) {
 		return createNote(this.#db, data, authId);
 	}
+
+	async #prepareSalesEmailAttempts<T extends keyof NotificationTypes>(
+		type: T,
+		data: NotificationTypes[T],
+		author: UserData,
+		options: NotificationOptions | undefined,
+		emailInputs: EmailInput[],
+	): Promise<SalesEmailAttemptRef[]> {
+		if (!isSalesDocumentEmailType(type as string)) return [];
+		const db = this.#db.salesEmailAttempt;
+		if (!db) return [];
+
+		const salesData = data as SalesEmailResolvedData;
+		const inputs = emailInputs.length ? emailInputs : [null];
+		const status = emailInputs.length ? "SENDING" : "SKIPPED";
+		const refs: SalesEmailAttemptRef[] = [];
+
+		for (const [index, emailInput] of inputs.entries()) {
+			const attemptData = salesEmailAttemptData({
+				type: type as SalesDocumentEmailType,
+				data: salesData,
+				author,
+				emailInput,
+				options,
+				status,
+			});
+			const existingAttemptId =
+				typeof salesData.emailAttemptId === "string"
+					? salesData.emailAttemptId
+					: null;
+
+			if (existingAttemptId && index === 0) {
+				await db.updateMany({
+					where: {
+						id: existingAttemptId,
+						deletedAt: null,
+					},
+					data: attemptData,
+				});
+				refs.push({ id: existingAttemptId, inputIndex: index });
+				continue;
+			}
+
+			const created = await db.create({
+				data: attemptData,
+				select: {
+					id: true,
+				},
+			});
+			refs.push({ id: created.id, inputIndex: index });
+		}
+
+		return refs;
+	}
+
+	async #completeSalesEmailAttempts(
+		attempts: SalesEmailAttemptRef[],
+		result: EmailSendBulkResult,
+	) {
+		if (!attempts.length) return;
+		const db = this.#db.salesEmailAttempt;
+		if (!db) return;
+
+		const deliveryByInputIndex = new Map(
+			result.deliveries.map((delivery) => [delivery.inputIndex, delivery]),
+		);
+
+		await Promise.all(
+			attempts.map(async (attempt) => {
+				const delivery = deliveryByInputIndex.get(attempt.inputIndex);
+				if (!delivery) return;
+
+				await db.updateMany({
+					where: {
+						id: attempt.id,
+						deletedAt: null,
+					},
+					data: statusPatchFromDelivery(delivery),
+				});
+			}),
+		);
+	}
+
 	async create<T extends keyof NotificationTypes>(
 		type: T,
 		payload: Omit<NotificationTypes[T], "users">,
@@ -356,53 +656,36 @@ export class Notifications {
 			options?.includeChannelSubscribers ?? true;
 		const allowFallbackRecipient = options?.allowFallbackRecipient ?? true;
 
+		const authorAccountsPromise = (async (): Promise<UserData[]> => {
+			if (options?.authorContact) {
+				return [options.authorContact];
+			}
+			if (!options?.author?.id) {
+				return [];
+			}
+			return getSubscribersAccount(this.#db, [options.author.id], {
+				role: options.author.role ?? "employee",
+				channelName: type as string,
+			});
+		})();
+		const recipientAccountPromises =
+			options?.recipients?.map((recipient) =>
+				getSubscribersAccount(this.#db, recipient.ids || [], {
+					role: recipient.role ?? "employee",
+					channelName: type as string,
+				}),
+			) || [];
+		const channelSubscribersPromise = (async (): Promise<UserData[]> => {
+			if (!includeChannelSubscribers) {
+				return [];
+			}
+			return getSubscribersForNotificationType(this.#db, type as string);
+		})();
 		const [author, ...contactsRaw] = (
 			await Promise.all([
-				new Promise<UserData[]>(async (resolve) => {
-					if (options?.authorContact) {
-						return resolve([options.authorContact]);
-					}
-					if (!options?.author?.id) {
-						return resolve([]);
-					}
-					const accounts = await getSubscribersAccount(
-						this.#db,
-						[options.author.id],
-						{
-							role: options.author.role!,
-							channelName: type as string,
-						},
-					);
-					resolve(accounts);
-					// const account = await getSubscriberAccount(
-					//   this.#db,
-					//   options.author.id!,
-					//   options.author.role!,
-					// );
-					// if (!account) {
-					//   return resolve([]);
-					// }
-					// resolve([account]);
-				}),
-				...(options?.recipients?.map((recipient) =>
-					getSubscribersAccount(this.#db, recipient.ids || [], {
-						role: recipient.role!,
-						channelName: type as string,
-					}),
-				) || []),
-				new Promise<UserData[]>(async (resolve) => {
-					if (!includeChannelSubscribers) {
-						return resolve([]);
-					}
-					const subscribers = await getSubscribersForNotificationType(
-						this.#db,
-						type as string,
-					);
-
-					resolve(subscribers);
-				}),
-				// getSubscribersForNotificationType(this.#db, type as string),
-				// getTeamById(this.#db, teamId),
+				authorAccountsPromise,
+				...recipientAccountPromises,
+				channelSubscribersPromise,
 			])
 		).flat();
 
@@ -453,17 +736,15 @@ export class Notifications {
 
 		const rawData = { ...payload } as NotificationTypes[T];
 		const handler = handlers[type as keyof typeof handlers];
-		const data = ((await handler?.extendData?.(this.#db, rawData, author!)) ??
-			rawData) as NotificationTypes[T];
+		const resolvedAuthor = author as UserData;
+		const data = ((await handler?.extendData?.(
+			this.#db,
+			rawData,
+			resolvedAuthor,
+		)) ?? rawData) as NotificationTypes[T];
 
 		// return null;
-		return this.#createInternal(
-			type,
-			data,
-			author!,
-			options,
-			contacts,
-		);
+		return this.#createInternal(type, data, resolvedAuthor, options, contacts);
 	}
 
 	async #createInternal<T extends keyof NotificationTypes>(
@@ -506,6 +787,7 @@ export class Notifications {
 				skipped: contacts?.length || 0,
 				failed: 0,
 			};
+			let emailAttemptIds: string[] = [];
 
 			// const sendEmail = options?.sendEmail ?? false;
 
@@ -534,6 +816,14 @@ export class Notifications {
 						options,
 					),
 				);
+				const salesEmailAttempts = await this.#prepareSalesEmailAttempts(
+					type,
+					validatedData,
+					author,
+					options,
+					emailInputs,
+				);
+				emailAttemptIds = salesEmailAttempts.map((attempt) => attempt.id);
 
 				if (!emailInputs.length) {
 					emails = {
@@ -541,6 +831,16 @@ export class Notifications {
 						skipped: totalEmailCandidates,
 						failed: 0,
 					};
+					await this.#completeSalesEmailAttempts(salesEmailAttempts, {
+						sent: 0,
+						skipped: totalEmailCandidates,
+						failed: 0,
+						deliveries: salesEmailAttempts.map((attempt) => ({
+							inputIndex: attempt.inputIndex,
+							status: "skipped",
+							providerStatus: "no_valid_recipient",
+						})),
+					});
 				} else {
 					console.log("📨 Email inputs for team:", emailInputs.length);
 
@@ -553,6 +853,10 @@ export class Notifications {
 						skipped: emailResult.skipped + filteredOutCount,
 						failed: emailResult.failed || 0,
 					};
+					await this.#completeSalesEmailAttempts(
+						salesEmailAttempts,
+						emailResult,
+					);
 
 					console.log("📨 Email result for team:", {
 						sent: emails.sent,
@@ -609,6 +913,7 @@ export class Notifications {
 				type: type as string,
 				activities: activities.length,
 				activityIds: activities.map((activity) => activity.id),
+				emailAttemptIds,
 				emails,
 				whatsapp,
 			};

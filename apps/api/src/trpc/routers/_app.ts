@@ -2,6 +2,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
 import { createTRPCRouter } from "../init";
 import { backlogRouters } from "./backlogs.routes";
+import { bugReportsRouter } from "./bug-reports.route";
 import { checkoutRouter } from "./checkout.route";
 import { communityRouters } from "./community.route";
 import { customerServiceRouter } from "./customer-service.route";
@@ -40,6 +41,7 @@ import { workOrderRouter } from "./work-order.route";
 export const appRouter = createTRPCRouter({
   // students: studentsRouter,
   backlogs: backlogRouters,
+  bugReports: bugReportsRouter,
   checkout: checkoutRouter,
   community: communityRouters,
   customerService: customerServiceRouter,

@@ -314,6 +314,7 @@ function commonListData(data: Item, bin?: boolean) {
 		email: data.customer?.email,
 		customerId: data.customer?.id,
 		isBusiness: data.customer?.businessName,
+		salesRepId: data.salesRepId,
 		salesRep: data.salesRep?.name,
 		salesRepInitial: getNameInitials(data.salesRep?.name!),
 		poNo: meta?.po,

@@ -27,6 +27,51 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Completed Date: 2026-07-09
 - Latest Implementation Note: Updated `whereUnitInvoices` so base `q` search includes `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`, matching Project Units visible text search while preserving existing invoice, production, installation, date, sort, pagination, totals, and modal behavior. Focused Community router query coverage now pins the shared visible search fields and project-scoped composition.
 
+### Sales Email Status Alerts And Transaction Ledger
+- Priority: High
+- Description: Implemented the spec in GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/37 and plan in `brain/plans/2026-07-09-feature-sales-email-status-alerts-and-ledger.md`; added visible provider-result feedback for sales document emails plus a durable Email page where reps see attached email attempts and Super Admin can audit/resend failed emails.
+- Related Feature: Sales quote/order document email, notifications, sales rep dashboard, sales audit
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-09-feature-sales-email-status-alerts-and-ledger.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/37
+- Created Date: 2026-07-09
+- Completed Date: 2026-07-09
+- Latest Implementation Note: Added `SalesEmailAttempt`, sales email ledger list/resend APIs, `/sales-book/emails`, provider-result task monitor failure handling, notification email delivery result persistence, skipped-attempt recording for missing send context, and Super Admin linked resend attempts. Database migration/application remains a deployment step.
+
+### Production Database Performance Optimization
+- Priority: High
+- Description: Track plan in `brain/plans/2026-07-09-production-database-performance-optimization-plan.md`; optimize the production database hot paths identified in query insights, starting with notes tag lookups, SalesOrders/SalesStat summaries, Dyke/product report aggregates, auth/permission hydration volume, and search/list count pressure.
+- Related Feature: Database performance, sales orders, notes/activity tree, inventory/product reports, auth/session handling, community project lists
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-09-production-database-performance-optimization-plan.md
+- Created Date: 2026-07-09
+- Latest Analysis Note: Production query-insights analysis found notes tag lookup as the largest total-time family (`1007s` across `2069` executions), followed by auth/session permission hydration volume (`326s` across `251615` executions), SalesOrders/SalesStat summary predicates (`275s`), Dyke/product aggregate reads (`160s`), and sales search/list count pressure (`160s`).
+
+### Sales Order Sales Rep Transfer
+- Priority: High
+- Description: Implemented the PRD in `brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md`; published GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/36 with `ready-for-agent`.
+- Related Feature: Sales orders, sales rep dashboard, sales overview, sales ownership correction
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/36
+- Created Date: 2026-07-08
+- Completed Date: 2026-07-08
+- Latest Implementation Note: Added protected `sales.salesRepOptions` and `sales.transferSalesRep`, manager/current-owner transfer access, password confirmation, a sales overview `Change Rep` control, structured `SalesHistory` transfer audit metadata, overview DTO `salesRepId`, and focused mutation tests.
+
+### Web Bug Reporting Workflow
+- Priority: High
+- Description: Track plan in `brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md`.
+- Related Feature: Web app, internal support feedback, bug reporting, Vercel Blob Storage
+- Status: In Progress
+- Plan Status: In Progress
+- Plan File: brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md
+- Intake File: brain/intake/2026-07-07-web-bug-reporting-workflow.md
+- Created Date: 2026-07-07
+- Latest Implementation Note: 2026-07-08 web-only implementation added the recorder button, Vercel Blob upload metadata path, bug report/follow-up schema, issue board, Super Admin status management, and Super Admin employee access toggle. Database migration/application remains blocked until the intended MySQL target is reachable.
+
 ### Desktop Feedback Issue Board
 - Priority: High
 - Description: Track plan in `brain/plans/2026-07-05-feature-desktop-feedback-issue-board.md`.

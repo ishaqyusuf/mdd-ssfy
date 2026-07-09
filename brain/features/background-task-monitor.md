@@ -36,6 +36,7 @@ Give users persistent visibility into long-running background jobs after a job i
 - Covered by default: `useTaskTrigger` flows without `silent: true`.
 - Covered explicitly with `monitor: true`: user-triggered sales order control work and new-sales-form send-for-packing work.
 - Covered with task-specific labels: sales email, sales reminder, notifications, sales control, sales history, dispatch, document warmup, inventory import, and signed dispatch PDF jobs.
+- Sales document email tasks have a provider-result override: when `send-sales-email` or a sales document `notification` run completes with failed/skipped email delivery output, the monitor marks the task failed and shows the provider/skipped reason instead of presenting Trigger task completion as a successful email send.
 
 ## Known Boundaries
 

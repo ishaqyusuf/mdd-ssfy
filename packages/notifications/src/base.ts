@@ -1,7 +1,11 @@
+import type { ContactRole, Db } from "@gnd/db";
 import type { CreateEmailOptions } from "resend";
 import { z } from "zod";
 import type { CreateActivityInput } from "./schemas";
-import { type Db, ContactRole } from "@gnd/db";
+
+// biome-ignore lint/suspicious/noExplicitAny: Legacy notification handlers rely on schema-specific inference while defaulting to a loose payload.
+type NotificationPayload = any;
+type NotificationPayloadRecord = Record<string, NotificationPayload>;
 
 export interface TeamContext {
 	id: string;
@@ -9,7 +13,7 @@ export interface TeamContext {
 	inboxId: string;
 }
 
-export interface NotificationHandler<T = any> {
+export interface NotificationHandler<T = NotificationPayload> {
 	schema: z.ZodSchema<T>;
 	skipActivity?: boolean;
 	extendData?: (
@@ -34,9 +38,9 @@ export interface NotificationHandler<T = any> {
 		data: T,
 		author: UserData,
 		user: UserData,
-		args?: any,
+		args?: NotificationPayload,
 	) => Partial<CreateEmailOptions> & {
-		data: Record<string, any>;
+		data: NotificationPayloadRecord;
 		template?: string;
 	};
 	createWhatsApp?: (
@@ -64,7 +68,7 @@ export interface UserData {
 export type EmailInput = {
 	template?: string;
 	user: UserData;
-	data: Record<string, any>;
+	data: NotificationPayloadRecord;
 	testEmailMode?: boolean;
 } & Partial<CreateEmailOptions>;
 
@@ -96,6 +100,7 @@ export interface NotificationResult {
 	type: string;
 	activities: number;
 	activityIds?: number[];
+	emailAttemptIds?: string[];
 	emails: {
 		sent: number;
 		skipped: number;

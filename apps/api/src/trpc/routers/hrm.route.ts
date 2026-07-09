@@ -8,6 +8,7 @@ import {
   restoreEmployeeAccess,
   resetEmployeePassword,
   saveEmployee,
+  setEmployeeBugReportingAccess,
 } from "@api/db/queries/hrm";
 import { createSiteAction } from "@api/db/queries/site-action";
 import {
@@ -95,6 +96,16 @@ export const hrmRoutes = createTRPCRouter({
     )
     .mutation(async (props) => {
       return restoreEmployeeAccess(props.ctx, props.input.userId);
+    }),
+  setEmployeeBugReportingAccess: publicProcedure
+    .input(
+      z.object({
+        userId: z.number().int().positive(),
+        enabled: z.boolean(),
+      }),
+    )
+    .mutation(async (props) => {
+      return setEmployeeBugReportingAccess(props.ctx, props.input);
     }),
   saveEmployee: publicProcedure
     .input(employeeFormSchema)

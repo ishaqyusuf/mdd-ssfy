@@ -8,12 +8,26 @@ Tracks notable API surfaces and where they are implemented.
 - The codebase uses route/query organization around domain-specific files and tRPC routers.
 - App download route:
   - `apps/www/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk` while preserving query-string overrides for `url` and `name`
+- Web bug reporting routes now include:
+  - `/api/bug-reports/upload`: web route handler for Vercel Blob client uploads; generates short-lived upload tokens only for authenticated users with `submitBugReport`, scoped to `bug-reports/<userId>/`
+  - `bugReports.create`: creates a web bug report after the browser uploads the recording to Vercel Blob; requires `submitBugReport`
+  - `bugReports.mine`: returns the authenticated employee's own reports
+  - `bugReports.adminList`: Super Admin list of all reports with optional status filter
+  - `bugReports.byId`: owner-or-Super Admin detail with recording metadata and follow-up thread
+  - `bugReports.addFollowUp`: owner-or-Super Admin follow-up message mutation
+  - `bugReports.updateStatus`: Super Admin status update mutation
+  - `hrm.setEmployeeBugReportingAccess`: Super Admin employee-row action that grants or removes the employee-specific `submit bug report` permission and clears the target employee's sessions for permission refresh
+- Sales email ledger routes now include:
+  - `emails.salesEmailAttempts`: protected query for `/sales-book/emails`; supports search, status, sales rep, date, and pagination filters. Super Admin sees all attempts, while non-Super Admin sales users are scoped to attempts they sent or attempts attached to them as the sales rep.
+  - `emails.resendSalesEmailAttempt`: protected Super Admin mutation that retries `FAILED` or `SKIPPED` sales document email attempts by creating a linked child attempt and queueing the original simple/composed sales document email payload through the notification Trigger task.
 - Sales production routes now include:
   - `sales.productions`: admin-facing production queue list with due-date/status filtering
   - `sales.productionTasks`: worker-scoped production queue list using the authenticated user as `workerId`
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
+  - `sales.salesRepOptions`: protected active-sales-user option list for the sales overview transfer control
+  - `sales.transferSalesRep`: protected order-only sales rep transfer mutation that changes `SalesOrders.salesRepId` and writes `SalesHistory` audit evidence
 - Sales print routes now include:
   - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`
   - `/p/sales-document-v2`: canonical signed HTML sales document preview route

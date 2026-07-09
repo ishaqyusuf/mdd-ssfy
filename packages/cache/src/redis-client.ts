@@ -6,6 +6,46 @@ const logger = createLoggerWithContext("redis-cache");
 
 const COMMAND_TIMEOUT_MS = 1_500;
 const SLOW_COMMAND_MS = 50;
+const CACHE_KEY_ROOT = "gnd";
+const PRODUCTION_NAMESPACES = new Set(["prod", "production"]);
+
+export function resolveCacheNamespace(): string {
+  const namespace = (
+    process.env.GND_CACHE_NAMESPACE ||
+    (process.env.NODE_ENV === "production" ? "prod" : "local")
+  ).trim();
+
+  if (!namespace) {
+    throw new Error("GND_CACHE_NAMESPACE cannot be empty.");
+  }
+
+  if (!/^[A-Za-z0-9:_-]+$/.test(namespace)) {
+    throw new Error(
+      "GND_CACHE_NAMESPACE may only contain letters, numbers, colon, underscore, or hyphen.",
+    );
+  }
+
+  const isProductionNamespace = PRODUCTION_NAMESPACES.has(
+    namespace.toLowerCase(),
+  );
+  const isProductionRuntime = process.env.NODE_ENV === "production";
+  const allowProdNamespaceInDev =
+    process.env.GND_ALLOW_PROD_REDIS_IN_DEV === "1" ||
+    process.env.GND_ALLOW_PROD_REDIS_IN_DEV === "true" ||
+    process.env.GND_ALLOW_PROD_REDIS_IN_DEV === "yes";
+
+  if (
+    isProductionNamespace &&
+    !isProductionRuntime &&
+    !allowProdNamespaceInDev
+  ) {
+    throw new Error(
+      "Refusing to use the production Redis cache namespace outside production. Set GND_CACHE_NAMESPACE to a local/dev value, or set GND_ALLOW_PROD_REDIS_IN_DEV=1 to override.",
+    );
+  }
+
+  return namespace;
+}
 
 async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -30,11 +70,13 @@ async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
 export class RedisCache {
   private prefix: string;
   private defaultTTL: number;
+  private namespace: string;
   private inflight = new Map<string, Promise<unknown>>();
 
   constructor(prefix: string, defaultTTL: number = 30 * 60) {
     this.prefix = prefix;
     this.defaultTTL = defaultTTL;
+    this.namespace = resolveCacheNamespace();
   }
 
   private get redis() {
@@ -71,7 +113,7 @@ export class RedisCache {
   }
 
   private getKey(key: string): string {
-    return `${this.prefix}:${key}`;
+    return `${CACHE_KEY_ROOT}:${this.namespace}:${this.prefix}:${key}`;
   }
 
   async get<T>(key: string): Promise<T | undefined> {

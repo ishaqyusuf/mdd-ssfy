@@ -31,6 +31,7 @@ type LoadedSale = {
 	customerName: string;
 	salesRep: string;
 	salesRepEmail: string;
+	salesRepId: number | null;
 	customerId: number | null;
 	customerPhone: string | null;
 	customerWalletId: number | null;
@@ -78,6 +79,7 @@ async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 			},
 			salesRep: {
 				select: {
+					id: true,
 					email: true,
 					name: true,
 				},
@@ -109,6 +111,7 @@ async function loadSales(db: Db, input: SendSalesEmailPayloadInput) {
 				customerName,
 				salesRep,
 				salesRepEmail,
+				salesRepId: sale.salesRep?.id ?? null,
 				customerId: sale.customer?.id ?? null,
 				customerPhone: sale.customer?.phoneNo ?? null,
 				customerWalletId: sale.customer?.walletId ?? null,
@@ -229,16 +232,23 @@ async function buildSalesDocumentEmailData(
 
 	return {
 		type: input.printType,
+		emailType: input.emailType,
 		customerEmail:
 			normalizeText(input.customerEmail) || primarySale.customerEmail,
 		customerName: primarySale.customerName,
 		salesRep: primarySale.salesRep,
 		salesRepEmail: primarySale.salesRepEmail,
+		salesRepId: primarySale.salesRepId,
 		note: normalizeText(input.note),
 		paymentLink,
 		pdfLink,
 		pdfAttachment,
 		acceptQuoteLink,
+		salesIds,
+		salesNos: sales.map((sale) => sale.orderId),
+		emailAttemptId: input.emailAttemptId,
+		sourceAttemptId: input.sourceAttemptId,
+		skipPdfAttachment: input.skipPdfAttachment,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,

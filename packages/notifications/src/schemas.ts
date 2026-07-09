@@ -1122,6 +1122,8 @@ export const salesEmailReminderSchema = z.object({
 	customerName: z.string(),
 	salesRep: z.string(),
 	salesRepEmail: z.string().email(),
+	salesRepId: z.number().optional().nullable(),
+	emailType: z.string().optional().nullable(),
 	note: z.string().optional().nullable(),
 	paymentToken: z.string().optional().nullable(),
 	pdfToken: z.string().optional().nullable(),
@@ -1137,6 +1139,11 @@ export const salesEmailReminderSchema = z.object({
 			due: z.number(),
 		}),
 	),
+	salesIds: z.array(z.number()).optional().nullable(),
+	salesNos: z.array(z.string()).optional().nullable(),
+	emailAttemptId: z.string().optional().nullable(),
+	sourceAttemptId: z.string().optional().nullable(),
+	skipPdfAttachment: z.boolean().optional().nullable(),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
 export const salesEmailReminderTags = actityTagsSchema.extend({
@@ -1157,6 +1164,8 @@ export const composedSalesDocumentEmailSchema = z.object({
 	customerName: z.string().optional().nullable(),
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
+	emailAttemptId: z.string().optional().nullable(),
+	sourceAttemptId: z.string().optional().nullable(),
 });
 export type ComposedSalesDocumentEmailInput = z.infer<
 	typeof composedSalesDocumentEmailSchema
@@ -1187,6 +1196,8 @@ export const simpleSalesDocumentEmailSchema = z.object({
 	customerEmail: z.string().email().optional().nullable(),
 	note: z.string().optional().nullable(),
 	skipPdfAttachment: z.boolean().optional().nullable().default(true),
+	emailAttemptId: z.string().optional().nullable(),
+	sourceAttemptId: z.string().optional().nullable(),
 });
 export type SendSalesEmailPayloadInput = z.infer<
 	typeof simpleSalesDocumentEmailSchema

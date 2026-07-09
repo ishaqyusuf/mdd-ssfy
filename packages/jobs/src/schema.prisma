@@ -1541,6 +1541,60 @@ model DealerAuthVerification {
     updatedAt  DateTime?
 }
 
+// ---- sales-email-attempts.prisma ----
+enum SalesEmailAttemptStatus {
+    QUEUED
+    SENDING
+    SENT
+    FAILED
+    SKIPPED
+}
+
+model SalesEmailAttempt {
+    id                String                  @id @default(cuid())
+    status            SalesEmailAttemptStatus @default(QUEUED)
+    emailKind         String                  @db.VarChar(80)
+    documentType      String?                 @db.VarChar(50)
+    emailType         String?                 @db.VarChar(100)
+    subject           String?                 @db.VarChar(500)
+    message           String?                 @db.Text
+    recipientEmail    String?                 @db.VarChar(255)
+    customerName      String?                 @db.VarChar(255)
+    customerEmail     String?                 @db.VarChar(255)
+    senderId          Int?
+    salesRepId        Int?
+    provider          String?                 @db.VarChar(50)
+    providerMessageId String?                 @db.VarChar(255)
+    providerStatus    String?                 @db.VarChar(100)
+    taskRunId         String?                 @db.VarChar(255)
+    errorCode         String?                 @db.VarChar(255)
+    errorMessage      String?                 @db.Text
+    salesIds          Json?                   @db.Json
+    salesNos          Json?                   @db.Json
+    salesIdsText      String?                 @db.VarChar(1000)
+    salesNosText      String?                 @db.VarChar(1000)
+    metadata          Json?                   @db.Json
+    originalAttemptId String?
+    sentAt            DateTime?               @db.Timestamp(0)
+    failedAt          DateTime?               @db.Timestamp(0)
+    skippedAt         DateTime?               @db.Timestamp(0)
+    createdAt         DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime?               @updatedAt
+    deletedAt         DateTime?               @db.Timestamp(0)
+    sender            Users?                  @relation(name: "salesEmailAttemptSender", fields: [senderId], references: [id])
+    salesRep          Users?                  @relation(name: "salesEmailAttemptSalesRep", fields: [salesRepId], references: [id])
+    originalAttempt   SalesEmailAttempt?      @relation("SalesEmailAttemptRetry", fields: [originalAttemptId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    retryAttempts     SalesEmailAttempt[]     @relation("SalesEmailAttemptRetry")
+
+    @@index([status, createdAt])
+    @@index([senderId, createdAt])
+    @@index([salesRepId, createdAt])
+    @@index([recipientEmail])
+    @@index([originalAttemptId])
+    @@index([taskRunId])
+    @@index([deletedAt])
+}
+
 // ---- sales.accounting.prisma ----
 model SalesResolution {
     id         Int       @unique @default(autoincrement())
@@ -2753,10 +2807,10 @@ model LinePricing {
     id  Int  @id @default(autoincrement())
     qty Int?
 
-    costPrice      Int?
-    salesPrice     Int?
-    unitCostPrice  Int?
-    unitSalesPrice Int?
+    costPrice      Float?
+    salesPrice     Float?
+    unitCostPrice  Float?
+    unitSalesPrice Float?
 
     component   LineItemComponents? @relation(fields: [componentId], references: [id])
     componentId Int?                @unique
@@ -3348,6 +3402,55 @@ model SiteActionNotificationActiveForUsers {
     @@index([siteActionNotificationId])
 }
 
+// ---- bug-reports.prisma ----
+enum BugReportStatus {
+    NEW
+    IN_REVIEW
+    IN_PROGRESS
+    NEEDS_INFO
+    FIXED
+    CLOSED
+}
+
+model BugReport {
+    id                  String          @id @default(cuid())
+    createdById         Int
+    status              BugReportStatus @default(NEW)
+    description         String?         @db.Text
+    currentUrl          String?         @db.VarChar(2048)
+    userAgent           String?         @db.Text
+    source              String          @default("web") @db.VarChar(50)
+    recordingDocumentId String?         @db.VarChar(191)
+    durationMs          Int?
+    microphoneEnabled   Boolean         @default(false)
+    statusUpdatedById   Int?
+    statusUpdatedAt     DateTime?       @db.Timestamp(0)
+    createdAt           DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?       @updatedAt
+    deletedAt           DateTime?       @db.Timestamp(0)
+    followUps           BugReportFollowUp[]
+
+    @@index([createdById, createdAt])
+    @@index([status, createdAt])
+    @@index([recordingDocumentId])
+    @@index([deletedAt])
+}
+
+model BugReportFollowUp {
+    id          String    @id @default(cuid())
+    bugReportId String
+    authorId    Int
+    body        String    @db.Text
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+    bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+
+    @@index([bugReportId, createdAt])
+    @@index([authorId, createdAt])
+    @@index([deletedAt])
+}
+
 // ---- notes.prisma ----
 model NotePad {
     id              Int                  @unique @default(autoincrement())
@@ -3592,6 +3695,8 @@ model Users {
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
     definedProductionGates      OrderProductionGate[]
+    sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
+    salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")

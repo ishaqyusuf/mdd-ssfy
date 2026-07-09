@@ -84,7 +84,11 @@
       "cache": false,
       "interactive": true
     },
-    "push": {
+    "push:prod": {
+      "cache": false,
+      "interactive": true
+    },
+    "push:dev": {
       "cache": false,
       "interactive": true
     },

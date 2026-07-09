@@ -24,6 +24,10 @@ import {
 	startNewSales,
 } from "@api/db/queries/sales";
 import {
+	getSalesRepTransferOptions,
+	transferSalesRep,
+} from "@api/db/queries/sales-rep-transfer";
+import {
 	getSalesAccountings,
 	getSalesAccountingsSchema,
 } from "@api/db/queries/sales-accounting";
@@ -67,9 +71,11 @@ import {
 	getSaleOverviewSchema,
 	inboundQuerySchema,
 	moveSaleSchema,
+	salesRepOptionsSchema,
 	salesQueryParamsSchema,
 	saveOrderProductionGateSchema,
 	startNewSalesSchema,
+	transferSalesRepSchema,
 	updateSalesPaymentMethodSchema,
 } from "@api/schemas/sales";
 import { saveSupplierSchema } from "@api/schemas/sales-form";
@@ -404,6 +410,16 @@ export const salesRouter = createTRPCRouter({
 		.input(saveOrderProductionGateSchema)
 		.mutation(async (props) => {
 			return saveOrderProductionGate(props.ctx, props.input);
+		}),
+	salesRepOptions: protectedProcedure
+		.input(salesRepOptionsSchema)
+		.query(async (props) => {
+			return getSalesRepTransferOptions(props.ctx, props.input);
+		}),
+	transferSalesRep: protectedProcedure
+		.input(transferSalesRepSchema)
+		.mutation(async (props) => {
+			return transferSalesRep(props.ctx, props.input);
 		}),
 	getOrders: publicProcedure
 		.input(getOrdersSchema)

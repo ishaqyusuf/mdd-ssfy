@@ -48,6 +48,16 @@ Tracks important schema-level entities and ownership boundaries.
   - `OrderItemDelivery.meta.lineItemId` links legacy shipment lines back to inventory `LineItem` when inventory mode writes the delivery
   - `StockAllocation.status` remains the inventory reservation/pick/consume/release truth and should be reconciled against completed shipment lines
   - do not add `SalesShipment` / `SalesShipmentLine` without a new ADR proving existing delivery tables plus metadata cannot meet the requirement
+- Web bug reporting schema now lives in `packages/db/src/schema/bug-reports.prisma`:
+  - `BugReportStatus` enum values are `NEW`, `IN_REVIEW`, `IN_PROGRESS`, `NEEDS_INFO`, `FIXED`, and `CLOSED`
+  - `BugReport` stores submitter id, status, optional description, current page URL, user agent, source (`web` for v1), linked recording document id, duration, microphone metadata, status updater, timestamps, and soft-delete timestamp
+  - `BugReportFollowUp` stores owner/admin thread messages for a report
+  - recordings reuse `StoredDocument` with `kind = "bug_report_recording"`, `ownerType = "bug_report"`, `provider = "vercel-blob"`, and `visibility = "private"`
+- Sales email delivery ledger schema now lives in `packages/db/src/schema/sales-email-attempts.prisma`:
+  - `SalesEmailAttemptStatus` enum values are `QUEUED`, `SENDING`, `SENT`, `FAILED`, and `SKIPPED`
+  - `SalesEmailAttempt` stores sales document email attempts for standard quote/order emails and custom composed sales document emails
+  - each row snapshots sender, attached sales rep, recipient/customer, document type, email kind, subject/message, related sales ids/order numbers, provider name, provider message/status, Trigger task run id when known, failure details, timestamps, retry metadata, and soft-delete timestamp
+  - resend attempts are stored as new rows linked to the failed/skipped source attempt through `originalAttemptId`
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

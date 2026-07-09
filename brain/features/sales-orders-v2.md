@@ -39,6 +39,14 @@
     - evaluating orders
 - `filters.salesOrders`
   - filter metadata source for the canonical orders page
+- `sales.salesRepOptions`
+  - protected option list used by the sales overview transfer control
+  - returns active sales/order-capable internal users with id, display name, email, initials, and role labels
+  - accepts `salesId` so regular sales reps can load targets only for orders currently assigned to them
+- `sales.transferSalesRep`
+  - protected mutation for correcting the sales rep attached to an existing order
+  - validates the actor either has `editOrders` or currently owns the order, the order is a non-deleted order, the target is an active eligible internal sales user, and the actor's password confirmation succeeds
+  - updates only `SalesOrders.salesRepId` and writes `SalesHistory` audit metadata for previous rep, next rep, actor, order id, and optional note
 - Migration note:
   - The former `sales.getOrdersV2`, `sales.getOrdersV2Summary`, and `filters.salesOrdersV2` public names were promoted into the default order routes.
   - Expo order lists adapt the flat default row into their stable mobile card model instead of depending on the old nested legacy DTO.
@@ -71,6 +79,7 @@
 - Summary metrics are desktop-only at the `xl` breakpoint and above; smaller viewports go straight from the Sales page title to the orders header/table to preserve working space.
 - The table payload omits legacy note-count and extra enrichment work that is not required for first paint.
 - The page keeps existing sales overview integration by opening rows through `useSalesOverviewQuery`.
+- The sales overview `SALES REPRESENTATIVE` section now exposes a `Change Rep` action for users with `editOrders` and for the current owner sales rep. The inline picker calls `sales.transferSalesRep`, requires a password confirmation modal before the mutation completes, refreshes order lists/summaries/overview/dashboard query families through `useSalesQueryClient`, and leaves quotes read-only for this v1 correction workflow.
 - The table now uses a unified sales funnel status contract so UI surfaces do not have to reason separately about invoice, production, and fulfillment state for list presentation.
 - The current page uses the richer `tables-2/sales-orders` implementation as the table standard.
 - The older `components/tables/sales-orders-v2` files were removed after an import scan confirmed they were unused.

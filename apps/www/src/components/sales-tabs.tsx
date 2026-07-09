@@ -55,6 +55,12 @@ const salesTabs: {
 		icon: "Warehouse",
 		rules: [_perm.is("editOrders")],
 	},
+	{
+		href: "/sales-book/emails",
+		label: "Emails",
+		icon: "Mail",
+		rules: [_perm.in("editOrders", "viewOrders", "viewEstimates")],
+	},
 ];
 
 type SalesTabsProps = {

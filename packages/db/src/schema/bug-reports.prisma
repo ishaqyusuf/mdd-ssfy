@@ -1,0 +1,48 @@
+enum BugReportStatus {
+    NEW
+    IN_REVIEW
+    IN_PROGRESS
+    NEEDS_INFO
+    FIXED
+    CLOSED
+}
+
+model BugReport {
+    id                  String          @id @default(cuid())
+    createdById         Int
+    status              BugReportStatus @default(NEW)
+    description         String?         @db.Text
+    currentUrl          String?         @db.VarChar(2048)
+    userAgent           String?         @db.Text
+    source              String          @default("web") @db.VarChar(50)
+    recordingDocumentId String?         @db.VarChar(191)
+    durationMs          Int?
+    microphoneEnabled   Boolean         @default(false)
+    statusUpdatedById   Int?
+    statusUpdatedAt     DateTime?       @db.Timestamp(0)
+    createdAt           DateTime?       @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime?       @updatedAt
+    deletedAt           DateTime?       @db.Timestamp(0)
+    followUps           BugReportFollowUp[]
+
+    @@index([createdById, createdAt])
+    @@index([status, createdAt])
+    @@index([recordingDocumentId])
+    @@index([deletedAt])
+}
+
+model BugReportFollowUp {
+    id          String    @id @default(cuid())
+    bugReportId String
+    authorId    Int
+    body        String    @db.Text
+    createdAt   DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime? @updatedAt
+    deletedAt   DateTime? @db.Timestamp(0)
+    bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+
+    @@index([bugReportId, createdAt])
+    @@index([authorId, createdAt])
+    @@index([deletedAt])
+}
+

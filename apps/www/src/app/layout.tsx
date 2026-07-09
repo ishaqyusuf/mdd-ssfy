@@ -8,6 +8,7 @@ import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
 import { __isProd } from "@/lib/is-prod-server";
 import { cn } from "@/lib/utils";
 // import { ReactQueryProvider } from "@/providers/react-query";
+import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
@@ -32,8 +33,13 @@ export default async function RootLayout({
 
     return (
         <html lang="en" suppressHydrationWarning>
-            {env.NODE_ENV === "production" ? <SpeedInsights /> : null}
             <body>
+                {env.NODE_ENV === "production" ? (
+                    <>
+                        <Analytics />
+                        <SpeedInsights />
+                    </>
+                ) : null}
                 <div className="print:hidden">
                     <Toaster />
                     <MiddayToast />
@@ -47,12 +53,6 @@ export default async function RootLayout({
                             ) : null}
                         </Providers>
                     </Suspense>
-                    {/* <Analytics /> */}
-                    {prodDB && !__isProd && (
-                        <div className="fixed left-0 right-0 top-0 z-[999] flex justify-center  bg-red-500 text-sm text-white">
-                            Production Database
-                        </div>
-                    )}
                 </div>
             </body>
         </html>
@@ -93,3 +93,4 @@ function isLocalDevHost(hostname: string) {
         host.endsWith(".test")
     );
 }
+

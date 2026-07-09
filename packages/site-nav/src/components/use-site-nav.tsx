@@ -6,6 +6,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	type MouseEvent,
 } from "react";
 import {
 	getActiveLinkFromMap,
@@ -15,6 +16,7 @@ import {
 
 const NAV_HOVER_EXPAND_DELAY_MS = 140;
 const NAV_HOVER_COLLAPSE_DELAY_MS = 80;
+const NAV_HOVER_SURFACE_SELECTOR = "[data-site-nav-hover-surface]";
 
 type SiteNavContext = ReturnType<typeof createSiteNavContext>;
 export const SiteNavContext = createContext<SiteNavContext>(undefined);
@@ -41,6 +43,7 @@ export const createSiteNavContext = (props: Props) => {
 		null,
 	);
 	const hoverCollapsePendingRef = useRef(false);
+	const isHoveringNavRef = useRef(false);
 
 	const clearHoverExpandTimeout = useCallback(() => {
 		if (!hoverExpandTimeoutRef.current) return;
@@ -56,6 +59,7 @@ export const createSiteNavContext = (props: Props) => {
 
 	const expandSiteNav = useCallback(() => {
 		hoverCollapsePendingRef.current = false;
+		isHoveringNavRef.current = true;
 		clearHoverExpandTimeout();
 		clearHoverCollapseTimeout();
 		setIsExpanded(true);
@@ -67,17 +71,14 @@ export const createSiteNavContext = (props: Props) => {
 		setIsExpanded(false);
 	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
 
-	const handleNavMouseEnter = useCallback(() => {
+	const markNavHoverSurfaceEntered = useCallback(() => {
 		hoverCollapsePendingRef.current = false;
+		isHoveringNavRef.current = true;
 		clearHoverCollapseTimeout();
-		if (isExpanded || hoverExpandTimeoutRef.current) return;
-		hoverExpandTimeoutRef.current = setTimeout(() => {
-			setIsExpanded(true);
-			hoverExpandTimeoutRef.current = null;
-		}, NAV_HOVER_EXPAND_DELAY_MS);
-	}, [clearHoverCollapseTimeout, isExpanded]);
+	}, [clearHoverCollapseTimeout]);
 
-	const handleNavMouseLeave = useCallback(() => {
+	const scheduleNavHoverCollapse = useCallback(() => {
+		isHoveringNavRef.current = false;
 		hoverCollapsePendingRef.current = true;
 		clearHoverExpandTimeout();
 		clearHoverCollapseTimeout();
@@ -86,6 +87,53 @@ export const createSiteNavContext = (props: Props) => {
 			hoverCollapseTimeoutRef.current = null;
 		}, NAV_HOVER_COLLAPSE_DELAY_MS);
 	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
+
+	const handleNavMouseEnter = useCallback(() => {
+		markNavHoverSurfaceEntered();
+		if (isExpanded || hoverExpandTimeoutRef.current) return;
+		hoverExpandTimeoutRef.current = setTimeout(() => {
+			if (isHoveringNavRef.current) {
+				setIsExpanded(true);
+			}
+			hoverExpandTimeoutRef.current = null;
+		}, NAV_HOVER_EXPAND_DELAY_MS);
+	}, [isExpanded, markNavHoverSurfaceEntered]);
+
+	const isMovingToNavHoverSurface = useCallback((event?: MouseEvent) => {
+		const target = event?.relatedTarget;
+		return target instanceof Element
+			? Boolean(target.closest(NAV_HOVER_SURFACE_SELECTOR))
+			: false;
+	}, []);
+
+	const handleNavMouseLeave = useCallback((event?: MouseEvent) => {
+		if (isMovingToNavHoverSurface(event)) {
+			markNavHoverSurfaceEntered();
+			return;
+		}
+		scheduleNavHoverCollapse();
+	}, [
+		isMovingToNavHoverSurface,
+		markNavHoverSurfaceEntered,
+		scheduleNavHoverCollapse,
+	]);
+
+	const handleNavFloatingMouseEnter = useCallback(() => {
+		markNavHoverSurfaceEntered();
+		clearHoverExpandTimeout();
+	}, [clearHoverExpandTimeout, markNavHoverSurfaceEntered]);
+
+	const handleNavFloatingMouseLeave = useCallback((event?: MouseEvent) => {
+		if (isMovingToNavHoverSurface(event)) {
+			markNavHoverSurfaceEntered();
+			return;
+		}
+		scheduleNavHoverCollapse();
+	}, [
+		isMovingToNavHoverSurface,
+		markNavHoverSurfaceEntered,
+		scheduleNavHoverCollapse,
+	]);
 
 	const isNavHoverCollapsePending = useCallback(() => {
 		return hoverCollapsePendingRef.current;
@@ -144,6 +192,8 @@ export const createSiteNavContext = (props: Props) => {
 		collapseSiteNav,
 		handleNavMouseEnter,
 		handleNavMouseLeave,
+		handleNavFloatingMouseEnter,
+		handleNavFloatingMouseLeave,
 		isNavHoverCollapsePending,
 		activeLink,
 		modules,

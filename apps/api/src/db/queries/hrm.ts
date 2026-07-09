@@ -23,7 +23,10 @@ import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 
-const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = ["submit custom job"] as const;
+const EMPLOYEE_SPECIFIC_PERMISSION_NAMES = [
+  "submit custom job",
+  "submit bug report",
+] as const;
 
 async function ensureEmployeeSpecificPermissions(ctx: TRPCContext) {
   const existing = await ctx.db.permissions.findMany({
@@ -162,6 +165,10 @@ export async function getEmployees(
   query: EmployeesQueryParams,
 ) {
   const { db } = ctx;
+  const permissions = await ensureEmployeeSpecificPermissions(ctx);
+  const bugReportPermission = permissions.find(
+    (permission) => permission.name === "submit bug report",
+  );
   // query.sort = query.sort || "name";
   // query.size = 30;
   const { response, searchMeta, where } = await composeQueryData(
@@ -254,6 +261,27 @@ export async function getEmployees(
       item._count.permissionId,
     ]),
   );
+  const bugReportPermissionUserIds = new Set(
+    bugReportPermission
+      ? (
+          await ctx.db.modelHasPermissions.findMany({
+            where: {
+              deletedAt: null,
+              permissionId: bugReportPermission.id,
+              modelId: {
+                in: data.map((user) => BigInt(user.id)),
+              },
+              modelType: {
+                in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],
+              },
+            },
+            select: {
+              modelId: true,
+            },
+          })
+        ).map((item) => Number(item.modelId))
+      : [],
+  );
   return await response(
     data.map((user) => ({
       uid: `GND-${formatDate(user.createdAt!, `YYMM`)}-${padStart(
@@ -276,6 +304,9 @@ export async function getEmployees(
       profile: user.employeeProfile,
       specificPermissionCount:
         specificPermissionCountByUserId.get(user.id) ?? 0,
+      bugReportingEnabled:
+        user?.roles?.[0]?.role?.name?.toLowerCase() === "super admin" ||
+        bugReportPermissionUserIds.has(user.id),
       username: user.username,
     })),
   );
@@ -515,6 +546,120 @@ export async function restoreEmployeeAccess(ctx: TRPCContext, userId: number) {
   });
 
   return user;
+}
+
+export async function setEmployeeBugReportingAccess(
+  ctx: TRPCContext,
+  input: { userId: number; enabled: boolean },
+) {
+  await requireSuperAdmin(ctx);
+  const permissions = await ensureEmployeeSpecificPermissions(ctx);
+  const permission = permissions.find(
+    (item) => item.name === "submit bug report",
+  );
+
+  if (!permission) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Bug report permission could not be initialized.",
+    });
+  }
+
+  const user = await ctx.db.users.findFirst({
+    where: {
+      id: input.userId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      roles: {
+        where: {
+          deletedAt: null,
+        },
+        select: {
+          role: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Employee not found.",
+    });
+  }
+
+  const targetIsSuperAdmin =
+    user.roles[0]?.role?.name?.toLowerCase() === "super admin";
+  if (targetIsSuperAdmin) {
+    if (!input.enabled) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Super Admin users have bug reporting access by role.",
+      });
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      bugReportingEnabled: true,
+    };
+  }
+
+  if (input.enabled) {
+    await ctx.db.modelHasPermissions.upsert({
+      where: {
+        permissionId_modelId_modelType: {
+          permissionId: permission.id,
+          modelId: BigInt(user.id),
+          modelType: USER_PERMISSION_MODEL_TYPE,
+        },
+      },
+      update: {
+        deletedAt: null,
+      },
+      create: {
+        permissionId: permission.id,
+        modelId: BigInt(user.id),
+        modelType: USER_PERMISSION_MODEL_TYPE,
+      },
+    });
+  } else {
+    await ctx.db.modelHasPermissions.deleteMany({
+      where: {
+        permissionId: permission.id,
+        modelId: BigInt(user.id),
+        modelType: {
+          in: [...USER_PERMISSION_MODEL_TYPE_ALIASES],
+        },
+      },
+    });
+  }
+
+  await ctx.db.session.deleteMany({
+    where: {
+      userId: user.id,
+    },
+  });
+  await ctx.db.webAuthSession.deleteMany({
+    where: {
+      user: {
+        legacyUserId: user.id,
+      },
+    },
+  });
+
+  return {
+    id: user.id,
+    name: user.name,
+    bugReportingEnabled: input.enabled,
+  };
 }
 
 export async function getEmployeeOverview(ctx: TRPCContext, id: number) {

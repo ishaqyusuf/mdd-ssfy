@@ -6,6 +6,24 @@ Tracks important request/response contracts and shared schema boundaries.
 ## Current Notes
 - Shared schemas and DTOs live across `apps/api/src/schemas`, `apps/api/src/dto`, and shared packages.
 - Sales production query contracts live in `packages/sales/src/schema.ts`.
+- Web bug reporting contracts live in `apps/api/src/schemas/bug-reports.ts`:
+  - `BUG_REPORT_STATUSES = NEW | IN_REVIEW | IN_PROGRESS | NEEDS_INFO | FIXED | CLOSED`
+  - `BUG_REPORT_MAX_DURATION_MS = 90_000`
+  - `BUG_REPORT_MAX_UPLOAD_SIZE_BYTES = 250MB`
+  - `/api/bug-reports/upload` implements Vercel Blob `handleUpload()` for browser uploads using server-only `BLOB_READ_WRITE_TOKEN`; token generation requires `can.submitBugReport`, accepts only paths under `bug-reports/<currentUserId>/`, allows `video/*` plus `application/octet-stream`, caps upload size at 250MB, rejects overwrites, and issues 10-minute tokens
+  - `bugReports.create` accepts optional `description`, optional `currentUrl`, optional `userAgent`, `durationMs`, `microphoneEnabled`, and an uploaded Vercel Blob descriptor `{ url, pathname, contentType?, size, filename? }`
+  - upload validation requires object keys under `bug-reports/`, duration at or below 90 seconds, size at or below 250MB, and video-like content type
+  - list rows include status, description, page metadata, duration, microphone metadata, recording metadata, submitter/status-updater summaries, created/updated timestamps, and follow-up count
+  - detail rows additionally include follow-ups ordered oldest to newest with author summaries
+  - `bugReports.adminList` accepts optional `{ status }`
+  - `bugReports.addFollowUp` accepts `{ bugReportId, body }` with a non-empty body capped at 5000 characters
+  - `bugReports.updateStatus` accepts `{ bugReportId, status }`
+- Sales email ledger contracts live in `apps/api/src/schemas/emails.ts` and `apps/api/src/db/queries/sales-email-attempts.ts`:
+  - `SALES_EMAIL_ATTEMPT_STATUSES = QUEUED | SENDING | SENT | FAILED | SKIPPED`
+  - `emails.salesEmailAttempts` accepts optional `status`, `q`, `salesRepId`, `from`, `to`, `page`, and `size`; responses include rows, pagination metadata, `canViewAll`, and `canResend`
+  - row status semantics are immediate provider-result semantics: `SENT` means Resend accepted the send response, `FAILED` means provider send/queueing failed, and `SKIPPED` means the app could not send because required recipient/customer/sales rep email context was missing or email preferences suppressed delivery
+  - rows snapshot recipient, customer, sender, sales rep, document/email kind, subject/message, sales ids/order numbers, provider id/status, task run id when known, error text, timestamps, and `originalAttemptId`
+  - `emails.resendSalesEmailAttempt({ attemptId })` accepts only a failed/skipped attempt, creates a new linked child attempt, queues the stored retry payload, and leaves the original failed/skipped evidence unchanged
 - The production workspace now depends on:
   - `show: "due-today" | "due-tomorrow" | "past-due"` for alert-focused list slices
   - `productionDueDate: string | null` for exact due-date queue filtering from the compact calendar strip
@@ -60,6 +78,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - mobile overview consumers may use `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for visible card-adjusted amounts, while `invoice.total`, `invoice.pending`, and `invoice.paid` remain the principal/order progress source
   - `sales.updatePaymentMethod({ salesId, paymentMethod })` updates order metadata for unpaid orders only, mirrors the value into `meta.newSalesForm.form.paymentMethod` when present, and rejects fully paid orders whose principal `amountDue` is zero or below
   - changing an unpaid order to a C.C.C-applicable payment method recalculates display/backfill `meta.ccc` from the current principal `amountDue`, not the original order total, so prior payments do not inflate the remaining card-payable estimate
+  - overview DTOs expose `salesRepId` alongside the display `salesRep`/initials so client surfaces can distinguish the current owner from eligible transfer targets
+  - `sales.salesRepOptions({ salesId? })` returns active internal sales/order-capable users with `{ id, name, email, initials, roles }` for transfer pickers; `editOrders` users can load it broadly, while regular sales reps must pass an order they currently own
+  - `sales.transferSalesRep({ salesId, salesRepId, reason?, password })` accepts positive integer ids, an optional note up to 500 characters, and the signed-in user's password; it rejects quotes/deleted orders/ineligible target users, wrong password confirmation, and non-manager users trying to transfer orders not assigned to them
+  - successful transfer updates only `SalesOrders.salesRepId` and writes a structured `SalesHistory` row with previous rep, next rep, actor id/name, order id, and reason
+  - selecting the order's current rep is a no-op response with `changed=false` and does not create duplicate history
 - Sales payment processor C.C.C contract:
   - payment previews and payment writes calculate C.C.C from the external principal being applied to the current outstanding balance after wallet credit and prior payments
   - overpayment wallet credit may be included in the external customer charge, but it must not expand the C.C.C fee base beyond the remaining principal due

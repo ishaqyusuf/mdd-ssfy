@@ -35,8 +35,8 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 	const {
 		isExpanded,
 		expandSiteNav,
-		handleNavMouseEnter,
-		handleNavMouseLeave,
+		handleNavFloatingMouseEnter,
+		handleNavFloatingMouseLeave,
 		isNavHoverCollapsePending,
 	} = useSiteNav();
 	const [isMenuRequestedOpen, setIsMenuRequestedOpen] = useState(false);
@@ -48,12 +48,13 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 			setIsMenuRequestedOpen(true);
 			return;
 		}
-		if (isNavHoverCollapsePending()) {
+		if (
+			isMenuRequestedOpen &&
+			(!isExpanded || isNavHoverCollapsePending())
+		) {
 			return;
 		}
-		if (isExpanded) {
-			setIsMenuRequestedOpen(false);
-		}
+		setIsMenuRequestedOpen(false);
 	};
 
 	return (
@@ -70,6 +71,7 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 					<Button
 						size="lg"
 						variant="link"
+						aria-label="Open account menu"
 						className={cn(
 							"flex h-full min-h-12 gap-3 py-1.5 text-sidebar-foreground no-underline data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-foreground",
 							isExpanded ? "w-full px-3" : "w-12 justify-center px-1.5",
@@ -98,9 +100,9 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 				</DropdownMenuTrigger>
 				{isExpanded ? (
 					<DropdownMenuContent
-						data-site-nav-hover-surface="true"
-						onMouseEnter={handleNavMouseEnter}
-						onMouseLeave={handleNavMouseLeave}
+						data-site-nav-hover-surface="floating"
+						onMouseEnter={handleNavFloatingMouseEnter}
+						onMouseLeave={handleNavFloatingMouseLeave}
 						className="w-[244px] min-w-[244px] rounded-lg border-sidebar-border bg-sidebar text-sidebar-foreground shadow-[0_16px_42px_rgba(15,23,42,0.16)]"
 						side="top"
 						align="start"

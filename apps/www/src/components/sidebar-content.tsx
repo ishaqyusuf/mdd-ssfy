@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/lib/auth/client";
 import { useTRPC } from "@/trpc/client";
 import { SiteNav, createSiteNavContext } from "@gnd/site-nav";
+import { DropdownMenuItem } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname } from "next/dist/client/components/navigation";
@@ -79,7 +80,20 @@ function NavLayoutClient({ children, pageTabDefaults }) {
                             onLogout={() => {
                                 window.location.href = "/signout";
                             }}
-                        />
+                        >
+                            <DropdownMenuItem asChild>
+                                <Link href="/settings/profile">
+                                    <Icons.AccountCircle className="mr-2 size-4" />
+                                    Profile
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/settings/notification-channels/v2">
+                                    <Icons.Settings className="mr-2 size-4" />
+                                    Notification settings
+                                </Link>
+                            </DropdownMenuItem>
+                        </SiteNav.User>
                     </div>
                 </SiteNav.Sidebar>
                 <SiteNav.Shell className="">

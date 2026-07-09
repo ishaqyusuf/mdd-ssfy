@@ -244,6 +244,7 @@ export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 type Action = "edit" | "view";
 export const EXTRA_PERMISSION_SCOPES = [
 	"submitCustomJob",
+	"submitBugReport",
 	"generateSalesPaymentReport",
 	"generateSalesStatementReport",
 ] as const;
@@ -275,6 +276,9 @@ function normalizePermissionName(permission: string) {
 	}
 	if (normalized === "submitCustomJob") {
 		return ["submitCustomJob"];
+	}
+	if (normalized === "submitBugReport") {
+		return ["submitBugReport"];
 	}
 	if (normalized === "generateSalesPaymentReport") {
 		return ["generateSalesPaymentReport"];

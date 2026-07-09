@@ -140,6 +140,21 @@ export type UpdateSalesPaymentMethodSchema = z.infer<
 	typeof updateSalesPaymentMethodSchema
 >;
 
+export const transferSalesRepSchema = z.object({
+	salesId: z.number().int().positive(),
+	salesRepId: z.number().int().positive(),
+	reason: z.string().trim().max(500).optional().nullable(),
+	password: z.string().min(1).max(256),
+});
+export type TransferSalesRepSchema = z.infer<typeof transferSalesRepSchema>;
+
+export const salesRepOptionsSchema = z
+	.object({
+		salesId: z.number().int().positive().optional().nullable(),
+	})
+	.optional();
+export type SalesRepOptionsSchema = z.infer<typeof salesRepOptionsSchema>;
+
 export const inboundQuerySchema = z
 	.object({
 		status: z.enum(inboundFilterStatus).optional().nullable(),

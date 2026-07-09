@@ -18,6 +18,17 @@ Everything else is standalone.
 
 ---
 
+## 2026-07-08 Bug Reporting Access Toggle
+
+- Super Admin employee row actions now include `Enable Bug Reports` / `Disable Bug Reports`.
+- The action writes the employee-specific `submit bug report` permission through `hrm.setEmployeeBugReportingAccess`.
+- Super Admin employees are treated as enabled by role; the row action is disabled for them and the API rejects attempts to disable their bug reporting access.
+- Employee list rows expose `bugReportingEnabled` so the table/mobile card can display the current access state.
+- Toggling access clears the target employee's `session` and `webAuthSession` records so the header bug-report button reflects the updated `can.submitBugReport` snapshot after login/session refresh.
+- The employee-management permission picker also initializes `submit bug report` alongside the existing `submit custom job` employee-specific permission.
+
+---
+
 ## New DB Schema — `packages/db/src/schema/hrm.prisma`
 
 ```prisma

@@ -136,6 +136,7 @@ function Action({ item, mobile = false }: { item: Item; mobile?: boolean }) {
     const canRevokeEmployee = auth.roleTitle?.toLowerCase() === "super admin";
     const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
     const isRevoked = item.accessStatus === "revoked";
+    const isSuperAdminEmployee = item.role?.toLowerCase() === "super admin";
     const submitAction = useMutation(
         trpc.hrm.resetEmployeePassword.mutationOptions({
             async onSuccess(data, variables, context) {
@@ -174,6 +175,23 @@ function Action({ item, mobile = false }: { item: Item; mobile?: boolean }) {
             onError(error) {
                 toast.error(
                     error.message || "Unable to restore employee access",
+                );
+            },
+        }),
+    );
+    const bugReportAccessAction = useMutation(
+        trpc.hrm.setEmployeeBugReportingAccess.mutationOptions({
+            onSuccess(data) {
+                invalidateInfiniteQueries("hrm.getEmployees");
+                toast.success(
+                    data.bugReportingEnabled
+                        ? "Bug reports enabled"
+                        : "Bug reports disabled",
+                );
+            },
+            onError(error) {
+                toast.error(
+                    error.message || "Unable to update bug report access",
                 );
             },
         }),
@@ -236,6 +254,32 @@ function Action({ item, mobile = false }: { item: Item; mobile?: boolean }) {
                                 >
                                     Reset Password
                                 </Menu.Item>
+                                {canRevokeEmployee ? (
+                                    <Menu.Item
+                                        Icon={
+                                            item.bugReportingEnabled
+                                                ? Icons.CheckCircle2
+                                                : Icons.AlertCircle
+                                        }
+                                        disabled={
+                                            isSuperAdminEmployee ||
+                                            bugReportAccessAction.isPending
+                                        }
+                                        onClick={() => {
+                                            bugReportAccessAction.mutate({
+                                                userId: item.id,
+                                                enabled:
+                                                    !item.bugReportingEnabled,
+                                            });
+                                        }}
+                                    >
+                                        {isSuperAdminEmployee
+                                            ? "Bug Reports Enabled By Role"
+                                            : item.bugReportingEnabled
+                                              ? "Disable Bug Reports"
+                                              : "Enable Bug Reports"}
+                                    </Menu.Item>
+                                ) : null}
                                 {canRevokeEmployee ? (
                                     <Menu.Item
                                         Icon={Icons.LockKeyhole}
@@ -459,6 +503,9 @@ function ItemCard({ item }: ItemProps) {
                 {item.profile?.name && (
                     <Badge variant="outline">{item.profile.name}</Badge>
                 )}
+                {item.bugReportingEnabled ? (
+                    <Badge variant="secondary">Bug Reports</Badge>
+                ) : null}
                 <Badge variant="outline">
                     {item.specificPermissionCount || 0} permissions
                 </Badge>
