@@ -31,7 +31,8 @@ import type {
 	SalesPaymentMethods,
 	SalesPaymentStatus,
 } from "@sales/constants";
-import { copySales } from "@sales/copy-sales";
+import { copySalesInTransaction } from "@sales/copy-sales";
+import { queueSalesInventoryLineItemsSync } from "@sales/sales-inventory-sync-job";
 import type { CustomerTransactionType } from "@sales/types";
 import { resolveReminderAmount } from "@sales/utils/reminder-pay-plan";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -106,6 +107,20 @@ function readPaymentSalesAmount(meta: unknown, fallback: number) {
 
 function resolveQuoteAcceptanceToken(token: string) {
 	return validateToken(token, quoteAcceptanceTokenSchema);
+}
+
+async function runQuoteAcceptanceSideEffect(
+	label: string,
+	task: () => Promise<unknown>,
+) {
+	try {
+		await task();
+	} catch (error) {
+		console.error(
+			`Unable to complete quote acceptance side effect: ${label}`,
+			error,
+		);
+	}
 }
 
 const quoteAcceptanceSaleSelect = {
@@ -517,6 +532,7 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 				notify: null,
 				sendCustomerEmail: false,
 				emailAuthorId: null,
+				inventorySync: null,
 				paymentContext: null,
 			};
 		}
@@ -555,12 +571,13 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 				notify: null,
 				sendCustomerEmail: false,
 				emailAuthorId: null,
+				inventorySync: null,
 				paymentContext: null,
 			};
 		}
 
-		const copied = await copySales({
-			db: tx as unknown as TRPCContext["db"],
+		const copied = await copySalesInTransaction({
+			db: tx,
 			salesUid: sale.orderId,
 			as: "order",
 			type: "quote",
@@ -650,6 +667,10 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 			},
 			sendCustomerEmail: true,
 			emailAuthorId: copiedOrder.salesRep?.id || sale.salesRepId || null,
+			inventorySync: {
+				salesOrderId: copiedOrder.id,
+				triggeredByUserId: sale.salesRep?.id || sale.salesRepId || null,
+			},
 			paymentContext: {
 				customerId: copiedOrder.customerId,
 				customerPhone: copiedOrder.customer?.phoneNo,
@@ -671,38 +692,52 @@ export async function acceptQuote(ctx: TRPCContext, data: AcceptQuoteSchema) {
 				})),
 		},
 	};
-	if (!response.alreadyAccepted && response.notify) {
-		const notificationService = new NotificationService(tasks, ctx);
-		if (response.notify.recipients.length) {
-			notificationService.setEmployeeRecipients(...response.notify.recipients);
-		}
-		await notificationService.send("quote_accepted", {
-			author: response.notify.author,
-			payload: response.notify.payload,
+	if (!response.alreadyAccepted && response.inventorySync) {
+		await queueSalesInventoryLineItemsSync({
+			salesOrderId: response.inventorySync.salesOrderId,
+			source: "copy-sales",
+			triggeredByUserId: response.inventorySync.triggeredByUserId,
 		});
 	}
+	const notify = response.notify;
+	if (!response.alreadyAccepted && notify) {
+		await runQuoteAcceptanceSideEffect("quote_accepted notification", async () => {
+			const notificationService = new NotificationService(tasks, ctx);
+			if (notify.recipients.length) {
+				notificationService.setEmployeeRecipients(...notify.recipients);
+			}
+			await notificationService.send("quote_accepted", {
+				author: notify.author,
+				payload: notify.payload,
+			});
+		});
+	}
+	const emailAuthorId = result.emailAuthorId;
 	if (
 		!response.alreadyAccepted &&
 		response.sendCustomerEmail &&
-		result.emailAuthorId
+		emailAuthorId
 	) {
-		const notificationService = new NotificationService(tasks, ctx);
-		await notificationService.send("simple_sales_document_email", {
-			author: {
-				id: result.emailAuthorId,
-				role: "employee",
-			},
-			payload: {
-				printType: "order",
-				skipPdfAttachment: false,
-				salesIds: [response.order.salesId],
-			},
+		await runQuoteAcceptanceSideEffect("accepted order email", async () => {
+			const notificationService = new NotificationService(tasks, ctx);
+			await notificationService.send("simple_sales_document_email", {
+				author: {
+					id: emailAuthorId,
+					role: "employee",
+				},
+				payload: {
+					printType: "order",
+					skipPdfAttachment: false,
+					salesIds: [response.order.salesId],
+				},
+			});
 		});
 	}
 	const {
 		notify: _notify,
 		sendCustomerEmail: _sendCustomerEmail,
 		emailAuthorId: _emailAuthorId,
+		inventorySync: _inventorySync,
 		paymentContext: _paymentContext,
 		...cleanResponse
 	} = response;

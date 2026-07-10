@@ -1,6 +1,10 @@
 /** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
-import { type SalesTemplateConfig, getTemplate } from "./registry";
+import {
+	HEADLINE_FIRST_PAGE,
+	type SalesTemplateConfig,
+	getTemplate,
+} from "./registry";
 
 interface SalesHtmlDocumentProps {
 	pages: PrintPage[];
@@ -29,6 +33,7 @@ export function SalesHtmlDocument({
 	const HtmlTemplate = template.html;
 	const resolvedConfig: SalesTemplateConfig = {
 		showImages: true,
+		headlineFirstPage: HEADLINE_FIRST_PAGE,
 		...config,
 	};
 

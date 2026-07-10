@@ -63,6 +63,9 @@
 4. The accept page stores the new order number in URL query state so refreshes and repeat visits stay anchored to the created order.
 5. Payment token generation uses the accepted order record.
 6. Acceptance also triggers the shared sales document email flow for the newly created order.
+7. Quote-to-order copy now runs through a transaction-safe helper when called from public acceptance, so it can participate in the checkout transaction without opening a nested Prisma transaction.
+8. After the order copy commits, inventory sync queueing, the `quote_accepted` notification, and the accepted-order sales email are best-effort side effects. Failures are logged, but they do not change a successfully committed customer acceptance response.
+9. Staff can open the same public acceptance experience from the quotes table row action dropdown via `Accept Quote`, which mints a short-lived acceptance token and opens `/sales/accept-quote/[orderId]` in a new tab.
 
 ## Edge Cases
 

@@ -61,7 +61,7 @@ flowchart TD
   - confirm development device uses the intended GND `www`/API proxy port from `brain/system/overview.md`
   - show the resolved API URL in a dev-only mobile diagnostics row or console log
   - confirm preview builds intentionally use `EXPO_PUBLIC_BASE_URL`
-  - document whether the failed device is hitting local LAN, `www:prod`, or production
+  - document whether the failed device is hitting local LAN, the production-env local smoke profile, or production
 - Capture and replay the failing payload:
   - store a sanitized failed save payload snapshot locally in dev
   - add a script or narrow test that posts the same payload through `saveNewSalesFormInternal`
@@ -95,7 +95,7 @@ flowchart TD
 - Evidence Areas: `apps/api/src/db/queries/new-sales-form.ts`.
 
 ### P0 Runtime Target / Connection Parity
-- Gap: Mobile base URL depends on Expo host URI and port env; preview builds use `EXPO_PUBLIC_BASE_URL`. A device can appear healthy while hitting the wrong local port, stale dev server, `www:prod`, or production.
+- Gap: Mobile base URL depends on Expo host URI and port env; preview builds use `EXPO_PUBLIC_BASE_URL`. A device can appear healthy while hitting the wrong local port, stale dev server, the production-env local smoke profile, or production.
 - Web Parity Target: Web runs in the browser against the current app/API stack; mobile must make its target explicit in development.
 - Plan: Add a dev-only visible/logged API target and verify phone, Metro, web, and API/proxy ports before further save fixes.
 - Evidence Areas: `apps/expo-app/src/lib/base-url.ts`, `apps/expo-app/src/trpc/client.tsx`, `brain/system/overview.md`.
@@ -226,7 +226,7 @@ flowchart TD
 - Current dirty worktree and active sales/inventory workstreams may overlap with the new-sales-form save and inventory configuration paths.
 
 ## Open Questions
-- TODO: Capture the failing device's resolved API URL and whether it is local dev, `www:prod`, preview, or production.
+- TODO: Capture the failing device's resolved API URL and whether it is local dev, the production-env local smoke profile, preview, or production.
 - TODO: Capture whether API logs show ingress for the timed-out mobile request.
 - TODO: Decide whether mobile should implement web Save & Close / Save & New or document manual save-only parity.
 - TODO: Decide whether mobile should expose billing/shipping/profile selectors or keep those fields derived from customer selection.

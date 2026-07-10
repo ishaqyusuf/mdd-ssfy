@@ -20,22 +20,33 @@ This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-opti
 
 ## Development Database
 
-Normal local development uses the hosted dev database and remote dev Redis profile:
+Normal local development uses Docker MySQL and Docker Redis:
 
 ```bash
 bun run dev
 ```
 
-The root dev command runs through `scripts/with-dev-infra.ts`, which maps `GND_DB_MODE` and `GND_REDIS_MODE` into the active `DATABASE_URL`, Redis/Upstash env, Docker service flags, and `GND_CACHE_NAMESPACE`.
+The root dev command runs through `scripts/dev.ts`, which maps profile flags into `scripts/with-dev-infra.ts`. That sets the active `DATABASE_URL`, Redis/Upstash env, Docker service flags, and `GND_CACHE_NAMESPACE`.
 
 Supported profiles:
 
 ```bash
-bun run dev                         # remote-dev DB + remote-dev Redis
-bun run dev:local                   # local Docker MySQL + local Docker Redis
-bun run dev:local-db:remote-redis   # local Docker MySQL + remote-dev Redis
-bun run dev:remote-db:local-redis   # remote-dev DB + local Docker Redis
+bun run dev                         # local Docker MySQL + local Docker Redis
+bun run dev --local                 # local Docker MySQL + local Docker Redis
+bun run dev --remote-dev            # remote-dev DB + remote-dev Redis
+bun run dev --prod                  # production-env www smoke on port 3005
 ```
+
+Dev commands can also be narrowed to selected Turbo targets:
+
+```bash
+bun run dev --filter @gnd/site @gnd/www @gnd/jobs
+bun run dev --filter @gnd/api! @gnd/site!
+bun run dev --filter api site! @gnd/jobs
+bun run dev -f api site!
+```
+
+Filter flags can be written as `--filter`, `--f`, `-f`, or `-filter`. Filter values use Turbo selector syntax directly. Exact package filters such as `@gnd/www` are validated against workspace package names and print the valid package list when missing. Bare exact package names such as `api` and `site!` are resolved to matching workspace packages before validation. Complex Turbo selectors such as `@gnd/www...`, `@gnd/*`, `{apps/*}`, and `[main]` pass through to Turbo.
 
 The underlying env names are:
 

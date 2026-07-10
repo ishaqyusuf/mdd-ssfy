@@ -24,6 +24,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - row status semantics are immediate provider-result semantics: `SENT` means Resend accepted the send response, `FAILED` means provider send/queueing failed, and `SKIPPED` means the app could not send because required recipient/customer/sales rep email context was missing or email preferences suppressed delivery
   - rows snapshot recipient, customer, sender, sales rep, document/email kind, subject/message, sales ids/order numbers, provider id/status, task run id when known, error text, timestamps, and `originalAttemptId`
   - `emails.resendSalesEmailAttempt({ attemptId })` accepts only a failed/skipped attempt, creates a new linked child attempt, queues the stored retry payload, and leaves the original failed/skipped evidence unchanged
+- Public quote acceptance contract:
+  - `checkout.acceptQuote({ orderId, token })` is the tokenized public customer quote-acceptance mutation used by `/sales/accept-quote/[orderId]`
+  - a valid, unexpired quote token copies the quote into a new order inside one checkout transaction, writes `meta.quoteAcceptance` acceptance evidence on both the source quote and created order, then returns the existing payment-context response shape
+  - repeat acceptance returns the already accepted order with `alreadyAccepted=true` and does not create another order copy
+  - post-commit inventory sync queueing, `quote_accepted` notifications, and accepted-order sales email queueing are best-effort; failures are logged and must not reject a committed acceptance response
 - The production workspace now depends on:
   - `show: "due-today" | "due-tomorrow" | "past-due"` for alert-focused list slices
   - `productionDueDate: string | null` for exact due-date queue filtering from the compact calendar strip

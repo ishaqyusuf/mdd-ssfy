@@ -152,6 +152,17 @@ describe("sales print service", () => {
 		).toBe(
 			"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false&templateId=template-7",
 		);
+
+		expect(
+			buildSalesPdfDownloadUrlFromQuery({
+				accessToken: "access-123",
+				preview: true,
+				fresh: true,
+				origin: "https://app.example.com",
+			}),
+		).toBe(
+			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=true&fresh=true",
+		);
 	});
 
 	it("builds same-origin relative urls when no origin is supplied", () => {

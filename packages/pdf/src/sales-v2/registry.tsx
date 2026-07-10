@@ -2,8 +2,11 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import type { JSX } from "react";
 
+export const HEADLINE_FIRST_PAGE = true;
+
 export interface SalesTemplateConfig {
 	showImages: boolean;
+	headlineFirstPage: boolean;
 }
 
 export interface SalesTemplateRenderProps {

@@ -28,7 +28,10 @@ import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
 import { share } from "@gnd/utils/share";
-import type { SalesPdfToken } from "@gnd/utils/tokenizer";
+import type {
+	QuoteAcceptanceTokenSchema,
+	SalesPdfToken,
+} from "@gnd/utils/tokenizer";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useMutation } from "@tanstack/react-query";
 import { addDays } from "date-fns";
@@ -383,6 +386,15 @@ function useSendSalesEmailAction({
 	const sendEmail = useCallback(
 		(options: EmailOptions = {}) => {
 			setDidSucceed(false);
+			if (state.customerEmail !== undefined && !state.customerEmail?.trim()) {
+				toast({
+					title: "Customer email not available",
+					description: "Add a customer email before sending this sales email.",
+					variant: "destructive",
+				});
+				closeMenu();
+				return;
+			}
 			notification.simpleSalesDocumentEmail({
 				emailType: options.withPayment
 					? options.partPayment
@@ -463,6 +475,49 @@ function SalesMenuMove({ disabled }: ActionProps) {
 		>
 			<Icons.Move className="mr-2 size-4 text-muted-foreground/70" />
 			{isQuote ? "Create Invoice" : "Move to Quote"}
+		</DropdownMenu.Item>
+	);
+}
+
+function SalesMenuAcceptQuote({ disabled }: ActionProps) {
+	const { actions, state } = useSalesMenuContext();
+	const loader = useLoadingToast();
+	const isQuote = state.type === "quote";
+	const canOpen = isQuote && Boolean(state.id && state.orderNo);
+
+	if (!isQuote) return null;
+
+	return (
+		<DropdownMenu.Item
+			disabled={disabled || !canOpen}
+			onSelect={(event) => {
+				event.preventDefault();
+				if (!state.id || !state.orderNo) return;
+
+				void (async () => {
+					try {
+						const token = await generateToken({
+							salesId: state.id,
+							orderId: state.orderNo,
+							expiry: addDays(new Date(), 14).toISOString(),
+						} satisfies QuoteAcceptanceTokenSchema);
+
+						actions.closeMenu();
+						openLink(
+							`/sales/accept-quote/${state.orderNo}?token=${encodeURIComponent(
+								token,
+							)}`,
+							null,
+							true,
+						);
+					} catch {
+						loader.error("Unable to open accept quote page");
+					}
+				})();
+			}}
+		>
+			<Icons.CheckCircle2 className="mr-2 size-4 text-muted-foreground/70" />
+			Accept Quote
 		</DropdownMenu.Item>
 	);
 }
@@ -1391,6 +1446,7 @@ function SalesMenuSubContent(
 }
 
 export const SalesMenu = Object.assign(SalesMenuRoot, {
+	AcceptQuote: SalesMenuAcceptQuote,
 	Copy: SalesMenuCopy,
 	Move: SalesMenuMove,
 	Share: SalesMenuShare,

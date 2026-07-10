@@ -15,6 +15,17 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Sales Orders Filtered Excel Export
+- Priority: High
+- Description: Reimplement the historical Sales Orders Excel export on the current Sales Orders V2 page. The export button should appear when filters are applied, or when rows are selected, and should download the current filtered or selected order set as `.xlsx`.
+- Related Feature: Sales orders, Sales Orders V2, spreadsheet reporting
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: brain/plans/2026-07-10-spec-sales-orders-filtered-excel-export.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/41
+- Created Date: 2026-07-10
+- Latest Analysis Note: Historical `SalesOrderExport` existed in commits `93870eb3d`, `96c54292f`, and `5d9d88456`, mounted from the old sales order header. It hid itself unless filters or row selections existed. The current Sales Orders V2 header/table no longer mounts this export, and the new UUID-keyed row selection means selected exports must resolve numeric sales ids from row data instead of coercing selection keys.
+
 ### Unit Invoice Search Parity With Project Units
 - Priority: High
 - Description: Implemented the spec in GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/38 and plan in `brain/plans/2026-07-09-bug-fix-unit-invoice-search-parity.md`; fixed the Community Unit Invoices search mismatch where Breezewood Villas plus `/01` returned `8` invoice rows while Project Units returned `19`.
@@ -63,14 +74,16 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ### Web Bug Reporting Workflow
 - Priority: High
-- Description: Track plan in `brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md`.
+- Description: Track plan in `brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md`; synthesized spec published to GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/40 with `ready-for-agent`.
 - Related Feature: Web app, internal support feedback, bug reporting, Vercel Blob Storage
 - Status: In Progress
 - Plan Status: In Progress
 - Plan File: brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md
+- Spec File: brain/plans/2026-07-10-spec-web-bug-reporting-workflow.md
 - Intake File: brain/intake/2026-07-07-web-bug-reporting-workflow.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/40
 - Created Date: 2026-07-07
-- Latest Implementation Note: 2026-07-08 web-only implementation added the recorder button, Vercel Blob upload metadata path, bug report/follow-up schema, issue board, Super Admin status management, and Super Admin employee access toggle. Database migration/application remains blocked until the intended MySQL target is reachable.
+- Latest Implementation Note: 2026-07-10 spec publication captured the current web-first workflow, user stories, implementation decisions, and testing seams in GitHub issue #40. 2026-07-08 web-only implementation added the recorder button, Vercel Blob upload metadata path, bug report/follow-up schema, issue board, Super Admin status management, and Super Admin employee access toggle. Database migration/application remains blocked until the intended MySQL target is reachable.
 
 ### Desktop Feedback Issue Board
 - Priority: High

@@ -1,7 +1,11 @@
 /** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Document, Font } from "@react-pdf/renderer";
-import { type SalesTemplateConfig, getTemplate } from "./registry";
+import {
+	HEADLINE_FIRST_PAGE,
+	type SalesTemplateConfig,
+	getTemplate,
+} from "./registry";
 
 Font.register({
 	family: "Inter",
@@ -80,6 +84,7 @@ export function SalesPdfDocument({
 	const template = getTemplate(templateId);
 	const resolvedConfig: SalesTemplateConfig = {
 		showImages: true,
+		headlineFirstPage: HEADLINE_FIRST_PAGE,
 		...config,
 	};
 	const firstPage = pages[0];

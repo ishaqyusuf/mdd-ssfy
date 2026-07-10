@@ -26,10 +26,10 @@ Final responses must include the Brain files updated, or `No Brain documentation
 
 - Package manager: `bun`.
 - Start the full dev stack with `bun run dev`.
-- Start the main web app with `bun run www`.
-- Start dealership work with `bun run dealership`.
-- Start jobs with `bun run jobs` or `bun run www:jobs`.
-- Start mobile work with `bun run mobile`.
+- Start the main web app with `bun run dev --filter www`.
+- Start dealership work with `bun run dev --filter dealership`.
+- Start jobs with `bun run dev --filter jobs`; start web plus jobs with `bun run dev --filter www jobs`.
+- Start mobile work with `bun run dev --filter expo-app www`.
 - Run database generation with `bun run db:generate`.
 - Run database migrations with `bun run db:migrate`.
 - Sync production data locally only when asked, using the dry run first: `bun run db:sync:dry-run`.

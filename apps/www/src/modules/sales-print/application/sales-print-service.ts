@@ -202,13 +202,27 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
     snapshotId?: string;
     templateId?: string | null;
     preview?: boolean;
+    fresh?: boolean;
     origin?: string;
 }) {
-    return buildSalesDocumentRouteFromQuery({
+    const href = buildSalesDocumentRouteFromQuery({
         ...input,
         path: DOWNLOAD_ROUTE_PATH,
         preview: input.preview ?? false,
     });
+
+    if (!input.fresh) return href;
+
+    const url = input.origin
+        ? new URL(href)
+        : new URL(href, "http://same-origin.local");
+    url.searchParams.set("fresh", "true");
+
+    if (input.origin) {
+        return url.toString();
+    }
+
+    return `${url.pathname}${url.search}`;
 }
 
 export async function resolveSalesPrintAccess(

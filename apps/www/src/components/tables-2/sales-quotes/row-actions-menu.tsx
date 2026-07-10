@@ -7,6 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 
 type QuoteActionItem = {
 	id?: number | null;
+	orderId?: string | null;
 	slug?: string | null;
 	uuid?: string | null;
 	email?: string | null;
@@ -29,6 +30,7 @@ export function QuoteRowActionsMenu({
 			id={item.id ?? undefined}
 			slug={item.slug ?? undefined}
 			type="quote"
+			orderNo={item.orderId ?? null}
 			customerEmail={item.email ?? null}
 			customerName={item.displayName}
 			open={open}
@@ -50,6 +52,7 @@ export function QuoteRowActionsMenu({
 				type="quote"
 				uuid={item.uuid ?? undefined}
 			/>
+			<SalesMenu.AcceptQuote />
 			<SalesMenu.QuoteEmailMenuItems />
 			<SalesMenu.SalesPrintMenuItems />
 			<SalesMenu.Copy />

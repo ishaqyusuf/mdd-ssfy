@@ -6,3 +6,4 @@ export { MouldingBlock } from "./moulding-block";
 export { ShelfBlock } from "./shelf-block";
 export { LineItemBlock } from "./line-item-block";
 export { ServiceBlock } from "./service-block";
+export { SectionListBlock } from "./section-list-block";

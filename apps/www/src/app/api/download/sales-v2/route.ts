@@ -132,6 +132,7 @@ export async function GET(req: NextRequest) {
 		Object.fromEntries(requestUrl.searchParams.entries()),
 	);
 	const { params } = printRequest;
+	const fresh = requestUrl.searchParams.get("fresh") === "true";
 
 	if (!printRequest.isValid) {
 		return NextResponse.json(
@@ -146,7 +147,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "public-token") {
-		if (!params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
+		if (!fresh && !params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
 			const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
 				db,
 				publicToken: params.pt,
@@ -173,7 +174,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "access-token") {
-		if (!params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
+		if (!fresh && !params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
 			const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
 				db,
 				accessToken: params.accessToken,
@@ -200,7 +201,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "snapshot-id") {
-		if (!params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
+		if (!fresh && !params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
 			const snapshotLookup = await getSalesSnapshotDocumentById({
 				db,
 				snapshotId: params.snapshotId,

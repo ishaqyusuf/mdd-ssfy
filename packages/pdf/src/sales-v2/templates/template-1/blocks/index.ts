@@ -4,6 +4,7 @@ export { MouldingBlock } from "./moulding-block";
 export { ServiceBlock } from "./service-block";
 export { ShelfBlock } from "./shelf-block";
 export { LineItemBlock } from "./line-item-block";
+export { SectionListBlock } from "./section-list-block";
 export { ImageGalleryBlock } from "./image-gallery-block";
 export { FooterBlock } from "./footer-block";
 export { SignatureBlock } from "./signature-block";

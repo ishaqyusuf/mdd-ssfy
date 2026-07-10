@@ -49,7 +49,7 @@ Detailed fixture setup plan: `brain/reports/2026-06-16-inventory-validation-fixt
 6. Inventory print sale with production BOM, pick list, packing list, backorder, and remaining-summary modes.
 
 ## Validation Commands Or Actions Requiring Approval
-1. Start the web app in the user's preferred local mode, for example `bun run www` or the active workspace command.
+1. Start the web app in the user's preferred local mode, for example `bun run dev --filter www` or the active workspace command.
 2. Open the routes listed in scope with an authenticated session.
 3. Capture screenshots or concise notes for each matrix row.
 4. Run only focused tests for any issues found and update Brain with pass/fail evidence.

@@ -2,8 +2,11 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Document, renderToBuffer } from "@react-pdf/renderer";
 import { generateQrCodeDataUrl } from "../sales-v2/qr";
-import type { SalesTemplateConfig } from "../sales-v2/registry";
-import { getTemplate as getSalesTemplate } from "../sales-v2/registry";
+import {
+	HEADLINE_FIRST_PAGE,
+	type SalesTemplateConfig,
+	getTemplate as getSalesTemplate,
+} from "../sales-v2/registry";
 import { CustomerStatementPdfDocument } from "./document";
 import type { CustomerStatementTemplateConfig } from "./registry";
 import { getTemplate as getCustomerStatementTemplate } from "./registry";
@@ -69,6 +72,7 @@ export async function renderCustomerStatementWithSalesInvoicesPdfBuffer(
 	};
 	const invoiceConfig: SalesTemplateConfig = {
 		showImages: true,
+		headlineFirstPage: HEADLINE_FIRST_PAGE,
 		...input.invoiceConfig,
 	};
 	const title = input.title || input.data.title || "Customer Statement";

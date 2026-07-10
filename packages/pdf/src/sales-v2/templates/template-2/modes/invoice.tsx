@@ -3,13 +3,9 @@ import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
 import type { SalesTemplateConfig } from "../../../registry";
 import {
-	DoorBlock,
 	FooterBlock,
 	HeaderBlock,
-	LineItemBlock,
-	MouldingBlock,
-	ServiceBlock,
-	ShelfBlock,
+	SectionListBlock,
 } from "../blocks";
 
 interface InvoiceModeProps {
@@ -21,6 +17,8 @@ interface InvoiceModeProps {
 	config: SalesTemplateConfig;
 }
 
+const FIRST_PAGE_HEADER_HEIGHT = 170;
+
 export function InvoiceMode({
 	page,
 	baseUrl,
@@ -31,7 +29,10 @@ export function InvoiceMode({
 }: InvoiceModeProps) {
 	return (
 		<>
-			<View fixed style={{ paddingBottom: 8, marginBottom: 8 }}>
+			<View
+				{...(!config.headlineFirstPage ? { fixed: true } : {})}
+				style={{ paddingBottom: 8, marginBottom: 8 }}
+			>
 				<HeaderBlock
 					meta={page.meta}
 					billing={page.billing}
@@ -44,53 +45,12 @@ export function InvoiceMode({
 			</View>
 
 			<View style={{ width: "100%" }}>
-				{page.sections.map((section, index) => {
-					const wrapperStyle = index === 0 ? undefined : { marginTop: 6 };
-					switch (section.kind) {
-						case "door":
-							return (
-								<View key={`door-${section.index}`} style={wrapperStyle}>
-									<DoorBlock
-										section={section}
-										baseUrl={baseUrl}
-										showImages={config.showImages}
-									/>
-								</View>
-							);
-						case "moulding":
-							return (
-								<View key={`moulding-${section.index}`} style={wrapperStyle}>
-									<MouldingBlock
-										section={section}
-										baseUrl={baseUrl}
-										showImages={config.showImages}
-									/>
-								</View>
-							);
-						case "service":
-							return (
-								<View key={`service-${section.index}`} style={wrapperStyle}>
-									<ServiceBlock section={section} />
-								</View>
-							);
-						case "shelf":
-							return (
-								<View key={`shelf-${section.index}`} style={wrapperStyle}>
-									<ShelfBlock
-										section={section}
-										baseUrl={baseUrl}
-										showImages={config.showImages}
-									/>
-								</View>
-							);
-						case "line-item":
-							return (
-								<View key={`line-${section.index}`} style={wrapperStyle}>
-									<LineItemBlock section={section} baseUrl={baseUrl} showImages={config.showImages} />
-								</View>
-							);
-					}
-				})}
+				<SectionListBlock
+					sections={page.sections}
+					baseUrl={baseUrl}
+					showImages={config.showImages}
+					firstPageHeaderHeight={FIRST_PAGE_HEADER_HEIGHT}
+				/>
 			</View>
 
 			<View

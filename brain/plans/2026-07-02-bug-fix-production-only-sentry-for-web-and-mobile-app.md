@@ -64,10 +64,10 @@ flowchart TD
 - Environment variables: `NEXT_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_PROJECT_MOBILE`, `SENTRY_AUTH_TOKEN`, optional `SENTRY_RELEASE`
 
 ## Acceptance Criteria
-- Local `bun run www` does not initialize or send browser, server, edge, request, or global-error events to Sentry.
+- Local `bun run dev --filter www` does not initialize or send browser, server, edge, request, or global-error events to Sentry.
 - Production `apps/www` initializes Sentry on client, server, and edge when `NEXT_PUBLIC_SENTRY_DSN` is present.
 - Web Sentry DSN is not hardcoded in source.
-- Local `bun run mobile` / development Expo builds do not initialize or send events to Sentry by default.
+- Local `bun run dev --filter expo-app www` / development Expo builds do not initialize or send events to Sentry by default.
 - Production mobile builds initialize Sentry when `EXPO_PUBLIC_SENTRY_DSN` is present.
 - Expo app root is wrapped with Sentry error handling without changing navigation or provider order.
 - Source map upload remains production-only and does not run during local development.
@@ -76,7 +76,7 @@ flowchart TD
 - Run `bun run --filter @gnd/www typecheck`.
 - Run `bun run --filter @gnd/expo-app typecheck` if available, otherwise run the narrowest Expo TypeScript check used by the package.
 - In development, temporarily trigger the existing web Sentry example route or a controlled client error and verify no Sentry network request/event is sent.
-- In a production-env local smoke (`bun run www:prod` or production build equivalent), verify Sentry initialization sees `enabled: true` when DSNs are configured.
+- In a production-env local smoke (`bun run dev --prod --filter www api` or production build equivalent), verify Sentry initialization sees `enabled: true` when DSNs are configured.
 - Start the Expo app in development and verify the Sentry init guard exits before `Sentry.init`.
 - For production/preview mobile release validation, run the project's existing EAS update/build dry run where available and confirm source-map upload behavior matches the selected release policy.
 

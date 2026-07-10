@@ -2,6 +2,59 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Published the synthesized spec for reimplementing Sales Orders filtered Excel export.
+  - Created GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/41 with the `ready-for-agent` label.
+  - Located the historical feature in `SalesOrderExport` across commits `93870eb3d`, `96c54292f`, and `5d9d88456`; it was mounted from the old sales order header and appeared when filters were applied or rows were selected.
+  - Corrected scope from VAT-specific to filter-applied export behavior.
+  - Planned reimplementation against the current Sales Orders V2 filter/query contract and current table selection model, including the key caution that new row selection is UUID-keyed and must be resolved to numeric sales ids before selected-row export.
+  - Brain files updated: `brain/plans/2026-07-10-spec-sales-orders-filtered-excel-export.md`, `brain/tasks/roadmap.md`, and `brain/progress.md`; no code, database schema, migration, API contract, permission constant, build, typecheck, or runtime behavior changed in this planning/spec publication pass.
+
+- Added quotes table row action for quote acceptance.
+  - Added `Accept Quote` to the canonical quotes table row action dropdown.
+  - The action reuses the existing sales token-generation server action to mint a 14-day quote-acceptance token and opens `/sales/accept-quote/[orderId]` in a new tab.
+  - Validation: targeted Biome passed for `apps/www/src/components/sales-menu.tsx` and `apps/www/src/components/tables-2/sales-quotes/row-actions-menu.tsx`; scoped `git diff --check` passed.
+  - Brain files updated: `brain/features/sales-payment-v2-checkout.md` and `brain/progress.md`; no API, database, migration, or permission docs were needed because this is a staff-side UI entry point to an existing public acceptance contract.
+
+- Published the synthesized spec for the web bug reporting workflow intake.
+  - Created GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/40 with the `ready-for-agent` label.
+  - Captured the web-first office bug reporting workflow: employee header bug button, optional microphone narration, browser screen recording capped at 1 minute 30 seconds, Vercel Blob upload, employee-owned submissions, follow-ups, Super Admin all-report board, status management, and Super Admin employee access toggle.
+  - Recorded the primary testing seam as the protected bug reporting API/reporting contract, with secondary HRM permission-toggle coverage and mocked browser media recorder component coverage for UI state transitions.
+  - Brain files updated: `brain/plans/2026-07-10-spec-web-bug-reporting-workflow.md`, `brain/plans/2026-07-07-feature-web-bug-reporting-workflow.md`, `brain/tasks/roadmap.md`, and `brain/progress.md`; no database schema, migration, API contract, permission constant, build, typecheck, or runtime behavior changed in this planning/spec publication pass.
+
+- Fixed public quote acceptance from customer email links.
+  - Split `copySalesInTransaction` out of the existing `copySales` wrapper so public quote acceptance can copy a quote to an order inside the checkout transaction without opening a nested Prisma transaction.
+  - Kept the existing `copySales` wrapper contract for internal copy/move/history flows, including post-commit inventory sync queueing.
+  - Updated `checkout.acceptQuote` to copy, mark quote/order acceptance metadata, and return the existing public response shape while treating post-commit inventory sync queueing, `quote_accepted`, and accepted-order email sends as best-effort side effects.
+  - Added regression coverage for transaction-client quote copying and public quote acceptance: first acceptance, repeat acceptance, side-effect failure tolerance, and invalid/expired tokens.
+  - Validation: `bun test packages/sales/src/copy-sales.test.ts apps/api/src/db/queries/checkout.test.ts` passed; targeted Biome passed. `bun --filter @gnd/api typecheck` and `bun --filter @gnd/sales typecheck` were attempted and remain blocked by existing baseline diagnostics; touched implementation files did not introduce new diagnostics, though API still reports the pre-existing `checkout.ts` C.C.C metadata error in the separate checkout-link path.
+  - Brain files updated: `brain/features/sales-payment-v2-checkout.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database schema, migration, or permission docs were needed because the fix changes runtime orchestration and side-effect handling only.
+
+- Tightened Template 2 sales PDF section pagination to reduce first-page whitespace.
+  - Removed the whole-chunk `minPresenceAhead` hint from Template 2 section rendering because React PDF reserved space after the entire chunk and pushed sections to the next page too early.
+  - Tuned Template 2 first-page header height from `205` to `170`, allowing Garage Door, Interior Pre-Hung, and Door Slabs Only to share page 1 while Bifold starts page 2 with its own section title, table header, and rows.
+  - Validation: rendered the current fresh invoice PDF for the opened sales document flow; page 1 now contains Garage Door, Interior Pre-Hung, and Door Slabs Only, while page 2 starts with Bifold and continues with Mouldings. Targeted Biome and the sales-v2 pagination test passed.
+  - Brain files updated: `brain/features/sales-pdf-system.md` and `brain/progress.md`; no API, database, migration, or permission docs were needed because this is PDF rendering behavior only.
+
+- Added sales PDF section pagination for page breaks.
+  - Added a shared sales-v2 PDF pagination helper that estimates remaining page space, keeps a section title/table header/first row together, and splits long sections into page-broken chunks that repeat the section title and table header on continuation pages.
+  - Template 1 and Template 2 invoice, quote, production, and packing-slip modes now render sections through a shared `SectionListBlock`, preserving the original logical sales payload while controlling PDF-only visual chunks.
+  - Door-section continuation chunks repeat the section title and table header but omit the repeated configuration/detail rows, keeping continued pages compact.
+  - Validation: rendered the fresh invoice PDF from the opened sales document flow; page 2 now shows `BIFOLD` with its table header and rows together, followed by `MOULDINGS` with its own title/header. `bun test packages/pdf/src/sales-v2/shared/pagination.test.ts` and `bun test apps/www/src/modules/sales-print/application/sales-print-service.test.ts` passed; targeted Biome passed. `bun --filter @gnd/pdf typecheck` remains blocked by the existing baseline diagnostics in contractor payout tests, registry fallbacks, job selection strings, and sales-v2 table block strictness.
+  - Brain files updated: `brain/features/sales-pdf-system.md` and `brain/progress.md`; no API, database, migration, or permission docs were needed because this is PDF rendering behavior only.
+
+- Made sales PDF document headers first-page-only by default.
+  - Added `HEADLINE_FIRST_PAGE = true` and `SalesTemplateConfig.headlineFirstPage`, with PDF/HTML/customer-statement renderers resolving the default before invoking sales templates.
+  - Template 1 and Template 2 invoice, quote, production, and packing-slip PDF modes now omit the React PDF `fixed` prop when first-page-only headers are enabled, so the logo/document/customer/address header renders once on the first physical page unless explicitly disabled.
+  - Stored sales print viewer loads now request a fresh render with `fresh=true`, and the download route skips stored snapshot streaming for those requests so template changes are visible in the print page immediately.
+  - Validation: confirmed in the opened browser that page 2 no longer repeats the logo/document/customer/address header; targeted sales-print service tests passed; targeted Biome passed for touched files; scoped `git diff --check` passed. `bun --filter @gnd/pdf typecheck` remains blocked by pre-existing baseline diagnostics including missing `bun:test` types, registry fallback typing, and existing sales-v2 table block strictness errors.
+  - Brain files updated: `brain/features/sales-pdf-system.md` and `brain/progress.md`; no API, database, migration, or permission docs were needed because this changes sales print rendering behavior without changing contracts or storage.
+
+- Restored missing-email preflight validation for direct sales document emails.
+  - Shared `SalesMenu` direct invoice/quote email actions now stop before queueing a notification job when the menu explicitly receives an empty or null customer email.
+  - The user sees a destructive `Customer email not available` toast and no task monitor row is created for this client-side validation failure.
+  - Contexts that do not provide `customerEmail` still allow the backend notification task to resolve the recipient by sales id.
+  - Brain files updated: `brain/features/sales-email-delivery-ledger.md` and `brain/progress.md`; no API, permission, database schema, or migration docs were needed because this is a client-side preflight behavior change only.
+
 - Added visible user feedback for sales email background failures.
   - Added a shared `apps/www` task-feedback helper that identifies sales email notification jobs, classifies `emails.sent/skipped/failed` output as user-facing failure copy, reads hard Trigger terminal state from `run.status` / `run.isFailed`, extracts `run.error.message`, and provides safe fallback messages when Trigger does not return an error string.
   - Hardened `useTaskTrigger` so queue failures produce a visible toast and runtime failures call `onError` with a readable message instead of silently failing when `completionError` is empty. The active sender path now also marks/announces failed runs while checking the task monitor store to avoid duplicate toasts.

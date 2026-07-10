@@ -8,6 +8,12 @@ In Progress
 
 - `brain/intake/2026-07-07-web-bug-reporting-workflow.md`
 
+## Tracker
+
+- Spec: `brain/plans/2026-07-10-spec-web-bug-reporting-workflow.md`
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/40
+- Triage Label: `ready-for-agent`
+
 ## Objective
 
 Build a web-first bug reporting workflow inside the existing GND office web app. Enabled employees should be able to record the screen with optional microphone narration, submit bug reports, view their own submissions, track status, and add follow-ups. Super Admin users should be able to enable or disable this feature per employee and manage all submitted issues.

@@ -214,6 +214,7 @@ function StoredPdfPrintUrlFrame({
 			accessToken,
 			templateId,
 			preview: true,
+			fresh: true,
 			origin: browserOrigin,
 		});
 	}, [accessToken, browserOrigin, templateId]);
