@@ -1,3 +1,21 @@
+# Sales Orders Filtered Excel Export Execution
+
+Date: 2026-07-10
+Status: Completed
+
+Plan:
+- Add a focused export mapping helper and tests for Sales Orders V2 rows.
+- Track selected numeric sales IDs from the Sales Orders V2 table so the header can export selected rows.
+- Add the filtered/selected Excel report button to the Sales Orders V2 header, using the existing `sales.getOrders` API and lazy `xlsx-js-style` import.
+- Update Brain docs after implementation, then run the narrow export test and review the diff before committing.
+
+Validation:
+- `bun test apps/www/src/components/sales-orders-export.test.ts`
+- `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts`
+- `git diff --check`
+
+---
+
 # Sales Form Office/Dealer Shareability Execution
 
 Date: 2026-05-24

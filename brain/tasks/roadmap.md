@@ -17,14 +17,15 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ### Sales Orders Filtered Excel Export
 - Priority: High
-- Description: Reimplement the historical Sales Orders Excel export on the current Sales Orders V2 page. The export button should appear when filters are applied, or when rows are selected, and should download the current filtered or selected order set as `.xlsx`.
+- Description: Implemented the historical Sales Orders Excel export on the current Sales Orders V2 page. The export button appears when filters are applied, or when rows are selected, and downloads the current filtered or selected order set as `.xlsx`.
 - Related Feature: Sales orders, Sales Orders V2, spreadsheet reporting
-- Status: Roadmap
-- Plan Status: Proposed
+- Status: Done
+- Plan Status: Implemented
 - Plan File: brain/plans/2026-07-10-spec-sales-orders-filtered-excel-export.md
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/41
 - Created Date: 2026-07-10
-- Latest Analysis Note: Historical `SalesOrderExport` existed in commits `93870eb3d`, `96c54292f`, and `5d9d88456`, mounted from the old sales order header. It hid itself unless filters or row selections existed. The current Sales Orders V2 header/table no longer mounts this export, and the new UUID-keyed row selection means selected exports must resolve numeric sales ids from row data instead of coercing selection keys.
+- Completed Date: 2026-07-10
+- Latest Implementation Note: Restored the report action in `SalesOrdersV2Header`, added tested export mapping/query helpers, and bridged table selection from UUID row ids to numeric sales order ids for selected exports. The client-side workbook uses `sales.getOrders`, `xlsx-js-style`, historical order overview links, money formatting, frozen header, widths, and autofilter.
 
 ### Unit Invoice Search Parity With Project Units
 - Priority: High

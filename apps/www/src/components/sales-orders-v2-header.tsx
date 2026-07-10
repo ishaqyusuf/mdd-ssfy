@@ -13,6 +13,7 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { CreateSalesBtn } from "./create-sales-btn";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { SalesOrdersV2ColumnVisibility } from "./sales-orders-v2-column-visibility";
+import { SalesOrdersV2Export } from "./sales-orders-v2-export";
 import { SalesTabs } from "./sales-tabs";
 
 export function SalesOrdersV2Header() {
@@ -31,6 +32,7 @@ export function SalesOrdersV2Header() {
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				<SalesOrdersV2ColumnVisibility />
+				<SalesOrdersV2Export />
 				<CreateSalesBtn />
 			</div>
 		</div>

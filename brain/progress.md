@@ -2,6 +2,14 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- Implemented the Sales Orders filtered Excel export on the current Sales Orders V2 page.
+  - Added a header report button that appears only when Sales Orders filters are active or rows are selected.
+  - Added tested export helpers for row mapping, historical sales overview hyperlinks, filename generation, visibility trigger logic, and `sales.getOrders` export query input.
+  - Wired the UUID-keyed sales orders table selection to numeric sales order ids in the shared sales orders store so selected exports call the current query with `salesIds`.
+  - The generated `.xlsx` workbook uses `xlsx-js-style`, current `sales.getOrders` rows, formatted money values, linked order numbers, delivery/status columns, frozen header, column widths, and Excel autofilter.
+  - Validation: `bun test apps/www/src/components/sales-orders-export.test.ts` passed; scoped `bunx biome check --formatter-enabled=false` over the touched source files passed; `git diff --check` passed. Broad typecheck/build/browser validation was intentionally not run under the fast Bun monorepo command discipline for this narrow UI/reporting change.
+  - Brain files updated: `brain/features/sales-orders-v2.md`, `brain/plans/2026-07-10-spec-sales-orders-filtered-excel-export.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database schema, migration, API endpoint/contract, or permission documentation changed because the feature reuses the existing `sales.getOrders` contract and client-side Excel dependency.
+
 - Published the synthesized spec for reimplementing Sales Orders filtered Excel export.
   - Created GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/41 with the `ready-for-agent` label.
   - Located the historical feature in `SalesOrderExport` across commits `93870eb3d`, `96c54292f`, and `5d9d88456`; it was mounted from the old sales order header and appeared when filters were applied or rows were selected.

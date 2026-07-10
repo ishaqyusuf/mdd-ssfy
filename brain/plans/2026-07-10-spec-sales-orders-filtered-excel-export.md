@@ -1,9 +1,10 @@
 # Sales Orders Filtered Excel Export
 
 ## Status
-- Proposed
+- Implemented
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/41
 - Created Date: 2026-07-10
+- Completed Date: 2026-07-10
 
 ## Problem Statement
 
@@ -69,6 +70,23 @@ The export should use the current Sales Orders V2 query/filter contract and tabl
 - Tests should avoid coupling to internal TanStack Table implementation details beyond the existing public row-selection state shape.
 - Prior art includes the current Sales Accounting Excel export and the current Sales Orders V2 table/header tests or focused component patterns.
 - Browser smoke after implementation should cover applying a filter on `/sales-book/orders`, seeing the report/export button, downloading an `.xlsx`, and confirming at least the header row plus a known filtered order row.
+
+## Implementation Summary
+
+- Added `SalesOrdersV2Export` to the current Sales Orders header action area.
+- Added `sales-orders-export.ts` to keep export row mapping, historical overview links, report filename generation, trigger logic, and export query construction outside the button component.
+- The export button is hidden until a Sales Orders filter is active or one or more table rows are selected.
+- Filtered export refetches `sales.getOrders` with the current Sales Orders filter params, current sort, and `size: 999`.
+- Selected export resolves the UUID-keyed TanStack row selection to numeric sales order ids from current table rows and passes those ids to `sales.getOrders` as `salesIds`.
+- The generated workbook includes serial number, date, linked order number, sales rep, P.O., invoice, paid, pending, customer, phone, address, delivery method, and status.
+- Workbook generation remains client-side through the already-installed `xlsx-js-style` package and adds column widths, frozen header row, header styling, and Excel autofilter.
+
+## Validation
+
+- `bun test apps/www/src/components/sales-orders-export.test.ts` passed.
+- `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts` passed.
+- `git diff --check` passed.
+- Broad typecheck/build/browser validation was intentionally not run under the fast Bun monorepo command discipline for this narrow UI/reporting change.
 
 ## Out of Scope
 

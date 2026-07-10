@@ -49,7 +49,8 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const { filters, hasFilters } = useSalesOrdersV2FilterParams();
 	const overviewQuery = useSalesOverviewQuery();
 	const parentRef = useRef<HTMLDivElement>(null);
-	const { rowSelection, setRowSelection, setColumns } = useSalesOrdersStore();
+	const { rowSelection, setRowSelection, setColumns, setSelectedSalesIds } =
+		useSalesOrdersStore();
 	const setIsTableScrolled = useSalesOrdersStore(
 		(state) => state.setIsTableScrolled,
 	);
@@ -95,6 +96,24 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const tableData = useMemo(() => {
 		return data?.pages.flatMap((page) => page?.data ?? []) ?? [];
 	}, [data]);
+
+	useEffect(() => {
+		const selectedIds = tableData.reduce<number[]>((ids, order) => {
+			if (rowSelection[order.uuid]) {
+				ids.push(order.id);
+			}
+
+			return ids;
+		}, []);
+
+		setSelectedSalesIds(selectedIds);
+	}, [rowSelection, setSelectedSalesIds, tableData]);
+
+	useEffect(() => {
+		return () => {
+			setSelectedSalesIds([]);
+		};
+	}, [setSelectedSalesIds]);
 
 	const table = useReactTable({
 		data: tableData,

@@ -57,6 +57,8 @@
   - `apps/www/src/hooks/use-sales-orders-v2-filter-params.ts`
 - Header
   - `apps/www/src/components/sales-orders-v2-header.tsx`
+  - `apps/www/src/components/sales-orders-v2-export.tsx`
+  - `apps/www/src/components/sales-orders-export.ts`
   - `apps/www/src/components/sales-tabs.tsx` renders the shared sales-book Orders/Quotes/Production/Shelf Items navigation as a real `ButtonGroup` in both the page-tab portal and the compact inline header placement.
 - Summary widgets
   - `apps/www/src/components/sales-orders-v2-summary-widgets.tsx`
@@ -87,6 +89,7 @@
 - Legacy `/sales-book/create-order` fresh-create forms prompt for customer selection on open. When the hydrated legacy form has no saved sales id and no `metaData.customer.id`, it opens a dismissible `Create Order: Select Customer` dialog that reuses the existing legacy customer lookup; selecting a customer updates the same legacy form store and closes the dialog, while closing the prompt lets the user continue without selecting a customer.
 - Sales control tasks launched from `SalesMenu.MarkAs` register serializable task-monitor intents for production completion and fulfillment. The global bottom-right task monitor now handles those intents on Trigger completion and invalidates the sales list, sales summary, production overview, and sale overview queries so status changes refresh even after the dropdown unmounts.
 - Since the task monitor owns Mark As progress/completion feedback, `SalesMenu.MarkAs` suppresses duplicate start/completion toasts. Startup failures that happen before a task can be monitored still surface as destructive toast errors.
+- Filtered/selected Excel report export is restored on the current Sales Orders header. The report button stays hidden for the default unfiltered/unselected page, appears when Sales Orders filters are active or table rows are selected, refetches through the current `sales.getOrders` contract with `size: 999`, uses selected numeric `salesIds` resolved from UUID-keyed table rows, and generates a client-side `.xlsx` workbook with linked order numbers, money formatting, frozen header, column widths, and Excel autofilter.
 
 ## Current Table Shape
 - Columns
@@ -109,6 +112,7 @@
   - order overview sheets render the same lifecycle status label/tone near the order number, using the shared order lifecycle helper plus a `cva`-backed overview badge presenter
 - Batch interaction
   - selecting one or more orders opens the floating bottom batch bar
+  - selected rows also enable the header Excel report export; the table resolves selected UUID row keys to numeric sales order ids before export
   - the batch bar exposes a dedicated `Mark as` dropdown backed by `SalesMenu.MarkAs` for multi-order `Production completed` and `Fulfilled` updates
   - print remains a print-only batch menu so status changes are no longer hidden inside the print action
 - Row density
@@ -136,6 +140,11 @@
 - Move more of the sales list/query normalization into shared package-layer application code if the current orders query becomes a shared model for other clients.
 
 ## Validation
+- 2026-07-10 filtered Excel export implementation:
+  - `bun test apps/www/src/components/sales-orders-export.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts` passed.
+  - `git diff --check` passed.
+  - Broad typecheck/build/browser validation was intentionally not run under the fast Bun monorepo command discipline for this narrow UI/reporting change.
 - 2026-06-16 browser smoke:
   - Quick Login as Pablo Cruz / Super Admin.
   - Desktop `/sales-book/orders` rendered summary cards, Orders search placeholder, table headers, and 20 virtual rows with no `/sales-book/orders/v2` links or Legacy button.

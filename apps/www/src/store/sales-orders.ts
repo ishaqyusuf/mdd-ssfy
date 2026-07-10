@@ -7,6 +7,8 @@ interface SalesOrdersState {
     setColumns: (columns: Column<unknown, unknown>[]) => void;
     setRowSelection: (updater: Updater<RowSelectionState>) => void;
     rowSelection: Record<string, boolean>;
+    selectedSalesIds: number[];
+    setSelectedSalesIds: (selectedSalesIds: number[]) => void;
     isTableScrolled: boolean;
     setIsTableScrolled: (isTableScrolled: boolean) => void;
     showColumnDividers: boolean;
@@ -22,6 +24,7 @@ interface SalesOrdersState {
 export const useSalesOrdersStore = create<SalesOrdersState>((set) => ({
     columns: [],
     rowSelection: {},
+    selectedSalesIds: [],
     isTableScrolled: false,
     showColumnDividers: false,
     setColumns: (columns) => set({ columns }),
@@ -36,6 +39,7 @@ export const useSalesOrdersStore = create<SalesOrdersState>((set) => ({
                         : updater,
             };
         }),
+    setSelectedSalesIds: (selectedSalesIds) => set({ selectedSalesIds }),
     setShowColumnDividers: (updater) =>
         set((state) => {
             const nextValue =

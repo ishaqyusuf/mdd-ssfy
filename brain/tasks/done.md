@@ -4,6 +4,18 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Sales Orders Filtered Excel Export
+- Priority: High
+- Description: Restored the historical Sales Orders Excel report action on the current Sales Orders V2 page. The button is hidden for the default unfiltered/unselected page, appears when filters are active or rows are selected, refetches through the current `sales.getOrders` contract, resolves selected UUID row keys to numeric sales ids, and downloads a formatted `.xlsx` report with linked order numbers.
+- Related Feature: Sales orders, Sales Orders V2, spreadsheet reporting
+- Status: Done
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-10-spec-sales-orders-filtered-excel-export.md
+- Feature File: brain/features/sales-orders-v2.md
+- GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/41
+- Evidence: apps/www/src/components/sales-orders-v2-export.tsx; apps/www/src/components/sales-orders-export.ts; apps/www/src/components/sales-orders-export.test.ts; apps/www/src/components/tables-2/sales-orders/data-table.tsx; apps/www/src/store/sales-orders.ts
+- Completed Date: 2026-07-10
+
 ### Sidebar Footer Account Menu Hover Loop
 - Priority: Medium
 - Description: Stabilized the desktop sidebar footer account menu so clicking the footer opens the dropdown inside the sidebar, movement between the dropdown and other sidebar areas no longer triggers a close/collapse loop, leaving the sidebar hides the dropdown without resetting requested-open state, and hovering back restores it. The footer user control now renders as a flat full-width row attached to the footer border instead of an inset card.
