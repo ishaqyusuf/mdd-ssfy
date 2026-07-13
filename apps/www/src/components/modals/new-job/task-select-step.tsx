@@ -1,13 +1,13 @@
-import { Icons } from "@gnd/ui/icons";
-import { useJobFormContext } from "@/contexts/job-form-context";
 import { SearchInput } from "@/components/search-input";
+import { useJobFormContext } from "@/contexts/job-form-context";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobRole } from "@/hooks/use-job-role";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
-import { Skeleton } from "@gnd/ui/skeleton";
 import { useSearch } from "@gnd/ui/hooks/use-search";
+import { Icons } from "@gnd/ui/icons";
+import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { StepTitle } from "./step-title";
 import { SubHeader } from "./sub-header";
@@ -76,7 +76,7 @@ export function TaskSelectStep({}) {
             )}
             <LoadingSkeleton isPending={isPending}>
                 <div className="space-y-2">
-                    {state.allowCustomJobs ? (
+                    {state.allowCustomJobs && canLoadTasks ? (
                         <button
                             onClick={() => {
                                 setParams({

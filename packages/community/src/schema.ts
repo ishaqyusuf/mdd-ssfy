@@ -84,6 +84,7 @@ export const jobFormSchema = z
           addonPercent: z.number().optional().nullable(),
           additionalCostReason: z.string().optional().nullable(),
           additional_cost: z.number().optional().nullable(),
+          submittedFrom: z.enum(["web", "mobile"]).optional().nullable(),
         })
         .optional()
         .nullable(),

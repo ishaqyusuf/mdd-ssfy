@@ -2,6 +2,8 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- 2026-07-13: Enforced project-first contractor job submission and added job submission source tracking. The website job modal no longer exposes the projectless top-level Custom shortcut; custom tasks can only continue after a project is selected and the selected project/unit/model context is preserved on save. `community.saveJobForm` now rejects saves missing `unit.id` or `unit.projectId`. Website saves stamp `job.meta.submittedFrom="web"`, Expo V2 saves stamp `"mobile"`, and the admin job overview displays Website/Mobile app/Unknown source from that meta while continuing to use `Jobs.createdAt` as the submission timestamp. Validation: scoped `git diff --check` passed; Biome no-write formatting/import check passed over the touched files; package/app typechecks and strict Biome lint remain blocked by existing unrelated baseline diagnostics in API, sales, inventory, UI, and Expo hook files.
+
 - Implemented task monitor client simplification and the generic task-run diagnostics ledger.
   - Production task feedback now hides the detailed task monitor, numeric count, run id, task name, copy/cancel controls, and raw error details; normal users see only a spinner-style loading circle while background work runs.
   - Terminal task states now produce closeable toasts: success variant for completed work and destructive variant for failures, with safe production copy while preserving developer detail in the diagnostics ledger.

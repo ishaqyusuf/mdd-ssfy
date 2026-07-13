@@ -27,6 +27,15 @@ Everything else is standalone.
 - Toggling access clears the target employee's `session` and `webAuthSession` records so the header bug-report button reflects the updated `can.submitBugReport` snapshot after login/session refresh.
 - The employee-management permission picker also initializes `submit bug report` alongside the existing `submit custom job` employee-specific permission.
 
+## 2026-07-13 Job Submission Project Gate And Source
+
+- Website job submission uses the existing `NewJobModal` path for contractor submit and admin assign flows.
+- Website contractors/admins must choose an existing project and unit before a job can be saved. The projectless top-level `Custom` shortcut was removed from project selection.
+- The remaining website `Custom Task` option is only available after a project is selected, and custom-task saves preserve the selected project/unit/model context.
+- `community.saveJobForm` rejects payloads without `unit.id` and `unit.projectId`, so old clients or crafted requests cannot create projectless jobs through the shared save route.
+- Job submission source is stored in `Jobs.meta.submittedFrom` as `"web"` or `"mobile"`. No extra submitted-at timestamp is stored; `Jobs.createdAt` remains the submission time source.
+- Admin job overview displays `Website`, `Mobile app`, or `Unknown source` from `job.meta.submittedFrom`.
+
 ---
 
 ## New DB Schema — `packages/db/src/schema/hrm.prisma`

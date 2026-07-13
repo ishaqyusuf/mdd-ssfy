@@ -52,6 +52,9 @@ Tracks important request/response contracts and shared schema boundaries.
   - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
   - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
   - Expo mobile packing uses the same `packingListQuerySchema` tabs and opens the shared dispatch detail screen in a packing-aware mode via route params instead of introducing a second item-detail contract
+- Community job form contracts now include:
+  - `community.saveJobForm` requires `unit.id` and `unit.projectId` before saving a job. Website and Expo clients must submit jobs against an existing project/unit; projectless/custom-project job creation is out of contract.
+  - `job.meta.submittedFrom` accepts `"web" | "mobile" | null` for source tracking. No separate submitted timestamp is part of the contract because `Jobs.createdAt` remains the submission time source.
 - Contractor payout print contracts now include:
   - `jobs.contractorPayoutOverview` and `print.contractorPayouts` return `description: string | null` and optional `isCustom: boolean | null` on each payout job row, preserving status, amount, payment totals, and structured project/unit fields.
   - `print.contractorPayouts` also returns top-level `companyAddress` for the branded contractor payout cover page.

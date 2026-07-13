@@ -44,15 +44,15 @@ import {
 	uploadCommunityProjectDocumentsSchema,
 } from "@api/db/queries/community";
 import {
-	getCommunityTemplates,
-	getCommunityTemplatesSchema,
-} from "@api/db/queries/community-template";
-import {
 	getBuilderTasksForProject,
 	getBuilderTasksForProjectSchema,
 	getCommunityJobForm,
 	getCommunityJobFormSchema,
 } from "@api/db/queries/community-job-form";
+import {
+	getCommunityTemplates,
+	getCommunityTemplatesSchema,
+} from "@api/db/queries/community-template";
 import {
 	getProjectUnits,
 	getProjectUnitsSchema,
@@ -93,11 +93,11 @@ import {
 	updateInstallCostSchema,
 } from "@api/schemas/community";
 import { assertInstallCostAccess } from "@api/utils/community-unit-access";
-import { buildInstallCostSuggestionsWhere } from "@api/utils/install-cost-suggestions";
 import {
 	sortBuilderTasks,
 	sortInstallCosts,
 } from "@api/utils/install-cost-sort";
+import { buildInstallCostSuggestionsWhere } from "@api/utils/install-cost-suggestions";
 import { getBuilders, getBuildersSchema } from "@community/builder";
 import {
 	saveCommunityModel,
@@ -452,6 +452,9 @@ export const communityRouters = createTRPCRouter({
 		const { ctx, input } = props;
 		return ctx.db.$transaction(async (db) => {
 			const { unit, user, job: jobInput } = input;
+			if (!unit?.id || !unit?.projectId) {
+				throw new Error("Project and unit are required before saving a job.");
+			}
 			let jobId = jobInput.id;
 			const isCreatingJob = !jobId;
 			const previousJob = jobId

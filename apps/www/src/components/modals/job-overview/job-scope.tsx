@@ -1,6 +1,6 @@
-import { Icons } from "@gnd/ui/icons";
 import { useJobOverviewContext } from "@/contexts/job-overview-context";
 import { Badge } from "@gnd/ui/badge";
+import { Icons } from "@gnd/ui/icons";
 import { Card, Table } from "@gnd/ui/namespace";
 
 export function JobScope() {
@@ -58,14 +58,14 @@ export function JobScope() {
                             </div>
 
                             <h4 className="text-lg font-bold text-foreground">
-                                Ad-hoc Custom Job
+                                Custom Task
                             </h4>
 
                             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                                This job was created as a custom task without
-                                standard itemized quantities. The total payout
-                                is calculated based on the negotiated flat fee
-                                listed in the financial summary.
+                                This job was submitted as a custom task with
+                                manual pricing. The total payout is calculated
+                                from the flat fee listed in the financial
+                                summary.
                             </p>
                         </Card.Content>
                     </Card>

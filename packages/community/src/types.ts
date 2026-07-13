@@ -309,6 +309,7 @@ export interface JobMeta {
   taskCost: number;
   addon: number;
   addonPercent?: number;
+  submittedFrom?: "web" | "mobile" | null;
   costData: InstallCostingTemplate<{ qty: number; cost: number }>;
 }
 

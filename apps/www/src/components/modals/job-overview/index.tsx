@@ -1,4 +1,3 @@
-import { Icons } from "@gnd/ui/icons";
 import { Avatar } from "@/components/avatar";
 import { SearchInput } from "@/components/search-input";
 import {
@@ -13,6 +12,7 @@ import { useJobRole } from "@/hooks/use-job-role";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { Progress } from "@gnd/ui/custom/progress";
+import { Icons } from "@gnd/ui/icons";
 import { Card } from "@gnd/ui/namespace";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -70,6 +70,12 @@ function getInsuranceMeta(status: InsuranceRequirement) {
 	}
 }
 
+function getSubmittedFromLabel(source: unknown) {
+	if (source === "web") return "Website";
+	if (source === "mobile") return "Mobile app";
+	return "Unknown source";
+}
+
 export function JobOverviewModal() {
 	const { setParams, openJobId, opened } = useJobParams();
 
@@ -102,9 +108,11 @@ function Content() {
 	const ctx = useCreateJobOverviewContext();
 	const job = ctx.overview;
 	const pathname = usePathname();
+	const { isAdmin } = useJobRole();
 	const [isPaymentOverviewOpen, setIsPaymentOverviewOpen] =
 		React.useState(false);
 	if (!job) return null;
+	const submittedFromLabel = getSubmittedFromLabel(job.meta?.submittedFrom);
 	const normalizedStatus = String(job?.status || "")
 		.toLowerCase()
 		.replace(/[_\s]+/g, "-");
@@ -146,6 +154,12 @@ function Content() {
 					<span className="font-mono">{job.jobId}</span>
 					<span>•</span>
 					<span>Created {formatDate(job.createdAt)}</span>
+					{isAdmin ? (
+						<>
+							<span>•</span>
+							<span>Submitted from {submittedFromLabel}</span>
+						</>
+					) : null}
 				</p>
 			</CustomModal.Description>
 			<div className="flex-1 overflow-y-auto p-6 md:p-8">

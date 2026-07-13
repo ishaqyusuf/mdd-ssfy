@@ -704,6 +704,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 							values?.job?.meta?.additional_cost ??
 							defaultMeta.additional_cost ??
 							null,
+						submittedFrom: "mobile",
 					},
 				},
 			} satisfies JobFormSchema;

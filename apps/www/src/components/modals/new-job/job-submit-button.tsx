@@ -1,10 +1,10 @@
-import { Icons } from "@gnd/ui/icons";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
 import { useJobStepInfo } from "@/hooks/use-job-step-info";
 import { useTRPC } from "@/trpc/client";
 import type { JobFormSchema } from "@community/schema";
 import type { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { percentageValue, sum } from "@gnd/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -98,22 +98,18 @@ export function JobSubmitButton({
 							typedDefaultValues?.user?.id ??
 							null,
 					};
-					normalizedValues.unit = isCustom
-						? undefined
-						: {
-								id: normalizedValues.unit?.id ?? unitId ?? 0,
-								projectId:
-									normalizedValues.unit?.projectId ?? projectId ?? 0,
-							};
+					normalizedValues.unit = {
+						id: normalizedValues.unit?.id ?? unitId ?? 0,
+						projectId:
+							normalizedValues.unit?.projectId ?? projectId ?? 0,
+					};
 					const resolvedBuilderTaskId =
 						normalizedValues.builderTaskId ?? builderTaskId ?? undefined;
 					normalizedValues.builderTaskId =
 						resolvedBuilderTaskId && resolvedBuilderTaskId > 0
 							? resolvedBuilderTaskId
 							: undefined;
-					normalizedValues.modelId = isCustom
-						? undefined
-						: (normalizedValues.modelId ?? modelId ?? 0);
+					normalizedValues.modelId = normalizedValues.modelId ?? modelId ?? 0;
 					const defaultMeta = typedDefaultValues?.job?.meta || {};
 					const addonPercent =
 						Number(normalizedValues.job?.meta?.addonPercent) ||
@@ -135,6 +131,7 @@ export function JobSubmitButton({
 						addonPercent,
 						addon,
 						additional_cost: isCustom ? extraCost : null,
+						submittedFrom: "web",
 					};
 					normalizedValues.job.amount = sum([taskTotal, addon, extraCost]);
 					normalizedValues.requestTaskConfig = submitAsTaskRequest;
