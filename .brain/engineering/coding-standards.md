@@ -4,7 +4,7 @@
 Repository-level implementation rules that recur across active workstreams.
 
 ## Canonical Guide
-- See `brain/system/architecture-guide.md` for the full repository architecture handbook, including placement, Midday-style page architecture, and performance expectations.
+- See `.brain/system/architecture-guide.md` for the full repository architecture handbook, including placement, Midday-style page architecture, and performance expectations.
 
 ## Standards
 - Prefer shared package/domain logic over app-local duplication.
@@ -32,6 +32,14 @@ Repository-level implementation rules that recur across active workstreams.
   - follow Midday's structural patterns first: thin route shells, section-based composition, and on-demand secondary data
   - use existing in-repo reference patterns from `apps/www/src/(midday)` and `ai/midday-example` only as secondary examples
 
+## Midday Implementation Standards
+- Prefer Midday's shadcn component usage, table composition, sheets, modals, sidebar layout, and page-level composition before inventing new UI structures.
+- Place global sheet registration in `components/sheets/global-sheets.tsx` and provide it through `components/sheets/global-sheets-provider.tsx` when a surface uses the global sheet pattern.
+- Place reusable sheet implementations under `components/sheets/` and reusable modal implementations under `components/modals/`.
+- Keep table primitives and shared behaviors under `components/tables/core`; put domain-specific table implementations under `components/tables/<domain>/`.
+- Put form composition under `components/forms/`, onboarding flows under `components/onboarding/`, sidebar composition in `components/sidebar.tsx`, and sign-out controls in `components/sign-out.tsx` when those files are part of the app surface.
+- Route files should compose sections and providers; business rules, validation, pricing, inventory, permissions, and document behavior should live in the appropriate app feature boundary or shared package.
+
 <!-- personal-coding-rules:start -->
 ## Global Personal Coding Rules
 
@@ -41,5 +49,5 @@ Agents must treat these global coding rule references as non-negotiable:
 - `/Users/M1PRO/.me/coding-standards/nextjs.md`
 - `/Users/M1PRO/.me/coding-standards/expo.md`
 
-Project-specific exceptions require an ADR in `brain/decisions/` before agents may diverge.
+Project-specific exceptions require an ADR in `.brain/decisions/` before agents may diverge.
 <!-- personal-coding-rules:end -->

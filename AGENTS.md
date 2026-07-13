@@ -2,22 +2,22 @@
 
 ## Brain Protocol
 
-`brain/` is the persistent project memory. Use it before, during, and after every task so work is discoverable across sessions.
+`.brain/` is the persistent project memory. Use it before, during, and after every task so work is discoverable across sessions.
 
 Before starting work:
 
-- Read the relevant Brain files for the task. Start with `brain/BRAIN.md`, `brain/SYSTEM_OVERVIEW.md`, `brain/system/overview.md`, `brain/system/architecture.md`, `brain/engineering/ai-rules.md`, `brain/engineering/coding-standards.md`, `brain/tasks/in-progress.md`, and `brain/progress.md` when present.
-- For sales, inventory, payments, production, customer, employee, or dashboard work, read the matching file under `brain/features/`, `brain/plans/`, `brain/handoffs/`, or `brain/decisions/`.
-- For API, permission, database, migration, or sync work, read the matching files under `brain/api/` and `brain/database/`.
+- Read the relevant Brain files for the task. Start with `.brain/BRAIN.md`, `.brain/SYSTEM_OVERVIEW.md`, `.brain/system/overview.md`, `.brain/system/architecture.md`, `.brain/engineering/ai-rules.md`, `.brain/engineering/coding-standards.md`, `.brain/tasks/in-progress.md`, and `.brain/progress.md` when present.
+- For sales, inventory, payments, production, customer, employee, or dashboard work, read the matching file under `.brain/features/`, `.brain/plans/`, `.brain/handoffs/`, or `.brain/decisions/`.
+- For API, permission, database, migration, or sync work, read the matching files under `.brain/api/` and `.brain/database/`.
 
 After code changes:
 
 - Run a Brain documentation impact check before finishing.
-- Update `brain/database/schema.md`, `brain/database/relationships.md`, or `brain/database/migrations.md` for database changes.
-- Update `brain/api/endpoints.md`, `brain/api/contracts.md`, or `brain/api/permissions.md` for API, contract, auth, or permission changes.
-- Update or create `brain/features/<feature>.md` for feature behavior changes.
-- Add an ADR under `brain/decisions/` for durable architecture, product, integration, or implementation decisions.
-- Update `brain/tasks/backlog.md`, `brain/tasks/in-progress.md`, `brain/tasks/done.md`, `brain/tasks/roadmap.md`, or `brain/progress.md` when task state changes.
+- Update `.brain/database/schema.md`, `.brain/database/relationships.md`, or `.brain/database/migrations.md` for database changes.
+- Update `.brain/api/endpoints.md`, `.brain/api/contracts.md`, or `.brain/api/permissions.md` for API, contract, auth, or permission changes.
+- Update or create `.brain/features/<feature>.md` for feature behavior changes.
+- Add an ADR under `.brain/decisions/` for durable architecture, product, integration, or implementation decisions.
+- Update `.brain/tasks/backlog.md`, `.brain/tasks/in-progress.md`, `.brain/tasks/done.md`, `.brain/tasks/roadmap.md`, or `.brain/progress.md` when task state changes.
 - If no Brain update is needed, state that explicitly in the final response with the reason.
 
 Final responses must include the Brain files updated, or `No Brain documentation updates required` with a short rationale.

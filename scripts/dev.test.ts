@@ -167,7 +167,7 @@ describe("dev script profile router", () => {
 
 	test("lists valid packages when a filter target is missing", () => {
 		expect(() => parseArgs(["--filter", "marketing", "@gnd/dashboard"])).toThrow(
-			/Unknown dev filter packages: marketing, @gnd\/dashboard\nValid packages: .*@gnd\/api.*@gnd\/www/s,
+			/Unknown dev filter packages: marketing, @gnd\/dashboard\nAvailable packages:\napps\/:\n  @gnd\/api[\s\S]*  @gnd\/www\npackages\/:\n  @gnd\/app-store[\s\S]*  @gnd\/utils/,
 		);
 	});
 });

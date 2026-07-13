@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { findWorkspaceRoot } from "./with-dev-infra";
 
 type DevProfile = "local" | "remote-dev" | "prod";
@@ -15,6 +15,11 @@ type DevCliOptions = {
 	filters?: DevFilterOptions;
 };
 
+type WorkspacePackage = {
+	name: string;
+	relativeDir: string;
+};
+
 const PROFILE_FLAGS = new Map<string, DevProfile>([
 	["--local", "local"],
 	["--remote-dev", "remote-dev"],
@@ -22,7 +27,7 @@ const PROFILE_FLAGS = new Map<string, DevProfile>([
 ]);
 const FILTER_FLAGS = new Set(["--filter", "--f", "-f", "-filter"]);
 
-let cachedWorkspacePackages: string[] | undefined;
+let cachedWorkspacePackageEntries: WorkspacePackage[] | undefined;
 
 export function parseArgs(argv: string[]): DevCliOptions {
 	let profile: DevProfile = "local";
@@ -175,7 +180,7 @@ function validateFilterTargets(targets: string[]) {
 	throw new Error(
 		[
 			`Unknown dev filter package${missingPackages.length === 1 ? "" : "s"}: ${missingPackages.join(", ")}`,
-			`Valid packages: ${validPackages.join(", ")}`,
+			formatAvailablePackagesByWorkspace(),
 		].join("\n"),
 	);
 }
@@ -221,11 +226,17 @@ function isExactPackageFilter(target: string): boolean {
 }
 
 function workspacePackages(): string[] {
-	cachedWorkspacePackages ??= readWorkspacePackages();
-	return cachedWorkspacePackages;
+	return workspacePackageEntries().map(
+		(workspacePackage) => workspacePackage.name,
+	);
 }
 
-function readWorkspacePackages(): string[] {
+function workspacePackageEntries(): WorkspacePackage[] {
+	cachedWorkspacePackageEntries ??= readWorkspacePackageEntries();
+	return cachedWorkspacePackageEntries;
+}
+
+function readWorkspacePackageEntries(): WorkspacePackage[] {
 	const workspaceRoot = findWorkspaceRoot(process.cwd());
 	const packageJson = JSON.parse(
 		readFileSync(resolve(workspaceRoot, "package.json"), "utf8"),
@@ -234,7 +245,7 @@ function readWorkspacePackages(): string[] {
 		? packageJson.workspaces.filter((workspace): workspace is string => typeof workspace === "string")
 		: [];
 
-	const packageNames = new Set<string>();
+	const workspacePackages = new Map<string, WorkspacePackage>();
 	for (const workspace of workspaces) {
 		if (workspace.startsWith("!")) {
 			continue;
@@ -250,12 +261,47 @@ function readWorkspacePackages(): string[] {
 				name?: unknown;
 			};
 			if (typeof workspacePackage.name === "string") {
-				packageNames.add(workspacePackage.name);
+				workspacePackages.set(workspacePackage.name, {
+					name: workspacePackage.name,
+					relativeDir: relative(workspaceRoot, packageDir),
+				});
 			}
 		}
 	}
 
-	return [...packageNames].sort();
+	return [...workspacePackages.values()].sort((a, b) =>
+		a.name.localeCompare(b.name),
+	);
+}
+
+function formatAvailablePackagesByWorkspace() {
+	const entries = workspacePackageEntries();
+	const apps = entries.filter((entry) => entry.relativeDir.startsWith("apps/"));
+	const packages = entries.filter((entry) =>
+		entry.relativeDir.startsWith("packages/"),
+	);
+	const other = entries.filter(
+		(entry) =>
+			!entry.relativeDir.startsWith("apps/") &&
+			!entry.relativeDir.startsWith("packages/"),
+	);
+	const sections = [
+		formatPackageGroup("apps/", apps),
+		formatPackageGroup("packages/", packages),
+		other.length > 0 ? formatPackageGroup("other/", other) : null,
+	].filter((section): section is string => Boolean(section));
+
+	return ["Available packages:", ...sections].join("\n");
+}
+
+function formatPackageGroup(label: string, entries: WorkspacePackage[]) {
+	if (entries.length === 0) {
+		return `${label}:\n  (none)`;
+	}
+
+	return `${label}:\n${entries
+		.map((entry) => `  ${entry.name}`)
+		.join("\n")}`;
 }
 
 function expandWorkspace(workspaceRoot: string, workspace: string): string[] {
