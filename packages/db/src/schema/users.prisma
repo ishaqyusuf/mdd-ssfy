@@ -64,6 +64,8 @@ model Users {
     definedProductionGates      OrderProductionGate[]
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
+    taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")
+    taskRunDiagnosticsReviewed  TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticReviewedBy")
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")

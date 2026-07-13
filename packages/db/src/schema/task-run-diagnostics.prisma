@@ -1,0 +1,47 @@
+enum TaskRunDiagnosticStatus {
+    RUNNING
+    SUCCEEDED
+    FAILED
+    CANCELED
+    STALE
+    START_FAILED
+}
+
+model TaskRunDiagnostic {
+    id             String                  @id @default(cuid())
+    runId          String?                 @unique @db.VarChar(255)
+    status         TaskRunDiagnosticStatus @default(RUNNING)
+    taskName       String                  @db.VarChar(255)
+    taskFamily     String?                 @db.VarChar(120)
+    title          String?                 @db.VarChar(500)
+    description    String?                 @db.Text
+    source         String?                 @db.VarChar(120)
+    environment    String?                 @db.VarChar(80)
+    actorId        Int?
+    actorName      String?                 @db.VarChar(255)
+    actorEmail     String?                 @db.VarChar(255)
+    entityType     String?                 @db.VarChar(120)
+    entityId       String?                 @db.VarChar(255)
+    entityLabel    String?                 @db.VarChar(500)
+    userMessage    String?                 @db.Text
+    internalError  String?                 @db.Text
+    errorName      String?                 @db.VarChar(255)
+    outputSummary  Json?                   @db.Json
+    metadata       Json?                   @db.Json
+    startedAt      DateTime?               @db.Timestamp(0)
+    finishedAt     DateTime?               @db.Timestamp(0)
+    lastSyncedAt   DateTime?               @db.Timestamp(0)
+    reviewedAt     DateTime?               @db.Timestamp(0)
+    reviewedById   Int?
+    createdAt      DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?               @updatedAt
+    deletedAt      DateTime?               @db.Timestamp(0)
+    actor          Users?                  @relation(name: "taskRunDiagnosticActor", fields: [actorId], references: [id])
+    reviewedBy     Users?                  @relation(name: "taskRunDiagnosticReviewedBy", fields: [reviewedById], references: [id])
+
+    @@index([status, createdAt])
+    @@index([taskName, createdAt])
+    @@index([actorId, createdAt])
+    @@index([entityType, entityId])
+    @@index([deletedAt])
+}

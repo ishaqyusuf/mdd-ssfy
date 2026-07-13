@@ -23,8 +23,8 @@ import { pageTabsRouter } from "./page-tabs.route";
 import { printRouter } from "./print.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
 import { salesPaymentProcessorRouter } from "./sales-payment-processor.route";
-import { salesRouter } from "./sales.route";
 import { salesShelfItems } from "./sales-shelf-item";
+import { salesRouter } from "./sales.route";
 import { searchRouter } from "./search.route";
 import { settingsRouter } from "./settings.route";
 import { shoppingProductsRouter } from "./shopping-products.route";
@@ -33,48 +33,50 @@ import { siteActionsRoutes } from "./site-action.route";
 import { squareTestRouter } from "./square-test.route";
 import { storefrontRouter } from "./storefront.route";
 import { taskEventsRouter } from "./task-events.route";
+import { taskRunDiagnosticsRouter } from "./task-run-diagnostics.route";
 import { taskTriggerRouter } from "./task-trigger.route";
 import { userRoutes } from "./user.route";
 import { workOrderRouter } from "./work-order.route";
 // import { studentsRouter } from "./students";
 // import { subjectsRouter } from "./subjects";
 export const appRouter = createTRPCRouter({
-  // students: studentsRouter,
-  backlogs: backlogRouters,
-  bugReports: bugReportsRouter,
-  checkout: checkoutRouter,
-  community: communityRouters,
-  customerService: customerServiceRouter,
-  customers: customerRouter,
-  dealer: dealerRouter,
-  dealerPortal: dealerPortalRouter,
-  dispatch: dispatchRouters,
-  emails: emailsRoute,
-  filters: filterRouters,
-  google: google,
-  hrm: hrmRoutes,
-  inventories: inventoriesRouter,
-  jobs: jobRoutes,
-  orgs,
-  pageTabs: pageTabsRouter,
-  notes: notesRouter,
-  newSalesForm: newSalesFormRouter,
-  print: printRouter,
-  sales: salesRouter,
-  salesShelfItems,
-  salesPaymentProcessor: salesPaymentProcessorRouter,
-  salesDashboard: salesDashboardRouter,
-  search: searchRouter,
-  settings: settingsRouter,
-  shortLinks: shortLinksRouter,
-  storefront: storefrontRouter,
-  shoppingProducts: shoppingProductsRouter,
-  siteActions: siteActionsRoutes,
-  squareTest: squareTestRouter,
-  taskTrigger: taskTriggerRouter,
-  taskEvents: taskEventsRouter,
-  user: userRoutes,
-  workOrder: workOrderRouter,
+	// students: studentsRouter,
+	backlogs: backlogRouters,
+	bugReports: bugReportsRouter,
+	checkout: checkoutRouter,
+	community: communityRouters,
+	customerService: customerServiceRouter,
+	customers: customerRouter,
+	dealer: dealerRouter,
+	dealerPortal: dealerPortalRouter,
+	dispatch: dispatchRouters,
+	emails: emailsRoute,
+	filters: filterRouters,
+	google: google,
+	hrm: hrmRoutes,
+	inventories: inventoriesRouter,
+	jobs: jobRoutes,
+	orgs,
+	pageTabs: pageTabsRouter,
+	notes: notesRouter,
+	newSalesForm: newSalesFormRouter,
+	print: printRouter,
+	sales: salesRouter,
+	salesShelfItems,
+	salesPaymentProcessor: salesPaymentProcessorRouter,
+	salesDashboard: salesDashboardRouter,
+	search: searchRouter,
+	settings: settingsRouter,
+	shortLinks: shortLinksRouter,
+	storefront: storefrontRouter,
+	shoppingProducts: shoppingProductsRouter,
+	siteActions: siteActionsRoutes,
+	squareTest: squareTestRouter,
+	taskTrigger: taskTriggerRouter,
+	taskEvents: taskEventsRouter,
+	taskRunDiagnostics: taskRunDiagnosticsRouter,
+	user: userRoutes,
+	workOrder: workOrderRouter,
 });
 
 export type AppRouter = typeof appRouter;

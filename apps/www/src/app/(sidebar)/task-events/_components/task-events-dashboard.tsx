@@ -30,12 +30,17 @@ export function TaskEventsDashboard() {
 
 	return (
 		<div className="grid gap-4">
-			<Input
-				value={search}
-				onChange={(event) => setSearch(event.target.value)}
-				placeholder="Search task events..."
-				className="max-w-md"
-			/>
+			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+				<Input
+					value={search}
+					onChange={(event) => setSearch(event.target.value)}
+					placeholder="Search task events..."
+					className="max-w-md"
+				/>
+				<Button variant="outline" size="sm" asChild>
+					<Link href="/task-events/diagnostics">Task Diagnostics</Link>
+				</Button>
+			</div>
 
 			<div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 				{filteredEvents.map((event) => {

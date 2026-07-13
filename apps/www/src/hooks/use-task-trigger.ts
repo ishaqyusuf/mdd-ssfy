@@ -5,6 +5,7 @@ import {
 	getRunTerminalState,
 	getTaskFailureMessage,
 	getTaskFailureTitle,
+	getTaskFailureToastMessage,
 	getTaskStartFailureTitle,
 } from "@/lib/task-feedback";
 import {
@@ -125,16 +126,19 @@ export function useTaskTrigger(props?: Props) {
 			if (!silent && !alreadyHandledError) {
 				toast({
 					duration: 3500,
-					variant: "error",
-					title:
-						failedRunId
-							? getTaskFailureTitle({
-									input: activeTriggerRef.current?.input,
-								})
-							: getTaskStartFailureTitle({
-									input: activeTriggerRef.current?.input,
-								}),
-					description: message || errorToast,
+					variant: "destructive",
+					title: failedRunId
+						? getTaskFailureTitle({
+								input: activeTriggerRef.current?.input,
+							})
+						: getTaskStartFailureTitle({
+								input: activeTriggerRef.current?.input,
+							}),
+					description:
+						getTaskFailureToastMessage({
+							input: activeTriggerRef.current?.input,
+							errorMessage: message,
+						}) || errorToast,
 				});
 			}
 			activeTriggerRef.current = null;

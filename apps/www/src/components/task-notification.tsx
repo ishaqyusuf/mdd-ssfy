@@ -1,6 +1,7 @@
 "use client";
 
 import { cancelTaskRunAction } from "@/actions/cancel-task-run";
+import { finalizeTaskRunDiagnosticAction } from "@/actions/task-run-diagnostics";
 import { useTaskMonitorEffects } from "@/hooks/use-task-monitor-effects";
 import { useTaskMonitorTasks } from "@/hooks/use-task-notification-params";
 import { useSession } from "@/lib/auth/client";
@@ -10,6 +11,8 @@ import {
 	getRunTaskOutputFailureMessage,
 	getRunTerminalState,
 	getTaskFailureMessage,
+	getTaskFailureTitle,
+	getTaskFailureToastMessage,
 	isSalesEmailTaskMetadata,
 } from "@/lib/task-feedback";
 import { cn } from "@/lib/utils";
@@ -24,7 +27,9 @@ import { Icons } from "@gnd/ui/icons";
 import { toast } from "@gnd/ui/use-toast";
 import { useRealtimeRun } from "@trigger.dev/react-hooks";
 import { useAction } from "next-safe-action/hooks";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const IS_PRODUCTION_TASK_FEEDBACK = process.env.NODE_ENV === "production";
 
 export function TaskNotification() {
 	const allTasks = useTaskMonitorTasks();
@@ -40,9 +45,12 @@ export function TaskNotification() {
 	const runningTasks = tasks.filter((task) => task.status === "SYNCING");
 	const failedTasks = tasks.filter((task) => task.status === "FAILED");
 	const canceledTasks = tasks.filter((task) => task.status === "CANCELED");
-	const visibleTasks = tasks.filter((task) => task.status !== "COMPLETED");
-	const visibleCount =
-		runningTasks.length + failedTasks.length + canceledTasks.length;
+	const visibleTasks = IS_PRODUCTION_TASK_FEEDBACK
+		? runningTasks
+		: tasks.filter((task) => task.status !== "COMPLETED");
+	const visibleCount = IS_PRODUCTION_TASK_FEEDBACK
+		? runningTasks.length
+		: runningTasks.length + failedTasks.length + canceledTasks.length;
 	const hasRunning = runningTasks.length > 0;
 	const hasFailures = failedTasks.length > 0;
 	const firstFailedRunId = failedTasks[0]?.runId;
@@ -60,6 +68,7 @@ export function TaskNotification() {
 	}, []);
 
 	useEffect(() => {
+		if (IS_PRODUCTION_TASK_FEEDBACK) return;
 		if (!firstFailedRunId) return;
 		setOpen(true);
 		setExpandedRunId((current) => current ?? firstFailedRunId);
@@ -84,7 +93,7 @@ export function TaskNotification() {
 
 			{visibleCount > 0 ? (
 				<div className="fixed bottom-4 right-4 z-[90] flex max-w-[calc(100vw-2rem)] flex-col items-end gap-2">
-					{open ? (
+					{open && !IS_PRODUCTION_TASK_FEEDBACK ? (
 						<div className="w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-lg border bg-background shadow-2xl">
 							<div className="flex items-center justify-between gap-3 border-b px-3 py-2">
 								<div className="flex items-center gap-2">
@@ -147,8 +156,16 @@ export function TaskNotification() {
 									? "border-primary text-primary"
 									: "border-border text-muted-foreground",
 						)}
-						onClick={() => setOpen((current) => !current)}
-						aria-label="Open task monitor"
+						onClick={() => {
+							if (!IS_PRODUCTION_TASK_FEEDBACK) {
+								setOpen((current) => !current);
+							}
+						}}
+						aria-label={
+							IS_PRODUCTION_TASK_FEEDBACK
+								? "Background task running"
+								: "Open task monitor"
+						}
 					>
 						<span
 							className={cn(
@@ -160,7 +177,13 @@ export function TaskNotification() {
 										: "border-muted-foreground/40",
 							)}
 						/>
-						<span className="relative text-base font-bold">{visibleCount}</span>
+						{IS_PRODUCTION_TASK_FEEDBACK ? (
+							<Icons.Loader2 className="relative size-5 animate-spin" />
+						) : (
+							<span className="relative text-base font-bold">
+								{visibleCount}
+							</span>
+						)}
 					</button>
 				</div>
 			) : null}
@@ -178,21 +201,47 @@ function TaskNotificationWatcher({
 	const updateTask = useTaskMonitorStore((state) => state.updateTask);
 	const removeTask = useTaskMonitorStore((state) => state.removeTask);
 	const { runTaskEffect } = useTaskMonitorEffects();
+	const finalizeDiagnostic = useAction(finalizeTaskRunDiagnosticAction);
+	const finalizedRef = useRef(new Set<string>());
 	const { run, error, stop } = useRealtimeRun(task.runId, {
 		enabled: task.status === "SYNCING" && !!task.runId && !!task.accessToken,
 		accessToken: task.accessToken,
 	});
+
+	const finalizeRun = useCallback(
+		(
+			observedStatus: "COMPLETED" | "FAILED" | "CANCELED",
+			errorMessage?: string,
+		) => {
+			const key = `${task.runId}:${observedStatus}`;
+			if (finalizedRef.current.has(key)) return;
+			finalizedRef.current.add(key);
+
+			finalizeDiagnostic.execute({
+				runId: task.runId,
+				observedStatus,
+				errorMessage,
+				metadata: task.metadata,
+				finishedAt: new Date(),
+			});
+		},
+		[finalizeDiagnostic, task.metadata, task.runId],
+	);
 
 	useEffect(() => {
 		if (task.status !== "SYNCING") return;
 
 		const failTask = (message: string) => {
 			const completedAt = Date.now();
-			const alreadyHandledError = Boolean(task.handledEffects?.error);
+			const currentTask =
+				useTaskMonitorStore
+					.getState()
+					.tasks.find((storedTask) => storedTask.runId === task.runId) ?? task;
+			const alreadyHandledError = Boolean(currentTask.handledEffects?.error);
 			const handledEffects = alreadyHandledError
-				? task.handledEffects
+				? currentTask.handledEffects
 				: {
-						...task.handledEffects,
+						...currentTask.handledEffects,
 						error: completedAt,
 					};
 
@@ -202,7 +251,27 @@ function TaskNotificationWatcher({
 				handledEffects,
 				completedAt,
 			});
-			onTaskFailed(task.runId);
+			finalizeRun("FAILED", message);
+
+			if (!alreadyHandledError) {
+				toast({
+					duration: 3500,
+					variant: "destructive",
+					title: getTaskFailureTitle({
+						metadata: task.metadata,
+					}),
+					description: getTaskFailureToastMessage({
+						metadata: task.metadata,
+						errorMessage: message,
+					}),
+				});
+			}
+
+			if (IS_PRODUCTION_TASK_FEEDBACK) {
+				window.setTimeout(() => removeTask(task.runId), 2500);
+			} else {
+				onTaskFailed(task.runId);
+			}
 
 			stop?.();
 		};
@@ -245,6 +314,7 @@ function TaskNotificationWatcher({
 					handledEffects,
 					completedAt,
 				});
+				finalizeRun("COMPLETED");
 
 				if (!alreadyHandledSuccess) {
 					try {
@@ -263,6 +333,17 @@ function TaskNotificationWatcher({
 							runId: task.runId,
 						});
 					}
+
+					if (IS_PRODUCTION_TASK_FEEDBACK) {
+						toast({
+							duration: 3500,
+							variant: "success",
+							title: "Task completed",
+							description: task.title
+								? `${task.title} completed successfully.`
+								: undefined,
+						});
+					}
 				}
 
 				window.setTimeout(() => removeTask(task.runId), 2500);
@@ -274,6 +355,7 @@ function TaskNotificationWatcher({
 		}
 
 		if (terminalState === "CANCELED") {
+			finalizeRun("CANCELED");
 			updateTask(task.runId, {
 				status: "CANCELED",
 				completedAt: Date.now(),
@@ -292,6 +374,7 @@ function TaskNotificationWatcher({
 		}
 	}, [
 		error,
+		finalizeRun,
 		onTaskFailed,
 		removeTask,
 		run,
@@ -356,7 +439,9 @@ function TaskNotificationRow({
 					variant="ghost"
 					size="icon-xs"
 					onClick={onToggleExpanded}
-					aria-label={expanded ? "Collapse task details" : "Expand task details"}
+					aria-label={
+						expanded ? "Collapse task details" : "Expand task details"
+					}
 					title={expanded ? "Collapse" : "Expand"}
 					className="mt-0.5 shrink-0"
 				>
@@ -444,7 +529,9 @@ function TaskNotificationRow({
 					{task.error ? (
 						<div className="mb-2 rounded-sm border border-destructive/20 bg-destructive/10 p-2 text-destructive">
 							<div className="mb-1 font-medium">Error details</div>
-							<div className="whitespace-pre-wrap break-words">{task.error}</div>
+							<div className="whitespace-pre-wrap break-words">
+								{task.error}
+							</div>
 						</div>
 					) : null}
 					<div className="grid gap-1.5 text-muted-foreground">
@@ -452,7 +539,9 @@ function TaskNotificationRow({
 						<TaskDetail label="Run" value={task.runId} />
 						<TaskDetail
 							label="Task"
-							value={task.metadata?.taskName || task.title || defaultTitle(task)}
+							value={
+								task.metadata?.taskName || task.title || defaultTitle(task)
+							}
 						/>
 						<TaskDetail label="Type" value={task.metadata?.type} />
 						<TaskDetail label="Entity" value={task.metadata?.entityLabel} />

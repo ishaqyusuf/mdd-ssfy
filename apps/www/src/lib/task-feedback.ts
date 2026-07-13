@@ -3,6 +3,9 @@ export const SALES_EMAIL_LEDGER_PATH = "/sales-book/emails";
 export const DEFAULT_TASK_FAILURE_MESSAGE =
 	"The background task failed. Please try again or check the task monitor.";
 
+export const DEFAULT_TASK_FAILURE_TOAST_MESSAGE =
+	"The background task failed. Please try again.";
+
 export const DEFAULT_SALES_EMAIL_FAILURE_MESSAGE =
 	"Email sending failed. No email was delivered.";
 
@@ -46,7 +49,8 @@ export function isSalesEmailTaskMetadata(metadata?: TaskMetadataLike | null) {
 
 export function isSalesEmailTask(input: FailureMessageInput) {
 	return (
-		isSalesEmailTaskInput(input.input) || isSalesEmailTaskMetadata(input.metadata)
+		isSalesEmailTaskInput(input.input) ||
+		isSalesEmailTaskMetadata(input.metadata)
 	);
 }
 
@@ -101,6 +105,15 @@ export function getTaskFailureMessage(input: FailureMessageInput) {
 
 	if (isSalesEmailTask(input)) return DEFAULT_SALES_EMAIL_FAILURE_MESSAGE;
 	return DEFAULT_TASK_FAILURE_MESSAGE;
+}
+
+export function getTaskFailureToastMessage(input: FailureMessageInput) {
+	if (process.env.NODE_ENV !== "production") {
+		return getTaskFailureMessage(input);
+	}
+
+	if (isSalesEmailTask(input)) return DEFAULT_SALES_EMAIL_FAILURE_MESSAGE;
+	return DEFAULT_TASK_FAILURE_TOAST_MESSAGE;
 }
 
 export function getTaskFailureTitle(input: FailureMessageInput) {
