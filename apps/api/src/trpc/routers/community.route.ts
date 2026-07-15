@@ -469,7 +469,7 @@ export const communityRouters = createTRPCRouter({
 				throw new Error("Project and unit are required before saving a job.");
 			}
 			if (isProjectlessCustomJob && !normalizedJobTitle) {
-				throw new Error("Project title is required for custom projects.");
+				throw new Error("Project name is required for custom projects.");
 			}
 			let jobId = jobInput.id;
 			const isCreatingJob = !jobId;

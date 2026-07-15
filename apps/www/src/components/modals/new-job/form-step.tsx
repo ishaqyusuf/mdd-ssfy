@@ -276,7 +276,7 @@ function FormContent() {
 										name="job.title"
 										render={({ field, fieldState }) => (
 											<Field>
-												<Field.Label>Project Title</Field.Label>
+												<Field.Label>Project Name</Field.Label>
 												<InputGroup
 													className={cn(
 														fieldState.error && "border-destructive",
@@ -291,7 +291,7 @@ function FormContent() {
 																form.clearErrors("job.title");
 															}
 														}}
-														placeholder="Enter project title"
+														placeholder="Enter project name"
 													/>
 												</InputGroup>
 												{fieldState.error?.message ? (

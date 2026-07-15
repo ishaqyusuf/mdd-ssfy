@@ -254,7 +254,7 @@ export function JobDetailsStep() {
             {isProjectlessCustomJob ? (
               <NeoCard className="bg-card">
                 <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
-                  Project Title
+                  Project Name
                 </Text>
                 <Controller
                   control={form.control}
@@ -273,7 +273,7 @@ export function JobDetailsStep() {
                           "rounded-2xl border bg-background px-4 py-3 text-sm text-foreground",
                           fieldState.error ? "border-destructive" : "border-border",
                         )}
-                        placeholder="Enter project title"
+                        placeholder="Enter project name"
                         placeholderTextColor="hsl(var(--muted-foreground))"
                       />
                       {fieldState.error?.message ? (

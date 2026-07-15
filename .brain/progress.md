@@ -2,9 +2,17 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- 2026-07-15: Fixed Expo preview auth URL precedence after the login debug readout showed `http://localhost:3000` in a preview build. `getWebUrl()` now uses `EXPO_PUBLIC_BASE_URL` first when `EXPO_PUBLIC_APP_VARIANT=preview`, so local-only `EXPO_PUBLIC_WEB_URL` from dotenv files cannot override the EAS preview base URL in OTA bundles.
+
+- 2026-07-15: Renamed the projectless custom job field copy from `Project Title` to `Project Name` across the website job modal, Expo V2 job details step, client validation errors, and the shared `community.saveJobForm` error.
+
+- 2026-07-15: Added foreground Expo OTA checks for installed preview mobile builds. The root-mounted auto-update hook still checks once on launch, now also checks when the app returns from background/inactive to active, uses a 5-minute default cooldown, supports `EXPO_PUBLIC_AUTO_UPDATE_ON_FOREGROUND` and `EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS`, guards concurrent checks, and keeps the existing automatic Downloading/Updating/Restarting modal and reload flow. Removed the temporary login-screen Base URL debug readout after diagnosis.
+
+- 2026-07-15: Added a temporary Expo login-screen debug readout that displays the resolved mobile auth base URL used by `mobileSignIn`, then prepared a preview OTA to diagnose the post-update Android `Network request failed` login issue.
+
 - 2026-07-15: Confirmed and polished the Expo mobile Job Configuration setting for projectless custom projects. The mobile Settings screen now has a clear `Custom projects` row wired to `jobs-settings.meta.allowCustomProject`, matching the website Job Settings toggle and controlling the mobile `Custom Project` submission option.
 
-- 2026-07-15: Required a project title for projectless custom job submissions. Website and Expo V2 custom-project job detail steps now ask for `Project Title` before the description field, client submits block blank titles, `community.saveJobForm` trims and requires `job.title`, and job list/detail overview data uses the saved title as the project label for custom project jobs. Also confirmed the retired Redis start env switch is absent from active GND/shared local-infra scripts; Redis remains opt-in only through `--redis-local`, `--redis-remote`, or `--redis-remote-dev`.
+- 2026-07-15: Required a project name for projectless custom job submissions. Website and Expo V2 custom-project job detail steps now ask for `Project Name` before the description field, client submits block blank names, `community.saveJobForm` trims and requires `job.title`, and job list/detail overview data uses the saved name as the project label for custom project jobs. Also confirmed the retired Redis start env switch is absent from active GND/shared local-infra scripts; Redis remains opt-in only through `--redis-local`, `--redis-remote`, or `--redis-remote-dev`.
 
 - 2026-07-15: Made Redis opt-in for the shared GND dev profile. `bun run dev` and `bun run dev --local` now start local Docker MySQL only; `bun run dev --remote-dev` uses the hosted dev DB only. Redis env/service wiring is enabled only by `--redis-local`, `--redis-remote`, or `--redis-remote-dev`; the retired Redis start env switch was removed from the active shared kit and GND scripts. Updated the shared `../../local-infra-kit` env/service resolvers and tests, root service scripts, `.env.example`, `apps/www/README.md`, and `.brain/database/migrations.md`. Validation: `bun test test/with-env.test.ts test/dev-services.test.ts` passed in `../../local-infra-kit`.
 

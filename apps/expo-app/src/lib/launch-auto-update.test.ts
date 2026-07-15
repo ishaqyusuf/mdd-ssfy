@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
+	DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS,
 	getAutoUpdateStepState,
 	getLaunchAutoUpdateProgress,
 	isLaunchAutoUpdateModalVisible,
+	resolveForegroundAutoUpdateConfig,
+	shouldRunForegroundAutoUpdate,
 	shouldRunLaunchAutoUpdate,
 } from "./launch-auto-update";
 
@@ -70,5 +73,67 @@ describe("launch auto update helpers", () => {
 		expect(getLaunchAutoUpdateProgress("updating")).toBe(0.86);
 		expect(getLaunchAutoUpdateProgress("restarting")).toBe(1);
 		expect(getLaunchAutoUpdateProgress("idle")).toBe(0);
+	});
+
+	it("resolves foreground auto-update config from env before app config", () => {
+		expect(
+			resolveForegroundAutoUpdateConfig({
+				envAutoUpdateOnForeground: "off",
+				extraAutoUpdateOnForeground: true,
+				envAutoUpdateForegroundCooldownMs: "120000",
+				extraAutoUpdateForegroundCooldownMs: 300000,
+			}),
+		).toEqual({
+			autoUpdateOnForeground: false,
+			foregroundCooldownMs: 120000,
+		});
+	});
+
+	it("falls back to default foreground update config for empty or invalid values", () => {
+		expect(
+			resolveForegroundAutoUpdateConfig({
+				envAutoUpdateOnForeground: "",
+				extraAutoUpdateOnForeground: undefined,
+				envAutoUpdateForegroundCooldownMs: "not-a-number",
+			}),
+		).toEqual({
+			autoUpdateOnForeground: true,
+			foregroundCooldownMs: DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS,
+		});
+	});
+
+	it("throttles foreground auto-update checks with the configured cooldown", () => {
+		expect(
+			shouldRunForegroundAutoUpdate({
+				autoUpdateOnForeground: false,
+				foregroundCooldownMs: 300000,
+				lastCheckAtMs: null,
+				nowMs: 500000,
+			}),
+		).toBe(false);
+		expect(
+			shouldRunForegroundAutoUpdate({
+				autoUpdateOnForeground: true,
+				foregroundCooldownMs: 300000,
+				lastCheckAtMs: null,
+				nowMs: 500000,
+			}),
+		).toBe(true);
+		expect(
+			shouldRunForegroundAutoUpdate({
+				autoUpdateOnForeground: true,
+				foregroundCooldownMs: 300000,
+				lastCheckAtMs: 300000,
+				nowMs: 500000,
+			}),
+		).toBe(false);
+		expect(
+			shouldRunForegroundAutoUpdate({
+				autoUpdateOnForeground: true,
+				foregroundCooldownMs: 300000,
+				lastCheckAtMs: 200000,
+				nowMs: 500000,
+			}),
+		).toBe(true);
 	});
 });

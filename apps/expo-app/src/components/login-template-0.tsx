@@ -1,5 +1,5 @@
-import { LoginQuickAccess } from "@/components/login-quick-access";
 import { shouldUsePasswordMaskTypography } from "@/components/login-password-style";
+import { LoginQuickAccess } from "@/components/login-quick-access";
 import { SafeArea } from "@/components/safe-area";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { mobileSignIn } from "@/lib/mobile-auth";
 import { type SignInSchema, signInSchema } from "@/lib/schemas/auth";
 import { useMutation } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Controller } from "react-hook-form";
 import type { TextStyle } from "react-native";
 import { Alert, Pressable, Text, View } from "react-native";

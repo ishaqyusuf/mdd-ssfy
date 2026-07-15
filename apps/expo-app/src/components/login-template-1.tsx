@@ -1,5 +1,5 @@
-import { LoginQuickAccess } from "@/components/login-quick-access";
 import { shouldUsePasswordMaskTypography } from "@/components/login-password-style";
+import { LoginQuickAccess } from "@/components/login-quick-access";
 import { SafeArea } from "@/components/safe-area";
 import { Icon } from "@/components/ui/icon";
 import { useZodForm } from "@/components/use-zod-form";
@@ -13,7 +13,7 @@ import { Image } from "expo-image";
 import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 import type { TextStyle } from "react-native";
 import {

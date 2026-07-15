@@ -59,15 +59,15 @@ export const getBaseUrl = () => {
   return `http://${localhost}:${getPortlessAppPort()}`;
 };
 export const getWebUrl = () => {
-  if (process.env.EXPO_PUBLIC_WEB_URL) {
-    return resolveReachableLocalUrl(process.env.EXPO_PUBLIC_WEB_URL);
-  }
-
   if (
     process.env.EXPO_PUBLIC_APP_VARIANT === "preview" &&
     process.env.EXPO_PUBLIC_BASE_URL
   ) {
     return process.env.EXPO_PUBLIC_BASE_URL.replace(/\/$/, "");
+  }
+
+  if (process.env.EXPO_PUBLIC_WEB_URL) {
+    return resolveReachableLocalUrl(process.env.EXPO_PUBLIC_WEB_URL);
   }
 
   const localhost = getDebuggerHostname();

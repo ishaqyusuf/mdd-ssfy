@@ -1,6 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
-export const UPDATE_VERSION = "2026.07.02";
+export const UPDATE_VERSION = "2026.07.15.04";
+const DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS = 5 * 60 * 1000;
 
 const appVariant =
   process.env.APP_VARIANT ??
@@ -117,6 +118,11 @@ const config: ExpoConfig = {
 
   extra: {
     appVariant: normalizedAppVariant,
+    autoUpdateForegroundCooldownMs:
+      process.env.EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS ??
+      DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS,
+    autoUpdateOnForeground:
+      process.env.EXPO_PUBLIC_AUTO_UPDATE_ON_FOREGROUND ?? true,
     updateVersion: UPDATE_VERSION,
     router: {},
     eas: {

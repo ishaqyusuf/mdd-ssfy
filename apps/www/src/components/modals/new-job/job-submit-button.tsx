@@ -98,7 +98,7 @@ export function JobSubmitButton({
 						if (!projectTitle) {
 							form.setError("job.title", {
 								type: "manual",
-								message: "Project title is required.",
+								message: "Project name is required.",
 							});
 							return;
 						}

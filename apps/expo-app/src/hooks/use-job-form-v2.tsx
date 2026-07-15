@@ -705,7 +705,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			if (isProjectlessCustomJob && !customProjectTitle) {
 				form.setError("job.title" as any, {
 					type: "manual",
-					message: "Project title is required.",
+					message: "Project name is required.",
 				});
 				return null;
 			}

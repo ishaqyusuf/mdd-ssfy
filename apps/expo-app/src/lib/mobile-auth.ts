@@ -17,8 +17,12 @@ type MobileSignInInput = {
   rememberMe?: boolean;
 };
 
+export function getMobileAuthBaseUrl() {
+  return getWebUrl().replace(/\/$/, "");
+}
+
 function authUrl(path: string) {
-  return `${getWebUrl().replace(/\/$/, "")}/api/auth/${path.replace(/^\//, "")}`;
+  return `${getMobileAuthBaseUrl()}/api/auth/${path.replace(/^\//, "")}`;
 }
 
 async function readJsonResponse<T>(response: Response): Promise<T> {
