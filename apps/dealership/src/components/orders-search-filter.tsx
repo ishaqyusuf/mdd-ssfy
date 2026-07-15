@@ -3,7 +3,7 @@
 import { ordersFilterParamsSchema } from "@/hooks/use-orders-filter-params";
 import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import type { PageFilterData } from "@api/type";
 import { useQuery } from "@gnd/ui/tanstack";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";

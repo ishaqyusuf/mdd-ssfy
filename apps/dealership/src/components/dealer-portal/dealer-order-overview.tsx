@@ -1,7 +1,7 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";

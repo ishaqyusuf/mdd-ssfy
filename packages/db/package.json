@@ -33,8 +33,8 @@
     "db:sync:local:dry-run": "bun scripts/sync-prod-to-local.ts --target-mode local --dry-run",
     "db:sync:table": "bun scripts/sync-prod-to-local.ts --target-mode remote-dev --table",
     "typecheck": "tsc --noEmit",
-    "with-env": "bun ../../scripts/with-dev-infra.ts --",
-    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
+    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+    "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",

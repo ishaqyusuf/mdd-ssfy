@@ -7,8 +7,8 @@
     "deploy": "bun run prisma.ts && bun run with-env:prod bun ../../scripts/with-trigger-profile.mjs -- trigger deploy",
     "dev": "bun run with-env bun ../../scripts/with-trigger-profile.mjs -- trigger dev --profile redland",
     "typecheck": "tsc --noEmit",
-    "with-env": "bun ../../scripts/with-dev-infra.ts --",
-    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
+    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+    "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
   },
   "exports": {
     "./schema": "./src/schema.ts",

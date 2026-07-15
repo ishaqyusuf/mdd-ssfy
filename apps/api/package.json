@@ -12,11 +12,12 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit",
-    "with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
-    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
+    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+    "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
   },
   "exports": {
     "./trpc/routers/_app": "./src/trpc/routers/_app.ts",
+    "./trpc/routers/dealership-app": "./src/trpc/routers/dealership-app.ts",
     "./db/queries/task-run-diagnostics": "./src/db/queries/task-run-diagnostics.ts",
     "./db/queries/customer-statement-print": "./src/db/queries/customer-statement-print.ts",
     "./utils/sales-document-access": "./src/utils/sales-document-access.ts",

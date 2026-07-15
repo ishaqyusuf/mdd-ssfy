@@ -96,6 +96,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 	const resolvedUserId = admin
 		? params.userId
 		: (params.userId ?? auth?.profile?.user?.id);
+	const isProjectlessCustomJob =
+		params.builderTaskId === -1 && !params.projectId;
 
 	const initialStep = clamp(params.step || 1, 1, tabs.length);
 	const [completed, setCompleted] = useState(false);
@@ -122,10 +124,12 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			//   id: undefined,
 			//   name: undefined,
 			// },
-			unit: {
-				id: params.unitId!,
-				projectId: params.projectId!,
-			},
+			unit: isProjectlessCustomJob
+				? undefined
+				: {
+						id: params.unitId!,
+						projectId: params.projectId!,
+					},
 			user: {
 				id: params.userId,
 			},
@@ -150,7 +154,10 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 		!!params.modelId;
 	// consoleLog("PARAMS", params,shouldLoadDefaults);
 
-	const { data: defaultValues, isPending: isDefaultValuesPending } = useQuery(
+	const {
+		data: queriedDefaultValues,
+		isPending: queriedDefaultValuesPending,
+	} = useQuery(
 		trpc.community.getJobForm.queryOptions(
 			shouldLoadDefaults
 				? {
@@ -169,6 +176,46 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			},
 		),
 	);
+	const customProjectDefaultValues = useMemo(
+		() =>
+			isProjectlessCustomJob
+				? {
+						unit: undefined,
+						user: {
+							id: resolvedUserId ?? undefined,
+						},
+						builderTaskId: undefined,
+						modelId: undefined,
+						action: params.action ?? "submit",
+						job: {
+							tasks: [],
+							id: params.jobId ?? undefined,
+							amount: 0,
+							description: "",
+							meta: {
+								addonPercent: 0,
+								addon: 0,
+								additional_cost: null,
+							},
+							title: "Custom Job",
+							subtitle: null,
+							adminNote: null,
+							isCustom: true,
+							status: "Assigned",
+						},
+					}
+				: undefined,
+		[
+			isProjectlessCustomJob,
+			params.action,
+			params.jobId,
+			resolvedUserId,
+		],
+	);
+	const defaultValues = customProjectDefaultValues ?? queriedDefaultValues;
+	const isDefaultValuesPending = isProjectlessCustomJob
+		? false
+		: queriedDefaultValuesPending;
 
 	useEffect(() => {
 		if (defaultValues) {
@@ -178,21 +225,30 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			form.reset({
 				...(defaultValues as any),
 				action: params.action ?? "submit",
-				unit: {
-					id: params.unitId,
-					projectId: params.projectId!,
-				},
-				modelId: params.modelId!,
+				unit: isProjectlessCustomJob
+					? undefined
+					: {
+							id: params.unitId,
+							projectId: params.projectId!,
+						},
+				modelId: isProjectlessCustomJob ? undefined : params.modelId!,
 				user: {
 					id: resolvedUserId,
 				},
-				isCustom: !!(defaultValues as any)?.job?.isCustom,
+				job: {
+					...((defaultValues as any)?.job || {}),
+					isCustom:
+						!!(defaultValues as any)?.job?.isCustom ||
+						params.builderTaskId === -1,
+				},
 			});
 		}
 	}, [
 		defaultValues,
 		form,
+		isProjectlessCustomJob,
 		params.action,
+		params.builderTaskId,
 		params.projectId,
 		params.modelId,
 		params.unitId,
@@ -250,6 +306,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 	const state = useMemo(
 		() => ({
 			showTaskQty: admin || !!jobSettings?.meta?.showTaskQty,
+			allowCustomProject: !!jobSettings?.meta?.allowCustomProject,
 			allowCustomJobs:
 				admin ||
 				!!jobSettings?.meta?.allowCustomJobs ||
@@ -258,6 +315,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 		[
 			admin,
 			auth?.profile?.can?.submitCustomJob,
+			jobSettings?.meta?.allowCustomProject,
 			jobSettings?.meta?.allowCustomJobs,
 			jobSettings?.meta?.showTaskQty,
 		],
@@ -384,10 +442,28 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 		: tabs[initialStep - 1]!;
 
 	useEffect(() => {
-		if (!state.allowCustomJobs && params.builderTaskId === -1) {
+		if (
+			params.builderTaskId === -1 &&
+			!params.projectId &&
+			!state.allowCustomProject
+		) {
+			params.setParams({ builderTaskId: null });
+			return;
+		}
+		if (
+			params.builderTaskId === -1 &&
+			!!params.projectId &&
+			!state.allowCustomJobs
+		) {
 			params.setParams({ builderTaskId: null });
 		}
-	}, [params, params.builderTaskId, state.allowCustomJobs]);
+	}, [
+		params,
+		params.builderTaskId,
+		params.projectId,
+		state.allowCustomJobs,
+		state.allowCustomProject,
+	]);
 
 	const refreshCurrentStep = useCallback(async () => {
 		if (isRefreshing) return;
@@ -552,6 +628,16 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 		[initialStep, params, tabs.length],
 	);
 
+	const selectCustomProject = useCallback(() => {
+		params.setParams({
+			projectId: null,
+			unitId: null,
+			modelId: null,
+			builderTaskId: -1,
+			step: tabs.length,
+		});
+	}, [params, tabs.length]);
+
 	const selectTask = useCallback(
 		(builderTaskId: number) => {
 			params.setParams({
@@ -608,7 +694,8 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 	const buildSaveJobFormPayload = useCallback(
 		(options?: { requestTaskConfig?: boolean }) => {
 			if (!defaultValues) return null;
-			if (!params.unitId || !resolvedUserId) return null;
+			if (!resolvedUserId) return null;
+			if (!isProjectlessCustomJob && !params.unitId) return null;
 
 			const requestTaskConfig = !!options?.requestTaskConfig;
 			const defaultJob = (defaultValues as any)?.job || {};
@@ -637,8 +724,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 					.join(" - ") ||
 				null;
 			const hasModelConfigured =
+				!isProjectlessCustomJob &&
 				params.modelId !== null && params.modelId !== undefined;
-			const isCustom = hasModelConfigured ? !!values?.job?.isCustom : true;
+			const isCustom =
+				isProjectlessCustomJob || params.builderTaskId === -1
+					? true
+					: hasModelConfigured
+						? !!values?.job?.isCustom
+						: true;
 
 			const tasks = hasModelConfigured
 				? (formTasks as any[])
@@ -668,17 +761,21 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			return {
 				adminMode: admin,
 				action: requestTaskConfig ? "request-task-config" : action,
-				unit: {
-					id: params.unitId,
-					projectId: params.projectId!,
-				},
+				unit: isProjectlessCustomJob
+					? undefined
+					: {
+							id: params.unitId,
+							projectId: params.projectId!,
+						},
 				user: {
 					id: resolvedUserId,
 				},
-				builderTaskId: defaultValues.builderTaskId!,
+				builderTaskId: isProjectlessCustomJob
+					? undefined
+					: defaultValues.builderTaskId!,
 				// modelInstallTaskIds: defaultValues.communityModelInstallTaskIds!,
 				requestTaskConfig,
-				modelId: params.modelId!,
+				modelId: isProjectlessCustomJob ? undefined : params.modelId!,
 				job: {
 					id: defaultJob.id || undefined,
 					amount: total || 0,
@@ -714,6 +811,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			admin,
 			defaultValues,
 			form,
+			isProjectlessCustomJob,
 			params.modelId,
 			params.projectId,
 			params.builderTaskId,
@@ -926,6 +1024,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 		costData: costData?.data,
 		selectUser,
 		selectProject,
+		selectCustomProject,
 		selectTask,
 		selectUnit,
 		handleSubmit,

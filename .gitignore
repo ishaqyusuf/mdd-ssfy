@@ -67,6 +67,7 @@ package-lock.json
 .env
 .env.production
 .env.local
+.env.remote.local
 
 sales-form-data.json
 

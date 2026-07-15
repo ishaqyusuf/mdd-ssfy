@@ -5,7 +5,7 @@ import {
   customerOverviewTabs,
 } from "@/lib/customer-overview-tabs";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Avatar, AvatarFallback } from "@gnd/ui/avatar";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";

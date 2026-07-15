@@ -11,8 +11,8 @@
     "start": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_EXPO_PORT:-3002}",
     "update:preview": "node ./scripts/update-preview.mjs",
     "web": "bun run with-env node ./scripts/run-expo-cli.cjs start --web",
-    "with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
-    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
+    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+    "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

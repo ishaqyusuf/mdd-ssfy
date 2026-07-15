@@ -1,7 +1,7 @@
 "use client";
 
 import { useSalesProfileFormParams } from "@/hooks/use-sales-profile-form-params";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";

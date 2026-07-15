@@ -1,4 +1,4 @@
-import type { RouterInputs } from "@api/trpc/routers/_app";
+import type { RouterInputs } from "@api/trpc/routers/dealership-app";
 import { useQueryStates } from "nuqs";
 import { createLoader, parseAsString } from "nuqs/server";
 

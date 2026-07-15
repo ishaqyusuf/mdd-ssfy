@@ -110,7 +110,7 @@ const DEFAULT_STATE: SyncState = {
 	updatedAt: new Date(0).toISOString(),
 	tables: {},
 };
-const DEFAULT_LOCAL_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
+const DEFAULT_DOCKER_DATABASE_URL = "mysql://root@127.0.0.1:3307/gnd-prisma2";
 const DEFAULT_INITIAL_CURSOR_VALUE = "2026-05-04 23:59:59.999";
 
 const PROD_HOST_PATTERNS = [/psdb\.cloud$/i, /connect\.psdb\.cloud$/i];
@@ -138,12 +138,11 @@ export function buildCursorWhereClause(
 	const params: unknown[] = [cursor.cursorValue, cursor.cursorValue];
 	const keyComparisons: string[] = [];
 
-	for (let index = 0; index < keyColumns.length; index += 1) {
+	for (const [index, keyColumn] of keyColumns.entries()) {
 		const equalPrefix = keyColumns
 			.slice(0, index)
 			.map((column) => `${quoteIdent(column)} = ?`)
 			.join(" AND ");
-		const keyColumn = keyColumns[index]!;
 		const comparison = `${quoteIdent(keyColumn)} > ?`;
 		keyComparisons.push(equalPrefix ? `(${equalPrefix} AND ${comparison})` : `(${comparison})`);
 
@@ -179,12 +178,11 @@ export function buildKeysetWhereClause(
 	}
 
 	if (keyValues && keyColumns.length > 0) {
-		for (let index = 0; index < keyColumns.length; index += 1) {
+		for (const [index, keyColumn] of keyColumns.entries()) {
 			const equalPrefix = keyColumns
 				.slice(0, index)
 				.map((column) => `${quoteIdent(column)} = ?`)
 				.join(" AND ");
-			const keyColumn = keyColumns[index]!;
 			const comparison = `${quoteIdent(keyColumn)} > ?`;
 			keyComparisons.push(equalPrefix ? `(${equalPrefix} AND ${comparison})` : `(${comparison})`);
 
@@ -317,7 +315,7 @@ export function assertSafeConnections(
 
 	if (!LOCAL_HOSTS.has(target.hostname) && !target.hostname.endsWith(".local")) {
 		throw new Error(
-			`Refusing to write to non-local target host: ${target.hostname}. Set LOCAL_DATABASE_URL to a local MySQL database.`,
+			`Refusing to write to non-local target host: ${target.hostname}. Set DATABASE_URL in .env.local to a local MySQL database or pass --target-url.`,
 		);
 	}
 }
@@ -451,7 +449,13 @@ export function parseEnvFile(text: string): Record<string, string> {
 			continue;
 		}
 
-		values[match[1]!] = match[2]!.trim().replace(/^['"]|['"]$/g, "");
+		const [, key, rawValue] = match;
+
+		if (!key || rawValue === undefined) {
+			continue;
+		}
+
+		values[key] = rawValue.trim().replace(/^['"]|['"]$/g, "");
 	}
 
 	return values;
@@ -483,21 +487,11 @@ function isTruthy(value: string | undefined): boolean {
 export async function resolveOptions(argv: string[], cwd = process.cwd()): Promise<SyncOptions & { help?: boolean }> {
 	const parsed = parseArgs(argv);
 	const repoRoot = cwd.endsWith("packages/db") ? resolve(cwd, "../..") : cwd;
-	const targetMode = parsed.targetMode ?? normalizeTargetMode(process.env.GND_DB_SYNC_TARGET_MODE ?? process.env.GND_DB_MODE ?? "local");
-	const envFiles = [resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")];
+	const targetMode = parsed.targetMode ?? normalizeTargetMode(process.env.GND_DB_SYNC_TARGET_MODE ?? "local");
 	const sourceUrl =
 		parsed.sourceUrl ??
-		process.env.PROD_DATABASE_URL ??
-		process.env.SOURCE_DATABASE_URL ??
-		(await readFirstEnvValue(
-			[resolve(cwd, ".env.production"), resolve(repoRoot, ".env.production")],
-			["PROD_DATABASE_URL", "SOURCE_DATABASE_URL", "DATABASE_URL"],
-		)) ??
-		(await readFirstEnvValue(
-			[resolve(cwd, ".env.local"), resolve(repoRoot, ".env.local")],
-			["PROD_DATABASE_URL", "SOURCE_DATABASE_URL"],
-		));
-	const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, envFiles);
+		(await readFirstEnvValue([resolve(cwd, ".env.production"), resolve(repoRoot, ".env.production")], ["DATABASE_URL"]));
+	const targetUrl = await resolveTargetUrl(parsed.targetUrl, targetMode, cwd, repoRoot);
 	const stateFile = parsed.stateFile ?? resolve(repoRoot, ".local-db-sync", targetMode, "state.json");
 	const allowRemoteDevTarget = isTruthy(process.env.GND_ALLOW_REMOTE_DEV_DB_SYNC);
 
@@ -522,11 +516,11 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 	}
 
 	if (!sourceUrl) {
-		throw new Error("Missing production database URL. Set PROD_DATABASE_URL or packages/db/.env.production DATABASE_URL.");
+		throw new Error("Missing production database URL. Set DATABASE_URL in .env.production or pass --source-url.");
 	}
 
 	if (!targetUrl) {
-		throw new Error("Missing target database URL. Set LOCAL_DATABASE_URL, REMOTE_DEV_DATABASE_URL, or TARGET_DATABASE_URL.");
+		throw new Error("Missing target database URL. Set DATABASE_URL in .env.local or .env.remote.local, or pass --target-url.");
 	}
 
 	return {
@@ -550,7 +544,8 @@ export async function resolveOptions(argv: string[], cwd = process.cwd()): Promi
 async function resolveTargetUrl(
 	parsedTargetUrl: string | undefined,
 	targetMode: SyncTargetMode,
-	envFiles: string[],
+	cwd: string,
+	repoRoot: string,
 ): Promise<string | undefined> {
 	if (parsedTargetUrl) {
 		return parsedTargetUrl;
@@ -558,18 +553,17 @@ async function resolveTargetUrl(
 
 	if (targetMode === "remote-dev") {
 		return (
-			process.env.REMOTE_DEV_DATABASE_URL ??
-			process.env.DEV_DATABASE_URL ??
-			process.env.TARGET_DATABASE_URL ??
-			(await readFirstEnvValue(envFiles, ["REMOTE_DEV_DATABASE_URL", "DEV_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"]))
+			(await readFirstEnvValue([resolve(cwd, ".env.remote.local"), resolve(repoRoot, ".env.remote.local")], ["DATABASE_URL"])) ??
+			process.env.DATABASE_URL
 		);
 	}
 
 	return (
-		process.env.LOCAL_DATABASE_URL ??
-		process.env.TARGET_DATABASE_URL ??
-		(await readFirstEnvValue(envFiles, ["LOCAL_DATABASE_URL", "TARGET_DATABASE_URL", "DATABASE_URL"])) ??
-		DEFAULT_LOCAL_DATABASE_URL
+		(await readFirstEnvValue([resolve(cwd, ".env.local"), resolve(cwd, ".env"), resolve(repoRoot, ".env.local"), resolve(repoRoot, ".env")], [
+			"DATABASE_URL",
+		])) ??
+		process.env.DATABASE_URL ??
+		DEFAULT_DOCKER_DATABASE_URL
 	);
 }
 
@@ -989,7 +983,12 @@ async function syncCursorTable(
 		}
 
 		totalRead += rows.length;
-		const lastRow = rows[rows.length - 1]!;
+		const lastRow = rows.at(-1);
+
+		if (!lastRow) {
+			break;
+		}
+
 		keyScanCursor = Object.fromEntries(manifest.keyColumns.map((column) => [column, lastRow[column]]));
 		latestCursor = usingKeyScan
 			? buildMaxCursor(rows, manifest, latestCursor)

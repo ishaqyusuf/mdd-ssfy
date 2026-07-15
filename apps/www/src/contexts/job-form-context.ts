@@ -75,6 +75,7 @@ export const useCreateJobFormContext = () => {
 	const state = useMemo(
 		() => ({
 			showTaskQty: isAdmin || !!jobSettings?.meta?.showTaskQty,
+			allowCustomProject: !!jobSettings?.meta?.allowCustomProject,
 			allowCustomJobs:
 				isAdmin ||
 				!!jobSettings?.meta?.allowCustomJobs ||
@@ -83,6 +84,7 @@ export const useCreateJobFormContext = () => {
 		[
 			auth.can?.submitCustomJob,
 			isAdmin,
+			jobSettings?.meta?.allowCustomProject,
 			jobSettings?.meta?.allowCustomJobs,
 			jobSettings?.meta?.showTaskQty,
 		],

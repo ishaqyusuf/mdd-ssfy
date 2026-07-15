@@ -1,5 +1,7 @@
 import { SearchInput } from "@/components/search-input";
+import { useJobFormContext } from "@/contexts/job-form-context";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
+import { useJobStepInfo } from "@/hooks/use-job-step-info";
 import { useTRPC } from "@/trpc/client";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -10,6 +12,8 @@ import { SubHeader } from "./sub-header";
 export function ProjectSelectStep({}) {
 	const trpc = useTRPC();
 	const { setParams, ...params } = useJobFormParams();
+	const { state } = useJobFormContext();
+	const { stepCount } = useJobStepInfo();
 	const [query, setQuery] = useState("");
 	const { data, isPending } = useQuery(
 		trpc.community.projectsList.queryOptions(null, {
@@ -42,6 +46,37 @@ export function ProjectSelectStep({}) {
 			</SubHeader>
 			<LoadingSkeleton isPending={isPending}>
 				<div className="space-y-2">
+					{state.allowCustomProject ? (
+						<button
+							onClick={() => {
+								setParams({
+									projectId: null,
+									unitId: null,
+									modelId: null,
+									builderTaskId: -1,
+									step: stepCount,
+									redirectStep: null,
+								});
+							}}
+							className={`w-full flex items-center gap-4 p-3 rounded-xl border text-left transition-all hover:shadow-md ${params.builderTaskId === -1 && !params.projectId ? "border-primary bg-primary/5" : "border-border bg-card hover:bg-muted/50"}`}
+						>
+							<div className="p-2 bg-muted rounded-lg text-muted-foreground">
+								<Icons.PenTool className="size-6" />
+							</div>
+							<div className="flex-1">
+								<p className="text-sm font-bold text-foreground">
+									Custom Project
+								</p>
+								<p className="text-xs text-muted-foreground">
+									Submit a projectless custom job with manual pricing.
+								</p>
+							</div>
+							<Icons.ChevronRight
+								size={16}
+								className="text-muted-foreground"
+							/>
+						</button>
+					) : null}
 					{results.map((item) => (
 						<button
 							key={item.id}

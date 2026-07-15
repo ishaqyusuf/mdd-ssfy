@@ -1,7 +1,7 @@
 "use client";
 
-import type { AppRouter } from "@gnd/api/trpc/routers/_app";
-import { isServer, QueryClientProvider, type QueryClient } from "@tanstack/react-query";
+import type { AppRouter } from "@gnd/api/trpc/routers/dealership-app";
+import { type QueryClient, QueryClientProvider, isServer } from "@tanstack/react-query";
 import {
   createTRPCClient,
   httpBatchStreamLink,

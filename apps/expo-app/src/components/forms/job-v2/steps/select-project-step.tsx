@@ -39,7 +39,9 @@ export function SelectProjectStep() {
   const {
     projectList,
     params,
+    state,
     selectProject,
+    selectCustomProject,
     isProjectsPending,
     isRefreshing,
     refreshCurrentStep,
@@ -92,6 +94,27 @@ export function SelectProjectStep() {
           />
         }
       >
+        {state.allowCustomProject ? (
+          <TouchableOpacity
+            className="active:opacity-85"
+            onPress={selectCustomProject}
+            onLayout={(event) => {
+              positionsRef.current[-1] = event.nativeEvent.layout.y;
+            }}
+          >
+            <NeoCard
+              className={
+                params.builderTaskId === -1 && !params.projectId
+                  ? "border-primary bg-primary/10"
+                  : "bg-card"
+              }
+            >
+              <Text className="text-[11px] uppercase tracking-[1px] text-muted-foreground">Custom Project</Text>
+              <Text className="text-base font-black text-foreground">Custom Project</Text>
+              <Text className="text-xs text-muted-foreground">Submit a projectless custom job with manual pricing.</Text>
+            </NeoCard>
+          </TouchableOpacity>
+        ) : null}
         {!isProjectsPending && !results.length ? (
           <StepEmptyState
             title="No projects found"

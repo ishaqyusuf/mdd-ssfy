@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-07-15](./2026-07-15.md) - Dealership router scoping improved, but public route boundaries, dealer quote edit locks, inventory readiness, dispatch proof atomicity, and document typecheck remain top risks.
 - [2026-07-13](./2026-07-13.md) - Public operational route boundaries, dealer quote request edit locks, inventory release readiness, mobile dispatch proof atomicity, and app-store typecheck are the top risks.
 - [2026-07-12](./2026-07-12.md) - Public operational routes, dealer quote revision locks, inventory release readiness, dispatch proof atomicity, and document typecheck remain the top risks.
 - [2026-07-11](./2026-07-11.md) - Operational public-route boundaries, dealer quote edit locks, inventory release readiness, and document typecheck remain the top risks.

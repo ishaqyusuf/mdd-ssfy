@@ -57,6 +57,12 @@ payload guarantees.
   that dealer sales price plus the customer profile markup. Quantity line totals
   use rounded unit dealer/customer prices before multiplying so the displayed
   customer total matches quote line rounding.
+- 2026-07-13 deployment follow-up scoped the dealership app's local tRPC server
+  to `dealershipAppRouter` (`dealerPortal` + `google`) instead of the full
+  internal API router, fixed the bug-report report-hydration tuple inference
+  error that surfaced in Vercel, and aligned dealership Next builds with the
+  main web app by skipping build-time type validation while the shared monorepo
+  type baseline remains noisy.
   Full production readiness is still blocked by missing Door/HPT plus Moulding
   size fixture coverage and final responsive screenshot evidence.
 

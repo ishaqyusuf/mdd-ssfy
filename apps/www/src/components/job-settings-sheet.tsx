@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 type SettingsMeta = {
+	allowCustomProject: boolean;
 	allowCustomJobs: boolean;
 	showTaskQty: boolean;
 };
@@ -31,6 +32,7 @@ export function JobSettingsSheet() {
 		trpc.settings.getJobSettings.queryOptions(),
 	);
 	const [meta, setMeta] = useState<SettingsMeta>({
+		allowCustomProject: false,
 		allowCustomJobs: false,
 		showTaskQty: false,
 	});
@@ -38,6 +40,7 @@ export function JobSettingsSheet() {
 	useEffect(() => {
 		if (!jobSettings) return;
 		setMeta({
+			allowCustomProject: !!jobSettings.meta?.allowCustomProject,
 			allowCustomJobs: !!jobSettings.meta?.allowCustomJobs,
 			showTaskQty: !!jobSettings.meta?.showTaskQty,
 		});
@@ -117,6 +120,30 @@ export function JobSettingsSheet() {
 										setMeta((current) => ({
 											...current,
 											allowCustomJobs: !!checked,
+										}))
+									}
+								/>
+							</div>
+						</div>
+
+						<div className="space-y-3 rounded-xl border border-border bg-card p-4">
+							<div className="flex items-start justify-between gap-3">
+								<div className="space-y-1">
+									<Label htmlFor="job-setting-allow-custom-project">
+										Allow custom project
+									</Label>
+									<p className="text-sm text-muted-foreground">
+										Let contractors submit a projectless custom job with manual
+										pricing.
+									</p>
+								</div>
+								<Checkbox
+									id="job-setting-allow-custom-project"
+									checked={meta.allowCustomProject}
+									onCheckedChange={(checked) =>
+										setMeta((current) => ({
+											...current,
+											allowCustomProject: !!checked,
 										}))
 									}
 								/>

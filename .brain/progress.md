@@ -2,6 +2,18 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- 2026-07-15: Restored projectless custom job submission behind the new `jobs-settings.meta.allowCustomProject` setting. Website Job Settings and Expo settings now expose `Allow custom project`; website, Expo V2, and legacy Expo project selection only show `Custom Project` when that setting is enabled. `Allow custom jobs` remains scoped to project-linked custom tasks. Website/Expo V2 save payloads omit project/unit/model only for the projectless custom route, while `community.saveJobForm` continues to reject missing project/unit unless the payload is custom and `allowCustomProject` is enabled. Validation: targeted `allowCustomProject` symbol check passed; scoped `git diff --check` passed. Heavy build/typecheck/browser checks were not run under fast Bun monorepo command discipline.
+
+- 2026-07-15: Added Redis mode overrides to the root dev profile router.
+  - `bun run dev --local` still defaults to local Docker MySQL plus local Docker Redis, and `bun run dev --remote-dev` still defaults to hosted dev DB plus remote-dev Redis.
+  - Added `--redis-local`, `--redis-remote`, and `--redis-remote-dev` overrides for local/remote-dev profiles, enabling `bun run dev --local --redis-remote` and `bun run dev --remote-dev --redis-local` without using the longer named mixed-infra scripts.
+  - The parser rejects conflicting Redis flags and rejects Redis overrides with `--prod`; Redis override flags are recognized as filter boundaries so they are not consumed as Turbo filter targets.
+  - Moved the implementation into the shared `../../local-infra-kit` source by adding the GND MySQL/Redis profile, wiring root/app/package scripts to the kit, and removing the obsolete GND-local dev infra scripts.
+  - Aligned `.env.local` active mode keys and `.env.example` to local-first DB/Redis defaults while preserving remote-dev values under `REMOTE_DEV_*` for explicit remote overrides.
+  - Brain files updated: `brain/database/migrations.md`, `brain/features/sales-email-delivery-ledger.md`, and `brain/progress.md`.
+
+- 2026-07-13: Fixed the dealership Vercel build blocker that failed on `apps/api/src/db/queries/bug-reports.ts` `new Map(...)` tuple inference. Bug-report report hydration now maps document/user entries as explicit readonly tuples, dealership now uses a scoped `dealershipAppRouter` (`dealerPortal` + `google`) for its local `/api/trpc` route and router types instead of importing the full internal API router, and `apps/dealership/next.config.mjs` now mirrors the main web app's `typescript.ignoreBuildErrors` setting so production builds are not blocked by the existing shared monorepo type baseline. Validation: focused Biome import/format check passed for touched code files; `bun --filter @gnd/dealership build` passed and logged `Skipping validation of types`; `git diff --check` passed. `bun --filter @gnd/dealership typecheck` still reports unrelated baseline errors in checkout, sales/inventory, shared UI React types, cache/events, and one dealership DTO field.
+
 - 2026-07-13: Enforced project-first contractor job submission and added job submission source tracking. The website job modal no longer exposes the projectless top-level Custom shortcut; custom tasks can only continue after a project is selected and the selected project/unit/model context is preserved on save. `community.saveJobForm` now rejects saves missing `unit.id` or `unit.projectId`. Website saves stamp `job.meta.submittedFrom="web"`, Expo V2 saves stamp `"mobile"`, and the admin job overview displays Website/Mobile app/Unknown source from that meta while continuing to use `Jobs.createdAt` as the submission timestamp. Validation: scoped `git diff --check` passed; Biome no-write formatting/import check passed over the touched files; package/app typechecks and strict Biome lint remain blocked by existing unrelated baseline diagnostics in API, sales, inventory, UI, and Expo hook files.
 
 - Implemented task monitor client simplification and the generic task-run diagnostics ledger.
@@ -130,9 +142,11 @@
   - Validation: `bun --filter @gnd/site-nav typecheck` passed; `bunx biome check --formatter-enabled=false packages/ui/src/components/dropdown-menu.tsx packages/site-nav/src/components/user.tsx` passed. `bun --filter @gnd/ui typecheck` was attempted and remains blocked by unrelated baseline `@gnd/ui` diagnostics outside this sidebar fix. Browser hover testing was not run per user request.
   - Brain files updated: `brain/plans/2026-07-09-bug-fix-sidebar-footer-account-menu.md`, `brain/features/site-navigation.md`, `brain/tasks/done.md`, and `brain/progress.md`; no database, API, permission, or schema docs were needed because this is a client-only navigation behavior change.
 
-- Implemented explicit dev infrastructure profiles for DB and Redis.
-  - Added `scripts/with-dev-infra.ts` plus tests to resolve `GND_DB_MODE=remote-dev|local` and `GND_REDIS_MODE=remote-dev|local` into active database, Redis/Upstash, Docker service, and cache namespace env.
-  - Updated root scripts so `bun run dev` defaults to remote-dev DB plus remote-dev Redis, with `dev:local`, `dev:local-db:remote-redis`, and `dev:remote-db:local-redis` preserving every DB/Redis combination.
+- Moved GND dev infrastructure onto the shared local-infra-kit GND profile.
+  - Replaced the repo-local dev router/service/env scripts with `../../local-infra-kit` entrypoints, matching the school-clerk-style shared infra source.
+  - Simplified the dev env contract so applications only receive `DATABASE_URL`; local values live in `.env.local`, hosted dev values live in `.env.remote.local`, and production values live in `.env.production`.
+  - Redis remains an independent flag-controlled axis: `--redis-local`, `--redis-remote`, and `--redis-remote-dev` override the DB profile and publish `REDIS_URL` plus optional Upstash REST env from the selected mode file.
+  - Updated root scripts so `bun run dev` defaults to local Docker MySQL plus local Docker Redis, with `dev:local-db:remote-redis` and `dev:remote-db:local-redis` preserving the mixed DB/Redis combinations.
   - Restored local Docker service commands: `dev:services:local`, `dev:services:local-db`, `dev:services:local-redis`, `db:docker:up`, and `db:docker:down`.
   - Fixed local Docker MySQL startup recovery for containers crash-looping on a stale `/var/run/mysqld/mysqld.sock.lock`; the starter now recreates only the MySQL service container once and preserves the named database volume.
   - Added explicit sync commands for remote-dev and local targets and hardened `packages/db/src/local-sync.ts` with `--target-mode`, remote-dev write opt-in, source-equals-target refusal, target-mode cursor state paths, and redacted source/target summaries.
@@ -141,7 +155,7 @@
 - Added remote Redis local-development isolation.
   - Added `GND_CACHE_NAMESPACE` key namespacing in `@gnd/cache`, with a guard that refuses `prod`/`production` cache namespaces outside production unless `GND_ALLOW_PROD_REDIS_IN_DEV` is explicitly enabled.
   - Updated `scripts/start-dev-services.sh` so Docker Redis is skipped automatically when `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured; local Redis remains forceable with `GND_START_REDIS=1`.
-  - Copied Redis-related production env values into the ignored root `.env.local` and set the local cache namespace to `local`; production env now has `GND_CACHE_NAMESPACE=prod`.
+  - Cache namespaces now default from runtime mode: production uses `prod` when `NODE_ENV=production`, and local/development uses `local`; `GND_CACHE_NAMESPACE` is only needed for explicit one-off overrides.
   - Updated `.env.example`, `apps/www/README.md`, and `brain/database/migrations.md` with the new cache flags and dev-service behavior.
   - No database schema, migration, API contract, permission, or runtime product behavior changed.
 

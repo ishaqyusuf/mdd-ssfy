@@ -1,11 +1,11 @@
 import "server-only";
 
-import type { AppRouter } from "@gnd/api/trpc/routers/_app";
+import type { AppRouter } from "@gnd/api/trpc/routers/dealership-app";
 import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink, loggerLink } from "@trpc/client";
 import {
-  createTRPCOptionsProxy,
   type TRPCQueryOptions,
+  createTRPCOptionsProxy,
 } from "@trpc/tanstack-react-query";
 import { headers as nextHeaders } from "next/headers";
 import { cache } from "react";

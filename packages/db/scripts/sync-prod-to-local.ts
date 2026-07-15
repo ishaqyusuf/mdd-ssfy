@@ -3,14 +3,14 @@
 import { clearScreenDown, cursorTo, emitKeypressEvents, moveCursor } from "node:readline";
 import { createInterface } from "node:readline/promises";
 import {
-	redactDatabaseUrl,
-	resolveOptions,
-	syncDatabases,
 	type DuplicateConflictAction,
 	type DuplicateConflictContext,
 	type DuplicateConflictPolicy,
 	type SyncMode,
 	type SyncProgressEvent,
+	redactDatabaseUrl,
+	resolveOptions,
+	syncDatabases,
 } from "../src/local-sync";
 
 type DuplicatePromptChoice = {
@@ -42,13 +42,13 @@ Options:
   -h, --help                        Show this help
 
 Environment:
-  PROD_DATABASE_URL or SOURCE_DATABASE_URL for production.
-  LOCAL_DATABASE_URL for local targets.
-  REMOTE_DEV_DATABASE_URL for hosted dev targets.
+  DATABASE_URL in .env.production for production source.
+  DATABASE_URL in .env.local for local targets.
+  DATABASE_URL in .env.remote.local for hosted dev targets.
   GND_ALLOW_REMOTE_DEV_DB_SYNC=1 is required before writing to remote-dev.
 
 If env vars are not set, the script reads packages/db/.env.production for source
-and packages/db/.env.local for target. Local mode falls back to
+and the selected mode file for target. Local mode falls back to
 mysql://root@127.0.0.1:3307/gnd-prisma2, the Docker MySQL database.`);
 }
 

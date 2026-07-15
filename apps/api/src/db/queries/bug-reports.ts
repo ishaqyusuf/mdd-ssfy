@@ -1,4 +1,3 @@
-import type { TRPCContext } from "@api/trpc/init";
 import {
   BUG_REPORT_MAX_DURATION_MS,
   BUG_REPORT_MAX_UPLOAD_SIZE_BYTES,
@@ -7,6 +6,7 @@ import {
   type listBugReportsSchema,
   type updateBugReportStatusSchema,
 } from "@api/schemas/bug-reports";
+import type { TRPCContext } from "@api/trpc/init";
 import {
   getUserSpecificPermissions,
   mergePermissionRecords,
@@ -223,8 +223,10 @@ async function hydrateReports(ctx: TRPCContext, reports: any[]) {
       : [],
   ]);
 
-  const documentById = new Map(documents.map((document) => [document.id, document]));
-  const userById = new Map(users.map((user) => [user.id, user]));
+  const documentById = new Map(
+    documents.map((document) => [document.id, document] as const),
+  );
+  const userById = new Map(users.map((user) => [user.id, user] as const));
 
   return reports.map((report) => {
     const recording = report.recordingDocumentId

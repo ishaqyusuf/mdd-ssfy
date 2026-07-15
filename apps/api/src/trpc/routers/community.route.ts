@@ -452,7 +452,18 @@ export const communityRouters = createTRPCRouter({
 		const { ctx, input } = props;
 		return ctx.db.$transaction(async (db) => {
 			const { unit, user, job: jobInput } = input;
-			if (!unit?.id || !unit?.projectId) {
+			const isProjectlessCustomJob =
+				!!jobInput.isCustom && !unit?.id && !unit?.projectId;
+			const customProjectSetting = isProjectlessCustomJob
+				? await getSettingAction("jobs-settings", db)
+				: null;
+			const allowCustomProject = !!(
+				customProjectSetting?.meta as
+					| { allowCustomProject?: boolean }
+					| null
+					| undefined
+			)?.allowCustomProject;
+			if ((!unit?.id || !unit?.projectId) && !allowCustomProject) {
 				throw new Error("Project and unit are required before saving a job.");
 			}
 			let jobId = jobInput.id;

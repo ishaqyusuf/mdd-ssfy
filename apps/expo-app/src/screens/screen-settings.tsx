@@ -175,6 +175,23 @@ export default function SettingsExampleScreen({
 									/>
 								}
 							/>
+							<SettingsItem
+								icon="FolderPlus"
+								label="Custom projects"
+								subLabel="Allow workers to submit projectless custom jobs"
+								isLast={false}
+								rightElement={
+									<Toggle
+										value={setting?.meta?.allowCustomProject || false}
+										onValueChange={() =>
+											updateJobSetting(
+												"allowCustomProject",
+												!setting?.meta?.allowCustomProject,
+											)
+										}
+									/>
+								}
+							/>
 						</Section>
 					)}
 					<SettingsSections

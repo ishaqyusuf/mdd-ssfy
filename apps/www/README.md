@@ -26,16 +26,20 @@ Normal local development uses Docker MySQL and Docker Redis:
 bun run dev
 ```
 
-The root dev command runs through `scripts/dev.ts`, which maps profile flags into `scripts/with-dev-infra.ts`. That sets the active `DATABASE_URL`, Redis/Upstash env, Docker service flags, and `GND_CACHE_NAMESPACE`.
+The root dev command runs through the shared `../../local-infra-kit` profile for GND. It selects the active `DATABASE_URL`, Redis/Upstash env, and Docker service flags from the requested profile.
 
 Supported profiles:
 
 ```bash
 bun run dev                         # local Docker MySQL + local Docker Redis
 bun run dev --local                 # local Docker MySQL + local Docker Redis
+bun run dev --local --redis-remote  # local Docker MySQL + remote-dev Redis
 bun run dev --remote-dev            # remote-dev DB + remote-dev Redis
+bun run dev --remote-dev --redis-local # remote-dev DB + local Docker Redis
 bun run dev --prod                  # production-env www smoke on port 3005
 ```
+
+Redis can be overridden independently with `--redis-local`, `--redis-remote`, or `--redis-remote-dev`. Redis override flags are only supported for local and remote-dev profiles.
 
 Dev commands can also be narrowed to selected Turbo targets:
 
@@ -48,17 +52,16 @@ bun run dev -f api site!
 
 Filter flags can be written as `--filter`, `--f`, `-f`, or `-filter`. Filter values use Turbo selector syntax directly. Exact package filters such as `@gnd/www` are validated against workspace package names and print the valid package list when missing. Bare exact package names such as `api` and `site!` are resolved to matching workspace packages before validation. Complex Turbo selectors such as `@gnd/www...`, `@gnd/*`, `{apps/*}`, and `[main]` pass through to Turbo.
 
-The underlying env names are:
+The underlying env contract is:
 
 ```bash
-GND_DB_MODE=remote-dev|local
-GND_REDIS_MODE=remote-dev|local
-REMOTE_DEV_DATABASE_URL=
-LOCAL_DATABASE_URL=mysql://root@127.0.0.1:3307/gnd-prisma2
-REMOTE_DEV_REDIS_URL=
-REMOTE_DEV_UPSTASH_REDIS_REST_URL=
-REMOTE_DEV_UPSTASH_REDIS_REST_TOKEN=
-LOCAL_REDIS_URL=redis://localhost:6379
+.env.local         DATABASE_URL=mysql://root@127.0.0.1:3307/gnd-prisma2
+.env.local         REDIS_URL=redis://localhost:6379
+.env.remote.local  DATABASE_URL=<hosted-dev-mysql-url>
+.env.remote.local  REDIS_URL=<hosted-dev-redis-url>
+.env.remote.local  UPSTASH_REDIS_REST_URL=<optional-hosted-dev-rest-url>
+.env.remote.local  UPSTASH_REDIS_REST_TOKEN=<optional-hosted-dev-rest-token>
+.env.production    DATABASE_URL=<production-mysql-url>
 ```
 
 Local Docker services remain available as explicit commands:
@@ -71,7 +74,7 @@ bun run db:docker:up
 bun run db:docker:down
 ```
 
-`scripts/start-dev-services.sh` starts Docker MySQL only for a local DB profile and Docker Redis only for a local Redis profile. Remote profiles skip local Docker services.
+`../../local-infra-kit/bin/dev-services.ts --profile gnd` starts Docker MySQL only for a local DB profile and Docker Redis only for a local Redis profile. Remote profiles skip local Docker services.
 If the local MySQL container is stuck on a stale runtime socket lock, the service script recreates the MySQL container once while preserving the named database volume.
 
 Useful commands:
@@ -92,14 +95,13 @@ bun run db:sync:local
 
 Remote-dev sync writes require `GND_ALLOW_REMOTE_DEV_DB_SYNC=1`, refuse source-equals-target, and use a separate cursor state file from local sync.
 
-Development cache keys use a non-production namespace:
+Development cache keys use a non-production namespace automatically:
 
 ```bash
-GND_CACHE_NAMESPACE=dev
 GND_ALLOW_PROD_REDIS_IN_DEV=0
 ```
 
-Production should use `GND_CACHE_NAMESPACE=prod`; local Docker Redis profiles use `GND_CACHE_NAMESPACE=local`.
+Production uses the `prod` namespace when `NODE_ENV=production`; local and development runtimes default to `local`. Override `GND_CACHE_NAMESPACE` only for one-off debugging.
 
 ## Learn More
 

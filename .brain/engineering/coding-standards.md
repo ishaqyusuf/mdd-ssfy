@@ -15,6 +15,7 @@ Repository-level implementation rules that recur across active workstreams.
 - For any Prisma model/schema update, run `bun run db:migrate` and `bun run db:push`; do not manually create migration files.
 - React TSX packages that can be imported outside their own app/package compiler context must self-pin their runtime with `/** @jsxImportSource react */`; do not rely only on package `tsconfig` when files may be loaded from `apps/api` or another workspace that uses a different JSX runtime such as `hono/jsx`.
 - Expo app components must not mix NativeWind `className` and React Native `style` on the same element. Use `className` only when it fully covers the design; when custom style is needed, convert that element to `style` only instead of combining both.
+- `bun run kill:ports` discovers numeric env variables ending in `_PORT` and ignores names containing `PORTLESS`. Keep every project-owned dev port declared as an individual `*_PORT` env variable instead of adding aggregate kill lists.
 - Prefer Midday-style page architecture wherever possible:
   - before introducing a new workspace layout, dashboard shell, or page-level data pattern, inspect the local Midday reference and reuse its structural approach when it fits
   - route components should stay thin and avoid blocking navigation on expensive setup work

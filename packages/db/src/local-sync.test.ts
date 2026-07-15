@@ -1,13 +1,17 @@
 // @ts-expect-error packages/db typecheck does not include Bun test types.
 import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
+	type DuplicateConflictContext,
+	type SyncOptions,
+	type SyncState,
+	type TableManifest,
 	assertSafeConnections,
 	buildCursorExpression,
-	buildDuplicateSkipReason,
 	buildCursorWhereClause,
+	buildDuplicateSkipReason,
 	buildKeysetWhereClause,
 	buildUpsertSql,
 	buildUpsertValues,
@@ -19,10 +23,6 @@ import {
 	recoverFromDuplicateConflict,
 	resetLocalTable,
 	resolveOptions,
-	type DuplicateConflictContext,
-	type SyncOptions,
-	type SyncState,
-	type TableManifest,
 } from "./local-sync";
 
 describe("local db sync helpers", () => {
@@ -196,19 +196,16 @@ describe("local db sync helpers", () => {
 		}
 	});
 
-	test("uses explicit local sync target from env files", async () => {
+	test("uses remote mode DATABASE_URL from .env.remote.local", async () => {
 		const cwd = await mkdtemp(join(tmpdir(), "gnd-local-sync-"));
 
 		try {
-			await writeFile(
-				`${cwd}/.env.local`,
-				"DATABASE_URL='mysql://root@localhost/app-db'\nLOCAL_DATABASE_URL='mysql://root@localhost:3308/import-db'\n",
-				"utf8",
-			);
+			await writeFile(`${cwd}/.env.local`, "DATABASE_URL='mysql://root@localhost/app-db'\n", "utf8");
+			await writeFile(`${cwd}/.env.remote.local`, "DATABASE_URL='mysql://dev.example.com/gnd-dev'\n", "utf8");
 
-			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod"], cwd);
+			const options = await resolveOptions(["--source-url", "mysql://prod.example.com/prod", "--target-mode", "remote-dev"], cwd);
 
-			expect(options.targetUrl).toBe("mysql://root@localhost:3308/import-db");
+			expect(options.targetUrl).toBe("mysql://dev.example.com/gnd-dev");
 		} finally {
 			await rm(cwd, { recursive: true, force: true });
 		}

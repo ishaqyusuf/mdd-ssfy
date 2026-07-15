@@ -44,6 +44,7 @@ Tracks notable API surfaces and where they are implemented.
   - `/api/download/sales`: compatibility redirect to `/api/download/sales-v2`; legacy `print.sales` and `sales.printInvoice` tRPC procedures are retired
 - Dealership/dealer-program routes now include:
   - `apps/dealership` Better Auth `/api/auth/dealer-dev-quick-sign-in`: development-only quick-login endpoint for active linked dealer accounts; disabled outside non-production environments and used only to unblock local dealership browser QA
+  - `apps/dealership` local `/api/trpc` uses the scoped `dealershipAppRouter`, exposing only `dealerPortal` and `google` routers instead of the full internal `appRouter`, so dealership deployments do not trace or typecheck unrelated API surfaces.
   - `dealerPortal.dashboard`: dealer-scoped summary for open quotes, pending requests, active orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent activity
   - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used by the dealer order overview and print/payment surfaces; payload now includes `createdAt`
   - `dealerPortal.createPaymentLink`: dealer-owned approved-order checkout-link mutation for orders with outstanding balance
@@ -59,7 +60,7 @@ Tracks notable API surfaces and where they are implemented.
   - `newSalesForm.updateShelfProduct`: updates a shelf product title and unit price for the mobile shelf search edit action
   - `newSalesForm.deleteShelfProduct`: soft-deletes a shelf product for the mobile shelf search delete action
 - Community job form routes now include:
-  - `community.saveJobForm`: shared website/Expo job save mutation. It rejects saves without `unit.id` and `unit.projectId`, stores `job.meta.submittedFrom` as `"web"` or `"mobile"` when provided by the client, and relies on `Jobs.createdAt` for the submission timestamp.
+  - `community.saveJobForm`: shared website/Expo job save mutation. It rejects saves without `unit.id` and `unit.projectId` unless the payload is a custom job and `jobs-settings.meta.allowCustomProject` is enabled, stores `job.meta.submittedFrom` as `"web"` or `"mobile"` when provided by the client, and relies on `Jobs.createdAt` for the submission timestamp.
 - Contractor jobs routes now include:
   - `jobs.deleteJob`: authenticated soft-delete mutation for contractor job mistakes. It allows the assigned contractor or an `editJobs` admin to delete only unlocked jobs, and rejects jobs that are approved, completed, paid, payment-cancelled, or linked to a contractor payout.
   - `jobs.getJobs` / `jobs.overview`: job rows now expose `deletionEligibility` so web and Expo hide or disable delete actions consistently with the server guard.

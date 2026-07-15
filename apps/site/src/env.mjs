@@ -14,7 +14,6 @@ const server = z.object({
   SQUARE_APP_ID: z.string(),
   SQUARE_ACCESS_TOKEN: z.string(),
   DATABASE_URL: z.string().url(),
-  POSTGRESS_URL: z.string().url().optional(),
   RESEND_API_KEY: z.string(),
   BLESS_TOKEN: z.string(),
   CLOUDINARY_CLOUD_NAME: z.string(),
@@ -79,7 +78,6 @@ const processEnv = {
   SQUARE_LOCATION_ID: process.env.SQUARE_LOCATION_ID,
   SQUARE_APP_ID: process.env.SQUARE_APP_ID,
   SQUARE_ACCESS_TOKEN: process.env.SQUARE_ACCESS_TOKEN,
-  POSTGRESS_URL: process.env.POSTGRESS_URL,
   DATABASE_URL: process.env.DATABASE_URL,
   NODE_ENV: process.env.NODE_ENV,
   EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS,
@@ -120,7 +118,7 @@ const merged = server.merge(client);
 
 let env = /** @type {MergedOutput} */ (process.env);
 
-if (!!process.env.SKIP_ENV_VALIDATION == false) {
+if (!!process.env.SKIP_ENV_VALIDATION === false) {
   const isServer = typeof window === "undefined";
 
   const parsed = /** @type {MergedSafeParseReturn} */ (

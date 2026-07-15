@@ -91,6 +91,8 @@ export function JobSubmitButton({
 					if (isConfigRequestedStatus) return;
 					const normalizedValues = structuredClone(values) as JobFormSchema;
 					const isCustom = !!normalizedValues.job?.isCustom;
+					const isCustomProject =
+						isCustom && builderTaskId === -1 && !projectId && !unitId;
 					normalizedValues.user = {
 						id:
 							normalizedValues.user?.id ??
@@ -98,18 +100,22 @@ export function JobSubmitButton({
 							typedDefaultValues?.user?.id ??
 							null,
 					};
-					normalizedValues.unit = {
-						id: normalizedValues.unit?.id ?? unitId ?? 0,
-						projectId:
-							normalizedValues.unit?.projectId ?? projectId ?? 0,
-					};
+					normalizedValues.unit = isCustomProject
+						? undefined
+						: {
+								id: normalizedValues.unit?.id ?? unitId ?? 0,
+								projectId:
+									normalizedValues.unit?.projectId ?? projectId ?? 0,
+							};
 					const resolvedBuilderTaskId =
 						normalizedValues.builderTaskId ?? builderTaskId ?? undefined;
 					normalizedValues.builderTaskId =
 						resolvedBuilderTaskId && resolvedBuilderTaskId > 0
 							? resolvedBuilderTaskId
 							: undefined;
-					normalizedValues.modelId = normalizedValues.modelId ?? modelId ?? 0;
+					normalizedValues.modelId = isCustomProject
+						? undefined
+						: normalizedValues.modelId ?? modelId ?? 0;
 					const defaultMeta = typedDefaultValues?.job?.meta || {};
 					const addonPercent =
 						Number(normalizedValues.job?.meta?.addonPercent) ||

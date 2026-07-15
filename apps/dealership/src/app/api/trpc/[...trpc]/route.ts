@@ -1,5 +1,5 @@
+import { dealershipAppRouter } from "@gnd/api/trpc/routers/dealership-app";
 import { getDealerAuthSession } from "@gnd/auth/better-auth/dealership";
-import { appRouter } from "@gnd/api/trpc/routers/_app";
 import { db } from "@gnd/db";
 import { getActiveDealerByAuthUserId } from "@gnd/db/queries";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
@@ -8,7 +8,7 @@ function handler(request: Request) {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
     req: request,
-    router: appRouter,
+    router: dealershipAppRouter,
     createContext: async () => {
       const session = await getDealerAuthSession(request.headers);
       const dealer = session?.user?.id

@@ -91,15 +91,17 @@ export function JobSelectProjectList({ items = [] }: { items?: ProjectItem[] }) 
 
   const customProjectItem: ProjectItem = {
     id: -1,
-    title: "Custom",
+    title: "Custom Project",
     builder: {
-      name: "Custom Project",
+      name: "Manual projectless job",
     },
   };
 
   return (
     <View className="flex flex-1 flex-col px-4 space-y-3">
-      {state?.allowCustomJobs ? <ProjectListItem item={customProjectItem} /> : null}
+      {state?.allowCustomProject ? (
+        <ProjectListItem item={customProjectItem} />
+      ) : null}
 
       <LegendList
         data={items}

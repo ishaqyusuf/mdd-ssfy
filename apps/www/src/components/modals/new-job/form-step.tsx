@@ -182,19 +182,34 @@ function FormContent() {
 	};
 
 	useEffect(() => {
-		if (state.allowCustomJobs) return;
-		if (params.builderTaskId === -1) {
+		const isProjectlessCustomJob =
+			params.builderTaskId === -1 && !params.projectId;
+		if (isProjectlessCustomJob) {
+			if (state.allowCustomProject) return;
 			void setJobFormParams({
 				builderTaskId: null,
 				step: Math.max(1, (params.step || 1) - 1),
 			});
+			return;
 		}
+		if (params.builderTaskId === -1) {
+			if (state.allowCustomJobs) return;
+			void setJobFormParams({
+				builderTaskId: null,
+				step: Math.max(1, (params.step || 1) - 1),
+			});
+			return;
+		}
+		if (state.allowCustomJobs) return;
+		if (!params.builderTaskId) return;
 		form.setValue("job.isCustom", false);
 	}, [
 		form,
 		params.builderTaskId,
+		params.projectId,
 		params.step,
 		setJobFormParams,
+		state.allowCustomProject,
 		state.allowCustomJobs,
 	]);
 

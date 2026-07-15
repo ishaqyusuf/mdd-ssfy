@@ -9,8 +9,8 @@
     "format": "prettier --write '**/*.{js,cjs,mjs,ts,tsx,md,json}'  --ignore-path .prettierignore",
     "lint": "bun run with-env next lint --quiet",
     "start": "bun run with-env next start",
-    "with-env": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.local -e .env.local --",
-    "with-env:prod": "node ../../node_modules/dotenv-cli/cli.js -o -e ../../.env.production -e .env.production --"
+    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+    "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
   },
   "dependencies": {
     "@dinero.js/currencies": "2.0.0-alpha.14",
