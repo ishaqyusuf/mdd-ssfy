@@ -2,6 +2,12 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- 2026-07-15: Confirmed and polished the Expo mobile Job Configuration setting for projectless custom projects. The mobile Settings screen now has a clear `Custom projects` row wired to `jobs-settings.meta.allowCustomProject`, matching the website Job Settings toggle and controlling the mobile `Custom Project` submission option.
+
+- 2026-07-15: Required a project title for projectless custom job submissions. Website and Expo V2 custom-project job detail steps now ask for `Project Title` before the description field, client submits block blank titles, `community.saveJobForm` trims and requires `job.title`, and job list/detail overview data uses the saved title as the project label for custom project jobs. Also confirmed the retired Redis start env switch is absent from active GND/shared local-infra scripts; Redis remains opt-in only through `--redis-local`, `--redis-remote`, or `--redis-remote-dev`.
+
+- 2026-07-15: Made Redis opt-in for the shared GND dev profile. `bun run dev` and `bun run dev --local` now start local Docker MySQL only; `bun run dev --remote-dev` uses the hosted dev DB only. Redis env/service wiring is enabled only by `--redis-local`, `--redis-remote`, or `--redis-remote-dev`; the retired Redis start env switch was removed from the active shared kit and GND scripts. Updated the shared `../../local-infra-kit` env/service resolvers and tests, root service scripts, `.env.example`, `apps/www/README.md`, and `.brain/database/migrations.md`. Validation: `bun test test/with-env.test.ts test/dev-services.test.ts` passed in `../../local-infra-kit`.
+
 - 2026-07-15: Restored projectless custom job submission behind the new `jobs-settings.meta.allowCustomProject` setting. Website Job Settings and Expo settings now expose `Allow custom project`; website, Expo V2, and legacy Expo project selection only show `Custom Project` when that setting is enabled. `Allow custom jobs` remains scoped to project-linked custom tasks. Website/Expo V2 save payloads omit project/unit/model only for the projectless custom route, while `community.saveJobForm` continues to reject missing project/unit unless the payload is custom and `allowCustomProject` is enabled. Validation: targeted `allowCustomProject` symbol check passed; scoped `git diff --check` passed. Heavy build/typecheck/browser checks were not run under fast Bun monorepo command discipline.
 
 - 2026-07-15: Added Redis mode overrides to the root dev profile router.
@@ -154,7 +160,7 @@
 
 - Added remote Redis local-development isolation.
   - Added `GND_CACHE_NAMESPACE` key namespacing in `@gnd/cache`, with a guard that refuses `prod`/`production` cache namespaces outside production unless `GND_ALLOW_PROD_REDIS_IN_DEV` is explicitly enabled.
-  - Updated `scripts/start-dev-services.sh` so Docker Redis is skipped automatically when `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured; local Redis remains forceable with `GND_START_REDIS=1`.
+  - Updated `scripts/start-dev-services.sh` so Docker Redis is skipped automatically when `REDIS_URL` points to a non-local host or `UPSTASH_REDIS_REST_URL` is configured. This was later replaced by explicit Redis mode flags in the shared local-infra kit.
   - Cache namespaces now default from runtime mode: production uses `prod` when `NODE_ENV=production`, and local/development uses `local`; `GND_CACHE_NAMESPACE` is only needed for explicit one-off overrides.
   - Updated `.env.example`, `apps/www/README.md`, and `brain/database/migrations.md` with the new cache flags and dev-service behavior.
   - No database schema, migration, API contract, permission, or runtime product behavior changed.
@@ -203,7 +209,7 @@
 - Retired the default local Docker MySQL development flow.
   - Switched the active root `.env.local` `DATABASE_URL` from the local Docker MySQL port (`127.0.0.1:3307`) to the hosted dev database branch that was already present as a commented value.
   - Removed the root `db:docker:up`, `db:docker:down`, and `db:docker:migrate` scripts so normal project commands no longer advertise the XAMPP-to-Docker database path.
-  - Updated `scripts/start-dev-services.sh` to read the configured database URL and skip the local MySQL container when the host is non-local; local Redis still starts by default, with `GND_START_REDIS=0` available for remote Redis/Upstash setups and `GND_START_MYSQL=1` available for intentional local-MySQL recovery.
+  - Updated `scripts/start-dev-services.sh` to read the configured database URL and skip the local MySQL container when the host is non-local. This legacy behavior was later superseded by the shared local-infra kit profile and explicit Redis mode flags.
   - Updated `apps/www/README.md` and `brain/database/migrations.md` to document the hosted dev branch as the normal development database target and leave the old Docker MySQL import script as legacy/manual recovery only.
   - No Prisma schema, migration file, API contract, permission, or runtime feature behavior changed.
 

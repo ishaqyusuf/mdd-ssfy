@@ -188,10 +188,11 @@ function Content() {
 								<Card.Content className="flex flex-col gap-3">
 									<div>
 										<p className="font-bold text-foreground">
-											{job?.project?.title}
+											{job?.project?.title || job?.title || "Custom Project"}
 										</p>
 										<p className="text-sm text-muted-foreground">
-											{job?.project?.builder?.name}
+											{job?.project?.builder?.name ||
+												(job?.isCustom ? "Custom project" : "Unknown builder")}
 										</p>
 									</div>
 								</Card.Content>

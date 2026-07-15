@@ -31,7 +31,9 @@ Everything else is standalone.
 
 - Website job submission uses the existing `NewJobModal` path for contractor submit and admin assign flows.
 - Website and Expo contractors/admins must choose an existing project and unit before a job can be saved unless `jobs-settings.meta.allowCustomProject` is enabled.
+- Website Job Settings and Expo mobile Settings > Job Configuration expose `Allow custom project` / `Custom projects` controls for `jobs-settings.meta.allowCustomProject`.
 - `jobs-settings.meta.allowCustomProject` exposes a top-level `Custom Project` choice in website and Expo project selection. That path skips project/unit/model selection and submits a projectless custom job with manual pricing.
+- Projectless `Custom Project` submissions require a non-blank `Project Title` in the final job details step before the description field. The title is saved as `Jobs.title` and is used as the visible project label in job overview/detail screens instead of a generic custom label.
 - `jobs-settings.meta.allowCustomJobs` remains scoped to `Custom Task` after a project is selected, and custom-task saves preserve the selected project/unit/model context.
 - `community.saveJobForm` rejects payloads without `unit.id` and `unit.projectId` unless the payload is a custom job and `jobs-settings.meta.allowCustomProject` is enabled.
 - Job submission source is stored in `Jobs.meta.submittedFrom` as `"web"` or `"mobile"`. No extra submitted-at timestamp is stored; `Jobs.createdAt` remains the submission time source.

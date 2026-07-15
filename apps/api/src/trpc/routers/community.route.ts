@@ -454,6 +454,8 @@ export const communityRouters = createTRPCRouter({
 			const { unit, user, job: jobInput } = input;
 			const isProjectlessCustomJob =
 				!!jobInput.isCustom && !unit?.id && !unit?.projectId;
+			const normalizedJobTitle =
+				typeof jobInput.title === "string" ? jobInput.title.trim() : jobInput.title;
 			const customProjectSetting = isProjectlessCustomJob
 				? await getSettingAction("jobs-settings", db)
 				: null;
@@ -465,6 +467,9 @@ export const communityRouters = createTRPCRouter({
 			)?.allowCustomProject;
 			if ((!unit?.id || !unit?.projectId) && !allowCustomProject) {
 				throw new Error("Project and unit are required before saving a job.");
+			}
+			if (isProjectlessCustomJob && !normalizedJobTitle) {
+				throw new Error("Project title is required for custom projects.");
 			}
 			let jobId = jobInput.id;
 			const isCreatingJob = !jobId;
@@ -558,7 +563,7 @@ export const communityRouters = createTRPCRouter({
 						amount: jobInput.amount,
 						adminNote: jobInput.adminNote,
 						isCustom: jobInput.isCustom,
-						title: jobInput.title,
+						title: normalizedJobTitle,
 						subtitle: jobInput.subtitle,
 						description: jobInput.description,
 						status: resolvedStatus || undefined,
@@ -579,7 +584,7 @@ export const communityRouters = createTRPCRouter({
 						description: jobInput.description,
 						adminNote: jobInput.adminNote,
 						isCustom: jobInput.isCustom,
-						title: jobInput.title,
+						title: normalizedJobTitle,
 						subtitle: jobInput.subtitle,
 						// type: job.type,
 						user: { connect: { id: user!.id || props.ctx.userId } },

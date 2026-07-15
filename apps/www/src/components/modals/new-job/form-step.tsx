@@ -143,8 +143,11 @@ function FormContent() {
 		(project) => project.id === params.projectId,
 	);
 	const builderId = selectedProject?.builderId;
+	const isProjectlessCustomJob =
+		params.builderTaskId === -1 && !params.projectId;
 
 	const isCustomTask = form.watch("job.isCustom");
+	const customProjectTitle = form.watch("job.title");
 	const jobTasks = form.watch("job.tasks");
 	// const { fields: jobTasks } = useFieldArray({
 	//     control: form.control,
@@ -182,8 +185,6 @@ function FormContent() {
 	};
 
 	useEffect(() => {
-		const isProjectlessCustomJob =
-			params.builderTaskId === -1 && !params.projectId;
 		if (isProjectlessCustomJob) {
 			if (state.allowCustomProject) return;
 			void setJobFormParams({
@@ -206,6 +207,7 @@ function FormContent() {
 	}, [
 		form,
 		params.builderTaskId,
+		isProjectlessCustomJob,
 		params.projectId,
 		params.step,
 		setJobFormParams,
@@ -223,8 +225,10 @@ function FormContent() {
 					</span>
 					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
 						<Icons.Building2 className="size-3" />{" "}
-						{params.builderTaskId === -1
-							? "Custom"
+						{isProjectlessCustomJob
+							? customProjectTitle?.trim() || "Custom Project"
+							: params.builderTaskId === -1
+								? "Custom"
 							: typedDefaultValues.unit?.projectTitle || "Unknown Project"}
 					</span>
 					{params.builderTaskId === -1 ? null : (
@@ -265,6 +269,41 @@ function FormContent() {
 					{isCustomTask || params.builderTaskId === -1 ? (
 						/* Custom Task Form */
 						<div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+							{isProjectlessCustomJob ? (
+								<div className="space-y-2">
+									<Controller
+										control={form.control}
+										name="job.title"
+										render={({ field, fieldState }) => (
+											<Field>
+												<Field.Label>Project Title</Field.Label>
+												<InputGroup
+													className={cn(
+														fieldState.error && "border-destructive",
+													)}
+												>
+													<InputGroup.Input
+														{...field}
+														value={field.value || ""}
+														onChange={(event) => {
+															field.onChange(event);
+															if (fieldState.error) {
+																form.clearErrors("job.title");
+															}
+														}}
+														placeholder="Enter project title"
+													/>
+												</InputGroup>
+												{fieldState.error?.message ? (
+													<Field.Description className="text-destructive">
+														{fieldState.error.message}
+													</Field.Description>
+												) : null}
+											</Field>
+										)}
+									/>
+								</div>
+							) : null}
 							<div className="space-y-2">
 								<Controller
 									control={form.control}

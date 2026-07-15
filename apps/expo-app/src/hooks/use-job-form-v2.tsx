@@ -197,7 +197,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 								addon: 0,
 								additional_cost: null,
 							},
-							title: "Custom Job",
+							title: "",
 							subtitle: null,
 							adminNote: null,
 							isCustom: true,
@@ -701,6 +701,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 			const defaultJob = (defaultValues as any)?.job || {};
 			const defaultMeta = defaultJob.meta || {};
 			const values = form.getValues() as any;
+			const customProjectTitle = String(values?.job?.title || "").trim();
+			if (isProjectlessCustomJob && !customProjectTitle) {
+				form.setError("job.title" as any, {
+					type: "manual",
+					message: "Project title is required.",
+				});
+				return null;
+			}
 			const formTasks = values?.job?.tasks || [];
 			const selectedProject = (projectList || []).find(
 				(project: any) => project?.id === params.projectId,
@@ -712,6 +720,7 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 				(task: any) => task?.id === params.builderTaskId,
 			);
 			const fallbackTitle =
+				(isProjectlessCustomJob ? customProjectTitle : null) ||
 				values?.job?.title ||
 				defaultJob.title ||
 				selectedProject?.title ||

@@ -18,6 +18,7 @@ export const useCreateJobFormContext = () => {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const isDirectCustomJob = params.builderTaskId === -1;
+	const isProjectlessCustomJob = isDirectCustomJob && !params.projectId;
 	const canLoadForm =
 		(!isDirectCustomJob &&
 			!!params.unitId &&
@@ -61,7 +62,7 @@ export const useCreateJobFormContext = () => {
 								addon: 0,
 								additional_cost: null,
 							},
-							title: "Custom Job",
+							title: isProjectlessCustomJob ? "" : "Custom Job",
 							subtitle: null,
 							adminNote: null,
 							isCustom: true,
@@ -69,7 +70,14 @@ export const useCreateJobFormContext = () => {
 						},
 				  }
 				: undefined,
-		[auth.id, auth.name, isDirectCustomJob, params.jobId, params.userId],
+		[
+			auth.id,
+			auth.name,
+			isDirectCustomJob,
+			isProjectlessCustomJob,
+			params.jobId,
+			params.userId,
+		],
 	);
 	const defaultValues = customDefaultValues ?? queriedDefaultValues;
 	const state = useMemo(

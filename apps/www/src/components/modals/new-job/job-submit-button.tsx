@@ -93,6 +93,17 @@ export function JobSubmitButton({
 					const isCustom = !!normalizedValues.job?.isCustom;
 					const isCustomProject =
 						isCustom && builderTaskId === -1 && !projectId && !unitId;
+					if (isCustomProject) {
+						const projectTitle = normalizedValues.job?.title?.trim();
+						if (!projectTitle) {
+							form.setError("job.title", {
+								type: "manual",
+								message: "Project title is required.",
+							});
+							return;
+						}
+						normalizedValues.job.title = projectTitle;
+					}
 					normalizedValues.user = {
 						id:
 							normalizedValues.user?.id ??

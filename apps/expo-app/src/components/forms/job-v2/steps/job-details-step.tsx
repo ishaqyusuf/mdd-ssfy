@@ -69,7 +69,10 @@ export function JobDetailsStep() {
     state,
   } = useJobFormV2Context();
 
+  const isProjectlessCustomJob =
+    params.builderTaskId === -1 && !params.projectId;
   const isCustom = form.watch("job.isCustom") || params.builderTaskId === -1;
+  const customProjectTitle = form.watch("job.title");
   const taskRows = form.watch("job.tasks") || [];
 
   const addonPercent =
@@ -102,7 +105,7 @@ export function JobDetailsStep() {
   const selectedUnit = (unitOptions || []).find(
     (unit: any) => unit?.id === params.unitId,
   );
-  const modelMissing = !params.modelId;
+  const modelMissing = !isProjectlessCustomJob && !params.modelId;
 
   if (modelMissing) {
     const unitModelName = selectedUnit?.modelName || "Unknown Model";
@@ -237,7 +240,9 @@ export function JobDetailsStep() {
             Summary
           </Text>
           <Text className="text-sm font-bold text-foreground">
-            {defaultValues?.unit?.projectTitle || "Project"}
+            {isProjectlessCustomJob
+              ? customProjectTitle?.trim() || "Custom Project"
+              : defaultValues?.unit?.projectTitle || "Project"}
           </Text>
           <Text className="text-xs text-muted-foreground">
             {defaultValues?.unit?.modelName || "Unit"}
@@ -246,6 +251,42 @@ export function JobDetailsStep() {
 
         {isCustom ? (
           <>
+            {isProjectlessCustomJob ? (
+              <NeoCard className="bg-card">
+                <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
+                  Project Title
+                </Text>
+                <Controller
+                  control={form.control}
+                  name="job.title"
+                  render={({ field, fieldState }) => (
+                    <View>
+                      <TextInput
+                        value={(field.value as string) || ""}
+                        onChangeText={(text) => {
+                          field.onChange(text);
+                          if (fieldState.error) {
+                            form.clearErrors("job.title" as any);
+                          }
+                        }}
+                        className={cn(
+                          "rounded-2xl border bg-background px-4 py-3 text-sm text-foreground",
+                          fieldState.error ? "border-destructive" : "border-border",
+                        )}
+                        placeholder="Enter project title"
+                        placeholderTextColor="hsl(var(--muted-foreground))"
+                      />
+                      {fieldState.error?.message ? (
+                        <Text className="mt-1 text-xs text-destructive">
+                          {fieldState.error.message}
+                        </Text>
+                      ) : null}
+                    </View>
+                  )}
+                />
+              </NeoCard>
+            ) : null}
+
             <NeoCard className="bg-card">
               <Text className="mb-2 text-xs uppercase tracking-[1px] text-muted-foreground">
                 Description

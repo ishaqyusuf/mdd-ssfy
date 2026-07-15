@@ -210,7 +210,7 @@ function Content({ costData }: { costData: any }) {
             <InfoBlock
               icon="business"
               label="Project"
-              value={job.project?.title}
+              value={job.project?.title || job.title}
             />
             <InfoBlock
               icon="home-work"

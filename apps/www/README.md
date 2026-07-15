@@ -20,7 +20,7 @@ This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-opti
 
 ## Development Database
 
-Normal local development uses Docker MySQL and Docker Redis:
+Normal local development uses Docker MySQL. Redis is opt-in:
 
 ```bash
 bun run dev
@@ -31,15 +31,17 @@ The root dev command runs through the shared `../../local-infra-kit` profile for
 Supported profiles:
 
 ```bash
-bun run dev                         # local Docker MySQL + local Docker Redis
-bun run dev --local                 # local Docker MySQL + local Docker Redis
+bun run dev                         # local Docker MySQL only
+bun run dev --local                 # local Docker MySQL only
+bun run dev --local --redis-local   # local Docker MySQL + local Docker Redis
 bun run dev --local --redis-remote  # local Docker MySQL + remote-dev Redis
-bun run dev --remote-dev            # remote-dev DB + remote-dev Redis
+bun run dev --remote-dev            # remote-dev DB only
 bun run dev --remote-dev --redis-local # remote-dev DB + local Docker Redis
+bun run dev --remote-dev --redis-remote # remote-dev DB + remote-dev Redis
 bun run dev --prod                  # production-env www smoke on port 3005
 ```
 
-Redis can be overridden independently with `--redis-local`, `--redis-remote`, or `--redis-remote-dev`. Redis override flags are only supported for local and remote-dev profiles.
+Redis is only enabled when `--redis-local`, `--redis-remote`, or `--redis-remote-dev` is passed. Redis flags are only supported for local and remote-dev profiles.
 
 Dev commands can also be narrowed to selected Turbo targets:
 
@@ -56,7 +58,7 @@ The underlying env contract is:
 
 ```bash
 .env.local         DATABASE_URL=mysql://root@127.0.0.1:3307/gnd-prisma2
-.env.local         REDIS_URL=redis://localhost:6379
+.env.local         REDIS_URL=<optional-local-redis-url>
 .env.remote.local  DATABASE_URL=<hosted-dev-mysql-url>
 .env.remote.local  REDIS_URL=<hosted-dev-redis-url>
 .env.remote.local  UPSTASH_REDIS_REST_URL=<optional-hosted-dev-rest-url>
@@ -74,7 +76,7 @@ bun run db:docker:up
 bun run db:docker:down
 ```
 
-`../../local-infra-kit/bin/dev-services.ts --profile gnd` starts Docker MySQL only for a local DB profile and Docker Redis only for a local Redis profile. Remote profiles skip local Docker services.
+`../../local-infra-kit/bin/dev-services.ts --profile gnd` starts Docker MySQL only for a local DB profile and Docker Redis only for an explicitly requested local Redis profile. Remote profiles skip local Docker services.
 If the local MySQL container is stuck on a stale runtime socket lock, the service script recreates the MySQL container once while preserving the named database volume.
 
 Useful commands:

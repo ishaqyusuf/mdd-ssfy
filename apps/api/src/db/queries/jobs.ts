@@ -300,6 +300,15 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 				...rest
 			}) => {
 				const meta = _meta as any as JobMeta;
+				const normalizedProject =
+					project ||
+					(isCustom
+						? {
+								id: null,
+								title: title || "Custom Project",
+								builder: null,
+							}
+						: null);
 				// const {
 				//   additional_cost,
 				//   additionalCostReason,
@@ -326,7 +335,7 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 						paymentId,
 						approvedAt,
 					}),
-					project,
+					project: normalizedProject,
 					status: status as JobStatus,
 					statusDate,
 					subtitle,
