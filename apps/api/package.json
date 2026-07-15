@@ -4,7 +4,7 @@
     "--build": "bun run with-env:prod bun-vercel ./src/bun.ts",
     "-build": "./bun-vercel/build.sh ./src/bun.ts",
     "deploy:vc": "vc",
-    "dev": "bun run with-env env TZ=UTC PORT=3004 bun run --hot src/index.ts",
+    "dev": "bun run with-env env TZ=UTC PORT=3014 bun run --hot src/index.ts",
     "dev:node": "bun run with-env tsx src/node.ts",
     "format": "biome format --write .",
     "lint": "biome check .",

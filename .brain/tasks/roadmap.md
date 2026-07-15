@@ -15,6 +15,16 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Sales Online Payment Follow-Up Reliability
+- Priority: High
+- Description: Wayfinder map created at `.scratch/sales-online-payment-follow-up/map.md` from the client complaint that online-paid sales can be missed when emails are buried and the notification bell is not actionable. The effort should produce an implementation-ready spec and tickets for payment acknowledgement/email reliability, notification badge/inbox improvements, a recent-paid sales follow-up queue, and safe payment-to-fulfillment boundaries.
+- Related Feature: Sales payment v2 checkout, notification center, sales orders, inventory-backed fulfillment
+- Status: Roadmap
+- Plan Status: Wayfinder Map
+- Scratch Map: .scratch/sales-online-payment-follow-up/map.md
+- Created Date: 2026-07-15
+- Local Only: yes
+
 ### Task Monitor Client Simplification And Error Ledger
 - Priority: High
 - Description: Published the spec in GitHub issue https://github.com/ishaqyusuf/mdd-ssfy/issues/42 and `brain/plans/2026-07-13-spec-task-monitor-client-simplification-and-error-ledger.md`; simplify the production background task monitor so clients see only loading and terminal success/destructive toasts, while developer/admin task failure details are persisted in a database-backed diagnostic ledger.

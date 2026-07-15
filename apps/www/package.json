@@ -5,8 +5,8 @@
   "scripts": {
     "build": "bun run next build --turbopack",
     "clean": "git clean -xdf .next .turbo node_modules",
-    "dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-${GND_PORTLESS_PROXY_PORT:-3001}} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_WWW_PORT:-3000}} TZ=UTC portless gndprodesk next dev --turbopack",
-    "dev:prod": "bun run with-env:prod env TZ=UTC next dev -p 3005",
+    "dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-${GND_PROXY_PORT:-3011}} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_WWW_PORT:-3010}} TZ=UTC portless gndprodesk next dev --turbopack",
+    "dev:prod": "bun run with-env:prod env TZ=UTC next dev -p 3015",
     "dump-tsc": "tsc temp.ts --declaration --emitDeclarationOnly",
     "lint": "next lint",
     "start": "next start",

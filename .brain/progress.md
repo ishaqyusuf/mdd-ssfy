@@ -2,6 +2,12 @@
 
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
+- 2026-07-15: Implemented the first Sales Online Payment Follow-Up notification bell slice in `apps/www`. The notification dropdown now has an unread count badge, skeleton loading, lazy inbox/archive tabs, load-more controls, profile notification settings link, domain-specific row icons, mark-unread-as-read-on-open behavior, single notification archive, and archive-all. Added protected notes mutations for recipient-scoped status updates and implemented `NoteRecipients.status` helpers in `packages/notifications`, with focused coverage in `packages/notifications/src/activities.test.ts`. Validation: `bun test packages/notifications/src/activities.test.ts` passed; targeted `bunx biome check --formatter-enabled=false` over the touched notification/API files passed. `bun --filter @gnd/notifications typecheck`, `bun --filter @gnd/api typecheck`, and `bun --filter @gnd/www typecheck` remain blocked by existing unrelated baseline diagnostics in inventory, sales, PDF, API, and shared UI packages.
+
+- 2026-07-15: Moved the GND local dev port contract from `3000-3009` to `3010-3019` to avoid local conflicts on `3000`. The new defaults are `www=3010`, `portless/proxy=3011`, Expo Metro `3012`, email preview `3013`, API `3014`, `www:prod=3015`, dealership `3016`, `apps/web=3017`, site `3018`, and backlog `3019`. Updated tracked defaults plus local non-secret port/localhost URL overrides; secret values were untouched.
+
+- 2026-07-15: Created a local Wayfinder scratch map for Sales Online Payment Follow-Up Reliability after a client complaint that online customer payments can be missed when emails are buried and the notification bell is not actionable. The map covers four open decisions before spec/tickets: payment acknowledgement and receipt-email reliability, notification bell count/inbox behavior, a recent-online-paid sales follow-up queue, and safe payment-to-fulfillment automation boundaries. Added the roadmap entry; no code, database schema, API contract, permission, build, typecheck, or runtime behavior changed in this planning pass.
+
 - 2026-07-15: Fixed Expo preview auth URL precedence after the login debug readout showed `http://localhost:3000` in a preview build. `getWebUrl()` now uses `EXPO_PUBLIC_BASE_URL` first when `EXPO_PUBLIC_APP_VARIANT=preview`, so local-only `EXPO_PUBLIC_WEB_URL` from dotenv files cannot override the EAS preview base URL in OTA bundles.
 
 - 2026-07-15: Renamed the projectless custom job field copy from `Project Title` to `Project Name` across the website job modal, Expo V2 job details step, client validation errors, and the shared `community.saveJobForm` error.
@@ -1890,9 +1896,9 @@
   - Updated docs: `brain/features/mobile-invoice-form.md`, `brain/api/contracts.md`, and `brain/progress.md`; no database docs were needed because there are no schema or migration changes.
   - Validation: focused bounded post-save API tests passed; focused mobile invoice-form store tests passed; scoped `git diff --check` passed. Dev-server/mobile manual acceptance was not run in this implementation pass.
 
-- Normalized local project dev ports into an explicit GND-owned `3000-3009` app range.
+- Normalized local project dev ports into an explicit GND-owned `3010-3019` app range.
   - Replaced the root inline port-kill loop with a project-specific script that kills only named GND ports and leaves unrelated neighboring ports alone.
-  - Moved Expo Metro to `3002`, `apps/web` to `3007`, site to `3008`, backlog to `3009`, and the shared `portless` proxy default to `3001` while preserving `www=3000`, email preview `3003`, API `3004`, `www:prod=3005`, and dealership `3006`.
+  - Moved Expo Metro to `3012`, `apps/web` to `3017`, site to `3018`, backlog to `3019`, and the shared `portless` proxy default to `3011` while preserving `www=3010`, email preview `3013`, API `3014`, `www:prod=3015`, and dealership `3016`.
   - Updated mobile/web/dealership runtime fallbacks and `brain/system/overview.md`; no API contract or database docs were needed because this is local development runtime configuration only.
   - Validation: targeted stale-port searches, kill-script smoke checks, and scoped `git diff --check` passed. Dev server runtime smoke was not run in this implementation pass.
 
@@ -4944,8 +4950,8 @@
   - `apps/www` -> `4000`
   - `apps/site` -> `4100`
   - `apps/gnd-backlog` -> `4200`
-- Updated local env defaults for web surfaces so `NEXT_PUBLIC_APP_URL`, `NEXTAUTH_URL`, `NEXT_PUBLIC_ROOT_DOMAIN`, and related PDF/runtime URLs align with the new fixed child ports instead of the previous `3000/3500` assumptions.
-- Added `PORTLESS_APP_PORT` plus `EXPO_PUBLIC_PORTLESS_APP_PORT` to the Expo app env and refactored `apps/expo-app/src/lib/base-url.ts` to use the shared port contract instead of hardcoding `3000`, keeping preview builds on `EXPO_PUBLIC_BASE_URL`.
+- Updated local env defaults for web surfaces so `NEXT_PUBLIC_APP_URL`, `NEXTAUTH_URL`, `NEXT_PUBLIC_ROOT_DOMAIN`, and related PDF/runtime URLs align with the fixed `3010-3019` child ports instead of the previous `3000/3500` assumptions.
+- Added `PORTLESS_APP_PORT` plus `EXPO_PUBLIC_PORTLESS_APP_PORT` to the Expo app env and refactored `apps/expo-app/src/lib/base-url.ts` to use the shared port contract instead of hardcoding the old web port, keeping preview builds on `EXPO_PUBLIC_BASE_URL`.
 
 ## 2026-03-19
 

@@ -13,10 +13,10 @@ function request(url: string, headers: Record<string, string> = {}) {
 describe("proxy auth session url", () => {
     it("uses the IPv4 app port for local http requests", () => {
         expect(
-            getAuthSessionUrl(request("http://localhost:3000/sales"), {
-                PORTLESS_APP_PORT: "3000",
+            getAuthSessionUrl(request("http://localhost:3010/sales"), {
+                PORTLESS_APP_PORT: "3010",
             }).toString(),
-        ).toBe("http://127.0.0.1:3000/api/auth-session");
+        ).toBe("http://127.0.0.1:3010/api/auth-session");
     });
 
     it("uses the forwarded app port for local portless requests", () => {
@@ -25,9 +25,9 @@ describe("proxy auth session url", () => {
                 request("https://gndprodesk.localhost/sales", {
                     "x-forwarded-host": "gndprodesk.localhost",
                 }),
-                { PORTLESS_APP_PORT: "3000" },
+                { PORTLESS_APP_PORT: "3010" },
             ).toString(),
-        ).toBe("http://127.0.0.1:3000/api/auth-session");
+        ).toBe("http://127.0.0.1:3010/api/auth-session");
     });
 
     it("preserves non-local origins", () => {
@@ -41,6 +41,6 @@ describe("proxy auth session url", () => {
 
     it("recognizes IPv6 localhost with and without brackets", () => {
         expect(isLocalDevHost("::1")).toBe(true);
-        expect(isLocalDevHost("[::1]:3000")).toBe(true);
+        expect(isLocalDevHost("[::1]:3010")).toBe(true);
     });
 });

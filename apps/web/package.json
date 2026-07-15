@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "clean": "git clean -xdf .output .tanstack .turbo node_modules",
-    "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_WEB_PORT:-3007}} TZ=UTC vite dev --port ${PORTLESS_APP_PORT:-${GND_WEB_PORT:-3007}}",
+    "dev": "PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_WEB_PORT:-3017}} TZ=UTC vite dev --port ${PORTLESS_APP_PORT:-${GND_WEB_PORT:-3017}}",
     "start": "vite start",
     "typecheck": "tsc --noEmit"
   },

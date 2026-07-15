@@ -21,7 +21,7 @@ export function getAuthSessionUrl(
         isLocalDevHost(forwardedHost)
     ) {
         const appPort =
-            env.PORTLESS_APP_PORT ?? env.PORT ?? requestUrl.port ?? "3000";
+            env.PORTLESS_APP_PORT ?? env.PORT ?? requestUrl.port ?? "3010";
         return new URL("/api/auth-session", `http://127.0.0.1:${appPort}`);
     }
 

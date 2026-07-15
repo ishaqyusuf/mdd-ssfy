@@ -10,7 +10,7 @@ export function getAppUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return "http://localhost:3000";
+  return "http://localhost:3010";
 }
 export function getAppApiUrl() {
   const url = getAppUrl();
@@ -34,7 +34,7 @@ export function getStoreUrl() {
 
 export function getEmailUrl() {
   // if (process.env.NODE_ENV === "development") {
-  //   return "http://localhost:3000";
+  //   return "http://localhost:3010";
   // }
 
   return "https://gndprodesk.com";
@@ -52,7 +52,7 @@ export function getWebsiteUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return "http://localhost:3000";
+  return "http://localhost:3010";
 }
 
 export function getCdnUrl() {

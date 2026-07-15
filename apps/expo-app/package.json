@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "scripts": {
     "android": "bun run with-env node ./scripts/run-expo-cli.cjs run:android",
-    "dev": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_EXPO_PORT:-3002}",
+    "dev": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_EXPO_PORT:-3012}",
     "eas-build:dev": "BUN_AUTO_INSTALL=0 bun run with-env eas build --profile development --platform android",
     "eas-build:preview": "BUN_AUTO_INSTALL=0 bun run with-env:prod eas build -p android --profile preview",
     "ios": "bun run with-env node ./scripts/run-expo-cli.cjs run:ios",
-    "start": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_EXPO_PORT:-3002}",
+    "start": "bun run with-env node ./scripts/run-expo-cli.cjs start --port ${GND_EXPO_PORT:-3012}",
     "update:preview": "node ./scripts/update-preview.mjs",
     "web": "bun run with-env node ./scripts/run-expo-cli.cjs start --web",
     "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",

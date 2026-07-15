@@ -75,6 +75,6 @@ app.get("/", (c) => {
 
 export { app };
 export default {
-  port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3000,
+  port: process.env.PORT ? Number.parseInt(process.env.PORT) : 3014,
   fetch: app.fetch,
 };

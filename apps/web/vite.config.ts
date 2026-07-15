@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   server: {
-    port: Number(process.env.PORTLESS_APP_PORT ?? process.env.GND_WEB_PORT ?? 3007),
+    port: Number(process.env.PORTLESS_APP_PORT ?? process.env.GND_WEB_PORT ?? 3017),
   },
   resolve: {
     alias: {

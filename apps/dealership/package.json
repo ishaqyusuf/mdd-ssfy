@@ -5,7 +5,7 @@
 	"scripts": {
 		"with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
 		"with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --",
-		"dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-${GND_PORTLESS_PROXY_PORT:-3001}} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_DEALERSHIP_PORT:-3006}} TZ=UTC portless gnd-dealership next dev --turbopack",
+		"dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-${GND_PROXY_PORT:-3011}} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_DEALERSHIP_PORT:-3016}} TZ=UTC portless gnd-dealership next dev --turbopack",
 		"clean": "git clean -xdf .next .turbo node_modules",
 		"build": "bun run with-env:prod env next build --turbopack",
 		"start": "next start",

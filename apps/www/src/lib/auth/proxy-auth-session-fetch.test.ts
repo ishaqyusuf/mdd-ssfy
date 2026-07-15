@@ -24,7 +24,7 @@ describe("proxy auth session fetch", () => {
 
         await expect(
             fetchAuthSession(
-                new URL("http://127.0.0.1:3000/api/auth-session"),
+                new URL("http://127.0.0.1:3010/api/auth-session"),
                 { method: "GET" },
                 { fetchImpl, retryDelayMs: 0 },
             ),

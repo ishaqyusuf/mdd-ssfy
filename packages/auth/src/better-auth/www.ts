@@ -112,15 +112,15 @@ function getWebBaseUrl() {
     return `https://${process.env.VERCEL_URL}`;
   }
 
-  return "http://localhost:3000";
+  return "http://localhost:3010";
 }
 
 function getTrustedOrigins() {
   const localAppPort =
-    process.env.PORTLESS_APP_PORT || process.env.PORT || "3000";
+    process.env.PORTLESS_APP_PORT || process.env.PORT || "3010";
   const localOrigins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:3010",
+    "http://127.0.0.1:3010",
     `http://localhost:${localAppPort}`,
     `http://127.0.0.1:${localAppPort}`,
   ];

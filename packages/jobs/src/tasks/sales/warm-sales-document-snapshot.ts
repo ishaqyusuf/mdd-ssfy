@@ -75,7 +75,7 @@ function buildStoredDocumentKind(documentType: string) {
 }
 
 function resolveBaseUrl() {
-	return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(
+	return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3010").replace(
 		/\/$/,
 		"",
 	);

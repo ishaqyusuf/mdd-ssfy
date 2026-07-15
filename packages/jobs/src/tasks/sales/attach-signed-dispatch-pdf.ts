@@ -164,7 +164,7 @@ export const attachSignedDispatchPdf = schemaTask({
 			templateId: payload.templateId,
 			companyAddress: documentData.companyAddress,
 			logoUrl: documentData.logoUrl ?? undefined,
-			baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+			baseUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3010",
 		});
 
 		const filename = `${documentData.title || `dispatch-${payload.dispatchId}`}.pdf`;

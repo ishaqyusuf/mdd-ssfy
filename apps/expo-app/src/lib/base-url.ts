@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 
-const DEFAULT_WEB_APP_PORT = "3000";
+const DEFAULT_WEB_APP_PORT = "3010";
 
 const getPortlessAppPort = () =>
   process.env.EXPO_PUBLIC_PORTLESS_APP_PORT ??
@@ -38,7 +38,7 @@ export const getBaseUrl = () => {
   /**
    * Gets the IP address of your host-machine. If it cannot automatically find it,
    * you'll have to manually set it. NOTE: The default web app port is driven by
-   * PORTLESS_APP_PORT / EXPO_PUBLIC_PORTLESS_APP_PORT and falls back to 3000.
+   * PORTLESS_APP_PORT / EXPO_PUBLIC_PORTLESS_APP_PORT and falls back to 3010.
    *
    * **NOTE**: This is only for development. In production, you'll want to set the
    * baseUrl to your production API URL.

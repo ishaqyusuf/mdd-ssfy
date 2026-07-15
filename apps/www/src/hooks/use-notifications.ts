@@ -3,8 +3,13 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { transformNotifications } from "@notifications/notification-center";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import {
+	useInfiniteQuery,
+	useMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
+import { useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { useUserNotificationAccount } from "./use-user-notification-account";
 
 type RawNotificationItems = Parameters<typeof transformNotifications>[0];
@@ -58,6 +63,8 @@ export function useNotifications({
 	includeArchive?: boolean;
 } = {}) {
 	const auth = useAuth();
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const inboxQuery = useNotificationFeed(["unread", "read"], enabled);
 	const archivedQuery = useNotificationFeed(
 		["archived"],
@@ -71,6 +78,55 @@ export function useNotifications({
 			),
 		[inboxQuery.notifications],
 	);
+	const unreadCount = useMemo(
+		() =>
+			inboxQuery.notifications.filter(
+				(notification) => notification.status === "unread",
+			).length,
+		[inboxQuery.notifications],
+	);
+	const invalidateNotificationLists = useCallback(async () => {
+		await queryClient.invalidateQueries({
+			queryKey: trpc.notes.list.pathKey(),
+		});
+	}, [queryClient, trpc]);
+	const updateStatusMutation = useMutation(
+		trpc.notes.updateNotificationStatus.mutationOptions({
+			onSuccess: invalidateNotificationLists,
+			onError: (error) => {
+				toast.error(error.message || "Unable to update notification");
+			},
+		}),
+	);
+	const updateAllStatusMutation = useMutation(
+		trpc.notes.updateAllNotificationStatus.mutationOptions({
+			onSuccess: invalidateNotificationLists,
+			onError: (error) => {
+				toast.error(error.message || "Unable to update notifications");
+			},
+		}),
+	);
+	const markMessageAsRead = useCallback(
+		(messageId: number | string) => {
+			updateStatusMutation.mutate({
+				activityId: Number(messageId),
+				status: "archived",
+			});
+		},
+		[updateStatusMutation],
+	);
+	const markAllMessagesAsRead = useCallback(() => {
+		updateAllStatusMutation.mutate({
+			status: "archived",
+			fromStatus: ["unread", "read"],
+		});
+	}, [updateAllStatusMutation]);
+	const markAllMessagesAsSeen = useCallback(() => {
+		updateAllStatusMutation.mutate({
+			status: "read",
+			fromStatus: ["unread"],
+		});
+	}, [updateAllStatusMutation]);
 
 	return {
 		isLoading:
@@ -86,7 +142,12 @@ export function useNotifications({
 		notifications: inboxQuery.notifications,
 		archived: includeArchive ? archivedQuery.notifications : [],
 		hasUnseenNotifications,
-		markMessageAsRead: (_messageId: number) => {},
+		unreadCount,
+		markMessageAsRead,
+		markAllMessagesAsRead,
+		markAllMessagesAsSeen,
+		isUpdating:
+			updateStatusMutation.isPending || updateAllStatusMutation.isPending,
 		inbox: {
 			items: inboxQuery.notifications,
 			fetchNextPage: inboxQuery.fetchNextPage,

@@ -1,12 +1,12 @@
 "use client";
 
-import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useJobParams } from "@/hooks/use-contractor-jobs-params";
 import { useDocumentReviewParams } from "@/hooks/use-document-review-params";
+import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useNotifications } from "@/hooks/use-notifications";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
+import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Popover, Tabs } from "@gnd/ui/namespace";
@@ -26,24 +26,43 @@ import { ErrorFallback } from "../error-fallback";
 import { EmptyState } from "./empty-state";
 import { NotificationItem } from "./notification-item";
 
+const SKELETON_ROW_KEYS = [
+	"notification-skeleton-1",
+	"notification-skeleton-2",
+	"notification-skeleton-3",
+	"notification-skeleton-4",
+	"notification-skeleton-5",
+];
+
 export function NotificationCenter() {
 	const [isOpen, setOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState("inbox");
 	const router = useRouter();
 	const pathname = usePathname();
 	const idleQueryEnabled = useIdleQueryEnabled(1500);
-	const { hasUnseenNotifications, notifications, archived, isLoading } =
-		useNotifications({
-			enabled: isOpen || idleQueryEnabled,
-			includeArchive: isOpen && activeTab === "archive",
-		});
+	const {
+		hasUnseenNotifications,
+		notifications,
+		archived,
+		isLoading,
+		unreadCount,
+		markMessageAsRead,
+		markAllMessagesAsRead,
+		markAllMessagesAsSeen,
+		isUpdating,
+		inbox,
+		archive,
+	} = useNotifications({
+		enabled: isOpen || idleQueryEnabled,
+		includeArchive: isOpen && activeTab === "archive",
+	});
 	const unreadNotifications = notifications; // Main notifications (unread/read)
 	const archivedNotifications = archived; // Archived notifications
 	useEffect(() => {
-		if (isOpen && hasUnseenNotifications) {
-			//  markAllMessagesAsSeen();
+		if (isOpen && hasUnseenNotifications && !isUpdating) {
+			markAllMessagesAsSeen();
 		}
-	}, [hasUnseenNotifications, isOpen]);
+	}, [hasUnseenNotifications, isOpen, isUpdating, markAllMessagesAsSeen]);
 	const { setParams: setCommunityInstallCostParams } =
 		useCommunityInstallCostParams();
 	const { setParams: setJobParams } = useJobParams();
@@ -175,6 +194,8 @@ export function NotificationCenter() {
 			close: () => setOpen(false),
 		});
 	};
+	const unreadBadge =
+		unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
 
 	return (
 		<Popover open={isOpen} onOpenChange={setOpen}>
@@ -183,9 +204,12 @@ export function NotificationCenter() {
 					variant="outline"
 					size="icon"
 					className="rounded-full w-8 h-8 flex items-center relative"
+					aria-label="Notifications"
 				>
-					{hasUnseenNotifications && (
-						<div className="w-1.5 h-1.5 bg-destructive rounded-full absolute top-0 right-0" />
+					{unreadBadge && (
+						<span className="-right-1 -top-1 absolute flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+							{unreadBadge}
+						</span>
 					)}
 					<Icons.Bell />
 				</Button>
@@ -207,8 +231,7 @@ export function NotificationCenter() {
 								</Tabs.Trigger>
 							</div>
 							<Link
-								// href="/settings/notifications"
-								href=""
+								href="/settings/profile?tab=notifications"
 								onClick={() => setOpen(false)}
 							>
 								<Button
@@ -222,6 +245,24 @@ export function NotificationCenter() {
 						</Tabs.List>
 
 						<Tabs.Content value="inbox" className="relative mt-0">
+							{isLoading && !unreadNotifications.length && (
+								<div className="divide-y">
+									{SKELETON_ROW_KEYS.map((key) => (
+										<div
+											key={key}
+											className="flex items-start gap-4 px-3 py-3"
+										>
+											<div className="h-9 w-9 rounded-full bg-accent" />
+											<div className="min-w-0 flex-1 space-y-2">
+												<div className="h-3 w-2/3 rounded bg-accent" />
+												<div className="h-3 w-full rounded bg-accent" />
+												<div className="h-2 w-24 rounded bg-accent" />
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+
 							{!isLoading && !unreadNotifications.length && (
 								<EmptyState description="No new notifications" />
 							)}
@@ -236,10 +277,25 @@ export function NotificationCenter() {
 													setOpen={setOpen}
 													activity={notification}
 													onAction={onAction}
+													onArchive={markMessageAsRead}
+													isUpdating={isUpdating}
 												/>
 											);
 										})}
 									</div>
+									{inbox.hasNextPage ? (
+										<div className="flex justify-center border-t p-2">
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												disabled={inbox.isFetchingNextPage}
+												onClick={() => inbox.fetchNextPage()}
+											>
+												{inbox.isFetchingNextPage ? "Loading..." : "Load more"}
+											</Button>
+										</div>
+									) : null}
 								</ScrollArea>
 							)}
 
@@ -248,7 +304,8 @@ export function NotificationCenter() {
 									<Button
 										variant="secondary"
 										className="bg-transparent"
-										// onClick={markAllMessagesAsRead}
+										disabled={isUpdating}
+										onClick={markAllMessagesAsRead}
 									>
 										Archive all
 									</Button>
@@ -257,6 +314,24 @@ export function NotificationCenter() {
 						</Tabs.Content>
 
 						<TabsContent value="archive" className="mt-0">
+							{isLoading && !archivedNotifications.length && (
+								<div className="divide-y">
+									{SKELETON_ROW_KEYS.map((key) => (
+										<div
+											key={key}
+											className="flex items-start gap-4 px-3 py-3"
+										>
+											<div className="h-9 w-9 rounded-full bg-accent" />
+											<div className="min-w-0 flex-1 space-y-2">
+												<div className="h-3 w-2/3 rounded bg-accent" />
+												<div className="h-3 w-full rounded bg-accent" />
+												<div className="h-2 w-24 rounded bg-accent" />
+											</div>
+										</div>
+									))}
+								</div>
+							)}
+
 							{!isLoading && !archivedNotifications.length && (
 								<EmptyState description="Nothing in the archive" />
 							)}
@@ -271,10 +346,26 @@ export function NotificationCenter() {
 													setOpen={setOpen}
 													activity={notification}
 													onAction={onAction}
+													isUpdating={isUpdating}
 												/>
 											);
 										})}
 									</div>
+									{archive.hasNextPage ? (
+										<div className="flex justify-center border-t p-2">
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												disabled={archive.isFetchingNextPage}
+												onClick={() => archive.fetchNextPage()}
+											>
+												{archive.isFetchingNextPage
+													? "Loading..."
+													: "Load more"}
+											</Button>
+										</div>
+									) : null}
 								</ScrollArea>
 							)}
 						</TabsContent>

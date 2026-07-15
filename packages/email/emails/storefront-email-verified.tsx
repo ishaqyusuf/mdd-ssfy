@@ -20,7 +20,7 @@ interface EmailProps {
 
 const baseUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+  : "http://localhost:3010";
 
 export const EmailVerifiedEmail = ({
   name = "Valued Customer",

@@ -33,7 +33,7 @@ function getApiUrl() {
 
   return process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`
-    : "http://localhost:3004/api/trpc";
+    : "http://localhost:3014/api/trpc";
 }
 
 export function TRPCReactProvider({

@@ -15,7 +15,7 @@ import { makeQueryClient } from "./query-client";
 export const getQueryClient = cache(makeQueryClient);
 
 function getServerBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3006";
+  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3016";
 }
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({

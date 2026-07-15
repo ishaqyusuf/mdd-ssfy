@@ -11,7 +11,7 @@
   "scripts": {
     "--build": "email build",
     "clean": "rm -rf .turbo node_modules",
-    "dev": "bun run patch:preview-server && email dev -p 3003",
+    "dev": "bun run patch:preview-server && email dev -p 3013",
     "format": "biome format --write .",
     "lint": "biome check .",
     "patch:preview-server": "node ./scripts/patch-react-email-preview-server.mjs",

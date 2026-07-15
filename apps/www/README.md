@@ -12,7 +12,7 @@ yarn dev
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3010](http://localhost:3010) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
@@ -38,7 +38,7 @@ bun run dev --local --redis-remote  # local Docker MySQL + remote-dev Redis
 bun run dev --remote-dev            # remote-dev DB only
 bun run dev --remote-dev --redis-local # remote-dev DB + local Docker Redis
 bun run dev --remote-dev --redis-remote # remote-dev DB + remote-dev Redis
-bun run dev --prod                  # production-env www smoke on port 3005
+bun run dev --prod                  # production-env www smoke on port 3015
 ```
 
 Redis is only enabled when `--redis-local`, `--redis-remote`, or `--redis-remote-dev` is passed. Redis flags are only supported for local and remote-dev profiles.

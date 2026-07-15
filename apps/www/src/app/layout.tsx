@@ -70,7 +70,7 @@ function getServerTrpcUrl(headersList: { get(name: string): string | null }) {
 
         if (host && protocol === "https" && isLocalDevHost(host)) {
             const port =
-                process.env.PORTLESS_APP_PORT ?? process.env.PORT ?? "3000";
+                process.env.PORTLESS_APP_PORT ?? process.env.PORT ?? "3010";
             return `http://127.0.0.1:${port}/api/trpc`;
         }
 
@@ -93,4 +93,3 @@ function isLocalDevHost(hostname: string) {
         host.endsWith(".test")
     );
 }
-

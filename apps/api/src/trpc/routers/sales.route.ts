@@ -143,7 +143,7 @@ function getDealershipUrl() {
 		return `https://${process.env.VERCEL_URL}`;
 	}
 
-	return "http://localhost:3006";
+	return "http://localhost:3016";
 }
 
 async function sendDealerApprovalEmail(

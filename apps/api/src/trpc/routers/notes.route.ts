@@ -1,5 +1,3 @@
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
-import { saveInboundNoteSchema } from "@api/schemas/notes";
 import {
 	addNotificationChannelSubscriber,
 	deleteNotification,
@@ -8,16 +6,33 @@ import {
 	saveInboundNote,
 	syncNotificationChannels,
 } from "@api/db/queries/note";
+import { saveInboundNoteSchema } from "@api/schemas/notes";
 import { saveNote, saveNoteSchema } from "@gnd/utils/note";
-import z from "zod";
-import { getNotificationChannelsSchema } from "@notifications/schemas";
-import { getActivties } from "@notifications/activities";
 import {
-	getActivityTree,
+	getActivties,
+	updateActivityStatus,
+	updateAllActivitiesStatus,
+} from "@notifications/activities";
+import {
+	type GetActivityTagSuggestionsQuery,
+	type GetActivityTreeQuery,
 	getActivityTagSuggestions,
+	getActivityTree,
 } from "@notifications/activity-tree";
+import { getSubscriberAccount } from "@notifications/channel-subscribers";
 import { channelNames } from "@notifications/channels";
 import { Notifications } from "@notifications/index";
+import {
+	type NotificationTypes,
+	getNotificationChannelsSchema,
+} from "@notifications/schemas";
+import z from "zod";
+import {
+	type TRPCContext,
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "../init";
 
 const activityTagFilterLeafSchema = z.union([
 	z.object({
@@ -47,6 +62,21 @@ const activityTagFilterNodeSchema: z.ZodTypeAny = z.lazy(() =>
 		}),
 	]),
 );
+
+const noteStatusSchema = z.enum(["unread", "read", "archived"]);
+
+async function getCurrentNotificationContactId(ctx: {
+	db: TRPCContext["db"];
+	userId: number;
+}) {
+	const contact = await getSubscriberAccount(ctx.db, ctx.userId, "employee");
+
+	if (!contact?.id) {
+		throw new Error("Notification account not found.");
+	}
+
+	return contact.id;
+}
 
 export const notesRouter = createTRPCRouter({
 	getNotificationChannels: publicProcedure
@@ -200,15 +230,16 @@ export const notesRouter = createTRPCRouter({
 			};
 
 			const notifications = new Notifications(ctx.db);
+			const channel = input.channel as keyof NotificationTypes;
 			const result = await notifications.create(
-				input.channel as any,
-				payload as any,
+				channel,
+				payload as Omit<NotificationTypes[typeof channel], "users">,
 				{
 					author: {
 						id: ctx.userId,
 						role: "employee",
 					},
-					recipients: input.contacts as any,
+					recipients: input.contacts,
 					includeChannelSubscribers: false,
 					allowFallbackRecipient: false,
 				},
@@ -229,6 +260,39 @@ export const notesRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			return deleteNotification(ctx, input);
 		}),
+	updateNotificationStatus: protectedProcedure
+		.input(
+			z.object({
+				activityId: z.number(),
+				status: noteStatusSchema,
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const notePadContactId = await getCurrentNotificationContactId(ctx);
+
+			return updateActivityStatus(
+				ctx.db,
+				input.activityId,
+				input.status,
+				notePadContactId,
+			);
+		}),
+	updateAllNotificationStatus: protectedProcedure
+		.input(
+			z.object({
+				status: noteStatusSchema,
+				fromStatus: z.array(noteStatusSchema).optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const notePadContactId = await getCurrentNotificationContactId(ctx);
+
+			return updateAllActivitiesStatus(ctx.db, {
+				notePadContactId,
+				status: input.status,
+				fromStatus: input.fromStatus,
+			});
+		}),
 	list: publicProcedure
 		.input(
 			z.object({
@@ -244,7 +308,7 @@ export const notesRouter = createTRPCRouter({
 				contactIds: props.input.contactIds,
 				cursor: props.input.cursor,
 				pageSize: props.input.pageSize,
-				status: props.input.status as any,
+				status: props.input.status,
 			});
 			// const {
 			//   maxPriority,
@@ -270,7 +334,7 @@ export const notesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			return getActivityTree(ctx.db, input as any);
+			return getActivityTree(ctx.db, input as GetActivityTreeQuery);
 		}),
 	activityTagSuggestions: publicProcedure
 		.input(
@@ -288,6 +352,9 @@ export const notesRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			return getActivityTagSuggestions(ctx.db, input as any);
+			return getActivityTagSuggestions(
+				ctx.db,
+				input as GetActivityTagSuggestionsQuery,
+			);
 		}),
 });

@@ -53,7 +53,7 @@ export async function buildSalesPdfAttachment(
 		templateId: input.templateId ?? DEFAULT_TEMPLATE_ID,
 		companyAddress: documentData.companyAddress,
 		logoUrl: documentData.logoUrl ?? undefined,
-		baseUrl: getAppUrl() || "http://localhost:3000",
+		baseUrl: getAppUrl() || "http://localhost:3010",
 		config: {
 			showImages: false,
 		},
