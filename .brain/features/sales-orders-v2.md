@@ -227,6 +227,7 @@
   - `PageTabs` automatically prepends an `All` tab whenever saved tabs exist.
   - The save `+` action now renders inside the tab group.
   - The tab group now uses a single icon-only Edit button below `2xl`, expands the label on `2xl`, and opens a shadcn-composed edit dialog with sortable saved tabs, rename, active/draft, default, delete confirmation, and Super Admin public/private controls.
+  - The edit dialog saved-tab rows are compact and flat: each row keeps the drag handle outside a grouped title input, places the tab count as the input suffix, hides repeated active/private badges, removes the card border treatment, adds light row dividers, and renders each saved query parameter as its own small badge below the title.
   - `bunx biome check --formatter-enabled=false apps/www/src/components/page-tabs/page-tabs.tsx apps/www/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/www/src/components/page-tabs/confirm-delete-button.tsx apps/www/src/components/page-tabs/save-page-tab-button.tsx apps/www/src/components/midday-search-filter/search-filter-trpc.tsx` passed.
 - 2026-06-16 browser smoke:
   - Quick Login as Pablo Cruz / Super Admin.

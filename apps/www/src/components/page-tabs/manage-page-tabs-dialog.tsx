@@ -11,24 +11,17 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import {
-	Field,
-	FieldContent,
-	FieldDescription,
-	FieldGroup,
-	FieldLabel,
-} from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
 import {
 	Item,
 	ItemActions,
 	ItemContent,
 	ItemDescription,
 	ItemGroup,
-	ItemMedia,
+	ItemSeparator,
 	ItemTitle,
 } from "@gnd/ui/item";
+import { InputGroup } from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Skeleton } from "@gnd/ui/skeleton";
 import {
@@ -40,7 +33,7 @@ import { Switch } from "@gnd/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
 import { toast } from "@gnd/ui/use-toast";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ConfirmDeleteButton } from "./confirm-delete-button";
 import type { PageTabItem } from "./types";
 
@@ -58,6 +51,58 @@ const EMPTY_PAGE_TABS: PageTabItem[] = [];
 
 function titleDraftsFromTabs(tabs: ManagedPageTab[]) {
 	return Object.fromEntries(tabs.map((tab) => [tab.id, tab.title]));
+}
+
+function humanizeQueryKey(value: string) {
+	return (
+		QUERY_FIELD_LABELS[value] ??
+		value
+			.replaceAll(".", " ")
+			.replaceAll("_", " ")
+			.replace(/\b[a-z]/g, (char) => char.toUpperCase())
+	);
+}
+
+function humanizeQueryValue(value: string) {
+	return (
+		QUERY_VALUE_LABELS[value] ??
+		value
+			.replaceAll("_", " ")
+			.replace(/\b[a-z]/g, (char) => char.toUpperCase())
+	);
+}
+
+function getSortLabel(sort: string) {
+	const [field, direction] = sort.split(".");
+	const fieldLabel = QUERY_FIELD_LABELS[field] ?? humanizeQueryKey(field || sort);
+	const directionLabel =
+		direction === "asc"
+			? "ascending"
+			: direction === "desc"
+				? "descending"
+				: null;
+
+	return directionLabel ? `${fieldLabel}, ${directionLabel}` : fieldLabel;
+}
+
+function queryBadgesFromTabQuery(query?: string | null) {
+	if (!query) return [];
+
+	return Array.from(new URLSearchParams(query).entries()).map(([key, value]) => {
+		if (key === "sort") {
+			return {
+				key: `${key}:${value}`,
+				label: "Sort",
+				value: getSortLabel(value),
+			};
+		}
+
+		return {
+			key: `${key}:${value}`,
+			label: humanizeQueryKey(key),
+			value: humanizeQueryValue(value),
+		};
+	});
 }
 
 export function ManagePageTabsDialog({
@@ -195,9 +240,8 @@ export function ManagePageTabsDialog({
 						<ItemGroup>
 							{["loading-tab-1", "loading-tab-2", "loading-tab-3"].map(
 								(item) => (
-										<Item key={item} variant="outline">
-											<ItemMedia variant="icon" />
-											<ItemContent>
+									<Item key={item} className="px-0 py-2.5">
+										<ItemContent>
 											<Skeleton className="h-4 w-40" />
 											<Skeleton className="h-3 w-64" />
 										</ItemContent>
@@ -217,17 +261,19 @@ export function ManagePageTabsDialog({
 							}}
 						>
 							<ItemGroup className="gap-2">
-								{orderedTabs.map((tab) => {
+								{orderedTabs.map((tab, index) => {
 									const canManage = tab.canManage !== false;
 									const isActive = tab.active !== false;
 									const titleValue = titleDrafts[tab.id] ?? tab.title;
+									const queryBadges = queryBadgesFromTabQuery(tab.query);
 
 									return (
-										<SortableItem key={tab.id} value={tab.id} asChild>
-											<Item variant="outline" className="items-start">
-												<ItemMedia variant="default">
+										<Fragment key={tab.id}>
+											<SortableItem value={tab.id} asChild>
+												<Item className="items-start gap-3 px-0 py-2.5">
 													<SortableDragHandle
 														aria-label={`Reorder ${tab.title}`}
+														className="mt-0.5 shrink-0"
 														disabled={reorderTabs.isPending}
 														size="icon-sm"
 														type="button"
@@ -235,16 +281,15 @@ export function ManagePageTabsDialog({
 													>
 														<Icons.GripVertical data-icon="only" />
 													</SortableDragHandle>
-												</ItemMedia>
-												<ItemContent>
-													<ItemTitle className="w-full">
-														<FieldGroup className="gap-3">
-															<Field>
-																<FieldLabel htmlFor={`page-tab-title-${tab.id}`}>
-																	Name
-																</FieldLabel>
-																<Input
+													<ItemContent className="min-w-0 gap-2">
+														<ItemTitle className="w-full min-w-0">
+															<InputGroup className="h-8 min-w-0 shadow-none">
+																<InputGroup.Addon>
+																	<InputGroup.Text>Title</InputGroup.Text>
+																</InputGroup.Addon>
+																<InputGroup.Input
 																	id={`page-tab-title-${tab.id}`}
+																	aria-label={`Rename ${tab.title}`}
 																	disabled={!canManage || updateTab.isPending}
 																	value={titleValue}
 																	onChange={(event) => {
@@ -259,34 +304,50 @@ export function ManagePageTabsDialog({
 																		event.currentTarget.blur();
 																	}}
 																/>
-															</Field>
-														</FieldGroup>
-													</ItemTitle>
-													<ItemDescription className="flex flex-wrap items-center gap-2">
-														<Badge variant={isActive ? "secondary" : "outline"}>
-															{isActive ? "Active" : "Draft"}
-														</Badge>
-														<Badge variant="outline">
-															{tab.visibility === "public" ? "Public" : "Private"}
-														</Badge>
+																{typeof tab.count === "number" ? (
+																	<InputGroup.Addon align="inline-end">
+																		<InputGroup.Text>{tab.count}</InputGroup.Text>
+																	</InputGroup.Addon>
+																) : null}
+															</InputGroup>
+														</ItemTitle>
 														{tab.default ? (
-															<Badge variant="secondary">Default</Badge>
+															<ItemDescription className="flex flex-wrap items-center gap-1.5">
+																<Badge variant="secondary">Default</Badge>
+															</ItemDescription>
 														) : null}
-														{typeof tab.count === "number" ? (
-															<Badge variant="secondary">{tab.count}</Badge>
-														) : null}
-													</ItemDescription>
-													<FieldGroup className="gap-4 pt-2">
-														<Field orientation="horizontal">
-															<FieldContent>
-																<FieldLabel htmlFor={`page-tab-active-${tab.id}`}>
-																	Active
-																</FieldLabel>
-																<FieldDescription>
-																	Draft tabs stay saved but do not show in the tab
-																	row.
-																</FieldDescription>
-															</FieldContent>
+														<div className="flex flex-wrap gap-1.5">
+															{queryBadges.length ? (
+																queryBadges.map((badge) => (
+																	<Badge
+																		key={badge.key}
+																		variant="outline"
+																		className="max-w-full gap-1 rounded-sm px-1.5 py-0 text-[10px] font-normal"
+																	>
+																		<span className="shrink-0 text-muted-foreground">
+																			{badge.label}
+																		</span>
+																		<span className="min-w-0 truncate">
+																			{badge.value}
+																		</span>
+																	</Badge>
+																))
+															) : (
+																<Badge
+																	variant="outline"
+																	className="rounded-sm px-1.5 py-0 text-[10px] font-normal text-muted-foreground"
+																>
+																	No saved query
+																</Badge>
+															)}
+														</div>
+													</ItemContent>
+													<ItemActions className="flex flex-wrap items-center justify-end gap-1.5">
+														<label
+															htmlFor={`page-tab-active-${tab.id}`}
+															className="flex h-8 items-center gap-2 rounded-md border px-2 text-xs"
+														>
+															<span>Active</span>
 															<Switch
 																id={`page-tab-active-${tab.id}`}
 																checked={isActive}
@@ -298,64 +359,54 @@ export function ManagePageTabsDialog({
 																	});
 																}}
 															/>
-														</Field>
+														</label>
 														{isSuperAdmin && canManage ? (
-															<Field orientation="horizontal">
-																<FieldContent>
-																	<FieldLabel>Visibility</FieldLabel>
-																	<FieldDescription>
-																		Public tabs are visible to everyone on this
-																		page.
-																	</FieldDescription>
-																</FieldContent>
-																<ToggleGroup
-																	type="single"
-																	variant="outline"
-																	size="sm"
-																	value={tab.visibility ?? "private"}
-																	onValueChange={(value) => {
-																		if (value !== "private" && value !== "public")
-																			return;
-																		updateTab.mutate({
-																			id: tab.id,
-																			visibility: value,
-																		});
-																	}}
-																>
-																	<ToggleGroupItem value="private">
-																		Private
-																	</ToggleGroupItem>
-																	<ToggleGroupItem value="public">
-																		Public
-																	</ToggleGroupItem>
-																</ToggleGroup>
-															</Field>
+															<ToggleGroup
+																type="single"
+																variant="outline"
+																size="sm"
+																value={tab.visibility ?? "private"}
+																onValueChange={(value) => {
+																	if (value !== "private" && value !== "public")
+																		return;
+																	updateTab.mutate({
+																		id: tab.id,
+																		visibility: value,
+																	});
+																}}
+															>
+																<ToggleGroupItem value="private">
+																	Private
+																</ToggleGroupItem>
+																<ToggleGroupItem value="public">
+																	Public
+																</ToggleGroupItem>
+															</ToggleGroup>
 														) : null}
-													</FieldGroup>
-												</ItemContent>
-												<ItemActions>
-													<Button
-														disabled={!isActive || updateTab.isPending}
-														onClick={() => setDefault(tab)}
-														size="sm"
-														type="button"
-														variant={tab.default ? "secondary" : "outline"}
-													>
-														<Icons.Star data-icon="inline-start" />
-														{tab.default ? "Default" : "Make default"}
-													</Button>
-													{canManage ? (
-														<ConfirmDeleteButton
-															name={tab.title}
-															disabled={deleteTab.isPending}
-															onConfirm={() =>
-																deleteTab.mutate({ id: tab.id })
-															}
-														/>
-													) : null}
-												</ItemActions>
-											</Item>
-										</SortableItem>
+														<Button
+															disabled={!isActive || updateTab.isPending}
+															onClick={() => setDefault(tab)}
+															size="sm"
+															type="button"
+															variant={tab.default ? "secondary" : "outline"}
+														>
+															<Icons.Star data-icon="inline-start" />
+															{tab.default ? "Default" : "Make default"}
+														</Button>
+														{canManage ? (
+															<ConfirmDeleteButton
+																name={tab.title}
+																disabled={deleteTab.isPending}
+																onConfirm={() =>
+																	deleteTab.mutate({ id: tab.id })
+																}
+															/>
+														) : null}
+													</ItemActions>
+												</Item>
+											</SortableItem>
+											{index < orderedTabs.length - 1 ? <ItemSeparator /> : null}
+										</Fragment>
 									);
 								})}
 							</ItemGroup>
@@ -377,3 +428,23 @@ export function ManagePageTabsDialog({
 		</Dialog>
 	);
 }
+
+const QUERY_FIELD_LABELS: Record<string, string> = {
+	amountDue: "Balance",
+	createdAt: "Date",
+	date: "Date",
+	grandTotal: "Invoice",
+	invoice: "Invoice",
+	latestPaymentAt: "Latest payment",
+	lotBlock: "Lot / block",
+	orderId: "Order",
+	paymentReview: "Payment Review",
+	project: "Project",
+	q: "Search",
+	sort: "Sort",
+	"sales.rep": "Sales Rep",
+};
+
+const QUERY_VALUE_LABELS: Record<string, string> = {
+	needs_review: "Needs review",
+};
