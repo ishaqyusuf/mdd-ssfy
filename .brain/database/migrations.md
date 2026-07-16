@@ -65,6 +65,12 @@ Tracks notable migrations and migration strategy.
   - `bun run db:generate` completed.
   - `bun run with-env prisma migrate dev --name add_sales_payment_review --create-only` from `packages/db` reached local MySQL but stopped on existing local drift and requested resetting `gnd-prisma2`; reset was not run.
   - For local browser QA only, the migration SQL was applied directly to local `gnd-prisma2` with MySQL CLI. The committed migration remains the source artifact for normal environments.
+- 2026-07-16 sales payment review queue reset:
+  - Removed Prisma defaults from `SalesPayments.origin` and `SalesPayments.reviewStatus` so future schema pushes do not default unknown/legacy writes into the review queue.
+  - Added migration `packages/db/src/schema/migrations/20260716130000_clear_sales_payment_review_default/migration.sql`, which clears current `reviewStatus = 'needs_review'` rows to null and drops the database defaults for `origin` and `reviewStatus`.
+  - Applied the same repair manually to the current/local profile: `744` active `needs_review` rows were set to `NULL`, and both `origin` and `reviewStatus` defaults now report `NULL`.
+  - Applied the same repair manually to production by user request: `8,372` total `needs_review` payment rows were set to `NULL` (`8,344` active rows in the before/after status count), and both `origin` and `reviewStatus` defaults now report `NULL`.
+  - `bun --cwd packages/db with-env prisma validate` and `bun --cwd packages/db db:generate` passed after the schema update.
 - 2026-07-15 master password login audit schema addition:
   - Added `packages/db/src/schema/master-password-login-audits.prisma` with `MasterPasswordLoginPlatform` and `MasterPasswordLoginAudit`.
   - Added `Users.masterPasswordLoginAudits` and `Users.clearedMasterPasswordAudits` relation arrays.

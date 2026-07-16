@@ -69,8 +69,8 @@ model SalesPayments {
     tip              Float?
     meta             Json?                @db.Json
     status           String? // success,pending,paid
-    origin           String?              @default("office")
-    reviewStatus     String?              @default("needs_review")
+    origin           String?
+    reviewStatus     String?
     reviewedAt       DateTime?            @db.Timestamp(0)
     reviewedById     Int?
     reviewMethod     String?

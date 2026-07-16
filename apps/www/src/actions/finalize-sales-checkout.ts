@@ -136,6 +136,8 @@ export async function finalizeSalesCheckout({ salesPaymentId }: Props) {
 						// },
 						note: "payment via square checkout",
 						status: "success" as SalesPaymentStatus,
+						origin: "online",
+						reviewStatus: "needs_review",
 						transactionId: cTx.id,
 						squarePaymentsId: squarePayment.id,
 

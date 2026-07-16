@@ -59,11 +59,11 @@ Tracks important schema-level entities and ownership boundaries.
   - each row snapshots sender, attached sales rep, recipient/customer, document type, email kind, subject/message, related sales ids/order numbers, provider name, provider message/status, Trigger task run id when known, failure details, timestamps, retry metadata, and soft-delete timestamp
   - resend attempts are stored as new rows linked to the failed/skipped source attempt through `originalAttemptId`
 - Sales payment review fields now live on `SalesPayments` in `packages/db/src/schema/sales.wallet.prisma`:
-  - `origin` records whether the payment was received `online` or in the `office`.
-  - `reviewStatus` records whether the successful payment still `needs_review` or has been `reviewed`.
+  - `origin` records whether the payment was received `online` or in the `office`; it has no database default and must be set by payment write paths when known.
+  - `reviewStatus` records whether the successful payment still `needs_review` or has been `reviewed`; it has no database default so payments only enter review when application code explicitly stamps them.
   - `reviewedAt`, `reviewedById`, `reviewMethod`, `reviewedByAction`, and `reviewNote` store manual/auto review evidence.
   - Queue indexes are `orderId, reviewStatus, createdAt` and `reviewStatus, createdAt`.
-  - Existing rows are backfilled as reviewed by the migration so legacy successful payments do not flood the new clean-payment queue.
+  - Existing queued rows were cleared to `reviewStatus = NULL` on rollout so the clean-payment queue starts from newly recorded payments.
 - Generic background task diagnostics schema now lives in `packages/db/src/schema/task-run-diagnostics.prisma`:
   - `TaskRunDiagnosticStatus` enum values are `RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELED`, `STALE`, and `START_FAILED`
   - `TaskRunDiagnostic` stores Trigger run diagnostics for user-triggered background tasks, including optional `runId`, task name/family/title/description/source/environment, actor snapshot, entity snapshot, safe user message, internal error/error name, bounded output summary, bounded metadata, started/finished/synced/reviewed timestamps, soft-delete timestamp, and reviewer relation

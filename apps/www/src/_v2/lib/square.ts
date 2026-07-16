@@ -155,6 +155,8 @@ export async function paymentSuccess(p: {
             tip: p.tip,
             meta: {},
             status: "success",
+            origin: "online",
+            reviewStatus: "needs_review",
             // customerId: p.order.customerId,
         },
     });
