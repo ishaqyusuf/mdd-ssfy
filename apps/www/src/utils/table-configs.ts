@@ -17,7 +17,7 @@ export const TABLE_CONFIGS: Record<TableId, TableConfig> = {
 			status: "status",
 			salesDate: "createdAt",
 			customerName: "customerName",
-			invoiceTotal: "grandTotal",
+			invoiceTotal: "latestPaymentAt",
 			amountDue: "amountDue",
 			productionLabel: "prodStatus",
 			fulfillmentLabel: "deliveredAt",

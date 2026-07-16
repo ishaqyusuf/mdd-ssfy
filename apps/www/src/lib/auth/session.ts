@@ -18,8 +18,14 @@ export type AppSession = {
 };
 export type ActiveSessionInfo = WebActiveSessionInfo;
 
-export async function getServerAuthSession(headers?: Headers) {
-    const requestHeaders = headers ?? headersToMutable(await nextHeaders());
+type HeadersLike = {
+    forEach(
+        callback: (value: string, key: string, parent?: unknown) => void,
+    ): void;
+};
+
+export async function getServerAuthSession(headers?: HeadersLike) {
+    const requestHeaders = headersToMutable(headers ?? (await nextHeaders()));
     const authSession = await webAuth.api.getSession({
         headers: requestHeaders,
     });
@@ -27,7 +33,7 @@ export async function getServerAuthSession(headers?: Headers) {
     return (await buildWebAppSession(authSession)) as AppSession | null;
 }
 
-function headersToMutable(headers: Headers) {
+function headersToMutable(headers: HeadersLike) {
     const next = new Headers();
     headers.forEach((value, key) => {
         next.set(key, value);

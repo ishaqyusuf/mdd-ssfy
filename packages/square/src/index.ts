@@ -5,13 +5,12 @@ import {
   SquareError as ApiError,
   DeviceStatusCategory,
 } from "square";
-import { TransactionClient } from "@gnd/db";
+import type { TransactionClient } from "@gnd/db";
 import crypto from "crypto";
-const isProd = env.NODE_ENV === "production";
+const isProd = env.NODE_ENV === "production" || env.VERCEL_ENV === "production";
+const forceProductionSquare = env.SQUARE_FORCE_PRODUCTION === "true";
 
-const isDebugging = true;
-
-let devMode = !isProd && !isDebugging;
+const devMode = !isProd && !forceProductionSquare;
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
   token: devMode ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,

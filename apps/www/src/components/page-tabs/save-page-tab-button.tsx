@@ -1,8 +1,11 @@
 "use client";
 
+import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
+import { cn } from "@gnd/ui/cn";
 import {
 	Dialog,
 	DialogContent,
@@ -27,25 +30,34 @@ interface Props {
 	definitions: FilterDefinition[];
 	filters: Record<string, unknown>;
 	optionLookup: Map<string, Map<string, string>>;
+	buttonClassName?: string;
 }
 
 export function SavePageTabButton({
 	definitions,
 	filters,
 	optionLookup,
+	buttonClassName,
 }: Props) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
+	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [title, setTitle] = useState("");
 	const [setDefault, setSetDefault] = useState(false);
+	const [generalTab, setGeneralTab] = useState(false);
 	const page = normalizePagePath(pathname);
 	const query = useMemo(
 		() => queryFromActiveFilters(searchParams, filters),
 		[searchParams, filters],
 	);
+	const activeSortLabel = useMemo(
+		() => getSortLabel(searchParams.get("sort")),
+		[searchParams],
+	);
+	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
 	const { data: tabs } = useQuery({
 		...trpc.pageTabs.list.queryOptions({ page }),
 		enabled: Boolean(query),
@@ -60,6 +72,7 @@ export function SavePageTabButton({
 				setOpen(false);
 				setTitle("");
 				setSetDefault(false);
+				setGeneralTab(false);
 				toast({
 					title: "Page tab saved",
 					variant: "success",
@@ -81,7 +94,7 @@ export function SavePageTabButton({
 		<>
 			<Button
 				aria-label="Save current filters as page tab"
-				className="h-8 w-8 shrink-0 rounded-md px-0"
+				className={cn("h-8 w-8 shrink-0 rounded-md px-0", buttonClassName)}
 				onClick={() => setOpen(true)}
 				size="sm"
 				type="button"
@@ -94,7 +107,7 @@ export function SavePageTabButton({
 					<DialogHeader>
 						<DialogTitle>Save Filter Tab</DialogTitle>
 						<DialogDescription>
-							Save this filter set as a private tab for this page.
+							Save this filter and sort setup as a reusable tab for this page.
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-4">
@@ -103,6 +116,12 @@ export function SavePageTabButton({
 							definitions={definitions}
 							optionLookup={optionLookup}
 						/>
+						{activeSortLabel ? (
+							<div className="flex flex-wrap items-center gap-2 text-sm">
+								<span className="text-muted-foreground">Sort</span>
+								<Badge variant="secondary">{activeSortLabel}</Badge>
+							</div>
+						) : null}
 						<div className="space-y-2">
 							<Label htmlFor="page-tab-title">Filter name</Label>
 							<Input
@@ -120,6 +139,18 @@ export function SavePageTabButton({
 							/>
 							<Label htmlFor="page-tab-default">Set as default</Label>
 						</div>
+						{isSuperAdmin ? (
+							<div className="flex items-center gap-2 text-sm">
+								<Checkbox
+									id="page-tab-general"
+									checked={generalTab}
+									onCheckedChange={(checked) =>
+										setGeneralTab(Boolean(checked))
+									}
+								/>
+								<Label htmlFor="page-tab-general">General tab</Label>
+							</div>
+						) : null}
 					</div>
 					<DialogFooter>
 						<Button
@@ -138,6 +169,8 @@ export function SavePageTabButton({
 									query,
 									title: title.trim(),
 									setDefault,
+									visibility:
+										isSuperAdmin && generalTab ? "public" : "private",
 								});
 							}}
 						>
@@ -149,3 +182,28 @@ export function SavePageTabButton({
 		</>
 	);
 }
+
+function getSortLabel(sort: string | null) {
+	if (!sort) return null;
+
+	const [field, direction] = sort.split(".");
+	const fieldLabel = SORT_FIELD_LABELS[field] ?? field;
+	const directionLabel =
+		direction === "asc"
+			? "ascending"
+			: direction === "desc"
+				? "descending"
+				: null;
+
+	return directionLabel ? `${fieldLabel}, ${directionLabel}` : fieldLabel;
+}
+
+const SORT_FIELD_LABELS: Record<string, string> = {
+	amountDue: "Balance",
+	createdAt: "Date",
+	date: "Date",
+	latestPaymentAt: "Recent invoices",
+	lotBlock: "Lot / block",
+	orderId: "Order",
+	project: "Project",
+};

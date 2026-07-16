@@ -46,6 +46,8 @@ const PASSWORD_MIGRATION_IDENTIFIER_PREFIX = "www-password-migration:";
 const RESET_PASSWORD_EXPIRY_HOURS = 1;
 const GOOGLE_PROVIDER_ID = "google";
 
+type WebMasterPasswordLoginPlatform = "WEBSITE" | "MOBILE";
+
 export type WebNewDeviceLoginAlertInput = {
   sessionId: string;
   userId: number;
@@ -59,22 +61,8 @@ export type WebNewDeviceLoginAlertInput = {
   loginAt: string;
 };
 
-export type WebMasterPasswordLoginAlertInput = {
-  sessionId: string;
-  userId: number;
-  accountName: string | null;
-  accountEmail: string;
-  appSurface: "www";
-  ipAddress: string | null;
-  userAgent: string | null;
-  loginAt: string;
-};
-
 let webNewDeviceLoginAlertHandler:
   | ((input: WebNewDeviceLoginAlertInput) => Promise<void> | void)
-  | null = null;
-let webMasterPasswordLoginAlertHandler:
-  | ((input: WebMasterPasswordLoginAlertInput) => Promise<void> | void)
   | null = null;
 
 export function setWebNewDeviceLoginAlertHandler(
@@ -83,23 +71,9 @@ export function setWebNewDeviceLoginAlertHandler(
   webNewDeviceLoginAlertHandler = handler;
 }
 
-export function setWebMasterPasswordLoginAlertHandler(
-  handler: typeof webMasterPasswordLoginAlertHandler,
-) {
-  webMasterPasswordLoginAlertHandler = handler;
-}
-
 function runWebNewDeviceLoginAlert(input: WebNewDeviceLoginAlertInput) {
   Promise.resolve(webNewDeviceLoginAlertHandler?.(input)).catch((error) => {
     console.error("Failed to run web new device login hook:", error);
-  });
-}
-
-function runWebMasterPasswordLoginAlert(
-  input: WebMasterPasswordLoginAlertInput,
-) {
-  Promise.resolve(webMasterPasswordLoginAlertHandler?.(input)).catch((error) => {
-    console.error("Failed to run web master password login hook:", error);
   });
 }
 
@@ -504,6 +478,38 @@ function auditWebMasterPasswordSignIn(input: {
   });
 }
 
+async function recordWebMasterPasswordLoginAudit(input: {
+  accountEmail: string;
+  accountName: string | null;
+  ipAddress: string | null;
+  platform: WebMasterPasswordLoginPlatform;
+  sessionId: string;
+  userAgent: string | null;
+  userId: number;
+}) {
+  const loginAt = new Date();
+  const device = normalizeLoginDevice(input.userAgent);
+
+  try {
+    await db.masterPasswordLoginAudit.create({
+      data: {
+        targetUserId: input.userId,
+        targetUserName: input.accountName,
+        targetUserEmail: input.accountEmail,
+        appSurface: "www",
+        platform: input.platform,
+        ipAddress: input.ipAddress,
+        browser: device.browser,
+        userAgent: input.userAgent,
+        sessionId: input.sessionId,
+        loginAt,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to record web master password login audit:", error);
+  }
+}
+
 function webCredentialsPlugin(): BetterAuthPlugin {
   return {
     id: "web-legacy-credentials",
@@ -601,23 +607,22 @@ function webCredentialsPlugin(): BetterAuthPlugin {
           const loginAt = new Date().toISOString();
 
           if (authDecision.masterPasswordAuthenticated) {
+            await recordWebMasterPasswordLoginAudit({
+              sessionId: session.id,
+              userId: user.id,
+              accountName: user.name,
+              accountEmail: user.email,
+              platform: "WEBSITE",
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+            });
+
             auditWebMasterPasswordSignIn({
               sessionId: session.id,
               userId: user.id,
               accountEmail: user.email,
               ipAddress: session.ipAddress ?? null,
               userAgent: session.userAgent ?? null,
-            });
-
-            runWebMasterPasswordLoginAlert({
-              sessionId: session.id,
-              userId: user.id,
-              accountName: user.name,
-              accountEmail: user.email,
-              appSurface: "www",
-              ipAddress: session.ipAddress ?? null,
-              userAgent: session.userAgent ?? null,
-              loginAt,
             });
           } else if (shouldSendNewDeviceAlert) {
             const device = normalizeLoginDevice(session.userAgent);
@@ -731,23 +736,22 @@ function webCredentialsPlugin(): BetterAuthPlugin {
           const loginAt = new Date().toISOString();
 
           if (authDecision.masterPasswordAuthenticated) {
+            await recordWebMasterPasswordLoginAudit({
+              sessionId: session.id,
+              userId: user.id,
+              accountName: user.name,
+              accountEmail: user.email,
+              platform: "MOBILE",
+              ipAddress: session.ipAddress ?? null,
+              userAgent: session.userAgent ?? null,
+            });
+
             auditWebMasterPasswordSignIn({
               sessionId: session.id,
               userId: user.id,
               accountEmail: user.email,
               ipAddress: session.ipAddress ?? null,
               userAgent: session.userAgent ?? null,
-            });
-
-            runWebMasterPasswordLoginAlert({
-              sessionId: session.id,
-              userId: user.id,
-              accountName: user.name,
-              accountEmail: user.email,
-              appSurface: "www",
-              ipAddress: session.ipAddress ?? null,
-              userAgent: session.userAgent ?? null,
-              loginAt,
             });
           } else if (shouldSendNewDeviceAlert) {
             const device = normalizeLoginDevice(session.userAgent);

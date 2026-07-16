@@ -47,6 +47,7 @@ export interface TableColumnMeta {
 	contentClassName?: string;
 	sticky?: boolean;
 	sortField?: string;
+	defaultSortDirection?: "asc" | "desc";
 	skeleton?: SkeletonConfig;
 	headerLabel?: string;
 }

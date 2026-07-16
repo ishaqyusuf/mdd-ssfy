@@ -69,6 +69,13 @@ model SalesPayments {
     tip              Float?
     meta             Json?                @db.Json
     status           String? // success,pending,paid
+    origin           String?              @default("office")
+    reviewStatus     String?              @default("needs_review")
+    reviewedAt       DateTime?            @db.Timestamp(0)
+    reviewedById     Int?
+    reviewMethod     String?
+    reviewedByAction String?
+    reviewNote       String?              @db.Text
     deletedAt        DateTime?            @db.Timestamp(0)
     createdAt        DateTime?            @default(now()) @db.Timestamp(0)
     updatedAt        DateTime?            @updatedAt
@@ -83,6 +90,8 @@ model SalesPayments {
 
     @@index([authorId])
     @@index([orderId])
+    @@index([orderId, reviewStatus, createdAt])
+    @@index([reviewStatus, createdAt])
     // @@index([customerId])
     @@index([transactionId])
     @@index([squarePaymentsId])

@@ -57,6 +57,19 @@ Tracks notable migrations and migration strategy.
   - Root `bun run db:push` does not exist in this repository.
   - `bun --filter @gnd/db push:dev` completed successfully against the configured hosted dev database and regenerated Prisma Client.
   - No manual migration file was created in this pass, matching the current repository workflow guidance.
+- 2026-07-15 sales payment review queue schema addition:
+  - Added nullable/default review fields to `SalesPayments`: `origin`, `reviewStatus`, `reviewedAt`, `reviewedById`, `reviewMethod`, `reviewedByAction`, and `reviewNote`.
+  - Added queue indexes `SalesPayments_orderId_reviewStatus_createdAt_idx` and `SalesPayments_reviewStatus_createdAt_idx`.
+  - Backfilled missing `NoteChannels.inAppSupport` values for `sales_checkout_success`, `sales_payment_recorded`, and `sales_customer_payment_received` so payment notifications can appear in the notification center when older channel seed rows had null support flags.
+  - Added migration `packages/db/src/schema/migrations/20260715120000_add_sales_payment_review/migration.sql`.
+  - `bun run db:generate` completed.
+  - `bun run with-env prisma migrate dev --name add_sales_payment_review --create-only` from `packages/db` reached local MySQL but stopped on existing local drift and requested resetting `gnd-prisma2`; reset was not run.
+  - For local browser QA only, the migration SQL was applied directly to local `gnd-prisma2` with MySQL CLI. The committed migration remains the source artifact for normal environments.
+- 2026-07-15 master password login audit schema addition:
+  - Added `packages/db/src/schema/master-password-login-audits.prisma` with `MasterPasswordLoginPlatform` and `MasterPasswordLoginAudit`.
+  - Added `Users.masterPasswordLoginAudits` and `Users.clearedMasterPasswordAudits` relation arrays.
+  - Added migration `packages/db/src/schema/migrations/20260715133000_add_master_password_login_audits/migration.sql`.
+  - Follow-up required: run `bun run db:generate` and apply/push the migration in the intended database environment.
 
 ## TODO
 - Add a migration history summary with timestamps, intent, rollout notes, and any backfill requirements.

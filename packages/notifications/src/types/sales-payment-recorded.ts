@@ -11,7 +11,7 @@ export const salesPaymentRecorded: NotificationHandler = {
 		const payload: SalesPaymentRecordedTags = {
 			type: "sales_payment_recorded",
 			source: "system",
-			priority: 5,
+			priority: 3,
 			amount: data.amount,
 			customerName: data.customerName,
 			orderNo: data.orderNo,

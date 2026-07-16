@@ -77,6 +77,33 @@ function finiteNumber(value: unknown): number | null {
 	return Number.isFinite(numberValue) ? numberValue : null;
 }
 
+function isPrismaTransactionWriteConflict(error: unknown) {
+	if (
+		error instanceof Prisma.PrismaClientKnownRequestError &&
+		error.code === "P2034"
+	) {
+		return true;
+	}
+
+	const message = error instanceof Error ? error.message : String(error);
+	return /write conflict|deadlock|transaction failed/i.test(message);
+}
+
+async function retryCheckoutSettlement<T>(operation: () => Promise<T>) {
+	const maxAttempts = 3;
+	for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+		try {
+			return await operation();
+		} catch (error) {
+			if (!isPrismaTransactionWriteConflict(error) || attempt === maxAttempts) {
+				throw error;
+			}
+			await timeout(100 * attempt);
+		}
+	}
+	throw new Error("Checkout settlement retry exhausted.");
+}
+
 function resolveSalesCccPercentage(
 	sales: Array<{ meta?: unknown }>,
 	fallback = 3.5,
@@ -909,8 +936,8 @@ export async function verifyPayment(
 			status: "error",
 		};
 	const { db } = ctx;
-	const result = await db
-		.$transaction(
+	const result = await retryCheckoutSettlement(() =>
+		db.$transaction(
 			async (tx) => {
 				const squarePayment = await tx.squarePayments.findFirstOrThrow({
 					where: {
@@ -1053,13 +1080,13 @@ export async function verifyPayment(
 				};
 			},
 			{ isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-		)
-		.catch((e) => {
-			// P2034: transaction conflict under Serializable isolation — another
-			// concurrent request already processed this payment successfully.
-			if (e?.code === "P2034") return { status: "COMPLETED" as const };
-			throw e;
-		});
+		),
+	).catch((e) => {
+		// P2034: transaction conflict under Serializable isolation. If all retries
+		// lose the race, allow the polling client to re-check the persisted state.
+		if (isPrismaTransactionWriteConflict(e)) return { status: "PENDING" as const };
+		throw e;
+	});
 	const notifications =
 		"notifications" in result ? result.notifications || [] : [];
 	let invoiceDownloadUrl: string | null = null;

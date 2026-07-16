@@ -141,6 +141,13 @@ export type SalesPaymentOptions =
   | "Zelle";
 export type SalesType = "order" | "quote";
 export type SalesSettingsMeta = {
+  paymentReview?: {
+    autoReviewActions?: {
+      production?: boolean;
+      fulfillment?: boolean;
+      inbound?: boolean;
+    };
+  };
   route: {
     [primaryRouteUid in string]: {
       routeSequence: { uid: string }[];

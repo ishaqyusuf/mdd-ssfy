@@ -4,8 +4,8 @@ import { formatDate } from "@gnd/utils/dayjs";
 import dayjs from "dayjs";
 
 export type SalesOrdersExportOrder = {
-	id: number;
-	orderId: string | null;
+	id?: number | null;
+	orderId?: string | null;
 	createdAt?: Date | string | null;
 	salesDate?: string | null;
 	salesRepName?: string | null;
@@ -24,6 +24,8 @@ export type SalesOrdersExportOrder = {
 	status?: string | null;
 };
 
+type SalesOrdersInput = NonNullable<RouterInputs["sales"]["getOrders"]>;
+
 export type SalesOrdersExportHyperlinkCell = {
 	t: "s";
 	v: string;
@@ -38,9 +40,9 @@ export type SalesOrdersExportRow = {
 	"Order #": SalesOrdersExportHyperlinkCell;
 	"Sales Rep": string;
 	"P.O": string;
-	Invoice: string;
-	Paid: string;
-	Pending: string;
+	Invoice: string | number;
+	Paid: string | number;
+	Pending: string | number;
 	Customer: string;
 	Phone: string;
 	Address: string;
@@ -93,8 +95,12 @@ export function toSalesOrdersExportRows(
 			"Sales Rep": textOrFallback(order.salesRepName),
 			"P.O": textOrFallback(order.poNo),
 			Invoice: formatMoney(moneyValue(order.invoiceTotal)),
-			Paid: formatMoney(moneyValue(order.displayAmountPaid ?? order.amountPaid)),
-			Pending: formatMoney(moneyValue(order.displayAmountDue ?? order.amountDue)),
+			Paid: formatMoney(
+				moneyValue(order.displayAmountPaid ?? order.amountPaid),
+			),
+			Pending: formatMoney(
+				moneyValue(order.displayAmountDue ?? order.amountDue),
+			),
 			Customer: textOrFallback(order.customerName ?? order.displayName),
 			Phone: textOrFallback(order.customerPhone),
 			Address: textOrFallback(order.address),
@@ -120,10 +126,12 @@ export function buildSalesOrdersExportInput(
 	selectedSalesIds: readonly number[],
 	sort?: string[] | null,
 ): RouterInputs["sales"]["getOrders"] {
+	const baseFilters = (filters ?? {}) as SalesOrdersInput;
+	const baseSort = (baseFilters as { sort?: string[] | null }).sort;
 	return {
-		...filters,
+		...baseFilters,
 		salesIds: selectedSalesIds.length > 0 ? [...selectedSalesIds] : undefined,
 		size: 999,
-		sort: sort ?? filters.sort,
+		sort: sort ?? baseSort,
 	};
 }

@@ -13,6 +13,7 @@ The `/community/unit-invoices` route now renders through `apps/www/src/component
 - The `q` search now matches Project Units visible unit text search by checking `search`, `modelName`, `lotBlock`, `project.title`, and `project.builder.name`; project-scoped lot/block searches such as Breezewood Villas plus `/01` should no longer drop invoice units that appear on Project Units.
 - Row click and row actions still open the existing `editUnitInvoiceId` URL param and `UnitInvoiceModal`.
 - The table supports persisted table-2 column visibility, sizing, ordering, dividers, sticky Unit column behavior, virtualized rows, existing sort URL state, and table-owned horizontal scrolling.
+- Saved filter tabs on `/community/unit-invoices` use the shared `pageTabs` surface. Saved tab counts are computed server-side through `whereUnitInvoices`, so badges use the same filter semantics as the table and printable report filters. The shared filter row renders tabs before the search input, automatically prepends an `All` tab when saved tabs exist, keeps the save `+` action inside the tab group, and exposes a single Edit control for the sortable saved-tabs management dialog.
 
 ## Constraints Preserved
 - No new unit-invoice `*V2` query was added.
@@ -31,6 +32,13 @@ The `/community/unit-invoices` route now renders through `apps/www/src/component
   - `bun test apps/api/src/trpc/routers/community.route.test.ts` passed.
   - `bunx biome check --formatter-enabled=false apps/api/src/db/queries/unit-invoices.ts apps/api/src/trpc/routers/community.route.test.ts` passed.
   - `bun --filter @gnd/api typecheck` was attempted and remains blocked by unrelated baseline diagnostics outside the Unit Invoices search change.
+- Saved-tab count validation on 2026-07-15:
+  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/community.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
+  - Focused Biome passed for the touched page-tabs, Unit Invoices, Sales Orders, and shared search-filter files.
+  - Filtered `@gnd/api` typecheck output showed no touched-file diagnostics for page-tabs, sales-orders-v2, unit-invoices, or the community route test.
+- Saved-tab placement validation on 2026-07-15:
+  - Shared saved filter tabs now render inline before the search input with an automatic first `All` tab, embedded save `+` action, and a single Edit control for the management dialog.
+  - `bunx biome check --formatter-enabled=false apps/www/src/components/page-tabs/page-tabs.tsx apps/www/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/www/src/components/page-tabs/confirm-delete-button.tsx apps/www/src/components/page-tabs/save-page-tab-button.tsx apps/www/src/components/midday-search-filter/search-filter-trpc.tsx` passed.
 - HTTP smoke returned `200` for `/community/unit-invoices`.
 - Browser smoke passed with Quick Login as Pablo Cruz / Super Admin:
   - desktop `/community/unit-invoices` rendered the header, existing `Search unit invoices...` input, table headers, virtualized invoice rows, no app error, no fresh console errors, and no document-level horizontal overflow.

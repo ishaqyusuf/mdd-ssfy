@@ -207,6 +207,15 @@ export async function getUnitInvoices(
   );
 }
 
+export async function getUnitInvoicesCount(
+  ctx: TRPCContext,
+  query: GetUnitInvoicesSchema,
+) {
+  return ctx.db.homes.count({
+    where: whereUnitInvoices(query),
+  });
+}
+
 export const unitInvoiceFormSchema = z.object({
   homeId: z.number(),
 });

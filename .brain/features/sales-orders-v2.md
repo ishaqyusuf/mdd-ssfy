@@ -1,6 +1,7 @@
 # Sales Orders V2
 
 ## Goal
+
 - Rebuild the canonical sales orders page under `sales-book` using the `tables-2/sales-orders` standard and Midday-style architecture:
   - thin route component
   - summary-first page shell
@@ -9,6 +10,7 @@
   - reusable tRPC-backed backend contracts
 
 ## Route
+
 - `/sales-book/orders`
   - canonical orders workspace with:
     - summary widgets
@@ -25,11 +27,13 @@
   - uses the existing `SalesOrdersV2Header` and canonical sales-orders URL filter contract
 
 ## Backend Contracts
+
 - `sales.getOrders`
   - canonical orders list query used by the canonical orders page, supporting web helpers and Expo order lists
   - reuses established sales filtering semantics through an internal legacy-query adapter
   - returns a slimmer row payload focused on list presentation instead of the legacy table shape
   - honors the existing pagination `bin` input for deleted-order table views
+  - treats primary sort `latestPaymentAt` as the clean-payment review queue: only orders with a successful latest `SalesPayments.reviewStatus = "needs_review"` payment are returned, ordered by most recently received payment
 - `sales.getOrdersSummary`
   - returns page-level summary metrics for:
     - total orders
@@ -37,6 +41,7 @@
     - outstanding balance
     - paid orders
     - evaluating orders
+  - applies the same active-order vs `/bin` soft-delete scope as `sales.getOrders`, so summary cards do not count deleted rows that the table cannot render
 - `filters.salesOrders`
   - filter metadata source for the canonical orders page
 - `sales.salesRepOptions`
@@ -47,12 +52,21 @@
   - protected mutation for correcting the sales rep attached to an existing order
   - validates the actor either has `editOrders` or currently owns the order, the order is a non-deleted order, the target is an active eligible internal sales user, and the actor's password confirmation succeeds
   - updates only `SalesOrders.salesRepId` and writes `SalesHistory` audit metadata for previous rep, next rep, actor, order id, and optional note
+- `sales.getPaymentReviewSettings`
+  - protected query returning Super Admin manage capability plus `paymentReview.autoReviewActions` for production, fulfillment, and inbound
+- `sales.updatePaymentReviewSettings`
+  - Super Admin-only mutation storing payment review automation settings in `sales-settings.meta.paymentReview`
+- `sales.markLatestPaymentReviewed`
+  - protected manual review mutation that marks the latest clean successful payment on an order as reviewed
+- `sales.createPaymentLink`
+  - protected row-action mutation that returns a checkout URL for an order with outstanding balance
 - Migration note:
   - The former `sales.getOrdersV2`, `sales.getOrdersV2Summary`, and `filters.salesOrdersV2` public names were promoted into the default order routes.
   - Expo order lists adapt the flat default row into their stable mobile card model instead of depending on the old nested legacy DTO.
   - Future table migrations should not create new `*V2` queries or `filters.*V2` metadata solely to adopt the `tables-2` UI.
 
 ## Frontend Structure
+
 - Hook
   - `apps/www/src/hooks/use-sales-orders-v2-filter-params.ts`
 - Header
@@ -75,6 +89,7 @@
   - `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/bin/page.tsx`
 
 ## Architectural Notes
+
 - The canonical page intentionally avoids the older route-local coupling from the legacy `sales-book/orders` table implementation.
 - The route prefetches only the list and summary queries.
 - Summary metrics render as separate page-level cards instead of piggybacking on table-only state.
@@ -90,8 +105,15 @@
 - Sales control tasks launched from `SalesMenu.MarkAs` register serializable task-monitor intents for production completion and fulfillment. The global bottom-right task monitor now handles those intents on Trigger completion and invalidates the sales list, sales summary, production overview, and sale overview queries so status changes refresh even after the dropdown unmounts.
 - Since the task monitor owns Mark As progress/completion feedback, `SalesMenu.MarkAs` suppresses duplicate start/completion toasts. Startup failures that happen before a task can be monitored still surface as destructive toast errors.
 - Filtered/selected Excel report export is restored on the current Sales Orders header. The report button stays hidden for the default unfiltered/unselected page, appears when Sales Orders filters are active or table rows are selected, refetches through the current `sales.getOrders` contract with `size: 999`, uses selected numeric `salesIds` resolved from UUID-keyed table rows, and generates a client-side `.xlsx` workbook with linked order numbers, money formatting, frozen header, column widths, and Excel autofilter.
+- The `Invoice` column sort now means "recently received clean payment" rather than invoice amount. Its first click applies `sort=latestPaymentAt.desc`; the queue shows only orders whose latest successful payment still needs review.
+- Saved filter tabs are enabled on `/sales-book/orders` through the shared `pageTabs` surface. Saving now preserves `sort`, so the `Invoice` column queue can be saved as a reusable tab such as `Recent invoices`; count badges use the same distinct-order `SalesPayments.reviewStatus = "needs_review"` grouping as the table when `sort=latestPaymentAt.*`. The shared filter row renders tabs before the search input, prepends an `All` tab when saved tabs exist, keeps the save `+` action inside the tab group, and exposes a single Edit control for managing saved tabs. The visible tab row does not show a General/Public badge; visibility is managed inside the edit dialog.
+- Clean payments carry `origin = "online" | "office"` and `reviewStatus = "needs_review" | "reviewed"`. Payment-link checkout payments resolve to `online`; staff-entered payment methods resolve to `office`.
+- When the payment review queue is active, Super Admin users see an inline `Payment Review Settings` bar above the orders table. It exposes auto-review toggles for Productions, Fulfillment, and Inbound plus guidance that leaving all actions unchecked means each order payment is reviewed manually. Defaults remain off so payments require manual review until the business intentionally enables automation.
+- In payment review mode (`sort=latestPaymentAt.*`), row actions collapse to the more menu plus a direct `Reviewed` button. The batch bottom bar's `Mark as` menu also includes a `Reviewed` action that manually reviews selected order payments.
+- Production assignment/completion, fulfillment completion, and inbound creation call the shared auto-review helper; only actions enabled in settings mark matching clean payments reviewed.
 
 ## Current Table Shape
+
 - Columns
   - order number
   - date
@@ -105,6 +127,7 @@
   - status
   - actions
 - Invoice total display repairs C.C.C before rendering: `grandTotal` stays base/principal-only, `displayCcc` is recalculated from the selected card/link/terminal method and `ccc_percentage` when cached `meta.ccc` is missing or stale, and non-card rows stay base-only even if old metadata contains C.C.C.
+- Invoice cells show an Office/Online clean-payment badge when the row is in the payment review queue.
 - Row interaction
   - clicking a row opens the existing sales sheet
   - the actions column exposes a compact overview icon with a hover preview
@@ -115,6 +138,10 @@
   - selected rows also enable the header Excel report export; the table resolves selected UUID row keys to numeric sales order ids before export
   - the batch bar exposes a dedicated `Mark as` dropdown backed by `SalesMenu.MarkAs` for multi-order `Production completed` and `Fulfilled` updates
   - print remains a print-only batch menu so status changes are no longer hidden inside the print action
+  - batch `Print > PDF` actions use the shared sales print service and were browser-validated on 2026-07-16 for five selected orders; the root auth provider now receives the server session so protected tRPC queries no longer render once with an empty auth header during SSR on this page
+  - a 2026-07-16 Cimera/Pablo Cruz/pending-invoice filter verified that the summary count and active table rows both return three orders (`08682PC`, `08680PC`, `08472PC`) after the soft-delete scope fix
+  - row action menus include `Create Payment Link`, which opens a `Link created` dialog with Copy and Click to open controls
+  - row action menus include `Mark Payment Reviewed`, enabled only when the row has a clean payment
 - Row density
   - the canonical orders table uses compact 48px virtual rows so more orders fit in the working viewport while preserving the existing action buttons, sticky columns, and row-open behavior
   - the sticky `Order #` column defaults to a narrower 180px width with a 150px minimum so the table exposes more downstream columns without changing row actions or sort behavior
@@ -134,17 +161,59 @@
     - order has been delivered or fully completed
 
 ## Follow-up Ideas
+
 - Continue filling out dedicated batch actions for the v2 table where shared sales workflows already exist.
 - Add cleaner sales manager scoping controls to the v2 filter contract if needed.
 - Keep `/sales-book/orders/bin` on the shared `tables-2/sales-orders` table and `sales.getOrders` query path; do not reintroduce the legacy sales-orders table for this route.
 - Move more of the sales list/query normalization into shared package-layer application code if the current orders query becomes a shared model for other clients.
 
 ## Validation
+
+- 2026-07-16 batch PDF validation:
+  - Browser-selected five visible orders on `/sales-book/orders`: `08670LRG`, `08669PC`, `08708PC`, `08706DB`, and `08704PC`.
+  - Batch `Print > PDF > Order & Packing` produced `~/Downloads/Sales_Print_10_.pdf`.
+  - Fixed the page's dev-overlay `UNAUTHORIZED` server-render error by hydrating the root `SessionProvider` with the server session before client tRPC headers are built.
+  - Reloaded `/sales-book/orders`; the table rendered and recent browser console errors were empty.
+  - Current-code batch `Print > PDF > Order` showed the `PDF download started` toast and produced `~/Downloads/Sales_Print_4_.pdf`.
+  - Focused Prettier check passed for touched auth/provider/layout files; `bun --filter @gnd/www typecheck` remains blocked by existing unrelated baseline diagnostics outside this fix.
+- 2026-07-15 payment review queue implementation:
+  - `bun run db:generate` completed.
+  - Added migration `packages/db/src/schema/migrations/20260715120000_add_sales_payment_review/migration.sql`.
+  - `bun run with-env prisma migrate dev --name add_sales_payment_review --create-only` reached local MySQL but stopped on pre-existing broad drift and requested a reset; reset was not run.
+  - Applied this migration's SQL directly to local `gnd-prisma2` for browser QA only.
+  - `bun test apps/api/src/db/queries/sales-orders-v2.test.ts packages/sales/src/payment-system/application/payment-review.test.ts` passed.
+  - Filtered type checks for changed API/www/sales files were clean after excluding unrelated existing repo-wide errors.
+  - Broad package type checks still fail on existing unrelated type issues in API/sales/UI packages.
+  - Browser QA on `/sales-book/orders`: Invoice header click set `sort=latestPaymentAt.desc`; Review Settings appeared with Production, Fulfillment, and Inbound checkboxes; row action menu showed Create Payment Link and Mark Payment Reviewed; Create Payment Link opened the `Link created` modal with Copy, Click to open, and checkout URL.
+  - Browser QA completed a Square sandbox checkout for order `08670LRG`; the resulting `SalesPayments` row was stamped `origin = online`, `reviewStatus = needs_review`, and appeared in the invoice review queue before manual review removed it.
+  - Browser QA completed a second Square sandbox checkout for order `08669PC` after enabling payment notification channel defaults; the notification worker created unread `Payment received` note `35047`, the bell showed unread count `1`, and the dropdown listed `Payment received` for `08669PC`.
+  - Browser QA enabled only the Inbound auto-review setting, used the row Inventory action to create an inbound record for `08669PC`, and confirmed the clean payment `8535` was marked `reviewStatus = reviewed`, `reviewMethod = auto`, and `reviewedByAction = inbound`; the row left the payment review queue and auto-review settings were restored off.
+  - Browser QA enabled only the Fulfillment auto-review setting, completed a Square sandbox payment for order `08694LM`, used the row `Mark as > Fulfilled` action, and confirmed clean payment `8536` was marked `reviewStatus = reviewed`, `reviewMethod = auto`, and `reviewedByAction = fulfillment`; the row left the payment review queue and auto-review settings were restored off.
+  - Browser QA enabled only the Production auto-review setting, completed a Square sandbox payment for order `08683LM`, used the Production workspace batch `Assign Selected` action, and confirmed clean payment `8538` was marked `reviewStatus = reviewed`, `reviewMethod = auto`, and `reviewedByAction = production`; auto-review settings were restored off after QA.
+  - Production-completion UI attempts against `08669PC` and `08668AD` were still blocked by the real readiness gate with `Production cannot start until required inventory is ready.`
+- 2026-07-15 payment review settings placement:
+  - Removed the header `Review Settings` popover button.
+  - Added an automatic inline `Payment Review Settings` bar above the Sales Orders table when `sort=latestPaymentAt.*` is active and the user can manage payment review settings.
+  - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx` passed.
+- 2026-07-15 payment review actions:
+  - Payment review mode row actions now hide the direct edit/open icons and show only the more menu plus a direct `Reviewed` button.
+  - The batch bottom bar `Mark as` menu includes `Reviewed` only while `sort=latestPaymentAt.*` is active.
+  - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-menu.tsx apps/www/src/components/tables-2/sales-orders/bottom-bar.tsx apps/www/src/components/tables-2/sales-orders/columns.tsx` passed.
 - 2026-07-10 filtered Excel export implementation:
   - `bun test apps/www/src/components/sales-orders-export.test.ts` passed.
   - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts` passed.
   - `git diff --check` passed.
   - Broad typecheck/build/browser validation was intentionally not run under the fast Bun monorepo command discipline for this narrow UI/reporting change.
+- 2026-07-15 saved filter tabs:
+  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/community.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false` passed for the touched page-tabs, Sales Orders, Unit Invoices, search-filter, and related test files.
+  - Filtered `@gnd/api` typecheck output reported no diagnostics for touched page-tabs, sales-orders-v2, unit-invoices, or community route test files; full `@gnd/api` typecheck remains blocked by existing unrelated baseline diagnostics, and `@gnd/www` typecheck was stopped after running silently for several minutes.
+- 2026-07-15 saved filter tab placement:
+  - Shared `SearchFilterTRPC` now renders saved filter tabs inline before the search input instead of mounting them into the top `#pageTab` portal.
+  - `PageTabs` automatically prepends an `All` tab whenever saved tabs exist.
+  - The save `+` action now renders inside the tab group.
+  - The tab group now uses a single icon-only Edit button below `2xl`, expands the label on `2xl`, and opens a shadcn-composed edit dialog with sortable saved tabs, rename, active/draft, default, delete confirmation, and Super Admin public/private controls.
+  - `bunx biome check --formatter-enabled=false apps/www/src/components/page-tabs/page-tabs.tsx apps/www/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/www/src/components/page-tabs/confirm-delete-button.tsx apps/www/src/components/page-tabs/save-page-tab-button.tsx apps/www/src/components/midday-search-filter/search-filter-trpc.tsx` passed.
 - 2026-06-16 browser smoke:
   - Quick Login as Pablo Cruz / Super Admin.
   - Desktop `/sales-book/orders` rendered summary cards, Orders search placeholder, table headers, and 20 virtual rows with no `/sales-book/orders/v2` links or Legacy button.

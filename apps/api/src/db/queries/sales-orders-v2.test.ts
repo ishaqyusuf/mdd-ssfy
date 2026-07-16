@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { getOrdersSchema, normalizeOrderRow } from "./sales-orders-v2";
+import {
+	getOrdersCount,
+	getOrdersSchema,
+	normalizeOrderRow,
+} from "./sales-orders-v2";
 
 function makeOrder(overrides: Record<string, unknown> = {}) {
 	return {
@@ -34,7 +38,7 @@ function makeOrder(overrides: Record<string, unknown> = {}) {
 		dealerAuthId: null,
 		_count: { notes: 0 },
 		...overrides,
-	} as any;
+	} as unknown as Parameters<typeof normalizeOrderRow>[0];
 }
 
 describe("sales orders default query contract", () => {
@@ -47,7 +51,7 @@ describe("sales orders default query contract", () => {
 				priority: "HIGH",
 				orderNo: "08499PC",
 				bin: true,
-				sort: ["invoiceTotal", "desc"],
+				sort: ["latestPaymentAt.desc"],
 			}),
 		).toEqual({
 			q: "08499",
@@ -56,7 +60,7 @@ describe("sales orders default query contract", () => {
 			priority: "HIGH",
 			orderNo: "08499PC",
 			bin: true,
-			sort: ["invoiceTotal", "desc"],
+			sort: ["latestPaymentAt.desc"],
 		});
 	});
 
@@ -139,5 +143,86 @@ describe("sales orders default query contract", () => {
 		expect(row.amountDue).toBe(250);
 		expect(row.displayAmountPaid).toBe(750);
 		expect(row.displayAmountDue).toBe(258.75);
+	});
+
+	it("exposes the latest clean payment review state", () => {
+		const row = normalizeOrderRow(
+			makeOrder({
+				payments: [
+					{
+						id: 1,
+						amount: 150,
+						status: "success",
+						origin: "office",
+						reviewStatus: "needs_review",
+						deletedAt: null,
+						createdAt: new Date("2026-07-01T10:00:00.000Z"),
+					},
+					{
+						id: 2,
+						amount: 200,
+						status: "success",
+						origin: "online",
+						reviewStatus: "needs_review",
+						deletedAt: null,
+						createdAt: new Date("2026-07-02T10:00:00.000Z"),
+					},
+					{
+						id: 3,
+						amount: 300,
+						status: "success",
+						origin: "online",
+						reviewStatus: "reviewed",
+						deletedAt: null,
+						createdAt: new Date("2026-07-03T10:00:00.000Z"),
+					},
+				],
+			}),
+		);
+
+		expect(row.latestPaymentReview).toEqual({
+			paymentId: 2,
+			amount: 200,
+			origin: "online",
+			receivedAt: new Date("2026-07-02T10:00:00.000Z"),
+			reviewStatus: "needs_review",
+		});
+	});
+
+	it("counts the invoice review queue using distinct latest-payment groups", async () => {
+		const groupByCalls: Array<{ by: string[]; where: unknown }> = [];
+		const ctx = {
+			userId: 7,
+			db: {
+				salesPayments: {
+					groupBy: async (args: { by: string[]; where: unknown }) => {
+						groupByCalls.push(args);
+						return [{ orderId: 1 }, { orderId: 2 }];
+					},
+				},
+				salesOrders: {
+					count: async () => {
+						throw new Error("salesOrders.count should not run");
+					},
+				},
+			},
+		} as unknown as Parameters<typeof getOrdersCount>[0];
+
+		const count = await getOrdersCount(ctx, {
+			showing: "all sales",
+			sort: ["latestPaymentAt.desc"],
+		});
+
+		expect(count).toBe(2);
+		expect(groupByCalls[0]).toMatchObject({
+			by: ["orderId"],
+			where: {
+				deletedAt: null,
+				reviewStatus: "needs_review",
+				status: {
+					in: ["success", "completed", "paid"],
+				},
+			},
+		});
 	});
 });

@@ -2,7 +2,10 @@ import { CollapsibleSummary } from "@/components/collapsible-summary";
 import { ErrorFallbackSales } from "@/components/error-fallback-sales";
 import PageShell from "@/components/page-shell";
 import { SalesOrdersV2Evaluating } from "@/components/sales-orders-v2-evaluating";
-import { SalesOrdersV2Header } from "@/components/sales-orders-v2-header";
+import {
+	SalesOrdersPaymentReviewSettings,
+	SalesOrdersV2Header,
+} from "@/components/sales-orders-v2-header";
 import { SalesOrdersV2InvoiceValue } from "@/components/sales-orders-v2-invoice-value";
 import { SalesOrdersV2Outstanding } from "@/components/sales-orders-v2-outstanding";
 import { SalesOrdersV2Paid } from "@/components/sales-orders-v2-paid";
@@ -84,6 +87,7 @@ export default async function Page(props: Props) {
 							</CollapsibleSummary>
 						</div>
 						<SalesOrdersV2Header />
+						<SalesOrdersPaymentReviewSettings />
 						<ErrorBoundary errorComponent={ErrorFallbackSales}>
 							<Suspense
 								fallback={

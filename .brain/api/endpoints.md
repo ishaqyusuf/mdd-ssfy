@@ -6,6 +6,12 @@ Tracks notable API surfaces and where they are implemented.
 ## Current Notes
 - Primary API implementation lives in `apps/api`.
 - The codebase uses route/query organization around domain-specific files and tRPC routers.
+- Shared page-tab routes now include:
+  - `pageTabs.list`: protected query returning current-user private tabs plus public/general tabs for the normalized page, including `visibility`, `active`, `canManage`, per-user default metadata, and registry-backed count badges where supported. `includeInactive: true` includes manageable draft tabs for the edit modal.
+  - `pageTabs.create`: protected mutation for saving the current page query as a tab. It supports private tabs for all users and Super Admin-only public/general tabs.
+  - `pageTabs.update`: protected mutation for renaming/query/visibility/active updates when the user can manage the tab, for tab-index updates, and for setting/unsetting the current user's default on any visible active tab.
+  - `pageTabs.reorder`: protected mutation for persisting the current user's sortable tab order through `PageTabIndex.tabIndex`.
+  - `pageTabs.delete`: protected mutation that soft-deletes manageable tabs and clears tab index/default rows.
 - App download route:
   - `apps/www/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk` while preserving query-string overrides for `url` and `name`
 - Web bug reporting routes now include:
@@ -52,7 +58,12 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.approveDealerSalesRequest`: internal approval mutation now accepts optional reviewed `deliveryCost` and `approverNote`, assigns first approver ownership, stamps approval metadata, and sends the dealer approval email with a checkout URL when payment is due
 - Sales orders routes now include:
   - `sales.getOrders`: canonical sales orders list query for `/sales-book/orders`, `/sales-book/orders/bin`, web reminder/search helpers, and Expo order lists; uses the former V2 flat row contract, accepts the existing pagination `bin` flag, and forwards supported filters through the legacy sales filter adapter
+    - Primary sort `latestPaymentAt` is reserved for the clean-payment review queue and returns only orders with a successful latest `SalesPayments.reviewStatus = "needs_review"` payment.
   - `sales.getOrdersSummary`: canonical sales orders summary query for `/sales-book/orders`
+  - `sales.getPaymentReviewSettings`: protected query returning current payment review settings plus Super Admin manage capability
+  - `sales.updatePaymentReviewSettings`: Super Admin-only mutation that updates `sales-settings.meta.paymentReview.autoReviewActions`
+  - `sales.markLatestPaymentReviewed`: protected mutation that manually marks the latest clean payment for an order as reviewed
+  - `sales.createPaymentLink`: protected mutation that returns a checkout URL/token for an order with outstanding balance
   - `filters.salesOrders`: filter metadata query used by `SalesOrdersV2Header`
 - New sales form shelf product routes now include:
   - `newSalesForm.searchShelfProducts`: mobile and web shelf picker search; blank query returns up to 10 visible recently used shelf products ordered by latest saved shelf line usage, skipping archived/hidden recent products without filling from unused active products; unused active shelf products are only shown through typed search or selected-product hydration

@@ -621,6 +621,13 @@ export interface SalesFormZusData extends SalesFormFields {
 }
 export type SalesSettingsMeta = {
     ccc?: number;
+    paymentReview?: {
+        autoReviewActions?: {
+            production?: boolean;
+            fulfillment?: boolean;
+            inbound?: boolean;
+        };
+    };
     route: {
         [primaryRouteUid in string]: {
             routeSequence: { uid: string }[];

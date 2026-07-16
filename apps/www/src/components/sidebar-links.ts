@@ -257,6 +257,9 @@ const profileSection = _section("settings", null, [
 	_link("Task Events", "tasks", "/task-events")
 		.access(_role.is("Super Admin"))
 		.childPaths("/task-events/").data,
+	_link("Master Password Logins", "ShieldCheck", "/settings/master-password-logins").access(
+		_role.is("Super Admin"),
+	).data,
 	_link("Site Actions", "Notification", "/site-actions").access(
 		_role.is("Super Admin"),
 	).data,

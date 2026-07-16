@@ -6,6 +6,15 @@ Tracks important request/response contracts and shared schema boundaries.
 ## Current Notes
 - Shared schemas and DTOs live across `apps/api/src/schemas`, `apps/api/src/dto`, and shared packages.
 - Sales production query contracts live in `packages/sales/src/schema.ts`.
+- Shared page-tab contracts:
+  - `pageTabs.list({ page, includeInactive? })` returns tabs visible to the current user: their private tabs plus public/general tabs for the normalized page path. By default it returns only active tabs; `includeInactive: true` also returns manageable draft tabs for the edit modal.
+  - `pageTabs.create({ page, title, query, setDefault?, visibility? })` stores normalized query strings, preserving reusable page state such as `sort` while stripping pagination/internal keys including `_page`, `cursor`, and `size`.
+  - `visibility` defaults to `"private"`; `"public"` creates a general tab visible to all users on that page.
+  - `pageTabs.update({ id, title?, query?, setDefault?, visibility?, active?, tabIndex? })` lets any visible tab be set/unset as the current user's default through `PageTabIndex`, while title/query/visibility/active edits require management access. Draft state is stored as `PageTabs.meta.active === false`, so no migration is required.
+  - `pageTabs.reorder({ page, ids })` persists the current user's drag order through `PageTabIndex.tabIndex`, including public tabs the user can see.
+  - `pageTabs.delete({ id })` soft-deletes a manageable tab and clears tab-index/default rows for that tab.
+  - Returned tab rows include `visibility`, `canManage`, `active`, optional `count`, per-user `default`, `index`, and `indexId`.
+  - Count badges are registry-backed per page. `/sales-book/orders` uses the Sales Orders filter contract and the same distinct clean-payment grouping for `sort=latestPaymentAt.*`; `/community/unit-invoices` uses `whereUnitInvoices`. Pages without a count adapter still render tabs without a count.
 - Web bug reporting contracts live in `apps/api/src/schemas/bug-reports.ts`:
   - `BUG_REPORT_STATUSES = NEW | IN_REVIEW | IN_PROGRESS | NEEDS_INFO | FIXED | CLOSED`
   - `BUG_REPORT_MAX_DURATION_MS = 90_000`

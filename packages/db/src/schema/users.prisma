@@ -66,6 +66,8 @@ model Users {
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")
     taskRunDiagnosticsReviewed  TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticReviewedBy")
+    masterPasswordLoginAudits    MasterPasswordLoginAudit[]       @relation(name: "masterPasswordLoginAuditTarget")
+    clearedMasterPasswordAudits  MasterPasswordLoginAudit[]       @relation(name: "masterPasswordLoginAuditClearedBy")
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")

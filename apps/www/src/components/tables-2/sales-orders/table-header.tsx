@@ -219,7 +219,7 @@ function renderHeaderContent<TData>(
 	columnId: string,
 	sortColumn: string | undefined,
 	sortValue: string | undefined,
-	createSortQuery: (name: string) => void,
+	createSortQuery: (name: string, defaultDirection?: "asc" | "desc") => void,
 	table: Table<TData>,
 	tableScroll?: TableScrollState,
 ) {
@@ -259,6 +259,7 @@ function renderHeaderContent<TData>(
 					currentSortColumn={sortColumn}
 					currentSortValue={sortValue}
 					onSort={createSortQuery}
+					defaultSortDirection={meta?.defaultSortDirection}
 				/>
 				{tableScroll?.isScrollable && (
 					<HorizontalPagination
@@ -288,6 +289,7 @@ function renderHeaderContent<TData>(
 					currentSortColumn={sortColumn}
 					currentSortValue={sortValue}
 					onSort={createSortQuery}
+					defaultSortDirection={meta?.defaultSortDirection}
 				/>
 			</div>
 		);
@@ -311,12 +313,14 @@ function SortButton({
 	currentSortColumn,
 	currentSortValue,
 	onSort,
+	defaultSortDirection = "asc",
 }: {
 	label: string;
 	sortField: string;
 	currentSortColumn?: string;
 	currentSortValue?: string;
-	onSort: (field: string) => void;
+	onSort: (field: string, defaultDirection?: "asc" | "desc") => void;
+	defaultSortDirection?: "asc" | "desc";
 }) {
 	return (
 		<Button
@@ -328,7 +332,7 @@ function SortButton({
 			variant="ghost"
 			onClick={(event) => {
 				event.stopPropagation();
-				onSort(sortField);
+				onSort(sortField, defaultSortDirection);
 			}}
 		>
 			<span className="truncate">{label}</span>

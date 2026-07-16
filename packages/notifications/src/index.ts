@@ -480,11 +480,8 @@ export class Notifications {
 		console.log("Creating activities for users:", contacts);
 		const activityPromises = await Promise.all(
 			(contacts || [])
-
-				// .filter((a) => a.inAppNotification)
+				.filter((user) => user.inAppNotification)
 				.map(async (user: UserData) => {
-					// if(!user?.inAppNotification)
-					// return null;
 					console.log("Creating activity for user:", user);
 					const rawActivityInput = handler.createActivity(
 						validatedData,

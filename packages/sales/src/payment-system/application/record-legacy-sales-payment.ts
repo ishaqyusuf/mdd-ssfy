@@ -8,6 +8,7 @@ import { calculateSalesDueAmount } from "../../sales-transaction";
 import type { CustomerTransactionType } from "../../types";
 import { buildSalesPaymentRecordedNotificationEvent } from "../contracts";
 import { mirrorPostedLegacySalesPayment } from "../infrastructure";
+import { resolveSalesPaymentOrigin } from "./payment-review";
 
 export interface RecordLegacySalesPaymentInput {
 	amount: number;
@@ -36,6 +37,8 @@ export async function recordLegacySalesPayment(
 				transactionId: input.customerTransactionId,
 				amount: input.amount,
 				status: input.paymentStatus || ("success" as SalesPaymentStatus),
+				origin: resolveSalesPaymentOrigin(input.paymentMethod),
+				reviewStatus: "needs_review",
 				orderId: input.salesId,
 				squarePaymentsId: input.squarePaymentId || undefined,
 				meta: {
@@ -153,6 +156,8 @@ export async function recordLegacySalesPayment(
 					},
 					amount: input.amount,
 					status: input.paymentStatus || ("success" as SalesPaymentStatus),
+					origin: resolveSalesPaymentOrigin(input.paymentMethod),
+					reviewStatus: "needs_review",
 					orderId: input.salesId,
 					squarePaymentsId: input.squarePaymentId || undefined,
 				},

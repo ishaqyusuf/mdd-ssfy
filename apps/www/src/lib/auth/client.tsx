@@ -37,14 +37,20 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 type SessionProviderProps = {
     children?: ReactNode;
+    initialSession?: AppSession | null;
     refetchOnWindowFocus?: boolean;
     refetchWhenOffline?: boolean;
 };
 
-export function SessionProvider({ children }: SessionProviderProps) {
-    const [data, setData] = useState<AppSession | null>(null);
-    const [status, setStatus] = useState<SessionStatus>("loading");
-    const hydratedRef = useRef(false);
+export function SessionProvider({
+    children,
+    initialSession = null,
+}: SessionProviderProps) {
+    const [data, setData] = useState<AppSession | null>(initialSession);
+    const [status, setStatus] = useState<SessionStatus>(
+        initialSession ? "authenticated" : "loading",
+    );
+    const hydratedRef = useRef(Boolean(initialSession));
 
     const hydrate = useCallback((nextSession: AppSession | null) => {
         hydratedRef.current = true;

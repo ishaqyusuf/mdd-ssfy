@@ -148,20 +148,25 @@ apps/www/src/components/sales-document-preview-page.tsx # HTML preview with acti
 apps/www/src/app/(public)/p/sales-document-v2/        # signed HTML preview route
 ```
 
+2026-07-16 browser proof: `/sales-book/orders` batch selection of five orders used `Print > PDF > Order & Packing` and produced `~/Downloads/Sales_Print_10_.pdf`; after root auth hydration was fixed, the same selected batch used `Print > PDF > Order`, showed `PDF download started`, and produced `~/Downloads/Sales_Print_4_.pdf` with no new browser console errors.
+
+2026-07-16 filtered batch proof: applying `q=cimera`, `invoice=pending`, and `sales.rep=Pablo Cruz` returned active orders `08682PC`, `08680PC`, and `08472PC`; the batch `Print > PDF > Order` UI path reached `PDF download started`, but the in-app browser did not persist a fresh blob download, so the same sales PDF route/rendering path was used to save `~/Downloads/Sales_Print_Cimera_Pablo_Cruz_pending.pdf`. PDF text extraction confirmed all three order numbers, `CIMERA`, and `Pablo Cruz`.
+
 ---
 
 ## Type contract
 
 ```ts
-type PrintMode = "invoice" | "quote" | "production" | "packing-slip" | "order-packing";
+type PrintMode =
+  "invoice" | "quote" | "production" | "packing-slip" | "order-packing";
 
 interface PrintPage {
   meta: PageMeta;
   billing: AddressBlock;
   shipping: AddressBlock;
-  sections: PrintSection[];       // ordered by lineIndex
-  footer: FooterData | null;      // null for production/packing
-  config: PrintModeConfig;        // controls column/section visibility
+  sections: PrintSection[]; // ordered by lineIndex
+  footer: FooterData | null; // null for production/packing
+  config: PrintModeConfig; // controls column/section visibility
 }
 
 interface PageMeta {
@@ -191,14 +196,14 @@ type PrintSection =
 
 ## Execution phases
 
-| Phase | Scope | Deliverable |
-|-------|-------|-------------|
-| **1** | Types + barrel export | `print/types.ts`, `print/index.ts` — ✅ DONE |
-| **2** | Compose functions | `print/compose/*.ts` — pure data transformers |
-| **3** | getPrintData entry | `print/get-print-data.ts` wiring compose → PrintPage[] |
-| **4** | tRPC endpoint | `salesV2` procedure in `print.route.ts` |
+| Phase | Scope                          | Deliverable                                                      |
+| ----- | ------------------------------ | ---------------------------------------------------------------- |
+| **1** | Types + barrel export          | `print/types.ts`, `print/index.ts` — ✅ DONE                     |
+| **2** | Compose functions              | `print/compose/*.ts` — pure data transformers                    |
+| **3** | getPrintData entry             | `print/get-print-data.ts` wiring compose → PrintPage[]           |
+| **4** | tRPC endpoint                  | `salesV2` procedure in `print.route.ts`                          |
 | **5** | Template registry + template-1 | `pdf/src/sales-v2/` — ✅ DONE: blocks, modes, registry, document |
-| **6** | Client wiring | `print-sales-v2.tsx` + v2 page route |
+| **6** | Client wiring                  | `print-sales-v2.tsx` + v2 page route                             |
 
 ---
 

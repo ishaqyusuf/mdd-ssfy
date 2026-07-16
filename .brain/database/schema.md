@@ -58,12 +58,23 @@ Tracks important schema-level entities and ownership boundaries.
   - `SalesEmailAttempt` stores sales document email attempts for standard quote/order emails and custom composed sales document emails
   - each row snapshots sender, attached sales rep, recipient/customer, document type, email kind, subject/message, related sales ids/order numbers, provider name, provider message/status, Trigger task run id when known, failure details, timestamps, retry metadata, and soft-delete timestamp
   - resend attempts are stored as new rows linked to the failed/skipped source attempt through `originalAttemptId`
+- Sales payment review fields now live on `SalesPayments` in `packages/db/src/schema/sales.wallet.prisma`:
+  - `origin` records whether the payment was received `online` or in the `office`.
+  - `reviewStatus` records whether the successful payment still `needs_review` or has been `reviewed`.
+  - `reviewedAt`, `reviewedById`, `reviewMethod`, `reviewedByAction`, and `reviewNote` store manual/auto review evidence.
+  - Queue indexes are `orderId, reviewStatus, createdAt` and `reviewStatus, createdAt`.
+  - Existing rows are backfilled as reviewed by the migration so legacy successful payments do not flood the new clean-payment queue.
 - Generic background task diagnostics schema now lives in `packages/db/src/schema/task-run-diagnostics.prisma`:
   - `TaskRunDiagnosticStatus` enum values are `RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELED`, `STALE`, and `START_FAILED`
   - `TaskRunDiagnostic` stores Trigger run diagnostics for user-triggered background tasks, including optional `runId`, task name/family/title/description/source/environment, actor snapshot, entity snapshot, safe user message, internal error/error name, bounded output summary, bounded metadata, started/finished/synced/reviewed timestamps, soft-delete timestamp, and reviewer relation
   - `runId` is unique when present so terminal finalization can upsert the same run row; start failures can be stored without a run id
   - metadata is intentionally bounded and lightweight; full task payloads and public access tokens are not stored
   - `SalesEmailAttempt` remains the domain-specific email delivery ledger and should be read alongside generic task diagnostics when diagnosing sales document email tasks
+- Master password login audit schema now lives in `packages/db/src/schema/master-password-login-audits.prisma`:
+  - `MasterPasswordLoginPlatform` enum values are `WEBSITE`, `MOBILE`, and `UNKNOWN`
+  - `MasterPasswordLoginAudit` stores each ENV master-password login event for the web/mobile auth flow
+  - rows snapshot target user id/name/email, app surface, platform, IP address, browser, user agent, safe session id, login timestamp, and clear/archive metadata
+  - clear actions set `clearedAt` and `clearedBySuperAdminId`; records are hidden from the default admin view instead of hard-deleted
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

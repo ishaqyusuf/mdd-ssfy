@@ -17,10 +17,15 @@ import {
 import { Notifications } from "@gnd/notifications";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import {
+	autoReviewSalesPaymentsForOrderAction,
+	normalizeSalesPaymentReviewSettings,
+} from "@gnd/sales/payment-system";
+import {
 	resolveSalesInventoryFulfillmentStatus,
 	resolveSalesInventoryOperationPolicy,
 	resolveSalesInventoryOverviewSetupMode,
 } from "@gnd/sales/sales-inventory-policy";
+import { getSettingAction } from "@gnd/settings";
 import { stripSpecialCharacters } from "@gnd/utils";
 import { getSubscribersAccount } from "@notifications/channel-subscribers";
 import { syncChannels } from "@notifications/channels-query";
@@ -1046,16 +1051,14 @@ export async function updateInboundShipmentStatusQuery(
 			previousStatus: previous.status,
 			status: input.status,
 			releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
-			recomputedComponentCount:
-				releasedDemand?.recomputedComponentCount ?? 0,
+			recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
 		},
 	});
 
 	return {
 		...updated,
 		releasedDemandCount: releasedDemand?.releasedDemandCount ?? 0,
-		recomputedComponentCount:
-			releasedDemand?.recomputedComponentCount ?? 0,
+		recomputedComponentCount: releasedDemand?.recomputedComponentCount ?? 0,
 	};
 }
 
@@ -1121,6 +1124,10 @@ export async function createInboundShipmentFromDemandsQuery(
 
 	const { result, linkedSales, updatedSalesOrderCount } =
 		await ctx.db.$transaction(async (tx) => {
+			const setting = await getSettingAction("sales-settings", tx as any);
+			const paymentReviewSettings = normalizeSalesPaymentReviewSettings(
+				((setting.meta || {}) as Record<string, any>).paymentReview,
+			);
 			await assertInboundRequestCanCreateDemand({ db: tx }, input);
 			const ensuredDemandIds = input.componentSelections?.length
 				? await ensureSelectedInboundDemandsForStockComponents(
@@ -1163,7 +1170,10 @@ export async function createInboundShipmentFromDemandsQuery(
 					},
 				},
 			});
-			const linkedSalesById = new Map<number, { id: number; orderId: string }>();
+			const linkedSalesById = new Map<
+				number,
+				{ id: number; orderId: string }
+			>();
 			for (const row of linkedDemandSales) {
 				const sale = row.lineItemComponent.parent.sale;
 				if (sale) linkedSalesById.set(sale.id, sale);
@@ -1184,6 +1194,15 @@ export async function createInboundShipmentFromDemandsQuery(
 						})
 					).count
 				: 0;
+			for (const sale of linkedSales) {
+				await autoReviewSalesPaymentsForOrderAction(tx as any, {
+					salesId: sale.id,
+					action: "inbound",
+					settings: paymentReviewSettings,
+					reviewedById: ctx.userId ?? null,
+					reviewNote: "Auto-reviewed after inbound creation.",
+				});
+			}
 
 			return {
 				result,

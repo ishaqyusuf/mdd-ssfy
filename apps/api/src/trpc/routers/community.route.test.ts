@@ -8,7 +8,10 @@ import {
 	getProjectUnitTemplateStatus,
 	whereProjectUnits,
 } from "../../db/queries/project-units";
-import { whereUnitInvoices } from "../../db/queries/unit-invoices";
+import {
+	getUnitInvoicesCount,
+	whereUnitInvoices,
+} from "../../db/queries/unit-invoices";
 import type { TRPCContext } from "../init";
 
 type BuilderTaskWhere = {
@@ -174,6 +177,31 @@ describe("unit invoice filters", () => {
 			],
 		});
 	});
+
+	it("counts unit invoice tabs through the same where helper", async () => {
+		const calls: Array<{ where: unknown }> = [];
+		const ctx = createContext({
+			homes: {
+				count: async (args: { where: unknown }) => {
+					calls.push(args);
+					return 19;
+				},
+			},
+		});
+
+		await expect(
+			getUnitInvoicesCount(ctx, {
+				q: "/01",
+				projectSlug: "breezewood-villas",
+			}),
+		).resolves.toBe(19);
+		expect(calls[0]).toEqual({
+			where: whereUnitInvoices({
+				q: "/01",
+				projectSlug: "breezewood-villas",
+			}),
+		});
+	});
 });
 
 describe("community job submission task APIs", () => {
@@ -252,7 +280,7 @@ describe("community job submission task APIs", () => {
 
 		expect(calls[0]?.where.installable).toBe(true);
 		expect(calls[0]?.where.deletedAt).toBeNull();
-		expect(calls[0]?.where.builder.projects.some.id).toBe(10);
+			expect(calls[0]?.where.builder?.projects?.some?.id).toBe(10);
 		expect(result).toEqual([
 			{ id: 1, taskName: "First Job Task" },
 			{ id: 3, taskName: "Second Job Task" },

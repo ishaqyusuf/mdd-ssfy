@@ -103,7 +103,13 @@ import {
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { z } from "zod";
 import { getAppUrl } from "@gnd/utils/envs";
-import { calculatePaymentChannelCharge } from "@gnd/sales/payment-system";
+import {
+	calculatePaymentChannelCharge,
+	markLatestSalesPaymentReviewed,
+	normalizeSalesPaymentReviewSettings,
+	SALES_PAYMENT_REVIEW_ACTIONS,
+} from "@gnd/sales/payment-system";
+import { getSettingAction, updateSettingsMeta } from "@gnd/settings";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -114,7 +120,10 @@ import {
 const dealerOrderRequestsSchema = z.object({
 	cursor: z.number().optional().nullable(),
 	size: z.number().min(1).max(100).optional().nullable(),
-	status: z.enum(["pending", "approved", "rejected", "all"]).optional().nullable(),
+	status: z
+		.enum(["pending", "approved", "rejected", "all"])
+		.optional()
+		.nullable(),
 });
 const dealerOrderRequestIdSchema = z.object({
 	requestId: z.number(),
@@ -125,6 +134,13 @@ const approveDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
 });
 const rejectDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
 	reason: z.string().optional().nullable(),
+});
+const updatePaymentReviewSettingsSchema = z.object({
+	autoReviewActions: z.object({
+		production: z.boolean(),
+		fulfillment: z.boolean(),
+		inbound: z.boolean(),
+	}),
 });
 
 function getDealershipUrl() {
@@ -177,6 +193,39 @@ async function sendDealerApprovalEmail(
 	});
 }
 
+async function isSuperAdmin(ctx: TRPCContext) {
+	if (!ctx.userId) return false;
+	const user = await ctx.db.users.findFirst({
+		where: {
+			id: ctx.userId,
+		},
+		select: {
+			roles: {
+				where: {
+					deletedAt: null,
+				},
+				select: {
+					role: {
+						select: {
+							name: true,
+						},
+					},
+				},
+			},
+		},
+	});
+
+	return user?.roles?.some(
+		(role) => role.role?.name?.toLowerCase() === "super admin",
+	);
+}
+
+async function requireSuperAdmin(ctx: TRPCContext) {
+	if (!(await isSuperAdmin(ctx))) {
+		throw new Error("Only Super Admin can manage payment review settings.");
+	}
+}
+
 async function sendDealerRejectedEmail(
 	ctx: { db: any },
 	result: Awaited<ReturnType<typeof rejectDealerOrderRequest>>,
@@ -226,7 +275,11 @@ export const salesRouter = createTRPCRouter({
 	dealerOrderRequests: protectedProcedure
 		.input(dealerOrderRequestsSchema)
 		.query(async (props) => {
-			return getDealerOrderRequests(props.ctx.db, props.ctx.userId, props.input);
+			return getDealerOrderRequests(
+				props.ctx.db,
+				props.ctx.userId,
+				props.input,
+			);
 		}),
 	dealerOrderRequest: protectedProcedure
 		.input(dealerOrderRequestIdSchema)
@@ -421,15 +474,112 @@ export const salesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return transferSalesRep(props.ctx, props.input);
 		}),
-	getOrders: publicProcedure
-		.input(getOrdersSchema)
-		.query(async (props) => {
-			return getOrders(props.ctx, props.input);
-		}),
+	getOrders: publicProcedure.input(getOrdersSchema).query(async (props) => {
+		return getOrders(props.ctx, props.input);
+	}),
 	getOrdersSummary: publicProcedure
 		.input(getOrdersSummarySchema)
 		.query(async (props) => {
 			return getOrdersSummary(props.ctx, props.input);
+		}),
+	getPaymentReviewSettings: protectedProcedure.query(async (props) => {
+		const [setting, canManage] = await Promise.all([
+			getSettingAction("sales-settings", props.ctx.db),
+			isSuperAdmin(props.ctx),
+		]);
+		const meta = (setting.meta || {}) as Record<string, any>;
+		return {
+			settings: normalizeSalesPaymentReviewSettings(meta.paymentReview),
+			canManage,
+		};
+	}),
+	updatePaymentReviewSettings: protectedProcedure
+		.input(updatePaymentReviewSettingsSchema)
+		.mutation(async (props) => {
+			await requireSuperAdmin(props.ctx);
+			const setting = await getSettingAction("sales-settings", props.ctx.db);
+			const meta = ((setting.meta || {}) as Record<string, any>) || {};
+			const nextPaymentReview = normalizeSalesPaymentReviewSettings({
+				...(meta.paymentReview || {}),
+				autoReviewActions: props.input.autoReviewActions,
+			});
+			await updateSettingsMeta(
+				"sales-settings",
+				{
+					...meta,
+					paymentReview: nextPaymentReview,
+				},
+				props.ctx.db,
+				"full",
+			);
+			return {
+				settings: nextPaymentReview,
+			};
+		}),
+	markLatestPaymentReviewed: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number(),
+				note: z.string().trim().max(500).optional().nullable(),
+			}),
+		)
+		.mutation(async (props) => {
+			const payment = await markLatestSalesPaymentReviewed(props.ctx.db, {
+				salesId: props.input.salesId,
+				reviewedById: props.ctx.userId,
+				reviewMethod: "manual",
+				reviewNote: props.input.note || "Reviewed from sales orders table.",
+			});
+			if (!payment) {
+				throw new Error("No payment needs review for this order.");
+			}
+			return payment;
+		}),
+	createPaymentLink: protectedProcedure
+		.input(
+			z.object({
+				salesId: z.number(),
+			}),
+		)
+		.mutation(async (props) => {
+			const order = await props.ctx.db.salesOrders.findFirstOrThrow({
+				where: {
+					id: props.input.salesId,
+					type: "order",
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					orderId: true,
+					customerId: true,
+					amountDue: true,
+					customer: {
+						select: {
+							phoneNo: true,
+						},
+					},
+				},
+			});
+			const amountDue = Math.max(Number(order.amountDue || 0), 0);
+			if (amountDue <= 0) {
+				throw new Error("This order does not have an outstanding balance.");
+			}
+			const token = await buildFullPaymentToken(props.ctx, {
+				salesId: order.id,
+				customerId: order.customerId,
+				customerPhone: order.customer?.phoneNo,
+				amountDue,
+			});
+			if (!token) {
+				throw new Error("Unable to create a payment link for this order.");
+			}
+			const url = `${getAppUrl().replace(/\/$/, "")}/checkout/${token}/v2`;
+			return {
+				url,
+				token,
+				orderId: order.orderId,
+				amountDue,
+			};
 		}),
 	updatePriority: protectedProcedure
 		.input(

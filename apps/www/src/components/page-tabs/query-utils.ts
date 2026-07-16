@@ -11,6 +11,8 @@ export function normalizeTabQuery(query: string | URLSearchParams) {
 			: new URLSearchParams(query.toString());
 
 	params.delete("_page");
+	params.delete("cursor");
+	params.delete("size");
 
 	return Array.from(params.entries())
 		.filter(([, value]) => value !== "")
@@ -71,6 +73,12 @@ export function queryFromActiveFilters(
 		}
 
 		next.set(key, String(value));
+	}
+
+	for (const key of ["sort"]) {
+		for (const value of searchParams.getAll(key)) {
+			if (value) next.append(key, value);
+		}
 	}
 
 	return normalizeTabQuery(next);

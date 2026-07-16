@@ -7,6 +7,9 @@ export interface PageTabItem {
 	query?: string;
 	params?: Record<string, string>;
 	default?: boolean;
+	active?: boolean;
+	visibility?: "private" | "public";
+	canManage?: boolean;
 	index?: number;
 	indexId?: string;
 }

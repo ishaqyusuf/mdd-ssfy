@@ -3,6 +3,7 @@
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSearchFilterContext } from "@/hooks/use-search-filter";
 import type { PageFilterData } from "@api/type";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import {
@@ -27,6 +28,7 @@ import { transformFilterDateToQuery } from "@gnd/utils";
 import { type DaysFilters, daysFilters } from "@gnd/utils/constants";
 import { formatISO } from "date-fns";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { PageTabs } from "../page-tabs";
@@ -37,9 +39,16 @@ import {
     buildOptionLabelLookup,
     normalizeFilterDefinitions,
 } from "./filter-definitions";
-import { FilterOptionColor } from "./filter-option-color";
 import { FilterList } from "./filter-list";
+import { FilterOptionColor } from "./filter-option-color";
 import { isSearchKey, searchIcons } from "./search-utils";
+
+const CALENDAR_SKELETON_DAYS = Array.from({ length: 35 }, (_, index) => ({
+    id: `calendar-day-${index}`,
+}));
+const FILTER_MENU_SKELETON_ROWS = Array.from({ length: 5 }, (_, index) => ({
+    id: `filter-menu-row-${index}`,
+}));
 
 const Calendar = dynamic(
     () => import("@gnd/ui/calendar").then((mod) => mod.Calendar),
@@ -65,9 +74,9 @@ function CalendarSkeleton() {
         <div className="grid gap-2 p-3">
             <div className="h-8 animate-pulse rounded-md bg-muted" />
             <div className="grid grid-cols-7 gap-1.5">
-                {Array.from({ length: 35 }).map((_, index) => (
+                {CALENDAR_SKELETON_DAYS.map((item) => (
                     <div
-                        key={index}
+                        key={item.id}
                         className="size-8 animate-pulse rounded-md bg-muted"
                     />
                 ))}
@@ -87,6 +96,7 @@ export function SearchFilterTRPC({
     pageTabs,
 }: Props) {
     const inputRef = useRef<HTMLInputElement>(null);
+    const searchParams = useSearchParams();
     const {
         isOpen,
         setIsOpen,
@@ -121,6 +131,10 @@ export function SearchFilterTRPC({
     const hasPendingDebouncedSearch = useRef(false);
     const nonSearchDefinitions = definitions.filter(
         (definition) => !isSearchKey(definition.key),
+    );
+    const activeSortLabel = useMemo(
+        () => getSortLabel(searchParams.get("sort")),
+        [searchParams],
     );
 
     useEffect(() => {
@@ -201,6 +215,21 @@ export function SearchFilterTRPC({
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
+                {pageTabs === undefined ? (
+                    <PageTabs
+                        portal={false}
+                        action={
+                            <SavePageTabButton
+                                definitions={definitions}
+                                filters={filters}
+                                optionLookup={optionLookup}
+                                buttonClassName="rounded-sm border-0"
+                            />
+                        }
+                    />
+                ) : (
+                    pageTabs
+                )}
                 <form
                     className="relative w-full lg:w-auto"
                     onSubmit={handleSubmit}
@@ -261,13 +290,16 @@ export function SearchFilterTRPC({
                     definitions={definitions}
                     optionLookup={optionLookup}
                 />
-                <SavePageTabButton
-                    definitions={definitions}
-                    filters={filters}
-                    optionLookup={optionLookup}
-                />
+                {activeSortLabel ? (
+                    <Badge
+                        variant="secondary"
+                        className="h-8 shrink-0 gap-1.5 rounded-md px-2 font-normal"
+                    >
+                        <Icons.Sort className="size-3.5" />
+                        {activeSortLabel}
+                    </Badge>
+                ) : null}
             </div>
-            {pageTabs === undefined ? <PageTabs portal /> : pageTabs}
             <DropdownMenuContent
                 className={cn("w-[min(22rem,calc(100vw-2rem))] lg:w-[350px]")}
                 sideOffset={4}
@@ -325,7 +357,7 @@ export function SearchFilterTRPC({
                                                     <div className="flex items-center gap-2">
                                                         <FilterOptionColor
                                                             color={
-                                                                (item as any)
+                                                                (item as { color?: string })
                                                                     .color
                                                             }
                                                         />
@@ -340,8 +372,11 @@ export function SearchFilterTRPC({
                                                         {
                                                             label: selected.label,
                                                             value: selected.id,
-                                                            color: (selected as any)
-                                                                .color,
+                                                            color: (
+                                                                selected as {
+                                                                    color?: string;
+                                                                }
+                                                            ).color,
                                                         },
                                                     );
                                                 }}
@@ -384,12 +419,37 @@ export function SearchFilterTRPC({
     );
 }
 
+function getSortLabel(sort: string | null) {
+    if (!sort) return null;
+
+    const [field, direction] = sort.split(".");
+    const fieldLabel = SORT_FIELD_LABELS[field] ?? field;
+    const directionLabel =
+        direction === "asc"
+            ? "ascending"
+            : direction === "desc"
+              ? "descending"
+              : null;
+
+    return directionLabel ? `${fieldLabel}, ${directionLabel}` : fieldLabel;
+}
+
+const SORT_FIELD_LABELS: Record<string, string> = {
+    amountDue: "Balance",
+    createdAt: "Date",
+    date: "Date",
+    latestPaymentAt: "Recent invoices",
+    lotBlock: "Lot / block",
+    orderId: "Order",
+    project: "Project",
+};
+
 function FilterMenuSkeleton() {
     return (
         <div className="grid gap-1 p-1.5" aria-label="Loading filters">
-            {Array.from({ length: 5 }).map((_, index) => (
+            {FILTER_MENU_SKELETON_ROWS.map((item) => (
                 <div
-                    key={index}
+                    key={item.id}
                     className="flex h-8 items-center gap-2 rounded-sm px-2"
                 >
                     <div className="size-4 animate-pulse rounded bg-muted" />

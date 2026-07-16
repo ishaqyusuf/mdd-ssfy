@@ -9,6 +9,8 @@ import {
 import { saveInboundNoteSchema } from "@api/schemas/notes";
 import { saveNote, saveNoteSchema } from "@gnd/utils/note";
 import {
+	getActivityCount,
+	getActivityTypeSummaries,
 	getActivties,
 	updateActivityStatus,
 	updateAllActivitiesStatus,
@@ -19,6 +21,10 @@ import {
 	getActivityTagSuggestions,
 	getActivityTree,
 } from "@notifications/activity-tree";
+import {
+	getUserNotificationChannelPreferences,
+	updateUserNotificationChannelPreference,
+} from "@notifications/channel-preferences";
 import { getSubscriberAccount } from "@notifications/channel-subscribers";
 import { channelNames } from "@notifications/channels";
 import { Notifications } from "@notifications/index";
@@ -76,6 +82,15 @@ async function getCurrentNotificationContactId(ctx: {
 	}
 
 	return contact.id;
+}
+
+async function getEnabledInAppNotificationChannels(ctx: {
+	db: TRPCContext["db"];
+	userId: number;
+}) {
+	return (await getUserNotificationChannelPreferences(ctx.db, ctx.userId)).filter(
+		(channel) => channel.preferences.inApp,
+	);
 }
 
 export const notesRouter = createTRPCRouter({
@@ -293,6 +308,27 @@ export const notesRouter = createTRPCRouter({
 				fromStatus: input.fromStatus,
 			});
 		}),
+	myNotificationPreferences: protectedProcedure.query(async ({ ctx }) => {
+		return getUserNotificationChannelPreferences(ctx.db, ctx.userId);
+	}),
+	updateMyNotificationPreference: protectedProcedure
+		.input(
+			z.object({
+				channelId: z.number(),
+				emailEnabled: z.boolean().optional(),
+				inAppEnabled: z.boolean().optional(),
+				whatsappEnabled: z.boolean().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const { channelId, ...preferences } = input;
+			return updateUserNotificationChannelPreference(
+				ctx.db,
+				ctx.userId,
+				channelId,
+				preferences,
+			);
+		}),
 	list: publicProcedure
 		.input(
 			z.object({
@@ -301,6 +337,7 @@ export const notesRouter = createTRPCRouter({
 				cursor: z.string().nullable().optional(),
 				pageSize: z.number().optional(),
 				status: z.array(z.enum(["unread", "read", "archived"])).optional(),
+				type: z.string().nullable().optional(),
 			}),
 		)
 		.query(async (props) => {
@@ -309,6 +346,7 @@ export const notesRouter = createTRPCRouter({
 				cursor: props.input.cursor,
 				pageSize: props.input.pageSize,
 				status: props.input.status,
+				type: props.input.type,
 			});
 			// const {
 			//   maxPriority,
@@ -319,6 +357,74 @@ export const notesRouter = createTRPCRouter({
 			// return {
 			//   data: [],
 			// };
+		}),
+	listMine: protectedProcedure
+		.input(
+			z.object({
+				maxPriority: z.number().optional(),
+				cursor: z.string().nullable().optional(),
+				pageSize: z.number().optional(),
+				status: z.array(noteStatusSchema).optional(),
+				type: z.string().nullable().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const notePadContactId = await getCurrentNotificationContactId(ctx);
+			const enabledTypes = (
+				await getEnabledInAppNotificationChannels(ctx)
+			).map((channel) => channel.name);
+
+			return getActivties(ctx.db, {
+				contactIds: [notePadContactId],
+				cursor: input.cursor,
+				pageSize: input.pageSize,
+				status: input.status,
+				type: input.type,
+				types: enabledTypes,
+			});
+		}),
+	unreadNotificationCount: protectedProcedure
+		.input(
+			z.object({
+				type: z.string().nullable().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const notePadContactId = await getCurrentNotificationContactId(ctx);
+			const enabledTypes = (
+				await getEnabledInAppNotificationChannels(ctx)
+			).map((channel) => channel.name);
+
+			return getActivityCount(ctx.db, {
+				contactIds: [notePadContactId],
+				status: ["unread"],
+				type: input.type,
+				types: enabledTypes,
+			});
+		}),
+	notificationTypeSummary: protectedProcedure
+		.input(
+			z.object({
+				status: z.array(noteStatusSchema).optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const notePadContactId = await getCurrentNotificationContactId(ctx);
+			const enabledChannels = await getEnabledInAppNotificationChannels(ctx);
+			const titleByType = new Map(
+				enabledChannels.map((channel) => [channel.name, channel.title]),
+			);
+
+			const summaries = await getActivityTypeSummaries(ctx.db, {
+				contactIds: [notePadContactId],
+				status: input.status,
+				types: enabledChannels.map((channel) => channel.name),
+			});
+
+			return summaries.map((summary) => ({
+				...summary,
+				title: titleByType.get(summary.type) ?? summary.title,
+			}));
 		}),
 	activityTree: publicProcedure
 		.input(

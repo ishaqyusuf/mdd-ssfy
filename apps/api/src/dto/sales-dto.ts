@@ -41,8 +41,15 @@ export type Item = Prisma.SalesOrdersGetPayload<{
 		}>;
 	}>;
 	payments?: Array<{
+		id?: number | null;
 		amount: number | null;
 		status: string | null;
+		origin?: string | null;
+		reviewStatus?: string | null;
+		reviewedAt?: Date | null;
+		reviewedById?: number | null;
+		reviewMethod?: string | null;
+		reviewedByAction?: string | null;
 		deletedAt: Date | null;
 		createdAt: Date | null;
 		meta?: unknown;
@@ -179,9 +186,7 @@ function sumExactCostLineAmounts(
 	targetLabel: string,
 ) {
 	return costLines.reduce((total, line) => {
-		if (
-			String(line.label || "").toLowerCase() !== targetLabel.toLowerCase()
-		) {
+		if (String(line.label || "").toLowerCase() !== targetLabel.toLowerCase()) {
 			return total;
 		}
 

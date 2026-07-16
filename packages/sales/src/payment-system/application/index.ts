@@ -6,6 +6,7 @@ export * from "./create-legacy-wallet-credit-transaction";
 export * from "./create-legacy-wallet-refund-transaction";
 export * from "./delete-legacy-sales-payment";
 export * from "./link-legacy-sales-checkout-square-order";
+export * from "./payment-review";
 export * from "./repair-legacy-sales-payment-balance";
 export * from "./rebuild-order-payment-projection";
 export * from "./record-legacy-sales-payment";

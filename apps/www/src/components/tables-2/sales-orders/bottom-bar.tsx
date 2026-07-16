@@ -3,6 +3,7 @@
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
+import { useSortParams } from "@/hooks/use-sort-params";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
@@ -22,12 +23,15 @@ export function BottomBar({ data }: Props) {
 	const [mounted, setMounted] = useState(false);
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const { params } = useSortParams();
 	const { rowSelection, setRowSelection } = useSalesOrdersStore();
 	const selectedOrders = data.filter((order) => rowSelection[order.uuid]);
 	const salesIds = selectedOrders.map((order) => order.id);
 	const orderIds = selectedOrders.map((order) => order.orderId);
 	const firstOrder = selectedOrders[0];
 	const selectedCount = selectedOrders.length;
+	const [sortColumn] = params.sort?.[0]?.split(".") ?? [];
+	const isPaymentReviewMode = sortColumn === "latestPaymentAt";
 	const customerPhone =
 		firstOrder?.customerPhone && firstOrder.customerPhone !== "-"
 			? firstOrder.customerPhone
@@ -117,7 +121,10 @@ export function BottomBar({ data }: Props) {
 								</Button>
 							}
 						>
-							<SalesMenu.MarkAs asSubmenu={false} />
+							<SalesMenu.MarkAs
+								asSubmenu={false}
+								includePaymentReviewed={isPaymentReviewMode}
+							/>
 						</SalesMenu>
 
 						<SalesPaymentNotificationsMenu

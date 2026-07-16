@@ -15,7 +15,7 @@ export const salesCheckoutSuccess: NotificationHandler = {
     const payload: SalesCheckoutSuccessTags = {
       type: "sales_checkout_success",
       source: "system",
-      priority: 5,
+      priority: 3,
       orderNos: data.orderNos,
       customerName: data.customerName,
       totalAmount: data.totalAmount,

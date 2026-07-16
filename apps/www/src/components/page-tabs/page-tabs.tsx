@@ -3,22 +3,16 @@
 import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
-import { toast } from "@gnd/ui/use-toast";
+import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 
+import { ManagePageTabsDialog } from "./manage-page-tabs-dialog";
 import {
 	buildPageTabHref,
 	normalizePagePath,
@@ -32,7 +26,14 @@ interface PageTabsProps {
 	portal?: boolean;
 	className?: string;
 	page?: string;
+	action?: ReactNode;
 }
+
+type ResolvedPageTab = PageTabItem & {
+	active: boolean;
+	href: string;
+	isAll?: boolean;
+};
 
 function buildTabHref(
 	pathname: string,
@@ -82,17 +83,30 @@ function isTabActive(
 	);
 }
 
+function buildAllTab(pathname: string, page?: string): ResolvedPageTab {
+	const basePath = normalizePagePath(page || pathname);
+
+	return {
+		active: false,
+		href: basePath,
+		isAll: true,
+		page: basePath,
+		title: "All",
+	};
+}
+
 export function PageTabs({
 	tabs,
 	portal = true,
 	className,
 	page,
+	action,
 }: PageTabsProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
 	const trpc = useTRPC();
-	const queryClient = useQueryClient();
 	const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
+	const [manageOpen, setManageOpen] = useState(false);
 	const resolvedPage = normalizePagePath(page || pathname);
 	const shouldFetch = !tabs;
 	const { data } = useQuery({
@@ -100,44 +114,7 @@ export function PageTabs({
 		...trpc.pageTabs.list.queryOptions({ page: resolvedPage }),
 	});
 	const pageTabs = tabs ?? data ?? [];
-
-	const updateTab = useMutation(
-		trpc.pageTabs.update.mutationOptions({
-			async onSuccess() {
-				await invalidatePageTabs(queryClient, trpc, resolvedPage);
-				toast({
-					title: "Page tab updated",
-					variant: "success",
-				});
-			},
-			onError(error) {
-				toast({
-					title: "Unable to update page tab",
-					description: error.message,
-					variant: "destructive",
-				});
-			},
-		}),
-	);
-
-	const deleteTab = useMutation(
-		trpc.pageTabs.delete.mutationOptions({
-			async onSuccess() {
-				await invalidatePageTabs(queryClient, trpc, resolvedPage);
-				toast({
-					title: "Page tab deleted",
-					variant: "success",
-				});
-			},
-			onError(error) {
-				toast({
-					title: "Unable to delete page tab",
-					description: error.message,
-					variant: "destructive",
-				});
-			},
-		}),
-	);
+	const hasSavedTabs = pageTabs.length > 0;
 
 	useEffect(() => {
 		if (!portal) return;
@@ -146,26 +123,35 @@ export function PageTabs({
 
 	const resolvedTabs = useMemo(() => {
 		const currentSearch = new URLSearchParams(searchParams.toString());
-		return pageTabs.map((tab) => ({
+		const savedTabs = pageTabs.map((tab) => ({
 			...tab,
 			href: buildTabHref(pathname, currentSearch, tab),
 			active: isTabActive(pathname, currentSearch, tab),
 		}));
-	}, [pathname, searchParams, pageTabs]);
+		if (!savedTabs.length) return [];
 
-	if (!resolvedTabs.length) return null;
+		const hasActiveSavedTab = savedTabs.some((tab) => tab.active);
+		const allTab = buildAllTab(pathname, page);
+		allTab.active =
+			!hasActiveSavedTab && normalizeTabQuery(currentSearch).length === 0;
+
+		return [allTab, ...savedTabs];
+	}, [pathname, searchParams, pageTabs, page]);
+
+	if (!resolvedTabs.length && !action) return null;
 
 	const content = (
-		<div
-			className={cn(
-				"flex h-10 w-full items-center gap-1 overflow-x-auto border-b px-4 sm:px-6",
-				className,
-			)}
-		>
-			{resolvedTabs.map((tab) => {
-				const tabId = tab.id;
-
-				return (
+		<>
+			<div
+				className={cn(
+					portal
+						? "flex h-10 w-full items-center gap-1 overflow-x-auto border-b px-4 sm:px-6"
+						: "flex h-10 max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-md border bg-background p-0.5",
+					className,
+				)}
+			>
+				{resolvedTabs.map((tab) => {
+					return (
 					<div
 						className="flex shrink-0 items-center"
 						key={`${tab.id ?? tab.title}-${tab.href}`}
@@ -174,16 +160,18 @@ export function PageTabs({
 							variant="ghost"
 							size="sm"
 							className={cn(
-								"h-10 rounded-none",
+								portal ? "h-10 rounded-none" : "h-8 rounded-sm px-3",
 								tab.active
-									? "border-b-2 border-blue-600"
+									? portal
+										? "border-b-2 border-blue-600"
+										: "bg-muted text-foreground shadow-sm"
 									: "text-muted-foreground",
 							)}
 							asChild
 							disabled={tab.active}
 						>
 							<Link
-								className="inline-flex items-center space-x-2"
+								className="inline-flex items-center gap-2"
 								href={tab.href}
 							>
 								<span>{tab.title}</span>
@@ -195,55 +183,36 @@ export function PageTabs({
 								)}
 							</Link>
 						</Button>
-						{tabId && (
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										aria-label={`Manage ${tab.title} tab`}
-										className="h-8 w-8 rounded-full px-0 text-muted-foreground"
-										size="sm"
-										type="button"
-										variant="ghost"
-									>
-										<Icons.MoreHorizontal className="size-4" />
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuItem
-										onClick={() => {
-											const title = window.prompt("Tab name", tab.title);
-											if (!title?.trim()) return;
-											updateTab.mutate({ id: tabId, title: title.trim() });
-										}}
-									>
-										<Icons.Pencil className="mr-2 size-4" />
-										Rename
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										onClick={() => {
-											updateTab.mutate({
-												id: tabId,
-												setDefault: !tab.default,
-											});
-										}}
-									>
-										<Icons.Star className="mr-2 size-4" />
-										{tab.default ? "Unset default" : "Set as default"}
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										className="text-destructive"
-										onClick={() => deleteTab.mutate({ id: tabId })}
-									>
-										<Icons.Trash className="mr-2 size-4" />
-										Delete
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
-						)}
 					</div>
-				);
-			})}
-		</div>
+					);
+				})}
+				{action ? (
+					<div className="flex shrink-0 items-center">{action}</div>
+				) : null}
+				{hasSavedTabs ? (
+					<Button
+						aria-label="Edit saved tabs"
+						className={cn(
+							portal
+								? "h-8 w-8 rounded-md px-0 2xl:w-auto 2xl:px-3"
+								: "h-8 w-8 rounded-sm border-0 px-0 2xl:w-auto 2xl:px-3",
+						)}
+						onClick={() => setManageOpen(true)}
+						size="sm"
+						type="button"
+						variant={portal ? "outline" : "ghost"}
+					>
+						<Icons.Pencil data-icon="inline-start" />
+						<span className="hidden 2xl:inline">Edit</span>
+					</Button>
+				) : null}
+			</div>
+			<ManagePageTabsDialog
+				open={manageOpen}
+				onOpenChange={setManageOpen}
+				page={resolvedPage}
+			/>
+		</>
 	);
 
 	if (!portal) return content;

@@ -8,8 +8,10 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { Button } from "@gnd/ui/button";
+import { ButtonGroup } from "@gnd/ui/button-group";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
-import { Popover, Tabs } from "@gnd/ui/namespace";
+import { DropdownMenu, Popover, Tabs } from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { TabsContent } from "@gnd/ui/tabs";
 import {
@@ -18,13 +20,13 @@ import {
 	runNotificationAction,
 } from "@notifications/notification-center";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ErrorFallback } from "../error-fallback";
 import { EmptyState } from "./empty-state";
 import { NotificationItem } from "./notification-item";
+import { NotificationSettingsSheet } from "./notification-settings-sheet";
 
 const SKELETON_ROW_KEYS = [
 	"notification-skeleton-1",
@@ -34,9 +36,26 @@ const SKELETON_ROW_KEYS = [
 	"notification-skeleton-5",
 ];
 
+const NOTIFICATION_TABS = [
+	{
+		value: "inbox",
+		label: "Inbox",
+		icon: Icons.Inbox,
+	},
+	{
+		value: "archive",
+		label: "Archive",
+		icon: Icons.Archive,
+	},
+] as const;
+
 export function NotificationCenter() {
 	const [isOpen, setOpen] = useState(false);
 	const [activeTab, setActiveTab] = useState("inbox");
+	const [selectedFilter, setSelectedFilter] = useState<{
+		type: string;
+		title: string;
+	} | null>(null);
 	const router = useRouter();
 	const pathname = usePathname();
 	const idleQueryEnabled = useIdleQueryEnabled(1500);
@@ -55,9 +74,28 @@ export function NotificationCenter() {
 	} = useNotifications({
 		enabled: isOpen || idleQueryEnabled,
 		includeArchive: isOpen && activeTab === "archive",
+		type: selectedFilter?.type,
 	});
 	const unreadNotifications = notifications; // Main notifications (unread/read)
 	const archivedNotifications = archived; // Archived notifications
+	const activeTypeSummary =
+		activeTab === "archive" ? archive.typeSummary : inbox.typeSummary;
+	const activeTypeCount = useMemo(
+		() => activeTypeSummary.reduce((total, item) => total + item.count, 0),
+		[activeTypeSummary],
+	);
+	const selectedType = selectedFilter?.type ?? null;
+	const selectedTypeLabel =
+		selectedFilter?.title ??
+		(selectedType
+			? activeTypeSummary.find((item) => item.type === selectedType)?.title
+			: null);
+	const inboxEmptyDescription = selectedTypeLabel
+		? `No ${selectedTypeLabel.toLowerCase()} notifications`
+		: "No new notifications";
+	const archiveEmptyDescription = selectedTypeLabel
+		? `No archived ${selectedTypeLabel.toLowerCase()} notifications`
+		: "Nothing in the archive";
 	useEffect(() => {
 		if (isOpen && hasUnseenNotifications && !isUpdating) {
 			markAllMessagesAsSeen();
@@ -221,28 +259,103 @@ export function NotificationCenter() {
 			>
 				<ErrorBoundary errorComponent={ErrorFallback}>
 					<Tabs value={activeTab} onValueChange={setActiveTab}>
-						<Tabs.List className="w-full justify-between bg-transparent border-b-[1px] rounded-none py-6">
-							<div className="flex">
-								<Tabs.Trigger value="inbox" className="font-normal">
-									Inbox
-								</Tabs.Trigger>
-								<Tabs.Trigger value="archive" className="font-normal">
-									Archive
-								</Tabs.Trigger>
+						<div className="flex w-full items-center justify-between gap-2 border-b bg-background px-2 py-2">
+							<ButtonGroup className="shrink-0" role="tablist">
+								{NOTIFICATION_TABS.map((tab) => {
+									const Icon = tab.icon;
+									const isActive = activeTab === tab.value;
+
+									return (
+										<Button
+											key={tab.value}
+											type="button"
+											size="sm"
+											variant={isActive ? "default" : "outline"}
+											role="tab"
+											aria-selected={isActive}
+											className={cn(
+												"h-8 px-2.5 text-xs uppercase",
+												isActive
+													? "bg-foreground text-background hover:bg-foreground/90"
+													: "text-muted-foreground",
+											)}
+											onClick={() => setActiveTab(tab.value)}
+										>
+											<Icon data-icon="inline-start" />
+											<span>{tab.label}</span>
+										</Button>
+									);
+								})}
+							</ButtonGroup>
+							<div className="flex min-w-0 items-center gap-1">
+								<DropdownMenu.Root>
+									<DropdownMenu.Trigger asChild>
+										<Button
+											variant="ghost"
+											size={selectedTypeLabel ? "sm" : "icon"}
+											className="h-8 max-w-[155px] rounded-full px-2"
+											aria-label="Filter notifications"
+										>
+											<Icons.Filter size={16} />
+											{selectedTypeLabel ? (
+												<span className="ml-1 truncate text-xs font-normal">
+													{selectedTypeLabel}
+												</span>
+											) : null}
+										</Button>
+									</DropdownMenu.Trigger>
+									<DropdownMenu.Content align="end" className="w-64">
+										<DropdownMenu.Label>Filter notifications</DropdownMenu.Label>
+										<DropdownMenu.Item
+											onSelect={() => setSelectedFilter(null)}
+											className="flex items-center justify-between gap-3"
+										>
+											<span className="flex min-w-0 items-center gap-2">
+												{!selectedType ? (
+													<Icons.Check size={14} className="shrink-0" />
+												) : (
+													<span className="size-3.5 shrink-0" />
+												)}
+												<span className="truncate">All</span>
+											</span>
+											<span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+												{activeTypeCount}
+											</span>
+										</DropdownMenu.Item>
+										<DropdownMenu.Separator />
+										{activeTypeSummary.length ? (
+											activeTypeSummary.map((item) => (
+												<DropdownMenu.Item
+													key={item.type}
+													onSelect={() =>
+														setSelectedFilter({
+															type: item.type,
+															title: item.title,
+														})
+													}
+													className="flex items-center justify-between gap-3"
+												>
+													<span className="flex min-w-0 items-center gap-2">
+														{selectedType === item.type ? (
+															<Icons.Check size={14} className="shrink-0" />
+														) : (
+															<span className="size-3.5 shrink-0" />
+														)}
+														<span className="truncate">{item.title}</span>
+													</span>
+													<span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] leading-none text-muted-foreground">
+														{item.count}
+													</span>
+												</DropdownMenu.Item>
+											))
+										) : (
+											<DropdownMenu.Item disabled>No filters yet</DropdownMenu.Item>
+										)}
+									</DropdownMenu.Content>
+								</DropdownMenu.Root>
+								<NotificationSettingsSheet />
 							</div>
-							<Link
-								href="/settings/profile?tab=notifications"
-								onClick={() => setOpen(false)}
-							>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="items-center justify-center transition-colors h-9 w-9 rounded-full bg-ransparent hover:bg-accent mr-2"
-								>
-									<Icons.Settings size={16} />
-								</Button>
-							</Link>
-						</Tabs.List>
+						</div>
 
 						<Tabs.Content value="inbox" className="relative mt-0">
 							{isLoading && !unreadNotifications.length && (
@@ -264,7 +377,7 @@ export function NotificationCenter() {
 							)}
 
 							{!isLoading && !unreadNotifications.length && (
-								<EmptyState description="No new notifications" />
+								<EmptyState description={inboxEmptyDescription} />
 							)}
 
 							{!isLoading && unreadNotifications.length > 0 && (
@@ -333,7 +446,7 @@ export function NotificationCenter() {
 							)}
 
 							{!isLoading && !archivedNotifications.length && (
-								<EmptyState description="Nothing in the archive" />
+								<EmptyState description={archiveEmptyDescription} />
 							)}
 
 							{!isLoading && archivedNotifications.length > 0 && (

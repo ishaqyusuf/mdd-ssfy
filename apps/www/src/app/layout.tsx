@@ -14,6 +14,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster as MiddayToast, Toaster } from "@gnd/ui/toaster";
 
 import { Providers } from "./providers";
+import { getServerAuthSession } from "@/lib/auth/session";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 
@@ -29,7 +30,9 @@ export default async function RootLayout({
     children: React.ReactNode;
 }) {
     const prodDB = env.DATABASE_URL?.includes("pscale");
-    const serverTrpcUrl = getServerTrpcUrl(await headers());
+    const headersList = await headers();
+    const initialSession = await getServerAuthSession(headersList);
+    const serverTrpcUrl = getServerTrpcUrl(headersList);
 
     return (
         <html lang="en" suppressHydrationWarning>
@@ -44,7 +47,10 @@ export default async function RootLayout({
                     <Toaster />
                     <MiddayToast />
                     <Suspense>
-                        <Providers serverTrpcUrl={serverTrpcUrl}>
+                        <Providers
+                            initialSession={initialSession}
+                            serverTrpcUrl={serverTrpcUrl}
+                        >
                             {children}
                             {env.NODE_ENV !== "production" ? (
                                 <div className="fixed bottom-1 left-1 z-[9999] flex items-center gap-2 print:hidden">

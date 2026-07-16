@@ -181,24 +181,156 @@ export type GetActivitiesParams = {
 	status?: NoteStatus[];
 	pageSize?: number;
 	cursor?: string | null;
+	type?: string | null;
+	types?: string[] | null;
 };
-export async function getActivties(db: Db, params: GetActivitiesParams) {
-	const { contactIds, status } = params;
-	const pageSize = Math.max(1, Math.min(params.pageSize ?? 20, 100));
-	const offset = Math.max(0, Number(params.cursor ?? 0) || 0);
 
-	const where = {
+export type ActivityTypeSummary = {
+	type: string;
+	title: string;
+	count: number;
+	latestAt: Date | null;
+};
+
+function normalizeActivityType(type?: string | null) {
+	const trimmed = type?.trim();
+	const normalized =
+		trimmed?.startsWith('"') && trimmed.endsWith('"')
+			? (() => {
+					try {
+						const parsed = JSON.parse(trimmed);
+						return typeof parsed === "string" ? parsed.trim() : trimmed;
+					} catch {
+						return trimmed;
+					}
+				})()
+			: trimmed;
+	return normalized || null;
+}
+
+function activityTypeTagValues(values: string[]) {
+	return Array.from(
+		new Set(values.flatMap((value) => [value, JSON.stringify(value)])),
+	);
+}
+
+function parseActivityType(
+	tags: Record<string, unknown>,
+	allowedTypes?: string[] | null,
+) {
+	const channel = typeof tags.channel === "string" ? tags.channel : null;
+	const type = typeof tags.type === "string" ? tags.type : null;
+	const normalizedAllowedTypes = allowedTypes
+		?.map((item) => normalizeActivityType(item))
+		.filter((item): item is string => !!item);
+
+	if (normalizedAllowedTypes?.length) {
+		const normalizedChannel = normalizeActivityType(channel);
+		if (
+			normalizedChannel &&
+			normalizedAllowedTypes.includes(normalizedChannel)
+		) {
+			return normalizedChannel;
+		}
+
+		const normalizedType = normalizeActivityType(type);
+		if (normalizedType && normalizedAllowedTypes.includes(normalizedType)) {
+			return normalizedType;
+		}
+	}
+
+	return normalizeActivityType(type) ?? normalizeActivityType(channel);
+}
+
+export function formatActivityTypeTitle(type: string) {
+	return type
+		.split(/[_\-\s]+/)
+		.filter(Boolean)
+		.map((word) => `${word.slice(0, 1).toUpperCase()}${word.slice(1)}`)
+		.join(" ");
+}
+
+function getActivityRecipientWhere(contactIds: number[], status?: NoteStatus[]) {
+	return {
 		deletedAt: null,
-		recipients: {
+		notePadContactId: {
+			in: contactIds,
+		},
+		...(status?.length ? { status: { in: status } } : {}),
+	};
+}
+
+function getActivityTypeWhere(type?: string | null, types?: string[] | null) {
+	const normalizedType = normalizeActivityType(type);
+	const normalizedTypes = types
+		?.map((item) => normalizeActivityType(item))
+		.filter((item): item is string => !!item);
+	const rawTypeValues = normalizedType
+		? normalizedTypes
+			? normalizedTypes.includes(normalizedType)
+				? [normalizedType]
+				: []
+			: [normalizedType]
+		: normalizedTypes;
+
+	if (!rawTypeValues?.length) {
+		return {};
+	}
+	const typeValues = activityTypeTagValues(rawTypeValues);
+
+	return {
+		tags: {
 			some: {
 				deletedAt: null,
-				notePadContactId: {
-					in: contactIds,
-				},
-				...(status?.length ? { status: { in: status } } : {}),
+				OR: [
+					{ tagName: "type", tagValue: { in: typeValues } },
+					{ tagName: "channel", tagValue: { in: typeValues } },
+				],
 			},
 		},
-	} as const;
+	};
+}
+
+function isActivityTypeDisabled(type?: string | null, types?: string[] | null) {
+	const normalizedType = normalizeActivityType(type);
+	const normalizedTypes = types
+		?.map((item) => normalizeActivityType(item))
+		.filter((item): item is string => !!item);
+
+	return (
+		!!normalizedTypes &&
+		(normalizedTypes.length === 0 ||
+			(!!normalizedType && !normalizedTypes.includes(normalizedType)))
+	);
+}
+
+function getActivitiesWhere(
+	params: Pick<GetActivitiesParams, "contactIds" | "status" | "type" | "types">,
+) {
+	return {
+		deletedAt: null,
+		recipients: {
+			some: getActivityRecipientWhere(params.contactIds, params.status),
+		},
+		...getActivityTypeWhere(params.type, params.types),
+	};
+}
+
+export async function getActivties(db: Db, params: GetActivitiesParams) {
+	const pageSize = Math.max(1, Math.min(params.pageSize ?? 20, 100));
+	const offset = Math.max(0, Number(params.cursor ?? 0) || 0);
+	if (isActivityTypeDisabled(params.type, params.types)) {
+		return {
+			data: [],
+			meta: {
+				count: 0,
+				size: pageSize,
+				cursor: null,
+			},
+		};
+	}
+
+	const where = getActivitiesWhere(params);
 
 	const [activities, count] = await Promise.all([
 		db.notePad.findMany({
@@ -235,7 +367,7 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
 					where: {
 						deletedAt: null,
 						notePadContactId: {
-							in: contactIds,
+							in: params.contactIds,
 						},
 					},
 					select: {
@@ -309,6 +441,82 @@ export async function getActivties(db: Db, params: GetActivitiesParams) {
 					: null,
 		},
 	};
+}
+
+export async function getActivityCount(
+	db: Db,
+	params: Pick<GetActivitiesParams, "contactIds" | "status" | "type" | "types">,
+) {
+	if (isActivityTypeDisabled(params.type, params.types)) {
+		return 0;
+	}
+
+	return db.notePad.count({
+		where: getActivitiesWhere(params),
+	});
+}
+
+export async function getActivityTypeSummaries(
+	db: Db,
+	params: Pick<GetActivitiesParams, "contactIds" | "status" | "types">,
+): Promise<ActivityTypeSummary[]> {
+	if (params.types && params.types.length === 0) {
+		return [];
+	}
+
+	const activities = await db.notePad.findMany({
+		where: {
+			deletedAt: null,
+			recipients: {
+				some: getActivityRecipientWhere(params.contactIds, params.status),
+			},
+			...getActivityTypeWhere(null, params.types),
+		},
+		orderBy: {
+			createdAt: "desc",
+		},
+		select: {
+			createdAt: true,
+			tags: {
+				where: {
+					deletedAt: null,
+					tagName: {
+						in: ["type", "channel"],
+					},
+				},
+				select: {
+					tagName: true,
+					tagValue: true,
+				},
+			},
+		},
+	});
+
+	const summariesByType = new Map<string, ActivityTypeSummary>();
+
+	for (const activity of activities) {
+		const type = parseActivityType(mergeTagRows(activity.tags), params.types);
+		if (!type) continue;
+
+		const summary = summariesByType.get(type);
+		if (summary) {
+			summary.count += 1;
+			continue;
+		}
+
+		summariesByType.set(type, {
+			type,
+			title: formatActivityTypeTitle(type),
+			count: 1,
+			latestAt: activity.createdAt,
+		});
+	}
+
+	return Array.from(summariesByType.values()).sort((a, b) => {
+		const aTime = a.latestAt?.getTime() ?? 0;
+		const bTime = b.latestAt?.getTime() ?? 0;
+		return bTime - aTime;
+	});
 }
 
 type ContactLookupInput = {

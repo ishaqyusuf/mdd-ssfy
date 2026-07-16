@@ -331,6 +331,7 @@ type ActionProps = {
 
 type MarkAsProps = ActionProps & {
 	asSubmenu?: boolean;
+	includePaymentReviewed?: boolean;
 };
 
 const markAsActionLabels: Record<SalesInventoryMarkAsAction, string> = {
@@ -882,7 +883,11 @@ function SalesMenuDelete({ onDeleted }: DeleteProps) {
 	);
 }
 
-function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
+function SalesMenuMarkAs({
+	disabled,
+	asSubmenu = true,
+	includePaymentReviewed = false,
+}: MarkAsProps) {
 	const { state, actions } = useSalesMenuContext();
 	const auth = useAuth();
 	const trpc = useTRPC();
@@ -903,6 +908,9 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 	);
 	const autoResolveInventoryMarkAsMutation = useMutation(
 		trpc.inventories.resolveSalesInventoryMarkAsAutoForContinue.mutationOptions(),
+	);
+	const markPaymentReviewedMutation = useMutation(
+		trpc.sales.markLatestPaymentReviewed.mutationOptions(),
 	);
 	const invalidateOrders = async () => {
 		await Promise.all([
@@ -1098,6 +1106,55 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 		await startMarkFulfilledTask();
 	};
 
+	const markPaymentReviewed = async () => {
+		try {
+			const results = await Promise.allSettled(
+				salesIds.map((salesId) =>
+					markPaymentReviewedMutation.mutateAsync({
+						salesId,
+						note: "Reviewed from batch Mark as menu.",
+					}),
+				),
+			);
+			const successCount = results.filter(
+				(result) => result.status === "fulfilled",
+			).length;
+			const failedCount = results.length - successCount;
+
+			if (successCount > 0) {
+				toast({
+					duration: 2000,
+					variant: "success",
+					title: "Payments reviewed",
+					description: `${successCount} order${
+						successCount === 1 ? "" : "s"
+					} removed from the review queue.`,
+				});
+				await sq.invalidate.salesPaymentChanged();
+			}
+
+			if (failedCount > 0) {
+				toast({
+					duration: 3000,
+					variant: "destructive",
+					title: "Some payments were not reviewed",
+					description: `${failedCount} selected order${
+						failedCount === 1 ? "" : "s"
+					} had no payment needing review.`,
+				});
+			}
+
+			actions.closeMenu();
+		} catch (error) {
+			toast({
+				title: "Unable to review payments",
+				description:
+					error instanceof Error ? error.message : "Please try again.",
+				variant: "destructive",
+			});
+		}
+	};
+
 	const resolveInventoryAndContinue = async () => {
 		if (!inventoryPreflight) return;
 
@@ -1196,6 +1253,17 @@ function SalesMenuMarkAs({ disabled, asSubmenu = true }: MarkAsProps) {
 			>
 				Fulfilled
 			</SalesMenuItem>
+			{includePaymentReviewed ? (
+				<SalesMenuItem
+					disabled={isDisabled || markPaymentReviewedMutation.isPending}
+					onSelect={(event) => {
+						event.preventDefault();
+						void markPaymentReviewed();
+					}}
+				>
+					Reviewed
+				</SalesMenuItem>
+			) : null}
 		</>
 	);
 	const blockerPreview = inventoryPreflight?.blockers.slice(0, 4) || [];

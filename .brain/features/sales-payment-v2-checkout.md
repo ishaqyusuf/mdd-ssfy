@@ -18,6 +18,7 @@
 6. If logged in, checkout also shows wallet information relevant to the order/payment journey.
 7. Customer completes payment or uses wallet-assisted flows when available.
 8. After authentication/payment, customer can continue into a customer dashboard experience.
+9. Checkout settlement retries transient Prisma transaction write conflicts/deadlocks before returning to the polling client; if the final settlement attempt still fails with a write conflict, the response remains `PENDING` so the client can poll persisted state instead of treating an unwritten settlement as complete.
 
 ## Data Model
 
@@ -37,6 +38,7 @@
 ## Square Terminal Production Notes
 
 - 2026-06-29: Local Square package debugging was switched to production credentials for live terminal diagnosis.
+- 2026-07-15: Local Square now defaults back to sandbox unless `NODE_ENV`/`VERCEL_ENV` is production or `SQUARE_FORCE_PRODUCTION=true`; this keeps browser checkout-link QA from opening a live merchant checkout while preserving an explicit production override for terminal diagnosis.
 - Production device listing is scoped to `SQUARE_LOCATION_ID` so Sales Overview terminal selection only shows devices for the configured production location.
 - Terminal checkout creation now sends `locationId: SQUARE_LOCATION_ID` with the selected `deviceId`.
 - Live browser validation from Sales Overview order `08624PC` still failed after the code-side location fix with Square `BAD_REQUEST`, `Merchant not authorized for device_id=device:238CS149B2002443`.
@@ -76,6 +78,7 @@
 - Wallet balance exists but is insufficient for full payment.
 - Guest checkout and logged-in checkout must remain consistent for order/payment status.
 - Credit-card convenience charge calculation is bounded to the current amount due after wallet credit and prior payments; any overpayment wallet credit can remain part of the external charge, but it does not increase the C.C.C fee base.
+- Prisma `P2034` / write-conflict / deadlock failures during settlement are treated as transient. The settlement transaction is retried three times with a short backoff, and exhausted write conflicts return pending status for a safe retry path.
 
 ## Permissions
 

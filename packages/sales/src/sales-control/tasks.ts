@@ -1,22 +1,35 @@
-import { NoteTagTypes } from "@gnd/utils/constants";
+import type { NoteTagTypes } from "@gnd/utils/constants";
 import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
-import { DeletePackingSchema, UpdateSalesControl } from "../schema";
-import { Db, DispatchItemPackingStatus, SalesDispatchStatus } from "../types";
+import type { DeletePackingSchema, UpdateSalesControl } from "../schema";
+import type {
+	Db,
+	DispatchItemPackingStatus,
+	SalesDispatchStatus,
+} from "../types";
 import {
-	submitNonProductionsAction,
-	submitAssignmentsAction,
+	createSalesAssignmentAction,
+	type CreateSalesAssignmentProps,
 	packDispatchItemsAction,
 	resetSalesAction,
-	createSalesAssignmentAction,
-	CreateSalesAssignmentProps,
+	submitAssignmentsAction,
+	submitNonProductionsAction,
 } from "./actions";
 import { getSaleInformation } from "./get-sale-information";
-import { noteTag, saveNote, SaveNoteSchema } from "@gnd/utils/note";
+import { noteTag, saveNote, type SaveNoteSchema } from "@gnd/utils/note";
 import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
 import { hasQty } from "@gnd/utils/sales";
-import { RenturnTypeAsync } from "@gnd/utils";
+import type { RenturnTypeAsync } from "@gnd/utils";
+import { autoReviewSalesPaymentsForOrderAction } from "../payment-system/application/payment-review";
+import { getSalesSetting } from "./settings";
+
+async function getPaymentReviewSettings(db: Db) {
+	const setting = await getSalesSetting(db);
+	return setting.data?.paymentReview ?? null;
+}
+
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
 	const submitArgs = data.submitAll;
+	const paymentReviewSettings = await getPaymentReviewSettings(db);
 	const info = await getSaleInformation(db, {
 		salesId: data.meta.salesId,
 		assignedToId: submitArgs?.assignedToId ?? undefined,
@@ -29,6 +42,13 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
 				...submitArgs,
 			});
 			await resetSalesAction(tx as any, data.meta.salesId!);
+			await autoReviewSalesPaymentsForOrderAction(tx as any, {
+				salesId: data.meta.salesId!,
+				action: "production",
+				settings: paymentReviewSettings,
+				reviewedById: data.meta.authorId,
+				reviewNote: "Auto-reviewed after production completion.",
+			});
 			return resp;
 		},
 		{
@@ -39,6 +59,7 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
 }
 export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
 	const payload = data.createAssignments;
+	const paymentReviewSettings = await getPaymentReviewSettings(db);
 	const info = await getSaleInformation(db, {
 		salesId: data.meta.salesId,
 	});
@@ -87,6 +108,13 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
 				updateStats: false,
 			});
 			await resetSalesAction(tx as any, data.meta.salesId);
+			await autoReviewSalesPaymentsForOrderAction(tx as any, {
+				salesId: data.meta.salesId,
+				action: "production",
+				settings: paymentReviewSettings,
+				reviewedById: data.meta.authorId,
+				reviewNote: "Auto-reviewed after production assignment.",
+			});
 		},
 		{
 			maxWait: 30 * 1000,
@@ -184,6 +212,7 @@ export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
 }
 export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 	const task = data.submitDispatch!;
+	const paymentReviewSettings = await getPaymentReviewSettings(db);
 	const attachmentTags = (task?.attachments ?? [])
 		.filter((a) => a.pathname)
 		.map((a) => noteTag("attachment", a.pathname));
@@ -201,6 +230,13 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 			// await resetSalesTask(tx as any, data.meta.salesId);
 			const salesId = data.meta.salesId;
 			await resetSalesAction(tx as any, salesId);
+			await autoReviewSalesPaymentsForOrderAction(tx as any, {
+				salesId,
+				action: "fulfillment",
+				settings: paymentReviewSettings,
+				reviewedById: data.meta.authorId,
+				reviewNote: "Auto-reviewed after fulfillment completion.",
+			});
 			const note: SaveNoteSchema = {
 				headline: data.meta.authorName,
 				subject: `Sales Dispatch Completed`,
@@ -211,10 +247,7 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 					noteTag("dispatchRecipient", task.receivedBy),
 					noteTag("salesId", data.meta.salesId),
 					noteTag("deliveryId", task.dispatchId),
-					noteTag(
-						"type",
-						(task.noteType || "dispatch") as NoteTagTypes,
-					),
+					noteTag("type", (task.noteType || "dispatch") as NoteTagTypes),
 					...attachmentTags,
 				],
 			};
