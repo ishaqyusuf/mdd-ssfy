@@ -768,6 +768,12 @@ export async function getSalesOrderFilters(
         value: status,
       })),
     ),
+    optionFilter<T>("paymentReview", "Payment Review", [
+      {
+        label: "Needs review",
+        value: "needs_review",
+      },
+    ]),
     optionFilter<T>(
       "production",
       "Production",

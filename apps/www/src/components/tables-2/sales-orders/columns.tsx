@@ -16,8 +16,8 @@ import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
+import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useSortParams } from "@/hooks/use-sort-params";
 import { formatCurrency } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -357,7 +357,7 @@ const invoiceTotalColumn: Column = {
 	meta: {
 		skeleton: { type: "text", width: "w-16" },
 		headerLabel: "Invoice",
-		sortField: "latestPaymentAt",
+		sortField: "grandTotal",
 		defaultSortDirection: "desc",
 		className: sizeClass(sizes.sm, "text-right"),
 	},
@@ -664,7 +664,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const overviewQuery = useSalesOverviewQuery();
-	const { params } = useSortParams();
+	const { filters } = useSalesOrdersV2FilterParams();
 	const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
 		useSalesInventoryConfiguratorPrompt();
 	const [paymentLinkOpen, setPaymentLinkOpen] = useState(false);
@@ -720,8 +720,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 			},
 		}),
 	);
-	const [sortColumn] = params.sort?.[0]?.split(".") ?? [];
-	const isPaymentReviewMode = sortColumn === "latestPaymentAt";
+	const isPaymentReviewMode = filters.paymentReview === "needs_review";
 
 	return (
 		<>
@@ -849,7 +848,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 						disabled={!item.latestPaymentReview || markPaymentReviewed.isPending}
 						size="sm"
 						type="button"
-						variant="secondary"
+						variant="default"
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
@@ -859,7 +858,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 							});
 						}}
 					>
-						Reviewed
+						Review
 					</Button>
 				) : null}
 			</div>

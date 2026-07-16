@@ -33,7 +33,7 @@
   - reuses established sales filtering semantics through an internal legacy-query adapter
   - returns a slimmer row payload focused on list presentation instead of the legacy table shape
   - honors the existing pagination `bin` input for deleted-order table views
-  - treats primary sort `latestPaymentAt` as the clean-payment review queue: only orders with a successful latest `SalesPayments.reviewStatus = "needs_review"` payment are returned, ordered by most recently received payment
+  - treats `paymentReview=needs_review` as the clean-payment review queue: only orders with successful `SalesPayments.reviewStatus = "needs_review"` payments are returned, grouped once per order, ordered by most recently received payment by default, and still respecting explicit saved/user column sorts
 - `sales.getOrdersSummary`
   - returns page-level summary metrics for:
     - total orders
@@ -105,11 +105,11 @@
 - Sales control tasks launched from `SalesMenu.MarkAs` register serializable task-monitor intents for production completion and fulfillment. The global bottom-right task monitor now handles those intents on Trigger completion and invalidates the sales list, sales summary, production overview, and sale overview queries so status changes refresh even after the dropdown unmounts.
 - Since the task monitor owns Mark As progress/completion feedback, `SalesMenu.MarkAs` suppresses duplicate start/completion toasts. Startup failures that happen before a task can be monitored still surface as destructive toast errors.
 - Filtered/selected Excel report export is restored on the current Sales Orders header. The report button stays hidden for the default unfiltered/unselected page, appears when Sales Orders filters are active or table rows are selected, refetches through the current `sales.getOrders` contract with `size: 999`, uses selected numeric `salesIds` resolved from UUID-keyed table rows, and generates a client-side `.xlsx` workbook with linked order numbers, money formatting, frozen header, column widths, and Excel autofilter.
-- The `Invoice` column sort now means "recently received clean payment" rather than invoice amount. Its first click applies `sort=latestPaymentAt.desc`; the queue shows only orders whose latest successful payment still needs review.
-- Saved filter tabs are enabled on `/sales-book/orders` through the shared `pageTabs` surface. Saving now preserves `sort`, so the `Invoice` column queue can be saved as a reusable tab such as `Recent invoices`; count badges use the same distinct-order `SalesPayments.reviewStatus = "needs_review"` grouping as the table when `sort=latestPaymentAt.*`. The shared filter row renders tabs before the search input, prepends an `All` tab when saved tabs exist, keeps the save `+` action inside the tab group, and exposes a single Edit control for managing saved tabs. The visible tab row does not show a General/Public badge; visibility is managed inside the edit dialog.
+- The `Invoice` column sorts invoice amount through `grandTotal`; it no longer opens the clean-payment review queue.
+- Saved filter tabs are enabled on `/sales-book/orders` through the shared `pageTabs` surface. Saving preserves active filters and `sort`, so the explicit `Payment Review = Needs review` filter can be saved as a reusable tab such as `Payment Review`; count badges use the same distinct-order `SalesPayments.reviewStatus = "needs_review"` grouping as the table when `paymentReview=needs_review`. The shared filter row renders tabs before the search input, prepends an `All` tab when saved tabs exist, keeps the save `+` action inside the tab group, and exposes a single Edit control for managing saved tabs. The visible tab row does not show a General/Public badge; visibility is managed inside the edit dialog.
 - Clean payments carry `origin = "online" | "office"` and `reviewStatus = "needs_review" | "reviewed"`. Payment-link checkout payments resolve to `online`; staff-entered payment methods resolve to `office`.
-- When the payment review queue is active, Super Admin users see an inline `Payment Review Settings` bar above the orders table. It exposes auto-review toggles for Productions, Fulfillment, and Inbound plus guidance that leaving all actions unchecked means each order payment is reviewed manually. Defaults remain off so payments require manual review until the business intentionally enables automation.
-- In payment review mode (`sort=latestPaymentAt.*`), row actions collapse to the more menu plus a direct `Reviewed` button. The batch bottom bar's `Mark as` menu also includes a `Reviewed` action that manually reviews selected order payments.
+- When the payment review queue is active through `paymentReview=needs_review`, Super Admin users see an inline `Payment Review Settings` bar above the orders table. It exposes auto-review toggles for Productions, Fulfillment, and Inbound plus guidance that leaving all actions unchecked means each order payment is reviewed manually. Defaults remain off so payments require manual review until the business intentionally enables automation.
+- In payment review mode (`paymentReview=needs_review`), row actions collapse to the more menu plus a direct primary `Review` button. The batch bottom bar's `Mark as` menu also includes a `Review` action that manually reviews selected order payments.
 - Production assignment/completion, fulfillment completion, and inbound creation call the shared auto-review helper; only actions enabled in settings mark matching clean payments reviewed.
 
 ## Current Table Shape
@@ -169,6 +169,20 @@
 
 ## Validation
 
+- 2026-07-16 saved-tab edit dialog crash fix:
+  - Fixed a maximum-update-depth crash when opening the page-tabs Edit dialog by replacing the render-created default tab array with a stable empty tab snapshot before syncing local dialog state.
+  - Updated the root Next catalog and the WWW Next lint config from `16.2.9` to latest verified `16.2.10`, then refreshed `bun.lock`.
+  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false apps/www/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/www/src/components/page-tabs/page-tabs.tsx apps/www/package.json package.json` passed.
+  - Filtered `@gnd/www` typecheck scan reported no page-tabs/package diagnostics.
+- 2026-07-16 payment review explicit filter:
+  - Replaced the Invoice-column queue trigger with explicit `paymentReview=needs_review` filtering.
+  - Invoice column sorting now maps to `grandTotal` again.
+  - Payment Review defaults to latest clean payment ordering when no sort is selected, while explicit user sorts such as invoice amount are still applied inside the filtered queue and can be saved with tabs.
+  - Saved-tab counts for `/sales-book/orders` default to `showing="all sales"` and use the distinct `SalesPayments.groupBy(orderId)` clean-payment grouping only when `paymentReview=needs_review`.
+  - `bun test apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/page-tabs.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false` passed for the touched files excluding `apps/api/src/db/queries/filters.ts`, which still carries existing unrelated lint debt.
+  - Filtered `@gnd/api` and `@gnd/www` typecheck scans reported no diagnostics for the touched files.
 - 2026-07-16 batch PDF validation:
   - Browser-selected five visible orders on `/sales-book/orders`: `08670LRG`, `08669PC`, `08708PC`, `08706DB`, and `08704PC`.
   - Batch `Print > PDF > Order & Packing` produced `~/Downloads/Sales_Print_10_.pdf`.
@@ -196,8 +210,8 @@
   - Added an automatic inline `Payment Review Settings` bar above the Sales Orders table when `sort=latestPaymentAt.*` is active and the user can manage payment review settings.
   - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx` passed.
 - 2026-07-15 payment review actions:
-  - Payment review mode row actions now hide the direct edit/open icons and show only the more menu plus a direct `Reviewed` button.
-  - The batch bottom bar `Mark as` menu includes `Reviewed` only while `sort=latestPaymentAt.*` is active.
+  - Payment review mode row actions now hide the direct edit/open icons and show only the more menu plus a direct primary `Review` button.
+  - The batch bottom bar `Mark as` menu includes `Review` only while `sort=latestPaymentAt.*` is active.
   - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-menu.tsx apps/www/src/components/tables-2/sales-orders/bottom-bar.tsx apps/www/src/components/tables-2/sales-orders/columns.tsx` passed.
 - 2026-07-10 filtered Excel export implementation:
   - `bun test apps/www/src/components/sales-orders-export.test.ts` passed.

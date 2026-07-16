@@ -51,7 +51,8 @@ describe("sales orders default query contract", () => {
 				priority: "HIGH",
 				orderNo: "08499PC",
 				bin: true,
-				sort: ["latestPaymentAt.desc"],
+				paymentReview: "needs_review",
+				sort: ["grandTotal.desc"],
 			}),
 		).toEqual({
 			q: "08499",
@@ -60,7 +61,8 @@ describe("sales orders default query contract", () => {
 			priority: "HIGH",
 			orderNo: "08499PC",
 			bin: true,
-			sort: ["latestPaymentAt.desc"],
+			paymentReview: "needs_review",
+			sort: ["grandTotal.desc"],
 		});
 	});
 
@@ -189,7 +191,7 @@ describe("sales orders default query contract", () => {
 		});
 	});
 
-	it("counts the invoice review queue using distinct latest-payment groups", async () => {
+	it("counts the payment review queue using distinct latest-payment groups", async () => {
 		const groupByCalls: Array<{ by: string[]; where: unknown }> = [];
 		const ctx = {
 			userId: 7,
@@ -210,7 +212,7 @@ describe("sales orders default query contract", () => {
 
 		const count = await getOrdersCount(ctx, {
 			showing: "all sales",
-			sort: ["latestPaymentAt.desc"],
+			paymentReview: "needs_review",
 		});
 
 		expect(count).toBe(2);

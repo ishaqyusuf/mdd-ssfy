@@ -120,6 +120,7 @@ export const salesQueryParamsSchema = z
 		priority: salesPrioritySchema.optional().nullable(),
 		has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
+		paymentReview: z.enum(["needs_review"]).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
 		showing: z.enum(["all sales"]).optional().nullable(),
 	})

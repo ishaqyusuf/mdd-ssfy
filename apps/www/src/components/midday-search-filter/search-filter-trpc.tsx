@@ -100,7 +100,6 @@ export function SearchFilterTRPC({
     const {
         isOpen,
         setIsOpen,
-        setIsFocused,
         filters,
         setFilters,
         clearAll,
@@ -242,8 +241,6 @@ export function SearchFilterTRPC({
                         className="w-full pl-9 pr-24 lg:w-[350px] lg:pr-10"
                         value={prompt}
                         onChange={handleSearch}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setIsFocused(false)}
                         autoComplete="off"
                         autoCapitalize="none"
                         autoCorrect="off"
@@ -272,7 +269,6 @@ export function SearchFilterTRPC({
                 </form>
                 {afterSearch}
                 <FilterList
-                    loading={loading}
                     onRemove={(obj) => {
                         setFilters(obj);
 
@@ -438,7 +434,7 @@ const SORT_FIELD_LABELS: Record<string, string> = {
     amountDue: "Balance",
     createdAt: "Date",
     date: "Date",
-    latestPaymentAt: "Recent invoices",
+    latestPaymentAt: "Latest payment",
     lotBlock: "Lot / block",
     orderId: "Order",
     project: "Project",

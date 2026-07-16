@@ -31,7 +31,7 @@ export const {
 			[filters, searchKey],
 		);
 
-		const shouldFetch = isOpen || isFocused || hasFilter;
+		const shouldFetch = isOpen || hasFilter;
 
 		function normalizeFilterValue(parser, value) {
 			if (value === null || value === undefined) return value;

@@ -51,7 +51,7 @@
     "dot-object": "^2.1.5",
     "downshift": "^8.5.0",
     "eslint": "8.57.0",
-    "eslint-config-next": "^16.2.9",
+    "eslint-config-next": "^16.2.10",
     "framer-motion": "^12.23.24",
     "libphonenumber-js": "^1.12.24",
     "little-date": "^1.0.0",

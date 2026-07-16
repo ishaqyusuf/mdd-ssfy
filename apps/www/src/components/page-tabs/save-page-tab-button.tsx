@@ -140,7 +140,7 @@ export function SavePageTabButton({
 							<Label htmlFor="page-tab-default">Set as default</Label>
 						</div>
 						{isSuperAdmin ? (
-							<div className="flex items-center gap-2 text-sm">
+							<div className="flex items-start gap-2 text-sm">
 								<Checkbox
 									id="page-tab-general"
 									checked={generalTab}
@@ -148,7 +148,12 @@ export function SavePageTabButton({
 										setGeneralTab(Boolean(checked))
 									}
 								/>
-								<Label htmlFor="page-tab-general">General tab</Label>
+								<div className="grid gap-0.5">
+									<Label htmlFor="page-tab-general">General tab</Label>
+									<p className="text-xs text-muted-foreground">
+										Visible to all other users
+									</p>
+								</div>
 							</div>
 						) : null}
 					</div>
@@ -202,7 +207,7 @@ const SORT_FIELD_LABELS: Record<string, string> = {
 	amountDue: "Balance",
 	createdAt: "Date",
 	date: "Date",
-	latestPaymentAt: "Recent invoices",
+	latestPaymentAt: "Latest payment",
 	lotBlock: "Lot / block",
 	orderId: "Order",
 	project: "Project",

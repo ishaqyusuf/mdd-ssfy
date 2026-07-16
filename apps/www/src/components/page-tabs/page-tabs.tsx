@@ -202,7 +202,7 @@ export function PageTabs({
 						type="button"
 						variant={portal ? "outline" : "ghost"}
 					>
-						<Icons.Pencil data-icon="inline-start" />
+						<Icons.Edit data-icon="inline-start" />
 						<span className="hidden 2xl:inline">Edit</span>
 					</Button>
 				) : null}

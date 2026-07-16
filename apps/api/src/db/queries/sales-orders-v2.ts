@@ -39,6 +39,7 @@ import {
 
 const ordersV2InvoiceStatus = ["paid", "outstanding"] as const;
 const PAYMENT_REVIEW_SORT_FIELD = "latestPaymentAt";
+const paymentReviewFilterOptions = ["needs_review"] as const;
 
 const ordersV2FilterShape = {
   q: z.string().optional().nullable(),
@@ -53,6 +54,7 @@ const ordersV2FilterShape = {
   orderNo: z.string().optional().nullable(),
   salesNo: z.string().optional().nullable(),
   sort: z.array(z.string()).optional().nullable(),
+  paymentReview: z.enum(paymentReviewFilterOptions).optional().nullable(),
   invoiceStatus: z.enum(ordersV2InvoiceStatus).optional().nullable(),
   invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
   production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
@@ -113,6 +115,7 @@ function toLegacyOrdersQuery(
       (query.invoiceStatus === "outstanding"
         ? "pending"
         : (query.invoiceStatus ?? undefined)),
+    paymentReview: query.paymentReview,
     production: query.production,
     "production.status": query["production.status"],
     "production.assignment": query["production.assignment"],
@@ -395,8 +398,12 @@ export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
   const baseWhere = whereSales(legacyQuery);
   const { sort, sortOrder } = parsePrimarySort(query);
 
-  if (sort === PAYMENT_REVIEW_SORT_FIELD) {
-    const direction: Prisma.SortOrder = sortOrder === "asc" ? "asc" : "desc";
+  if (query.paymentReview === "needs_review") {
+    const hasExplicitSort = Boolean(query.sort?.[0]);
+    const usePaymentReceivedSort =
+      !hasExplicitSort || sort === PAYMENT_REVIEW_SORT_FIELD;
+    const direction: Prisma.SortOrder =
+      sort === PAYMENT_REVIEW_SORT_FIELD && sortOrder === "asc" ? "asc" : "desc";
     const where = baseWhere ?? {};
     if (query.bin) {
       where.deletedAt = {
@@ -415,6 +422,46 @@ export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
       },
       order: where,
     } satisfies Prisma.SalesPaymentsWhereInput;
+
+    if (!usePaymentReceivedSort) {
+      const groups = await db.salesPayments.groupBy({
+        by: ["orderId"],
+        where: paymentWhere,
+      });
+      const orderIds = groups.map((group) => group.orderId);
+      const rows = orderIds.length
+        ? await db.salesOrders.findMany({
+            where: {
+              AND: [
+                where,
+                {
+                  id: {
+                    in: orderIds,
+                  },
+                },
+              ],
+            },
+            orderBy: ordersV2Sort(sort, sortOrder),
+            skip,
+            take,
+            include: SalesListInclude,
+          })
+        : [];
+      const data = await normalizeOrders(ctx, rows);
+      const cursor = skip + take;
+
+      return {
+        meta: {
+          count: groups.length,
+          size: take,
+          cursor: cursor < groups.length ? String(cursor) : null,
+        },
+        data,
+        filter: process.env.NODE_ENV === "production" ? undefined : where,
+        query: process.env.NODE_ENV === "production" ? undefined : query,
+      };
+    }
+
     const [groups, totalGroups] = await Promise.all([
       db.salesPayments.groupBy({
         by: ["orderId"],
@@ -576,9 +623,8 @@ export async function getOrdersCount(ctx: TRPCContext, query: GetOrdersSchema) {
     query,
     whereSales(legacyQuery) ?? {},
   );
-  const { sort } = parsePrimarySort(query);
 
-  if (sort === PAYMENT_REVIEW_SORT_FIELD) {
+  if (query.paymentReview === "needs_review") {
     const where = { ...baseWhere };
 
     if (query.bin) {

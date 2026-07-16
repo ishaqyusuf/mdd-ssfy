@@ -72,6 +72,7 @@ type OrderInboundShipment =
 type InventoryStockFilter = SalesInventorySegment;
 type InventoryProductKind = "inventory" | "component";
 type InventoryStockMode = "monitored" | "unmonitored";
+type InventoryNeedState = "needed" | "not_needed";
 type InboundShipmentStatus =
 	| "pending"
 	| "in_progress"
@@ -215,28 +216,18 @@ function inventoryLineKindTags(row: InventoryLine) {
 		label: string;
 		className: string;
 	}> = [];
-	const componentKind =
-		row.inventoryProductKind === "component" ||
-		row.inventoryCategoryProductKind === "component";
 
 	tags.push(
-		componentKind
+		isStockInventoryLine(row)
 			? {
-					label: "Component",
-					className: "border-zinc-200 bg-zinc-50 text-zinc-600",
+					label: "Needed",
+					className: "border-emerald-200 bg-emerald-50 text-emerald-700",
 				}
 			: {
-					label: "Inventory",
-					className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+					label: "Not needed",
+					className: "border-zinc-200 bg-zinc-50 text-zinc-600",
 				},
 	);
-
-	if (row.trackingPolicy !== "tracked") {
-		tags.push({
-			label: "Untracked",
-			className: "border-slate-200 bg-slate-50 text-slate-600",
-		});
-	}
 
 	return tags;
 }
@@ -847,7 +838,7 @@ function InventoryActionBar({
 		}
 		if (!selectedInboundRows.length) {
 			toast({
-				title: "Select at least one missing stock row",
+				title: "Select at least one missing needed item",
 				variant: "destructive",
 			});
 			return;
@@ -880,8 +871,8 @@ function InventoryActionBar({
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 				<p className="text-xs text-muted-foreground">
 					{pendingQty > 0
-						? "Pending stock quantities need inbound or inventory policy review."
-						: "All stock rows are covered."}
+						? "Some needed items require inbound or inventory review."
+						: "All needed items are covered."}
 				</p>
 				<div className="flex flex-wrap gap-2">
 					<Button
@@ -1045,7 +1036,7 @@ function InventoryActionBar({
 					</div>
 					<div className="flex flex-wrap items-center justify-between gap-2">
 						<div className="text-xs text-muted-foreground">
-							{formatQty(selectedInboundRows.length)} stock row
+							{formatQty(selectedInboundRows.length)} needed item
 							{selectedInboundRows.length === 1 ? "" : "s"} selected
 							{selectedDemandIds.length
 								? ` • ${formatQty(selectedDemandIds.length)} existing demand${
@@ -1116,7 +1107,7 @@ function InventoryMergedTable({
 				</ItemGroup>
 			) : (
 				<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-					No inventory components are mapped to this order.
+					No items are in this section yet.
 				</div>
 			)}
 		</div>
@@ -1150,7 +1141,7 @@ function InventoryStockFilterGroup({
 				className="h-8 gap-2 rounded-sm px-3"
 				onClick={() => onChange("stock")}
 			>
-				Stock
+				Needs
 				<Badge
 					variant={value === "stock" ? "secondary" : "outline"}
 					className="h-5 px-1.5 text-[10px]"
@@ -1182,7 +1173,7 @@ function InventoryStockFilterGroup({
 				className="h-8 gap-2 rounded-sm px-3"
 				onClick={() => onChange("non_stock")}
 			>
-				Non Stock
+				Not Needed
 				<Badge
 					variant={value === "non_stock" ? "secondary" : "outline"}
 					className="h-5 px-1.5 text-[10px]"
@@ -1626,7 +1617,7 @@ function InventoryLineRow({
 						className={requirementStatusClassName(row)}
 					/>
 					<InventoryMetric label="QTY" value={formatQty(row.qtyRequired)} />
-					<InventoryMetric label="STOCK" value={stockCell} />
+					<InventoryMetric label="ON HAND" value={stockCell} />
 					<InventoryMetric
 						label="ALLOCATED"
 						value={formatQty(row.qtyAllocated)}
@@ -1804,10 +1795,13 @@ function InventoryLineActions({
 	const categoryProductKind = normalizedProductKind(
 		row.inventoryCategoryProductKind,
 	);
-	const componentProductKind = normalizedProductKind(row.inventoryProductKind);
 	const categoryStockMode = normalizedStockMode(
 		row.inventoryCategoryStockMode ?? row.inventoryStockMode,
 	);
+	const categoryNeedState: InventoryNeedState =
+		categoryProductKind === "inventory" && categoryStockMode === "monitored"
+			? "needed"
+			: "not_needed";
 	const categoryStepLabel = formatCategoryStepLabel(row.stepName);
 	const canConfigureTracking = capabilities.canConfigureTracking && !isReadOnly;
 	const canAllocateFromStock =
@@ -1827,18 +1821,7 @@ function InventoryLineActions({
 			onSuccess: async () => {
 				await refreshOverview();
 				toast({
-					title: "Category kind updated",
-					variant: "success",
-				});
-			},
-		}),
-	);
-	const updateComponentKind = useMutation(
-		trpc.inventories.updateInventoryProductKind.mutationOptions({
-			onSuccess: async () => {
-				await refreshOverview();
-				toast({
-					title: "Component kind updated",
+					title: "Need setting updated",
 					variant: "success",
 				});
 			},
@@ -1875,7 +1858,7 @@ function InventoryLineActions({
 			onSuccess: async (data) => {
 				await refreshOverview();
 				toast({
-					title: "Stock setting updated",
+					title: "Need setting updated",
 					variant: "success",
 				});
 				if (data.becameTracked) {
@@ -1913,48 +1896,53 @@ function InventoryLineActions({
 	);
 	const isSaving =
 		updateCategoryKind.isPending ||
-		updateComponentKind.isPending ||
 		updateCategoryStockMode.isPending ||
 		previewTrackingRepair.isPending ||
 		approveAllocations.isPending;
-	const setCategoryKind = (productKind: InventoryProductKind) => {
+	const setCategoryNeedState = (needState: InventoryNeedState) => {
 		if (
 			!canConfigureTracking ||
 			!row.inventoryCategoryId ||
-			productKind === categoryProductKind
+			needState === categoryNeedState
 		) {
 			return;
 		}
-		updateCategoryKind.mutate({
-			id: row.inventoryCategoryId,
-			productKind,
-		});
-	};
-	const setComponentKind = (productKind: InventoryProductKind) => {
-		if (
-			!canConfigureTracking ||
-			!row.inventoryId ||
-			productKind === componentProductKind
-		) {
+
+		if (needState === "not_needed") {
+			updateCategoryKind.mutate({
+				id: row.inventoryCategoryId,
+				productKind: "component",
+			});
 			return;
 		}
-		updateComponentKind.mutate({
-			id: row.inventoryId,
-			productKind,
-		});
-	};
-	const setCategoryStockMode = (stockMode: InventoryStockMode) => {
-		if (
-			!canConfigureTracking ||
-			!row.inventoryCategoryId ||
-			stockMode === categoryStockMode
-		) {
+
+		if (categoryProductKind !== "inventory") {
+			updateCategoryKind.mutate(
+				{
+					id: row.inventoryCategoryId,
+					productKind: "inventory",
+				},
+				{
+					onSuccess: () => {
+						if (categoryStockMode === "monitored" || !row.inventoryCategoryId) {
+							return;
+						}
+						updateCategoryStockMode.mutate({
+							id: row.inventoryCategoryId,
+							stockMode: "monitored",
+						});
+					},
+				},
+			);
 			return;
 		}
-		updateCategoryStockMode.mutate({
-			id: row.inventoryCategoryId,
-			stockMode,
-		});
+
+		if (categoryStockMode !== "monitored") {
+			updateCategoryStockMode.mutate({
+				id: row.inventoryCategoryId,
+				stockMode: "monitored",
+			});
+		}
 	};
 
 	return (
@@ -1973,14 +1961,12 @@ function InventoryLineActions({
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="w-64">
 					<DropdownMenuLabel>
-						<div className="truncate text-xs font-semibold uppercase">
-							{row.componentName}
+						<div className="truncate text-xs font-semibold">
+							{categoryStepLabel || "Category"}
 						</div>
-						{categoryStepLabel ? (
-							<div className="mt-0.5 text-[11px] font-normal text-muted-foreground">
-								{categoryStepLabel}
-							</div>
-						) : null}
+						<div className="mt-0.5 whitespace-normal text-[11px] font-normal leading-relaxed text-muted-foreground">
+							Applies to every item in this category.
+						</div>
 					</DropdownMenuLabel>
 					{isReadOnly ? (
 						<>
@@ -1997,80 +1983,27 @@ function InventoryLineActions({
 						</>
 					) : null}
 					<DropdownMenuSeparator />
-					<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-						Category Kind
-					</DropdownMenuLabel>
 					<DropdownMenuRadioGroup
-						value={categoryProductKind}
+						value={categoryNeedState}
 						onValueChange={(value) =>
-							setCategoryKind(value as InventoryProductKind)
+							setCategoryNeedState(value as InventoryNeedState)
 						}
 					>
 						<DropdownMenuRadioItem
-							value="inventory"
+							value="needed"
 							disabled={
 								!canConfigureTracking || !row.inventoryCategoryId || isSaving
 							}
 						>
-							Inventory
+							Needed
 						</DropdownMenuRadioItem>
 						<DropdownMenuRadioItem
-							value="component"
+							value="not_needed"
 							disabled={
 								!canConfigureTracking || !row.inventoryCategoryId || isSaving
 							}
 						>
-							Component
-						</DropdownMenuRadioItem>
-					</DropdownMenuRadioGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-						Component kind
-					</DropdownMenuLabel>
-					<DropdownMenuRadioGroup
-						value={componentProductKind}
-						onValueChange={(value) =>
-							setComponentKind(value as InventoryProductKind)
-						}
-					>
-						<DropdownMenuRadioItem
-							value="inventory"
-							disabled={!canConfigureTracking || !row.inventoryId || isSaving}
-						>
-							Inventory
-						</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem
-							value="component"
-							disabled={!canConfigureTracking || !row.inventoryId || isSaving}
-						>
-							Component
-						</DropdownMenuRadioItem>
-					</DropdownMenuRadioGroup>
-					<DropdownMenuSeparator />
-					<DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-						Stock tracking
-					</DropdownMenuLabel>
-					<DropdownMenuRadioGroup
-						value={categoryStockMode}
-						onValueChange={(value) =>
-							setCategoryStockMode(value as InventoryStockMode)
-						}
-					>
-						<DropdownMenuRadioItem
-							value="monitored"
-							disabled={
-								!canConfigureTracking || !row.inventoryCategoryId || isSaving
-							}
-						>
-							Track
-						</DropdownMenuRadioItem>
-						<DropdownMenuRadioItem
-							value="unmonitored"
-							disabled={
-								!canConfigureTracking || !row.inventoryCategoryId || isSaving
-							}
-						>
-							Do not track
+							Not needed
 						</DropdownMenuRadioItem>
 					</DropdownMenuRadioGroup>
 					{canAllocateFromStock ? (

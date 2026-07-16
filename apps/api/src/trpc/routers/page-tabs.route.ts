@@ -606,7 +606,13 @@ async function getPageTabCount(
 	try {
 		switch (normalizePage(page)) {
 			case "/sales-book/orders":
-				return getOrdersCount(ctx, getOrdersSchema.parse(input));
+				return getOrdersCount(
+					ctx,
+					getOrdersSchema.parse({
+						...input,
+						showing: input.showing ?? "all sales",
+					}),
+				);
 			case "/community/unit-invoices":
 				return getUnitInvoicesCount(ctx, getUnitInvoicesSchema.parse(input));
 			default:

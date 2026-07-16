@@ -1261,7 +1261,7 @@ function SalesMenuMarkAs({
 						void markPaymentReviewed();
 					}}
 				>
-					Reviewed
+					Review
 				</SalesMenuItem>
 			) : null}
 		</>

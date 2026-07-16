@@ -14,7 +14,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - `pageTabs.reorder({ page, ids })` persists the current user's drag order through `PageTabIndex.tabIndex`, including public tabs the user can see.
   - `pageTabs.delete({ id })` soft-deletes a manageable tab and clears tab-index/default rows for that tab.
   - Returned tab rows include `visibility`, `canManage`, `active`, optional `count`, per-user `default`, `index`, and `indexId`.
-  - Count badges are registry-backed per page. `/sales-book/orders` uses the Sales Orders filter contract and the same distinct clean-payment grouping for `sort=latestPaymentAt.*`; `/community/unit-invoices` uses `whereUnitInvoices`. Pages without a count adapter still render tabs without a count.
+  - Count badges are registry-backed per page. `/sales-book/orders` uses the Sales Orders filter contract, defaults saved-tab counts to `showing="all sales"` like the page, and uses the same distinct clean-payment grouping for `paymentReview=needs_review`; `/community/unit-invoices` uses `whereUnitInvoices`. Pages without a count adapter still render tabs without a count.
+- Sales Orders filter contract:
+  - `sales.getOrders`, `sales.getOrdersSummary`, and `filters.salesOrders` accept `paymentReview=needs_review` as an explicit filter for the clean-payment review queue.
+  - The `Invoice` column sort is invoice amount (`grandTotal`) again; payment review filtering is not inferred from `sort=latestPaymentAt.*`.
+  - Payment Review defaults to latest clean-payment ordering when no explicit sort is supplied; explicit sorts remain part of the filtered query and are saveable in page tabs.
 - Web bug reporting contracts live in `apps/api/src/schemas/bug-reports.ts`:
   - `BUG_REPORT_STATUSES = NEW | IN_REVIEW | IN_PROGRESS | NEEDS_INFO | FIXED | CLOSED`
   - `BUG_REPORT_MAX_DURATION_MS = 90_000`

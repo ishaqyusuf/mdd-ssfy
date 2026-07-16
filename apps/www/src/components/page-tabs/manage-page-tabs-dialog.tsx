@@ -54,6 +54,12 @@ type ManagedPageTab = PageTabItem & {
 	id: number;
 };
 
+const EMPTY_PAGE_TABS: PageTabItem[] = [];
+
+function titleDraftsFromTabs(tabs: ManagedPageTab[]) {
+	return Object.fromEntries(tabs.map((tab) => [tab.id, tab.title]));
+}
+
 export function ManagePageTabsDialog({
 	open,
 	onOpenChange,
@@ -63,13 +69,14 @@ export function ManagePageTabsDialog({
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
-	const { data: tabs = [], isLoading } = useQuery({
+	const { data, isLoading } = useQuery({
 		...trpc.pageTabs.list.queryOptions({
 			page,
 			includeInactive: true,
 		}),
 		enabled: open,
 	});
+	const tabs = data ?? EMPTY_PAGE_TABS;
 	const managedTabs = useMemo<ManagedPageTab[]>(
 		() =>
 			tabs.flatMap((tab) => {
@@ -92,9 +99,7 @@ export function ManagePageTabsDialog({
 		if (!open) return;
 
 		setOrderedTabs(managedTabs);
-		setTitleDrafts(
-			Object.fromEntries(managedTabs.map((tab) => [tab.id, tab.title])),
-		);
+		setTitleDrafts(titleDraftsFromTabs(managedTabs));
 	}, [managedTabs, open]);
 
 	const invalidate = async () => {

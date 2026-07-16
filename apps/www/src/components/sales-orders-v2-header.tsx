@@ -1,12 +1,14 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { salesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
+import {
+	salesOrdersV2FilterParams,
+	useSalesOrdersV2FilterParams,
+} from "@/hooks/use-sales-orders-v2-filter-params";
 import {
 	SearchFilterProvider,
 	useSearchFilterContext,
 } from "@/hooks/use-search-filter";
-import { useSortParams } from "@/hooks/use-sort-params";
 import { cn } from "@/lib/utils";
 import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
@@ -53,9 +55,8 @@ type PaymentReviewAction = keyof typeof paymentReviewActionLabels;
 export function SalesOrdersPaymentReviewSettings() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const { params } = useSortParams();
-	const [sortColumn] = params.sort?.[0]?.split(".") ?? [];
-	const isPaymentReviewQueueActive = sortColumn === "latestPaymentAt";
+	const { filters } = useSalesOrdersV2FilterParams();
+	const isPaymentReviewQueueActive = filters.paymentReview === "needs_review";
 	const settingsQuery = useQuery({
 		...trpc.sales.getPaymentReviewSettings.queryOptions(),
 		enabled: isPaymentReviewQueueActive,
