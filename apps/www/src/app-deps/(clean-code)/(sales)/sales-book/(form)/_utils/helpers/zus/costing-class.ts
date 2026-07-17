@@ -343,14 +343,16 @@ export class CostingClass {
                 )
                 .map((a) => a.amount),
         );
-        const taxableBeforeDiscount = sum([
-            estimate.subTotal,
-            estimate.delivery,
-            extraCosts,
-        ]);
+        const taxableBeforeDiscount = Math.max(
+            0,
+            sum([estimate.taxxable, estimate.delivery, extraCosts]),
+        );
         const taxxableDiscount = Math.min(discount, taxableBeforeDiscount);
-        let taxxable = sum([taxableBeforeDiscount, -1 * taxxableDiscount]);
-        estimate.taxxable = taxableBeforeDiscount;
+        const taxxable = Math.max(
+            0,
+            sum([taxableBeforeDiscount, -1 * taxxableDiscount]),
+        );
+        estimate.taxxable = taxxable;
         const taxProfile = this.currentTaxProfile();
         estimate.taxValue = taxProfile
             ? percentageValue(taxxable, taxProfile.percentage)

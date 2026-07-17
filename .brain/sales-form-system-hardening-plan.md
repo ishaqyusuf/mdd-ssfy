@@ -67,6 +67,10 @@ Exit gate:
 - Normalize subtotal presentation to use `pricing.subTotal`.
 - Add unit tests for discount/tax/labor/flat-labor/card-charge interactions.
 
+Completed slice (2026-07-17):
+- `CostingClass.softCalculateTotalPrice()` now preserves the taxable line subtotal accumulated by `calculateTotalPrice()`, adds the existing delivery/eligible extra-cost basis, applies the discount, clamps at zero, and stores that discounted taxable base.
+- Regression coverage proves unchecked service/labor lines are excluded, checked services and products remain taxable, mixed orders tax only eligible lines, oversized discounts clamp taxable subtotal to zero, negative discounts stay consistent across subtotal and tax, and delivery/eligible extra-cost behavior is preserved.
+
 Exit gate:
 - Deterministic parity tests pass for subtotal/tax/grandTotal permutations.
 
