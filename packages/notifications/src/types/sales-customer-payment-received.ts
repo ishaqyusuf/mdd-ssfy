@@ -8,6 +8,18 @@ import {
 export const salesCustomerPaymentReceived: NotificationHandler = {
 	schema: salesCustomerPaymentReceivedSchema,
 	createActivityWithoutContact: true,
+	createDirectEmailContact(data: SalesCustomerPaymentReceivedInput) {
+		return {
+			id: 0,
+			profileId: 0,
+			name: data.customerName,
+			email: data.customerEmail,
+			role: "customer",
+			emailNotification: true,
+			inAppNotification: false,
+			whatsAppNotification: false,
+		};
+	},
 	createActivity(data: SalesCustomerPaymentReceivedInput, author) {
 		const payload: SalesCustomerPaymentReceivedTags = {
 			type: "sales_customer_payment_received",

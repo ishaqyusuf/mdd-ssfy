@@ -12,6 +12,7 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
+import { getPageTabButtonVariant } from "./button-variant";
 import { ManagePageTabsDialog } from "./manage-page-tabs-dialog";
 import {
 	buildPageTabHref,
@@ -157,15 +158,11 @@ export function PageTabs({
 						key={`${tab.id ?? tab.title}-${tab.href}`}
 					>
 						<Button
-							variant="ghost"
+							variant={getPageTabButtonVariant(tab.active)}
 							size="sm"
 							className={cn(
 								portal ? "h-10 rounded-none" : "h-8 rounded-sm px-3",
-								tab.active
-									? portal
-										? "border-b-2 border-blue-600"
-										: "bg-muted text-foreground shadow-sm"
-									: "text-muted-foreground",
+								!tab.active && "text-muted-foreground",
 							)}
 							asChild
 							disabled={tab.active}

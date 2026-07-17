@@ -843,6 +843,9 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
               {
                 phoneNo: inputQ,
               },
+              {
+                address: inputQ,
+              },
             ],
           },
         },
@@ -851,9 +854,26 @@ function searchSales(params): Prisma.SalesOrdersWhereInput | null {
             OR: [
               { name: inputQ },
               { address1: inputQ },
+              { address2: inputQ },
+              { city: inputQ },
+              { state: inputQ },
+              { email: inputQ },
               {
                 phoneNo: inputQ,
               },
+            ],
+          },
+        },
+        {
+          shippingAddress: {
+            OR: [
+              { name: inputQ },
+              { address1: inputQ },
+              { address2: inputQ },
+              { city: inputQ },
+              { state: inputQ },
+              { email: inputQ },
+              { phoneNo: inputQ },
             ],
           },
         },

@@ -7,6 +7,56 @@ export const formatPaymentAmount = (value?: number | string | null) =>
 		currency: "USD",
 	}).format(Number(value || 0));
 
+type PaymentSaleWithId<T extends { id?: number | null }> = T & { id: number };
+
+function indexPaymentSalesById<T extends { id?: number | null }>(sales: T[]) {
+	return new Map(
+		sales.flatMap((sale) =>
+			typeof sale.id === "number"
+				? ([[sale.id, sale as PaymentSaleWithId<T>]] as const)
+				: [],
+		),
+	);
+}
+
+export function getListedPaymentSales<T extends { id?: number | null }>(
+	sales: T[],
+	listedIds: number[],
+): PaymentSaleWithId<T>[] {
+	const salesById = indexPaymentSalesById(sales);
+	const seen = new Set<number>();
+
+	return listedIds.flatMap((id) => {
+		if (seen.has(id)) return [];
+		seen.add(id);
+		const sale = salesById.get(id);
+		return sale ? [sale] : [];
+	});
+}
+
+export function getAvailablePaymentSales<T extends { id?: number | null }>(
+	sales: T[],
+	listedIds: number[],
+): PaymentSaleWithId<T>[] {
+	const listedIdSet = new Set(listedIds);
+	return sales.filter(
+		(sale): sale is PaymentSaleWithId<T> =>
+			typeof sale.id === "number" && !listedIdSet.has(sale.id),
+	);
+}
+
+export function getListedPaymentAmount<
+	T extends {
+		id?: number | null;
+		amountDue?: number | string | null;
+	},
+>(sales: T[], listedIds: number[]) {
+	return getListedPaymentSales(sales, listedIds).reduce(
+		(total, sale) => total + Number(sale.amountDue || 0),
+		0,
+	);
+}
+
 function normalizePaymentMethod(value?: string | null) {
 	if (!value) return null;
 	const normalized = value
@@ -26,7 +76,7 @@ function normalizePaymentMethod(value?: string | null) {
 }
 
 export function resolveDefaultPaymentMethod(
-	sales: { id: number; paymentMethod?: string | null }[],
+	sales: { id?: number | null; paymentMethod?: string | null }[],
 	selectedIds: number[],
 	options?: {
 		recentPaymentMethod?: string | null;
@@ -41,7 +91,7 @@ export function resolveDefaultPaymentMethod(
 		}
 		return normalized;
 	};
-	const selectedSalesById = new Map(sales.map((sale) => [sale.id, sale]));
+	const selectedSalesById = indexPaymentSalesById(sales);
 	const selectedPaymentMethod = selectedIds.length
 		? selectedIds
 				.map((id) => selectedSalesById.get(id)?.paymentMethod)

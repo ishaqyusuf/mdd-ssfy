@@ -5,6 +5,7 @@ import {
 	notificationJobSchema,
 } from "@notifications/schemas";
 import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
+import { getNotificationRecipientOptions } from "./channel-options";
 
 function isSalesDocumentEmailChannel(channel: NotificationJobInput["channel"]) {
 	return (
@@ -132,32 +133,13 @@ export const notification = schemaTask({
 				author,
 			});
 		}
-		const isDirectRecipientEmail =
-			channel === "auth_new_device_login" ||
-			channel === "auth_master_password_login_alert" ||
-			channel === "dealer_magic_login_link" ||
-			channel === "dealer_password_reset" ||
-			channel === "simple_sales_document_email" ||
-			channel === "composed_sales_document_email" ||
-			channel === "customer_statement";
 		const notificationOptions: NotificationOptions = {
 			author: {
 				id: author.id,
 				role: author.role === "customer" ? "customer" : "employee",
 			},
 			testEmailMode: allowTestEmailMode,
-			recipients: isDirectRecipientEmail
-				? undefined
-				: (recipients?.map((recipient) => ({
-						ids: recipient.ids,
-						role: recipient.role,
-					})) ?? undefined),
-			...(isDirectRecipientEmail
-				? {
-						includeChannelSubscribers: false,
-						allowFallbackRecipient: false,
-					}
-				: {}),
+			...getNotificationRecipientOptions(channel, recipients),
 		};
 		const result = await (async () => {
 			try {

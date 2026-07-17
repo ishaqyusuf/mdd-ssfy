@@ -9,6 +9,7 @@ import type { TerminalCheckoutStatus } from "@gnd/square";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
@@ -19,7 +20,6 @@ import { Spinner } from "@gnd/ui/spinner";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
-import { sum } from "@gnd/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import React, {
 	Suspense,
@@ -45,6 +45,9 @@ import {
 	buildPrintRequests,
 	calculatePaymentPlanPreview,
 	formatPaymentAmount,
+	getAvailablePaymentSales,
+	getListedPaymentAmount,
+	getListedPaymentSales,
 	resolveDefaultPaymentMethod,
 } from "./utils";
 
@@ -244,9 +247,9 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			useWallet: false,
 			print: true,
 			printPackingSlip: false,
-			sales: data.pendingSales.map((s) => ({
+			sales: getListedPaymentSales(data.pendingSales, selectedIds).map((s) => ({
 				id: s.id,
-				selected: selectedIds.includes(s.id),
+				selected: true,
 			})),
 			accountNo,
 			paymentMethod,
@@ -264,7 +267,11 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		selectedIdsKey,
 		terminalPaymentsEnabled,
 	]);
-	const { fields: salesFields, update: updateSalesField } = useFieldArray({
+	const {
+		fields: salesFields,
+		append: appendSalesField,
+		remove: removeSalesField,
+	} = useFieldArray({
 		control: form.control,
 		name: "sales",
 		keyName: "fieldId",
@@ -283,6 +290,22 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		deviceId,
 		useWallet,
 	} = form.watch();
+	const listedSalesIds = useMemo(
+		() => salesFields.map((sale) => sale.id),
+		[salesFields],
+	);
+	const pendingSalesById = useMemo(
+		() => new Map(data.pendingSales.map((sale) => [sale.id, sale])),
+		[data.pendingSales],
+	);
+	const listedSales = useMemo(
+		() => getListedPaymentSales(data.pendingSales, listedSalesIds),
+		[data.pendingSales, listedSalesIds],
+	);
+	const availablePaymentSales = useMemo(
+		() => getAvailablePaymentSales(data.pendingSales, listedSalesIds),
+		[data.pendingSales, listedSalesIds],
+	);
 	const getSelectedSalesIds = useCallback(
 		(formData: z.infer<typeof formSchema>) =>
 			formData.sales.filter((sale) => sale.selected).map((sale) => sale.id),
@@ -406,18 +429,11 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		terminalState,
 	]);
 	useEffect(() => {
-		if (!salesFields?.length) return;
 		form.setValue(
 			"amount",
-			sum(
-				// wSales.filter(a => a.selected),
-				data?.pendingSales?.filter(
-					(a) => wSales?.find((b) => b.id === a.id)?.selected,
-				),
-				"amountDue",
-			),
+			getListedPaymentAmount(data.pendingSales, listedSalesIds),
 		);
-	}, [data, form, salesFields, wSales]);
+	}, [data.pendingSales, form, listedSalesIds]);
 	useEffect(() => {
 		if (terminalState !== "applying") return;
 		const pendingCheck = pendingAppliedPaymentCheckRef.current;
@@ -741,8 +757,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 
 	const [sendingLink, startTransition] = useTransition();
 
-	const selectedSalesCount =
-		wSales?.filter((sale) => sale.selected).length ?? 0;
+	const selectedSalesCount = salesFields.length;
 	const selectedTerminal = data?.terminals?.find(
 		(terminal) => terminal?.value === deviceId,
 	);
@@ -857,7 +872,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								</div>
 								<div className="min-w-0 flex-1">
 									<Dialog.Title className="truncate text-base">
-										{data?.pendingSales?.[0]?.customerName || "Payment"}
+										{listedSales[0]?.customerName || "Payment"}
 									</Dialog.Title>
 									<Dialog.Description className="mt-1">
 										Account {data?.wallet?.accountNo || accountNo}
@@ -885,44 +900,52 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 							<section className="grid gap-2">
 								<div className="flex items-center justify-between gap-3">
 									<h3 className="text-sm font-medium">Orders</h3>
-									<span className="text-xs text-muted-foreground">
-										{selectedSalesCount} selected
-									</span>
+									<ComboboxDropdown
+										items={availablePaymentSales.map((sale) => ({
+											id: String(sale.id),
+											label: `${sale.orderId} — ${formatPaymentAmount(sale.amountDue)}`,
+											sale,
+										}))}
+										onSelect={(item) =>
+											appendSalesField({
+												id: item.sale.id,
+												selected: true,
+											})
+										}
+										searchPlaceholder="Search customer orders"
+										emptyResults="No more pending orders"
+										disabled={!availablePaymentSales.length}
+										popoverProps={{ align: "end" }}
+										Trigger={
+											<Button
+												type="button"
+												size="sm"
+												variant="outline"
+												disabled={!availablePaymentSales.length}
+											>
+												<Icons.Plus className="size-4" />
+												Add order
+											</Button>
+										}
+									/>
 								</div>
 								<ScrollArea className="max-h-[220px] rounded-md border">
 									<Item.Group className="divide-y">
-										{data?.pendingSales?.map((sale, index) => {
-											const selected = !!salesFields?.[index]?.selected;
+										{salesFields.map((field, index) => {
+											const sale = pendingSalesById.get(field.id);
+											if (!sale) return null;
 
 											return (
 												<Item
-													key={sale?.id}
+													key={field.fieldId}
 													size="sm"
-													onClick={() => {
-														updateSalesField(index, {
-															...salesFields?.[index],
-															selected: !selected,
-														});
-													}}
-													className={cn(
-														"cursor-pointer rounded-none border-0 px-3 py-2.5",
-														selected && "bg-emerald-50/80 text-emerald-950",
-													)}
+													className="rounded-none border-0 bg-emerald-50/80 px-3 py-2.5 text-emerald-950"
 												>
 													<Item.Media
 														variant="icon"
-														className={cn(
-															"size-7 rounded-md",
-															selected
-																? "border-emerald-200 bg-emerald-100 text-emerald-700"
-																: "bg-background text-muted-foreground",
-														)}
+														className="size-7 rounded-md border-emerald-200 bg-emerald-100 text-emerald-700"
 													>
-														{selected ? (
-															<Icons.check className="size-4" />
-														) : (
-															<Icons.invoice className="size-4" />
-														)}
+														<Icons.check className="size-4" />
 													</Item.Media>
 													<Item.Content className="min-w-0">
 														<Item.Title className="truncate">
@@ -935,11 +958,27 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 															</span>
 														</Item.Description>
 													</Item.Content>
+													<Item.Actions>
+														<Button
+															type="button"
+															size="icon"
+															variant="ghost"
+															className="size-8 text-muted-foreground hover:text-destructive"
+															aria-label={`Remove order ${sale.orderId}`}
+															onClick={() => removeSalesField(index)}
+														>
+															<Icons.X className="size-4" />
+														</Button>
+													</Item.Actions>
 												</Item>
 											);
 										})}
 									</Item.Group>
 								</ScrollArea>
+								<p className="text-xs text-muted-foreground">
+									{selectedSalesCount} order
+									{selectedSalesCount === 1 ? "" : "s"} in this payment.
+								</p>
 							</section>
 
 							<section className="grid gap-2">
@@ -1347,8 +1386,11 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 												</Field>
 											) : undefined}
 										</div>
-										{sendLink ? (
-											<Button disabled={sendingLink} className="min-w-32">
+											{sendLink ? (
+												<Button
+													disabled={sendingLink || selectedSalesCount === 0}
+													className="min-w-32"
+												>
 												{sendingLink ? (
 													<Spinner />
 												) : (
@@ -1359,10 +1401,12 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 												)}
 											</Button>
 										) : (
-											<Button
-												disabled={
-													makePayment.isPending || hasActiveTerminalCheckout
-												}
+												<Button
+													disabled={
+														selectedSalesCount === 0 ||
+														makePayment.isPending ||
+														hasActiveTerminalCheckout
+													}
 												className="min-w-36"
 											>
 												{makePayment.isPending || hasActiveTerminalCheckout ? (

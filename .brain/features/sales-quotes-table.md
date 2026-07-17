@@ -39,6 +39,7 @@
 - Quote overview sheets render the same invoice-based quote status as the table (`Paid`, `Open`, or `Part paid`) near the quote number, using the shared overview badge presenter.
 - The actions cell keeps existing quote edit/open/preview/menu behavior, with heavier menu/preview work kept out of first render.
 - Search uses the existing `q` URL param from the current quote search filter.
+- Free-text quote search matches customer address text plus billing and shipping name, address lines, city, state, email, and phone fields through the shared sales query builder.
 - The route-level quotes table intentionally does not render a P.O column. P.O remains searchable/filterable through the existing quote filter params, but it is not part of the default table surface.
 - The remaining legacy quote table used by the unmigrated sales-rep quote embed also no longer renders a P.O table column or mobile PO badge while that surface awaits its `tables-2` migration.
 - Quote table sorting is limited to existing query-safe fields (`orderId`, `createdAt`, and `grandTotal`) so stale URLs such as `sort=displayName.asc` cannot send derived UI fields to the existing `sales.quotes` query.

@@ -3,10 +3,46 @@ import {
 	buildPrintRequests,
 	calculatePaymentChannelChargePreview,
 	calculatePaymentPlanPreview,
+	getAvailablePaymentSales,
+	getListedPaymentAmount,
+	getListedPaymentSales,
 	resolveDefaultPaymentMethod,
 } from "./utils";
 
 describe("sales payment processor utils", () => {
+	it("lists only the sales explicitly selected when the payment modal opens", () => {
+		const sales = [
+			{ id: 1, orderId: "ORDER-1" },
+			{ id: 2, orderId: "ORDER-2" },
+			{ id: 3, orderId: "ORDER-3" },
+		];
+
+		expect(getListedPaymentSales(sales, [3, 1, 3])).toEqual([
+			sales[2],
+			sales[0],
+		]);
+	});
+
+	it("offers only unlisted sales for adding to the payment modal", () => {
+		const sales = [
+			{ id: 1, orderId: "ORDER-1" },
+			{ id: 2, orderId: "ORDER-2" },
+			{ id: 3, orderId: "ORDER-3" },
+		];
+
+		expect(getAvailablePaymentSales(sales, [2])).toEqual([sales[0], sales[2]]);
+	});
+
+	it("resets the payment amount when every listed order is removed", () => {
+		const sales = [
+			{ id: 1, amountDue: 45 },
+			{ id: 2, amountDue: 55 },
+		];
+
+		expect(getListedPaymentAmount(sales, [1, 2])).toBe(100);
+		expect(getListedPaymentAmount(sales, [])).toBe(0);
+	});
+
 	it("uses the selected sale payment method when available", () => {
 		expect(
 			resolveDefaultPaymentMethod(

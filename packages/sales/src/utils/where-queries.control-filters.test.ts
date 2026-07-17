@@ -8,6 +8,22 @@ function toClauses(where: any) {
 }
 
 describe("whereSales stat filters", () => {
+	it("searches customer, billing, and shipping address text", () => {
+		const where = whereSales({
+			q: "123 Main",
+		} as any);
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"customer"');
+		expect(json).toContain('"address":{"contains":"123 Main"}');
+		expect(json).toContain('"billingAddress"');
+		expect(json).toContain('"shippingAddress"');
+		expect(json).toContain('"address1":{"contains":"123 Main"}');
+		expect(json).toContain('"address2":{"contains":"123 Main"}');
+		expect(json).toContain('"city":{"contains":"123 Main"}');
+		expect(json).toContain('"state":{"contains":"123 Main"}');
+	});
+
 	it("builds production completed filter from sales stat predicates", () => {
 		const where = whereSales({
 			production: "completed",

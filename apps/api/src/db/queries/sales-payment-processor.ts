@@ -246,6 +246,7 @@ async function applySalesPayment(
 		const appliedSalesIds: number[] = [];
 		const appliedSales: {
 			salesId: number;
+			orderId: string;
 			amountApplied: number;
 			remainingDue: number;
 		}[] = [];
@@ -366,7 +367,7 @@ async function applySalesPayment(
 					selectedBalance,
 					appliedSales,
 				},
-				note: `Overpayment credit from sales payment`,
+				note: "Overpayment credit from sales payment",
 				paymentMethod: props.paymentMethod,
 				reason: "sales-overpayment",
 				squarePaymentId: props.terminalPaymentSession?.squarePaymentId,

@@ -176,6 +176,26 @@ describe("sales PDF email attachments", () => {
 	});
 
 	it("attaches invoices for customer payment receipt emails without download links", () => {
+		const contact =
+			salesCustomerPaymentReceived.createDirectEmailContact?.(
+				{
+					customerEmail: "customer@example.com",
+					customerName: "Customer",
+					paymentMethod: "card",
+					totalAmount: 100,
+					invoiceDownloadUrl: null,
+					invoicePdfAttachment: pdfAttachment,
+					sales: [
+						{
+							salesId: 1,
+							orderNo: "100",
+							amountApplied: 100,
+							remainingDue: 0,
+						},
+					],
+				},
+				{} as never,
+			);
 		const email = salesCustomerPaymentReceived.createEmail?.(
 			{
 				customerEmail: "customer@example.com",
@@ -202,6 +222,13 @@ describe("sales PDF email attachments", () => {
 		expect(email?.data).toMatchObject({
 			invoiceDownloadUrl: null,
 			invoicePdfAttachment: pdfAttachment,
+		});
+		expect(contact).toMatchObject({
+			email: "customer@example.com",
+			emailNotification: true,
+			inAppNotification: false,
+			name: "Customer",
+			role: "customer",
 		});
 	});
 });
