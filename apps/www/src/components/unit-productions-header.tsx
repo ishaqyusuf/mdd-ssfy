@@ -1,5 +1,6 @@
 "use client";
 
+import { OpenUnitProductionSheet } from "@/components/open-unit-production-sheet";
 import { UnitProductionsColumnVisibility } from "@/components/tables-2/unit-productions/column-visibility";
 import { unitProductionFilterParams } from "@/hooks/use-unit-productions-filter-params";
 import { useTRPC } from "@/trpc/client";
@@ -15,8 +16,9 @@ export function UnitProductionsHeader() {
 				placeholder="Search unit productions..."
 				trpcRoute={trpc.filters.unitProduction}
 			/>
-			<div className="flex shrink-0 items-center justify-end">
+			<div className="flex shrink-0 items-center justify-end gap-2">
 				<UnitProductionsColumnVisibility />
+				<OpenUnitProductionSheet />
 			</div>
 		</div>
 	);

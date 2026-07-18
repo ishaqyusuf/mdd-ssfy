@@ -235,6 +235,15 @@ export async function getUnitProductions(
   };
 }
 
+export async function getUnitProductionsCount(
+  ctx: TRPCContext,
+  query: GetUnitProductionsSchema,
+) {
+  return ctx.db.homeTasks.count({
+    where: whereUnitProductions(query),
+  });
+}
+
 export async function getUnitProductionSummary(
   ctx: TRPCContext,
   query: GetUnitProductionSummarySchema,
@@ -513,7 +522,7 @@ function sortFn(
   }
 }
 
-function whereUnitProductions(query: Partial<GetUnitProductionsSchema>) {
+export function whereUnitProductions(query: Partial<GetUnitProductionsSchema>) {
   const where: Prisma.HomeTasksWhereInput[] = [
     {
       produceable: true,

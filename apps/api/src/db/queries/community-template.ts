@@ -186,6 +186,15 @@ export async function getCommunityTemplates(
 	);
 }
 
+export async function getCommunityTemplatesCount(
+	ctx: TRPCContext,
+	query: GetCommunityTemplatesSchema,
+) {
+	return ctx.db.communityModels.count({
+		where: whereCommunityTemplates(query),
+	});
+}
+
 function isConfiguredTemplateValue(value: unknown) {
 	if (value === null || value === undefined) return false;
 	if (typeof value === "string") return value.trim().length > 0;
@@ -213,7 +222,7 @@ function countConfiguredDesignValues(value: unknown): number {
 	return isConfiguredTemplateValue(value) ? 1 : 0;
 }
 
-function whereCommunityTemplates(query: GetCommunityTemplatesSchema) {
+export function whereCommunityTemplates(query: GetCommunityTemplatesSchema) {
 	const where: Prisma.CommunityModelsWhereInput[] = [
 		{
 			deletedAt: null,

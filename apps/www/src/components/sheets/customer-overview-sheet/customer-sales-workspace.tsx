@@ -3,40 +3,22 @@
 import { Icons } from "@gnd/ui/icons";
 
 import Link from "@/components/link";
-import { SalesMenu } from "@/components/sales-menu";
+import { CustomerSalesWorkspaceColumnVisibility } from "@/components/tables-2/customer-sales-workspace/column-visibility";
+import type { CustomerSalesWorkspaceRow } from "@/components/tables-2/customer-sales-workspace/columns";
+import { DataTable as CustomerSalesWorkspaceDataTable } from "@/components/tables-2/customer-sales-workspace/data-table";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Checkbox } from "@gnd/ui/checkbox";
 import { Input } from "@gnd/ui/input";
 import { DropdownMenu } from "@gnd/ui/namespace";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@gnd/ui/table";
-import { formatMoney } from "@gnd/utils";
 import type { TaskName } from "@jobs/schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 type Props = {
 	accountNo: string;
-};
-
-type SalesWorkspaceItem =
-	RouterOutputs["customers"]["getCustomerOverviewV2"]["salesWorkspace"]["orders"][number];
-
-type WorkspaceItem = SalesWorkspaceItem & {
-	type: "order" | "quote";
 };
 
 type EmailType = "without payment" | "with payment" | "with part payment";
@@ -53,7 +35,7 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 			},
 		),
 	);
-	const [items, setItems] = useState<WorkspaceItem[]>([]);
+	const [items, setItems] = useState<CustomerSalesWorkspaceRow[]>([]);
 	const [search, setSearch] = useState("");
 	const [typeFilter, setTypeFilter] = useState<"all" | "order" | "quote">(
 		"all",
@@ -204,10 +186,6 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 		setSelectedIds([]);
 	};
 
-	const allFilteredSelected =
-		filteredItems.length > 0 &&
-		filteredItems.every((item) => selectedIds.includes(item.id));
-
 	return (
 		<div className="space-y-4">
 			<Card>
@@ -215,6 +193,7 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 					<CardTitle className="flex items-center justify-between gap-3">
 						<span>Sales workspace</span>
 						<div className="flex gap-2">
+							<CustomerSalesWorkspaceColumnVisibility />
 							<Button asChild size="sm">
 								<Link href="/sales-book/create-order">
 									<Icons.Plus className="mr-2 size-4" />
@@ -272,172 +251,28 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 							}
 						/>
 					</div>
-					<div className="rounded-lg border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead className="w-10">
-										<Checkbox
-											checked={allFilteredSelected}
-											onCheckedChange={(checked) => toggleAll(checked === true)}
-											aria-label="Select all"
-										/>
-									</TableHead>
-									<TableHead>Order</TableHead>
-									<TableHead>Customer</TableHead>
-									<TableHead>Type</TableHead>
-									<TableHead>Payment</TableHead>
-									<TableHead>Delivery</TableHead>
-									<TableHead className="text-right">Value</TableHead>
-									<TableHead className="w-16" />
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{workspaceQuery.isPending && !items.length ? (
-									<TableRow>
-										<TableCell
-											colSpan={8}
-											className="h-32 text-center text-muted-foreground"
-										>
-											Loading customer sales workspace...
-										</TableCell>
-									</TableRow>
-								) : filteredItems.length ? (
-									filteredItems.map((item) => {
-										const isSelected = selectedIds.includes(item.id);
-										const due = Number(item.due || 0);
-
-										return (
-											<TableRow
-												key={`${item.type}-${item.id}`}
-												className={cn(isSelected && "bg-muted/50")}
-											>
-												<TableCell>
-													<Checkbox
-														checked={isSelected}
-														onCheckedChange={(checked) =>
-															toggleRow(item.id, checked === true)
-														}
-														aria-label={`Select ${item.orderId}`}
-													/>
-												</TableCell>
-												<TableCell>
-													<button
-														type="button"
-														className="flex items-center gap-2 text-left font-medium hover:text-primary"
-														onClick={() => {
-															if (item.type === "quote") {
-																overviewOpen.openQuoteSheet(item.uuid);
-																return;
-															}
-															overviewOpen.openSalesAdminSheet(item.uuid);
-														}}
-													>
-														<span>{item.orderId}</span>
-														<Icons.ExternalLink className="size-3.5 text-muted-foreground" />
-													</button>
-													<div className="text-xs text-muted-foreground">
-														{item.salesDate}
-													</div>
-												</TableCell>
-												<TableCell>
-													<div className="font-medium">
-														{item.displayName || "-"}
-													</div>
-													<div className="text-xs text-muted-foreground">
-														{item.customerPhone || item.address || "-"}
-													</div>
-												</TableCell>
-												<TableCell>
-													<Badge
-														variant={
-															item.type === "order" ? "default" : "secondary"
-														}
-													>
-														{item.type === "order" ? "Sales" : "Quote"}
-													</Badge>
-												</TableCell>
-												<TableCell>
-													<StatusBadge
-														tone={due > 0 ? "warn" : "success"}
-														label={
-															due > 0 ? `Pending $${formatMoney(due)}` : "Paid"
-														}
-													/>
-												</TableCell>
-												<TableCell>
-													{item.type === "quote" ? (
-														<StatusBadge tone="muted" label="Not applicable" />
-													) : (
-														<StatusBadge
-															tone={
-																item.status?.delivery?.status === "completed"
-																	? "success"
-																	: "warn"
-															}
-															label={item.status?.delivery?.status || "Pending"}
-														/>
-													)}
-												</TableCell>
-												<TableCell className="text-right font-medium">
-													${formatMoney(item.invoice.total)}
-												</TableCell>
-												<TableCell className="text-right">
-													<SalesMenu
-														id={item.id}
-														slug={item.slug}
-														type={item.type}
-														customerEmail={item.email ?? null}
-														customerName={item.displayName}
-														trigger={
-															<Button size="sm" variant="ghost">
-																...
-															</Button>
-														}
-													>
-														<SalesMenu.Sub>
-															<SalesMenu.SubTrigger>
-																<Icons.Mail className="mr-2 size-4 text-muted-foreground/70" />
-																Send email
-															</SalesMenu.SubTrigger>
-															<SalesMenu.SubContent>
-																{item.type === "quote" ? (
-																	<SalesMenu.QuoteEmailMenuItems />
-																) : (
-																	<SalesMenu.SalesEmailMenuItems />
-																)}
-															</SalesMenu.SubContent>
-														</SalesMenu.Sub>
-														<SalesMenu.Delete
-															onDeleted={() => {
-																setItems((current) =>
-																	current.filter(
-																		(currentItem) => currentItem.id !== item.id,
-																	),
-																);
-																setSelectedIds((current) =>
-																	current.filter((id) => id !== item.id),
-																);
-															}}
-														/>
-													</SalesMenu>
-												</TableCell>
-											</TableRow>
-										);
-									})
-								) : (
-									<TableRow>
-										<TableCell
-											colSpan={8}
-											className="h-32 text-center text-muted-foreground"
-										>
-											No sales found for the selected filters.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-					</div>
+					<CustomerSalesWorkspaceDataTable
+						data={filteredItems}
+						isLoading={workspaceQuery.isPending && !items.length}
+						selectedIds={selectedIds}
+						onToggleAll={toggleAll}
+						onToggleRow={(item, checked) => toggleRow(item.id, checked)}
+						onOpenRow={(item) => {
+							if (item.type === "quote") {
+								overviewOpen.openQuoteSheet(item.uuid);
+								return;
+							}
+							overviewOpen.openSalesAdminSheet(item.uuid);
+						}}
+						onDeleted={(item) => {
+							setItems((current) =>
+								current.filter((currentItem) => currentItem.id !== item.id),
+							);
+							setSelectedIds((current) =>
+								current.filter((id) => id !== item.id),
+							);
+						}}
+					/>
 				</CardContent>
 			</Card>
 
@@ -548,27 +383,5 @@ function FilterSelect({
 				))}
 			</select>
 		</label>
-	);
-}
-
-function StatusBadge({
-	label,
-	tone,
-}: {
-	label: string;
-	tone: "success" | "warn" | "muted";
-}) {
-	return (
-		<Badge
-			variant="outline"
-			className={cn(
-				tone === "success" &&
-					"border-emerald-200 bg-emerald-50 text-emerald-700",
-				tone === "warn" && "border-amber-200 bg-amber-50 text-amber-700",
-				tone === "muted" && "border-slate-200 bg-slate-50 text-slate-600",
-			)}
-		>
-			{label}
-		</Badge>
 	);
 }

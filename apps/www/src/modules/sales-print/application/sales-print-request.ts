@@ -1,4 +1,8 @@
 import {
+	type SalesPageBreakMode,
+	normalizeSalesPageBreakMode,
+} from "@gnd/pdf/sales-v2";
+import {
 	getPrintModeRequestKey,
 	normalizePrintMode,
 	parsePrintModes,
@@ -30,6 +34,9 @@ export interface SalesPrintRequestParams {
 	snapshotId: string;
 	preview: boolean;
 	templateId: string;
+	pageBreakMode: SalesPageBreakMode;
+	showImages: boolean;
+	headlineFirstPage: boolean;
 	mode: PrintMode;
 	modes: PrintMode[];
 	pricingMode: "customer" | "internal" | null;
@@ -61,6 +68,11 @@ export function parseSalesPrintRequest(
 		preview: readBooleanParam(rawParams.preview),
 		templateId:
 			readStringParam(rawParams.templateId) || DEFAULT_SALES_PRINT_TEMPLATE_ID,
+		pageBreakMode: normalizeSalesPageBreakMode(
+			readStringParam(rawParams.pageBreakMode),
+		),
+		showImages: readBooleanParam(rawParams.showImages, true),
+		headlineFirstPage: readBooleanParam(rawParams.headlineFirstPage, true),
 		mode: getPrintModeRequestKey(readStringParam(rawParams.mode)),
 		modes: parsePrintModes(readStringParam(rawParams.mode)),
 		pricingMode: normalizePricingMode(readStringParam(rawParams.pricingMode)),
@@ -115,12 +127,18 @@ function readStringParam(value: SalesPrintRawParams[string]) {
 	return "";
 }
 
-function readBooleanParam(value: SalesPrintRawParams[string]) {
+function readBooleanParam(
+	value: SalesPrintRawParams[string],
+	defaultValue = false,
+) {
+	if (value == null || value === "") {
+		return defaultValue;
+	}
 	if (typeof value === "boolean") {
 		return value;
 	}
 	if (Array.isArray(value)) {
-		return value[0] === "true";
+		return value[0] == null ? defaultValue : value[0] === "true";
 	}
 	return value === "true";
 }

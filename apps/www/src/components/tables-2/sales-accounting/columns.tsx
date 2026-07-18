@@ -104,14 +104,14 @@ const dateColumn: Column = {
 	id: "createdAt",
 	header: "Date",
 	accessorKey: "createdAt",
-	...sizes.custom(130, 210, 150),
+	...sizes.custom(118, 180, 136),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Date",
 		className: sizeClass(
-			sizes.custom(130, 210, 150),
+			sizes.custom(118, 180, 136),
 			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -131,12 +131,12 @@ const amountColumn: Column = {
 	id: "amount",
 	header: "Amount",
 	accessorKey: "amount",
-	...sizes.custom(120, 190, 140),
+	...sizes.custom(104, 150, 118),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Amount",
-		className: sizeClass(sizes.custom(120, 190, 140)),
+		className: sizeClass(sizes.custom(104, 150, 118)),
 	},
 	cell: ({ row }) => {
 		const amount = toMoneyNumber(row.original.amount);
@@ -158,12 +158,12 @@ const descriptionColumn: Column = {
 	id: "description",
 	header: "Description",
 	accessorKey: "description",
-	...sizes.custom(220, 460, 300),
+	...sizes.custom(180, 360, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-44" },
 		headerLabel: "Description",
-		className: sizeClass(sizes.custom(220, 460, 300)),
+		className: sizeClass(sizes.custom(180, 360, 220)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -182,12 +182,12 @@ const orderColumn: Column = {
 	id: "orderIds",
 	header: "Order #",
 	accessorKey: "orderIds",
-	...sizes.custom(170, 320, 220),
+	...sizes.custom(140, 260, 170),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-32" },
 		headerLabel: "Order #",
-		className: sizeClass(sizes.custom(170, 320, 220)),
+		className: sizeClass(sizes.custom(140, 260, 170)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -211,12 +211,12 @@ const salesRepColumn: Column = {
 	id: "salesReps",
 	header: "Sales Rep",
 	accessorFn: (row) => row.salesReps?.join(", "),
-	...sizes.custom(160, 320, 220),
+	...sizes.custom(112, 190, 136),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-32" },
 		headerLabel: "Sales Rep",
-		className: sizeClass(sizes.custom(160, 320, 220)),
+		className: sizeClass(sizes.custom(112, 190, 136)),
 	},
 	cell: ({ row }) => {
 		const reps = row.original.salesReps?.filter(Boolean) ?? [];
@@ -241,12 +241,12 @@ const processedByColumn: Column = {
 	id: "processedBy",
 	header: "Processed By",
 	accessorKey: "authorName",
-	...sizes.custom(150, 260, 190),
+	...sizes.custom(112, 180, 130),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Processed By",
-		className: sizeClass(sizes.custom(150, 260, 190)),
+		className: sizeClass(sizes.custom(112, 180, 130)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -260,12 +260,12 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Payment Status",
 	accessorKey: "status",
-	...sizes.custom(160, 280, 210),
+	...sizes.custom(130, 220, 150),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-28" },
 		headerLabel: "Payment Status",
-		className: sizeClass(sizes.custom(160, 280, 210)),
+		className: sizeClass(sizes.custom(130, 220, 150)),
 	},
 	cell: ({ row }) => (
 		<Progress>
@@ -278,12 +278,12 @@ const subTotalColumn: Column = {
 	id: "subTotal",
 	header: "Sub Total",
 	accessorKey: "subTotal",
-	...sizes.custom(110, 180, 130),
+	...sizes.custom(104, 150, 118),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Sub Total",
-		className: sizeClass(sizes.custom(110, 180, 130)),
+		className: sizeClass(sizes.custom(104, 150, 118)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate font-mono text-sm text-muted-foreground">
@@ -296,12 +296,12 @@ const laborColumn: Column = {
 	id: "labor",
 	header: "Labor",
 	accessorKey: "laborCost",
-	...sizes.custom(100, 170, 120),
+	...sizes.custom(92, 132, 104),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Labor",
-		className: sizeClass(sizes.custom(100, 170, 120)),
+		className: sizeClass(sizes.custom(92, 132, 104)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate font-mono text-sm text-muted-foreground">
@@ -314,12 +314,12 @@ const deliveryColumn: Column = {
 	id: "delivery",
 	header: "Delivery",
 	accessorKey: "deliveryCost",
-	...sizes.custom(100, 170, 120),
+	...sizes.custom(92, 132, 104),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Delivery",
-		className: sizeClass(sizes.custom(100, 170, 120)),
+		className: sizeClass(sizes.custom(92, 132, 104)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate font-mono text-sm text-muted-foreground">
@@ -331,7 +331,7 @@ const deliveryColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	...sizes.custom(92, 92),
+	...sizes.custom(64, 64),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
@@ -339,7 +339,7 @@ const actionsColumn: Column = {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
 		className: sizeClass(
-			sizes.custom(92, 92),
+			sizes.custom(64, 64),
 			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},

@@ -109,7 +109,12 @@ import {
 	normalizeSalesPaymentReviewSettings,
 	SALES_PAYMENT_REVIEW_ACTIONS,
 } from "@gnd/sales/payment-system";
-import { getSettingAction, updateSettingsMeta } from "@gnd/settings";
+import {
+	getSettingAction,
+	normalizeSalesPrintSettings,
+	salesPrintSettingsSchema,
+	updateSettingsMeta,
+} from "@gnd/settings";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -222,7 +227,7 @@ async function isSuperAdmin(ctx: TRPCContext) {
 
 async function requireSuperAdmin(ctx: TRPCContext) {
 	if (!(await isSuperAdmin(ctx))) {
-		throw new Error("Only Super Admin can manage payment review settings.");
+		throw new Error("Only Super Admin can manage sales settings.");
 	}
 }
 
@@ -516,6 +521,75 @@ export const salesRouter = createTRPCRouter({
 				settings: nextPaymentReview,
 			};
 		}),
+	getPrintSettings: protectedProcedure.query(async (props) => {
+		const [setting, canManage] = await Promise.all([
+			getSettingAction("sales-settings", props.ctx.db),
+			isSuperAdmin(props.ctx),
+		]);
+		const meta = (setting.meta || {}) as Record<string, unknown>;
+		return {
+			settings: normalizeSalesPrintSettings(meta.print),
+			canManage,
+		};
+	}),
+	updatePrintSettings: protectedProcedure
+		.input(salesPrintSettingsSchema)
+		.mutation(async (props) => {
+			await requireSuperAdmin(props.ctx);
+			const setting = await getSettingAction("sales-settings", props.ctx.db);
+			const meta = ((setting.meta || {}) as Record<string, unknown>) || {};
+			const print = normalizeSalesPrintSettings(props.input);
+			await updateSettingsMeta(
+				"sales-settings",
+				{
+					...meta,
+					print,
+				},
+				props.ctx.db,
+				"full",
+			);
+			return { settings: print };
+		}),
+	getPrintPreviewOrders: protectedProcedure.query(async (props) => {
+		await requireSuperAdmin(props.ctx);
+		const orders = await props.ctx.db.salesOrders.findMany({
+			where: {
+				deletedAt: null,
+				type: "order",
+			},
+			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+			take: 12,
+			select: {
+				id: true,
+				orderId: true,
+				createdAt: true,
+				grandTotal: true,
+				customer: {
+					select: {
+						name: true,
+						businessName: true,
+					},
+				},
+				billingAddress: {
+					select: {
+						name: true,
+					},
+				},
+			},
+		});
+
+		return orders.map((order) => ({
+			id: order.id,
+			orderId: order.orderId,
+			createdAt: order.createdAt,
+			grandTotal: order.grandTotal ?? 0,
+			customerName:
+				order.customer?.businessName ||
+				order.customer?.name ||
+				order.billingAddress?.name ||
+				"Unnamed customer",
+		}));
+	}),
 	markLatestPaymentReviewed: protectedProcedure
 		.input(
 			z.object({

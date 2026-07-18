@@ -1,7 +1,20 @@
 export function normalizePagePath(page: string) {
-	const [path] = page.split("?");
+	const source = page.trim();
+	if (!source) return "/";
+
+	let path = source;
+	try {
+		path = new URL(source, "https://page-tabs.local").pathname;
+	} catch {
+		const [pathWithHash] = source.split("?");
+		path = (pathWithHash ?? "").split("#")[0] ?? "";
+	}
+
 	if (!path) return "/";
-	return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+	const withLeadingSlash = path.startsWith("/") ? path : `/${path}`;
+	return withLeadingSlash.length > 1 && withLeadingSlash.endsWith("/")
+		? withLeadingSlash.slice(0, -1)
+		: withLeadingSlash;
 }
 
 export function normalizeTabQuery(query: string | URLSearchParams) {
@@ -16,12 +29,22 @@ export function normalizeTabQuery(query: string | URLSearchParams) {
 
 	return Array.from(params.entries())
 		.filter(([, value]) => value !== "")
-		.sort(([left], [right]) => left.localeCompare(right))
+		.sort(
+			([leftKey, leftValue], [rightKey, rightValue]) =>
+				leftKey.localeCompare(rightKey) || leftValue.localeCompare(rightValue),
+		)
 		.reduce((next, [key, value]) => {
 			next.append(key, value);
 			return next;
 		}, new URLSearchParams())
 		.toString();
+}
+
+export function pageTabQueriesMatch(
+	current: string | URLSearchParams,
+	saved: string | URLSearchParams,
+) {
+	return normalizeTabQuery(current) === normalizeTabQuery(saved);
 }
 
 export function queryContainsTabQuery(

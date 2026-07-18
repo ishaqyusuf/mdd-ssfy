@@ -2,7 +2,6 @@
 
 import { Fragment, useMemo, useState } from "react";
 
-import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import Money from "@/components/_v1/money";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { SearchInput } from "@/components/search-input";
@@ -13,6 +12,7 @@ import {
 } from "@/hooks/use-data-skeleton";
 import { openLink } from "@/lib/open-link";
 import { middleTruncate } from "@/lib/truncate-middle";
+import { formatDate } from "@/lib/use-day";
 import { buildSalesInventoryPrintViewerUrl } from "@/modules/sales-print/application/inventory-print-request";
 import { useTRPC } from "@/trpc/client";
 import { salesFormUrl } from "@/utils/sales-utils";
@@ -879,7 +879,7 @@ export function SalesOverviewOverviewTab() {
 											placeholder="04/14/25"
 										>
 											<div className="text-sm font-medium">
-												<TCell.Date>{data?.dueDate}</TCell.Date>
+												{formatDate(data?.dueDate)}
 											</div>
 										</DataSkeleton>
 									</div>

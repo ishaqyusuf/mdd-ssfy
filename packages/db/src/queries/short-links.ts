@@ -45,6 +45,8 @@ export type ListShortLinksInput = {
 	q?: string | null;
 	size?: number | null;
 	page?: number | null;
+	cursor?: string | null;
+	sort?: string[] | null;
 	includeInactive?: boolean | null;
 };
 
@@ -210,6 +212,8 @@ export async function deleteShortLink(db: Db, id: string) {
 export async function listShortLinks(db: Db, input: ListShortLinksInput = {}) {
 	const size = Math.min(Math.max(Number(input.size || 50), 1), 200);
 	const page = Math.max(Number(input.page || 1), 1);
+	const cursor = Math.max(Number(input.cursor || 0), 0);
+	const skip = input.cursor ? cursor : (page - 1) * size;
 	const q = input.q?.trim();
 	const where: Prisma.ShortLinkWhereInput = {
 		...(input.includeInactive ? {} : { deletedAt: null }),
@@ -229,12 +233,13 @@ export async function listShortLinks(db: Db, input: ListShortLinksInput = {}) {
 	const [data, total] = await Promise.all([
 		db.shortLink.findMany({
 			where,
-			orderBy: [{ createdAt: "desc" }],
-			skip: (page - 1) * size,
+			orderBy: getShortLinkOrderBy(input.sort),
+			skip,
 			take: size,
 		}),
 		db.shortLink.count({ where }),
 	]);
+	const nextCursor = skip + size;
 
 	return {
 		data,
@@ -243,8 +248,58 @@ export async function listShortLinks(db: Db, input: ListShortLinksInput = {}) {
 			size,
 			total,
 			pageCount: Math.ceil(total / size),
+			cursor: nextCursor < total ? String(nextCursor) : null,
 		},
 	};
+}
+
+function getShortLinkOrderBy(
+	sortValues?: string[] | null,
+): Prisma.ShortLinkOrderByWithRelationInput[] {
+	const fallback: Prisma.ShortLinkOrderByWithRelationInput[] = [
+		{ createdAt: "desc" },
+	];
+	const values = sortValues?.filter(Boolean);
+	if (!values?.length) return fallback;
+
+	const orderBy: Prisma.ShortLinkOrderByWithRelationInput[] = [];
+	for (const value of values) {
+		const [field, rawDirection] = value.split(".");
+		const direction: Prisma.SortOrder =
+			rawDirection === "asc" ? "asc" : "desc";
+
+		switch (field) {
+			case "slug":
+			case "shortLink":
+				orderBy.push({ slug: direction });
+				break;
+			case "targetUrl":
+			case "target":
+				orderBy.push({ targetUrl: direction });
+				break;
+			case "clickCount":
+			case "clicks":
+				orderBy.push({ clickCount: direction });
+				break;
+			case "lastClickedAt":
+			case "lastClick":
+				orderBy.push({ lastClickedAt: direction });
+				break;
+			case "expiresAt":
+			case "expiry":
+				orderBy.push({ expiresAt: direction });
+				break;
+			case "active":
+			case "status":
+				orderBy.push({ active: direction });
+				break;
+			case "createdAt":
+				orderBy.push({ createdAt: direction });
+				break;
+		}
+	}
+
+	return orderBy.length ? orderBy : fallback;
 }
 
 export async function getActiveShortLinkBySlug(db: Db, slug: string) {

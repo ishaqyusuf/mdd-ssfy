@@ -8,13 +8,13 @@ import {
 } from "@/components/sales-inbound-status-badge";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { TCell } from "@/components/(clean-code)/data-table/table-cells";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { middleTruncate } from "@/lib/truncate-middle";
 import { openLink } from "@/lib/open-link";
+import { formatDate } from "@/lib/use-day";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { Badge } from "@gnd/ui/badge";
@@ -512,9 +512,7 @@ export function GeneralTab({}) {
                                             placeholder="04/14/25"
                                         >
                                             <div className="text-sm font-medium">
-                                                <TCell.Date>
-                                                    {saleData.dueDate}
-                                                </TCell.Date>
+                                                {formatDate(saleData.dueDate)}
                                             </div>
                                         </DataSkeleton>
                                     </div>

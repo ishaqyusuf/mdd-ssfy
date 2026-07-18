@@ -356,7 +356,7 @@ function containsInsensitive(value: string) {
 	};
 }
 
-function whereJobs(query: GetJobsSchema) {
+export function whereJobs(query: GetJobsSchema) {
 	const where: Prisma.JobsWhereInput[] = [];
 	for (const [k, v] of Object.entries(query)) {
 		if (!v) continue;
@@ -456,6 +456,12 @@ function whereJobs(query: GetJobsSchema) {
 		}
 	}
 	return composeQuery(where);
+}
+
+export async function getJobsCount(ctx: TRPCContext, query: GetJobsSchema) {
+	return ctx.db.jobs.count({
+		where: whereJobs(query),
+	});
 }
 
 export const getInstallCostsSchema = z.object({});

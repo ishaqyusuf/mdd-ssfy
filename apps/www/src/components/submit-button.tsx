@@ -1,34 +1,35 @@
-import { Icons } from "@gnd/ui/icons";
 import { cn } from "@/lib/utils";
+import { Icons } from "@gnd/ui/icons";
 
 // import { cn } from "../utils";
-import { Button, type ButtonProps } from "@gnd/ui/button";
+import { Button } from "@gnd/ui/button";
+import type { ComponentProps, ReactNode } from "react";
+
+type SubmitButtonProps = {
+	children: ReactNode;
+	isSubmitting: boolean;
+	disabled?: boolean;
+} & ComponentProps<typeof Button>;
 
 export function SubmitButton({
-    children,
-    isSubmitting,
-    disabled,
-    ...props
-}: {
-    children: React.ReactNode;
-    isSubmitting: boolean;
-    disabled?: boolean;
-} & ButtonProps) {
-    return (
-        <Button
-            disabled={isSubmitting || disabled}
-            {...props}
-            className={cn(props.className, "relative")}
-        >
-            <span className={cn({ "opacity-0": isSubmitting })}>
-                {children}
-            </span>
+	children,
+	isSubmitting,
+	disabled,
+	...props
+}: SubmitButtonProps) {
+	return (
+		<Button
+			disabled={isSubmitting || disabled}
+			{...props}
+			className={cn(props.className, "relative")}
+		>
+			<span className={cn({ "opacity-0": isSubmitting })}>{children}</span>
 
-            {isSubmitting && (
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Icons.Loader2 className="h-4 w-4 animate-spin" />
-                </span>
-            )}
-        </Button>
-    );
+			{isSubmitting && (
+				<span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+					<Icons.Loader2 className="h-4 w-4 animate-spin" />
+				</span>
+			)}
+		</Button>
+	);
 }

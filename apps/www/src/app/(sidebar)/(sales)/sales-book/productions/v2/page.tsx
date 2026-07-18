@@ -1,40 +1,80 @@
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { SearchParams } from "nuqs";
 
 import { ErrorFallback } from "@/components/error-fallback";
-import { LazyProductionAdminBoardV2 } from "@/components/production-v2/lazy-boards";
+import PageShell from "@/components/page-shell";
+import { ProductionWorkspace } from "@/components/production-workspace";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { loadSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 
-import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
 export async function generateMetadata() {
-    return constructMetadata({
-        title: "Sales Production - gndprodesk.com",
-    });
+	return constructMetadata({
+		title: "Sales Production - gndprodesk.com",
+	});
 }
 
-export default async function Page() {
-    const queryClient = getQueryClient();
-    await queryClient.fetchInfiniteQuery(
-        trpc.sales.productionsV2.infiniteQueryOptions({
-            scope: "admin",
-            production: "pending",
-            show: null,
-            productionDueDate: null,
-            q: null,
-            size: 20,
-        }) as any,
-    );
+type Props = {
+	searchParams: Promise<SearchParams>;
+};
 
-    return (
-        <PageShell className="">
-            <HydrateClient>
-                <PageTitle>Sales Production</PageTitle>
-                <ErrorBoundary errorComponent={ErrorFallback}>
-                    <LazyProductionAdminBoardV2 />
-                </ErrorBoundary>
-            </HydrateClient>
-        </PageShell>
-    );
+type SalesProductionFilter = Awaited<
+	ReturnType<typeof loadSalesProductionFilterParams>
+>;
+
+function withDefaultProductionQueue(filter: SalesProductionFilter) {
+	const hasExplicitQueue =
+		!!filter.show ||
+		!!filter.production ||
+		!!filter.productionDueDate ||
+		!!filter.priority ||
+		!!filter.q ||
+		!!filter.salesNo ||
+		!!filter.assignedToId;
+
+	return hasExplicitQueue
+		? filter
+		: { ...filter, production: "pending" as const };
+}
+
+export default async function Page(props: Props) {
+	const searchParams = await props.searchParams;
+	const filter = await loadSalesProductionFilterParams(searchParams);
+	const tableFilter = withDefaultProductionQueue(filter);
+	const initialTableSettings =
+		await getInitialTableSettings("sales-production");
+
+	batchPrefetch([
+		trpc.sales.productionDashboard.queryOptions({
+			priority: filter.priority || undefined,
+		}),
+		trpc.filters.salesProductions.queryOptions(),
+		trpc.sales.productions.infiniteQueryOptions(tableFilter, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
+
+	return (
+		<PageShell>
+			<HydrateClient>
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Sales Production</PageTitle>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<ProductionWorkspace
+								mode="admin"
+								initialTableSettings={initialTableSettings}
+								defaultTableFilters={tableFilter}
+							/>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
+			</HydrateClient>
+		</PageShell>
+	);
 }

@@ -14,7 +14,7 @@ import { useAsyncMemo } from "use-async-memo";
 import { Progress } from "../(clean-code)/progress";
 import Money from "../_v1/money";
 import { DataSkeleton } from "../data-skeleton";
-import type { Item } from "./resolution-center-content";
+import type { SalesResolutionRow } from "../tables-2/sales-resolution/columns";
 import { ResolutionDialog } from "./resolution-dialog";
 
 export function SalesData({
@@ -22,7 +22,7 @@ export function SalesData({
 	recommendedAction,
 	dueMismatch,
 }: {
-	sale: Item;
+	sale: SalesResolutionRow;
 	recommendedAction: string;
 	dueMismatch: boolean;
 }) {

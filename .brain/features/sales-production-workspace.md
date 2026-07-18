@@ -7,23 +7,20 @@ Provide a cleaner production operations surface for both admins and production w
 - Admin board: `apps/www/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/page.tsx`
 - Admin board v2: `apps/www/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/v2/page.tsx`
 - Worker sales-book route: `apps/www/src/app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx`
-- Worker sidebar route: `apps/www/src/app/(sidebar)/production/dashboard/page.tsx`
-- Worker sidebar route v2: `apps/www/src/app/(sidebar)/production/dashboard/v2/page.tsx`
+- Worker sidebar route: `apps/www/src/app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx`
+- Worker sidebar route v2: `apps/www/src/app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx`
 
 ## Shared UI
 - Shared client shell: `apps/www/src/components/production-workspace.tsx`
-- Shared list/table: `apps/www/src/components/tables/sales-production/*`
+- Shared list/table: `apps/www/src/components/tables-2/sales-production/*`
 - Shared filter state: `apps/www/src/hooks/use-sales-production-filter-params.ts`
 
 ## V2 Architecture
-- New package boundary: `packages/sales/src/production-v2/*`
-- Route entry points delegate to dedicated v2 queries:
-  - `sales.productionsV2`
-  - `sales.productionDashboardV2`
-  - `sales.productionOrderDetailV2`
-- The v2 pages do not reuse the shared production workspace or modal flow.
-- Production order interaction is moving to inline collapsible sections instead of the legacy production modal.
-- Worker and admin pages are separate page compositions, but share v2 package contracts and application services.
+- 2026-07-17 update: the live v2 route entry points now reuse `ProductionWorkspace` and `components/tables-2/sales-production/*` so the user-facing worker/admin production pages match the Sales Orders table migration standard.
+- `/production/dashboard/v2` uses the worker production table path with `sales.productionTasks`.
+- `/sales-book/productions/v2` uses the admin production table path with `sales.productions`.
+- Both v2 routes use `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, `getInitialTableSettings("sales-production")`, and `loadSalesProductionFilterParams`.
+- The previous dedicated v2 board/list code and `sales.productionsV2` / `sales.productionDashboardV2` read models remain in the tree for production detail/action reference, but they are no longer the live route-level list surface for these v2 pages.
 
 ## Core UX
 - Summary cards for active queue, past due, due today, and due tomorrow
@@ -31,6 +28,17 @@ Provide a cleaner production operations surface for both admins and production w
 - Compact due-date calendar strip that applies exact-date filtering to the queue
 - Search/filter panel retained from the existing production filter system
 - Worker and admin routes now reuse the same workspace shell with role-specific copy
+- The legacy workspace queue table now follows the Sales Orders `tables-2` pattern:
+  - table-owned scroll with `VirtualRow` and header-offset spacer
+  - draggable and resizable compact headers
+  - persisted column visibility, sizing, order, and dividers under `sales-production`
+  - sticky Due Date column
+  - worker mode columns: Due Date, Sales, Sales Rep, Status, Progress, Actions
+  - admin mode columns: Due Date, Assigned To, Customer, Order #, Sales Rep, Status, Progress, Actions
+  - sticky Actions column
+  - compact 64px rows with tighter content-tailored widths instead of the old `@gnd/ui/data-table` shell
+- The queue table now uses the Sales Orders-style height contract `calc(100vh - 350px + var(--header-offset, 0px))` instead of capping the table at 560px.
+- The queue table surface is flat, not wrapped in a table card; the filter/action row sits directly above the table like the Sales Orders table surface.
 
 ## V2 Core UX
 - Worker dashboard v2 is a mobile-friendly assigned-production board with:
@@ -89,6 +97,7 @@ Provide a cleaner production operations surface for both admins and production w
 ## Notes
 - The rebuild intentionally reuses the existing production list infrastructure instead of creating a second list system.
 - The current dashboard summary is optimized around open production queue visibility and near-term due dates.
+- As of 2026-07-17, the live v2 production pages are also restarted table pages. HTTP/HTTPS smokes for `/production/dashboard/v2` and `/sales-book/productions/v2` return `200`, while `/production/dashboard` still redirects to `/production/dashboard/v2`.
 - The current v2 slice now includes a worker-focused interaction pass:
   - item-card chevrons are pinned to the top-right of each card
   - worker submission UX is optimized for fast repetitive entry

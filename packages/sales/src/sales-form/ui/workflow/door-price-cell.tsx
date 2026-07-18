@@ -123,12 +123,14 @@ export function DoorPriceCell({
 	onSave,
 	profileCoefficient,
 	priceBreakdown,
+	displayPrice,
 	readOnly = false,
 }: {
 	row: DoorPriceRow;
 	onSave: (nextBase: number) => void | Promise<void>;
 	profileCoefficient?: number | null;
 	priceBreakdown?: DoorPriceBreakdownContext | null;
+	displayPrice?: number | null;
 	readOnly?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
@@ -140,9 +142,11 @@ export function DoorPriceCell({
 	const doorSalesPrice = hasStoredBasePrice
 		? profileAdjustedDoorSalesPrice(null, baseUnit, profileCoefficient)
 		: toNumber(row.unitPrice, 0);
-	const displayDoorPrice = getHptDoorSalesUnitPrice(row, {
-		profileCoefficient,
-	});
+	const displayDoorPrice =
+		displayPrice ??
+		getHptDoorSalesUnitPrice(row, {
+			profileCoefficient,
+		});
 	const breakdown = resolveDoorPriceBreakdown(row, {
 		...priceBreakdown,
 		displayUnitPrice: displayDoorPrice,

@@ -1,7 +1,16 @@
 /** @jsxImportSource react */
 "use client";
 
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@gnd/ui/card";
 import { Menu } from "@gnd/ui/custom/menu";
 import {
 	DropdownMenu,
@@ -9,8 +18,16 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { Field, FieldGroup, FieldTitle } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import {
+	InputGroup,
+	InputGroupAddon,
+	InputGroupInput,
+	InputGroupText,
+} from "@gnd/ui/input-group";
+import { Separator } from "@gnd/ui/separator";
 import {
 	Tooltip,
 	TooltipContent,
@@ -22,13 +39,13 @@ import {
 	getHptDoorSalesUnitPrice,
 	resolveHptDoorUnitPriceBreakdown,
 } from "../../domain";
+import { CostPriceBreakdownHover } from "./cost-price-breakdown-hover";
 import {
+	type DoorPriceBreakdownContext,
 	DoorPriceCell,
 	patchDoorRowCustomPrice,
-	type DoorPriceBreakdownContext,
 	updateDoorRowBasePrice,
 } from "./door-price-cell";
-import { CostPriceBreakdownHover } from "./cost-price-breakdown-hover";
 import { clearUnpricedDoorRowQty, isDoorRowPriceMissing } from "./door-utils";
 import type {
 	DoorStoredRow,
@@ -101,7 +118,6 @@ function HptHeaderActionTooltip({
 export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 	const componentId = Number(props.activeDoorComponent?.id || 0);
 	const rowsForComponent = props.focusedRows.map(clearUnpricedDoorRowQty);
-	const priceInputClassName = "h-8 w-24 text-right text-xs";
 	const showDoorTabs = props.selectedDoorComponents.length > 1;
 	const pricingLabels = {
 		doorPrice: props.pricingLabels?.doorPrice || "Door Price",
@@ -287,7 +303,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 												<th className="w-14 px-2 py-2 text-right">Total</th>
 											</>
 										)}
-										<th className="w-24 px-2 py-2 text-right">Unit</th>
+										<th className="w-24 px-2 py-2 text-right">Estimate</th>
 										<th className="w-24 px-3 py-2 text-right">Line</th>
 										<th className="w-20 px-2 py-2 text-right">Remove</th>
 									</tr>
@@ -312,6 +328,8 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											quantity: row.totalQty,
 											displayPrice: row.lineTotal,
 										};
+										const addonInputId = `hpt-addon-${componentId}-${row.id ?? rowIndex}`;
+										const customInputId = `hpt-custom-${componentId}-${row.id ?? rowIndex}`;
 
 										return (
 											<tr
@@ -400,6 +418,7 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 													<DoorPriceCell
 														row={row}
 														profileCoefficient={props.profileCoefficient}
+														displayPrice={unitBreakdown.unitPrice}
 														priceBreakdown={{
 															...props.priceBreakdown,
 															displayUnitPrice: getHptDoorSalesUnitPrice(row, {
@@ -441,170 +460,185 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 															</span>
 														}
 													>
-														<div className="min-w-[260px] space-y-2 p-2 text-left text-xs">
-															<p className="font-bold uppercase text-muted-foreground">
-																Estimate Breakdown
-															</p>
-															{props.pricedSteps.map((step) => (
-																<div
-																	key={`priced-step-${row.dimension}-${step.stepId}-${step.value}`}
-																	className="flex justify-between gap-3"
-																>
-																	<span>
-																		{step?.step?.title || "Component"}
-																	</span>
-																	<span className="font-semibold">
-																		{props.formatMoney(step?.price) || "$0.00"}
-																	</span>
+														<Card className="w-[320px] rounded-lg text-left">
+															<CardHeader className="flex-row items-start justify-between gap-3 p-3">
+																<div className="min-w-0">
+																	<CardTitle>Estimate breakdown</CardTitle>
+																	<CardDescription className="truncate">
+																		{props.componentLabel(
+																			props.activeDoorComponent?.title ||
+																				"Selected Door",
+																		)}{" "}
+																		· {row.dimension || "No size"}
+																	</CardDescription>
 																</div>
-															))}
-															<div className="flex justify-between">
-																<span>Door</span>
-																<span className="font-semibold">
-																	{props.componentLabel(
-																		props.activeDoorComponent?.title ||
-																			"Selected Door",
-																	)}
-																</span>
-															</div>
-															<div className="flex justify-between">
-																<span>Size</span>
-																<span className="font-semibold">
-																	{row.dimension || "--"}
-																</span>
-															</div>
-															<div className="flex justify-between">
-																<span>{pricingLabels.doorPrice}</span>
-																<span className="font-semibold">
-																	{props.formatMoney(
-																		getHptDoorSalesUnitPrice(row, {
-																			sharedDoorSurcharge:
-																				props.sharedDoorSurcharge,
-																			profileCoefficient:
-																				props.profileCoefficient,
-																		}),
-																	) || "$0.00"}
-																</span>
-															</div>
-															{props.canEditPricing ? (
-																<>
-																	<div className="flex justify-between">
-																		<span>Base Cost</span>
-																		<span className="font-semibold">
-																			{row?.meta?.baseUnitPrice == null
-																				? "--"
-																				: props.formatMoney(
-																						firstFiniteNumber(
-																							row?.meta?.baseUnitPrice,
-																							0,
-																						) ?? 0,
-																					) || "$0.00"}
-																		</span>
-																	</div>
-																	<div className="flex justify-between">
-																		<span>Component Surcharge</span>
-																		<span className="font-semibold">
+																<Badge variant="secondary">
+																	Qty {Number(row.totalQty || 0)}
+																</Badge>
+															</CardHeader>
+															<CardContent className="flex flex-col gap-3 p-3 pt-0">
+																<dl className="flex flex-col gap-1.5">
+																	<div className="flex items-center justify-between gap-4">
+																		<dt className="text-muted-foreground">
+																			{pricingLabels.doorPrice}
+																		</dt>
+																		<dd className="font-medium">
 																			{props.formatMoney(
-																				props.sharedDoorSurcharge,
+																				getHptDoorSalesUnitPrice(row, {
+																					sharedDoorSurcharge:
+																						props.sharedDoorSurcharge,
+																					profileCoefficient:
+																						props.profileCoefficient,
+																				}),
 																			) || "$0.00"}
-																		</span>
+																		</dd>
 																	</div>
-																</>
-															) : null}
-															<div className="flex justify-between">
-																<span>Final Unit</span>
-																{unitBreakdown.hasCustomPrice ? (
-																	<span className="flex items-center gap-2 font-semibold">
-																		<span className="text-muted-foreground line-through">
-																			{props.formatMoney(
-																				unitBreakdown.calculatedFinalUnitPrice,
-																			) || "$0.00"}
+																	{props.pricedSteps.map((step) => (
+																		<div
+																			key={`priced-step-${row.dimension}-${step.stepId}-${step.value}`}
+																			className="flex items-center justify-between gap-4"
+																		>
+																			<dt className="truncate text-muted-foreground">
+																				{step?.step?.title || "Component"}
+																			</dt>
+																			<dd className="font-medium">
+																				{props.formatMoney(step?.price) ||
+																					"$0.00"}
+																			</dd>
+																		</div>
+																	))}
+																	{props.canEditPricing ? (
+																		<div className="flex items-center justify-between gap-4">
+																			<dt className="text-muted-foreground">
+																				Base cost
+																			</dt>
+																			<dd className="font-medium">
+																				{row?.meta?.baseUnitPrice == null
+																					? "Not set"
+																					: props.formatMoney(
+																							firstFiniteNumber(
+																								row?.meta?.baseUnitPrice,
+																								0,
+																							) ?? 0,
+																						) || "$0.00"}
+																			</dd>
+																		</div>
+																	) : null}
+																</dl>
+																<Separator />
+																<div className="flex items-center justify-between gap-4">
+																	<div className="flex items-center gap-2">
+																		<span className="font-medium">
+																			Final unit
 																		</span>
-																		<span>
+																		{unitBreakdown.hasCustomPrice ? (
+																			<Badge variant="outline">Custom</Badge>
+																		) : null}
+																	</div>
+																	{unitBreakdown.hasCustomPrice ? (
+																		<div className="flex items-center gap-2">
+																			<span className="text-muted-foreground line-through">
+																				{props.formatMoney(
+																					unitBreakdown.calculatedFinalUnitPrice,
+																				) || "$0.00"}
+																			</span>
+																			<span className="font-semibold">
+																				{props.formatMoney(
+																					unitBreakdown.unitPrice,
+																				) || "$0.00"}
+																			</span>
+																		</div>
+																	) : (
+																		<span className="font-semibold">
 																			{props.formatMoney(
 																				unitBreakdown.unitPrice,
 																			) || "$0.00"}
 																		</span>
-																	</span>
-																) : (
-																	<span className="font-semibold">
-																		{props.formatMoney(
-																			unitBreakdown.unitPrice,
-																		) || "$0.00"}
-																	</span>
-																)}
-															</div>
-															<div className="flex justify-between">
-																<span>Qty</span>
-																<span className="font-semibold">
-																	{Number(row.totalQty || 0)}
-																</span>
-															</div>
-															<div className="flex items-center justify-between gap-3">
-																<span>{pricingLabels.addonPrice}</span>
+																	)}
+																</div>
 																{props.canEditPricing ? (
-																	<Input
-																		type="number"
-																		step="0.01"
-																		value={row.addon ?? 0}
-																		onChange={(event) =>
-																			props.onPatchRow(row, {
-																				addon: Number(event.target.value || 0),
-																			})
-																		}
-																		className={priceInputClassName}
-																	/>
-																) : (
-																	<span className="font-semibold">
-																		{props.formatMoney(
-																			Number(row.addon || 0),
-																		) || "$0.00"}
-																	</span>
-																)}
-															</div>
-															<div className="flex items-center justify-between gap-3">
-																<span>{pricingLabels.customPrice}</span>
-																{props.canEditPricing ? (
-																	<Input
-																		type="number"
-																		step="0.01"
-																		value={row.customPrice ?? ""}
-																		onChange={(event) => {
-																			const customPrice =
-																				event.target.value === ""
-																					? null
-																					: Number(event.target.value || 0);
-																			props.onPatchRow(
-																				row,
-																				patchDoorRowCustomPrice(
-																					row,
-																					customPrice,
-																				),
-																			);
-																		}}
-																		className={priceInputClassName}
-																	/>
-																) : (
-																	<span className="font-semibold">
-																		{row.customPrice == null ||
-																		row.customPrice === ""
-																			? "Auto"
-																			: props.formatMoney(
-																					Number(row.customPrice || 0),
-																				) || "$0.00"}
-																	</span>
-																)}
-															</div>
-															<div className="border-t pt-2" />
-															<div className="flex justify-between text-sm">
-																<span className="font-semibold">
-																	Line Total
-																</span>
-																<span className="font-bold">
+																	<>
+																		<Separator />
+																		<FieldGroup className="gap-2">
+																			<Field
+																				orientation="horizontal"
+																				className="gap-2"
+																			>
+																				<FieldTitle>
+																					{pricingLabels.addonPrice}
+																				</FieldTitle>
+																				<InputGroup className="h-8 w-28">
+																					<InputGroupAddon>
+																						<InputGroupText>$</InputGroupText>
+																					</InputGroupAddon>
+																					<InputGroupInput
+																						id={addonInputId}
+																						aria-label={
+																							pricingLabels.addonPrice
+																						}
+																						type="number"
+																						step="0.01"
+																						value={row.addon ?? 0}
+																						onChange={(event) =>
+																							props.onPatchRow(row, {
+																								addon: Number(
+																									event.target.value || 0,
+																								),
+																							})
+																						}
+																						className="text-right"
+																					/>
+																				</InputGroup>
+																			</Field>
+																			<Field
+																				orientation="horizontal"
+																				className="gap-2"
+																			>
+																				<FieldTitle>
+																					{pricingLabels.customPrice}
+																				</FieldTitle>
+																				<InputGroup className="h-8 w-28">
+																					<InputGroupAddon>
+																						<InputGroupText>$</InputGroupText>
+																					</InputGroupAddon>
+																					<InputGroupInput
+																						id={customInputId}
+																						aria-label={
+																							pricingLabels.customPrice
+																						}
+																						type="number"
+																						step="0.01"
+																						value={row.customPrice ?? ""}
+																						onChange={(event) => {
+																							const customPrice =
+																								event.target.value === ""
+																									? null
+																									: Number(
+																											event.target.value || 0,
+																										);
+																							props.onPatchRow(
+																								row,
+																								patchDoorRowCustomPrice(
+																									row,
+																									customPrice,
+																								),
+																							);
+																						}}
+																						className="text-right"
+																					/>
+																				</InputGroup>
+																			</Field>
+																		</FieldGroup>
+																	</>
+																) : null}
+															</CardContent>
+															<CardFooter className="justify-between p-3">
+																<span>Line total</span>
+																<span className="font-semibold text-foreground">
 																	{props.formatMoney(row.lineTotal) || "$0.00"}
 																</span>
-															</div>
-														</div>
+															</CardFooter>
+														</Card>
 													</Menu>
 												</td>
 												<td className="px-2 py-2 text-right">

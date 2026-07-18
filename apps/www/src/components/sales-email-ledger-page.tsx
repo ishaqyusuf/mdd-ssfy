@@ -1,43 +1,47 @@
 "use client";
 
+import { ErrorFallback } from "@/components/error-fallback";
+import { SalesEmailLedgerColumnVisibility } from "@/components/tables-2/sales-email-ledger/column-visibility";
+import type { SalesEmailLedgerRow } from "@/components/tables-2/sales-email-ledger/columns";
+import {
+	DataTable,
+	type PageInfo as SalesEmailLedgerPageInfo,
+} from "@/components/tables-2/sales-email-ledger/data-table";
+import { SalesEmailLedgerSkeleton } from "@/components/tables-2/sales-email-ledger/skeleton";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
 import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@gnd/ui/table";
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@gnd/ui/select";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense, useMemo, useState } from "react";
 
-type EmailAttempt =
-	RouterOutputs["emails"]["salesEmailAttempts"]["rows"][number];
+type SalesEmailLedgerInput = RouterInputs["emails"]["salesEmailAttempts"];
+const SALES_EMAIL_ATTEMPT_STATUSES = [
+	"QUEUED",
+	"SENDING",
+	"SENT",
+	"FAILED",
+	"SKIPPED",
+] as const;
+type StatusFilter = "all" | (typeof SALES_EMAIL_ATTEMPT_STATUSES)[number];
 
-const STATUSES = ["QUEUED", "SENDING", "SENT", "FAILED", "SKIPPED"] as const;
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
 
-function toDate(value?: string | Date | null) {
-	if (!value) return null;
-	const date = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function formatDateTime(value?: string | Date | null) {
-	const date = toDate(value);
-	if (!date) return "Not set";
-	return format(date, "MMM d, yyyy h:mm a");
-}
-
-function statusLabel(status: EmailAttempt["status"]) {
+function statusLabel(status: (typeof SALES_EMAIL_ATTEMPT_STATUSES)[number]) {
 	switch (status) {
 		case "QUEUED":
 			return "Queued";
@@ -54,65 +58,28 @@ function statusLabel(status: EmailAttempt["status"]) {
 	}
 }
 
-function statusClassName(status: EmailAttempt["status"]) {
-	switch (status) {
-		case "SENT":
-			return "border-emerald-200 bg-emerald-50 text-emerald-700";
-		case "FAILED":
-			return "border-rose-200 bg-rose-50 text-rose-700";
-		case "SKIPPED":
-			return "border-amber-200 bg-amber-50 text-amber-700";
-		case "SENDING":
-			return "border-sky-200 bg-sky-50 text-sky-700";
-		default:
-			return "border-muted bg-muted/40 text-muted-foreground";
-	}
-}
-
-function emailKindLabel(attempt: EmailAttempt) {
-	const doc = attempt.documentType === "quote" ? "Quote" : "Invoice";
-	if (attempt.emailKind === "composed_sales_document_email") {
-		return `Custom ${doc}`;
-	}
-	return doc;
-}
-
-function personLabel(
-	person?: { name?: string | null; email?: string | null } | null,
-) {
-	return person?.name || person?.email || "Not assigned";
-}
-
-function sentStatusDate(attempt: EmailAttempt) {
-	return (
-		attempt.sentAt || attempt.failedAt || attempt.skippedAt || attempt.createdAt
-	);
-}
-
-export function SalesEmailLedgerPage() {
+export function SalesEmailLedgerPage({ initialSettings }: Props) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
-	const [status, setStatus] = useState<"" | (typeof STATUSES)[number]>("");
+	const [status, setStatus] = useState<StatusFilter>("all");
 	const [page, setPage] = useState(1);
+	const [pageInfo, setPageInfo] = useState<SalesEmailLedgerPageInfo | null>(
+		null,
+	);
 	const size = 25;
 
-	const listInput = useMemo(
-		() => ({
-			q: search.trim() || undefined,
-			status: status || undefined,
-			page,
-			size,
-		}),
+	const filters = useMemo(
+		() =>
+			({
+				q: search.trim() || undefined,
+				status: status === "all" ? undefined : status,
+				page,
+				size,
+			}) satisfies SalesEmailLedgerInput,
 		[page, search, status],
 	);
-	const attemptsQuery = useQuery(
-		trpc.emails.salesEmailAttempts.queryOptions(listInput),
-	);
-	const attempts = attemptsQuery.data?.rows ?? [];
-	const canResend = Boolean(attemptsQuery.data?.canResend);
-	const total = attemptsQuery.data?.total ?? 0;
-	const pageCount = attemptsQuery.data?.pageCount ?? 1;
+	const hasFilters = Boolean(search.trim()) || status !== "all";
 
 	const refresh = async () => {
 		await queryClient.invalidateQueries({
@@ -139,225 +106,134 @@ export function SalesEmailLedgerPage() {
 		}),
 	);
 
+	const clearFilters = () => {
+		setSearch("");
+		setStatus("all");
+		setPage(1);
+	};
+
+	const isResendingAttemptId =
+		resendMutation.isPending && resendMutation.variables
+			? resendMutation.variables.attemptId
+			: null;
+
 	return (
-		<div className="space-y-4 px-4 pb-8 md:px-8">
-			<Card>
-				<CardHeader className="gap-4">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<div>
-							<CardTitle>Email Transactions</CardTitle>
-							<p className="mt-1 text-sm text-muted-foreground">
-								{total.toLocaleString()} transaction{total === 1 ? "" : "s"}
-							</p>
-						</div>
-						<Button
-							type="button"
-							variant="outline"
-							onClick={() => void refresh()}
-							disabled={attemptsQuery.isFetching}
-						>
-							{attemptsQuery.isFetching ? (
-								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
-							) : (
-								<Icons.RefreshCw className="mr-2 size-4" />
-							)}
-							Refresh
-						</Button>
-					</div>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center">
-						<div className="relative min-w-0 flex-1">
+		<div className="flex min-w-0 flex-col gap-4">
+			<div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+				<div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_190px] lg:flex-1">
+					<div className="grid gap-1.5">
+						<Label htmlFor="sales-email-ledger-search">Search</Label>
+						<div className="relative">
 							<Icons.Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
+								id="sales-email-ledger-search"
 								value={search}
 								onChange={(event) => {
-									setSearch(event.target.value);
 									setPage(1);
+									setSearch(event.target.value);
 								}}
-								placeholder="Search recipient, customer, order, or subject"
+								placeholder="Recipient, customer, order, or subject"
 								className="pl-9"
 							/>
 						</div>
-						<select
+					</div>
+					<div className="grid gap-1.5">
+						<Label>Status</Label>
+						<Select
 							value={status}
-							onChange={(event) => {
-								setStatus(event.target.value as typeof status);
+							onValueChange={(value) => {
 								setPage(1);
+								setStatus(value as StatusFilter);
 							}}
-							className="h-10 rounded-md border bg-background px-3 text-sm"
-							aria-label="Email status"
 						>
-							<option value="">All statuses</option>
-							{STATUSES.map((item) => (
-								<option key={item} value={item}>
-									{statusLabel(item)}
-								</option>
-							))}
-						</select>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All statuses</SelectItem>
+								{SALES_EMAIL_ATTEMPT_STATUSES.map((item) => (
+									<SelectItem key={item} value={item}>
+										{statusLabel(item)}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
+				</div>
+				<div className="flex items-center gap-2">
+					<SalesEmailLedgerColumnVisibility />
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => void refresh()}
+						disabled={pageInfo?.isFetching}
+					>
+						{pageInfo?.isFetching ? (
+							<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+						) : (
+							<Icons.RefreshCw className="mr-2 size-4" />
+						)}
+						Refresh
+					</Button>
+				</div>
+			</div>
 
-					<div className="overflow-hidden rounded-md border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Status</TableHead>
-									<TableHead>Recipient</TableHead>
-									<TableHead>Sales</TableHead>
-									<TableHead>Subject</TableHead>
-									<TableHead>Rep</TableHead>
-									<TableHead>Provider</TableHead>
-									<TableHead className="w-[130px] text-right">Action</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{attemptsQuery.isPending ? (
-									<TableRow>
-										<TableCell colSpan={7} className="h-24 text-center">
-											<Icons.Loader2 className="mx-auto mb-2 size-4 animate-spin text-muted-foreground" />
-											Loading emails...
-										</TableCell>
-									</TableRow>
-								) : attempts.length ? (
-									attempts.map((attempt) => (
-										<TableRow key={attempt.id}>
-											<TableCell>
-												<div className="space-y-1.5">
-													<Badge
-														variant="outline"
-														className={statusClassName(attempt.status)}
-													>
-														{statusLabel(attempt.status)}
-													</Badge>
-													<p className="text-xs text-muted-foreground">
-														{formatDateTime(sentStatusDate(attempt))}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="max-w-[240px] space-y-1">
-													<p className="truncate text-sm font-medium">
-														{attempt.customerName || "Customer"}
-													</p>
-													<p className="truncate text-xs text-muted-foreground">
-														{attempt.recipientEmail || "No email address"}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="space-y-1">
-													<p className="text-sm font-medium">
-														{emailKindLabel(attempt)}
-													</p>
-													<p className="max-w-[180px] truncate text-xs text-muted-foreground">
-														{attempt.salesNos?.length
-															? attempt.salesNos.join(", ")
-															: "No sales reference"}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="max-w-[280px] space-y-1">
-													<p className="truncate text-sm">
-														{attempt.subject || "No subject"}
-													</p>
-													{attempt.errorMessage ? (
-														<p className="truncate text-xs text-rose-600">
-															{attempt.errorMessage}
-														</p>
-													) : null}
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="max-w-[200px] space-y-1">
-													<p className="truncate text-sm">
-														{personLabel(attempt.salesRep)}
-													</p>
-													<p className="truncate text-xs text-muted-foreground">
-														By {personLabel(attempt.sender)}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell>
-												<div className="max-w-[180px] space-y-1">
-													<p className="text-sm">
-														{attempt.provider || "Provider"}
-													</p>
-													<p className="truncate text-xs text-muted-foreground">
-														{attempt.providerMessageId ||
-															attempt.providerStatus ||
-															"Pending"}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell className="text-right">
-												{canResend && attempt.canResend ? (
-													<Button
-														type="button"
-														size="sm"
-														variant="outline"
-														disabled={resendMutation.isPending}
-														onClick={() =>
-															resendMutation.mutate({
-																attemptId: attempt.id,
-															})
-														}
-													>
-														{resendMutation.isPending ? (
-															<Icons.Loader2 className="mr-2 size-4 animate-spin" />
-														) : (
-															<Icons.RotateCcw className="mr-2 size-4" />
-														)}
-														Resend
-													</Button>
-												) : (
-													<span className="text-xs text-muted-foreground">
-														-
-													</span>
-												)}
-											</TableCell>
-										</TableRow>
-									))
-								) : (
-									<TableRow>
-										<TableCell colSpan={7} className="h-24 text-center">
-											No email transactions found.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-					</div>
+			<ErrorBoundary errorComponent={ErrorFallback}>
+				<Suspense
+					fallback={
+						<SalesEmailLedgerSkeleton initialSettings={initialSettings} />
+					}
+				>
+					<DataTable
+						initialSettings={initialSettings}
+						filters={filters}
+						hasFilters={hasFilters}
+						isResendingAttemptId={isResendingAttemptId}
+						onClearFilters={clearFilters}
+						onResend={(attempt: SalesEmailLedgerRow) =>
+							resendMutation.mutate({ attemptId: attempt.id })
+						}
+						onPageInfoChange={setPageInfo}
+					/>
+				</Suspense>
+			</ErrorBoundary>
 
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<p className="text-sm text-muted-foreground">
-							Page {page} of {pageCount}
-						</p>
-						<div className="flex items-center gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								disabled={page <= 1 || attemptsQuery.isFetching}
-								onClick={() => setPage((value) => Math.max(1, value - 1))}
-							>
-								Previous
-							</Button>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								disabled={page >= pageCount || attemptsQuery.isFetching}
-								onClick={() =>
-									setPage((value) => Math.min(pageCount, value + 1))
-								}
-							>
-								Next
-							</Button>
-						</div>
-					</div>
-				</CardContent>
-			</Card>
+			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+				<p className="text-sm text-muted-foreground">
+					{pageInfo
+						? `${pageInfo.total.toLocaleString()} transaction${
+								pageInfo.total === 1 ? "" : "s"
+							} • Page ${pageInfo.page} of ${pageInfo.pageCount}`
+						: "Loading email transactions"}
+				</p>
+				<div className="flex items-center gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={page <= 1 || pageInfo?.isFetching}
+						onClick={() => setPage((value) => Math.max(1, value - 1))}
+					>
+						Previous
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={
+							Boolean(pageInfo && page >= pageInfo.pageCount) ||
+							pageInfo?.isFetching
+						}
+						onClick={() =>
+							setPage((value) =>
+								Math.min(pageInfo?.pageCount ?? value, value + 1),
+							)
+						}
+					>
+						Next
+					</Button>
+				</div>
+			</div>
 		</div>
 	);
 }

@@ -1,9 +1,9 @@
-import { createTRPCRouter, protectedProcedure } from "../init";
 import {
 	bootstrapNewSalesForm,
-	deleteNewSalesFormShelfProduct,
 	deleteNewSalesFormLineItem,
+	deleteNewSalesFormShelfProduct,
 	getNewSalesForm,
+	getNewSalesFormHistorySnapshot,
 	getNewSalesFormShelfCategories,
 	getNewSalesFormShelfProductDetails,
 	getNewSalesFormShelfProductIndex,
@@ -20,14 +20,15 @@ import {
 } from "@api/db/queries/new-sales-form";
 import {
 	bootstrapNewSalesFormSchema,
-	deleteNewSalesFormShelfProductSchema,
 	deleteNewSalesFormLineItemSchema,
+	deleteNewSalesFormShelfProductSchema,
+	getNewSalesFormHistorySnapshotSchema,
 	getNewSalesFormSchema,
-	getNewSalesFormStepRoutingSchema,
 	getNewSalesFormShelfCategoriesSchema,
 	getNewSalesFormShelfProductDetailsSchema,
 	getNewSalesFormShelfProductIndexSchema,
 	getNewSalesFormShelfProductsSchema,
+	getNewSalesFormStepRoutingSchema,
 	recalculateNewSalesFormSchema,
 	resolveNewSalesCustomerSchema,
 	saveDraftNewSalesFormSchema,
@@ -37,6 +38,7 @@ import {
 	searchNewSalesFormShelfProductsSchema,
 	updateNewSalesFormShelfProductSchema,
 } from "@api/schemas/new-sales-form";
+import { createTRPCRouter, protectedProcedure } from "../init";
 
 export const newSalesFormRouter = createTRPCRouter({
 	bootstrap: protectedProcedure
@@ -47,6 +49,11 @@ export const newSalesFormRouter = createTRPCRouter({
 	get: protectedProcedure.input(getNewSalesFormSchema).query(async (props) => {
 		return getNewSalesForm(props.ctx, props.input);
 	}),
+	getHistorySnapshot: protectedProcedure
+		.input(getNewSalesFormHistorySnapshotSchema)
+		.query(async (props) => {
+			return getNewSalesFormHistorySnapshot(props.ctx, props.input);
+		}),
 	getStepRouting: protectedProcedure
 		.input(getNewSalesFormStepRoutingSchema)
 		.query(async (props) => {

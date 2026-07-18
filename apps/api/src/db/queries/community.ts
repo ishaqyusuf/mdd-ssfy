@@ -1315,7 +1315,16 @@ export async function getCommunityProjects(
     })),
   );
 }
-function whereCommunityProjects(query: GetCommunityProjectsSchema) {
+export async function getCommunityProjectsCount(
+  ctx: TRPCContext,
+  query: GetCommunityProjectsSchema,
+) {
+  return ctx.db.projects.count({
+    where: whereCommunityProjects(query),
+  });
+}
+
+export function whereCommunityProjects(query: GetCommunityProjectsSchema) {
   const where: Prisma.ProjectsWhereInput[] = [];
   for (const [k, v] of Object.entries(query)) {
     if (!v) continue;

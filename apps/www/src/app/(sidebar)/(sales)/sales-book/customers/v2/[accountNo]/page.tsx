@@ -1,9 +1,11 @@
 import { AuthGuard } from "@/components/auth-guard";
 import { CustomerOverviewV2Content } from "@/components/customer-v2/customer-overview-v2-content";
 import PageShell from "@/components/page-shell";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { _role } from "@/components/sidebar-links";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 
 export const dynamic = "force-dynamic";
@@ -21,30 +23,36 @@ export default async function CustomerOverviewV2Page({
 }) {
 	const { accountNo } = await params;
 	const decodedAccountNo = decodeURIComponent(accountNo);
-	const queryClient = getQueryClient();
-	const initialOverviewData = await queryClient.fetchQuery(
+	const customerOverviewSalesPreviewInitialSettings =
+		await getInitialTableSettings("customer-overview-sales-preview");
+
+	batchPrefetch([
 		trpc.customers.getCustomerOverviewV2.queryOptions({
 			accountNo: decodedAccountNo,
 		}),
-	);
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<PageTitle>Customer Overview V2</PageTitle>
-				<AuthGuard
-					Fallback={
-						<div className="rounded-xl border p-6 text-sm text-muted-foreground">
-							You do not have access to this customer v2 workspace.
-						</div>
-					}
-					rules={[_role.is("Super Admin")]}
-				>
-					<CustomerOverviewV2Content
-						accountNo={decodedAccountNo}
-						initialOverviewData={initialOverviewData as any}
-					/>
-				</AuthGuard>
+				<ScrollableContent>
+					<PageTitle>Customer Overview V2</PageTitle>
+					<AuthGuard
+						Fallback={
+							<div className="rounded-xl border p-6 text-sm text-muted-foreground">
+								You do not have access to this customer v2 workspace.
+							</div>
+						}
+						rules={[_role.is("Super Admin")]}
+					>
+						<CustomerOverviewV2Content
+							accountNo={decodedAccountNo}
+							customerOverviewSalesPreviewInitialSettings={
+								customerOverviewSalesPreviewInitialSettings
+							}
+						/>
+					</AuthGuard>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

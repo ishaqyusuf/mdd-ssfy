@@ -1,6 +1,7 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
 import { SalesQuoteHeader } from "@/components/sales-quote-header";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/sales-quotes/data-table";
 import { SalesQuotesSkeleton } from "@/components/tables-2/sales-quotes/skeleton";
 import { normalizeSalesQuoteSort } from "@/components/tables-2/sales-quotes/sort";
@@ -51,19 +52,21 @@ export default async function Page(props: Props) {
 	return (
 		<PageShell>
 			<HydrateClient>
-				<PageTitle>Quotes</PageTitle>
-				<div className="flex flex-col gap-6">
-					<SalesQuoteHeader />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense
-							fallback={
-								<SalesQuotesSkeleton initialSettings={initialSettings} />
-							}
-						>
-							<DataTable initialSettings={initialSettings} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Quotes</PageTitle>
+						<SalesQuoteHeader />
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<SalesQuotesSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

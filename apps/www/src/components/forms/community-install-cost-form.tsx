@@ -1,39 +1,26 @@
+import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
-import { updateInstallCostSchema } from "@api/schemas/community";
-import { RouterOutputs } from "@api/trpc/routers/_app";
-import { Form } from "@gnd/ui/form";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
-import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
-import { useEffect } from "react";
-import { TCell } from "../(clean-code)/data-table/table-cells";
-import { CustomModalPortal } from "../modals/custom-modal";
-import { DialogFooter } from "@gnd/ui/dialog";
-import { SubmitButton } from "../submit-button";
-import FormInput from "../common/controls/form-input";
-import Money from "../_v1/money";
-import { toast } from "@gnd/ui/use-toast";
-import { FormDebugBtn } from "../form-debug-btn";
-import { cn } from "@gnd/ui/cn";
-
-import { Env } from "../env";
-import { Field } from "@gnd/ui/namespace";
-import { Controller } from "react-hook-form";
-import { Input } from "@gnd/ui/input";
-import z from "zod";
-import { useCommunityInstallCostParams } from "@/hooks/use-community-install-cost-params";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import Portal from "@gnd/ui/custom/portal";
+import { DialogFooter } from "@gnd/ui/dialog";
+import { Form } from "@gnd/ui/form";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import { toast } from "@gnd/ui/use-toast";
+import { useEffect, useMemo } from "react";
+import { FormDebugBtn } from "../form-debug-btn";
+import { CustomModalPortal } from "../modals/custom-modal";
+import { SubmitButton } from "../submit-button";
+import { DataTable as CommunityInstallCostFormTasksTable } from "../tables-2/community-install-cost-form-tasks/data-table";
+import {
+    type CommunityInstallCostFormValues,
+    communityInstallCostFormTasksSchema,
+} from "../tables-2/community-install-cost-form-tasks/schema";
 
 interface Props {
     model: RouterOutputs["community"]["communityInstallCostForm"];
 }
+
 export function CommunityInstallCostForm({ model }: Props) {
     const trpc = useTRPC();
     const { setParams, openToSide } = useCommunityInstallCostParams();
@@ -63,9 +50,7 @@ export function CommunityInstallCostForm({ model }: Props) {
         }),
     );
     const form = useZodForm(
-        updateInstallCostSchema.extend({
-            installCost: z.any().optional().nullable(),
-        }),
+        communityInstallCostFormTasksSchema,
         {
             defaultValues: {
                 pivotId: model?.pivotId,
@@ -84,20 +69,21 @@ export function CommunityInstallCostForm({ model }: Props) {
             installCost: model?.installCost,
             // costIndex: model?.costIndex,
         });
-    }, [model]);
-    const onSubmit = async (formData) => {
+    }, [form, model]);
+    const onSubmit = async (formData: CommunityInstallCostFormValues) => {
         const installCost = Object.fromEntries(
             Object.entries(formData?.installCost || {})?.filter(
                 ([a, b]) => !!b,
             ),
         );
+        const pivotMeta = (model?.meta?.pivot || {}) as Record<string, unknown>;
         const meta = {
             communityModel: {
                 ...(model?.meta?.communityModel || {}),
                 installCosts: [installCost],
             },
             pivot: {
-                ...((model?.meta?.pivot || {}) as any),
+                ...pivotMeta,
                 installCost,
             },
         };
@@ -109,12 +95,24 @@ export function CommunityInstallCostForm({ model }: Props) {
             meta,
         });
     };
-    // const [costs, tax] = form.watch(["costs", "tax"]);
-    // const total = sum(
-    //     model?.builderTasks
-    //         ?.map((t) => sum([costs?.[t.uid], tax?.[t.uid]]))
-    //         .flat()
-    // );
+    const installCostValues = form.watch("installCost");
+    const activeTaskUids = useMemo(
+        () =>
+            new Set(
+                Object.entries(installCostValues || {})
+                    .filter(([, value]) => Number(value) > 0)
+                    .map(([uid]) => uid),
+            ),
+        [installCostValues],
+    );
+    const taskRows =
+        model?.config?.list?.map((task, index) => ({
+            uid: String(task.uid ?? task.id ?? task.title ?? index),
+            title: task.title ?? null,
+            cost: task.cost ?? null,
+            defaultQty: task.defaultQty ?? null,
+        })) || [];
+
     const Actions = (
         <>
             <div className="text-xl font-semibold">
@@ -131,74 +129,11 @@ export function CommunityInstallCostForm({ model }: Props) {
         <Form {...form}>
             <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                    <Table className="table-sm w-full">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Task</TableHead>
-                                <TableHead className="w-32">Def. Qty</TableHead>
-                                <TableHead className="w-32">Qty</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {model?.config?.list?.map((task, ti) => (
-                                <TableRow
-                                    className={cn(
-                                        form.getValues(
-                                            `installCost.${task.uid}` as any,
-                                        ) > 0
-                                            ? "bg-teal-50"
-                                            : "",
-                                    )}
-                                    key={ti}
-                                >
-                                    <TableCell>
-                                        <TCell.Primary className="uppercase">
-                                            {task?.title}
-                                            <Env isDev>{task?.uid}</Env>
-                                        </TCell.Primary>
-                                        <TCell.Secondary>
-                                            <Money value={task.cost} />
-                                            {" per qty"}
-                                        </TCell.Secondary>
-                                    </TableCell>
-
-                                    <TableCell></TableCell>
-                                    <TableCell>
-                                        <Field.Group>
-                                            <Controller
-                                                control={form.control}
-                                                name={`installCost.${task.uid}`}
-                                                render={(props) => (
-                                                    <Input
-                                                        placeholder="0"
-                                                        className="h-8 w-16"
-                                                        // type="tel"
-                                                        {...props.field}
-                                                        value={String(
-                                                            props.field?.value
-                                                                ? props.field
-                                                                      ?.value
-                                                                : "",
-                                                        )}
-                                                    />
-                                                )}
-                                            />
-                                        </Field.Group>
-                                        {/* <FormInput
-                                            control={form.control}
-                                            name={`installCost.${task.uid}`}
-                                            numericProps={{
-                                                // prefix: "$",
-                                                placeholder: "0",
-                                                className: "h-8 w-16",
-                                                type: "tel",
-                                            }}
-                                        /> */}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <CommunityInstallCostFormTasksTable
+                        activeTaskUids={activeTaskUids}
+                        control={form.control}
+                        data={taskRows}
+                    />
                 </div>
                 {openToSide ? (
                     <Portal nodeId={"install-cost-sidebar-footer"}>

@@ -1,12 +1,20 @@
 /** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import type { JSX } from "react";
+import type { SalesPageBreakMode } from "./shared/page-break-mode";
+
+export {
+	DEFAULT_SALES_PAGE_BREAK_MODE,
+	normalizeSalesPageBreakMode,
+} from "./shared/page-break-mode";
+export type { SalesPageBreakMode } from "./shared/page-break-mode";
 
 export const HEADLINE_FIRST_PAGE = true;
 
 export interface SalesTemplateConfig {
 	showImages: boolean;
 	headlineFirstPage: boolean;
+	pageBreakMode: SalesPageBreakMode;
 }
 
 export interface SalesTemplateRenderProps {
@@ -53,5 +61,10 @@ const templates: Record<string, SalesTemplateRegistryEntry> = {
 };
 
 export function getTemplate(id: string): SalesTemplateRegistryEntry {
-	return templates[id] ?? templates["template-1"];
+	const fallback = templates["template-1"];
+	if (!fallback) {
+		throw new Error("Default sales PDF template is not registered.");
+	}
+
+	return templates[id] ?? fallback;
 }

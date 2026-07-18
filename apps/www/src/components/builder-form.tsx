@@ -1,21 +1,19 @@
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useTRPC } from "@/trpc/client";
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { builderFormSchema } from "@community/schema";
+import { Button } from "@gnd/ui/button";
+import { InputField } from "@gnd/ui/controls-2/input-field";
+import { Form } from "@gnd/ui/form";
+import { Icons } from "@gnd/ui/icons";
+import { Separator } from "@gnd/ui/separator";
 import { SubmitButton } from "@gnd/ui/submit-button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { InputField } from "@gnd/ui/controls-2/input-field";
-import { CheckboxField } from "@gnd/ui/controls-2/checkbox-field";
-import { Separator } from "@gnd/ui/separator";
-import { Table } from "@gnd/ui/namespace";
+import { useEffect, useMemo } from "react";
 import { useFieldArray } from "react-hook-form";
-import { ConfirmBtn } from "@gnd/ui/confirm-button";
-import { useEffect } from "react";
-import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
-import { Form } from "@gnd/ui/form";
-import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
+import FormInput from "./common/controls/form-input";
+import { DataTable as BuilderFormTasksTable } from "./tables-2/builder-form-tasks/data-table";
 
 interface BuilderFormProps {
     defaultValues?: RouterOutputs["community"]["getBuilderForm"];
@@ -25,7 +23,7 @@ export function BuilderForm(props: BuilderFormProps) {
     const form = useZodForm(builderFormSchema, {
         defaultValues: {
             name: "",
-            adddress: "",
+            address: "",
             tasks: [],
         },
     });
@@ -37,10 +35,18 @@ export function BuilderForm(props: BuilderFormProps) {
 
     useEffect(() => {
         if (props.defaultValues) {
-            console.log("Resetting form with:", props.defaultValues);
             form.reset(props.defaultValues);
         }
-    }, [props.defaultValues]);
+    }, [form, props.defaultValues]);
+    const taskRows = useMemo(
+        () =>
+            fields.map((field, index) => ({
+                fieldId: field._id,
+                index,
+                taskId: field.id ?? null,
+            })),
+        [fields],
+    );
     if (props.defaultValues?.isLegacy) return <UpgradeRequiredNotice />;
     return (
         <Form {...form}>
@@ -51,102 +57,37 @@ export function BuilderForm(props: BuilderFormProps) {
                         name="name"
                         label="Builder Name"
                     />
-                    <InputField
+                    <FormInput
                         control={form.control}
                         name="address"
                         label="Address"
-                        textarea
+                        type="textarea"
                     />
                 </div>
                 <Separator />
-                <Table>
-                    <Table.Header>
-                        <Table.Row className="bg-muted hover:bg-default">
-                            {/* <Table.Head className="w-[50px]" /> */}
-                            <Table.Head>Task Name</Table.Head>
-                            <Table.Head>Addon %</Table.Head>
-                            <Table.Head align="center">
-                                <TextWithTooltip
-                                    className="max-w-12"
-                                    text="Billable"
-                                />
-                            </Table.Head>
-                            <Table.Head align="center">
-                                <TextWithTooltip
-                                    className="max-w-12"
-                                    text="Job"
-                                />
-                            </Table.Head>
-                            <Table.Head align="center">
-                                <TextWithTooltip
-                                    className="max-w-12"
-                                    text="Productionable"
-                                />
-                            </Table.Head>
-                            <Table.Head></Table.Head>
-                        </Table.Row>
-                    </Table.Header>
-                    <Table.Body>
-                        {fields.map((field, index) => (
-                            <Table.Row key={field.id}>
-                                <Table.Cell>
-                                    <InputField
-                                        control={form.control}
-                                        name={`tasks.${index}.taskName`}
-                                    />
-                                </Table.Cell>
-                                <Table.Cell align="center">
-                                    <InputField
-                                        // className="max-w-[60px]"
-                                        className="w-20"
-                                        control={form.control}
-                                        name={`tasks.${index}.addonPercentage`}
-                                        type="number"
-                                        suffix="%"
-                                    />
-                                </Table.Cell>
-                                <Table.Cell align="center">
-                                    <CheckboxField
-                                        control={form.control}
-                                        name={`tasks.${index}.billable`}
-                                    />
-                                </Table.Cell>
-                                <Table.Cell>
-                                    <CheckboxField
-                                        control={form.control}
-                                        name={`tasks.${index}.installable`}
-                                    />
-                                </Table.Cell>
-                                <Table.Cell>
-                                    <CheckboxField
-                                        control={form.control}
-                                        name={`tasks.${index}.productionable`}
-                                    />
-                                </Table.Cell>
-                                <Table.Cell>
-                                    <ConfirmBtn onClick={(e) => {}} trash />
-                                </Table.Cell>
-                            </Table.Row>
-                        ))}
-                    </Table.Body>
-                    <Table.Footer className="bg-inherit hover:bg-inherit">
-                        <Table.Row>
-                            <Table.Cell colSpan={6}>
-                                <Button
-                                    onClick={(e) => {
-                                        append({
-                                            taskName: "",
-                                        });
-                                    }}
-                                    className="w-full"
-                                >
-                                    <Icons.add className="size-4 mr-2" />
-                                    Add
-                                </Button>
-                            </Table.Cell>
-                        </Table.Row>
-                    </Table.Footer>
-                </Table>
+                <div className="space-y-3">
+                    <BuilderFormTasksTable
+                        control={form.control}
+                        data={taskRows}
+                        onRemoveTask={remove}
+                    />
+                    <Button
+                        type="button"
+                        onClick={() => {
+                            append({
+                                taskName: "",
+                                addonPercentage: null,
+                                billable: false,
+                                installable: false,
+                                productionable: false,
+                            });
+                        }}
+                        className="w-full"
+                    >
+                        <Icons.add className="mr-2 size-4" />
+                        Add
+                    </Button>
+                </div>
                 {props.children}
             </div>
         </Form>
@@ -162,10 +103,12 @@ function UpgradeRequiredNotice() {
     const { mutate: handleLegacyUpdate, isPending: isUpgrading } = useMutation(
         trpc.community.upgradeBuilderToV2.mutationOptions({
             onSuccess() {
+                if (!builderId) return;
+
                 // Optionally, you can add a success message or refresh the data here
                 queryClient.invalidateQueries({
                     queryKey: trpc.community.getBuilderForm.queryKey({
-                        builderId: builderId!,
+                        builderId,
                     }),
                 });
             },
@@ -199,6 +142,8 @@ function UpgradeRequiredNotice() {
                     type="button"
                     isSubmitting={isUpgrading}
                     onClick={(e) => {
+                        if (!builderId) return;
+
                         handleLegacyUpdate({ builderId });
                     }}
                     size="lg"
@@ -211,6 +156,7 @@ function UpgradeRequiredNotice() {
                     </div>
                 </SubmitButton>
                 <button
+                    type="button"
                     onClick={onClose}
                     className="w-full py-3 text-muted-foreground hover:text-foreground font-semibold text-sm hover:bg-muted rounded-lg transition-colors"
                 >

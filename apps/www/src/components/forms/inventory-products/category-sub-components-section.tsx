@@ -1,50 +1,25 @@
-
+import Button from "@/components/common/button";
+import type { InventoryProductFormSubComponentRow } from "@/components/tables-2/inventory-product-form-sub-components/columns";
+import { DataTable as InventoryProductFormSubComponentsTable } from "@/components/tables-2/inventory-product-form-sub-components/data-table";
+import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
+import { useTRPC } from "@/trpc/client";
 import {
     AccordionContent,
     AccordionItem,
     AccordionTrigger,
 } from "@gnd/ui/accordion";
-import Button from "@/components/common/button";
-import { useProduct } from "./context";
 import { Card } from "@gnd/ui/card";
 import { Icons } from "@gnd/ui/icons";
-import { useFieldArray } from "react-hook-form";
+import { useMutation } from "@gnd/ui/tanstack";
+import { selectOptions } from "@gnd/utils";
+import { useMemo } from "react";
+import { useProduct } from "./context";
 import { useInventoryForm } from "./form-context";
-import { Fragment, useMemo } from "react";
-import { useInventoryTrpc } from "@/hooks/use-inventory-trpc";
-import { FormCombobox } from "@/components/common/controls/form-combobox";
-import { labelValueOptions, selectOptions } from "@gnd/utils";
-import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery } from "@gnd/ui/tanstack";
-import { ComboxBox } from "@/components/(clean-code)/custom/controlled/combo-box";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
-import {
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { UniqueIdentifier } from "@dnd-kit/core";
-import ConfirmBtn from "@/components/confirm-button";
-import { Progress } from "@gnd/ui/custom/progress";
-import { traceDeprecation } from "process";
-import { toast } from "sonner";
 
-export function CategorySubComponentsSection({}) {
+export function CategorySubComponentsSection() {
     const context = useProduct();
-    const { attributes, inventoryId, subComponentsArray, variantFields } =
-        context;
+    const { inventoryId, subComponentsArray } = context;
     const form = useInventoryForm();
-    const dataIds = useMemo<UniqueIdentifier[]>(
-        () => subComponentsArray?.fields?.map(({ id, _id }) => _id) || [],
-        [subComponentsArray.fields],
-    );
     const nav = useInventoryTrpc({
         enableCategoryList: true,
         productKind: "component",
@@ -60,42 +35,62 @@ export function CategorySubComponentsSection({}) {
             onSuccess(data, variables, context) {},
         }),
     );
-    const handleUpdateStatus = (i) => {
-        const f = subComponentsArray.fields[i];
+    const categoryOptions = useMemo(
+        () => selectOptions(nav.categoryList, "title", "id"),
+        [nav.categoryList],
+    );
+    const tableRows = useMemo<InventoryProductFormSubComponentRow[]>(
+        () =>
+            subComponentsArray.fields.map((field, index) => ({
+                ...field,
+                fieldId: String(field._id || field.id || `sub-component-${index}`),
+                index,
+                parentId: field.parentId ?? inventoryId,
+            })),
+        [inventoryId, subComponentsArray.fields],
+    );
+    const handleUpdateStatus = (row: InventoryProductFormSubComponentRow) => {
+        if (!row.id) return;
         updateStatus.mutate({
-            id: f.id,
-            status: f.status == "published" ? "draft" : "published",
+            id: row.id,
+            status: row.status === "published" ? "draft" : "published",
         });
     };
-    const removeItem = (i, id) => {
-        if (id)
+    const removeItem = (row: InventoryProductFormSubComponentRow) => {
+        if (row.id)
             remove.mutate(
                 {
-                    id,
+                    id: row.id,
                 },
                 {
                     onSuccess(data, variables, context) {
-                        subComponentsArray.remove(i);
+                        subComponentsArray.remove(row.index);
                     },
                 },
             );
-        else subComponentsArray.remove(i);
+        else subComponentsArray.remove(row.index);
     };
-    const handleCategorySelect = (selected, cb, i) => {
-        const f = subComponentsArray.fields[i];
-        const inventoryCategoryId = selected.data.id;
+    const handleCategorySelect = (
+        row: InventoryProductFormSubComponentRow,
+        selected: { data?: { id?: number | string | null } },
+        cb: () => void,
+    ) => {
+        const f = subComponentsArray.fields[row.index];
+        if (!f) return;
+        const inventoryCategoryId = Number(selected.data?.id);
+        if (!Number.isFinite(inventoryCategoryId)) return;
         const __data = {
             id: f.id,
             defaultInventoryId:
-                inventoryCategoryId != f.inventoryCategoryId ? null : undefined,
-            index: i,
+                inventoryCategoryId !== f.inventoryCategoryId ? null : undefined,
+            index: row.index,
             parentId: inventoryId,
             status: f.status || "published",
             inventoryCategoryId,
         };
         nav.mutSubComponent.mutate(__data, {
             onSuccess(data, variables, context) {
-                subComponentsArray.update(i, {
+                subComponentsArray.update(row.index, {
                     ...f,
                     ...__data,
                 });
@@ -140,85 +135,15 @@ export function CategorySubComponentsSection({}) {
                         Add
                     </Button>
                 </div>
-                <Table className="table-sm">
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-8"></TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Default Product</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                        <SortableContext
-                            items={dataIds}
-                            strategy={verticalListSortingStrategy}
-                        >
-                            {subComponentsArray.fields.map((f, i) => (
-                                <Row id={f._id}>
-                                    <TableCell>
-                                        <FormCombobox
-                                            control={form.control}
-                                            name={`subComponents.${i}.inventoryCategoryId`}
-                                            transformSelectionValue={(data) =>
-                                                Number(data.id)
-                                            }
-                                            handleSelect={(val, selected, cb) =>
-                                                handleCategorySelect(
-                                                    selected,
-                                                    cb,
-                                                    i,
-                                                )
-                                            }
-                                            comboProps={{
-                                                // onSelect(item) {
-                                                //     // console.log(item);
-                                                // },
-                                                items: selectOptions(
-                                                    nav.categoryList,
-                                                    "title",
-                                                    "id",
-                                                ),
-                                                placeholder: "Select  Category",
-                                            }}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <SubCategoryValues
-                                            // subCatUpdated={subCatUpdated}
-                                            index={i}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            disabled={!f?.id}
-                                            onClick={(e) => {
-                                                handleUpdateStatus(i);
-                                            }}
-                                            variant="ghost"
-                                            size="sm"
-                                        >
-                                            <Progress>
-                                                <Progress.Status>
-                                                    {f.status}
-                                                </Progress.Status>
-                                            </Progress>
-                                        </Button>
-                                    </TableCell>
-                                    <TableCell>
-                                        <ConfirmBtn
-                                            trash
-                                            onClick={(e) => {
-                                                removeItem(i, f.id);
-                                            }}
-                                        />
-                                    </TableCell>
-                                </Row>
-                            ))}
-                        </SortableContext>
-                    </TableBody>
-                </Table>
+                <InventoryProductFormSubComponentsTable
+                    data={tableRows}
+                    control={form.control}
+                    categoryOptions={categoryOptions}
+                    parentInventoryId={inventoryId}
+                    onCategorySelect={handleCategorySelect}
+                    onToggleStatus={handleUpdateStatus}
+                    onRemove={removeItem}
+                />
             </div>
         ),
         Emtpy: (
@@ -258,90 +183,5 @@ export function CategorySubComponentsSection({}) {
                 {inventoryId ? Render.Content : Render.Emtpy}
             </AccordionContent>
         </AccordionItem>
-    );
-}
-function Row({ children, id }) {
-    const {
-        transform,
-        transition,
-        attributes,
-        listeners,
-        setNodeRef,
-        isDragging,
-    } = useSortable({
-        id,
-    });
-    return (
-        <TableRow className="hover:bg-transparent">
-            <TableCell>
-                <Button
-                    {...attributes}
-                    {...listeners}
-                    variant="ghost"
-                    size="icon"
-                    className="size-7 text-muted-foreground hover:bg-transparent"
-                >
-                    <Icons.GripVerticalIcon className="size-3 text-muted-foreground" />
-                    <span className="sr-only">Drag to reorder</span>
-                </Button>
-            </TableCell>
-            {children}
-        </TableRow>
-    );
-}
-// function
-function SubCategoryValues({ index }) {
-    const trpc = useTRPC();
-    const ctx = useProduct();
-    const form = useInventoryForm();
-    const categoryId = form.watch(`subComponents.${index}.inventoryCategoryId`);
-    const { data, error } = useQuery(
-        trpc.inventories.inventoryProducts.queryOptions(
-            {
-                categoryId,
-                // size:
-            },
-            {
-                enabled: !!categoryId,
-            },
-        ),
-    );
-    // const valueArray = useFieldArray({
-    //     control: form.control,
-    //     name: `subCategories.${index}.values`,
-    // });
-    const { mutate, mutateAsync } = useMutation(
-        trpc.inventories.updateSubComponent.mutationOptions({}),
-    );
-
-    function handleSelect(valueInventoryId, selected, callback) {
-        mutateAsync({
-            parentId: ctx.inventoryId,
-
-            // valueInventoryId: Number(valueInventoryId),
-            // inventoryId: ctx.inventoryId,
-        }).then((result) => {
-            console.log(result);
-            callback();
-            // subCatUpdated(index, {
-            //     id: result.id,
-            //     deleted: !selected,
-            //     inventoryId: ctx.inventoryId,
-            // });
-        });
-    }
-    return (
-        <>
-            <ComboxBox
-                className="h-9 w-full"
-                maxSelection={1}
-                // maxStack={4}
-                options={labelValueOptions(data?.data, "title", "id")}
-                control={form.control}
-                name={`subComponents.${index}.defaultInventoryId`}
-                // label={index == 0 ? "Default Inventory" : undefined}
-                handleSelect={handleSelect}
-            />
-        </>
     );
 }

@@ -1,13 +1,11 @@
 # Latest Daily GND Codebase Review
 
-Latest report: [2026-07-15](./2026-07-15.md)
+Latest report: [2026-07-18](./2026-07-18.md)
 
 ## Executive Summary
 
-Today's review found one meaningful improvement and the same highest-risk release blockers. The active dealership work narrows the dealership app's local tRPC route to `dealershipAppRouter` with only `dealerPortal` and `google`, which reduces the earlier risk of the dealer deployment tracing the full internal API router. That improvement does not close the broader authorization concern because high-value operational routes in the main API still use `publicProcedure` for dispatch, HRM, settings, notes, sales, inventory, jobs, community, and customer mutations.
+Today's review read the required Brain entry points and task ledgers under `.brain/`, then checked current source evidence across `apps/www`, `apps/dealership`, `apps/expo-app`, `apps/api`, and the reviewed shared packages. The repo does not contain a `brain/` directory; `.brain/` is the active project Brain location used by this review and prior automation memory.
 
-The riskiest operational gap remains dealer quote mutability after a quote-to-order request starts. Dealer UI disables duplicate `Request order` actions for pending/approved/rejected requests, but still renders `Edit`, and `saveDealerPortalQuote` updates any dealer-owned quote by id without checking the current request state. For door manufacturing, this can change dimensions, line items, pricing, delivery terms, or customer profile data after the office has started approval or payment handoff.
+The highest practical risks remain customer-trust and accountability issues: public high-impact operational mutation routes are still visible in API routers, the live sales share action can send tokenized customer document links to a hard-coded phone number, and the dealership quote-to-order approval model is still bypassable through old conversion/edit paths. Inventory correctness is still not release-clean by Brain evidence, and repairs remain stopped by user request, so no repair commands were run.
 
-Inventory correctness is still not release-clean by Brain evidence. The active cutover remains blocked by `needs_backfill`, `20449` missing sales, `9` shipment/allocation drift rows, `1` skipped comparison, `hasMore=true`, and next cursor `208`. Repairs remain stopped by user request, so this automation did not run repair dry-runs, applies, migrations, data syncs, or evidence commands.
-
-Broad typecheck failed today in `@gnd/documents` with NodeNext extensionless-import errors, missing `Buffer` type availability, and implicit provider callback parameter types. That keeps shared document confidence low for quotes, invoices, dealer documents, dispatch proof, employee documents, and future WhatsApp/SMS document delivery.
+For mixed-skill door operations, the product needs fewer ambiguous states around quote approval, inventory readiness, dispatch completion, and customer/dealer document delivery. The strongest next slices are small and trainable: close public route boundaries, remove the hard-coded sales share recipient, lock dealer quotes after request submission, make dispatch proof completion recoverable, and keep inventory cutover proof gates explicit.

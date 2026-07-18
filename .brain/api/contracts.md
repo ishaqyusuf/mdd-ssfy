@@ -24,22 +24,45 @@ Tracks important request/response contracts and shared schema boundaries.
   - `pageTabs.reorder({ page, ids })` persists the current user's drag order through `PageTabIndex.tabIndex`, including public tabs the user can see.
   - `pageTabs.delete({ id })` soft-deletes a manageable tab and clears tab-index/default rows for that tab.
   - Returned tab rows include `visibility`, `canManage`, `active`, optional `count`, per-user `default`, `index`, and `indexId`.
-  - Count badges are registry-backed per page. `/sales-book/orders` uses the Sales Orders filter contract, defaults saved-tab counts to `showing="all sales"` like the page, and uses the same distinct clean-payment grouping for `paymentReview=needs_review`; `/community/unit-invoices` uses `whereUnitInvoices`. Pages without a count adapter still render tabs without a count.
+  - Count badges are registry-backed per page. `/sales-book/orders` uses the Sales Orders filter contract, defaults saved-tab counts to `showing="all sales"` like the page, and uses the same distinct clean-payment grouping for `paymentReview=needs_review`; `/community/unit-invoices` uses `whereUnitInvoices`. Additional count adapters currently cover `/sales-book/quotes`, `/sales-book/customers`, `/sales-book/dealers`, `/hrm/employees`, `/hrm/contractors/jobs`, `/community/projects`, `/community/project-units`, `/community/templates`, `/community/customer-services`, and `/community/unit-productions` by parsing saved tab queries through each page's existing query schema and count/where helper. Pages without a count adapter still render tabs without a count.
+  - WWW only renders the inline page-tab strip when there is something visible to show: at least one saved tab or a current saveable tab query with an action node. Empty URL state and pagination/internal-only keys serialize to an empty saved-tab query, and the rendered strip self-hides when its action resolves to no DOM content, so pages with no saved tabs and no active filter/search/sort do not leave an empty bordered tab shell before the search input.
+  - WWW invalidates page-tab counts through the typed `PAGE_TAB_PATHS` registry and normalizes every invalidation target with `normalizePagePath`, so callers may refresh the current page, a mapped key such as `orders`, or a raw path while updating both visible tabs and `includeInactive` edit-modal tabs. `usePageTabs()` / `usePageTabsInvalidation()` default no-arg invalidation to the current `usePathname()` value through the shared `createPageTabsInvalidation` factory, while `invalidate(...keys)` supports typed page keys and `invalidatePath(...paths)` supports raw/custom paths. Empty raw paths are ignored, and raw paths with query strings, hash fragments, extra whitespace, missing leading slashes, full app URLs, or trailing slashes are normalized to path-only values before deduped invalidation. The page-tabs API router mirrors the same path-only normalization before list/create/update/reorder/default/count work so saved tabs cannot split by URL variant. The registry currently includes Sales Orders/Quotes/Customers/Dealers, Employees, Contractor Jobs, Community Projects/Units/Invoices/Templates/Customer Services/Productions.
 - Sales Orders filter contract:
   - `sales.getOrders`, `sales.getOrdersSummary`, and `filters.salesOrders` accept `paymentReview=needs_review` as an explicit filter for the clean-payment review queue.
   - The `Invoice` column sort is invoice amount (`grandTotal`) again; payment review filtering is not inferred from `sort=latestPaymentAt.*`.
   - Payment Review defaults to latest clean-payment ordering when no explicit sort is supplied; explicit sorts remain part of the filtered query and are saveable in page tabs.
+- Sales Resolution Center contract:
+  - `sales.getSalesResolutions` accepts the existing resolution filters plus pagination and `sort`.
+  - `status` supports the existing resolution filter metadata values, including `Resolved`, `Resolved Today`, and `Unresolved`.
+  - `customer.name` is part of the WWW URL filter schema so the existing `filters.salesResolutions` customer filter can round-trip through saved/search filter state.
+  - Server sorting is intentionally limited to direct `SalesOrders` fields: `orderId`, `createdAt`, `grandTotal`, and `amountDue`; unknown sort fields fall back to `createdAt.desc`.
+  - Computed resolution fields such as conflict type, projected due, and payment count are derived after candidate order/payment projection and are not server-sortable under the current query model.
+- Short Links list contract:
+  - `shortLinks.list` accepts `q`, `includeInactive`, `page`, `size`, `cursor`, and `sort[]`.
+  - Cursor pagination uses an offset-style cursor so `/settings/short-links` can consume the same infinite-scroll table contract as other restarted table pages.
+  - Sort values are mapped to safe Prisma fields for `slug`, `targetUrl`, `clickCount`, `lastClickedAt`, `expiresAt`, `active`, and `createdAt`; unknown sort fields fall back to `createdAt.desc`.
+- Master password login audit contract:
+  - `masterPasswordLoginAudits.list` accepts optional `q`, `platform`, `includeCleared`, `page`, and `size`; rows include target-user snapshots, platform/app surface, IP address, optional two-letter ISO country code, browser/user agent, safe session id, login time, and archive metadata.
+  - Country search matches the stored normalized `countryCode`; the auth writer accepts only valid Vercel `x-vercel-ip-country` or Cloudflare `cf-ipcountry` two-letter values and rejects unknown/malformed codes.
+  - `masterPasswordLoginAudits.clear` accepts optional explicit `ids` or active `q`/`platform` filters and archives matching uncleared rows rather than deleting them.
 - Web bug reporting contracts live in `apps/api/src/schemas/bug-reports.ts`:
   - `BUG_REPORT_STATUSES = NEW | IN_REVIEW | IN_PROGRESS | NEEDS_INFO | FIXED | CLOSED`
+  - `BUG_REPORT_CAPTURE_TYPES = VIDEO | SCREENSHOT`
+  - `BUG_REPORT_TRANSCRIPTION_STATUSES = NOT_REQUESTED | PENDING | COMPLETED | FAILED`
   - `BUG_REPORT_MAX_DURATION_MS = 90_000`
   - `BUG_REPORT_MAX_UPLOAD_SIZE_BYTES = 250MB`
-  - `/api/bug-reports/upload` implements Vercel Blob `handleUpload()` for browser uploads using server-only `BLOB_READ_WRITE_TOKEN`; token generation requires `can.submitBugReport`, accepts only paths under `bug-reports/<currentUserId>/`, allows `video/*` plus `application/octet-stream`, caps upload size at 250MB, rejects overwrites, and issues 10-minute tokens
-  - `bugReports.create` accepts optional `description`, optional `currentUrl`, optional `userAgent`, `durationMs`, `microphoneEnabled`, and an uploaded Vercel Blob descriptor `{ url, pathname, contentType?, size, filename? }`
-  - upload validation requires object keys under `bug-reports/`, duration at or below 90 seconds, size at or below 250MB, and video-like content type
-  - list rows include status, description, page metadata, duration, microphone metadata, recording metadata, submitter/status-updater summaries, created/updated timestamps, and follow-up count
-  - detail rows additionally include follow-ups ordered oldest to newest with author summaries
+  - `BUG_REPORT_MAX_AUDIO_DURATION_MS = 600_000`
+  - `BUG_REPORT_MAX_AUDIO_SIZE_BYTES = 25MB`
+  - `/api/bug-reports/upload` implements Vercel Blob `handleUpload()` for browser uploads using server-only `BLOB_READ_WRITE_TOKEN`; token generation requires `can.submitBugReport`, accepts only paths under `bug-reports/<currentUserId>/`, allows `image/*`, `video/*`, `audio/*`, and `application/octet-stream`, caps upload size at 250MB, rejects overwrites, and issues 10-minute tokens
+  - `bugReports.create` accepts optional `captureType` (`VIDEO` default), optional `description`, optional `currentUrl`, optional `userAgent`, optional video `durationMs`, `microphoneEnabled`, an uploaded primary Vercel Blob descriptor `{ url, pathname, contentType?, size, filename? }`, and optional `audio` evidence `{ upload, durationMs?, transcriptionStatus?, transcriptionText?, transcriptionProvider? }`
+  - primary upload validation requires object keys under `bug-reports/`, size at or below 250MB, screenshot content type for `SCREENSHOT`, and video-like content type plus duration at or below 90 seconds for `VIDEO`
+  - voice-note upload validation requires object keys under `bug-reports/`, size at or below 25MB, duration at or below 10 minutes, and audio-like content type
+  - list rows include status, capture type, description, page metadata, duration, microphone metadata, primary evidence metadata, submitter/status-updater summaries, created/updated timestamps, and follow-up count
+  - detail rows additionally include follow-ups ordered oldest to newest with author summaries, optional audio document metadata, audio duration, transcription status, transcription text, and transcription provider
   - `bugReports.adminList` accepts optional `{ status }`
-  - `bugReports.addFollowUp` accepts `{ bugReportId, body }` with a non-empty body capped at 5000 characters
+  - `bugReports.addFollowUp` accepts `{ bugReportId, body, audio? }` with a non-empty body capped at 5000 characters and the same optional voice-note evidence shape used by create
+  - `bugReports.transcribeFollowUp` accepts `{ followUpId }`, requires the owner or Super Admin, requires Groq transcription env config, downloads the follow-up voice note, calls Groq's OpenAI-compatible transcription endpoint, stores completed transcription on the follow-up and audio document, and fills the report/primary evidence description when the submitter did not already provide a description
+  - configured GitHub or Jira issue creation runs after bug-report create/transcription; GitHub uses `BUG_REPORT_GITHUB_TOKEN`/`GITHUB_TOKEN` plus `BUG_REPORT_GITHUB_REPOSITORY` or `BUG_REPORT_GITHUB_REPO`, while Jira uses `BUG_REPORT_JIRA_API_TOKEN`/`BUG_REPORT_JIRA_TOKEN`, `BUG_REPORT_JIRA_BASE_URL`/`BUG_REPORT_JIRA_API_BASE_URL`, `BUG_REPORT_JIRA_PROJECT_KEY`, and optional `BUG_REPORT_JIRA_EMAIL`; `BUG_REPORT_ISSUE_PROVIDER=jira` selects Jira when both providers are configured; issue creation stores `externalIssueProvider`, `externalIssueKey`, `externalIssueUrl`, `externalIssueStatus`, `externalIssueError`, and `externalIssueCreatedAt` on the report
   - `bugReports.updateStatus` accepts `{ bugReportId, status }`
 - Sales email ledger contracts live in `apps/api/src/schemas/emails.ts` and `apps/api/src/db/queries/sales-email-attempts.ts`:
   - `SALES_EMAIL_ATTEMPT_STATUSES = QUEUED | SENDING | SENT | FAILED | SKIPPED`
@@ -96,6 +119,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - `newSalesForm.searchServiceSuggestions({ query, limit })` returns unique uppercase service names from saved grouped service rows with `unitPrice`, `usageCount`, and `lastUsedAt`; blank query is recent-first, typed query filters by normalized service name, and the latest observed price wins per service
   - legacy-strategy display summaries include derived credit-card convenience charges in returned/hydrated `summary.grandTotal` and `summary.ccc`; order persistence stores the base sales total and `amountDue` without the derived charge, while `payment_option`, `ccc_percentage`, and display/backfill `ccc` remain available to evaluate printable/payable totals
   - order save payload composition defaults missing `form.paymentMethod` to `Credit Card` before summary calculation, so create/bootstrap mobile records persist payment metadata and C.C.C display values consistently with the visible default
+- New sales form history contract:
+  - `sales.getSalesHx({ salesNo })` returns only non-deleted `order-hx` / `quote-hx` copies whose `orderId` starts with `${salesNo}-hx`, newest first
+  - `newSalesForm.getHistorySnapshot({ type, salesId, historyId })` accepts `type: "order" | "quote"`, verifies the current document and history copy share the same base order number, and hydrates the history copy without exposing its `*-hx` type to the editor
+  - history preview is read-only and cannot save, print, export, or add items
+  - restoring a snapshot is client-local until the operator explicitly saves; current sales identity, status, inventory status, settings, payment totals/count, and version are preserved while copied line/step/shelf/HPT/door/extra-cost persistence IDs are removed
 - Sales orders list C.C.C display contract:
   - `sales.getOrders` keeps `amountDue` and stored `grandTotal` principal/base-only
   - order rows expose `baseInvoiceTotal`, `displayCcc`, C.C.C-inclusive `invoiceTotal`, principal `amountPaid`, and display-only `displayAmountPaid` / `displayAmountDue` for mobile card adapters
@@ -104,10 +132,14 @@ Tracks important request/response contracts and shared schema boundaries.
   - Expo order list cards adapt the flat `sales.getOrders` row into their stable nested mobile view model; quote lists still consume `sales.quotes`
   - legacy `sales.index` / `sales.quotes` DTO rows keep `invoice.total`, `invoice.paid`, and `invoice.pending` principal/base-only while also exposing display-only `invoice.baseTotal`, `invoice.displayCcc`, `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for legacy/mobile quote card and overview surfaces
 - Sales print C.C.C footer contract:
+  - `print.salesV2` and `/api/download/sales-v2` accept optional `pageBreakMode = "section" | "header" | "fullHeader"` for sales-v2 PDF pagination policy. The default is `header`. Non-default modes are render-time presentation options and bypass stored snapshot streaming so a request for `section` or `fullHeader` does not accidentally receive a cached/default PDF.
+  - Sales print presentation defaults are stored at `sales-settings.meta.print` as `{ templateId: "template-1" | "template-2", pageBreakMode: "header" | "section" | "fullHeader", showImages: boolean, headlineFirstPage: boolean }`; missing or invalid settings normalize to V2, compact header pagination, images on, and first-page-only headline.
+  - `print.salesV2`, `/p/sales-invoice-v2`, `/p/sales-document-v2`, and `/api/download/sales-v2` carry `templateId`, `pageBreakMode`, `showImages`, and `headlineFirstPage`. Non-default content/template query overrides bypass default stored-PDF streaming, and single-order snapshot reuse requires an exact normalized renderer-config match.
   - `print.salesV2` footer/meta payloads keep stored `SalesOrders.grandTotal` and `amountDue` as principal-only values
-  - unpaid card-selected records split principal due from the payable card total: `Order Due Amount`, estimated `C.C.C`, and `Total Due With C.C.C`
-  - fully paid single-card records show principal payment progress separately from the card-inclusive customer charge; footer/cost lines label the card-inclusive amount as `Charged to Card` and keep `Total Due = $0.00`
-  - partial or mixed-payment records show order total, paid-toward-order principal, recorded card charge details when safely matched, and principal-only `Balance Due`
+  - unpaid card-selected records split principal due from the payable card total using customer-facing labels: `Order Due Amount`, `Estimated Card Fee`, and `Total if Paying by Card`
+  - paid and partially paid records use one compact customer summary: `Order Total`, optional aggregated `Card Fees`, `Total Paid`, and principal-only `Balance Due`
+  - `Total Paid` equals principal applied to the order plus safely matched recorded card fees; print omits `Card Fees` and does not infer historical fees when exact payment metadata is unavailable
+  - transaction-level `Card Payment`, `C.C.C on Card Payment`, `Charged to Card`, and `Paid Toward Order` rows remain available on internal finance/transaction surfaces but are not emitted in customer PDF/preview footers
   - print loads `SalesPayments.meta`, linked `CustomerTransaction.meta`, and linked `SquarePayments.meta` for recorded C.C.C extraction, but shared transaction metadata is ignored when its base amount does not match the printed order's payment row
 - Sales overview invoice breakdown contract:
   - overview DTO `costLines` use the same C.C.C/payment state helper as print so the old overview sheet, new overview Finance tab, and overview summary tab render the same labels and amounts without client-side C.C.C calculation
@@ -128,6 +160,12 @@ Tracks important request/response contracts and shared schema boundaries.
 - Sales payment processor C.C.C contract:
   - payment previews and payment writes calculate C.C.C from the external principal being applied to the current outstanding balance after wallet credit and prior payments
   - overpayment wallet credit may be included in the external customer charge, but it must not expand the C.C.C fee base beyond the remaining principal due
+- Sales payment processor customer receipt contract:
+  - `salesPaymentProcessor.applyPayment` queues `sales_customer_payment_received` only when `notifyCustomer === true`; omitted, null, or false values return `customerReceiptQueueStatus: "not_requested"`
+  - successful receipt queueing returns `customerReceiptQueueStatus: "queued"`; recipient, payload, or notification queue failures return `"failed"` without rejecting or rolling back the completed payment
+  - recipient resolution prefers a trimmed billing email and falls back to the trimmed customer email, permits customer-name differences when all sales normalize to one email, and rejects missing or genuinely mixed recipients
+  - invoice PDF rendering failure is logged and the receipt is queued with `invoicePdfAttachment: null`
+  - `sales_customer_payment_received` is a direct-recipient channel and does not use notification subscribers or fallback recipient processing
 - Legacy sales form C.C.C display contract:
   - legacy form pricing keeps `pricing.grandTotal` as the base order total used for persistence and due calculations
   - legacy form pricing exposes `pricing.totalWithCcc = pricing.grandTotal + pricing.ccc` for the visible payable total when the selected payment method applies C.C.C

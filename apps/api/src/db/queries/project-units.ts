@@ -569,6 +569,15 @@ export async function getProjectUnits(
 		}),
 	);
 }
+
+export async function getProjectUnitsCount(
+	ctx: TRPCContext,
+	query: GetProjectUnitsSchema,
+) {
+	return ctx.db.homes.count({
+		where: whereProjectUnits(query),
+	});
+}
 function sortFn(
 	sort,
 	sortOrder,

@@ -1,11 +1,11 @@
 "use client";
 
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { InventoryVariantsColumnVisibility } from "@/components/tables-2/inventory-variants/column-visibility";
+import { DataTable } from "@/components/tables-2/inventory-variants/data-table";
 import { useTRPC } from "@/trpc/client";
-import { Badge } from "@gnd/ui/badge";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
 import { Input } from "@gnd/ui/input";
@@ -17,10 +17,12 @@ import {
 	SelectValue,
 } from "@gnd/ui/select";
 import { useQuery } from "@gnd/ui/tanstack";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 
 type VariantsResponse =
 	RouterOutputs["inventories"]["inventoryVariantsWorkspace"];
-type VariantRow = VariantsResponse["data"][number];
 
 const currency = new Intl.NumberFormat("en-US", {
 	style: "currency",
@@ -44,14 +46,6 @@ function formatQty(value?: number | null) {
 	});
 }
 
-function statusLabel(value?: string | null) {
-	return String(value || "unknown").replaceAll("_", " ");
-}
-
-function variantTitle(row: VariantRow) {
-	return row.sku || row.description || row.uid || `Variant ${row.id}`;
-}
-
 function Metric({ label, value }: { label: string; value: string | number }) {
 	return (
 		<Card className="p-4">
@@ -63,85 +57,11 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 	);
 }
 
-function VariantCard({ row }: { row: VariantRow }) {
-	return (
-		<Card className="p-4">
-			<div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-				<div className="min-w-0 space-y-2">
-					<div className="flex flex-wrap items-center gap-2">
-						<div className="truncate text-base font-semibold">{variantTitle(row)}</div>
-						<Badge variant="outline" className="capitalize">
-							{statusLabel(row.status)}
-						</Badge>
-						<Badge variant="secondary" className="capitalize">
-							{statusLabel(row.stockMode)}
-						</Badge>
-						{row.isLowStock ? <Badge variant="destructive">Low stock</Badge> : null}
-					</div>
-					<div className="text-sm text-muted-foreground">
-						{row.inventory?.name || "Unknown item"} •{" "}
-						{row.category?.title || "Uncategorized"}
-					</div>
-					{row.attributes.length ? (
-						<div className="flex flex-wrap gap-2">
-							{row.attributes.map((attribute) => (
-								<Badge key={attribute.id} variant="outline">
-									{attribute.inventoryCategoryVariantAttribute
-										?.valuesInventoryCategory?.title || "Attribute"}
-									: {attribute.value?.name || "N/A"}
-								</Badge>
-							))}
-						</div>
-					) : null}
-				</div>
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
 
-				<div className="grid gap-3 text-sm sm:grid-cols-4 xl:min-w-[520px]">
-					<div>
-						<div className="text-xs uppercase text-muted-foreground">Stock</div>
-						<div className="font-medium">{formatQty(row.stockQty)}</div>
-					</div>
-					<div>
-						<div className="text-xs uppercase text-muted-foreground">Cost</div>
-						<div className="font-medium">{formatMoney(row.costPrice)}</div>
-					</div>
-					<div>
-						<div className="text-xs uppercase text-muted-foreground">Price</div>
-						<div className="font-medium">{formatMoney(row.price)}</div>
-					</div>
-					<div>
-						<div className="text-xs uppercase text-muted-foreground">Supplier</div>
-						<div className="truncate font-medium">
-							{row.preferredSupplier?.supplier?.name ||
-								row.inventory?.defaultSupplier?.name ||
-								"N/A"}
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-				<div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-					<span>{row.supplierCount} suppliers</span>
-					<span>{row.stocks.length} stock rows</span>
-					{row.lowStockAlert ? <span>Low stock at {row.lowStockAlert}</span> : null}
-				</div>
-				<div className="flex flex-wrap gap-2">
-					<Button asChild size="sm" variant="outline">
-						<Link href={`/inventory/${row.inventory?.id}`}>Dashboard</Link>
-					</Button>
-					<Button asChild size="sm" variant="outline">
-						<Link href={`/inventory?productId=${row.inventory?.id}`}>Edit</Link>
-					</Button>
-					<Button asChild size="sm">
-						<Link href="/inventory/stocks">Stock</Link>
-					</Button>
-				</div>
-			</div>
-		</Card>
-	);
-}
-
-export function InventoryVariantsWorkspacePage() {
+export function InventoryVariantsWorkspacePage({ initialSettings }: Props) {
 	const trpc = useTRPC();
 	const searchParams = useSearchParams();
 	const [q, setQ] = useState("");
@@ -155,16 +75,17 @@ export function InventoryVariantsWorkspacePage() {
 	const [lowStock, setLowStock] = useState(false);
 
 	const input = useMemo(
-		() => ({
-			q: q || null,
-			inventoryId: nullableNumber(inventoryId),
-			categoryId: nullableNumber(categoryId),
-			supplierId: nullableNumber(supplierId),
-			status: status === "all" ? null : status,
-			stockMode: stockMode === "all" ? null : stockMode,
-			lowStock,
-			limit: 50,
-		}),
+		() =>
+			({
+				q: q || null,
+				inventoryId: nullableNumber(inventoryId),
+				categoryId: nullableNumber(categoryId),
+				supplierId: nullableNumber(supplierId),
+				status: status === "all" ? null : status,
+				stockMode: stockMode === "all" ? null : stockMode,
+				lowStock,
+				limit: 50,
+			}) satisfies RouterInputs["inventories"]["inventoryVariantsWorkspace"],
 		[q, inventoryId, categoryId, supplierId, status, stockMode, lowStock],
 	);
 
@@ -172,24 +93,31 @@ export function InventoryVariantsWorkspacePage() {
 		trpc.inventories.inventoryVariantsWorkspace.queryOptions(input),
 	);
 	const rows = variantsQuery.data?.data || [];
-	const totalStock = rows.reduce((total, row) => total + Number(row.stockQty || 0), 0);
+	const totalStock = rows.reduce(
+		(total, row) => total + Number(row.stockQty || 0),
+		0,
+	);
 	const stockValue = rows.reduce(
 		(total, row) => total + Number(row.stockValue || 0),
 		0,
 	);
 
 	return (
-		<div className="flex flex-col gap-6">
-			<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+		<div className="flex flex-col gap-4">
+			<div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
 				<div className="space-y-1">
-					<h1 className="text-2xl font-semibold">Inventory Variants</h1>
 					<div className="text-sm text-muted-foreground">
-						{variantsQuery.isFetching ? "Refreshing..." : `${rows.length} visible variants`}
+						{variantsQuery.isFetching
+							? "Refreshing..."
+							: `${rows.length} visible variants`}
 					</div>
 				</div>
-				<Button asChild variant="outline">
-					<Link href="/inventory">Inventory</Link>
-				</Button>
+				<div className="flex items-center gap-2">
+					<InventoryVariantsColumnVisibility />
+					<Button asChild variant="outline">
+						<Link href="/inventory">Inventory</Link>
+					</Button>
+				</div>
 			</div>
 
 			<Card className="p-4">
@@ -258,16 +186,11 @@ export function InventoryVariantsWorkspacePage() {
 				/>
 			</div>
 
-			<div className="grid gap-3">
-				{rows.map((row) => (
-					<VariantCard key={row.id} row={row} />
-				))}
-				{!rows.length ? (
-					<Card className="p-6 text-sm text-muted-foreground">
-						No variants match the current filters.
-					</Card>
-				) : null}
-			</div>
+			<DataTable
+				data={rows}
+				initialSettings={initialSettings}
+				isLoading={variantsQuery.isLoading}
+			/>
 		</div>
 	);
 }

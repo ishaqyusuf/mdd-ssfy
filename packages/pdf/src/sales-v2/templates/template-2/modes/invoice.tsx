@@ -2,11 +2,7 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
 import type { SalesTemplateConfig } from "../../../registry";
-import {
-	FooterBlock,
-	HeaderBlock,
-	SectionListBlock,
-} from "../blocks";
+import { FooterBlock, HeaderBlock, SectionListBlock } from "../blocks";
 
 interface InvoiceModeProps {
 	page: PrintPage;
@@ -50,6 +46,7 @@ export function InvoiceMode({
 					baseUrl={baseUrl}
 					showImages={config.showImages}
 					firstPageHeaderHeight={FIRST_PAGE_HEADER_HEIGHT}
+					pageBreakMode={config.pageBreakMode}
 				/>
 			</View>
 

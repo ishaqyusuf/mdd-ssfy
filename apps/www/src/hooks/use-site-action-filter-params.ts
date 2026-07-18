@@ -1,13 +1,12 @@
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { parseAsString, useQueryStates } from "nuqs";
-import { createLoader, parseAsStringLiteral } from "nuqs/server";
-import { inboundFilterStatus } from "@gnd/utils/constants";
-import { RouterInputs } from "@api/trpc/routers/_app";
-type FilterKeys = keyof Exclude<RouterInputs["sales"]["inboundIndex"], void>;
+import { createLoader } from "nuqs/server";
+type FilterKeys = keyof Exclude<RouterInputs["siteActions"]["index"], void>;
 
 const siteActionFilterParamsSchema = {
-    status: parseAsStringLiteral(inboundFilterStatus),
+    status: parseAsString,
     q: parseAsString,
-} satisfies Partial<Record<FilterKeys, any>>;
+} satisfies Partial<Record<FilterKeys, unknown>>;
 
 export function useSiteActionFilterParams() {
     const [filter, setFilter] = useQueryStates(siteActionFilterParamsSchema);

@@ -5,7 +5,7 @@
   "scripts": {
     "build": "contentlayer2 build && bun run with-env:prod next build",
     "clean": "git clean -xdf .next .turbo node_modules",
-    "dev": "bun run with-env env PORTLESS_PORT=${PORTLESS_PORT:-${GND_PROXY_PORT:-3011}} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_BACKLOG_PORT:-3019}} portless gnd-backlog next dev --turbopack",
+    "dev": "bun run with-env env PORTLESS_PORT=${GND_PROXY_PORT:-443} PORTLESS_WILDCARD=${PORTLESS_WILDCARD:-1} PORTLESS_SYNC_HOSTS=${PORTLESS_SYNC_HOSTS:-0} PORTLESS_APP_PORT=${PORTLESS_APP_PORT:-${GND_BACKLOG_PORT:-3019}} portless gnd-backlog next dev --turbopack",
     "format": "prettier --write '**/*.{js,cjs,mjs,ts,tsx,md,json}'  --ignore-path .prettierignore",
     "lint": "bun run with-env next lint --quiet",
     "start": "bun run with-env next start",

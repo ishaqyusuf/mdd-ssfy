@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { PrintSection } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
+import type { SalesPageBreakMode } from "../../../shared/page-break-mode";
 import { paginatePrintSections } from "../../../shared/pagination";
 import { DoorBlock } from "./door-block";
 import { LineItemBlock } from "./line-item-block";
@@ -13,6 +14,7 @@ interface SectionListBlockProps {
 	baseUrl?: string;
 	showImages: boolean;
 	firstPageHeaderHeight: number;
+	pageBreakMode: SalesPageBreakMode;
 }
 
 export function SectionListBlock({
@@ -20,10 +22,12 @@ export function SectionListBlock({
 	baseUrl,
 	showImages,
 	firstPageHeaderHeight,
+	pageBreakMode,
 }: SectionListBlockProps) {
 	const paginatedSections = paginatePrintSections(sections, {
 		showImages,
 		firstPageHeaderHeight,
+		pageBreakMode,
 	});
 
 	return (

@@ -3,11 +3,7 @@ import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
 import { cn } from "../../../../utils/tw";
 import type { SalesTemplateConfig } from "../../../registry";
-import {
-	HeaderBlock,
-	ImageGalleryBlock,
-	SectionListBlock,
-} from "../blocks";
+import { HeaderBlock, ImageGalleryBlock, SectionListBlock } from "../blocks";
 
 interface ProductionModeProps {
 	page: PrintPage;
@@ -55,6 +51,7 @@ export function ProductionMode({
 					baseUrl={baseUrl}
 					showImages={config.showImages}
 					firstPageHeaderHeight={FIRST_PAGE_HEADER_HEIGHT}
+					pageBreakMode={config.pageBreakMode}
 				/>
 
 				{config.showImages ? (

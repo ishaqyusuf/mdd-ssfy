@@ -6,6 +6,7 @@ import {
   bootstrapNewSalesFormSchema,
   deleteNewSalesFormShelfProductSchema,
   deleteNewSalesFormLineItemSchema,
+  getNewSalesFormHistorySnapshotSchema,
   getNewSalesFormSchema,
   getNewSalesFormStepRoutingSchema,
   getNewSalesFormShelfCategoriesSchema,
@@ -23,6 +24,7 @@ import {
   type BootstrapNewSalesFormSchema,
   type DeleteNewSalesFormShelfProductSchema,
   type DeleteNewSalesFormLineItemSchema,
+  type GetNewSalesFormHistorySnapshotSchema,
   type GetNewSalesFormSchema,
   type GetNewSalesFormStepRoutingSchema,
   type GetNewSalesFormShelfCategoriesSchema,
@@ -53,7 +55,7 @@ import {
   calculateSalesFormSummary,
   collapseLegacyGroupedLines,
   expandGroupedLineForLegacySave,
-  hydrateHptDoorRowFromLegacy,
+  hydrateHptLineFromLegacy,
   normalizeHptLineForLegacy,
   projectSalesFormMetaToLegacyMeta,
   readLegacySalesFormMeta,
@@ -409,14 +411,14 @@ function mergePersistedDoorRows(persistedRows: unknown, dbRows: unknown) {
         );
       }) ||
       persisted[index];
-    return hydrateHptDoorRowFromLegacy({
+    return {
       ...(persistedMatch || {}),
       ...dbRow,
       meta: {
         ...safeRecord((persistedMatch as any)?.meta),
         ...safeRecord(dbRow?.meta),
       },
-    });
+    };
   });
 }
 
@@ -605,6 +607,12 @@ function toBootstrapPayload(
       type: string;
       amount: number;
       taxxable: boolean | null;
+    }>;
+    taxes: Array<{
+      taxCode: string;
+      taxConfig: {
+        percentage: number;
+      } | null;
     }>;
     taxPercentage: number | null;
     subTotal: number | null;
@@ -823,7 +831,7 @@ function toBootstrapPayload(
         })),
         housePackageTool,
       };
-      return normalizeHptLineForLegacy(rawLine as any) as typeof rawLine;
+      return hydrateHptLineFromLegacy(rawLine as any) as typeof rawLine;
     });
   const dbLines = collapseLegacyGroupedLines(rawDbLines).map(
     ({ multiDykeUid, multiDyke, dykeProduction, sourceMeta, ...line }) => line,
@@ -907,7 +915,10 @@ function toBootstrapPayload(
     },
   );
   const taxRate = Number(
-    order.taxPercentage || persisted?.summary?.taxRate || 0,
+    order.taxPercentage ||
+      order.taxes?.[0]?.taxConfig?.percentage ||
+      persisted?.summary?.taxRate ||
+      0,
   );
   const paymentMethod = resolvePersistedPaymentMethod(container, persisted);
   const summary = recalculateSummary({
@@ -993,8 +1004,8 @@ function toBootstrapPayload(
       po: "",
       notes: null,
       deliveryOption: DEFAULT_DELIVERY_OPTION,
-      taxCode: null,
       ...legacyFormMeta,
+      taxCode: order.taxes?.[0]?.taxCode ?? legacyFormMeta.taxCode ?? null,
       customerId: order.customerId,
       customerProfileId: order.customerProfileId,
       billingAddressId: order.billingAddressId,
@@ -1117,13 +1128,14 @@ export async function bootstrapNewSalesForm(
 export async function getNewSalesForm(
   ctx: TRPCContext,
   input: GetNewSalesFormSchema,
+  sourceType: string = input.type,
 ) {
   getNewSalesFormSchema.parse(input);
   const [order, setting] = await Promise.all([
     ctx.db.salesOrders.findFirst({
       where: {
         slug: input.slug,
-        type: input.type,
+        type: sourceType,
         deletedAt: null,
       },
       select: {
@@ -1150,6 +1162,22 @@ export async function getNewSalesForm(
             type: true,
             amount: true,
             taxxable: true,
+          },
+        },
+        taxes: {
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            taxCode: true,
+            taxConfig: {
+              select: {
+                percentage: true,
+              },
+            },
           },
         },
         taxPercentage: true,
@@ -1335,6 +1363,74 @@ export async function getNewSalesForm(
     });
   }
   return toBootstrapPayload(order, deriveNewSalesFormSettings(setting?.meta));
+}
+
+export async function getNewSalesFormHistorySnapshot(
+  ctx: TRPCContext,
+  input: GetNewSalesFormHistorySnapshotSchema,
+) {
+  const payload = getNewSalesFormHistorySnapshotSchema.parse(input);
+  const historyType = `${payload.type}-hx`;
+  const [current, history] = await Promise.all([
+    ctx.db.salesOrders.findFirst({
+      where: {
+        id: payload.salesId,
+        type: payload.type,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        orderId: true,
+      },
+    }),
+    ctx.db.salesOrders.findFirst({
+      where: {
+        id: payload.historyId,
+        type: historyType,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        orderId: true,
+        slug: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    }),
+  ]);
+
+  if (
+    !current ||
+    !history ||
+    !history.orderId.startsWith(`${current.orderId}-hx`)
+  ) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Sales history snapshot not found.",
+    });
+  }
+
+  const record = await getNewSalesForm(
+    ctx,
+    {
+      type: payload.type,
+      slug: history.slug,
+    },
+    historyType,
+  );
+
+  return {
+    history: {
+      id: history.id,
+      orderId: history.orderId,
+      createdAt: history.createdAt?.toISOString() || null,
+      updatedAt: history.updatedAt?.toISOString() || null,
+    },
+    record: {
+      ...record,
+      type: payload.type,
+    },
+  };
 }
 
 export async function getNewSalesFormStepRouting(
@@ -3036,8 +3132,15 @@ async function saveNewSalesFormInternal(
     const hydratedExtraCosts = persistedExtraCosts.length
       ? persistedExtraCosts
       : payload.extraCosts;
+    const persistedForm = nextMeta.newSalesForm;
+    if (!persistedForm) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Saved sales form metadata is missing.",
+      });
+    }
     nextMeta.newSalesForm = {
-      ...nextMeta.newSalesForm,
+      ...persistedForm,
       lineItems: hydratedLineItems,
       extraCosts: hydratedExtraCosts,
     };
@@ -3368,7 +3471,7 @@ export async function deleteNewSalesFormLineItem(
             version: nextVersion,
             updatedAt,
             lineItems: nextLineItems,
-            summary: persistedNextSummary,
+            summary: persistedNextSummary!,
           },
         }
       : container;

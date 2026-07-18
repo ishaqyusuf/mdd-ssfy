@@ -254,12 +254,17 @@ const profileSection = _section("settings", null, [
 	_link("Profile Settings", "settings2", "/settings/profile").access(
 		_role.some("Admin", "Production", "1099 Contractor", "Super Admin"),
 	).data,
+	_link("Sales Settings", "Printer", "/settings/sales").access(
+		_role.is("Super Admin"),
+	).data,
 	_link("Task Events", "tasks", "/task-events")
 		.access(_role.is("Super Admin"))
 		.childPaths("/task-events/").data,
-	_link("Master Password Logins", "ShieldCheck", "/settings/master-password-logins").access(
-		_role.is("Super Admin"),
-	).data,
+	_link(
+		"Master Password Logins",
+		"ShieldCheck",
+		"/settings/master-password-logins",
+	).access(_role.is("Super Admin")).data,
 	_link("Site Actions", "Notification", "/site-actions").access(
 		_role.is("Super Admin"),
 	).data,
@@ -268,6 +273,9 @@ const profileSection = _section("settings", null, [
 		"notification",
 		"/settings/notification-channels/v2",
 	).access(_role.is("Super Admin")).data,
+	_link("Bug Report Access", "AlertCircle", "/settings/bug-reports").access(
+		_role.is("Super Admin"),
+	).data,
 	_link("Short Links", "AddLink", "/settings/short-links").access(
 		_role.some("Admin", "Super Admin"),
 	).data,

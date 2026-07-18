@@ -17,7 +17,7 @@ type UploadableDocument = {
   size?: number | null;
 };
 
-type UploadedDocument = {
+export type UploadedDocument = {
   id: string;
   title: string;
   description?: string | null;

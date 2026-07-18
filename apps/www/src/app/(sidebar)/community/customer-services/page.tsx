@@ -1,12 +1,15 @@
 import { CustomerServiceHeader } from "@/components/customer-service-header";
 import { ErrorFallback } from "@/components/error-fallback";
 import { LazyWorkOrderFilterChart } from "@/components/lazy-work-order-filter-chart";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/customer-service/data-table";
 import { CustomerServiceSkeleton } from "@/components/tables-2/customer-service/skeleton";
 import { WorkOrderSummaryWidgets } from "@/components/work-order-summary-widgets";
 import { loadCustomerServiceFilterParams } from "@/hooks/use-customer-service-filter-params";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { loadSortParams } from "@/hooks/use-sort-params";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
@@ -26,40 +29,44 @@ type Props = {
 };
 export default async function Page(props: Props) {
 	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
 	const filter = loadCustomerServiceFilterParams(searchParams);
-	const [initialSettings] = await Promise.all([
-		getInitialTableSettings("customer-service"),
-		queryClient.fetchInfiniteQuery(
-			trpc.customerService.getCustomerServices.infiniteQueryOptions({
-				...filter,
-			}),
-		),
-		queryClient.fetchQuery(
-			trpc.hrm.getEmployees.queryOptions({
-				roles: ["Punchout"],
-			}),
-		),
+	const { sort } = loadSortParams(searchParams);
+	const initialSettings = await getInitialTableSettings("customer-service");
+	const queryInput = {
+		...filter,
+		sort,
+	} as RouterInputs["customerService"]["getCustomerServices"];
+
+	batchPrefetch([
+		trpc.customerService.getCustomerServices.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+		trpc.hrm.getEmployees.queryOptions({
+			roles: ["Punchout"],
+		}),
 	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex flex-col gap-6 pt-6 px-6">
-					<PageTitle>Customer Service</PageTitle>
-					<CustomerServiceHeader />
-					<WorkOrderSummaryWidgets />
-					<LazyWorkOrderFilterChart />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense
-							fallback={
-								<CustomerServiceSkeleton initialSettings={initialSettings} />
-							}
-						>
-							<DataTable initialSettings={initialSettings} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Customer Service</PageTitle>
+						<CustomerServiceHeader />
+						<WorkOrderSummaryWidgets />
+						<LazyWorkOrderFilterChart />
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<CustomerServiceSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

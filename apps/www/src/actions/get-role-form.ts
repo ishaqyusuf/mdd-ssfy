@@ -23,7 +23,7 @@ async function getUpdatedPermissions() {
 				name: p,
 			})),
 		});
-		revalidateTag("permissions");
+		revalidateTag("permissions", "max");
 		return await getPermissions();
 	}
 	return permissions;
@@ -92,7 +92,7 @@ export async function getRoleForm(id?) {
 		return null;
 	});
 	await Promise.all(promise);
-	if (promise.length) revalidateTag("permissions");
+	if (promise.length) revalidateTag("permissions", "max");
 	return {
 		permissionsList,
 		form,

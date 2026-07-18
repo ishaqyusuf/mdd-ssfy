@@ -9,15 +9,93 @@ export type TableId =
 	| "sales-orders"
 	| "sales-quotes"
 	| "customers"
+	| "customer-transactions"
+	| "customer-pay-portal"
+	| "customer-sales-list"
+	| "customer-sales-workspace"
+	| "customer-overview-sales-preview"
+	| "customer-statement-report"
+	| "customer-statement-lines"
+	| "door-suppliers"
+	| "clean-code-door-size-select-lines"
+	| "sales-form-takeoff-hpt-lines"
+	| "sales-form-hpt-lines"
+	| "sales-form-moulding-lines"
+	| "clean-code-sales-form-moulding-lines"
+	| "sales-form-service-lines"
+	| "clean-code-sales-form-service-lines"
+	| "sales-form-shelf-items"
+	| "builder-form-tasks"
+	| "role-form-permissions"
+	| "employee-form-permissions"
+	| "job-scope"
+	| "new-job-install-tasks"
+	| "inventory-product-form-variants"
+	| "inventory-product-form-sub-components"
+	| "unit-invoice-form-tasks"
+	| "community-model-cost-form-tasks"
+	| "community-install-cost-form-tasks"
+	| "dealers"
+	| "employees"
+	| "roles"
+	| "employee-profiles"
+	| "contractor-jobs"
+	| "contractor-payouts"
+	| "contractor-payout-overview-jobs"
+	| "payment-dashboard-contractors"
+	| "payment-dashboard-recent-payments"
+	| "payment-portal-jobs"
+	| "site-actions"
+	| "short-links"
+	| "packing-list"
+	| "shelf-items"
+	| "sales-email-ledger"
+	| "task-events"
+	| "task-run-diagnostics"
+	| "task-event-history"
+	| "document-approvals"
+	| "bug-reports"
+	| "bug-report-access-employees"
+	| "notification-channels"
+	| "master-password-logins"
+	| "user-logged-in-devices"
+	| "legacy-square-payment-orders"
+	| "sales-rep-design-activity"
+	| "transaction-overview-applications"
+	| "transaction-overview-payments"
+	| "sales-rep-commission-payments"
+	| "sales-rep-commissions"
+	| "community-projects"
+	| "project-units"
 	| "sales-dispatch"
 	| "inbound-management"
+	| "sales-inbounds"
 	| "sales-accounting"
+	| "sales-resolution"
+	| "sales-production"
 	| "sales-statistics"
 	| "inventory-products"
 	| "inventory-categories"
+	| "inventory-suppliers"
 	| "inventory-import"
+	| "inventory-allocations"
+	| "inventory-variants"
+	| "inventory-backorders"
+	| "inventory-inbounds"
+	| "inventory-partial-shipments"
+	| "inventory-dispatch-mode"
+	| "inventory-production-plan"
+	| "inventory-kind-review"
+	| "inventory-stock-audit"
+	| "inventory-item-variants"
+	| "inventory-item-stocks"
+	| "inventory-item-movements"
+	| "inventory-item-inbound-demands"
+	| "inventory-item-allocations"
+	| "inventory-item-related-lines"
 	| "community-builders"
 	| "community-templates"
+	| "community-install-costs"
 	| "customer-service"
 	| "unit-invoices"
 	| "unit-productions";
@@ -47,15 +125,93 @@ const defaultHiddenColumns: Record<TableId, string[]> = {
 	],
 	"sales-quotes": ["salesRepInitial"],
 	customers: ["email"],
+	"customer-transactions": [],
+	"customer-pay-portal": [],
+	"customer-sales-list": [],
+	"customer-sales-workspace": [],
+	"customer-overview-sales-preview": [],
+	"customer-statement-report": [],
+	"customer-statement-lines": [],
+	"door-suppliers": [],
+	"clean-code-door-size-select-lines": [],
+	"sales-form-takeoff-hpt-lines": [],
+	"sales-form-hpt-lines": [],
+	"sales-form-moulding-lines": [],
+	"clean-code-sales-form-moulding-lines": [],
+	"sales-form-service-lines": [],
+	"clean-code-sales-form-service-lines": [],
+	"sales-form-shelf-items": [],
+	"builder-form-tasks": [],
+	"role-form-permissions": [],
+	"employee-form-permissions": [],
+	"job-scope": [],
+	"new-job-install-tasks": [],
+	"inventory-product-form-variants": [],
+	"inventory-product-form-sub-components": [],
+	"unit-invoice-form-tasks": [],
+	"community-model-cost-form-tasks": [],
+	"community-install-cost-form-tasks": [],
+	dealers: [],
+	employees: [],
+	roles: [],
+	"employee-profiles": [],
+	"contractor-jobs": [],
+	"contractor-payouts": [],
+	"contractor-payout-overview-jobs": [],
+	"payment-dashboard-contractors": [],
+	"payment-dashboard-recent-payments": [],
+	"payment-portal-jobs": [],
+	"site-actions": [],
+	"short-links": [],
+	"packing-list": [],
+	"shelf-items": [],
+	"sales-email-ledger": [],
+	"task-events": [],
+	"task-run-diagnostics": [],
+	"task-event-history": [],
+	"document-approvals": [],
+	"bug-reports": [],
+	"bug-report-access-employees": [],
+	"notification-channels": [],
+	"master-password-logins": [],
+	"user-logged-in-devices": [],
+	"legacy-square-payment-orders": [],
+	"sales-rep-design-activity": [],
+	"transaction-overview-applications": [],
+	"transaction-overview-payments": [],
+	"sales-rep-commission-payments": [],
+	"sales-rep-commissions": [],
+	"community-projects": [],
+	"project-units": [],
 	"sales-dispatch": [],
 	"inbound-management": [],
+	"sales-inbounds": [],
 	"sales-accounting": [],
+	"sales-resolution": [],
+	"sales-production": [],
 	"sales-statistics": [],
 	"inventory-products": [],
 	"inventory-categories": [],
+	"inventory-suppliers": [],
 	"inventory-import": [],
+	"inventory-allocations": ["references"],
+	"inventory-variants": ["attributes"],
+	"inventory-backorders": [],
+	"inventory-inbounds": [],
+	"inventory-partial-shipments": [],
+	"inventory-dispatch-mode": ["blockers"],
+	"inventory-production-plan": ["received"],
+	"inventory-kind-review": [],
+	"inventory-stock-audit": [],
+	"inventory-item-variants": [],
+	"inventory-item-stocks": [],
+	"inventory-item-movements": [],
+	"inventory-item-inbound-demands": [],
+	"inventory-item-allocations": [],
+	"inventory-item-related-lines": [],
 	"community-builders": [],
 	"community-templates": [],
+	"community-install-costs": [],
 	"customer-service": [],
 	"unit-invoices": [],
 	"unit-productions": [],

@@ -34,8 +34,8 @@ function ProductCell({ item }: { item: SalesStatistic }) {
 	const imageSrc = resolveProductImageSrc(item.img);
 
 	return (
-		<div className="flex min-w-0 items-center gap-3">
-			<div className="size-10 shrink-0 overflow-hidden rounded border bg-muted">
+		<div className="flex min-w-0 items-center gap-2">
+			<div className="size-8 shrink-0 overflow-hidden rounded border bg-muted">
 				{imageSrc ? (
 					<img
 						src={imageSrc}
@@ -98,7 +98,7 @@ export const columns: Column[] = [
 		id: "productName",
 		header: "Product",
 		accessorKey: "name",
-		...sizes.custom(260, 520, 320),
+		...sizes.custom(200, 380, 240),
 		enableResizing: true,
 		enableHiding: false,
 		meta: {
@@ -106,7 +106,7 @@ export const columns: Column[] = [
 			skeleton: { type: "avatar-text" },
 			headerLabel: "Product",
 			className: sizeClass(
-				sizes.custom(260, 520, 320),
+				sizes.custom(200, 380, 240),
 				"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 			),
 		},
@@ -116,12 +116,12 @@ export const columns: Column[] = [
 		id: "category",
 		header: "Category",
 		accessorKey: "category",
-		...sizes.custom(140, 260, 180),
+		...sizes.custom(116, 220, 140),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "badge" },
 			headerLabel: "Category",
-			className: sizeClass(sizes.custom(140, 260, 180)),
+			className: sizeClass(sizes.custom(116, 220, 140)),
 		},
 		cell: ({ row }) =>
 			row.original.category ? (
@@ -136,12 +136,12 @@ export const columns: Column[] = [
 		id: "units",
 		header: "Units Sold",
 		accessorKey: "units",
-		...sizes.custom(100, 160, 120),
+		...sizes.custom(88, 132, 100),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-16" },
 			headerLabel: "Units Sold",
-			className: sizeClass(sizes.custom(100, 160, 120), "text-right"),
+			className: sizeClass(sizes.custom(88, 132, 100), "text-right"),
 		},
 		cell: ({ row }) => (
 			<span className="block text-right font-mono font-medium">
@@ -153,12 +153,12 @@ export const columns: Column[] = [
 		id: "revenue",
 		header: "Revenue",
 		accessorKey: "revenue",
-		...sizes.custom(120, 180, 140),
+		...sizes.custom(104, 150, 118),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Revenue",
-			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
+			className: sizeClass(sizes.custom(104, 150, 118), "text-right"),
 		},
 		cell: ({ row }) => <MoneyCell value={row.original.revenue} />,
 	},
@@ -166,12 +166,12 @@ export const columns: Column[] = [
 		id: "costPrice",
 		header: "Cost Price",
 		accessorKey: "costPrice",
-		...sizes.custom(120, 180, 140),
+		...sizes.custom(104, 150, 118),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Cost Price",
-			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
+			className: sizeClass(sizes.custom(104, 150, 118), "text-right"),
 		},
 		cell: ({ row }) => <MoneyCell value={row.original.costPrice} />,
 	},
@@ -179,24 +179,24 @@ export const columns: Column[] = [
 		id: "salesPrice",
 		header: "Sales Price",
 		accessorKey: "salesPrice",
-		...sizes.custom(120, 180, 140),
+		...sizes.custom(104, 150, 118),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-20" },
 			headerLabel: "Sales Price",
-			className: sizeClass(sizes.custom(120, 180, 140), "text-right"),
+			className: sizeClass(sizes.custom(104, 150, 118), "text-right"),
 		},
 		cell: ({ row }) => <MoneyCell value={row.original.salesPrice} />,
 	},
 	{
 		id: "margin",
 		header: "Margin",
-		...sizes.custom(100, 160, 120),
+		...sizes.custom(92, 132, 104),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-16" },
 			headerLabel: "Margin",
-			className: sizeClass(sizes.custom(100, 160, 120), "text-right"),
+			className: sizeClass(sizes.custom(92, 132, 104), "text-right"),
 		},
 		cell: ({ row }) => <MarginCell item={row.original} />,
 	},

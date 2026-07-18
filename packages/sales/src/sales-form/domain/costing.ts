@@ -127,6 +127,7 @@ function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
 
 function deriveShelfLineTotal(line: SalesFormLineItemLike) {
 	const lineAny = line as any;
+	if (lineAny?.housePackageTool) return null;
 	const shelfRows = Array.isArray(lineAny?.shelfItems)
 		? lineAny.shelfItems
 		: [];

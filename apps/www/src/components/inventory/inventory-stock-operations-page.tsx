@@ -1,8 +1,11 @@
 "use client";
 
-import type { RouterInputs } from "@api/trpc/routers/_app";
-import { useState } from "react";
+import { InventoryStockAuditColumnVisibility } from "@/components/tables-2/inventory-stock-audit/column-visibility";
+import { DataTable } from "@/components/tables-2/inventory-stock-audit/data-table";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
 import { Input } from "@gnd/ui/input";
@@ -13,14 +16,24 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
+import {
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
-import { useMutation, useQuery } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { Badge } from "@gnd/ui/badge";
+import { useState } from "react";
 
-type StockAdjustmentInput = RouterInputs["inventories"]["adjustInventoryStock"];
+type StockAdjustmentInput = Exclude<
+	RouterInputs["inventories"]["adjustInventoryStock"],
+	void
+>;
 type StockAdjustmentReason = StockAdjustmentInput["reason"];
 type StockAdjustmentMode = NonNullable<StockAdjustmentInput["mode"]>;
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
 
 const reasonOptions: Array<{ label: string; value: StockAdjustmentReason }> = [
 	{ label: "Correction", value: "correction" },
@@ -33,12 +46,6 @@ const reasonOptions: Array<{ label: string; value: StockAdjustmentReason }> = [
 	{ label: "Stock Out", value: "stock_out" },
 ];
 
-function auditStatusVariant(status?: string | null) {
-	if (status === "verified") return "default";
-	if (status === "partial") return "secondary";
-	return "outline";
-}
-
 function nullableNumber(value: string) {
 	if (!value.trim()) return null;
 	const numeric = Number(value);
@@ -50,8 +57,9 @@ function requiredNumber(value: string) {
 	return Number.isFinite(numeric) ? numeric : null;
 }
 
-export function InventoryStockOperationsPage() {
+export function InventoryStockOperationsPage({ initialSettings }: Props) {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const [inventoryVariantId, setInventoryVariantId] = useState("");
 	const [inventoryStockId, setInventoryStockId] = useState("");
 	const [supplierId, setSupplierId] = useState("");
@@ -62,7 +70,7 @@ export function InventoryStockOperationsPage() {
 	const [reason, setReason] = useState<StockAdjustmentReason>("correction");
 	const [reference, setReference] = useState("");
 	const [notes, setNotes] = useState("");
-	const auditReport = useQuery(
+	const auditReport = useSuspenseQuery(
 		trpc.inventories.stockAuditVerificationReport.queryOptions(undefined),
 	);
 
@@ -73,6 +81,9 @@ export function InventoryStockOperationsPage() {
 					title: "Stock adjusted",
 					description: `Stock ${data.inventoryStockId}: ${data.previousQty} to ${data.currentQty}.`,
 					variant: "success",
+				});
+				void queryClient.invalidateQueries({
+					queryKey: trpc.inventories.stockAuditVerificationReport.queryKey(),
 				});
 			},
 		}),
@@ -118,8 +129,14 @@ export function InventoryStockOperationsPage() {
 			<Card className="p-4">
 				<div className="grid gap-4 lg:grid-cols-3">
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Inventory Variant ID</label>
+						<label
+							htmlFor="inventory-variant-id"
+							className="text-sm font-medium"
+						>
+							Inventory Variant ID
+						</label>
 						<Input
+							id="inventory-variant-id"
 							inputMode="numeric"
 							value={inventoryVariantId}
 							onChange={(event) => setInventoryVariantId(event.target.value)}
@@ -127,8 +144,11 @@ export function InventoryStockOperationsPage() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Inventory Stock ID</label>
+						<label htmlFor="inventory-stock-id" className="text-sm font-medium">
+							Inventory Stock ID
+						</label>
 						<Input
+							id="inventory-stock-id"
 							inputMode="numeric"
 							value={inventoryStockId}
 							onChange={(event) => setInventoryStockId(event.target.value)}
@@ -136,8 +156,11 @@ export function InventoryStockOperationsPage() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Supplier ID</label>
+						<label htmlFor="stock-supplier-id" className="text-sm font-medium">
+							Supplier ID
+						</label>
 						<Input
+							id="stock-supplier-id"
 							inputMode="numeric"
 							value={supplierId}
 							onChange={(event) => setSupplierId(event.target.value)}
@@ -145,12 +168,17 @@ export function InventoryStockOperationsPage() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Mode</label>
+						<label
+							htmlFor="stock-adjustment-mode"
+							className="text-sm font-medium"
+						>
+							Mode
+						</label>
 						<Select
 							value={mode}
 							onValueChange={(value) => setMode(value as StockAdjustmentMode)}
 						>
-							<SelectTrigger>
+							<SelectTrigger id="stock-adjustment-mode">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -160,8 +188,11 @@ export function InventoryStockOperationsPage() {
 						</Select>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Quantity</label>
+						<label htmlFor="stock-quantity" className="text-sm font-medium">
+							Quantity
+						</label>
 						<Input
+							id="stock-quantity"
 							inputMode="decimal"
 							value={qty}
 							onChange={(event) => setQty(event.target.value)}
@@ -169,14 +200,16 @@ export function InventoryStockOperationsPage() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Reason</label>
+						<label htmlFor="stock-reason" className="text-sm font-medium">
+							Reason
+						</label>
 						<Select
 							value={reason}
 							onValueChange={(value) =>
 								setReason(value as StockAdjustmentReason)
 							}
 						>
-							<SelectTrigger>
+							<SelectTrigger id="stock-reason">
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -189,16 +222,22 @@ export function InventoryStockOperationsPage() {
 						</Select>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Location</label>
+						<label htmlFor="stock-location" className="text-sm font-medium">
+							Location
+						</label>
 						<Input
+							id="stock-location"
 							value={location}
 							onChange={(event) => setLocation(event.target.value)}
 							placeholder="Optional"
 						/>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Unit Price</label>
+						<label htmlFor="stock-unit-price" className="text-sm font-medium">
+							Unit Price
+						</label>
 						<Input
+							id="stock-unit-price"
 							inputMode="decimal"
 							value={unitPrice}
 							onChange={(event) => setUnitPrice(event.target.value)}
@@ -206,16 +245,22 @@ export function InventoryStockOperationsPage() {
 						/>
 					</div>
 					<div className="space-y-2">
-						<label className="text-sm font-medium">Reference</label>
+						<label htmlFor="stock-reference" className="text-sm font-medium">
+							Reference
+						</label>
 						<Input
+							id="stock-reference"
 							value={reference}
 							onChange={(event) => setReference(event.target.value)}
 							placeholder="Cycle count, return, correction"
 						/>
 					</div>
 					<div className="space-y-2 lg:col-span-3">
-						<label className="text-sm font-medium">Notes</label>
+						<label htmlFor="stock-notes" className="text-sm font-medium">
+							Notes
+						</label>
 						<Textarea
+							id="stock-notes"
 							value={notes}
 							onChange={(event) => setNotes(event.target.value)}
 							placeholder="Reason details"
@@ -244,13 +289,14 @@ export function InventoryStockOperationsPage() {
 					<div>
 						<h3 className="text-base font-semibold">Audit Verification</h3>
 						<div className="text-sm text-muted-foreground">
-							{auditReport.data
-								? `${auditReport.data.summary.verifiedCategories} of ${auditReport.data.summary.totalCategories} categories verified in recent audit rows.`
-								: "Checking recent stock movement and inventory log rows."}
+							{auditReport.data.summary.verifiedCategories} of{" "}
+							{auditReport.data.summary.totalCategories} categories verified in
+							recent audit rows.
 						</div>
 					</div>
-					{auditReport.data ? (
-						<div className="flex flex-wrap gap-2 text-sm">
+					<div className="flex flex-wrap items-center gap-2 text-sm">
+						<InventoryStockAuditColumnVisibility />
+						<div className="flex flex-wrap gap-2">
 							<Badge variant="outline">
 								{auditReport.data.summary.movementCount} movements
 							</Badge>
@@ -258,52 +304,14 @@ export function InventoryStockOperationsPage() {
 								{auditReport.data.summary.logCount} logs
 							</Badge>
 						</div>
-					) : null}
+					</div>
 				</div>
 
-				<div className="mt-4 overflow-hidden rounded-md border">
-					{auditReport.data?.rows.map((row) => (
-						<div
-							key={row.category}
-							className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1fr_1fr_1fr_auto]"
-						>
-							<div>
-								<div className="font-medium capitalize">
-									{row.category.replaceAll("_", " ")}
-								</div>
-								<div className="text-xs text-muted-foreground">
-									Reason: {row.reason}
-								</div>
-							</div>
-							<div>
-								<div className="text-xs uppercase text-muted-foreground">
-									Movement
-								</div>
-								<div>
-									{row.movementCount} / {row.expectedMovementTypes.join(", ")}
-								</div>
-							</div>
-							<div>
-								<div className="text-xs uppercase text-muted-foreground">
-									Log
-								</div>
-								<div>{row.logCount} / {row.expectedLogActions.join(", ")}</div>
-							</div>
-							<div className="md:text-right">
-								<Badge
-									variant={auditStatusVariant(row.status)}
-									className="capitalize"
-								>
-									{row.status.replaceAll("_", " ")}
-								</Badge>
-							</div>
-						</div>
-					))}
-					{auditReport.isLoading ? (
-						<div className="p-4 text-sm text-muted-foreground">
-							Loading audit verification...
-						</div>
-					) : null}
+				<div className="mt-4">
+					<DataTable
+						data={auditReport.data.rows}
+						initialSettings={initialSettings}
+					/>
 				</div>
 			</Card>
 		</div>

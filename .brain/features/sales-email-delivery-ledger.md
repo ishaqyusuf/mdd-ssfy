@@ -26,6 +26,8 @@ Give sales reps and Super Admin in-app visibility into sales document email deli
 - Email task failures automatically open the monitor, expand the failed task row, and show the full error details; failed sales email monitor rows link to `/sales-book/emails`.
 - Task monitor rows can be expanded from the compact list to inspect full run information, including run id, status, task type, entity, timestamps, and full error text.
 - The sales Email page lives at `/sales-book/emails`.
+- The sales Email page renders through `components/tables-2/sales-email-ledger` with compact `56px` table-core rows, sticky Status and Actions columns, tailored delivery-audit widths, flattened status timestamp metadata, table-owned scroll, column DnD/resize, persisted visibility/sizing/order/divider settings, existing search/status pagination, refresh, and Super Admin resend behavior.
+- 2026-07-17 browser-proof follow-up closed the old missing-table gap on local `gnd-prisma2`: the table rendered authenticated with temporary local proof rows, no login/runtime error, `56px` rows, a `45px` header, table-owned vertical scroll (`scrollTop 0 -> 650`, `scrollHeight 1515`, `clientHeight 439`), table-owned horizontal scroll (`scrollLeft 0 -> 70`, `scrollWidth 1216`, `clientWidth 1146`), `--header-offset: 70px` after scroll, and no document-level horizontal overflow. The `32` proof rows were deleted afterward and `SalesEmailAttempt` returned to `0` rows.
 - Sales reps can review attempts they sent or attempts attached to them as the sales rep.
 - Super Admin can review all attempts and retry `FAILED` or `SKIPPED` attempts.
 
@@ -45,6 +47,7 @@ Give sales reps and Super Admin in-app visibility into sales document email deli
 ## Implementation Touchpoints
 - `apps/www/src/app/(sidebar)/(sales)/sales-book/emails/page.tsx`
 - `apps/www/src/components/sales-email-ledger-page.tsx`
+- `apps/www/src/components/tables-2/sales-email-ledger/*`
 - `apps/api/src/db/queries/sales-email-attempts.ts`
 - `apps/api/src/schemas/emails.ts`
 - `apps/api/src/trpc/routers/emails.route.ts`

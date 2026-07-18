@@ -8,6 +8,8 @@ import { TransactionsTab } from "@/components/sheets/customer-overview-sheet/tra
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { useSalesOverviewOpen } from "@/hooks/use-sales-overview-open";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
@@ -25,9 +27,12 @@ import { formatDate } from "@gnd/utils/dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 
+import { DataTable as CustomerOverviewSalesPreviewTable } from "../tables-2/customer-overview-sales-preview/data-table";
+
 type Props = {
 	accountNo: string;
 	defaultTab?: "overview" | "sales" | "quotes" | "transactions";
+	customerOverviewSalesPreviewInitialSettings?: Partial<TableSettings>;
 	initialOverviewData?: CustomerOverviewV2Data;
 };
 
@@ -35,6 +40,7 @@ const TextWithTooltip = textWithTooltip;
 
 export function CustomerOverviewV2Content({
 	accountNo,
+	customerOverviewSalesPreviewInitialSettings,
 	defaultTab = "overview",
 	initialOverviewData,
 }: Props) {
@@ -87,6 +93,8 @@ export function CustomerOverviewV2Content({
 							/>
 							<CustomerSalesPreview
 								emptyText="No sales orders found for this customer."
+								initialSettings={customerOverviewSalesPreviewInitialSettings}
+								isPending={overviewQuery.isPending}
 								items={data?.salesWorkspace.orders || []}
 								onOpenSheet={(orderNo) =>
 									salesOverviewOpen.openSalesAdminSheet(orderNo)
@@ -99,6 +107,8 @@ export function CustomerOverviewV2Content({
 							/>
 							<CustomerSalesPreview
 								emptyText="No quotes found for this customer."
+								initialSettings={customerOverviewSalesPreviewInitialSettings}
+								isPending={overviewQuery.isPending}
 								items={data?.salesWorkspace.quotes || []}
 								onOpenSheet={(orderNo) =>
 									salesOverviewOpen.openQuoteSheet(orderNo)
@@ -134,6 +144,8 @@ export function CustomerOverviewV2Content({
 				<TabsContent value="sales" className="mt-4">
 					<CustomerSalesPreview
 						emptyText="No sales orders found for this customer."
+						initialSettings={customerOverviewSalesPreviewInitialSettings}
+						isPending={overviewQuery.isPending}
 						items={data?.salesWorkspace.orders || []}
 						onOpenSheet={(orderNo) =>
 							salesOverviewOpen.openSalesAdminSheet(orderNo)
@@ -150,6 +162,8 @@ export function CustomerOverviewV2Content({
 				<TabsContent value="quotes" className="mt-4">
 					<CustomerSalesPreview
 						emptyText="No quotes found for this customer."
+						initialSettings={customerOverviewSalesPreviewInitialSettings}
+						isPending={overviewQuery.isPending}
 						items={data?.salesWorkspace.quotes || []}
 						onOpenSheet={(orderNo) => salesOverviewOpen.openQuoteSheet(orderNo)}
 						onOpenPage={(orderNo) => salesOverviewOpen.openQuotePage(orderNo)}
@@ -178,115 +192,11 @@ export function CustomerOverviewV2Content({
 	);
 }
 
-type CustomerOverviewV2Data = {
-	accountNo: string;
-	customer: {
-		id: number | null;
-		name: string | null;
-		businessName: string | null;
-		displayName: string;
-		email: string | null;
-		phoneNo: string | null;
-		phoneNo2: string | null;
-		address: string | null;
-		profileName: string | null;
-		profileId: number | null;
-		netTerm: string | null;
-		isBusiness: boolean;
-	};
-	addresses: {
-		primary: CustomerAddress | null;
-		secondary: CustomerAddress[];
-	};
-	walletBalance: number;
-	health: {
-		status:
-			| "attention_needed"
-			| "credit_available"
-			| "delivery_in_progress"
-			| "clear";
-		label: string;
-		description: string;
-		nextAction: string;
-		recommendedActions: string[];
-		netExposure: number;
-		creditAvailable: number;
-	};
-	general: {
-		pendingPayment: number;
-		pendingPaymentOrders: Array<{
-			id: number;
-			amountDue?: number | null;
-			customerName?: string | null;
-			customerEmail?: string | null;
-		}>;
-		pendingDeliveryOrders: Array<{
-			id: number;
-			status?: {
-				delivery?: {
-					status?: string | null;
-				};
-			} | null;
-		}>;
-		totalSalesCount: number;
-		totalQuotesCount: number;
-		totalSalesValue: number;
-		totalQuotesValue: number;
-	};
-	salesWorkspace: {
-		orders: CustomerSalesItem[];
-		quotes: CustomerSalesItem[];
-	};
-	recentActivity: Array<{
-		id: string;
-		type:
-			| "order"
-			| "quote"
-			| "payment"
-			| "refund"
-			| "wallet"
-			| "payment_cancelled";
-		title: string;
-		subtitle: string;
-		amount: number;
-		date: string;
-		status: string | null;
-		orderId: string | null;
-	}>;
-};
-
-type CustomerAddress = {
-	id: number;
-	name: string | null;
-	email: string | null;
-	phoneNo: string | null;
-	phoneNo2: string | null;
-	address1: string | null;
-	address2: string | null;
-	city: string | null;
-	state: string | null;
-	country: string | null;
-	isPrimary: boolean | null;
-	meta?: unknown;
-};
-
-type CustomerSalesItem = {
-	id: number;
-	orderId: string;
-	uuid: string;
-	displayName?: string | null;
-	email?: string | null;
-	salesDate?: string | null;
-	due?: number | null;
-	invoice: {
-		total: number;
-	};
-	status?: {
-		delivery?: {
-			status?: string | null;
-		};
-	} | null;
-};
+type CustomerOverviewV2Data =
+	RouterOutputs["customers"]["getCustomerOverviewV2"];
+type CustomerSalesItem =
+	| CustomerOverviewV2Data["salesWorkspace"]["orders"][number]
+	| CustomerOverviewV2Data["salesWorkspace"]["quotes"][number];
 
 function CustomerHero({
 	data,
@@ -346,12 +256,16 @@ function CustomerHero({
 							</Button>
 						</SendSalesReminder>
 						<SalesPaymentProcessor
-							buttonProps={{ variant: "outline" }}
 							customerId={data?.customer.id || undefined}
 							disabled={!pendingPaymentIds.length}
 							phoneNo={data?.accountNo || ""}
 							selectedIds={pendingPaymentIds}
-						/>
+						>
+							<Button variant="outline" disabled={!pendingPaymentIds.length}>
+								<Icons.payment className="mr-2 size-4" />
+								Pay
+							</Button>
+						</SalesPaymentProcessor>
 						<Button asChild variant="outline">
 							<Link href="/sales-book/create-quote">
 								<Icons.FileText className="mr-2 size-4" />
@@ -748,6 +662,8 @@ function CustomerPendingActions({
 
 function CustomerSalesPreview({
 	emptyText,
+	initialSettings,
+	isPending,
 	items,
 	onOpenPage,
 	onOpenSheet,
@@ -759,6 +675,8 @@ function CustomerSalesPreview({
 	type: "order" | "quote";
 	items: CustomerSalesItem[];
 	emptyText: string;
+	initialSettings?: Partial<TableSettings>;
+	isPending?: boolean;
 	showAll?: boolean;
 	onOpenSheet: (orderNo: string) => void;
 	onOpenPage: (orderNo: string) => void;
@@ -776,66 +694,15 @@ function CustomerSalesPreview({
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				{list.length ? (
-					<div className="overflow-x-auto">
-						<table className="w-full text-left">
-							<thead>
-								<tr className="border-b text-xs uppercase tracking-wide text-muted-foreground">
-									<th className="pb-3">Reference</th>
-									<th className="pb-3">Date</th>
-									<th className="pb-3">Amount</th>
-									<th className="pb-3">Status</th>
-									<th className="pb-3 text-right">Actions</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y">
-								{list.map((item) => (
-									<tr key={`${type}-${item.id}`}>
-										<td className="py-3">
-											<div className="font-medium">{item.orderId}</div>
-											<div className="text-xs text-muted-foreground">
-												{item.displayName || "-"}
-											</div>
-										</td>
-										<td className="py-3 text-sm text-muted-foreground">
-											{item.salesDate ? formatDate(item.salesDate) : "-"}
-										</td>
-										<td className="py-3 text-sm font-medium">
-											${formatMoney(item.invoice.total)}
-										</td>
-										<td className="py-3">
-											<Badge variant="outline">
-												{type === "order"
-													? item.status?.delivery?.status || "Pending"
-													: Number(item.due || 0) > 0
-														? "Pending"
-														: "Ready"}
-											</Badge>
-										</td>
-										<td className="py-3">
-											<div className="flex justify-end gap-2">
-												<Button
-													size="sm"
-													variant="outline"
-													onClick={() => onOpenSheet(item.uuid)}
-												>
-													Open sheet
-												</Button>
-												<Button size="sm" onClick={() => onOpenPage(item.uuid)}>
-													Open page
-												</Button>
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				) : (
-					<div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-						{emptyText}
-					</div>
-				)}
+				<CustomerOverviewSalesPreviewTable
+					data={list}
+					emptyText={emptyText}
+					initialSettings={initialSettings}
+					isLoading={isPending}
+					onOpenPage={onOpenPage}
+					onOpenSheet={onOpenSheet}
+					type={type}
+				/>
 			</CardContent>
 		</Card>
 	);

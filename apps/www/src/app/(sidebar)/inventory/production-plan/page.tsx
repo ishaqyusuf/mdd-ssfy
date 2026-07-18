@@ -1,8 +1,11 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { InventoryProductionPlanPage } from "@/components/inventory/inventory-production-plan-page";
 import PageShell from "@/components/page-shell";
-import { TableSkeleton } from "@/components/tables/skeleton";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { InventoryProductionPlanSkeleton } from "@/components/tables-2/inventory-production-plan/skeleton";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
@@ -15,24 +18,40 @@ type Props = {
 };
 
 export default async function Page(props: Props) {
-	const queryClient = getQueryClient();
 	await props.searchParams;
-	await queryClient.fetchQuery(
-		trpc.inventories.salesProductionPlan.queryOptions({
-			limit: 150,
-			readinesses: null,
-		}),
+	const initialSettings = await getInitialTableSettings(
+		"inventory-production-plan",
 	);
+	const queryInput = {
+		limit: 150,
+		readinesses: null,
+	} satisfies RouterInputs["inventories"]["salesProductionPlan"];
+
+	batchPrefetch([
+		trpc.inventories.salesProductionPlan.queryOptions(queryInput),
+	]);
 
 	return (
 		<PageShell>
-			<PageTitle>Inventory Production Plan</PageTitle>
 			<HydrateClient>
-				<ErrorBoundary errorComponent={ErrorFallback}>
-					<Suspense fallback={<TableSkeleton />}>
-						<InventoryProductionPlanPage />
-					</Suspense>
-				</ErrorBoundary>
+				<ScrollableContent>
+					<div className="flex flex-col gap-4">
+						<PageTitle>Inventory Production Plan</PageTitle>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<InventoryProductionPlanSkeleton
+										initialSettings={initialSettings}
+									/>
+								}
+							>
+								<InventoryProductionPlanPage
+									initialSettings={initialSettings}
+								/>
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

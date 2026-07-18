@@ -177,18 +177,6 @@ export async function getEmployees(
     // {},
     db.users,
   );
-  console.log("DEBUG", [
-    await ctx.db.modelHasRoles.count({
-      // select: {
-      //   modelId: true,
-      //   role: {
-      //     select: {
-      //       name: true,
-      //     },
-      //   },
-      // },
-    }),
-  ]);
   const data = await ctx.db.users.findMany({
     where,
     ...searchMeta,
@@ -310,6 +298,15 @@ export async function getEmployees(
       username: user.username,
     })),
   );
+}
+
+export async function getEmployeesCount(
+  ctx: TRPCContext,
+  query: EmployeesQueryParams,
+) {
+  return ctx.db.users.count({
+    where: whereEmployees(query),
+  });
 }
 export async function getEmployeesList(
   ctx: TRPCContext,

@@ -1,8 +1,14 @@
 "use client";
 
+import { ErrorFallback } from "@/components/error-fallback";
+import { ShortLinksColumnVisibility } from "@/components/tables-2/short-links/column-visibility";
+import type { ShortLinkRow } from "@/components/tables-2/short-links/columns";
+import { DataTable } from "@/components/tables-2/short-links/data-table";
+import { ShortLinksSkeleton } from "@/components/tables-2/short-links/skeleton";
+import { useShortLinksFilterParams } from "@/hooks/use-short-links-filter-params";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import {
 	Card,
@@ -23,21 +29,11 @@ import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Switch } from "@gnd/ui/switch";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@gnd/ui/table";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { useMemo, useState } from "react";
-
-type ShortLink = RouterOutputs["shortLinks"]["list"]["data"][number];
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense, useCallback, useMemo, useState } from "react";
 
 type FormState = {
 	id: string | null;
@@ -48,6 +44,10 @@ type FormState = {
 	sourceId: string;
 	expiresOn: string;
 	active: boolean;
+};
+
+type Props = {
+	initialSettings?: Partial<TableSettings>;
 };
 
 const EMPTY_FORM: FormState = {
@@ -71,40 +71,12 @@ function toDateInput(value?: string | Date | null) {
 	return toDate(value)?.toISOString().slice(0, 10) ?? "";
 }
 
-function formatDateTime(value?: string | Date | null) {
-	const date = toDate(value);
-	if (!date) return "Not set";
-	return format(date, "MMM d, yyyy h:mm a");
-}
-
 function expiryInputToIso(value: string) {
 	if (!value) return null;
 	return new Date(`${value}T23:59:59.999Z`).toISOString();
 }
 
-function getStatus(link: ShortLink) {
-	if (link.deletedAt || !link.active) {
-		return {
-			label: "Inactive",
-			variant: "secondary" as const,
-		};
-	}
-
-	const expiresAt = toDate(link.expiresAt);
-	if (expiresAt && expiresAt.getTime() <= Date.now()) {
-		return {
-			label: "Expired",
-			variant: "destructive" as const,
-		};
-	}
-
-	return {
-		label: "Active",
-		variant: "outline" as const,
-	};
-}
-
-function formFromLink(link: ShortLink): FormState {
+function formFromLink(link: ShortLinkRow): FormState {
 	return {
 		id: link.id,
 		targetUrl: link.targetUrl,
@@ -117,40 +89,18 @@ function formFromLink(link: ShortLink): FormState {
 	};
 }
 
-async function copyToClipboard(value: string) {
-	await navigator.clipboard.writeText(value);
-	toast({
-		title: "Short link copied",
-		description: value,
-		variant: "success",
-	});
-}
-
-export function ShortLinksSettingsPage() {
+export function ShortLinksSettingsPage({ initialSettings }: Props) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [search, setSearch] = useState("");
-	const [showInactive, setShowInactive] = useState(false);
+	const { filters, setFilters } = useShortLinksFilterParams();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
-	const listInput = useMemo(
-		() => ({
-			q: search.trim() || null,
-			size: 100,
-			includeInactive: showInactive,
-		}),
-		[search, showInactive],
-	);
-
-	const linksQuery = useQuery(trpc.shortLinks.list.queryOptions(listInput));
-	const links = linksQuery.data?.data ?? [];
-
-	const refresh = async () => {
+	const refresh = useCallback(async () => {
 		await queryClient.invalidateQueries({
-			queryKey: trpc.shortLinks.list.queryKey(listInput),
+			queryKey: trpc.shortLinks.list.queryKey(),
 		});
-	};
+	}, [queryClient, trpc]);
 
 	const createMutation = useMutation(
 		trpc.shortLinks.create.mutationOptions({
@@ -215,6 +165,27 @@ export function ShortLinksSettingsPage() {
 		}),
 	);
 
+	const handleEdit = useCallback((link: ShortLinkRow) => {
+		setForm(formFromLink(link));
+		setDialogOpen(true);
+	}, []);
+
+	const handleDeactivate = useCallback(
+		(link: ShortLinkRow) => {
+			deactivateMutation.mutate({ id: link.id });
+		},
+		[deactivateMutation],
+	);
+
+	const tableActions = useMemo(
+		() => ({
+			onEdit: handleEdit,
+			onDeactivate: handleDeactivate,
+			isDeactivating: deactivateMutation.isPending,
+		}),
+		[deactivateMutation.isPending, handleDeactivate, handleEdit],
+	);
+
 	const isSaving = createMutation.isPending || updateMutation.isPending;
 
 	return (
@@ -228,16 +199,19 @@ export function ShortLinksSettingsPage() {
 								Create compact URLs for SMS, email, and customer-facing links.
 							</CardDescription>
 						</div>
-						<Button
-							type="button"
-							onClick={() => {
-								setForm(EMPTY_FORM);
-								setDialogOpen(true);
-							}}
-						>
-							<Icons.AddLink className="mr-2 size-4" />
-							New Short Link
-						</Button>
+						<div className="flex items-center gap-2">
+							<ShortLinksColumnVisibility />
+							<Button
+								type="button"
+								onClick={() => {
+									setForm(EMPTY_FORM);
+									setDialogOpen(true);
+								}}
+							>
+								<Icons.AddLink className="mr-2 size-4" />
+								New Short Link
+							</Button>
+						</div>
 					</div>
 				</CardHeader>
 				<CardContent className="space-y-4">
@@ -245,16 +219,24 @@ export function ShortLinksSettingsPage() {
 						<div className="relative max-w-xl flex-1">
 							<Icons.Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
-								value={search}
-								onChange={(event) => setSearch(event.target.value)}
+								value={filters.q ?? ""}
+								onChange={(event) =>
+									setFilters({
+										q: event.target.value.trim() || null,
+									})
+								}
 								placeholder="Search slug, title, target, or source..."
 								className="pl-9"
 							/>
 						</div>
 						<div className="flex items-center gap-2">
 							<Switch
-								checked={showInactive}
-								onCheckedChange={setShowInactive}
+								checked={filters.includeInactive === true}
+								onCheckedChange={(includeInactive) =>
+									setFilters({
+										includeInactive: includeInactive || null,
+									})
+								}
 								aria-label="Show inactive short links"
 							/>
 							<span className="text-sm text-muted-foreground">
@@ -263,138 +245,19 @@ export function ShortLinksSettingsPage() {
 						</div>
 					</div>
 
-					<div className="overflow-hidden rounded-lg border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>Short link</TableHead>
-									<TableHead>Target</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Clicks</TableHead>
-									<TableHead>Last click</TableHead>
-									<TableHead className="w-[190px] text-right">
-										Actions
-									</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{linksQuery.isPending ? (
-									<TableRow>
-										<TableCell colSpan={6} className="h-24 text-center">
-											Loading short links...
-										</TableCell>
-									</TableRow>
-								) : links.length ? (
-									links.map((link) => {
-										const status = getStatus(link);
-										return (
-											<TableRow key={link.id}>
-												<TableCell>
-													<div className="space-y-1">
-														<div className="font-medium">{link.slug}</div>
-														<div className="break-all text-xs text-muted-foreground">
-															{link.shortUrl}
-														</div>
-														{link.title ? (
-															<div className="text-xs text-muted-foreground">
-																{link.title}
-															</div>
-														) : null}
-													</div>
-												</TableCell>
-												<TableCell className="max-w-[360px]">
-													<div className="truncate text-sm">
-														{link.targetUrl}
-													</div>
-													{link.sourceType || link.sourceId ? (
-														<div className="mt-1 text-xs text-muted-foreground">
-															{[link.sourceType, link.sourceId]
-																.filter(Boolean)
-																.join(" / ")}
-														</div>
-													) : null}
-												</TableCell>
-												<TableCell>
-													<div className="space-y-1">
-														<Badge variant={status.variant}>
-															{status.label}
-														</Badge>
-														<div className="text-xs text-muted-foreground">
-															Expires {formatDateTime(link.expiresAt)}
-														</div>
-													</div>
-												</TableCell>
-												<TableCell>{link.clickCount}</TableCell>
-												<TableCell>
-													{formatDateTime(link.lastClickedAt)}
-												</TableCell>
-												<TableCell>
-													<div className="flex justify-end gap-2">
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															onClick={() => copyToClipboard(link.shortUrl)}
-															aria-label={`Copy ${link.slug}`}
-														>
-															<Icons.Copy className="size-4" />
-														</Button>
-														<Button
-															asChild
-															type="button"
-															variant="ghost"
-															size="icon"
-														>
-															<a
-																href={link.shortUrl}
-																target="_blank"
-																rel="noreferrer"
-																aria-label={`Open ${link.slug}`}
-															>
-																<Icons.ExternalLink className="size-4" />
-															</a>
-														</Button>
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															onClick={() => {
-																setForm(formFromLink(link));
-																setDialogOpen(true);
-															}}
-															aria-label={`Edit ${link.slug}`}
-														>
-															<Icons.Edit className="size-4" />
-														</Button>
-														<Button
-															type="button"
-															variant="ghost"
-															size="icon"
-															disabled={
-																!link.active || deactivateMutation.isPending
-															}
-															onClick={() =>
-																deactivateMutation.mutate({ id: link.id })
-															}
-															aria-label={`Deactivate ${link.slug}`}
-														>
-															<Icons.LinkOff className="size-4" />
-														</Button>
-													</div>
-												</TableCell>
-											</TableRow>
-										);
-									})
-								) : (
-									<TableRow>
-										<TableCell colSpan={6} className="h-24 text-center">
-											No short links found.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-					</div>
+					<ErrorBoundary errorComponent={ErrorFallback}>
+						<Suspense
+							fallback={
+								<ShortLinksSkeleton initialSettings={initialSettings} />
+							}
+						>
+							<DataTable
+								initialSettings={initialSettings}
+								defaultFilters={{ size: 100 } as RouterInputs["shortLinks"]["list"]}
+								actions={tableActions}
+							/>
+						</Suspense>
+					</ErrorBoundary>
 				</CardContent>
 			</Card>
 

@@ -1,10 +1,11 @@
 "use client";
 
+import { DataTable as CustomerStatementLinesDataTable } from "@/components/tables-2/customer-statement-lines/data-table";
+import { DataTable as CustomerStatementReportDataTable } from "@/components/tables-2/customer-statement-report/data-table";
 import { useAuth } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { downloadCustomerStatementPdf } from "@/lib/customer-statement-print";
 import { useTRPC } from "@/trpc/client";
-import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-status";
 import { Badge } from "@gnd/ui/badge";
 import { Button, buttonVariants } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
@@ -23,9 +24,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
-import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
-import { Skeleton } from "@gnd/ui/skeleton";
 import {
 	Form,
 	FormControl,
@@ -33,22 +31,16 @@ import {
 	FormItem,
 	FormMessage,
 } from "@gnd/ui/form";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableFooter,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@gnd/ui/table";
+import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Skeleton } from "@gnd/ui/skeleton";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { type Resolver, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -544,9 +536,7 @@ function CustomerStatementsReportDialog({
 							includeSalesInvoicesInPdf={includeSalesInvoicesInPdf}
 							onDownloadPdf={downloadStatementPdf}
 							onSend={sendStatement}
-							onIncludeSalesInvoicesInPdfChange={
-								setIncludeSalesInvoicesInPdf
-							}
+							onIncludeSalesInvoicesInPdfChange={setIncludeSalesInvoicesInPdf}
 							selectedLineSet={selectedLineSet}
 							selectedLinesCount={selectedLines.length}
 							selectedTotal={selectedTotal}
@@ -584,112 +574,19 @@ function CustomerStatementsReportDialog({
 							/>
 						</div>
 
-						<div className="min-h-0 flex-1 overflow-auto rounded-md border">
-							<Table>
-								<TableHeader className="bg-muted/60 [&_th]:h-10 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:text-muted-foreground">
-									<TableRow>
-										<TableHead>Customer name</TableHead>
-										<TableHead className="text-right">Due orders</TableHead>
-										<TableHead className="text-right">Due amount</TableHead>
-										<TableHead>Last sent</TableHead>
-										<TableHead className="w-12" />
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{reportQuery.isPending ? (
-										Array.from({ length: 6 }).map((_, index) => (
-											<TableRow key={index}>
-												<TableCell>
-													<Skeleton className="h-4 w-48 rounded-md" />
-												</TableCell>
-												<TableCell>
-													<Skeleton className="ml-auto h-4 w-16 rounded-md" />
-												</TableCell>
-												<TableCell>
-													<Skeleton className="ml-auto h-4 w-24 rounded-md" />
-												</TableCell>
-												<TableCell>
-													<Skeleton className="h-4 w-24 rounded-md" />
-												</TableCell>
-												<TableCell />
-											</TableRow>
-										))
-									) : filteredCustomers.length ? (
-										filteredCustomers.map((customer, index) => (
-											<TableRow
-												key={`${customer.accountNo}-${customer.customerName}-${index}`}
-												className={cn(
-													customer.customerId &&
-														"cursor-pointer hover:bg-muted/50",
-												)}
-												onClick={() =>
-													openCustomerStatement(customer.customerId)
-												}
-											>
-												<TableCell>
-													<div className="flex flex-col gap-1">
-														<span className="font-medium">
-															{customer.customerName}
-														</span>
-														<div className="flex flex-wrap gap-2">
-															{customer.accountNo ? (
-																<Badge variant="outline">
-																	{customer.accountNo}
-																</Badge>
-															) : null}
-															{customer.customerEmail ? (
-																<span className="text-xs text-muted-foreground">
-																	{customer.customerEmail}
-																</span>
-															) : null}
-														</div>
-													</div>
-												</TableCell>
-												<TableCell className="text-right">
-													{customer.dueOrders}
-												</TableCell>
-												<TableCell className="text-right font-medium">
-													{formatCurrency(customer.dueAmount)}
-												</TableCell>
-												<TableCell>
-													{formatNullableDate(customer.lastSentAt)}
-												</TableCell>
-												<TableCell className="text-right">
-													{customer.customerId ? (
-														<Icons.ChevronRight className="ml-auto size-4 text-muted-foreground" />
-													) : null}
-												</TableCell>
-											</TableRow>
-										))
-									) : (
-										<TableRow>
-											<TableCell
-												colSpan={5}
-												className="h-32 text-center text-muted-foreground"
-											>
-												{search.trim()
-													? "No customer statements match your search."
-													: "No customer statements due."}
-											</TableCell>
-										</TableRow>
-									)}
-								</TableBody>
-								{!reportQuery.isPending && filteredCustomers.length ? (
-									<TableFooter>
-										<TableRow>
-											<TableCell>TOTAL:</TableCell>
-											<TableCell className="text-right">
-												{filteredDueOrders}
-											</TableCell>
-											<TableCell className="text-right">
-												{formatCurrency(filteredDueAmount)}
-											</TableCell>
-											<TableCell colSpan={2} />
-										</TableRow>
-									</TableFooter>
-								) : null}
-							</Table>
-						</div>
+						<CustomerStatementReportDataTable
+							className="min-h-0 flex-1"
+							data={filteredCustomers}
+							emptyDescription={
+								search.trim()
+									? "No customer statements match your search."
+									: "No customer statements due."
+							}
+							footerDueAmount={formatCurrency(filteredDueAmount)}
+							footerDueOrders={filteredDueOrders}
+							isLoading={reportQuery.isPending}
+							onOpenCustomer={openCustomerStatement}
+						/>
 					</div>
 				)}
 			</DialogContent>
@@ -780,88 +677,14 @@ function StatementOverview({
 							</div>
 						</div>
 
-						<div className="overflow-auto rounded-md border">
-							<Table>
-								<TableHeader className="bg-muted/60 [&_th]:h-10 [&_th]:text-xs [&_th]:font-semibold [&_th]:uppercase [&_th]:text-muted-foreground">
-									<TableRow>
-										<TableHead className="w-12">
-											<Checkbox
-												checked={
-													allLinesSelected
-														? true
-														: hasPartialSelection
-															? "indeterminate"
-															: false
-												}
-												onCheckedChange={(checked) =>
-													toggleAllLines(checked === true)
-												}
-											/>
-										</TableHead>
-										<TableHead>Order #</TableHead>
-										<TableHead>Date</TableHead>
-										<TableHead>Status</TableHead>
-										<TableHead>Address</TableHead>
-										<TableHead className="text-right">Invoice</TableHead>
-										<TableHead className="text-right">Paid</TableHead>
-										<TableHead className="text-right">Pending</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{lines.length ? (
-										lines.map((line) => (
-											<TableRow key={line.salesId}>
-												<TableCell>
-													<Checkbox
-														checked={selectedLineSet.has(line.salesId)}
-														onCheckedChange={(checked) =>
-															toggleLine(line.salesId, checked === true)
-														}
-													/>
-												</TableCell>
-												<TableCell className="font-medium">
-													{line.orderNo}
-												</TableCell>
-												<TableCell>{line.date}</TableCell>
-												<TableCell>
-													<Badge
-														className={cn(
-															"border-0 whitespace-nowrap",
-															getSalesOrderLifecycleStatusBadgeClassName(
-																line.status,
-															),
-														)}
-													>
-														{line.statusLabel}
-													</Badge>
-												</TableCell>
-												<TableCell className="max-w-64 truncate">
-													{line.address || "-"}
-												</TableCell>
-												<TableCell className="text-right">
-													{formatCurrency(line.invoice)}
-												</TableCell>
-												<TableCell className="text-right">
-													{formatCurrency(line.paid)}
-												</TableCell>
-												<TableCell className="text-right font-medium">
-													{formatCurrency(line.pending)}
-												</TableCell>
-											</TableRow>
-										))
-									) : (
-										<TableRow>
-											<TableCell
-												colSpan={8}
-												className="h-28 text-center text-muted-foreground"
-											>
-												No pending payment orders.
-											</TableCell>
-										</TableRow>
-									)}
-								</TableBody>
-							</Table>
-						</div>
+						<CustomerStatementLinesDataTable
+							allLinesSelected={allLinesSelected}
+							data={lines}
+							hasPartialSelection={hasPartialSelection}
+							selectedLineSet={selectedLineSet}
+							toggleAllLines={toggleAllLines}
+							toggleLine={toggleLine}
+						/>
 					</>
 				) : (
 					<div className="rounded-md border p-8 text-center text-muted-foreground">
@@ -1024,6 +847,10 @@ function formatNullableDate(value?: string | null) {
 const updateEmailSchema = z.object({
 	email: z.string().email("Please enter a valid email address."),
 });
+type UpdateEmailFormValues = z.infer<typeof updateEmailSchema>;
+const updateEmailResolver = zodResolver(
+	updateEmailSchema as never,
+) as Resolver<UpdateEmailFormValues>;
 
 function UpdateCustomerEmailForm({
 	customerId,
@@ -1032,8 +859,8 @@ function UpdateCustomerEmailForm({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const form = useForm<z.infer<typeof updateEmailSchema>>({
-		resolver: zodResolver(updateEmailSchema),
+	const form = useForm<UpdateEmailFormValues>({
+		resolver: updateEmailResolver,
 		defaultValues: { email: "" },
 	});
 
@@ -1046,7 +873,7 @@ function UpdateCustomerEmailForm({
 			onError: (error) => {
 				toast.error(error.message || "Failed to update email address.");
 			},
-		})
+		}),
 	);
 
 	const onSubmit = form.handleSubmit((data) => {

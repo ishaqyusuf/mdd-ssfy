@@ -1,15 +1,15 @@
 import { authId } from "@/app-deps/(v1)/_actions/utils";
-import {
-	type DashboardResponse,
-	ProductionWorkspace,
-} from "@/components/production-workspace";
+import PageShell from "@/components/page-shell";
+import { ProductionWorkspace } from "@/components/production-workspace";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { loadSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
-import type { PageFilterData } from "@api/type";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { Metadata } from "next";
 import { unstable_noStore } from "next/cache";
+import type { SearchParams } from "nuqs";
 
-import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -18,37 +18,46 @@ export const metadata: Metadata = {
 		"Track due work, tomorrow alerts, and your active production queue",
 };
 
-export default async function Page(props) {
+type Props = {
+	searchParams: Promise<SearchParams>;
+};
+
+export default async function Page(props: Props) {
 	unstable_noStore();
 	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
 	const filter = loadSalesProductionFilterParams(searchParams);
 	const workerId = await authId();
-	const [initialDashboardData, initialFilterList, _initialProductionTasks] =
-		await Promise.all([
-			queryClient.fetchQuery(
-				trpc.sales.productionDashboard.queryOptions(
-					workerId ? { workerId: Number(workerId) } : undefined,
-				),
-			),
-			queryClient.fetchQuery(trpc.filters.salesProductions.queryOptions()),
-			queryClient.fetchInfiniteQuery(
-				// biome-ignore lint/suspicious/noExplicitAny: shared tRPC infinite query options are not fully typed in this repo yet.
-				trpc.sales.productionTasks.infiniteQueryOptions(filter) as any,
-			),
-		]);
+	const initialTableSettings = await getInitialTableSettings("sales-production");
+
+	batchPrefetch([
+		trpc.sales.productionDashboard.queryOptions(
+			workerId
+				? {
+						workerId: Number(workerId),
+						priority: filter.priority || undefined,
+					}
+				: {
+						priority: filter.priority || undefined,
+					},
+		),
+		trpc.filters.salesProductions.queryOptions(),
+		trpc.sales.productionTasks.infiniteQueryOptions(filter, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
 
 	// redirect("/production/dashboard/v2"); // Temporary redirect to the new production page while we transition
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="relative">
+				<ScrollableContent>
+					<PageTitle>Production</PageTitle>
 					<ProductionWorkspace
 						mode="worker"
-						initialDashboardData={initialDashboardData as DashboardResponse}
-						initialFilterList={initialFilterList as PageFilterData[]}
+						initialTableSettings={initialTableSettings}
 					/>
-				</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

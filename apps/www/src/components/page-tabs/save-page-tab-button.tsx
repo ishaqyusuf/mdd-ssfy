@@ -17,20 +17,27 @@ import {
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { FilterDefinition } from "../midday-search-filter/filter-definitions";
 import { FilterList } from "../midday-search-filter/filter-list";
-import { invalidatePageTabs } from "./page-tabs";
-import { normalizePagePath, queryFromActiveFilters } from "./query-utils";
+import { invalidatePageTabs } from "./invalidation";
+import { normalizePagePath } from "./query-utils";
 
 interface Props {
 	definitions: FilterDefinition[];
 	filters: Record<string, unknown>;
 	optionLookup: Map<string, Map<string, string>>;
 	buttonClassName?: string;
+	query: string;
 }
 
 export function SavePageTabButton({
@@ -38,6 +45,7 @@ export function SavePageTabButton({
 	filters,
 	optionLookup,
 	buttonClassName,
+	query,
 }: Props) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -49,21 +57,11 @@ export function SavePageTabButton({
 	const [setDefault, setSetDefault] = useState(false);
 	const [generalTab, setGeneralTab] = useState(false);
 	const page = normalizePagePath(pathname);
-	const query = useMemo(
-		() => queryFromActiveFilters(searchParams, filters),
-		[searchParams, filters],
-	);
 	const activeSortLabel = useMemo(
 		() => getSortLabel(searchParams.get("sort")),
 		[searchParams],
 	);
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
-	const { data: tabs } = useQuery({
-		...trpc.pageTabs.list.queryOptions({ page }),
-		enabled: Boolean(query),
-	});
-	const isAlreadySaved = tabs?.some((tab) => tab.query === query);
-	const canSave = Boolean(query) && !isAlreadySaved;
 
 	const createTab = useMutation(
 		trpc.pageTabs.create.mutationOptions({
@@ -88,20 +86,32 @@ export function SavePageTabButton({
 		}),
 	);
 
-	if (!canSave) return null;
+	if (!query) return null;
 
 	return (
 		<>
-			<Button
-				aria-label="Save current filters as page tab"
-				className={cn("h-8 w-8 shrink-0 rounded-md px-0", buttonClassName)}
-				onClick={() => setOpen(true)}
-				size="sm"
-				type="button"
-				variant="outline"
-			>
-				<Icons.Plus className="size-4" />
-			</Button>
+			<TooltipProvider delayDuration={120}>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							aria-label="Save current view"
+							className={cn(
+								"h-8 w-8 shrink-0 rounded-md px-0",
+								buttonClassName,
+							)}
+							onClick={() => setOpen(true)}
+							size="sm"
+							type="button"
+							variant="outline"
+						>
+							<Icons.Plus className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent className="px-2 py-1 text-xs" side="top">
+						Save current view
+					</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
@@ -144,9 +154,7 @@ export function SavePageTabButton({
 								<Checkbox
 									id="page-tab-general"
 									checked={generalTab}
-									onCheckedChange={(checked) =>
-										setGeneralTab(Boolean(checked))
-									}
+									onCheckedChange={(checked) => setGeneralTab(Boolean(checked))}
 								/>
 								<div className="grid gap-0.5">
 									<Label htmlFor="page-tab-general">General tab</Label>
@@ -174,8 +182,7 @@ export function SavePageTabButton({
 									query,
 									title: title.trim(),
 									setDefault,
-									visibility:
-										isSuperAdmin && generalTab ? "public" : "private",
+									visibility: isSuperAdmin && generalTab ? "public" : "private",
 								});
 							}}
 						>

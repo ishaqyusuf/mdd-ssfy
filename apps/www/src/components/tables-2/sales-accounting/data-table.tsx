@@ -4,7 +4,9 @@ import { VirtualRow } from "@/components/tables-2/core";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useSalesAccountingFilterParams } from "@/hooks/use-sales-accounting-filter-params";
 import { useSalesAccountingParams } from "@/hooks/use-sales-accounting-params";
+import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
+import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useSalesAccountingStore } from "@/store/saless-account-store";
@@ -12,6 +14,7 @@ import { useTRPC } from "@/trpc/client";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
@@ -60,6 +63,8 @@ export function DataTable({
 	const bindShowColumnDividers = useSalesAccountingTableStore(
 		(state) => state.bindShowColumnDividers,
 	);
+
+	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -121,6 +126,7 @@ export function DataTable({
 		table,
 		stickyColumns: tableConfig.stickyColumns,
 	});
+	const { sensors, handleDragEnd } = useTableDnd(table);
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
 		startFromColumn: 2,
@@ -188,45 +194,59 @@ export function DataTable({
 						height: "calc(100vh - 260px + var(--header-offset, 0px))",
 					}}
 				>
-					<Table className="w-full min-w-full">
-						<DataTableHeader
-							table={table}
-							tableScroll={tableScroll}
-							showColumnDividers={showColumnDividers}
-						/>
+					<DndContext
+						id="sales-accounting-table-dnd"
+						sensors={sensors}
+						collisionDetection={closestCenter}
+						onDragEnd={handleDragEnd}
+					>
+						<Table className="w-full min-w-full">
+							<DataTableHeader
+								table={table}
+								tableScroll={tableScroll}
+								showColumnDividers={showColumnDividers}
+							/>
 
-						<TableBody
-							className="block border-l-0 border-r-0"
-							style={{
-								height: `${rowVirtualizer.getTotalSize()}px`,
-								position: "relative",
-							}}
-						>
-							{virtualItems.map((virtualRow: VirtualItem) => {
-								const row = rows[virtualRow.index];
-								if (!row) return null;
+							<TableBody
+								className="block border-l-0 border-r-0"
+								style={{
+									height: `${rowVirtualizer.getTotalSize()}px`,
+									position: "relative",
+								}}
+							>
+								{virtualItems.map((virtualRow: VirtualItem) => {
+									const row = rows[virtualRow.index];
+									if (!row) return null;
 
-								return (
-									<VirtualRow
-										key={row.id}
-										row={row}
-										virtualStart={virtualRow.start}
-										rowHeight={tableConfig.rowHeight}
-										tableStyle={tableConfig.style}
-										getStickyStyle={getStickyStyle}
-										getStickyClassName={getStickyClassName}
-										nonClickableColumns={NON_CLICKABLE_COLUMNS}
-										onCellClick={handleCellClick}
-										columnSizing={columnSizing}
-										columnOrder={columnOrder}
-										columnVisibility={columnVisibility}
-										showColumnDividers={showColumnDividers}
-										isSelected={rowSelection[row.id] ?? false}
-									/>
-								);
-							})}
-						</TableBody>
-					</Table>
+									return (
+										<VirtualRow
+											key={row.id}
+											row={row}
+											virtualStart={virtualRow.start}
+											rowHeight={tableConfig.rowHeight}
+											tableStyle={tableConfig.style}
+											getStickyStyle={getStickyStyle}
+											getStickyClassName={getStickyClassName}
+											nonClickableColumns={NON_CLICKABLE_COLUMNS}
+											onCellClick={handleCellClick}
+											columnSizing={columnSizing}
+											columnOrder={columnOrder}
+											columnVisibility={columnVisibility}
+											showColumnDividers={showColumnDividers}
+											isSelected={rowSelection[row.id] ?? false}
+										/>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DndContext>
+					<div
+						style={{
+							height: "var(--header-offset, 0px)",
+							flexShrink: 0,
+						}}
+						aria-hidden
+					/>
 				</div>
 			</div>
 		</div>

@@ -14,13 +14,17 @@ Tracks notable API surfaces and where they are implemented.
   - `pageTabs.delete`: protected mutation that soft-deletes manageable tabs and clears tab index/default rows.
 - App download route:
   - `apps/www/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk` while preserving query-string overrides for `url` and `name`
+- Master password login audit routes:
+  - `masterPasswordLoginAudits.list`: Super Admin-only paginated audit query with text search, platform filtering, and optional cleared-record visibility.
+  - `masterPasswordLoginAudits.clear`: Super Admin-only archive mutation for explicit row ids or the current active search/platform filter; stamps `clearedAt` and the acting Super Admin id.
 - Web bug reporting routes now include:
-  - `/api/bug-reports/upload`: web route handler for Vercel Blob client uploads; generates short-lived upload tokens only for authenticated users with `submitBugReport`, scoped to `bug-reports/<userId>/`
-  - `bugReports.create`: creates a web bug report after the browser uploads the recording to Vercel Blob; requires `submitBugReport`
+  - `/api/bug-reports/upload`: web route handler for Vercel Blob client uploads; generates short-lived upload tokens only for authenticated users with `submitBugReport`, scoped to `bug-reports/<userId>/`, and supports image/video/audio evidence uploads
+  - `bugReports.create`: creates a web bug report after the browser uploads screenshot or video evidence to Vercel Blob; requires `submitBugReport`; accepts optional initial voice-note evidence; best-effort external issue creation supports configured GitHub or Jira providers
   - `bugReports.mine`: returns the authenticated employee's own reports
   - `bugReports.adminList`: Super Admin list of all reports with optional status filter
-  - `bugReports.byId`: owner-or-Super Admin detail with recording metadata and follow-up thread
-  - `bugReports.addFollowUp`: owner-or-Super Admin follow-up message mutation
+  - `bugReports.byId`: owner-or-Super Admin detail with primary evidence metadata, capture type, external issue metadata, and follow-up thread including voice-note/transcription metadata
+  - `bugReports.addFollowUp`: owner-or-Super Admin follow-up message mutation; API schema supports optional voice-note evidence
+  - `bugReports.transcribeFollowUp`: owner-or-Super Admin voice-note transcription retry/manual mutation using configured Groq Whisper-compatible transcription
   - `bugReports.updateStatus`: Super Admin status update mutation
   - `hrm.setEmployeeBugReportingAccess`: Super Admin employee-row action that grants or removes the employee-specific `submit bug report` permission and clears the target employee's sessions for permission refresh
 - Sales email ledger routes now include:
@@ -62,10 +66,15 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.getOrdersSummary`: canonical sales orders summary query for `/sales-book/orders`
   - `sales.getPaymentReviewSettings`: protected query returning current payment review settings plus Super Admin manage capability
   - `sales.updatePaymentReviewSettings`: Super Admin-only mutation that updates `sales-settings.meta.paymentReview.autoReviewActions`
+  - `sales.getPrintSettings`: protected query returning normalized sales print defaults plus Super Admin manage capability
+  - `sales.updatePrintSettings`: Super Admin-only mutation that merges the validated print configuration into `sales-settings.meta.print`
+  - `sales.getPrintPreviewOrders`: Super Admin-only bounded query returning the 12 most recent active orders for the Sales Settings preview picker
   - `sales.markLatestPaymentReviewed`: protected mutation that manually marks the latest clean payment for an order as reviewed
   - `sales.createPaymentLink`: protected mutation that returns a checkout URL/token for an order with outstanding balance
   - `filters.salesOrders`: filter metadata query used by `SalesOrdersV2Header`
-- New sales form shelf product routes now include:
+- New sales form routes now include:
+  - `sales.getSalesHx`: returns persisted `order-hx` / `quote-hx` snapshots for a sales number with activity author/date when available, totals, profile, and item count
+  - `newSalesForm.getHistorySnapshot`: protected lazy detail query that verifies a requested history copy belongs to the current order/quote before hydrating it through the new-form loader
   - `newSalesForm.searchShelfProducts`: mobile and web shelf picker search; blank query returns up to 10 visible recently used shelf products ordered by latest saved shelf line usage, skipping archived/hidden recent products without filling from unused active products; unused active shelf products are only shown through typed search or selected-product hydration
   - `newSalesForm.searchServiceSuggestions`: mobile Service line suggestion search; blank query returns unique recent service names derived from saved grouped service rows, while typed query filters by normalized service name and returns the latest observed unit price for each service
   - `newSalesForm.updateShelfProduct`: updates a shelf product title and unit price for the mobile shelf search edit action

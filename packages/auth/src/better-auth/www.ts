@@ -13,6 +13,7 @@ import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
 import * as z from "zod";
 import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
+import { getRequestCountryCode } from "../request-country";
 import {
   isMasterPassword,
   validateAuthToken,
@@ -481,6 +482,7 @@ function auditWebMasterPasswordSignIn(input: {
 async function recordWebMasterPasswordLoginAudit(input: {
   accountEmail: string;
   accountName: string | null;
+  countryCode: string | null;
   ipAddress: string | null;
   platform: WebMasterPasswordLoginPlatform;
   sessionId: string;
@@ -499,6 +501,7 @@ async function recordWebMasterPasswordLoginAudit(input: {
         appSurface: "www",
         platform: input.platform,
         ipAddress: input.ipAddress,
+        countryCode: input.countryCode,
         browser: device.browser,
         userAgent: input.userAgent,
         sessionId: input.sessionId,
@@ -613,6 +616,7 @@ function webCredentialsPlugin(): BetterAuthPlugin {
               accountName: user.name,
               accountEmail: user.email,
               platform: "WEBSITE",
+              countryCode: getRequestCountryCode(ctx.headers),
               ipAddress: session.ipAddress ?? null,
               userAgent: session.userAgent ?? null,
             });
@@ -742,6 +746,7 @@ function webCredentialsPlugin(): BetterAuthPlugin {
               accountName: user.name,
               accountEmail: user.email,
               platform: "MOBILE",
+              countryCode: getRequestCountryCode(ctx.headers),
               ipAddress: session.ipAddress ?? null,
               userAgent: session.userAgent ?? null,
             });

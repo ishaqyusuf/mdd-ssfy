@@ -1,27 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { Skeleton } from "@gnd/ui/skeleton";
+import CommunityInstallCostRate from "@/components/community-install-costs";
+import type { TableSettings } from "@/utils/table-settings";
 
-const CommunityInstallCostRate = dynamic(
-	() => import("@/components/community-install-costs"),
-	{
-		loading: () => (
-			<div className="space-y-4">
-				<Skeleton className="h-10 w-40" />
-				<div className="space-y-2">
-					{Array.from({ length: 6 }).map((_, index) => (
-						<Skeleton
-							key={index.toString()}
-							className="h-14 w-full rounded-lg"
-						/>
-					))}
-				</div>
-			</div>
-		),
-	},
-);
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
 
-export function InstallCostsClient() {
-	return <CommunityInstallCostRate />;
+export function InstallCostsClient({ initialSettings }: Props) {
+	return <CommunityInstallCostRate initialSettings={initialSettings} />;
 }

@@ -457,6 +457,7 @@
         "@gnd/notifications": "workspace:*",
         "@gnd/pdf": "workspace:*",
         "@gnd/sales": "workspace:*",
+        "@gnd/settings": "workspace:*",
         "@gnd/site-nav": "workspace:*",
         "@gnd/square": "workspace:*",
         "@gnd/ui": "workspace:*",
@@ -484,6 +485,7 @@
         "eslint": "8.57.0",
         "eslint-config-next": "^16.2.10",
         "framer-motion": "^12.23.24",
+        "html-to-image": "^1.11.13",
         "libphonenumber-js": "^1.12.24",
         "little-date": "^1.0.0",
         "lodash": "^4.17.21",
@@ -4252,6 +4254,8 @@
     "hsl-to-hex": ["hsl-to-hex@1.0.0", "", { "dependencies": { "hsl-to-rgb-for-reals": "^1.1.0" } }, "sha512-K6GVpucS5wFf44X0h2bLVRDsycgJmf9FF2elg+CrqD8GcFU8c6vYhgXn8NjUkFCwj+xDFb70qgLbTUm6sxwPmA=="],
 
     "hsl-to-rgb-for-reals": ["hsl-to-rgb-for-reals@1.1.1", "", {}, "sha512-LgOWAkrN0rFaQpfdWBQlv/VhkOxb5AsBjk6NQVx4yEzWS923T07X0M1Y0VNko2H52HeSpZrZNNMJ0aFqsdVzQg=="],
+
+    "html-to-image": ["html-to-image@1.11.13", "", {}, "sha512-cuOPoI7WApyhBElTTb9oqsawRvZ0rHhaHwghRLlTuffoD1B2aDemlCruLeZrUIIdvG7gs9xeELEPm6PhuASqrg=="],
 
     "html-to-text": ["html-to-text@9.0.5", "", { "dependencies": { "@selderee/plugin-htmlparser2": "^0.11.0", "deepmerge": "^4.3.1", "dom-serializer": "^2.0.0", "htmlparser2": "^8.0.2", "selderee": "^0.11.0" } }, "sha512-qY60FjREgVZL03vJU6IfMV4GDjGBIoOyvuFdpBDIX9yTlDw0TjxVBQp+P8NvpdIXNJvfWBTNul7fsAQJq2FNpg=="],
 

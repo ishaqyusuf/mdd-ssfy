@@ -9,13 +9,19 @@ import {
 	getHeaderLabel,
 	getTableCellPaddingClass,
 } from "@/components/tables-2/core";
+import { DraggableHeader } from "@/components/tables-2/draggable-header";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableId } from "@/utils/table-settings";
+import {
+	SortableContext,
+	horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { cn } from "@gnd/ui/cn";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
 import type { Header, Table } from "@tanstack/react-table";
+import { useMemo } from "react";
 
 interface Props<TData> {
 	table?: Table<TData>;
@@ -45,6 +51,14 @@ export function DataTableHeader<TData>({
 		loading,
 		stickyColumns: tableConfig.stickyColumns,
 	});
+	const sortableColumnIds = useMemo(() => {
+		if (!table) return [];
+
+		return table
+			.getAllLeafColumns()
+			.filter((column) => !tableConfig.nonReorderableColumns.has(column.id))
+			.map((column) => column.id);
+	}, [table]);
 
 	if (!table) return null;
 
@@ -61,90 +75,118 @@ export function DataTableHeader<TData>({
 					className="flex min-w-full items-center !border-b-0 hover:bg-transparent"
 					style={{ height: tableConfig.headerHeight }}
 				>
-					{headerGroup.headers.map((header, headerIndex, headers) => {
-						const columnId = header.column.id;
-						const meta = header.column.columnDef.meta as
-							| TableColumnMeta
-							| undefined;
-						const isSticky = meta?.sticky ?? false;
-						const isActions = columnId === "actions";
-
-						if (!isVisible(columnId)) return null;
-
-						const nextVisibleHeader = headers
-							.slice(headerIndex + 1)
-							.find((item) => isVisible(item.column.id));
-						const showRightDivider =
-							showColumnDividers &&
-							Boolean(nextVisibleHeader) &&
-							nextVisibleHeader?.column.id !== "actions";
-						const hasNonStickyVisible = headers.some((item) => {
-							if (item.column.id === "actions") return false;
-							if (!isVisible(item.column.id)) return false;
-
-							const itemMeta = item.column.columnDef.meta as
+					<SortableContext
+						items={sortableColumnIds}
+						strategy={horizontalListSortingStrategy}
+					>
+						{headerGroup.headers.map((header, headerIndex, headers) => {
+							const columnId = header.column.id;
+							const meta = header.column.columnDef.meta as
 								| TableColumnMeta
 								| undefined;
+							const isSticky = meta?.sticky ?? false;
+							const isActions = columnId === "actions";
+							const canReorder =
+								!tableConfig.nonReorderableColumns.has(columnId);
 
-							return !(itemMeta?.sticky ?? false);
-						});
-						const actionsFullWidth = isActions && !hasNonStickyVisible;
-						const isLastBeforeActions =
-							headerIndex === headers.length - 2 &&
-							headers[headers.length - 1]?.column.id === "actions";
-						const shouldFlex =
-							(isLastBeforeActions && !isSticky) || actionsFullWidth;
-						const headerStyle = {
-							...HEADER_CELL_BACKGROUND_STYLE,
-							width: actionsFullWidth ? undefined : header.getSize(),
-							minWidth: actionsFullWidth
-								? undefined
-								: isSticky
-									? header.getSize()
-									: header.column.columnDef.minSize,
-							maxWidth: actionsFullWidth
-								? undefined
-								: isSticky
-									? header.getSize()
-									: header.column.columnDef.maxSize,
-							...(!actionsFullWidth && getStickyStyle(columnId)),
-							...(shouldFlex && { flex: 1 }),
-						};
-						const stickyClass = getStickyClassName(
-							columnId,
-							cn(
-								"group/header relative h-full border-t border-border flex items-center",
-								getTableCellPaddingClass(tableConfig.style),
-								showRightDivider && "border-r",
-							),
-						);
-						const finalClassName = isActions
-							? actionsFullWidth
-								? cn(
-										ACTIONS_FULL_WIDTH_HEADER_CLASS,
+							if (!isVisible(columnId)) return null;
+
+							const nextVisibleHeader = headers
+								.slice(headerIndex + 1)
+								.find((item) => isVisible(item.column.id));
+							const showRightDivider =
+								showColumnDividers &&
+								Boolean(nextVisibleHeader) &&
+								nextVisibleHeader?.column.id !== "actions";
+							const hasNonStickyVisible = headers.some((item) => {
+								if (item.column.id === "actions") return false;
+								if (!isVisible(item.column.id)) return false;
+
+								const itemMeta = item.column.columnDef.meta as
+									| TableColumnMeta
+									| undefined;
+
+								return !(itemMeta?.sticky ?? false);
+							});
+							const actionsFullWidth = isActions && !hasNonStickyVisible;
+							const isLastBeforeActions =
+								headerIndex === headers.length - 2 &&
+								headers[headers.length - 1]?.column.id === "actions";
+							const shouldFlex =
+								(isLastBeforeActions && !isSticky) || actionsFullWidth;
+							const headerStyle = {
+								...HEADER_CELL_BACKGROUND_STYLE,
+								width: actionsFullWidth ? undefined : header.getSize(),
+								minWidth: actionsFullWidth
+									? undefined
+									: isSticky
+										? header.getSize()
+										: header.column.columnDef.minSize,
+								maxWidth: actionsFullWidth
+									? undefined
+									: isSticky
+										? header.getSize()
+										: header.column.columnDef.maxSize,
+								...(!actionsFullWidth && getStickyStyle(columnId)),
+								...(shouldFlex && { flex: 1 }),
+							};
+
+							if (!canReorder) {
+								const stickyClass = getStickyClassName(
+									columnId,
+									cn(
+										"group/header relative h-full border-t border-border flex items-center",
 										getTableCellPaddingClass(tableConfig.style),
+										showRightDivider && "border-r",
+									),
+								);
+								const finalClassName = isActions
+									? actionsFullWidth
+										? cn(
+												ACTIONS_FULL_WIDTH_HEADER_CLASS,
+												getTableCellPaddingClass(tableConfig.style),
+												HEADER_BACKGROUND_CLASS,
+												showRightDivider && "border-r",
+											)
+										: cn(
+												ACTIONS_STICKY_HEADER_CLASS,
+												getTableCellPaddingClass(tableConfig.style),
+												HEADER_BACKGROUND_CLASS,
+												showRightDivider && "border-r",
+											)
+									: cn(stickyClass, HEADER_BACKGROUND_CLASS, "z-10");
+
+								return (
+									<TableHead
+										key={header.id}
+										className={finalClassName}
+										style={headerStyle}
+									>
+										{renderHeaderContent(header, columnId, tableScroll)}
+										<ResizeHandle header={header} />
+									</TableHead>
+								);
+							}
+
+							return (
+								<DraggableHeader
+									key={header.id}
+									id={columnId}
+									style={headerStyle}
+									className={cn(
 										HEADER_BACKGROUND_CLASS,
 										showRightDivider && "border-r",
-									)
-								: cn(
-										ACTIONS_STICKY_HEADER_CLASS,
-										getTableCellPaddingClass(tableConfig.style),
-										HEADER_BACKGROUND_CLASS,
-										showRightDivider && "border-r",
-									)
-							: cn(stickyClass, HEADER_BACKGROUND_CLASS, "z-10");
-
-						return (
-							<TableHead
-								key={header.id}
-								className={finalClassName}
-								style={headerStyle}
-							>
-								{renderHeaderContent(header, columnId, tableScroll)}
-								<ResizeHandle header={header} />
-							</TableHead>
-						);
-					})}
+									)}
+									tableStyle={tableConfig.style}
+								>
+									<div className="flex min-w-0 flex-1 items-center overflow-hidden">
+										{renderHeaderContent(header, columnId, tableScroll)}
+									</div>
+									<ResizeHandle header={header} />
+								</DraggableHeader>
+							);
+						})}
+					</SortableContext>
 				</TableRow>
 			))}
 		</TableHeader>

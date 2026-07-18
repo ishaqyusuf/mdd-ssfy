@@ -155,12 +155,12 @@ const customerColumn: Column = {
 	id: "displayName",
 	header: "Customer",
 	accessorKey: "displayName",
-	...sizes.custom(180, 420, 260),
+	...sizes.custom(180, 340, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Customer",
-		className: sizeClass(sizes.custom(180, 420, 260)),
+		className: sizeClass(sizes.custom(180, 340, 220)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -177,12 +177,12 @@ const phoneColumn: Column = {
 	id: "customerPhone",
 	header: "Phone",
 	accessorKey: "customerPhone",
-	...sizes.custom(120, 200, 150),
+	...sizes.custom(112, 170, 128),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Phone",
-		className: sizeClass(sizes.custom(120, 200, 150)),
+		className: sizeClass(sizes.custom(112, 170, 128)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -196,12 +196,12 @@ const addressColumn: Column = {
 	id: "address",
 	header: "Address",
 	accessorKey: "address",
-	...sizes.lg,
+	...sizes.custom(180, 360, 240),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Address",
-		className: sizeClass(sizes.lg),
+		className: sizeClass(sizes.custom(180, 360, 240)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -215,13 +215,13 @@ const invoiceColumn: Column = {
 	id: "invoiceTotal",
 	header: "Invoice",
 	accessorFn: (row) => row.invoice.total,
-	...sizes.custom(110, 200, 140),
+	...sizes.custom(104, 160, 118),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Invoice",
 		sortField: "grandTotal",
-		className: sizeClass(sizes.custom(110, 200, 140), "text-right"),
+		className: sizeClass(sizes.custom(104, 160, 118), "text-right"),
 	},
 	cell: ({ row }) => <InvoiceCell item={row.original} />,
 };
@@ -230,12 +230,12 @@ const statusColumn: Column = {
 	id: "invoiceStatus",
 	header: "Status",
 	accessorFn: (row) => getInvoiceStatusLabel(row),
-	...sizes.custom(110, 180, 130),
+	...sizes.custom(104, 150, 116),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-20" },
 		headerLabel: "Status",
-		className: sizeClass(sizes.custom(110, 180, 130)),
+		className: sizeClass(sizes.custom(104, 150, 116)),
 	},
 	cell: ({ row }) => (
 		<Badge
@@ -254,12 +254,12 @@ const salesRepColumn: Column = {
 	id: "salesRepInitial",
 	header: "Sales rep",
 	accessorKey: "salesRepInitial",
-	...sizes.custom(90, 160, 120),
+	...sizes.custom(86, 130, 96),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-16" },
 		headerLabel: "Sales rep",
-		className: sizeClass(sizes.custom(90, 160, 120)),
+		className: sizeClass(sizes.custom(86, 130, 96)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">

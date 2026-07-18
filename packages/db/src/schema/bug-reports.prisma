@@ -7,10 +7,23 @@ enum BugReportStatus {
     CLOSED
 }
 
+enum BugReportCaptureType {
+    VIDEO
+    SCREENSHOT
+}
+
+enum BugReportTranscriptionStatus {
+    NOT_REQUESTED
+    PENDING
+    COMPLETED
+    FAILED
+}
+
 model BugReport {
     id                  String          @id @default(cuid())
     createdById         Int
     status              BugReportStatus @default(NEW)
+    captureType         BugReportCaptureType @default(VIDEO)
     description         String?         @db.Text
     currentUrl          String?         @db.VarChar(2048)
     userAgent           String?         @db.Text
@@ -18,6 +31,12 @@ model BugReport {
     recordingDocumentId String?         @db.VarChar(191)
     durationMs          Int?
     microphoneEnabled   Boolean         @default(false)
+    externalIssueProvider String?        @db.VarChar(50)
+    externalIssueKey    String?         @db.VarChar(191)
+    externalIssueUrl    String?         @db.VarChar(512)
+    externalIssueStatus String?         @db.VarChar(50)
+    externalIssueError  String?         @db.Text
+    externalIssueCreatedAt DateTime?    @db.Timestamp(0)
     statusUpdatedById   Int?
     statusUpdatedAt     DateTime?       @db.Timestamp(0)
     createdAt           DateTime?       @default(now()) @db.Timestamp(0)
@@ -28,21 +47,29 @@ model BugReport {
     @@index([createdById, createdAt])
     @@index([status, createdAt])
     @@index([recordingDocumentId])
+    @@index([externalIssueProvider, externalIssueKey])
+    @@index([externalIssueStatus, createdAt])
     @@index([deletedAt])
 }
 
 model BugReportFollowUp {
-    id          String    @id @default(cuid())
-    bugReportId String
-    authorId    Int
-    body        String    @db.Text
-    createdAt   DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt   DateTime? @updatedAt
-    deletedAt   DateTime? @db.Timestamp(0)
-    bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+    id                  String    @id @default(cuid())
+    bugReportId         String
+    authorId            Int
+    body                String    @db.Text
+    audioDocumentId     String?   @db.VarChar(191)
+    audioDurationMs     Int?
+    transcriptionStatus BugReportTranscriptionStatus @default(NOT_REQUESTED)
+    transcriptionText   String?   @db.Text
+    transcriptionProvider String? @db.VarChar(100)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    deletedAt           DateTime? @db.Timestamp(0)
+    bugReport           BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
 
     @@index([bugReportId, createdAt])
     @@index([authorId, createdAt])
+    @@index([audioDocumentId])
+    @@index([transcriptionStatus, createdAt])
     @@index([deletedAt])
 }
-

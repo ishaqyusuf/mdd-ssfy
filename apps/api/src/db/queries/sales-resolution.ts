@@ -114,6 +114,26 @@ function buildResolutionBaseWhere(query: GetSalesResolutions) {
 	} satisfies Prisma.SalesOrdersWhereInput;
 }
 
+function getSalesResolutionOrderBy(
+	sort?: string | null,
+): Prisma.SalesOrdersOrderByWithRelationInput {
+	const [field, value] = sort?.split(".") ?? [];
+	const direction: Prisma.SortOrder = value === "asc" ? "asc" : "desc";
+
+	switch (field) {
+		case "orderId":
+			return { orderId: direction };
+		case "createdAt":
+			return { createdAt: direction };
+		case "grandTotal":
+			return { grandTotal: direction };
+		case "amountDue":
+			return { amountDue: direction };
+		default:
+			return { createdAt: "desc" };
+	}
+}
+
 async function getResolvedTodayMap(ctx: TRPCContext) {
 	const rows = await ctx.db.salesResolution.findMany({
 		where: {
@@ -125,7 +145,11 @@ async function getResolvedTodayMap(ctx: TRPCContext) {
 		},
 	});
 
-	return new Map(rows.map((row) => [row.salesId, row.createdAt]));
+	return new Map<number, Date>(
+		rows.flatMap((row) =>
+			row.createdAt ? [[row.salesId, row.createdAt] as const] : [],
+		),
+	);
 }
 
 function mapResolutionItem(args: {
@@ -139,7 +163,7 @@ function mapResolutionItem(args: {
 	);
 	const paid = formatMoney(sum(successfulPayments, "amount"));
 	const date = order.payments[0]?.createdAt;
-	const total = order.grandTotal;
+	const total = formatMoney(order.grandTotal || 0);
 	const due = formatMoney(order.amountDue);
 	const projection = projectLegacyOrderPayments({
 		salesOrderId: order.id,
@@ -221,9 +245,7 @@ export async function getSalesResolutions(
 		const orders = await db.salesOrders.findMany({
 			where,
 			select: resolutionOrderSelect,
-			orderBy: {
-				createdAt: "desc",
-			},
+			orderBy: getSalesResolutionOrderBy(query.sort),
 			skip: nextOffset,
 			take: chunkSize,
 		});

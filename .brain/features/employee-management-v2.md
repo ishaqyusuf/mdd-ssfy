@@ -39,6 +39,42 @@ Everything else is standalone.
 - Job submission source is stored in `Jobs.meta.submittedFrom` as `"web"` or `"mobile"`. No extra submitted-at timestamp is stored; `Jobs.createdAt` remains the submission time source.
 - Admin job overview displays `Website`, `Mobile app`, or `Unknown source` from `job.meta.submittedFrom`.
 
+## 2026-07-16 Employees Table-Core Migration
+
+- `/hrm/employees` now uses `apps/www/src/components/tables-2/employees/*` instead of the legacy `components/tables/employees` / `@gnd/ui/data-table` stack.
+- `/hrm/employees/v2` list route now uses the same restarted employees table through `features/employee-management/components/employee-list-page.tsx`; the v2 detail route remains the row-click destination.
+- The route follows the Sales Orders/Midday shell directly: `ScrollableContent`, `PageTitle`, `EmployeeHeader`, `ErrorBoundary`, `Suspense`, and `DataTable`, with no shared `PageStickyHeader` wrapper.
+- Server hydration uses `batchPrefetch` for `hrm.getEmployees` plus `orgs.getOrganizationProfile`; table settings hydrate from `getInitialTableSettings("employees")`.
+- The Employees table now consumes the shared `tables-2/core` primitives: table-owned `useScrollHeader(parentRef)`, `VirtualRow`, `useTableDnd`, `DndContext`, `SortableContext`, `DraggableHeader`, `ResizeHandle`, sticky Employee/action columns, persisted column sizing/order/visibility/dividers, and the header-offset spacer.
+- `TABLE_CONFIGS.employees` owns the 64px row height and compact table style. Employee sorting is intentionally not wired yet because `employeesQueryParamsSchema` does not currently expose a `sort` contract.
+- The header exposes the Employees column-visibility/divider control beside the existing create/roles actions.
+- Row behavior is preserved: clicking normal cells opens `/hrm/employees/v2/:id`; role/profile/office/action cells remain non-clickable table cells; row actions preserve edit, reset password, bug-report enable/disable, revoke, and restore access workflows.
+- Validation: Employees migration parity test passed for both list routes, the combined restarted table migration parity suite passed, targeted Biome passed, `git diff --check` passed, filtered `@gnd/www` typecheck showed no touched-file diagnostics for the touched list/shell files, HEAD smoke for `/hrm/employees/v2` returned `200`, and the earlier SSR smoke for `/hrm/employees` returned `200` with Employee markers and no sampled app-error/login markers.
+
+## 2026-07-17 Roles/Profile Sheet Table-Core Migration
+
+- The roles/profile management sheet tabs now use `apps/www/src/components/tables-2/roles/*` and `apps/www/src/components/tables-2/employee-profiles/*` instead of the legacy `components/tables/roles` and `components/tables/employee-profiles` `@gnd/ui/data-table` surfaces.
+- Both sheet tables consume the same table-core mechanics as Sales Orders: table-owned scroll, `VirtualRow`, `useScrollHeader(parentRef)`, `useTableDnd`, `DndContext`, draggable headers, resize handles, sticky primary/action columns, persisted column visibility/sizing/order/divider settings, and header-offset spacer.
+- The sheet keeps the existing `#tabActions` portal pattern, now rendering Create plus column-visibility/divider controls for the active Roles or Profiles tab.
+- `TABLE_CONFIGS.roles` and `TABLE_CONFIGS["employee-profiles"]` use compact 56px rows. Role widths are tailored to Role `180/320/220`, Employees `108/160/120`, Permissions `120/180/136`, and Actions `72/104/84`. Profile widths are Profile `190/340/230`, Employees `108/160/120`, Commission `126/190/144`, Paycut `112/170/128`, and Actions `92/122/104`.
+- Profile row actions now write `profileForm` / `profileEditId` and delete through `deleteProfileAction`; the old crossed `roleForm` / `roleEditId` and `deleteRoleAction` path is no longer used by the profile tab.
+- Validation: focused roles/profile sheet parity tests passed with 9 tests / 80 assertions; full restarted table parity suite passed with 136 tests / 1285 assertions; targeted Biome passed; filtered `@gnd/www` typecheck grep reported no touched-file diagnostics; static import scans found no live sheet imports of the old roles/profile table paths; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTP smoke returned `307` from `/hrm/employees` to `/hrm/employees/v2` and `200` for `/hrm/employees/v2`.
+
+## 2026-07-17 Role Form Permissions Table-Core Migration
+
+- The role create/edit form now renders `apps/www/src/components/tables-2/role-form-permissions/*` instead of inline `@gnd/ui/table` permission markup.
+- The embedded permissions grid preserves the existing role form contract: one row per permission subject, `Create` bound to `permissions.view <subject>.checked`, `Edit` bound to `permissions.edit <subject>.checked`, the existing title field, submit/cancel flow, loading skeleton behavior, and `createRoleAction` payload shape.
+- `TABLE_CONFIGS["role-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, Create `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
+- `get-role-form` now uses the current two-argument `revalidateTag("permissions", "max")` signature, and `role-form-context` keeps a local typed resolver adapter for the installed Zod/resolver package-version boundary.
+- Validation: focused role/profile parity tests passed with 13 tests / 80 assertions; full restarted table parity suite passed with 245 tests / 2337 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck output showed no diagnostics; static scan found no old table primitives in `role-form.tsx`; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTPS route smoke for `/hrm/employees/v2` returned `200`.
+
+## 2026-07-17 Employee Form Permissions Table-Core Migration
+
+- The employee create/edit modal now renders `apps/www/src/components/tables-2/employee-form-permissions/*` instead of inline `@gnd/ui/table` permission markup.
+- The embedded permissions grid preserves the existing employee override contract: one row per permission subject, `Create` toggles the subject `viewPermissionId`, `Edit` toggles the subject `editPermissionId`, selected ids remain stored in `permissionIds`, and the existing employee save mutation/list invalidation flow is unchanged.
+- `TABLE_CONFIGS["employee-form-permissions"]` uses compact 48px rows, sticky Permission column, content-fit Permission `240/420/300`, Create `84/112/92`, and Edit `84/112/92` widths, table-owned scroll, virtual rows, DnD, draggable headers, resize handles, dividers, and persisted settings.
+- Validation: focused employee form permissions plus role/employees parity tests passed with 14 tests / 44 assertions; full restarted table parity suite passed with 249 tests / 2337 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck output showed no diagnostics while broad `@gnd/www` typecheck remains blocked by unrelated baseline API/UI errors; static scan found no old table primitives in `employee-form-modal.tsx`; `git diff --check` passed; `components/tables-2/core` remained unchanged; HTTPS route smoke for `/hrm/employees/v2` returned `200`.
+
 ---
 
 ## New DB Schema — `packages/db/src/schema/hrm.prisma`
@@ -226,6 +262,7 @@ interface EmployeeRecord {
 - Regular employees continue to manage their own insurance uploads from their profile document flow.
 - Employee records now include per-user permission overrides stored in `ModelHasPermissions`; those permissions are merged with the assigned role on login/session refresh.
 - The employee list and overview surface the count of employee-specific permissions so admins can spot overrides quickly.
+- `/hrm/document-approvals` now renders the insurance approval queue through `components/tables-2/document-approvals/*` with compact sticky Employee/Actions columns, table-owned scroll, DnD, resize, persisted visibility/sizing/order/divider settings, and preserved Open Review / Approve / Reject behavior.
 
 ---
 

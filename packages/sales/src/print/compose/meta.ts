@@ -1,7 +1,7 @@
-import type { PageMeta, PrintMode } from "../types";
-import type { PrintSalesData } from "../query";
-import { formatDate } from "@gnd/utils/dayjs";
 import { formatCurrency } from "@gnd/utils";
+import { formatDate } from "@gnd/utils/dayjs";
+import type { PrintSalesData } from "../query";
+import type { PageMeta, PrintMode } from "../types";
 import { getPrintPaymentFooterState } from "./payment-footer-state";
 
 function calculatePaymentTerm(
@@ -46,12 +46,15 @@ export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
       const calc = calculatePaymentTerm(paymentTerm, createdAt);
       if (calc) goodUntil = new Date(calc);
     } else if (!goodUntil) {
-      goodUntil = (sale as any).paymentDueDate ?? createdAt;
+      const { paymentDueDate } = sale as PrintSalesData & {
+        paymentDueDate?: Date | null;
+      };
+      goodUntil = paymentDueDate ?? createdAt;
     }
     dueDate = goodUntil ? formatDate(goodUntil) : undefined;
   }
 
-  const meta: any = sale.meta;
+  const meta = sale.meta as { po?: string | null } | null;
   const paymentState = getPrintPaymentFooterState(sale);
   if (isPaid && paymentState.latestPaymentDate) {
     paymentDate = formatDate(paymentState.latestPaymentDate);
@@ -59,7 +62,8 @@ export function composeMeta(sale: PrintSalesData, mode: PrintMode): PageMeta {
   const headerTotal =
     paymentState.kind === "unpaid-card-estimate"
       ? paymentState.estimatedDueCharge?.customerChargedAmount
-      : paymentState.kind === "paid-single-full-card"
+      : paymentState.kind === "paid-single-full-card" &&
+          paymentState.recordedCardCharges[0]?.source === "recorded"
         ? paymentState.recordedCardCharges[0]?.customerChargedAmount
         : paymentState.orderTotal;
   const headerBalanceDue =

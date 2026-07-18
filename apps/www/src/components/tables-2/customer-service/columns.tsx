@@ -70,7 +70,7 @@ const appointmentColumn: Column = {
 	id: "appointment",
 	header: "Appointment",
 	accessorFn: (row) => row.scheduleDate,
-	...sizes.custom(150, 240, 180),
+	...sizes.custom(132, 210, 154),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -79,14 +79,14 @@ const appointmentColumn: Column = {
 		headerLabel: "Appointment",
 		sortField: "scheduleDate",
 		className: sizeClass(
-			sizes.custom(150, 240, 180),
+			sizes.custom(132, 210, 154),
 			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
 	cell: ({ row }) => (
-		<div className="min-w-0 space-y-1">
-			<p className="font-medium">{formatDate(row.original.scheduleDate)}</p>
-			<p className="text-xs text-muted-foreground">
+		<div className="min-w-0 space-y-0.5">
+			<p className="truncate font-medium">{formatDate(row.original.scheduleDate)}</p>
+			<p className="truncate text-[11px] text-muted-foreground">
 				{row.original.scheduleTime || "No time set"}
 			</p>
 		</div>
@@ -97,20 +97,20 @@ const customerColumn: Column = {
 	id: "customer",
 	header: "Customer",
 	accessorFn: (row) => row.homeOwner,
-	...sizes.custom(180, 320, 220),
+	...sizes.custom(160, 280, 190),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
 		headerLabel: "Customer",
-		className: sizeClass(sizes.custom(180, 320, 220)),
+		className: sizeClass(sizes.custom(160, 280, 190)),
 	},
 	cell: ({ row }) => (
-		<div className="min-w-0 space-y-1">
+		<div className="min-w-0 space-y-0.5">
 			<TextWithTooltip
 				className="max-w-full truncate font-semibold"
 				text={row.original.homeOwner || "No homeowner"}
 			/>
-			<p className="truncate text-xs text-muted-foreground">
+			<p className="truncate text-[11px] text-muted-foreground">
 				{row.original.homePhone || "No phone"}
 			</p>
 		</div>
@@ -121,21 +121,21 @@ const descriptionColumn: Column = {
 	id: "description",
 	header: "Description",
 	accessorFn: (row) => row.description,
-	...sizes.custom(240, 520, 320),
+	...sizes.custom(220, 420, 260),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-48" },
 		headerLabel: "Description",
-		className: sizeClass(sizes.custom(240, 520, 320)),
+		className: sizeClass(sizes.custom(220, 420, 260)),
 	},
 	cell: ({ row }) => (
-		<div className="min-w-0 space-y-1">
+		<div className="min-w-0 space-y-0.5">
 			<TextWithTooltip
 				className="max-w-full truncate font-medium"
 				text={row.original.projectName || "No project"}
 			/>
 			<TextWithTooltip
-				className="max-w-full truncate text-sm text-muted-foreground"
+				className="max-w-full truncate text-xs text-muted-foreground"
 				text={row.original.description || "No description provided"}
 			/>
 		</div>
@@ -146,13 +146,13 @@ const assignedToColumn: Column = {
 	id: "assignedTo",
 	header: "Assigned To",
 	accessorFn: (row) => row.tech?.name,
-	...sizes.custom(160, 260, 190),
+	...sizes.custom(140, 220, 160),
 	enableResizing: true,
 	meta: {
 		preventDefault: true,
 		skeleton: { type: "button", width: "w-28" },
 		headerLabel: "Assigned To",
-		className: sizeClass(sizes.custom(160, 260, 190)),
+		className: sizeClass(sizes.custom(140, 220, 160)),
 	},
 	cell: ({ row, table }) => {
 		const meta = table.options.meta as TableMeta | undefined;
@@ -165,13 +165,13 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorFn: (row) => row.status,
-	...sizes.custom(130, 200, 150),
+	...sizes.custom(112, 170, 128),
 	enableResizing: true,
 	meta: {
 		preventDefault: true,
 		skeleton: { type: "badge" },
 		headerLabel: "Status",
-		className: sizeClass(sizes.custom(130, 200, 150)),
+		className: sizeClass(sizes.custom(112, 170, 128)),
 	},
 	cell: ({ row }) => <StatusCell item={row.original} />,
 };
@@ -179,7 +179,7 @@ const statusColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	...sizes.custom(88, 120, 100),
+	...sizes.custom(88, 112, 96),
 	enableResizing: false,
 	enableHiding: false,
 	meta: {
@@ -187,7 +187,7 @@ const actionsColumn: Column = {
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-16" },
-		className: sizeClass(sizes.custom(88, 120, 100)),
+		className: sizeClass(sizes.custom(88, 112, 96)),
 	},
 	cell: ({ row }) => <Actions item={row.original} />,
 };
@@ -294,6 +294,16 @@ function AssignedTo({
 				className: cn("!w-auto"),
 			}}
 			placeholder="Assign"
+			Trigger={
+				<Button
+					type="button"
+					variant="outline"
+					className="h-8 min-w-0 justify-between gap-2 px-2 text-xs"
+				>
+					<span className="truncate">{selected?.label || "Assign"}</span>
+					<Icons.ChevronsUpDown className="size-3.5 shrink-0 opacity-50" />
+				</Button>
+			}
 			listClassName="max-w-auto"
 			renderListItem={({ item }) => (
 				<TableItem size="xs">
@@ -340,7 +350,7 @@ function Actions({ item }: { item: CustomerServiceRow }) {
 	);
 
 	return (
-		<div className="relative z-10 flex justify-end gap-2">
+		<div className="relative z-10 flex justify-end gap-1.5">
 			<Button
 				variant="outline"
 				className="flex size-8 p-0"

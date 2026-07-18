@@ -25,6 +25,9 @@ export function SalesPrintViewerPage({
 				snapshotId: params.snapshotId,
 				preview: params.preview,
 				templateId: params.templateId,
+				pageBreakMode: params.pageBreakMode,
+				showImages: params.showImages,
+				headlineFirstPage: params.headlineFirstPage,
 				pricingMode: params.pricingMode ?? undefined,
 			}),
 		]);

@@ -1,27 +1,29 @@
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { parseAsString, useQueryStates } from "nuqs";
 import { createLoader } from "nuqs/server";
-import { RouterInputs } from "@api/trpc/routers/_app";
+
 type FilterKeys = keyof Exclude<
-    RouterInputs["sales"]["getSalesResolutions"],
-    void
+	RouterInputs["sales"]["getSalesResolutions"],
+	void
 >;
 
 export const resolutionCenterFilterParamsSchema = {
-    q: parseAsString,
-    salesNo: parseAsString,
-} satisfies Partial<Record<FilterKeys, any>>;
+	q: parseAsString,
+	salesNo: parseAsString,
+	"customer.name": parseAsString,
+	status: parseAsString,
+} satisfies Partial<Record<FilterKeys, unknown>>;
 
 export function useResolutionCenterFilterParams() {
-    const [filters, setFilters] = useQueryStates(
-        resolutionCenterFilterParamsSchema,
-    );
-    return {
-        filters,
-        setFilters,
-        hasFilters: Object.values(filters).some((value) => value !== null),
-    };
+	const [filters, setFilters] = useQueryStates(
+		resolutionCenterFilterParamsSchema,
+	);
+	return {
+		filters,
+		setFilters,
+		hasFilters: Object.values(filters).some((value) => value !== null),
+	};
 }
 export const loadResolutionCenterFilterParams = createLoader(
-    resolutionCenterFilterParamsSchema,
+	resolutionCenterFilterParamsSchema,
 );
-

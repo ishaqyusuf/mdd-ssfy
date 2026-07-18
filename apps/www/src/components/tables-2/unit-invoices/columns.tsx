@@ -229,6 +229,14 @@ export const columns: Column[] = [
 	actionsColumn,
 ];
 
+export const projectTabColumns: Column[] = [
+	unitColumn,
+	dateColumn,
+	statusColumn,
+	invoiceColumn,
+	actionsColumn,
+];
+
 function Actions({ item }: { item: UnitInvoiceRow }) {
 	const { setParams } = useUnitInvoiceParams();
 

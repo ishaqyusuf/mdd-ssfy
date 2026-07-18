@@ -1,24 +1,26 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import { Suspense } from "react";
+import {
+	DocumentUploader,
+	type UploadedDocument,
+} from "@/components/common/document-uploader";
+import { projectTabColumns as projectJobsColumns } from "@/components/tables-2/contractor-jobs/columns";
+import { DataTable as ContractorJobsDataTable } from "@/components/tables-2/contractor-jobs/data-table";
+import { projectTabColumns as projectUnitsColumns } from "@/components/tables-2/project-units/columns";
+import { DataTable as ProjectUnitsDataTable } from "@/components/tables-2/project-units/data-table";
+import { projectTabColumns as projectInvoicesColumns } from "@/components/tables-2/unit-invoices/columns";
+import { DataTable as UnitInvoicesDataTable } from "@/components/tables-2/unit-invoices/data-table";
+import { projectTabColumns as projectProductionColumns } from "@/components/tables-2/unit-productions/columns";
+import { DataTable as UnitProductionsDataTable } from "@/components/tables-2/unit-productions/data-table";
+import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { Icons } from "@gnd/ui/icons";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDate } from "@gnd/utils/dayjs";
-import { DocumentUploader } from "@/components/common/document-uploader";
-import { DataTable as ContractorJobsDataTable } from "@/components/tables/contractor-jobs/data-table";
-import { projectTabColumns as projectJobsColumns } from "@/components/tables/contractor-jobs/columns";
-import { DataTable as ProjectUnitsDataTable } from "@/components/tables/project-units/data-table";
-import { projectTabColumns as projectUnitsColumns } from "@/components/tables/project-units/columns";
-import { DataTable as UnitInvoicesDataTable } from "@/components/tables/unit-invoices/data-table";
-import { projectTabColumns as projectInvoicesColumns } from "@/components/tables/unit-invoices/columns";
-import { DataTable as UnitProductionsDataTable } from "@/components/tables/unit-productions/data-table";
-import { projectTabColumns as projectProductionColumns } from "@/components/tables/unit-productions/columns";
-import { useTRPC } from "@/trpc/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Suspense } from "react";
 
 type ProjectOverviewData =
     RouterOutputs["community"]["communityProjectOverview"];
@@ -203,7 +205,10 @@ function ProjectTimelinePanel({ data }: { data: ProjectOverviewData }) {
                                 slug: data.project.slug,
                                 files: input.files,
                                 note: input.note,
-                            })
+                            }).then((result) => ({
+                                documents: (result.documents ??
+                                    []) as UploadedDocument[],
+                            }))
                         }
                     />
                 </CardContent>
@@ -327,7 +332,6 @@ export function ProjectOverviewWidget({ data }: { data: ProjectOverviewData }) {
                         <ContractorJobsDataTable
                             embedded
                             columns={projectJobsColumns}
-                            emptyStateLabel="Jobs"
                             defaultFilters={{
                                 projectId: data.project.id,
                             }}

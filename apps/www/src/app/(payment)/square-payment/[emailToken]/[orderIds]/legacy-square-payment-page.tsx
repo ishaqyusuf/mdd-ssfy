@@ -8,25 +8,19 @@ import {
 	getSalesPaymentCheckoutInfoAction,
 } from "@/actions/get-sales-payment-checkout-info-action";
 import Money from "@/components/_v1/money";
+import { DataTable as LegacySquarePaymentOrdersDataTable } from "@/components/tables-2/legacy-square-payment-orders/data-table";
 import { openLink } from "@/lib/open-link";
 import { cn } from "@/lib/utils";
-import { formatPaymentParams } from "@gnd/utils/sales";
-import { Icons } from "@gnd/ui/icons";
 import { Button } from "@gnd/ui/button";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@gnd/ui/table";
-import { use, useEffect, useState } from "react";
+import { Icons } from "@gnd/ui/icons";
+import { formatPaymentParams } from "@gnd/utils/sales";
+import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 export default function LegacySquarePaymentPage(props) {
 	const params = use(props.params);
-	const { emailToken, orderIdsParam, orderIds } = formatPaymentParams(params);
+	const paymentParams = useMemo(() => formatPaymentParams(params), [params]);
+	const { emailToken, orderIdsParam, orderIds } = paymentParams;
 	const [data, setData] = useState<GetSalesPaymentCheckoutInfo>(null);
 	const [loading, setLoading] = useState(true);
 
@@ -40,7 +34,7 @@ export default function LegacySquarePaymentPage(props) {
 			setLoading(false);
 		}
 		load();
-	}, [emailToken, orderIdsParam]);
+	}, [emailToken, orderIds]);
 
 	async function createPayment() {
 		try {
@@ -50,7 +44,9 @@ export default function LegacySquarePaymentPage(props) {
 				orderIds,
 			});
 
-			openLink((resp as any).paymentLink);
+			if (resp.paymentLink) {
+				openLink(resp.paymentLink);
+			}
 		} catch (_error) {
 			toast.error("Unable to complete");
 		}
@@ -90,26 +86,7 @@ export default function LegacySquarePaymentPage(props) {
 									</div>
 								</>
 							) : (
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>#</TableHead>
-											<TableHead>Billing</TableHead>
-											<TableHead>Due</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{data.orders.map((order) => (
-											<TableRow key={order.id}>
-												<TableCell>{order.orderNo}</TableCell>
-												<TableCell>{order.customerName}</TableCell>
-												<TableCell>
-													<Money value={order.amountDue} />
-												</TableCell>
-											</TableRow>
-										))}
-									</TableBody>
-								</Table>
+								<LegacySquarePaymentOrdersDataTable data={data.orders} />
 							)}
 							{data.amountDue <= 0 ? (
 								<p className="text-center font-medium text-green-600">

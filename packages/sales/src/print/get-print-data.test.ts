@@ -262,11 +262,11 @@ describe("getPrintData", () => {
 
 		expect(result.pages[0]?.meta.total).toBe("$1,669.68");
 		expect(result.pages[0]?.meta.balanceDue).toBe("$1,669.68");
-		expect(footerLines.find((line) => line.label === "C.C.C")?.value).toBe(
-			"$48.63",
-		);
+		expect(lineValue(footerLines, "Estimated Card Fee")).toBe("$48.63");
 		expect(lineValue(footerLines, "Order Due Amount")).toBe("$1,621.05");
-		expect(lineValue(footerLines, "Total Due With C.C.C")).toBe("$1,669.68");
+		expect(lineValue(footerLines, "Total if Paying by Card")).toBe(
+			"$1,669.68",
+		);
 	});
 
 	it("prints a simple paid footer for a full single card payment", async () => {
@@ -322,12 +322,13 @@ describe("getPrintData", () => {
 
 		expect(result.pages[0]?.meta.total).toBe("$5,175.00");
 		expect(result.pages[0]?.meta.balanceDue).toBeUndefined();
-		expect(lineValue(footerLines, "C.C.C")).toBe("$175.00");
-		expect(lineValue(footerLines, "Paid")).toBe("($5,175.00)");
-		expect(lineValue(footerLines, "Total Due")).toBe("$0.00");
+		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Card Fees")).toBe("$175.00");
+		expect(lineValue(footerLines, "Total Paid")).toBe("$5,175.00");
+		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
 	});
 
-	it("separates order balance from recorded card charge details for partial mixed payments", async () => {
+	it("summarizes recorded card charges for partial mixed payments", async () => {
 		const sale = {
 			...createSale(),
 			amountDue: 1500,
@@ -390,12 +391,209 @@ describe("getPrintData", () => {
 		expect(result.pages[0]?.meta.total).toBe("$5,000.00");
 		expect(result.pages[0]?.meta.balanceDue).toBe("$1,500.00");
 		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
-		expect(lineValue(footerLines, "Paid Toward Order")).toBe("($3,500.00)");
-		expect(lineValue(footerLines, "Card Payment")).toBe("$2,500.00");
-		expect(lineValue(footerLines, "C.C.C on Card Payment")).toBe("$87.50");
-		expect(lineValue(footerLines, "Charged to Card")).toBe("$2,587.50");
+		expect(lineValue(footerLines, "Card Fees")).toBe("$87.50");
+		expect(lineValue(footerLines, "Total Paid")).toBe("$3,587.50");
 		expect(lineValue(footerLines, "Balance Due")).toBe("$1,500.00");
-		expect(lineValue(footerLines, "Total Due")).toBeUndefined();
+		expect(lineValue(footerLines, "Card Payment")).toBeUndefined();
+		expect(lineValue(footerLines, "C.C.C on Card Payment")).toBeUndefined();
+		expect(lineValue(footerLines, "Charged to Card")).toBeUndefined();
+	});
+
+	it("aggregates multiple card payments into one customer-facing summary", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 0,
+			grandTotal: 946.2,
+			subTotal: 946.2,
+			meta: {
+				payment_option: "Credit Card",
+				ccc_percentage: 3,
+			},
+			payments: [
+				{
+					amount: 714.62,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T12:00:00.000Z"),
+					meta: {
+						salesAmount: 714.62,
+						feeAmount: 21.44,
+						customerChargeAmount: 736.06,
+					},
+					transaction: { meta: null, paymentMethod: "credit-card" },
+					squarePayments: null,
+				},
+				{
+					amount: 231.58,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T13:00:00.000Z"),
+					meta: {
+						salesAmount: 231.58,
+						feeAmount: 6.95,
+						customerChargeAmount: 238.53,
+					},
+					transaction: { meta: null, paymentMethod: "credit-card" },
+					squarePayments: null,
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(lineValue(footerLines, "Order Total")).toBe("$946.20");
+		expect(lineValue(footerLines, "Card Fees")).toBe("$28.39");
+		expect(lineValue(footerLines, "Total Paid")).toBe("$974.59");
+		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
+		expect(footerLines.map((line) => line.label)).toEqual([
+			"Subtotal",
+			"Order Total",
+			"Card Fees",
+			"Total Paid",
+			"Balance Due",
+		]);
+	});
+
+	it("does not infer fees for a partial card payment without matching metadata", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 2500,
+			grandTotal: 5000,
+			subTotal: 5000,
+			meta: {
+				payment_option: "Credit Card",
+				ccc_percentage: 3.5,
+			},
+			payments: [
+				{
+					amount: 2500,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T12:00:00.000Z"),
+					meta: {},
+					transaction: { meta: null, paymentMethod: "credit-card" },
+					squarePayments: null,
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(result.pages[0]?.meta.total).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Card Fees")).toBeUndefined();
+		expect(lineValue(footerLines, "Total Paid")).toBe("$2,500.00");
+		expect(lineValue(footerLines, "Balance Due")).toBe("$2,500.00");
+	});
+
+	it("omits card fees for a fully paid non-card order", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 0,
+			grandTotal: 5000,
+			subTotal: 5000,
+			payments: [
+				{
+					amount: 5000,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T12:00:00.000Z"),
+					meta: {},
+					transaction: { meta: null, paymentMethod: "cash" },
+					squarePayments: null,
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Card Fees")).toBeUndefined();
+		expect(lineValue(footerLines, "Total Paid")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
+	});
+
+	it("does not present an estimated fee as a recorded full card payment", async () => {
+		const sale = {
+			...createSale(),
+			amountDue: 0,
+			grandTotal: 5000,
+			subTotal: 5000,
+			meta: {
+				payment_option: "Credit Card",
+				ccc_percentage: 3.5,
+			},
+			payments: [
+				{
+					amount: 5000,
+					status: "success",
+					deletedAt: null,
+					createdAt: new Date("2026-06-24T12:00:00.000Z"),
+					meta: {},
+					transaction: { meta: null, paymentMethod: "credit-card" },
+					squarePayments: null,
+				},
+			],
+		};
+		const db = {
+			salesOrders: {
+				findMany: async () => [sale],
+			},
+			settings: {
+				findFirst: async () => null,
+			},
+		} as unknown as Parameters<typeof getPrintData>[0];
+
+		const result = await getPrintData(db, {
+			ids: [1],
+			mode: "invoice",
+			dispatchId: null,
+		});
+		const footerLines = result.pages[0]?.footer?.lines || [];
+
+		expect(lineValue(footerLines, "Order Total")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Card Fees")).toBeUndefined();
+		expect(lineValue(footerLines, "Total Paid")).toBe("$5,000.00");
+		expect(lineValue(footerLines, "Balance Due")).toBe("$0.00");
 	});
 
 	it("supports comma-separated invoice and packing slip modes from one sales fetch", async () => {

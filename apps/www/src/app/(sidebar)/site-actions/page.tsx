@@ -1,44 +1,70 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { _role } from "@/components/sidebar-links";
-import { DataTable } from "@/components/tables/site-actions/data-table";
-import { TableSkeleton } from "@/components/tables/skeleton";
+import PageShell from "@/components/page-shell";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { SiteActionsColumnVisibility } from "@/components/tables-2/site-actions/column-visibility";
+import { DataTable } from "@/components/tables-2/site-actions/data-table";
+import { SiteActionsSkeleton } from "@/components/tables-2/site-actions/skeleton";
 import { loadingSiteActionFilterParams } from "@/hooks/use-site-action-filter-params";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
-import type { Metadata } from "next";
+import { loadSortParams } from "@/hooks/use-sort-params";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
+import { PageTitle } from "@gnd/ui/custom/page-title";
+import { constructMetadata } from "@gnd/utils/construct-metadata";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
-import PageShell from "@/components/page-shell";
-import { PageTitle } from "@gnd/ui/custom/page-title";
-export const metadata: Metadata = {
-    title: "Site Actions | GND",
-};
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata() {
+	return constructMetadata({
+		title: "Site Actions | GND",
+	});
+}
+
 type Props = {
-    searchParams;
+	searchParams: Promise<SearchParams>;
 };
+
 export default async function Page(props: Props) {
-    const searchParams = await props.searchParams;
-    const filter = loadingSiteActionFilterParams(searchParams);
-    const queryClient = getQueryClient();
+	const searchParams = await props.searchParams;
+	const filter = loadingSiteActionFilterParams(searchParams);
+	const { sort } = loadSortParams(searchParams);
+	const initialSettings = await getInitialTableSettings("site-actions");
+	const queryInput = {
+		...filter,
+		sort,
+	} as RouterInputs["siteActions"]["index"];
 
-    await queryClient.fetchInfiniteQuery(
-        trpc.siteActions.index.infiniteQueryOptions({
-            ...(filter as any),
-        }) as any,
-    );
+	batchPrefetch([
+		trpc.siteActions.index.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
 
-    return (
-        <PageShell>
-            <HydrateClient>
-                <PageTitle>Site Actions</PageTitle>
-                <ErrorBoundary errorComponent={ErrorFallback}>
-                    <Suspense fallback={<TableSkeleton />}>
-                        <DataTable />
-                    </Suspense>
-                </ErrorBoundary>
-            </HydrateClient>
-        </PageShell>
-    );
+	return (
+		<PageShell>
+			<HydrateClient>
+				<ScrollableContent>
+					<div className="flex flex-col gap-4">
+						<div className="flex items-center justify-between gap-3">
+							<PageTitle>Site Actions</PageTitle>
+							<SiteActionsColumnVisibility />
+						</div>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<SiteActionsSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
+			</HydrateClient>
+		</PageShell>
+	);
 }

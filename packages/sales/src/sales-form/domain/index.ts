@@ -52,6 +52,7 @@ export {
 	computeHptSharedDoorSurcharge,
 	getHptDoorSalesUnitPrice,
 	hydrateHptDoorRowFromLegacy,
+	hydrateHptLineFromLegacy,
 	normalizeHptDoorRowForLegacy,
 	normalizeHptLineForLegacy,
 	recalculateHptLineTotals,

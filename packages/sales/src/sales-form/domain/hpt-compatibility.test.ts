@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	hydrateHptDoorRowFromLegacy,
+	hydrateHptLineFromLegacy,
 	normalizeHptDoorRowForLegacy,
 	normalizeHptLineForLegacy,
 	resolveHptDoorUnitPriceBreakdown,
@@ -142,6 +143,60 @@ describe("HPT legacy compatibility", () => {
 		expect(row.addon).toBe(8);
 		expect(row.unitPrice).toBe(139);
 		expect(row.lineTotal).toBe(139);
+	});
+
+	it("preserves a persisted final unit when current component prices have drifted", () => {
+		const line: any = hydrateHptLineFromLegacy({
+			formSteps: [
+				{ step: { title: "Jamb Size" }, price: 33.49 },
+				{ step: { title: "Hinge Finish" }, price: 8.55 },
+			],
+			housePackageTool: {
+				doors: [
+					{
+						jambSizePrice: 197.38,
+						doorPrice: 0,
+						lhQty: 1,
+						rhQty: 0,
+						totalQty: 1,
+						unitPrice: 233.7,
+						lineTotal: 233.7,
+						meta: {},
+					},
+				],
+			},
+		});
+
+		expect(line.housePackageTool.doors[0].meta.doorSalesUnitPrice).toBe(191.66);
+		expect(line.housePackageTool.doors[0].unitPrice).toBe(233.7);
+		expect(line.unitPrice).toBe(233.7);
+		expect(line.lineTotal).toBe(233.7);
+	});
+
+	it("reconciles a legacy door rounding cent to the persisted parent total", () => {
+		const line: any = hydrateHptLineFromLegacy({
+			lineTotal: 233.7,
+			formSteps: [
+				{ step: { title: "Jamb Size" }, price: 33.49 },
+				{ step: { title: "Hinge Finish" }, price: 8.55 },
+			],
+			housePackageTool: {
+				doors: [
+					{
+						jambSizePrice: 197.38,
+						lhQty: 1,
+						totalQty: 1,
+						unitPrice: 233.695,
+						lineTotal: 233.695,
+						meta: {},
+					},
+				],
+			},
+		});
+
+		expect(line.housePackageTool.doors[0].unitPrice).toBe(233.7);
+		expect(line.housePackageTool.doors[0].lineTotal).toBe(233.7);
+		expect(line.lineTotal).toBe(233.7);
 	});
 
 	it("hydrates legacy rows while preserving JSON metadata", () => {

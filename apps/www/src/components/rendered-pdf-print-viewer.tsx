@@ -7,14 +7,36 @@ import type {
 	SalesPrintStage,
 	SalesPrintStageDetails,
 } from "@/modules/sales-print/application/sales-print-service";
+import { useTRPC } from "@/trpc/client";
 import { PDFViewer } from "@gnd/pdf";
-import { SalesPdfDocument } from "@gnd/pdf/sales-v2";
+import { type SalesPageBreakMode, SalesPdfDocument } from "@gnd/pdf/sales-v2";
+import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
+import type { SalesPrintSettings } from "@gnd/settings";
 import { useSuspenseQuery } from "@gnd/ui/tanstack";
-import type { SyntheticEvent } from "react";
+import type { ComponentType, ReactNode, SyntheticEvent } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { PackingSlipSignFab } from "./packing-slip-sign-fab";
 import { PrintUnavailable } from "./print-sales-v2";
-import { useTRPC } from "@/trpc/client";
+
+type SalesPrintData = {
+	pages: PrintPage[];
+	templateId: string;
+	title: string;
+	companyAddress: CompanyAddress;
+	watermark?: string | null;
+	previewUrl?: string | null;
+	qrCodeDataUrl?: string | null;
+	printConfig: SalesPrintSettings;
+};
+
+type PdfViewerComponentProps = {
+	children: ReactNode;
+	className?: string;
+	onLoad?: (event: SyntheticEvent<HTMLIFrameElement>) => void;
+};
+
+const PdfViewer =
+	PDFViewer as unknown as ComponentType<PdfViewerComponentProps>;
 
 export interface RenderedPdfPrintViewerProps {
 	pt: string;
@@ -23,6 +45,9 @@ export interface RenderedPdfPrintViewerProps {
 	snapshotId: string;
 	preview: boolean;
 	templateId: string;
+	pageBreakMode: SalesPageBreakMode;
+	showImages: boolean;
+	headlineFirstPage: boolean;
 	pricingMode?: "customer" | "internal" | null;
 	className?: string;
 	onPrintReady?: () => void;
@@ -40,6 +65,9 @@ export function RenderedPdfPrintViewer({
 	snapshotId,
 	preview,
 	templateId,
+	pageBreakMode,
+	showImages,
+	headlineFirstPage,
 	pricingMode,
 	className,
 	onPrintReady,
@@ -48,7 +76,6 @@ export function RenderedPdfPrintViewer({
 }: RenderedPdfPrintViewerProps) {
 	const trpc = useTRPC();
 	const baseUrl = getBaseUrl();
-	const viewerRef = useRef<{ contentWindow?: Window | null } | null>(null);
 	const printedRef = useRef(false);
 	onPrintStage?.("print-data-query-start");
 	const { data } = useSuspenseQuery(
@@ -59,12 +86,14 @@ export function RenderedPdfPrintViewer({
 			snapshotId: snapshotId || undefined,
 			preview,
 			templateId,
+			pageBreakMode,
+			showImages,
+			headlineFirstPage,
 			pricingMode: pricingMode ?? undefined,
 			baseUrl,
 		}),
 	);
-	const printData = data as any;
-	const Viewer = PDFViewer as any;
+	const printData = data as SalesPrintData | null;
 	useEffect(() => {
 		onPrintStage?.("print-data-query-done", {
 			href: printData?.previewUrl,
@@ -105,8 +134,7 @@ export function RenderedPdfPrintViewer({
 
 	return (
 		<>
-			<Viewer
-				ref={viewerRef as any}
+			<PdfViewer
 				onLoad={handleViewerLoad}
 				className={cn("flex h-screen w-full flex-col", className)}
 			>
@@ -119,8 +147,15 @@ export function RenderedPdfPrintViewer({
 					baseUrl={baseUrl}
 					previewUrl={printData.previewUrl}
 					qrCodeDataUrl={printData.qrCodeDataUrl}
+					config={
+						printData.printConfig || {
+							pageBreakMode,
+							showImages,
+							headlineFirstPage,
+						}
+					}
 				/>
-			</Viewer>
+			</PdfViewer>
 			<PackingSlipSignFab
 				page={packingSlipPage}
 				pt={pt}

@@ -1,10 +1,14 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
-import { ResolutionCenter } from "@/components/resolution-center";
 import { SalesResolutionHeader } from "@/components/sales-resolution-header";
-import { TableSkeleton } from "@/components/tables/skeleton";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { DataTable } from "@/components/tables-2/sales-resolution/data-table";
+import { SalesResolutionSkeleton } from "@/components/tables-2/sales-resolution/skeleton";
 import { loadResolutionCenterFilterParams } from "@/hooks/use-resolution-center-filter-params";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { loadSortParams } from "@/hooks/use-sort-params";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
@@ -20,31 +24,41 @@ export async function SalesResolutionCenterPage({
 	title = "Resolution Center",
 }: Props) {
 	const resolvedSearchParams = await searchParams;
-	const queryClient = getQueryClient();
 	const filter = loadResolutionCenterFilterParams(resolvedSearchParams);
-	const queryOptions =
-		trpc.sales.getSalesResolutions.infiniteQueryOptions(filter);
-	const [initialFilterList, _initialSummary, _initialResolutionRows] =
-		await Promise.all([
-			queryClient.fetchQuery(trpc.filters.salesResolutions.queryOptions()),
-			queryClient.fetchQuery(
-				trpc.sales.getSalesResolutionsSummary.queryOptions(filter),
-			),
-			queryClient.fetchInfiniteQuery(queryOptions),
-		]);
+	const { sort } = loadSortParams(resolvedSearchParams);
+	const initialSettings = await getInitialTableSettings("sales-resolution");
+	const queryInput = {
+		...filter,
+		sort: sort?.[0] ?? null,
+	} as RouterInputs["sales"]["getSalesResolutions"];
+
+	batchPrefetch([
+		trpc.filters.salesResolutions.queryOptions(),
+		trpc.sales.getSalesResolutionsSummary.queryOptions(queryInput),
+		trpc.sales.getSalesResolutions.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex min-w-0 flex-col gap-4 px-3 py-4 sm:px-4 md:gap-6 md:px-0 md:py-6">
-					<PageTitle>{title}</PageTitle>
-					<SalesResolutionHeader initialFilterList={initialFilterList} />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<TableSkeleton />}>
-							<ResolutionCenter />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex min-w-0 flex-col gap-6">
+						<PageTitle>{title}</PageTitle>
+						<SalesResolutionHeader />
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<SalesResolutionSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

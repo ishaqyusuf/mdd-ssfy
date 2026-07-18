@@ -1,7 +1,10 @@
 import { PaymentsHistoryView } from "@/components/payment-dashboard/payments-history-view";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { loadContractorPayoutFilterParams } from "@/hooks/use-contractor-payout-filter-params";
 import { loadSortParams } from "@/hooks/use-sort-params";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { constructMetadata } from "@gnd/utils/construct-metadata";
 import type { SearchParams } from "nuqs";
 
@@ -20,26 +23,30 @@ type Props = {
 
 export default async function ContractorsPaymentsPage(props: Props) {
 	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
 	const filter = loadContractorPayoutFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
+	const initialSettings = await getInitialTableSettings("contractor-payouts");
+	const queryInput = {
+		...filter,
+		sort,
+	} as RouterInputs["jobs"]["contractorPayouts"];
 
-	const [initialFilterList, _initialPayouts] = await Promise.all([
-		queryClient.fetchQuery(trpc.filters.contractorPayout.queryOptions()),
-		queryClient.fetchInfiniteQuery(
-			trpc.jobs.contractorPayouts.infiniteQueryOptions({
-				...filter,
-				sort,
-			}) as any,
-		),
+	batchPrefetch([
+		trpc.filters.contractorPayout.queryOptions(),
+		trpc.jobs.contractorPayouts.infiniteQueryOptions(queryInput, {
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		}),
 	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="pt-2">
-					<PaymentsHistoryView initialFilterList={initialFilterList as any} />
-				</div>
+				<ScrollableContent>
+					<div className="pt-2">
+						<PaymentsHistoryView initialSettings={initialSettings} />
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

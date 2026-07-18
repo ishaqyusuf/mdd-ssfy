@@ -1,144 +1,55 @@
 "use client";
 
-import { Fragment } from "react";
-import { Icons } from "@gnd/ui/icons";
-import { Menu } from "@gnd/ui/custom/menu";
-import { DataSkeleton } from "@/components/data-skeleton";
-import { useLoadingToast } from "@/hooks/use-loading-toast";
+import { UserLoggedInDevicesColumnVisibility } from "@/components/tables-2/user-logged-in-devices/column-visibility";
+import { DataTable as UserLoggedInDevicesDataTable } from "@/components/tables-2/user-logged-in-devices/data-table";
 import { timeout } from "@/lib/timeout";
-import { formatDate } from "@/lib/use-day";
-import { skeletonListData } from "@/utils/format";
-
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
-import {
-    DataSkeletonProvider,
-    useCreateDataSkeletonCtx,
-} from "@/hooks/use-data-skeleton";
+import type { TableSettings } from "@/utils/table-settings";
+import { useState } from "react";
 
 const mockDevices = [
-    {
-        id: "1",
-        device: "Chrome on macOS",
-        location: "New York, NY",
-        ipAddress: "192.168.1.1",
-        lastLogin: new Date(),
-    },
-    {
-        id: "2",
-        device: "Safari on iOS",
-        location: "San Francisco, CA",
-        ipAddress: "10.0.0.1",
-        lastLogin: new Date(),
-    },
+	{
+		id: "1",
+		device: "Chrome on macOS",
+		location: "New York, NY",
+		ipAddress: "192.168.1.1",
+		lastLogin: new Date(),
+	},
+	{
+		id: "2",
+		device: "Safari on iOS",
+		location: "San Francisco, CA",
+		ipAddress: "10.0.0.1",
+		lastLogin: new Date(),
+	},
 ];
 
-export function UserLoggedInDevices() {
-    // const loader = useLoadingToast();
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
 
-    const logOutDevice = async (id: string) => {
-        // loader.loading("Logging out....");
-        await timeout(500);
-        // TODO: Implement actual logout logic
-        // loader.success("Logged out!.");
-    };
+export function UserLoggedInDevices({ initialSettings }: Props) {
+	const [loggingOutDeviceId, setLoggingOutDeviceId] = useState<string | null>(
+		null,
+	);
 
-    return (
-        <DataSkeletonProvider
-            value={useCreateDataSkeletonCtx({
-                defaultState: false,
-            })}
-        >
-            <div className="rounded-md border">
-                {!mockDevices.length ? (
-                    <EmptyDeviceList />
-                ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Device</TableHead>
-                                <TableHead>Location</TableHead>
-                                <TableHead>IP Address</TableHead>
-                                <TableHead>Last Login</TableHead>
-                                <TableHead className="text-right"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {skeletonListData(mockDevices, 2, {})?.map(
-                                (device, index) => (
-                                    <Fragment key={index}>
-                                        <TableRow>
-                                            <TableCell className="font-medium">
-                                                <DataSkeleton pok="textSm">
-                                                    {device.device}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="textSm">
-                                                    {device.location}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="textSm">
-                                                    {device.ipAddress}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell>
-                                                <DataSkeleton pok="date">
-                                                    {formatDate(
-                                                        device.lastLogin,
-                                                    )}
-                                                </DataSkeleton>
-                                            </TableCell>
-                                            <TableCell className="w-8 text-right">
-                                                <DataSkeleton pok="date">
-                                                    <Menu>
-                                                        <Menu.Item
-                                                            icon="logout"
-                                                            onClick={async () =>
-                                                                await logOutDevice(
-                                                                    device.id,
-                                                                )
-                                                            }
-                                                        >
-                                                            Log out
-                                                        </Menu.Item>
-                                                    </Menu>
-                                                </DataSkeleton>
-                                            </TableCell>
-                                        </TableRow>
-                                    </Fragment>
-                                ),
-                            )}
-                        </TableBody>
-                    </Table>
-                )}
-            </div>
-        </DataSkeletonProvider>
-    );
+	const logOutDevice = async (id: string) => {
+		setLoggingOutDeviceId(id);
+		await timeout(500);
+		// TODO: Implement actual logout logic.
+		setLoggingOutDeviceId(null);
+	};
+
+	return (
+		<div className="space-y-2">
+			<div className="flex justify-end">
+				<UserLoggedInDevicesColumnVisibility />
+			</div>
+			<UserLoggedInDevicesDataTable
+				data={mockDevices}
+				initialSettings={initialSettings}
+				loggingOutDeviceId={loggingOutDeviceId}
+				onLogOutDevice={(device) => logOutDevice(device.id)}
+			/>
+		</div>
+	);
 }
-
-function EmptyDeviceList() {
-    return (
-        <div className="flex h-36 items-center justify-center">
-            <div className="flex flex-col items-center">
-                <Icons.laptop className="mb-4" />
-                <div className="mb-6 space-y-2 text-center">
-                    <h2 className="text-lg font-medium">
-                        No Logged-in Devices
-                    </h2>
-                    <p className="text-sm text-[#606060]">
-                        {"There are no logged-in devices to display."}
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-}
-

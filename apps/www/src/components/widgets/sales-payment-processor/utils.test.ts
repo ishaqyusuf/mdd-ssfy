@@ -3,6 +3,7 @@ import {
 	buildPrintRequests,
 	calculatePaymentChannelChargePreview,
 	calculatePaymentPlanPreview,
+	canNotifyPaymentCustomer,
 	getAvailablePaymentSales,
 	getListedPaymentAmount,
 	getListedPaymentSales,
@@ -10,6 +11,23 @@ import {
 } from "./utils";
 
 describe("sales payment processor utils", () => {
+	it("enables customer receipts only when every listed order has an email", () => {
+		expect(
+			canNotifyPaymentCustomer([
+				{ customerEmail: "customer@example.com" },
+				{ customerEmail: " billing@example.com " },
+			]),
+		).toBe(true);
+		expect(
+			canNotifyPaymentCustomer([
+				{ customerEmail: "customer@example.com" },
+				{ customerEmail: " " },
+			]),
+		).toBe(false);
+		expect(canNotifyPaymentCustomer([{ customerEmail: null }])).toBe(false);
+		expect(canNotifyPaymentCustomer([])).toBe(false);
+	});
+
 	it("lists only the sales explicitly selected when the payment modal opens", () => {
 		const sales = [
 			{ id: 1, orderId: "ORDER-1" },

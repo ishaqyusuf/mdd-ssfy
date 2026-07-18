@@ -52,6 +52,7 @@ export function InvoiceMode({
 					baseUrl={baseUrl}
 					showImages={config.showImages}
 					firstPageHeaderHeight={FIRST_PAGE_HEADER_HEIGHT}
+					pageBreakMode={config.pageBreakMode}
 				/>
 
 				{config.showImages ? (

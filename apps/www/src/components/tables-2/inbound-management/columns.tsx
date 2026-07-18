@@ -1,11 +1,11 @@
 "use client";
 
-import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import {
 	getInventoryInboundOwnershipLabel,
 	getInventoryInboundOwnershipTitle,
 	getSingleInventoryInboundId,
 } from "@/components/sales-inbound-status-badge";
+import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
@@ -37,14 +37,14 @@ const orderColumn: Column = {
 	id: "orderId",
 	header: "Order",
 	accessorKey: "orderId",
-	...sizes.custom(150, 240, 180),
+	...sizes.custom(132, 220, 154),
 	enableResizing: true,
 	meta: {
 		sticky: true,
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Order",
 		className: sizeClass(
-			sizes.custom(150, 240, 180),
+			sizes.custom(132, 220, 154),
 			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -65,12 +65,12 @@ const customerColumn: Column = {
 	id: "customer",
 	header: "Customer",
 	accessorKey: "displayName",
-	...sizes.custom(220, 420, 300),
+	...sizes.custom(180, 340, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Customer",
-		className: sizeClass(sizes.custom(220, 420, 300)),
+		className: sizeClass(sizes.custom(180, 340, 220)),
 	},
 	cell: ({ row }) => (
 		<div className="min-w-0 space-y-1">
@@ -90,12 +90,12 @@ const salesRepColumn: Column = {
 	id: "salesRep",
 	header: "Sales Rep",
 	accessorKey: "salesRep",
-	...sizes.custom(140, 260, 180),
+	...sizes.custom(86, 140, 104),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Sales Rep",
-		className: sizeClass(sizes.custom(140, 260, 180)),
+		className: sizeClass(sizes.custom(86, 140, 104)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
@@ -109,21 +109,25 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorKey: "inboundStatus",
-	...sizes.custom(150, 240, 180),
+	...sizes.custom(116, 180, 132),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge" },
 		headerLabel: "Status",
-		className: sizeClass(sizes.custom(150, 240, 180)),
+		className: sizeClass(sizes.custom(116, 180, 132)),
 	},
 	cell: ({ row }) => {
 		const hasInventoryInbound =
 			!!row.original.inventoryInboundOwnership?.hasInventoryInbound;
 		const label = hasInventoryInbound
-			? getInventoryInboundOwnershipLabel(row.original.inventoryInboundOwnership)
+			? getInventoryInboundOwnershipLabel(
+					row.original.inventoryInboundOwnership,
+				)
 			: getStatusLabel(row.original.inboundStatus);
 		const title = hasInventoryInbound
-			? getInventoryInboundOwnershipTitle(row.original.inventoryInboundOwnership)
+			? getInventoryInboundOwnershipTitle(
+					row.original.inventoryInboundOwnership,
+				)
 			: `Manual order status - ${label}`;
 
 		return (
@@ -139,7 +143,7 @@ const statusColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	...sizes.custom(92, 92),
+	...sizes.custom(64, 64),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
@@ -147,7 +151,7 @@ const actionsColumn: Column = {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
 		className: sizeClass(
-			sizes.custom(92, 92),
+			sizes.custom(64, 64),
 			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},

@@ -15,6 +15,7 @@ import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
@@ -37,13 +38,23 @@ const NON_CLICKABLE_COLUMNS = new Set([
 const COLUMN_IDS = getColumnIds(columns);
 const TABLE_ID = "sales-orders";
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
+type SalesOrdersInput = RouterInputs["sales"]["getOrders"];
 
 type Props = {
 	initialSettings?: Partial<TableSettings>;
+	defaultFilters?: SalesOrdersInput;
 	bin?: boolean;
+	singlePage?: boolean;
+	embedded?: boolean;
 };
 
-export function DataTable({ initialSettings, bin }: Props) {
+export function DataTable({
+	initialSettings,
+	defaultFilters,
+	bin,
+	singlePage,
+	embedded,
+}: Props) {
 	const trpc = useTRPC();
 	const { params } = useSortParams();
 	const { filters, hasFilters } = useSalesOrdersV2FilterParams();
@@ -77,13 +88,15 @@ export function DataTable({ initialSettings, bin }: Props) {
 	const bindShowColumnDividers = useSalesOrdersStore(
 		(state) => state.bindShowColumnDividers,
 	);
+	const queryInput = {
+		...filters,
+		...(defaultFilters || {}),
+		bin,
+		sort: params.sort,
+	} as SalesOrdersInput;
 
 	const infiniteQueryOptions = trpc.sales.getOrders.infiniteQueryOptions(
-		{
-			...filters,
-			bin,
-			sort: params.sort,
-		},
+		queryInput,
 		{
 			getNextPageParam: ({ meta }) =>
 				(meta as { cursor?: string | number | null } | undefined)?.cursor,
@@ -200,7 +213,7 @@ export function DataTable({ initialSettings, bin }: Props) {
 		scrollRef: parentRef,
 		rowVirtualizer,
 		rowCount: rows.length,
-		hasNextPage,
+		hasNextPage: singlePage ? false : hasNextPage,
 		isFetchingNextPage,
 		fetchNextPage,
 	});
@@ -228,6 +241,9 @@ export function DataTable({ initialSettings, bin }: Props) {
 	}
 
 	const virtualItems = rowVirtualizer.getVirtualItems();
+	const tableHeight = embedded
+		? `${tableConfig.headerHeight + Math.max(1, Math.min(rows.length, 5)) * tableConfig.rowHeight}px`
+		: "calc(100vh - 350px + var(--header-offset, 0px))";
 
 	return (
 		<div className="relative">
@@ -239,7 +255,7 @@ export function DataTable({ initialSettings, bin }: Props) {
 					}}
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
-						height: "calc(100vh - 350px + var(--header-offset, 0px))",
+						height: tableHeight,
 					}}
 				>
 					<DndContext

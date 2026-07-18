@@ -219,6 +219,11 @@ describe("sales PDF email attachments", () => {
 		);
 
 		expect(email?.attachments).toEqual([pdfAttachment]);
+		expect(email).toMatchObject({
+			template: "sales-customer-payment-received",
+			to: ["customer@example.com"],
+			subject: "Payment received for order 100",
+		});
 		expect(email?.data).toMatchObject({
 			invoiceDownloadUrl: null,
 			invoicePdfAttachment: pdfAttachment,

@@ -1,12 +1,22 @@
 "use client";
 
+import { ErrorFallback } from "@/components/error-fallback";
+import { MasterPasswordLoginsColumnVisibility } from "@/components/tables-2/master-password-logins/column-visibility";
+import type { MasterPasswordLoginRow } from "@/components/tables-2/master-password-logins/columns";
+import {
+	DataTable,
+	type PageInfo as MasterPasswordLoginPageInfo,
+} from "@/components/tables-2/master-password-logins/data-table";
+import { MasterPasswordLoginsSkeleton } from "@/components/tables-2/master-password-logins/skeleton";
 import { useTRPC } from "@/trpc/client";
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { Badge } from "@gnd/ui/badge";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { Checkbox } from "@gnd/ui/checkbox";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
+import { AlertDialog } from "@gnd/ui/namespace";
 import {
 	Select,
 	SelectContent,
@@ -14,21 +24,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@gnd/ui/table";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { format } from "date-fns";
-import { useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense, useMemo, useState } from "react";
 
-type AuditRow =
-	RouterOutputs["masterPasswordLoginAudits"]["list"]["rows"][number];
+type ListInput = NonNullable<RouterInputs["masterPasswordLoginAudits"]["list"]>;
 type PlatformFilter = "ALL" | "WEBSITE" | "MOBILE" | "UNKNOWN";
 
 const platforms: Array<{ value: PlatformFilter; label: string }> = [
@@ -38,84 +39,51 @@ const platforms: Array<{ value: PlatformFilter; label: string }> = [
 	{ value: "UNKNOWN", label: "Unknown" },
 ];
 
-function toDate(value?: string | Date | null) {
-	if (!value) return null;
-	const date = value instanceof Date ? value : new Date(value);
-	return Number.isNaN(date.getTime()) ? null : date;
-}
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
 
-function formatDateTime(value?: string | Date | null) {
-	const date = toDate(value);
-	if (!date) return "-";
-	return format(date, "MMM d, yyyy h:mm a");
-}
+type ClearConfirmation =
+	| {
+			type: "filtered";
+			total: number;
+	  }
+	| {
+			type: "row";
+			row: MasterPasswordLoginRow;
+	  };
 
-function userLabel(row: AuditRow) {
-	return row.targetUser?.name || row.targetUserName || row.targetUserEmail || "-";
-}
-
-function userEmail(row: AuditRow) {
-	return row.targetUser?.email || row.targetUserEmail || "";
-}
-
-function platformLabel(platform: AuditRow["platform"]) {
-	switch (platform) {
-		case "WEBSITE":
-			return "Website";
-		case "MOBILE":
-			return "Mobile";
-		default:
-			return "Unknown";
-	}
-}
-
-function platformClassName(platform: AuditRow["platform"]) {
-	switch (platform) {
-		case "WEBSITE":
-			return "border-sky-200 bg-sky-50 text-sky-700";
-		case "MOBILE":
-			return "border-emerald-200 bg-emerald-50 text-emerald-700";
-		default:
-			return "border-muted bg-muted/40 text-muted-foreground";
-	}
-}
-
-function statusClassName(row: AuditRow) {
-	return row.clearedAt
-		? "border-muted bg-muted/40 text-muted-foreground"
-		: "border-amber-200 bg-amber-50 text-amber-700";
-}
-
-export function MasterPasswordLoginAuditPage() {
+export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
 	const [platform, setPlatform] = useState<PlatformFilter>("ALL");
 	const [showCleared, setShowCleared] = useState(false);
 	const [page, setPage] = useState(1);
+	const [pageInfo, setPageInfo] = useState<MasterPasswordLoginPageInfo | null>(
+		null,
+	);
+	const [clearConfirmation, setClearConfirmation] =
+		useState<ClearConfirmation | null>(null);
 	const size = 25;
 
-	const listInput = useMemo(
-		() => ({
-			q: search.trim() || undefined,
-			platform: platform === "ALL" ? undefined : platform,
-			includeCleared: showCleared || undefined,
-			page,
-			size,
-		}),
+	const filters = useMemo(
+		() =>
+			({
+				q: search.trim() || undefined,
+				platform: platform === "ALL" ? undefined : platform,
+				includeCleared: showCleared || undefined,
+				page,
+				size,
+			}) satisfies ListInput,
 		[page, platform, search, showCleared],
 	);
-
-	const auditsQuery = useQuery(
-		trpc.masterPasswordLoginAudits.list.queryOptions(listInput),
-	);
-	const audits = auditsQuery.data?.rows ?? [];
-	const total = auditsQuery.data?.total ?? 0;
-	const pageCount = auditsQuery.data?.pageCount ?? 1;
+	const hasFilters =
+		Boolean(search.trim()) || platform !== "ALL" || showCleared;
 
 	const refresh = async () => {
 		await queryClient.invalidateQueries({
-			queryKey: trpc.masterPasswordLoginAudits.list.queryKey(),
+			queryKey: trpc.masterPasswordLoginAudits.list.pathKey(),
 		});
 	};
 
@@ -142,75 +110,72 @@ export function MasterPasswordLoginAuditPage() {
 	);
 
 	const clearFilteredRecords = () => {
+		const total = pageInfo?.total ?? 0;
 		if (!total) return;
-		const confirmed = window.confirm(
-			`Clear ${total.toLocaleString()} active master password login record${
-				total === 1 ? "" : "s"
-			}? Cleared records will be archived and hidden from the default view.`,
-		);
-		if (!confirmed) return;
 
-		clearMutation.mutate({
-			q: search.trim() || undefined,
-			platform: platform === "ALL" ? undefined : platform,
-		});
+		setClearConfirmation({ type: "filtered", total });
 	};
 
+	const clearSingleRecord = (row: MasterPasswordLoginRow) => {
+		if (row.clearedAt) return;
+
+		setClearConfirmation({ type: "row", row });
+	};
+
+	const confirmClear = () => {
+		if (!clearConfirmation) return;
+
+		if (clearConfirmation.type === "row") {
+			clearMutation.mutate({ ids: [clearConfirmation.row.id] });
+		} else {
+			clearMutation.mutate({
+				q: search.trim() || undefined,
+				platform: platform === "ALL" ? undefined : platform,
+			});
+		}
+
+		setClearConfirmation(null);
+	};
+
+	const clearFilters = () => {
+		setSearch("");
+		setPlatform("ALL");
+		setShowCleared(false);
+		setPage(1);
+	};
+
+	const clearVariables = clearMutation.variables;
+	const pendingClearIds =
+		typeof clearVariables === "object" && clearVariables
+			? clearVariables.ids
+			: undefined;
+	const clearingRowId =
+		clearMutation.isPending && pendingClearIds?.length === 1
+			? pendingClearIds[0]
+			: null;
+
 	return (
-		<div className="space-y-4 px-4 pb-8 md:px-8">
-			<Card>
-				<CardHeader className="gap-4">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<div>
-							<CardTitle>Master Password Logins</CardTitle>
-							<p className="mt-1 text-sm text-muted-foreground">
-								{total.toLocaleString()} record{total === 1 ? "" : "s"}
-							</p>
-						</div>
-						<div className="flex flex-wrap items-center gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => void refresh()}
-								disabled={auditsQuery.isFetching}
-							>
-								{auditsQuery.isFetching ? (
-									<Icons.Loader2 className="mr-2 size-4 animate-spin" />
-								) : (
-									<Icons.RefreshCw className="mr-2 size-4" />
-								)}
-								Refresh
-							</Button>
-							<Button
-								type="button"
-								variant="destructive"
-								onClick={clearFilteredRecords}
-								disabled={!total || clearMutation.isPending}
-							>
-								{clearMutation.isPending ? (
-									<Icons.Loader2 className="mr-2 size-4 animate-spin" />
-								) : (
-									<Icons.Trash2 className="mr-2 size-4" />
-								)}
-								Clear
-							</Button>
-						</div>
-					</div>
-				</CardHeader>
-				<CardContent className="space-y-4">
-					<div className="flex flex-col gap-3 md:flex-row md:items-center">
-						<div className="relative min-w-0 flex-1">
+		<div className="flex min-w-0 flex-col gap-4">
+			<div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+				<div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_180px_auto] lg:flex-1">
+					<div className="grid gap-1.5">
+						<Label htmlFor="master-password-login-search">Search</Label>
+						<div className="relative">
 							<Icons.Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 							<Input
+								id="master-password-login-search"
 								value={search}
 								onChange={(event) => {
 									setSearch(event.target.value);
 									setPage(1);
 								}}
-								placeholder="Search user, email, IP, browser, or session"
+								placeholder="User, email, country, IP, browser, or session"
 								className="pl-9"
 							/>
 						</div>
+					</div>
+					<div className="grid gap-1.5">
+						<Label>Platform</Label>
 						<Select
 							value={platform}
 							onValueChange={(value) => {
@@ -218,7 +183,7 @@ export function MasterPasswordLoginAuditPage() {
 								setPage(1);
 							}}
 						>
-							<SelectTrigger className="md:w-44">
+							<SelectTrigger>
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
@@ -229,127 +194,156 @@ export function MasterPasswordLoginAuditPage() {
 								))}
 							</SelectContent>
 						</Select>
-						<label className="flex items-center gap-2 text-sm text-muted-foreground">
-							<input
-								type="checkbox"
+					</div>
+					<div className="flex items-end">
+						<div className="flex h-10 items-center gap-2 text-sm text-muted-foreground">
+							<Checkbox
+								id="show-cleared-master-password-logins"
 								checked={showCleared}
-								onChange={(event) => {
-									setShowCleared(event.target.checked);
+								onCheckedChange={(checked) => {
+									setShowCleared(checked === true);
 									setPage(1);
 								}}
 							/>
-							Show cleared
-						</label>
-					</div>
-
-					<div className="overflow-hidden rounded-md border">
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead>User</TableHead>
-									<TableHead>Date</TableHead>
-									<TableHead>Platform</TableHead>
-									<TableHead>IP Address</TableHead>
-									<TableHead>Browser</TableHead>
-									<TableHead>Session</TableHead>
-									<TableHead>Status</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{auditsQuery.isPending ? (
-									<TableRow>
-										<TableCell colSpan={7} className="h-24 text-center">
-											<Icons.Loader2 className="mx-auto mb-2 size-4 animate-spin text-muted-foreground" />
-											Loading master password logins...
-										</TableCell>
-									</TableRow>
-								) : audits.length ? (
-									audits.map((row) => (
-										<TableRow key={row.id}>
-											<TableCell>
-												<div className="max-w-[240px] space-y-1">
-													<p className="truncate text-sm font-medium">
-														{userLabel(row)}
-													</p>
-													<p className="truncate text-xs text-muted-foreground">
-														{userEmail(row) || "No email snapshot"}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell className="min-w-[150px] text-sm">
-												{formatDateTime(row.loginAt)}
-											</TableCell>
-											<TableCell>
-												<Badge
-													variant="outline"
-													className={platformClassName(row.platform)}
-												>
-													{platformLabel(row.platform)}
-												</Badge>
-											</TableCell>
-											<TableCell className="font-mono text-xs">
-												{row.ipAddress || "-"}
-											</TableCell>
-											<TableCell>
-												<div className="max-w-[260px] space-y-1">
-													<p className="truncate text-sm">
-														{row.browser || "Unknown browser"}
-													</p>
-													<p className="truncate text-xs text-muted-foreground">
-														{row.userAgent || "-"}
-													</p>
-												</div>
-											</TableCell>
-											<TableCell className="max-w-[220px] truncate font-mono text-xs">
-												{row.sessionId || "-"}
-											</TableCell>
-											<TableCell>
-												<Badge variant="outline" className={statusClassName(row)}>
-													{row.clearedAt ? "Cleared" : "Active"}
-												</Badge>
-											</TableCell>
-										</TableRow>
-									))
-								) : (
-									<TableRow>
-										<TableCell colSpan={7} className="h-24 text-center">
-											No master password login records found.
-										</TableCell>
-									</TableRow>
-								)}
-							</TableBody>
-						</Table>
-					</div>
-
-					<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-						<p className="text-sm text-muted-foreground">
-							Page {page} of {pageCount}
-						</p>
-						<div className="flex items-center gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								disabled={page <= 1 || auditsQuery.isFetching}
-								onClick={() => setPage((value) => Math.max(1, value - 1))}
+							<Label
+								htmlFor="show-cleared-master-password-logins"
+								className="font-normal"
 							>
-								Previous
-							</Button>
-							<Button
-								type="button"
-								variant="outline"
-								size="sm"
-								disabled={page >= pageCount || auditsQuery.isFetching}
-								onClick={() =>
-									setPage((value) => Math.min(pageCount, value + 1))
-								}
-							>
-								Next
-							</Button>
+								Show cleared
+							</Label>
 						</div>
 					</div>
-				</CardContent>
-			</Card>
+				</div>
+				<div className="flex flex-wrap items-center gap-2">
+					<MasterPasswordLoginsColumnVisibility />
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => void refresh()}
+						disabled={pageInfo?.isFetching}
+					>
+						{pageInfo?.isFetching ? (
+							<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+						) : (
+							<Icons.RefreshCw className="mr-2 size-4" />
+						)}
+						Refresh
+					</Button>
+					<Button
+						type="button"
+						variant="destructive"
+						onClick={clearFilteredRecords}
+						disabled={
+							!(pageInfo?.total ?? 0) || clearMutation.isPending || showCleared
+						}
+					>
+						{clearMutation.isPending && !clearingRowId ? (
+							<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+						) : (
+							<Icons.Trash2 className="mr-2 size-4" />
+						)}
+						Clear
+					</Button>
+				</div>
+			</div>
+
+			<ErrorBoundary errorComponent={ErrorFallback}>
+				<Suspense
+					fallback={
+						<MasterPasswordLoginsSkeleton initialSettings={initialSettings} />
+					}
+				>
+					<DataTable
+						initialSettings={initialSettings}
+						filters={filters}
+						hasFilters={hasFilters}
+						clearingRowId={clearingRowId}
+						onClearFilters={clearFilters}
+						onClearRecord={clearSingleRecord}
+						onPageInfoChange={setPageInfo}
+					/>
+				</Suspense>
+			</ErrorBoundary>
+
+			<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+				<p className="text-sm text-muted-foreground">
+					{pageInfo
+						? `${pageInfo.total.toLocaleString()} record${
+								pageInfo.total === 1 ? "" : "s"
+							} • Page ${pageInfo.page} of ${pageInfo.pageCount}`
+						: "Loading master password login records"}
+				</p>
+				<div className="flex items-center gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={page <= 1 || pageInfo?.isFetching}
+						onClick={() => setPage((value) => Math.max(1, value - 1))}
+					>
+						Previous
+					</Button>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={
+							Boolean(pageInfo && page >= pageInfo.pageCount) ||
+							pageInfo?.isFetching
+						}
+						onClick={() =>
+							setPage((value) =>
+								Math.min(pageInfo?.pageCount ?? value, value + 1),
+							)
+						}
+					>
+						Next
+					</Button>
+				</div>
+			</div>
+
+			<AlertDialog
+				open={clearConfirmation !== null}
+				onOpenChange={(open) => {
+					if (!open) setClearConfirmation(null);
+				}}
+			>
+				<AlertDialog.Content>
+					<AlertDialog.Header>
+						<AlertDialog.Title>
+							Clear master password login{" "}
+							{clearConfirmation?.type === "filtered" ? "records" : "record"}?
+						</AlertDialog.Title>
+						<AlertDialog.Description>
+							{clearConfirmation?.type === "filtered"
+								? `${clearConfirmation.total.toLocaleString()} active record${
+										clearConfirmation.total === 1 ? "" : "s"
+									} matching the current filters will be archived and hidden from the default view.`
+								: `The record for ${
+										clearConfirmation?.row.targetUser?.name ||
+										clearConfirmation?.row.targetUserName ||
+										clearConfirmation?.row.targetUserEmail ||
+										"this user"
+									} will be archived and hidden from the default view.`}
+						</AlertDialog.Description>
+					</AlertDialog.Header>
+					<AlertDialog.Footer>
+						<AlertDialog.Cancel disabled={clearMutation.isPending}>
+							Cancel
+						</AlertDialog.Cancel>
+						<AlertDialog.Action
+							disabled={clearMutation.isPending}
+							onClick={confirmClear}
+						>
+							Clear record
+							{clearConfirmation?.type === "filtered" &&
+							clearConfirmation.total !== 1
+								? "s"
+								: ""}
+						</AlertDialog.Action>
+					</AlertDialog.Footer>
+				</AlertDialog.Content>
+			</AlertDialog>
 		</div>
 	);
 }

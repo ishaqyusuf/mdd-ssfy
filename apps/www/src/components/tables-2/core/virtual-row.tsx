@@ -48,6 +48,7 @@ function VirtualRowInner<TData>({
 	getStickyStyle,
 	getStickyClassName,
 	nonClickableColumns = new Set(["select", "actions"]),
+	isSelected = false,
 	showColumnDividers = false,
 	tableStyle = "default",
 	rowClassName,
@@ -63,9 +64,11 @@ function VirtualRowInner<TData>({
 	return (
 		<TableRow
 			data-index={row.index}
+			data-state={isSelected ? "selected" : undefined}
 			className={cn(
 				"group cursor-pointer select-text",
 				"hover:bg-[#F2F1EF] hover:dark:bg-secondary",
+				"data-[state=selected]:bg-muted/50",
 				"flex items-center border-0",
 				"absolute left-0 top-0 w-full min-w-full",
 				rowClassName?.(row),
@@ -118,6 +121,7 @@ function VirtualRowInner<TData>({
 								cells.length - 1 !== cellIndex &&
 								"border-r",
 							cellClassName,
+							"group-data-[state=selected]:bg-muted/50",
 							isActions && "justify-center",
 						)}
 						style={cellStyle}

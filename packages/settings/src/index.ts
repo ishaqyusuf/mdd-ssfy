@@ -1,5 +1,11 @@
-import { type Db } from "@gnd/db";
+import type { Db } from "@gnd/db";
 import type { SettingsTypes } from "./schema";
+export {
+  DEFAULT_SALES_PRINT_SETTINGS,
+  normalizeSalesPrintSettings,
+  salesPrintSettingsSchema,
+} from "./schema";
+export type { SalesPrintSettings } from "./schema";
 export const SETTINGS_TYPE = [
   "sales-settings",
   "install-price-chart",
@@ -22,7 +28,7 @@ export async function getSettingAction<T extends keyof SettingsTypes>(
     },
   });
   if (!setting) {
-    let newSetting = await db.settings.create({
+    const newSetting = await db.settings.create({
       data: {
         type,
         meta: {},

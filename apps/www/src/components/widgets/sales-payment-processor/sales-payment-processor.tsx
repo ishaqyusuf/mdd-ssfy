@@ -18,6 +18,12 @@ import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Spinner } from "@gnd/ui/spinner";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { ToastAction } from "@gnd/ui/toast";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@gnd/ui/tooltip";
 import { toast } from "@gnd/ui/use-toast";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import React, {
@@ -43,6 +49,7 @@ import type {
 import {
 	buildPrintRequests,
 	calculatePaymentPlanPreview,
+	canNotifyPaymentCustomer,
 	formatPaymentAmount,
 	getAvailablePaymentSales,
 	getListedPaymentAmount,
@@ -300,10 +307,15 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		() => getListedPaymentSales(data.pendingSales, listedSalesIds),
 		[data.pendingSales, listedSalesIds],
 	);
+	const canNotifyCustomer = canNotifyPaymentCustomer(listedSales);
 	const availablePaymentSales = useMemo(
 		() => getAvailablePaymentSales(data.pendingSales, listedSalesIds),
 		[data.pendingSales, listedSalesIds],
 	);
+	useEffect(() => {
+		if (canNotifyCustomer || !notifyCustomer) return;
+		form.setValue("notifyCustomer", false);
+	}, [canNotifyCustomer, form, notifyCustomer]);
 	const getSelectedSalesIds = useCallback(
 		(formData: z.infer<typeof formSchema>) =>
 			formData.sales.filter((sale) => sale.selected).map((sale) => sale.id),
@@ -476,6 +488,14 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						setWaitSeconds(0);
 					}, 2000);
 				} else {
+					if (data?.customerReceiptQueueStatus === "failed") {
+						toast({
+							title: "Payment recorded",
+							description: "Receipt email could not be queued",
+							duration: 7000,
+							variant: "destructive",
+						});
+					}
 					form.setValue("paymentStatus", "completed");
 					if (terminalState === "recording") {
 						setTerminalState("success");
@@ -597,6 +617,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		pendingPrintRequestsRef.current = [];
 		makePayment.mutate({
 			...formData,
+			notifyCustomer: canNotifyCustomer && formData.notifyCustomer === true,
 			amount,
 			paymentMethod,
 			salesIds: selectedSalesIds,
@@ -666,14 +687,17 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						);
 				console.log({ rep });
 				switch (rep.status) {
-					case "COMPLETED":
+					case "COMPLETED": {
 						if (hasSubmittedCompletedTerminalRef.current) return null;
 						hasSubmittedCompletedTerminalRef.current = true;
 						setWaitSeconds(null);
 						setTerminalState("recording");
 						form.setValue("terminalPaymentSession.status", "COMPLETED");
+						const completedFormData = form.getValues();
 						makePayment.mutate({
-							...form.getValues(),
+							...completedFormData,
+							notifyCustomer:
+								canNotifyCustomer && completedFormData.notifyCustomer === true,
 							amount:
 								lastSubmittedAmountRef.current ??
 								Number(form.getValues("amount") || 0),
@@ -682,6 +706,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 								form.getValues("paymentMethod"),
 						});
 						return null;
+					}
 					case "CANCELED":
 					case "CANCEL_REQUESTED":
 						// cancelTerminalPayment.mutate({
@@ -707,6 +732,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			checkTerminalPaymentStatus();
 		}
 	}, [
+		canNotifyCustomer,
 		form,
 		makePayment.mutate,
 		mockStatus,
@@ -1168,29 +1194,48 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 							<section className="grid gap-3">
 								<h3 className="text-sm font-medium">Options</h3>
 								<div className="grid gap-2 sm:grid-cols-2">
-									<Field
-										orientation="horizontal"
-										className="rounded-md border p-3"
-									>
-										<Checkbox
-											checked={!!notifyCustomer}
-											onCheckedChange={(checked) =>
-												form.setValue("notifyCustomer", !!checked)
-											}
-											id="notify-customer"
-										/>
-										<Field.Content>
-											<Field.Label
-												htmlFor="notify-customer"
-												className="font-normal"
-											>
-												Notify customer
-											</Field.Label>
-											<Field.Description className="text-xs font-normal">
-												Send a receipt email after payment.
-											</Field.Description>
-										</Field.Content>
-									</Field>
+									<TooltipProvider delayDuration={100}>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<div
+													aria-disabled={!canNotifyCustomer}
+													tabIndex={canNotifyCustomer ? undefined : 0}
+												>
+													<Field
+														orientation="horizontal"
+														className={cn(
+															"rounded-md border p-3",
+															!canNotifyCustomer &&
+																"cursor-not-allowed opacity-60",
+														)}
+													>
+														<Checkbox
+															checked={!!notifyCustomer}
+															disabled={!canNotifyCustomer}
+															onCheckedChange={(checked) =>
+																form.setValue("notifyCustomer", !!checked)
+															}
+															id="notify-customer"
+														/>
+														<Field.Content>
+															<Field.Label
+																htmlFor="notify-customer"
+																className="font-normal"
+															>
+																Notify customer
+															</Field.Label>
+															<Field.Description className="text-xs font-normal">
+																Send a receipt email after payment.
+															</Field.Description>
+														</Field.Content>
+													</Field>
+												</div>
+											</TooltipTrigger>
+											{!canNotifyCustomer ? (
+												<TooltipContent>Customer have no email</TooltipContent>
+											) : null}
+										</Tooltip>
+									</TooltipProvider>
 
 									<Field
 										orientation="horizontal"

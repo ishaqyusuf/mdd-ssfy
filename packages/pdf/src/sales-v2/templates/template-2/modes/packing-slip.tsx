@@ -2,11 +2,7 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { View } from "@react-pdf/renderer";
 import type { SalesTemplateConfig } from "../../../registry";
-import {
-	HeaderBlock,
-	SectionListBlock,
-	SignatureBlock,
-} from "../blocks";
+import { HeaderBlock, SectionListBlock, SignatureBlock } from "../blocks";
 
 interface PackingSlipModeProps {
 	page: PrintPage;
@@ -53,6 +49,7 @@ export function PackingSlipMode({
 					baseUrl={baseUrl}
 					showImages={config.showImages}
 					firstPageHeaderHeight={FIRST_PAGE_HEADER_HEIGHT}
+					pageBreakMode={config.pageBreakMode}
 				/>
 			</View>
 

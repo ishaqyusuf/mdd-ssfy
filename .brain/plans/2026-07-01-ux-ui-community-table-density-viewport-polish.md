@@ -4,13 +4,13 @@
 UX/UI
 
 ## Status
-Proposed
+In Progress
 
 ## Created Date
 2026-07-01
 
 ## Last Updated
-2026-07-01
+2026-07-17
 
 ## Intake
 - Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
@@ -23,6 +23,7 @@ Several table pages have too much vertical whitespace before and after search co
 - `brain/plans/2026-06-16-orders-v2-table-standard-migration.md` says community builders, templates, customer-services, and unit-invoices are already migrated to tables-2.
 - Unit productions has a `components/tables-2/unit-productions/*` module, while sales-book productions still has legacy and v2 routes.
 - The requested pages include `community/customer-services`, `community/builders`, `community/templates`, `community/invoices`, `community/productions`; in current routes likely `community/unit-invoices` and `community/unit-productions` are the closest named surfaces.
+- 2026-07-17 update: `/community/customer-services` now has a density follow-up on top of the table migration: `56px` rows, tighter content-fit widths, and a compact assignment trigger. Authenticated browser row-scroll proof remains pending because unauthenticated Playwright redirects to `/login/v2`.
 
 ## Proposed Approach
 Do a focused viewport-density pass across the listed routes. Align page shell spacing, header/search margins, analytics-card density, and table viewport height with Sales Book orders. Prefer shared table/page-shell variables where possible, but keep changes scoped and avoid a broad design rewrite.

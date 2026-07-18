@@ -64,3 +64,9 @@ Add an item dashboard route or full-screen sheet backed by an item overview quer
 - Added `/inventory/[id]` and wired the existing inventory item eye action to open it without forcing edit mode.
 - Checks run: `bun test packages/inventory/src/inventory-item-dashboard.test.ts`; import smoke for `apps/api/src/trpc/routers/inventories.route.ts` and `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`.
 - Deferred: browser/manual validation remains part of Pending 15.
+
+## 2026-07-17 Table Standard Follow-Up
+- `/inventory/[id]` now uses domain-local `components/tables-2/inventory-item-dashboard/*` sections for variants, stock, movement history, inbound demand, allocations, and related sales/quotes.
+- The route now follows the restarted Sales Orders shell with `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, and initial table settings for each dashboard section.
+- The dashboard still uses the existing `inventories.inventoryItemDashboard` data contract and keeps item summary metrics, top-sales analytics, and operational navigation unchanged.
+- Validation passed with focused migration parity tests, the full restarted `components/tables-2` suite, targeted Biome, static scans for removed hand-mapped sections/manual fetch paths, route smoke returning `200`, `git diff --check`, and a clean `components/tables-2/core` diff.

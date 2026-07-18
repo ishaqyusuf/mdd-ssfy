@@ -1,6 +1,6 @@
-import type { PrintSalesData } from "../query";
-import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
 import { roundMoney } from "../../payment-system/domain/money";
+import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
+import type { PrintSalesData } from "../query";
 
 type PaymentRecord = PrintSalesData["payments"][number];
 
@@ -17,6 +17,7 @@ export interface PrintPaymentChargeDetail {
 	customerChargedAmount: number;
 	percentage: number | null;
 	paymentMethod: string | null;
+	source: "estimated" | "recorded";
 }
 
 export interface PrintPaymentFooterState {
@@ -28,6 +29,29 @@ export interface PrintPaymentFooterState {
 	estimatedDueCharge: PrintPaymentChargeDetail | null;
 	recordedCardCharges: PrintPaymentChargeDetail[];
 	latestPaymentDate: Date | null;
+}
+
+export interface PrintPaymentFooterSummary {
+	cardFees: number;
+	totalPaid: number;
+}
+
+export function getPrintPaymentFooterSummary(
+	state: Pick<
+		PrintPaymentFooterState,
+		"principalPaid" | "recordedCardCharges"
+	>,
+): PrintPaymentFooterSummary {
+	const cardFees = roundMoney(
+		state.recordedCardCharges
+			.filter((charge) => charge.source === "recorded")
+			.reduce((total, charge) => total + charge.cccAmount, 0),
+	);
+
+	return {
+		cardFees,
+		totalPaid: roundMoney(state.principalPaid + cardFees),
+	};
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -105,6 +129,7 @@ function readChargeFromMeta(
 		customerChargedAmount,
 		percentage: finiteNumber(cccCharge?.percentage ?? meta.cccPercentage),
 		paymentMethod: normalizePaymentMethod(meta.paymentMethod) ?? fallbackPaymentMethod,
+		source: "recorded",
 	};
 }
 
@@ -154,6 +179,7 @@ function toChargeDetail(input: {
 		customerChargedAmount: charge.chargeAmount,
 		percentage: charge.percentage,
 		paymentMethod: input.paymentMethod,
+		source: "estimated",
 	};
 }
 

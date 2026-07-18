@@ -1,10 +1,11 @@
 "use client";
 
+import Money from "@/components/_v1/money";
 import FormDate from "@/components/common/controls/form-date";
 import FormInput from "@/components/common/controls/form-input";
 import { FormDebugBtn } from "@/components/form-debug-btn";
+import { invalidatePageTabsForPathKeys } from "@/components/page-tabs";
 import { SubmitButton } from "@/components/submit-button";
-import Money from "@/components/_v1/money";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useUnitInvoiceParams } from "@/hooks/use-unit-invoice-params";
 import { useZodForm } from "@/hooks/use-zod-form";
@@ -12,23 +13,15 @@ import { useTRPC } from "@/trpc/client";
 import { saveUnitInvoiceFormSchema } from "@api/db/queries/unit-invoices";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
-import { Checkbox } from "@gnd/ui/checkbox";
 import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@gnd/ui/table";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
 import { useEffect } from "react";
 import { useFieldArray } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { CustomModal } from "../modals/custom-modal";
+import { DataTable as UnitInvoiceFormTasksTable } from "../tables-2/unit-invoice-form-tasks/data-table";
 
 interface Props {
   unitInvoice: RouterOutputs["community"]["getUnitInvoiceForm"];
@@ -52,7 +45,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
     control: form.control,
     name: "tasks",
   });
-  const control = form.control as any;
+  const control = form.control;
 
   useEffect(() => {
     form.reset({
@@ -63,10 +56,10 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
         taskUid: task.taskUid,
         taskName: task.taskName || "",
         amountDue: task.amountDue || 0,
-        amountPaid: task.amountPaid ?? "",
+        amountPaid: Number(task.amountPaid || 0),
         checkNo: task.checkNo || "",
-        checkDate: task.checkDate ? new Date(task.checkDate) : null,
-        createdAt: task.createdAt ? new Date(task.createdAt) : null,
+        checkDate: task.checkDate ? new Date(task.checkDate) : undefined,
+        createdAt: task.createdAt ? new Date(task.createdAt) : undefined,
       })),
     });
   }, [form, unitInvoice]);
@@ -86,6 +79,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
             homeId: unitInvoice.id,
           }),
         });
+        invalidatePageTabsForPathKeys(queryClient, trpc, "unitInvoices");
         setParams(null);
       },
       onError() {
@@ -103,6 +97,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
         queryClient.invalidateQueries({
           queryKey: trpc.community.getUnitInvoices.infiniteQueryKey(),
         });
+        invalidatePageTabsForPathKeys(queryClient, trpc, "unitInvoices");
       },
     }),
   );
@@ -148,7 +143,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
     readOnly: true,
     className: "bg-slate-50 text-slate-600",
   } as const;
-  const modelCostId = unitInvoice.communityTemplate?.pivot?.modelCosts?.[0]?.id || -1;
+  const modelCostId = -1;
   const canEditModelCost = Number(unitInvoice.communityTemplateId || 0) > 0;
 
   const openModelCostEditor = () => {
@@ -182,6 +177,33 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
       });
     });
   };
+
+  const removeTaskAt = async (index: number) => {
+    const taskId = form.getValues(`tasks.${index}.id`);
+    if (taskId) {
+      await deleteTask.mutateAsync({
+        taskIds: [taskId],
+      });
+    }
+    remove(index);
+  };
+
+  const addTask = () => {
+    append({
+      taskName: "",
+      amountDue: 0,
+      amountPaid: 0,
+      checkNo: "",
+      checkDate: undefined,
+      createdAt: new Date(),
+    });
+  };
+
+  const taskRows = fields.map((field, index) => ({
+    fieldId: field.id,
+    index,
+    taskUid: form.watch(`tasks.${index}.taskUid`),
+  }));
 
   return (
     <Form {...form}>
@@ -250,15 +272,7 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
                     variant="ghost"
                     className="shrink-0 self-end"
                     disabled={!!taskUid || deleteTask.isPending}
-                    onClick={async () => {
-                      const taskId = form.getValues(`tasks.${index}.id`);
-                      if (taskId) {
-                        await deleteTask.mutateAsync({
-                          taskIds: [taskId],
-                        });
-                      }
-                      remove(index);
-                    }}
+                    onClick={() => void removeTaskAt(index)}
                   >
                     <Icons.trash className="size-4" />
                   </Button>
@@ -322,151 +336,27 @@ export function UnitInvoiceForm({ unitInvoice }: Props) {
         </div>
 
         {/* Desktop table layout */}
-        <div className="hidden max-w-full overflow-hidden rounded-2xl border border-slate-200 md:block">
-          <Table className="table-sm w-full table-fixed">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[34%] px-2 py-2">Task</TableHead>
-                <TableHead className="w-[88px] px-2 py-2">Due</TableHead>
-                <TableHead className="w-[88px] px-2 py-2">Paid</TableHead>
-                <TableHead className="w-[120px] px-2 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span>Check</span>
-                    <Checkbox
-                      checked={syncCheckNo}
-                      disabled={!firstCheckNo}
-                      onCheckedChange={applyFirstCheckNoToAll}
-                      aria-label="Apply first check number to all invoice tasks"
-                    />
-                  </div>
-                </TableHead>
-                <TableHead className="w-[132px] px-2 py-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span>Check Date</span>
-                    <Checkbox
-                      checked={syncCheckDate}
-                      disabled={!firstCheckDate}
-                      onCheckedChange={applyFirstCheckDateToAll}
-                      aria-label="Apply first check date to all invoice tasks"
-                    />
-                  </div>
-                </TableHead>
-                <TableHead className="w-[132px] px-2 py-2">Created</TableHead>
-                <TableHead className="w-[52px] px-2 py-2"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fields.map((field, index) => {
-                const taskUid = form.watch(`tasks.${index}.taskUid`);
-                return (
-                  <TableRow key={field.id}>
-                    <TableCell className="px-2 py-1.5">
-                        <FormInput
-                          className="mx-0 w-full"
-                        control={control}
-                        inputProps={taskUid ? lockedInputProps : undefined}
-                        name={`tasks.${index}.taskName` as const}
-                        placeholder="Task name"
-                      />
-                    </TableCell>
-                    <TableCell className="w-[88px] px-2 py-1.5">
-                        <FormInput
-                          className="mx-0 w-full"
-                        control={control}
-                        inputProps={taskUid ? lockedInputProps : undefined}
-                        name={`tasks.${index}.amountDue` as const}
-                        numericProps={{
-                          className: taskUid ? "h-8 px-2 bg-slate-50 text-slate-600" : "h-8 px-2",
-                          prefix: "$",
-                          placeholder: "$0.00",
-                          readOnly: !!taskUid,
-                          type: "tel",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="w-[88px] px-2 py-1.5">
-                        <FormInput
-                          className="mx-0 w-full"
-                        control={control}
-                        name={`tasks.${index}.amountPaid` as const}
-                        numericProps={{
-                          className: "h-8 px-2",
-                          prefix: "$",
-                          placeholder: "$0.00",
-                          type: "tel",
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell className="w-[120px] px-2 py-1.5">
-                        <FormInput
-                          className="mx-0 w-full"
-                        control={control}
-                        inputProps={{
-                          className: "h-8 px-2",
-                        }}
-                        name={`tasks.${index}.checkNo` as const}
-                        placeholder="Check no."
-                      />
-                    </TableCell>
-                    <TableCell className="w-[132px] px-2 py-1.5">
-                      <FormDate
-                        className="mx-0 w-full"
-                        control={control}
-                        name={`tasks.${index}.checkDate` as const}
-                        placeholder="Set date"
-                        size="sm"
-                      />
-                    </TableCell>
-                    <TableCell className="w-[132px] px-2 py-1.5">
-                      <FormDate
-                        className="mx-0 w-full"
-                        control={control}
-                        name={`tasks.${index}.createdAt` as const}
-                        placeholder="Created"
-                        size="sm"
-                      />
-                    </TableCell>
-                    <TableCell className="w-[52px] px-2 py-1.5">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="size-8"
-                        disabled={!!taskUid || deleteTask.isPending}
-                        onClick={async () => {
-                          const taskId = form.getValues(`tasks.${index}.id`);
-                          if (taskId) {
-                            await deleteTask.mutateAsync({
-                              taskIds: [taskId],
-                            });
-                          }
-                          remove(index);
-                        }}
-                      >
-                        <Icons.trash className="size-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        <div className="hidden max-w-full overflow-hidden rounded-lg md:block">
+          <UnitInvoiceFormTasksTable
+            data={taskRows}
+            control={control}
+            lockedInputProps={lockedInputProps}
+            deletePending={deleteTask.isPending}
+            syncCheckNo={syncCheckNo}
+            syncCheckDate={syncCheckDate}
+            firstCheckNo={firstCheckNo}
+            firstCheckDate={firstCheckDate}
+            onApplyFirstCheckNoToAll={applyFirstCheckNoToAll}
+            onApplyFirstCheckDateToAll={applyFirstCheckDateToAll}
+            onDeleteTask={removeTaskAt}
+          />
         </div>
 
         <Button
           type="button"
           variant="secondary"
           className="w-full"
-          onClick={() => {
-            append({
-              taskName: "",
-              amountDue: 0,
-              amountPaid: "",
-              checkNo: "",
-              checkDate: null,
-              createdAt: new Date(),
-            });
-          }}
+          onClick={addTask}
         >
           <Icons.add className="mr-2 size-4" />
           Add Task

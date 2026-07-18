@@ -1,412 +1,438 @@
-import {
-    Fragment,
-    memo,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    useTransition,
-} from "react";
 import { updateComponentsSortingAction } from "@/actions/update-components-sorting";
-import { DeleteRowAction } from "@/components/_v1/data-table/data-table-row-actions";
-import { Icons } from "@gnd/ui/icons";
-import { Menu } from "@gnd/ui/custom/menu";
 import { _modal } from "@/components/common/modal/provider";
 import { CustomComponentForm } from "@/components/forms/sales-form/custom-component";
 import { useSortControl } from "@/hooks/use-sort-control";
 import { cn } from "@/lib/utils";
 import { closestCorners } from "@dnd-kit/core";
+import { Menu } from "@gnd/ui/custom/menu";
+import { Icons } from "@gnd/ui/icons";
+import {
+	Fragment,
+	memo,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useTransition,
+} from "react";
 
+import { Alert, AlertTitle } from "@gnd/ui/alert";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Label } from "@gnd/ui/label";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { Sortable, SortableItem } from "@gnd/ui/sortable";
-import { Alert, AlertTitle } from "@gnd/ui/alert";
 
+import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
 import {
-    useFormDataStore,
-    ZusComponent,
+	type ZusComponent,
+	useFormDataStore,
 } from "../../_common/_stores/form-data-store";
 import { ComponentHelperClass } from "../../_utils/helpers/zus/step-component-class";
 import { zusDeleteComponents } from "../../_utils/helpers/zus/zus-step-helper";
-import { ComponentImg } from "../../../../../../../components/forms/sales-form/component-img";
 import { openComponentModal } from "../modals/component-form";
 
 import { openComponentVariantModal } from "../modals/component-visibility-modal";
 import DoorSizeModal from "../modals/door-size-modal";
 
+import { SuperAdminGuard } from "@/components/auth-guard";
+import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
+import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
+import { Tabs } from "@gnd/ui/custom/tabs";
+import { toast } from "sonner";
+import { ComponentItemCard } from "../../../../../../../components/forms/sales-form/component-item-card";
 import { openStepPricingModal } from "../modals/step-pricing-modal";
-import { UseStepContext, useStepContext } from "./ctx";
+import { type UseStepContext, useStepContext } from "./ctx";
 import { CustomComponentAction } from "./custom-component.action";
 import SearchBar from "./search-bar";
-import { Tabs } from "@gnd/ui/custom/tabs";
-import { DoorSuppliers } from "@/components/forms/sales-form/door-suppliers";
-import { DoorSupplierBadge } from "@/components/forms/sales-form/door-supplier-badge";
-import { SuperAdminGuard } from "@/components/auth-guard";
-import { ComponentItemCard } from "../../../../../../../components/forms/sales-form/component-item-card";
+
+const COMPONENT_SKELETON_KEYS = Array.from(
+	{ length: 10 },
+	(_, index) => `component-skeleton-${index}`,
+);
 
 interface Props {
-    itemStepUid;
+	itemStepUid;
 }
 export function ComponentsSection({ itemStepUid }: Props) {
-    const ctx = useStepContext(itemStepUid);
-    const isDoor = ctx.cls.isDoor();
-    const door = ctx.cls?.getDoorStepForm2();
-    const supplier = door?.form?.formStepMeta;
-    const [tab, setTab] = useState("doors");
-    if (!isDoor) return <Content itemStepUid={itemStepUid} />;
-    // return (
-    //     <div className="grid gap-4">
-    //         <div className="flex flex-1 justify-end">
-    //             <DoorSupplierBadge itemStepUid={itemStepUid} />
-    //         </div>
-    //         <Content itemStepUid={itemStepUid} />
-    //     </div>
-    // );
-    return (
-        <SuperAdminGuard
-            Fallback={
-                <div className="grid gap-4">
-                    <div className="flex flex-1 justify-end">
-                        <DoorSupplierBadge itemStepUid={itemStepUid} />
-                    </div>
-                    <Content itemStepUid={itemStepUid} />
-                </div>
-            }
-        >
-            <div className="py-4">
-                <Tabs name="doors" value={tab} onValueChange={setTab}>
-                    <Tabs.Items className="px-4">
-                        <Tabs.Item value="doors">
-                            <span>Doors</span>
-                            <Tabs.Content>
-                                <Content itemStepUid={itemStepUid} />
-                            </Tabs.Content>
-                        </Tabs.Item>
-                        <Tabs.Item value="suppliers">
-                            <span>Suppliers</span>
-                            <Tabs.Content>
-                                <div className="min-h-screen">
-                                    <DoorSuppliers itemStepUid={itemStepUid} />
-                                </div>
-                            </Tabs.Content>
-                        </Tabs.Item>
-                        <div className="flex flex-1 justify-end">
-                            <DoorSupplierBadge itemStepUid={itemStepUid} />
-                        </div>
-                    </Tabs.Items>
-                    {/* <TabsList>
+	const ctx = useStepContext(itemStepUid);
+	const isDoor = ctx.cls.isDoor();
+	const door = ctx.cls?.getDoorStepForm2();
+	const supplier = door?.form?.formStepMeta;
+	const [tab, setTab] = useState("doors");
+	if (!isDoor) return <Content itemStepUid={itemStepUid} />;
+	// return (
+	//     <div className="grid gap-4">
+	//         <div className="flex flex-1 justify-end">
+	//             <DoorSupplierBadge itemStepUid={itemStepUid} />
+	//         </div>
+	//         <Content itemStepUid={itemStepUid} />
+	//     </div>
+	// );
+	return (
+		<SuperAdminGuard
+			Fallback={
+				<div className="grid gap-4">
+					<div className="flex flex-1 justify-end">
+						<DoorSupplierBadge itemStepUid={itemStepUid} />
+					</div>
+					<Content itemStepUid={itemStepUid} />
+				</div>
+			}
+		>
+			<div className="py-4">
+				<Tabs name="doors" value={tab} onValueChange={setTab}>
+					<Tabs.Items className="px-4">
+						<Tabs.Item value="doors">
+							<span>Doors</span>
+							<Tabs.Content>
+								<Content itemStepUid={itemStepUid} />
+							</Tabs.Content>
+						</Tabs.Item>
+						<Tabs.Item value="suppliers">
+							<span>Suppliers</span>
+							<Tabs.Content>
+								<div className="min-h-screen">
+									<DoorSuppliers itemStepUid={itemStepUid} />
+								</div>
+							</Tabs.Content>
+						</Tabs.Item>
+						<div className="flex flex-1 justify-end">
+							<DoorSupplierBadge itemStepUid={itemStepUid} />
+						</div>
+					</Tabs.Items>
+					{/* <TabsList>
                     <TabsTrigger value="doors">Doors</TabsTrigger>
                     <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
                 </TabsList>
                 <TabsContent value="doors">
                     <Content itemStepUid={itemStepUid} />
                 </TabsContent> */}
-                </Tabs>
-            </div>
-        </SuperAdminGuard>
-    );
+				</Tabs>
+			</div>
+		</SuperAdminGuard>
+	);
 }
 function Content({ itemStepUid }) {
-    const ctx = useStepContext(itemStepUid);
-    const { items, sticky, cls, props } = ctx;
-    const stepForm = ctx.cls.getStepForm();
-    const selectedComponentUid = String(stepForm?.componentUid || "");
-    const selectedCustomComponent = useMemo(() => {
-        if (!stepForm?.flatRate || !selectedComponentUid) return null;
-        if (
-            (items || []).some(
-                (component) => String(component?.uid || "") === selectedComponentUid,
-            )
-        ) {
-            return null;
-        }
+	const ctx = useStepContext(itemStepUid);
+	const { items, sticky, cls, props } = ctx;
+	const stepForm = ctx.cls.getStepForm();
+	const selectedComponentUid = String(stepForm?.componentUid || "");
+	const selectedCustomComponent = useMemo(() => {
+		if (!stepForm?.flatRate || !selectedComponentUid) return null;
+		if (
+			(items || []).some(
+				(component) => String(component?.uid || "") === selectedComponentUid,
+			)
+		) {
+			return null;
+		}
 
-        return {
-            id: stepForm?.componentId || null,
-            uid: selectedComponentUid,
-            title: stepForm?.value || "Custom",
-            salesPrice: stepForm?.salesPrice ?? null,
-            basePrice: stepForm?.basePrice ?? null,
-            stepId: stepForm?.stepId,
-            custom: true,
-            _metaData: {
-                custom: true,
-            },
-        };
-    }, [items, selectedComponentUid, stepForm]);
-    const sortedItems = useMemo(
-        () =>
-            (items || []).slice().sort((a, b) => {
-                const aSelectedCustom = Boolean(
-                    selectedComponentUid &&
-                    String(a?.uid || "") === selectedComponentUid &&
-                    (a?._metaData?.custom === true || a?.custom === true),
-                );
-                const bSelectedCustom = Boolean(
-                    selectedComponentUid &&
-                    String(b?.uid || "") === selectedComponentUid &&
-                    (b?._metaData?.custom === true || b?.custom === true),
-                );
-                if (aSelectedCustom === bSelectedCustom) return 0;
-                return aSelectedCustom ? -1 : 1;
-            }),
-        [items, selectedComponentUid],
-    );
+		return {
+			id: stepForm?.componentId || null,
+			uid: selectedComponentUid,
+			title: stepForm?.value || "Custom",
+			salesPrice: stepForm?.salesPrice ?? null,
+			basePrice: stepForm?.basePrice ?? null,
+			stepId: stepForm?.stepId,
+			custom: true,
+			_metaData: {
+				custom: true,
+			},
+		};
+	}, [items, selectedComponentUid, stepForm]);
+	const sortedItems = useMemo(
+		() =>
+			(items || []).slice().sort((a, b) => {
+				const aSelectedCustom = Boolean(
+					selectedComponentUid &&
+						String(a?.uid || "") === selectedComponentUid &&
+						(a?._metaData?.custom === true ||
+							(a as { custom?: boolean }).custom === true),
+				);
+				const bSelectedCustom = Boolean(
+					selectedComponentUid &&
+						String(b?.uid || "") === selectedComponentUid &&
+						(b?._metaData?.custom === true ||
+							(b as { custom?: boolean }).custom === true),
+				);
+				if (aSelectedCustom === bSelectedCustom) return 0;
+				return aSelectedCustom ? -1 : 1;
+			}),
+		[items, selectedComponentUid],
+	);
 
-    return (
-        <div className="grid gap-4">
-            <div
-                ref={sticky.containerRef}
-                className="relative h-full p-4 pb-28"
-            >
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                    {!items.length &&
-                        !selectedCustomComponent &&
-                        Array(10)
-                            .fill(null)
-                            .map((_, i) => (
-                                <div
-                                    className="flex min-h-[25vh] flex-col rounded-lg border xl:min-h-[35vh]"
-                                    key={i}
-                                >
-                                    <Skeleton className="flex-1" />
-                                    <Skeleton className="h-10" />
-                                </div>
-                            ))}
-                    {selectedCustomComponent ? (
-                        <ComponentItemCard
-                            ctx={ctx}
-                            itemIndex={-1}
-                            key={selectedCustomComponent.uid}
-                            component={selectedCustomComponent as any}
-                        />
-                    ) : null}
-                    {sortedItems?.map((component, index) => (
-                        <Fragment key={component.id}>
-                            <ComponentItemCard
-                                ctx={ctx}
-                                itemIndex={index}
-                                key={component.uid}
-                                component={component}
-                            />
-                        </Fragment>
-                    ))}
-                </div>
+	return (
+		<div className="grid gap-4">
+			<div ref={sticky.containerRef} className="relative h-full p-4 pb-28">
+				<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
+					{!items.length &&
+						!selectedCustomComponent &&
+						COMPONENT_SKELETON_KEYS.map((key) => (
+							<div
+								className="flex min-h-[25vh] flex-col rounded-lg border xl:min-h-[35vh]"
+								key={key}
+							>
+								<Skeleton className="flex-1" />
+								<Skeleton className="h-10" />
+							</div>
+						))}
+					{selectedCustomComponent ? (
+						<ComponentItemCard
+							ctx={ctx}
+							itemIndex={-1}
+							key={selectedCustomComponent.uid}
+							component={selectedCustomComponent as unknown as ZusComponent}
+						/>
+					) : null}
+					{sortedItems?.map((component, index) => (
+						<Fragment key={component.id}>
+							<ComponentItemCard
+								ctx={ctx}
+								itemIndex={index}
+								key={component.uid}
+								component={component}
+							/>
+						</Fragment>
+					))}
+				</div>
 
-                <FloatingAction ctx={ctx} />
-            </div>
-        </div>
-    );
+				<FloatingAction ctx={ctx} />
+			</div>
+		</div>
+	);
 }
 
 function FloatingAction({ ctx }: { ctx: UseStepContext }) {
-    const {
-        stepUid,
-        items,
-        sticky: { actionRef, fixedOffset, isFixed },
-        selectionState,
-    } = ctx;
-    const isDoor = ctx.cls.isDoor();
-    const zus = useFormDataStore();
-    const [customDialogOpen, setCustomDialogOpen] = useState(false);
-    const selectionUids = () =>
-        Object.entries(selectionState?.uids)
-            .filter(([a, b]) => {
-                return b;
-            })
-            .map(([a, b]) => a) as string[];
-    const batchDeleteAction = useCallback(() => {
-        zusDeleteComponents({
-            zus,
-            stepUid,
-            productUid: selectionUids(),
-        }).then((c) => {
-            ctx.clearSelection();
-            ctx.cls.refreshStepComponentsData();
-        });
-    }, [stepUid, ctx]);
-    const editVisibility = useCallback(() => {
-        const uids = selectionUids();
-        openComponentVariantModal(
-            new ComponentHelperClass(stepUid, uids[0]),
-            uids,
-        );
-        ctx.clearSelection();
-    }, [selectionState, stepUid, ctx]);
-    const hasSelections = ctx.cls.getItemForm()?.groupItem?.qty?.total > 0;
-    const canProceedMultiSelect = ctx.cls.isMultiSelect() && hasSelections;
-    const supportsCustomComponents = Boolean(ctx.cls.getStepForm()?.meta?.custom);
-    return (
-        <>
-            <div
-                ref={actionRef}
-                style={isFixed ? { left: fixedOffset || undefined } : undefined}
-                className={cn(
-                    "z-40 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
-                    isFixed
-                        ? "fixed bottom-14"
-                        : "absolute bottom-0 left-1/2",
-                )}
-            >
-                <div className="flex flex-wrap items-center justify-center gap-3 rounded-lg border p-2 px-4 shadow">
-                    {selectionState?.count ? (
-                        <>
-                            <span className="font-mono$ text-sm font-semibold uppercase">
-                                {selectionState?.count} selected
-                            </span>
-                            <SearchBar ctx={ctx} />
-                            <Menu>
-                                <Menu.Item
-                                    onClick={editVisibility}
-                                    icon="settings"
-                                >
-                                    Edit Visibility
-                                </Menu.Item>
-                                <DeleteRowAction
-                                    menu
-                                    // loadingText="Delete"
-                                    action={batchDeleteAction}
-                                />
-                            </Menu>
-                            <Button
-                                onClick={() => {
-                                    ctx.clearSelection();
-                                }}
-                                size="sm"
-                                className="h-7 text-sm"
-                                variant="secondary"
-                            >
-                                Unmark all
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <span className="font-mono$ text-sm font-semibold uppercase">
-                                {items?.length} components
-                            </span>{" "}
-                            <SearchBar ctx={ctx} />
-                            {supportsCustomComponents ? (
-                                <div className="relative flex w-full justify-end sm:w-auto">
-                                    {customDialogOpen ? (
-                                        <Alert className="absolute right-0 bottom-full z-20 mb-2 w-[calc(100vw-2rem)] max-w-md rounded-md bg-background p-3 shadow-sm sm:w-96">
-                                            <AlertTitle className="mb-3">
-                                                Custom Component
-                                            </AlertTitle>
-                                            <CustomComponentForm
-                                                itemStepUid={stepUid}
-                                                onCancel={() =>
-                                                    setCustomDialogOpen(false)
-                                                }
-                                                onComplete={() =>
-                                                    setCustomDialogOpen(false)
-                                                }
-                                            />
-                                        </Alert>
-                                    ) : null}
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="destructive"
-                                        onClick={() =>
-                                            setCustomDialogOpen((open) => !open)
-                                        }
-                                    >
-                                        Custom
-                                    </Button>
-                                </div>
+	const {
+		stepUid,
+		items,
+		sticky: { actionRef, fixedOffset, isFixed },
+		selectionState,
+	} = ctx;
+	const isDoor = ctx.cls.isDoor();
+	const zus = useFormDataStore();
+	const [customDialogOpen, setCustomDialogOpen] = useState(false);
+	const selectionUids = useCallback(
+		() =>
+			Object.entries(selectionState?.uids)
+				.filter(([a, b]) => {
+					return b;
+				})
+				.map(([uid]) => uid) as string[],
+		[selectionState?.uids],
+	);
+	const batchDeleteAction = useCallback(() => {
+		return zusDeleteComponents({
+			zus,
+			stepUid,
+			productUid: selectionUids(),
+		}).then((c) => {
+			ctx.clearSelection();
+			ctx.cls.refreshStepComponentsData();
+		});
+	}, [stepUid, ctx, selectionUids, zus]);
+	const editVisibility = useCallback(() => {
+		const uids = selectionUids();
+		openComponentVariantModal(new ComponentHelperClass(stepUid, uids[0]), uids);
+		ctx.clearSelection();
+	}, [selectionUids, stepUid, ctx]);
+	const hasSelections = ctx.cls.getItemForm()?.groupItem?.qty?.total > 0;
+	const canProceedMultiSelect = ctx.cls.isMultiSelect() && hasSelections;
+	const supportsCustomComponents = Boolean(ctx.cls.getStepForm()?.meta?.custom);
+	return (
+		<>
+			<div
+				ref={actionRef}
+				style={isFixed ? { left: fixedOffset || undefined } : undefined}
+				className={cn(
+					"z-40 w-fit max-w-[calc(100vw-2rem)] -translate-x-1/2 transform bg-secondary",
+					isFixed ? "fixed bottom-14" : "absolute bottom-0 left-1/2",
+				)}
+			>
+				<div className="flex flex-wrap items-center justify-center gap-3 rounded-lg border p-2 px-4 shadow">
+					{selectionState?.count ? (
+						<>
+							<span className="font-mono$ text-sm font-semibold uppercase">
+								{selectionState?.count} selected
+							</span>
+							<SearchBar ctx={ctx} />
+							<Menu>
+								<Menu.Item onClick={editVisibility} icon="settings">
+									Edit Visibility
+								</Menu.Item>
+								<DeleteComponentMenuItem action={batchDeleteAction} />
+							</Menu>
+							<Button
+								onClick={() => {
+									ctx.clearSelection();
+								}}
+								size="sm"
+								className="h-7 text-sm"
+								variant="secondary"
+							>
+								Unmark all
+							</Button>
+						</>
+					) : (
+						<>
+							<span className="font-mono$ text-sm font-semibold uppercase">
+								{items?.length} components
+							</span>{" "}
+							<SearchBar ctx={ctx} />
+							{supportsCustomComponents ? (
+								<div className="relative flex w-full justify-end sm:w-auto">
+									{customDialogOpen ? (
+										<Alert className="absolute right-0 bottom-full z-20 mb-2 w-[calc(100vw-2rem)] max-w-md rounded-md bg-background p-3 shadow-sm sm:w-96">
+											<AlertTitle className="mb-3">Custom Component</AlertTitle>
+											<CustomComponentForm
+												itemStepUid={stepUid}
+												onCancel={() => setCustomDialogOpen(false)}
+												onComplete={() => setCustomDialogOpen(false)}
+											/>
+										</Alert>
+									) : null}
+									<Button
+										type="button"
+										size="sm"
+										variant="destructive"
+										onClick={() => setCustomDialogOpen((open) => !open)}
+									>
+										Custom
+									</Button>
+								</div>
 							) : null}
-                            <Menu Icon={Icons.menu}>
-                                <Menu.Item
-                                    Icon={Icons.Folder}
-                                    SubMenu={ctx.tabs?.map((tb) => (
-                                        <Menu.Item
-                                            key={tb.tab}
-                                            shortCut={tb.count}
-                                            Icon={tb.Icon}
-                                            onClick={() =>
-                                                ctx.setTab(tb.tab as any)
-                                            }
-                                            disabled={
-                                                !tb.count || tb.tab == ctx.tab
-                                            }
-                                        >
-                                            {tb.title}
-                                        </Menu.Item>
-                                    ))}
-                                >
-                                    Tabs
-                                </Menu.Item>
-                                <Menu.Item
-                                    onClick={() => ctx.selectAll()}
-                                    Icon={Icons.BoxSelect}
-                                >
-                                    Select All
-                                </Menu.Item>
-                                {isDoor ? (
-                                    <>
-                                        <Menu.Item
-                                            icon="Export"
-                                            onClick={() => {
-                                                _modal.openModal(
-                                                    <DoorSizeModal
-                                                        cls={ctx.cls}
-                                                    />,
-                                                );
-                                            }}
-                                        >
-                                            Door Size Variants
-                                        </Menu.Item>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Menu.Item
-                                            onClick={() => {
-                                                openStepPricingModal(stepUid);
-                                            }}
-                                            icon="dollar"
-                                        >
-                                            Pricing
-                                        </Menu.Item>
-                                    </>
-                                )}
-                                <Menu.Item
-                                    onClick={() => {
-                                        openComponentModal(ctx.cls);
-                                    }}
-                                    icon="add"
-                                >
-                                    Component
-                                </Menu.Item>
-                                <Menu.Item
-                                    onClick={() => {
-                                        ctx.cls.refreshStepComponentsData(true);
-                                    }}
-                                    icon="add"
-                                >
-                                    Refresh
-                                </Menu.Item>
-                                <CustomComponentAction ctx={ctx} />
-                            </Menu>
-                            {!canProceedMultiSelect || (
-                                <>
-                                    <Button
-                                        onClick={() => {
-                                            ctx.cls.nextStep();
-                                        }}
-                                        size="sm"
-                                    >
-                                        Proceed
-                                    </Button>
-                                </>
-                            )}
-                        </>
-                    )}
-                </div>
-            </div>
-        </>
-    );
+							<Menu Icon={Icons.menu}>
+								<Menu.Item
+									Icon={Icons.Folder}
+									SubMenu={ctx.tabs?.map((tb) => (
+										<Menu.Item
+											key={tb.tab}
+											shortCut={tb.count}
+											Icon={tb.Icon}
+											onClick={() =>
+												ctx.setTab(tb.tab as "main" | "hidden" | "custom")
+											}
+											disabled={!tb.count || tb.tab === ctx.tab}
+										>
+											{tb.title}
+										</Menu.Item>
+									))}
+								>
+									Tabs
+								</Menu.Item>
+								<Menu.Item
+									onClick={() => ctx.selectAll()}
+									Icon={Icons.BoxSelect}
+								>
+									Select All
+								</Menu.Item>
+								{isDoor ? (
+									<>
+										<Menu.Item
+											icon="Export"
+											onClick={() => {
+												_modal.openModal(<DoorSizeModal cls={ctx.cls} />);
+											}}
+										>
+											Door Size Variants
+										</Menu.Item>
+									</>
+								) : (
+									<>
+										<Menu.Item
+											onClick={() => {
+												openStepPricingModal(stepUid);
+											}}
+											icon="dollar"
+										>
+											Pricing
+										</Menu.Item>
+									</>
+								)}
+								<Menu.Item
+									onClick={() => {
+										openComponentModal(ctx.cls);
+									}}
+									icon="add"
+								>
+									Component
+								</Menu.Item>
+								<Menu.Item
+									onClick={() => {
+										ctx.cls.refreshStepComponentsData(true);
+									}}
+									icon="add"
+								>
+									Refresh
+								</Menu.Item>
+								<CustomComponentAction ctx={ctx} />
+							</Menu>
+							{!canProceedMultiSelect || (
+								<Button
+									onClick={() => {
+										ctx.cls.nextStep();
+									}}
+									size="sm"
+								>
+									Proceed
+								</Button>
+							)}
+						</>
+					)}
+				</div>
+			</div>
+		</>
+	);
+}
+
+function DeleteComponentMenuItem({
+	action,
+}: {
+	action: () => Promise<unknown> | unknown;
+}) {
+	const [confirm, setConfirm] = useState(false);
+	const [isPending, setIsPending] = useState(false);
+
+	useEffect(() => {
+		if (!confirm) return;
+
+		const timeout = setTimeout(() => setConfirm(false), 3000);
+		return () => clearTimeout(timeout);
+	}, [confirm]);
+
+	return (
+		<Menu.Item
+			className="text-red-500 hover:text-red-600"
+			disabled={isPending}
+			icon={confirm ? "Info" : isPending ? "spinner" : "Trash"}
+			onClick={(event) => {
+				event.preventDefault();
+
+				if (!confirm) {
+					setConfirm(true);
+					return;
+				}
+
+				setConfirm(false);
+				setIsPending(true);
+				toast.promise(
+					async () => {
+						await action();
+					},
+					{
+						loading: "Deleting...",
+						success: "Deleted Successfully",
+						error: "Unable to completed Delete Action",
+						finally: () => setIsPending(false),
+					},
+				);
+			}}
+			shortCut="⌘⌫"
+		>
+			{confirm ? "Sure?" : isPending ? "Deleting" : "Delete"}
+		</Menu.Item>
+	);
 }

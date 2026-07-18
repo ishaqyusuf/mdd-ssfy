@@ -4,6 +4,7 @@ import { triggerEvent } from "@/actions/events";
 import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { updateSalesMetaAction } from "@/actions/update-sales-meta-action";
 import { Env } from "@/components/env";
+import type { SalesHistoryEntry } from "@/components/sales-hx";
 import { SalesMenu } from "@/components/sales-menu";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { env } from "@/env.mjs";
@@ -54,6 +55,7 @@ import {
     readRecoverySnapshot,
     writeRecoverySnapshot,
 } from "./local-recovery";
+import { createSalesHistoryRestoreRecord } from "./history-restore";
 import { toSaveDraftInput } from "./mappers";
 import type { NewSalesFormRecord } from "./schema";
 import { CustomerSelectorDialog } from "./sections/customer-selector-dialog";
@@ -104,6 +106,16 @@ const SalesHistory = dynamic(
                 <div className="h-20 w-full animate-pulse rounded bg-muted" />
             </div>
         ),
+    },
+);
+
+const SalesHistorySnapshotPreview = dynamic(
+    () =>
+        import("./sections/sales-history-snapshot-preview").then(
+            (mod) => mod.SalesHistorySnapshotPreview,
+        ),
+    {
+        loading: () => <WorkflowPanelSkeleton />,
     },
 );
 
@@ -396,6 +408,13 @@ export function NewSalesForm(props: Props) {
     const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
     const [manualSaveLock, setManualSaveLock] = useState(false);
     const [isPreviewing, setIsPreviewing] = useState(false);
+    const [historyPreview, setHistoryPreview] = useState<{
+        entry: SalesHistoryEntry;
+        record: NewSalesFormRecord;
+    } | null>(null);
+    const [restoredHistoryEntry, setRestoredHistoryEntry] =
+        useState<SalesHistoryEntry | null>(null);
+    const [busyHistoryId, setBusyHistoryId] = useState<number | null>(null);
     const { inventoryConfiguratorDialog, openSalesInventoryConfigurator } =
         useSalesInventoryConfiguratorPrompt();
     const [usePackageWorkflowPanel, setUsePackageWorkflowPanelState] = useState(
@@ -686,6 +705,7 @@ export function NewSalesForm(props: Props) {
                 version: resp?.version,
                 updatedAt: resp?.updatedAt || new Date().toISOString(),
             });
+            setRestoredHistoryEntry(null);
             clearRecoveryKeys({
                 slug: resp?.slug,
                 salesId: resp?.salesId,
@@ -707,6 +727,12 @@ export function NewSalesForm(props: Props) {
     const finalSave = useSaveFinalNewSalesFormMutation();
     const taskTrigger = useTaskTrigger({
         silent: true,
+        monitor: true,
+        onSuccess: () => {
+            void queryClient.invalidateQueries({
+                queryKey: trpc.sales.getSalesHx.pathKey(),
+            });
+        },
     });
     const isSaveBusy =
         manualSaveLock || autosave.isSaving || finalSave.isPending;
@@ -1041,7 +1067,98 @@ export function NewSalesForm(props: Props) {
         });
     }, [loadData, recoverySnapshot, restoreLocalDraft]);
 
+    async function loadHistorySnapshot(entry: SalesHistoryEntry) {
+        if (!record?.salesId) {
+            throw new Error("Save this form before opening its history.");
+        }
+        if (historyPreview?.entry.id === entry.id) {
+            return historyPreview.record;
+        }
+        const result = await queryClient.fetchQuery(
+            trpc.newSalesForm.getHistorySnapshot.queryOptions({
+                type: props.type,
+                salesId: record.salesId,
+                historyId: entry.id,
+            }),
+        );
+        return result.record as NewSalesFormRecord;
+    }
+
+    async function handlePreviewHistoryEntry(entry: SalesHistoryEntry) {
+        setBusyHistoryId(entry.id);
+        try {
+            const snapshot = await loadHistorySnapshot(entry);
+            setHistoryPreview({
+                entry,
+                record: snapshot,
+            });
+            setEditor({ showMobileSummary: false });
+        } catch (error) {
+            toast({
+                title: "Unable to preview this version",
+                description: getErrorMessage(
+                    error,
+                    "Refresh the form and try again.",
+                ),
+                variant: "destructive",
+            });
+        } finally {
+            setBusyHistoryId(null);
+        }
+    }
+
+    async function handleRestoreHistoryEntry(entry: SalesHistoryEntry) {
+        if (!record) return;
+        if (
+            dirty &&
+            !window.confirm(
+                "Restore this saved version? Current unsaved changes will be replaced.",
+            )
+        ) {
+            return;
+        }
+
+        setBusyHistoryId(entry.id);
+        try {
+            const snapshot = await loadHistorySnapshot(entry);
+            const currentRecord = useNewSalesFormStore.getState().record;
+            if (!currentRecord) return;
+            restoreLocalDraft(
+                createSalesHistoryRestoreRecord(currentRecord, snapshot),
+            );
+            setHistoryPreview(null);
+            setRestoredHistoryEntry(entry);
+            setEditor({ showMobileSummary: false });
+            toast({
+                title: "History version restored",
+                description:
+                    "Review the restored version, then save to make it current.",
+                variant: "success",
+            });
+        } catch (error) {
+            toast({
+                title: "Unable to restore this version",
+                description: getErrorMessage(
+                    error,
+                    "Refresh the form and try again.",
+                ),
+                variant: "destructive",
+            });
+        } finally {
+            setBusyHistoryId(null);
+        }
+    }
+
     function validateBeforeSave() {
+        if (historyPreview) {
+            toast({
+                title: "History preview is read-only",
+                description:
+                    "Restore this version or return to the current form before saving.",
+                variant: "destructive",
+            });
+            return false;
+        }
         if (!record?.form.customerId) {
             toast({
                 title: "Customer required",
@@ -1352,6 +1469,19 @@ export function NewSalesForm(props: Props) {
         );
     }
 
+    function handleAddItem() {
+        if (historyPreview) {
+            toast({
+                title: "History preview is read-only",
+                description:
+                    "Restore this version or return to the current form before editing.",
+                variant: "destructive",
+            });
+            return;
+        }
+        addLineItem();
+    }
+
     if (loadError) {
         return (
             <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
@@ -1513,7 +1643,10 @@ export function NewSalesForm(props: Props) {
                     setEditor,
                 }}
                 orderId={record.orderId}
-                grandTotal={record.summary.grandTotal}
+                grandTotal={
+                    historyPreview?.record.summary.grandTotal ??
+                    record.summary.grandTotal
+                }
                 isSaved={isSaved}
                 isSaving={isSaveBusy}
                 mobileSummaryOpen={editor.showMobileSummary}
@@ -1561,41 +1694,120 @@ export function NewSalesForm(props: Props) {
                             onDontAskAgainChange={dismissPaymentMethodReview}
                         />
                     ),
-                    RecoveryBanner: recoverySnapshot ? (
-                        <div className="m-4 flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between sm:m-6 lg:m-8">
-                            <p>
-                                Unsaved local edits were found from{" "}
-                                {new Date(
-                                    recoverySnapshot.savedAt,
-                                ).toLocaleString()}
-                                .
-                            </p>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                        clearRecoveryKeys();
-                                        toast({
-                                            title: "Using latest saved version",
-                                            description:
-                                                "Local recovery was dismissed for this draft.",
-                                            variant: "success",
-                                        });
-                                    }}
-                                >
-                                    Dismiss
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    onClick={applyRecoverySnapshot}
-                                >
-                                    Restore
-                                </Button>
+                    RecoveryBanner:
+                        historyPreview ||
+                        restoredHistoryEntry ||
+                        recoverySnapshot ? (
+                            <div className="m-4 space-y-2 sm:m-6 lg:m-8">
+                                {historyPreview ? (
+                                    <div
+                                        className="flex flex-col gap-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm text-amber-950 shadow-sm md:flex-row md:items-center md:justify-between"
+                                        role="status"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <Icons.History className="mt-0.5 size-4 shrink-0" />
+                                            <div>
+                                                <p className="font-semibold">
+                                                    Previewing saved history
+                                                </p>
+                                                <p className="text-xs text-amber-800">
+                                                    {new Date(
+                                                        historyPreview.entry.createdAt,
+                                                    ).toLocaleString()}
+                                                    {historyPreview.entry.authorName
+                                                        ? ` · ${historyPreview.entry.authorName}`
+                                                        : ""}
+                                                    . This view is read-only.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setHistoryPreview(null)
+                                                }
+                                            >
+                                                Return to current
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={() =>
+                                                    void handleRestoreHistoryEntry(
+                                                        historyPreview.entry,
+                                                    )
+                                                }
+                                            >
+                                                Restore this version
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {restoredHistoryEntry ? (
+                                    <div
+                                        className="flex flex-col gap-3 rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-950 md:flex-row md:items-center md:justify-between"
+                                        role="status"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <Icons.History className="mt-0.5 size-4 shrink-0" />
+                                            <div>
+                                                <p className="font-semibold">
+                                                    Restored from history
+                                                </p>
+                                                <p className="text-xs text-blue-800">
+                                                    Version from{" "}
+                                                    {new Date(
+                                                        restoredHistoryEntry.createdAt,
+                                                    ).toLocaleString()}{" "}
+                                                    is loaded as unsaved changes.
+                                                    Save to make it current.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {recoverySnapshot ? (
+                                    <div className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+                                        <p>
+                                            Unsaved local edits were found from{" "}
+                                            {new Date(
+                                                recoverySnapshot.savedAt,
+                                            ).toLocaleString()}
+                                            .
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    clearRecoveryKeys();
+                                                    toast({
+                                                        title: "Using latest saved version",
+                                                        description:
+                                                            "Local recovery was dismissed for this draft.",
+                                                        variant: "success",
+                                                    });
+                                                }}
+                                            >
+                                                Dismiss
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                onClick={applyRecoverySnapshot}
+                                            >
+                                                Restore
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : null}
                             </div>
-                        </div>
-                    ) : null,
-                    MainPanel: usePackageWorkflowPanel ? (
+                        ) : null,
+                    MainPanel: historyPreview ? (
+                        <SalesHistorySnapshotPreview
+                            record={historyPreview.record}
+                        />
+                    ) : usePackageWorkflowPanel ? (
                         <WwwSalesFormWorkflowPanel />
                     ) : (
                         <ItemWorkflowPanel />
@@ -1609,7 +1821,7 @@ export function NewSalesForm(props: Props) {
                             isPrinting={salesPrint.isPrinting}
                             isDownloading={salesPrint.isDownloading}
                             isPreviewing={isPreviewing}
-                            onAddItem={() => addLineItem()}
+                            onAddItem={handleAddItem}
                             onSaveDraft={saveDraftNow}
                             onSaveClose={saveClose}
                             onSaveNew={saveNew}
@@ -1626,12 +1838,23 @@ export function NewSalesForm(props: Props) {
                     ),
                     SummaryPanel: (
                         <InvoiceOverviewPanel
+                            historyRestoreActive={Boolean(restoredHistoryEntry)}
                             mode={props.mode}
                             type={props.type}
                         />
                     ),
                     SalesHistoryPanel: salesFormCapabilities.salesHistory ? (
-                        <SalesHistory salesId={record.salesId} />
+                        <SalesHistory
+                            salesNo={record.orderId}
+                            activeHistoryId={historyPreview?.entry.id}
+                            busyHistoryId={busyHistoryId}
+                            onPreview={(entry) =>
+                                void handlePreviewHistoryEntry(entry)
+                            }
+                            onRestore={(entry) =>
+                                void handleRestoreHistoryEntry(entry)
+                            }
+                        />
                     ) : undefined,
                 }}
             >
@@ -1645,7 +1868,7 @@ export function NewSalesForm(props: Props) {
                     isSaving={isSaveBusy}
                     autosaveEnabled={editor.autosaveEnabled}
                     stepDisplayMode={editor.stepDisplayMode}
-                    onAddItem={() => addLineItem()}
+                    onAddItem={handleAddItem}
                     onToggleStepDisplay={() =>
                         setEditor({
                             stepDisplayMode:

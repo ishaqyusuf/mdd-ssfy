@@ -2,6 +2,7 @@
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Document, Font } from "@react-pdf/renderer";
 import {
+	DEFAULT_SALES_PAGE_BREAK_MODE,
 	HEADLINE_FIRST_PAGE,
 	type SalesTemplateConfig,
 	getTemplate,
@@ -85,6 +86,7 @@ export function SalesPdfDocument({
 	const resolvedConfig: SalesTemplateConfig = {
 		showImages: true,
 		headlineFirstPage: HEADLINE_FIRST_PAGE,
+		pageBreakMode: DEFAULT_SALES_PAGE_BREAK_MODE,
 		...config,
 	};
 	const firstPage = pages[0];

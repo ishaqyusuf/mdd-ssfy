@@ -1,12 +1,13 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { OpenUnitProductionSheet } from "@/components/open-unit-production-sheet";
+import PageShell from "@/components/page-shell";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/unit-productions/data-table";
 import { UnitProductionsSkeleton } from "@/components/tables-2/unit-productions/skeleton";
 import { UnitProductionSummaryWidgets } from "@/components/unit-production-summary-widgets";
 import { UnitProductionsHeader } from "@/components/unit-productions-header";
 import { loadSortParams } from "@/hooks/use-sort-params";
 import { loadUnitProductionFilterParams } from "@/hooks/use-unit-productions-filter-params";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import type { RouterInputs } from "@api/trpc/routers/_app";
 import { PageTitle } from "@gnd/ui/custom/page-title";
@@ -15,7 +16,6 @@ import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import type { SearchParams } from "nuqs";
 import { Suspense } from "react";
 
-import PageShell from "@/components/page-shell";
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata() {
@@ -30,7 +30,6 @@ type Props = {
 
 export default async function CommunityProductionsPage(props: Props) {
 	const searchParams = await props.searchParams;
-	const queryClient = getQueryClient();
 	const filter = loadUnitProductionFilterParams(searchParams);
 	const { sort } = loadSortParams(searchParams);
 	const initialSettings = await getInitialTableSettings("unit-productions");
@@ -39,31 +38,32 @@ export default async function CommunityProductionsPage(props: Props) {
 		sort,
 	} as unknown as RouterInputs["community"]["getUnitProductions"];
 
-	await queryClient.fetchInfiniteQuery(
+	batchPrefetch([
 		trpc.community.getUnitProductions.infiniteQueryOptions(queryInput, {
 			getNextPageParam: ({ meta }) =>
 				(meta as { cursor?: string | number | null } | undefined)?.cursor,
 		}),
-	);
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex flex-col gap-6">
-					<PageTitle>Unit Productions</PageTitle>
-					<UnitProductionSummaryWidgets />
-					<UnitProductionsHeader />
-					<OpenUnitProductionSheet />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense
-							fallback={
-								<UnitProductionsSkeleton initialSettings={initialSettings} />
-							}
-						>
-							<DataTable initialSettings={initialSettings} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Unit Productions</PageTitle>
+						<UnitProductionsHeader />
+						<UnitProductionSummaryWidgets />
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<UnitProductionsSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

@@ -1,15 +1,55 @@
-import type { FooterData, FooterLine, PrintMode } from "../types";
-import type { PrintSalesData } from "../query";
 import { formatCurrency } from "@gnd/utils";
-import { salesTaxByCode, type SalesTaxCode } from "../constants";
-import { getPrintPaymentFooterState } from "./payment-footer-state";
+import { type SalesTaxCode, salesTaxByCode } from "../constants";
+import type { PrintSalesData } from "../query";
+import type { FooterData, FooterLine, PrintMode } from "../types";
+import {
+  getPrintPaymentFooterState,
+  getPrintPaymentFooterSummary,
+} from "./payment-footer-state";
+
+function appendPaidSummary(
+  lines: FooterLine[],
+  paymentState: ReturnType<typeof getPrintPaymentFooterState>,
+  hideBalanceDue: boolean,
+) {
+  const { cardFees, totalPaid } =
+    getPrintPaymentFooterSummary(paymentState);
+
+  lines.push({
+    label: "Order Total",
+    value: `$${formatCurrency(paymentState.orderTotal)}`,
+    bold: true,
+  });
+  if (cardFees > 0) {
+    lines.push({
+      label: "Card Fees",
+      value: `$${formatCurrency(cardFees)}`,
+    });
+  }
+  lines.push({
+    label: "Total Paid",
+    value: `$${formatCurrency(totalPaid)}`,
+    bold: true,
+  });
+  if (!hideBalanceDue) {
+    lines.push({
+      label: "Balance Due",
+      value: `$${formatCurrency(paymentState.amountDue)}`,
+      bold: true,
+      large: true,
+    });
+  }
+}
 
 export function composeFooter(
   sale: PrintSalesData,
   mode?: PrintMode,
 ): FooterData | null {
   const hideBalanceDue = mode === "production" || mode === "packing-slip";
-  const meta: any = sale.meta;
+  const meta = sale.meta as {
+    deliveryCost?: number | null;
+    labor_cost?: number | null;
+  } | null;
   const paymentState = getPrintPaymentFooterState(sale);
 
   const lines: FooterLine[] = [];
@@ -86,14 +126,14 @@ export function composeFooter(
       });
       if (paymentState.estimatedDueCharge?.cccAmount) {
         lines.push({
-          label: "C.C.C",
+          label: "Estimated Card Fee",
           value: `$${formatCurrency(paymentState.estimatedDueCharge.cccAmount)}`,
           bold: true,
         });
       }
       if (!hideBalanceDue) {
         lines.push({
-          label: "Total Due With C.C.C",
+          label: "Total if Paying by Card",
           value: `$${formatCurrency(
             paymentState.estimatedDueCharge?.customerChargedAmount ||
               paymentState.amountDue,
@@ -105,90 +145,17 @@ export function composeFooter(
       break;
     }
     case "paid-single-full-card": {
-      const charge = paymentState.recordedCardCharges[0];
-      if (charge?.cccAmount) {
-        lines.push({
-          label: "C.C.C",
-          value: `$${formatCurrency(charge.cccAmount)}`,
-          bold: true,
-        });
-        lines.push({
-          label: "Paid",
-          value: `($${formatCurrency(charge.customerChargedAmount)})`,
-          bold: true,
-        });
-      } else {
-        lines.push({
-          label: "Paid",
-          value: `($${formatCurrency(paymentState.principalPaid)})`,
-          bold: true,
-        });
-      }
-      if (!hideBalanceDue) {
-        lines.push({
-          label: "Total Due",
-          value: "$0.00",
-          bold: true,
-          large: true,
-        });
-      }
+      appendPaidSummary(lines, paymentState, hideBalanceDue);
       break;
     }
     case "paid-single-full-non-card": {
-      lines.push({
-        label: "Paid",
-        value: `($${formatCurrency(paymentState.principalPaid)})`,
-        bold: true,
-      });
-      if (!hideBalanceDue) {
-        lines.push({
-          label: "Total Due",
-          value: "$0.00",
-          bold: true,
-          large: true,
-        });
-      }
+      appendPaidSummary(lines, paymentState, hideBalanceDue);
       break;
     }
     case "partial-or-mixed": {
-      lines.push({
-        label: "Order Total",
-        value: `$${formatCurrency(paymentState.orderTotal)}`,
-        bold: true,
-      });
-      if (paymentState.principalPaid > 0) {
-        lines.push({
-          label: "Paid Toward Order",
-          value: `($${formatCurrency(paymentState.principalPaid)})`,
-          bold: true,
-        });
-      }
-      for (const charge of paymentState.recordedCardCharges) {
-        lines.push({
-          label: "Card Payment",
-          value: `$${formatCurrency(charge.principalAmount)}`,
-        });
-        lines.push({
-          label: "C.C.C on Card Payment",
-          value: `$${formatCurrency(charge.cccAmount)}`,
-        });
-        lines.push({
-          label: "Charged to Card",
-          value: `$${formatCurrency(charge.customerChargedAmount)}`,
-          bold: true,
-        });
-      }
-      if (!hideBalanceDue) {
-        lines.push({
-          label: "Balance Due",
-          value: `$${formatCurrency(paymentState.amountDue)}`,
-          bold: true,
-          large: true,
-        });
-      }
+      appendPaidSummary(lines, paymentState, hideBalanceDue);
       break;
     }
-    case "unpaid-no-card":
     default: {
       if (!hideBalanceDue) {
         lines.push({

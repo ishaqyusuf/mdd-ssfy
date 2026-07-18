@@ -11,6 +11,8 @@ Prevent online-paid sales from being missed operationally when email delivery is
 ## Current System Facts
 - Checkout payment settlement already sends staff-side `sales_checkout_success` notifications through the payment-system notification bridge.
 - Customer receipt/failure email flows already exist through `sales_customer_payment_received` and `sales_customer_payment_failed`.
+- Staff-recorded payment receipts are optional side effects: the apply-payment response reports `customerReceiptQueueStatus` as `not_requested`, `queued`, or `failed`, while the completed payment remains authoritative when receipt construction or queueing fails.
+- `sales_customer_payment_received` uses direct-recipient worker routing only. Receipt recipient resolution prefers a trimmed billing email, falls back to the trimmed customer email, accepts name differences for one normalized email, rejects missing/mixed recipients, and queues without an attachment when invoice PDF rendering fails.
 - The existing `SalesEmailAttempt` ledger is scoped to sales document emails, so payment receipt email audit/resend semantics still need a decision.
 - The web notification center has Inbox/Archive tabs, notification actions, unread count badge, type filter dropdown, read/archive mutations, and infinite-query load-more behavior backed by `NoteRecipients.status`.
 - Notification bell feeds now resolve the current notification contact server-side and respect the logged-in user's effective in-app preferences from `AssignedUserNoteChannel` plus `NoteChannels` defaults.
@@ -29,7 +31,7 @@ Prevent online-paid sales from being missed operationally when email delivery is
 - Focused coverage lives in `packages/notifications/src/activities.test.ts` and `packages/notifications/src/channel-preferences.test.ts`.
 
 ## Open Decisions
-- Define the online payment acknowledgement and payment receipt email reliability contract.
+- Decide whether optional payment receipt queue failures need a durable audit/resend ledger beyond the immediate `customerReceiptQueueStatus` response and operator warning.
 - Decide whether clicking a notification should archive it automatically or only mark it read/open the target.
 - Define a recent-online-paid sales follow-up queue with aging, ownership, routes, and resolved-state rules.
 - Decide which post-payment fulfillment/inventory actions are automatic versus staff-confirmed.

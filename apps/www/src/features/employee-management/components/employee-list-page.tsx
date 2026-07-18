@@ -1,15 +1,17 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-import { Suspense } from "react";
-import { ErrorBoundary } from "next/dist/client/components/error-boundary";
-import { ErrorFallback } from "@/components/error-fallback";
-import { TableSkeleton } from "@/components/tables/skeleton";
-import { DataTable } from "@/components/tables/employees/data-table";
 import { EmployeeHeader } from "@/components/employee-header";
-import { OverviewStatCard } from "./shared/overview-stat-card";
+import { ErrorFallback } from "@/components/error-fallback";
+import { DataTable } from "@/components/tables-2/employees/data-table";
+import { EmployeesSkeleton } from "@/components/tables-2/employees/skeleton";
 import { useEmployeeFilterParams } from "@/hooks/use-employee-filter-params";
+import type { TableSettings } from "@/utils/table-settings";
+import { Icons } from "@gnd/ui/icons";
 import { Tabs, TabsList, TabsTrigger } from "@gnd/ui/tabs";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense } from "react";
+
+import { OverviewStatCard } from "./shared/overview-stat-card";
 
 interface EmployeeListStats {
 	totalEmployees: number;
@@ -20,9 +22,10 @@ interface EmployeeListStats {
 
 interface Props {
 	stats?: EmployeeListStats;
+	initialSettings?: Partial<TableSettings>;
 }
 
-export function EmployeeListPage({ stats }: Props) {
+export function EmployeeListPage({ stats, initialSettings }: Props) {
 	const { filters, setFilters } = useEmployeeFilterParams();
 
 	return (
@@ -67,8 +70,10 @@ export function EmployeeListPage({ stats }: Props) {
 				<EmployeeHeader />
 			</div>
 			<ErrorBoundary errorComponent={ErrorFallback}>
-				<Suspense fallback={<TableSkeleton />}>
-					<DataTable />
+				<Suspense
+					fallback={<EmployeesSkeleton initialSettings={initialSettings} />}
+				>
+					<DataTable initialSettings={initialSettings} />
 				</Suspense>
 			</ErrorBoundary>
 		</div>

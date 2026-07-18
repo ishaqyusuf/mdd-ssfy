@@ -3,15 +3,12 @@
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { ActivityHistory as ChatActivityHistory } from "@/components/chat";
+import { SalesInboundsColumnVisibility } from "@/components/tables-2/sales-inbounds/column-visibility";
+import { DataTable as SalesInboundsTable } from "@/components/tables-2/sales-inbounds/data-table";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { cn } from "@gnd/ui/cn";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@gnd/ui/collapsible";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import {
@@ -77,22 +74,6 @@ function titleCase(value: string | null | undefined) {
 	return (value || "unknown")
 		.replaceAll("_", " ")
 		.replace(/\b[a-z]/g, (char) => char.toUpperCase());
-}
-
-function statusClassName(status: string | null | undefined) {
-	switch (status) {
-		case "completed":
-		case "closed":
-			return "border-emerald-200 bg-emerald-50 text-emerald-700";
-		case "in_progress":
-			return "border-blue-200 bg-blue-50 text-blue-700";
-		case "issue_open":
-			return "border-amber-200 bg-amber-50 text-amber-700";
-		case "cancelled":
-			return "border-red-200 bg-red-50 text-red-700";
-		default:
-			return "border-slate-200 bg-slate-50 text-slate-700";
-	}
 }
 
 function searchableText(shipment: InboundShipment) {
@@ -201,22 +182,11 @@ function StatCard({
 	);
 }
 
-function ShipmentStatusBadge({
-	status,
+export function SalesInboundsWorkspace({
+	initialSettings,
 }: {
-	status: string | null | undefined;
+	initialSettings?: Partial<TableSettings>;
 }) {
-	return (
-		<Badge
-			variant="outline"
-			className={cn("h-5 px-1.5 text-[10px]", statusClassName(status))}
-		>
-			{titleCase(status)}
-		</Badge>
-	);
-}
-
-export function SalesInboundsWorkspace() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
@@ -408,11 +378,10 @@ export function SalesInboundsWorkspace() {
 		);
 
 	return (
-		<div className="space-y-4 p-4 sm:p-6">
+		<div className="space-y-4">
 			<div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 				<div>
-					<h1 className="text-xl font-semibold tracking-normal">Inbounds</h1>
-					<p className="mt-1 text-sm text-muted-foreground">
+					<p className="text-sm text-muted-foreground">
 						Review inbound shipments, linked order stock, status changes, and
 						activity history.
 					</p>
@@ -440,6 +409,7 @@ export function SalesInboundsWorkspace() {
 							))}
 						</SelectContent>
 					</Select>
+					<SalesInboundsColumnVisibility />
 				</div>
 			</div>
 
@@ -468,243 +438,176 @@ export function SalesInboundsWorkspace() {
 				<StatCard label="Items" value={analytics.itemCount} helper="Lines" />
 			</div>
 
-			<div className="flex flex-col gap-2">
-				{shipmentsQuery.isLoading ? (
-					<div className="flex flex-col gap-2">
-						<Skeleton className="h-20 rounded-md" />
-						<Skeleton className="h-20 rounded-md" />
-						<Skeleton className="h-20 rounded-md" />
-					</div>
-				) : filteredShipments.length ? (
-					filteredShipments.map((shipment) => {
-						const isSelected = selectedShipment?.id === shipment.id;
-						return (
-							<Collapsible
-								key={shipment.id}
-								open={isSelected}
-								onOpenChange={(open) =>
-									setSelectedInboundId(open ? shipment.id : null)
-								}
-								className={cn(
-									"rounded-md border bg-background",
-									isSelected && "border-primary",
-								)}
-							>
-								<CollapsibleTrigger asChild>
-									<button
-										type="button"
-										className="flex w-full flex-col gap-3 p-3 text-left transition hover:bg-muted/40"
-									>
-										<div className="flex items-start justify-between gap-3">
-											<div className="min-w-0">
-												<div className="text-sm font-semibold">
-													Inbound #{shipment.id}
-												</div>
-												<div className="mt-0.5 truncate text-xs text-muted-foreground">
-													{shipment.supplier?.name || "No supplier"}
-													{shipment.reference ? ` • ${shipment.reference}` : ""}
-												</div>
-												<div className="mt-0.5 truncate text-xs text-muted-foreground">
-													{orderSummary(shipment)}
-												</div>
+			<SalesInboundsTable
+				data={filteredShipments}
+				emptyText="No inbound shipments match this filter."
+				initialSettings={initialSettings}
+				isLoading={shipmentsQuery.isLoading}
+				selectedInboundId={selectedShipment?.id ?? null}
+				onSelectInbound={setSelectedInboundId}
+			/>
+
+			{selectedShipment ? (
+				<section className="rounded-md border bg-muted/10 p-3">
+					<div className="flex flex-col gap-3">
+						<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+							<div>
+								<div className="text-sm font-semibold">
+									Inbound #{selectedShipment.id}
+								</div>
+								<div className="mt-1 text-xs text-muted-foreground">
+									{selectedShipment.supplier?.name || "No supplier"} • Created
+									by {createdByLabel(activities)}
+								</div>
+								<div className="mt-1 text-xs text-muted-foreground">
+									{orderSummary(selectedShipment)}
+								</div>
+							</div>
+							<div className="flex flex-wrap gap-2">
+								<Select
+									value={selectedShipment.status as InboundStatus}
+									onValueChange={(status) =>
+										updateStatus.mutate({
+											inboundId: selectedShipment.id,
+											status: status as InboundStatus,
+										})
+									}
+									disabled={updateStatus.isPending}
+								>
+									<SelectTrigger className="h-8 w-40">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{inboundStatuses.map((status) => (
+											<SelectItem key={status} value={status}>
+												{titleCase(status)}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<Button
+									type="button"
+									size="sm"
+									disabled={!canReceive || receiveInbound.isPending}
+									onClick={receiveAll}
+								>
+									<Icons.Warehouse className="mr-2 size-4" />
+									Receive stock
+								</Button>
+							</div>
+						</div>
+
+						{detailQuery.isLoading ? (
+							<div className="flex flex-col gap-2">
+								<Skeleton className="h-24 rounded-md" />
+								<Skeleton className="h-24 rounded-md" />
+							</div>
+						) : selectedDetail ? (
+							<div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+								<div className="flex flex-col gap-2">
+									{selectedShipment.linkedOrders?.length ? (
+										<div className="rounded-md border bg-background p-3">
+											<div className="text-xs font-semibold uppercase text-muted-foreground">
+												Linked orders
 											</div>
-											<div className="flex shrink-0 items-center gap-2">
-												<ShipmentStatusBadge status={shipment.status} />
-												<Icons.ChevronDown
-													className={cn(
-														"size-4 text-muted-foreground transition-transform",
-														isSelected && "rotate-180",
-													)}
-												/>
-											</div>
-										</div>
-										<div className="flex flex-wrap gap-1.5">
-											<Badge variant="outline" className="h-6 rounded-full">
-												{shipment.itemCount} items
-											</Badge>
-											<Badge variant="outline" className="h-6 rounded-full">
-												{shipment.linkedOrders?.length || 0} orders
-											</Badge>
-											<Badge variant="outline" className="h-6 rounded-full">
-												Expected {formatDate(shipment.expectedAt)}
-											</Badge>
-											<Badge variant="outline" className="h-6 rounded-full">
-												Created {formatDate(shipment.createdAt)}
-											</Badge>
-										</div>
-									</button>
-								</CollapsibleTrigger>
-								<CollapsibleContent className="border-t bg-muted/10 p-3">
-									<div className="flex flex-col gap-3">
-										<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-											<div>
-												<div className="text-sm font-semibold">
-													Inbound #{shipment.id}
-												</div>
-												<div className="mt-1 text-xs text-muted-foreground">
-													{shipment.supplier?.name || "No supplier"} • Created
-													by {createdByLabel(activities)}
-												</div>
-											</div>
-											<div className="flex flex-wrap gap-2">
-												<Select
-													value={shipment.status as InboundStatus}
-													onValueChange={(status) =>
-														updateStatus.mutate({
-															inboundId: shipment.id,
-															status: status as InboundStatus,
-														})
-													}
-													disabled={updateStatus.isPending}
-												>
-													<SelectTrigger className="h-8 w-40">
-														<SelectValue />
-													</SelectTrigger>
-													<SelectContent>
-														{inboundStatuses.map((status) => (
-															<SelectItem key={status} value={status}>
-																{titleCase(status)}
-															</SelectItem>
-														))}
-													</SelectContent>
-												</Select>
-												<Button
-													type="button"
-													size="sm"
-													disabled={!canReceive || receiveInbound.isPending}
-													onClick={receiveAll}
-												>
-													<Icons.Warehouse className="mr-2 size-4" />
-													Receive stock
-												</Button>
-											</div>
-										</div>
-										{detailQuery.isLoading && isSelected ? (
-											<div className="flex flex-col gap-2">
-												<Skeleton className="h-24 rounded-md" />
-												<Skeleton className="h-24 rounded-md" />
-											</div>
-										) : selectedDetail && isSelected ? (
-											<div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-												<div className="flex flex-col gap-2">
-													{shipment.linkedOrders?.length ? (
-														<div className="rounded-md border bg-background p-3">
-															<div className="text-xs font-semibold uppercase text-muted-foreground">
-																Linked orders
+											<div className="mt-2 grid gap-2 md:grid-cols-2">
+												{selectedShipment.linkedOrders.map((order) => (
+													<div
+														key={order.id}
+														className="rounded-md bg-muted/40 p-2"
+													>
+														<div className="flex items-center justify-between gap-2">
+															<div className="text-xs font-semibold">
+																{order.orderId}
 															</div>
-															<div className="mt-2 grid gap-2 md:grid-cols-2">
-																{shipment.linkedOrders.map((order) => (
-																	<div
-																		key={order.id}
-																		className="rounded-md bg-muted/40 p-2"
-																	>
-																		<div className="flex items-center justify-between gap-2">
-																			<div className="text-xs font-semibold">
-																				{order.orderId}
-																			</div>
-																			<Badge
-																				variant="outline"
-																				className="h-5 px-1.5 text-[10px]"
-																			>
-																				{titleCase(order.inventoryStatus)}
-																			</Badge>
-																		</div>
-																		<div className="mt-1 truncate text-xs text-muted-foreground">
-																			{customerName(order)}
-																		</div>
-																		<div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
-																			<span>{order.demandCount} demand</span>
-																			<span>Qty {formatQty(order.qty)}</span>
-																			<span>
-																				Due {formatCurrency(order.amountDue)}
-																			</span>
-																		</div>
-																	</div>
-																))}
-															</div>
+															<Badge
+																variant="outline"
+																className="h-5 px-1.5 text-[10px]"
+															>
+																{titleCase(order.inventoryStatus)}
+															</Badge>
 														</div>
-													) : null}
-													{selectedDetail.items.map((item) => (
-														<div
-															key={item.id}
-															className="rounded-md border bg-background p-3"
+														<div className="mt-1 truncate text-xs text-muted-foreground">
+															{customerName(order)}
+														</div>
+														<div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-muted-foreground">
+															<span>{order.demandCount} demand</span>
+															<span>Qty {formatQty(order.qty)}</span>
+															<span>Due {formatCurrency(order.amountDue)}</span>
+														</div>
+													</div>
+												))}
+											</div>
+										</div>
+									) : null}
+
+									{selectedDetail.items.map((item) => (
+										<div
+											key={item.id}
+											className="rounded-md border bg-background p-3"
+										>
+											<div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+												<div className="min-w-0">
+													<div className="truncate text-xs font-semibold uppercase">
+														{itemName(item)}
+													</div>
+													<div className="mt-0.5 text-[11px] text-muted-foreground">
+														{demandOrderLabel(item)}
+													</div>
+												</div>
+												<div className="flex flex-wrap gap-1.5">
+													<Badge variant="outline" className="h-6 rounded-full">
+														Qty {formatQty(item.qty)}
+													</Badge>
+													<Badge variant="outline" className="h-6 rounded-full">
+														Good {formatQty(item.qtyGood)}
+													</Badge>
+													{Number(item.qtyIssue || 0) > 0 ? (
+														<Badge
+															variant="outline"
+															className="h-6 rounded-full border-amber-200 bg-amber-50 text-amber-700"
 														>
-															<div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-																<div className="min-w-0">
-																	<div className="truncate text-xs font-semibold uppercase">
-																		{itemName(item)}
-																	</div>
-																	<div className="mt-0.5 text-[11px] text-muted-foreground">
-																		{demandOrderLabel(item)}
-																	</div>
-																</div>
-																<div className="flex flex-wrap gap-1.5">
-																	<Badge
-																		variant="outline"
-																		className="h-6 rounded-full"
-																	>
-																		Qty {formatQty(item.qty)}
-																	</Badge>
-																	<Badge
-																		variant="outline"
-																		className="h-6 rounded-full"
-																	>
-																		Good {formatQty(item.qtyGood)}
-																	</Badge>
-																	{Number(item.qtyIssue || 0) > 0 ? (
-																		<Badge
-																			variant="outline"
-																			className="h-6 rounded-full border-amber-200 bg-amber-50 text-amber-700"
-																		>
-																			Issue {formatQty(item.qtyIssue)}
-																		</Badge>
-																	) : null}
-																</div>
-															</div>
-															<div className="mt-2 flex flex-col gap-1">
-																{item.inboundDemands.map((demand) => (
-																	<div
-																		key={demand.id}
-																		className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"
-																	>
-																		<span>
-																			{demand.lineItemComponent.parent.sale
-																				?.orderId || "Order"}{" "}
-																			• {titleCase(demand.status)}
-																		</span>
-																		<span className="tabular-nums">
-																			{formatQty(demand.qtyReceived)} /{" "}
-																			{formatQty(demand.qty)}
-																		</span>
-																	</div>
-																))}
-															</div>
-														</div>
-													))}
-												</div>
-												<div className="flex flex-col gap-2">
-													<ChatActivityHistory
-														data={activityRows}
-														isPending={activityQuery.isLoading}
-														isError={activityQuery.isError}
-														title="Activity History"
-														emptyText="No activity history yet"
-														className="rounded-md border bg-background p-4"
-													/>
+															Issue {formatQty(item.qtyIssue)}
+														</Badge>
+													) : null}
 												</div>
 											</div>
-										) : null}
-									</div>
-								</CollapsibleContent>
-							</Collapsible>
-						);
-					})
-				) : (
-					<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-						No inbound shipments match this filter.
+											<div className="mt-2 flex flex-col gap-1">
+												{item.inboundDemands.map((demand) => (
+													<div
+														key={demand.id}
+														className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"
+													>
+														<span>
+															{demand.lineItemComponent.parent.sale?.orderId ||
+																"Order"}{" "}
+															• {titleCase(demand.status)}
+														</span>
+														<span className="tabular-nums">
+															{formatQty(demand.qtyReceived)} /{" "}
+															{formatQty(demand.qty)}
+														</span>
+													</div>
+												))}
+											</div>
+										</div>
+									))}
+								</div>
+								<div className="flex flex-col gap-2">
+									<ChatActivityHistory
+										data={activityRows}
+										isPending={activityQuery.isLoading}
+										isError={activityQuery.isError}
+										title="Activity History"
+										emptyText="No activity history yet"
+										className="rounded-md border bg-background p-4"
+									/>
+								</div>
+							</div>
+						) : null}
 					</div>
-				)}
-			</div>
+				</section>
+			) : null}
 		</div>
 	);
 }

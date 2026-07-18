@@ -45,6 +45,15 @@ export function getAvailablePaymentSales<T extends { id?: number | null }>(
 	);
 }
 
+export function canNotifyPaymentCustomer(
+	sales: Array<{ customerEmail?: string | null }>,
+) {
+	return (
+		sales.length > 0 &&
+		sales.every((sale) => Boolean(sale.customerEmail?.trim()))
+	);
+}
+
 export function getListedPaymentAmount<
 	T extends {
 		id?: number | null;

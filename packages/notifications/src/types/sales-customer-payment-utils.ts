@@ -1,9 +1,13 @@
 import type { Db } from "@gnd/db";
+import { logger } from "@gnd/logger";
 import {
 	salesCustomerPaymentFailedSchema,
 	salesCustomerPaymentReceivedSchema,
 } from "../schemas";
-import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
+import {
+	type SalesPdfAttachment,
+	buildSalesPdfAttachment,
+} from "./sales-pdf-attachment";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -58,22 +62,22 @@ async function loadSales(db: Db, sales: SaleInput[]) {
 	const orderMap = new Map(
 		orders.map((order) => {
 			const customerEmail =
-				normalizeText(order.customer?.email) ||
-				normalizeText(order.billingAddress?.email);
+				normalizeText(order.billingAddress?.email) ||
+				normalizeText(order.customer?.email);
 			const customerName =
+				normalizeText(order.billingAddress?.name) ||
 				normalizeText(order.customer?.businessName) ||
 				normalizeText(order.customer?.name) ||
-				normalizeText(order.billingAddress?.name);
-			const loaded =
-				customerEmail && customerName
-					? ({
-							id: order.id,
-							orderNo: order.orderId,
-							customerEmail,
-							customerName,
-							remainingDue: Number(order.amountDue || 0),
-						} satisfies LoadedSale)
-					: null;
+				"Customer";
+			const loaded = customerEmail
+				? ({
+						id: order.id,
+						orderNo: order.orderId,
+						customerEmail,
+						customerName,
+						remainingDue: Number(order.amountDue || 0),
+					} satisfies LoadedSale)
+				: null;
 			return [order.id, loaded] as const;
 		}),
 	);
@@ -89,7 +93,7 @@ async function loadSales(db: Db, sales: SaleInput[]) {
 		})
 		.filter((sale): sale is SaleInput & LoadedSale => sale !== null);
 
-	if (!resolved.length) {
+	if (!resolved.length || resolved.length !== sales.length) {
 		throw new Error("No eligible sales were found for customer payment email");
 	}
 
@@ -100,8 +104,8 @@ async function loadSales(db: Db, sales: SaleInput[]) {
 
 	const hasMixedRecipients = resolved.some(
 		(sale) =>
-			sale.customerEmail !== primarySale.customerEmail ||
-			sale.customerName !== primarySale.customerName,
+			sale.customerEmail.toLowerCase() !==
+			primarySale.customerEmail.toLowerCase(),
 	);
 	if (hasMixedRecipients) {
 		throw new Error(
@@ -124,8 +128,31 @@ export async function buildSalesCustomerPaymentReceivedPayload(
 		totalAmount: number;
 		note?: string | null;
 	},
+	options?: {
+		buildInvoiceAttachment?: (
+			db: Db,
+			input: { salesIds: number[]; mode: "invoice" },
+		) => Promise<SalesPdfAttachment | null>;
+	},
 ) {
 	const resolved = await loadSales(db, input.sales);
+	let invoicePdfAttachment: SalesPdfAttachment | null = null;
+	try {
+		invoicePdfAttachment = await (
+			options?.buildInvoiceAttachment ?? buildSalesPdfAttachment
+		)(db, {
+			salesIds: resolved.sales.map((sale) => sale.id),
+			mode: "invoice",
+		});
+	} catch (error) {
+		logger.warn(
+			"Failed to build payment receipt PDF attachment; queueing customer receipt without attachment",
+			{
+				error,
+				salesIds: resolved.sales.map((sale) => sale.id),
+			},
+		);
+	}
 
 	return salesCustomerPaymentReceivedSchema.parse({
 		customerEmail: resolved.customerEmail,
@@ -134,10 +161,7 @@ export async function buildSalesCustomerPaymentReceivedPayload(
 		totalAmount: Number(input.totalAmount || 0),
 		note: normalizeText(input.note),
 		invoiceDownloadUrl: null,
-		invoicePdfAttachment: await buildSalesPdfAttachment(db, {
-			salesIds: resolved.sales.map((sale) => sale.id),
-			mode: "invoice",
-		}),
+		invoicePdfAttachment,
 		sales: resolved.sales.map((sale) => ({
 			salesId: sale.id,
 			orderNo: sale.orderNo,

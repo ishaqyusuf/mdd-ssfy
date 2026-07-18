@@ -12,6 +12,10 @@ import type {
 	ShelfRow,
 	ShelfSection,
 } from "@gnd/sales/print/types";
+import {
+	DEFAULT_SALES_PAGE_BREAK_MODE,
+	type SalesPageBreakMode,
+} from "./page-break-mode";
 
 const NORMAL_SECTION_LEAD_IN_PRESENCE_AHEAD = 48;
 const IMAGE_SECTION_LEAD_IN_PRESENCE_AHEAD = 64;
@@ -59,6 +63,7 @@ export type PaginatedPrintSection = {
 type SectionPaginationOptions = {
 	showImages: boolean;
 	firstPageHeaderHeight: number;
+	pageBreakMode?: SalesPageBreakMode;
 	contentHeight?: number;
 	sectionGapHeight?: number;
 };
@@ -71,6 +76,7 @@ export function paginatePrintSections(
 ): PaginatedPrintSection[] {
 	const contentHeight = options.contentHeight ?? LETTER_CONTENT_HEIGHT;
 	const sectionGapHeight = options.sectionGapHeight ?? SECTION_GAP_HEIGHT;
+	const pageBreakMode = options.pageBreakMode ?? DEFAULT_SALES_PAGE_BREAK_MODE;
 	const output: PaginatedPrintSection[] = [];
 	let remaining = Math.max(0, contentHeight - options.firstPageHeaderHeight);
 	let hasRenderedSection = false;
@@ -79,15 +85,26 @@ export function paginatePrintSections(
 	sections.forEach((section, sourceIndex) => {
 		const hasImageColumn = sectionHasImageColumn(section, options.showImages);
 		const rows = section.rows;
+		const wholeSectionHeight =
+			sectionGapHeight +
+			estimateLeadInHeight(section, false, pageBreakMode) +
+			rows.reduce(
+				(total, row) => total + estimateRowHeight(section, row, hasImageColumn),
+				0,
+			);
 
 		if (rows.length === 0) {
 			const gapHeight = hasRenderedSection ? sectionGapHeight : 0;
-			const sectionHeight = gapHeight + estimateLeadInHeight(section, false);
+			const sectionHeight =
+				gapHeight + estimateLeadInHeight(section, false, pageBreakMode);
 			const pageBreakBefore =
-				hasRenderedSection && sectionHeight > remaining && remaining < contentHeight;
+				hasRenderedSection &&
+				sectionHeight > remaining &&
+				remaining < contentHeight;
 			if (pageBreakBefore) remaining = contentHeight;
 			const consumedSectionHeight =
-				(pageBreakBefore ? 0 : gapHeight) + estimateLeadInHeight(section, false);
+				(pageBreakBefore ? 0 : gapHeight) +
+				estimateLeadInHeight(section, false, pageBreakMode);
 
 			output.push({
 				key: `${section.kind}-${section.index}-0`,
@@ -113,11 +130,26 @@ export function paginatePrintSections(
 			const continuation = chunkIndex > 0;
 			const gapHeight =
 				hasRenderedSection && !forceBreakForNextChunk ? sectionGapHeight : 0;
-			const leadInHeight = estimateLeadInHeight(section, continuation);
-			const firstRowHeight = estimateRowHeight(section, firstRow, hasImageColumn);
+			const leadInHeight = estimateLeadInHeight(
+				section,
+				continuation,
+				pageBreakMode,
+			);
+			const firstRowHeight = estimateRowHeight(
+				section,
+				firstRow,
+				hasImageColumn,
+			);
 			const firstRowRequirement = gapHeight + leadInHeight + firstRowHeight;
+			const sectionCanFitOnFreshPage = wholeSectionHeight <= contentHeight;
 			let pageBreakBefore =
 				forceBreakForNextChunk ||
+				(pageBreakMode === "section" &&
+					chunkIndex === 0 &&
+					hasRenderedSection &&
+					sectionCanFitOnFreshPage &&
+					wholeSectionHeight > remaining &&
+					remaining < contentHeight) ||
 				(firstRowRequirement > remaining && remaining < contentHeight);
 
 			if (pageBreakBefore) {
@@ -125,7 +157,10 @@ export function paginatePrintSections(
 			}
 
 			const usableGapHeight = pageBreakBefore ? 0 : gapHeight;
-			const availableForRows = Math.max(0, remaining - usableGapHeight - leadInHeight);
+			const availableForRows = Math.max(
+				0,
+				remaining - usableGapHeight - leadInHeight,
+			);
 			let consumedRowsHeight = 0;
 			let nextRowIndex = rowIndex;
 
@@ -133,11 +168,7 @@ export function paginatePrintSections(
 				const row = rows[nextRowIndex];
 				if (!row) break;
 
-				const rowHeight = estimateRowHeight(
-					section,
-					row,
-					hasImageColumn,
-				);
+				const rowHeight = estimateRowHeight(section, row, hasImageColumn);
 				if (
 					nextRowIndex > rowIndex &&
 					consumedRowsHeight + rowHeight > availableForRows
@@ -163,7 +194,12 @@ export function paginatePrintSections(
 			const rowsForChunk = rows.slice(rowIndex, nextRowIndex);
 			output.push({
 				key: `${section.kind}-${section.index}-${chunkIndex}`,
-				section: cloneSectionWithRows(section, rowsForChunk, continuation),
+				section: cloneSectionWithRows(
+					section,
+					rowsForChunk,
+					continuation,
+					pageBreakMode,
+				),
 				sourceIndex,
 				chunkIndex,
 				pageBreakBefore,
@@ -191,15 +227,20 @@ export function paginatePrintSections(
 
 export function getPaginatedSectionPresenceAhead(section: PrintSection) {
 	return getSectionLeadInPresenceAhead(sectionHasImageColumn(section, true), {
-		detailRowCount: section.kind === "door" ? getDoorDetailRowCount(section) : 0,
+		detailRowCount:
+			section.kind === "door" ? getDoorDetailRowCount(section) : 0,
 		hasTableHeader: section.rows.length > 0,
 		hasFirstRow: section.rows.length > 0,
 	});
 }
 
-function estimateLeadInHeight(section: PrintSection, continuation: boolean) {
+function estimateLeadInHeight(
+	section: PrintSection,
+	continuation: boolean,
+	pageBreakMode: SalesPageBreakMode,
+) {
 	const detailRowCount =
-		!continuation && section.kind === "door"
+		(!continuation || pageBreakMode === "fullHeader") && section.kind === "door"
 			? getDoorDetailRowCount(section)
 			: 0;
 
@@ -221,7 +262,9 @@ function estimateRowHeight(
 
 	if (section.kind === "line-item") {
 		const componentDetails = (row as LineItemRow).componentDetails ?? [];
-		return NORMAL_ROW_HEIGHT + componentDetails.length * COMPONENT_DETAIL_ROW_HEIGHT;
+		return (
+			NORMAL_ROW_HEIGHT + componentDetails.length * COMPONENT_DETAIL_ROW_HEIGHT
+		);
 	}
 
 	return NORMAL_ROW_HEIGHT;
@@ -250,12 +293,14 @@ function cloneSectionWithRows(
 	section: PrintSection,
 	rows: PrintRow[],
 	continuation: boolean,
+	pageBreakMode: SalesPageBreakMode,
 ): PrintSection {
 	switch (section.kind) {
 		case "door":
 			return {
 				...section,
-				details: continuation ? [] : section.details,
+				details:
+					continuation && pageBreakMode !== "fullHeader" ? [] : section.details,
 				rows: rows as DoorRow[],
 			} satisfies DoorSection;
 		case "moulding":

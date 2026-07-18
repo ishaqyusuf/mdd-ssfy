@@ -1,4 +1,24 @@
 import {
+	getCommunityProjectsCount,
+	getCommunityProjectsSchema,
+} from "@api/db/queries/community";
+import {
+	getCommunityTemplatesCount,
+	getCommunityTemplatesSchema,
+} from "@api/db/queries/community-template";
+import { getCustomersCount } from "@api/db/queries/customer";
+import {
+	getCustomerServicesCount,
+	getCustomerServicesSchema,
+} from "@api/db/queries/customer-service";
+import { getEmployeesCount } from "@api/db/queries/hrm";
+import { getJobsCount, getJobsSchema } from "@api/db/queries/jobs";
+import {
+	getProjectUnitsCount,
+	getProjectUnitsSchema,
+} from "@api/db/queries/project-units";
+import { getQuotesCount } from "@api/db/queries/sales";
+import {
 	getOrdersCount,
 	getOrdersSchema,
 } from "@api/db/queries/sales-orders-v2";
@@ -6,7 +26,17 @@ import {
 	getUnitInvoicesCount,
 	getUnitInvoicesSchema,
 } from "@api/db/queries/unit-invoices";
+import {
+	getUnitProductionsCount,
+	getUnitProductionsSchema,
+} from "@api/db/queries/unit-productions";
+import { getCustomersSchema } from "@api/schemas/customer";
+import { getDealersSchema } from "@api/schemas/dealer";
+import { employeesQueryParamsSchema } from "@api/schemas/hrm";
+import { salesQueryParamsSchema } from "@api/schemas/sales";
+import { transformSalesFilterQuery } from "@api/utils/sales";
 import type { Database } from "@gnd/db";
+import { getDealersCount } from "@gnd/db/queries";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../init";
@@ -80,7 +110,8 @@ export const pageTabsRouter = createTRPCRouter({
 					: isPageTabActive(tab),
 			)
 			.sort((left, right) => {
-				const leftIndex = left.tabIndices[0]?.tabIndex ?? Number.MAX_SAFE_INTEGER;
+				const leftIndex =
+					left.tabIndices[0]?.tabIndex ?? Number.MAX_SAFE_INTEGER;
 				const rightIndex =
 					right.tabIndices[0]?.tabIndex ?? Number.MAX_SAFE_INTEGER;
 				if (leftIndex !== rightIndex) return leftIndex - rightIndex;
@@ -467,9 +498,22 @@ export const pageTabsRouter = createTRPCRouter({
 });
 
 function normalizePage(page: string) {
-	const [path] = page.split("?");
+	const source = page.trim();
+	if (!source) return "/";
+
+	let path = source;
+	try {
+		path = new URL(source, "https://page-tabs.local").pathname;
+	} catch {
+		const [pathWithHash] = source.split("?");
+		path = (pathWithHash ?? "").split("#")[0] ?? "";
+	}
+
 	if (!path) return "/";
-	return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
+	const withLeadingSlash = path.startsWith("/") ? path : `/${path}`;
+	return withLeadingSlash.length > 1 && withLeadingSlash.endsWith("/")
+		? withLeadingSlash.slice(0, -1)
+		: withLeadingSlash;
 }
 
 function normalizeQuery(query: string) {
@@ -489,16 +533,19 @@ function normalizeQuery(query: string) {
 		.toString();
 }
 
-function toPageTab(tab: {
-	id: number;
-	page: string;
-	title: string;
-	query: string;
-	userId: number;
-	private: boolean | null;
-	meta?: unknown;
-	tabIndices?: { id: string; tabIndex: number; default: boolean | null }[];
-}, options: { canManage: boolean; count?: number | null }) {
+function toPageTab(
+	tab: {
+		id: number;
+		page: string;
+		title: string;
+		query: string;
+		userId: number;
+		private: boolean | null;
+		meta?: unknown;
+		tabIndices?: { id: string; tabIndex: number; default: boolean | null }[];
+	},
+	options: { canManage: boolean; count?: number | null },
+) {
 	const index = tab.tabIndices?.[0];
 
 	return {
@@ -609,12 +656,116 @@ async function getPageTabCount(
 				return getOrdersCount(
 					ctx,
 					getOrdersSchema.parse({
-						...input,
+						...coerceQueryFields(input, {
+							numberKeys: ["address.id"],
+							numberArrayKeys: ["salesIds"],
+							booleanKeys: ["bin"],
+						}),
 						showing: input.showing ?? "all sales",
 					}),
 				);
+			case "/sales-book/quotes":
+				return getQuotesCount(
+					ctx,
+					transformSalesFilterQuery(
+						salesQueryParamsSchema.parse(
+							coerceQueryFields(input, {
+								numberKeys: ["address.id", "salesRepId"],
+								numberArrayKeys: ["salesIds"],
+								booleanKeys: ["bin", "defaultSearch"],
+							}),
+						),
+					),
+				);
+			case "/sales-book/customers":
+				return getCustomersCount(
+					ctx,
+					getCustomersSchema.parse(
+						coerceQueryFields(input, {
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
+			case "/sales-book/dealers":
+				return getDealersCount(ctx.db, getDealersSchema.parse(input));
+			case "/hrm/employees":
+				return getEmployeesCount(
+					ctx,
+					employeesQueryParamsSchema.parse(
+						coerceQueryFields(input, {
+							arrayKeys: ["can", "cannot", "roles"],
+							stringKeys: ["sort"],
+						}),
+					),
+				);
+			case "/hrm/contractors/jobs":
+				return getJobsCount(
+					ctx,
+					getJobsSchema.parse(
+						coerceQueryFields(input, {
+							numberKeys: ["userId", "jobId", "projectId", "unitId"],
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
+			case "/community/projects":
+				return getCommunityProjectsCount(
+					ctx,
+					getCommunityProjectsSchema.parse(
+						coerceQueryFields(input, {
+							numberKeys: ["builderId"],
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
+			case "/community/project-units":
+				return getProjectUnitsCount(
+					ctx,
+					getProjectUnitsSchema.parse(
+						coerceQueryFields(input, {
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
 			case "/community/unit-invoices":
-				return getUnitInvoicesCount(ctx, getUnitInvoicesSchema.parse(input));
+				return getUnitInvoicesCount(
+					ctx,
+					getUnitInvoicesSchema.parse(
+						coerceQueryFields(input, {
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
+			case "/community/templates":
+				return getCommunityTemplatesCount(
+					ctx,
+					getCommunityTemplatesSchema.parse(
+						coerceQueryFields(input, {
+							numberKeys: ["projectId", "builderId"],
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
+			case "/community/customer-services":
+				return getCustomerServicesCount(
+					ctx,
+					getCustomerServicesSchema.parse(
+						coerceQueryFields(input, {
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
+			case "/community/unit-productions":
+				return getUnitProductionsCount(
+					ctx,
+					getUnitProductionsSchema.parse(
+						coerceQueryFields(input, {
+							arrayKeys: ["taskNames"],
+							numberArrayKeys: ["ids"],
+							booleanKeys: ["bin"],
+						}),
+					),
+				);
 			default:
 				return null;
 		}
@@ -633,14 +784,75 @@ function queryToInput(query: string) {
 		const values = params
 			.getAll(key)
 			.flatMap((value) =>
-				key === "sort" || key === "dateRange" ? value.split(",") : [value],
+				ARRAY_QUERY_KEYS.has(key) ? value.split(",") : [value],
 			)
 			.map((value) => value.trim())
 			.filter(Boolean);
 
 		if (!values.length) continue;
-		input[key] = key === "sort" || key === "dateRange" ? values : values.at(-1);
+		input[key] = ARRAY_QUERY_KEYS.has(key) ? values : values.at(-1);
 	}
 
 	return input;
+}
+
+const ARRAY_QUERY_KEYS = new Set([
+	"can",
+	"cannot",
+	"dateRange",
+	"ids",
+	"production.dueDate",
+	"roles",
+	"salesIds",
+	"salesNos",
+	"sort",
+	"taskNames",
+]);
+
+function coerceQueryFields(
+	input: Record<string, unknown>,
+	options: {
+		arrayKeys?: string[];
+		booleanKeys?: string[];
+		numberArrayKeys?: string[];
+		numberKeys?: string[];
+		stringKeys?: string[];
+	},
+) {
+	const next = { ...input };
+
+	for (const key of options.arrayKeys ?? []) {
+		const value = next[key];
+		if (value !== undefined && !Array.isArray(value)) next[key] = [value];
+	}
+
+	for (const key of options.stringKeys ?? []) {
+		const value = next[key];
+		if (Array.isArray(value)) next[key] = value.at(-1);
+	}
+
+	for (const key of options.booleanKeys ?? []) {
+		const value = Array.isArray(next[key]) ? next[key].at(-1) : next[key];
+		if (typeof value !== "string") continue;
+		if (value === "true") next[key] = true;
+		if (value === "false") next[key] = false;
+	}
+
+	for (const key of options.numberKeys ?? []) {
+		const value = Array.isArray(next[key]) ? next[key].at(-1) : next[key];
+		if (typeof value !== "string" || value.trim() === "") continue;
+		const numberValue = Number(value);
+		if (Number.isFinite(numberValue)) next[key] = numberValue;
+	}
+
+	for (const key of options.numberArrayKeys ?? []) {
+		const value = next[key];
+		const values = Array.isArray(value) ? value : value ? [value] : [];
+		const numberValues = values
+			.map((item) => Number(item))
+			.filter((item) => Number.isFinite(item));
+		if (numberValues.length) next[key] = numberValues;
+	}
+
+	return next;
 }

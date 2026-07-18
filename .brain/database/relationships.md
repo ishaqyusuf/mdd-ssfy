@@ -14,8 +14,9 @@ Tracks important cross-model relationships and ownership patterns.
 - Web bug reporting relationships:
   - `BugReport.createdById` points to `Users.id` for the submitting employee; the API hydrates submitter details manually instead of adding new `Users` relation fields.
   - `BugReport.statusUpdatedById` points to `Users.id` for the Super Admin who last changed status; this is also hydrated manually.
-  - `BugReport.recordingDocumentId` points to `StoredDocument.id` for the Vercel Blob recording metadata.
-  - `StoredDocument.ownerType = "bug_report"` and `StoredDocument.ownerId = BugReport.id` are the document-platform ownership convention for recordings.
+  - `BugReport.recordingDocumentId` points to `StoredDocument.id` for the primary Vercel Blob evidence metadata. The column name is legacy-compatible; the linked document may be a video recording or screenshot depending on `BugReport.captureType`.
+  - `BugReportFollowUp.audioDocumentId` points manually to `StoredDocument.id` for optional voice-note evidence; no Prisma relation is modeled.
+  - `StoredDocument.ownerType = "bug_report"` and `StoredDocument.ownerId = BugReport.id` are the document-platform ownership convention for primary evidence and voice notes.
   - `BugReport` -> `BugReportFollowUp` is a Prisma relation with cascade delete for report thread messages.
 - Sales email delivery relationships:
   - `SalesEmailAttempt.senderId` points to `Users.id` through `Users.sentSalesEmailAttempts` for the actor who initiated the send

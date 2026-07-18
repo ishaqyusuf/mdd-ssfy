@@ -2,6 +2,7 @@
 
 ## Status
 - 2026-06-16: Dispatch list routes are migrated to the `tables-2` table standard.
+- 2026-07-17: Dispatch density and content-fit widths were tightened against the Sales Orders/Midday invoices standard while keeping the interactive dispatch controls readable.
 
 ## Routes
 - Canonical dispatch route: `/sales-book/dispatch`
@@ -19,7 +20,19 @@
   - `apps/www/src/components/dispatch-header.tsx`
   - `apps/www/src/components/dispatch-admin/admin-dispatch-header.tsx`
 
-The table uses the shared `tables-2` domain pattern with typed columns, stable row ids, virtual rows, sticky order columns, column visibility/settings, horizontal table scrolling, empty state, no-results state, row selection, and the existing dispatch row-action flows.
+The table uses the shared `tables-2` domain pattern with typed columns, stable row ids, virtual rows, sticky order columns, column visibility/settings, table-owned horizontal and vertical scrolling, `useScrollHeader(parentRef)` header-offset behavior, empty state, no-results state, row selection, and the existing dispatch row-action flows.
+
+## Density And Widths
+- `TABLE_CONFIGS["sales-dispatch"].rowHeight` is `56` with compact table padding. This is intentionally taller than the 40px Sales Orders/Quotes rows because dispatch rows include a schedule picker, two-line Ship To/progress text, and status/driver menus.
+- Current content-fit defaults:
+  - Schedule: `sizes.custom(118, 180, 136)`
+  - Order: `sizes.custom(140, 230, 160)`
+  - Order Date: `sizes.custom(104, 150, 118)`
+  - Ship To: `sizes.custom(180, 360, 220)`
+  - Assigned To: `sizes.custom(132, 220, 160)`
+  - Progress: `sizes.custom(118, 180, 132)`
+  - Status: `sizes.custom(116, 170, 132)`
+  - Actions: `sizes.custom(72, 72)`
 
 ## Contracts Reused
 - Existing admin/list query: `trpc.dispatch.index`
@@ -51,3 +64,10 @@ Removed after import scans:
   - `/sales-book/dispatch/v2?q=07340` redirected to `/sales-book/dispatch?q=07340`.
   - `/sales-book/dispatch-admin?view=table&q=07340&size=1` rendered the admin table on desktop and mobile after the route warmed.
 - Caveat: `/sales-book/dispatch-task` still timed out before first byte even when temporarily reduced to static markup, so end-to-end browser smoke for that route remains blocked by a route/access/dev-server issue outside the table module.
+- 2026-07-17 density proof:
+  - Focused Dispatch parity test passed with 4 tests / 39 assertions.
+  - Full `apps/www/src/components/tables-2` suite passed with 293 tests / 2382 assertions.
+  - Focused Biome passed for the Dispatch table files and table config.
+  - Touched-path `@gnd/www` typecheck scan produced no diagnostics for `sales-dispatch` / `table-configs`.
+  - Authenticated browser proof on `/sales-book/dispatch?size=20` confirmed `56px` row height, `45px` header height, vertical table-owned overflow (`scrollHeight 2005` vs `clientHeight 459`), horizontal table-owned overflow (`scrollWidth 1180` vs `clientWidth 1146`), clean scroll movement from `scrollTop 0` / `scrollLeft 0` to `scrollTop 600` / `scrollLeft 34`, and `--header-offset` changing from `0px` to `70px`.
+  - Screenshot evidence saved at `/private/tmp/gnd-sales-dispatch-table.png`.

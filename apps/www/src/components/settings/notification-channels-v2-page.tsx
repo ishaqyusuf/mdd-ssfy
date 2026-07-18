@@ -1,8 +1,12 @@
 "use client";
 
+import { NotificationChannelsColumnVisibility } from "@/components/tables-2/notification-channels/column-visibility";
+import type { NotificationChannelRow } from "@/components/tables-2/notification-channels/columns";
+import { DataTable as NotificationChannelsDataTable } from "@/components/tables-2/notification-channels/data-table";
 import { useInvalidateQuery } from "@/hooks/use-invalidate-query";
 import { useNotificationChannelParams } from "@/hooks/use-notification-channel-params";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
 import type { RouterInputs, RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -22,15 +26,6 @@ type NotificationChannel =
 type DeliveryKey = "emailSupport" | "inAppSupport" | "whatsappSupport";
 type UpdateNotificationChannelInput =
 	RouterInputs["notes"]["updateNotificationChannel"];
-
-const LIST_SKELETON_KEYS = [
-	"list-skeleton-1",
-	"list-skeleton-2",
-	"list-skeleton-3",
-	"list-skeleton-4",
-	"list-skeleton-5",
-	"list-skeleton-6",
-];
 
 const PANEL_SKELETON_KEYS = [
 	"panel-skeleton-1",
@@ -64,7 +59,11 @@ const DELIVERY_METHODS: Array<{
 	},
 ];
 
-export function NotificationChannelsV2Page() {
+type Props = {
+	initialSettings?: Partial<TableSettings>;
+};
+
+export function NotificationChannelsV2Page({ initialSettings }: Props) {
 	const trpc = useTRPC();
 	const { invalidateQueries, invalidateQuery } = useInvalidateQuery();
 	const { openNotificationChannelId, setParams } =
@@ -134,14 +133,6 @@ export function NotificationChannelsV2Page() {
 	);
 	const roles = rolesQuery.data ?? [];
 	const employees = employeesQuery.data?.data ?? [];
-	const employeeNameById = useMemo(() => {
-		return new Map(
-			employees.map((employee) => [
-				employee.id,
-				employee.name || employee.email || `User ${employee.id}`,
-			]),
-		);
-	}, [employees]);
 
 	const availableSubscribers = useMemo(() => {
 		const subscriberIds = new Set(selectedChannel?.subscriberIds ?? []);
@@ -282,17 +273,25 @@ export function NotificationChannelsV2Page() {
 	};
 
 	return (
-		<div className="grid min-h-0 flex-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-			<Card className="flex min-h-0 flex-col overflow-hidden">
-				<Card.Header className="shrink-0 space-y-4">
+		<div
+			className="grid min-h-0 gap-4 lg:grid-cols-[minmax(420px,560px)_minmax(0,1fr)]"
+			style={{
+				height: "calc(100vh - 170px + var(--header-offset, 0px))",
+			}}
+		>
+			<aside className="flex min-h-0 flex-col overflow-hidden rounded-md border bg-background">
+				<div className="shrink-0 space-y-4 border-b p-4">
 					<div className="flex items-center justify-between gap-3">
 						<div>
-							<Card.Title className="text-lg font-bold">Channels</Card.Title>
-							<Card.Description>
+							<h2 className="text-sm font-semibold">Channels</h2>
+							<p className="text-xs text-muted-foreground">
 								Manage delivery methods and subscribers.
-							</Card.Description>
+							</p>
 						</div>
-						<Badge variant="outline">{channels.length}</Badge>
+						<div className="flex items-center gap-2">
+							<Badge variant="outline">{channels.length}</Badge>
+							<NotificationChannelsColumnVisibility />
+						</div>
 					</div>
 					<div className="relative">
 						<Icons.Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -335,94 +334,24 @@ export function NotificationChannelsV2Page() {
 							</div>
 						</div>
 					) : null}
-				</Card.Header>
-				<ScrollArea className="min-h-0 flex-1">
-					<Card.Content className="space-y-3">
-						{channelsQuery.isPending ? (
-							<ListSkeleton />
-						) : channelsQuery.error ? (
-							<InlineMessage
-								icon="XCircle"
-								title="Could not load notification channels"
-								description={
-									channelsQuery.error instanceof Error
-										? channelsQuery.error.message
-										: "Something went wrong while loading channels."
-								}
-							/>
-						) : channels.length ? (
-							channels.map((channel) => (
-								<button
-									key={channel.id}
-									type="button"
-									onClick={() =>
-										setParams({
-											openNotificationChannelId: channel.id,
-										})
-									}
-									className={cn(
-										"w-full rounded-2xl border p-4 text-left transition-colors",
-										selectedChannelId === channel.id
-											? "border-primary bg-primary/5"
-											: "hover:bg-muted/40",
-									)}
-								>
-									<div className="flex items-start justify-between gap-3">
-										<div className="space-y-1">
-											<div className="flex flex-wrap items-center gap-2">
-												<p className="text-sm font-bold">{channel.title}</p>
-												<Badge variant="secondary" className="text-[10px]">
-													{channel.priority}
-												</Badge>
-											</div>
-											<p className="line-clamp-2 text-xs text-muted-foreground">
-												{channel.description || channel.name}
-											</p>
-										</div>
-										<div className="flex shrink-0 gap-2 text-muted-foreground">
-											<DeliveryIcon
-												active={!!channel.emailSupport}
-												icon="Mail"
-											/>
-											<DeliveryIcon
-												active={!!channel.inAppSupport}
-												icon="Smartphone"
-											/>
-											<DeliveryIcon
-												active={!!channel.whatsappSupport}
-												icon="WhatsApp"
-											/>
-										</div>
-									</div>
-									<div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-										<Badge variant="outline">
-											{channel.category || "General"}
-										</Badge>
-										<ListSummaryBadge
-											emptyLabel="No roles"
-											items={channel.roles}
-										/>
-										<ListSummaryBadge
-											emptyLabel="No users"
-											items={channel.subscriberIds.map(
-												(subscriberId) =>
-													employeeNameById.get(subscriberId) ??
-													`User ${subscriberId}`,
-											)}
-										/>
-									</div>
-								</button>
-							))
-						) : (
-							<InlineMessage
-								icon="BellRing"
-								title="No notification channels found"
-								description="Try a different search or clear the filter."
-							/>
-						)}
-					</Card.Content>
-				</ScrollArea>
-			</Card>
+				</div>
+				<div className="min-h-0 flex-1">
+					<NotificationChannelsDataTable
+						data={channels as NotificationChannelRow[]}
+						error={channelsQuery.error}
+						hasSearch={deferredSearch.trim().length > 0}
+						initialSettings={initialSettings}
+						isLoading={channelsQuery.isPending}
+						selectedId={selectedChannelId}
+						onClearSearch={() => setSearch("")}
+						onSelectChannel={(channel) => {
+							void setParams({
+								openNotificationChannelId: channel.id,
+							});
+						}}
+					/>
+				</div>
+			</aside>
 
 			<Card className="flex min-h-0 flex-col overflow-hidden">
 				{selectedChannel ? (
@@ -718,66 +647,6 @@ function InlineMessage({
 				<p className="font-semibold">{title}</p>
 				<p className="text-sm text-muted-foreground">{description}</p>
 			</div>
-		</div>
-	);
-}
-
-function DeliveryIcon({
-	active,
-	icon,
-}: {
-	active: boolean;
-	icon: keyof typeof Icons;
-}) {
-	const Icon = Icons[icon];
-	return (
-		<div
-			className={cn(
-				"rounded-md p-1.5",
-				active
-					? "bg-primary/10 text-primary"
-					: "bg-muted text-muted-foreground",
-			)}
-		>
-			<Icon className="size-4" />
-		</div>
-	);
-}
-
-function ListSummaryBadge({
-	emptyLabel,
-	items,
-}: {
-	emptyLabel: string;
-	items: string[];
-}) {
-	const [firstItem, ...otherItems] = items;
-
-	return (
-		<Badge
-			variant="outline"
-			className="max-w-full gap-1 overflow-hidden text-left"
-			title={items.length ? items.join(", ") : emptyLabel}
-		>
-			<span className="truncate">{firstItem ?? emptyLabel}</span>
-			{otherItems.length ? (
-				<span className="shrink-0 text-muted-foreground">
-					+{otherItems.length}
-				</span>
-			) : null}
-		</Badge>
-	);
-}
-
-function ListSkeleton() {
-	return (
-		<div className="space-y-3">
-			{LIST_SKELETON_KEYS.map((key) => (
-				<div
-					key={key}
-					className="h-28 animate-pulse rounded-2xl border bg-muted/40"
-				/>
-			))}
 		</div>
 	);
 }

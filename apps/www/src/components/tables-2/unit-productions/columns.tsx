@@ -110,6 +110,40 @@ const taskColumn: Column = {
 	},
 };
 
+const projectTaskColumn: Column = {
+	id: "projectTask",
+	header: "Task Details",
+	accessorFn: (row) => row.taskName,
+	...sizes.custom(240, 420, 300),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "text", width: "w-48" },
+		headerLabel: "Task Details",
+		sortField: "task",
+		className: sizeClass(sizes.custom(240, 420, 300)),
+	},
+	cell: ({ row }) => {
+		const item = row.original;
+
+		return (
+			<div className="min-w-0 space-y-1">
+				<TextWithTooltip
+					className="max-w-full truncate font-medium"
+					text={item.taskName || "Untitled task"}
+				/>
+				<p className="truncate text-xs text-muted-foreground">
+					{item.home?.lotBlock || "No lot/block"} ·{" "}
+					{item.home?.modelName || "No model"}
+				</p>
+				<TextWithTooltip
+					className="max-w-full truncate text-xs text-muted-foreground"
+					text={item.project?.title || "No project"}
+				/>
+			</div>
+		);
+	},
+};
+
 const unitColumn: Column = {
 	id: "unit",
 	header: "Unit",
@@ -227,6 +261,14 @@ export const columns: Column[] = [
 	taskColumn,
 	unitColumn,
 	projectColumn,
+	statusColumn,
+	actionsColumn,
+];
+
+export const projectTabColumns: Column[] = [
+	selectColumn,
+	dueDateColumn,
+	projectTaskColumn,
 	statusColumn,
 	actionsColumn,
 ];

@@ -4,13 +4,13 @@
 UX/UI
 
 ## Status
-Proposed
+Partially Implemented
 
 ## Created Date
 2026-07-01
 
 ## Last Updated
-2026-07-01
+2026-07-17
 
 ## Intake
 - Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
@@ -100,3 +100,11 @@ Lower agent must report:
 ## Linked Task
 - Task Title: Sales Book Inbounds Workspace Table Core Upgrade
 - Task File: brain/tasks/roadmap.md
+
+## 2026-07-17 Implementation Note
+- `/sales-book/inbounds` now uses `components/tables-2/sales-inbounds/*` for the primary inbound shipment queue, without modifying `components/tables-2/core`.
+- The route uses the restarted table shell with `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, and `getInitialTableSettings("sales-inbounds")`.
+- The old hand-mapped collapsible shipment queue was removed from `SalesInboundsWorkspace`; selected shipment detail/status/receive/timeline content now renders below the table.
+- Compact analytics, local search/status filtering, existing inbound shipment/detail/activity queries, status update, and receive-stock mutations were preserved.
+- Deferred from this slice: URL-backed `q/status/selected inbound` params, retargeting sidebar/sales-tab/inbound-management links to make `/sales-book/inbounds` canonical everywhere, and browser-driven mobile/desktop interaction proof beyond route smoke.
+- Validation: focused Sales Book Inbounds parity test passed with 3 tests / 40 assertions; full restarted `tables-2` suite passed with 216 tests / 2249 assertions; targeted Biome passed; static runtime scans were clean; filtered WWW typecheck grep found no touched-file diagnostics; HTTPS route smoke returned `200`; `git diff --check` passed; `components/tables-2/core` diff stayed clean.

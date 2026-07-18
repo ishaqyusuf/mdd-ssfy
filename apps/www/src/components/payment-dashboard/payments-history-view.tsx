@@ -3,9 +3,13 @@
 import { Icons } from "@gnd/ui/icons";
 
 import { ContractorPayoutsHeader } from "@/components/contractor-payouts-header";
-import { DataTable } from "@/components/tables/contractor-payouts/data-table";
+import { ErrorFallback } from "@/components/error-fallback";
+import { DataTable } from "@/components/tables-2/contractor-payouts/data-table";
+import { ContractorPayoutsSkeleton } from "@/components/tables-2/contractor-payouts/skeleton";
 import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
+import type { PageFilterData } from "@api/type";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import {
@@ -17,9 +21,9 @@ import {
 } from "@gnd/ui/card";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useQuery } from "@gnd/ui/tanstack";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import Link from "next/link";
-import type { PageFilterData } from "@api/type";
-import type { ComponentType } from "react";
+import { type ComponentType, Suspense } from "react";
 
 function formatCurrency(value?: number | null) {
     return new Intl.NumberFormat("en-US", {
@@ -29,8 +33,10 @@ function formatCurrency(value?: number | null) {
 }
 
 export function PaymentsHistoryView({
+	initialSettings,
     initialFilterList,
 }: {
+	initialSettings?: Partial<TableSettings>;
     initialFilterList?: PageFilterData[];
 }) {
     const trpc = useTRPC();
@@ -134,7 +140,17 @@ export function PaymentsHistoryView({
                     </CardHeader>
                     <CardContent className="p-0">
                         <div className="p-4 md:p-6">
-                            <DataTable />
+                            <ErrorBoundary errorComponent={ErrorFallback}>
+                                <Suspense
+                                    fallback={
+                                        <ContractorPayoutsSkeleton
+                                            initialSettings={initialSettings}
+                                        />
+                                    }
+                                >
+                                    <DataTable initialSettings={initialSettings} />
+                                </Suspense>
+                            </ErrorBoundary>
                         </div>
                     </CardContent>
                 </Card>

@@ -1,5 +1,6 @@
 import type { PageFilterData } from "@api/type";
 import { SalesResoltionSearchFilter } from "./sales-resolution-search-filter";
+import { SalesResolutionColumnVisibility } from "./tables-2/sales-resolution/column-visibility";
 
 type Props = {
 	initialFilterList?: PageFilterData[];
@@ -12,9 +13,11 @@ export function SalesResolutionHeader({ initialFilterList }: Props) {
 				<SalesResoltionSearchFilter initialFilterList={initialFilterList} />
 			</div>
 			<div
-				className="flex min-w-0 items-center justify-start md:justify-end"
+				className="flex min-w-0 items-center justify-start gap-2 md:justify-end"
 				id="resolutionHeaderActions"
-			/>
+			>
+				<SalesResolutionColumnVisibility />
+			</div>
 		</div>
 	);
 }

@@ -17,6 +17,7 @@ import { Env } from "./env";
 import { JobSettingsSheet } from "./job-settings-sheet";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
 import { OpenJobSheet } from "./open-contractor-jobs-sheet";
+import { ContractorJobsColumnVisibility } from "./tables-2/contractor-jobs/column-visibility";
 
 type Props = {
 	initialFilterList?: PageFilterData[];
@@ -110,6 +111,7 @@ export function JobHeader({ initialFilterList }: Props) {
 				initialFilterList={initialFilterList}
 			/>
 			<div className="flex-1" />
+			<ContractorJobsColumnVisibility />
 			<JobSettingsSheet />
 			<OpenJobSheet />
 			<Env isDev>

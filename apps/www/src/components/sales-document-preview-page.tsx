@@ -11,7 +11,10 @@ import {
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
 import type { ResolveSalesDocumentAccessResult } from "@gnd/api/utils/sales-document-access";
-import { SalesHtmlDocument } from "@gnd/pdf/sales-v2";
+import {
+	SalesHtmlDocument,
+	normalizeSalesPageBreakMode,
+} from "@gnd/pdf/sales-v2";
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
@@ -41,6 +44,9 @@ export function SalesDocumentPreviewPage({
 	accessToken,
 	snapshotId,
 	templateId = "template-2",
+	pageBreakMode,
+	showImages = true,
+	headlineFirstPage = true,
 	embedded = false,
 	customerEmail,
 	customerName,
@@ -53,6 +59,9 @@ export function SalesDocumentPreviewPage({
 	accessToken?: string;
 	snapshotId?: string;
 	templateId?: string;
+	pageBreakMode?: string | null;
+	showImages?: boolean;
+	headlineFirstPage?: boolean;
 	embedded?: boolean;
 	customerEmail?: string;
 	customerName?: string;
@@ -66,6 +75,7 @@ export function SalesDocumentPreviewPage({
 	const router = useRouter();
 	const baseUrl = getBaseUrl();
 	const salesPrint = useSalesPrintController();
+	const resolvedPageBreakMode = normalizeSalesPageBreakMode(pageBreakMode);
 	const [regeneratedAccess, setRegeneratedAccess] =
 		useState<ResolveSalesDocumentAccessResult | null>(null);
 	const effectivePt = regeneratedAccess ? undefined : pt;
@@ -81,6 +91,9 @@ export function SalesDocumentPreviewPage({
 				snapshotId: effectiveSnapshotId,
 				preview: true,
 				templateId,
+				pageBreakMode: resolvedPageBreakMode,
+				showImages,
+				headlineFirstPage,
 				baseUrl,
 			},
 			{
@@ -114,6 +127,8 @@ export function SalesDocumentPreviewPage({
 			accessToken: effectiveAccessToken,
 			snapshotId: effectiveSnapshotId,
 			templateId,
+			pageBreakMode: resolvedPageBreakMode,
+			printConfig: { showImages, headlineFirstPage },
 			origin: baseUrl,
 		});
 	}, [
@@ -122,7 +137,10 @@ export function SalesDocumentPreviewPage({
 		effectivePt,
 		effectiveSnapshotId,
 		effectiveToken,
+		headlineFirstPage,
+		showImages,
 		templateId,
+		resolvedPageBreakMode,
 	]);
 	const pdfPrintPageQuery = useMemo(() => {
 		if (
@@ -142,6 +160,8 @@ export function SalesDocumentPreviewPage({
 			snapshotId: effectiveSnapshotId,
 			preview: false,
 			templateId,
+			pageBreakMode: resolvedPageBreakMode,
+			printConfig: { showImages, headlineFirstPage },
 			origin: baseUrl,
 		});
 	}, [
@@ -150,7 +170,10 @@ export function SalesDocumentPreviewPage({
 		effectivePt,
 		effectiveSnapshotId,
 		effectiveToken,
+		headlineFirstPage,
+		showImages,
 		templateId,
+		resolvedPageBreakMode,
 	]);
 	const overviewUrl = useMemo(() => {
 		if (!data?.orderNo) return null;
@@ -191,6 +214,7 @@ export function SalesDocumentPreviewPage({
 				mode: data.mode,
 				dispatchId: dispatchId ?? null,
 				templateId,
+				pageBreakMode: resolvedPageBreakMode,
 				openInNewTab: event?.shiftKey ?? false,
 			});
 			return;
@@ -208,6 +232,7 @@ export function SalesDocumentPreviewPage({
 				mode: data.mode,
 				dispatchId: dispatchId ?? null,
 				templateId,
+				pageBreakMode: resolvedPageBreakMode,
 			});
 			return;
 		}
@@ -229,6 +254,7 @@ export function SalesDocumentPreviewPage({
 				mode: data.mode,
 				dispatchId: dispatchId ?? null,
 				templateId,
+				pageBreakMode: resolvedPageBreakMode,
 				baseUrl,
 			},
 			{
@@ -321,6 +347,11 @@ export function SalesDocumentPreviewPage({
 			baseUrl={baseUrl}
 			previewUrl={data.previewUrl}
 			qrCodeDataUrl={data.qrCodeDataUrl}
+			config={{
+				pageBreakMode: resolvedPageBreakMode,
+				showImages,
+				headlineFirstPage,
+			}}
 		/>
 	);
 

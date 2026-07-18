@@ -4,6 +4,7 @@ import { VirtualRow } from "@/components/tables-2/core";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useOrderFilterParams } from "@/hooks/use-sales-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -45,6 +46,7 @@ type Props = {
 	defaultFilters?: SalesQuotesInput;
 	bin?: boolean;
 	singlePage?: boolean;
+	embedded?: boolean;
 };
 
 export function DataTable({
@@ -52,6 +54,7 @@ export function DataTable({
 	defaultFilters,
 	bin,
 	singlePage,
+	embedded,
 }: Props) {
 	const trpc = useTRPC();
 	const { params } = useSortParams();
@@ -63,6 +66,8 @@ export function DataTable({
 	const bindShowColumnDividers = useSalesQuotesTableStore(
 		(state) => state.bindShowColumnDividers,
 	);
+
+	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -174,6 +179,9 @@ export function DataTable({
 	}
 
 	const virtualItems = rowVirtualizer.getVirtualItems();
+	const tableHeight = embedded
+		? `${tableConfig.headerHeight + Math.max(1, Math.min(rows.length, 5)) * tableConfig.rowHeight}px`
+		: "calc(100vh - 240px + var(--header-offset, 0px))";
 
 	return (
 		<div className="relative">
@@ -185,7 +193,7 @@ export function DataTable({
 					}}
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
-						height: "calc(100vh - 240px + var(--header-offset, 0px))",
+						height: tableHeight,
 					}}
 				>
 					<DndContext

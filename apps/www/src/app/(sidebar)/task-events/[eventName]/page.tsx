@@ -1,11 +1,13 @@
 import { ErrorFallback } from "@/components/error-fallback";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import PageShell from "@/components/page-shell";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { TaskEventHistorySkeleton } from "@/components/tables-2/task-event-history/skeleton";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
 import { TaskEventDetail } from "../_components/task-event-detail";
-
-import PageShell from "@/components/page-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -17,42 +19,38 @@ type Props = {
 
 export default async function Page(props: Props) {
 	const params = await props.params;
-	const queryClient = getQueryClient();
-	const eventPromise = queryClient.fetchQuery(
+	const initialSettings = await getInitialTableSettings("task-event-history");
+
+	batchPrefetch([
 		trpc.taskEvents.get.queryOptions({
 			eventName: params.eventName,
 		}),
-	);
-	const listPromise = queryClient.fetchQuery(trpc.taskEvents.list.queryOptions());
-	const event = await eventPromise;
-
-	await Promise.all([
-		queryClient.fetchQuery(
-			trpc.taskEvents.history.queryOptions({
-				eventName: params.eventName,
-			}),
-		),
-		listPromise,
-		event?.filterSystem?.systemId === "sales-order-search-filter"
-			? queryClient.fetchQuery(
-					trpc.filters.salesOrders.queryOptions({
-						salesManager: true,
-					}),
-				)
-			: Promise.resolve(),
+		trpc.taskEvents.history.queryOptions({
+			eventName: params.eventName,
+		}),
+		trpc.taskEvents.list.queryOptions(),
 	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex flex-col gap-6 pt-6">
-					<PageTitle>Task Event</PageTitle>
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<div>Loading event...</div>}>
-							<TaskEventDetail eventName={params.eventName} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-4 pt-6">
+						<PageTitle>Task Event</PageTitle>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<TaskEventHistorySkeleton initialSettings={initialSettings} />
+								}
+							>
+								<TaskEventDetail
+									eventName={params.eventName}
+									initialHistorySettings={initialSettings}
+								/>
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

@@ -50,13 +50,16 @@
 
 - Public checkout v2 page for token-based payment.
 - Legacy payment route shim that converts old link params into a fresh checkout token for v2 while preserving the fallback legacy page when token minting is not possible.
+- Legacy fallback multi-order checkout details render through `components/tables-2/legacy-square-payment-orders/*` instead of inline table markup; the fallback keeps compact 40px rows, sticky Invoice, table-owned scroll, DnD, resize, persisted table settings, and tight Invoice/Billing/Due widths while preserving the existing payment-link action.
 - Public quote-acceptance page that converts an approved quote into a payable order experience.
 - Logged-in checkout variant that shows wallet information.
 - Quick create-password/login affordance within checkout.
 - Customer dashboard entry screen after login/checkout.
 - Sales overview payment status cards use a compact summary instead of equal-weight payment stat grids: one primary `Due now` / `Settled` amount, paid-of-total progress, and a C.C.C breakdown only when the card-inclusive payable amount differs from the principal order balance. Full principal and C.C.C ledger rows remain in invoice details.
 - The staff Sales Payment Processor opens with only the order or orders explicitly selected by the operator. Other unpaid orders for the same customer stay available from the searchable `Add order` combobox, and every listed order has a remove control before payment submission.
-- `Notify customer` payment receipts use a direct customer email contact and bypass notification-channel subscribers/fallback recipients, so the receipt is delivered once to the customer email instead of being skipped or duplicated through subscriber delivery.
+- `Notify customer` is available only when every order listed in the staff payment modal resolves a nonblank billing-email/customer-email fallback. Adding an ineligible order clears and disables the option, and its hover/focus tooltip reads `Customer have no email`.
+- `Notify customer` payment receipts are queued only for the explicit `true` request. They use a direct customer email contact and bypass notification-channel subscribers/fallback recipients, so the receipt is delivered once to the customer email instead of being skipped or duplicated through subscriber delivery.
+- Receipt construction accepts harmless customer-name differences when all listed orders normalize to the same email. Missing or genuinely mixed recipients produce a failed optional receipt result without reversing the recorded payment, and invoice PDF failures fall back to a receipt without an attachment.
 - Successful web payment application now uses the shared sales query invalidation path so order lists, overview balances, dashboard summaries, sales transactions, and accounting/payment reads refresh without a manual browser reload.
 
 ## Quote Acceptance Flow

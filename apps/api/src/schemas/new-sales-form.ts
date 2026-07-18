@@ -44,6 +44,15 @@ export const getNewSalesFormSchema = z.object({
 });
 export type GetNewSalesFormSchema = z.infer<typeof getNewSalesFormSchema>;
 
+export const getNewSalesFormHistorySnapshotSchema = z.object({
+  type: newSalesFormTypeSchema,
+  salesId: z.number().int().positive(),
+  historyId: z.number().int().positive(),
+});
+export type GetNewSalesFormHistorySnapshotSchema = z.infer<
+  typeof getNewSalesFormHistorySnapshotSchema
+>;
+
 export const searchNewSalesCustomersSchema = z.object({
   query: z.string().optional().nullable(),
   limit: z.number().int().min(1).max(25).default(10),

@@ -50,9 +50,11 @@ Tracks important schema-level entities and ownership boundaries.
   - do not add `SalesShipment` / `SalesShipmentLine` without a new ADR proving existing delivery tables plus metadata cannot meet the requirement
 - Web bug reporting schema now lives in `packages/db/src/schema/bug-reports.prisma`:
   - `BugReportStatus` enum values are `NEW`, `IN_REVIEW`, `IN_PROGRESS`, `NEEDS_INFO`, `FIXED`, and `CLOSED`
-  - `BugReport` stores submitter id, status, optional description, current page URL, user agent, source (`web` for v1), linked recording document id, duration, microphone metadata, status updater, timestamps, and soft-delete timestamp
-  - `BugReportFollowUp` stores owner/admin thread messages for a report
-  - recordings reuse `StoredDocument` with `kind = "bug_report_recording"`, `ownerType = "bug_report"`, `provider = "vercel-blob"`, and `visibility = "private"`
+  - `BugReportCaptureType` enum values are `VIDEO` and `SCREENSHOT`
+  - `BugReportTranscriptionStatus` enum values are `NOT_REQUESTED`, `PENDING`, `COMPLETED`, and `FAILED`
+  - `BugReport` stores submitter id, status, capture type, optional description, current page URL, user agent, source (`web` for v1), linked primary evidence document id, duration, microphone metadata, optional external issue provider/key/URL/status/error/timestamp, status updater, timestamps, and soft-delete timestamp
+  - `BugReportFollowUp` stores owner/admin thread messages for a report plus optional voice-note document id, audio duration, transcription status/text/provider, timestamps, and soft-delete timestamp
+  - primary evidence reuses `StoredDocument` with `kind = "bug_report_recording"` for videos or `kind = "bug_report_screenshot"` for screenshots; voice notes use `kind = "bug_report_voice_note"`. All use `ownerType = "bug_report"`, `provider = "vercel-blob"`, and `visibility = "private"`
 - Sales email delivery ledger schema now lives in `packages/db/src/schema/sales-email-attempts.prisma`:
   - `SalesEmailAttemptStatus` enum values are `QUEUED`, `SENDING`, `SENT`, `FAILED`, and `SKIPPED`
   - `SalesEmailAttempt` stores sales document email attempts for standard quote/order emails and custom composed sales document emails
@@ -73,7 +75,7 @@ Tracks important schema-level entities and ownership boundaries.
 - Master password login audit schema now lives in `packages/db/src/schema/master-password-login-audits.prisma`:
   - `MasterPasswordLoginPlatform` enum values are `WEBSITE`, `MOBILE`, and `UNKNOWN`
   - `MasterPasswordLoginAudit` stores each ENV master-password login event for the web/mobile auth flow
-  - rows snapshot target user id/name/email, app surface, platform, IP address, browser, user agent, safe session id, login timestamp, and clear/archive metadata
+  - rows snapshot target user id/name/email, app surface, platform, IP address, optional two-letter ISO country code, browser, user agent, safe session id, login timestamp, and clear/archive metadata
   - clear actions set `clearedAt` and `clearedBySuperAdminId`; records are hidden from the default admin view instead of hard-deleted
 
 ## TODO

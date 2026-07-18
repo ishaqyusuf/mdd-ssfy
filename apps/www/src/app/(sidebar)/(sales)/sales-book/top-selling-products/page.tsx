@@ -1,5 +1,6 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import { ProductReportHeader } from "@/components/product-report-header";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/sales-statistics/data-table";
 import { SalesStatisticsSkeleton } from "@/components/tables-2/sales-statistics/skeleton";
 import { loadProductReportFilterParams } from "@/hooks/use-product-report-filter-params";
@@ -46,19 +47,21 @@ export default async function Page(props: Props) {
 	return (
 		<PageShell>
 			<HydrateClient>
-				<PageTitle>Top Selling Products</PageTitle>
-				<div className="flex flex-col gap-6">
-					<ProductReportHeader />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense
-							fallback={
-								<SalesStatisticsSkeleton initialSettings={initialSettings} />
-							}
-						>
-							<DataTable initialSettings={initialSettings} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Top Selling Products</PageTitle>
+						<ProductReportHeader />
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<SalesStatisticsSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

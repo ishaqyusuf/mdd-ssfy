@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { CompanyAddress, PrintPage } from "@gnd/sales/print/types";
 import {
+	DEFAULT_SALES_PAGE_BREAK_MODE,
 	HEADLINE_FIRST_PAGE,
 	type SalesTemplateConfig,
 	getTemplate,
@@ -34,6 +35,7 @@ export function SalesHtmlDocument({
 	const resolvedConfig: SalesTemplateConfig = {
 		showImages: true,
 		headlineFirstPage: HEADLINE_FIRST_PAGE,
+		pageBreakMode: DEFAULT_SALES_PAGE_BREAK_MODE,
 		...config,
 	};
 

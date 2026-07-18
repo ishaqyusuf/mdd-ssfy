@@ -416,6 +416,12 @@ export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
 	return await response(data.map((line) => line));
 }
 
+export async function getCustomersCount(ctx: TRPCContext, query: GetCustomers) {
+	return ctx.db.customers.count({
+		where: whereCustomer(query),
+	});
+}
+
 export async function createOrUpdateCustomer(
 	ctx: TRPCContext,
 	input: UpsertCustomerSchema,
@@ -1605,7 +1611,8 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 		paidAmount: Number(rest.grandTotal || 0) - Number(rest.amountDue || 0),
 		paymentMethod: resolvePendingSalePaymentMethod(rest.meta),
 		customerName: bAddr?.name || customer?.businessName || customer?.name,
-		customerEmail: bAddr?.email || customer?.email, // || customer?.name,
+		customerEmail:
+			bAddr?.email?.trim() || customer?.email?.trim() || null,
 		customerPhone: bAddr?.phoneNo || customer?.phoneNo || null,
 		customerAddress: bAddr?.address1 || customer?.address || null,
 	}));

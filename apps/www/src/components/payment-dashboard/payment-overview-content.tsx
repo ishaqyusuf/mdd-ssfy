@@ -3,14 +3,16 @@
 import { Icons } from "@gnd/ui/icons";
 
 import { ActivityHistory } from "@/components/chat/activity-history";
+import { DataTable as ContractorPayoutOverviewJobsTable } from "@/components/tables-2/contractor-payout-overview-jobs/data-table";
+import type { TableSettings } from "@/utils/table-settings";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
 } from "@gnd/ui/card";
 import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
@@ -18,474 +20,326 @@ import { format } from "date-fns";
 import type { ComponentType } from "react";
 
 function formatCurrency(value?: number | null) {
-    return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-    }).format(Number(value || 0));
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(Number(value || 0));
 }
 
 type PaymentOverviewData = RouterOutputs["jobs"]["contractorPayoutOverview"];
-type PaymentOverviewJob = PaymentOverviewData["jobs"][number];
-
-function normalizeInlineText(value?: string | null) {
-    return String(value || "")
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
-function isGenericCustomJob(job: PaymentOverviewJob) {
-    const title = normalizeInlineText(job.title).toLowerCase();
-    const subtitle = normalizeInlineText(job.subtitle).toLowerCase();
-
-    return (
-        job.isCustom === true ||
-        title === "custom job" ||
-        subtitle === "custom"
-    );
-}
-
-function splitDescription(value?: string | null) {
-    const description = normalizeInlineText(value);
-    if (!description) {
-        return {
-            lead: null,
-            detail: null,
-        };
-    }
-
-    const parts = description
-        .split(";")
-        .map((part) => part.trim())
-        .filter(Boolean);
-
-    if (parts.length > 1) {
-        return {
-            lead: parts[0],
-            detail: parts.slice(1).join("; "),
-        };
-    }
-
-    return {
-        lead: description,
-        detail: null,
-    };
-}
-
-function getPayoutJobDisplay(job: PaymentOverviewJob) {
-    const genericCustomJob = isGenericCustomJob(job);
-    const description = splitDescription(job.description);
-    const subtitle = normalizeInlineText(job.subtitle);
-    const title = normalizeInlineText(job.title) || "Untitled job";
-    const label =
-        genericCustomJob && description.lead
-            ? description.lead
-            : subtitle && !genericCustomJob
-              ? `${title} - ${subtitle}`
-              : title;
-    const detail =
-        genericCustomJob && description.lead
-            ? description.detail
-            : normalizeInlineText(job.description) || null;
-    const unit = [job.lotBlock, job.modelName]
-        .map((item) => normalizeInlineText(item))
-        .filter(Boolean)
-        .join(" • ");
-
-    return {
-        label,
-        detail,
-        location:
-            [normalizeInlineText(job.projectTitle), unit].filter(Boolean).join(" • ") ||
-            (genericCustomJob ? "Custom job • Details in description" : "No location details"),
-    };
-}
 
 export function PaymentOverviewContent({
-    data,
-    isPending,
+	data,
+	includedJobsInitialSettings,
+	isPending,
 }: {
-    data?: PaymentOverviewData | null;
-    isPending?: boolean;
+	data?: PaymentOverviewData | null;
+	includedJobsInitialSettings?: Partial<TableSettings>;
+	isPending?: boolean;
 }) {
-    if (isPending) {
-        return (
-            <div className="grid gap-6">
-                <Skeleton className="h-36 rounded-3xl" />
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_360px]">
-                    <Skeleton className="h-[420px] rounded-3xl" />
-                    <Skeleton className="h-[420px] rounded-3xl" />
-                </div>
-            </div>
-        );
-    }
+	if (isPending) {
+		return (
+			<div className="grid gap-6">
+				<Skeleton className="h-36 rounded-3xl" />
+				<div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_360px]">
+					<Skeleton className="h-[420px] rounded-3xl" />
+					<Skeleton className="h-[420px] rounded-3xl" />
+				</div>
+			</div>
+		);
+	}
 
-    if (!data) {
-        return (
-            <Card className="rounded-3xl border-dashed">
-                <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                    Payment details could not be loaded.
-                </CardContent>
-            </Card>
-        );
-    }
+	if (!data) {
+		return (
+			<Card className="rounded-3xl border-dashed">
+				<CardContent className="py-12 text-center text-sm text-muted-foreground">
+					Payment details could not be loaded.
+				</CardContent>
+			</Card>
+		);
+	}
 
-    return (
-        <div className="grid gap-6">
-            <section className="relative overflow-hidden rounded-3xl border bg-card">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_bottom_right,hsl(var(--accent)/0.18),transparent_30%)]" />
-                <div className="relative flex flex-col gap-6 p-6 md:p-8">
-                    <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                        <div className="max-w-3xl">
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary">
-                                    Payment overview
-                                </Badge>
-                                {data.isCancelled ? (
-                                    <Badge variant="outline">Cancelled</Badge>
-                                ) : null}
-                            </div>
-                            <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
-                                Payout #{data.id}
-                            </h1>
-                            <p className="mt-2 text-sm text-muted-foreground md:text-base">
-                                {data.isCancelled
-                                    ? "Originally recorded"
-                                    : "Recorded"}{" "}
-                                {format(
-                                    new Date(data.createdAt),
-                                    "MMMM d, yyyy",
-                                )}{" "}
-                                for {data.paidTo?.name || "Unknown contractor"}.
-                            </p>
-                            {data.isCancelled ? (
-                                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                                    <p className="font-medium">
-                                        This payout has been cancelled.
-                                    </p>
-                                    <p className="mt-1 text-amber-800">
-                                        {data.cancelledAt
-                                            ? `Cancelled ${format(new Date(data.cancelledAt), "MMMM d, yyyy")}`
-                                            : "Cancelled"}{" "}
-                                        {data.cancelledBy?.name
-                                            ? `by ${data.cancelledBy.name}`
-                                            : ""}
-                                        .
-                                    </p>
-                                    {data.cancellationReason ? (
-                                        <p className="mt-1 text-amber-800">
-                                            Reason: {data.cancellationReason}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            ) : null}
-                            {!data.isCancelled && data.reversedAt ? (
-                                <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                                    <p className="font-medium">
-                                        This payout was reversed back to active.
-                                    </p>
-                                    <p className="mt-1 text-emerald-800">
-                                        Reversed{" "}
-                                        {format(
-                                            new Date(data.reversedAt),
-                                            "MMMM d, yyyy",
-                                        )}
-                                        {data.reversedBy?.name
-                                            ? ` by ${data.reversedBy.name}`
-                                            : ""}
-                                        .
-                                    </p>
-                                    {data.reversalReason ? (
-                                        <p className="mt-1 text-emerald-800">
-                                            Reason: {data.reversalReason}
-                                        </p>
-                                    ) : null}
-                                </div>
-                            ) : null}
-                        </div>
+	return (
+		<div className="grid gap-6">
+			<section className="relative overflow-hidden rounded-3xl border bg-card">
+				<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_bottom_right,hsl(var(--accent)/0.18),transparent_30%)]" />
+				<div className="relative flex flex-col gap-6 p-6 md:p-8">
+					<div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+						<div className="max-w-3xl">
+							<div className="mb-3 flex flex-wrap items-center gap-2">
+								<Badge variant="secondary">Payment overview</Badge>
+								{data.isCancelled ? (
+									<Badge variant="outline">Cancelled</Badge>
+								) : null}
+							</div>
+							<h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+								Payout #{data.id}
+							</h1>
+							<p className="mt-2 text-sm text-muted-foreground md:text-base">
+								{data.isCancelled ? "Originally recorded" : "Recorded"}{" "}
+								{format(new Date(data.createdAt), "MMMM d, yyyy")} for{" "}
+								{data.paidTo?.name || "Unknown contractor"}.
+							</p>
+							{data.isCancelled ? (
+								<div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+									<p className="font-medium">This payout has been cancelled.</p>
+									<p className="mt-1 text-amber-800">
+										{data.cancelledAt
+											? `Cancelled ${format(new Date(data.cancelledAt), "MMMM d, yyyy")}`
+											: "Cancelled"}{" "}
+										{data.cancelledBy?.name
+											? `by ${data.cancelledBy.name}`
+											: ""}
+										.
+									</p>
+									{data.cancellationReason ? (
+										<p className="mt-1 text-amber-800">
+											Reason: {data.cancellationReason}
+										</p>
+									) : null}
+								</div>
+							) : null}
+							{!data.isCancelled && data.reversedAt ? (
+								<div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+									<p className="font-medium">
+										This payout was reversed back to active.
+									</p>
+									<p className="mt-1 text-emerald-800">
+										Reversed {format(new Date(data.reversedAt), "MMMM d, yyyy")}
+										{data.reversedBy?.name ? ` by ${data.reversedBy.name}` : ""}
+										.
+									</p>
+									{data.reversalReason ? (
+										<p className="mt-1 text-emerald-800">
+											Reason: {data.reversalReason}
+										</p>
+									) : null}
+								</div>
+							) : null}
+						</div>
 
-                        <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
-                            <HeroMetric
-                                label="Total paid"
-                                value={formatCurrency(data.amount)}
-                            />
-                            <HeroMetric
-                                label="Jobs included"
-                                value={`${data.jobCount} job${data.jobCount === 1 ? "" : "s"}`}
-                            />
-                        </div>
-                    </div>
+						<div className="grid gap-3 sm:grid-cols-2 xl:min-w-[360px]">
+							<HeroMetric
+								label="Total paid"
+								value={formatCurrency(data.amount)}
+							/>
+							<HeroMetric
+								label="Jobs included"
+								value={`${data.jobCount} job${data.jobCount === 1 ? "" : "s"}`}
+							/>
+						</div>
+					</div>
 
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                        <InfoPill
-                            icon={Icons.User2}
-                            label="Paid to"
-                            value={data.paidTo?.name || "Unknown contractor"}
-                            description={
-                                data.paidTo?.email || "No email on file"
-                            }
-                        />
-                        <InfoPill
-                            icon={Icons.ShieldCheck}
-                            label="Authorized by"
-                            value={data.authorizedBy?.name || "Unknown payer"}
-                        />
-                        <InfoPill
-                            icon={Icons.CreditCard}
-                            label="Method"
-                            value={data.paymentMethod}
-                            description={
-                                data.checkNo
-                                    ? `Check ${data.checkNo}`
-                                    : "No check number"
-                            }
-                        />
-                        <InfoPill
-                            icon={Icons.BadgeDollarSign}
-                            label="Charges"
-                            value={formatCurrency(data.charges)}
-                            description={`Subtotal ${formatCurrency(data.subTotal)}`}
-                        />
-                    </div>
-                </div>
-            </section>
+					<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+						<InfoPill
+							icon={Icons.User2}
+							label="Paid to"
+							value={data.paidTo?.name || "Unknown contractor"}
+							description={data.paidTo?.email || "No email on file"}
+						/>
+						<InfoPill
+							icon={Icons.ShieldCheck}
+							label="Authorized by"
+							value={data.authorizedBy?.name || "Unknown payer"}
+						/>
+						<InfoPill
+							icon={Icons.CreditCard}
+							label="Method"
+							value={data.paymentMethod}
+							description={
+								data.checkNo ? `Check ${data.checkNo}` : "No check number"
+							}
+						/>
+						<InfoPill
+							icon={Icons.BadgeDollarSign}
+							label="Charges"
+							value={formatCurrency(data.charges)}
+							description={`Subtotal ${formatCurrency(data.subTotal)}`}
+						/>
+					</div>
+				</div>
+			</section>
 
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_360px]">
-                <Card className="rounded-3xl">
-                    <CardHeader>
-                        <CardTitle>Included jobs</CardTitle>
-                        <CardDescription>
-                            {data.isCancelled
-                                ? "Jobs originally bundled into this payout, now restored to unpaid status."
-                                : "Every job bundled into this payout batch."}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-3">
-                        {data.jobs.length ? (
-                            data.jobs.map((job) => {
-                                const display = getPayoutJobDisplay(job);
+			<div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_360px]">
+				<Card className="rounded-3xl">
+					<CardHeader>
+						<CardTitle>Included jobs</CardTitle>
+						<CardDescription>
+							{data.isCancelled
+								? "Jobs originally bundled into this payout, now restored to unpaid status."
+								: "Every job bundled into this payout batch."}
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<ContractorPayoutOverviewJobsTable
+							data={data.jobs}
+							emptyText="No jobs were attached to this payout."
+							initialSettings={includedJobsInitialSettings}
+						/>
+					</CardContent>
+				</Card>
 
-                                return (
-                                    <div
-                                        key={job.id}
-                                        className="rounded-2xl border bg-background/70 p-4"
-                                    >
-                                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                                            <div className="min-w-0">
-                                                <p className="truncate font-medium text-foreground">
-                                                    #{job.id} {display.label}
-                                                </p>
-                                                {display.detail ? (
-                                                    <p className="mt-1 line-clamp-2 text-sm text-foreground/80">
-                                                        {display.detail}
-                                                    </p>
-                                                ) : null}
-                                                <p className="mt-1 text-sm text-muted-foreground">
-                                                    {display.location}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center gap-3 md:flex-col md:items-end">
-                                                <Badge variant="secondary">
-                                                    {job.status || "Unknown"}
-                                                </Badge>
-                                                <p className="text-sm font-semibold text-foreground">
-                                                    {formatCurrency(job.amount)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <p className="mt-3 text-xs text-muted-foreground">
-                                            Created{" "}
-                                            {format(
-                                                new Date(job.createdAt),
-                                                "MMM d, yyyy",
-                                            )}
-                                        </p>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <p className="text-sm text-muted-foreground">
-                                No jobs were attached to this payout.
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
+				<div className="grid gap-6">
+					<Card className="rounded-3xl">
+						<CardHeader>
+							<CardTitle>Payout breakdown</CardTitle>
+							<CardDescription>
+								Summary of how the batch total was computed.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="grid gap-3">
+							<DetailRow
+								label="Subtotal"
+								value={formatCurrency(data.subTotal)}
+							/>
+							<DetailRow
+								label="Charges / discounts"
+								value={formatCurrency(data.charges)}
+							/>
+							<DetailRow label="Method" value={data.paymentMethod} />
+							<DetailRow label="Check no" value={data.checkNo || "N/A"} />
+							<Separator className="my-1" />
+							<DetailRow
+								label="Total paid"
+								value={formatCurrency(data.amount)}
+								emphasis
+							/>
+						</CardContent>
+					</Card>
 
-                <div className="grid gap-6">
-                    <Card className="rounded-3xl">
-                        <CardHeader>
-                            <CardTitle>Payout breakdown</CardTitle>
-                            <CardDescription>
-                                Summary of how the batch total was computed.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-3">
-                            <DetailRow
-                                label="Subtotal"
-                                value={formatCurrency(data.subTotal)}
-                            />
-                            <DetailRow
-                                label="Charges / discounts"
-                                value={formatCurrency(data.charges)}
-                            />
-                            <DetailRow
-                                label="Method"
-                                value={data.paymentMethod}
-                            />
-                            <DetailRow
-                                label="Check no"
-                                value={data.checkNo || "N/A"}
-                            />
-                            <Separator className="my-1" />
-                            <DetailRow
-                                label="Total paid"
-                                value={formatCurrency(data.amount)}
-                                emphasis
-                            />
-                        </CardContent>
-                    </Card>
+					<Card className="rounded-3xl">
+						<CardHeader>
+							<CardTitle>Adjustments</CardTitle>
+							<CardDescription>
+								Any extra payout lines stored with this batch.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="grid gap-3">
+							{data.adjustments.length ? (
+								data.adjustments.map((item) => (
+									<div
+										key={item.id}
+										className="rounded-2xl border bg-background/70 p-4"
+									>
+										<div className="flex items-start justify-between gap-3">
+											<div>
+												<p className="font-medium text-foreground">
+													{item.description || item.type}
+												</p>
+												<p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+													{item.type}
+												</p>
+											</div>
+											<p className="shrink-0 text-sm font-semibold text-foreground">
+												{formatCurrency(item.amount)}
+											</p>
+										</div>
+										<p className="mt-3 text-xs text-muted-foreground">
+											Added {format(new Date(item.createdAt), "MMM d, yyyy")}
+										</p>
+									</div>
+								))
+							) : (
+								<p className="text-sm text-muted-foreground">
+									No adjustments were recorded for this payout.
+								</p>
+							)}
+						</CardContent>
+					</Card>
 
-                    <Card className="rounded-3xl">
-                        <CardHeader>
-                            <CardTitle>Adjustments</CardTitle>
-                            <CardDescription>
-                                Any extra payout lines stored with this batch.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid gap-3">
-                            {data.adjustments.length ? (
-                                data.adjustments.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="rounded-2xl border bg-background/70 p-4"
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="font-medium text-foreground">
-                                                    {item.description ||
-                                                        item.type}
-                                                </p>
-                                                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                                                    {item.type}
-                                                </p>
-                                            </div>
-                                            <p className="shrink-0 text-sm font-semibold text-foreground">
-                                                {formatCurrency(item.amount)}
-                                            </p>
-                                        </div>
-                                        <p className="mt-3 text-xs text-muted-foreground">
-                                            Added{" "}
-                                            {format(
-                                                new Date(item.createdAt),
-                                                "MMM d, yyyy",
-                                            )}
-                                        </p>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-muted-foreground">
-                                    No adjustments were recorded for this
-                                    payout.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="rounded-3xl">
-                        <CardHeader>
-                            <CardTitle>Activity history</CardTitle>
-                            <CardDescription>
-                                Cancellation, reversal, and payout issue events
-                                for this batch.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <ActivityHistory
-                                className="py-0"
-                                tags={[
-                                    {
-                                        tagName: "paymentId",
-                                        tagValue: String(data.id),
-                                    },
-                                ]}
-                                emptyText="No payout activity yet"
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        </div>
-    );
+					<Card className="rounded-3xl">
+						<CardHeader>
+							<CardTitle>Activity history</CardTitle>
+							<CardDescription>
+								Cancellation, reversal, and payout issue events for this batch.
+							</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<ActivityHistory
+								className="py-0"
+								tags={[
+									{
+										tagName: "paymentId",
+										tagValue: String(data.id),
+									},
+								]}
+								emptyText="No payout activity yet"
+							/>
+						</CardContent>
+					</Card>
+				</div>
+			</div>
+		</div>
+	);
 }
 
 function HeroMetric({ label, value }: { label: string; value: string }) {
-    return (
-        <div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                {label}
-            </p>
-            <p className="mt-2 text-xl font-semibold text-foreground">
-                {value}
-            </p>
-        </div>
-    );
+	return (
+		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
+			<p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+				{label}
+			</p>
+			<p className="mt-2 text-xl font-semibold text-foreground">{value}</p>
+		</div>
+	);
 }
 
 function InfoPill({
-    icon: Icon,
-    label,
-    value,
-    description,
+	icon: Icon,
+	label,
+	value,
+	description,
 }: {
-    icon: ComponentType<{ className?: string }>;
-    label: string;
-    value: string;
-    description?: string;
+	icon: ComponentType<{ className?: string }>;
+	label: string;
+	value: string;
+	description?: string;
 }) {
-    return (
-        <div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 text-muted-foreground">
-                <Icon className="h-4 w-4" />
-                <p className="text-xs uppercase tracking-[0.18em]">{label}</p>
-            </div>
-            <p className="mt-3 truncate font-medium text-foreground">{value}</p>
-            {description ? (
-                <p className="mt-1 truncate text-sm text-muted-foreground">
-                    {description}
-                </p>
-            ) : null}
-        </div>
-    );
+	return (
+		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
+			<div className="flex items-center gap-2 text-muted-foreground">
+				<Icon className="h-4 w-4" />
+				<p className="text-xs uppercase tracking-[0.18em]">{label}</p>
+			</div>
+			<p className="mt-3 truncate font-medium text-foreground">{value}</p>
+			{description ? (
+				<p className="mt-1 truncate text-sm text-muted-foreground">
+					{description}
+				</p>
+			) : null}
+		</div>
+	);
 }
 
 function DetailRow({
-    label,
-    value,
-    emphasis = false,
+	label,
+	value,
+	emphasis = false,
 }: {
-    label: string;
-    value: string;
-    emphasis?: boolean;
+	label: string;
+	value: string;
+	emphasis?: boolean;
 }) {
-    return (
-        <div className="flex items-center justify-between gap-3">
-            <p
-                className={
-                    emphasis
-                        ? "font-medium text-foreground"
-                        : "text-sm text-muted-foreground"
-                }
-            >
-                {label}
-            </p>
-            <p
-                className={
-                    emphasis
-                        ? "text-base font-semibold text-foreground"
-                        : "text-sm font-medium text-foreground"
-                }
-            >
-                {value}
-            </p>
-        </div>
-    );
+	return (
+		<div className="flex items-center justify-between gap-3">
+			<p
+				className={
+					emphasis
+						? "font-medium text-foreground"
+						: "text-sm text-muted-foreground"
+				}
+			>
+				{label}
+			</p>
+			<p
+				className={
+					emphasis
+						? "text-base font-semibold text-foreground"
+						: "text-sm font-medium text-foreground"
+				}
+			>
+				{value}
+			</p>
+		</div>
+	);
 }

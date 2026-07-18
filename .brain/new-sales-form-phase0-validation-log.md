@@ -10,6 +10,29 @@ Track Phase 0 validation runs separately from the acceptance matrix and fixture
 catalog. This log records which checks have evidence, which checks are blocked,
 and which checks still require browser/runtime proof.
 
+## 2026-07-18 Migration Gate Rerun
+
+Command:
+
+```sh
+bun run test:new-sales-form-migration
+```
+
+Result:
+
+- Shared sales package workflow/domain suite passed: `161` tests / `492` assertions.
+- Dealer persistence/query suite passed: `39` tests / `101` assertions.
+- New-sales-form API compatibility tests passed in the gate; the immediately preceding focused rerun recorded `23` tests / `155` assertions across the API query and history query suites.
+- The gate stopped at `@gnd/dealership` typecheck before the watched `www` signal ran.
+- Dealership diagnostics are in unchanged baseline files, including `apps/api/src/db/queries/checkout.ts`, `apps/api/src/db/queries/sales-form.ts`, `apps/api/src/db/queries/sales-inventory-inbound-ownership.ts`, `packages/inventory`, `packages/pdf`, `packages/sales/src/sales-form/ui/workflow/sales-form-workflow-panel.tsx`, `packages/sales/src/sales-fulfillment-plan.ts`, and duplicate React types in shared `packages/ui` primitives.
+- The changed estimate implementation `packages/sales/src/sales-form/ui/workflow/house-package-tool-panel.tsx` and changed new-form history/parity files did not appear in the dealership diagnostics.
+
+Gate interpretation:
+
+- Feature test evidence is green.
+- The repository-level migration command is not green because the documented gate still requires a clean dealership typecheck and does not tolerate its current unrelated baseline.
+- Do not report the full migration gate as passed until that broader baseline is repaired or the gate policy is deliberately revised.
+
 ## Pend Decision
 
 The browser/runtime proof remains open, but it is no longer blocking the next

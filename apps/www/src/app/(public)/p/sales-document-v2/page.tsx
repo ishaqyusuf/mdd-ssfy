@@ -14,6 +14,9 @@ export default async function Page(props: {
 		accessToken?: string;
 		snapshotId?: string;
 		templateId?: string;
+		pageBreakMode?: string;
+		showImages?: string;
+		headlineFirstPage?: string;
 	}>;
 }) {
 	const searchParams = await props.searchParams;
@@ -25,6 +28,9 @@ export default async function Page(props: {
 			accessToken={searchParams.accessToken}
 			snapshotId={searchParams.snapshotId}
 			templateId={searchParams.templateId ?? "template-2"}
+			pageBreakMode={searchParams.pageBreakMode}
+			showImages={searchParams.showImages !== "false"}
+			headlineFirstPage={searchParams.headlineFirstPage !== "false"}
 		/>
 	);
 }

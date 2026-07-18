@@ -37,12 +37,26 @@ Tracks notable migrations and migration strategy.
   - Docker recovery attempt on 2026-07-08: `docker compose -f apps/www/docker-compose.yml restart mysql` hung and was cancelled, Docker Desktop was quit and reopened, `docker desktop start` reported Docker Desktop already running, but `docker info` still could not connect to `unix:///Users/M1PRO/.docker/run/docker.sock`.
   - Follow-up on 2026-07-08: local development was pointed at the hosted dev database branch in `.env.local`, and the dev service script was changed so the hosted branch no longer requires Docker MySQL startup.
   - The schema still needs to be migrated/applied in the intended database environment before the web bug reporting runtime can persist reports.
+  - 2026-07-17 expanded bug reporting schema follow-up:
+    - Added `BugReportCaptureType` for video vs screenshot evidence.
+    - Added `BugReportTranscriptionStatus` and follow-up voice-note fields: `audioDocumentId`, `audioDurationMs`, `transcriptionStatus`, `transcriptionText`, and `transcriptionProvider`.
+    - Added optional external issue tracking fields to `BugReport`: `externalIssueProvider`, `externalIssueKey`, `externalIssueUrl`, `externalIssueStatus`, `externalIssueError`, and `externalIssueCreatedAt`.
+    - Added indexes on `BugReportFollowUp.audioDocumentId` and `[transcriptionStatus, createdAt]`.
+    - Added indexes on `[externalIssueProvider, externalIssueKey]` and `[externalIssueStatus, createdAt]`.
+    - `bun --cwd packages/db db:generate` passed.
+    - `bun --cwd packages/db with-env prisma validate` passed with the repository's existing `relationMode = "prisma"` warnings.
+    - 2026-07-17 local runtime apply follow-up: direct information-schema checks showed `BugReport` and `BugReportFollowUp` were missing from local `gnd-prisma2` even though `prisma migrate status` reported the migration history as up to date.
+    - A broad `bun --cwd packages/db with-env prisma db push` was attempted without `--accept-data-loss` and correctly stopped on unrelated legacy LongText -> Json drift plus an unrelated `DealerAuthAccount` uniqueness warning; `--accept-data-loss` was not used.
+    - To unblock local bug-report runtime smoke without touching unrelated legacy tables, only `BugReport` and `BugReportFollowUp` were created manually in local `gnd-prisma2` from the current Prisma model shape, including capture/transcription enums and indexes. Follow-up information-schema checks confirmed all expected bug-report columns exist.
+    - A local API-query smoke using Super Admin user `1` created and hydrated a screenshot bug report with one follow-up, then removed the smoke `BugReport`, `BugReportFollowUp`, and `StoredDocument` rows; cleanup verification found no `bug-reports/1/codex-smoke.png` stored document left behind.
+    - No migration file or broad DB push was applied in this pass; apply these schema changes through the intended database migration/deploy workflow before relying on screenshot/audio persistence outside the local dev DB.
 - 2026-07-09 sales email delivery ledger schema addition:
   - Added `packages/db/src/schema/sales-email-attempts.prisma` with `SalesEmailAttemptStatus` and `SalesEmailAttempt`.
   - Added `Users.sentSalesEmailAttempts` and `Users.salesRepEmailAttempts` relation arrays.
   - `bun --cwd packages/db db:generate` passed after adding the self-relation `NoAction` referential action required by Prisma/MySQL.
   - `bun prisma.ts` passed from `packages/jobs`, regenerating `packages/jobs/src/schema.prisma`.
   - No database migration or `db push` was applied in this implementation pass; the schema still needs to be migrated/applied in the intended database environment before the sales email ledger can persist attempts at runtime.
+  - 2026-07-17 local runtime follow-up: `SalesEmailAttempt` was still absent from local `gnd-prisma2`. Applied only the current model's table and indexes through targeted idempotent SQL because broad `db push` included unrelated legacy drift. Prisma create/delete smoke passed and left no test row behind. No `_prisma_migrations` metadata was changed.
 - 2026-07-09 sales email ledger local jobs follow-up:
   - The local jobs error was caused by `packages/jobs` loading `DATABASE_URL` directly through `dotenv-cli`, which resolved to the stale local MySQL target instead of the intended hosted dev target.
   - `packages/db` and `packages/jobs` dev `with-env` scripts now run through the shared `../../local-infra-kit` GND profile, so package-level Prisma/jobs commands load root env plus package env and resolve the active `DATABASE_URL` from the selected profile.
@@ -57,6 +71,7 @@ Tracks notable migrations and migration strategy.
   - Root `bun run db:push` does not exist in this repository.
   - `bun --filter @gnd/db push:dev` completed successfully against the configured hosted dev database and regenerated Prisma Client.
   - No manual migration file was created in this pass, matching the current repository workflow guidance.
+  - 2026-07-17 local runtime follow-up: `TaskRunDiagnostic` was still absent from local `gnd-prisma2`. Applied only the current model's table, unique run-id index, and declared query indexes through targeted idempotent SQL because broad `db push` included unrelated legacy drift. Prisma create/delete smoke passed and left no test row behind. No `_prisma_migrations` metadata was changed.
 - 2026-07-15 sales payment review queue schema addition:
   - Added nullable/default review fields to `SalesPayments`: `origin`, `reviewStatus`, `reviewedAt`, `reviewedById`, `reviewMethod`, `reviewedByAction`, and `reviewNote`.
   - Added queue indexes `SalesPayments_orderId_reviewStatus_createdAt_idx` and `SalesPayments_reviewStatus_createdAt_idx`.
@@ -76,6 +91,13 @@ Tracks notable migrations and migration strategy.
   - Added `Users.masterPasswordLoginAudits` and `Users.clearedMasterPasswordAudits` relation arrays.
   - Added migration `packages/db/src/schema/migrations/20260715133000_add_master_password_login_audits/migration.sql`.
   - Follow-up required: run `bun run db:generate` and apply/push the migration in the intended database environment.
+  - 2026-07-17 local runtime repair: direct auth login produced Prisma `P2021` because local `gnd-prisma2` did not have `MasterPasswordLoginAudit` even though the generated client included the model.
+  - Applied only `packages/db/src/schema/migrations/20260715133000_add_master_password_login_audits/migration.sql` directly to local MySQL `127.0.0.1:3307/gnd-prisma2` with the MySQL client to unblock local master-password login audit writes.
+  - Verified `MasterPasswordLoginAudit` and indexes exist, then ran a Prisma smoke that created, read, and deleted a `db.masterPasswordLoginAudit` row successfully.
+  - `prisma migrate resolve --applied 20260715133000_add_master_password_login_audits` failed with `P3017` because the current Prisma config resolves migration metadata from `src/migrations` while this repository stores this SQL under `src/schema/migrations`; `prisma migrate status` still reports the configured migration set as up to date. No manual `_prisma_migrations` metadata row was inserted.
+  - 2026-07-17 country follow-up added nullable `countryCode VARCHAR(2)` through `packages/db/src/schema/migrations/20260717120000_add_master_password_login_country_code/migration.sql`.
+  - `bun --cwd packages/db db-migrate` refused the existing local drift/reset and `bun --cwd packages/db push:dev` refused unrelated legacy JSON conversions and a `DealerAuthAccount` uniqueness change without `--accept-data-loss`; neither broad operation was forced.
+  - Applied only the additive `countryCode` column to local `gnd-prisma2`, verified its information-schema shape, and ran a Super Admin API smoke that created/listed/archived/hid/deleted a disposable `NG` audit row. A live non-Super Admin query was also rejected with `FORBIDDEN`.
 
 ## TODO
 - Add a migration history summary with timestamps, intent, rollout notes, and any backfill requirements.

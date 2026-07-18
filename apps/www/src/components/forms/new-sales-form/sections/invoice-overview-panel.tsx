@@ -30,10 +30,15 @@ import {
 import { useNewSalesFormStore } from "../store";
 import { computeSummary, repriceLineItemsByProfile } from "../mappers";
 import { CustomerSelectorDialog } from "./customer-selector-dialog";
+import {
+	shouldPreserveInitialEditCustomerResolution,
+	shouldPreserveInitialEditTaxRate,
+} from "./customer-resolution";
 
 interface Props {
 	mode: "create" | "edit";
 	type: "order" | "quote";
+	historyRestoreActive?: boolean;
 }
 
 function formDateValue(value: string | null) {
@@ -54,6 +59,9 @@ export function InvoiceOverviewPanel(props: Props) {
 	);
 	const lastProfileIdRef = useRef<number | null | undefined>(undefined);
 	const pendingProfileRepriceRef = useRef(false);
+	const initialEditCustomerIdRef = useRef<number | null | undefined>(undefined);
+	const initialEditTaxCodeRef = useRef<string | null | undefined>(undefined);
+	const initialCustomerResolutionHandledRef = useRef(false);
 
 	const [isCustomerSelectorOpen, setIsCustomerSelectorOpen] = useState(false);
 	const customerProfiles = useCustomerProfilesQuery(true);
@@ -86,6 +94,13 @@ export function InvoiceOverviewPanel(props: Props) {
 	const shippingLines = ((resolvedCustomer.data as any)?.shipping?.lines ||
 		[]) as string[];
 
+	useEffect(() => {
+		if (props.mode !== "edit" || !record) return;
+		if (initialEditCustomerIdRef.current !== undefined) return;
+		initialEditCustomerIdRef.current = customerId;
+		initialEditTaxCodeRef.current = taxCode;
+	}, [customerId, props.mode, record, taxCode]);
+
 	function getProfileCoefficient(profileId?: number | null) {
 		if (profileId == null) return null;
 		const profile = profileOptions.find(
@@ -106,7 +121,9 @@ export function InvoiceOverviewPanel(props: Props) {
 			lastProfileCoefficientRef.current === undefined
 				? getProfileCoefficient(currentProfileId)
 				: lastProfileCoefficientRef.current;
-		const normalizedNextProfileId = nextProfileId ? Number(nextProfileId) : null;
+		const normalizedNextProfileId = nextProfileId
+			? Number(nextProfileId)
+			: null;
 		const nextCoefficient = getProfileCoefficient(normalizedNextProfileId);
 		setCustomerProfileMeta(patch, previousCoefficient, nextCoefficient);
 		lastProfileCoefficientRef.current = nextCoefficient;
@@ -118,8 +135,27 @@ export function InvoiceOverviewPanel(props: Props) {
 	useEffect(() => {
 		const data = resolvedCustomer.data as any;
 		if (!record || !data || !customerId) return;
+		if (props.historyRestoreActive) return;
+		const resolvedCustomerId =
+			Number(data.customerId || 0) > 0 ? Number(data.customerId) : null;
+		if (resolvedCustomerId !== customerId) return;
+		if (
+			shouldPreserveInitialEditCustomerResolution({
+				mode: props.mode,
+				initialCustomerId: initialEditCustomerIdRef.current,
+				currentCustomerId: customerId,
+				resolvedCustomerId,
+				initialResolutionHandled: initialCustomerResolutionHandledRef.current,
+			})
+		) {
+			initialCustomerResolutionHandledRef.current = true;
+			return;
+		}
+		if (props.mode === "edit") {
+			initialCustomerResolutionHandledRef.current = true;
+		}
 		const nextMeta = {
-			customerId: Number(data.customerId || customerId || 0) || null,
+			customerId: resolvedCustomerId,
 			customerProfileId: data.profileId ?? customerProfileId,
 			billingAddressId: data.billing?.id ?? data.billingId ?? null,
 			shippingAddressId: data.shipping?.id ?? data.shippingId ?? null,
@@ -144,6 +180,8 @@ export function InvoiceOverviewPanel(props: Props) {
 		customerId,
 		customerProfileId,
 		paymentTerm,
+		props.historyRestoreActive,
+		props.mode,
 		resolvedCustomer.data,
 		shippingAddressId,
 		setCustomerProfileMeta,
@@ -241,19 +279,13 @@ export function InvoiceOverviewPanel(props: Props) {
 			...record.summary,
 			...liveSummary,
 		});
-	}, [
-		liveSummary,
-		record,
-		setSummary,
-	]);
+	}, [liveSummary, record, setSummary]);
 
 	const creditUsed = Number(liveSummary.grandTotal || 0);
-	const paymentMethodOptions: SalesFormSelectOption[] = buildSalesFormSelectOptions(
-		salesFormPaymentMethods,
-	);
-	const paymentTermOptions: SalesFormSelectOption[] = buildSalesFormSelectOptions(
-		salesFormPaymentTerms,
-	);
+	const paymentMethodOptions: SalesFormSelectOption[] =
+		buildSalesFormSelectOptions(salesFormPaymentMethods);
+	const paymentTermOptions: SalesFormSelectOption[] =
+		buildSalesFormSelectOptions(salesFormPaymentTerms);
 	const deliveryOptions: SalesFormSelectOption[] = buildSalesFormSelectOptions(
 		salesFormDeliveryOptions,
 	);
@@ -274,6 +306,12 @@ export function InvoiceOverviewPanel(props: Props) {
 		const currentProfileId = customerProfileId
 			? Number(customerProfileId)
 			: null;
+		if (props.historyRestoreActive) {
+			lastProfileCoefficientRef.current = normalizedCurrent;
+			lastProfileIdRef.current = currentProfileId;
+			pendingProfileRepriceRef.current = false;
+			return;
+		}
 		if (lastProfileCoefficientRef.current === undefined) {
 			lastProfileCoefficientRef.current = normalizedCurrent;
 			lastProfileIdRef.current = currentProfileId;
@@ -310,36 +348,62 @@ export function InvoiceOverviewPanel(props: Props) {
 	}, [
 		customerProfileId,
 		profileOptions,
+		props.historyRestoreActive,
 		record,
 		setCustomerProfileMeta,
 	]);
 
 	useEffect(() => {
 		if (!record) return;
+		if (props.historyRestoreActive) return;
 		if (customerProfileId != null) return;
 		const defaultProfile = getDefaultSalesFormCustomerProfile(profileOptions);
 		if (!defaultProfile?.id) return;
 		const profileMeta = (defaultProfile?.meta || {}) as Record<string, any>;
 		const nextProfileId = Number(defaultProfile.id);
-		applyCustomerProfileMeta({
-			customerProfileId: nextProfileId,
-			paymentTerm: resolveSalesFormProfilePaymentTerm(profileMeta, paymentTerm),
-		}, nextProfileId);
+		applyCustomerProfileMeta(
+			{
+				customerProfileId: nextProfileId,
+				paymentTerm: resolveSalesFormProfilePaymentTerm(
+					profileMeta,
+					paymentTerm,
+				),
+			},
+			nextProfileId,
+		);
 	}, [
 		customerProfileId,
 		paymentTerm,
 		profileOptions,
+		props.historyRestoreActive,
 		record,
 		setCustomerProfileMeta,
 	]);
 
 	useEffect(() => {
 		if (!record) return;
+		if (props.historyRestoreActive) return;
+		if (
+			shouldPreserveInitialEditTaxRate({
+				mode: props.mode,
+				initialTaxCode: initialEditTaxCodeRef.current,
+				currentTaxCode: taxCode,
+			})
+		) {
+			return;
+		}
 		const nextRate = resolveSalesFormTaxRateByCode(taxOptions, taxCode);
 		if (summaryTaxRate !== Number(nextRate || 0)) {
 			setTaxRate(nextRate);
 		}
-	}, [setTaxRate, summaryTaxRate, taxCode, taxOptions]);
+	}, [
+		props.historyRestoreActive,
+		props.mode,
+		setTaxRate,
+		summaryTaxRate,
+		taxCode,
+		taxOptions,
+	]);
 
 	function applyCustomerProfile(value: string) {
 		if (value === "none") {
@@ -353,10 +417,16 @@ export function InvoiceOverviewPanel(props: Props) {
 			(p: any) => Number(p.id) === selectedId,
 		) as any;
 		const profileMeta = profile?.meta || {};
-		applyCustomerProfileMeta({
-			customerProfileId: selectedId,
-			paymentTerm: resolveSalesFormProfilePaymentTerm(profileMeta, paymentTerm),
-		}, selectedId);
+		applyCustomerProfileMeta(
+			{
+				customerProfileId: selectedId,
+				paymentTerm: resolveSalesFormProfilePaymentTerm(
+					profileMeta,
+					paymentTerm,
+				),
+			},
+			selectedId,
+		);
 	}
 
 	if (!record) return null;

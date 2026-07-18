@@ -1,6 +1,30 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { pageTabsRouter } from "./page-tabs.route";
+
+const routerSource = readFileSync(
+	resolve(import.meta.dir, "page-tabs.route.ts"),
+	{
+		encoding: "utf8",
+	},
+);
+
+const countedRolloutPages = [
+	"/sales-book/orders",
+	"/sales-book/quotes",
+	"/sales-book/customers",
+	"/sales-book/dealers",
+	"/hrm/employees",
+	"/hrm/contractors/jobs",
+	"/community/projects",
+	"/community/project-units",
+	"/community/unit-invoices",
+	"/community/templates",
+	"/community/customer-services",
+	"/community/unit-productions",
+];
 
 type PageTabFixture = {
 	id: number;
@@ -33,21 +57,30 @@ function createCaller({
 	roleName = "Sales",
 	tabs = [],
 	indices = [],
+	dealerCount = 7,
 }: {
 	userId?: number;
 	roleName?: string;
 	tabs?: PageTabFixture[];
 	indices?: PageTabIndexFixture[];
+	dealerCount?: number;
 } = {}) {
 	const state = {
 		tabs: [...tabs],
 		indices: [...indices],
+		dealerCountArgs: [] as DbArgs[],
 	};
 	const db = {
 		users: {
 			findUnique: async () => ({
 				roles: [{ role: { name: roleName } }],
 			}),
+		},
+		dealerAuth: {
+			count: async (args: DbArgs) => {
+				state.dealerCountArgs.push(args);
+				return dealerCount;
+			},
 		},
 		pageTabs: {
 			findMany: async (args: DbArgs) =>
@@ -149,7 +182,8 @@ function createCaller({
 			updateMany: async (args: DbArgs) => {
 				for (const index of state.indices) {
 					const matchesUser =
-						args.where.userId === undefined || index.userId === args.where.userId;
+						args.where.userId === undefined ||
+						index.userId === args.where.userId;
 					const matchesTab =
 						args.where.tabId === undefined || index.tabId === args.where.tabId;
 					const matchesDefault =
@@ -178,7 +212,8 @@ function createCaller({
 				return index;
 			},
 		},
-		$transaction: async (callback: (client: unknown) => unknown) => callback(db),
+		$transaction: async (callback: (client: unknown) => unknown) =>
+			callback(db),
 	};
 
 	return {
@@ -204,6 +239,14 @@ function createCaller({
 }
 
 describe("pageTabs router", () => {
+	it("keeps count adapters registered for every rollout page", () => {
+		const missing = countedRolloutPages.filter(
+			(page) => !routerSource.includes(`case "${page}":`),
+		);
+
+		expect(missing).toEqual([]);
+	});
+
 	it("lists owned private tabs and public tabs only", async () => {
 		const { caller } = createCaller({
 			tabs: [
@@ -244,6 +287,35 @@ describe("pageTabs router", () => {
 			visibility: "public",
 			canManage: false,
 		});
+	});
+
+	it("normalizes page inputs to path-only values", async () => {
+		const { caller, state } = createCaller({
+			tabs: [
+				{
+					id: 1,
+					page: "/custom",
+					title: "Mine",
+					query: "q=mine",
+					userId: 2,
+					private: true,
+					deletedAt: null,
+				},
+			],
+		});
+
+		const listed = await caller.list({
+			page: "https://gndprodesk.localhost:3011/custom?sort=createdAt.desc#tabs",
+		});
+		const created = await caller.create({
+			page: "custom/?q=ignored#tabs",
+			title: "Created",
+			query: "q=new",
+		});
+
+		expect(listed.map((tab) => tab.title)).toEqual(["Mine"]);
+		expect(created.page).toBe("/custom");
+		expect(state.tabs.at(-1)?.page).toBe("/custom");
 	});
 
 	it("rejects public tab creation for non Super Admin users", async () => {
@@ -450,5 +522,32 @@ describe("pageTabs router", () => {
 			{ tabId: 1, tabIndex: 1 },
 			{ tabId: 2, tabIndex: 0 },
 		]);
+	});
+
+	it("returns dealer tab counts from the dealer count adapter", async () => {
+		const { caller, state } = createCaller({
+			dealerCount: 11,
+			tabs: [
+				{
+					id: 1,
+					page: "/sales-book/dealers",
+					title: "Active dealers",
+					query: "search=prime&status=active",
+					userId: 2,
+					private: true,
+					deletedAt: null,
+				},
+			],
+		});
+
+		const result = await caller.list({ page: "/sales-book/dealers" });
+
+		expect(result[0]).toMatchObject({
+			title: "Active dealers",
+			count: 11,
+		});
+		expect(state.dealerCountArgs[0]?.where).toMatchObject({
+			status: "active",
+		});
 	});
 });

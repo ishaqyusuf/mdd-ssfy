@@ -8,12 +8,16 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { Suspense, useEffect } from "react";
 
+import { SalesProductionColumnVisibility } from "@/components/tables-2/sales-production/column-visibility";
+import { DataTable } from "@/components/tables-2/sales-production/data-table";
+import { SalesProductionSkeleton } from "@/components/tables-2/sales-production/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesProductionFilterParams } from "@/hooks/use-sales-production-filter-params";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
-import type { PageFilterData } from "@api/type";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterInputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Calendar } from "@gnd/ui/calendar";
@@ -27,11 +31,12 @@ import {
 import { Skeleton } from "@gnd/ui/skeleton";
 
 type WorkspaceMode = "admin" | "worker";
+type SalesProductionInput = RouterInputs["sales"]["productions"];
 
 interface Props {
 	mode: WorkspaceMode;
-	initialDashboardData?: DashboardResponse;
-	initialFilterList?: PageFilterData[];
+	initialTableSettings?: Partial<TableSettings>;
+	defaultTableFilters?: SalesProductionInput;
 }
 
 export type DashboardResponse = {
@@ -80,14 +85,6 @@ const SalesProductionSearchFilter = dynamic(
 	},
 );
 
-const DataTable = dynamic(
-	() =>
-		import("./tables/sales-production/data-table").then((mod) => mod.DataTable),
-	{
-		loading: () => <ProductionTableSkeleton />,
-	},
-);
-
 function FilterCardSkeleton() {
 	return (
 		<div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:min-w-[320px]">
@@ -96,21 +93,26 @@ function FilterCardSkeleton() {
 	);
 }
 
-function ProductionTableSkeleton() {
+function ProductionTableSkeleton({
+	initialSettings,
+	workerMode,
+}: {
+	initialSettings?: Partial<TableSettings>;
+	workerMode: boolean;
+}) {
 	return (
-		<div className="space-y-3">
-			<Skeleton className="h-10 w-full rounded-xl" />
-			<Skeleton className="h-24 w-full rounded-xl" />
-			<Skeleton className="h-24 w-full rounded-xl" />
-			<Skeleton className="h-24 w-full rounded-xl" />
-		</div>
+		<SalesProductionSkeleton
+			initialSettings={initialSettings}
+			rowCount={8}
+			workerMode={workerMode}
+		/>
 	);
 }
 
 export function ProductionWorkspace({
 	mode,
-	initialDashboardData,
-	initialFilterList,
+	initialTableSettings,
+	defaultTableFilters,
 }: Props) {
 	const workerMode = mode === "worker";
 	const auth = useAuth();
@@ -124,12 +126,11 @@ export function ProductionWorkspace({
 			workerMode && workerId
 				? { workerId, priority: filters.priority || undefined }
 				: { priority: filters.priority || undefined },
-				{
-					enabled: workerMode ? !!workerId : true,
-					initialData: initialDashboardData as any,
-				},
-			),
-		);
+			{
+				enabled: workerMode ? !!workerId : true,
+			},
+		),
+	);
 
 	useEffect(() => {
 		const hasDefaultView =
@@ -224,10 +225,7 @@ export function ProductionWorkspace({
 							{pageCopy.helper}
 						</p>
 					</div>
-					<SalesProductionSearchFilter
-						workerMode={workerMode}
-						initialFilterList={initialFilterList}
-					/>
+					<SalesProductionSearchFilter workerMode={workerMode} />
 				</div>
 			</section>
 
@@ -402,18 +400,21 @@ export function ProductionWorkspace({
 				</Card>
 			</section>
 
-			<Card className="rounded-3xl">
-				<CardHeader className="gap-4 pb-3 lg:flex-row lg:items-end lg:justify-between">
+			<section className="flex flex-col gap-3">
+				<div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
 					<div>
-						<CardTitle className="text-lg">{pageCopy.queueLabel}</CardTitle>
-						<CardDescription>
+						<h2 className="text-lg font-semibold tracking-tight">
+							{pageCopy.queueLabel}
+						</h2>
+						<p className="text-sm text-muted-foreground">
 							Current filter:{" "}
 							<span className="font-medium text-foreground">
 								{humanizeActiveFilter(activePreset)}
 							</span>
-						</CardDescription>
+						</p>
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
+						<SalesProductionColumnVisibility />
 						<QuickFilterButton
 							active={activePreset === "pending"}
 							onClick={() =>
@@ -471,13 +472,22 @@ export function ProductionWorkspace({
 							Clear filters
 						</Button>
 					</div>
-				</CardHeader>
-				<CardContent>
-					<Suspense fallback={<ProductionTableSkeleton />}>
-						<DataTable workerMode={workerMode} />
-					</Suspense>
-				</CardContent>
-			</Card>
+				</div>
+				<Suspense
+					fallback={
+						<ProductionTableSkeleton
+							initialSettings={initialTableSettings}
+							workerMode={workerMode}
+						/>
+					}
+				>
+					<DataTable
+						initialSettings={initialTableSettings}
+						defaultFilters={defaultTableFilters}
+						workerMode={workerMode}
+					/>
+				</Suspense>
+			</section>
 
 			{!workerMode && dashboard?.alerts.pastDue?.length ? (
 				<Card className="rounded-3xl border-red-200/80 bg-red-50/60">

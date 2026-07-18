@@ -90,6 +90,26 @@ describe("resolveSalesDocumentAccess", () => {
 		expect(calls.snapshotCreate).toBe(0);
 	});
 
+	it("regenerates when the requested print configuration differs from the snapshot", async () => {
+		const { db, calls } = createMockDb({
+			snapshot: createSnapshot(),
+			saleUpdatedAt: new Date("2026-05-12T10:00:00.789Z"),
+		});
+
+		await expect(
+			resolveSalesDocumentAccess({
+				db,
+				salesIds: [21438],
+				mode: "invoice",
+				printConfig: {
+					pageBreakMode: "section",
+				},
+				baseUrl: "https://example.com",
+			}),
+		).rejects.toThrow("Snapshot create should not be called on cache hit.");
+		expect(calls.snapshotCreate).toBe(1);
+	});
+
 	it("returns on-demand legacy access in production without creating snapshots", async () => {
 		process.env.NODE_ENV = "production";
 		const { db, calls } = createMockDb({

@@ -1,11 +1,5 @@
-import { DataTableLoading } from "@/components/_v1/data-table/data-table-loading";
+import { UnitInvoicesSkeleton } from "@/components/tables-2/unit-invoices/skeleton";
 
-export default function ProjectsLoading() {
-    return (
-        <DataTableLoading
-            columnCount={6}
-            isNewRowCreatable={true}
-            isRowsDeletable={true}
-        />
-    );
+export default function UnitInvoicesLoading() {
+	return <UnitInvoicesSkeleton rowCount={12} />;
 }

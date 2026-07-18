@@ -29,6 +29,9 @@ export function SalesPrintShellViewer({
 		snapshotId: url.searchParams.get("snapshotId") ?? undefined,
 		preview: url.searchParams.get("preview") ?? undefined,
 		templateId: url.searchParams.get("templateId") ?? undefined,
+		pageBreakMode: url.searchParams.get("pageBreakMode") ?? undefined,
+		showImages: url.searchParams.get("showImages") ?? undefined,
+		headlineFirstPage: url.searchParams.get("headlineFirstPage") ?? undefined,
 		mode: url.searchParams.get("mode") ?? undefined,
 	});
 

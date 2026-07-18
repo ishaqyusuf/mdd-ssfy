@@ -4,6 +4,7 @@ import { VirtualRow } from "@/components/tables-2/core";
 import { useDispatchFilterParams } from "@/hooks/use-dispatch-filter-params";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
+import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -70,6 +71,8 @@ export function DataTable({
 	const bindShowColumnDividers = useSalesDispatchTableStore(
 		(state) => state.bindShowColumnDividers,
 	);
+
+	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,

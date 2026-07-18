@@ -2,22 +2,30 @@
 
 import { HorizontalPagination } from "@/components/horizontal-pagination";
 import {
+	ACTIONS_FULL_WIDTH_HEADER_CLASS,
+	ACTIONS_STICKY_HEADER_CLASS,
 	type TableColumnMeta,
 	type TableScrollState,
 	getHeaderLabel,
 	getTableCellPaddingClass,
 } from "@/components/tables-2/core";
+import { DraggableHeader } from "@/components/tables-2/draggable-header";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
 import { useSortQuery } from "@/hooks/use-sort-query";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import type { TableId } from "@/utils/table-settings";
+import {
+	SortableContext,
+	horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import { TableHead, TableHeader, TableRow } from "@gnd/ui/table";
 import type { Header, Table } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { useMemo } from "react";
 
 interface Props<TData> {
 	table?: Table<TData>;
@@ -48,6 +56,14 @@ export function DataTableHeader<TData>({
 		loading,
 		stickyColumns: tableConfig.stickyColumns,
 	});
+	const sortableColumnIds = useMemo(() => {
+		if (!table) return [];
+
+		return table
+			.getAllLeafColumns()
+			.filter((column) => !tableConfig.nonReorderableColumns.has(column.id))
+			.map((column) => column.id);
+	}, [table]);
 
 	if (!table) return null;
 
@@ -64,65 +80,135 @@ export function DataTableHeader<TData>({
 					className="flex min-w-full items-center !border-b-0 hover:bg-transparent"
 					style={{ height: tableConfig.headerHeight }}
 				>
-					{headerGroup.headers.map((header, headerIndex, headers) => {
-						const columnId = header.column.id;
-						const meta = header.column.columnDef.meta as
-							| TableColumnMeta
-							| undefined;
-						const isSticky = meta?.sticky ?? false;
+					<SortableContext
+						items={sortableColumnIds}
+						strategy={horizontalListSortingStrategy}
+					>
+						{headerGroup.headers.map((header, headerIndex, headers) => {
+							const columnId = header.column.id;
+							const meta = header.column.columnDef.meta as
+								| TableColumnMeta
+								| undefined;
+							const isSticky = meta?.sticky ?? false;
+							const isActions = columnId === "actions";
+							const canReorder =
+								!tableConfig.nonReorderableColumns.has(columnId);
 
-						if (!isVisible(columnId)) return null;
+							if (!isVisible(columnId)) return null;
 
-						const nextVisibleHeader = headers
-							.slice(headerIndex + 1)
-							.find((item) => isVisible(item.column.id));
-						const showRightDivider =
-							showColumnDividers && Boolean(nextVisibleHeader);
-						const isLastVisible = !headers
-							.slice(headerIndex + 1)
-							.some((item) => isVisible(item.column.id));
-						const shouldFlex = isLastVisible && !isSticky;
-						const headerStyle = {
-							...HEADER_CELL_BACKGROUND_STYLE,
-							width: header.getSize(),
-							minWidth: isSticky
-								? header.getSize()
-								: header.column.columnDef.minSize,
-							maxWidth: isSticky
-								? header.getSize()
-								: header.column.columnDef.maxSize,
-							...getStickyStyle(columnId),
-							...(shouldFlex && { flex: 1 }),
-						};
-						const stickyClass = getStickyClassName(
-							columnId,
-							cn(
-								"group/header relative h-full border-t border-border flex items-center",
-								getTableCellPaddingClass(tableConfig.style),
-								showRightDivider && "border-r",
-								columnId === "select" && "justify-center",
-							),
-						);
+							const nextVisibleHeader = headers
+								.slice(headerIndex + 1)
+								.find((item) => isVisible(item.column.id));
+							const showRightDivider =
+								showColumnDividers &&
+								Boolean(nextVisibleHeader) &&
+								nextVisibleHeader?.column.id !== "actions";
+							const hasNonStickyVisible = headers.some((item) => {
+								if (item.column.id === "actions") return false;
+								if (!isVisible(item.column.id)) return false;
 
-						return (
-							<TableHead
-								key={header.id}
-								className={cn(stickyClass, HEADER_BACKGROUND_CLASS, "z-10")}
-								style={headerStyle}
-							>
-								{renderHeaderContent(
-									header,
+								const itemMeta = item.column.columnDef.meta as
+									| TableColumnMeta
+									| undefined;
+
+								return !(itemMeta?.sticky ?? false);
+							});
+							const actionsFullWidth = isActions && !hasNonStickyVisible;
+							const isLastBeforeActions =
+								headerIndex === headers.length - 2 &&
+								headers[headers.length - 1]?.column.id === "actions";
+							const shouldFlex =
+								(isLastBeforeActions && !isSticky) || actionsFullWidth;
+							const headerStyle = {
+								...HEADER_CELL_BACKGROUND_STYLE,
+								width: actionsFullWidth ? undefined : header.getSize(),
+								minWidth: actionsFullWidth
+									? undefined
+									: isSticky
+										? header.getSize()
+										: header.column.columnDef.minSize,
+								maxWidth: actionsFullWidth
+									? undefined
+									: isSticky
+										? header.getSize()
+										: header.column.columnDef.maxSize,
+								...(!actionsFullWidth && getStickyStyle(columnId)),
+								...(shouldFlex && { flex: 1 }),
+							};
+
+							if (!canReorder) {
+								const stickyClass = getStickyClassName(
 									columnId,
-									sortColumn,
-									sortValue,
-									createSortQuery,
-									table,
-									tableScroll,
-								)}
-								<ResizeHandle header={header} />
-							</TableHead>
-						);
-					})}
+									cn(
+										"group/header relative h-full border-t border-border flex items-center",
+										getTableCellPaddingClass(tableConfig.style),
+										showRightDivider && "border-r",
+										columnId === "select" && "justify-center",
+									),
+								);
+								const finalClassName = isActions
+									? actionsFullWidth
+										? cn(
+												ACTIONS_FULL_WIDTH_HEADER_CLASS,
+												getTableCellPaddingClass(tableConfig.style),
+												HEADER_BACKGROUND_CLASS,
+												showRightDivider && "border-r",
+											)
+										: cn(
+												ACTIONS_STICKY_HEADER_CLASS,
+												getTableCellPaddingClass(tableConfig.style),
+												HEADER_BACKGROUND_CLASS,
+												showRightDivider && "border-r",
+											)
+									: cn(stickyClass, HEADER_BACKGROUND_CLASS, "z-10");
+
+								return (
+									<TableHead
+										key={header.id}
+										className={finalClassName}
+										style={headerStyle}
+									>
+										{renderHeaderContent(
+											header,
+											columnId,
+											sortColumn,
+											sortValue,
+											createSortQuery,
+											table,
+											tableScroll,
+										)}
+										<ResizeHandle header={header} />
+									</TableHead>
+								);
+							}
+
+							return (
+								<DraggableHeader
+									key={header.id}
+									id={columnId}
+									style={headerStyle}
+									className={cn(
+										HEADER_BACKGROUND_CLASS,
+										showRightDivider && "border-r",
+									)}
+									tableStyle={tableConfig.style}
+								>
+									<div className="flex min-w-0 flex-1 items-center overflow-hidden">
+										{renderHeaderContent(
+											header,
+											columnId,
+											sortColumn,
+											sortValue,
+											createSortQuery,
+											table,
+											tableScroll,
+										)}
+									</div>
+									<ResizeHandle header={header} />
+								</DraggableHeader>
+							);
+						})}
+					</SortableContext>
 				</TableRow>
 			))}
 		</TableHeader>
@@ -158,6 +244,14 @@ function renderHeaderContent<TData>(
 		);
 	}
 
+	if (columnId === "actions") {
+		return (
+			<span className={cn("w-full text-center", HEADER_TEXT_CLASS)}>
+				Actions
+			</span>
+		);
+	}
+
 	const content = sortField ? (
 		<SortButton
 			label={label}
@@ -178,29 +272,18 @@ function renderHeaderContent<TData>(
 	);
 
 	if (columnId !== "dueDate") {
-		return (
-			<div
-				className={
-					isRightAligned
-						? "flex w-full justify-end overflow-hidden"
-						: "w-full overflow-hidden"
-				}
-			>
-				{content}
-			</div>
-		);
+		return content;
 	}
 
 	return (
 		<div className="flex w-full items-center justify-between gap-2 overflow-hidden">
-			{content}
+			<div className="min-w-0 overflow-hidden">{content}</div>
 			{tableScroll?.isScrollable ? (
 				<HorizontalPagination
 					canScrollLeft={tableScroll.canScrollLeft}
 					canScrollRight={tableScroll.canScrollRight}
 					onScrollLeft={tableScroll.scrollLeft}
 					onScrollRight={tableScroll.scrollRight}
-					className="hidden h-6 shrink-0 opacity-60 transition-opacity group-hover/header:opacity-100 md:flex"
 				/>
 			) : null}
 		</div>
@@ -218,28 +301,27 @@ function SortButton({
 	sortField: string;
 	currentSortColumn?: string;
 	currentSortValue?: string;
-	onSort: (field: string) => void;
+	onSort: (name: string) => void;
 }) {
+	const isActive = currentSortColumn === sortField;
+
 	return (
 		<Button
-			className={cn(
-				"min-w-0 max-w-full gap-2 p-0 hover:bg-transparent",
-				HEADER_TEXT_CLASS,
-				"hover:text-slate-900 dark:hover:text-slate-100",
-			)}
 			variant="ghost"
-			onClick={(event) => {
-				event.stopPropagation();
-				onSort(sortField);
-			}}
+			className={cn(
+				"h-auto min-w-0 justify-start p-0 font-semibold hover:bg-transparent",
+				HEADER_TEXT_CLASS,
+			)}
+			onClick={() => onSort(sortField)}
 		>
 			<span className="truncate">{label}</span>
-			{sortField === currentSortColumn && currentSortValue === "asc" && (
-				<ArrowDown size={16} />
-			)}
-			{sortField === currentSortColumn && currentSortValue === "desc" && (
-				<ArrowUp size={16} />
-			)}
+			{isActive ? (
+				currentSortValue === "asc" ? (
+					<ArrowUp className="ml-1 size-3 shrink-0" />
+				) : (
+					<ArrowDown className="ml-1 size-3 shrink-0" />
+				)
+			) : null}
 		</Button>
 	);
 }

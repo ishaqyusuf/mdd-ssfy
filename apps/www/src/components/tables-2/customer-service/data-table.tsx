@@ -3,14 +3,17 @@
 import { VirtualRow } from "@/components/tables-2/core";
 import { useCustomerServiceFilterParams } from "@/hooks/use-customer-service-filter-params";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useSortParams } from "@/hooks/use-sort-params";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
+import { useTableDnd } from "@/hooks/use-table-dnd";
 import { useTableScroll } from "@/hooks/use-table-scroll";
 import { useTableSettings } from "@/hooks/use-table-settings";
 import { useTRPC } from "@/trpc/client";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import type { RouterInputs } from "@api/trpc/routers/_app";
+import { DndContext, closestCenter } from "@dnd-kit/core";
 import { Table, TableBody } from "@gnd/ui/table";
 import { useQuery, useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import {
@@ -19,8 +22,10 @@ import {
 	useReactTable,
 } from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
+import { AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 
+import { BottomBar } from "./bottom-bar";
 import {
 	type CustomerServiceRow,
 	columns,
@@ -66,6 +71,8 @@ export function DataTable({
 	const parentRef = useRef<HTMLDivElement>(null);
 	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
 		useCustomerServiceTableStore();
+
+	useScrollHeader(parentRef);
 
 	const {
 		columnVisibility,
@@ -136,6 +143,7 @@ export function DataTable({
 		table,
 		stickyColumns: tableConfig.stickyColumns,
 	});
+	const { sensors, handleDragEnd } = useTableDnd(table);
 	const tableScroll = useTableScroll({
 		useColumnWidths: true,
 		startFromColumn: 2,
@@ -174,6 +182,7 @@ export function DataTable({
 	}
 
 	const virtualItems = rowVirtualizer.getVirtualItems();
+	const showBottomBar = Object.keys(rowSelection).length > 0;
 
 	return (
 		<div className="relative">
@@ -188,46 +197,63 @@ export function DataTable({
 						height: "calc(100vh - 420px + var(--header-offset, 0px))",
 					}}
 				>
-					<Table className="w-full min-w-full">
-						<DataTableHeader
-							table={table}
-							tableScroll={tableScroll}
-							showColumnDividers={showColumnDividers}
-						/>
+					<DndContext
+						id="customer-service-table-dnd"
+						sensors={sensors}
+						collisionDetection={closestCenter}
+						onDragEnd={handleDragEnd}
+					>
+						<Table className="w-full min-w-full">
+							<DataTableHeader
+								table={table}
+								tableScroll={tableScroll}
+								showColumnDividers={showColumnDividers}
+							/>
 
-						<TableBody
-							className="block border-l-0 border-r-0"
-							style={{
-								height: `${rowVirtualizer.getTotalSize()}px`,
-								position: "relative",
-							}}
-						>
-							{virtualItems.map((virtualRow: VirtualItem) => {
-								const row = rows[virtualRow.index];
-								if (!row) return null;
+							<TableBody
+								className="block border-l-0 border-r-0"
+								style={{
+									height: `${rowVirtualizer.getTotalSize()}px`,
+									position: "relative",
+								}}
+							>
+								{virtualItems.map((virtualRow: VirtualItem) => {
+									const row = rows[virtualRow.index];
+									if (!row) return null;
 
-								return (
-									<VirtualRow
-										key={row.id}
-										row={row}
-										virtualStart={virtualRow.start}
-										rowHeight={tableConfig.rowHeight}
-										tableStyle={tableConfig.style}
-										getStickyStyle={getStickyStyle}
-										getStickyClassName={getStickyClassName}
-										nonClickableColumns={NON_CLICKABLE_COLUMNS}
-										columnSizing={columnSizing}
-										columnOrder={columnOrder}
-										columnVisibility={columnVisibility}
-										isSelected={rowSelection[row.id] ?? false}
-										showColumnDividers={showColumnDividers}
-									/>
-								);
-							})}
-						</TableBody>
-					</Table>
+									return (
+										<VirtualRow
+											key={row.id}
+											row={row}
+											virtualStart={virtualRow.start}
+											rowHeight={tableConfig.rowHeight}
+											tableStyle={tableConfig.style}
+											getStickyStyle={getStickyStyle}
+											getStickyClassName={getStickyClassName}
+											nonClickableColumns={NON_CLICKABLE_COLUMNS}
+											columnSizing={columnSizing}
+											columnOrder={columnOrder}
+											columnVisibility={columnVisibility}
+											isSelected={rowSelection[row.id] ?? false}
+											showColumnDividers={showColumnDividers}
+										/>
+									);
+								})}
+							</TableBody>
+						</Table>
+					</DndContext>
+					<div
+						style={{
+							height: "var(--header-offset, 0px)",
+							flexShrink: 0,
+						}}
+						aria-hidden
+					/>
 				</div>
 			</div>
+			<AnimatePresence>
+				{showBottomBar ? <BottomBar data={tableData} /> : null}
+			</AnimatePresence>
 		</div>
 	);
 }

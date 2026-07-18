@@ -24,17 +24,14 @@ import {
 import { InputGroup } from "@gnd/ui/namespace";
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { Skeleton } from "@gnd/ui/skeleton";
-import {
-	Sortable,
-	SortableDragHandle,
-	SortableItem,
-} from "@gnd/ui/sortable";
+import { Sortable, SortableDragHandle, SortableItem } from "@gnd/ui/sortable";
 import { Switch } from "@gnd/ui/switch";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { ToggleGroup, ToggleGroupItem } from "@gnd/ui/toggle-group";
 import { toast } from "@gnd/ui/use-toast";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { ConfirmDeleteButton } from "./confirm-delete-button";
+import { invalidatePageTabs } from "./invalidation";
 import type { PageTabItem } from "./types";
 
 type ManagePageTabsDialogProps = {
@@ -66,15 +63,14 @@ function humanizeQueryKey(value: string) {
 function humanizeQueryValue(value: string) {
 	return (
 		QUERY_VALUE_LABELS[value] ??
-		value
-			.replaceAll("_", " ")
-			.replace(/\b[a-z]/g, (char) => char.toUpperCase())
+		value.replaceAll("_", " ").replace(/\b[a-z]/g, (char) => char.toUpperCase())
 	);
 }
 
 function getSortLabel(sort: string) {
 	const [field, direction] = sort.split(".");
-	const fieldLabel = QUERY_FIELD_LABELS[field] ?? humanizeQueryKey(field || sort);
+	const fieldLabel =
+		QUERY_FIELD_LABELS[field] ?? humanizeQueryKey(field || sort);
 	const directionLabel =
 		direction === "asc"
 			? "ascending"
@@ -88,21 +84,23 @@ function getSortLabel(sort: string) {
 function queryBadgesFromTabQuery(query?: string | null) {
 	if (!query) return [];
 
-	return Array.from(new URLSearchParams(query).entries()).map(([key, value]) => {
-		if (key === "sort") {
+	return Array.from(new URLSearchParams(query).entries()).map(
+		([key, value]) => {
+			if (key === "sort") {
+				return {
+					key: `${key}:${value}`,
+					label: "Sort",
+					value: getSortLabel(value),
+				};
+			}
+
 			return {
 				key: `${key}:${value}`,
-				label: "Sort",
-				value: getSortLabel(value),
+				label: humanizeQueryKey(key),
+				value: humanizeQueryValue(value),
 			};
-		}
-
-		return {
-			key: `${key}:${value}`,
-			label: humanizeQueryKey(key),
-			value: humanizeQueryValue(value),
-		};
-	});
+		},
+	);
 }
 
 export function ManagePageTabsDialog({
@@ -148,20 +146,7 @@ export function ManagePageTabsDialog({
 	}, [managedTabs, open]);
 
 	const invalidate = async () => {
-		await Promise.all([
-			queryClient.invalidateQueries({
-				queryKey: trpc.pageTabs.list.queryKey({ page }),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: trpc.pageTabs.list.queryKey({
-					page,
-					includeInactive: true,
-				}),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: trpc.pageTabs.defaults.queryKey(),
-			}),
-		]);
+		await invalidatePageTabs(queryClient, trpc, page);
 	};
 
 	const updateTab = useMutation(
@@ -306,7 +291,9 @@ export function ManagePageTabsDialog({
 																/>
 																{typeof tab.count === "number" ? (
 																	<InputGroup.Addon align="inline-end">
-																		<InputGroup.Text>{tab.count}</InputGroup.Text>
+																		<InputGroup.Text>
+																			{tab.count}
+																		</InputGroup.Text>
 																	</InputGroup.Addon>
 																) : null}
 															</InputGroup>
@@ -405,7 +392,9 @@ export function ManagePageTabsDialog({
 													</ItemActions>
 												</Item>
 											</SortableItem>
-											{index < orderedTabs.length - 1 ? <ItemSeparator /> : null}
+											{index < orderedTabs.length - 1 ? (
+												<ItemSeparator />
+											) : null}
 										</Fragment>
 									);
 								})}

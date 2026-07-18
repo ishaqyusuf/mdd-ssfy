@@ -26,6 +26,44 @@ describe("sales print service", () => {
 		expect(request.renderMode).toBe("stored-pdf");
 		expect(request.params.templateId).toBe("template-2");
 		expect(request.params.mode).toBe("invoice");
+		expect(request.params.pageBreakMode).toBe("header");
+	});
+
+	it("parses supported sales print page-break modes", () => {
+		expect(
+			parseSalesPrintRequest({
+				accessToken: "access-123",
+				pageBreakMode: "section",
+			}).params.pageBreakMode,
+		).toBe("section");
+		expect(
+			parseSalesPrintRequest({
+				accessToken: "access-123",
+				pageBreakMode: "fullHeader",
+			}).params.pageBreakMode,
+		).toBe("fullHeader");
+		expect(
+			parseSalesPrintRequest({
+				accessToken: "access-123",
+				pageBreakMode: "unknown",
+			}).params.pageBreakMode,
+		).toBe("header");
+	});
+
+	it("parses optional sales document content settings", () => {
+		const request = parseSalesPrintRequest({
+			accessToken: "access-123",
+			showImages: "false",
+			headlineFirstPage: "false",
+		});
+
+		expect(request.params.showImages).toBe(false);
+		expect(request.params.headlineFirstPage).toBe(false);
+		expect(
+			parseSalesPrintRequest({
+				accessToken: "access-123",
+			}).params.showImages,
+		).toBe(true);
 	});
 
 	it("classifies preview access-token links as rendered PDFs", () => {
@@ -124,10 +162,27 @@ describe("sales print service", () => {
 				pt: "public-123",
 				preview: true,
 				templateId: "template-7",
+				pageBreakMode: "fullHeader",
 				origin: "https://app.example.com",
 			}),
 		).toBe(
-			"https://app.example.com/p/sales-invoice-v2?pt=public-123&preview=true&templateId=template-7",
+			"https://app.example.com/p/sales-invoice-v2?pt=public-123&preview=true&pageBreakMode=fullHeader&templateId=template-7",
+		);
+
+		expect(
+			buildSalesDocumentRouteFromQuery({
+				token: "legacy-123",
+				preview: true,
+				printConfig: {
+					templateId: "template-1",
+					pageBreakMode: "section",
+					showImages: false,
+					headlineFirstPage: false,
+				},
+				origin: "https://app.example.com",
+			}),
+		).toBe(
+			"https://app.example.com/p/sales-invoice-v2?token=legacy-123&preview=true&pageBreakMode=section&templateId=template-1&showImages=false&headlineFirstPage=false",
 		);
 	});
 
@@ -147,10 +202,11 @@ describe("sales print service", () => {
 			buildSalesPdfDownloadUrlFromQuery({
 				pt: "public-123",
 				templateId: "template-7",
+				pageBreakMode: "section",
 				origin: "https://app.example.com",
 			}),
 		).toBe(
-			"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false&templateId=template-7",
+			"https://app.example.com/api/download/sales-v2?pt=public-123&preview=false&pageBreakMode=section&templateId=template-7",
 		);
 
 		expect(

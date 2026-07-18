@@ -56,7 +56,16 @@ export async function getCustomerServices(
   );
 }
 
-function whereCustomerServices(query: GetCustomerServicesSchema) {
+export async function getCustomerServicesCount(
+  ctx: TRPCContext,
+  query: GetCustomerServicesSchema,
+) {
+  return ctx.db.workOrders.count({
+    where: whereCustomerServices(query),
+  });
+}
+
+export function whereCustomerServices(query: GetCustomerServicesSchema) {
   const where: Prisma.WorkOrdersWhereInput[] = [];
   for (const [k, v] of Object.entries(query)) {
     if (!v) continue;

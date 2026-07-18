@@ -1,6 +1,7 @@
 import type { TRPCContext } from "@api/trpc/init";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
+import { logger } from "@gnd/logger";
 import { sendPaymentSystemNotifications } from "@gnd/notifications/payment-system";
 import { NotificationService } from "@gnd/notifications/services/triggers";
 import { buildSalesCustomerPaymentReceivedPayload } from "@gnd/notifications/types/sales-customer-payment-utils";
@@ -79,6 +80,70 @@ function resolveSalesCccPercentage(
 	return fallback;
 }
 
+export type CustomerReceiptQueueStatus = "not_requested" | "queued" | "failed";
+
+type CustomerReceiptSale = {
+	salesId: number;
+	orderId: string;
+	amountApplied: number;
+	remainingDue: number;
+};
+
+type CustomerReceiptPayload = Awaited<
+	ReturnType<typeof buildSalesCustomerPaymentReceivedPayload>
+>;
+
+export async function queueSalesCustomerPaymentReceipt(
+	ctx: TRPCContext & { userId: number },
+	input: {
+		notifyCustomer?: boolean | null;
+		sales: CustomerReceiptSale[];
+		paymentMethod: string;
+		totalAmount: number;
+	},
+	dependencies?: {
+		buildPayload?: typeof buildSalesCustomerPaymentReceivedPayload;
+		send?: (payload: CustomerReceiptPayload) => Promise<void>;
+	},
+): Promise<CustomerReceiptQueueStatus> {
+	if (input.notifyCustomer !== true || !input.sales.length) {
+		return "not_requested";
+	}
+
+	try {
+		const payload = await (
+			dependencies?.buildPayload ?? buildSalesCustomerPaymentReceivedPayload
+		)(ctx.db, {
+			sales: input.sales,
+			paymentMethod: input.paymentMethod,
+			totalAmount: input.totalAmount,
+		});
+
+		if (dependencies?.send) {
+			await dependencies.send(payload);
+		} else {
+			await new NotificationService(tasks, ctx).send(
+				"sales_customer_payment_received",
+				{
+					author: {
+						id: ctx.userId,
+						role: "employee",
+					},
+					payload,
+				},
+			);
+		}
+
+		return "queued";
+	} catch (error) {
+		logger.error("Failed to queue customer payment receipt", {
+			error,
+			salesIds: input.sales.map((sale) => sale.salesId),
+		});
+		return "failed";
+	}
+}
+
 export async function applySalesPaymentProcessorPayment(
 	ctx: TRPCContext & { userId: number },
 	input: SalesPaymentProcessorApplyPaymentInput,
@@ -96,6 +161,7 @@ export async function applySalesPaymentProcessorPayment(
 		walletAppliedAmount: 0,
 		walletCreditAmount: 0,
 		customerChargeAmount: 0,
+		customerReceiptQueueStatus: "not_requested" as CustomerReceiptQueueStatus,
 	};
 
 	if (
@@ -126,22 +192,15 @@ export async function applySalesPaymentProcessorPayment(
 		result.events as unknown as PaymentSystemNotificationEvent[],
 	);
 
-	if (input.notifyCustomer !== false && result.appliedSales.length) {
-		await new NotificationService(tasks, ctx).send(
-			"sales_customer_payment_received",
-			{
-				author: {
-					id: ctx.userId,
-					role: "employee",
-				},
-				payload: await buildSalesCustomerPaymentReceivedPayload(ctx.db, {
-					sales: result.appliedSales,
-					paymentMethod: input.paymentMethod,
-					totalAmount: result.totalApplied,
-				}),
-			},
-		);
-	}
+	response.customerReceiptQueueStatus = await queueSalesCustomerPaymentReceipt(
+		ctx,
+		{
+			notifyCustomer: input.notifyCustomer,
+			sales: result.appliedSales,
+			paymentMethod: input.paymentMethod,
+			totalAmount: result.totalApplied,
+		},
+	);
 
 	response.status = "success";
 	await Promise.all(

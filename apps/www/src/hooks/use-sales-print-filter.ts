@@ -7,6 +7,9 @@ const salesPrintFilterSchema = {
 	accessToken: parseAsString,
 	snapshotId: parseAsString,
 	templateId: parseAsString,
+	pageBreakMode: parseAsString,
+	showImages: parseAsBoolean,
+	headlineFirstPage: parseAsBoolean,
 	mode: parseAsString,
 	preview: parseAsBoolean,
 };

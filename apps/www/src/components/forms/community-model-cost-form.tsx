@@ -1,38 +1,28 @@
+import { revalidatePathAction } from "@/actions/revalidate-path";
+import { invalidatePageTabsForPathKeys } from "@/components/page-tabs";
 import { useCommunityModelCostParams } from "@/hooks/use-community-model-cost-params";
 import { useZodForm } from "@/hooks/use-zod-form";
+import { deepCopy } from "@/lib/deep-copy";
 import { useTRPC } from "@/trpc/client";
 import {
-    communityModelCostFormSchema,
+    type SaveCommunityModelCost,
     saveCommunityModelCostSchema,
 } from "@api/schemas/community";
-import { RouterOutputs } from "@api/trpc/routers/_app";
-import { Form } from "@gnd/ui/form";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@gnd/ui/table";
-import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
-import { useEffect } from "react";
-import { TCell } from "../(clean-code)/data-table/table-cells";
-import { CustomModalPortal } from "../modals/custom-modal";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { DialogFooter } from "@gnd/ui/dialog";
-import { SubmitButton } from "../submit-button";
-import FormInput from "../common/controls/form-input";
-import { sum } from "@gnd/utils";
-import Money from "../_v1/money";
+import { Form } from "@gnd/ui/form";
+import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { FormDebugBtn } from "../form-debug-btn";
-import FormDate from "../common/controls/form-date";
-import { revalidatePathAction } from "@/actions/revalidate-path";
-import { useQueryState } from "nuqs";
-import Portal from "../_v1/portal";
+import { sum } from "@gnd/utils";
+import { useCallback, useEffect } from "react";
 import { Menu } from "../(clean-code)/menu";
-import { deepCopy } from "@/lib/deep-copy";
-import { useDebugConsole } from "@/hooks/use-debug-console";
+import Money from "../_v1/money";
+import Portal from "../_v1/portal";
+import FormDate from "../common/controls/form-date";
+import { FormDebugBtn } from "../form-debug-btn";
+import { CustomModalPortal } from "../modals/custom-modal";
+import { SubmitButton } from "../submit-button";
+import { DataTable as CommunityModelCostFormTasksTable } from "../tables-2/community-model-cost-form-tasks/data-table";
 
 interface Props {
     model: RouterOutputs["community"]["communityModelCostHistory"];
@@ -45,7 +35,7 @@ export function CommunityModelCostForm({ model }: Props) {
         returnToUnitInvoice,
         setParams,
     } = useCommunityModelCostParams();
-    const { data, isPending, error } = useQuery(
+    const { data } = useQuery(
         trpc.community.communityModelCostForm.queryOptions(
             {
                 id: editModelCostId,
@@ -59,7 +49,7 @@ export function CommunityModelCostForm({ model }: Props) {
     const qc = useQueryClient();
     const save = useMutation(
         trpc.community.saveCommunityModelCostForm.mutationOptions({
-            onSuccess(data, variables, context) {
+            onSuccess() {
                 toast({
                     title: "Saved",
                     variant: "success",
@@ -80,10 +70,11 @@ export function CommunityModelCostForm({ model }: Props) {
                             homeId: returnToUnitInvoice.editUnitInvoiceId,
                         }),
                     });
+                    invalidatePageTabsForPathKeys(qc, trpc, "unitInvoices");
                     onClose();
                 }
             },
-            onError(error, variables, context) {
+            onError() {
                 toast({
                     title: "Unable to complete",
                     variant: "destructive",
@@ -94,7 +85,7 @@ export function CommunityModelCostForm({ model }: Props) {
 
     const { mutate: deleteCommunityModel } = useMutation(
         trpc.community.deleteCommunityModelCost.mutationOptions({
-            onSuccess(data, variables, context) {
+            onSuccess() {
                 toast({
                     title: "Deleted",
                     variant: "success",
@@ -112,6 +103,7 @@ export function CommunityModelCostForm({ model }: Props) {
                             homeId: returnToUnitInvoice.editUnitInvoiceId,
                         }),
                     });
+                    invalidatePageTabsForPathKeys(qc, trpc, "unitInvoices");
                     onClose();
                     return;
                 }
@@ -131,13 +123,20 @@ export function CommunityModelCostForm({ model }: Props) {
             communityModelId: null,
         },
     });
-    const emptyCosts = () => ({
-        costs: Object.fromEntries(model?.builderTasks?.map((t) => [t.uid, ""])),
-        tax: Object.fromEntries(model?.builderTasks?.map((t) => [t.uid, ""])),
-    });
+    const emptyCosts = useCallback(
+        () => ({
+            costs: Object.fromEntries(
+                model?.builderTasks?.map((t) => [t.uid, ""]) ?? [],
+            ),
+            tax: Object.fromEntries(
+                model?.builderTasks?.map((t) => [t.uid, ""]) ?? [],
+            ),
+        }),
+        [model?.builderTasks],
+    );
     useEffect(() => {
         if (!model) return;
-        if (editModelCostId == -1) {
+        if (editModelCostId === -1) {
             form.reset({
                 startDate: null,
                 id: null,
@@ -150,10 +149,10 @@ export function CommunityModelCostForm({ model }: Props) {
             return;
         }
         form.reset({
-            endDate: data?.endDate! as any,
+            endDate: data?.endDate ? new Date(data.endDate) : null,
             id: data?.id,
             communityModelId: model?.model?.id,
-            startDate: data?.startDate! as any,
+            startDate: data?.startDate ? new Date(data.startDate) : null,
             costs: Object.fromEntries(
                 model?.builderTasks?.map((t) => [
                     t.uid,
@@ -170,8 +169,8 @@ export function CommunityModelCostForm({ model }: Props) {
             meta: data?.meta || {},
             pivotId: data?.pivotId,
         });
-    }, [data, editModelCostId, model]);
-    const onSubmit = async (formData) => {
+    }, [data, editModelCostId, emptyCosts, form, model]);
+    const onSubmit = async (formData: SaveCommunityModelCost) => {
         save.mutate({
             ...formData,
             meta: data?.meta,
@@ -189,10 +188,14 @@ export function CommunityModelCostForm({ model }: Props) {
     };
     const [costs, tax] = form.watch(["costs", "tax"]);
     const total = sum(
-        model?.builderTasks
-            ?.map((t) => sum([costs?.[t.uid], tax?.[t.uid]]))
-            .flat(),
+        (model?.builderTasks ?? []).map((t) => sum([costs?.[t.uid], tax?.[t.uid]])),
     );
+    const taskRows =
+        model?.builderTasks?.map((task) => ({
+            uid: task.uid,
+            name: task.name || null,
+        })) || [];
+
     return (
         <Form {...form}>
             <form className="grid grid-cols-2 gap-4">
@@ -224,13 +227,13 @@ export function CommunityModelCostForm({ model }: Props) {
                                 }, 1000);
                             }}
                             icon="copy"
-                            disabled={editModelCostId == -1}
+                            disabled={editModelCostId === -1}
                         >
                             Create Copy
                         </Menu.Item>
                         <Menu.Trash
                             action={(e) => {
-                                if (editModelCostId != -1)
+                                if (editModelCostId !== -1)
                                     deleteCommunityModel({
                                         modelCostId: editModelCostId,
                                     });
@@ -254,50 +257,10 @@ export function CommunityModelCostForm({ model }: Props) {
                     label="End Date"
                 />
                 <div className="col-span-2">
-                    <Table className="table-sm w-full">
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Task</TableHead>
-                                <TableHead className="w-32">Cost $</TableHead>
-                                <TableHead className="w-32">Tax $</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {model?.builderTasks?.map((task, ti) => (
-                                <TableRow key={ti}>
-                                    <TableCell>
-                                        <TCell.Primary>
-                                            {task?.name}
-                                        </TCell.Primary>
-                                    </TableCell>
-                                    <TableCell>
-                                        <FormInput
-                                            control={form.control}
-                                            name={`costs.${task.uid}`}
-                                            numericProps={{
-                                                prefix: "$",
-                                                placeholder: "$0.00",
-                                                className: "h-8 w-24",
-                                                type: "tel",
-                                            }}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <FormInput
-                                            control={form.control}
-                                            name={`tax.${task.uid}`}
-                                            numericProps={{
-                                                prefix: "$",
-                                                placeholder: "$0.00",
-                                                className: "h-8 w-24",
-                                                type: "tel",
-                                            }}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <CommunityModelCostFormTasksTable
+                        data={taskRows}
+                        control={form.control}
+                    />
                 </div>
                 <CustomModalPortal>
                     <DialogFooter className="flex items-center justify-end gap-4">

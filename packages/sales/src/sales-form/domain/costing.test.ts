@@ -98,4 +98,41 @@ describe("sales form costing", () => {
 		expect(summary.adjustedSubTotal).toBe(36);
 		expect(summary.grandTotal).toBe(36);
 	});
+
+	it("keeps the HPT line total authoritative when shelf metadata is present", () => {
+		const summary = calculateSalesFormSummary({
+			strategy: "legacy",
+			taxRate: 0,
+			paymentMethod: "Credit Card",
+			cccPercentage: 3.5,
+			lineItems: [
+				{
+					qty: 2,
+					unitPrice: 500,
+					lineTotal: 1000,
+					housePackageTool: {
+						doors: [
+							{
+								totalQty: 2,
+								unitPrice: 500,
+								lineTotal: 1000,
+							},
+						],
+					},
+					shelfItems: [
+						{
+							qty: 2,
+							unitPrice: 35,
+							totalPrice: 70,
+						},
+					],
+				},
+			],
+			extraCosts: [],
+		});
+
+		expect(summary.subTotal).toBe(1000);
+		expect(summary.ccc).toBe(35);
+		expect(summary.grandTotal).toBe(1035);
+	});
 });

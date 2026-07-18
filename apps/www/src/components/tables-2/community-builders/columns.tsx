@@ -32,7 +32,7 @@ const builderColumn: Column = {
 	id: "builder",
 	header: "Builder",
 	accessorFn: (row) => row.name,
-	...sizes.custom(240, 480, 340),
+	...sizes.custom(220, 420, 280),
 	enableResizing: true,
 	meta: {
 		sticky: true,
@@ -40,7 +40,7 @@ const builderColumn: Column = {
 		headerLabel: "Builder",
 		sortField: "name",
 		className: sizeClass(
-			sizes.custom(240, 480, 340),
+			sizes.custom(220, 420, 280),
 			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -71,15 +71,16 @@ const projectsColumn: Column = {
 	id: "projects",
 	header: "Projects",
 	accessorFn: (row) => row._count?.projects ?? 0,
-	...sizes.custom(110, 180, 140),
+	...sizes.custom(96, 140, 110),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-12" },
 		headerLabel: "Projects",
-		className: sizeClass(sizes.custom(110, 180, 140)),
+		className: sizeClass(sizes.custom(96, 140, 110), "text-right"),
+		contentClassName: "text-right",
 	},
 	cell: ({ row }) => (
-		<span className="font-mono text-sm">
+		<span className="block font-mono text-sm">
 			{row.original._count?.projects ?? 0}
 		</span>
 	),
@@ -89,15 +90,18 @@ const tasksColumn: Column = {
 	id: "tasks",
 	header: "Tasks",
 	accessorFn: (row) => row._count?.tasks ?? 0,
-	...sizes.custom(110, 180, 140),
+	...sizes.custom(84, 130, 100),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-12" },
 		headerLabel: "Tasks",
-		className: sizeClass(sizes.custom(110, 180, 140)),
+		className: sizeClass(sizes.custom(84, 130, 100), "text-right"),
+		contentClassName: "text-right",
 	},
 	cell: ({ row }) => (
-		<span className="font-mono text-sm">{row.original._count?.tasks ?? 0}</span>
+		<span className="block font-mono text-sm">
+			{row.original._count?.tasks ?? 0}
+		</span>
 	),
 };
 
@@ -105,30 +109,38 @@ const homesColumn: Column = {
 	id: "homes",
 	header: "Homes",
 	accessorFn: (row) => row._count?.homes ?? 0,
-	...sizes.custom(110, 180, 140),
+	...sizes.custom(84, 130, 100),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-12" },
 		headerLabel: "Homes",
-		className: sizeClass(sizes.custom(110, 180, 140)),
+		className: sizeClass(sizes.custom(84, 130, 100), "text-right"),
+		contentClassName: "text-right",
 	},
 	cell: ({ row }) => (
-		<span className="font-mono text-sm">{row.original._count?.homes ?? 0}</span>
+		<span className="block font-mono text-sm">
+			{row.original._count?.homes ?? 0}
+		</span>
 	),
 };
 
 const actionsColumn: Column = {
 	id: "actions",
 	header: "",
-	...sizes.xs,
+	...sizes.custom(72, 96, 80),
 	enableResizing: false,
 	enableHiding: false,
+	enableSorting: false,
 	meta: {
 		actionCell: true,
 		preventDefault: true,
 		headerLabel: "Actions",
 		skeleton: { type: "button", width: "w-10" },
-		className: sizeClass(sizes.xs),
+		className: sizeClass(
+			sizes.custom(72, 96, 80),
+			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+		),
+		contentClassName: "flex justify-end",
 	},
 	cell: ({ row }) => <Actions builder={row.original} />,
 };

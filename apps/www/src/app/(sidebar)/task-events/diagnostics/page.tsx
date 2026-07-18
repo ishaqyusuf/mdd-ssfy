@@ -1,6 +1,9 @@
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { TaskRunDiagnosticsSkeleton } from "@/components/tables-2/task-run-diagnostics/skeleton";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import { ErrorBoundary } from "next/dist/client/components/error-boundary";
 import { Suspense } from "react";
@@ -9,24 +12,35 @@ import { TaskRunDiagnosticsDashboard } from "../_components/task-run-diagnostics
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-	const queryClient = getQueryClient();
-	await queryClient.fetchQuery(
+	const initialSettings = await getInitialTableSettings("task-run-diagnostics");
+
+	batchPrefetch([
 		trpc.taskRunDiagnostics.list.queryOptions({
 			size: 50,
 		}),
-	);
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex flex-col gap-6 pt-6">
-					<PageTitle>Task Diagnostics</PageTitle>
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense fallback={<div>Loading task diagnostics...</div>}>
-							<TaskRunDiagnosticsDashboard />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-4">
+						<PageTitle>Task Diagnostics</PageTitle>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<TaskRunDiagnosticsSkeleton
+										initialSettings={initialSettings}
+									/>
+								}
+							>
+								<TaskRunDiagnosticsDashboard
+									initialSettings={initialSettings}
+								/>
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

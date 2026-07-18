@@ -19,6 +19,30 @@ export const settingsSchema = z.object({
   meta: z.record(z.any(), z.any()).default({}),
 });
 export type SettingsSchema = z.infer<typeof settingsSchema>;
+
+export const salesPrintSettingsSchema = z.object({
+  templateId: z.enum(["template-1", "template-2"]).default("template-2"),
+  pageBreakMode: z.enum(["header", "section", "fullHeader"]).default("header"),
+  showImages: z.boolean().default(true),
+  headlineFirstPage: z.boolean().default(true),
+});
+
+export type SalesPrintSettings = z.infer<typeof salesPrintSettingsSchema>;
+
+export const DEFAULT_SALES_PRINT_SETTINGS: SalesPrintSettings = {
+  templateId: "template-2",
+  pageBreakMode: "header",
+  showImages: true,
+  headlineFirstPage: true,
+};
+
+export function normalizeSalesPrintSettings(
+  value?: unknown,
+): SalesPrintSettings {
+  const parsed = salesPrintSettingsSchema.safeParse(value);
+  return parsed.success ? parsed.data : DEFAULT_SALES_PRINT_SETTINGS;
+}
+
 export const jobsSettings = settingsSchema.extend({
   meta: z.object({
     allowCustomJobs: z.boolean().default(false),

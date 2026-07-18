@@ -1,26 +1,42 @@
 "use client";
 
-import type { RouterOutputs } from "@api/trpc/routers/_app";
-import Link from "next/link";
-import type { ReactNode } from "react";
-import { useTRPC } from "@/trpc/client";
 import { InventoryTopSalesAnalytics } from "@/components/inventory/inventory-top-sales-analytics";
+import {
+	InventoryItemDashboardColumnVisibility,
+	InventoryItemDashboardDataTable,
+	type InventoryItemDashboardTableId,
+	type InventoryItemRelatedLineRow,
+	allocationColumns,
+	getAllocationRowId,
+	getInboundDemandRowId,
+	getMovementRowId,
+	getRelatedLineRowId,
+	getStockRowId,
+	getVariantRowId,
+	inboundDemandColumns,
+	movementColumns,
+	relatedLineColumns,
+	stockColumns,
+	variantColumns,
+} from "@/components/tables-2/inventory-item-dashboard";
+import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
 import { useQuery } from "@gnd/ui/tanstack";
 import { imageUrl } from "@gnd/utils";
+import Link from "next/link";
+import type { ReactNode } from "react";
 
 type Dashboard = NonNullable<
 	RouterOutputs["inventories"]["inventoryItemDashboard"]
 >;
 
-type Variant = Dashboard["variants"][number];
-type StockRow = Dashboard["stocks"][number];
-type MovementRow = Dashboard["movements"][number];
-type InboundDemandRow = Dashboard["inboundDemands"][number];
-type AllocationRow = Dashboard["allocations"][number];
-type RelatedLine = Dashboard["relatedSales"][number];
+export type InventoryItemDashboardInitialSettings = Partial<
+	Record<InventoryItemDashboardTableId, TableSettings>
+>;
 
 const currency = new Intl.NumberFormat("en-US", {
 	style: "currency",
@@ -38,33 +54,8 @@ function formatQty(value?: number | null) {
 	});
 }
 
-function formatDate(value?: string | Date | null) {
-	if (!value) return "N/A";
-	return new Intl.DateTimeFormat("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	}).format(new Date(value));
-}
-
 function statusLabel(value?: string | null) {
 	return String(value || "unknown").replaceAll("_", " ");
-}
-
-function variantLabel(variant?: {
-	sku?: string | null;
-	description?: string | null;
-	uid?: string | null;
-}) {
-	return variant?.sku || variant?.description || variant?.uid || "Variant";
-}
-
-function EmptyState({ label }: { label: string }) {
-	return (
-		<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-			{label}
-		</div>
-	);
 }
 
 function Metric({
@@ -109,249 +100,12 @@ function Section({
 	);
 }
 
-function VariantGrid({ variants }: { variants: Variant[] }) {
-	if (!variants.length) return <EmptyState label="No variants found." />;
-
-	return (
-		<div className="grid gap-3 lg:grid-cols-2">
-			{variants.map((variant) => (
-				<Card key={variant.id} className="p-4">
-					<div className="flex items-start justify-between gap-3">
-						<div className="min-w-0">
-							<div className="truncate font-medium">{variantLabel(variant)}</div>
-							<div className="mt-1 flex flex-wrap gap-2">
-								<Badge variant="outline" className="capitalize">
-									{statusLabel(variant.status)}
-								</Badge>
-								{variant.isLowStock ? (
-									<Badge variant="destructive">Low stock</Badge>
-								) : null}
-							</div>
-						</div>
-						<div className="text-right text-sm">
-							<div className="font-medium">{formatQty(variant.stockQty)}</div>
-							<div className="text-muted-foreground">on hand</div>
-						</div>
-					</div>
-
-					<div className="mt-4 grid gap-2 text-sm md:grid-cols-3">
-						<div>
-							<div className="text-xs uppercase text-muted-foreground">Cost</div>
-							<div>{formatMoney(variant.pricing?.costPrice)}</div>
-						</div>
-						<div>
-							<div className="text-xs uppercase text-muted-foreground">Price</div>
-							<div>{formatMoney(variant.pricing?.price)}</div>
-						</div>
-						<div>
-							<div className="text-xs uppercase text-muted-foreground">Value</div>
-							<div>{formatMoney(variant.stockValue)}</div>
-						</div>
-					</div>
-
-					{variant.attributes.length ? (
-						<div className="mt-3 flex flex-wrap gap-2">
-							{variant.attributes.map((attribute) => (
-								<Badge key={attribute.id} variant="secondary">
-									{attribute.inventoryCategoryVariantAttribute
-										?.valuesInventoryCategory?.title || "Attribute"}
-									: {attribute.value?.name || "N/A"}
-								</Badge>
-							))}
-						</div>
-					) : null}
-
-					{variant.supplierVariants.length ? (
-						<div className="mt-3 border-t pt-3 text-sm">
-							{variant.supplierVariants.map((supplierVariant) => (
-								<div
-									key={supplierVariant.id}
-									className="flex items-center justify-between gap-3 py-1"
-								>
-									<div className="truncate">
-										{supplierVariant.supplier.name}
-										{supplierVariant.preferred ? " • preferred" : ""}
-									</div>
-									<div className="text-muted-foreground">
-										{formatMoney(supplierVariant.costPrice)}
-									</div>
-								</div>
-							))}
-						</div>
-					) : null}
-				</Card>
-			))}
-		</div>
-	);
-}
-
-function StockTable({ rows }: { rows: StockRow[] }) {
-	if (!rows.length) return <EmptyState label="No stock rows found." />;
-
-	return (
-		<div className="overflow-hidden rounded-md border">
-			{rows.map((row) => (
-				<div
-					key={row.id}
-					className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1.3fr_1fr_1fr_1fr]"
-				>
-					<div className="min-w-0">
-						<div className="truncate font-medium">
-							{row.variantSku || row.variantDescription || "Variant"}
-						</div>
-						<div className="text-muted-foreground">
-							{row.location || "No location"}
-						</div>
-					</div>
-					<div>{row.supplier?.name || "No supplier"}</div>
-					<div>{formatQty(row.qty)} on hand</div>
-					<div className="md:text-right">{formatMoney(row.price)}</div>
-				</div>
-			))}
-		</div>
-	);
-}
-
-function MovementTable({ rows }: { rows: MovementRow[] }) {
-	if (!rows.length) return <EmptyState label="No stock movements found." />;
-
-	return (
-		<div className="overflow-hidden rounded-md border">
-			{rows.map((row) => (
-				<div
-					key={row.id}
-					className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1fr_1fr_1fr_1.2fr]"
-				>
-					<div>
-						<div className="font-medium capitalize">{statusLabel(row.type)}</div>
-						<div className="text-muted-foreground">{formatDate(row.createdAt)}</div>
-					</div>
-					<div>{variantLabel({ sku: row.variantSku })}</div>
-					<div>
-						{formatQty(row.prevQty)} → {formatQty(row.currentQty)}
-					</div>
-					<div className="truncate md:text-right">
-						{row.reference || row.notes || row.authorName || "N/A"}
-					</div>
-				</div>
-			))}
-		</div>
-	);
-}
-
-function InboundTable({ rows }: { rows: InboundDemandRow[] }) {
-	if (!rows.length) return <EmptyState label="No inbound demand found." />;
-
-	return (
-		<div className="overflow-hidden rounded-md border">
-			{rows.map((row) => (
-				<div
-					key={row.id}
-					className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1fr_1fr_1fr_1fr]"
-				>
-					<div className="min-w-0">
-						<div className="truncate font-medium">
-							{row.variantSku || "Variant"}
-						</div>
-						<div className="text-muted-foreground">
-							{row.lineItemComponent.parent.sale?.orderId || "No sale"}
-						</div>
-					</div>
-					<div>
-						{formatQty(row.qtyReceived)} / {formatQty(row.qty)}
-					</div>
-					<div className="capitalize">{statusLabel(row.status)}</div>
-					<div className="md:text-right">
-						{row.inboundShipmentItem?.inbound.reference ||
-							row.inboundShipmentItem?.inbound.supplier.name ||
-							"Unassigned"}
-					</div>
-				</div>
-			))}
-		</div>
-	);
-}
-
-function AllocationTable({ rows }: { rows: AllocationRow[] }) {
-	if (!rows.length) return <EmptyState label="No active allocations found." />;
-
-	return (
-		<div className="overflow-hidden rounded-md border">
-			{rows.map((row) => (
-				<div
-					key={row.id}
-					className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1fr_1fr_1fr_1fr]"
-				>
-					<div className="min-w-0">
-						<div className="truncate font-medium">
-							{row.variantSku || "Variant"}
-						</div>
-						<div className="text-muted-foreground">
-							{row.lineItemComponent.parent.title || "Line item"}
-						</div>
-					</div>
-					<div>{row.lineItemComponent.parent.sale?.orderId || "No sale"}</div>
-					<div>{formatQty(row.qty)}</div>
-					<div className="md:text-right">
-						<Badge variant="outline" className="capitalize">
-							{statusLabel(row.status)}
-						</Badge>
-					</div>
-				</div>
-			))}
-		</div>
-	);
-}
-
-function RelatedLines({
-	rows,
-	kind,
-}: {
-	rows: RelatedLine[];
-	kind: "sales" | "quotes";
-}) {
-	if (!rows.length) {
-		return <EmptyState label={`No related ${kind} found.`} />;
-	}
-
-	return (
-		<div className="overflow-hidden rounded-md border">
-			{rows.map((row) => {
-				const sale = row.sale;
-				const href =
-					kind === "quotes"
-						? `/sales-book/quotes?orderId=${sale?.orderId || ""}`
-						: `/sales-book/orders?orderId=${sale?.orderId || ""}`;
-				return (
-					<div
-						key={row.id}
-						className="grid gap-3 border-b p-3 text-sm last:border-b-0 md:grid-cols-[1fr_1fr_1fr_1fr_auto]"
-					>
-						<div className="min-w-0">
-							<div className="truncate font-medium">
-								{sale?.orderId || row.uid || "Sales line"}
-							</div>
-							<div className="text-muted-foreground">
-								{sale?.customer?.businessName || sale?.customer?.name || "No customer"}
-							</div>
-						</div>
-						<div>{row.title || "Inventory line"}</div>
-						<div>{formatQty(row.qty)}</div>
-						<div>{formatMoney(row.totalCost)}</div>
-						<Button asChild size="sm" variant="outline">
-							<Link href={href}>Open</Link>
-						</Button>
-					</div>
-				);
-			})}
-		</div>
-	);
-}
-
 export function InventoryItemDashboardPage({
 	inventoryId,
+	initialSettings,
 }: {
 	inventoryId: number;
+	initialSettings?: InventoryItemDashboardInitialSettings;
 }) {
 	const trpc = useTRPC();
 	const dashboardQuery = useQuery(
@@ -360,7 +114,9 @@ export function InventoryItemDashboardPage({
 	const dashboard = dashboardQuery.data;
 
 	if (dashboardQuery.isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading inventory...</div>;
+		return (
+			<div className="text-sm text-muted-foreground">Loading inventory...</div>
+		);
 	}
 
 	if (!dashboard) {
@@ -382,6 +138,14 @@ export function InventoryItemDashboardPage({
 				provider: item.img.provider,
 			})
 		: null;
+	const relatedSales = dashboard.relatedSales.map((row) => ({
+		...row,
+		kind: "sales" as const,
+	})) satisfies InventoryItemRelatedLineRow[];
+	const relatedQuotes = dashboard.relatedQuotes.map((row) => ({
+		...row,
+		kind: "quotes" as const,
+	})) satisfies InventoryItemRelatedLineRow[];
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -418,7 +182,9 @@ export function InventoryItemDashboardPage({
 							{item.defaultSupplier ? (
 								<Badge variant="outline">{item.defaultSupplier.name}</Badge>
 							) : null}
-							{item.sourceCustom ? <Badge variant="secondary">Custom</Badge> : null}
+							{item.sourceCustom ? (
+								<Badge variant="secondary">Custom</Badge>
+							) : null}
 						</div>
 					</div>
 				</div>
@@ -435,9 +201,15 @@ export function InventoryItemDashboardPage({
 
 			<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
 				<Metric label="Stock" value={formatQty(summary.totalStockQty)} />
-				<Metric label="Stock Value" value={formatMoney(summary.totalStockValue)} />
+				<Metric
+					label="Stock Value"
+					value={formatMoney(summary.totalStockValue)}
+				/>
 				<Metric label="Inbound" value={formatQty(summary.openInboundQty)} />
-				<Metric label="Allocated" value={formatQty(summary.activeAllocationQty)} />
+				<Metric
+					label="Allocated"
+					value={formatQty(summary.activeAllocationQty)}
+				/>
 				<Metric label="Variants" value={summary.variantCount} />
 				<Metric label="Low Stock" value={summary.lowStockVariantCount} />
 				<Metric label="Sales" value={summary.salesCount} />
@@ -447,59 +219,149 @@ export function InventoryItemDashboardPage({
 			<Section
 				title="Variants"
 				action={
-					<Button asChild size="sm" variant="outline">
-						<Link href={`/inventory/variants?inventoryId=${item.id}`}>
-							All Variants
-						</Link>
-					</Button>
+					<div className="flex items-center gap-2">
+						<InventoryItemDashboardColumnVisibility tableId="inventory-item-variants" />
+						<Button asChild size="sm" variant="outline">
+							<Link href={`/inventory/variants?inventoryId=${item.id}`}>
+								All Variants
+							</Link>
+						</Button>
+					</div>
 				}
 			>
-				<VariantGrid variants={dashboard.variants} />
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-variants"
+					data={dashboard.variants}
+					columns={variantColumns}
+					getRowId={getVariantRowId}
+					emptyTitle="No variants"
+					emptyDescription="This inventory item does not have variants yet."
+					initialSettings={initialSettings?.["inventory-item-variants"]}
+					dndId="inventory-item-variants-table-dnd"
+				/>
 			</Section>
 
 			<Section
 				title="Stock"
 				action={
-					<Button asChild size="sm" variant="outline">
-						<Link href="/inventory/stocks">Stock Operations</Link>
-					</Button>
+					<div className="flex items-center gap-2">
+						<InventoryItemDashboardColumnVisibility tableId="inventory-item-stocks" />
+						<Button asChild size="sm" variant="outline">
+							<Link href="/inventory/stocks">Stock Operations</Link>
+						</Button>
+					</div>
 				}
 			>
-				<StockTable rows={dashboard.stocks} />
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-stocks"
+					data={dashboard.stocks}
+					columns={stockColumns}
+					getRowId={getStockRowId}
+					emptyTitle="No stock"
+					emptyDescription="No stock rows have been recorded for this item."
+					initialSettings={initialSettings?.["inventory-item-stocks"]}
+					dndId="inventory-item-stocks-table-dnd"
+				/>
 			</Section>
 
-			<Section title="Movement History">
-				<MovementTable rows={dashboard.movements} />
+			<Section
+				title="Movement History"
+				action={
+					<InventoryItemDashboardColumnVisibility tableId="inventory-item-movements" />
+				}
+			>
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-movements"
+					data={dashboard.movements}
+					columns={movementColumns}
+					getRowId={getMovementRowId}
+					emptyTitle="No movements"
+					emptyDescription="No stock movement history has been recorded for this item."
+					initialSettings={initialSettings?.["inventory-item-movements"]}
+					dndId="inventory-item-movements-table-dnd"
+				/>
 			</Section>
 
 			<Section
 				title="Inbound Demand"
 				action={
-					<Button asChild size="sm" variant="outline">
-						<Link href="/inventory/inbounds">Inbound</Link>
-					</Button>
+					<div className="flex items-center gap-2">
+						<InventoryItemDashboardColumnVisibility tableId="inventory-item-inbound-demands" />
+						<Button asChild size="sm" variant="outline">
+							<Link href="/inventory/inbounds">Inbound</Link>
+						</Button>
+					</div>
 				}
 			>
-				<InboundTable rows={dashboard.inboundDemands} />
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-inbound-demands"
+					data={dashboard.inboundDemands}
+					columns={inboundDemandColumns}
+					getRowId={getInboundDemandRowId}
+					emptyTitle="No inbound demand"
+					emptyDescription="There is no open inbound demand for this item."
+					initialSettings={initialSettings?.["inventory-item-inbound-demands"]}
+					dndId="inventory-item-inbound-demands-table-dnd"
+				/>
 			</Section>
 
 			<Section
 				title="Allocations"
 				action={
-					<Button asChild size="sm" variant="outline">
-						<Link href="/inventory/allocations">Review</Link>
-					</Button>
+					<div className="flex items-center gap-2">
+						<InventoryItemDashboardColumnVisibility tableId="inventory-item-allocations" />
+						<Button asChild size="sm" variant="outline">
+							<Link href="/inventory/allocations">Review</Link>
+						</Button>
+					</div>
 				}
 			>
-				<AllocationTable rows={dashboard.allocations} />
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-allocations"
+					data={dashboard.allocations}
+					columns={allocationColumns}
+					getRowId={getAllocationRowId}
+					emptyTitle="No allocations"
+					emptyDescription="There are no active allocations for this item."
+					initialSettings={initialSettings?.["inventory-item-allocations"]}
+					dndId="inventory-item-allocations-table-dnd"
+				/>
 			</Section>
 
-			<Section title="Sales">
-				<RelatedLines rows={dashboard.relatedSales} kind="sales" />
+			<Section
+				title="Sales"
+				action={
+					<InventoryItemDashboardColumnVisibility tableId="inventory-item-related-lines" />
+				}
+			>
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-related-lines"
+					data={relatedSales}
+					columns={relatedLineColumns}
+					getRowId={getRelatedLineRowId}
+					emptyTitle="No sales"
+					emptyDescription="No related sales were found for this item."
+					initialSettings={initialSettings?.["inventory-item-related-lines"]}
+					dndId="inventory-item-sales-lines-table-dnd"
+				/>
 			</Section>
 
-			<Section title="Quotes">
-				<RelatedLines rows={dashboard.relatedQuotes} kind="quotes" />
+			<Section
+				title="Quotes"
+				action={
+					<InventoryItemDashboardColumnVisibility tableId="inventory-item-related-lines" />
+				}
+			>
+				<InventoryItemDashboardDataTable
+					tableId="inventory-item-related-lines"
+					data={relatedQuotes}
+					columns={relatedLineColumns}
+					getRowId={getRelatedLineRowId}
+					emptyTitle="No quotes"
+					emptyDescription="No related quotes were found for this item."
+					initialSettings={initialSettings?.["inventory-item-related-lines"]}
+					dndId="inventory-item-quote-lines-table-dnd"
+				/>
 			</Section>
 
 			<InventoryTopSalesAnalytics inventoryId={item.id} />

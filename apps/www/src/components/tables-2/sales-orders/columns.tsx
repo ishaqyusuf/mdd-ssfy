@@ -160,13 +160,13 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorKey: "status",
-	...sizes.md,
+	...sizes.custom(110, 180, 130),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-28" },
 		headerLabel: "Status",
 		sortField: "status",
-		className: sizeClass(sizes.md),
+		className: sizeClass(sizes.custom(110, 180, 130)),
 	},
 	cell: ({ row }) => (
 		<Badge
@@ -405,13 +405,13 @@ const productionColumn: Column = {
 	id: "productionLabel",
 	header: "Production",
 	accessorKey: "productionLabel",
-	...sizes.md,
+	...sizes.custom(120, 220, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Production",
 		sortField: "prodStatus",
-		className: sizeClass(sizes.md),
+		className: sizeClass(sizes.custom(120, 220, 140)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">
@@ -424,12 +424,12 @@ const fulfillmentColumn: Column = {
 	id: "fulfillmentLabel",
 	header: "Fulfillment",
 	accessorKey: "fulfillmentLabel",
-	...sizes.md,
+	...sizes.custom(120, 220, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Fulfillment",
-		className: sizeClass(sizes.md),
+		className: sizeClass(sizes.custom(120, 220, 140)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">
@@ -442,13 +442,13 @@ const salesRepColumn: Column = {
 	id: "salesRepName",
 	header: "Sales rep",
 	accessorKey: "salesRepName",
-	...sizes.md,
+	...sizes.custom(120, 220, 140),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Sales rep",
 		sortField: "salesRepName",
-		className: sizeClass(sizes.md),
+		className: sizeClass(sizes.custom(120, 220, 140)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">
@@ -834,7 +834,9 @@ function ActionCell({ item }: { item: SalesOrder }) {
 				</SalesMenu>
 				{isPaymentReviewMode ? (
 					<Button
-						disabled={!item.latestPaymentReview || markPaymentReviewed.isPending}
+						disabled={
+							!item.latestPaymentReview || markPaymentReviewed.isPending
+						}
 						size="sm"
 						type="button"
 						variant="default"

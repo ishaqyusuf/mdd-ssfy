@@ -5,6 +5,7 @@ import { useTRPC } from "@/trpc/client";
 import type { PageFilterData } from "@api/type";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
 import { OpenEmployeeSheet } from "./open-employee-sheet";
+import { EmployeesColumnVisibility } from "./tables-2/employees/column-visibility";
 
 type Props = {
 	initialFilterList?: PageFilterData[];
@@ -20,7 +21,8 @@ export function EmployeeHeader({ initialFilterList }: Props) {
 				trpcRoute={trpc.filters.employee}
 				initialFilterList={initialFilterList}
 			/>
-			<div className="flex justify-end">
+			<div className="flex justify-end gap-2">
+				<EmployeesColumnVisibility />
 				<OpenEmployeeSheet />
 			</div>
 		</div>

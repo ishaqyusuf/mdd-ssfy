@@ -77,13 +77,13 @@ function createScheduleColumn(driverMode = false): Column {
 		id: "dueDate",
 		header: "Schedule",
 		accessorKey: "dueDate",
-		...sizes.custom(130, 210, 150),
+		...sizes.custom(118, 180, 136),
 		enableResizing: true,
 		meta: {
 			skeleton: { type: "text", width: "w-24" },
 			headerLabel: "Schedule",
 			sortField: "dueDate",
-			className: sizeClass(sizes.custom(130, 210, 150)),
+			className: sizeClass(sizes.custom(118, 180, 136)),
 		},
 		cell: ({ row }) => (
 			<ScheduleDateCell item={row.original} driverMode={driverMode} />
@@ -95,7 +95,7 @@ const orderIdColumn: Column = {
 	id: "orderId",
 	header: "Order",
 	accessorFn: (row) => row.order?.orderId,
-	...sizes.custom(150, 260, 180),
+	...sizes.custom(140, 230, 160),
 	enableResizing: true,
 	meta: {
 		sticky: true,
@@ -103,7 +103,7 @@ const orderIdColumn: Column = {
 		headerLabel: "Order",
 		sortField: "orderId",
 		className: sizeClass(
-			sizes.custom(150, 260, 180),
+			sizes.custom(140, 230, 160),
 			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -125,13 +125,13 @@ const orderDateColumn: Column = {
 	id: "orderDate",
 	header: "Order Date",
 	accessorFn: (row) => row.order?.createdAt,
-	...sizes.custom(110, 180, 130),
+	...sizes.custom(104, 150, 118),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Order date",
 		sortField: "createdAt",
-		className: sizeClass(sizes.custom(110, 180, 130)),
+		className: sizeClass(sizes.custom(104, 150, 118)),
 	},
 	cell: ({ row }) => (
 		<span className="truncate text-muted-foreground">
@@ -144,12 +144,12 @@ const customerColumn: Column = {
 	id: "customer",
 	header: "Ship To",
 	accessorFn: (row) => getCustomerName(row),
-	...sizes.custom(200, 420, 280),
+	...sizes.custom(180, 360, 220),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Ship to",
-		className: sizeClass(sizes.custom(200, 420, 280)),
+		className: sizeClass(sizes.custom(180, 360, 220)),
 	},
 	cell: ({ row }) => {
 		const customerName = getCustomerName(row.original);
@@ -173,13 +173,13 @@ const assignedToColumn: Column = {
 	id: "assignedTo",
 	header: "Assigned To",
 	accessorFn: (row) => row.driver?.name,
-	...sizes.custom(150, 280, 190),
+	...sizes.custom(132, 220, 160),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-28" },
 		headerLabel: "Assigned to",
 		sortField: "driverId",
-		className: sizeClass(sizes.custom(150, 280, 190)),
+		className: sizeClass(sizes.custom(132, 220, 160)),
 	},
 	cell: ({ row }) => <AssignedDriverCell item={row.original} />,
 };
@@ -188,12 +188,12 @@ const progressColumn: Column = {
 	id: "packingProgress",
 	header: "Progress",
 	accessorFn: (row) => getPackingTotals(row).packed,
-	...sizes.custom(130, 220, 150),
+	...sizes.custom(118, 180, 132),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-24" },
 		headerLabel: "Progress",
-		className: sizeClass(sizes.custom(130, 220, 150)),
+		className: sizeClass(sizes.custom(118, 180, 132)),
 	},
 	cell: ({ row }) => <PackingProgressCell item={row.original} />,
 };
@@ -202,13 +202,13 @@ const statusColumn: Column = {
 	id: "status",
 	header: "Status",
 	accessorKey: "status",
-	...sizes.custom(130, 210, 150),
+	...sizes.custom(116, 170, 132),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "badge", width: "w-24" },
 		headerLabel: "Status",
 		sortField: "status",
-		className: sizeClass(sizes.custom(130, 210, 150)),
+		className: sizeClass(sizes.custom(116, 170, 132)),
 	},
 	cell: ({ row }) => <DispatchStatusCell item={row.original} />,
 };
@@ -216,7 +216,7 @@ const statusColumn: Column = {
 const actionsColumn: Column = {
 	id: "actions",
 	header: "Actions",
-	...sizes.custom(92, 92),
+	...sizes.custom(72, 72),
 	enableResizing: false,
 	enableHiding: false,
 	enableSorting: false,
@@ -224,7 +224,7 @@ const actionsColumn: Column = {
 		skeleton: { type: "icon" },
 		headerLabel: "Actions",
 		className: sizeClass(
-			sizes.custom(92, 92),
+			sizes.custom(72, 72),
 			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},

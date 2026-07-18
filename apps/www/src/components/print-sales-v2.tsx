@@ -12,6 +12,7 @@ import {
 	type SalesPrintStageDetails,
 	buildSalesPdfDownloadUrlFromQuery,
 } from "@/modules/sales-print/application/sales-print-service";
+import type { SalesPageBreakMode } from "@gnd/pdf/sales-v2";
 import dynamic from "next/dynamic";
 import type { SyntheticEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +36,9 @@ interface PrintSalesV2Props {
 	snapshotId?: string;
 	preview?: boolean;
 	templateId?: string;
+	pageBreakMode?: SalesPageBreakMode;
+	showImages?: boolean;
+	headlineFirstPage?: boolean;
 	mode?: string;
 	pricingMode?: "customer" | "internal" | null;
 	className?: string;
@@ -54,6 +58,9 @@ export function PrintSalesV2({
 	snapshotId,
 	preview,
 	templateId,
+	pageBreakMode,
+	showImages,
+	headlineFirstPage,
 	mode,
 	pricingMode,
 	className,
@@ -82,6 +89,9 @@ export function PrintSalesV2({
 			snapshotId={snapshotId}
 			preview={preview}
 			templateId={templateId}
+			pageBreakMode={pageBreakMode}
+			showImages={showImages}
+			headlineFirstPage={headlineFirstPage}
 			mode={mode}
 			pricingMode={pricingMode}
 			className={className}
@@ -99,6 +109,9 @@ function PrintSalesV2FromFilters({
 	snapshotId,
 	preview,
 	templateId,
+	pageBreakMode,
+	showImages,
+	headlineFirstPage,
 	mode,
 	pricingMode,
 	className,
@@ -114,6 +127,9 @@ function PrintSalesV2FromFilters({
 		snapshotId: snapshotId ?? filters.snapshotId,
 		preview: preview ?? filters.preview,
 		templateId: templateId ?? filters.templateId,
+		pageBreakMode: pageBreakMode ?? filters.pageBreakMode,
+		showImages: showImages ?? filters.showImages,
+		headlineFirstPage: headlineFirstPage ?? filters.headlineFirstPage,
 		mode: mode ?? filters.mode,
 		pricingMode,
 	});
@@ -157,6 +173,9 @@ function PrintSalesV2Resolved({
 			<StoredPdfPrintUrlFrame
 				accessToken={params.accessToken}
 				templateId={params.templateId}
+				pageBreakMode={params.pageBreakMode}
+				showImages={params.showImages}
+				headlineFirstPage={params.headlineFirstPage}
 				className={className}
 				onPrintReady={onPrintReady}
 				onPrintError={onPrintError}
@@ -173,6 +192,9 @@ function PrintSalesV2Resolved({
 			snapshotId={params.snapshotId}
 			preview={params.preview}
 			templateId={params.templateId}
+			pageBreakMode={params.pageBreakMode}
+			showImages={params.showImages}
+			headlineFirstPage={params.headlineFirstPage}
 			pricingMode={params.pricingMode}
 			className={className}
 			onPrintReady={onPrintReady}
@@ -185,6 +207,9 @@ function PrintSalesV2Resolved({
 function StoredPdfPrintUrlFrame({
 	accessToken,
 	templateId,
+	pageBreakMode,
+	showImages,
+	headlineFirstPage,
 	className,
 	onPrintReady,
 	onPrintError,
@@ -192,6 +217,9 @@ function StoredPdfPrintUrlFrame({
 }: {
 	accessToken: string;
 	templateId: string;
+	pageBreakMode: SalesPageBreakMode;
+	showImages: boolean;
+	headlineFirstPage: boolean;
 	className?: string;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
@@ -213,11 +241,23 @@ function StoredPdfPrintUrlFrame({
 		return buildSalesPdfDownloadUrlFromQuery({
 			accessToken,
 			templateId,
+			pageBreakMode,
+			printConfig: {
+				showImages,
+				headlineFirstPage,
+			},
 			preview: true,
 			fresh: true,
 			origin: browserOrigin,
 		});
-	}, [accessToken, browserOrigin, templateId]);
+	}, [
+		accessToken,
+		browserOrigin,
+		headlineFirstPage,
+		pageBreakMode,
+		showImages,
+		templateId,
+	]);
 
 	if (!fastPdfUrl) {
 		return <PrintLoading />;

@@ -1,9 +1,14 @@
-import { InstallCostsClient } from "./install-costs-client";
-import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
-import { constructMetadata } from "@gnd/utils/construct-metadata";
-
+import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
+import { ScrollableContent } from "@/components/scrollable-content";
+import { CommunityInstallCostsSkeleton } from "@/components/tables-2/community-install-costs/skeleton";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
+import { constructMetadata } from "@gnd/utils/construct-metadata";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import { Suspense } from "react";
+import { InstallCostsClient } from "./install-costs-client";
 export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
@@ -13,17 +18,33 @@ export function generateMetadata() {
 }
 
 export default async function Page() {
-	const queryClient = getQueryClient();
-
-	await queryClient.fetchQuery(
-		trpc.community.getCommunityInstallCostRates.queryOptions(undefined),
+	const initialSettings = await getInitialTableSettings(
+		"community-install-costs",
 	);
+
+	batchPrefetch([
+		trpc.community.getCommunityInstallCostRates.queryOptions(undefined),
+	]);
 
 	return (
 		<PageShell>
 			<HydrateClient>
-				<PageTitle>Install Costs</PageTitle>
-				<InstallCostsClient />
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Install Costs</PageTitle>
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<CommunityInstallCostsSkeleton
+										initialSettings={initialSettings}
+									/>
+								}
+							>
+								<InstallCostsClient initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

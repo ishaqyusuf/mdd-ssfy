@@ -1,8 +1,11 @@
 "use client";
 
+import { TaskEventHistoryColumnVisibility } from "@/components/tables-2/task-event-history/column-visibility";
+import { DataTable as TaskEventHistoryTable } from "@/components/tables-2/task-event-history/data-table";
 import { useAuth } from "@/hooks/use-auth";
 import { salesFilterParamsSchema } from "@/hooks/use-sales-filter-params";
 import { useTRPC } from "@/trpc/client";
+import type { TableSettings } from "@/utils/table-settings";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
@@ -15,6 +18,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type Props = {
 	eventName: string;
+	initialHistorySettings?: Partial<TableSettings>;
 };
 
 type TaskHistoryMeta = {
@@ -68,10 +72,14 @@ type TaskHistoryMeta = {
 	}>;
 };
 
-export function TaskEventDetail({ eventName }: Props) {
+export function TaskEventDetail({ eventName, initialHistorySettings }: Props) {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const taskEventsListQueryKey = useMemo(
+		() => trpc.taskEvents.list.queryKey(),
+		[trpc],
+	);
 	const [status, setStatus] = useState<"active" | "inactive">("active");
 	const [filter, setFilter] = useState<Record<string, unknown>>({});
 	const [filterText, setFilterText] = useState("{}");
@@ -133,7 +141,7 @@ export function TaskEventDetail({ eventName }: Props) {
 				refetchHistory(),
 				refetch(),
 				queryClient.invalidateQueries({
-					queryKey: trpc.taskEvents.list.queryKey(),
+					queryKey: taskEventsListQueryKey,
 				}),
 			]);
 		})();
@@ -144,6 +152,7 @@ export function TaskEventDetail({ eventName }: Props) {
 		runId,
 		runStatusQuery.data?.status,
 		syncedRunId,
+		taskEventsListQueryKey,
 	]);
 
 	const saveMutation = useMutation(
@@ -157,7 +166,7 @@ export function TaskEventDetail({ eventName }: Props) {
 					refetch(),
 					historyQuery.refetch(),
 					queryClient.invalidateQueries({
-						queryKey: trpc.taskEvents.list.queryKey(),
+						queryKey: taskEventsListQueryKey,
 					}),
 				]);
 			},
@@ -432,10 +441,14 @@ export function TaskEventDetail({ eventName }: Props) {
 
 					{manualDateMode === "single" ? (
 						<div className="grid gap-2 md:max-w-xs">
-							<label className="text-xs font-medium text-muted-foreground">
+							<label
+								htmlFor="manual-single-payment-date"
+								className="text-xs font-medium text-muted-foreground"
+							>
 								Payment date
 							</label>
 							<Input
+								id="manual-single-payment-date"
 								type="date"
 								value={manualSingleDate}
 								onChange={(event) => setManualSingleDate(event.target.value)}
@@ -444,20 +457,28 @@ export function TaskEventDetail({ eventName }: Props) {
 					) : (
 						<div className="grid gap-3 md:grid-cols-2 md:max-w-xl">
 							<div className="grid gap-2">
-								<label className="text-xs font-medium text-muted-foreground">
+								<label
+									htmlFor="manual-payment-date-from"
+									className="text-xs font-medium text-muted-foreground"
+								>
 									From
 								</label>
 								<Input
+									id="manual-payment-date-from"
 									type="date"
 									value={manualRangeFrom}
 									onChange={(event) => setManualRangeFrom(event.target.value)}
 								/>
 							</div>
 							<div className="grid gap-2">
-								<label className="text-xs font-medium text-muted-foreground">
+								<label
+									htmlFor="manual-payment-date-to"
+									className="text-xs font-medium text-muted-foreground"
+								>
 									To
 								</label>
 								<Input
+									id="manual-payment-date-to"
 									type="date"
 									value={manualRangeTo}
 									onChange={(event) => setManualRangeTo(event.target.value)}
@@ -548,44 +569,19 @@ export function TaskEventDetail({ eventName }: Props) {
 					</div>
 				) : null}
 
-				<h3 className="text-sm font-semibold mb-3">Run History</h3>
-				<div className="overflow-x-auto">
-					<table className="w-full text-sm">
-						<thead>
-							<tr className="text-left border-b">
-								<th className="py-2 pr-3">Time</th>
-								<th className="py-2 pr-3">Value</th>
-								<th className="py-2 pr-3">Trigger</th>
-								<th className="py-2">Meta</th>
-							</tr>
-						</thead>
-						<tbody>
-							{latestHistory.map((item, index) => {
-								const meta = parseTaskHistoryMeta(item.meta);
-								return (
-									<tr
-										key={item.id}
-										className={`border-b align-top ${index === 0 ? "bg-muted/30" : ""}`}
-									>
-										<td className="py-2 pr-3 whitespace-nowrap">
-											{formatDate(item.createdAt)}
-										</td>
-										<td className="py-2 pr-3">{item.value}</td>
-										<td className="py-2 pr-3">
-											{String(meta?.triggerType || "-")}
-										</td>
-										<td className="py-2">
-											<HistoryMetaView meta={meta} />
-										</td>
-									</tr>
-								);
-							})}
-						</tbody>
-					</table>
+				<div className="mb-3 flex items-center justify-between gap-3">
+					<h3 className="text-sm font-semibold">Run History</h3>
+					<TaskEventHistoryColumnVisibility />
 				</div>
-				{!latestHistory.length ? (
-					<p className="text-sm text-muted-foreground mt-2">No history yet.</p>
-				) : null}
+				<TaskEventHistoryTable
+					data={latestHistory}
+					initialSettings={initialHistorySettings}
+					isLoading={historyQuery.isPending}
+					formatDate={formatDate}
+					renderMeta={(value) => (
+						<HistoryMetaView meta={parseTaskHistoryMeta(value)} />
+					)}
+				/>
 			</div>
 		</div>
 	);
@@ -621,8 +617,8 @@ function HistoryMetaView({ meta }: { meta: TaskHistoryMeta | null }) {
 	const artifactUrl = meta.artifact?.url || meta.artifact?.pathname || null;
 
 	return (
-		<div className="text-xs space-y-2">
-			<div className="flex flex-wrap gap-2 text-muted-foreground">
+		<div className="space-y-1 text-xs leading-5">
+			<div className="flex max-h-10 flex-wrap gap-x-2 gap-y-0.5 overflow-hidden text-muted-foreground">
 				<span>Status: {meta.statusUsed || "-"}</span>
 				{meta.reportDate ? <span>Report: {meta.reportDate}</span> : null}
 				{meta.netReceived != null ? (
@@ -653,7 +649,7 @@ function HistoryMetaView({ meta }: { meta: TaskHistoryMeta | null }) {
 			{meta.methodTotals?.length ? (
 				<div>
 					<div className="font-medium">Payment Methods</div>
-					<div className="mt-1 flex flex-wrap gap-2 text-muted-foreground">
+					<div className="mt-0.5 flex max-h-10 flex-wrap gap-x-2 gap-y-0.5 overflow-hidden text-muted-foreground">
 						{meta.methodTotals.map((row) => (
 							<span key={row.paymentMethod}>
 								{row.paymentMethod}: {formatCurrency(row.netReceived)} (
@@ -680,8 +676,8 @@ function HistoryMetaView({ meta }: { meta: TaskHistoryMeta | null }) {
 					<div className="font-medium">
 						Successful Recipients ({recipients.length})
 					</div>
-					<div className="space-y-1 mt-1">
-						{recipients.slice(0, 3).map((recipient) => (
+					<div className="mt-0.5 max-h-10 space-y-0.5 overflow-hidden">
+						{recipients.slice(0, 2).map((recipient) => (
 							<div key={`${recipient.recipientRole}-${recipient.recipientId}`}>
 								{recipient.recipientName} ({recipient.recipientRole}) -{" "}
 								{recipient.salesCount} sale(s)
@@ -701,8 +697,8 @@ function HistoryMetaView({ meta }: { meta: TaskHistoryMeta | null }) {
 					<div className="font-medium">
 						Skipped Sales ({skippedSales.length})
 					</div>
-					<div className="space-y-1 mt-1">
-						{skippedSales.slice(0, 3).map((sale) => (
+					<div className="mt-0.5 max-h-10 space-y-0.5 overflow-hidden">
+						{skippedSales.slice(0, 2).map((sale) => (
 							<div key={sale.saleId}>
 								{sale.orderId} - {(sale.reasons || []).join(", ")}
 							</div>

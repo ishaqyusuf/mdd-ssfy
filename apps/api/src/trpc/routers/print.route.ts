@@ -97,6 +97,12 @@ export const printRouter = createTRPCRouter({
 				snapshotId: z.string().optional(),
 				preview: z.boolean().optional().default(false),
 				templateId: z.string().optional().default("template-2"),
+				pageBreakMode: z
+					.enum(["section", "header", "fullHeader"])
+					.optional()
+					.default("header"),
+				showImages: z.boolean().optional().default(true),
+				headlineFirstPage: z.boolean().optional().default(true),
 				pricingMode: z.enum(["customer", "internal"]).optional(),
 				baseUrl: z.string().optional(),
 			}),
@@ -124,6 +130,11 @@ export const printRouter = createTRPCRouter({
 					accessToken: props.input.accessToken ?? null,
 					snapshotId: props.input.snapshotId ?? null,
 					templateId: props.input.templateId,
+					printConfig: {
+						pageBreakMode: props.input.pageBreakMode,
+						showImages: props.input.showImages,
+						headlineFirstPage: props.input.headlineFirstPage,
+					},
 					pricingMode: props.input.pricingMode ?? null,
 					baseUrl:
 						props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,

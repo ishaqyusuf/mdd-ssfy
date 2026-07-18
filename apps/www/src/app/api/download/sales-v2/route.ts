@@ -1,4 +1,5 @@
 import {
+	DEFAULT_SALES_PRINT_TEMPLATE_ID,
 	normalizeSalesPrintMode,
 	parseSalesPrintRequest,
 } from "@/modules/sales-print/application/sales-print-request";
@@ -10,7 +11,11 @@ import {
 } from "@gnd/api/utils/sales-document-access";
 import { isSalesPdfSnapshotArtifactsDisabled } from "@gnd/api/utils/sales-document-snapshot-policy";
 import { db } from "@gnd/db";
-import { renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
+import {
+	DEFAULT_SALES_PAGE_BREAK_MODE,
+	type SalesPageBreakMode,
+	renderSalesPdfBuffer,
+} from "@gnd/pdf/sales-v2";
 import {
 	buildSalesPrintDocumentTypeKey,
 	createOrRefreshBatchSalesPrintData,
@@ -70,6 +75,9 @@ async function renderSnapshotPdfFallback(input: {
 	requestUrl: URL;
 	preview: boolean;
 	templateId?: string | null;
+	pageBreakMode?: SalesPageBreakMode | null;
+	showImages?: boolean;
+	headlineFirstPage?: boolean;
 	pricingMode?: "customer" | "internal" | null;
 	publicToken?: string | null;
 	accessToken?: string | null;
@@ -81,6 +89,11 @@ async function renderSnapshotPdfFallback(input: {
 		accessToken: input.accessToken,
 		snapshotId: input.snapshotId,
 		templateId: input.templateId,
+		printConfig: {
+			pageBreakMode: input.pageBreakMode || undefined,
+			showImages: input.showImages ?? true,
+			headlineFirstPage: input.headlineFirstPage ?? true,
+		},
 		pricingMode: input.pricingMode ?? null,
 		baseUrl: input.requestUrl.origin,
 	});
@@ -95,6 +108,11 @@ async function renderSnapshotPdfFallback(input: {
 		baseUrl: input.requestUrl.origin,
 		previewUrl: documentData.previewUrl,
 		qrCodeDataUrl: documentData.qrCodeDataUrl,
+		config: {
+			pageBreakMode: input.pageBreakMode ?? undefined,
+			showImages: input.showImages ?? true,
+			headlineFirstPage: input.headlineFirstPage ?? true,
+		},
 	});
 
 	return createPdfResponse({
@@ -133,6 +151,14 @@ export async function GET(req: NextRequest) {
 	);
 	const { params } = printRequest;
 	const fresh = requestUrl.searchParams.get("fresh") === "true";
+	const canUseStoredSnapshot =
+		!fresh &&
+		!params.pricingMode &&
+		params.templateId === DEFAULT_SALES_PRINT_TEMPLATE_ID &&
+		params.pageBreakMode === DEFAULT_SALES_PAGE_BREAK_MODE &&
+		params.showImages &&
+		params.headlineFirstPage &&
+		!isSalesPdfSnapshotArtifactsDisabled();
 
 	if (!printRequest.isValid) {
 		return NextResponse.json(
@@ -147,7 +173,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "public-token") {
-		if (!fresh && !params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
+		if (canUseStoredSnapshot) {
 			const snapshotLookup = await getSalesSnapshotDocumentByPublicToken({
 				db,
 				publicToken: params.pt,
@@ -166,6 +192,9 @@ export async function GET(req: NextRequest) {
 			requestUrl,
 			preview: params.preview,
 			templateId: params.templateId,
+			pageBreakMode: params.pageBreakMode,
+			showImages: params.showImages,
+			headlineFirstPage: params.headlineFirstPage,
 			pricingMode: params.pricingMode,
 			publicToken: params.pt,
 		});
@@ -174,7 +203,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "access-token") {
-		if (!fresh && !params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
+		if (canUseStoredSnapshot) {
 			const snapshotLookup = await getSalesSnapshotDocumentByAccessToken({
 				db,
 				accessToken: params.accessToken,
@@ -193,6 +222,9 @@ export async function GET(req: NextRequest) {
 			requestUrl,
 			preview: params.preview,
 			templateId: params.templateId,
+			pageBreakMode: params.pageBreakMode,
+			showImages: params.showImages,
+			headlineFirstPage: params.headlineFirstPage,
 			pricingMode: params.pricingMode,
 			accessToken: params.accessToken,
 		});
@@ -201,7 +233,7 @@ export async function GET(req: NextRequest) {
 	}
 
 	if (printRequest.locatorType === "snapshot-id") {
-		if (!fresh && !params.pricingMode && !isSalesPdfSnapshotArtifactsDisabled()) {
+		if (canUseStoredSnapshot) {
 			const snapshotLookup = await getSalesSnapshotDocumentById({
 				db,
 				snapshotId: params.snapshotId,
@@ -220,6 +252,9 @@ export async function GET(req: NextRequest) {
 			requestUrl,
 			preview: params.preview,
 			templateId: params.templateId,
+			pageBreakMode: params.pageBreakMode,
+			showImages: params.showImages,
+			headlineFirstPage: params.headlineFirstPage,
 			pricingMode: params.pricingMode,
 			snapshotId: params.snapshotId,
 		});
@@ -255,6 +290,11 @@ export async function GET(req: NextRequest) {
 		companyAddress: documentData.companyAddress,
 		logoUrl: documentData.logoUrl ?? undefined,
 		baseUrl: requestUrl.origin,
+		config: {
+			pageBreakMode: params.pageBreakMode,
+			showImages: params.showImages,
+			headlineFirstPage: params.headlineFirstPage,
+		},
 	});
 
 	return createPdfResponse({

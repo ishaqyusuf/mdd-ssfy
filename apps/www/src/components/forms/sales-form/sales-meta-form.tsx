@@ -36,7 +36,7 @@ export function SalesMetaForm({ tab = "summary" }: { tab?: SalesMetaTab }) {
     const md = zus.metaData;
 
     return (
-        <div>{tab === "summary" ? <SummaryTab /> : <SalesHistory salesId={md?.salesId} />}</div>
+        <div>{tab === "summary" ? <SummaryTab /> : <SalesHistory salesNo={md?.salesId} />}</div>
     );
 }
 function SummaryTab({}) {

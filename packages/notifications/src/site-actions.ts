@@ -1,4 +1,4 @@
-import { Db } from "@gnd/db";
+import type { Db } from "@gnd/db";
 
 export interface SiteTicketProps {
   type: ActionTicketType;
@@ -13,23 +13,31 @@ export async function createSiteActionTicket(
   db: Db,
   props: SiteTicketProps,
 ) {
+  if (!props.authorId) {
+    throw new Error("Site action author is required");
+  }
+
   const author = await db.users.findUniqueOrThrow({
     where: {
-      id: props.authorId!,
+      id: props.authorId,
     },
     select: {
       id: true,
       name: true,
     },
   });
+  const normalizedAuthor = {
+    id: author.id,
+    name: author.name ?? "Unknown user",
+  };
   let { meta } = props;
   if (!meta) meta = {};
   //   const auth = await user();
-  meta.authorName = author.name!;
-  meta.authorId = author.id;
+  meta.authorName = normalizedAuthor.name;
+  meta.authorId = normalizedAuthor.id;
   await db.siteActionTicket.create({
     data: {
-      description: await generateDescription(author, props),
+      description: await generateDescription(normalizedAuthor, props),
       type: props.type,
       event: props.event,
       meta,
@@ -47,10 +55,6 @@ async function generateDescription(
   { type, event }: SiteTicketProps,
 ) {
   return [type, event, "by", auth.name].join(" ").replaceAll("-", " ");
-  switch (type) {
-    case "sales-customer-transaction":
-      break;
-  }
 }
 
 export const actionTicketTypes = [

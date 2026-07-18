@@ -213,6 +213,18 @@ export async function getQuotes(
   );
 }
 
+export async function getQuotesCount(
+  ctx: TRPCContext,
+  query: SalesQueryParamsSchema,
+) {
+  query.salesType = "quote";
+  query = applyDefaultSalesRepScope(query, ctx.userId);
+
+  return ctx.db.salesOrders.count({
+    where: whereSales(query),
+  });
+}
+
 export async function getSaleOverview(
   ctx: TRPCContext,
   query: GetSaleOverviewSchema,

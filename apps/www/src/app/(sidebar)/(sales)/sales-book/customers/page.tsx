@@ -1,6 +1,7 @@
 import { CustomerHeader } from "@/components/customer-header";
 import { ErrorFallback } from "@/components/error-fallback";
 import PageShell from "@/components/page-shell";
+import { ScrollableContent } from "@/components/scrollable-content";
 import { DataTable } from "@/components/tables-2/customers/data-table";
 import { CustomersSkeleton } from "@/components/tables-2/customers/skeleton";
 import { loadCustomerFilterParams } from "@/hooks/use-customer-filter-params";
@@ -48,17 +49,21 @@ export default async function Page(props: Props) {
 	return (
 		<PageShell>
 			<HydrateClient>
-				<PageTitle>Sales Customers</PageTitle>
-				<div className="flex flex-col gap-6">
-					<CustomerHeader />
-					<ErrorBoundary errorComponent={ErrorFallback}>
-						<Suspense
-							fallback={<CustomersSkeleton initialSettings={initialSettings} />}
-						>
-							<DataTable initialSettings={initialSettings} />
-						</Suspense>
-					</ErrorBoundary>
-				</div>
+				<ScrollableContent>
+					<div className="flex flex-col gap-6">
+						<PageTitle>Sales Customers</PageTitle>
+						<CustomerHeader />
+						<ErrorBoundary errorComponent={ErrorFallback}>
+							<Suspense
+								fallback={
+									<CustomersSkeleton initialSettings={initialSettings} />
+								}
+							>
+								<DataTable initialSettings={initialSettings} />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</ScrollableContent>
 			</HydrateClient>
 		</PageShell>
 	);

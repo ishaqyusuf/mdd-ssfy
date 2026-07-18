@@ -8,19 +8,21 @@ import { communityProjectFilterParams } from "@/hooks/use-community-project-filt
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
 import { SearchFilterAdapter as SearchFilter } from "./midday-search-filter/search-filter-adapter";
+import { CommunityProjectsColumnVisibility } from "./tables-2/community-projects/column-visibility";
 
 export function CommunityProjectHeader() {
 	const modal = useModal();
 	const trpc = useTRPC();
 
 	return (
-		<div className="flex justify-between">
+		<div className="flex justify-between gap-4">
 			<SearchFilter
 				filterSchema={communityProjectFilterParams}
 				placeholder="Search Projects..."
 				trpcRoute={trpc.filters.communityProject}
 			/>
 			<div className="flex-1" />
+			<CommunityProjectsColumnVisibility />
 			<Button onClick={() => modal.openModal(<ProjectModal />)}>
 				<Icons.Plus className="mr-2 size-4" />
 				<span className="hidden lg:inline">Add Project</span>

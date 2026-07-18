@@ -10,6 +10,8 @@ export const listShortLinksSchema = z.object({
 	q: z.string().trim().nullable().optional(),
 	page: z.number().int().min(1).optional(),
 	size: z.number().int().min(1).max(200).optional(),
+	cursor: z.string().nullable().optional(),
+	sort: z.array(z.string()).nullable().optional(),
 	includeInactive: z.boolean().nullable().optional(),
 });
 
