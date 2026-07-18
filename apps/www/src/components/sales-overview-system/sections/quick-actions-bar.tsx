@@ -6,6 +6,7 @@ import { resetSalesStatAction } from "@/actions/reset-sales-stat";
 import { SalesMenu } from "@/components/sales-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
+import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
 import { salesFormUrl } from "@/utils/sales-utils";
 
@@ -28,6 +29,15 @@ export function QuickActionsBar() {
 	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
 	const auth = useAuth();
+	const salesQueryClient = useSalesQueryClient(
+		data?.orderId
+			? {
+					orderNo: data?.orderId,
+					salesId: data?.id,
+					salesType: data?.type === "quote" ? "quote" : "order",
+				}
+			: null,
+	);
 	const [loading, startTransition] = useTransition();
 	const canSendForPacking =
 		auth.can?.editOrders &&
@@ -47,6 +57,7 @@ export function QuickActionsBar() {
 		startTransition(async () => {
 			try {
 				await resetSalesStatAction(data?.id, data?.orderId);
+				await salesQueryClient.events.salesStatReset();
 				toast.success("Reset complete");
 			} catch {
 				toast.error("Unable to complete");
@@ -104,6 +115,7 @@ export function QuickActionsBar() {
 				id={data.id}
 				slug={data.uuid}
 				type={data.type}
+				orderNo={data.orderId}
 				customerEmail={data.email ?? null}
 				customerName={data.displayName}
 			>

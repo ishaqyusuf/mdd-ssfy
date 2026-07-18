@@ -4,6 +4,18 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Central Typed Query Invalidation Events
+- Priority: High
+- Description: Added one typed domain event registry and global mutation-success trigger for WWW query invalidation, including result/variable-derived entity scope, explicit `meta.queryEventScope` / `meta.queryEvents`, automatic typed tRPC mutation-route mappings, same-browser cross-tab delivery, exact Sales Overview invalidation with broad aggregate invalidation, a typed one-off invalidation helper, and migration of reviewed, office/online payment, autosave/final sales edit, production, fulfillment, copy/move, and dispatch flows.
+- Related Feature: Client data freshness, tRPC, TanStack Query, sales, inventory, jobs, HRM, page tabs
+- Status: Done
+- Plan Status: Implemented foundation and critical-domain rollout
+- Plan File: brain/plans/2026-07-17-query-invalidation-event-system.md
+- Feature File: brain/features/query-invalidation-events.md
+- Decision: brain/decisions/ADR-013-central-query-invalidation-events.md
+- Evidence: apps/www/src/lib/query-events; apps/www/src/trpc/query-client.ts; apps/www/src/trpc/client.tsx; apps/www/src/types/react-query.d.ts; apps/www/src/hooks/use-sales-query-client.ts
+- Completed Date: 2026-07-18
+
 ### Task Monitor Client Simplification And Error Ledger
 - Priority: High
 - Description: Simplified production background task feedback so normal users see only a loading circle while tasks run and terminal closeable toasts on success/failure, while developer-facing run details move to a durable task-run diagnostics ledger.

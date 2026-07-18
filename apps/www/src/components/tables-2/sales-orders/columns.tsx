@@ -673,26 +673,15 @@ function ActionCell({ item }: { item: SalesOrder }) {
 		orderId: string | null;
 		amountDue: number;
 	} | null>(null);
-	const invalidateSalesOrders = async () => {
-		await Promise.all([
-			queryClient.invalidateQueries({
-				queryKey: trpc.sales.getOrders.infiniteQueryKey(),
-			}),
-			queryClient.invalidateQueries({
-				queryKey: trpc.sales.getOrdersSummary.queryKey(),
-			}),
-		]);
-	};
 	const markPaymentReviewed = useMutation(
 		trpc.sales.markLatestPaymentReviewed.mutationOptions({
-			async onSuccess() {
+			onSuccess() {
 				toast({
 					duration: 2000,
 					variant: "success",
 					title: "Payment reviewed",
 					description: "The payment was removed from the review queue.",
 				});
-				await invalidateSalesOrders();
 			},
 			onError(error) {
 				toast({
@@ -858,7 +847,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 							});
 						}}
 					>
-						Review
+						Reviewed
 					</Button>
 				) : null}
 			</div>

@@ -893,8 +893,12 @@ export function NewSalesForm(props: Props) {
             }
             if (resp?.type === "order" && resp?.salesId && resp?.orderId) {
                 await resetSalesStatAction(resp.salesId, resp.orderId);
+                await salesQueryClient.events.productionUpdated({
+                    orderNo: resp.orderId,
+                    salesId: resp.salesId,
+                    salesType: "order",
+                });
             }
-            await salesQueryClient.invalidate.salesDocumentChanged(resp?.type);
             if (resp?.salesId) {
                 await triggerEvent(
                     resp?.isNew ? "salesCreated" : "salesUpdated",

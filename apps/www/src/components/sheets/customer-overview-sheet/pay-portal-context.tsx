@@ -9,7 +9,6 @@ import { printSalesData } from "@/utils/sales-print-utils";
 import type { TerminalCheckoutStatus } from "@gnd/square";
 import { useEffect, useState } from "react";
 
-import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useZodForm } from "@/hooks/use-zod-form";
 import {
 	useMutation,
@@ -72,7 +71,6 @@ export function usePayPortal() {
 	const pm = form.watch("paymentMethod");
 	const terminalPaymentSession = form.watch("terminalPaymentSession");
 	const salesQ = useSalesOverviewQuery();
-	const sq = useSalesQueryClient();
 	const makePaymentMutation = useMutation(
 		trpc.salesPaymentProcessor.applyPayment.mutationOptions({
 			onSuccess: async (data, variables) => {
@@ -87,7 +85,6 @@ export function usePayPortal() {
 					if (data.status) {
 						form.setValue("terminalPaymentSession", null);
 						//toast.success("", toastDetail("payment-success") as any);
-						await sq.invalidate.salesPaymentChanged();
 						query.setParams({
 							"pay-selections": null,
 							tab: "transactions",

@@ -4,6 +4,16 @@
 Tracks important request/response contracts and shared schema boundaries.
 
 ## Current Notes
+- WWW client query invalidation contract:
+  - Successful browser tRPC mutations pass through the global TanStack `MutationCache.onSuccess`, which resolves a typed mutation route from the tRPC mutation key and emits the route's registered query events.
+  - Mutation results/variables may resolve affected sale references, and mutation options may add `meta.queryEventScope`; mutation options may also add typed `meta.queryEvents: QueryEventName[]`, while `meta.queryEvents: false` opts out of automatic route events.
+  - Query events own typed tRPC path/exact/infinite targets in `apps/www/src/lib/query-events/registry.ts`; Sales Overview detail reads use exact `{ orderNo, salesType }` keys when scope is available, while lists/summaries/dashboards/filters/page tabs remain broad. Missing scope falls back to broad detail invalidation.
+  - Events reach the initiating tab and other open GND tabs in the same browser via `BroadcastChannel`. This is not a multi-device or server-originated realtime contract.
+  - Query invalidation errors are logged independently and never change a successfully committed mutation into a mutation failure.
+  - `salesPaymentProcessor.applyPayment` returns `appliedSales: Array<{ salesId, orderId, amountApplied, remainingDue }>` for successful office/customer-portal payments. Pending terminal setup returns an empty array and emits no sales event.
+  - `checkout.verifyPayment` returns `appliedSales: Array<{ salesId, orderId, salesType }>` after completed settlement so online customer payments can invalidate the affected Sales Overview queries; pending verification returns no affected sales event.
+  - Inventory dispatch/fulfillment mutation results attach `sale: { id, orderId, type } | null` when a sales order is known so the client can invalidate that exact Sales Overview.
+  - `sales.markLatestPaymentReviewed` returns its related order `{ id, orderId, type }` with the reviewed payment result.
 - Shared schemas and DTOs live across `apps/api/src/schemas`, `apps/api/src/dto`, and shared packages.
 - Sales production query contracts live in `packages/sales/src/schema.ts`.
 - Shared page-tab contracts:

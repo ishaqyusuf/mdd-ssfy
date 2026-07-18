@@ -118,6 +118,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				id={data?.id}
 				slug={data?.uuid}
 				type={data?.type}
+				orderNo={data?.orderId}
 				customerEmail={data?.email ?? null}
 				customerName={data?.displayName}
 			>

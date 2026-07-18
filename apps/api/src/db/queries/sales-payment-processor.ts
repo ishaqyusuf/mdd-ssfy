@@ -87,6 +87,12 @@ export async function applySalesPaymentProcessorPayment(
 		terminalPaymentSession: null as typeof input.terminalPaymentSession,
 		status: null as "success" | null,
 		appliedSalesIds: [] as number[],
+		appliedSales: [] as {
+			salesId: number;
+			orderId: string;
+			amountApplied: number;
+			remainingDue: number;
+		}[],
 		walletAppliedAmount: 0,
 		walletCreditAmount: 0,
 		customerChargeAmount: 0,
@@ -110,6 +116,7 @@ export async function applySalesPaymentProcessorPayment(
 
 	const result = await applySalesPayment(ctx, input);
 	response.appliedSalesIds = result.appliedSalesIds;
+	response.appliedSales = result.appliedSales;
 	response.walletAppliedAmount = result.walletAppliedAmount;
 	response.walletCreditAmount = result.walletCreditAmount;
 	response.customerChargeAmount = result.paymentCharge.chargeAmount;

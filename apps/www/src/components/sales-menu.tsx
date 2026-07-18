@@ -9,6 +9,7 @@ import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
+import type { SalesQueryRef } from "@/lib/query-events/types";
 import {
 	buildSalesPdfDownloadUrlFromQuery,
 	resolveSalesPrintMode,
@@ -52,6 +53,7 @@ type SalesMenuState = {
 	id?: number;
 	slug?: string;
 	type?: SalesType;
+	salesRefs: SalesQueryRef[];
 	salesIds: number[];
 	orderNo?: string | null;
 	customerEmail?: string | null;
@@ -101,6 +103,7 @@ type SalesMenuProps = {
 	slug?: string;
 	type?: SalesType;
 	salesIds?: number[];
+	salesRefs?: readonly SalesQueryRef[];
 	orderNo?: string | null;
 	customerEmail?: string | null;
 	customerName?: string | null;
@@ -120,6 +123,7 @@ function SalesMenuRoot({
 	slug,
 	type,
 	salesIds,
+	salesRefs,
 	orderNo,
 	customerEmail,
 	customerName,
@@ -148,11 +152,23 @@ function SalesMenuRoot({
 	const state = useMemo<SalesMenuState>(() => {
 		const resolvedType = type ?? "order";
 		const resolvedIds = salesIds?.length ? salesIds : id ? [id] : [];
+		const resolvedRefs = salesRefs?.length
+			? [...salesRefs]
+			: orderNo
+				? [
+						{
+							orderNo,
+							...(id ? { salesId: id } : {}),
+							salesType: resolvedType,
+						},
+					]
+				: [];
 
 		return {
 			id,
 			slug,
 			type: resolvedType,
+			salesRefs: resolvedRefs,
 			salesIds: resolvedIds,
 			orderNo,
 			customerEmail,
@@ -165,6 +181,7 @@ function SalesMenuRoot({
 		documentTitle,
 		id,
 		orderNo,
+		salesRefs,
 		salesIds,
 		slug,
 		type,
@@ -189,8 +206,13 @@ function SalesMenuRoot({
 						type: state.type,
 					});
 
-					if (as === "order" && result.id) {
-						await resetSalesStatAction(result.id, state.slug);
+					if (as === "order" && result.id && result.slug) {
+						await resetSalesStatAction(result.id, result.slug);
+						await sq.events.productionUpdated({
+							orderNo: result.slug,
+							salesId: result.id,
+							salesType: "order",
+						});
 					}
 
 					if (result.slug) {
@@ -212,7 +234,6 @@ function SalesMenuRoot({
 							),
 						});
 					}
-					await sq.invalidate.salesDocumentChanged(as);
 					setOpen(false);
 				} catch {
 					loader.error("Unable to complete");
@@ -239,6 +260,11 @@ function SalesMenuRoot({
 
 					if (to === "order" && result.id && result.slug) {
 						await resetSalesStatAction(result.id, result.slug);
+						await sq.events.productionUpdated({
+							orderNo: result.slug,
+							salesId: result.id,
+							salesType: "order",
+						});
 					}
 
 					if (result.slug) {
@@ -253,7 +279,6 @@ function SalesMenuRoot({
 							),
 						});
 					}
-					await sq.invalidate.salesDocumentChanged(to);
 					setOpen(false);
 				} catch {
 					loader.error("Unable to complete");
@@ -828,17 +853,18 @@ type DeleteProps = {
 
 function SalesMenuDelete({ onDeleted }: DeleteProps) {
 	const { state, actions } = useSalesMenuContext();
-	const sq = useSalesQueryClient();
 	const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const [confirm, setConfirm] = useState(false);
 	const mutation = useMutation(
 		useTRPC().sales.deleteSale.mutationOptions({
-			onSuccess: async () => {
-				await sq.invalidate.salesDocumentChanged(state.type);
+			onSuccess: () => {
 				onDeleted?.();
 				actions.closeMenu();
 			},
 			meta: {
+				queryEventScope: {
+					sales: state.salesRefs,
+				},
 				toastTitle: {
 					error: "Unable to complete",
 					loading: "Delete...",
@@ -891,7 +917,7 @@ function SalesMenuMarkAs({
 	const { state, actions } = useSalesMenuContext();
 	const auth = useAuth();
 	const trpc = useTRPC();
-	const sq = useSalesQueryClient();
+	const sq = useSalesQueryClient(state.salesRefs);
 	const salesIds = state.salesIds;
 	const [inventoryPreflight, setInventoryPreflight] =
 		useState<SalesInventoryMarkAsPreflightResult | null>(null);
@@ -901,7 +927,13 @@ function SalesMenuMarkAs({
 	const expectedTaskStartsRef = useRef(0);
 	const completedTaskStartsRef = useRef(0);
 	const createDispatchMutation = useMutation(
-		trpc.dispatch.createDispatch.mutationOptions(),
+		trpc.dispatch.createDispatch.mutationOptions({
+			meta: {
+				queryEventScope: {
+					sales: state.salesRefs,
+				},
+			},
+		}),
 	);
 	const resolveInventoryMarkAsMutation = useMutation(
 		trpc.inventories.resolveSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
@@ -916,7 +948,6 @@ function SalesMenuMarkAs({
 		await Promise.all([
 			sq.invalidate.salesList(),
 			sq.invalidate.productionOverview(),
-			sq.invalidate.saleOverview(),
 		]);
 	};
 	const closeMenuAfterExpectedTaskStarts = () => {
@@ -1039,6 +1070,9 @@ function SalesMenuMarkAs({
 							version: 1,
 							args: {
 								salesIds: [salesId],
+								sales: state.salesRefs.filter(
+									(sale) => sale.salesId === salesId,
+								),
 							},
 						},
 					},
@@ -1077,6 +1111,9 @@ function SalesMenuMarkAs({
 							version: 1,
 							args: {
 								salesIds: [salesId],
+								sales: state.salesRefs.filter(
+									(sale) => sale.salesId === salesId,
+								),
 								dispatchIds: [dispatchId],
 							},
 						},
@@ -1130,7 +1167,6 @@ function SalesMenuMarkAs({
 						successCount === 1 ? "" : "s"
 					} removed from the review queue.`,
 				});
-				await sq.invalidate.salesPaymentChanged();
 			}
 
 			if (failedCount > 0) {
@@ -1261,7 +1297,7 @@ function SalesMenuMarkAs({
 						void markPaymentReviewed();
 					}}
 				>
-					Review
+					Reviewed
 				</SalesMenuItem>
 			) : null}
 		</>

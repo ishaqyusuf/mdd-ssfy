@@ -170,7 +170,12 @@ import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 // import { upsertInventoriesForDykeShelfProductsSchema } from "@api/db/queries/inventory";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+import {
+	type TRPCContext,
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "../init";
 // import {
 //   dimensionalWeightFormSchema,
 //   flatRateFormSchema,
@@ -220,6 +225,30 @@ export const shipAvailableSalesInventorySchema = z.object({
 	authorName: z.string().optional().nullable(),
 	note: z.string().optional().nullable(),
 });
+
+async function attachSalesQueryRef<Result extends object>(
+	db: TRPCContext["db"],
+	salesOrderId: number | null | undefined,
+	result: Result,
+) {
+	if (!salesOrderId) return result;
+
+	const sale = await db.salesOrders.findUnique({
+		where: {
+			id: salesOrderId,
+		},
+		select: {
+			id: true,
+			orderId: true,
+			type: true,
+		},
+	});
+
+	return {
+		...result,
+		sale,
+	};
+}
 
 export const cleanupStaleSalesInventoryLineItemsSchema = z
 	.object({
@@ -1070,55 +1099,73 @@ export const inventoriesRouter = createTRPCRouter({
 	shipAvailableSalesInventory: protectedProcedure
 		.input(shipAvailableSalesInventorySchema)
 		.mutation(async (props) => {
-			return shipAvailableSalesInventory(props.ctx.db, {
+			const result = await shipAvailableSalesInventory(props.ctx.db, {
 				...props.input,
 				createdByUserId: props.ctx.userId ?? null,
 				authorName:
 					props.input.authorName || String(props.ctx.userId ?? "Inventory"),
 			});
+			return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
 		}),
 	setSalesInventoryLineFulfillmentHold: protectedProcedure
 		.input(inventoryLineFulfillmentHoldSchema)
 		.mutation(async (props) => {
-			return setSalesInventoryLineFulfillmentHold(props.ctx.db, {
+			const result = await setSalesInventoryLineFulfillmentHold(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "Inventory"),
 			});
+			return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
 		}),
 	assignInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
-			return assignInventoryDispatchAllocations(props.ctx.db, {
+			const result = await assignInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Assigned by inventory dispatch mode.",
 			});
+			return attachSalesQueryRef(
+				props.ctx.db,
+				props.input.salesOrderId,
+				result,
+			);
 		}),
 	packInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
-			return packInventoryDispatchAllocations(props.ctx.db, {
+			const result = await packInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Picked by inventory dispatch mode.",
 			});
+			return attachSalesQueryRef(
+				props.ctx.db,
+				props.input.salesOrderId,
+				result,
+			);
 		}),
 	fulfillInventoryDispatch: protectedProcedure
 		.input(inventoryDispatchFulfillSchema)
 		.mutation(async (props) => {
-			return fulfillInventoryDispatch(props.ctx.db, {
+			const result = await fulfillInventoryDispatch(props.ctx.db, {
 				...props.input,
 				createdByUserId: props.ctx.userId ?? null,
 				authorName:
 					props.input.authorName || String(props.ctx.userId ?? "Inventory"),
 				note: props.input.note || "Fulfilled by inventory dispatch mode.",
 			});
+			return attachSalesQueryRef(props.ctx.db, result.salesOrderId, result);
 		}),
 	releaseInventoryDispatchAllocations: protectedProcedure
 		.input(inventoryDispatchTransitionSchema)
 		.mutation(async (props) => {
-			return releaseInventoryDispatchAllocations(props.ctx.db, {
+			const result = await releaseInventoryDispatchAllocations(props.ctx.db, {
 				...props.input,
 				note: props.input.note || "Released by inventory dispatch mode.",
 			});
+			return attachSalesQueryRef(
+				props.ctx.db,
+				props.input.salesOrderId,
+				result,
+			);
 		}),
 	allocateReceivedInboundToBackorders: protectedProcedure
 		.input(allocateReceivedInboundToBackordersSchemaTask)

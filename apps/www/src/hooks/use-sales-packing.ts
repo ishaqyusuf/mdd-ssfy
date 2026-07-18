@@ -34,6 +34,17 @@ export const { Provider: PackingProvider, useContext: usePacking } =
         const isInProgress = data?.dispatch?.status === "in progress";
         const isCancelled = data?.dispatch?.status === "cancelled";
         const auth = useAuth();
+        const queryEventScope = {
+            sales: data?.order?.orderId
+                ? [
+                      {
+                          orderNo: data.order.orderId,
+                          salesId: data.order.id,
+                          salesType: "order" as const,
+                      },
+                  ]
+                : [],
+        };
         const [mainTab, setMainTab] = useState("main");
         const onStartDispatch = () => {
             startDispatch.mutate({
@@ -98,6 +109,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                         description: "Dispatch Failed",
                     });
                 },
+                meta: {
+                    queryEventScope,
+                },
             }),
         );
         const startDispatch = useMutation(
@@ -108,6 +122,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 onError(error, variables, context) {
                     console.log({ error });
                 },
+                meta: {
+                    queryEventScope,
+                },
             }),
         );
         const cancelDispatch = useMutation(
@@ -117,6 +134,9 @@ export const { Provider: PackingProvider, useContext: usePacking } =
                 },
                 onError(error, variables, context) {
                     console.log({ error });
+                },
+                meta: {
+                    queryEventScope,
                 },
             }),
         );

@@ -1,16 +1,18 @@
 "use client";
 
+import { useSession } from "@/lib/auth/client";
+import { QueryEventsRuntime } from "@/lib/query-events/runtime";
 import { generateRandomString } from "@/lib/utils";
 import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 import type { QueryClient } from "@gnd/ui/tanstack";
 import { QueryClientProvider, isServer } from "@gnd/ui/tanstack";
 import { createTRPCClient, httpBatchLink, loggerLink } from "@gnd/ui/tanstack";
-import { createTRPCContext } from "@gnd/ui/tanstack";
-import { useSession } from "@/lib/auth/client";
 import { useRef, useState } from "react";
 import superjson from "superjson";
+import { TRPCProvider } from "./context";
 import { makeQueryClient } from "./query-client";
-export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
+
+export { TRPCProvider, useTRPC } from "./context";
 
 let browserQueryClient: QueryClient;
 
@@ -72,6 +74,7 @@ export function TRPCReactProvider(
     return (
         <QueryClientProvider client={queryClient}>
             <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+                <QueryEventsRuntime />
                 {props.children}
             </TRPCProvider>
         </QueryClientProvider>

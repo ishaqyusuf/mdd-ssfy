@@ -100,6 +100,13 @@ export async function markLatestSalesPaymentReviewed(
 		select: {
 			id: true,
 			orderId: true,
+			order: {
+				select: {
+					id: true,
+					orderId: true,
+					type: true,
+				},
+			},
 			reviewStatus: true,
 			reviewMethod: true,
 			reviewedByAction: true,

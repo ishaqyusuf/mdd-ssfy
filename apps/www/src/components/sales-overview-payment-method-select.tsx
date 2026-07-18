@@ -1,6 +1,5 @@
 "use client";
 
-import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTRPC } from "@/trpc/client";
 import { cn } from "@gnd/ui/cn";
 import { Select } from "@gnd/ui/namespace";
@@ -49,7 +48,6 @@ export function SalesOverviewPaymentMethodSelect({
 	className,
 }: SalesOverviewPaymentMethodSelectProps) {
 	const trpc = useTRPC();
-	const salesQueryClient = useSalesQueryClient();
 	const selectedValue = formatPaymentMethod(value);
 	const options = PAYMENT_METHOD_OPTIONS.includes(selectedValue)
 		? PAYMENT_METHOD_OPTIONS
@@ -57,7 +55,6 @@ export function SalesOverviewPaymentMethodSelect({
 	const updatePaymentMethod = useMutation(
 		trpc.sales.updatePaymentMethod.mutationOptions({
 			onSuccess: () => {
-				salesQueryClient.salesPaymentUpdated();
 				toast({
 					title: "Payment method updated.",
 				});

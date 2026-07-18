@@ -1,39 +1,33 @@
 "use client";
 
 import type { TaskMonitorTask } from "@/store/task-monitor";
-import { useTRPC } from "@/trpc/client";
 import { useCallback } from "react";
 import { useSalesQueryClient } from "./use-sales-query-client";
 
 type TaskEffectPhase = "success" | "error" | "canceled";
 
 export function useTaskMonitorEffects() {
-    const sq = useSalesQueryClient();
-    const trpc = useTRPC();
+	const sq = useSalesQueryClient();
 
-    const runTaskEffect = useCallback(
-        async (task: TaskMonitorTask, phase: TaskEffectPhase) => {
-            if (phase !== "success" || !task.intent) return;
+	const runTaskEffect = useCallback(
+		async (task: TaskMonitorTask, phase: TaskEffectPhase) => {
+			if (phase !== "success" || !task.intent) return;
 
-            switch (task.intent.name) {
-                case "sales.mark-as-fulfilled":
-                case "sales.mark-as-production-completed":
-                    await Promise.all([
-                        sq.invalidate.salesList(),
-                        sq.invalidate.productionOverview(),
-                        sq.invalidate.saleOverview(),
-                        sq.qc.invalidateQueries({
-                            queryKey: trpc.sales.getOrders.infiniteQueryKey(),
-                        }),
-                        sq.qc.invalidateQueries({
-                            queryKey: trpc.sales.getOrdersSummary.queryKey(),
-                        }),
-                    ]);
-                    return;
-            }
-        },
-        [sq, trpc],
-    );
+			switch (task.intent.name) {
+				case "sales.mark-as-production-completed": {
+					const sales = task.intent.args.sales;
+					await sq.events.productionUpdated(sales);
+					return;
+				}
+				case "sales.mark-as-fulfilled": {
+					const sales = task.intent.args.sales;
+					await sq.events.fulfillmentUpdated(sales);
+					return;
+				}
+			}
+		},
+		[sq],
+	);
 
-    return { runTaskEffect };
+	return { runTaskEffect };
 }

@@ -1,5 +1,4 @@
 import { Env } from "@/components/env";
-import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useZodForm } from "@/hooks/use-zod-form";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
@@ -156,7 +155,6 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const { selectedIds, setOpened } = props;
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const salesQueryClient = useSalesQueryClient();
 	const salesPrint = useSalesPrintController();
 	const accountNo = props.phoneNo ?? `cust-${props.customerId}`;
 	const { data, refetch } = useSuspenseQuery(
@@ -478,9 +476,6 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						setWaitSeconds(0);
 					}, 2000);
 				} else {
-					if (data?.status === "success") {
-						salesQueryClient.salesPaymentUpdated();
-					}
 					form.setValue("paymentStatus", "completed");
 					if (terminalState === "recording") {
 						setTerminalState("success");

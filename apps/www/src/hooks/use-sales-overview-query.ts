@@ -55,7 +55,18 @@ export function useSalesOverviewQuery() {
 			: auth?.can?.viewDelivery && !auth?.can?.viewOrders
 				? "dispatch-modal"
 				: "general";
-	const salesQuery = useSalesQueryClient();
+	const orderNo = params["sales-overview-id"];
+	const salesQuery = useSalesQueryClient(
+		orderNo
+			? {
+					orderNo,
+					salesType:
+						params["sales-type"] === "quote" || params.mode === "quote"
+							? "quote"
+							: "order",
+				}
+			: null,
+	);
 	return {
 		...params,
 		viewMode,

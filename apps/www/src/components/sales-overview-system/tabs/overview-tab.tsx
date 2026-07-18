@@ -11,7 +11,6 @@ import {
 	DataSkeletonProvider,
 	type useCreateDataSkeletonCtx,
 } from "@/hooks/use-data-skeleton";
-import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
 import { middleTruncate } from "@/lib/truncate-middle";
 import { buildSalesInventoryPrintViewerUrl } from "@/modules/sales-print/application/inventory-print-request";
@@ -272,7 +271,6 @@ function SalesRepTransferControl() {
 		state: { data, auth, isQuote },
 	} = useSalesOverviewSystem();
 	const trpc = useTRPC();
-	const salesQueryClient = useSalesQueryClient();
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [selectedSalesRepId, setSelectedSalesRepId] = useState<number | null>(
@@ -324,8 +322,7 @@ function SalesRepTransferControl() {
 	);
 	const transferMutation = useMutation(
 		trpc.sales.transferSalesRep.mutationOptions({
-			onSuccess: async (result) => {
-				await salesQueryClient.invalidate.salesDocumentChanged("order");
+			onSuccess: (result) => {
 				if (result.changed) {
 					toast({
 						title: "Sales rep updated.",

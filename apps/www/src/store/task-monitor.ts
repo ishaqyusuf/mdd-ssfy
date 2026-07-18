@@ -14,12 +14,19 @@ export type TaskMonitorMetadata = {
 	entityLabel?: string | null;
 };
 
+const taskSalesQueryRefSchema = z.object({
+	orderNo: z.string().min(1),
+	salesId: z.number().optional(),
+	salesType: z.enum(["order", "quote"]),
+});
+
 export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
 	z.object({
 		name: z.literal("sales.mark-as-fulfilled"),
 		version: z.literal(1),
 		args: z.object({
 			salesIds: z.array(z.number()).min(1),
+			sales: z.array(taskSalesQueryRefSchema).optional(),
 			dispatchIds: z.array(z.number()).optional(),
 		}),
 	}),
@@ -28,6 +35,7 @@ export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
 		version: z.literal(1),
 		args: z.object({
 			salesIds: z.array(z.number()).min(1),
+			sales: z.array(taskSalesQueryRefSchema).optional(),
 		}),
 	}),
 ]);

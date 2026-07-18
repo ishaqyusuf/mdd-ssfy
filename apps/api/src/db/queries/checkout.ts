@@ -923,6 +923,11 @@ export async function verifyPayment(
 	ctx: TRPCContext,
 	query: VerifyPaymentSchema,
 ): Promise<{
+	appliedSales?: {
+		salesId: number;
+		orderId: string;
+		salesType: "order" | "quote";
+	}[];
 	amount?: number;
 	tip?: number | null;
 	status?: SquarePaymentStatus | "error";
@@ -1152,8 +1157,30 @@ export async function verifyPayment(
 			},
 		});
 	}
+	const appliedSales =
+		result.status === "COMPLETED" &&
+		"customerReceiptSales" in result &&
+		result.customerReceiptSales?.length
+			? await ctx.db.salesOrders.findMany({
+					where: {
+						id: {
+							in: result.customerReceiptSales.map((sale) => sale.salesId),
+						},
+					},
+					select: {
+						id: true,
+						orderId: true,
+						type: true,
+					},
+				})
+			: [];
 	return {
 		...result,
+		appliedSales: appliedSales.map((sale) => ({
+			salesId: sale.id,
+			orderId: sale.orderId,
+			salesType: sale.type === "quote" ? "quote" : "order",
+		})),
 		invoiceDownloadUrl,
 	};
 }

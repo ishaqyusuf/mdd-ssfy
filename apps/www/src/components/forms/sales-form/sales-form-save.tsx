@@ -86,23 +86,34 @@ export function SalesFormSave({
 
 			const s = resp?.data?.sales;
 			const savedSalesType = resp.salesType || metaData.type;
+			const savedSalesRef = resp.salesNo
+				? {
+						orderNo: resp.salesNo,
+						salesId: resp.salesId,
+						salesType:
+							savedSalesType === "quote" ? "quote" : ("order" as const),
+					}
+				: undefined;
 			tsk.triggerWithAuth("create-sales-history", {
 				salesNo: resp.salesNo,
 				salesType: resp.salesType,
 			} as CreateSalesHistorySchemaTask);
-			if (resp?.salesType === "order")
-				void resetSalesStatAction(resp.salesId, resp?.salesNo).catch(
-					(error) => {
-						console.error("Unable to reset sales stats", error);
-					},
-				);
 			if (s?.updateId) triggerEvent("salesUpdated", s?.id);
 			else triggerEvent("salesCreated", s?.id);
 			const syncExtraCosts = updateSalesExtraCosts(
 				resp.salesId,
 				zus.metaData?.extraCosts,
 			);
-			await sq.invalidate.salesDocumentChanged(savedSalesType);
+			if (savedSalesType === "order" && resp.salesId && resp.salesNo) {
+				try {
+					await resetSalesStatAction(resp.salesId, resp.salesNo);
+				} catch (error) {
+					console.error("Unable to reset sales stats", error);
+				}
+				await sq.events.productionUpdated(savedSalesRef);
+			} else {
+				await sq.invalidate.salesDocumentChanged(savedSalesType, savedSalesRef);
+			}
 			if (resp.salesId) zus.dotUpdate("metaData.id", resp.salesId);
 			if (resp.salesNo) zus.dotUpdate("metaData.salesId", resp.salesNo);
 			if (savedSalesType === "order" && resp.salesId) {

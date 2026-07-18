@@ -27,6 +27,11 @@ export function BottomBar({ data }: Props) {
 	const { rowSelection, setRowSelection } = useSalesOrdersStore();
 	const selectedOrders = data.filter((order) => rowSelection[order.uuid]);
 	const salesIds = selectedOrders.map((order) => order.id);
+	const salesRefs = selectedOrders.map((order) => ({
+		orderNo: order.orderId,
+		salesId: order.id,
+		salesType: "order" as const,
+	}));
 	const orderIds = selectedOrders.map((order) => order.orderId);
 	const firstOrder = selectedOrders[0];
 	const selectedCount = selectedOrders.length;
@@ -52,6 +57,11 @@ export function BottomBar({ data }: Props) {
 						queryKey: trpc.sales.getOrdersSummary.queryKey(),
 					}),
 				]);
+			},
+			meta: {
+				queryEventScope: {
+					sales: salesRefs,
+				},
 			},
 		}),
 	);
@@ -99,6 +109,7 @@ export function BottomBar({ data }: Props) {
 						<SalesMenu
 							type="order"
 							salesIds={salesIds}
+							salesRefs={salesRefs}
 							trigger={
 								<Button variant="ghost" disabled={!salesIds.length}>
 									<Icons.print className="mr-2 size-4" />
@@ -112,6 +123,7 @@ export function BottomBar({ data }: Props) {
 						<SalesMenu
 							type="order"
 							salesIds={salesIds}
+							salesRefs={salesRefs}
 							trigger={
 								<Button variant="ghost" disabled={!salesIds.length}>
 									<Icons.CheckCheck className="mr-2 size-4" />
