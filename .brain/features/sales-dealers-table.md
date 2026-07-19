@@ -15,6 +15,7 @@
 - The route uses the direct Sales Orders/Midday invoices shell: `PageShell`, `HydrateClient`, `ScrollableContent`, `PageTitle`, `AuthGuard`, `batchPrefetch`, and `getInitialTableSettings("dealers")`.
 - The admin surface keeps the dealer metrics, Add dealer dialog, saved page tabs, search input, and column visibility controls above the table.
 - Saved page tabs render before the search input, and dealer create/profile/update/onboarding resend flows invalidate the `dealers` page-tab key so saved-tab counts can refresh.
+- Dealer search remains URL-backed but is not saveable in page tabs: the `search` key is excluded from saved queries and the save action is hidden whenever the dealer search input is non-empty.
 - The dealer saved-tab strip is hidden when there are no saved tabs and no active search/sort query to save, preventing an empty bordered tab shell before the dealer search input. The surrounding dealer tab/search header is also flat in this empty state, so the no-tab/no-filter state does not leave a divider that reads as an empty tabs border.
 - The old inline `@gnd/ui/table` dealer list and failed shared `PageStickyHeader` wrapper are no longer used on this route.
 

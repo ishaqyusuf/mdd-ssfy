@@ -29,6 +29,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { FilterDefinition } from "../midday-search-filter/filter-definitions";
 import { FilterList } from "../midday-search-filter/filter-list";
+import { isSearchKey } from "../midday-search-filter/search-utils";
 import { invalidatePageTabs } from "./invalidation";
 import { normalizePagePath } from "./query-utils";
 
@@ -38,6 +39,7 @@ interface Props {
 	optionLookup: Map<string, Map<string, string>>;
 	buttonClassName?: string;
 	query: string;
+	searchKey?: string;
 }
 
 export function SavePageTabButton({
@@ -46,6 +48,7 @@ export function SavePageTabButton({
 	optionLookup,
 	buttonClassName,
 	query,
+	searchKey,
 }: Props) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -62,6 +65,13 @@ export function SavePageTabButton({
 		[searchParams],
 	);
 	const isSuperAdmin = auth.roleTitle?.toLowerCase() === "super admin";
+	const hasSearchValue = Object.entries(filters || {}).some(
+		([key, value]) =>
+			(isSearchKey(key) || key === searchKey) &&
+			value !== null &&
+			value !== undefined &&
+			String(value).length > 0,
+	);
 
 	const createTab = useMutation(
 		trpc.pageTabs.create.mutationOptions({
@@ -86,7 +96,7 @@ export function SavePageTabButton({
 		}),
 	);
 
-	if (!query) return null;
+	if (!query || hasSearchValue) return null;
 
 	return (
 		<>

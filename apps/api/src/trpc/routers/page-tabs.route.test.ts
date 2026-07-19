@@ -310,12 +310,69 @@ describe("pageTabs router", () => {
 		const created = await caller.create({
 			page: "custom/?q=ignored#tabs",
 			title: "Created",
-			query: "q=new",
+			query: "status=new",
 		});
 
 		expect(listed.map((tab) => tab.title)).toEqual(["Mine"]);
 		expect(created.page).toBe("/custom");
 		expect(state.tabs.at(-1)?.page).toBe("/custom");
+	});
+
+	it("includes the selected tab name in default navigation hrefs", async () => {
+		const { caller } = createCaller({
+			tabs: [
+				{
+					id: 1,
+					page: "/custom",
+					title: "Needs review",
+					query: "status=pending",
+					userId: 2,
+					private: true,
+					deletedAt: null,
+				},
+			],
+			indices: [
+				{
+					id: "index-1",
+					tabId: 1,
+					userId: 2,
+					tabIndex: 0,
+					default: true,
+					deletedAt: null,
+				},
+			],
+		});
+
+		expect(await caller.defaults()).toEqual({
+			"/custom": "/custom?status=pending&tabName=Needs+review",
+		});
+	});
+
+	it("rejects search values in newly saved or updated tab queries", async () => {
+		const { caller } = createCaller({
+			tabs: [
+				{
+					id: 1,
+					page: "/custom",
+					title: "Existing",
+					query: "status=pending",
+					userId: 2,
+					private: true,
+					deletedAt: null,
+				},
+			],
+		});
+
+		await expect(
+			caller.create({
+				page: "/custom",
+				title: "Search",
+				query: "q=oak&status=pending",
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+		await expect(
+			caller.update({ id: 1, query: "search=oak&status=pending" }),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
 
 	it("rejects public tab creation for non Super Admin users", async () => {

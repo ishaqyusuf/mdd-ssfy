@@ -23,6 +23,7 @@ interface Props {
 	filters;
 	onRemove?;
 	onClearAll?;
+	excludedKeys?: Iterable<string>;
 }
 
 export function FilterList({
@@ -33,6 +34,7 @@ export function FilterList({
 	filters,
 	onRemove,
 	onClearAll,
+	excludedKeys,
 }: Props) {
 	const definitions =
 		definitionsProp || normalizeFilterDefinitions(filterList ?? []);
@@ -52,7 +54,10 @@ export function FilterList({
 		if (Array.isArray(value)) return value.length > 0;
 		return true;
 	});
-	const visibleEntries = activeEntries.filter(([key]) => !isHiddenChipKey(key));
+	const excludedKeySet = new Set(excludedKeys);
+	const visibleEntries = activeEntries.filter(
+		([key]) => !isHiddenChipKey(key) && !excludedKeySet.has(key),
+	);
 
 	const renderFilter = ({ key, value }) => {
 		const definition = definitions.find((item) => item.key === key);

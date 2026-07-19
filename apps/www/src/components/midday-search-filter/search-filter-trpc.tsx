@@ -34,6 +34,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { PageTabs } from "../page-tabs";
 import { queryFromActiveFilters } from "../page-tabs/query-utils";
 import { SavePageTabButton } from "../page-tabs/save-page-tab-button";
+import { usePageTabSelection } from "../page-tabs/use-page-tab-selection";
 import { SelectTag } from "../select-tag";
 import {
 	type FilterDefinition,
@@ -43,6 +44,10 @@ import {
 import { FilterList } from "./filter-list";
 import { FilterOptionColor } from "./filter-option-color";
 import { isSearchKey, searchIcons } from "./search-utils";
+import {
+	getClearableFilterUpdate,
+	hasActiveSearchValue,
+} from "./tab-filter-state";
 
 const CALENDAR_SKELETON_DAYS = Array.from({ length: 35 }, (_, index) => ({
 	id: `calendar-day-${index}`,
@@ -127,6 +132,7 @@ export function SearchFilterTRPC({
 		typeof searchValue === "string" ? searchValue : "",
 	);
 	const debouncedPrompt = useDebounce(prompt, debounceMs);
+	const { lockedKeys } = usePageTabSelection();
 	const hasMounted = useRef(false);
 	const hasPendingDebouncedSearch = useRef(false);
 	const nonSearchDefinitions = definitions.filter(
@@ -137,9 +143,27 @@ export function SearchFilterTRPC({
 		[searchParams],
 	);
 	const saveTabQuery = useMemo(
-		() => queryFromActiveFilters(searchParams, filters),
-		[searchParams, filters],
+		() => queryFromActiveFilters(searchParams, filters, { searchKey }),
+		[searchParams, filters, searchKey],
 	);
+	const hasSearchValue = hasActiveSearchValue(prompt, searchValue);
+	const canSaveCurrentView = Boolean(saveTabQuery && !hasSearchValue);
+	const hasLockedSort = lockedKeys.has("sort");
+
+	const clearEditableFilters = () => {
+		if (lockedKeys.size === 0) {
+			clearAll();
+			return;
+		}
+
+		const update = getClearableFilterUpdate({
+			filters: filters || {},
+			lockedKeys,
+			searchKey,
+		});
+
+		if (Object.keys(update).length > 0) setFilters(update);
+	};
 
 	useEffect(() => {
 		const nextPrompt = typeof searchValue === "string" ? searchValue : "";
@@ -168,7 +192,7 @@ export function SearchFilterTRPC({
 		() => {
 			hasPendingDebouncedSearch.current = false;
 			setPrompt("");
-			clearAll();
+			clearEditableFilters();
 			setIsOpen(false);
 		},
 		{
@@ -221,13 +245,16 @@ export function SearchFilterTRPC({
 						portal={false}
 						currentQuery={saveTabQuery}
 						action={
-							<SavePageTabButton
-								definitions={definitions}
-								filters={filters}
-								optionLookup={optionLookup}
-								buttonClassName="rounded-sm border-0"
-								query={saveTabQuery}
-							/>
+							canSaveCurrentView ? (
+								<SavePageTabButton
+									definitions={definitions}
+									filters={filters}
+									optionLookup={optionLookup}
+									buttonClassName="rounded-sm border-0"
+									query={saveTabQuery}
+									searchKey={searchKey}
+								/>
+							) : undefined
 						}
 					/>
 				) : (
@@ -281,13 +308,14 @@ export function SearchFilterTRPC({
 					onClearAll={() => {
 						hasPendingDebouncedSearch.current = false;
 						setPrompt("");
-						clearAll();
+						clearEditableFilters();
 					}}
 					filters={filters}
 					definitions={definitions}
 					optionLookup={optionLookup}
+					excludedKeys={lockedKeys}
 				/>
-				{activeSortLabel ? (
+				{activeSortLabel && !hasLockedSort ? (
 					<Badge
 						variant="secondary"
 						className="h-8 shrink-0 gap-1.5 rounded-md px-2 font-normal"
@@ -310,7 +338,10 @@ export function SearchFilterTRPC({
 					nonSearchDefinitions.map((definition) => (
 						<DropdownMenuGroup key={definition.key}>
 							<DropdownMenuSub>
-								<DropdownMenuSubTrigger>
+								<DropdownMenuSubTrigger
+									disabled={lockedKeys.has(definition.key)}
+									className="data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+								>
 									<Icon
 										name={
 											(definition.icon ||

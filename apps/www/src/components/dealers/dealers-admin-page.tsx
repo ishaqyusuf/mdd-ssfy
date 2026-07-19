@@ -239,9 +239,13 @@ export function DealersAdminPage({ initialSettings }: Props) {
 		[filters.search],
 	);
 	const saveTabQuery = useMemo(
-		() => queryFromActiveFilters(searchParams, activeTabFilters),
+		() =>
+			queryFromActiveFilters(searchParams, activeTabFilters, {
+				searchKey: "search",
+			}),
 		[searchParams, activeTabFilters],
 	);
+	const canSaveTab = Boolean(saveTabQuery && !search);
 
 	const canSubmit =
 		mode === "existing"
@@ -420,13 +424,16 @@ export function DealersAdminPage({ initialSettings }: Props) {
 							portal={false}
 							currentQuery={saveTabQuery}
 							action={
-								<SavePageTabButton
-									buttonClassName="rounded-sm border-0"
-									definitions={dealerFilterDefinitions}
-									filters={activeTabFilters}
-									optionLookup={dealerOptionLookup}
-									query={saveTabQuery}
-								/>
+								canSaveTab ? (
+									<SavePageTabButton
+										buttonClassName="rounded-sm border-0"
+										definitions={dealerFilterDefinitions}
+										filters={activeTabFilters}
+										optionLookup={dealerOptionLookup}
+										query={saveTabQuery}
+										searchKey="search"
+									/>
+								) : undefined
 							}
 						/>
 						<div className="relative w-full lg:w-[350px]">

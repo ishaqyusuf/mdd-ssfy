@@ -26,6 +26,7 @@ export function normalizeTabQuery(query: string | URLSearchParams) {
 	params.delete("_page");
 	params.delete("cursor");
 	params.delete("size");
+	params.delete("tabName");
 
 	return Array.from(params.entries())
 		.filter(([, value]) => value !== "")
@@ -74,10 +75,12 @@ export function queryContainsTabQuery(
 export function queryFromActiveFilters(
 	searchParams: URLSearchParams,
 	filters: Record<string, unknown>,
+	options?: { searchKey?: string },
 ) {
 	const next = new URLSearchParams();
 
 	for (const [key, value] of Object.entries(filters || {})) {
+		if (isSearchQueryKey(key) || key === options?.searchKey) continue;
 		if (!isActiveFilterValue(value)) continue;
 
 		const values = searchParams.getAll(key);
@@ -110,13 +113,23 @@ export function queryFromActiveFilters(
 export function buildPageTabHref(
 	page: string,
 	query?: string | URLSearchParams | null,
+	tabName?: string | null,
 ) {
 	const normalizedPage = normalizePagePath(page);
 	const normalizedQuery = normalizeTabQuery(query ?? "");
+	const params = new URLSearchParams(normalizedQuery);
 
-	return normalizedQuery
-		? `${normalizedPage}?${normalizedQuery}`
-		: normalizedPage;
+	if (tabName?.trim()) {
+		params.set("tabName", tabName.trim());
+	}
+
+	const hrefQuery = params.toString();
+
+	return hrefQuery ? `${normalizedPage}?${hrefQuery}` : normalizedPage;
+}
+
+export function isSearchQueryKey(key: string) {
+	return key === "q" || key === "search" || key.startsWith("_q");
 }
 
 function isActiveFilterValue(value: unknown) {

@@ -163,8 +163,11 @@ export const pageTabsRouter = createTRPCRouter({
 			defaults.map((entry) => {
 				const page = normalizePage(entry.tab.page);
 				const query = normalizeQuery(entry.tab.query);
+				const params = new URLSearchParams(query);
+				params.set("tabName", entry.tab.title);
+				const hrefQuery = params.toString();
 
-				return [page, query ? `${page}?${query}` : page];
+				return [page, `${page}?${hrefQuery}`];
 			}),
 		);
 	}),
@@ -172,6 +175,7 @@ export const pageTabsRouter = createTRPCRouter({
 	create: protectedProcedure
 		.input(tabInput)
 		.mutation(async ({ ctx, input }) => {
+			assertNoSearchQuery(input.query);
 			const page = normalizePage(input.page);
 			const query = normalizeQuery(input.query);
 			const isPublic = input.visibility === "public";
@@ -239,6 +243,7 @@ export const pageTabsRouter = createTRPCRouter({
 	update: protectedProcedure
 		.input(updateTabInput)
 		.mutation(async ({ ctx, input }) => {
+			if (input.query !== undefined) assertNoSearchQuery(input.query);
 			return ctx.db.$transaction(async (tx) => {
 				const existing = await tx.pageTabs.findFirst({
 					where: {
@@ -522,6 +527,7 @@ function normalizeQuery(query: string) {
 	params.delete("_page");
 	params.delete("cursor");
 	params.delete("size");
+	params.delete("tabName");
 
 	return Array.from(params.entries())
 		.filter(([, value]) => value !== "")
@@ -531,6 +537,23 @@ function normalizeQuery(query: string) {
 			return next;
 		}, new URLSearchParams())
 		.toString();
+}
+
+function assertNoSearchQuery(query: string) {
+	const params = new URLSearchParams(
+		query.startsWith("?") ? query.slice(1) : query,
+	);
+	const hasSearch = Array.from(params.entries()).some(
+		([key, value]) =>
+			value !== "" && (key === "q" || key === "search" || key.startsWith("_q")),
+	);
+
+	if (hasSearch) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Search values cannot be saved in page tabs.",
+		});
+	}
 }
 
 function toPageTab(

@@ -7,9 +7,16 @@ import { useQuery } from "@gnd/ui/tanstack";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useMediaQuery } from "react-responsive";
 
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import {
 	Tooltip,
@@ -18,6 +25,7 @@ import {
 	TooltipTrigger,
 } from "@gnd/ui/tooltip";
 
+import { screens } from "@/lib/responsive";
 import {
 	getPageTabButtonClassName,
 	getPageTabButtonVariant,
@@ -29,8 +37,14 @@ import {
 	normalizeTabQuery,
 	queryContainsTabQuery,
 } from "./query-utils";
-import { getPageTabViewState, shouldRenderPageTabsShell } from "./render-utils";
+import {
+	getPageTabViewState,
+	isResolvedPageTabActive,
+	shouldRenderPageTabsShell,
+	splitPageTabs,
+} from "./render-utils";
 import type { PageTabItem } from "./types";
+import { usePageTabSelection } from "./use-page-tab-selection";
 
 interface PageTabsProps {
 	tabs?: PageTabItem[];
@@ -55,7 +69,7 @@ function buildTabHref(
 	const basePath = tab.url || tab.page || pathname;
 
 	if (tab.query !== undefined) {
-		return buildPageTabHref(basePath, tab.query);
+		return buildPageTabHref(basePath, tab.query, tab.title);
 	}
 
 	if (!tab.params || Object.keys(tab.params).length === 0) {
@@ -68,7 +82,7 @@ function buildTabHref(
 		nextParams.set(key, value);
 	}
 
-	return buildPageTabHref(basePath, nextParams);
+	return buildPageTabHref(basePath, nextParams, tab.title);
 }
 
 function isTabActive(
@@ -117,6 +131,7 @@ export function PageTabs({
 }: PageTabsProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
+	const is2xl = useMediaQuery(screens["2xl"]);
 	const trpc = useTRPC();
 	const [portalNode, setPortalNode] = useState<HTMLElement | null>(null);
 	const [manageOpen, setManageOpen] = useState(false);
@@ -135,6 +150,11 @@ export function PageTabs({
 		isReady: tabDataReady,
 		tabs: pageTabs,
 	});
+	const selectedState = usePageTabSelection({
+		page: resolvedPage,
+		tabs: pageTabs,
+		isReady: tabDataReady,
+	});
 	const canShowAction = Boolean(hasActionNode && viewState.hasUnsavedView);
 
 	useEffect(() => {
@@ -145,15 +165,15 @@ export function PageTabs({
 	const resolvedTabs = useMemo(() => {
 		const currentSearch = new URLSearchParams(searchParams.toString());
 		const savedTabs = pageTabs.map((tab, index) => {
-			const usesExactCurrentQuery =
-				currentQuery !== undefined && tab.query !== undefined;
-
 			return {
 				...tab,
 				href: buildTabHref(pathname, currentSearch, tab),
-				active: usesExactCurrentQuery
-					? index === viewState.matchingTabIndex
-					: isTabActive(pathname, currentSearch, tab),
+				active: isResolvedPageTabActive({
+					hasSavedQuery: tab.query !== undefined,
+					index,
+					selectedIndex: selectedState.matchingTabIndex,
+					fallbackActive: isTabActive(pathname, currentSearch, tab),
+				}),
 			};
 		});
 		if (!savedTabs.length) return [];
@@ -172,8 +192,15 @@ export function PageTabs({
 		pageTabs,
 		page,
 		currentQuery,
-		viewState.matchingTabIndex,
+		selectedState.matchingTabIndex,
 	]);
+	const selectedResolvedTabIndex = resolvedTabs.findIndex((tab) => tab.active);
+	const { visibleTabs, overflowTabs } = splitPageTabs(
+		resolvedTabs,
+		is2xl ? 5 : 3,
+		selectedResolvedTabIndex,
+	);
+	const hasActiveOverflowTab = overflowTabs.some((tab) => tab.active);
 
 	if (
 		!shouldRenderPageTabsShell({
@@ -196,7 +223,7 @@ export function PageTabs({
 				)}
 			>
 				<div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-					{resolvedTabs.map((tab) => {
+					{visibleTabs.map((tab) => {
 						return (
 							<div
 								className="flex shrink-0 items-center"
@@ -256,6 +283,71 @@ export function PageTabs({
 							</span>
 						) : null}
 						{canShowAction ? action : null}
+						{overflowTabs.length > 0 ? (
+							<DropdownMenu>
+								<TooltipProvider delayDuration={120}>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<DropdownMenuTrigger asChild>
+												<Button
+													aria-label={`${overflowTabs.length} more saved ${overflowTabs.length === 1 ? "tab" : "tabs"}`}
+													className={cn(
+														"h-8 min-w-8 px-2 tabular-nums",
+														portal ? "rounded-md" : "rounded-sm border-0",
+														getPageTabButtonClassName(hasActiveOverflowTab),
+													)}
+													size="sm"
+													type="button"
+													variant={getPageTabButtonVariant(
+														hasActiveOverflowTab,
+													)}
+												>
+													+{overflowTabs.length}
+												</Button>
+											</DropdownMenuTrigger>
+										</TooltipTrigger>
+										<TooltipContent className="px-2 py-1 text-xs" side="top">
+											More saved tabs
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+								<DropdownMenuContent align="end" className="min-w-56">
+									{overflowTabs.map((tab) => (
+										<DropdownMenuItem
+											asChild
+											key={`${tab.id ?? tab.title}-${tab.href}`}
+										>
+											<Link
+												aria-current={tab.active ? "page" : undefined}
+												className={cn(
+													"flex w-full items-center gap-2",
+													tab.active && "bg-accent font-medium",
+												)}
+												href={tab.href}
+											>
+												<span className="min-w-0 flex-1 truncate">
+													{tab.title}
+												</span>
+												{tab.default ? (
+													<Icons.Star
+														aria-label="Default tab"
+														className="size-3.5"
+													/>
+												) : null}
+												{typeof tab.count === "number" ? (
+													<Badge
+														className="px-2 tabular-nums"
+														variant="secondary"
+													>
+														{tab.count}
+													</Badge>
+												) : null}
+											</Link>
+										</DropdownMenuItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
+						) : null}
 						{hasSavedTabs ? (
 							<TooltipProvider delayDuration={120}>
 								<Tooltip>

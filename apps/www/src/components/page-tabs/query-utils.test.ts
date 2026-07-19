@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildPageTabHref,
 	normalizePagePath,
+	normalizeTabQuery,
 	pageTabQueriesMatch,
 	queryFromActiveFilters,
 } from "./query-utils";
@@ -21,7 +23,7 @@ describe("page tab query utils", () => {
 		).toBe("/community/unit-invoices");
 	});
 
-	it("includes active sort and removes pagination-only params", () => {
+	it("includes active sort while excluding search and pagination params", () => {
 		const params = new URLSearchParams({
 			q: "08499",
 			sort: "grandTotal.desc",
@@ -31,8 +33,31 @@ describe("page tab query utils", () => {
 		});
 
 		expect(queryFromActiveFilters(params, { q: "08499" })).toBe(
-			"q=08499&sort=grandTotal.desc",
+			"sort=grandTotal.desc",
 		);
+	});
+
+	it("excludes the configured search key from saved queries", () => {
+		const params = new URLSearchParams({ keyword: "oak", status: "pending" });
+
+		expect(
+			queryFromActiveFilters(
+				params,
+				{ keyword: "oak", status: "pending" },
+				{ searchKey: "keyword" },
+			),
+		).toBe("status=pending");
+	});
+
+	it("treats tabName as navigation metadata and appends it to tab hrefs", () => {
+		expect(
+			normalizeTabQuery(
+				"status=pending&tabName=Needs+review&_page=2&cursor=40",
+			),
+		).toBe("status=pending");
+		expect(
+			buildPageTabHref("/sales-book/orders", "status=pending", "Needs review"),
+		).toBe("/sales-book/orders?status=pending&tabName=Needs+review");
 	});
 
 	it("allows sort-only page tabs", () => {
