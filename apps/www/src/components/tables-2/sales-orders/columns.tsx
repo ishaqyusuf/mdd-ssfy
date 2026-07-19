@@ -46,6 +46,10 @@ import { toast } from "@gnd/ui/use-toast";
 import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
 import { useRef, useState } from "react";
+import {
+	getDealerSaleOrderCellClassName,
+	getDealerSaleOrderNumberClassName,
+} from "./dealer-sale-style";
 
 export type SalesOrder = RouterOutputs["sales"]["getOrders"]["data"][number];
 
@@ -65,19 +69,6 @@ function paymentHint(item: SalesOrder) {
 	if (item.amountDue === baseInvoiceTotal(item)) return "Unpaid";
 	if (item.amountDue > 0) return `Due ${formatCurrency.format(item.amountDue)}`;
 	return "Paid";
-}
-
-function DealerSaleBadge({ item }: { item: SalesOrder }) {
-	if (!item.isDealerSale) return null;
-
-	return (
-		<Badge
-			variant="outline"
-			className="rounded-full border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[10px] font-semibold uppercase text-cyan-700"
-		>
-			Dealer
-		</Badge>
-	);
 }
 
 const selectColumn: Column = {
@@ -126,11 +117,23 @@ const orderIdColumn: Column = {
 		),
 	},
 	cell: ({ row }) => (
-		<div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
-			<span className="truncate font-mono text-sm font-medium uppercase">
+		<div
+			className={cn(
+				"flex h-full w-full min-w-0 items-center gap-1.5 overflow-hidden",
+				getDealerSaleOrderCellClassName(row.original.isDealerSale),
+			)}
+		>
+			<span
+				className={cn(
+					"truncate font-mono text-sm font-medium uppercase",
+					getDealerSaleOrderNumberClassName(row.original.isDealerSale),
+				)}
+			>
 				{row.original.orderId}
 			</span>
-			<DealerSaleBadge item={row.original} />
+			{row.original.isDealerSale ? (
+				<span className="sr-only">Dealer sale</span>
+			) : null}
 			<SalesPriorityBadge priority={row.original.priority} />
 			{row.original.salesRepInitial &&
 			!row.original.orderId
