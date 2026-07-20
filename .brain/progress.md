@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-07-20: Fixed the production `@gnd/www` Turbopack build failure while
+  collecting `/api/bug-reports/upload` page data. The shared Prisma client no
+  longer reads the internal `Prisma.dmmf.datamodel` export during module
+  evaluation to discover soft-delete models; it now checks each generated model
+  delegate's enumerable `fields` metadata before adding the default
+  `deletedAt: null` filter. This preserves the existing `findFirst`/`findMany`
+  soft-delete behavior without requiring DMMF to survive the server bundle.
+  Added focused coverage for missing/explicit soft-delete filters, models
+  without `deletedAt`, and equivalence across all 247 generated models.
+  Validation passed with 6 tests / 8 assertions, `@gnd/db` typecheck, focused
+  Biome, a missing-DMMF module-import repro, `git diff --check`, and the full
+  production-style `apps/www` Turbopack build with
+  `/api/bug-reports/upload` included in the completed route manifest.
 - 2026-07-19: Implemented the Dealership Program expansion and published the
   approved Wayfinder map/nine tickets under
   `.scratch/dealership-program-recruitment/`. Added branding ZIP/cache
