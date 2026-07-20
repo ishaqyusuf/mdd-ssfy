@@ -15,6 +15,7 @@ import {
 	type Users,
 	// } from "../node_modules/.prisma/client/client.js";
 } from "@prisma/client";
+import { applyDefaultSoftDeleteFilter } from "./soft-delete";
 // export {
 //   Prisma,
 //   PrismaClient,
@@ -88,28 +89,8 @@ export type SalesTaxes = Prisma.SalesTaxesGetPayload<undefined>;
 export type ExportConfig = Prisma.ExportConfigGetPayload<undefined>;
 // export type  = Prisma.GetPayload<undefined>;
 
-const softDeleteModels = new Set(
-	Prisma.dmmf.datamodel.models
-		.filter((model) => model.fields.some((field) => field.name === "deletedAt"))
-		.map((model) => model.name),
-);
-
-function applyDefaultSoftDeleteFilter<
-	T extends { where?: Record<string, unknown> },
->(model: string, args: T) {
-	if (!softDeleteModels.has(model)) return args;
-
-	const where = args.where ?? {};
-
-	if (!Object.hasOwn(where, "deletedAt")) {
-		args.where = { deletedAt: null, ...where };
-	}
-
-	return args;
-}
-
 const prismaClientSingleton = () => {
-	return new PrismaClient({
+	const client = new PrismaClient({
 		log:
 			process.env.NODE_ENV === "development"
 				? [
@@ -118,7 +99,9 @@ const prismaClientSingleton = () => {
 						"warn",
 					]
 				: ["error"],
-	}).$extends({
+	});
+
+	return client.$extends({
 		query: {
 			$allModels: {
 				// async $allOperations({args,operation})
@@ -126,11 +109,11 @@ const prismaClientSingleton = () => {
 				// },
 				async findFirst({ model, operation, args, query }) {
 					if (!args) args = { where: {} } as typeof args;
-					return query(applyDefaultSoftDeleteFilter(model, args));
+					return query(applyDefaultSoftDeleteFilter(client, model, args));
 				},
 				async findMany({ model, operation, args, query }) {
 					if (!args) args = { where: {} } as typeof args;
-					return query(applyDefaultSoftDeleteFilter(model, args));
+					return query(applyDefaultSoftDeleteFilter(client, model, args));
 				},
 			},
 		},
