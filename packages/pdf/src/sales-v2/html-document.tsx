@@ -47,11 +47,13 @@ export function SalesHtmlDocument({
 					page={page}
 					baseUrl={baseUrl}
 					watermark={watermark}
-					logoUrl={logoUrl}
+					logoUrl={
+						page.branding ? (page.branding.logoUrl ?? undefined) : logoUrl
+					}
 					previewUrl={index === 0 ? previewUrl : undefined}
 					qrCodeDataUrl={index === 0 ? qrCodeDataUrl : undefined}
 					pageIndex={index}
-					companyAddress={companyAddress}
+					companyAddress={page.branding?.companyAddress ?? companyAddress}
 					config={resolvedConfig}
 				/>
 			))}

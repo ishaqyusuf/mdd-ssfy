@@ -1,51 +1,6 @@
-import {
-  dealerPortalConvertQuoteSchema,
-  dealerPortalCreatePaymentLinkSchema,
-  dealerPortalCustomersListSchema,
-  dealerPortalCustomerLookupSchema,
-  dealerPortalCustomerSchema,
-  dealerPortalPrintDocumentSchema,
-  dealerPortalRequestQuoteOrderSchema,
-  dealerPortalSaveQuoteSchema,
-  dealerPortalSalesDocumentSchema,
-  dealerPortalSalesDocumentsSchema,
-  dealerPortalSalesListSchema,
-  dealerPortalSalesProfileSchema,
-  dealerPortalSettingsSchema,
-} from "@api/schemas/dealer";
 import { createSalesCheckoutLink } from "@api/db/queries/checkout";
-import { z } from "zod";
-import { getDealershipCustomersFilter } from "@api/filters/dealership-customers-filter";
-import { getDealershipOrdersFilter } from "@api/filters/dealership-orders-filter";
-import { getDealershipQuotesFilter } from "@api/filters/dealership-quotes-filter";
-import {
-  getDealerPortalCustomers,
-  getDealerPortalCustomer,
-  getDealerPortalCustomerOverview,
-  getDealerPortalCustomersList,
-  getDealerPortalDashboard,
-  getDealerPortalSalesDocuments,
-  getDealerPortalSalesDocument,
-  getDealerPortalSalesList,
-  getDealerPortalSalesProfiles,
-  getDealerPortalPrimarySalesProfile,
-  getDealerPortalInternalSalesProfile,
-  getDealerPortalSettings,
-  requestDealerPortalQuoteOrder,
-  convertDealerPortalQuoteToOrder,
-  deleteDealerPortalCustomer,
-  saveDealerPortalCustomer,
-  saveDealerPortalSalesProfile,
-  saveDealerPortalSettings,
-} from "@gnd/db/queries";
 import { saveDealerPortalQuote } from "@api/db/queries/dealer-portal-sales-form";
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
-import {
-  getNewSalesFormShelfCategoriesSchema,
-  getNewSalesFormShelfProductDetailsSchema,
-  getNewSalesFormShelfProductIndexSchema,
-  getNewSalesFormShelfProductsSchema,
-} from "@api/schemas/new-sales-form";
 import {
   getNewSalesFormShelfCategories,
   getNewSalesFormShelfProductDetails,
@@ -57,24 +12,70 @@ import {
   getSuppliers,
   getSuppliersSchema,
 } from "@api/db/queries/sales-form";
+import { getDealershipCustomersFilter } from "@api/filters/dealership-customers-filter";
+import { getDealershipOrdersFilter } from "@api/filters/dealership-orders-filter";
+import { getDealershipQuotesFilter } from "@api/filters/dealership-quotes-filter";
 import {
+  dealerPortalConvertQuoteSchema,
+  dealerPortalCreatePaymentLinkSchema,
+  dealerPortalCustomerLookupSchema,
+  dealerPortalCustomerOfficeVisibilitySchema,
+  dealerPortalCustomerPaymentStatusSchema,
+  dealerPortalCustomerSchema,
+  dealerPortalCustomersListSchema,
+  dealerPortalPrintDocumentSchema,
+  dealerPortalRequestQuoteOrderSchema,
+  dealerPortalSalesDocumentSchema,
+  dealerPortalSalesDocumentsSchema,
+  dealerPortalSalesListSchema,
+  dealerPortalSalesProfileSchema,
+  dealerPortalSaveQuoteSchema,
+  dealerPortalSettingsSchema,
+} from "@api/schemas/dealer";
+import {
+  getNewSalesFormShelfCategoriesSchema,
+  getNewSalesFormShelfProductDetailsSchema,
+  getNewSalesFormShelfProductIndexSchema,
+  getNewSalesFormShelfProductsSchema,
+} from "@api/schemas/new-sales-form";
+import {
+  type DealerWorkflowVisibility,
   deriveDealerWorkflowVisibility,
   isDealerRootComponentAllowed,
   isDealerShelfCategoryAllowed,
   isDealerShelfProductAllowed,
   isDealerWorkflowStepAllowed,
   resolveDealerWorkflowStepUid,
-  type DealerWorkflowVisibility,
 } from "@api/utils/dealer-workflow-visibility";
+import { resolveSalesDocumentHtmlPreviewAccess } from "@api/utils/sales-document-access";
+import {
+  convertDealerPortalQuoteToOrder,
+  deleteDealerPortalCustomer,
+  getDealerPortalCustomer,
+  getDealerPortalCustomerOverview,
+  getDealerPortalCustomers,
+  getDealerPortalCustomersList,
+  getDealerPortalDashboard,
+  getDealerPortalInternalSalesProfile,
+  getDealerPortalPrimarySalesProfile,
+  getDealerPortalSalesDocument,
+  getDealerPortalSalesDocuments,
+  getDealerPortalSalesList,
+  getDealerPortalSalesProfiles,
+  getDealerPortalSettings,
+  requestDealerPortalQuoteOrder,
+  saveDealerPortalCustomer,
+  updateDealerPortalCustomerOfficeVisibility,
+  saveDealerPortalSalesProfile,
+  saveDealerPortalSettings,
+  updateDealerPortalCustomerPayment,
+} from "@gnd/db/queries";
 import { NotificationService } from "@gnd/notifications/services/triggers";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-import {
-  tokenize,
-  type SalesPaymentTokenSchema,
-} from "@gnd/utils/tokenizer";
+import { type SalesPaymentTokenSchema, tokenize } from "@gnd/utils/tokenizer";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
-import { resolveSalesDocumentHtmlPreviewAccess } from "@api/utils/sales-document-access";
+import { z } from "zod";
 import { createTRPCRouter, dealerProtectedProcedure } from "../init";
 
 const dealerWorkflowStepComponentsSchema = z.object({
@@ -90,7 +91,10 @@ function dealerPaymentAccountNo(input: {
   customerId?: number | null;
   customerPhone?: string | null;
 }) {
-  return input.customerPhone || (input.customerId ? `cust-${input.customerId}` : null);
+  return (
+    input.customerPhone ||
+    (input.customerId ? `cust-${input.customerId}` : null)
+  );
 }
 
 export const dealerPortalRouter = createTRPCRouter({
@@ -130,6 +134,15 @@ export const dealerPortalRouter = createTRPCRouter({
     .input(dealerPortalCustomerLookupSchema)
     .mutation(({ ctx, input }) => {
       return deleteDealerPortalCustomer(ctx.db, ctx.dealer.id, input.id);
+    }),
+  updateCustomerOfficeVisibility: dealerProtectedProcedure
+    .input(dealerPortalCustomerOfficeVisibilitySchema)
+    .mutation(({ ctx, input }) => {
+      return updateDealerPortalCustomerOfficeVisibility(
+        ctx.db,
+        ctx.dealer.id,
+        input,
+      );
     }),
   salesProfiles: dealerProtectedProcedure.query(({ ctx }) => {
     return getDealerPortalSalesProfiles(ctx.db, ctx.dealer.id);
@@ -312,11 +325,6 @@ export const dealerPortalRouter = createTRPCRouter({
               phoneNo: true,
             },
           },
-          dealerSale: {
-            select: {
-              dueAmount: true,
-            },
-          },
         },
       });
 
@@ -324,7 +332,7 @@ export const dealerPortalRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      const amountDue = Number(sale.dealerSale?.dueAmount ?? sale.amountDue ?? 0);
+      const amountDue = Number(sale.amountDue || 0);
       if (amountDue <= 0) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -377,6 +385,11 @@ export const dealerPortalRouter = createTRPCRouter({
 
       return result;
     }),
+  updateCustomerPaymentStatus: dealerProtectedProcedure
+    .input(dealerPortalCustomerPaymentStatusSchema)
+    .mutation(({ ctx, input }) =>
+      updateDealerPortalCustomerPayment(ctx.db, ctx.dealer.id, input),
+    ),
   saveQuote: dealerProtectedProcedure
     .input(dealerPortalSaveQuoteSchema)
     .mutation(({ ctx, input }) => {
@@ -395,12 +408,37 @@ export const dealerPortalRouter = createTRPCRouter({
         ctx.dealer.id,
         input.id,
       );
-      if (result.salesRepId && !result.alreadyPending) {
+      if (!result.alreadyPending) {
+        const recipientIds = result.salesRepId
+          ? [result.salesRepId]
+          : (
+              await ctx.db.users.findMany({
+                where: {
+                  deletedAt: null,
+                  roles: {
+                    some: {
+                      deletedAt: null,
+                      role: {
+                        name: "Sales Team",
+                      },
+                    },
+                  },
+                },
+                select: {
+                  id: true,
+                },
+              })
+            ).map((user) => user.id);
+
+        if (!recipientIds.length) return result;
         const notificationService = new NotificationService(tasks, ctx);
-        notificationService.setEmployeeRecipients(result.salesRepId);
+        notificationService.setEmployeeRecipients(...recipientIds);
         await notificationService.send("dealer_sales_request", {
           author: {
-            id: result.salesRepId,
+            // Dealer sessions do not have an employee user id. Use the assigned
+            // rep (or the first eligible Sales Team recipient) as the system
+            // activity author so the notification job has a valid employee.
+            id: result.salesRepId ?? recipientIds[0],
             role: "employee",
           },
           payload: result.notification,

@@ -783,6 +783,10 @@ export type CreateSalesCheckoutLinkSchema = z.infer<
 export async function createSalesCheckoutLink(
 	ctx: TRPCContext,
 	data: CreateSalesCheckoutLinkSchema,
+	options?: {
+		redirectUrl?: string;
+		idempotencyKey?: string;
+	},
 ) {
 	const { db } = ctx;
 	const checkoutData = await initializeCheckout(ctx, {
@@ -858,11 +862,13 @@ export async function createSalesCheckoutLink(
 				salesIds: sales.map((order) => order.id),
 			},
 		});
-		const redirectUrl = `${getAppUrl()}/checkout/${pendingCheckout.redirectToken}/v2`;
+		const redirectUrl =
+			options?.redirectUrl ||
+			`${getAppUrl()}/checkout/${pendingCheckout.redirectToken}/v2`;
 		const buyerEmail = cust?.email;
 		try {
 			const resp = await squareClient.checkout.paymentLinks.create({
-				idempotencyKey: new Date().toISOString(),
+				idempotencyKey: options?.idempotencyKey || new Date().toISOString(),
 				quickPay: {
 					locationId: SQUARE_LOCATION_ID,
 					name: squareSalesNote(sales.map((a) => a.orderId)),
@@ -895,6 +901,8 @@ export async function createSalesCheckoutLink(
 			// const paymentLink = result.paymentLink;
 			return {
 				paymentLink: paymentLink?.url,
+				squarePaymentId: pendingCheckout.squarePaymentId,
+				redirectToken: pendingCheckout.redirectToken,
 			};
 		} catch (error) {
 			if (error instanceof Error) throw new Error(error.message);

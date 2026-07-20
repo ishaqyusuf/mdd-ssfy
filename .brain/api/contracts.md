@@ -4,6 +4,40 @@
 Tracks important request/response contracts and shared schema boundaries.
 
 ## Current Notes
+
+- Dealership recruitment and fulfillment contracts:
+  - Dealer-owned customers default to `PRIVATE`; `SHARED` enables read-only
+    office discovery but never unrelated office-origin sales.
+  - Delivery/ship submission requires and persists an immutable customer name,
+    email, phone, address, and ZIP recipient snapshot.
+  - Sales email producers accept a structured `dealerProgramBanner` with
+    content, placement, campaign/invitation attribution, and opaque URL.
+  - The shared send-time resolver treats profile and individual targets as a
+    union and excludes dealer-owned customers, dealers, mismatched recipients,
+    deleted/ineligible customers, and every non-reset application.
+  - Random invitation tokens are stored only as SHA-256 hashes, expire after 30
+    days, and submit one application idempotently. Any application suppresses
+    later banners until explicit Super Admin reset.
+  - Standard/composed quote/invoice emails and payment reminders are eligible;
+    receipts, dispatch/failure/security, and dealer-lifecycle messages are not.
+- Dealership quote-to-order contracts:
+  - `dealerPortal.requestQuoteOrder` is dealer-authenticated, dealer-owned, and
+    idempotent for an existing pending request. Its notification payload includes
+    request id, sale id, quote number, dealer/customer labels, and request time.
+  - `dealer_sales_request` produces an in-app activity and an employee email.
+    The email action opens `/sales-rep?tab=requests&requestId=<id>`.
+  - `sales.approveDealerSalesRequest` requires delivery-cost review for delivery
+    and ship requests, preserves the structured sales-form snapshot, returns an
+    already-approved result on repeat work, and separates internal/GND payment
+    context from the dealer's customer receivable.
+  - `dealerPortal.updateCustomerPaymentStatus` changes only the active dealer's
+    customer ledger and writes history. It never clears `DealerSales.dueAmount`.
+  - Dealer print access accepts `pricingMode: "customer" | "internal"`.
+    Explicit modes are part of the print snapshot document identity, so cached
+    customer and internal documents cannot collide.
+  - Sales order filtering accepts optional
+    `salesChannel: "dealership" | "office"`; dealership means
+    `dealerAuthId > 0`, while office includes null and legacy zero ownership.
 - WWW client query invalidation contract:
   - Successful browser tRPC mutations pass through the global TanStack `MutationCache.onSuccess`, which resolves a typed mutation route from the tRPC mutation key and emits the route's registered query events.
   - Mutation results/variables may resolve affected sale references, and mutation options may add `meta.queryEventScope`; mutation options may also add typed `meta.queryEvents: QueryEventName[]`, while `meta.queryEvents: false` opts out of automatic route events.
@@ -236,3 +270,35 @@ Tracks important request/response contracts and shared schema boundaries.
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.
+
+## Sales Summary Money Contract (2026-07-20)
+
+- Sales summary responses expose numeric `grandTotal`, `ccc`, and
+  `totalWithCcc`.
+- `grandTotal` is the order principal excluding C.C.C and is the value used for
+  `SalesOrders.grandTotal`, `amountDue`, cash accounting, and order balance.
+- `ccc` is the derived card/link/terminal charge calculated from the complete
+  principal, including delivery, labor, flat labor, and other applicable costs.
+- `totalWithCcc = grandTotal + ccc` is the card/link/terminal display amount.
+- Older persisted summaries may omit `totalWithCcc`; hydration derives it
+  without mutating `grandTotal`.
+- Shelf `unitPrice` and `totalPrice` remain JSON numbers at API boundaries even
+  though Prisma stores `DykeSalesShelfItem` values as `Decimal(12,2)`.
+- Grouped service, shelf, and moulding metadata may include numeric
+  `rateRoundingAdjustment` and `totalAuthoritative: true`. Consumers must use
+  `lineTotal`, not `unitPrice × qty`, for save, print, summary, sync, and
+  payment calculations.
+## Storefront contracts (2026-07-20)
+
+- A Storefront Offer references one canonical Dyke root component and route.
+- Cart/wishlist lines persist normalized configuration, configuration hash and
+  version, canonical pricing snapshot, root identities, quantity, and
+  validation state.
+- Checkout input contains customer/address/fulfillment/payment intent only;
+  accepted line prices, tax, delivery, card charge, and final total are
+  recomputed by the server.
+- Successful checkout returns the canonical storefront checkout and standard
+  Sales Order identity. Retries use idempotency and cannot create a second
+  charge or order.
+- Availability is an online merchandising/lead-time policy, not an inventory
+  reservation guarantee.

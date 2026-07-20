@@ -1,5 +1,9 @@
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
 import { readSalesFormObjectMetadata } from "../../domain";
+import {
+	multiplyMoney,
+	roundMoney,
+} from "../../../payment-system/domain/money";
 import type {
 	ShelfCategoryRecord,
 	ShelfProductOption,
@@ -7,7 +11,7 @@ import type {
 } from "./workflow-records";
 
 function roundCurrency(value: unknown) {
-	return Number(Number(value || 0).toFixed(2));
+	return roundMoney(Number(value || 0));
 }
 
 function uniquePositiveNumbers(values: Array<number | null | undefined>) {
@@ -78,7 +82,7 @@ export function patchShelfRowPrice(row: ShelfRowDraft, unitPrice: number) {
 		...row,
 		customPrice: nextPrice,
 		unitPrice: nextPrice,
-		totalPrice: roundCurrency(qty * nextPrice),
+		totalPrice: multiplyMoney(qty, nextPrice),
 		meta: {
 			...meta,
 			customPrice: nextPrice,
@@ -102,7 +106,7 @@ export function clearShelfRowCustomPrice(row: ShelfRowDraft) {
 		...row,
 		customPrice: null,
 		unitPrice: nextPrice,
-		totalPrice: roundCurrency(qty * nextPrice),
+		totalPrice: multiplyMoney(qty, nextPrice),
 		meta: {
 			...meta,
 			customPrice: null,
@@ -117,7 +121,7 @@ export function patchShelfRowQty(row: ShelfRowDraft, qty: number) {
 	return {
 		...row,
 		qty: nextQty,
-		totalPrice: roundCurrency(nextQty * unitPrice),
+		totalPrice: multiplyMoney(nextQty, unitPrice),
 	};
 }
 

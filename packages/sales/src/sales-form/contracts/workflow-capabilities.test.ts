@@ -4,6 +4,7 @@ import {
 	createDealerSalesFormWorkflowCapabilities,
 	createInternalSalesFormWorkflowCapabilities,
 	createSalesFormWorkflowCapabilities,
+	createStorefrontSalesFormWorkflowCapabilities,
 } from "./workflow-capabilities";
 
 describe("sales form workflow capabilities", () => {
@@ -21,6 +22,7 @@ describe("sales form workflow capabilities", () => {
 			canEditLinePricing: false,
 			canEditDealerVisibleTotals: false,
 			isDealershipMode: false,
+			isStorefrontMode: false,
 		});
 	});
 
@@ -39,6 +41,7 @@ describe("sales form workflow capabilities", () => {
 			canEditFlatLineDetails: true,
 			canEditLinePricing: false,
 			isDealershipMode: false,
+			isStorefrontMode: false,
 		});
 
 		expect(
@@ -50,6 +53,7 @@ describe("sales form workflow capabilities", () => {
 			canEditWorkflowComponents: true,
 			canEditLinePricing: true,
 			isDealershipMode: false,
+			isStorefrontMode: false,
 		});
 
 		expect(
@@ -66,6 +70,7 @@ describe("sales form workflow capabilities", () => {
 			canEditFlatLineDetails: true,
 			canEditLinePricing: false,
 			isDealershipMode: false,
+			isStorefrontMode: false,
 		});
 	});
 
@@ -83,6 +88,25 @@ describe("sales form workflow capabilities", () => {
 			canEditLinePricing: false,
 			canEditDealerVisibleTotals: false,
 			isDealershipMode: true,
+			isStorefrontMode: false,
+		});
+	});
+
+	test("keeps the storefront surface restrictive", () => {
+		expect(createStorefrontSalesFormWorkflowCapabilities()).toEqual({
+			canEditWorkflowComponents: false,
+			canEditSectionOverrides: false,
+			canManageRedirects: false,
+			canManageDoorSizeVariants: false,
+			canManageDoorSuppliers: false,
+			canDeleteSelectedComponents: true,
+			canEnableCustomComponents: false,
+			canUseMouldingCalculator: true,
+			canEditFlatLineDetails: false,
+			canEditLinePricing: false,
+			canEditDealerVisibleTotals: false,
+			isDealershipMode: false,
+			isStorefrontMode: true,
 		});
 	});
 });

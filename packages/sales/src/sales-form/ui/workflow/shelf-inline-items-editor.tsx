@@ -38,6 +38,10 @@ import {
 	CostPriceBreakdownHover,
 	type CostPriceBreakdownContext,
 } from "./cost-price-breakdown-hover";
+import {
+	multiplyMoney,
+	roundMoney,
+} from "../../../payment-system/domain/money";
 
 type InlineRowEntry = {
 	section: ShelfSectionDraft;
@@ -64,7 +68,7 @@ export type ShelfInlineItemsEditorProps = {
 };
 
 function roundCurrency(value: unknown) {
-	return Number(Number(value || 0).toFixed(2));
+	return roundMoney(Number(value || 0));
 }
 
 function sectionSubtotal(section: ShelfSectionDraft) {
@@ -482,7 +486,7 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 								displayPrice: unitPrice,
 							};
 							const totalBreakdown = {
-								costPrice: Number((costPrice * qty).toFixed(2)),
+								costPrice: multiplyMoney(costPrice, qty),
 								unitCostPrice: costPrice,
 								quantity: qty,
 								displayPrice: totalPrice,

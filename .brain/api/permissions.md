@@ -4,7 +4,31 @@
 Tracks authentication and authorization patterns across API surfaces.
 
 ## Current Notes
+- Dealer-customer visibility is enforced in directory, search, counts,
+  overview, statement, and office sale-customer lookups. Shared records are
+  dealer-owned/read-only; private records remain absent.
+- Fulfillment staff receive the order-specific direct-ship snapshot through the
+  authorized dealer request/order workflow, not broad directory access.
+- Campaign management, application review/reset, and dealer
+  suspension/reactivation require `Super Admin`. Public recruitment endpoints
+  accept only opaque invitation tokens and expose no internal customer id.
+- API context no longer trusts the legacy `Bearer random|userId` suffix.
+  Browser requests derive the legacy user from the verified Better Auth session
+  cookie; app requests derive it from a verified session token or signed JWT.
+- Suspended/restricted dealers fail the active-dealer guard, blocking portal
+  access/new operations while authorized office fulfillment and history remain.
 - Permission logic is implemented in API middleware and route-level orchestration.
+- Dealership quote, order, checkout, print, and customer-payment mutations are
+  protected by the dealer session and recheck `dealerAuthId` ownership at the
+  query boundary. A dealer cannot request, pay, print, or mark customer payment
+  status for another dealer's document.
+- Dealer request review is available to the assigned rep, Sales Team users for
+  unassigned requests, and existing sales/admin roles. Approval stamps the first
+  approver and later attempts return the already-worked state instead of
+  reassigning or reconverting the order.
+- Dealer request notification fallback selects only active, non-deleted users
+  with an active `Sales Team` role. Each recipient's in-app/email preference is
+  still enforced by the notification service.
 - The `apps/www` proxy resolves its internal `/api/auth-session` check through the local IPv4 app port for localhost, `.localhost`, `.test`, and IPv6 loopback dev hosts, avoiding portless/local proxy auth lookups through public or IPv6 localhost origins while preserving the same session payload and permission snapshot; transient local socket-close fetch failures are retried once before treating the request as unauthenticated.
 - `apps/www` logout uses `/signout` as the user-facing redirect route; it now invokes the Better Auth `/api/auth/sign-out` handler in-process and expires legacy NextAuth plus Better Auth cookies with secure-prefix-aware attributes so production logout does not depend on a server-side fetch to the public app host.
 - Login/session permission hydration now merges role permissions with any per-employee `ModelHasPermissions` overrides before building `can`.
@@ -39,3 +63,14 @@ Tracks authentication and authorization patterns across API surfaces.
 
 ## TODO
 - Document core permission boundaries and any admin-only or repair-only flows.
+## Storefront permissions (2026-07-20)
+
+- `viewStorefront`, `editStorefront`, and `publishStorefront` control catalog,
+  configuration, content, settings, and publication.
+- `viewStorefrontCarts` and `manageStorefrontCarts` control customer/guest cart
+  visibility and operations.
+- `viewStorefrontOrders` and `manageStorefrontOrders` control storefront-order
+  and inquiry operations.
+- Super Admin retains implicit authority; all other employee access is checked
+  against the normal form-permission model. Customer reads remain strictly
+  owner-scoped and are never authorized through employee sessions.

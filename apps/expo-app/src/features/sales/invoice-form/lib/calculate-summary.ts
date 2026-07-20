@@ -26,6 +26,7 @@ export function calculateInvoiceSummary(input: {
     taxRate: summary.taxRate,
     taxTotal: summary.taxTotal,
     grandTotal: summary.grandTotal,
+    totalWithCcc: summary.totalWithCcc,
     discount: summary.discount,
     discountPct: summary.discountPct,
     percentDiscountValue: summary.percentDiscountValue,

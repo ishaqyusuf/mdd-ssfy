@@ -10,6 +10,18 @@ Tracks notable migrations and migration strategy.
 - If the configured database is unavailable or drift blocks migration, record the exact limitation here rather than forcing a reset or data-destructive action.
 
 ## Current Notes
+- 2026-07-19 dealership program expansion:
+  - Added `packages/db/src/schema/dealer-program.prisma` and
+    `Customers.officeVisibility`.
+  - `bun run db:generate` completed successfully.
+  - `bun run db:migrate` first hit Turbo's non-terminal UI guard;
+    `TURBO_UI=true bun run db:migrate` reached Prisma but failed with `P1001`
+    against local MySQL at `127.0.0.1:3307`.
+  - Docker reported `gnd-mysql` healthy and the host port listening; a direct
+    `mysqladmin` probe reached MySQL but required credentials. No destructive
+    reset or manually-authored migration was used.
+  - Apply the schema in the intended environment and restart long-running app
+    processes before final database-backed browser QA.
 - Migration sources live under `packages/db`.
 - Recent work includes foundations for document-platform and payment/resolution system migrations.
 - Local development now uses explicit DB/Redis profiles through the shared `../../local-infra-kit` GND profile. `bun run dev` and `bun run dev --local` default to local Docker MySQL only; `bun run dev --remote-dev` uses the hosted dev DB only; `bun run dev --prod` runs the production-env www smoke flow on port 3015. Redis is opt-in for local and remote-dev profiles with `--redis-local`, `--redis-remote`, or `--redis-remote-dev`, so `bun run dev --local --redis-local` uses local MySQL with local Docker Redis, `bun run dev --local --redis-remote` uses local MySQL with remote-dev Redis, and `bun run dev --remote-dev --redis-local` uses the hosted dev DB with local Docker Redis. Dev profiles accept `--filter`, `--f`, `-f`, or `-filter` selectors using Turbo selector syntax directly, including suffix `!` exclusion normalization such as `@gnd/api!` -> `!@gnd/api`. Exact package filters are validated against workspace package names and print the valid package list when a requested package is missing; bare exact package names such as `api` and `site!` resolve to matching workspace packages; graph/glob/path/range selectors pass through to Turbo. Mixed local/remote infra also remains available through `dev:local-db:remote-redis`, `dev:remote-db:local-redis`, or the service-only `dev:services:local*` commands.
@@ -26,6 +38,25 @@ Tracks notable migrations and migration strategy.
   - `bun run db:push` hit Turbo's non-terminal UI guard.
   - `bun run --cwd packages/db push` reached the configured production push target and stopped on an unrelated `DealerAuthAccount` unique-constraint data-loss warning; `--accept-data-loss` was not used.
   - Local `prisma db push` also stopped on pre-existing broad LongText -> Json drift warnings. To validate the opened local order without accepting unrelated data-loss warnings, only the local `LinePricing` price columns were altered to `DOUBLE`, and Prisma client generation was rerun.
+- 2026-07-20 sales shelf decimal migration:
+  - Prisma generated
+    `packages/db/src/migrations/20260720081100_sales_shelf_decimal_prices`
+    from a clean repository clone against an isolated scratch database.
+  - The migration converts `DykeSalesShelfItem.unitPrice` and `totalPrice`
+    directly from `Int` to nullable `Decimal(12,2)`; no table reset, delete,
+    copy, or value rewrite is used.
+  - The real development database was read-only during validation. Its
+    pre-migration baseline was 366 rows, 4 unit-price nulls, 0 total-price
+    nulls, unit min/max/sum `0 / 636 / 34010`, and total min/max/sum
+    `0 / 1379 / 58749`.
+  - Isolated pre/post validation retained row count `2`, unit null count `1`,
+    total null count `0`, and identical min/max/sums while converting
+    `12 → 12.00` and `24 → 24.00`.
+  - A post-migration Prisma update/reload preserved `12.34` and `24.68`.
+  - `bun run db:migrate` against the ordinary development database was not
+    forced because Prisma detected unrelated existing drift and proposed a
+    destructive reset. The generated migration was not applied to the real
+    database in this task.
 - 2026-07-08 web bug reporting schema addition:
   - Added `packages/db/src/schema/bug-reports.prisma` with `BugReportStatus`, `BugReport`, and `BugReportFollowUp`.
   - `bun run db:generate` completed and regenerated Prisma Client.
@@ -101,3 +132,17 @@ Tracks notable migrations and migration strategy.
 
 ## TODO
 - Add a migration history summary with timestamps, intent, rollout notes, and any backfill requirements.
+## 20260720130000_storefront_ecommerce_replacement
+
+- Adds nullable `SalesOrders.salesChannel`.
+- Adds Storefront Category, Offer, Component, Step Policy, Offer Component
+  Policy, Commerce Collection/Line, Checkout, Page/Section, Audit Event,
+  Password Reset Token, and Inquiry tables with supporting indexes and foreign
+  keys.
+- Existing business data is not dropped or rewritten by this migration.
+- `bun run db:generate` passed.
+- Full `prisma migrate deploy` of all 102 migrations passed against isolated
+  MySQL database `gnd_storefront_verify`.
+- Normal local `migrate dev` stopped on pre-existing drift that requested a
+  reset. Normal `db push` stopped on unrelated LongText-to-JSON conversions and
+  a dealer uniqueness warning. Neither reset nor `--accept-data-loss` was used.

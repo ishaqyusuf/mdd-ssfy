@@ -11,6 +11,10 @@ import {
 	getStoredServiceRows,
 	getWorkflowSteps,
 } from "./workflow-records";
+import {
+	multiplyMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
 
 type WorkflowLineTotalRecord = Record<string, any> & {
 	uid?: string | null;
@@ -31,15 +35,13 @@ export function buildWorkflowLinePricingPatch(
 	if (Array.isArray(line.shelfItems) && line.shelfItems.length) return {};
 	if (line.housePackageTool?.doors?.length) return {};
 	if (!Array.isArray(formSteps)) return {};
-	const unitPrice = Number(
-		formSteps
-			.reduce((total, step) => total + Number(step?.price || 0), 0)
-			.toFixed(2),
+	const unitPrice = sumMoney(
+		formSteps.map((step) => Number(step?.price || 0)),
 	);
 	const qty = Number(line.qty || 0);
 	return {
 		unitPrice,
-		lineTotal: Number((qty * unitPrice).toFixed(2)),
+		lineTotal: multiplyMoney(qty, unitPrice),
 	};
 }
 
@@ -71,5 +73,8 @@ export function getWorkflowLineDisplayTotal(
 	}
 	const lineTotal = Number(line.lineTotal || 0);
 	if (lineTotal > 0) return lineTotal;
-	return Number((Number(line.qty || 0) * Number(line.unitPrice || 0)).toFixed(2));
+	return multiplyMoney(
+		Number(line.qty || 0),
+		Number(line.unitPrice || 0),
+	);
 }

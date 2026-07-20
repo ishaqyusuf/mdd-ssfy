@@ -7,6 +7,7 @@ import { generateQrCodeDataUrl, renderSalesPdfBuffer } from "@gnd/pdf/sales-v2";
 import {
 	type SalesDocumentSnapshotRecord,
 	type SalesDocumentSnapshotRepository,
+	buildSalesPrintDocumentTypeKey,
 	createOrRefreshBatchSalesPrintData,
 	createOrRefreshSalesPrintData,
 	evaluateSalesSourceFreshness,
@@ -156,15 +157,7 @@ export function buildSalesDocumentTypeKey(input: {
 	pricingMode?: PrintPricingMode | null;
 	dispatchId?: number | null;
 }) {
-	const baseType = SALES_DOCUMENT_BASE_TYPES[input.mode];
-	const parts: string[] = [baseType];
-	if (input.pricingMode) {
-		parts.push(`pricing:${input.pricingMode}`);
-	}
-	if (input.mode === "packing-slip" && input.dispatchId) {
-		parts.push(`dispatch:${input.dispatchId}`);
-	}
-	return parts.join(":");
+	return buildSalesPrintDocumentTypeKey(input);
 }
 
 function buildSalesDocumentScopeKey(input: {

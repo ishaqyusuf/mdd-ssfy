@@ -1,5 +1,7 @@
 # Daily Codebase Review Index
 
+- [2026-07-20](./2026-07-20.md) - Typecheck still stops in app-store; public operational routes, dealer direct conversion, dispatch proof atomicity, inventory readiness, and hard-coded Share remain risks.
+- [2026-07-19](./2026-07-19.md) - Dealership approval is QA-complete, but public operational mutations, direct dealer conversion, hard-coded sales Share, inventory readiness, dispatch proof atomicity, and typecheck remain risks.
 - [2026-07-18](./2026-07-18.md) - Public operational mutations, hard-coded sales document sharing, dealer quote approval bypasses, inventory readiness, and dispatch proof atomicity remain top risks.
 - [2026-07-17](./2026-07-17.md) - Live sales Share can send tokenized PDFs to a hard-coded phone; dealer direct conversion API still bypasses approval; document typecheck remains blocked.
 - [2026-07-15](./2026-07-15.md) - Dealership router scoping improved, but public route boundaries, dealer quote edit locks, inventory readiness, dispatch proof atomicity, and document typecheck remain top risks.

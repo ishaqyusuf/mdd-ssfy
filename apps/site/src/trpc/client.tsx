@@ -9,10 +9,7 @@ import { createTRPCContext } from "@trpc/tanstack-react-query";
 import { useState } from "react";
 import superjson from "superjson";
 import { makeQueryClient } from "./query-client";
-import { AppRouter } from "@gnd/api/trpc/routers/_app";
-import { useAuth } from "@/hooks/use-auth";
-import { generateRandomString } from "@gnd/utils";
-import { useGuestId } from "@/hooks/use-guest-id";
+import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 
@@ -39,29 +36,15 @@ export function TRPCReactProvider(
   }>,
 ) {
   const queryClient = getQueryClient();
-  const auth = useAuth();
-  const guest = useGuestId();
   const [trpcClient] = useState(() =>
     createTRPCClient<AppRouter>({
       links: [
         httpBatchLink({
           // url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
-          url:
-            process.env.NODE_ENV === "production"
-              ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
-              : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+          url: "/api/storefront/trpc",
           transformer: superjson as any,
-          async headers() {
-            // console.log({ guestId });
-            // return {
-            // };
-            // const auth = await authUser();
-            console.log(auth);
-            return {
-              "x-guest-id": guest.guestId,
-              Authorization: `Bearer ${generateRandomString(16)}|${auth?.id}`,
-            };
-            // return {};
+          fetch(url, options) {
+            return fetch(url, { ...options, credentials: "include" });
           },
         }),
         loggerLink({

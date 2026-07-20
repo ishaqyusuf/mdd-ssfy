@@ -297,6 +297,9 @@ export const linkModules = [
 				// _role.is("Super Admin")
 				_perm.is("editOrders"),
 			).data,
+			_link("Storefront", "products", "/storefront")
+				.access(_perm.in("viewStorefront", "editStorefront"))
+				.childPaths("/storefront/").data,
 		]),
 		_section(null, null, [
 			_link("My Dashboard", "dashboard", "/sales-rep")

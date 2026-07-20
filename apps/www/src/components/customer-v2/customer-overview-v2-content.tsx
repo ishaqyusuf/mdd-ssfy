@@ -235,6 +235,11 @@ function CustomerHero({
 										Business
 									</Badge>
 								) : null}
+								{data?.customer.dealerOwner ? (
+									<Badge variant="outline">
+										Owned by {data.customer.dealerOwner.name} · read-only
+									</Badge>
+								) : null}
 							</div>
 							<div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
 								<span>{data?.accountNo}</span>
@@ -266,18 +271,22 @@ function CustomerHero({
 								Pay
 							</Button>
 						</SalesPaymentProcessor>
-						<Button asChild variant="outline">
-							<Link href="/sales-book/create-quote">
-								<Icons.FileText className="mr-2 size-4" />
-								New quote
-							</Link>
-						</Button>
-						<Button asChild>
-							<Link href="/sales-book/create-order">
-								<Icons.ShoppingCart className="mr-2 size-4" />
-								New sales
-							</Link>
-						</Button>
+						{!data?.customer.isReadOnly ? (
+							<>
+								<Button asChild variant="outline">
+									<Link href="/sales-book/create-quote">
+										<Icons.FileText className="mr-2 size-4" />
+										New quote
+									</Link>
+								</Button>
+								<Button asChild>
+									<Link href="/sales-book/create-order">
+										<Icons.ShoppingCart className="mr-2 size-4" />
+										New sales
+									</Link>
+								</Button>
+							</>
+						) : null}
 					</div>
 				</div>
 			</CardContent>

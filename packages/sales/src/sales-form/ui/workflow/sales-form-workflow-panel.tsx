@@ -30,6 +30,14 @@ import type {
 } from "../../contracts";
 import { createSalesFormWorkflowCapabilities } from "../../contracts";
 import {
+	addMoney,
+	moneyRatio,
+	multiplyMoney,
+	percentageMoney,
+	roundMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
+import {
 	CostPriceBreakdownHover,
 	type CostPriceBreakdownContext,
 } from "./cost-price-breakdown-hover";
@@ -767,11 +775,11 @@ export function SalesFormWorkflowPanel<
 					doorType: "",
 					doorPrice: 0,
 					jambSizePrice: hasResolvedPrice
-						? Number(tierPricing.salesPrice.toFixed(2))
+						? roundMoney(tierPricing.salesPrice)
 						: 0,
 					casingPrice: 0,
 					unitPrice: hasResolvedPrice
-						? Number((tierPricing.salesPrice + sharedDoorSurcharge).toFixed(2))
+						? sumMoney([tierPricing.salesPrice, sharedDoorSurcharge])
 						: 0,
 					lhQty: 0,
 					rhQty: 0,
@@ -780,10 +788,10 @@ export function SalesFormWorkflowPanel<
 					stepProductId: activeDoorComponent.id || null,
 					meta: {
 						baseUnitPrice: hasResolvedPrice
-							? Number(tierPricing.basePrice.toFixed(2))
+							? roundMoney(tierPricing.basePrice)
 							: 0,
 						doorSalesUnitPrice: hasResolvedPrice
-							? Number(tierPricing.salesPrice.toFixed(2))
+							? roundMoney(tierPricing.salesPrice)
 							: 0,
 						sharedDoorSurcharge,
 						priceMissing: !hasResolvedPrice,
@@ -1402,6 +1410,7 @@ export function SalesFormWorkflowPanel<
 							updateLine(
 								line,
 								buildWorkflowShelfSectionsPatch({
+									line,
 									sections,
 									profileCoefficient: activeDisplayProfileCoefficient,
 								}).linePatch as unknown as Partial<TLine>,
@@ -1412,6 +1421,7 @@ export function SalesFormWorkflowPanel<
 							updateLine(
 								line,
 								buildWorkflowShelfSectionsPatch({
+									line,
 									sections,
 									profileCoefficient: activeDisplayProfileCoefficient,
 								}).linePatch as unknown as Partial<TLine>,
@@ -1819,12 +1829,17 @@ function priceComponent(
 		resolvedBasePrice,
 		profileCoefficient,
 	);
-	const dealerMultiplier =
-		pricingView === "dealer" ? 1 + Number(dealerSalesPercentage || 0) / 100 : 1;
+	const salesPrice =
+		pricingView === "dealer"
+			? sumMoney([
+					internalSalesPrice,
+					percentageMoney(internalSalesPrice, dealerSalesPercentage),
+				])
+			: internalSalesPrice;
 	return {
 		...component,
 		...(override || {}),
-		salesPrice: Number((internalSalesPrice * dealerMultiplier).toFixed(2)),
+		salesPrice,
 		basePrice: Number(resolvedBasePrice ?? 0),
 	};
 }
@@ -1836,11 +1851,13 @@ function salesMultiplierForPricingView(
 ) {
 	const internalMultiplier =
 		Number.isFinite(profileCoefficient) && profileCoefficient > 0
-			? Number((1 / profileCoefficient).toFixed(2))
+			? moneyRatio(1, profileCoefficient)
 			: 1;
 	const dealerMultiplier =
-		pricingView === "dealer" ? 1 + Number(dealerSalesPercentage || 0) / 100 : 1;
-	return Number((internalMultiplier * dealerMultiplier).toFixed(4));
+		pricingView === "dealer"
+			? moneyRatio(addMoney(100, dealerSalesPercentage), 100)
+			: 1;
+	return internalMultiplier * dealerMultiplier;
 }
 
 function numericValue(value: unknown) {
@@ -2205,7 +2222,7 @@ function DefaultShelfPanel(props: {
 										displayPrice: unitPrice,
 									};
 									const totalBreakdown = {
-										costPrice: Number((costPrice * qty).toFixed(2)),
+										costPrice: multiplyMoney(costPrice, qty),
 										unitCostPrice: costPrice,
 										quantity: qty,
 										displayPrice: totalPrice,
@@ -2276,10 +2293,9 @@ function DefaultShelfPanel(props: {
 																				basePrice,
 																				salesPrice,
 																				unitPrice: salesPrice,
-																				totalPrice: Number(
-																					(
-																						Number(item?.qty ?? 1) * salesPrice
-																					).toFixed(2),
+																				totalPrice: multiplyMoney(
+																					Number(item?.qty ?? 1),
+																					salesPrice,
 																				),
 																				meta: {
 																					...(item?.meta || {}),
@@ -2365,11 +2381,9 @@ function DefaultShelfPanel(props: {
 																						basePrice: nextBase,
 																						salesPrice: nextSales,
 																						unitPrice,
-																						totalPrice: Number(
-																							(
-																								Number(item?.qty ?? 1) *
-																								unitPrice
-																							).toFixed(2),
+																						totalPrice: multiplyMoney(
+																							Number(item?.qty ?? 1),
+																							unitPrice,
 																						),
 																						meta: {
 																							...(item?.meta || {}),

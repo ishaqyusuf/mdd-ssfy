@@ -1,6 +1,7 @@
 import type { Db, TransactionClient } from "@gnd/db";
 import { resolveOrderInboundDemandStatus } from "@gnd/inventory/inbound";
 import { generateInventoryCategoryUidFromShelfCategoryId } from "@gnd/inventory/inventory-utils";
+import { roundMoney } from "./payment-system/domain/money";
 
 type DbLike = Db | TransactionClient;
 const ACTIVE_STOCK_ALLOCATION_STATUSES = [
@@ -170,7 +171,7 @@ function numberSafeDivide(total: unknown, divisor: unknown) {
 
 function roundCurrencySnapshotValue(value: number | null) {
 	if (value == null) return null;
-	return Math.round((value + Number.EPSILON) * 100) / 100;
+	return roundMoney(value);
 }
 
 function firstFiniteNumber(...values: Array<unknown>) {
@@ -1314,16 +1315,16 @@ function buildStepFormCandidate(
 
 function buildShelfCandidate(
 	shelf: {
-	productId: number | null;
-	qty: number | null;
-	description: string | null;
-	categoryId: number | null;
-	unitPrice?: number | null;
-	totalPrice?: number | null;
-	meta?: unknown;
-	shelfProduct: { id: number; title: string | null } | null;
-	category: { id: number; name: string | null } | null;
-},
+		productId: number | null;
+		qty: number | null;
+		description: string | null;
+		categoryId: number | null;
+		unitPrice?: number | null;
+		totalPrice?: number | null;
+		meta?: unknown;
+		shelfProduct: { id: number; title: string | null } | null;
+		category: { id: number; name: string | null } | null;
+	},
 	options: { profileCoefficient?: number | null } = {},
 ): SyncComponentCandidate | null {
 	if (!shelf.productId || !shelf.categoryId) return null;
@@ -1437,23 +1438,26 @@ function buildHousePackageCandidate(
 	};
 }
 
-function buildDoorCandidate(door: {
-	totalQty: number | null;
-	dimension?: string | null;
-	dependenciesUid?: string | null;
-	meta?: unknown;
-	unitPrice?: number | null;
-	lineTotal?: number | null;
-	stepProduct: {
+function buildDoorCandidate(
+	door: {
+		totalQty: number | null;
+		dimension?: string | null;
+		dependenciesUid?: string | null;
+		meta?: unknown;
+		unitPrice?: number | null;
+		lineTotal?: number | null;
+		stepProduct: {
+			uid: string | null;
+			name: string | null;
+			step: { uid: string | null; title: string | null } | null;
+		} | null;
+	},
+	fallbackStepProduct?: {
 		uid: string | null;
 		name: string | null;
 		step: { uid: string | null; title: string | null } | null;
-	} | null;
-}, fallbackStepProduct?: {
-	uid: string | null;
-	name: string | null;
-	step: { uid: string | null; title: string | null } | null;
-} | null): SyncComponentCandidate | null {
+	} | null,
+): SyncComponentCandidate | null {
 	const stepProduct =
 		door.stepProduct?.uid && door.stepProduct.step?.uid
 			? door.stepProduct
@@ -1936,7 +1940,7 @@ export async function syncSalesInventoryLineItems(
 	let deletedCount = 0;
 	let skippedCount = 0;
 
-	const sale = await db.salesOrders.findFirstOrThrow({
+	const saleRecord = await db.salesOrders.findFirstOrThrow({
 		where: {
 			id: input.salesOrderId,
 		},
@@ -2074,6 +2078,19 @@ export async function syncSalesInventoryLineItems(
 			},
 		},
 	});
+	const sale = {
+		...saleRecord,
+		items: saleRecord.items.map((item) => ({
+			...item,
+			shelfItems: item.shelfItems.map((shelfItem) => ({
+				...shelfItem,
+				unitPrice:
+					shelfItem.unitPrice == null ? null : Number(shelfItem.unitPrice),
+				totalPrice:
+					shelfItem.totalPrice == null ? null : Number(shelfItem.totalPrice),
+			})),
+		})),
+	};
 
 	const syncedSalesItemIds = new Set<number>();
 
@@ -2093,12 +2110,9 @@ export async function syncSalesInventoryLineItems(
 		);
 		const itemComponents = new Map<string, SyncComponentCandidate>();
 
-		for (const candidate of buildInventorySyncComponentCandidatesForItem(
-			item,
-			{
-				profileCoefficient: sale.salesProfile?.coefficient ?? null,
-			},
-		)) {
+		for (const candidate of buildInventorySyncComponentCandidatesForItem(item, {
+			profileCoefficient: sale.salesProfile?.coefficient ?? null,
+		})) {
 			itemComponents.set(makeCandidateKey(candidate), candidate);
 		}
 
@@ -2420,7 +2434,9 @@ export async function syncSalesInventoryLineItems(
 					id: true,
 				},
 			});
-			const staleComponentIds = staleComponents.map((component) => component.id);
+			const staleComponentIds = staleComponents.map(
+				(component) => component.id,
+			);
 			if (staleComponentIds.length) {
 				const staleLineResidueWhere = {
 					lineItemComponentId: {

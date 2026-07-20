@@ -1,11 +1,30 @@
 import { generateRandomString } from "@gnd/utils";
+import {
+  divideMoney,
+  multiplyMoney,
+  roundMoney,
+  subtractMoney,
+  sumMoney,
+} from "../../payment-system/domain/money";
 import { readSalesFormObjectMetadata } from "./metadata";
 import { normalizeSalesFormTitle } from "./step-engine";
 
 type GroupKind = "moulding" | "service";
 
 function roundCurrency(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundMoney(value);
+}
+
+function authoritativeGroupPricing(lineTotal: number, qtyTotal: number) {
+  const unitPrice = qtyTotal > 0 ? divideMoney(lineTotal, qtyTotal) : 0;
+  return {
+    unitPrice,
+    rateRoundingAdjustment: subtractMoney(
+      lineTotal,
+      multiplyMoney(unitPrice, qtyTotal),
+    ),
+    totalAuthoritative: true as const,
+  };
 }
 
 function safeRecord(value: unknown): Record<string, any> {
@@ -76,21 +95,21 @@ function summarizeServiceRows(rows: Array<Record<string, any>>) {
       produceable: Boolean(row.produceable),
       qty,
       unitPrice,
-      lineTotal: roundCurrency(qty * unitPrice),
+      lineTotal: multiplyMoney(qty, unitPrice),
     };
   });
   const qtyTotal = normalizedRows.reduce(
     (sum, row) => sum + Number(row.qty || 0),
     0,
   );
-  const lineTotal = roundCurrency(
-    normalizedRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+  const lineTotal = sumMoney(
+    normalizedRows.map((row) => Number(row.lineTotal || 0)),
   );
   return {
     rows: normalizedRows,
     qtyTotal,
     lineTotal,
-    unitPrice: qtyTotal > 0 ? roundCurrency(lineTotal / qtyTotal) : 0,
+    ...authoritativeGroupPricing(lineTotal, qtyTotal),
     description: normalizedRows
       .map((row) => String(row.service || "").trim())
       .filter(Boolean)
@@ -118,7 +137,7 @@ function summarizeMouldingRows(rows: Array<Record<string, any>>) {
       customPrice,
       salesPrice,
       basePrice: Number(row.basePrice || 0),
-      lineTotal: roundCurrency(qty * unit),
+      lineTotal: multiplyMoney(qty, unit),
       stepProductId: row.stepProductId ?? null,
     };
   });
@@ -126,14 +145,14 @@ function summarizeMouldingRows(rows: Array<Record<string, any>>) {
     (sum, row) => sum + Number(row.qty || 0),
     0,
   );
-  const lineTotal = roundCurrency(
-    normalizedRows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0),
+  const lineTotal = sumMoney(
+    normalizedRows.map((row) => Number(row.lineTotal || 0)),
   );
   return {
     rows: normalizedRows,
     qtyTotal,
     lineTotal,
-    unitPrice: qtyTotal > 0 ? roundCurrency(lineTotal / qtyTotal) : 0,
+    ...authoritativeGroupPricing(lineTotal, qtyTotal),
     description: normalizedRows
       .map((row) => String(row.description || row.title || "").trim())
       .filter(Boolean)
@@ -212,6 +231,8 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
             serviceRows: summary.rows,
             taxxable: summary.rows.some((row) => Boolean(row?.taxxable)),
             produceable: summary.rows.some((row) => Boolean(row?.produceable)),
+            rateRoundingAdjustment: summary.rateRoundingAdjustment,
+            totalAuthoritative: summary.totalAuthoritative,
           },
         } as unknown as T,
       ];
@@ -311,6 +332,8 @@ export function collapseLegacyGroupedLines<T extends Record<string, any>>(
           ...safeRecord(representative?.meta),
           groupUid,
           mouldingRows: summary.rows,
+          rateRoundingAdjustment: summary.rateRoundingAdjustment,
+          totalAuthoritative: summary.totalAuthoritative,
         },
         formSteps: nextFormSteps,
       } as unknown as T,

@@ -11,6 +11,7 @@ export type SalesFormWorkflowCapabilities = {
 	canEditLinePricing: boolean;
 	canEditDealerVisibleTotals: boolean;
 	isDealershipMode: boolean;
+	isStorefrontMode: boolean;
 };
 
 export function createSalesFormWorkflowCapabilities(
@@ -29,6 +30,7 @@ export function createSalesFormWorkflowCapabilities(
 		canEditLinePricing: false,
 		canEditDealerVisibleTotals: false,
 		isDealershipMode: false,
+		isStorefrontMode: false,
 		...patch,
 	};
 }
@@ -53,6 +55,7 @@ export function createInternalSalesFormWorkflowCapabilities(input?: {
 		canEditLinePricing,
 		canEditDealerVisibleTotals: false,
 		isDealershipMode: false,
+		isStorefrontMode: false,
 	});
 }
 
@@ -70,5 +73,24 @@ export function createDealerSalesFormWorkflowCapabilities(): SalesFormWorkflowCa
 		canEditLinePricing: false,
 		canEditDealerVisibleTotals: false,
 		isDealershipMode: true,
+		isStorefrontMode: false,
+	});
+}
+
+export function createStorefrontSalesFormWorkflowCapabilities(): SalesFormWorkflowCapabilities {
+	return createSalesFormWorkflowCapabilities({
+		canEditWorkflowComponents: false,
+		canEditSectionOverrides: false,
+		canManageRedirects: false,
+		canManageDoorSizeVariants: false,
+		canManageDoorSuppliers: false,
+		canDeleteSelectedComponents: true,
+		canEnableCustomComponents: false,
+		canUseMouldingCalculator: true,
+		canEditFlatLineDetails: false,
+		canEditLinePricing: false,
+		canEditDealerVisibleTotals: false,
+		isDealershipMode: false,
+		isStorefrontMode: true,
 	});
 }

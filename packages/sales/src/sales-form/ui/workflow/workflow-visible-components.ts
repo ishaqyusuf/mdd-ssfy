@@ -11,6 +11,10 @@ import {
 	getStepPriceDeps,
 	isComponentEnabledForView,
 } from "./workflow-records";
+import {
+	percentageMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
 
 export type ResolveWorkflowVisibleComponentsInput = {
 	components: WorkflowComponentRecord[];
@@ -84,15 +88,18 @@ export function resolveWorkflowVisibleComponents({
 				resolvedBasePrice,
 				profileCoefficient,
 			);
-			const dealerMultiplier =
+			const salesPrice =
 				pricingView === "dealer"
-					? 1 + Number(dealerSalesPercentage || 0) / 100
-					: 1;
+					? sumMoney([
+							internalSalesPrice,
+							percentageMoney(internalSalesPrice, dealerSalesPercentage),
+						])
+					: internalSalesPrice;
 
 			return {
 				...component,
 				...(override || {}),
-				salesPrice: Number((internalSalesPrice * dealerMultiplier).toFixed(2)),
+				salesPrice,
 				basePrice: Number(resolvedBasePrice ?? 0),
 			};
 		});

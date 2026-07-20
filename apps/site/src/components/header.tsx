@@ -1,19 +1,9 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import { useEffect, useState } from "react";
-import { Button } from "@gnd/ui/button";
-import { Input } from "@gnd/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@gnd/ui/navigation-menu";
+import { Button } from "@gnd/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,274 +11,173 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@gnd/ui/dropdown-menu";
+import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@gnd/ui/sheet";
-import Link from "next/link";
-import { useAuthStore } from "@/lib/auth-store";
-import { useCartStore } from "@/lib/cart-store";
-import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import { signOut } from "next-auth/react";
-import { CartHeaderIcon } from "./cart-header-icon";
+import Link from "next/link";
 
-interface HeaderProps {
-  cartItems?: number;
-}
-
-export function Header({ cartItems }: HeaderProps) {
-  // const { logout } = useAuthStore();
-  const auth = useAuth();
-  const isAuthenticated = !!auth?.id;
-  const { getTotalItems, isHydrated, setHydrated } = useCartStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setHydrated();
-  }, [setHydrated]);
-
-  // Use cart store items if hydrated, otherwise fall back to prop
-  const totalCartItems =
-    mounted && isHydrated ? getTotalItems() : cartItems || 0;
+function CategoryLinks({ mobile = false }: { mobile?: boolean }) {
+  const trpc = useTRPC();
+  const { data } = useQuery(
+    trpc.storefrontCommerce.catalog.categories.queryOptions(),
+  );
 
   return (
-    <header className="border-b bg-white sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        {/* Top bar */}
-        <div className="flex items-center justify-between py-2 text-sm text-muted-foreground border-b">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-1">
-              <Icons.Phone className="h-4 w-4" />
-              <span>(305) 278-6555</span>
+    <>
+      {data?.map((category) => (
+        <Link
+          key={category.id}
+          href={category.href}
+          className={
+            mobile
+              ? "rounded-md px-3 py-2 text-base font-medium hover:bg-muted"
+              : "text-sm font-medium hover:text-amber-800"
+          }
+        >
+          {category.title}
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function CartButton() {
+  const trpc = useTRPC();
+  const { data } = useQuery(
+    trpc.storefrontCommerce.cart.get.queryOptions(undefined, {
+      staleTime: 15_000,
+    }),
+  );
+  const quantity =
+    data?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
+
+  return (
+    <Button asChild variant="outline" size="icon" className="relative">
+      <Link href="/cart" aria-label={`Cart with ${quantity} items`}>
+        <Icons.ShoppingCart className="size-4" />
+        {quantity > 0 && (
+          <Badge className="absolute -right-2 -top-2 flex size-5 items-center justify-center rounded-full p-0 text-[10px]">
+            {quantity > 99 ? "99+" : quantity}
+          </Badge>
+        )}
+      </Link>
+    </Button>
+  );
+}
+
+export function Header() {
+  const auth = useAuth();
+  const isAuthenticated = Boolean(auth?.id);
+
+  return (
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+      <div className="border-b">
+        <div className="container mx-auto flex items-center justify-between px-4 py-2 text-xs text-muted-foreground">
+          <a href="tel:+13052786555" className="flex items-center gap-1">
+            <Icons.Phone className="size-3.5" />
+            (305) 278-6555
+          </a>
+          <a
+            href="mailto:support@gndmillwork.com"
+            className="hidden items-center gap-1 sm:flex"
+          >
+            <Icons.Mail className="size-3.5" />
+            support@gndmillwork.com
+          </a>
+        </div>
+      </div>
+
+      <div className="container mx-auto flex h-16 items-center gap-5 px-4">
+        <Link href="/" className="shrink-0 text-xl font-bold text-amber-900">
+          GND Millwork
+        </Link>
+
+        <nav className="hidden flex-1 items-center gap-5 lg:flex" aria-label="Main">
+          <CategoryLinks />
+          <Link href="/search" className="text-sm font-medium hover:text-amber-800">
+            All products
+          </Link>
+        </nav>
+
+        <div className="ml-auto hidden w-56 md:block">
+          <Link href="/search" aria-label="Search products">
+            <div className="relative">
+              <Icons.Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+              <Input
+                readOnly
+                tabIndex={-1}
+                placeholder="Search products"
+                className="cursor-pointer pl-9"
+              />
             </div>
-            <div className="flex items-center space-x-1">
-              <Icons.Mail className="h-4 w-4" />
-              <span>support@gndmillwork.com</span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Icons.MapPin className="h-4 w-4" />
-            <span>Free delivery within 50 miles</span>
-          </div>
+          </Link>
         </div>
 
-        {/* Main header */}
-        <div className="flex items-center justify-between py-4">
-          <div className="flex items-center space-x-8">
-            <Link href="/">
-              <h1 className="text-2xl font-bold text-amber-800 cursor-pointer">
-                GND Millwork
-              </h1>
-            </Link>
+        <CartButton />
 
-            {/* Desktop Navigation */}
-            <NavigationMenu className="hidden md:flex">
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Doors</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid gap-3 p-6 w-[400px]">
-                      <NavigationMenuLink asChild>
-                        <Link
-                          href="/search?category=interior-doors"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">
-                            Interior Doors
-                          </div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Panel, flush, and specialty interior doors
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                      <NavigationMenuLink asChild>
-                        <Link
-                          href="/search?category=exterior-doors"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">
-                            Exterior Doors
-                          </div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Entry doors, storm doors, and patio doors
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Hardware</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid gap-3 p-6 w-[400px]">
-                      <NavigationMenuLink asChild>
-                        <Link
-                          href="/search?category=handles-knobs"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">
-                            Handles & Knobs
-                          </div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Door handles, knobs, and lever sets
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                      <NavigationMenuLink asChild>
-                        <Link
-                          href="/search?category=locks-security"
-                          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                        >
-                          <div className="text-sm font-medium leading-none">
-                            Locks & Security
-                          </div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Deadbolts, smart locks, and security hardware
-                          </p>
-                        </Link>
-                      </NavigationMenuLink>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink asChild>
-                    <Link
-                      href="/custom"
-                      className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
-                    >
-                      Custom Work
-                    </Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuLink asChild>
-                    <Link
-                      href="/about"
-                      className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50"
-                    >
-                      About
-                    </Link>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
+        <Button asChild variant="outline" size="icon">
+          <Link href="/wishlist" aria-label="Wishlist">
+            <Icons.Heart className="size-4" />
+          </Link>
+        </Button>
 
-          <div className="flex items-center space-x-4">
-            {/* Search */}
-            <div className="relative hidden md:block">
-              <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Link href="/search">
-                <Input
-                  placeholder="Search doors & hardware..."
-                  className="pl-10 w-64 cursor-pointer"
-                  readOnly
-                />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" aria-label="Account menu">
+              <Icons.User className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {isAuthenticated ? (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/account">My account</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/orders">My orders</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/wishlist">Wishlist</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => void signOut({ callbackUrl: "/" })}>
+                  Sign out
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/login">Sign in</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/signup">Create account</Link>
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" size="icon" className="lg:hidden">
+              <Icons.Menu className="size-4" />
+              <span className="sr-only">Open navigation</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <nav className="mt-8 flex flex-col gap-1" aria-label="Mobile">
+              <CategoryLinks mobile />
+              <Link
+                href="/search"
+                className="rounded-md px-3 py-2 text-base font-medium hover:bg-muted"
+              >
+                All products
               </Link>
-            </div>
-
-            <CartHeaderIcon />
-
-            {/* User Account Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="bg-transparent"
-                >
-                  <Icons.User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {isAuthenticated ? (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link href="/account" className="cursor-pointer">
-                        My Account
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/orders" className="cursor-pointer">
-                        My Orders
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        signOut({});
-                      }}
-                      className="cursor-pointer text-red-600"
-                    >
-                      Sign Out
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link href="/login" className="cursor-pointer">
-                        Sign In
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/signup" className="cursor-pointer">
-                        Create Account
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Mobile menu */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="md:hidden bg-transparent"
-                >
-                  <Icons.Menu className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <div className="flex flex-col space-y-4 mt-4">
-                  <Link href="/search?category=doors">
-                    <Button variant="ghost" className="justify-start w-full">
-                      Doors
-                    </Button>
-                  </Link>
-                  <Link href="/search?category=hardware">
-                    <Button variant="ghost" className="justify-start w-full">
-                      Hardware
-                    </Button>
-                  </Link>
-                  <Link href="/custom">
-                    <Button variant="ghost" className="justify-start w-full">
-                      Custom Work
-                    </Button>
-                  </Link>
-                  <Link href="/about">
-                    <Button variant="ghost" className="justify-start w-full">
-                      About
-                    </Button>
-                  </Link>
-                  <div className="border-t pt-4">
-                    <Link href="/cart">
-                      <Button variant="ghost" className="justify-start w-full">
-                        <Icons.ShoppingCart className="h-4 w-4 mr-2" />
-                        Cart ({totalCartItems})
-                      </Button>
-                    </Link>
-                    <Link href="/orders">
-                      <Button variant="ghost" className="justify-start w-full">
-                        My Orders
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
+            </nav>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );

@@ -1,6 +1,41 @@
 # Progress
 
+- 2026-07-19: Implemented the Dealership Program expansion and published the
+  approved Wayfinder map/nine tickets under
+  `.scratch/dealership-program-recruitment/`. Added branding ZIP/cache
+  freshness, private-by-default dealer customers with explicit sharing,
+  immutable direct-ship snapshots, recruitment campaigns and banners, secure
+  applications/suppression, review/password activation, and
+  suspension/reactivation. Focused validation passes with 70 tests / 178
+  assertions; `@gnd/db` and `@gnd/email` typechecks pass and filtered task-file
+  checks are clean. Authenticated browser QA covered the Super Admin workspace
+  and dealer ZIP settings. Final database-backed browser proof remains gated:
+  `db:generate` passed, while `TURBO_UI=true bun run db:migrate` failed with
+  Prisma `P1001` for `127.0.0.1:3307`; no destructive reset/manual migration was
+  used.
 - 2026-07-19: Implemented shared saved page-tab overflow and locked-baseline behavior in the existing worktree. At most three tabs render inline including `All`, increasing to five on `2xl` screens; remaining tabs appear under a `+N` menu before Edit, and a selected overflow tab is promoted into the final inline slot while the displaced tab moves into the menu. Saved navigation now carries NUQS-backed `tabName`, hides/locks the selected baseline's filter and sort controls, preserves baseline values during clear actions, and clears stale metadata when the baseline no longer matches. Search values are excluded from serialization, immediately hide the save action on Orders and Dealers, and are rejected by page-tab create/update APIs. Focused unit/API tests and authenticated Orders browser acceptance covered overflow selection, count badges, locked filters, hidden chips, search, stale cleanup, and removal of temporary test data.
+- 2026-07-19: Completed and authenticated-QA'd the dealership quote-to-order
+  workflow on the existing worktree. Dealer quote `00003DPP` was created,
+  requested, completed in office with a missing shelf item and reviewed delivery
+  cost, approved by Pablo into order `SalesOrders.id = 24416`, handed to Square
+  sandbox checkout, marked paid from the dealer's own-customer ledger, and
+  reflected on the dashboard as `$481.46` paid revenue with `$76.08` earnings
+  while preserving `$405.38` due to GND. Fixed approval pricing/delivery
+  synchronization, unassigned Sales Team request visibility and notification
+  fallback, missing sales-rep request email rendering, customer/internal PDF row
+  reconciliation and cache separation, and same-tab payment/PDF navigation.
+  Office sales now colors dealer order numbers cyan without a Dealer badge and
+  keeps a live `salesChannel` filter; browser proof reduced the list to only
+  `00003DPP`. Focused tests passed (131 tests,
+  then 61 affected reruns after final typing cleanup); email package typecheck and
+  filtered touched-file typecheck scans passed; `git diff --check` passed. Broad
+  typecheck remains blocked by existing unrelated `@gnd/documents` NodeNext and
+  repository baseline errors. Local email provider delivery and external Square
+  webhook callbacks were intentionally unavailable, so email render/payload and
+  post-payment status were verified independently. Updated feature/API/
+  permission/task/decision/QA documentation; no Prisma schema or migration was
+  changed.
+
 > Structured Brain task tracking now lives under `brain/tasks/`. This file remains the chronological session log and historical execution record.
 
 - 2026-07-18: Advanced new sales form parity and history readiness without creating a new sale. Same-order browser comparison on `08893LM` confirmed customer `Jose SOLANO`, `Builder/Contractor 75%`, Bifold `$698.24`, moulding `$31.53`, 7% tax `$67.44`, 3% C.C.C. `$30.93`, and grand total `$1,061.83`; the persisted/new interior HPT row is `$233.69` while the legacy form rounds it to `$233.70`, and the user explicitly accepted the one-cent variance for this pass. The new-form-only HPT line action now renders a compact shadcn-composed estimate card with door/size/qty context, aligned price contributors, final unit, add-on/custom input groups, and line total; authenticated browser inspection and screenshot confirmed the layout. Edit hydration now preserves saved customer profile/address and tax selection, tax hydration can recover the saved tax-config rate, legacy HPT hydration avoids current component-price drift, and shared costing keeps an HPT line authoritative when shelf metadata is also present. History now lists actual `order-hx` / `quote-hx` snapshots, lazily loads preview detail, blocks mutations during read-only preview, shows an amber preview banner, sanitizes copied persistence IDs during local restore, and shows a blue restored-version banner until successful save. Order `08893LM` correctly rendered the no-history empty state; full history preview/restore/banner browser acceptance was deferred by the user for later. Focused validation passed with 67 tests / 341 assertions across costing, HPT compatibility, profile repricing, normalization, door pricing, customer/tax resolution, API relational parity, history listing, and restore transformation; the final API rerun passed 23 tests / 155 assertions after hardening saved-metadata invariants. The documented migration gate then passed 161 shared sales tests / 492 assertions and 39 dealer tests / 101 assertions before stopping on unrelated unchanged `@gnd/dealership` typecheck baseline files; the changed estimate/history/parity files were absent from those diagnostics. `git diff --check` passed. Broad package typechecks remain red from unrelated repository baseline diagnostics, while filtered scans report no diagnostics in the changed API query/router/history files, HPT estimate/costing files, or changed web history files.
@@ -6296,3 +6331,32 @@
 - 2026-07-17: Updated the staff Sales Payment Processor to list only explicitly selected orders on open, add other unpaid customer orders through a searchable combobox, and remove listed orders before submission. Fixed customer payment receipt delivery with a direct customer email recipient and direct-recipient worker routing, expanded shared order/quote free-text search across customer, billing, and shipping address fields, and changed the current saved page tab to the default primary button variant. Validation: focused payment/search/notification/page-tab tests passed with 41 tests / 91 assertions, scoped whitespace checks passed, and filtered touched-file type scans found no new diagnostics; broad package typechecks remain blocked by existing unrelated baseline errors. Protected-page browser QA was attempted against the running local app but stopped because Dev Quick Login did not establish a headless authenticated session.
 - 2026-07-17: Implemented the WWW central typed query-invalidation event system. The global TanStack `MutationCache.onSuccess` now triggers typed domain query events from 74 registered tRPC mutation routes plus optional `meta.queryEvents`; one provider-level runtime invalidates deduplicated typed tRPC targets in the initiating tab and other open same-browser GND tabs. Added order/quote/payment/production/dispatch, inventory catalog/stock/inbound/allocation/fulfillment, jobs/payment, HRM employee, and page-tab event families; retained typed one-off invalidation; and migrated the sales query-client facade behind domain events. Validation: focused suite passed with 13 tests / 30 assertions; focused Biome passed; filtered `@gnd/www` typecheck reported no feature-file diagnostics while the broad app typecheck remains blocked by unrelated baseline errors; no visual QA was required because this introduces no visual surface.
 - 2026-07-18: Added shared selected-row highlighting to `components/tables-2/core/VirtualRow`. The existing `isSelected` prop now drives the row `data-state`, and a subtle theme-aware `bg-muted/50` surface spans normal and sticky cells. Authenticated in-app browser validation on `/sales-book/orders` confirmed six checked rows render the same selected background across checkbox, Order, middle, and Actions cells with no console errors. Focused Bun test, Biome, and `git diff --check` passed; the broad `@gnd/www` typecheck remains blocked by unrelated existing API, cache-action, Prisma, and duplicated React-type diagnostics.
+# 2026-07-20 — Sales calculation and 2dp rounding corrections
+
+- Added shared `decimal.js-light` round-half-up arithmetic and moved legacy/new
+  sales line, summary, grouped, print, mobile, and payment calculations onto it.
+- Standardized multiply-before-rounding line totals, subtractive percentage
+  discounts, final HPT custom pricing, authoritative grouped totals with
+  reconciliation metadata, and the `grandTotal` / `ccc` / `totalWithCcc`
+  contract.
+- Changed sales shelf order prices to `Decimal(12,2)`, removed whole-dollar
+  writes, normalized Decimal values at query boundaries, generated a safe
+  Prisma migration in an isolated database, and validated integer-to-decimal
+  aggregates plus a `12.34` / `24.68` round trip.
+- Updated ADRs, feature/API/database documentation, and the full legacy/new
+  arithmetic audit.
+- Validation: 195 focused calculation/payment/grouping/synchronization/mobile
+  tests and 31 API/print integration tests passed; Prisma schema validation and
+  client generation passed. Broad sales/API/WWW typechecks remain blocked by
+  unrelated repository baseline diagnostics; filtered output found no new
+  calculation-contract diagnostic after completing the legacy pricing type.
+- 2026-07-20: implemented the GND storefront replacement over the canonical
+  Dyke sales-form and Sales Orders domains. Added the allowlisted public API,
+  signed guest ownership, admin storefront workspace, category/offer/step
+  publication policy, server-priced cart/wishlist, Square checkout, customer
+  order self-service, CMS/inquiries/SEO, lifecycle and confirmation jobs, and
+  an additive Prisma migration. Seven focused tests pass. The complete
+  migration history applied successfully to isolated MySQL
+  `gnd_storefront_verify`; shared local drift was not reset or force-pushed.
+  Responsive homepage, guest cart, contact, and inquiry flows passed browser
+  QA after client-boundary and guest-secret fixes.

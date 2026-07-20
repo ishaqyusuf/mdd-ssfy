@@ -213,11 +213,12 @@ describe("sales print service", () => {
 			buildSalesPdfDownloadUrlFromQuery({
 				accessToken: "access-123",
 				preview: true,
+				pricingMode: "customer",
 				fresh: true,
 				origin: "https://app.example.com",
 			}),
 		).toBe(
-			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=true&fresh=true",
+			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=true&pricingMode=customer&fresh=true",
 		);
 	});
 

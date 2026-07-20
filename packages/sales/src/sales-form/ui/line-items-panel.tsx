@@ -3,6 +3,7 @@
 
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
+import { multiplyMoney } from "../../payment-system/domain/money";
 import type { SalesFormLineItemRecord } from "../application";
 
 export type SalesFormLineItemUiRecord = SalesFormLineItemRecord & {
@@ -134,7 +135,7 @@ export function SalesFormLineItemsPanel(props: SalesFormLineItemsPanelProps) {
 								<div className="flex h-9 items-center rounded-md border bg-muted/30 px-3 text-sm font-medium md:col-span-2">
 									{Number(
 										props.getLineTotalValue?.(line) ??
-											Number(line.qty || 0) * Number(line.unitPrice || 0),
+											multiplyMoney(line.qty, line.unitPrice),
 									).toFixed(2)}
 								</div>
 							) : (

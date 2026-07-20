@@ -1,4 +1,5 @@
 import type { CommunityTemplateQueryParams } from "@api/schemas/community";
+import type { GetEmployeesSchema } from "@api/schemas/hrm";
 import type { DispatchQueryParamsSchema } from "@api/schemas/sales";
 import type {
   InboundQuerySchema,
@@ -6,56 +7,57 @@ import type {
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
 import type { PageFilterData, SalesType } from "@api/type";
+import type { GetBuildersSchema } from "@community/builder";
 import { salesFilterOptionsCache } from "@gnd/cache/sales-filter-options-cache";
+import { labelValueOptions, sortList, uniqueList } from "@gnd/utils";
 import {
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_FILTER_OPTIONS,
   RESOLUTION_FILTER_OPTIONS,
   SALES_DISPATCH_FILTER_OPTIONS,
-  salesDispatchStatus,
   WORK_ORDER_STATUS,
+  salesDispatchStatus,
 } from "@gnd/utils/constants";
-import {
-  buildersList,
-  projectList,
-  type GetCommunityProjectsSchema,
-} from "./community";
-import type { GetSalesResolutions } from "./sales-resolution";
-import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
-import { getEmployeesList } from "./hrm";
-import { labelValueOptions, sortList, uniqueList } from "@gnd/utils";
+import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 import {
   SALES_PAYMENT_METHODS,
   SALES_PRODUCTION_STATUS_FILTER_OPTIONS,
   salesHaving,
 } from "@sales/constants";
 import {
+  SALES_CHANNEL_FILTER_LABELS,
+  SALES_CHANNEL_FILTER_OPTIONS,
   SALES_HAS_FILTER_LABELS,
   SALES_HAS_FILTER_OPTIONS,
 } from "@sales/filter-constants";
 import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
-import type { ProductReportSchema } from "./product-report";
+import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
 import type { GetBacklogsSchema } from "./backlogs";
-import type { GetCommunityTemplatesSchema } from "./community-template";
-import type { GetSalesAccountingsSchema } from "./sales-accounting";
 import {
+  type GetCommunityProjectsSchema,
+  buildersList,
+  projectList,
+} from "./community";
+import type { GetCommunityTemplatesSchema } from "./community-template";
+import type { GetCustomerServicesSchema } from "./customer-service";
+import { getEmployeesList } from "./hrm";
+import type { GetJobsSchema } from "./jobs";
+import type { GetContractorPayoutsSchema } from "./jobs";
+import type { ProductReportSchema } from "./product-report";
+import {
+  type GetProjectUnitsSchema,
   communityInstallCostFilters,
   communityInstllationFilters,
   communityProductionFilter,
   communityTemplateConfigFilters,
   invoiceFilter,
-  type GetProjectUnitsSchema,
 } from "./project-units";
+import type { GetSalesAccountingsSchema } from "./sales-accounting";
+import type { GetSalesResolutions } from "./sales-resolution";
 import {
-  unitProductionStatusFilter,
   type GetUnitProductionsSchema,
+  unitProductionStatusFilter,
 } from "./unit-productions";
-import type { GetCustomerServicesSchema } from "./customer-service";
-import type { GetBuildersSchema } from "@community/builder";
-import type { GetJobsSchema } from "./jobs";
-import type { GetContractorPayoutsSchema } from "./jobs";
-import type { GetEmployeesSchema } from "@api/schemas/hrm";
-import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 
 export async function notificationChannelFilters(ctx: TRPCContext) {
   type T = keyof GetNotificationChannelsSchema;
@@ -212,7 +214,9 @@ function addItemName(names: Map<string, string>, value: unknown) {
   }
 }
 
-function toItemNameOptions(names: Map<string, string>): SalesItemFilterOption[] {
+function toItemNameOptions(
+  names: Map<string, string>,
+): SalesItemFilterOption[] {
   return [...names.values()]
     .sort((a, b) => a.localeCompare(b))
     .slice(0, SALES_ITEM_FILTER_OPTIONS_LIMIT)
@@ -789,6 +793,14 @@ export async function getSalesOrderFilters(
         label: priority.label,
         value: priority.value,
         color: priority.color,
+      })),
+    ),
+    optionFilter<T>(
+      "salesChannel",
+      "Sales channel",
+      SALES_CHANNEL_FILTER_OPTIONS.map((value) => ({
+        label: SALES_CHANNEL_FILTER_LABELS[value],
+        value,
       })),
     ),
   ].filter(Boolean);

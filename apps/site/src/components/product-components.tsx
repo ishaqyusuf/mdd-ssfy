@@ -1,3 +1,5 @@
+"use client";
+
 import { Icons } from "@gnd/ui/icons";
 import { useDebugConsole } from "@/hooks/use-debug-console";
 import { useProduct } from "@/hooks/use-product";

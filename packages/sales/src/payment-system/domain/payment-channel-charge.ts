@@ -1,5 +1,5 @@
 import type { SalesPaymentMethods } from "../../constants";
-import { roundMoney } from "./money";
+import { addMoney, percentageMoney, roundMoney } from "./money";
 
 export interface PaymentChannelCharge {
 	type: "ccc";
@@ -34,9 +34,12 @@ export function calculatePaymentChannelCharge(input: {
 	cccPercentage?: number | string | null;
 }): PaymentChannelCharge {
 	const baseAmount = roundMoney(Number(input.paymentAmount || 0));
-	const percentage = Math.max(0, roundMoney(Number(input.cccPercentage ?? 3.5)));
+	const percentage = Math.max(
+		0,
+		roundMoney(Number(input.cccPercentage ?? 3.5)),
+	);
 	const applies = appliesPaymentChannelCharge(input.paymentMethod);
-	const amount = applies ? roundMoney((baseAmount * percentage) / 100) : 0;
+	const amount = applies ? percentageMoney(baseAmount, percentage) : 0;
 
 	return {
 		type: "ccc",
@@ -46,7 +49,7 @@ export function calculatePaymentChannelCharge(input: {
 		baseAmount,
 		percentage,
 		amount,
-		chargeAmount: roundMoney(baseAmount + amount),
+		chargeAmount: addMoney(baseAmount, amount),
 	};
 }
 

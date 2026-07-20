@@ -138,6 +138,7 @@ export function WorkflowShelfLineItemEditor({
     );
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
+        line: workflowLine,
         sections,
         profileCoefficient: effectiveProfileCoefficient,
       }).linePatch as Partial<NewSalesFormLineItem>,
@@ -159,6 +160,7 @@ export function WorkflowShelfLineItemEditor({
       .filter((section) => section.rows.length > 0);
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
+        line: workflowLine,
         sections,
         profileCoefficient: effectiveProfileCoefficient,
       }).linePatch as Partial<NewSalesFormLineItem>,
@@ -200,6 +202,7 @@ export function WorkflowShelfLineItemEditor({
         ];
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
+        line: workflowLine,
         sections,
         profileCoefficient: effectiveProfileCoefficient,
       }).linePatch as Partial<NewSalesFormLineItem>,
@@ -224,6 +227,7 @@ export function WorkflowShelfLineItemEditor({
     }));
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
+        line: workflowLine,
         sections,
         profileCoefficient: effectiveProfileCoefficient,
       }).linePatch as Partial<NewSalesFormLineItem>,
@@ -241,6 +245,7 @@ export function WorkflowShelfLineItemEditor({
       .filter((section) => section.rows.length > 0);
     patchWorkflowLine(
       buildWorkflowShelfSectionsPatch({
+        line: workflowLine,
         sections,
         profileCoefficient: effectiveProfileCoefficient,
       }).linePatch as Partial<NewSalesFormLineItem>,

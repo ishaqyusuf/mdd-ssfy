@@ -2,6 +2,7 @@ import { type Roles, type Users, db } from "@gnd/db";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { getToken } from "next-auth/jwt";
 
 import {
 	AUTH_SESSION_MAX_AGE_SECONDS,
@@ -104,6 +105,27 @@ async function getValidSessionRecord(
 		userAgent: session.userAgent ?? null,
 		expires: nextExpiry ?? null,
 	} satisfies ActiveSessionInfo;
+}
+
+/**
+ * Resolves the legacy NextAuth JWT used by the storefront without accepting a
+ * browser-supplied user id. The signed token is only accepted while its
+ * server-side session and user are both active.
+ */
+export async function getLegacyWebAuthUserId(cookieHeader?: string | null) {
+	if (!cookieHeader || !process.env.JWT_SECRET) return undefined;
+	const token = await getToken({
+		req: {
+			headers: {
+				cookie: cookieHeader,
+			},
+		} as any,
+		secret: process.env.JWT_SECRET,
+	});
+	const userId = Number(token?.user?.id);
+	if (!Number.isFinite(userId) || !token?.sessionId) return undefined;
+	const activeSession = await getValidSessionRecord(token.sessionId, userId);
+	return activeSession ? userId : undefined;
 }
 
 declare module "next-auth" {

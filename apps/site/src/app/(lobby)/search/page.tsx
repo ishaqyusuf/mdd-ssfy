@@ -1,15 +1,44 @@
-import SearchPageClient from "@/components/search-page-client";
-import { SearchParams } from "nuqs";
+import { ErrorFallback } from "@/components/error-fallback";
+import { StorefrontSearchPageClient } from "@/components/storefront/search-page-client";
+import { loadStorefrontSearchParams } from "@/hooks/use-storefront-search-params";
+import { batchPrefetch, HydrateClient, trpc } from "@/trpc/server";
+import type { Metadata } from "next";
+import { ErrorBoundary } from "next/dist/client/components/error-boundary";
+import type { SearchParams } from "nuqs";
+import { Suspense } from "react";
 
-interface Props {
+export const metadata: Metadata = {
+  title: "Products | GND Millwork",
+};
+
+export default async function SearchPage({
+  searchParams,
+}: {
   searchParams: Promise<SearchParams>;
-}
-export default async function Page(props: Props) {
-  const searchParams = await props.searchParams;
+}) {
+  const filter = loadStorefrontSearchParams(await searchParams);
+  batchPrefetch([
+    trpc.storefrontCommerce.catalog.categories.queryOptions(),
+    trpc.storefrontCommerce.catalog.search.queryOptions({
+      query: filter.q,
+      categorySlug: filter.category ?? undefined,
+      limit: 48,
+    }),
+  ]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <SearchPageClient />
-    </div>
+    <HydrateClient>
+      <ErrorBoundary errorComponent={ErrorFallback}>
+        <Suspense
+          fallback={
+            <div className="container mx-auto animate-pulse px-4 py-16">
+              Loading products…
+            </div>
+          }
+        >
+          <StorefrontSearchPageClient />
+        </Suspense>
+      </ErrorBoundary>
+    </HydrateClient>
   );
 }

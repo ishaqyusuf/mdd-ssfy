@@ -47,6 +47,7 @@ export function SalesDocumentPreviewPage({
 	pageBreakMode,
 	showImages = true,
 	headlineFirstPage = true,
+	pricingMode,
 	embedded = false,
 	customerEmail,
 	customerName,
@@ -62,6 +63,7 @@ export function SalesDocumentPreviewPage({
 	pageBreakMode?: string | null;
 	showImages?: boolean;
 	headlineFirstPage?: boolean;
+	pricingMode?: "customer" | "internal" | null;
 	embedded?: boolean;
 	customerEmail?: string;
 	customerName?: string;
@@ -94,6 +96,7 @@ export function SalesDocumentPreviewPage({
 				pageBreakMode: resolvedPageBreakMode,
 				showImages,
 				headlineFirstPage,
+				pricingMode: pricingMode ?? undefined,
 				baseUrl,
 			},
 			{
@@ -129,6 +132,7 @@ export function SalesDocumentPreviewPage({
 			templateId,
 			pageBreakMode: resolvedPageBreakMode,
 			printConfig: { showImages, headlineFirstPage },
+			pricingMode,
 			origin: baseUrl,
 		});
 	}, [
@@ -138,6 +142,7 @@ export function SalesDocumentPreviewPage({
 		effectiveSnapshotId,
 		effectiveToken,
 		headlineFirstPage,
+		pricingMode,
 		showImages,
 		templateId,
 		resolvedPageBreakMode,
@@ -162,6 +167,7 @@ export function SalesDocumentPreviewPage({
 			templateId,
 			pageBreakMode: resolvedPageBreakMode,
 			printConfig: { showImages, headlineFirstPage },
+			pricingMode,
 			origin: baseUrl,
 		});
 	}, [
@@ -171,6 +177,7 @@ export function SalesDocumentPreviewPage({
 		effectiveSnapshotId,
 		effectiveToken,
 		headlineFirstPage,
+		pricingMode,
 		showImages,
 		templateId,
 		resolvedPageBreakMode,
@@ -215,6 +222,7 @@ export function SalesDocumentPreviewPage({
 				dispatchId: dispatchId ?? null,
 				templateId,
 				pageBreakMode: resolvedPageBreakMode,
+				pricingMode,
 				openInNewTab: event?.shiftKey ?? false,
 			});
 			return;
@@ -233,6 +241,7 @@ export function SalesDocumentPreviewPage({
 				dispatchId: dispatchId ?? null,
 				templateId,
 				pageBreakMode: resolvedPageBreakMode,
+				pricingMode,
 			});
 			return;
 		}
@@ -255,6 +264,7 @@ export function SalesDocumentPreviewPage({
 				dispatchId: dispatchId ?? null,
 				templateId,
 				pageBreakMode: resolvedPageBreakMode,
+				pricingMode,
 				baseUrl,
 			},
 			{
@@ -344,6 +354,7 @@ export function SalesDocumentPreviewPage({
 			pages={previewPages}
 			templateId={data.templateId}
 			companyAddress={data.companyAddress as CompanyAddress}
+			logoUrl={data.logoUrl ?? undefined}
 			baseUrl={baseUrl}
 			previewUrl={data.previewUrl}
 			qrCodeDataUrl={data.qrCodeDataUrl}

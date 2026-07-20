@@ -6,6 +6,10 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { useEffect, useState } from "react";
+import {
+	roundMoney,
+	subtractMoney,
+} from "../../../payment-system/domain/money";
 import { getHptDoorSalesUnitPrice } from "../../domain";
 import {
 	CostPriceBreakdownHover,
@@ -51,7 +55,7 @@ function currency(value?: number | null) {
 }
 
 function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
+	return roundMoney(value);
 }
 
 export type DoorPriceBreakdownContext = CostPriceBreakdownContext & {
@@ -92,7 +96,7 @@ export function resolveDoorPriceBreakdown(
 
 	const internalUnitPrice = breakdown.dealerProfileSalesPrice;
 	const dealerUnitPrice = breakdown.displayPrice;
-	const marginAmount = roundCurrency(dealerUnitPrice - internalUnitPrice);
+	const marginAmount = subtractMoney(dealerUnitPrice, internalUnitPrice);
 
 	return {
 		internalUnitPrice,

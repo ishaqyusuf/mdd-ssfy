@@ -1,5 +1,5 @@
 import { composeQuery } from "@gnd/utils/query-response";
-import { Prisma, QtyControlType } from "../types";
+import type { Prisma, QtyControlType } from "../types";
 import { SalesDispatchStatus } from "./constants";
 import {
   anyDateQuery,
@@ -8,7 +8,7 @@ import {
   transformFilterDateToQuery,
 } from "@gnd/utils";
 import dayjs from "@gnd/utils/dayjs";
-import { SalesQueryParamsSchema } from "../schema";
+import type { SalesQueryParamsSchema } from "../schema";
 import { normalizeSalesPriority } from "../priority";
 import { SALES_HAS_FILTER_LABELS } from "../filter-constants";
 
@@ -43,9 +43,7 @@ function salesItemTypeWhere(label: string): Prisma.SalesOrderItemsWhereInput[] {
   ];
 }
 
-function buildSalesHasWhere(
-  has: SalesHasFilter,
-): Prisma.SalesOrdersWhereInput {
+function buildSalesHasWhere(has: SalesHasFilter): Prisma.SalesOrdersWhereInput {
   const label = SALES_HAS_FILTER_LABELS[has];
   const baseTypeWhere = salesItemTypeWhere(label);
 
@@ -175,15 +173,9 @@ export function whereSales(query: SalesQueryParamsSchema) {
     },
   });
   const buildProductionPendingWhere = () =>
-    buildPendingStatWhere(
-      "prodCompleted" as QtyControlType,
-      salesStatSome,
-    );
+    buildPendingStatWhere("prodCompleted" as QtyControlType, salesStatSome);
   const buildDispatchPendingWhere = () =>
-    buildPendingStatWhere(
-      "dispatchCompleted" as QtyControlType,
-      salesStatSome,
-    );
+    buildPendingStatWhere("dispatchCompleted" as QtyControlType, salesStatSome);
   const buildDefaultPendingSalesWhere = (): Prisma.SalesOrdersWhereInput => ({
     OR: [
       buildDispatchPendingWhere(),
@@ -484,6 +476,15 @@ export function whereSales(query: SalesQueryParamsSchema) {
         break;
       case "has":
         where.push(buildSalesHasWhere(val));
+        break;
+      case "salesChannel":
+        where.push(
+          val === "dealership"
+            ? { dealerAuthId: { gt: 0 } }
+            : {
+                OR: [{ dealerAuthId: null }, { dealerAuthId: 0 }],
+              },
+        );
         break;
       case "production.assignedToId":
         where.push({

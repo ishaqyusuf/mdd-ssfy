@@ -1,4 +1,5 @@
 import type { Db } from "@gnd/db";
+import { markDealerRecruitmentInvitationDelivered } from "@gnd/db/queries";
 import { logger } from "@gnd/logger";
 import { consoleLog } from "@gnd/utils";
 import { getTestEmails } from "@gnd/utils/envs";
@@ -228,6 +229,10 @@ type SalesEmailResolvedData = {
 	emailAttemptId?: string | null;
 	sourceAttemptId?: string | null;
 	skipPdfAttachment?: boolean | null;
+	dealerProgramBanner?: {
+		campaignId?: string | null;
+		invitationId?: string | null;
+	} | null;
 };
 
 function isSalesDocumentEmailType(
@@ -385,6 +390,10 @@ function salesEmailAttemptData({
 			hasPaymentLink: Boolean(data.paymentLink),
 			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
+			dealerProgramCampaignId:
+				data.dealerProgramBanner?.campaignId || null,
+			dealerProgramInvitationId:
+				data.dealerProgramBanner?.invitationId || null,
 		},
 	};
 }
@@ -655,7 +664,17 @@ export class Notifications {
 	async #completeSalesEmailAttempts(
 		attempts: SalesEmailAttemptRef[],
 		result: EmailSendBulkResult,
+		data?: SalesEmailResolvedData,
 	) {
+		if (
+			result.deliveries.some((delivery) => delivery.status === "sent") &&
+			data?.dealerProgramBanner?.invitationId
+		) {
+			await markDealerRecruitmentInvitationDelivered(
+				this.#db,
+				data.dealerProgramBanner.invitationId,
+			);
+		}
 		if (!attempts.length) return;
 		const db = this.#db.salesEmailAttempt;
 		if (!db) return;
@@ -880,16 +899,20 @@ export class Notifications {
 						skipped: totalEmailCandidates,
 						failed: 0,
 					};
-					await this.#completeSalesEmailAttempts(salesEmailAttempts, {
-						sent: 0,
-						skipped: totalEmailCandidates,
-						failed: 0,
-						deliveries: salesEmailAttempts.map((attempt) => ({
-							inputIndex: attempt.inputIndex,
-							status: "skipped",
-							providerStatus: "no_valid_recipient",
-						})),
-					});
+					await this.#completeSalesEmailAttempts(
+						salesEmailAttempts,
+						{
+							sent: 0,
+							skipped: totalEmailCandidates,
+							failed: 0,
+							deliveries: salesEmailAttempts.map((attempt) => ({
+								inputIndex: attempt.inputIndex,
+								status: "skipped",
+								providerStatus: "no_valid_recipient",
+							})),
+						},
+						validatedData as SalesEmailResolvedData,
+					);
 				} else {
 					console.log("📨 Email inputs for team:", emailInputs.length);
 
@@ -905,6 +928,7 @@ export class Notifications {
 					await this.#completeSalesEmailAttempts(
 						salesEmailAttempts,
 						emailResult,
+						validatedData as SalesEmailResolvedData,
 					);
 
 					console.log("📨 Email result for team:", {

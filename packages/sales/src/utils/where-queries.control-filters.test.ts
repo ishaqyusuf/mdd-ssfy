@@ -1,3 +1,4 @@
+// @ts-expect-error package typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 import { salesQueryParamsSchema } from "../schema";
 import { whereSales } from "./where-queries";
@@ -133,6 +134,18 @@ describe("whereSales stat filters", () => {
 		expect(salesQueryParamsSchema.safeParse({ has: "unknown" }).success).toBe(
 			false,
 		);
+	});
+
+	it("filters dealership and office sales by dealer ownership", () => {
+		expect(
+			salesQueryParamsSchema.safeParse({ salesChannel: "dealership" }).success,
+		).toBe(true);
+		expect(
+			JSON.stringify(toClauses(whereSales({ salesChannel: "dealership" }))),
+		).toContain('"dealerAuthId":{"gt":0}');
+		expect(
+			JSON.stringify(toClauses(whereSales({ salesChannel: "office" }))),
+		).toContain('"OR":[{"dealerAuthId":null},{"dealerAuthId":0}]');
 	});
 
 	it("builds has services filter from item type signals", () => {

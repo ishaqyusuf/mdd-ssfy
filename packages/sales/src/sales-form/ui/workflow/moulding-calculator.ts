@@ -1,3 +1,8 @@
+import {
+	multiplyMoney,
+	roundMoney,
+} from "../../../payment-system/domain/money";
+
 export type MouldingQuantityCalculationInput = {
 	linearFeet: number;
 	pieceLength: number;
@@ -45,7 +50,7 @@ export function calculateMouldingQuantity(
 		adjustedPieces: round(adjustedPieces),
 		adjustedLinearFeet: round(linearFeet * (1 + wastePercentage / 100)),
 		pieces,
-		totalCost: round(pieces * unitPrice),
+		totalCost: multiplyMoney(pieces, unitPrice),
 	};
 }
 
@@ -60,5 +65,5 @@ function normalizePositive(value: unknown, fallback: number) {
 }
 
 function round(value: number) {
-	return Number(value.toFixed(2));
+	return roundMoney(value);
 }

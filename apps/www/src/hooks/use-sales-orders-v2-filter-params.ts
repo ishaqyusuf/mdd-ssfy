@@ -6,7 +6,10 @@ import {
 	PRODUCTION_STATUS,
 	SALES_DISPATCH_FILTER_OPTIONS,
 } from "@gnd/utils/constants";
-import { SALES_HAS_FILTER_OPTIONS } from "@sales/filter-constants";
+import {
+	SALES_CHANNEL_FILTER_OPTIONS,
+	SALES_HAS_FILTER_OPTIONS,
+} from "@sales/filter-constants";
 import { SALES_PRIORITY_VALUES } from "@sales/priority";
 import { useQueryStates } from "nuqs";
 import {
@@ -41,6 +44,7 @@ export const salesOrdersV2FilterParams = {
 	"sales.priority": parseAsStringLiteral(SALES_PRIORITY_VALUES),
 	"sales.rep": parseAsString,
 	has: parseAsStringLiteral(SALES_HAS_FILTER_OPTIONS),
+	salesChannel: parseAsStringLiteral(SALES_CHANNEL_FILTER_OPTIONS),
 	showing: parseAsString,
 } satisfies Partial<Record<FilterKeys, unknown>>;
 

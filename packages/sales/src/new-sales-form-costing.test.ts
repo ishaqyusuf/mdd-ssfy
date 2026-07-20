@@ -20,6 +20,7 @@ describe("calculateNewSalesFormSummary", () => {
 		expect(result.adjustedSubTotal).toBe(260);
 		expect(result.taxTotal).toBe(26);
 		expect(result.grandTotal).toBe(286);
+		expect(result.totalWithCcc).toBe(286);
 		expect(result.ccc).toBe(0);
 	});
 
@@ -49,7 +50,8 @@ describe("calculateNewSalesFormSummary", () => {
 
 		expect(result.taxTotal).toBe(10);
 		expect(result.ccc).toBe(3.85);
-		expect(result.grandTotal).toBe(113.85);
+		expect(result.grandTotal).toBe(110);
+		expect(result.totalWithCcc).toBe(113.85);
 	});
 
 	it("includes all non-labor extra costs in legacy tax base", () => {
@@ -68,7 +70,7 @@ describe("calculateNewSalesFormSummary", () => {
 		expect(result.grandTotal).toBe(165);
 	});
 
-	it("does not include flat labor in legacy credit-card surcharge base", () => {
+	it("includes flat labor in the legacy credit-card surcharge base", () => {
 		const result = calculateSalesFormSummary({
 			strategy: "legacy",
 			taxRate: 0,
@@ -81,11 +83,12 @@ describe("calculateNewSalesFormSummary", () => {
 			],
 		});
 
-		expect(result.ccc).toBe(3.5);
-		expect(result.grandTotal).toBe(133.5);
+		expect(result.ccc).toBe(4.55);
+		expect(result.grandTotal).toBe(130);
+		expect(result.totalWithCcc).toBe(134.55);
 	});
 
-	it("calculates legacy credit-card surcharge from subtotal plus tax only", () => {
+	it("calculates legacy credit-card surcharge from the full principal", () => {
 		const result = calculateSalesFormSummary({
 			strategy: "legacy",
 			taxRate: 10,
@@ -96,8 +99,9 @@ describe("calculateNewSalesFormSummary", () => {
 		});
 
 		expect(result.taxTotal).toBe(12);
-		expect(result.ccc).toBe(3.92);
-		expect(result.grandTotal).toBe(135.92);
+		expect(result.ccc).toBe(4.62);
+		expect(result.grandTotal).toBe(132);
+		expect(result.totalWithCcc).toBe(136.62);
 	});
 
 	it("uses provided credit card percentage instead of a hardcoded default", () => {
@@ -111,7 +115,8 @@ describe("calculateNewSalesFormSummary", () => {
 		});
 
 		expect(result.ccc).toBe(5);
-		expect(result.grandTotal).toBe(105);
+		expect(result.grandTotal).toBe(100);
+		expect(result.totalWithCcc).toBe(105);
 	});
 
 	it("derives labor from grouped door rows when labor metadata exists", () => {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure } from "../init";
 import {
   productSearch,
   searchFilters,
@@ -26,15 +26,15 @@ import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 import { createCheckout, createCheckoutSchema } from "@sales/storefront-order";
 export const storefrontRouter = createTRPCRouter({
   auth: {
-    createPassword: publicProcedure
+    createPassword: protectedProcedure
       .input(createPasswordSchema)
       .mutation(async (props) => {
         return createPassword(props.ctx.db, props.input);
       }),
-    signup: publicProcedure.input(signupSchema).mutation(async (props) => {
+    signup: protectedProcedure.input(signupSchema).mutation(async (props) => {
       return signup(props.ctx.db, props.input);
     }),
-    verifyEmail: publicProcedure
+    verifyEmail: protectedProcedure
       .input(
         z.object({
           token: z.string(),
@@ -65,20 +65,20 @@ export const storefrontRouter = createTRPCRouter({
   },
   cart: {},
   order: {
-    createCheckout: publicProcedure
+    createCheckout: protectedProcedure
       .input(createCheckoutSchema)
       .mutation(async (props) => {
         return createCheckout(props.ctx.db, props.input);
       }),
   },
   profile: {
-    createBilling: publicProcedure
+    createBilling: protectedProcedure
       .input(createBillingSchema)
       .mutation(async (props) => {
         return createBilling(props.ctx.db, props.input);
       }),
   },
-  addToCart: publicProcedure
+  addToCart: protectedProcedure
     .input(
       z.object({
         variantId: z.number(),
@@ -167,7 +167,7 @@ export const storefrontRouter = createTRPCRouter({
         );
       });
     }),
-  getCartCount: publicProcedure
+  getCartCount: protectedProcedure
     .input(
       z.object({
         guestId: z.string().optional().nullable(),
@@ -188,7 +188,7 @@ export const storefrontRouter = createTRPCRouter({
         count: cartCount,
       };
     }),
-  getCartList: publicProcedure
+  getCartList: protectedProcedure
     .input(
       z.object({
         guestId: z.string().optional().nullable(),
@@ -344,7 +344,7 @@ export const storefrontRouter = createTRPCRouter({
         },
       };
     }),
-  getPrimaryCategories: publicProcedure.query(async (props) => {
+  getPrimaryCategories: protectedProcedure.query(async (props) => {
     const primaryCategories = await props.ctx.db.inventory.findMany({
       where: {
         status: "published" as INVENTORY_STATUS,
@@ -388,7 +388,7 @@ export const storefrontRouter = createTRPCRouter({
       };
     });
   }),
-  getComponentsListing: publicProcedure
+  getComponentsListing: protectedProcedure
     .input(
       z.object({
         categoryId: z.number(),
@@ -511,24 +511,24 @@ export const storefrontRouter = createTRPCRouter({
           }) || [],
       };
     }),
-  search: publicProcedure.input(productSearchSchema).query(async (props) => {
+  search: protectedProcedure.input(productSearchSchema).query(async (props) => {
     const result = await productSearch(props.ctx.db, props.input);
     return result;
   }),
-  searchFilters: publicProcedure
+  searchFilters: protectedProcedure
     .input(productSearchSchema)
     .query(async (props) => {
       const result = await searchFilters(props.ctx.db, props.input);
       return result;
     }),
-  productOverview: publicProcedure
+  productOverview: protectedProcedure
     .input(productOverviewSchema)
     .query(async (props) => {
       const result = await productOverview(props.ctx.db, props.input);
       return result;
     }),
 
-  updateLineQty: publicProcedure
+  updateLineQty: protectedProcedure
     .input(
       z.object({
         lineId: z.number(),

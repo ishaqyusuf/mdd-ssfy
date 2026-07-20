@@ -1,316 +1,190 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import { useTRPC } from "@/trpc/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-
 import { useZodForm } from "@/hooks/use-zod-form";
-import {
-  CreatePasswordSchema,
-  createPasswordSchema,
-} from "@sales/storefront-account";
-import { useTaskTrigger } from "@trigger/hooks/use-task-trigger";
-import { Button } from "@gnd/ui/button";
-import { FormInput } from "@gnd/ui/controls/form-input";
+import { useTRPC } from "@/trpc/client";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import Link from "next/link";
+import { Button } from "@gnd/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
+import { FormInput } from "@gnd/ui/controls/form-input";
 import { Form } from "@gnd/ui/form";
-import {
-  SendStorefrontEmailVerifiedEmailPayload,
-  SendStorefrontPasswordCreatedEmailPayload,
-} from "@jobs/schema";
+import { Icons } from "@gnd/ui/icons";
+import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 
-export default function Page() {
-  const [token] = useQueryState("token");
-  const trpc = useTRPC();
-  const trigger = useTaskTrigger({
-    triggerMutation: trpc.taskTrigger.trigger,
+const passwordSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8)
+      .regex(/[a-z]/)
+      .regex(/[A-Z]/)
+      .regex(/[0-9]/),
+    confirmPassword: z.string(),
+    agreeToTerms: z.literal(true),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match.",
   });
-  const { data, isPending, error } = useQuery(
-    trpc.storefront.auth.verifyEmail.queryOptions(
-      {
-        token,
-      },
-      {
-        enabled: !!token,
-      }
-    )
-  );
 
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
+export default function VerifyPage() {
+  const token = useSearchParams().get("token") ?? "";
+  const trpc = useTRPC();
+  const started = useRef(false);
+  const [verified, setVerified] = useState<{
+    email: string;
+    name: string;
+  } | null>(null);
+  const verify = useMutation(
+    trpc.storefrontAuth.verifyEmail.mutationOptions({
+      onSuccess: setVerified,
+    }),
+  );
 
   useEffect(() => {
-    if (data) {
-      trigger.triggerAsync("send-storefront-email-verified-email", {
-        email: data.email,
-        name: data.name,
-      } as SendStorefrontEmailVerifiedEmailPayload);
-      const timer = setTimeout(() => {
-        setShowPasswordForm(true);
-      }, 2000);
-      return () => clearTimeout(timer);
+    if (token && !started.current) {
+      started.current = true;
+      verify.mutate({ token });
     }
-  }, [data]);
+  }, [token]);
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <AnimatePresence mode="wait">
-        {!showPasswordForm ? (
-          <motion.div
-            key="verification"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg dark:bg-gray-800"
-          >
-            <div className="flex flex-col items-center text-center">
-              {isPending && <VerificationPending />}
-              {error && <VerificationError message={error.message} />}
-              {data && <VerificationSuccess />}
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="create-password"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <CreatePasswordForm id={data.id} email={data.email} />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function CreatePasswordForm({ email, id }: { email: string; id: number }) {
-  const form = useZodForm(createPasswordSchema, {
-    defaultValues: {
-      id,
-    },
-  });
-  const router = useRouter();
-  const trpc = useTRPC();
-  const trigger = useTaskTrigger({
-    triggerMutation: trpc.taskTrigger.trigger,
-  });
-  const { data, mutate, isPending, error } = useMutation(
-    trpc.storefront.auth.createPassword.mutationOptions({
-      onSuccess(data) {
-        trigger.triggerAsync("send-storefront-password-created-email", {
-          email: email,
-          name: data.name,
-        } as SendStorefrontPasswordCreatedEmailPayload);
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
-      },
-    })
-  );
-
-  const passwordCreated = !!data;
-
-  function onSubmit(data: CreatePasswordSchema) {
-    mutate(data);
+  if (!token) {
+    return <VerificationError message="The verification token is missing." />;
   }
-
-  if (passwordCreated) {
+  if (verify.error) {
+    return <VerificationError message={verify.error.message} />;
+  }
+  if (!verified) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md rounded-lg bg-white p-8 text-center shadow-lg dark:bg-gray-800"
-      >
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100"
-        >
-          <motion.svg
-            className="h-10 w-10 text-green-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            initial={{ pathLength: 0 }}
-            animate={{ pathLength: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </motion.svg>
-        </motion.div>
-        <h1 className="text-2xl font-bold text-green-500">Password Created!</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">
-          Your account is now ready.
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <p className="animate-pulse text-muted-foreground">
+          Verifying your email…
         </p>
-        <p className="mt-4 text-sm text-gray-500">Redirecting to login...</p>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create Your Password</CardTitle>
-          <p className="text-gray-600">
-            Create a password for your GND Millwork account.
+    <CreatePasswordForm
+      token={token}
+      email={verified.email}
+      name={verified.name}
+    />
+  );
+}
+
+function CreatePasswordForm({
+  token,
+  email,
+  name,
+}: {
+  token: string;
+  email: string;
+  name: string;
+}) {
+  const trpc = useTRPC();
+  const router = useRouter();
+  const form = useZodForm(passwordSchema, {
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+      agreeToTerms: true,
+    },
+  });
+  const createPassword = useMutation(
+    trpc.storefrontAuth.createPassword.mutationOptions({
+      onSuccess: () => {
+        setTimeout(() => router.push("/login"), 1_000);
+      },
+    }),
+  );
+
+  if (createPassword.data) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-green-100">
+              <Icons.Check className="size-7 text-green-700" />
+            </div>
+            <h1 className="mt-4 text-2xl font-bold">Account ready</h1>
+            <p className="mt-2 text-muted-foreground">
+              Your password has been created. Redirecting to sign in…
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Create your password</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Email verified for {name} ({email}).
           </p>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {error && (
+            <form
+              className="space-y-4"
+              onSubmit={form.handleSubmit((value) =>
+                createPassword.mutate({ token, ...value }),
+              )}
+            >
+              {createPassword.error && (
                 <Alert variant="destructive">
-                  <AlertDescription>{error?.message}</AlertDescription>
+                  <AlertDescription>
+                    {createPassword.error.message}
+                  </AlertDescription>
                 </Alert>
               )}
-
               <FormInput
-                PrefixIcon={Icons.Lock}
-                label="Password"
                 control={form.control}
                 name="password"
                 type="password"
-                placeholder="Create your password"
+                label="Password"
+                PrefixIcon={Icons.Lock}
               />
               <FormInput
-                PrefixIcon={Icons.Lock}
-                label="Confirm Password"
                 control={form.control}
                 name="confirmPassword"
                 type="password"
-                placeholder="Confirm your password"
+                label="Confirm password"
+                PrefixIcon={Icons.Lock}
               />
-
               <Button
                 type="submit"
-                className="w-full bg-amber-700 hover:bg-amber-800"
-                disabled={isPending}
+                className="w-full"
+                disabled={createPassword.isPending}
               >
-                {isPending ? "Creating Password..." : "Create Password"}
+                {createPassword.isPending ? "Saving…" : "Create password"}
               </Button>
             </form>
           </Form>
-          <div className="mt-6 border-t pt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Alternatively, you can sign in using a magic link.
-            </p>
-            <Link
-              href="/login"
-              className="text-sm font-medium text-amber-600 hover:text-amber-700"
-            >
-              Sign in with magic link
-            </Link>
-          </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-function VerificationPending() {
-  return (
-    <>
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{
-          duration: 1,
-          ease: "linear",
-          repeat: Infinity,
-        }}
-        className="mb-4 h-12 w-12 rounded-full border-4 border-t-4 border-blue-500 border-t-transparent"
-      ></motion.div>
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-        Verifying your email...
-      </h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">
-        Please wait a moment.
-      </p>
-    </>
-  );
-}
 
 function VerificationError({ message }: { message: string }) {
   return (
-    <>
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100"
-      >
-        <svg
-          className="h-10 w-10 text-red-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </motion.div>
-      <h1 className="text-2xl font-bold text-red-500">Verification Failed</h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">
-        {message || "An unknown error occurred."}
-      </p>
-      <p className="mt-4 text-sm text-gray-500">
-        Please try again or contact support.
-      </p>
-    </>
-  );
-}
-
-function VerificationSuccess() {
-  return (
-    <>
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100"
-      >
-        <motion.svg
-          className="h-10 w-10 text-green-500"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
-        </motion.svg>
-      </motion.div>
-      <h1 className="text-2xl font-bold text-green-500">Email Verified!</h1>
-      <p className="mt-2 text-gray-600 dark:text-gray-400">
-        Thank you for verifying your email address.
-      </p>
-      <p className="mt-4 text-sm text-gray-500">
-        Please create a password to continue.
-      </p>
-    </>
+    <div className="flex min-h-[70vh] items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <h1 className="text-xl font-bold">Unable to verify email</h1>
+          <p className="mt-2 text-sm text-destructive">{message}</p>
+          <Button asChild variant="outline" className="mt-5">
+            <Link href="/signup">Return to sign up</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

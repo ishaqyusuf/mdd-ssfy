@@ -1,4 +1,4 @@
-import { RouterOutputs } from "@api/trpc/routers/_app";
+import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
 import {
   Card,
   CardContent,
@@ -9,27 +9,28 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-type Category = RouterOutputs["storefront"]["getPrimaryCategories"][number];
+type Category =
+  StorefrontRouterOutputs["storefrontCommerce"]["catalog"]["categories"][number];
 interface CategoryCardProps extends Category {}
 
 export function CategoryCard1({
-  count,
-  img,
-  path,
-  slug,
+  offerCount,
+  imageUrl,
+  href,
   title,
   description,
 }: CategoryCardProps) {
   return (
-    <Link href={path}>
+    <Link href={href}>
       <Card className="group cursor-pointer hover:shadow-lg transition-shadow">
         <CardHeader className="p-0">
           <div className="relative overflow-hidden rounded-t-lg">
-            {!img || (
+            {!imageUrl || (
               <Image
-                src={img || "/placeholder.svg"}
+                src={imageUrl}
                 alt={title}
                 fill
+                sizes="(max-width: 768px) 100vw, 25vw"
                 className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
               />
             )}
@@ -38,7 +39,9 @@ export function CategoryCard1({
         <CardContent className="p-6">
           <CardTitle className="text-xl mb-2">{title}</CardTitle>
           <CardDescription className="mb-3">{description}</CardDescription>
-          <p className="text-sm font-medium text-amber-700">{count}</p>
+          <p className="text-sm font-medium text-amber-700">
+            {offerCount} {offerCount === 1 ? "product" : "products"}
+          </p>
         </CardContent>
       </Card>
     </Link>

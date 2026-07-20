@@ -1,152 +1,68 @@
-"use client";
-
-import { Hero } from "@/components/hero";
-import { Footer } from "@/components/footer";
-import { images } from "@/lib/images";
 import { FeaturedCategorySection } from "@/components/featured-category-section";
+import { Footer } from "@/components/footer";
+import { Hero } from "@/components/hero";
+import { FeaturedProducts } from "@/components/storefront/featured-products";
+import { StorefrontPageSections } from "@/components/storefront/storefront-page-sections";
+import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
 
-const categories = [
-  {
-    name: "Interior Doors",
-    image: images.categories.interiorDoors.images[0],
-    description: "Premium interior doors for residential and commercial use",
-    count: "150+ products",
-    href: "/search?category=interior-doors",
-  },
-  {
-    name: "Exterior Doors",
-    image: images.categories.exteriorDoors.images[0],
-    description: "Weather-resistant exterior doors and entry systems",
-    count: "80+ products",
-    href: "/search?category=exterior-doors",
-  },
-  {
-    name: "Door Hardware",
-    image: images.categories.doorHardware.images[0],
-    description: "Handles, locks, hinges, and accessories",
-    count: "200+ products",
-    href: "/search?category=hardware",
-  },
-  {
-    name: "Custom Millwork",
-    image: images.categories.customMillwork.images[0],
-    description: "Bespoke millwork solutions and trim packages",
-    count: "Custom orders",
-    href: "/custom",
-  },
-];
+function DefaultHome() {
+	return (
+		<>
+			<Hero />
+			<FeaturedCategorySection />
+			<section className="bg-muted/30 py-16">
+				<div className="container mx-auto px-4">
+					<div className="mb-10 text-center">
+						<h2 className="text-3xl font-semibold">Featured products</h2>
+						<p className="mt-2 text-muted-foreground">
+							Published doors, mouldings, and shelf items.
+						</p>
+					</div>
+					<FeaturedProducts />
+				</div>
+			</section>
+			<section className="py-16">
+				<div className="container mx-auto grid gap-8 px-4 md:grid-cols-3">
+					{[
+						[
+							"One product system",
+							"Online configurations use the same relationships as the office sales workflow.",
+						],
+						[
+							"Guided configuration",
+							"Choose only storefront-published options that remain valid for your product.",
+						],
+						[
+							"Order visibility",
+							"Review order and fulfillment information from the same sales record used by our team.",
+						],
+					].map(([title, body]) => (
+						<article key={title} className="rounded-lg border p-6">
+							<h2 className="text-xl font-semibold">{title}</h2>
+							<p className="mt-2 text-muted-foreground">{body}</p>
+						</article>
+					))}
+				</div>
+			</section>
+		</>
+	);
+}
 
 export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-background">
-      <Hero />
-
-      {/* Categories Section */}
-      <FeaturedCategorySection />
-
-      {/* Featured Products */}
-      <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">
-              Featured Products
-            </h3>
-            <p className="text-gray-600">
-              Our most popular doors and components
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* {featuredProducts.map((product) => (
-              <ProductCard key={product.id} {...product} />
-            ))} */}
-          </div>
-        </div>
-      </section>
-
-      {/* Services Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">
-              Why Choose GND Millwork?
-            </h3>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-amber-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold mb-2">Quality Guaranteed</h4>
-              <p className="text-gray-600">
-                All products backed by our comprehensive warranty and quality
-                assurance.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-amber-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold mb-2">Fast Delivery</h4>
-              <p className="text-gray-600">
-                Quick turnaround times with free delivery within 50 miles.
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg
-                  className="w-8 h-8 text-amber-700"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                  />
-                </svg>
-              </div>
-              <h4 className="text-xl font-semibold mb-2">
-                Expert Installation
-              </h4>
-              <p className="text-gray-600">
-                Professional installation services available for all products.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <Footer />
-    </div>
-  );
+	batchPrefetch([
+		trpc.storefrontCommerce.content.page.queryOptions({ slug: "home" }),
+		trpc.storefrontCommerce.catalog.categories.queryOptions(),
+		trpc.storefrontCommerce.catalog.search.queryOptions({
+			query: "",
+			limit: 8,
+		}),
+	]);
+	return (
+		<HydrateClient>
+			<div className="min-h-screen bg-background">
+				<StorefrontPageSections slug="home" fallback={<DefaultHome />} />
+				<Footer />
+			</div>
+		</HydrateClient>
+	);
 }

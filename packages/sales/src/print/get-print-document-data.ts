@@ -45,6 +45,7 @@ async function resolveDealerPrintBranding(db: Db, salesOrderId: number) {
 							city: true,
 							state: true,
 							country: true,
+							meta: true,
 						},
 					},
 				},

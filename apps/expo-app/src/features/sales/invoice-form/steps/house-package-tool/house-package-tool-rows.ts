@@ -11,6 +11,7 @@ import {
 	formatWorkflowComponentLabel,
 	getWorkflowSelectableTitle,
 } from "../../api/workflow-selectable-copy";
+import { roundMoney, sumMoney } from "@gnd/sales/payment-system";
 
 export type DoorRowWithIndex = {
 	index: number;
@@ -111,13 +112,13 @@ export function createHousePackageAvailableDoorSizeRow({
 	sharedDoorSurcharge: number;
 	salesMultiplier?: number | null;
 }): DoorStoredRow {
-		const tierPricing = resolveDoorTierPricing({
-			pricing: readObject(component.pricing),
-			size,
-			supplierUid: supplierMeta?.supplierUid || null,
-			supplierVariants: Array.isArray(component.supplierVariants)
-				? component.supplierVariants
-				: [],
+	const tierPricing = resolveDoorTierPricing({
+		pricing: readObject(component.pricing),
+		size,
+		supplierUid: supplierMeta?.supplierUid || null,
+		supplierVariants: Array.isArray(component.supplierVariants)
+			? component.supplierVariants
+			: [],
 		salesMultiplier: salesMultiplier || 1,
 		fallbackSalesPrice:
 			component.salesPrice == null ? null : Number(component.salesPrice || 0),
@@ -126,7 +127,7 @@ export function createHousePackageAvailableDoorSizeRow({
 	});
 	const hasResolvedPrice = Boolean(tierPricing.hasPrice);
 	const salesUnitPrice = hasResolvedPrice
-		? Number(tierPricing.salesPrice.toFixed(2))
+		? roundMoney(tierPricing.salesPrice)
 		: 0;
 	return calcWorkflowDoorRow({
 		id: null,
@@ -137,7 +138,7 @@ export function createHousePackageAvailableDoorSizeRow({
 		jambSizePrice: salesUnitPrice,
 		casingPrice: 0,
 		unitPrice: hasResolvedPrice
-			? Number((tierPricing.salesPrice + sharedDoorSurcharge).toFixed(2))
+			? sumMoney([tierPricing.salesPrice, sharedDoorSurcharge])
 			: 0,
 		lhQty: 0,
 		rhQty: 0,
@@ -145,9 +146,7 @@ export function createHousePackageAvailableDoorSizeRow({
 		lineTotal: 0,
 		stepProductId: component.id || null,
 		meta: {
-			baseUnitPrice: hasResolvedPrice
-				? Number(tierPricing.basePrice.toFixed(2))
-				: 0,
+			baseUnitPrice: hasResolvedPrice ? roundMoney(tierPricing.basePrice) : 0,
 			doorSalesUnitPrice: salesUnitPrice,
 			sharedDoorSurcharge,
 			priceMissing: !hasResolvedPrice,
@@ -218,7 +217,7 @@ export function buildDoorGroups(
 
 	return Array.from(groups.values()).map((group) => ({
 		...group,
-		totalPrice: Number(group.totalPrice.toFixed(2)),
+		totalPrice: roundMoney(group.totalPrice),
 	}));
 }
 
@@ -244,7 +243,10 @@ function doorComponentGroupKey(
 	return `selected:${component.uid || index}`;
 }
 
-function rowGroupKey(row: DoorStoredRow, singleSelectedDoorKey?: string | null) {
+function rowGroupKey(
+	row: DoorStoredRow,
+	singleSelectedDoorKey?: string | null,
+) {
 	const componentId = Number(row.stepProductId || 0);
 	if (componentId) return `component:${componentId}`;
 	const meta = readSalesFormObjectMetadata(row.meta) || {};
@@ -261,7 +263,9 @@ function rowGroupTitle(row: DoorStoredRow, index: number) {
 			title: String(title),
 			value: String(row.doorType || ""),
 		} as WorkflowComponentRecord);
-		return safeTitle === "Component" ? "DOOR" : formatWorkflowComponentLabel(safeTitle);
+		return safeTitle === "Component"
+			? "DOOR"
+			: formatWorkflowComponentLabel(safeTitle);
 	}
 	if (row.stepProductId) return `Door ${row.stepProductId}`;
 	return index === 0 ? "House package" : `Saved door ${index + 1}`;
@@ -273,5 +277,7 @@ function getDoorGroupComponentStoredTitle(component: WorkflowComponentRecord) {
 }
 
 function getDoorGroupComponentDisplayTitle(component: WorkflowComponentRecord) {
-	return formatWorkflowComponentLabel(getDoorGroupComponentStoredTitle(component));
+	return formatWorkflowComponentLabel(
+		getDoorGroupComponentStoredTitle(component),
+	);
 }

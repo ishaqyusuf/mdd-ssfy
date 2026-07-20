@@ -271,4 +271,19 @@ describe("sales print data cache", () => {
 			}),
 		).toBe("packing_slip_pdf:dispatch:5");
 	});
+
+	it("versions explicit dealer pricing surfaces to avoid stale snapshot reuse", () => {
+		expect(
+			buildSalesPrintDocumentTypeKey({
+				mode: "invoice",
+				pricingMode: "customer",
+			}),
+		).toBe("invoice_pdf:pricing:customer:v3");
+		expect(
+			buildSalesPrintDocumentTypeKey({
+				mode: "invoice",
+				pricingMode: "internal",
+			}),
+		).toBe("invoice_pdf:pricing:internal:v3");
+	});
 });

@@ -1,8 +1,14 @@
 import { dotObject, dotSet } from "@/app/(clean-code)/_common/utils/utils";
 import { PricingMetaData } from "@/app/(clean-code)/(sales)/types";
-import { formatMoney } from "@/lib/use-number";
-import { addPercentage, dotArray, percentageValue, sum } from "@/lib/utils";
+import { addPercentage, dotArray, sum } from "@/lib/utils";
 import { calculatePaymentChannelCharge } from "@sales/payment-system/domain/payment-channel-charge";
+import {
+    divideMoney,
+    multiplyMoney,
+    percentageMoney,
+    roundMoney,
+    sumMoney,
+} from "@sales/payment-system/domain/money";
 import { toast } from "sonner";
 
 import { ZusGroupItem } from "../../../_common/_stores/form-data-store";
@@ -20,16 +26,16 @@ export class CostingClass {
     public calculateSales(price) {
         if (!price) return price;
 
-        const value = formatMoney(price * this.salesMultiplier);
+        const value = multiplyMoney(price, this.salesMultiplier);
         return value;
     }
     public calculateCost(sales) {
-        return formatMoney(sales / this.salesMultiplier);
+        return divideMoney(sales, this.salesMultiplier);
     }
     public salesProfileChanged() {
         const profile = this.setting.currentProfile();
         const multiplier = profile?.coefficient
-            ? formatMoney(1 / profile.coefficient)
+            ? divideMoney(1, profile.coefficient)
             : 1;
         this.setting.zus.dotUpdate("metaData.salesMultiplier", multiplier);
         // this.updateAllGroupedCost();
@@ -56,15 +62,19 @@ export class CostingClass {
                     if (prod && prod.productId == productId) {
                         prod.salesPrice = salesPrice;
 
-                        prod.totalPrice = formatMoney(
-                            prod.salesPrice * prod.qty,
+                        prod.totalPrice = multiplyMoney(
+                            prod.salesPrice,
+                            prod.qty,
                         );
                         data?.dotUpdate(
                             `kvFormItem.${k}.shelfItems.lines.${uid}.products.${puid}`,
                             prod,
                         );
                     }
-                    subTotal += Number(prod?.totalPrice || 0);
+                    subTotal = sumMoney([
+                        subTotal,
+                        Number(prod?.totalPrice || 0),
+                    ]);
                 });
                 data?.dotUpdate(
                     `kvFormItem.${k}.shelfItems.subTotal`,
@@ -93,12 +103,12 @@ export class CostingClass {
                 if (prod.customPrice) {
                     price = prod.customPrice;
                 }
-                prod.totalPrice = formatMoney(price * prod.qty);
+                prod.totalPrice = multiplyMoney(price, prod.qty);
                 data.dotUpdate(
                     `kvFormItem.${itemUid}.shelfItems.lines.${uid}.products.${puid}`,
                     prod,
                 );
-                subTotal += prod.totalPrice;
+                subTotal = sumMoney([subTotal, prod.totalPrice]);
             });
         });
         data.dotUpdate(`kvFormItem.${itemUid}.shelfItems.subTotal`, subTotal);
@@ -111,10 +121,15 @@ export class CostingClass {
         Object.entries(data.kvStepForm).map(([k, stepData]) => {
             if (k.startsWith(`${itemUid}-`)) {
                 if (!stepData.flatRate)
-                    totalBasePrice += stepData?.basePrice || 0;
+                    totalBasePrice = sumMoney([
+                        totalBasePrice,
+                        stepData?.basePrice || 0,
+                    ]);
                 else
-                    totalFlatRate +=
-                        stepData?.salesPrice ?? stepData?.basePrice ?? 0;
+                    totalFlatRate = sumMoney([
+                        totalFlatRate,
+                        stepData?.salesPrice ?? stepData?.basePrice ?? 0,
+                    ]);
             }
         });
         const ds = dotSet(groupItem);
@@ -142,10 +157,15 @@ export class CostingClass {
         Object.entries(data.kvStepForm).map(([k, stepData]) => {
             if (k.startsWith(`${itemUid}-`)) {
                 if (!stepData.flatRate)
-                    totalBasePrice += stepData?.basePrice || 0;
+                    totalBasePrice = sumMoney([
+                        totalBasePrice,
+                        stepData?.basePrice || 0,
+                    ]);
                 else
-                    totalFlatRate +=
-                        stepData?.salesPrice ?? stepData?.basePrice ?? 0;
+                    totalFlatRate = sumMoney([
+                        totalFlatRate,
+                        stepData?.salesPrice ?? stepData?.basePrice ?? 0,
+                    ]);
             }
         });
         const totalSalesPrice = this.calculateSales(totalBasePrice);
@@ -256,27 +276,32 @@ export class CostingClass {
         let groupItem: (typeof zus.kvFormItem)[number]["groupItem"] = gi;
         let formData: (typeof groupItem)["form"][number] = fd;
         const cPrice = formData.pricing?.customPrice as any;
-        console.log({ cPrice, groupItem });
         const customPricing = cPrice || (cPrice == 0 && cPrice !== "");
         const pll = [
             groupItem?.pricing?.components?.salesPrice,
             formData?.pricing?.itemPrice?.salesPrice,
             groupItem?.pricing?.flatRate,
         ];
-        const pl = customPricing ? cPrice : sum(pll);
-
-        const priceList = [pl, formData.pricing?.addon];
-        const unitPrice = sum(priceList);
+        const calculatedPrice = sumMoney([
+            ...pll,
+            formData.pricing?.addon,
+        ]);
+        const unitPrice = customPricing
+            ? roundMoney(cPrice)
+            : calculatedPrice;
         const qty = Number(formData.qty.total);
         if (!formData.pricing) formData.pricing = {} as any;
         formData.pricing.laborQty = qty;
 
-        const totalPrice = formatMoney(sum(priceList) * qty);
+        const totalPrice = multiplyMoney(unitPrice, qty);
         formData.pricing.unitPrice = unitPrice;
         formData.pricing.totalPrice = totalPrice;
 
         if (formData.selected)
-            groupItem.pricing.total.salesPrice += formData.pricing.totalPrice;
+            groupItem.pricing.total.salesPrice = sumMoney([
+                groupItem.pricing.total.salesPrice,
+                formData.pricing.totalPrice,
+            ]);
         return {
             unitPrice,
             totalPrice,
@@ -307,67 +332,91 @@ export class CostingClass {
                 ?.filter((a) => a.type == "FlatLabor")
                 .map((a) => a.amount),
         );
-        const discount = extraDiscount || Number(estimate.discount) || 0;
+        const discountPct = sumMoney(
+            data?.metaData?.extraCosts
+                ?.filter((a) => a.type == "DiscountPercentage")
+                .map((a) => a.amount) || [],
+        );
+        const discount = roundMoney(
+            extraDiscount || Number(estimate.discount) || 0,
+        );
+        const percentDiscountValue = percentageMoney(
+            estimate.subTotal,
+            discountPct,
+        );
         // const nonTaxxableDiscount =
         //     taxxableDiscount == estimate.taxxable &&
         //     discount != taxxableDiscount
         //         ? sum([discount, -1 * taxxableDiscount])
         //         : 0;
 
-        const Labor = sum(
+        const Labor = sumMoney(
             Object.entries(data.kvFormItem).map(([itemUid, itemData]) => {
-                return sum(
+                return sumMoney(
                     Object.entries(itemData?.groupItem?.form || {}).map(
                         ([k, d]) =>
-                            sum([d?.pricing?.laborQty]) *
-                            sum([
+                            multiplyMoney(
+                                sumMoney([d?.pricing?.laborQty]),
                                 laborRate(
                                     data?.metaData?.salesLaborConfig?.rate,
                                     d?.pricing?.unitLabor,
                                 ),
-                            ]),
+                            ),
                     ),
                 );
             }),
         );
 
-        let subTotalAfterDiscount = sum([estimate.subTotal, discount * -1]);
+        const subTotalAfterDiscount = sumMoney([
+            estimate.subTotal,
+            -discount,
+            -percentDiscountValue,
+        ]);
 
-        const extraCosts = sum(
+        const extraCosts = sumMoney(
             data.metaData.extraCosts
                 ?.filter(
                     (a) =>
                         a.type != "Discount" &&
+                        a.type != "DiscountPercentage" &&
                         a.type != "Labor" &&
                         a.type != "FlatLabor",
                 )
-                .map((a) => a.amount),
+                .map((a) => a.amount) || [],
         );
         const taxableBeforeDiscount = Math.max(
             0,
-            sum([estimate.taxxable, estimate.delivery, extraCosts]),
+            sumMoney([estimate.taxxable, estimate.delivery, extraCosts]),
         );
-        const taxxableDiscount = Math.min(discount, taxableBeforeDiscount);
+        const taxxableDiscount = Math.min(
+            sumMoney([discount, percentDiscountValue]),
+            taxableBeforeDiscount,
+        );
         const taxxable = Math.max(
             0,
-            sum([taxableBeforeDiscount, -1 * taxxableDiscount]),
+            sumMoney([taxableBeforeDiscount, -taxxableDiscount]),
         );
-        estimate.taxxable = taxxable;
+        estimate.taxxable = roundMoney(taxxable);
+        estimate.discountPct = discountPct;
+        estimate.percentDiscountValue = percentDiscountValue;
         const taxProfile = this.currentTaxProfile();
         estimate.taxValue = taxProfile
-            ? percentageValue(taxxable, taxProfile.percentage)
+            ? percentageMoney(taxxable, taxProfile.percentage)
             : 0;
-        const subGrandTot = sum([subTotalAfterDiscount, estimate.taxValue]);
+        const subGrandTot = sumMoney([
+            subTotalAfterDiscount,
+            estimate.taxValue,
+        ]);
 
-        const baseGrandTotal = formatMoney(
-            sum([
+        const baseGrandTotal = sumMoney(
+            [
                 estimate.labour,
                 estimate.delivery,
                 Labor,
                 flatLaborCost,
                 extraCosts,
                 subGrandTot,
-            ]),
+            ],
         );
         const channelCharge = calculatePaymentChannelCharge({
             paymentMethod: data.metaData.paymentMethod,
@@ -395,18 +444,16 @@ export class CostingClass {
     }
     public calculateTotalPrice() {
         const data = this.setting.zus;
-        const estimate = {
-            subTotal: 0,
-            taxxable: 0,
-        };
+        const subTotals: number[] = [];
+        const taxableTotals: number[] = [];
         Object.entries(data.kvFormItem).map(([itemUid, itemData]) => {
             const groupItem = itemData.groupItem;
             if (itemData.shelfItems) {
                 const shelfSubTotal = Number(
                     itemData.shelfItems?.subTotal || 0,
                 );
-                estimate.subTotal += shelfSubTotal;
-                estimate.taxxable += shelfSubTotal;
+                subTotals.push(shelfSubTotal);
+                taxableTotals.push(shelfSubTotal);
             } else
                 Object.entries(groupItem?.form || {}).map(([uid, formData]) => {
                     if (!formData.selected) return;
@@ -414,10 +461,14 @@ export class CostingClass {
                     const price = Number(formData.pricing?.totalPrice || 0);
                     const taxxable =
                         !isService || (isService && formData.meta.taxxable);
-                    estimate.subTotal += price;
-                    if (taxxable) estimate.taxxable += price;
+                    subTotals.push(price);
+                    if (taxxable) taxableTotals.push(price);
                 });
         });
+        const estimate = {
+            subTotal: sumMoney(subTotals),
+            taxxable: sumMoney(taxableTotals),
+        };
         this.softCalculateTotalPrice(estimate);
     }
     public currentTaxProfile() {

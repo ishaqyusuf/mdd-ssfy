@@ -391,6 +391,8 @@ export interface PricingMetaData {
     pending?: number;
     dueAmount?: number | string;
     discount?: number | string;
+    discountPct?: number;
+    percentDiscountValue?: number;
     delivery?: number | string;
     labour?: number | string;
     taxCode?: string;

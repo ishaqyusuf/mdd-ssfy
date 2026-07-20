@@ -1,4 +1,5 @@
 import { readSalesFormObjectMetadata } from "../../domain";
+import { multiplyMoney } from "../../../payment-system/domain/money";
 
 export type ShelfCategoryLike = {
 	id?: number | null;
@@ -110,7 +111,8 @@ export function getShelfRowDisplayUnitPrice(row: ShelfRowLike) {
 export function getShelfRowDisplayTotal(row: ShelfRowLike) {
 	const explicitTotal = Number(row?.totalPrice);
 	if (Number.isFinite(explicitTotal) && explicitTotal > 0) return explicitTotal;
-	return Number(
-		(Number(row?.qty || 0) * getShelfRowDisplayUnitPrice(row)).toFixed(2),
+	return multiplyMoney(
+		Number(row?.qty || 0),
+		getShelfRowDisplayUnitPrice(row),
 	);
 }

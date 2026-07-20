@@ -1,0 +1,129 @@
+enum DealerCustomerOfficeVisibility {
+    PRIVATE
+    SHARED
+}
+
+enum DealerRecruitmentCampaignStatus {
+    DRAFT
+    ACTIVE
+    PAUSED
+    ARCHIVED
+}
+
+enum DealerRecruitmentAudienceMode {
+    ALL_ELIGIBLE
+    SELECTED
+}
+
+enum DealerRecruitmentBannerPlacement {
+    TOP
+    BOTTOM
+}
+
+enum DealerProgramApplicationStatus {
+    PENDING
+    APPROVED
+    DENIED
+}
+
+model DealerRecruitmentCampaign {
+    id           String                             @id @default(cuid())
+    title        String                             @db.VarChar(255)
+    status       DealerRecruitmentCampaignStatus    @default(DRAFT)
+    audienceMode DealerRecruitmentAudienceMode      @default(ALL_ELIGIBLE)
+    headline     String                             @db.VarChar(255)
+    benefitText  String                             @db.Text
+    ctaLabel     String                             @db.VarChar(100)
+    imageUrl     String?                            @db.VarChar(1000)
+    accentColor  String                             @default("#0f766e") @db.VarChar(20)
+    placement    DealerRecruitmentBannerPlacement   @default(BOTTOM)
+    startsAt     DateTime?                          @db.Timestamp(0)
+    endsAt       DateTime?                          @db.Timestamp(0)
+    activatedAt  DateTime?                          @db.Timestamp(0)
+    createdById  Int
+    updatedById  Int
+    deletedAt    DateTime?                          @db.Timestamp(0)
+    createdAt    DateTime?                          @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?                          @updatedAt
+    profiles     DealerRecruitmentCampaignProfile[]
+    customers    DealerRecruitmentCampaignCustomer[]
+    invitations  DealerRecruitmentInvitation[]
+    applications DealerProgramApplication[]
+
+    @@index([status, startsAt, endsAt])
+    @@index([createdById, createdAt])
+    @@index([deletedAt])
+}
+
+model DealerRecruitmentCampaignProfile {
+    id                String                    @id @default(cuid())
+    campaignId        String
+    customerProfileId Int
+    createdAt         DateTime?                 @default(now()) @db.Timestamp(0)
+    campaign          DealerRecruitmentCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@unique([campaignId, customerProfileId])
+    @@index([customerProfileId])
+}
+
+model DealerRecruitmentCampaignCustomer {
+    id         String                    @id @default(cuid())
+    campaignId String
+    customerId Int
+    createdAt  DateTime?                 @default(now()) @db.Timestamp(0)
+    campaign   DealerRecruitmentCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@unique([campaignId, customerId])
+    @@index([customerId])
+}
+
+model DealerRecruitmentInvitation {
+    id            String                    @id @default(cuid())
+    campaignId    String
+    customerId    Int
+    recipientEmail String                    @db.VarChar(255)
+    tokenHash     String                    @unique @db.Char(64)
+    expiresAt     DateTime                  @db.Timestamp(0)
+    firstOpenedAt DateTime?                 @db.Timestamp(0)
+    lastOpenedAt  DateTime?                 @db.Timestamp(0)
+    openCount     Int                       @default(0)
+    deliveredAt  DateTime?                 @db.Timestamp(0)
+    deletedAt    DateTime?                  @db.Timestamp(0)
+    createdAt    DateTime?                  @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?                  @updatedAt
+    campaign     DealerRecruitmentCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    application  DealerProgramApplication?
+
+    @@index([campaignId, customerId, createdAt])
+    @@index([customerId, expiresAt])
+    @@index([deliveredAt])
+    @@index([deletedAt])
+}
+
+model DealerProgramApplication {
+    id                   String                         @id @default(cuid())
+    campaignId           String
+    invitationId         String                         @unique
+    customerId           Int
+    status               DealerProgramApplicationStatus @default(PENDING)
+    consentAt            DateTime                       @db.Timestamp(0)
+    submittedAt          DateTime                       @default(now()) @db.Timestamp(0)
+    reviewedAt           DateTime?                      @db.Timestamp(0)
+    reviewedById         Int?
+    decisionNote         String?                        @db.Text
+    dealerAuthId         Int?
+    suppressionResetAt   DateTime?                      @db.Timestamp(0)
+    suppressionResetById Int?
+    suppressionResetReason String?                      @db.Text
+    deletedAt            DateTime?                      @db.Timestamp(0)
+    createdAt            DateTime?                      @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime?                      @updatedAt
+    campaign             DealerRecruitmentCampaign      @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    invitation           DealerRecruitmentInvitation    @relation(fields: [invitationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([status, submittedAt])
+    @@index([customerId, submittedAt])
+    @@index([campaignId, status])
+    @@index([dealerAuthId])
+    @@index([deletedAt])
+}

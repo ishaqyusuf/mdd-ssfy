@@ -11,6 +11,10 @@ import {
 } from "@react-email/components";
 import { format } from "date-fns";
 import { Footer } from "../components/footer";
+import {
+	DealerProgramBanner,
+	type DealerProgramBannerProps,
+} from "../components/dealer-program-banner";
 import { Logo } from "../components/logo";
 import {
 	Button,
@@ -27,6 +31,9 @@ interface Props {
 	paymentLink?: string;
 	pdfLink?: string | null;
 	hasPdfAttachment?: boolean;
+	dealerProgramBanner?: (DealerProgramBannerProps & {
+		placement: "TOP" | "BOTTOM";
+	}) | null;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -59,6 +66,7 @@ const SalesEmail = ({
 	paymentLink, // = "https://payment.com",
 	pdfLink = null,
 	hasPdfAttachment = false,
+	dealerProgramBanner = null,
 }: Props) => {
 	const props = {
 		customerName,
@@ -98,6 +106,9 @@ const SalesEmail = ({
 					}}
 				>
 					<Logo />
+					{dealerProgramBanner?.placement === "TOP" ? (
+						<DealerProgramBanner {...dealerProgramBanner} />
+					) : null}
 
 					<Section
 						className="mt-[20px] mb-[20px] p-[20px]"
@@ -414,6 +425,9 @@ const SalesEmail = ({
 						</>
 					)}
 
+					{dealerProgramBanner?.placement === "BOTTOM" ? (
+						<DealerProgramBanner {...dealerProgramBanner} />
+					) : null}
 					<Footer />
 				</Container>
 			</Body>

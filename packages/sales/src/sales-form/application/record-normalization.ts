@@ -10,6 +10,11 @@ import {
 	summarizeServiceRows,
 	summarizeShelfRows,
 } from "../domain";
+import {
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+} from "../../payment-system/domain/money";
 
 type SalesFormRecordLike = {
 	type?: string | null;
@@ -68,7 +73,7 @@ export type SalesFormSaveValidationResult =
 	  };
 
 function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
+	return roundMoney(value);
 }
 
 function normalizeSyntheticLineTitle(value?: string | null) {
@@ -291,7 +296,7 @@ export function normalizeSalesFormLineItem(
 ): SalesFormLineItemRecord {
 	const qty = Number(line.qty ?? 0);
 	const unitPrice = Number(line.unitPrice ?? 0);
-	const computedTotal = roundCurrency(qty * unitPrice);
+	const computedTotal = multiplyMoney(qty, unitPrice);
 	const baseLine = {
 		id: line.id ?? null,
 		uid: line.uid || createSalesFormLineItemUid(index),
@@ -330,7 +335,7 @@ export function normalizeSalesFormLineItem(
 	const nextQty = hasDerivedLineTotal ? Number(derivedSummary.qty || 0) : qty;
 	const nextUnitPrice =
 		hasDerivedLineTotal && nextQty > 0
-			? roundCurrency(lineTotal / nextQty)
+			? divideMoney(lineTotal, nextQty)
 			: unitPrice;
 
 	return {
@@ -475,6 +480,7 @@ export function computeSalesFormSummary(
 		taxRate: summary.taxRate,
 		taxTotal: summary.taxTotal,
 		grandTotal: summary.grandTotal,
+		totalWithCcc: summary.totalWithCcc,
 		discount: summary.discount,
 		discountPct: summary.discountPct,
 		percentDiscountValue: summary.percentDiscountValue,

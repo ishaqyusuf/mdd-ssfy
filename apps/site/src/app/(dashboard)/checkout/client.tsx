@@ -1,297 +1,383 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import type React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Footer } from "@/components/footer";
-import { OrderSummary } from "@/components/order-summary";
+import { OrderItemsSummary } from "@/components/order-items-summary";
+import { CartProvider, useCart } from "@/hooks/use-cart";
+import { useZodForm } from "@/hooks/use-zod-form";
+import { useTRPC } from "@/trpc/client";
+import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
+import {
+	addMoney,
+	calculatePaymentChannelCharge,
+	multiplyMoney,
+	roundMoney,
+} from "@gnd/sales/payment-system";
+import { Alert, AlertDescription } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { useCartStore } from "@/lib/cart-store";
-import { useAuthStore } from "@/lib/auth-store";
-import { CartProvider, useCart } from "@/hooks/use-cart";
-import { OrderItemsSummary } from "@/components/order-items-summary";
-import { useZodForm } from "@/hooks/use-zod-form";
-import { createBillingSchema } from "@sales/storefront-account";
-import { useAuth } from "@/hooks/use-auth";
-import { Form } from "@gnd/ui/form";
 import { FormInput } from "@gnd/ui/controls/form-input";
-import { SubmitButton } from "@gnd/ui/controls/submit-button";
-import { useTRPC } from "@/trpc/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FormDebugBtn } from "@gnd/ui/controls/form-debug-btn";
-import { AddressForm } from "@/components/address-form";
-import { CreateCheckout, createCheckoutSchema } from "@sales/storefront-order";
-import { FormCheckbox } from "@gnd/ui/controls/form-checkbox";
-
+import { Form } from "@gnd/ui/form";
+import { Icons } from "@gnd/ui/icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useState } from "react";
+import type { FieldPath } from "react-hook-form";
 import { z } from "zod";
+
+const addressSchema = z.object({
+	id: z.number().optional().nullable(),
+	name: z.string().min(1),
+	email: z.string().email(),
+	phone: z.string().min(7),
+	address1: z.string().min(1),
+	address2: z.string().optional().nullable(),
+	city: z.string().min(1),
+	state: z.string().min(1),
+	postalCode: z.string().min(3),
+	country: z.string().min(2),
+});
+const checkoutFormSchema = z
+	.object({
+		fulfillment: z.enum(["pickup", "delivery"]),
+		shippingAddress: addressSchema,
+		billingSameAsShipping: z.boolean(),
+		billingAddress: addressSchema.optional().nullable(),
+	})
+	.superRefine((value, ctx) => {
+		if (!value.billingSameAsShipping && !value.billingAddress) {
+			ctx.addIssue({
+				code: "custom",
+				path: ["billingAddress"],
+				message: "Billing address is required.",
+			});
+		}
+	});
+type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
+
 export function CheckoutPage() {
-  return (
-    <CartProvider>
-      <Content />
-    </CartProvider>
-  );
+	return (
+		<CartProvider>
+			<CheckoutContent />
+		</CartProvider>
+	);
 }
-export function Content() {
-  const router = useRouter();
-  const cart = useCart();
-  const auth = useAuth();
-  // useDebugConsole(cart.data, auth);
-  const isAuthenticated = !!auth.id;
-  const { items, getTotalPrice, clearCart } = useCartStore();
-  const { user } = useAuthStore();
-  const form = useZodForm(createCheckoutSchema, {
-    defaultValues: {},
-  });
 
-  const handleSubmit = async (data: CreateCheckout) => {};
-  const trpc = useTRPC();
-  const m = useMutation(
-    trpc.storefront.order.createCheckout.mutationOptions({
-      onSuccess(data, variables, context) {},
-    })
-  );
-  if (cart?.loadingCart) {
-    return (
-      <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
-          <div className="text-center py-16">
-            <div className="animate-pulse">Loading checkout...</div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+function CheckoutContent() {
+	const trpc = useTRPC();
+	const { data, isPending, error } = useQuery(
+		trpc.storefrontCommerce.checkout.state.queryOptions(),
+	);
+	const cart = useCart();
 
-  if (items.length === 0) {
-    return null; // Will redirect to cart
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-          <Link href="/" className="hover:text-gray-900">
-            Home
-          </Link>
-          <span>/</span>
-          <Link href="/cart" className="hover:text-gray-900">
-            Cart
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900">Checkout</span>
-        </div>
-
-        <div className="flex items-center mb-6">
-          <Link href="/cart">
-            <Button variant="ghost">
-              <Icons.ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Cart
-            </Button>
-          </Link>
-        </div>
-
-        {/* Guest checkout notice */}
-        {!isAuthenticated && (
-          <Alert className="mb-6">
-            <Icons.User className="h-4 w-4" />
-            <AlertDescription>
-              <div className="flex items-center justify-between">
-                <span>
-                  Have an account? Sign in for faster checkout and order
-                  tracking.
-                </span>
-                <Link href="/login">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-4 bg-transparent"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Authenticated user welcome */}
-        {isAuthenticated && user && (
-          <Alert className="mb-6">
-            <Icons.User className="h-4 w-4" />
-            <AlertDescription>
-              <div className="flex items-center justify-between">
-                <span>
-                  Welcome back, {user.firstName}! Your information has been
-                  pre-filled for faster checkout.
-                </span>
-                <Link href="/account">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-4 bg-transparent"
-                  >
-                    Update Profile
-                  </Button>
-                </Link>
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {!cart?.data?.billing?.address1 ? (
-          <SetupBilling />
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)}>
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Checkout Form */}
-                <div className="lg:col-span-2 space-y-6">
-                  {/* Shipping Information */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Shipping Information</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <AddressForm formKey="shipping" />
-                    </CardContent>
-                  </Card>
-
-                  {/* Options */}
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-2">
-                          <FormCheckbox
-                            control={form.control}
-                            name="primaryShipping"
-                            label={`Set information as primary shipping address`}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-amber-700 hover:bg-amber-800 text-lg py-3"
-                  >
-                    {m.isPending ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processing Payment...
-                      </>
-                    ) : (
-                      <>
-                        <Icons.Lock className="h-4 w-4 mr-2" />
-                        Complete Order - $
-                        {cart?.data?.estimate?.total.toFixed(2)}
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Order Summary */}
-                <div className="space-y-6">
-                  <OrderItemsSummary />
-
-                  <OrderSummary />
-
-                  <div className="text-center text-sm text-gray-600">
-                    <div className="flex items-center justify-center mb-2">
-                      <Icons.Lock className="h-4 w-4 mr-1" />
-                      <span>Secure SSL Encryption</span>
-                    </div>
-                    <p>Your payment information is safe and secure</p>
-                    {isAuthenticated && (
-                      <p className="mt-2 text-amber-600">
-                        Your order will be saved to your account for tracking
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </form>
-          </Form>
-        )}
-      </main>
-      <Footer />
-    </div>
-  );
+	if (isPending || cart.loadingCart) {
+		return (
+			<div className="container mx-auto animate-pulse px-4 py-16">
+				Loading secure checkout…
+			</div>
+		);
+	}
+	if (error) {
+		return (
+			<div className="container mx-auto px-4 py-16 text-center">
+				<h1 className="text-2xl font-bold">Sign in to continue</h1>
+				<p className="mt-2 text-muted-foreground">{error.message}</p>
+				<Button asChild className="mt-5">
+					<Link href="/login?callbackUrl=/checkout">Sign in</Link>
+				</Button>
+			</div>
+		);
+	}
+	if (!data || !cart.data?.items.length) {
+		return (
+			<div className="container mx-auto px-4 py-16 text-center">
+				<h1 className="text-2xl font-bold">Your cart is empty</h1>
+				<Button asChild className="mt-5">
+					<Link href="/search">Browse products</Link>
+				</Button>
+			</div>
+		);
+	}
+	return <CheckoutForm state={data} cartVersion={cart.data.version} />;
 }
-function SetupBilling({}) {
-  const auth = useAuth();
-  const cart = useCart();
-  const { data } = cart;
-  const billing = data?.billing;
-  const form = useZodForm(createBillingSchema, {
-    defaultValues: {
-      id: billing?.id,
-      userId: auth.id,
-      name: billing?.name || "",
-      address1: billing?.address1 || "",
-      address2: billing?.address2 || "",
-      city: billing?.city || "",
-      state: billing?.state || "",
-      customerId: billing?.customerId || data?.customer?.id,
-      meta: {
-        zip_code: "",
-        placeId: "",
-        placeSearchText: "",
-        ...billing.meta,
-      },
-      email: billing?.email || "",
-      phone: billing?.phoneNo || "",
-    },
-  });
-  const handleSubmit = (data: z.infer<typeof createBillingSchema>) => {
-    m.mutate({
-      ...data,
-    });
-  };
-  const trpc = useTRPC();
-  const qc = useQueryClient();
-  const m = useMutation(
-    trpc.storefront.profile.createBilling.mutationOptions({
-      onSuccess(data, variables, context) {
-        console.log({ data, variables });
-        qc.invalidateQueries({
-          queryKey: trpc.storefront.getCartList.queryKey(),
-        });
-      },
-      onError(error, variables, context) {
-        console.log({ error, variables });
-      },
-    })
-  );
 
-  return (
-    <div className="grid lg:grid-cols-3 gap-8">
-      {/* Checkout Form */}
-      <div className="lg:col-span-2 space-y-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)}>
-            {/* Shipping Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Address</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormInput label="Name" control={form.control} name="name" />
-                <AddressForm />
-              </CardContent>
-            </Card>
-            <FormDebugBtn />
-            <SubmitButton className="w-full" isSubmitting={false}>
-              Save
-            </SubmitButton>
-          </form>
-        </Form>
-      </div>
-    </div>
-  );
+function CheckoutForm({
+	state,
+	cartVersion,
+}: {
+	state: StorefrontRouterOutputs["storefrontCommerce"]["checkout"]["state"];
+	cartVersion: number;
+}) {
+	const primary = state.addresses.find((address) => address.isPrimary);
+	const defaultAddress = {
+		id: primary?.id ?? null,
+		name:
+			primary?.name || state.customer.businessName || state.customer.name || "",
+		email: primary?.email || state.customer.email || "",
+		phone: primary?.phone || state.customer.phoneNo || "",
+		address1: primary?.address1 || "",
+		address2: primary?.address2 || "",
+		city: primary?.city || "",
+		state: primary?.state || "",
+		postalCode: primary?.postalCode || "",
+		country: primary?.country || "US",
+	};
+	const form = useZodForm(checkoutFormSchema, {
+		defaultValues: {
+			fulfillment: state.fulfillment.pickupEnabled ? "pickup" : "delivery",
+			shippingAddress: defaultAddress,
+			billingSameAsShipping: true,
+			billingAddress: defaultAddress,
+		},
+	});
+	const [idempotencyKey] = useState(() => {
+		const storageKey = "gnd-storefront-checkout-idempotency";
+		const stored = globalThis.sessionStorage?.getItem(storageKey);
+		if (stored) return stored;
+		const created = crypto.randomUUID();
+		globalThis.sessionStorage?.setItem(storageKey, created);
+		return created;
+	});
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const createCheckout = useMutation(
+		trpc.storefrontCommerce.checkout.create.mutationOptions({
+			onSuccess: (result) => {
+				window.location.assign(result.paymentUrl);
+			},
+			onError: (error) => {
+				if (error.data?.code === "CONFLICT") {
+					void queryClient.invalidateQueries({
+						queryKey: trpc.storefrontCommerce.cart.get.queryKey(),
+					});
+				}
+			},
+		}),
+	);
+	const billingSame = form.watch("billingSameAsShipping");
+	const fulfillment = form.watch("fulfillment");
+
+	const submit = (value: CheckoutFormValues) =>
+		createCheckout.mutate({
+			...value,
+			idempotencyKey,
+			cartVersion,
+		});
+
+	return (
+		<div className="min-h-screen bg-background">
+			<main className="container mx-auto px-4 py-10">
+				<nav className="mb-6 text-sm text-muted-foreground">
+					<Link href="/cart" className="hover:text-foreground">
+						Cart
+					</Link>
+					<span className="mx-2">/</span>
+					<span className="text-foreground">Checkout</span>
+				</nav>
+
+				<Form {...form}>
+					<form
+						onSubmit={form.handleSubmit(submit)}
+						className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]"
+					>
+						<div className="space-y-6">
+							{createCheckout.error && (
+								<Alert variant="destructive">
+									<AlertDescription>
+										{createCheckout.error.message}
+									</AlertDescription>
+								</Alert>
+							)}
+
+							<Card>
+								<CardHeader>
+									<CardTitle>Fulfillment</CardTitle>
+								</CardHeader>
+								<CardContent>
+									<select
+										{...form.register("fulfillment")}
+										className="h-10 w-full rounded-md border bg-background px-3"
+									>
+										{state.fulfillment.pickupEnabled && (
+											<option value="pickup">Pickup</option>
+										)}
+										{state.fulfillment.deliveryEnabled && (
+											<option value="delivery">
+												Delivery
+												{state.fulfillment.deliveryFlatRate > 0
+													? ` — $${state.fulfillment.deliveryFlatRate.toFixed(2)}`
+													: ""}
+											</option>
+										)}
+									</select>
+								</CardContent>
+							</Card>
+
+							<AddressFields
+								title="Shipping information"
+								prefix="shippingAddress"
+							/>
+
+							<Card>
+								<CardContent className="pt-6">
+									<label className="flex items-center gap-2 text-sm">
+										<input
+											type="checkbox"
+											{...form.register("billingSameAsShipping")}
+										/>
+										Billing address is the same as shipping
+									</label>
+								</CardContent>
+							</Card>
+
+							{!billingSame && (
+								<AddressFields
+									title="Billing information"
+									prefix="billingAddress"
+								/>
+							)}
+
+							<Button
+								type="submit"
+								className="w-full bg-amber-800 text-lg hover:bg-amber-900"
+								disabled={createCheckout.isPending}
+							>
+								<Icons.Lock className="mr-2 size-4" />
+								{createCheckout.isPending
+									? "Preparing payment…"
+									: "Continue to secure payment"}
+							</Button>
+						</div>
+
+						<aside className="space-y-6">
+							<OrderItemsSummary />
+							<CheckoutOrderSummary state={state} fulfillment={fulfillment} />
+							<p className="text-center text-xs text-muted-foreground">
+								Product prices and online availability are revalidated before
+								the order is created. Payment is processed securely by Square.
+							</p>
+						</aside>
+					</form>
+				</Form>
+			</main>
+			<Footer />
+		</div>
+	);
+}
+
+function CheckoutOrderSummary({
+	state,
+	fulfillment,
+}: {
+	state: StorefrontRouterOutputs["storefrontCommerce"]["checkout"]["state"];
+	fulfillment: "pickup" | "delivery";
+}) {
+	const cart = useCart();
+	const subtotal = cart.data?.estimate.subtotal || 0;
+	const delivery =
+		fulfillment === "delivery" &&
+		!(
+			state.fulfillment.freeDeliveryThreshold &&
+			subtotal >= state.fulfillment.freeDeliveryThreshold
+		)
+			? state.fulfillment.deliveryFlatRate
+			: 0;
+	const tax = roundMoney(multiplyMoney(subtotal, state.pricing.taxRate / 100));
+	const orderTotal = addMoney(subtotal, delivery, tax);
+	const paymentCharge = calculatePaymentChannelCharge({
+		paymentMethod: "link",
+		paymentAmount: orderTotal,
+		cccPercentage: state.pricing.cardFeePercentage,
+	});
+	return (
+		<div className="rounded-lg bg-gray-50 p-6">
+			<h3 className="mb-4 text-lg font-semibold">Order summary</h3>
+			<div className="space-y-2">
+				<SummaryRow label="Subtotal" value={subtotal} />
+				<SummaryRow
+					label={fulfillment === "delivery" ? "Delivery" : "Pickup"}
+					value={delivery}
+				/>
+				<SummaryRow label={`Tax (${state.pricing.taxRate}%)`} value={tax} />
+				{paymentCharge.applies && paymentCharge.amount > 0 ? (
+					<SummaryRow
+						label={`Card processing (${paymentCharge.percentage}%)`}
+						value={paymentCharge.amount}
+					/>
+				) : null}
+				<div className="mt-2 border-t pt-2">
+					<SummaryRow
+						label="Total charged"
+						value={paymentCharge.chargeAmount}
+						emphasized
+					/>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function SummaryRow({
+	label,
+	value,
+	emphasized = false,
+}: {
+	label: string;
+	value: number;
+	emphasized?: boolean;
+}) {
+	return (
+		<div
+			className={`flex justify-between ${emphasized ? "text-lg font-bold" : ""}`}
+		>
+			<span>{label}</span>
+			<span>${value.toFixed(2)}</span>
+		</div>
+	);
+}
+
+function AddressFields({
+	title,
+	prefix,
+}: {
+	title: string;
+	prefix: "shippingAddress" | "billingAddress";
+}) {
+	type AddressFieldName =
+		| "name"
+		| "email"
+		| "phone"
+		| "country"
+		| "address1"
+		| "address2"
+		| "city"
+		| "state"
+		| "postalCode";
+	const field = (name: AddressFieldName) =>
+		`${prefix}.${name}` as FieldPath<CheckoutFormValues>;
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>{title}</CardTitle>
+			</CardHeader>
+			<CardContent className="grid gap-4 sm:grid-cols-2">
+				<FormInput name={field("name")} label="Name" />
+				<FormInput name={field("email")} label="Email" type="email" />
+				<FormInput name={field("phone")} label="Phone" />
+				<FormInput name={field("country")} label="Country" />
+				<FormInput
+					name={field("address1")}
+					label="Address"
+					className="sm:col-span-2"
+				/>
+				<FormInput
+					name={field("address2")}
+					label="Address line 2"
+					className="sm:col-span-2"
+				/>
+				<FormInput name={field("city")} label="City" />
+				<FormInput name={field("state")} label="State" />
+				<FormInput name={field("postalCode")} label="Postal code" />
+			</CardContent>
+		</Card>
+	);
 }

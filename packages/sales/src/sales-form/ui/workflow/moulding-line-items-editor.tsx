@@ -9,6 +9,7 @@ import {
 	CostPriceBreakdownHover,
 	type CostPriceBreakdownContext,
 } from "./cost-price-breakdown-hover";
+import { multiplyMoney } from "../../../payment-system/domain/money";
 
 export type MouldingLineItemEditorRow = {
 	uid?: string | null;
@@ -93,7 +94,7 @@ export function MouldingLineItemsEditor<TRow extends MouldingLineItemEditorRow>(
 						};
 						const qty = Number(row.qty || 0);
 						const lineBreakdown = {
-							costPrice: Number((Number(row.basePrice || 0) * qty).toFixed(2)),
+							costPrice: multiplyMoney(Number(row.basePrice || 0), qty),
 							unitCostPrice: row.basePrice,
 							quantity: qty,
 							displayPrice: row.lineTotal,

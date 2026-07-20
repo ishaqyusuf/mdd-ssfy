@@ -18,6 +18,7 @@
   "exports": {
     "./trpc/routers/_app": "./src/trpc/routers/_app.ts",
     "./trpc/routers/dealership-app": "./src/trpc/routers/dealership-app.ts",
+    "./trpc/routers/storefront-app": "./src/trpc/routers/storefront-app.ts",
     "./db/queries/task-run-diagnostics": "./src/db/queries/task-run-diagnostics.ts",
     "./db/queries/customer-statement-print": "./src/db/queries/customer-statement-print.ts",
     "./utils/sales-document-access": "./src/utils/sales-document-access.ts",

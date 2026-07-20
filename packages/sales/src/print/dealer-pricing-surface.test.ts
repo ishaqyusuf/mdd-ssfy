@@ -21,7 +21,20 @@ describe("dealer print pricing surface", () => {
           qty: 2,
           rate: 50,
           total: 100,
-          meta: {},
+          meta: {
+            meta: {
+              serviceRows: [{ qty: 2, unitPrice: 50, lineTotal: 100 }],
+              mouldingRows: [{ qty: 2, salesPrice: 50, lineTotal: 100 }],
+            },
+          },
+          shelfItems: [{ qty: 2, unitPrice: 50, totalPrice: 100 }],
+          housePackageTool: {
+            totalPrice: 100,
+            doors: [
+              { totalQty: 2, unitPrice: 25, lineTotal: 50 },
+              { lhQty: 1, rhQty: 1, unitPrice: 25, lineTotal: 50 },
+            ],
+          },
         },
       ],
     });
@@ -32,6 +45,26 @@ describe("dealer print pricing surface", () => {
     expect(sale.amountDue).toBe(275);
     expect(sale.items?.[0]?.rate).toBe(125);
     expect(sale.items?.[0]?.total).toBe(250);
+    expect(sale.items?.[0]?.shelfItems?.[0]).toMatchObject({
+      unitPrice: 125,
+      totalPrice: 250,
+    });
+    expect(sale.items?.[0]?.housePackageTool?.doors?.[0]).toMatchObject({
+      unitPrice: 62.5,
+      lineTotal: 125,
+    });
+    expect(sale.items?.[0]?.housePackageTool?.doors?.[1]).toMatchObject({
+      unitPrice: 62.5,
+      lineTotal: 125,
+    });
+    expect(sale.items?.[0]?.meta.meta.serviceRows[0]).toMatchObject({
+      unitPrice: 125,
+      lineTotal: 250,
+    });
+    expect(sale.items?.[0]?.meta.meta.mouldingRows[0]).toMatchObject({
+      salesPrice: 125,
+      lineTotal: 250,
+    });
   });
 
   it("keeps internal pricing when explicitly requested", () => {
@@ -53,14 +86,19 @@ describe("dealer print pricing surface", () => {
           rate: 50,
           total: 100,
           meta: {},
+          shelfItems: [{ qty: 2, unitPrice: 49, totalPrice: 98 }],
         },
       ],
     };
 
     const sale = resolveDealerPrintPricingSurface(input, "internal");
 
-    expect(sale).toBe(input);
+    expect(sale).not.toBe(input);
     expect(sale.grandTotal).toBe(110);
     expect(sale.items?.[0]?.rate).toBe(50);
+    expect(sale.items?.[0]?.shelfItems?.[0]).toMatchObject({
+      unitPrice: 50,
+      totalPrice: 100,
+    });
   });
 });

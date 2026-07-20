@@ -30,6 +30,12 @@ import {
 	getRouteConfigForLine as resolveRouteConfigForLine,
 	summarizeDoors,
 } from "@gnd/sales/sales-form";
+import {
+	addMoney,
+	moneyRatio,
+	multiplyMoney,
+	roundMoney,
+} from "@gnd/sales/payment-system";
 import { Alert, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";
@@ -764,7 +770,7 @@ export function ItemWorkflowPanel() {
 					componentId?: number | string | null;
 					custom?: boolean | null;
 					salesPrice?: number | null;
-				})
+			  })
 			| undefined;
 		const selectedUid = String(step?.prodUid || "");
 		const selectedComponents = Array.isArray(step?.meta?.selectedComponents)
@@ -787,10 +793,7 @@ export function ItemWorkflowPanel() {
 		);
 		const selectedTitle = normalizeCustomComponentTitleInput(
 			String(
-				selectedOption?.title ||
-					selectedComponent?.title ||
-					step?.value ||
-					"",
+				selectedOption?.title || selectedComponent?.title || step?.value || "",
 			).trim(),
 		);
 		const selectedPrice = firstFiniteNumber(
@@ -830,7 +833,7 @@ export function ItemWorkflowPanel() {
 			lineUid: line.uid,
 			stepIndex,
 			title: selectedIsCustom ? hydratedSelectedOption?.title || "" : "",
-			price: selectedIsCustom ? hydratedSelectedOption?.price ?? null : null,
+			price: selectedIsCustom ? (hydratedSelectedOption?.price ?? null) : null,
 			selectedOption: hydratedSelectedOption,
 		});
 	}
@@ -858,7 +861,11 @@ export function ItemWorkflowPanel() {
 					}
 				: visibleComponent,
 		);
-		if (!merged.some((visibleComponent) => String(visibleComponent?.uid || "") === uid)) {
+		if (
+			!merged.some(
+				(visibleComponent) => String(visibleComponent?.uid || "") === uid,
+			)
+		) {
 			merged.unshift(component);
 		}
 		return merged;
@@ -881,11 +888,16 @@ export function ItemWorkflowPanel() {
 			? (stepComponentsQuery.data || []).find(
 					(component) =>
 						String(component?.uid || "") === String(selectedOption.uid || "") ||
-						Number(component?.id || 0) === Number(selectedOption.componentId || 0),
+						Number(component?.id || 0) ===
+							Number(selectedOption.componentId || 0),
 				)
 			: null;
 
-		if (selectedOption && selectedComponent && !selectedCustomComponentPriceChanged) {
+		if (
+			selectedOption &&
+			selectedComponent &&
+			!selectedCustomComponentPriceChanged
+		) {
 			const selectedPrice = firstFiniteNumber(
 				selectedOption.price,
 				selectedComponent.basePrice,
@@ -901,8 +913,9 @@ export function ItemWorkflowPanel() {
 				steps,
 				currentStepIndex: customComponentDialog.stepIndex,
 				component: componentForSelection,
-				visibleComponentsOverride:
-					mergeVisibleComponentForSelection(componentForSelection),
+				visibleComponentsOverride: mergeVisibleComponentForSelection(
+					componentForSelection,
+				),
 				selectedOverride: true,
 			});
 			resetCustomComponentDialog();
@@ -930,8 +943,9 @@ export function ItemWorkflowPanel() {
 			steps,
 			currentStepIndex: customComponentDialog.stepIndex,
 			component: componentForSelection,
-			visibleComponentsOverride:
-				mergeVisibleComponentForSelection(componentForSelection),
+			visibleComponentsOverride: mergeVisibleComponentForSelection(
+				componentForSelection,
+			),
 			selectedOverride: true,
 		});
 		void stepComponentsQuery.refetch();
@@ -945,7 +959,8 @@ export function ItemWorkflowPanel() {
 		await stepComponentsQuery.refetch();
 		if (
 			selectedCustomComponentOption &&
-			(String(selectedCustomComponentOption.uid || "") === String(option.uid || "") ||
+			(String(selectedCustomComponentOption.uid || "") ===
+				String(option.uid || "") ||
 				Number(selectedCustomComponentOption.componentId || 0) ===
 					Number(option.componentId || 0))
 		) {
@@ -1458,7 +1473,7 @@ export function ItemWorkflowPanel() {
 				salesMultiplier:
 					Number.isFinite(activeProfileCoefficient) &&
 					activeProfileCoefficient > 0
-						? Number((1 / activeProfileCoefficient).toFixed(2))
+						? moneyRatio(1, activeProfileCoefficient)
 						: 1,
 				fallbackSalesPrice: activeDoorComponent?.salesPrice,
 				fallbackBasePrice: activeDoorComponent?.basePrice,
@@ -1473,11 +1488,11 @@ export function ItemWorkflowPanel() {
 					doorType: "",
 					doorPrice: 0,
 					jambSizePrice: hasResolvedPrice
-						? Number(tierPricing.salesPrice.toFixed(2))
+						? roundMoney(tierPricing.salesPrice)
 						: 0,
 					casingPrice: 0,
 					unitPrice: hasResolvedPrice
-						? Number((tierPricing.salesPrice + sharedDoorSurcharge).toFixed(2))
+						? addMoney(tierPricing.salesPrice, sharedDoorSurcharge)
 						: 0,
 					lhQty: 0,
 					rhQty: 0,
@@ -1486,10 +1501,10 @@ export function ItemWorkflowPanel() {
 					stepProductId: activeDoorComponent.id || null,
 					meta: {
 						baseUnitPrice: hasResolvedPrice
-							? Number(tierPricing.basePrice.toFixed(2))
+							? roundMoney(tierPricing.basePrice)
 							: 0,
 						doorSalesUnitPrice: hasResolvedPrice
-							? Number(tierPricing.salesPrice.toFixed(2))
+							? roundMoney(tierPricing.salesPrice)
 							: 0,
 						sharedDoorSurcharge,
 						priceMissing: !hasResolvedPrice,
@@ -1732,6 +1747,7 @@ export function ItemWorkflowPanel() {
 											},
 										});
 										const next = buildWorkflowShelfSectionsPatch({
+											line,
 											sections: nextSections,
 											profileCoefficient: activeProfileCoefficient,
 										});
@@ -2208,12 +2224,12 @@ export function ItemWorkflowPanel() {
 																												unitPrice:
 																													resolvedUnitPrice,
 																												totalPrice: Number(
-																													(
+																													multiplyMoney(
 																														Number(
 																															item?.qty ?? 1,
-																														) *
-																														resolvedUnitPrice
-																													).toFixed(2),
+																														),
+																														resolvedUnitPrice,
+																													),
 																												),
 																												meta: {
 																													...(item?.meta || {}),

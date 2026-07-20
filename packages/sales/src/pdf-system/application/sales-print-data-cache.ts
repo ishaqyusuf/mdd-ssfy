@@ -1,13 +1,14 @@
 import { type Db, Prisma } from "@gnd/db";
+import type { PrintPricingMode } from "../../print/dealer-pricing-surface";
 import {
 	getPrintDocumentData,
 	resolveSalesCompanyAddress,
 } from "../../print/get-print-document-data";
-import type { PrintPricingMode } from "../../print/dealer-pricing-surface";
 import type { CompanyAddress, PrintMode, PrintPage } from "../../print/types";
 import { isSalesSourceStale } from "./source-freshness";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
+const DEALER_PRICING_CACHE_VERSION = "v3";
 
 export const SALES_PRINT_DOCUMENT_BASE_TYPES = {
 	invoice: "invoice_pdf",
@@ -87,7 +88,7 @@ export function buildSalesPrintDocumentTypeKey(input: {
 	const baseType = SALES_PRINT_DOCUMENT_BASE_TYPES[input.mode];
 	const parts: string[] = [baseType];
 	if (input.pricingMode) {
-		parts.push(`pricing:${input.pricingMode}`);
+		parts.push(`pricing:${input.pricingMode}:${DEALER_PRICING_CACHE_VERSION}`);
 	}
 	if (input.mode === "packing-slip" && input.dispatchId) {
 		parts.push(`dispatch:${input.dispatchId}`);
@@ -141,7 +142,15 @@ export async function createOrRefreshBatchSalesPrintData(
 		}),
 	);
 	const records = results.map((result) => result.record);
-	const pages = records.flatMap((record) => record.pages);
+	const pages = records.flatMap((record) =>
+		record.pages.map((page) => ({
+			...page,
+			branding: {
+				companyAddress: record.companyAddress,
+				logoUrl: record.logoUrl ?? null,
+			},
+		})),
+	);
 	const firstRecord = records[0] ?? null;
 	const generatedCount = results.filter((result) => result.generated).length;
 
@@ -449,10 +458,27 @@ async function getSalesOrderSourceUpdatedAt(
 		},
 		select: {
 			updatedAt: true,
+			dealerAuth: {
+				select: {
+					updatedAt: true,
+					meta: true,
+				},
+			},
 		},
 	});
 
-	return sale?.updatedAt ?? null;
+	const timestamps = [sale?.updatedAt, sale?.dealerAuth?.updatedAt].filter(
+		(value): value is Date => value instanceof Date,
+	);
+	if (!timestamps.length) return null;
+	const brandingVersion = Number(
+		(sale?.dealerAuth?.meta as { brandingVersion?: unknown } | null)
+			?.brandingVersion || 0,
+	);
+	return new Date(
+		Math.max(...timestamps.map((value) => value.getTime())) +
+			(Number.isFinite(brandingVersion) ? brandingVersion * 1000 : 0),
+	);
 }
 
 async function isSalesPrintDataStale(
@@ -528,7 +554,8 @@ function toSalesPrintDataRecord(row: SalesPrintDataRow): SalesPrintDataRecord {
 		...row,
 		mode: row.mode as PrintMode,
 		companyAddress: (row.companyAddress || {}) as unknown as CompanyAddress,
-		logoUrl: typeof meta?.logoUrl === "string" ? String(meta.logoUrl || "") : null,
+		logoUrl:
+			typeof meta?.logoUrl === "string" ? String(meta.logoUrl || "") : null,
 		pages: (row.pages || []) as unknown as PrintPage[],
 		meta,
 	};

@@ -50,6 +50,8 @@ export const sendSalesReminder = schemaTask({
 							paymentLink: data.paymentToken
 								? `${baseAppUrl}/checkout/${data.paymentToken}/v2`
 								: null,
+							salesIds: data.data.map((sale) => sale.id),
+							salesNos: data.data.map((sale) => sale.orderId),
 							sales: data.data.map((sale) => ({
 								orderId: sale.orderId,
 								po: sale.po,

@@ -1,4 +1,4 @@
-import { Db, Prisma } from "@gnd/db";
+import { Prisma, type Db } from "@gnd/db";
 import { imageUrl, slugify, uniqueList } from "@gnd/utils";
 import { composeQuery, composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";

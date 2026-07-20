@@ -45,6 +45,7 @@ export {
   createDealerSalesFormWorkflowCapabilities,
   createInternalSalesFormWorkflowCapabilities,
   createSalesFormWorkflowCapabilities,
+  createStorefrontSalesFormWorkflowCapabilities,
   type SalesFormWorkflowCapabilities,
 } from "./workflow-capabilities";
 export type {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { calculateSalesFormSummary } from "./costing";
 
 describe("sales form costing", () => {
-	it("includes credit-card convenience charges in legacy grand totals", () => {
+	it("keeps credit-card convenience charges separate from legacy grand totals", () => {
 		const summary = calculateSalesFormSummary({
 			strategy: "legacy",
 			taxRate: 0,
@@ -20,7 +20,43 @@ describe("sales form costing", () => {
 
 		expect(summary.subTotal).toBe(100);
 		expect(summary.ccc).toBe(3.5);
-		expect(summary.grandTotal).toBe(103.5);
+		expect(summary.grandTotal).toBe(100);
+		expect(summary.totalWithCcc).toBe(103.5);
+	});
+
+	it("charges ccc on the full principal including delivery and other costs", () => {
+		const summary = calculateSalesFormSummary({
+			strategy: "legacy",
+			taxRate: 10,
+			paymentMethod: "Credit Card",
+			cccPercentage: 3.5,
+			lineItems: [{ qty: 1, unitPrice: 100, lineTotal: 100 }],
+			extraCosts: [
+				{ type: "Delivery", amount: 20 },
+				{ type: "Other", amount: 0 },
+			],
+		});
+
+		expect(summary.taxableSubTotal).toBe(120);
+		expect(summary.taxTotal).toBe(12);
+		expect(summary.grandTotal).toBe(132);
+		expect(summary.ccc).toBe(4.62);
+		expect(summary.totalWithCcc).toBe(136.62);
+	});
+
+	it("subtracts percentage discounts from subtotal and taxable subtotal", () => {
+		const summary = calculateSalesFormSummary({
+			strategy: "legacy",
+			taxRate: 0,
+			lineItems: [{ qty: 1, unitPrice: 100, lineTotal: 100 }],
+			extraCosts: [{ type: "DiscountPercentage", amount: 10 }],
+		});
+
+		expect(summary.discountPct).toBe(10);
+		expect(summary.percentDiscountValue).toBe(10);
+		expect(summary.adjustedSubTotal).toBe(90);
+		expect(summary.grandTotal).toBe(90);
+		expect(summary.totalWithCcc).toBe(90);
 	});
 
 	it("reads service taxability and derived labor from JSON metadata", () => {
@@ -133,6 +169,7 @@ describe("sales form costing", () => {
 
 		expect(summary.subTotal).toBe(1000);
 		expect(summary.ccc).toBe(35);
-		expect(summary.grandTotal).toBe(1035);
+		expect(summary.grandTotal).toBe(1000);
+		expect(summary.totalWithCcc).toBe(1035);
 	});
 });

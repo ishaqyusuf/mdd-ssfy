@@ -4,11 +4,15 @@ import type {
 	SalesFormLineItemLike,
 	SalesFormSummaryResult,
 } from "../contracts/types";
+import {
+	multiplyMoney,
+	percentageMoney,
+	roundMoney,
+	subtractMoney,
+	sumMoney,
+} from "../../payment-system/domain/money";
+import { calculatePaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
 import { readSalesFormObjectMetadata } from "./metadata";
-
-function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
-}
 
 function safeNumber(value: unknown) {
 	const num = Number(value ?? 0);
@@ -65,17 +69,17 @@ function isTaxableLineCurrent(line: SalesFormLineItemLike) {
 }
 
 function sumByType(extraCosts: SalesFormExtraCostLike[], types: string[]) {
-	return roundCurrency(
+	return sumMoney(
 		extraCosts
 			.filter((cost) => types.includes(String(cost.type)))
-			.reduce((sum, cost) => sum + safeNumber(cost.amount), 0),
+			.map((cost) => safeNumber(cost.amount)),
 	);
 }
 
 function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
 	const deriveRowsLabor = (rows: any[], fallbackRate: number) =>
-		roundCurrency(
-			(rows || []).reduce((rowSum: number, row: any) => {
+		sumMoney(
+			(rows || []).map((row: any) => {
 				const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
 				const unitLabor = safeNumber(
 					row?.pricing?.unitLabor ??
@@ -91,13 +95,13 @@ function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
 						row?.qty ??
 						row?.totalQty,
 				);
-				if (!unitLabor || !laborQty) return rowSum;
-				return rowSum + roundCurrency(unitLabor * laborQty);
-			}, 0),
+				if (!unitLabor || !laborQty) return 0;
+				return multiplyMoney(unitLabor, laborQty);
+			}),
 		);
 
-	return roundCurrency(
-		(lineItems || []).reduce((sum, line) => {
+	return sumMoney(
+		(lineItems || []).map((line) => {
 			const lineAny = line as any;
 			const lineMeta = readSalesFormObjectMetadata(lineAny?.meta) || {};
 			const fallbackRate = safeNumber(lineMeta.laborConfig?.rate);
@@ -114,14 +118,13 @@ function deriveLaborFromLineItems(lineItems: SalesFormLineItemLike[]) {
 				? lineAny.shelfItems
 				: [];
 
-			const lineLabor =
-				deriveRowsLabor(doors, fallbackRate) +
-				deriveRowsLabor(serviceRows, fallbackRate) +
-				deriveRowsLabor(mouldingRows, fallbackRate) +
-				deriveRowsLabor(shelfRows, fallbackRate);
-
-			return sum + roundCurrency(lineLabor);
-		}, 0),
+			return sumMoney([
+				deriveRowsLabor(doors, fallbackRate),
+				deriveRowsLabor(serviceRows, fallbackRate),
+				deriveRowsLabor(mouldingRows, fallbackRate),
+				deriveRowsLabor(shelfRows, fallbackRate),
+			]);
+		}),
 	);
 }
 
@@ -132,11 +135,11 @@ function deriveShelfLineTotal(line: SalesFormLineItemLike) {
 		? lineAny.shelfItems
 		: [];
 	if (!shelfRows.length) return null;
-	return roundCurrency(
-		shelfRows.reduce((sum: number, row: any) => {
+	return sumMoney(
+		shelfRows.map((row: any) => {
 			const rowMeta = readSalesFormObjectMetadata(row?.meta) || {};
 			const explicitTotal = safeNumber(row?.totalPrice);
-			if (explicitTotal > 0) return sum + explicitTotal;
+			if (explicitTotal > 0) return explicitTotal;
 			const qty = safeNumber(row?.qty);
 			const unitPrice = firstPositiveNumber(
 				row?.customPrice,
@@ -148,8 +151,8 @@ function deriveShelfLineTotal(line: SalesFormLineItemLike) {
 				rowMeta.unitPrice,
 				rowMeta.basePrice,
 			);
-			return sum + roundCurrency(qty * unitPrice);
-		}, 0),
+			return multiplyMoney(qty, unitPrice);
+		}),
 	);
 }
 
@@ -158,8 +161,10 @@ function deriveLineTotalForSummary(line: SalesFormLineItemLike) {
 	if (shelfTotal != null) return shelfTotal;
 	const qty = safeNumber(line.qty);
 	const unitPrice = safeNumber(line.unitPrice);
-	const computed = roundCurrency(qty * unitPrice);
-	return line.lineTotal == null ? computed : safeNumber(line.lineTotal);
+	const computed = multiplyMoney(qty, unitPrice);
+	return line.lineTotal == null
+		? computed
+		: roundMoney(safeNumber(line.lineTotal));
 }
 
 export function calculateSalesFormSummary(
@@ -169,11 +174,7 @@ export function calculateSalesFormSummary(
 	const lineItems = input.lineItems || [];
 	const extraCosts = input.extraCosts || [];
 
-	const subTotal = roundCurrency(
-		lineItems.reduce((sum, line) => {
-			return sum + deriveLineTotalForSummary(line);
-		}, 0),
-	);
+	const subTotal = sumMoney(lineItems.map(deriveLineTotalForSummary));
 
 	const discount = sumByType(extraCosts, ["Discount"]);
 	const discountPct = sumByType(extraCosts, ["DiscountPercentage"]);
@@ -182,14 +183,14 @@ export function calculateSalesFormSummary(
 	const derivedLabor = deriveLaborFromLineItems(lineItems);
 	const effectiveLabor = derivedLabor > 0 ? derivedLabor : labor;
 	const delivery = sumByType(extraCosts, ["Delivery"]);
-	const deliveryTaxable = roundCurrency(
+	const deliveryTaxable = sumMoney(
 		extraCosts
 			.filter((cost) => String(cost.type) === "Delivery")
 			.filter((cost) => isExtraCostTaxable(cost))
-			.reduce((sum, cost) => sum + safeNumber(cost.amount), 0),
+			.map((cost) => safeNumber(cost.amount)),
 	);
-	const deliveryNonTaxable = roundCurrency(delivery - deliveryTaxable);
-	const otherCosts = roundCurrency(
+	const deliveryNonTaxable = subtractMoney(delivery, deliveryTaxable);
+	const otherCosts = sumMoney(
 		extraCosts
 			.filter(
 				(cost) =>
@@ -201,9 +202,9 @@ export function calculateSalesFormSummary(
 						"DiscountPercentage",
 					].includes(String(cost.type)),
 			)
-			.reduce((sum, cost) => sum + safeNumber(cost.amount), 0),
+			.map((cost) => safeNumber(cost.amount)),
 	);
-	const otherTaxableCosts = roundCurrency(
+	const otherTaxableCosts = sumMoney(
 		extraCosts
 			.filter(
 				(cost) =>
@@ -216,63 +217,67 @@ export function calculateSalesFormSummary(
 					].includes(String(cost.type)),
 			)
 			.filter((cost) => isExtraCostTaxable(cost))
-			.reduce((sum, cost) => sum + safeNumber(cost.amount), 0),
+			.map((cost) => safeNumber(cost.amount)),
 	);
-	const otherNonTaxableCosts = roundCurrency(otherCosts - otherTaxableCosts);
+	const otherNonTaxableCosts = subtractMoney(otherCosts, otherTaxableCosts);
 
 	const normalizedTaxRate = Math.max(
 		0,
 		Math.min(100, safeNumber(input.taxRate)),
 	);
-	const percentDiscountValue = roundCurrency(subTotal * (discountPct / 100));
-	const adjustedSubTotal = roundCurrency(
-		subTotal -
-			discount -
-			percentDiscountValue +
-			effectiveLabor +
-			delivery +
-			otherCosts,
-	);
+	const percentDiscountValue = percentageMoney(subTotal, discountPct);
+	const adjustedSubTotal = sumMoney([
+		subTotal,
+		-discount,
+		-percentDiscountValue,
+		effectiveLabor,
+		delivery,
+		otherCosts,
+	]);
 
 	if (strategy === "legacy") {
-		const taxableLineSubTotal = roundCurrency(
-			lineItems.reduce((sum, line) => {
-				const lineTotalRaw = deriveLineTotalForSummary(line);
-				return isTaxableLineLegacy(line) ? sum + lineTotalRaw : sum;
-			}, 0),
+		const taxableLineSubTotal = sumMoney(
+			lineItems.map((line) =>
+				isTaxableLineLegacy(line) ? deriveLineTotalForSummary(line) : 0,
+			),
 		);
 
-		const taxableBeforeDiscount = roundCurrency(
-			taxableLineSubTotal + delivery + otherCosts,
+		const taxableBeforeDiscount = sumMoney([
+			taxableLineSubTotal,
+			delivery,
+			otherCosts,
+		]);
+		const maxTaxableDiscount = Math.min(
+			sumMoney([discount, percentDiscountValue]),
+			taxableBeforeDiscount,
 		);
-		const maxTaxableDiscount = roundCurrency(
-			Math.min(discount + percentDiscountValue, taxableBeforeDiscount),
+		const taxableSubTotal = roundMoney(
+			Math.max(0, subtractMoney(taxableBeforeDiscount, maxTaxableDiscount)),
 		);
-		const taxableSubTotal = roundCurrency(
-			Math.max(0, taxableBeforeDiscount - maxTaxableDiscount),
-		);
-		const taxTotal = roundCurrency(taxableSubTotal * (normalizedTaxRate / 100));
-		const subGrandTot = roundCurrency(
-			subTotal - discount - percentDiscountValue + taxTotal,
-		);
-		const extraCostsBeforeCcc = roundCurrency(
-			deliveryTaxable +
-				deliveryNonTaxable +
-				otherTaxableCosts +
-				otherNonTaxableCosts,
-		);
-		const grandBeforeCcc = roundCurrency(
-			subGrandTot + extraCostsBeforeCcc + effectiveLabor + flatLabor,
-		);
-		const isCreditCard =
-			normalizeTitle(input.paymentMethod) === "credit card" ||
-			normalizeTitle(input.paymentMethod) === "card";
-		const cccPercentage = Math.max(0, safeNumber(input.cccPercentage ?? 3.5));
-		const cccBase = roundCurrency(subGrandTot);
-		const ccc = isCreditCard
-			? roundCurrency((cccBase * cccPercentage) / 100)
-			: 0;
-		const grandTotal = roundCurrency(grandBeforeCcc + ccc);
+		const taxTotal = percentageMoney(taxableSubTotal, normalizedTaxRate);
+		const subGrandTot = sumMoney([
+			subTotal,
+			-discount,
+			-percentDiscountValue,
+			taxTotal,
+		]);
+		const extraCostsBeforeCcc = sumMoney([
+			deliveryTaxable,
+			deliveryNonTaxable,
+			otherTaxableCosts,
+			otherNonTaxableCosts,
+		]);
+		const grandTotal = sumMoney([
+			subGrandTot,
+			extraCostsBeforeCcc,
+			effectiveLabor,
+			flatLabor,
+		]);
+		const channelCharge = calculatePaymentChannelCharge({
+			paymentMethod: input.paymentMethod,
+			paymentAmount: grandTotal,
+			cccPercentage: input.cccPercentage,
+		});
 
 		return {
 			subTotal,
@@ -280,49 +285,58 @@ export function calculateSalesFormSummary(
 			taxRate: normalizedTaxRate,
 			taxTotal,
 			grandTotal,
+			totalWithCcc: channelCharge.chargeAmount,
 			discount,
 			discountPct,
 			percentDiscountValue,
-			labor: roundCurrency(effectiveLabor + flatLabor),
+			labor: sumMoney([effectiveLabor, flatLabor]),
 			delivery,
 			otherCosts,
 			taxableSubTotal,
-			ccc,
+			ccc: channelCharge.amount,
 			strategy,
 		};
 	}
 
-	const taxableLineSubTotalCurrent = roundCurrency(
-		lineItems.reduce((sum, line) => {
-			const lineTotalRaw = deriveLineTotalForSummary(line);
-			return isTaxableLineCurrent(line) ? sum + lineTotalRaw : sum;
-		}, 0),
+	const taxableLineSubTotalCurrent = sumMoney(
+		lineItems.map((line) =>
+			isTaxableLineCurrent(line) ? deriveLineTotalForSummary(line) : 0,
+		),
 	);
-	const taxableBeforeDiscount = roundCurrency(
-		taxableLineSubTotalCurrent + deliveryTaxable + otherTaxableCosts,
+	const taxableBeforeDiscount = sumMoney([
+		taxableLineSubTotalCurrent,
+		deliveryTaxable,
+		otherTaxableCosts,
+	]);
+	const maxTaxableDiscount = Math.min(
+		sumMoney([discount, percentDiscountValue]),
+		taxableBeforeDiscount,
 	);
-	const maxTaxableDiscount = roundCurrency(
-		Math.min(discount + percentDiscountValue, taxableBeforeDiscount),
+	const taxableSubTotal = roundMoney(
+		Math.max(0, subtractMoney(taxableBeforeDiscount, maxTaxableDiscount)),
 	);
-	const taxableSubTotal = roundCurrency(
-		Math.max(0, taxableBeforeDiscount - maxTaxableDiscount),
-	);
-	const taxTotal = roundCurrency(taxableSubTotal * (normalizedTaxRate / 100));
-	const grandTotal = roundCurrency(adjustedSubTotal + taxTotal);
+	const taxTotal = percentageMoney(taxableSubTotal, normalizedTaxRate);
+	const grandTotal = sumMoney([adjustedSubTotal, taxTotal]);
+	const channelCharge = calculatePaymentChannelCharge({
+		paymentMethod: input.paymentMethod,
+		paymentAmount: grandTotal,
+		cccPercentage: input.cccPercentage,
+	});
 	return {
 		subTotal,
 		adjustedSubTotal,
 		taxRate: normalizedTaxRate,
 		taxTotal,
 		grandTotal,
+		totalWithCcc: channelCharge.chargeAmount,
 		discount,
 		discountPct,
 		percentDiscountValue,
-		labor: roundCurrency(effectiveLabor + flatLabor),
+		labor: sumMoney([effectiveLabor, flatLabor]),
 		delivery,
 		otherCosts,
 		taxableSubTotal,
-		ccc: 0,
+		ccc: channelCharge.amount,
 		strategy,
 	};
 }

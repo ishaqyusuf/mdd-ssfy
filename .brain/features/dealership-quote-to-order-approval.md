@@ -22,9 +22,8 @@ payload guarantees.
   `dealerPortal.convertQuoteToOrder`.
 - The desired product change is to replace dealer-owned direct conversion with
   a sales-rep approval request workflow.
-- Browser proof for the package-backed dealership form is still blocked by
-  authenticated dealer/internal fixtures. Do not treat this workflow as
-  production-ready before the browser QA phases pass.
+- Authenticated local browser proof is complete for the quote-to-order path,
+  using seeded dealership and office users against the shared local database.
 - Dealer Sales / Dealer Quotes tabs now show dealer-scoped count badges from the
   dashboard query.
 - Dealer sales/quote list filters now include delivery option, dealer sales
@@ -63,8 +62,33 @@ payload guarantees.
   error that surfaced in Vercel, and aligned dealership Next builds with the
   main web app by skipping build-time type validation while the shared monorepo
   type baseline remains noisy.
-  Full production readiness is still blocked by missing Door/HPT plus Moulding
-  size fixture coverage and final responsive screenshot evidence.
+- 2026-07-19 end-to-end QA created dealer quote `00003DPP`, submitted its order
+  request, opened and completed it in the office form, reviewed delivery cost,
+  approved it, and produced order `00003DPP` (`SalesOrders.id = 24416`). The
+  approved-history surface shows the approver and resulting order and prevents
+  duplicate work.
+- Sales Team notification fallback now targets all active Sales Team users when
+  a dealer/quote has no assigned rep. The `dealer_sales_request` handler creates
+  both an in-app activity and an email with a direct request-review URL.
+- Dealer approval is visible in app and the approval email contains the dealer
+  order URL plus the internal GND payment amount. Local provider delivery is
+  intentionally skipped when `SKIP_EMAIL`/mock-email flags are enabled; both
+  request and approval templates/payloads are covered independently.
+- Customer payment tracking is dealer-owned and audit-backed. Marking the
+  dealer's own customer paid clears the customer receivable without clearing
+  the dealer's payable to GND. For the QA order, customer revenue is `$481.46`,
+  internal/GND due is `$405.38`, and dealer earnings are `$76.08`.
+- Customer and internal print modes are explicit, use separate versioned cache
+  identities, and reconcile nested shelf/door/service/moulding rows to their
+  canonical surface totals. The customer PDF showed `$481.46` and `$0` due
+  after customer payment; the internal PDF retained `$405.38` due.
+- Office order lists color dealer-origin order numbers cyan, add a matching cyan
+  left border to the Order cell, omit the separate `Dealer` badge, and expose a
+  `Sales channel` filter with `Dealership sales` and `Office sales`. Live filtering wrote
+  `salesChannel=dealership` and returned only the dealer order.
+- The workflow requested here is production-code complete. Broader new-sales-
+  form Door/HPT and Moulding fixture coverage remains tracked separately and is
+  not a blocker for the shelf-backed workflow proven in this QA pass.
 
 ## Scope
 
@@ -317,6 +341,20 @@ use focused static checks until a separate browser QA pass is requested.
 - Add request SLA/aging analytics once the request queue is in production use.
 
 ## Implementation Progress
+
+- 2026-07-19: Completed authenticated quote-to-order workflow QA and fixes.
+  Proven surfaces include dealer quote create/save/request, office request
+  review and missing-item edit, first-approver conversion, dealer approval,
+  Square sandbox payment handoff, dealer-owned customer payment status,
+  dashboard progress, customer/internal preview and PDF download controls,
+  office dealer flags, and the sales-channel filter. Fixed delivery/pricing
+  synchronization on approval, unassigned Sales Team visibility/notification
+  fallback, request email delivery support, dealer receivable/payable
+  separation, structured PDF row reconciliation, and pricing-mode cache key
+  collisions. Focused regression suite passed 131 tests before final small type
+  annotations, followed by 61 affected dealer/filter reruns; filtered typecheck
+  scans reported no touched-file errors. The broad repository typecheck remains
+  blocked by existing `@gnd/documents` and other unrelated baseline errors.
 
 - 2026-05-23: Added Dealer Sales / Dealer Quotes count badges to the existing
   dealership sales tabs and prefetched dashboard counts on both list pages.

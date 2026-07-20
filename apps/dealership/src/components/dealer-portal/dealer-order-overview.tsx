@@ -37,7 +37,7 @@ function customerName(order?: DealerOrder | null) {
 	);
 }
 
-function paymentLabel(order?: DealerOrder | null) {
+function customerPaymentLabel(order?: DealerOrder | null) {
 	const due = Number(order?.amountDue || 0);
 	const total = Number(order?.grandTotal || 0);
 	if (due <= 0) return "Paid";
@@ -54,9 +54,17 @@ function progressItems(order?: DealerOrder | null) {
 			done: order?.type !== "quote",
 		},
 		{
-			label: "Payment",
-			value: paymentLabel(order),
+			label: "Customer payment",
+			value: customerPaymentLabel(order),
 			done: due <= 0,
+		},
+		{
+			label: "GND payment",
+			value:
+				Number(order?.officeAmountDue || 0) <= 0
+					? "Paid"
+					: `${currency(order?.officeAmountDue)} due`,
+			done: Number(order?.officeAmountDue || 0) <= 0,
 		},
 		{
 			label: "Fulfillment",
@@ -75,7 +83,7 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 	const printDocument = useMutation(
 		trpc.dealerPortal.printDocument.mutationOptions({
 			onSuccess: (result) => {
-				window.open(result.previewUrl, "_blank", "noopener,noreferrer");
+				window.location.assign(result.previewUrl);
 			},
 			onError: (error) => {
 				toast({
@@ -100,7 +108,7 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 						queryKey: trpc.dealerPortal.dashboard.pathKey(),
 					}),
 				]);
-				window.open(result.paymentLink, "_blank", "noopener,noreferrer");
+				window.location.assign(result.paymentLink);
 			},
 			onError: (error) => {
 				toast({
@@ -111,8 +119,39 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 			},
 		}),
 	);
+	const updateCustomerPayment = useMutation(
+		trpc.dealerPortal.updateCustomerPaymentStatus.mutationOptions({
+			onSuccess: async (result) => {
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.dealerPortal.salesDocument.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.dealerPortal.orders.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.dealerPortal.dashboard.pathKey(),
+					}),
+				]);
+				toast({
+					title:
+						result.status === "paid"
+							? "Customer payment marked paid."
+							: "Customer balance reopened.",
+				});
+			},
+			onError: (error) => {
+				toast({
+					title: "Could not update customer payment.",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 	const order = orderQuery.data;
-	const hasBalance = Number(order?.amountDue || 0) > 0;
+	const hasOfficeBalance = Number(order?.officeAmountDue || 0) > 0;
+	const customerHasBalance = Number(order?.amountDue || 0) > 0;
 
 	if (orderQuery.isPending) {
 		return (
@@ -150,14 +189,14 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 					</div>
 				</div>
 				<div className="flex flex-wrap gap-2">
-					{hasBalance ? (
+					{hasOfficeBalance ? (
 						<Button
 							disabled={createPaymentLink.isPending}
 							onClick={() => createPaymentLink.mutate({ id: order.id })}
 							type="button"
 						>
 							<CreditCard className="mr-2 size-4" />
-							Pay balance
+							Pay GND {currency(order.officeAmountDue)}
 						</Button>
 					) : null}
 					<Button
@@ -200,9 +239,16 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 				</TabsList>
 
 				<TabsContent value="overview" className="mt-0 space-y-4">
-					<section className="grid gap-3 md:grid-cols-3">
-						<Metric label="Total" value={currency(order.grandTotal)} />
-						<Metric label="Balance" value={currency(order.amountDue)} />
+					<section className="grid gap-3 md:grid-cols-4">
+						<Metric label="Customer total" value={currency(order.grandTotal)} />
+						<Metric
+							label="Customer balance"
+							value={currency(order.amountDue)}
+						/>
+						<Metric
+							label="GND balance"
+							value={currency(order.officeAmountDue)}
+						/>
 						<Metric
 							label="Fulfillment"
 							value={order.deliveryOption || "pickup"}
@@ -219,7 +265,9 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 								>
 									<div>
 										<p className="text-sm font-medium">{item.label}</p>
-										<p className="text-xs text-muted-foreground">{item.value}</p>
+										<p className="text-xs text-muted-foreground">
+											{item.value}
+										</p>
 									</div>
 									<Badge variant={item.done ? "default" : "outline"}>
 										{item.done ? "Done" : "Open"}
@@ -255,23 +303,49 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 					</section>
 				</TabsContent>
 
-				<TabsContent value="payment" className="mt-0">
+				<TabsContent value="payment" className="mt-0 space-y-4">
 					<section className="rounded-lg border p-4">
 						<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 							<div>
-								<h2 className="text-base font-semibold">{paymentLabel(order)}</h2>
+								<h2 className="text-base font-semibold">Customer payment</h2>
 								<p className="text-sm text-muted-foreground">
-									Outstanding balance: {currency(order.amountDue)}
+									{customerPaymentLabel(order)} · Collected{" "}
+									{currency(order.customerPaidAmount)} of{" "}
+									{currency(order.grandTotal)}
 								</p>
 							</div>
-							{hasBalance ? (
+							<Button
+								disabled={updateCustomerPayment.isPending}
+								onClick={() =>
+									updateCustomerPayment.mutate({
+										id: order.id,
+										status: customerHasBalance ? "paid" : "unpaid",
+									})
+								}
+								type="button"
+								variant={customerHasBalance ? "default" : "outline"}
+							>
+								{customerHasBalance ? "Mark customer paid" : "Reopen balance"}
+							</Button>
+						</div>
+					</section>
+
+					<section className="rounded-lg border p-4">
+						<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+							<div>
+								<h2 className="text-base font-semibold">GND payment</h2>
+								<p className="text-sm text-muted-foreground">
+									Outstanding balance: {currency(order.officeAmountDue)}
+								</p>
+							</div>
+							{hasOfficeBalance ? (
 								<Button
 									disabled={createPaymentLink.isPending}
 									onClick={() => createPaymentLink.mutate({ id: order.id })}
 									type="button"
 								>
 									<CreditCard className="mr-2 size-4" />
-									Generate payment link
+									Pay GND balance
 								</Button>
 							) : (
 								<Badge>Paid</Badge>

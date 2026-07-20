@@ -1213,7 +1213,7 @@ export function SalesDetailsScreen({
                 adjustsFontSizeToFit
                 className="shrink text-right text-2xl font-bold text-foreground"
               >
-                {formatMoney(summary.grandTotal)}
+                {formatMoney(summary.totalWithCcc ?? summary.grandTotal)}
               </Text>
             </View>
           </View>

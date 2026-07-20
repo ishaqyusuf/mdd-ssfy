@@ -2,10 +2,16 @@ import {
 	computeHptSharedDoorSurcharge,
 	normalizeHptDoorRowForLegacy,
 } from "./hpt-compatibility";
+import {
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+	sumMoney,
+} from "../../payment-system/domain/money";
 import { readSalesFormObjectMetadata } from "./metadata";
 
 function roundCurrency(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundMoney(value);
 }
 
 function toFinite(value: unknown): number | null {
@@ -17,7 +23,7 @@ function toFinite(value: unknown): number | null {
 function toProfileMultiplier(coefficient?: number | null) {
   const coeff = Number(coefficient);
   if (!Number.isFinite(coeff) || coeff === 0) return 1;
-  return roundCurrency(1 / coeff);
+  return divideMoney(1, coeff);
 }
 
 function valueFromPath(source: unknown, path: string[]): unknown {
@@ -91,7 +97,8 @@ export function repriceSalesFormLineItemsByProfile<
 ): TLine[] {
   const prevMultiplier = toProfileMultiplier(previousProfileCoefficient);
   const nextMultiplier = toProfileMultiplier(nextProfileCoefficient);
-  const ratio = prevMultiplier === 0 ? 1 : nextMultiplier / prevMultiplier;
+  const ratio =
+    prevMultiplier === 0 ? 1 : divideMoney(nextMultiplier, prevMultiplier);
 
   return (lineItems || []).map((line) => {
     const formSteps = (line.formSteps || []).map((step) => {
@@ -104,19 +111,21 @@ export function repriceSalesFormLineItemsByProfile<
               ...component,
               salesPrice:
                 componentBase != null
-                  ? roundCurrency(componentBase * nextMultiplier)
+                  ? multiplyMoney(componentBase, nextMultiplier)
                   : currentSales != null
-                  ? roundCurrency(currentSales * ratio)
+                  ? multiplyMoney(currentSales, ratio)
                   : currentSales,
             };
           })
         : stepMeta.selectedComponents;
 
       const selectedComponentsPrice = Array.isArray(selectedComponents)
-        ? selectedComponents.reduce((sum: number, component: any) => {
-            const sales = toFinite(component?.salesPrice);
-            return sum + Number(sales || 0);
-          }, 0)
+        ? sumMoney(
+            selectedComponents.map((component: any) => {
+              const sales = toFinite(component?.salesPrice);
+              return Number(sales || 0);
+            }),
+          )
         : null;
       const hasSelectedComponentsPrice =
         selectedComponentsPrice != null &&
@@ -130,9 +139,9 @@ export function repriceSalesFormLineItemsByProfile<
       const nextPrice = hasSelectedComponentsPrice
         ? roundCurrency(Number(selectedComponentsPrice || 0))
         : basePrice != null
-          ? roundCurrency(basePrice * nextMultiplier)
+          ? multiplyMoney(basePrice, nextMultiplier)
           : currentPrice != null
-            ? roundCurrency(currentPrice * ratio)
+            ? multiplyMoney(currentPrice, ratio)
             : currentPrice;
 
       return {
@@ -166,15 +175,15 @@ export function repriceSalesFormLineItemsByProfile<
       ]);
       const nextSalesPrice =
         baseUnitPrice != null
-          ? roundCurrency(baseUnitPrice * nextMultiplier)
-          : roundCurrency(unitPrice * ratio);
+          ? multiplyMoney(baseUnitPrice, nextMultiplier)
+          : multiplyMoney(unitPrice, ratio);
       const nextUnitPrice =
         customPrice != null ? roundCurrency(customPrice) : nextSalesPrice;
       return {
         ...row,
         salesPrice: nextSalesPrice,
         unitPrice: nextUnitPrice,
-        totalPrice: roundCurrency(qty * nextUnitPrice),
+        totalPrice: multiplyMoney(qty, nextUnitPrice),
         meta: {
           ...rowMeta,
           ...(baseUnitPrice == null ? {} : { basePrice: baseUnitPrice }),
@@ -207,8 +216,8 @@ export function repriceSalesFormLineItemsByProfile<
       ]);
       const fallbackDoorSales =
         baseUnitPrice != null
-          ? roundCurrency(baseUnitPrice * nextMultiplier)
-          : roundCurrency(currentUnit * ratio);
+          ? multiplyMoney(baseUnitPrice, nextMultiplier)
+          : multiplyMoney(currentUnit, ratio);
       return normalizeHptDoorRowForLegacy(
         {
           ...door,
@@ -231,17 +240,17 @@ export function repriceSalesFormLineItemsByProfile<
       (sum, row) => sum + Number(row?.totalQty || 0),
       0,
     );
-    const doorTotal = doors.reduce(
-      (sum, row) => sum + Number(row?.lineTotal || 0),
-      0,
+    const doorTotal = sumMoney(
+      doors.map((row) => Number(row?.lineTotal || 0)),
     );
-    const stepUnit = formSteps.reduce((sum, step) => {
-      const value = toFinite(step?.price);
-      return sum + Number(value || 0);
-    }, 0);
-    const shelfTotal = shelfItems.reduce(
-      (sum, row) => sum + Number(row?.totalPrice || 0),
-      0,
+    const stepUnit = sumMoney(
+      formSteps.map((step) => {
+        const value = toFinite(step?.price);
+        return Number(value || 0);
+      }),
+    );
+    const shelfTotal = sumMoney(
+      shelfItems.map((row) => Number(row?.totalPrice || 0)),
     );
 
     let qty = Number(line.qty || 0);
@@ -251,16 +260,16 @@ export function repriceSalesFormLineItemsByProfile<
     if (doors.length) {
       qty = doorQty || qty;
       lineTotal = roundCurrency(doorTotal);
-      unitPrice = qty > 0 ? roundCurrency(lineTotal / qty) : unitPrice;
+      unitPrice = qty > 0 ? divideMoney(lineTotal, qty) : unitPrice;
     } else if (shelfItems.length) {
       lineTotal = roundCurrency(shelfTotal);
-      unitPrice = qty > 0 ? roundCurrency(lineTotal / qty) : unitPrice;
+      unitPrice = qty > 0 ? divideMoney(lineTotal, qty) : unitPrice;
     } else if (formSteps.length) {
       unitPrice = roundCurrency(stepUnit);
-      lineTotal = roundCurrency(qty * unitPrice);
+      lineTotal = multiplyMoney(qty, unitPrice);
     } else {
-      unitPrice = roundCurrency(unitPrice * ratio);
-      lineTotal = roundCurrency(qty * unitPrice);
+      unitPrice = multiplyMoney(unitPrice, ratio);
+      lineTotal = multiplyMoney(qty, unitPrice);
     }
 
     return {

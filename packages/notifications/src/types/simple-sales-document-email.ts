@@ -18,6 +18,7 @@ import {
 	salesPdfAttachmentSchema,
 } from "../schemas";
 import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
+import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -232,6 +233,13 @@ async function buildSalesDocumentEmailData(
 				}
 			})()
 		: null;
+	const dealerProgramBanner = primarySale.customerId
+		? await resolveSalesEmailDealerProgramBanner(db, {
+				customerId: primarySale.customerId,
+				customerEmail:
+					normalizeText(input.customerEmail) || primarySale.customerEmail,
+			})
+		: null;
 
 	return {
 		type: input.printType,
@@ -252,6 +260,7 @@ async function buildSalesDocumentEmailData(
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
 		skipPdfAttachment: !attachPdf,
+		dealerProgramBanner,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,
@@ -304,6 +313,8 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			hasPaymentLink: Boolean(data.paymentLink),
 			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
+			dealerProgramCampaignId:
+				data.dealerProgramBanner?.campaignId || undefined,
 		};
 
 		return {
@@ -334,6 +345,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 				paymentLink: data.paymentLink || undefined,
 				...(data.pdfLink ? { pdfLink: data.pdfLink } : {}),
 				hasPdfAttachment: Boolean(data.pdfAttachment),
+				dealerProgramBanner: data.dealerProgramBanner || undefined,
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

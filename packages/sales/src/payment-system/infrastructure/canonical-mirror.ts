@@ -1,4 +1,5 @@
 import { type Db, Prisma, type TransactionClient } from "@gnd/db";
+import { subtractMoney, sumMoney } from "../domain/money";
 
 type MirrorDb = Db | TransactionClient;
 
@@ -89,14 +90,21 @@ async function syncPaymentProjection(db: MirrorDb, salesId: number) {
 	});
 	if (!order) return;
 
-	const positive = order.payments
-		.filter((payment) => (payment.amount || 0) > 0)
-		.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-	const refunded = order.payments
-		.filter((payment) => (payment.amount || 0) < 0)
-		.reduce((sum, payment) => sum + Math.abs(payment.amount || 0), 0);
+	const positive = sumMoney(
+		order.payments
+			.filter((payment) => (payment.amount || 0) > 0)
+			.map((payment) => payment.amount),
+	);
+	const refunded = sumMoney(
+		order.payments
+			.filter((payment) => (payment.amount || 0) < 0)
+			.map((payment) => Math.abs(payment.amount || 0)),
+	);
 	const grandTotal = order.grandTotal || 0;
-	const amountDue = Math.max(grandTotal - (positive - refunded), 0);
+	const amountDue = Math.max(
+		subtractMoney(grandTotal, subtractMoney(positive, refunded)),
+		0,
+	);
 
 	await db.$executeRaw(
 		Prisma.sql`

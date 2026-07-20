@@ -3,6 +3,7 @@ model Customers {
     addressId      Int?
     customerTypeId Int?
     dealerOwnerId  Int?
+    officeVisibility DealerCustomerOfficeVisibility @default(PRIVATE)
     slug           String?               @unique @db.VarChar(255)
     walletId       Int?                  @unique
     name           String?               @db.VarChar(255)
@@ -30,6 +31,7 @@ model Customers {
     @@index([createdAt, deletedAt, name, email, phoneNo])
     @@index([customerTypeId])
     @@index([dealerOwnerId])
+    @@index([dealerOwnerId, officeVisibility])
     @@index([phoneNo])
 }
 

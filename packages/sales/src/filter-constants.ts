@@ -53,6 +53,13 @@ export const SALES_HAS_FILTER_OPTIONS = [
 	"door-slabs-only",
 ] as const;
 
+export const SALES_CHANNEL_FILTER_OPTIONS = ["dealership", "office"] as const;
+
+export const SALES_CHANNEL_FILTER_LABELS = {
+	dealership: "Dealership sales",
+	office: "Office sales",
+} satisfies Record<(typeof SALES_CHANNEL_FILTER_OPTIONS)[number], string>;
+
 export const SALES_HAS_FILTER_LABELS = {
 	services: "Services",
 	moulding: "Moulding",

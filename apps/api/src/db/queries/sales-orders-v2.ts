@@ -24,7 +24,10 @@ import {
 } from "@gnd/utils/constants";
 import { composeQueryData } from "@gnd/utils/query-response";
 import { paginationSchema } from "@gnd/utils/schema";
-import { SALES_HAS_FILTER_OPTIONS } from "@sales/filter-constants";
+import {
+  SALES_CHANNEL_FILTER_OPTIONS,
+  SALES_HAS_FILTER_OPTIONS,
+} from "@sales/filter-constants";
 import {
   getSalesPriorityLabel,
   normalizeSalesPriority,
@@ -71,6 +74,7 @@ const ordersV2FilterShape = {
   "sales.priority": salesPrioritySchema.optional().nullable(),
   "sales.rep": z.string().optional().nullable(),
   has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
+  salesChannel: z.enum(SALES_CHANNEL_FILTER_OPTIONS).optional().nullable(),
   showing: z.enum(["all sales"]).optional().nullable(),
 };
 
@@ -123,6 +127,7 @@ function toLegacyOrdersQuery(
     "sales.priority": query["sales.priority"] ?? query.priority,
     "sales.rep": query["sales.rep"],
     has: query.has,
+    salesChannel: query.salesChannel,
     bin: query.bin,
     showing: query.showing ?? undefined,
   };
@@ -403,7 +408,9 @@ export async function getOrders(ctx: TRPCContext, query: GetOrdersSchema) {
     const usePaymentReceivedSort =
       !hasExplicitSort || sort === PAYMENT_REVIEW_SORT_FIELD;
     const direction: Prisma.SortOrder =
-      sort === PAYMENT_REVIEW_SORT_FIELD && sortOrder === "asc" ? "asc" : "desc";
+      sort === PAYMENT_REVIEW_SORT_FIELD && sortOrder === "asc"
+        ? "asc"
+        : "desc";
     const where = baseWhere ?? {};
     if (query.bin) {
       where.deletedAt = {

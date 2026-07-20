@@ -268,6 +268,18 @@ describe("workflow-calculators domain", () => {
 		expect(summary.unitPrice).toBe(8.5);
 	});
 
+	it("keeps grouped shelf totals authoritative when the display average cannot recompose", () => {
+		const summary = summarizeShelfRows([
+			{ qty: 1, unitPrice: 10.01 },
+			{ qty: 2, unitPrice: 10.02 },
+		]);
+
+		expect(summary.lineTotal).toBe(30.05);
+		expect(summary.unitPrice).toBe(10.02);
+		expect(summary.rateRoundingAdjustment).toBe(-0.01);
+		expect(summary.totalAuthoritative).toBe(true);
+	});
+
 	it("preserves shelf unit prices without explicit base metadata during profile sync", () => {
 		const summary = summarizeShelfRows(
 			[
@@ -456,7 +468,7 @@ describe("workflow-calculators domain", () => {
 		expect(rows[0].meta.categoryIds).toEqual([10, 20]);
 		expect(rows[0].meta.shelfParentCategoryId).toBe(10);
 		expect(rows[0].meta.basePrice).toBe(10);
-		expect(rows[0].meta.salesPrice).toBe(15.4);
+		expect(rows[0].meta.salesPrice).toBe(15.38);
 		expect(rows[0].meta.customPrice).toBe(18);
 	});
 
@@ -508,6 +520,21 @@ describe("workflow-calculators domain", () => {
 		expect(summary.total).toBe(25);
 	});
 
+	it("keeps grouped moulding totals authoritative when the display average cannot recompose", () => {
+		const summary = summarizeMouldingPersistRows(
+			[
+				{ uid: "m1", qty: 1, salesPrice: 10.01 },
+				{ uid: "m2", qty: 2, salesPrice: 10.02 },
+			],
+			0,
+		);
+
+		expect(summary.total).toBe(30.05);
+		expect(summary.unitPrice).toBe(10.02);
+		expect(summary.rateRoundingAdjustment).toBe(-0.01);
+		expect(summary.totalAuthoritative).toBe(true);
+	});
+
 	it("defaults fresh moulding selections to quantity 1 after removal/reselection", () => {
 		const rows = deriveMouldingRows({
 			selectedMouldings: [
@@ -547,6 +574,18 @@ describe("workflow-calculators domain", () => {
 		expect(summary.taxxable).toBe(true);
 		expect(summary.produceable).toBe(true);
 		expect(summary.description).toBe("INSTALL | WRAP");
+	});
+
+	it("keeps grouped service totals authoritative when the display average cannot recompose", () => {
+		const summary = summarizeServiceRows("line-svc", [
+			{ uid: "row-1", service: "Install", qty: 1, unitPrice: 10.01 },
+			{ uid: "row-2", service: "Wrap", qty: 2, unitPrice: 10.02 },
+		]);
+
+		expect(summary.lineTotal).toBe(30.05);
+		expect(summary.unitPrice).toBe(10.02);
+		expect(summary.rateRoundingAdjustment).toBe(-0.01);
+		expect(summary.totalAuthoritative).toBe(true);
 	});
 
 	it("uppercases service row text without trimming the active edit value", () => {

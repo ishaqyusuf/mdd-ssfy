@@ -9,6 +9,10 @@ import {
 } from "@react-email/components";
 import { format } from "date-fns";
 import { Footer } from "../components/footer";
+import {
+	DealerProgramBanner,
+	type DealerProgramBannerProps,
+} from "../components/dealer-program-banner";
 import { Logo } from "../components/logo";
 import {
 	Button,
@@ -23,6 +27,9 @@ type Props = {
 	message?: string;
 	paymentLink?: string;
 	pdfLink?: string;
+	dealerProgramBanner?: (DealerProgramBannerProps & {
+		placement: "TOP" | "BOTTOM";
+	}) | null;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -45,6 +52,7 @@ export default function ComposedSalesDocumentEmail({
 	paymentLink,
 	pdfLink,
 	sales,
+	dealerProgramBanner,
 }: Props) {
 	const themeClasses = getEmailThemeClasses();
 	const lightStyles = getEmailInlineStyles("light");
@@ -81,6 +89,9 @@ export default function ComposedSalesDocumentEmail({
 					}}
 				>
 					<Logo />
+					{dealerProgramBanner?.placement === "TOP" ? (
+						<DealerProgramBanner {...dealerProgramBanner} />
+					) : null}
 
 					<Section
 						className="mt-[20px] mb-[20px] p-[20px]"
@@ -215,6 +226,9 @@ export default function ComposedSalesDocumentEmail({
 						</Section>
 					) : null}
 
+					{dealerProgramBanner?.placement === "BOTTOM" ? (
+						<DealerProgramBanner {...dealerProgramBanner} />
+					) : null}
 					<Footer />
 				</Container>
 			</Body>

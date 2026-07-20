@@ -23,6 +23,10 @@ export interface PrintPage {
 	footer: FooterData | null;
 	config: PrintModeConfig;
 	signing: PrintSigningData | null;
+	branding?: {
+		companyAddress: CompanyAddress;
+		logoUrl?: string | null;
+	};
 }
 
 export interface PageMeta {

@@ -56,7 +56,8 @@ describe("record-normalization application", () => {
 
 		expect(payload.meta.paymentMethod).toBe("Credit Card");
 		expect(payload.summary.ccc).toBe(3.5);
-		expect(payload.summary.grandTotal).toBe(103.5);
+		expect(payload.summary.grandTotal).toBe(100);
+		expect(payload.summary.totalWithCcc).toBe(103.5);
 	});
 
 	it("hydrates shelf rows from row totals instead of stale line totals", () => {

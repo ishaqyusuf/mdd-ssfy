@@ -21,6 +21,7 @@ import {
 import { Field, FieldGroup, FieldTitle } from "@gnd/ui/field";
 import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
+import { multiplyMoney } from "../../../payment-system/domain/money";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -318,11 +319,9 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 											},
 										);
 										const lineBreakdown = {
-											costPrice: Number(
-												(
-													Number(row?.meta?.baseUnitPrice || 0) *
-													Number(row.totalQty || 0)
-												).toFixed(2),
+											costPrice: multiplyMoney(
+												row?.meta?.baseUnitPrice,
+												row.totalQty,
 											),
 											unitCostPrice: row?.meta?.baseUnitPrice,
 											quantity: row.totalQty,

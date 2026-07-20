@@ -1,0 +1,136 @@
+{
+  "capturedAt": "2026-07-18T21:36:36.541Z",
+  "action": "save-draft",
+  "nodeEnv": "development",
+  "userId": 1,
+  "summary": {
+    "type": "quote",
+    "salesId": 24416,
+    "slug": "quote-00002dpp",
+    "autosave": false,
+    "lineItemCount": 1,
+    "extraCostCount": 1
+  },
+  "payload": {
+    "type": "quote",
+    "slug": "quote-00002dpp",
+    "salesId": 24416,
+    "inventoryStatus": null,
+    "version": "1784409799505",
+    "autosave": false,
+    "meta": {
+      "customerId": 3154,
+      "customerProfileId": 1,
+      "billingAddressId": null,
+      "shippingAddressId": null,
+      "paymentTerm": "None",
+      "createdAt": "2026-07-18T21:23:20.000Z",
+      "paymentDueDate": null,
+      "goodUntil": null,
+      "prodDueDate": null,
+      "po": "QA-0718",
+      "notes": "",
+      "deliveryOption": "delivery",
+      "paymentMethod": null,
+      "taxCode": null
+    },
+    "lineItems": [
+      {
+        "id": null,
+        "uid": "dealer-line-1-mrqvirvl-eo2had",
+        "title": "QA Dealership Quote 2026-07-18",
+        "description": "",
+        "qty": 1,
+        "unitPrice": 380.38,
+        "lineTotal": 380.38,
+        "taxxable": null,
+        "meta": {},
+        "formSteps": [
+          {
+            "id": null,
+            "stepId": 1,
+            "componentId": 683,
+            "prodUid": "2K7Mz",
+            "value": "Shelf Items",
+            "meta": {
+              "allowAdd": true,
+              "allowCustom": false,
+              "img": "l7x18ngramkgq96hqgtu.png"
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": null,
+            "stepId": 211,
+            "componentId": null,
+            "prodUid": "",
+            "value": "",
+            "meta": {},
+            "step": {
+              "id": 211,
+              "uid": "VWwOF",
+              "title": "Shelf Items"
+            }
+          }
+        ],
+        "shelfItems": [
+          {
+            "id": null,
+            "categoryId": 16,
+            "productId": 113,
+            "description": "1-6X6-8 1-3/8 PINE LVR/LVR DOOR SLAB",
+            "qty": 1,
+            "unitPrice": 380.38,
+            "totalPrice": 380.38,
+            "meta": {
+              "sectionUid": "shelf-section-wuis2vic",
+              "categoryIds": [
+                1,
+                16
+              ],
+              "shelfParentCategoryId": 1,
+              "productRowUid": "shelf-product-7m3wr9ga",
+              "basePrice": 247,
+              "salesPrice": 380.38,
+              "customPrice": null,
+              "unitPrice": 380.38
+            },
+            "uid": "shelf-product-7m3wr9ga",
+            "basePrice": 247,
+            "salesPrice": 380.38,
+            "customPrice": null
+          }
+        ],
+        "housePackageTool": null
+      }
+    ],
+    "extraCosts": [
+      {
+        "id": null,
+        "label": "Labor",
+        "type": "Labor",
+        "amount": 0,
+        "taxxable": false
+      }
+    ],
+    "summary": {
+      "subTotal": 380.38,
+      "adjustedSubTotal": 380.38,
+      "taxRate": 0,
+      "taxTotal": 0,
+      "grandTotal": 380.38,
+      "discount": 0,
+      "discountPct": 0,
+      "percentDiscountValue": 0,
+      "labor": 0,
+      "delivery": 0,
+      "otherCosts": 0,
+      "taxableSubTotal": 380.38,
+      "ccc": 0
+    }
+  }
+}

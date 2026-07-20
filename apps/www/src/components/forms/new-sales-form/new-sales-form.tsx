@@ -1644,7 +1644,9 @@ export function NewSalesForm(props: Props) {
                 }}
                 orderId={record.orderId}
                 grandTotal={
+                    historyPreview?.record.summary.totalWithCcc ??
                     historyPreview?.record.summary.grandTotal ??
+                    record.summary.totalWithCcc ??
                     record.summary.grandTotal
                 }
                 isSaved={isSaved}

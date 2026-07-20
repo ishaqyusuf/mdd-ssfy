@@ -180,7 +180,11 @@ export function CostsStep() {
           ) : null}
           <TotalRow label="Tax" value={summary.taxTotal} />
           <View className="my-1 h-px bg-border" />
-          <TotalRow label="Grand total" value={summary.grandTotal} strong />
+          <TotalRow
+            label="Grand total"
+            value={summary.totalWithCcc ?? summary.grandTotal}
+            strong
+          />
         </View>
       </View>
     </View>

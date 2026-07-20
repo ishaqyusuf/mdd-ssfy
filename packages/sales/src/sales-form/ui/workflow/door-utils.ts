@@ -10,6 +10,12 @@ import {
 } from "../../domain";
 import type { SalesFormLineItemRecord } from "../../application";
 import { profileAdjustedDoorSalesPrice } from "./door-pricing";
+import {
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
 
 type WorkflowStep = NonNullable<SalesFormLineItemRecord["formSteps"]>[number];
 
@@ -124,7 +130,7 @@ export function calcWorkflowDoorRow<T extends DoorRow>(row: T): T {
 		rhQty,
 		unitPrice,
 		totalQty,
-		lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+		lineTotal: multiplyMoney(totalQty, unitPrice),
 	};
 }
 
@@ -228,7 +234,7 @@ export function deriveDoorSizeRows({
 			salesMultiplier:
 				Number.isFinite(Number(profileCoefficient || 0)) &&
 				Number(profileCoefficient || 0) > 0
-					? Number((1 / Number(profileCoefficient || 0)).toFixed(2))
+					? divideMoney(1, Number(profileCoefficient || 0))
 					: 1,
 			fallbackSalesPrice: component?.salesPrice,
 			fallbackBasePrice: component?.basePrice,
@@ -293,7 +299,7 @@ export function getDoorSupplierMeta(step?: WorkflowStepWithMeta | null) {
 }
 
 export function computeSharedDoorSurcharge(line: DoorLine) {
-	return Number(
+	return sumMoney(
 		(line.formSteps || [])
 			.filter((step) => {
 				const title = String(step?.step?.title || "")
@@ -307,8 +313,7 @@ export function computeSharedDoorSurcharge(line: DoorLine) {
 					title !== "hpt"
 				);
 			})
-			.reduce((sum, step) => sum + Number(step?.price || 0), 0)
-			.toFixed(2),
+			.map((step) => Number(step?.price || 0)),
 	);
 }
 
@@ -350,26 +355,22 @@ export function normalizeStoredDoorRows(rows: DoorRow[]) {
 			lhQty: Number(row?.lhQty || 0),
 			rhQty: Number(row?.rhQty || 0),
 			totalQty: Number(row?.totalQty || 0),
-			unitPrice: Number(Number(row?.unitPrice || 0).toFixed(2)),
-			lineTotal: Number(Number(row?.lineTotal || 0).toFixed(2)),
-			doorPrice: Number(Number(row?.doorPrice || 0).toFixed(2)),
-			jambSizePrice: Number(Number(row?.jambSizePrice || 0).toFixed(2)),
+			unitPrice: roundMoney(Number(row?.unitPrice || 0)),
+			lineTotal: roundMoney(Number(row?.lineTotal || 0)),
+			doorPrice: roundMoney(Number(row?.doorPrice || 0)),
+			jambSizePrice: roundMoney(Number(row?.jambSizePrice || 0)),
 			addon:
 				row?.addon == null || row?.addon === ""
 					? null
-					: Number(Number(row.addon || 0).toFixed(2)),
+					: roundMoney(Number(row.addon || 0)),
 			customPrice:
 				row?.customPrice == null || row?.customPrice === ""
 					? null
-					: Number(Number(row.customPrice || 0).toFixed(2)),
+					: roundMoney(Number(row.customPrice || 0)),
 			meta: {
-				baseUnitPrice: Number(Number(meta.baseUnitPrice || 0).toFixed(2)),
-				doorSalesUnitPrice: Number(
-					Number(meta.doorSalesUnitPrice || 0).toFixed(2),
-				),
-				sharedDoorSurcharge: Number(
-					Number(meta.sharedDoorSurcharge || 0).toFixed(2),
-				),
+				baseUnitPrice: roundMoney(Number(meta.baseUnitPrice || 0)),
+				doorSalesUnitPrice: roundMoney(Number(meta.doorSalesUnitPrice || 0)),
+				sharedDoorSurcharge: roundMoney(Number(meta.sharedDoorSurcharge || 0)),
 				priceMissing: Boolean(meta.priceMissing),
 			},
 		};
@@ -420,25 +421,28 @@ export function repricePersistedDoorRowsForSupplier(args: {
 		});
 		const hasResolvedPrice = Boolean(tierPricing.hasPrice);
 		const baseUnitPrice = hasResolvedPrice
-			? Number((tierPricing.basePrice || 0).toFixed(2))
+			? roundMoney(tierPricing.basePrice || 0)
 			: 0;
-		const nextRow = normalizeHptDoorRowForLegacy({
-			...row,
-			jambSizePrice: hasResolvedPrice
-				? Number((tierPricing.salesPrice || 0).toFixed(2))
-				: 0,
-			meta: {
-				...readDoorRowMeta(row),
-				baseUnitPrice,
-				doorSalesUnitPrice: hasResolvedPrice
-					? Number((tierPricing.salesPrice || 0).toFixed(2))
+		const nextRow = normalizeHptDoorRowForLegacy(
+			{
+				...row,
+				jambSizePrice: hasResolvedPrice
+					? roundMoney(tierPricing.salesPrice || 0)
 					: 0,
-				priceMissing: !hasResolvedPrice,
+				meta: {
+					...readDoorRowMeta(row),
+					baseUnitPrice,
+					doorSalesUnitPrice: hasResolvedPrice
+						? roundMoney(tierPricing.salesPrice || 0)
+						: 0,
+					priceMissing: !hasResolvedPrice,
+				},
 			},
-		}, {
-			sharedDoorSurcharge,
-			salesMultiplier,
-		});
+			{
+				sharedDoorSurcharge,
+				salesMultiplier,
+			},
+		);
 		return hasResolvedPrice
 			? nextRow
 			: clearUnpricedDoorRowQty({
@@ -452,10 +456,8 @@ export function repricePersistedDoorRowsForSupplier(args: {
 		(sum, row) => sum + Number(row?.totalQty || 0),
 		0,
 	);
-	const totalPrice = Number(
-		repricedRows
-			.reduce((sum, row) => sum + Number(row?.lineTotal || 0), 0)
-			.toFixed(2),
+	const totalPrice = sumMoney(
+		repricedRows.map((row) => Number(row?.lineTotal || 0)),
 	);
 
 	return {

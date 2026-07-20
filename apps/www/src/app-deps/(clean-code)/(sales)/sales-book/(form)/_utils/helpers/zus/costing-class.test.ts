@@ -12,7 +12,9 @@ interface PricingLine {
 interface CostingOptions {
 	delivery?: number;
 	discount?: number;
+	discountPercentage?: number;
 	extraCost?: number;
+	paymentMethod?: string;
 	taxPercentage?: number;
 }
 
@@ -20,6 +22,11 @@ function createCosting(lines: PricingLine[], options: CostingOptions = {}) {
 	const extraCosts = [{ type: "Labor", amount: 0 }];
 	if (options.discount)
 		extraCosts.push({ type: "Discount", amount: options.discount });
+	if (options.discountPercentage)
+		extraCosts.push({
+			type: "DiscountPercentage",
+			amount: options.discountPercentage,
+		});
 	if (options.extraCost)
 		extraCosts.push({ type: "Other", amount: options.extraCost });
 
@@ -29,7 +36,7 @@ function createCosting(lines: PricingLine[], options: CostingOptions = {}) {
 				delivery: options.delivery || 0,
 			},
 			extraCosts,
-			paymentMethod: null,
+			paymentMethod: options.paymentMethod || null,
 			salesLaborConfig: {},
 			tax: {
 				percentage: options.taxPercentage ?? 7,
@@ -230,5 +237,66 @@ describe("CostingClass tax calculation", () => {
 			taxValue: 15,
 			grandTotal: 7165,
 		});
+	});
+
+	test("subtracts percentage discounts and keeps the ccc total separate", () => {
+		const { costing, state } = createCosting(
+			[{ totalPrice: 100, type: "DOOR" }],
+			{
+				discountPercentage: 10,
+				paymentMethod: "Credit Card",
+				taxPercentage: 0,
+			},
+		);
+
+		costing.calculateTotalPrice();
+
+		expectPricing(state, {
+			subTotal: 100,
+			discountPct: 10,
+			percentDiscountValue: 10,
+			grandTotal: 90,
+			ccc: 3.15,
+			totalWithCcc: 93.15,
+		});
+	});
+
+	test("rounds subtotal additions through the shared money boundary", () => {
+		const { costing, state } = createCosting([
+			{ totalPrice: 0.1, type: "DOOR" },
+			{ totalPrice: 0.2, type: "DOOR" },
+		]);
+
+		costing.calculateTotalPrice();
+
+		expectPricing(state, {
+			subTotal: 0.3,
+			taxxable: 0.3,
+		});
+	});
+
+	test("treats a custom grouped price as the final unit price", () => {
+		const { costing } = createCosting([]);
+		const groupItem = {
+			pricing: {
+				components: { salesPrice: 20 },
+				flatRate: 5,
+				total: { basePrice: 0, salesPrice: 0 },
+			},
+		};
+		const formData = {
+			selected: true,
+			qty: { total: 3 },
+			pricing: {
+				customPrice: 10,
+				addon: 5,
+				itemPrice: { salesPrice: 30 },
+			},
+		};
+
+		const pricing = costing.getEstimatePricing(groupItem, formData);
+
+		expect(pricing.unitPrice).toBe(10);
+		expect(pricing.totalPrice).toBe(30);
 	});
 });

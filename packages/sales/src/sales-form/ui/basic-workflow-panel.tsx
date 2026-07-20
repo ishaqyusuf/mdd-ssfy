@@ -4,6 +4,7 @@
 import { Button } from "@gnd/ui/button";
 import { Input } from "@gnd/ui/input";
 import { Textarea } from "@gnd/ui/textarea";
+import { multiplyMoney } from "../../payment-system/domain/money";
 import {
 	componentLabel,
 	getLineTitlePlaceholder,
@@ -137,7 +138,7 @@ function BasicWorkflowLineEditor<TLine extends SalesFormBasicWorkflowLine>({
 	const lineUid = String(line.uid || "");
 	const computedTotal =
 		getLineTotalValue?.(line) ??
-		Number((numberValue(line.qty) * numberValue(line.unitPrice)).toFixed(2));
+		multiplyMoney(numberValue(line.qty), numberValue(line.unitPrice));
 
 	return (
 		<div className="space-y-4">

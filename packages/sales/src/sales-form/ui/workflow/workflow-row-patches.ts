@@ -25,6 +25,7 @@ import {
 	type ShelfSectionDraft,
 	type WorkflowLineItemRecord,
 } from "./workflow-records";
+import { divideMoney, sumMoney } from "../../../payment-system/domain/money";
 
 type LinePatch = Record<string, unknown>;
 
@@ -37,9 +38,7 @@ function selectedDoorQty(row: DoorStoredRow) {
 
 function removeSelectedUnpricedDoorRows(rows: DoorStoredRow[]) {
 	return rows
-		.filter(
-			(row) => selectedDoorQty(row) <= 0 || !isDoorRowPriceMissing(row),
-		)
+		.filter((row) => selectedDoorQty(row) <= 0 || !isDoorRowPriceMissing(row))
 		.map(clearUnpricedDoorRowQty);
 }
 
@@ -85,9 +84,7 @@ export function buildWorkflowMouldingRowsContext(
 		selectedMouldings,
 		sharedComponentPrice,
 		totalQty: rows.reduce((sum, row) => sum + Number(row.qty || 0), 0),
-		totalAmount: Number(
-			rows.reduce((sum, row) => sum + Number(row.lineTotal || 0), 0).toFixed(2),
-		),
+		totalAmount: sumMoney(rows.map((row) => Number(row.lineTotal || 0))),
 	};
 }
 
@@ -104,6 +101,8 @@ export function buildWorkflowMouldingRowsPatch(input: {
 		meta: {
 			...readLineMeta(input.line.meta),
 			mouldingRows: next.storedRows,
+			rateRoundingAdjustment: next.rateRoundingAdjustment,
+			totalAuthoritative: next.totalAuthoritative,
 		},
 		qty: next.qtyTotal,
 		lineTotal: next.total,
@@ -143,6 +142,8 @@ export function buildWorkflowServiceRowsPatch(input: {
 			serviceRows: next.rows,
 			taxxable: next.taxxable,
 			produceable: next.produceable,
+			rateRoundingAdjustment: next.rateRoundingAdjustment,
+			totalAuthoritative: next.totalAuthoritative,
 		},
 		qty: next.qtyTotal,
 		unitPrice: next.unitPrice,
@@ -180,6 +181,7 @@ export function buildWorkflowShelfSectionsContext(
 }
 
 export function buildWorkflowShelfSectionsPatch(input: {
+	line: WorkflowLineItemRecord;
 	sections: ShelfSectionDraft[];
 	profileCoefficient?: number | null;
 }): WorkflowShelfSectionsPatch {
@@ -198,6 +200,11 @@ export function buildWorkflowShelfSectionsPatch(input: {
 			qty: next.qtyTotal,
 			unitPrice: next.unitPrice,
 			lineTotal: next.lineTotal,
+			meta: {
+				...readLineMeta(input.line.meta),
+				rateRoundingAdjustment: next.rateRoundingAdjustment,
+				totalAuthoritative: next.totalAuthoritative,
+			},
 		},
 	};
 }
@@ -225,7 +232,7 @@ export function buildWorkflowDoorRowsPatch(input: {
 		hasSwing: input.hasSwing !== false,
 	});
 	const unitPrice =
-		next.totalDoors > 0 ? Number((next.totalPrice / next.totalDoors).toFixed(2)) : 0;
+		next.totalDoors > 0 ? divideMoney(next.totalPrice, next.totalDoors) : 0;
 	return {
 		rows: next.rows,
 		totalDoors: next.totalDoors,
@@ -281,13 +288,10 @@ export function buildWorkflowDoorSizeVariantPatch(input: {
 		(sum, door) => sum + Number(door.totalQty || 0),
 		0,
 	);
-	const totalPrice = Number(
-		nextDoors
-			.reduce((sum, door) => sum + Number(door.lineTotal || 0), 0)
-			.toFixed(2),
+	const totalPrice = sumMoney(
+		nextDoors.map((door) => Number(door.lineTotal || 0)),
 	);
-	const unitPrice =
-		totalDoors > 0 ? Number((totalPrice / totalDoors).toFixed(2)) : 0;
+	const unitPrice = totalDoors > 0 ? divideMoney(totalPrice, totalDoors) : 0;
 	return {
 		rows: nextRows,
 		doors: nextDoors,

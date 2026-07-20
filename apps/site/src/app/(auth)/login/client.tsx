@@ -5,7 +5,7 @@ import { Icons } from "@gnd/ui/icons";
 import type React from "react";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Footer } from "@/components/footer";
 import { Button } from "@gnd/ui/button";
@@ -13,14 +13,11 @@ import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { Alert, AlertDescription } from "@gnd/ui/alert";
-import { useAuthStore } from "@/lib/auth-store";
-import { useCartStore } from "@/lib/cart-store";
 import { signIn } from "next-auth/react";
 
 export function Client() {
   const router = useRouter();
-  const { login } = useAuthStore();
-  const { getTotalItems } = useCartStore();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -38,23 +35,27 @@ export function Client() {
     e.preventDefault();
     setIsLoading(true);
     setError("");
-    signIn("credentials", {
-      email: formData.email,
-      password: formData.password,
-      callbackURL: "/",
-      type: "customer",
-    }).catch((e) => {
-      console.log(e);
-    });
-    // const result = await login(formData.email, formData.password);
-
-    // if (result.success) {
-    //   router.push("/account");
-    // } else {
-    //   setError(result.error || "Login failed");
-    // }
-
-    setIsLoading(false);
+    const requestedCallback = searchParams.get("callbackUrl") || "/";
+    const callbackUrl = requestedCallback.startsWith("/")
+      ? requestedCallback
+      : "/";
+    try {
+      const result = await signIn("credentials", {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
+      if (!result?.ok) {
+        setError("The email or password is incorrect.");
+        return;
+      }
+      router.replace(callbackUrl);
+      router.refresh();
+    } catch {
+      setError("Unable to sign in. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

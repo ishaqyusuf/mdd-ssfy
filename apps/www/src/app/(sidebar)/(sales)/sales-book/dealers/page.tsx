@@ -4,7 +4,7 @@ import PageShell from "@/components/page-shell";
 import { ScrollableContent } from "@/components/scrollable-content";
 import { _role } from "@/components/sidebar-links";
 import { constructMetadata } from "@/lib/(clean-code)/construct-metadata";
-import { HydrateClient, batchPrefetch, trpc } from "@/trpc/server";
+import { HydrateClient, getQueryClient, trpc } from "@/trpc/server";
 import { getInitialTableSettings } from "@/utils/columns";
 import { PageTitle } from "@gnd/ui/custom/page-title";
 import type { SearchParams } from "nuqs";
@@ -28,12 +28,15 @@ export default async function SalesDealersPage(props: Props) {
 		: searchParams.search;
 	const initialSettings = await getInitialTableSettings("dealers");
 
-	batchPrefetch([
-		trpc.dealer.list.queryOptions({
-			search: search || null,
-			size: 50,
-		}),
-		trpc.dealer.salesProfiles.queryOptions(),
+	const queryClient = getQueryClient();
+	await Promise.all([
+		queryClient.fetchQuery(
+			trpc.dealer.list.queryOptions({
+				search: search || null,
+				size: 50,
+			}),
+		),
+		queryClient.fetchQuery(trpc.dealer.salesProfiles.queryOptions()),
 	]);
 
 	return (

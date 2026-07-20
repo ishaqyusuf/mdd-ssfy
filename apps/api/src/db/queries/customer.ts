@@ -11,6 +11,7 @@ import type {
 } from "@api/schemas/customer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
+import { buildOfficeCustomerVisibilityWhere } from "@gnd/db/queries";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
@@ -46,8 +47,13 @@ function buildCustomerLookupWhere(
 ): Prisma.CustomersWhereInput {
 	const [prefix, rawId] = accountNo.split("-");
 	return {
-		phoneNo: prefix === "cust" ? undefined : accountNo,
-		id: prefix === "cust" ? Number(rawId) : undefined,
+		AND: [
+			{
+				phoneNo: prefix === "cust" ? undefined : accountNo,
+				id: prefix === "cust" ? Number(rawId) : undefined,
+			},
+			buildOfficeCustomerVisibilityWhere(),
+		],
 	};
 }
 
@@ -403,9 +409,15 @@ async function getCustomerWorkspaceSales(
 
 export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
 	const { db } = ctx;
+	const baseWhere = whereCustomer(query);
 	const { response, searchMeta, where } = await composeQueryData(
 		query,
-		whereCustomer(query),
+		{
+			AND: [
+				...(baseWhere ? [baseWhere] : []),
+				buildOfficeCustomerVisibilityWhere(),
+			],
+		},
 		db.customers,
 	);
 	const data = await db.customers.findMany({
@@ -417,8 +429,14 @@ export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
 }
 
 export async function getCustomersCount(ctx: TRPCContext, query: GetCustomers) {
+	const baseWhere = whereCustomer(query);
 	return ctx.db.customers.count({
-		where: whereCustomer(query),
+		where: {
+			AND: [
+				...(baseWhere ? [baseWhere] : []),
+				buildOfficeCustomerVisibilityWhere(),
+			],
+		},
 	});
 }
 
@@ -428,6 +446,18 @@ export async function createOrUpdateCustomer(
 ) {
 	return ctx.db.$transaction(async (tx) => {
 		let customerId = input.id;
+		if (input.id) {
+			const target = await tx.customers.findUnique({
+				where: { id: input.id },
+				select: { dealerOwnerId: true },
+			});
+			if (target?.dealerOwnerId) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Dealer-owned customers are read-only in office mode.",
+				});
+			}
+		}
 		const isBusiness = input.customerType === "Business";
 		const customerData: any = {
 			name: input.name || null,
@@ -520,7 +550,9 @@ export async function createOrUpdateCustomer(
 			const existingPrimary = await tx.addressBooks.findFirst({
 				where: {
 					id: addressId,
+					customerId,
 					isPrimary: true,
+					deletedAt: null,
 				},
 				select: {
 					id: true,
@@ -573,6 +605,16 @@ export async function createOrUpdateCustomerAddress(
 				message: "Customer id is required for address update.",
 			});
 		}
+		const target = await tx.customers.findUnique({
+			where: { id: customerId },
+			select: { dealerOwnerId: true },
+		});
+		if (target?.dealerOwnerId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "Dealer-owned customers are read-only in office mode.",
+			});
+		}
 		const name =
 			input.customerType === "Business" ? input.businessName : input.name;
 		const addressData: any = {
@@ -615,14 +657,27 @@ export async function createOrUpdateCustomerAddress(
 			if (ordersOnAddress > 0) addressId = undefined;
 		}
 		if (addressId) {
-			const updated = await tx.addressBooks.update({
+			const ownedAddress = await tx.addressBooks.findFirst({
 				where: {
 					id: addressId,
+					customerId,
+					deletedAt: null,
 				},
-				data: addressData,
+				select: { id: true },
 			});
-			addressId = updated.id;
-		} else {
+			if (ownedAddress) {
+				const updated = await tx.addressBooks.update({
+					where: {
+						id: ownedAddress.id,
+					},
+					data: addressData,
+				});
+				addressId = updated.id;
+			} else {
+				addressId = undefined;
+			}
+		}
+		if (!addressId) {
 			const created = await tx.addressBooks.create({
 				data: addressData,
 			});
@@ -648,30 +703,31 @@ export async function searchCustomers(
 
 	const customers = await db.customers.findMany({
 		where: {
-			OR: [
+			AND: [
+				buildOfficeCustomerVisibilityWhere(),
 				{
-					name: {
-						contains: searchTerm,
-						// mode: 'insensitive',
-					},
-				},
-				{
-					businessName: {
-						contains: searchTerm,
-						// mode: 'insensitive',
-					},
-				},
-				{
-					phoneNo: {
-						contains: searchTerm,
-						// mode: 'insensitive',
-					},
-				},
-				{
-					email: {
-						contains: searchTerm,
-						// mode: 'insensitive',
-					},
+					OR: [
+						{
+							name: {
+								contains: searchTerm,
+							},
+						},
+						{
+							businessName: {
+								contains: searchTerm,
+							},
+						},
+						{
+							phoneNo: {
+								contains: searchTerm,
+							},
+						},
+						{
+							email: {
+								contains: searchTerm,
+							},
+						},
+					],
 				},
 			],
 		},
@@ -681,6 +737,14 @@ export async function searchCustomers(
 			businessName: true,
 			phoneNo: true,
 			email: true,
+			dealerOwnerId: true,
+			officeVisibility: true,
+			dealerOwner: {
+				select: {
+					companyName: true,
+					name: true,
+				},
+			},
 		},
 		take: 10, // Limit results for performance
 	});
@@ -696,25 +760,29 @@ export async function getCustomerDirectoryV2Summary(
 
 	const [totalCustomers, businessCustomers, customersWithEmail, openQuotes] =
 		await Promise.all([
-			db.customers.count(),
+			db.customers.count({
+				where: buildOfficeCustomerVisibilityWhere(),
+			}),
 			db.customers.count({
 				where: {
-					businessName: {
-						not: null,
-					},
+					AND: [
+						buildOfficeCustomerVisibilityWhere(),
+						{ businessName: { not: null } },
+					],
 				},
 			}),
 			db.customers.count({
 				where: {
-					email: {
-						not: null,
-					},
+					AND: [buildOfficeCustomerVisibilityWhere(), { email: { not: null } }],
 				},
 			}),
 			db.salesOrders.count({
 				where: {
 					deletedAt: null,
 					type: "quote",
+					customer: {
+						is: buildOfficeCustomerVisibilityWhere(),
+					},
 				},
 			}),
 		]);
@@ -737,6 +805,9 @@ export async function getCustomerStatementReport(
 		where: {
 			deletedAt: null,
 			type: "order",
+			customer: {
+				is: buildOfficeCustomerVisibilityWhere(),
+			},
 			amountDue: {
 				gt: 0,
 			},
@@ -911,9 +982,9 @@ export async function getCustomerStatementDetail(
 ) {
 	await assertCanGenerateSalesStatementReport(ctx);
 
-	const customer = await ctx.db.customers.findUnique({
+	const customer = await ctx.db.customers.findFirst({
 		where: {
-			id: query.customerId,
+			AND: [{ id: query.customerId }, buildOfficeCustomerVisibilityWhere()],
 		},
 		select: {
 			id: true,
@@ -1101,6 +1172,14 @@ export async function getCustomerOverviewV2(
 			email: true,
 			address: true,
 			meta: true,
+			dealerOwnerId: true,
+			officeVisibility: true,
+			dealerOwner: {
+				select: {
+					companyName: true,
+					name: true,
+				},
+			},
 			profile: {
 				select: {
 					id: true,
@@ -1136,6 +1215,12 @@ export async function getCustomerOverviewV2(
 			},
 		},
 	});
+	if (!customer) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Customer was not found.",
+		});
+	}
 
 	const [
 		pendingPaymentOrders,
@@ -1194,6 +1279,16 @@ export async function getCustomerOverviewV2(
 			profileId: customer?.profile?.id || null,
 			netTerm: customerMeta?.netTerm || null,
 			isBusiness: !!customer?.businessName,
+			isReadOnly: !!customer?.dealerOwnerId,
+			dealerOwner: customer?.dealerOwnerId
+				? {
+						id: customer.dealerOwnerId,
+						name:
+							customer.dealerOwner?.companyName ||
+							customer.dealerOwner?.name ||
+							`Dealer #${customer.dealerOwnerId}`,
+					}
+				: null,
 		},
 		addresses: {
 			primary: primaryAddress,
@@ -1238,6 +1333,14 @@ export async function customerInfoSearch(
 
 	const contains = !q ? undefined : { contains: q };
 	if (customerId) {
+		const officeCustomer = await db.customers.findFirst({
+			where: {
+				id: customerId,
+				dealerOwnerId: null,
+			},
+			select: { id: true },
+		});
+		if (!officeCustomer) return [];
 		const addresses = await db.addressBooks.findMany({
 			where: {
 				customerId,
@@ -1276,20 +1379,17 @@ export async function customerInfoSearch(
 		take: q ? 15 : 5,
 		distinct: ["name"],
 		where: !q
-			? undefined
+			? { dealerOwnerId: null }
 			: {
-					OR: [
+					AND: [
+						{ dealerOwnerId: null },
 						{
-							name: contains,
-						},
-						{
-							phoneNo: contains,
-						},
-						{
-							email: contains,
-						},
-						{
-							address: contains,
+							OR: [
+								{ name: contains },
+								{ phoneNo: contains },
+								{ email: contains },
+								{ address: contains },
+							],
 						},
 					],
 				},
@@ -1402,9 +1502,10 @@ export async function getSalesCustomer(
 ) {
 	const { db } = ctx;
 	const { customerId, shippingId, billingId } = query;
-	const customer = await db.customers.findUniqueOrThrow({
+	const customer = await db.customers.findFirstOrThrow({
 		where: {
 			id: customerId,
+			dealerOwnerId: null,
 		},
 		include: {
 			taxProfiles: {
@@ -1611,8 +1712,7 @@ export async function getCustomerPendingSales(ctx: TRPCContext, accountNo) {
 		paidAmount: Number(rest.grandTotal || 0) - Number(rest.amountDue || 0),
 		paymentMethod: resolvePendingSalePaymentMethod(rest.meta),
 		customerName: bAddr?.name || customer?.businessName || customer?.name,
-		customerEmail:
-			bAddr?.email?.trim() || customer?.email?.trim() || null,
+		customerEmail: bAddr?.email?.trim() || customer?.email?.trim() || null,
 		customerPhone: bAddr?.phoneNo || customer?.phoneNo || null,
 		customerAddress: bAddr?.address1 || customer?.address || null,
 	}));
@@ -1653,6 +1753,12 @@ export async function updateCustomerEmail(
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Customer not found.",
+		});
+	}
+	if (customer.dealerOwnerId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Dealer-owned customers are read-only in office mode.",
 		});
 	}
 	const updated = await ctx.db.customers.update({

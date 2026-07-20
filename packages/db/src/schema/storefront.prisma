@@ -1,0 +1,359 @@
+enum StorefrontPublicationStatus {
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+}
+
+enum StorefrontCollectionType {
+    CART
+    WISHLIST
+}
+
+enum StorefrontCollectionStatus {
+    ACTIVE
+    CHECKOUT
+    COMPLETED
+    ABANDONED
+    EXPIRED
+}
+
+enum StorefrontLineValidationStatus {
+    PENDING
+    VALID
+    PRICE_CHANGED
+    UNAVAILABLE
+    INVALID
+}
+
+enum StorefrontCheckoutStatus {
+    DRAFT
+    READY
+    PAYMENT_PENDING
+    PAID
+    ORDER_CREATED
+    FAILED
+    CANCELLED
+    EXPIRED
+}
+
+enum StorefrontInquiryType {
+    CONTACT
+    CUSTOM_QUOTE
+}
+
+enum StorefrontInquiryStatus {
+    NEW
+    IN_REVIEW
+    RESPONDED
+    CLOSED
+    SPAM
+}
+
+/// Public presentation for an existing Item Type component. The Dyke component
+/// remains the owner of compatibility and routing.
+model StorefrontCategory {
+    id                   String                      @id @default(cuid())
+    rootStepUid          String
+    rootComponentUid     String                      @unique
+    listingStepUid       String?
+    slug                 String                      @unique @db.VarChar(191)
+    title                String                      @db.VarChar(255)
+    description          String?                     @db.LongText
+    imageUrl             String?                     @db.Text
+    seo                   Json?                       @db.Json
+    status               StorefrontPublicationStatus @default(DRAFT)
+    sortOrder             Int                         @default(0)
+    publishedAt          DateTime?                    @db.Timestamp(0)
+    createdByUserId      Int?
+    updatedByUserId      Int?
+    createdAt            DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime                     @updatedAt
+    deletedAt            DateTime?                    @db.Timestamp(0)
+    offers               StorefrontOffer[]
+
+    @@index([status, sortOrder])
+    @@index([rootStepUid])
+    @@index([listingStepUid])
+    @@index([deletedAt])
+}
+
+/// Customer-facing entry into an existing Dyke route. This is an overlay, not
+/// a second product or pricing definition.
+model StorefrontOffer {
+    id                   String                      @id @default(cuid())
+    categoryId           String
+    sourceStepUid        String
+    sourceComponentUid   String                      @unique
+    slug                 String                      @unique @db.VarChar(191)
+    title                String                      @db.VarChar(255)
+    description          String?                     @db.LongText
+    imageUrl             String?                     @db.Text
+    seo                   Json?                       @db.Json
+    availability         Json?                       @db.Json
+    status               StorefrontPublicationStatus @default(DRAFT)
+    sortOrder             Int                         @default(0)
+    configurationVersion Int                         @default(1)
+    publishedAt          DateTime?                    @db.Timestamp(0)
+    createdByUserId      Int?
+    updatedByUserId      Int?
+    createdAt            DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime                     @updatedAt
+    deletedAt            DateTime?                    @db.Timestamp(0)
+    category             StorefrontCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    stepPolicies         StorefrontStepPolicy[]
+    componentPolicies    StorefrontOfferComponentPolicy[]
+
+    @@unique([categoryId, slug])
+    @@index([categoryId, status, sortOrder])
+    @@index([sourceStepUid])
+    @@index([deletedAt])
+}
+
+/// Storefront availability and public metadata for any existing Dyke
+/// component. The source component continues to own its name, image,
+/// relationships, and internal metadata.
+model StorefrontComponent {
+    id                    String                      @id @default(cuid())
+    sourceStepUid         String
+    sourceComponentUid    String                      @unique
+    availableOnStorefront Boolean                     @default(false)
+    title                 String?                     @db.VarChar(255)
+    description           String?                     @db.LongText
+    imageUrl              String?                     @db.Text
+    status                StorefrontPublicationStatus @default(DRAFT)
+    sortOrder             Int                         @default(0)
+    metadata              Json?                       @db.Json
+    createdByUserId       Int?
+    updatedByUserId       Int?
+    createdAt             DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                     @updatedAt
+    deletedAt             DateTime?                    @db.Timestamp(0)
+
+    @@index([sourceStepUid, availableOnStorefront, sortOrder], map: "StorefrontComponent_step_available_sort_idx")
+    @@index([status])
+    @@index([deletedAt])
+}
+
+/// Controls which canonical steps a customer sees and which valid canonical
+/// component is applied when a step is hidden or automatically configured.
+model StorefrontStepPolicy {
+    id                  String   @id @default(cuid())
+    offerId             String
+    stepUid             String
+    title               String?  @db.VarChar(255)
+    helpText            String?  @db.LongText
+    visible             Boolean  @default(true)
+    required            Boolean  @default(false)
+    allowSkip           Boolean  @default(false)
+    autoSelect          Boolean  @default(false)
+    defaultComponentUid String?
+    sortOrder           Int      @default(0)
+    metadata            Json?    @db.Json
+    createdAt           DateTime @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime @updatedAt
+    offer               StorefrontOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+    @@unique([offerId, stepUid])
+    @@index([offerId, sortOrder])
+    @@index([stepUid])
+}
+
+/// Optional offer-specific component restriction/default layered over the
+/// global StorefrontComponent availability flag.
+model StorefrontOfferComponentPolicy {
+    id                 String   @id @default(cuid())
+    offerId            String
+    stepUid            String
+    sourceComponentUid String
+    enabled            Boolean  @default(true)
+    defaultSelected    Boolean  @default(false)
+    sortOrder          Int      @default(0)
+    metadata           Json?    @db.Json
+    createdAt          DateTime @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime @updatedAt
+    offer              StorefrontOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+    @@unique([offerId, stepUid, sourceComponentUid])
+    @@index([offerId, stepUid, enabled, sortOrder])
+    @@index([sourceComponentUid])
+}
+
+/// One server-owned collection format supports both cart and wishlist while
+/// preserving the same lossless canonical sales-line configuration.
+model StorefrontCommerceCollection {
+    id                    String                       @id @default(cuid())
+    type                  StorefrontCollectionType
+    status                StorefrontCollectionStatus  @default(ACTIVE)
+    ownerUserId           Int?
+    guestTokenHash        String?                      @db.VarChar(191)
+    currency              String                       @default("USD") @db.VarChar(3)
+    version               Int                          @default(1)
+    expiresAt             DateTime?                    @db.Timestamp(0)
+    completedSalesOrderId Int?
+    createdAt             DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                     @updatedAt
+    lines                 StorefrontCommerceLine[]
+    checkouts             StorefrontCheckout[]
+
+    @@index([ownerUserId, type, status])
+    @@index([guestTokenHash, type, status])
+    @@index([status, expiresAt])
+    @@index([completedSalesOrderId])
+}
+
+model StorefrontCommerceLine {
+    id                       String                         @id @default(cuid())
+    collectionId             String
+    offerId                  String?
+    rootStepUid              String
+    rootComponentUid         String
+    quantity                 Decimal                        @db.Decimal(12, 3)
+    configuration            Json                           @db.Json
+    configurationHash        String                         @db.VarChar(191)
+    configurationVersion     Int                            @default(1)
+    pricingSnapshot          Json                           @db.Json
+    unitPrice                Decimal                        @db.Decimal(12, 2)
+    lineTotal                Decimal                        @db.Decimal(12, 2)
+    validationStatus         StorefrontLineValidationStatus @default(PENDING)
+    validationMessage        String?                        @db.Text
+    lastValidatedAt          DateTime?                      @db.Timestamp(0)
+    createdAt                DateTime                        @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime                        @updatedAt
+    collection               StorefrontCommerceCollection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+    @@index([collectionId, createdAt])
+    @@index([offerId])
+    @@index([rootComponentUid])
+    @@index([configurationHash])
+    @@index([validationStatus])
+}
+
+/// Durable, idempotent transition from a cart snapshot to the canonical
+/// SalesOrders workflow. It is checkout state, not a parallel order.
+model StorefrontCheckout {
+    id                    String                   @id @default(cuid())
+    collectionId          String
+    ownerUserId           Int?
+    idempotencyKey        String                   @unique @db.VarChar(191)
+    status                StorefrontCheckoutStatus @default(DRAFT)
+    version               Int                      @default(1)
+    acceptedConfiguration Json?                    @db.Json
+    totals                Json?                    @db.Json
+    shippingAddress       Json?                    @db.Json
+    billingAddress        Json?                    @db.Json
+    paymentProvider       String?                  @db.VarChar(64)
+    paymentReference      String?                  @db.VarChar(191)
+    salesOrderId          Int?
+    errorCode             String?                  @db.VarChar(191)
+    errorMessage          String?                  @db.Text
+    expiresAt             DateTime?                @db.Timestamp(0)
+    paidAt                DateTime?                @db.Timestamp(0)
+    completedAt           DateTime?                @db.Timestamp(0)
+    createdAt             DateTime                  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                  @updatedAt
+    collection            StorefrontCommerceCollection @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+
+    @@index([collectionId, status])
+    @@index([ownerUserId, createdAt])
+    @@index([salesOrderId])
+    @@index([paymentReference])
+}
+
+model StorefrontPage {
+    id              String                      @id @default(cuid())
+    slug            String                      @unique @db.VarChar(191)
+    title           String                      @db.VarChar(255)
+    description     String?                     @db.LongText
+    seo             Json?                       @db.Json
+    status          StorefrontPublicationStatus @default(DRAFT)
+    publishedAt     DateTime?                    @db.Timestamp(0)
+    createdByUserId Int?
+    updatedByUserId Int?
+    createdAt       DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime                     @updatedAt
+    deletedAt       DateTime?                    @db.Timestamp(0)
+    sections        StorefrontSection[]
+
+    @@index([status, publishedAt])
+    @@index([deletedAt])
+}
+
+model StorefrontSection {
+    id          String                      @id @default(cuid())
+    pageId      String
+    key         String                      @db.VarChar(191)
+    type        String                      @db.VarChar(64)
+    content     Json                        @db.Json
+    status      StorefrontPublicationStatus @default(DRAFT)
+    sortOrder   Int                         @default(0)
+    publishedAt DateTime?                   @db.Timestamp(0)
+    createdAt   DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime                     @updatedAt
+    page        StorefrontPage               @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+    @@unique([pageId, key])
+    @@index([pageId, status, sortOrder])
+}
+
+model StorefrontAuditEvent {
+    id          String   @id @default(cuid())
+    actorUserId Int?
+    ownerUserId Int?
+    guestHash   String?  @db.VarChar(191)
+    action      String   @db.VarChar(191)
+    entityType  String   @db.VarChar(64)
+    entityId    String?  @db.VarChar(191)
+    requestId   String?  @db.VarChar(191)
+    ipHash      String?  @db.VarChar(191)
+    userAgent   String?  @db.Text
+    metadata    Json?    @db.Json
+    createdAt   DateTime @default(now()) @db.Timestamp(0)
+
+    @@index([actorUserId, createdAt])
+    @@index([ownerUserId, createdAt])
+    @@index([guestHash, createdAt])
+    @@index([entityType, entityId, createdAt])
+    @@index([action, createdAt])
+}
+
+/// Contact and custom-quote intake is persisted for staff follow-up. It never
+/// creates an order or quote without an explicit office-side review.
+model StorefrontInquiry {
+    id           String                  @id @default(cuid())
+    type         StorefrontInquiryType
+    status       StorefrontInquiryStatus @default(NEW)
+    ownerUserId  Int?
+    name         String                  @db.VarChar(255)
+    email        String                  @db.VarChar(320)
+    phone        String?                 @db.VarChar(64)
+    subject      String?                 @db.VarChar(255)
+    message      String                  @db.LongText
+    projectTypes Json?                   @db.Json
+    budget       String?                 @db.VarChar(191)
+    assignedToId Int?
+    requestId    String?                 @db.VarChar(191)
+    ipHash       String?                 @db.VarChar(191)
+    createdAt    DateTime                @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime                @updatedAt
+    closedAt     DateTime?               @db.Timestamp(0)
+
+    @@index([status, createdAt])
+    @@index([type, status, createdAt])
+    @@index([ownerUserId, createdAt])
+    @@index([assignedToId, status])
+}
+
+/// Single-use, hashed recovery credential for customer password resets. Raw
+/// reset tokens are only sent to the customer and never stored.
+model StorefrontPasswordResetToken {
+    id          String    @id @default(cuid())
+    userId      Int
+    tokenHash   String    @unique @db.VarChar(191)
+    expiresAt   DateTime  @db.Timestamp(0)
+    consumedAt  DateTime? @db.Timestamp(0)
+    requestHash String?   @db.VarChar(191)
+    createdAt   DateTime  @default(now()) @db.Timestamp(0)
+
+    @@index([userId, createdAt])
+    @@index([expiresAt, consumedAt])
+}

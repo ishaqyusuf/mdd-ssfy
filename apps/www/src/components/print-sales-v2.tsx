@@ -131,7 +131,7 @@ function PrintSalesV2FromFilters({
 		showImages: showImages ?? filters.showImages,
 		headlineFirstPage: headlineFirstPage ?? filters.headlineFirstPage,
 		mode: mode ?? filters.mode,
-		pricingMode,
+		pricingMode: pricingMode ?? filters.pricingMode,
 	});
 
 	return (

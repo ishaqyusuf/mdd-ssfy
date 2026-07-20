@@ -2,15 +2,12 @@
 
 import { Icons } from "@gnd/ui/icons";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Footer } from "@/components/footer";
 import { CartItem } from "@/components/cart-item";
 import { OrderSummary } from "@/components/order-summary";
 import { Button } from "@gnd/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
-import { useCartStore } from "@/lib/cart-store";
-
 import { CartProvider, useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -37,7 +34,7 @@ function Content() {
     );
   }
 
-  if (list.length === 0) {
+  if (!list.length) {
     return (
       <div className="min-h-screen bg-background">
         <main className="container mx-auto px-4 py-8">
@@ -104,16 +101,16 @@ function Content() {
           <div className="space-y-6">
             <OrderSummary />
 
-            <Link href={auth.id ? "/checkout" : "/signup"}>
+            <Link href={auth.id ? "/checkout" : "/login?callbackUrl=/checkout"}>
               <Button className="w-full bg-amber-700 hover:bg-amber-800 text-lg py-3">
                 Proceed to Checkout
               </Button>
             </Link>
 
-            <div className="text-center text-sm text-gray-600">
-              <p>Free shipping on orders over $500</p>
-              <p>Secure checkout with SSL encryption</p>
-            </div>
+            <p className="text-center text-sm text-gray-600">
+              Shipping and tax are calculated from the verified delivery
+              address at checkout.
+            </p>
           </div>
         </div>
       </main>

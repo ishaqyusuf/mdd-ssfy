@@ -109,6 +109,7 @@ export const printRouter = createTRPCRouter({
 		)
 		.query(async (props) => {
 			const startedAt = Date.now();
+			const pricingMode = props.input.pricingMode ?? null;
 			console.info("[sales-print] print-data-query-start", {
 				locator: props.input.pt
 					? "public-token"
@@ -121,6 +122,7 @@ export const printRouter = createTRPCRouter({
 								: "missing",
 				preview: props.input.preview,
 				templateId: props.input.templateId,
+				pricingMode,
 			});
 			try {
 				const data = await resolveSalesDocumentPreviewData({
@@ -135,7 +137,7 @@ export const printRouter = createTRPCRouter({
 						showImages: props.input.showImages,
 						headlineFirstPage: props.input.headlineFirstPage,
 					},
-					pricingMode: props.input.pricingMode ?? null,
+					pricingMode,
 					baseUrl:
 						props.input.baseUrl ?? process.env.NEXT_PUBLIC_APP_URL ?? null,
 				});

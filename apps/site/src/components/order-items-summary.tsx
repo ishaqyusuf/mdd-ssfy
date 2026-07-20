@@ -14,10 +14,12 @@ export function OrderItemsSummary() {
           {items.map((item) => (
             <div key={item.id} className="flex justify-between">
               <div>
-                <p className="font-medium">{item.title}</p>
-                <p className="text-sm text-gray-600">Qty: {item.qty}</p>
+                <p className="font-medium">
+                  {item.offer?.title || "Unavailable product"}
+                </p>
+                <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
               </div>
-              <p className="font-medium">${item.total.toFixed(2)}</p>
+              <p className="font-medium">${item.lineTotal.toFixed(2)}</p>
             </div>
           ))}
         </div>

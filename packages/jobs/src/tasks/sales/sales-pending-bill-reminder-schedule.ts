@@ -552,6 +552,8 @@ async function runPendingBillReminder(runType: RunType) {
 					salesRepEmail: group.salesRepEmail,
 					pdfToken: downloadToken || null,
 					paymentLink: null,
+					salesIds: group.salesIds,
+					salesNos: group.sales.map((sale) => sale.orderId),
 					sales: group.sales,
 				},
 			} satisfies NotificationJobInput);

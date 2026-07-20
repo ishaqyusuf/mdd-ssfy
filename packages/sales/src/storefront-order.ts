@@ -1,9 +1,9 @@
-import { Db } from "@gnd/db";
+import type { Db } from "@gnd/db";
 import { z } from "zod";
 import { addressSchema } from "./storefront-account";
 import { nextId } from "@gnd/utils";
 import { generateSalesSlug } from "./utils/utils";
-import { SalesType } from "./types";
+import type { SalesType } from "./types";
 
 export const createCheckoutSchema = z.object({
   shipping: addressSchema,

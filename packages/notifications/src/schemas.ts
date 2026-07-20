@@ -11,6 +11,20 @@ export const salesPdfAttachmentSchema = z.object({
 	content: z.string(),
 	contentType: z.literal("application/pdf"),
 });
+export const dealerProgramBannerSchema = z.object({
+	campaignId: z.string(),
+	invitationId: z.string(),
+	headline: z.string(),
+	benefitText: z.string(),
+	ctaLabel: z.string(),
+	imageUrl: z.string().optional().nullable(),
+	accentColor: z.string(),
+	placement: z.enum(["TOP", "BOTTOM"]),
+	url: z.string().url(),
+});
+export type DealerProgramBannerInput = z.infer<
+	typeof dealerProgramBannerSchema
+>;
 const baseActivityTags = z.object({
 	type: channel,
 	source,
@@ -1144,6 +1158,7 @@ export const salesEmailReminderSchema = z.object({
 	emailAttemptId: z.string().optional().nullable(),
 	sourceAttemptId: z.string().optional().nullable(),
 	skipPdfAttachment: z.boolean().optional().nullable(),
+	dealerProgramBanner: dealerProgramBannerSchema.optional().nullable(),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
 export const salesEmailReminderTags = actityTagsSchema.extend({
@@ -1155,6 +1170,7 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	hasPaymentLink: z.boolean().optional(),
 	hasPdfLink: z.boolean().optional(),
 	hasPdfAttachment: z.boolean().optional(),
+	dealerProgramCampaignId: z.string().optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const composedSalesDocumentEmailSchema = z.object({
@@ -1180,6 +1196,7 @@ export const composedSalesDocumentEmailTags = actityTagsSchema.extend({
 	hasPaymentLink: z.boolean().optional(),
 	hasPdfLink: z.boolean().optional(),
 	hasPdfAttachment: z.boolean().optional(),
+	dealerProgramCampaignId: z.string().optional(),
 });
 export type ComposedSalesDocumentEmailTags = z.infer<
 	typeof composedSalesDocumentEmailTags

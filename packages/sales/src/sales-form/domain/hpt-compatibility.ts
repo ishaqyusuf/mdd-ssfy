@@ -1,3 +1,10 @@
+import {
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+	subtractMoney,
+	sumMoney,
+} from "../../payment-system/domain/money";
 import { readSalesFormObjectMetadata } from "./metadata";
 
 type HptDoorRow = Record<string, any>;
@@ -13,11 +20,11 @@ export type HptCompatibilityContext = {
 };
 
 function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
+	return roundMoney(value);
 }
 
 function roundPersistedCurrency(value: number) {
-	return Math.round((value + 1e-8) * 100) / 100;
+	return roundMoney(value);
 }
 
 function toFinite(value: unknown): number | null {
@@ -40,17 +47,15 @@ function normalizeTitle(value?: string | null) {
 		.toLowerCase();
 }
 
-function profileMultiplier(context?: HptCompatibilityContext) {
-	const explicit = toFinite(context?.salesMultiplier);
-	if (explicit != null && explicit > 0) return explicit;
-	const coefficient = toFinite(context?.profileCoefficient);
-	if (coefficient != null && coefficient > 0)
-		return roundCurrency(1 / coefficient);
-	return 1;
-}
-
 function profileAdjusted(basePrice: number, context?: HptCompatibilityContext) {
-	return roundCurrency(basePrice * profileMultiplier(context));
+	const explicitMultiplier = toFinite(context?.salesMultiplier);
+	if (explicitMultiplier != null && explicitMultiplier > 0) {
+		return multiplyMoney(basePrice, explicitMultiplier);
+	}
+	const coefficient = toFinite(context?.profileCoefficient);
+	return coefficient != null && coefficient > 0
+		? divideMoney(basePrice, coefficient)
+		: roundMoney(basePrice);
 }
 
 function selectedDoorQty(row: HptDoorRow, noHandle?: boolean) {
@@ -64,7 +69,7 @@ function selectedDoorQty(row: HptDoorRow, noHandle?: boolean) {
 export function computeHptSharedDoorSurcharge(
 	line: HptLine | null | undefined,
 ) {
-	return roundCurrency(
+	return sumMoney(
 		(line?.formSteps || [])
 			.filter((step: any) => {
 				const title = normalizeTitle(step?.step?.title);
@@ -76,16 +81,16 @@ export function computeHptSharedDoorSurcharge(
 					title !== "hpt"
 				);
 			})
-			.reduce((sum: number, step: any) => sum + Number(step?.price || 0), 0),
+			.map((step: any) => Number(step?.price || 0)),
 	);
 }
 
 export function computeHptFlatRate(line: HptLine | null | undefined) {
-	return roundCurrency(
-		(line?.formSteps || []).reduce((sum: number, step: any) => {
+	return sumMoney(
+		(line?.formSteps || []).map((step: any) => {
 			const meta = readSalesFormObjectMetadata(step?.meta);
-			return sum + Number(meta?.flatRate || 0);
-		}, 0),
+			return Number(meta?.flatRate || 0);
+		}),
 	);
 }
 
@@ -112,7 +117,10 @@ export function getHptDoorSalesUnitPrice(
 	const inferredFromUnit =
 		unitPrice == null
 			? null
-			: Math.max(0, unitPrice - sharedDoorSurcharge - flatRate - addon);
+			: Math.max(
+					0,
+					subtractMoney(unitPrice, sharedDoorSurcharge, flatRate, addon),
+				);
 	const derivedFromBase =
 		baseUnitPrice != null && baseUnitPrice > 0
 			? profileAdjusted(baseUnitPrice, context)
@@ -175,9 +183,12 @@ export function resolveHptDoorUnitPriceBreakdown(
 		sharedDoorSurcharge,
 		flatRate,
 	});
-	const calculatedFinalUnitPrice = roundCurrency(
-		doorSalesUnitPrice + sharedDoorSurcharge + flatRate + addon,
-	);
+	const calculatedFinalUnitPrice = sumMoney([
+		doorSalesUnitPrice,
+		sharedDoorSurcharge,
+		flatRate,
+		addon,
+	]);
 	const unitPrice =
 		customPrice == null ? calculatedFinalUnitPrice : customPrice;
 
@@ -209,7 +220,7 @@ export function normalizeHptDoorRowForLegacy<T extends HptDoorRow>(
 		meta?.priceData?.basePrice,
 	);
 	const unitBreakdown = resolveHptDoorUnitPriceBreakdown(row, context);
-	const lineTotal = roundCurrency(totalQty * unitBreakdown.unitPrice);
+	const lineTotal = multiplyMoney(totalQty, unitBreakdown.unitPrice);
 	const priceMissing = Boolean(meta?.priceMissing);
 
 	return {
@@ -259,11 +270,11 @@ export function hydrateHptDoorRowFromLegacy<T extends HptDoorRow>(
 		normalizedPersistedFinalUnitPrice > 0
 			? Math.max(
 					0,
-					roundCurrency(
-						normalizedPersistedFinalUnitPrice -
-							sharedDoorSurcharge -
-							flatRate -
-							addon,
+					subtractMoney(
+						normalizedPersistedFinalUnitPrice,
+						sharedDoorSurcharge,
+						flatRate,
+						addon,
 					),
 				)
 			: null;
@@ -309,17 +320,15 @@ export function hydrateHptLineFromLegacy<T extends HptLine>(
 		}),
 	);
 	const persistedLineTotal = firstFinite(line?.lineTotal);
-	const hydratedLineTotal = roundCurrency(
-		hydratedDoors.reduce(
-			(sum: number, door: HptDoorRow) => sum + Number(door?.lineTotal || 0),
-			0,
-		),
+	const hydratedLineTotal = sumMoney(
+		hydratedDoors.map((door: HptDoorRow) => Number(door?.lineTotal || 0)),
 	);
 	const reconciliationDelta =
 		persistedLineTotal == null
 			? 0
-			: roundCurrency(
-					roundPersistedCurrency(persistedLineTotal) - hydratedLineTotal,
+			: subtractMoney(
+					roundPersistedCurrency(persistedLineTotal),
+					hydratedLineTotal,
 				);
 	const reconciledDoors =
 		Math.abs(reconciliationDelta) > 0 && Math.abs(reconciliationDelta) <= 0.02
@@ -330,13 +339,14 @@ export function hydrateHptLineFromLegacy<T extends HptLine>(
 					const meta = readSalesFormObjectMetadata(door?.meta) || {};
 					const addon =
 						firstFinite(door?.addon, door?.doorPrice, meta?.addon) ?? 0;
-					const lineTotal = roundCurrency(
-						Number(door?.lineTotal || 0) + reconciliationDelta,
-					);
-					const unitPrice = roundCurrency(lineTotal / totalQty);
+					const lineTotal = sumMoney([
+						Number(door?.lineTotal || 0),
+						reconciliationDelta,
+					]);
+					const unitPrice = divideMoney(lineTotal, totalQty);
 					const doorSalesUnitPrice = Math.max(
 						0,
-						roundCurrency(unitPrice - sharedDoorSurcharge - flatRate - addon),
+						subtractMoney(unitPrice, sharedDoorSurcharge, flatRate, addon),
 					);
 					return {
 						...door,
@@ -371,13 +381,10 @@ export function recalculateHptLineTotals<T extends HptLine>(
 		(sum: number, door: HptDoorRow) => sum + Number(door?.totalQty || 0),
 		0,
 	);
-	const totalPrice = roundCurrency(
-		doors.reduce(
-			(sum: number, door: HptDoorRow) => sum + Number(door?.lineTotal || 0),
-			0,
-		),
+	const totalPrice = sumMoney(
+		doors.map((door: HptDoorRow) => Number(door?.lineTotal || 0)),
 	);
-	const unitPrice = totalDoors > 0 ? roundCurrency(totalPrice / totalDoors) : 0;
+	const unitPrice = totalDoors > 0 ? divideMoney(totalPrice, totalDoors) : 0;
 	return {
 		...line,
 		qty: totalDoors,

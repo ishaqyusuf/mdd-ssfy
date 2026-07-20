@@ -19,6 +19,7 @@ import {
 	type WorkflowComponentRecord,
 	type WorkflowLineItemRecord,
 } from "./workflow-records";
+import { divideMoney, roundMoney } from "../../../payment-system/domain/money";
 
 type LinePatch = Record<string, unknown>;
 
@@ -46,7 +47,7 @@ export type WorkflowDoorSyncPatch = {
 };
 
 function roundCurrency(value: unknown) {
-	return Number(Number(value || 0).toFixed(2));
+	return roundMoney(Number(value || 0));
 }
 
 function getShelfRows(line: WorkflowLineItemRecord | null | undefined) {
@@ -57,6 +58,20 @@ function getShelfRows(line: WorkflowLineItemRecord | null | undefined) {
 function getDoorRows(line: WorkflowLineItemRecord | null | undefined) {
 	const rows = (line as any)?.housePackageTool?.doors;
 	return Array.isArray(rows) ? (rows as DoorStoredRow[]) : [];
+}
+
+function readLineMeta(value: unknown): Record<string, unknown> {
+	if (!value) return {};
+	if (typeof value === "string") {
+		try {
+			return readLineMeta(JSON.parse(value));
+		} catch {
+			return {};
+		}
+	}
+	return typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
 }
 
 export function buildWorkflowShelfSyncPatch(
@@ -98,6 +113,11 @@ export function buildWorkflowShelfSyncPatch(
 			qty: summary.qtyTotal,
 			unitPrice: summary.unitPrice,
 			lineTotal: summary.lineTotal,
+			meta: {
+				...readLineMeta((line as any).meta),
+				rateRoundingAdjustment: summary.rateRoundingAdjustment,
+				totalAuthoritative: summary.totalAuthoritative,
+			},
 		},
 	};
 }
@@ -123,17 +143,25 @@ export function buildInitialWorkflowShelfPatch(
 		lineTotal: summary.lineTotal,
 		changed: {
 			rowsChanged: true,
-			qtyChanged: Number((line as any).qty || 0) !== Number(summary.qtyTotal || 0),
+			qtyChanged:
+				Number((line as any).qty || 0) !== Number(summary.qtyTotal || 0),
 			unitPriceChanged:
-				roundCurrency((line as any).unitPrice) !== roundCurrency(summary.unitPrice),
+				roundCurrency((line as any).unitPrice) !==
+				roundCurrency(summary.unitPrice),
 			totalChanged:
-				roundCurrency((line as any).lineTotal) !== roundCurrency(summary.lineTotal),
+				roundCurrency((line as any).lineTotal) !==
+				roundCurrency(summary.lineTotal),
 		},
 		linePatch: {
 			shelfItems: summary.rows,
 			qty: summary.qtyTotal,
 			unitPrice: summary.unitPrice,
 			lineTotal: summary.lineTotal,
+			meta: {
+				...readLineMeta((line as any).meta),
+				rateRoundingAdjustment: summary.rateRoundingAdjustment,
+				totalAuthoritative: summary.totalAuthoritative,
+			},
 		},
 	};
 }
@@ -145,8 +173,13 @@ export function buildWorkflowDoorSyncPatch(input: {
 	activeDoorUid?: string | null;
 	profileCoefficient?: number | null;
 }): WorkflowDoorSyncPatch | null {
-	const { line, routeData, availableComponents, activeDoorUid, profileCoefficient } =
-		input;
+	const {
+		line,
+		routeData,
+		availableComponents,
+		activeDoorUid,
+		profileCoefficient,
+	} = input;
 	if (!line) return null;
 
 	const storedDoors = getDoorRows(line);
@@ -192,13 +225,15 @@ export function buildWorkflowDoorSyncPatch(input: {
 		Number((line as any).qty || 0) !== Number(summary.totalDoors || 0);
 	const unitPrice =
 		summary.totalDoors > 0
-			? Number((summary.totalPrice / summary.totalDoors).toFixed(2))
+			? divideMoney(summary.totalPrice, summary.totalDoors)
 			: 0;
 	const unitPriceChanged =
 		roundCurrency((line as any).unitPrice) !== roundCurrency(unitPrice);
 	const totalChanged =
-		roundCurrency((line as any).lineTotal) !== roundCurrency(summary.totalPrice);
-	if (!rowsChanged && !qtyChanged && !unitPriceChanged && !totalChanged) return null;
+		roundCurrency((line as any).lineTotal) !==
+		roundCurrency(summary.totalPrice);
+	if (!rowsChanged && !qtyChanged && !unitPriceChanged && !totalChanged)
+		return null;
 
 	return {
 		lineUid: String(line.uid || ""),

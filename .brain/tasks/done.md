@@ -4,6 +4,35 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Dealership Program Expansion Implementation
+- Priority: High
+- Description: Implemented tickets 1–8 for dealer branding, customer privacy,
+  direct-ship snapshots, recruitment campaigns/email banners, secure
+  applications, review/password activation, and dealer lifecycle controls.
+- Related Feature: Dealership Program, customer privacy, sales email,
+  fulfillment, dealer auth
+- Status: Done (implementation slice)
+- Plan Status: Implemented; launch proof remains in progress pending schema apply
+- Feature File: brain/features/dealership-program-recruitment.md
+- Decision: brain/decisions/ADR-015-dealer-customer-privacy-and-recruitment-suppression.md
+- Evidence: `.scratch/dealership-program-recruitment/`
+- Completed Date: 2026-07-19
+
+### Dealership Quote-to-Order Approval Workflow
+- Priority: High
+- Description: Completed and authenticated-QA'd dealer quote creation/request,
+  Sales Team in-app and email notifications, office completion/approval,
+  payment handoff, dealer-owned customer payment management, dashboard progress,
+  dual customer/internal PDF surfaces, and office Dealer flag/filter support.
+- Related Feature: Dealership Program, sales approval, payments, notifications,
+  sales print
+- Status: Done
+- Plan Status: Implemented and browser-verified
+- Feature File: brain/features/dealership-quote-to-order-approval.md
+- Decision: brain/decisions/ADR-014-dealer-customer-and-internal-sales-surfaces.md
+- Evidence: `.gstack/qa-reports/qa-report-dealership-office-local-2026-07-18.md`
+- Completed Date: 2026-07-19
+
 ### Central Typed Query Invalidation Events
 - Priority: High
 - Description: Added one typed domain event registry and global mutation-success trigger for WWW query invalidation, including result/variable-derived entity scope, explicit `meta.queryEventScope` / `meta.queryEvents`, automatic typed tRPC mutation-route mappings, same-browser cross-tab delivery, exact Sales Overview invalidation with broad aggregate invalidation, a typed one-off invalidation helper, and migration of reviewed, office/online payment, autosave/final sales edit, production, fulfillment, copy/move, and dispatch flows.
@@ -578,3 +607,10 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - [x] Added the restricted `CommunityUnit` permission slice for community projects/units/templates, narrowed the units grid to `Project` / `Builder` / `Model` / `Lot` / `Block`, and blocked install-cost UI/API access for that permission path (2026-04-17).
 - [x] Fixed the sales dashboard chart-date regression by normalizing dashboard date params as explicit `yyyy-MM-dd` calendar days on the API and client, preserving same-day revenue buckets and date picker labels; validation: `bun test apps/api/src/db/queries/sales-dashboard.test.ts` passed (2026-06-09).
 - [x] Added Super Admin Sales Settings with persisted V1/V2 template selection, page-break policy, image/headline controls, recent-order live preview, and configuration-aware print/snapshot/download behavior (2026-07-18).
+- [x] Standardized legacy/new sales on decimal-safe 2dp arithmetic, authoritative grouped totals, Decimal shelf prices, subtractive percentage discounts, final HPT custom pricing, and a C.C.C-exclusive `grandTotal` contract (2026-07-20).
+- [x] 2026-07-20 Storefront e-commerce implementation: dedicated public API,
+  canonical Dyke configuration projection for Doors/Mouldings/Shelf Items,
+  admin publication/configuration workspace, cart/wishlist, customer auth and
+  account, idempotent Square checkout into standard Sales Orders, inquiry/CMS/
+  SEO/jobs/email/permissions, additive migration, focused tests, and isolated
+  responsive browser QA.

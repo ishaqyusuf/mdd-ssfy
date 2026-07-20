@@ -13,6 +13,7 @@
   "exports": {
     "./redis-client": "./src/redis-client.ts",
     "./shared-redis": "./src/shared-redis.ts",
+    "./upstash-rest": "./src/upstash-rest.ts",
     "./health": "./src/health.ts",
     "./sales-filter-options-cache": "./src/sales-filter-options-cache.ts",
     "./sales-workflow-cache": "./src/sales-workflow-cache.ts"

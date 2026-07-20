@@ -14,8 +14,10 @@ import {
 	type ComposedSalesDocumentEmailInput,
 	type ComposedSalesDocumentEmailTags,
 	salesPdfAttachmentSchema,
+	dealerProgramBannerSchema,
 } from "../schemas";
 import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
+import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const LINK_TTL_DAYS = 7;
@@ -67,6 +69,7 @@ const resolvedSchema = z.object({
 	salesNos: z.array(z.string()).optional().nullable(),
 	emailAttemptId: z.string().optional().nullable(),
 	sourceAttemptId: z.string().optional().nullable(),
+	dealerProgramBanner: dealerProgramBannerSchema.optional().nullable(),
 });
 
 type ResolvedComposedSalesDocumentEmailInput = z.infer<typeof resolvedSchema>;
@@ -262,6 +265,13 @@ async function buildComposedSalesDocumentEmailData(
 	const pdfAttachment = shouldAttachSalesEmailPdf()
 		? await buildPdfAttachment(db, sales, type)
 		: null;
+	const dealerProgramBanner = primarySale.customerId
+		? await resolveSalesEmailDealerProgramBanner(db, {
+				customerId: primarySale.customerId,
+				customerEmail:
+					normalizeText(input.customerEmail) || primarySale.customerEmail,
+			})
+		: null;
 
 	return {
 		type,
@@ -282,6 +292,7 @@ async function buildComposedSalesDocumentEmailData(
 		salesNos: sales.map((sale) => sale.orderId),
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
+		dealerProgramBanner,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,
 			po: sale.po,
@@ -328,6 +339,8 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			hasPaymentLink: Boolean(data.paymentLink),
 			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
+			dealerProgramCampaignId:
+				data.dealerProgramBanner?.campaignId || undefined,
 		};
 
 		return {
@@ -360,6 +373,7 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 				message: data.message || undefined,
 				paymentLink: data.paymentLink || undefined,
 				pdfLink: data.pdfLink || undefined,
+				dealerProgramBanner: data.dealerProgramBanner || undefined,
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

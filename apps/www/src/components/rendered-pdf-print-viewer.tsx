@@ -23,6 +23,7 @@ type SalesPrintData = {
 	templateId: string;
 	title: string;
 	companyAddress: CompanyAddress;
+	logoUrl?: string | null;
 	watermark?: string | null;
 	previewUrl?: string | null;
 	qrCodeDataUrl?: string | null;
@@ -143,6 +144,7 @@ export function RenderedPdfPrintViewer({
 					templateId={printData.templateId}
 					title={printData.title}
 					companyAddress={printData.companyAddress}
+					logoUrl={printData.logoUrl ?? undefined}
 					watermark={printData.watermark ?? undefined}
 					baseUrl={baseUrl}
 					previewUrl={printData.previewUrl}

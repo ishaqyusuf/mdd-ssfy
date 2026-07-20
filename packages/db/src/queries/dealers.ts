@@ -72,6 +72,7 @@ export type DealerSettingsFormInput = {
 	address2?: string | null;
 	city?: string | null;
 	state?: string | null;
+	zip_code?: string | null;
 	country?: string | null;
 	defaultTaxCode?: string | null;
 	defaultCustomerProfileId?: number | null;
@@ -163,6 +164,14 @@ export type DealerOrderRequestsInput = {
 export type ApproveDealerOrderRequestInput = {
 	deliveryCost?: number | null;
 	approverNote?: string | null;
+};
+
+export type DealerCustomerPaymentStatus = "unpaid" | "paid";
+
+export type UpdateDealerCustomerPaymentInput = {
+	id: number;
+	status: DealerCustomerPaymentStatus;
+	note?: string | null;
 };
 
 function getObjectMeta(meta: unknown): Record<string, unknown> {
@@ -1031,6 +1040,7 @@ export async function getDealerPortalCustomers(db: Database, dealerId: number) {
 			address: true,
 			meta: true,
 			customerTypeId: true,
+			officeVisibility: true,
 			createdAt: true,
 			profile: {
 				select: {
@@ -1137,6 +1147,7 @@ export async function getDealerPortalCustomer(
 			address: true,
 			meta: true,
 			customerTypeId: true,
+			officeVisibility: true,
 			profile: {
 				select: {
 					dealerOwnerId: true,
@@ -1199,6 +1210,7 @@ export async function getDealerPortalCustomerOverview(
 			address: true,
 			meta: true,
 			customerTypeId: true,
+			officeVisibility: true,
 			createdAt: true,
 			profile: {
 				select: {
@@ -1432,13 +1444,21 @@ function mapDealerSalesDocument(document: {
 }) {
 	const latestRequest = document.requests?.[0] || null;
 	const { meta: _meta, ...safeDocument } = document;
+	const customerTotal = Number(
+		document.dealerSale?.grandTotal ?? document.grandTotal ?? 0,
+	);
+	const customerAmountDue = Number(
+		document.dealerSale?.dueAmount ?? document.amountDue ?? 0,
+	);
 	return {
 		...safeDocument,
-		grandTotal: Number(
-			document.dealerSale?.grandTotal ?? document.grandTotal ?? 0,
-		),
-		amountDue: Number(
-			document.dealerSale?.dueAmount ?? document.amountDue ?? 0,
+		officeGrandTotal: Number(document.grandTotal || 0),
+		officeAmountDue: Number(document.amountDue || 0),
+		grandTotal: customerTotal,
+		amountDue: customerAmountDue,
+		customerPaymentStatus: customerAmountDue <= 0 ? "paid" : "unpaid",
+		customerPaidAmount: roundCurrency(
+			Math.max(0, customerTotal - customerAmountDue),
 		),
 		requestId: latestRequest?.id ?? null,
 		requestStatus: latestRequest?.status ?? null,
@@ -1600,6 +1620,7 @@ export async function getDealerPortalCustomersList(
 				email: true,
 				phoneNo: true,
 				address: true,
+				officeVisibility: true,
 				meta: true,
 				customerTypeId: true,
 				createdAt: true,
@@ -1851,6 +1872,35 @@ export async function deleteDealerPortalCustomer(
 	}
 
 	return { id };
+}
+
+export async function updateDealerPortalCustomerOfficeVisibility(
+	db: Database,
+	dealerId: number,
+	input: {
+		id: number;
+		officeVisibility: "PRIVATE" | "SHARED";
+	},
+) {
+	const result = await db.customers.updateMany({
+		where: {
+			id: input.id,
+			dealerOwnerId: dealerId,
+			deletedAt: null,
+		},
+		data: {
+			officeVisibility: input.officeVisibility,
+		},
+	});
+
+	if (result.count === 0) {
+		throw new Error("Dealer customer could not be found.");
+	}
+
+	return {
+		id: input.id,
+		officeVisibility: input.officeVisibility,
+	};
 }
 
 export async function getDealerPortalSalesProfiles(
@@ -2191,9 +2241,21 @@ export async function getDealerPortalSalesDocument(
 	);
 	const dealerSalesMultiplier =
 		1 + Number(document.dealerSale?.dealerSalesPercentage || 0) / 100;
+	const customerGrandTotal = Number(
+		document.dealerSale?.grandTotal ?? document.grandTotal ?? 0,
+	);
+	const customerAmountDue = Number(
+		document.dealerSale?.dueAmount ?? document.amountDue ?? 0,
+	);
 
 	return {
 		...safeDocument,
+		officeGrandTotal: Number(document.grandTotal || 0),
+		officeAmountDue: Number(document.amountDue || 0),
+		customerPaymentStatus: customerAmountDue <= 0 ? "paid" : "unpaid",
+		customerPaidAmount: roundCurrency(
+			Math.max(0, customerGrandTotal - customerAmountDue),
+		),
 		pricingContext: {
 			internal: {
 				customerProfileId: document.customerProfileId || null,
@@ -2214,12 +2276,8 @@ export async function getDealerPortalSalesDocument(
 				),
 			},
 		},
-		grandTotal: Number(
-			document.dealerSale?.grandTotal ?? document.grandTotal ?? 0,
-		),
-		amountDue: Number(
-			document.dealerSale?.dueAmount ?? document.amountDue ?? 0,
-		),
+		grandTotal: customerGrandTotal,
+		amountDue: customerAmountDue,
 		customerId:
 			Number(
 				form?.customerId ||
@@ -2277,6 +2335,69 @@ export async function getDealerPortalSalesDocument(
 					};
 				}),
 	};
+}
+
+export async function updateDealerPortalCustomerPayment(
+	db: Database,
+	dealerId: number,
+	input: UpdateDealerCustomerPaymentInput,
+) {
+	return db.$transaction(async (tx) => {
+		const dealerSale = await tx.dealerSales.findFirst({
+			where: {
+				salesOrderId: input.id,
+				dealerAuthId: dealerId,
+				salesOrder: {
+					deletedAt: null,
+					type: { not: "quote" },
+				},
+			},
+			select: {
+				id: true,
+				grandTotal: true,
+				dueAmount: true,
+				salesOrderId: true,
+			},
+		});
+
+		if (!dealerSale) {
+			throw new Error("Dealer order could not be found.");
+		}
+
+		const previousDue = Number(dealerSale.dueAmount || 0);
+		const nextDue = input.status === "paid" ? 0 : Number(dealerSale.grandTotal);
+		const updated = await tx.dealerSales.update({
+			where: { id: dealerSale.id },
+			data: { dueAmount: nextDue },
+			select: {
+				grandTotal: true,
+				dueAmount: true,
+				updatedAt: true,
+			},
+		});
+
+		await tx.salesHistory.create({
+			data: {
+				salesId: dealerSale.salesOrderId,
+				name: "Dealer customer payment status updated",
+				authorName: `Dealer ${dealerId}`,
+				data: {
+					dealerId,
+					status: input.status,
+					previousDue,
+					nextDue,
+					note: input.note?.trim() || null,
+				} as Prisma.InputJsonValue,
+			},
+		});
+
+		return {
+			status: input.status,
+			grandTotal: Number(updated.grandTotal || 0),
+			amountDue: Number(updated.dueAmount || 0),
+			updatedAt: updated.updatedAt,
+		};
+	});
 }
 
 function roundCurrency(value: number) {
@@ -2679,6 +2800,87 @@ export function calculateDealerQuotePricing({
 	};
 }
 
+export function calculateDealerApprovalPricing({
+	lineItems,
+	taxRate,
+	internalGrandTotal,
+	internalCoefficient,
+	dealerSalesPercentage,
+	fallbackDealerGrandTotal,
+}: {
+	lineItems: DealerPortalQuoteLineItemInput[];
+	taxRate: number;
+	internalGrandTotal: number;
+	internalCoefficient?: number | null;
+	dealerSalesPercentage?: number | null;
+	fallbackDealerGrandTotal: number;
+}) {
+	if (!lineItems.length) {
+		return {
+			internalBaseTotal: internalGrandTotal,
+			dealerBaseTotal: fallbackDealerGrandTotal,
+		};
+	}
+
+	const pricing = calculateDealerQuotePricing({
+		lineItems,
+		taxRate,
+		internalProfile: {
+			coefficient: internalCoefficient,
+		},
+		dealerProfile: {
+			salesPercentage: dealerSalesPercentage,
+		},
+	});
+	const nonLineAdjustment = roundCurrency(
+		internalGrandTotal - pricing.internalPricing.grandTotal,
+	);
+
+	return {
+		internalBaseTotal: pricing.internalPricing.grandTotal,
+		dealerBaseTotal: roundCurrency(
+			pricing.dealerPricing.grandTotal + nonLineAdjustment,
+		),
+	};
+}
+
+export function mergeDealerApprovalDeliveryMeta({
+	meta,
+	deliveryCost,
+	extraCostId,
+}: {
+	meta: unknown;
+	deliveryCost: number;
+	extraCostId: number;
+}) {
+	const root = getObjectMeta(meta);
+	const persistedForm = getObjectMeta(root.newSalesForm);
+	const persistedExtraCosts = Array.isArray(persistedForm.extraCosts)
+		? persistedForm.extraCosts.filter(
+				(cost) =>
+					String(getObjectMeta(cost).type || "").toLowerCase() !== "delivery",
+			)
+		: [];
+
+	return {
+		...root,
+		deliveryCost,
+		newSalesForm: {
+			...persistedForm,
+			extraCosts: [
+				...persistedExtraCosts,
+				{
+					id: extraCostId,
+					label: "Delivery",
+					type: "Delivery",
+					amount: deliveryCost,
+					taxxable: false,
+				},
+			],
+		},
+	};
+}
+
 const DEALER_PROGRAM_PARTNER_SUFFIX = "DPP";
 
 async function createDealerProgramPartnerIdentity(
@@ -2953,6 +3155,7 @@ export async function saveDealerPortalQuote(
 			customerId: customer.id,
 			customerProfileId: internalProfile?.id || null,
 			dealerSalesProfileId: dealerProfile?.id || null,
+			deliveryOption: effectiveDeliveryOption,
 			taxPercentage: pricing.internalPricing.taxRate,
 			subTotal: pricing.internalPricing.subTotal,
 			tax: pricing.internalPricing.taxTotal,
@@ -3167,6 +3370,10 @@ export async function requestDealerPortalQuoteOrder(
 				id: true,
 				orderId: true,
 				slug: true,
+				meta: true,
+				deliveryOption: true,
+				billingAddressId: true,
+				shippingAddressId: true,
 				salesRepId: true,
 				dealerAuth: {
 					select: {
@@ -3183,6 +3390,9 @@ export async function requestDealerPortalQuoteOrder(
 						name: true,
 						businessName: true,
 						email: true,
+						phoneNo: true,
+						address: true,
+						meta: true,
 					},
 				},
 				requests: {
@@ -3209,6 +3419,93 @@ export async function requestDealerPortalQuoteOrder(
 		}
 
 		const existing = quote.requests?.[0] || null;
+		const quoteMeta = getObjectMeta(quote.meta);
+		const newSalesForm = getObjectMeta(quoteMeta.newSalesForm);
+		const quoteForm = getObjectMeta(newSalesForm.form);
+		const deliveryOption = String(
+			quote.deliveryOption || quoteForm.deliveryOption || "pickup",
+		).toLowerCase();
+		const customerAddress = getDealerCustomerAddressMeta(quote.customer?.meta);
+		const recipientName =
+			quote.customer?.businessName?.trim() ||
+			quote.customer?.name?.trim() ||
+			null;
+		const recipientEmail = quote.customer?.email?.trim() || null;
+		const recipientPhone = quote.customer?.phoneNo?.trim() || null;
+		const recipientAddress =
+			customerAddress.address1 ||
+			quote.customer?.address?.trim() ||
+			customerAddress.formattedAddress ||
+			null;
+		const requiresRecipient = ["delivery", "ship"].includes(deliveryOption);
+		if (
+			requiresRecipient &&
+			(!recipientName ||
+				!recipientEmail ||
+				!recipientPhone ||
+				!recipientAddress)
+		) {
+			throw new Error(
+				"Customer name, email, phone, and shipping address are required before requesting delivery or shipment.",
+			);
+		}
+
+		let billingAddressId = quote.billingAddressId || null;
+		let shippingAddressId = quote.shippingAddressId || null;
+		let fulfillmentRecipient = getObjectMeta(
+			quoteMeta.dealerFulfillmentRecipient,
+		);
+		if (!existing && quote.customer && requiresRecipient) {
+			const capturedAt = new Date().toISOString();
+			const addressSnapshot = await tx.addressBooks.create({
+				data: {
+					name: recipientName,
+					email: recipientEmail,
+					phoneNo: recipientPhone,
+					address1: recipientAddress,
+					address2: customerAddress.address2,
+					city: customerAddress.city,
+					state: customerAddress.state,
+					country: customerAddress.country,
+					meta: {
+						source: "dealer_order_recipient_snapshot",
+						dealerId,
+						customerId: quote.customer.id,
+						zip_code: customerAddress.zip_code,
+						capturedAt,
+					},
+				},
+				select: { id: true },
+			});
+			billingAddressId = addressSnapshot.id;
+			shippingAddressId = addressSnapshot.id;
+			fulfillmentRecipient = {
+				customerId: quote.customer.id,
+				name: recipientName,
+				email: quote.customer.email?.trim() || null,
+				phoneNo: recipientPhone,
+				address1: recipientAddress,
+				address2: customerAddress.address2,
+				city: customerAddress.city,
+				state: customerAddress.state,
+				zip_code: customerAddress.zip_code,
+				country: customerAddress.country,
+				deliveryOption,
+				capturedAt,
+			};
+			await tx.salesOrders.update({
+				where: { id: quote.id },
+				data: {
+					deliveryOption,
+					billingAddressId,
+					shippingAddressId,
+					meta: {
+						...quoteMeta,
+						dealerFulfillmentRecipient: fulfillmentRecipient,
+					} as Prisma.InputJsonValue,
+				},
+			});
+		}
 		const salesRepId = quote.salesRepId || quote.dealerAuth?.salesRepId || null;
 		if (!quote.salesRepId && salesRepId) {
 			await tx.salesOrders.update({
@@ -3245,6 +3542,7 @@ export async function requestDealerPortalQuoteOrder(
 				quoteNo: quote.orderId,
 				dealerName: dealerName(quote.dealerAuth || {}),
 				customerName: customerName(quote.customer),
+				fulfillmentRecipient,
 				requestedAt: (request.createdAt || new Date()).toISOString(),
 			},
 		};
@@ -3273,12 +3571,16 @@ async function getSalesRequestUserScope(db: Database, userId: number) {
 	const isAdmin = roleNames.some((role) =>
 		["admin", "super admin", "sales admin", "sales manager"].includes(role),
 	);
-	return { isAdmin };
+	const isSalesRep = roleNames.includes("sales team");
+	return {
+		isAdmin,
+		canReviewUnassigned: isAdmin || isSalesRep,
+	};
 }
 
 function dealerOrderRequestWhere(
 	userId: number,
-	isAdmin: boolean,
+	canReviewUnassigned: boolean,
 	input: DealerOrderRequestsInput = {},
 ): Prisma.DealerSalesRequestWhereInput {
 	const status = input.status && input.status !== "all" ? input.status : null;
@@ -3292,7 +3594,7 @@ function dealerOrderRequestWhere(
 					salesRepId: userId,
 				},
 			},
-			...(isAdmin
+			...(canReviewUnassigned
 				? [
 						{
 							sale: {
@@ -3308,16 +3610,37 @@ function dealerOrderRequestWhere(
 export async function getDealerOrderRequestCount(db: Database, userId: number) {
 	const scope = await getSalesRequestUserScope(db, userId);
 	return db.dealerSalesRequest.count({
-		where: dealerOrderRequestWhere(userId, scope.isAdmin, {
+		where: dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
 			status: "pending",
 		}),
 	});
+}
+
+export async function assertDealerSaleOfficeAccess(
+	db: Database,
+	userId: number,
+	salesId: number,
+) {
+	const scope = await getSalesRequestUserScope(db, userId);
+	const request = await db.dealerSalesRequest.findFirst({
+		where: {
+			salesId,
+			...dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+				status: "all",
+			}),
+		},
+		select: { id: true },
+	});
+	if (!request) {
+		throw new Error("Dealer sale is not available to this office user.");
+	}
 }
 
 function mapDealerOrderRequest(row: any) {
 	const sale = row.sale || {};
 	const dealer = sale.dealerAuth || {};
 	const customer = sale.customer || {};
+	const saleMeta = getObjectMeta(sale.meta);
 	return {
 		id: row.id,
 		status: row.status,
@@ -3325,6 +3648,7 @@ function mapDealerOrderRequest(row: any) {
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 		approvedById: row.approvedById,
+		approvedByName: row.approvedBy?.name || null,
 		salesId: sale.id,
 		quoteNo: sale.orderId,
 		quoteSlug: sale.slug,
@@ -3338,6 +3662,8 @@ function mapDealerOrderRequest(row: any) {
 		dealerEmail: dealer.email || null,
 		customerName: customerName(customer),
 		customerEmail: customer.email || null,
+		customerPhone: customer.phoneNo || null,
+		fulfillmentRecipient: getObjectMeta(saleMeta.dealerFulfillmentRecipient),
 		salesRepId: sale.salesRepId || null,
 	};
 }
@@ -3350,7 +3676,11 @@ export async function getDealerOrderRequests(
 	const size = Math.min(Math.max(Number(input.size || 25), 1), 100);
 	const cursor = Number(input.cursor || 0);
 	const scope = await getSalesRequestUserScope(db, userId);
-	const where = dealerOrderRequestWhere(userId, scope.isAdmin, input);
+	const where = dealerOrderRequestWhere(
+		userId,
+		scope.canReviewUnassigned,
+		input,
+	);
 	const select = {
 		id: true,
 		request: true,
@@ -3358,6 +3688,11 @@ export async function getDealerOrderRequests(
 		createdAt: true,
 		updatedAt: true,
 		approvedById: true,
+		approvedBy: {
+			select: {
+				name: true,
+			},
+		},
 		sale: {
 			select: {
 				id: true,
@@ -3368,12 +3703,14 @@ export async function getDealerOrderRequests(
 				grandTotal: true,
 				amountDue: true,
 				deliveryOption: true,
+				meta: true,
 				salesRepId: true,
 				customer: {
 					select: {
 						name: true,
 						businessName: true,
 						email: true,
+						phoneNo: true,
 					},
 				},
 				dealerAuth: {
@@ -3469,7 +3806,9 @@ export async function getDealerOrderRequest(
 	const row = (await db.dealerSalesRequest.findFirst({
 		where: {
 			id: requestId,
-			...dealerOrderRequestWhere(userId, scope.isAdmin, { status: "all" }),
+			...dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+				status: "all",
+			}),
 		},
 		select: {
 			id: true,
@@ -3478,6 +3817,11 @@ export async function getDealerOrderRequest(
 			createdAt: true,
 			updatedAt: true,
 			approvedById: true,
+			approvedBy: {
+				select: {
+					name: true,
+				},
+			},
 			sale: {
 				select: {
 					id: true,
@@ -3488,12 +3832,14 @@ export async function getDealerOrderRequest(
 					grandTotal: true,
 					amountDue: true,
 					deliveryOption: true,
+					meta: true,
 					salesRepId: true,
 					customer: {
 						select: {
 							name: true,
 							businessName: true,
 							email: true,
+							phoneNo: true,
 						},
 					},
 					dealerAuth: {
@@ -3528,7 +3874,9 @@ export async function approveDealerOrderRequest(
 		const row = (await tx.dealerSalesRequest.findFirst({
 			where: {
 				id: requestId,
-				...dealerOrderRequestWhere(userId, scope.isAdmin, { status: "all" }),
+				...dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+					status: "all",
+				}),
 			},
 			select: {
 				id: true,
@@ -3546,12 +3894,22 @@ export async function approveDealerOrderRequest(
 						customerId: true,
 						grandTotal: true,
 						amountDue: true,
+						taxPercentage: true,
 						deliveryOption: true,
 						salesRepId: true,
 						dealerSale: {
 							select: {
+								dealerSalesPercentage: true,
 								grandTotal: true,
 								dueAmount: true,
+							},
+						},
+						items: {
+							select: {
+								id: true,
+								qty: true,
+								rate: true,
+								total: true,
 							},
 						},
 						extraCosts: {
@@ -3617,6 +3975,35 @@ export async function approveDealerOrderRequest(
 			throw new Error("Delivery cost review is required before approval.");
 		}
 
+		const lineItems = (row.sale.items || []).map(
+			(
+				item: {
+					id?: number | null;
+					qty?: number | null;
+					rate?: number | null;
+					total?: number | null;
+				},
+				index: number,
+			) => ({
+				uid: `approval-line-${item.id || index + 1}`,
+				qty: Number(item.qty || 0),
+				unitPrice: Number(item.rate || 0),
+				lineTotal: Number(item.total || 0),
+			}),
+		);
+		const approvalPricing = calculateDealerApprovalPricing({
+			lineItems,
+			taxRate: Number(row.sale.taxPercentage || 0),
+			internalGrandTotal: Number(row.sale.grandTotal || 0),
+			internalCoefficient: 1,
+			dealerSalesPercentage: finitePricingNumber(
+				row.sale.dealerSale?.dealerSalesPercentage,
+			),
+			fallbackDealerGrandTotal: Number(
+				row.sale.dealerSale?.grandTotal ?? row.sale.grandTotal ?? 0,
+			),
+		});
+
 		let order =
 			row.sale.type === "order"
 				? {
@@ -3627,12 +4014,15 @@ export async function approveDealerOrderRequest(
 						status: row.sale.status,
 					}
 				: null;
-		let finalTotal = Number(
-			row.sale.dealerSale?.grandTotal ?? row.sale.grandTotal ?? 0,
-		);
+		let finalTotal = alreadyApproved
+			? Number(row.sale.dealerSale?.grandTotal ?? row.sale.grandTotal ?? 0)
+			: approvalPricing.dealerBaseTotal;
 		let finalAmountDue = Number(
-			row.sale.dealerSale?.dueAmount ?? row.sale.amountDue ?? 0,
+			alreadyApproved
+				? (row.sale.dealerSale?.dueAmount ?? row.sale.amountDue ?? 0)
+				: approvalPricing.dealerBaseTotal,
 		);
+		let officeAmountDue = Number(row.sale.amountDue || 0);
 
 		if (!order) {
 			if (!row.sale.dealerAuthId) {
@@ -3672,17 +4062,14 @@ export async function approveDealerOrderRequest(
 			);
 			const deliveryDelta =
 				deliveryCost == null ? 0 : deliveryCost - previousDeliveryCost;
-			finalTotal =
-				Number(
-					row.sale.dealerSale?.grandTotal ?? currentOrder?.grandTotal ?? 0,
-				) + deliveryDelta;
-			finalAmountDue =
-				Number(row.sale.dealerSale?.dueAmount ?? currentOrder?.amountDue ?? 0) +
-				deliveryDelta;
+			officeAmountDue = Number(currentOrder?.amountDue || 0) + deliveryDelta;
+			finalTotal = approvalPricing.dealerBaseTotal + deliveryDelta;
+			finalAmountDue = approvalPricing.dealerBaseTotal + deliveryDelta;
 
+			let deliveryExtraCostId: number | null = null;
 			if (deliveryCost != null) {
 				if (row.sale.extraCosts?.[0]?.id) {
-					await tx.salesExtraCosts.update({
+					const updatedDelivery = await tx.salesExtraCosts.update({
 						where: {
 							id: row.sale.extraCosts[0].id,
 						},
@@ -3692,9 +4079,11 @@ export async function approveDealerOrderRequest(
 							tax: 0,
 							totalAmount: deliveryCost,
 						},
+						select: { id: true },
 					});
+					deliveryExtraCostId = updatedDelivery.id;
 				} else {
-					await tx.salesExtraCosts.create({
+					const createdDelivery = await tx.salesExtraCosts.create({
 						data: {
 							orderId: order.id,
 							label: "Delivery",
@@ -3705,9 +4094,19 @@ export async function approveDealerOrderRequest(
 							totalAmount: deliveryCost,
 							percentage: 0,
 						},
+						select: { id: true },
 					});
+					deliveryExtraCostId = createdDelivery.id;
 				}
 			}
+			const approvalMeta =
+				deliveryCost != null && deliveryExtraCostId != null
+					? mergeDealerApprovalDeliveryMeta({
+							meta: currentMeta,
+							deliveryCost,
+							extraCostId: deliveryExtraCostId,
+						})
+					: currentMeta;
 
 			await tx.salesOrders.update({
 				where: { id: order.id },
@@ -3721,7 +4120,7 @@ export async function approveDealerOrderRequest(
 							}
 						: {}),
 					meta: {
-						...currentMeta,
+						...approvalMeta,
 						dealerRequestApproval: {
 							requestId: row.id,
 							approvedById: userId,
@@ -3734,21 +4133,15 @@ export async function approveDealerOrderRequest(
 				},
 			});
 
-			if (deliveryDelta) {
-				await (tx as any).dealerSales.updateMany({
-					where: {
-						salesOrderId: order.id,
-					},
-					data: {
-						grandTotal: {
-							increment: deliveryDelta,
-						},
-						dueAmount: {
-							increment: deliveryDelta,
-						},
-					},
-				});
-			}
+			await (tx as any).dealerSales.updateMany({
+				where: {
+					salesOrderId: order.id,
+				},
+				data: {
+					grandTotal: finalTotal,
+					dueAmount: finalAmountDue,
+				},
+			});
 		}
 
 		const updatedRequest = await tx.dealerSalesRequest.update({
@@ -3781,7 +4174,7 @@ export async function approveDealerOrderRequest(
 					row.sale.customer?.phoneNo ||
 					row.sale.shippingAddress?.phoneNo ||
 					null,
-				amountDue: finalAmountDue,
+				amountDue: officeAmountDue,
 			},
 		};
 	});
@@ -3801,7 +4194,9 @@ export async function rejectDealerOrderRequest(
 		const row = (await tx.dealerSalesRequest.findFirst({
 			where: {
 				id: requestId,
-				...dealerOrderRequestWhere(userId, scope.isAdmin, { status: "all" }),
+				...dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+					status: "all",
+				}),
 			},
 			select: {
 				id: true,
@@ -3912,6 +4307,7 @@ export async function getDealerPortalSettings(db: Database, dealerId: number) {
 					city: true,
 					state: true,
 					country: true,
+					meta: true,
 				},
 			},
 		},
@@ -3945,6 +4341,10 @@ export async function saveDealerPortalSettings(
 			!Array.isArray(dealer.meta)
 				? dealer.meta
 				: {};
+		const currentBrandingVersion =
+			typeof currentMeta.brandingVersion === "number"
+				? currentMeta.brandingVersion
+				: 0;
 		const defaultCustomerProfileId = input.defaultCustomerProfileId || null;
 		const defaultTaxCode = input.defaultTaxCode?.trim() || null;
 		const defaultFulfillmentMode = normalizeDealerDefaultFulfillmentMode(
@@ -4032,6 +4432,8 @@ export async function saveDealerPortalSettings(
 				meta: {
 					...currentMeta,
 					logoUrl: input.logoUrl?.trim() || null,
+					billingZip: input.zip_code?.trim() || null,
+					brandingVersion: currentBrandingVersion + 1,
 					defaultTaxCode,
 					defaultCustomerProfileId,
 					defaultFulfillmentMode,

@@ -248,6 +248,22 @@ function createMockContext() {
   }
 
   const tx = {
+    customers: {
+      findFirst: async ({ where, select }: any) => {
+        const customer =
+          state.customers.find(
+            (row) =>
+              row.id === where?.id &&
+              (where?.deletedAt !== null || row.deletedAt == null),
+          ) || null;
+        if (!customer || !select) return customer;
+        return Object.fromEntries(
+          Object.keys(select)
+            .filter((key) => select[key])
+            .map((key) => [key, (customer as any)[key]]),
+        );
+      },
+    },
     salesOrders: {
       findFirst: async ({ where }: any) => {
         const order = findOrder(where);
@@ -609,9 +625,21 @@ function createMockContext() {
         return Object.fromEntries(
           Object.keys(select)
             .filter((key) => select[key])
-            .map((key) => [key, (user as any)[key]]),
+          .map((key) => [key, (user as any)[key]]),
         );
       },
+      findUnique: async ({ where }: any) => {
+        const user = state.users.find((row) => row.id === where?.id) || null;
+        return user
+          ? {
+              ...user,
+              roles: [{ role: { name: "Sales Admin" } }],
+            }
+          : null;
+      },
+    },
+    dealerSalesRequest: {
+      findFirst: async () => ({ id: 1 }),
     },
     settings: {
       findFirst: async ({ where, select }: any) => {
@@ -1495,8 +1523,8 @@ describe("new-sales-form relational parity", () => {
               productId: 301,
               description: "Shelf",
               qty: 2,
-              unitPrice: 35,
-              totalPrice: 70,
+              unitPrice: 12.34,
+              totalPrice: 24.68,
               meta: {},
             },
           ],
@@ -1538,6 +1566,10 @@ describe("new-sales-form relational parity", () => {
     expect(line).toBeTruthy();
     expect(line!.formSteps).toHaveLength(1);
     expect(line!.shelfItems).toHaveLength(1);
+    expect(line!.shelfItems[0]?.unitPrice).toBe(12.34);
+    expect(line!.shelfItems[0]?.totalPrice).toBe(24.68);
+    expect(state.shelfItems[0]?.unitPrice).toBe(12.34);
+    expect(state.shelfItems[0]?.totalPrice).toBe(24.68);
     expect(line!.housePackageTool).toBeTruthy();
     expect(line!.housePackageTool?.doors).toHaveLength(1);
     expect(line!.housePackageTool?.moldingId).toBe(501);
@@ -1555,7 +1587,10 @@ describe("new-sales-form relational parity", () => {
     expect(state.orders[0]?.meta?.payment_option).toBe("Credit Card");
     expect(state.orders[0]?.meta?.ccc).toBe(35);
     expect(state.orders[0]?.grandTotal).toBe(1000);
-    expect(loaded.summary.grandTotal).toBeGreaterThan(loaded.summary.subTotal);
+    expect(loaded.summary.grandTotal).toBe(loaded.summary.subTotal);
+    expect(loaded.summary.totalWithCcc).toBeGreaterThan(
+      loaded.summary.grandTotal,
+    );
   });
 
   it("keeps one active legacy shelf row across repeated new-form saves", async () => {
@@ -1567,6 +1602,8 @@ describe("new-sales-form relational parity", () => {
       version?: string | null;
       lineId?: number | null;
       shelfId?: number | null;
+      shelfUnitPrice?: number;
+      shelfTotalPrice?: number;
     }) => ({
       type: "order" as const,
       slug: overrides.slug ?? null,
@@ -1601,8 +1638,8 @@ describe("new-sales-form relational parity", () => {
           title: "Shelf Items",
           description: "BYPASS HARDWARE (HEAVY DUTY) 6-0",
           qty: 1,
-          unitPrice: 87.78,
-          lineTotal: 87.78,
+          unitPrice: overrides.shelfUnitPrice ?? 87.78,
+          lineTotal: overrides.shelfTotalPrice ?? 87.78,
           meta: {},
           formSteps: [
             {
@@ -1625,8 +1662,8 @@ describe("new-sales-form relational parity", () => {
               productId: 1001,
               description: "BYPASS HARDWARE (HEAVY DUTY) 6-0",
               qty: 1,
-              unitPrice: 87.78,
-              totalPrice: 87.78,
+              unitPrice: overrides.shelfUnitPrice ?? 87.78,
+              totalPrice: overrides.shelfTotalPrice ?? 87.78,
               meta: {
                 lineUid: "hardware-section",
                 itemIndex: 0,
@@ -1651,6 +1688,8 @@ describe("new-sales-form relational parity", () => {
         version: first.version,
         lineId: firstItem.id,
         shelfId: firstShelf.id,
+        shelfUnitPrice: 12.34,
+        shelfTotalPrice: 24.68,
       }),
     );
     const secondItem = state.items.find((row) => row.deletedAt == null)!;
@@ -1664,6 +1703,8 @@ describe("new-sales-form relational parity", () => {
         version: second.version,
         lineId: secondItem.id,
         shelfId: secondShelf.id,
+        shelfUnitPrice: 12.34,
+        shelfTotalPrice: 24.68,
       }),
     );
     const thirdLoaded = await getNewSalesForm(ctx, {
@@ -1673,6 +1714,8 @@ describe("new-sales-form relational parity", () => {
 
     expect(thirdLoaded.lineItems).toHaveLength(1);
     expect(thirdLoaded.lineItems[0]?.shelfItems).toHaveLength(1);
+    expect(thirdLoaded.lineItems[0]?.shelfItems[0]?.unitPrice).toBe(12.34);
+    expect(thirdLoaded.lineItems[0]?.shelfItems[0]?.totalPrice).toBe(24.68);
     expect(state.shelfItems).toHaveLength(3);
     expect(
       state.shelfItems.filter((row) => row.deletedAt == null),
@@ -2247,8 +2290,11 @@ describe("new-sales-form relational parity", () => {
     expect(loadedQuotes[1]?.lineItems[0]?.housePackageTool?.doors).toHaveLength(
       1,
     );
-    expect(loadedQuotes[1]?.summary.grandTotal).toBeGreaterThan(
+    expect(loadedQuotes[1]?.summary.grandTotal).toBe(
       loadedQuotes[1]?.summary.subTotal || 0,
+    );
+    expect(loadedQuotes[1]?.summary.totalWithCcc).toBeGreaterThan(
+      loadedQuotes[1]?.summary.grandTotal || 0,
     );
     expect(loadedQuotes[2]?.extraCosts).toHaveLength(1);
     expect(loadedQuotes[2]?.extraCosts[0]).toMatchObject({
@@ -2434,7 +2480,7 @@ describe("new-sales-form relational parity", () => {
       productId: 1001,
       description: "Ball Bearing Hinge",
       qty: 2,
-      unitPrice: 25,
+      unitPrice: 24.5,
       totalPrice: 49,
       meta: {
         categoryIds: [10, 11],
@@ -2673,9 +2719,7 @@ describe("new-sales-form relational parity", () => {
       salesCoefficient: 0.72,
     });
     expect(state.orders[0]?.taxPercentage).toBe(7.5);
-    expect(state.orders[0]?.amountDue).toBe(
-      saved.summary.grandTotal - (saved.summary.ccc || 0),
-    );
+    expect(state.orders[0]?.amountDue).toBe(saved.summary.grandTotal);
     expect(state.orders[0]?.meta?.ccc).toBe(3.76);
     expect(state.orders[0]?.grandTotal).toBe(107.5);
 

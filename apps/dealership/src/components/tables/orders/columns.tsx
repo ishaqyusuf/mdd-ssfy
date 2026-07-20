@@ -46,7 +46,7 @@ function OrderActions({ item }: { item: Item }) {
 	const printDocument = useMutation(
 		trpc.dealerPortal.printDocument.mutationOptions({
 			onSuccess: (result) => {
-				window.open(result.previewUrl, "_blank", "noopener,noreferrer");
+				window.location.assign(result.previewUrl);
 			},
 			onError: (error) => {
 				toast({
@@ -68,7 +68,7 @@ function OrderActions({ item }: { item: Item }) {
 						queryKey: trpc.dealerPortal.dashboard.pathKey(),
 					}),
 				]);
-				window.open(result.paymentLink, "_blank", "noopener,noreferrer");
+				window.location.assign(result.paymentLink);
 			},
 			onError: (error) => {
 				toast({
@@ -79,7 +79,7 @@ function OrderActions({ item }: { item: Item }) {
 			},
 		}),
 	);
-	const hasBalance = Number(item.amountDue || 0) > 0;
+	const hasBalance = Number(item.officeAmountDue || 0) > 0;
 
 	return (
 		<div className="flex justify-end gap-2">
@@ -91,7 +91,7 @@ function OrderActions({ item }: { item: Item }) {
 					type="button"
 				>
 					<CreditCard className="mr-2 size-4" />
-					Pay
+					Pay GND
 				</Button>
 			) : null}
 			<DropdownMenu.Root>

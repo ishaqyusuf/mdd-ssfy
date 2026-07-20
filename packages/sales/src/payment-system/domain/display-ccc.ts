@@ -1,4 +1,4 @@
-import { roundMoney } from "./money";
+import { addMoney, roundMoney, subtractMoney } from "./money";
 import { calculatePaymentChannelCharge } from "./payment-channel-charge";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -70,17 +70,15 @@ export function repairSalesInvoiceCccDisplay(
 	const roundedStoredCcc = storedCcc == null ? null : roundMoney(storedCcc);
 	const cccMismatch =
 		roundedStoredCcc != null &&
-		Math.abs(roundedStoredCcc - expectedCcc) > 0.01;
+		Math.abs(subtractMoney(roundedStoredCcc, expectedCcc)) > 0.01;
 	const ccc = roundMoney(
-		roundedStoredCcc != null && !cccMismatch
-			? roundedStoredCcc
-			: expectedCcc,
+		roundedStoredCcc != null && !cccMismatch ? roundedStoredCcc : expectedCcc,
 	);
 
 	return {
 		baseTotal,
 		ccc,
-		totalWithCcc: roundMoney(baseTotal + ccc),
+		totalWithCcc: addMoney(baseTotal, ccc),
 		paymentMethod,
 		cccPercentage: calculatedCharge.percentage,
 		expectedCcc,
@@ -89,6 +87,8 @@ export function repairSalesInvoiceCccDisplay(
 	};
 }
 
-export function resolveSalesDisplayCcc(input: RepairSalesInvoiceCccDisplayInput) {
+export function resolveSalesDisplayCcc(
+	input: RepairSalesInvoiceCccDisplayInput,
+) {
 	return repairSalesInvoiceCccDisplay(input);
 }

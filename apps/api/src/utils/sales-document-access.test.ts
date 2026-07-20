@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
 	type ResolveSalesDocumentAccessInput,
+	buildSalesDocumentTypeKey,
 	resolveSalesDocumentAccess,
 } from "./sales-document-access";
 
@@ -71,6 +72,15 @@ function createMockDb(input: {
 }
 
 describe("resolveSalesDocumentAccess", () => {
+	it("uses the canonical versioned document type for dealer pricing", () => {
+		expect(
+			buildSalesDocumentTypeKey({
+				mode: "invoice",
+				pricingMode: "customer",
+			}),
+		).toBe("invoice_pdf:pricing:customer:v3");
+	});
+
 	it("reuses a ready snapshot when source and sale updates are in the same persisted second", async () => {
 		const { db, calls } = createMockDb({
 			snapshot: createSnapshot(),

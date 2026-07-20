@@ -128,6 +128,8 @@ export function typedSalesBookFormItems(data: SalesFormData) {
 				),
 			shelfItems: item.shelfItems.map((item) => ({
 				...item,
+				unitPrice: Number(item.unitPrice || 0),
+				totalPrice: Number(item.totalPrice || 0),
 				meta: item.meta as any as ShelfItemMeta,
 			})),
 		};
@@ -253,8 +255,8 @@ export function transformShelfItem(item: SalesFormItems[number]) {
 					customPrice: product.meta.customPrice,
 					productId: product.productId,
 					qty: product.qty,
-					salesPrice: product.unitPrice,
-					totalPrice: product.totalPrice,
+					salesPrice: Number(product.unitPrice || 0),
+					totalPrice: Number(product.totalPrice || 0),
 					id: product.id,
 					title: product.description,
 				};

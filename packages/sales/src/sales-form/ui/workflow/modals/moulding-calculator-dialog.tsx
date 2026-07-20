@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Icons } from "@gnd/ui/icons";
 
 import type { SalesFormLineItemRecord } from "../../../application";
+import { multiplyMoney } from "../../../../payment-system/domain/money";
 
 function toNumber(value: unknown, fallback = 0) {
 	const num = Number(value);
@@ -240,12 +241,11 @@ export function MouldingCalculatorDialog(props: MouldingCalculatorDialogProps) {
 						onClick={() => {
 							const computedLineTotal =
 								toNumber(props.line.unitPrice, 0) > 0
-									? Number(
-											(totalPieces * toNumber(props.line.unitPrice, 0)).toFixed(
-												2,
-											),
+									? multiplyMoney(
+											totalPieces,
+											toNumber(props.line.unitPrice, 0),
 										)
-									: Number((totalFootage * pricePerLF).toFixed(2));
+									: multiplyMoney(totalFootage, pricePerLF);
 							props.onApply({
 								qty: totalPieces,
 								lineTotal: computedLineTotal,

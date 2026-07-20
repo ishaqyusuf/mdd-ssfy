@@ -10,6 +10,8 @@ import DealerMagicLoginLinkEmail from "@gnd/email/emails/dealer-magic-login-link
 import DealerOnboardingEmail from "@gnd/email/emails/dealer-onboarding";
 import DealerPasswordResetEmail from "@gnd/email/emails/dealer-password-reset";
 import DealerProfileUpdatedEmail from "@gnd/email/emails/dealer-profile-updated";
+import DealerProgramStatusEmail from "@gnd/email/emails/dealer-program-status";
+import DealerSalesRequestEmail from "@gnd/email/emails/dealer-sales-request";
 import DealerSalesRequestApprovedEmail from "@gnd/email/emails/dealer-sales-request-approved";
 import DealerSalesRequestRejectedEmail from "@gnd/email/emails/dealer-sales-request-rejected";
 import { JobApprovedEmail } from "@gnd/email/emails/job-approved";
@@ -23,6 +25,7 @@ import { SalesCustomerPaymentReceivedEmail } from "@gnd/email/emails/sales-custo
 import SalesEmail from "@gnd/email/emails/sales-email";
 import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
+import StorefrontOrderConfirmation from "@gnd/email/emails/storefront-order-confirmation";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 import { render } from "@gnd/email/render";
 import {
@@ -457,6 +460,8 @@ export class EmailService {
 				SalesReminderScheduleAdminNotificationEmail,
 			"dealer-onboarding": DealerOnboardingEmail,
 			"dealer-profile-updated": DealerProfileUpdatedEmail,
+			"dealer-program-status": DealerProgramStatusEmail,
+			"dealer-sales-request": DealerSalesRequestEmail,
 			"dealer-sales-request-approved": DealerSalesRequestApprovedEmail,
 			"dealer-sales-request-rejected": DealerSalesRequestRejectedEmail,
 			"auth-new-device-login": AuthNewDeviceLoginEmail,
@@ -465,6 +470,7 @@ export class EmailService {
 			"dealer-password-reset": DealerPasswordResetEmail,
 			"login-link-email": LoginEmail,
 			"password-reset-request": StorefrontPasswordResetRequest,
+			"storefront-order-confirmation": StorefrontOrderConfirmation,
 		};
 
 		const template = templates[templateName as keyof typeof templates];

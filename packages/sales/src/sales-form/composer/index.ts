@@ -17,8 +17,12 @@ import {
   buildDualSalesFormPricingSnapshot,
   calculateSalesFormSummary,
 } from "../domain";
+import {
+	multiplyMoney,
+	roundMoney,
+} from "../../payment-system/domain/money";
 
-export type SalesFormComposerSurface = "www" | "dealership";
+export type SalesFormComposerSurface = "www" | "dealership" | "storefront";
 
 export type CoefficientPricingAdapter = {
   mode: "coefficient";
@@ -256,14 +260,15 @@ export function composeSalesFormPricingSnapshot(input: {
   const pricedLines = normalizeSalesFormLineItems(input.lineItems || []).map(
     (line) => {
       const qty = Number(line.qty ?? 0);
-      const unitPrice = Number(
-        (Number(line.unitPrice || 0) * coefficient).toFixed(2),
+      const unitPrice = multiplyMoney(
+        Number(line.unitPrice || 0),
+        coefficient,
       );
       return {
         ...line,
         qty,
         unitPrice,
-        lineTotal: Number((qty * unitPrice).toFixed(2)),
+        lineTotal: multiplyMoney(qty, unitPrice),
       };
     },
   );
@@ -287,7 +292,7 @@ export function composeSalesFormPricingSnapshot(input: {
 }
 
 function roundCurrency(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundMoney(value);
 }
 
 function safeObject(value: unknown): Record<string, unknown> {
@@ -454,9 +459,10 @@ export function composeDealerSalesFormQuoteSaveInput(input: {
     lineItems: (input.record.lineItems || []).map((line) => {
       const qty = Number(line.qty || 0);
       const unitPrice = Number(line.unitPrice || 0);
-      const fallbackLineTotal = roundCurrency(
-        Number(line.lineTotal ?? qty * unitPrice),
-      );
+      const fallbackLineTotal =
+        line.lineTotal == null
+          ? multiplyMoney(qty, unitPrice)
+          : roundMoney(Number(line.lineTotal));
       const structuredLineTotal = resolveDealerSalesFormStructuredLineTotal(
         line as SalesFormLineItemRecord & Record<string, unknown>,
       );

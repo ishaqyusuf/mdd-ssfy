@@ -4,6 +4,17 @@
 Tracks important schema-level entities and ownership boundaries.
 
 ## Current Notes
+- Dealership program expansion adds `Customers.officeVisibility` with
+  `DealerCustomerOfficeVisibility.PRIVATE | SHARED`; the database default is
+  `PRIVATE`, so existing and new dealer-owned customers remain outside the
+  office directory unless explicitly shared.
+- Recruitment data is modeled through `DealerRecruitmentCampaign`, its profile
+  and customer target tables, hashed/expiring `DealerRecruitmentInvitation`
+  rows, and reviewed `DealerProgramApplication` rows. Campaigns store structured
+  banner content/lifecycle/dates, invitations store delivery/open evidence, and
+  applications store decision and suppression-reset evidence.
+- Dealer billing ZIP and `brandingVersion` use the existing dealer settings
+  metadata. Every branding settings save increments the version.
 - Primary schema work appears to live in `packages/db`.
 - Active schema-heavy domains include sales, payment-system, resolution-system, and document-platform foundations.
 - Inventory demand is now being shaped around three layers in `packages/db/src/schema/inventory.prisma`:
@@ -77,7 +88,31 @@ Tracks important schema-level entities and ownership boundaries.
   - `MasterPasswordLoginAudit` stores each ENV master-password login event for the web/mobile auth flow
   - rows snapshot target user id/name/email, app surface, platform, IP address, optional two-letter ISO country code, browser, user agent, safe session id, login timestamp, and clear/archive metadata
   - clear actions set `clearedAt` and `clearedBySuperAdminId`; records are hidden from the default admin view instead of hard-deleted
+- Sales shelf order pricing now stores
+  `DykeSalesShelfItem.unitPrice` and `DykeSalesShelfItem.totalPrice` as nullable
+  `Decimal(12,2)` values. Application/query boundaries convert those Prisma
+  Decimal values to the numeric sales domain representation before returning
+  data to web/mobile clients or inventory synchronization.
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.
 - Summarize recent additions such as payment, resolution, and document-platform entities.
+## Storefront commerce overlay (2026-07-20)
+
+- `StorefrontCategory`: published presentation for a canonical Dyke Item Type
+  root.
+- `StorefrontOffer`: published presentation for one canonical Dyke root
+  component and configuration route.
+- `StorefrontComponent`, `StorefrontStepPolicy`, and
+  `StorefrontOfferComponentPolicy`: public availability, presentation,
+  visibility, ordering, and valid-default overlays.
+- `StorefrontCommerceCollection` and `StorefrontCommerceLine`: signed-guest or
+  customer-owned carts/wishlists with normalized canonical configuration and
+  server pricing snapshots.
+- `StorefrontCheckout`: idempotent checkout/payment/order transition ledger.
+- `StorefrontPage` and `StorefrontSection`: structured merchandising content.
+- `StorefrontInquiry`, `StorefrontAuditEvent`, and
+  `StorefrontPasswordResetToken`: durable intake, audit, and auth-recovery
+  records.
+- `SalesOrders.salesChannel`: nullable origin discriminator; storefront
+  checkout sets `"storefront"`.

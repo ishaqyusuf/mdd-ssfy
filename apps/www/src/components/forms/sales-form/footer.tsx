@@ -1,12 +1,13 @@
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { AnimatedNumber } from "@/components/animated-number";
+import { addMoney } from "@gnd/sales/payment-system";
 
 export function Footer() {
 	const zus = useFormDataStore();
 	const pricing = zus?.metaData?.pricing;
 	const ccc = Number(pricing?.ccc || 0);
 	const displayTotal = Number(
-		pricing?.totalWithCcc ?? Number(pricing?.grandTotal || 0) + ccc,
+		pricing?.totalWithCcc ?? addMoney(pricing?.grandTotal, ccc),
 	);
 
 	return (

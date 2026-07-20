@@ -1,3 +1,4 @@
+import { getAppUrl } from "@gnd/utils/envs";
 import type { NotificationHandler } from "../base";
 import {
 	type DealerSalesRequestInput,
@@ -30,6 +31,25 @@ export const dealerSalesRequest: NotificationHandler = {
 				: "Review the dealer quote and approve or reject the request.",
 			authorId: author.id,
 			tags: payload,
+		};
+	},
+	createEmail(data, _author, user, args) {
+		const requestUrl = `${getAppUrl().replace(/\/$/, "")}/sales-rep?tab=requests&requestId=${data.requestId}`;
+
+		return {
+			...args,
+			template: "dealer-sales-request",
+			to: user.email ? [user.email] : undefined,
+			from: "GND Millwork <noreply@gndprodesk.com>",
+			subject: `Dealer order request for quote ${data.quoteNo}`,
+			data: {
+				recipientName: user.name,
+				dealerName: data.dealerName,
+				quoteNo: data.quoteNo,
+				customerName: data.customerName,
+				requestedAt: data.requestedAt,
+				requestUrl,
+			},
 		};
 	},
 };

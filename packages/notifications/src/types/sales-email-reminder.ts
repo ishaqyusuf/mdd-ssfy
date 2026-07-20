@@ -9,6 +9,7 @@ import {
 	salesPdfAttachmentSchema,
 } from "../schemas";
 import { buildSalesPdfAttachmentFromToken } from "./sales-pdf-attachment";
+import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
 
 type ResolvedSalesEmailReminderInput = SalesEmailReminderInput & {
 	pdfAttachment?: z.infer<typeof salesPdfAttachmentSchema> | null;
@@ -20,14 +21,27 @@ export const salesEmailReminder: NotificationHandler = {
 	}),
 	createActivityWithoutContact: true,
 	async extendData(db: Db, data: SalesEmailReminderInput) {
-		if (!data.pdfToken || data.pdfAttachment) {
-			return data;
-		}
-
+		const dealerProgramBanner = await resolveSalesEmailDealerProgramBanner(db, {
+			customerEmail: data.customerEmail,
+			salesIds: data.salesIds?.filter(
+				(value): value is number => typeof value === "number",
+			),
+			salesNos: data.salesNos?.filter(
+				(value): value is string => typeof value === "string",
+			),
+		});
 		return {
 			...data,
-			pdfLink: null,
-			pdfAttachment: await buildSalesPdfAttachmentFromToken(db, data.pdfToken),
+			dealerProgramBanner,
+			...(data.pdfToken && !data.pdfAttachment
+				? {
+						pdfLink: null,
+						pdfAttachment: await buildSalesPdfAttachmentFromToken(
+							db,
+							data.pdfToken,
+						),
+					}
+				: {}),
 		};
 	},
 	createActivity(data: ResolvedSalesEmailReminderInput, author) {
@@ -44,6 +58,8 @@ export const salesEmailReminder: NotificationHandler = {
 			hasPaymentLink: Boolean(data.paymentLink || data.paymentToken),
 			hasPdfLink: false,
 			hasPdfAttachment: Boolean(data.pdfAttachment),
+			dealerProgramCampaignId:
+				data.dealerProgramBanner?.campaignId || undefined,
 		};
 
 		return {
@@ -77,6 +93,7 @@ export const salesEmailReminder: NotificationHandler = {
 				note: data.note || undefined,
 				paymentLink: paymentLink || undefined,
 				hasPdfAttachment: Boolean(data.pdfAttachment),
+				dealerProgramBanner: data.dealerProgramBanner || undefined,
 				sales: data.sales.map((sale) => ({
 					...sale,
 					date:

@@ -25,14 +25,42 @@ function date(value?: Date | string | null) {
 	}).format(new Date(value));
 }
 
-function approvalPayload(request: { id: number; deliveryOption?: string | null }) {
+function fulfillmentRecipient(value: unknown) {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	const record = value as Record<string, unknown>;
+	const text = (key: string) =>
+		typeof record[key] === "string" ? String(record[key]) : null;
+	const address = [
+		text("address1"),
+		text("address2"),
+		text("city"),
+		text("state"),
+		text("zip_code"),
+		text("country"),
+	]
+		.filter(Boolean)
+		.join(", ");
+	return {
+		name: text("name"),
+		email: text("email"),
+		phoneNo: text("phoneNo"),
+		address,
+	};
+}
+
+function approvalPayload(request: {
+	id: number;
+	deliveryOption?: string | null;
+}) {
 	const mode = request.deliveryOption?.toLowerCase();
-	if (mode !== "delivery" && mode !== "ship") {
+	if (mode === "pickup") {
 		return { requestId: request.id };
 	}
 
 	const value = window.prompt(
-		`Enter reviewed ${mode} cost before approving this dealer request.`,
+		mode === "delivery" || mode === "ship"
+			? `Enter reviewed ${mode} cost before approving this dealer request.`
+			: "Enter the reviewed delivery cost before approving this dealer request. Use 0 when no delivery charge applies.",
 		"0",
 	);
 	if (value == null) return null;
@@ -111,6 +139,11 @@ export function SalesRepDealerRequests() {
 		<div className="space-y-3">
 			{requests.map((request) => {
 				const isPending = request.status === "pending";
+				const recipient = fulfillmentRecipient(
+					request.fulfillmentRecipient,
+				);
+				const editor =
+					request.orderType === "order" ? "edit-order" : "edit-quote";
 				return (
 					<div
 						key={request.id}
@@ -130,42 +163,72 @@ export function SalesRepDealerRequests() {
 							<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
 								<span>{currency(request.grandTotal)}</span>
 								<span>{date(request.createdAt)}</span>
-								{request.dealerEmail ? <span>{request.dealerEmail}</span> : null}
+								{request.dealerEmail ? (
+									<span>{request.dealerEmail}</span>
+								) : null}
 							</div>
+							{recipient ? (
+								<div className="mt-2 rounded-md border bg-muted/30 p-3 text-xs">
+									<div className="font-medium text-foreground">
+										Direct-ship recipient: {recipient.name || request.customerName}
+									</div>
+									<div className="mt-1 text-muted-foreground">
+										{[recipient.phoneNo, recipient.email, recipient.address]
+											.filter(Boolean)
+											.join(" · ")}
+									</div>
+								</div>
+							) : null}
+							{!isPending ? (
+								<div className="text-xs text-muted-foreground">
+									{request.status === "approved" ? "Approved" : "Rejected"}
+									{request.approvedByName
+										? ` by ${request.approvedByName}`
+										: ""}{" "}
+									on {date(request.updatedAt)}
+									{request.orderType === "order"
+										? ` · Order ${request.quoteNo} · ${currency(request.amountDue)} due`
+										: ""}
+								</div>
+							) : null}
 						</div>
 						<div className="flex flex-wrap items-center gap-2">
 							<Button asChild size="sm" variant="outline">
 								<Link
-									href={`/sales-form/edit-quote/${request.quoteSlug}?dealerRequestId=${request.id}`}
+									href={`/sales-form/${editor}/${request.quoteSlug}?dealerRequestId=${request.id}`}
 								>
 									<Icons.Eye className="mr-2 size-4" />
 									Review
 								</Link>
 							</Button>
-							<Button
-								size="sm"
-								disabled={!isPending || approve.isPending}
-								onClick={() => {
-									const payload = approvalPayload(request);
-									if (payload) approve.mutate(payload);
-								}}
-							>
-								<Icons.CheckCheck className="mr-2 size-4" />
-								Approve
-							</Button>
-							<Button
-								size="sm"
-								variant="outline"
-								disabled={!isPending || reject.isPending}
-								onClick={() =>
-									reject.mutate({
-										requestId: request.id,
-									})
-								}
-							>
-								<Icons.XCircle className="mr-2 size-4" />
-								Reject
-							</Button>
+							{isPending ? (
+								<Button
+									size="sm"
+									disabled={approve.isPending}
+									onClick={() => {
+										const payload = approvalPayload(request);
+										if (payload) approve.mutate(payload);
+									}}
+								>
+									<Icons.CheckCheck className="mr-2 size-4" />
+									Approve
+								</Button>
+							) : null}
+							{isPending ? (
+								<Button
+									size="sm"
+									variant="outline"
+									disabled={reject.isPending}
+									onClick={() =>
+										reject.mutate({
+											requestId: request.id,
+										})
+									}
+								>
+									<Icons.XCircle className="mr-2 size-4" />
+									Reject
+								</Button>
+							) : null}
 						</div>
 					</div>
 				);

@@ -23,14 +23,7 @@ import { cn } from "@gnd/ui/cn";
 import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { useTaskTrigger } from "@trigger/hooks/use-task-trigger";
-import {
-  SendStorefrontSignupValidateEmailPayload,
-  SendStorefrontWelcomeEmailPayload,
-} from "@jobs/schema";
-import { getBaseUrl } from "@/envs";
 import { toast } from "@gnd/ui/use-toast";
-import { timeout } from "@gnd/utils";
 export function Client() {
   const form = useZodForm(signupSchema, {
     defaultValues: {
@@ -46,37 +39,25 @@ export function Client() {
   });
   const router = useRouter();
   const trpc = useTRPC();
-  const trigger = useTaskTrigger({
-    triggerMutation: trpc.taskTrigger.trigger,
-  });
-  const { data, mutate, mutateAsync, isPending, error } = useMutation(
-    trpc.storefront.auth.signup.mutationOptions({
-      async onSuccess(data, variables, context) {
-        await trigger.triggerAsync("send-storefront-welcome-email", {
-          email: data.email,
-          name: data.name,
-        } as SendStorefrontWelcomeEmailPayload);
-        await timeout(2000);
-        await trigger.triggerAsync("send-storefront-signup-validate-email", {
-          email: data.email,
-          name: data.name,
-          validationLink: `${getBaseUrl()}/verify`,
-        } as SendStorefrontSignupValidateEmailPayload);
-      },
-    })
+  const { data, mutate, isPending, error } = useMutation(
+    trpc.storefrontAuth.signup.mutationOptions(),
+  );
+  const resend = useMutation(
+    trpc.storefrontAuth.resendVerification.mutationOptions({
+      onSuccess: () => toast({ title: "Verification email sent." }),
+    }),
   );
   async function resendVerificationEmail() {
-    await trigger.triggerAsync("send-storefront-signup-validate-email", {
-      email: data.email,
-      name: data.name,
-      validationLink: `${getBaseUrl()}/verify`,
-    } as SendStorefrontSignupValidateEmailPayload);
-    toast({
-      title: "Email resent!",
-    });
+    if (data?.email) resend.mutate({ email: data.email });
   }
   function onSubmit(data: Signup) {
-    mutate(data);
+    if (!data.agreeToTerms) {
+      form.setError("agreeToTerms", {
+        message: "You must agree to the terms.",
+      });
+      return;
+    }
+    mutate({ ...data, agreeToTerms: true });
   }
   const isBusiness = form.watch("accountType") === "business";
   useEffect(() => {
@@ -107,7 +88,8 @@ export function Client() {
               </CardHeader>
               <CardContent className="text-center space-y-4">
                 <p className="text-gray-600">
-                  Thank you for signing up, {data.name}. A verification email
+                  Thank you for signing up, {data.name}. If the account can be
+                  created, a verification email
                   has been sent to <strong>{data.email}</strong>. Please check
                   your inbox and follow the instructions to activate your
                   account.
@@ -123,6 +105,7 @@ export function Client() {
                   <button
                     className="text-amber-600 hover:text-amber-700 font-medium"
                     onClick={resendVerificationEmail}
+                    disabled={resend.isPending}
                   >
                     Resend verification email
                   </button>

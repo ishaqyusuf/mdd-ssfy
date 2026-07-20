@@ -13,6 +13,7 @@ describe("dealer print branding", () => {
 			phoneNo: "555-2222",
 			meta: {
 				logoUrl: "https://cdn.example.com/dealer-logo.png",
+				billingZip: "100001",
 			},
 			primaryBillingAddress: {
 				address1: "123 Dealer St",
@@ -26,7 +27,7 @@ describe("dealer print branding", () => {
 		expect(branding?.logoUrl).toBe("https://cdn.example.com/dealer-logo.png");
 		expect(branding?.companyAddress).toEqual({
 			address1: "Dealer Co",
-			address2: "123 Dealer St Suite 4 Lagos, LA, NG",
+			address2: "123 Dealer St Suite 4 Lagos, LA 100001, NG",
 			phone: "555-2222",
 		});
 	});

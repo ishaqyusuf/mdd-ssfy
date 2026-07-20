@@ -3,10 +3,21 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@gnd/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
 import { Input } from "@gnd/ui/input";
 
 import type { SalesFormLineItemRecord } from "../../../application";
+import {
+	multiplyMoney,
+	sumMoney,
+} from "../../../../payment-system/domain/money";
 
 type DoorLine = NonNullable<
 	NonNullable<SalesFormLineItemRecord["housePackageTool"]>["doors"]
@@ -29,7 +40,7 @@ function calcDoorRow(row: DoorLine): DoorLine {
 		rhQty,
 		unitPrice,
 		totalQty,
-		lineTotal: Number((totalQty * unitPrice).toFixed(2)),
+		lineTotal: multiplyMoney(totalQty, unitPrice),
 	};
 }
 
@@ -70,13 +81,12 @@ export function DoorDetailsDialog(props: DoorDetailsDialogProps) {
 			(sum, row) => sum + toNumber(row.totalQty),
 			0,
 		);
-		const totalPrice = normalized.reduce(
-			(sum, row) => sum + toNumber(row.lineTotal),
-			0,
+		const totalPrice = sumMoney(
+			normalized.map((row) => toNumber(row.lineTotal)),
 		);
 		return {
 			totalDoors,
-			totalPrice: Number(totalPrice.toFixed(2)),
+			totalPrice,
 			normalized,
 		};
 	}, [rows]);

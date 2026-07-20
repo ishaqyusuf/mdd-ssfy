@@ -24,6 +24,7 @@ import {
 } from "../schemas";
 import { salesEmailReminder } from "./sales-email-reminder";
 import { buildSalesPdfAttachmentFromToken } from "./sales-pdf-attachment";
+import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
 
 const simpleSalesEmailReminderResolvedSchema = salesEmailReminderSchema.extend({
 	salesId: z.number(),
@@ -153,6 +154,12 @@ async function buildReminderData(
 			walletId,
 		} satisfies SalesPaymentTokenSchema);
 	}
+	const dealerProgramBanner = sale.customer?.id
+		? await resolveSalesEmailDealerProgramBanner(db, {
+				customerId: sale.customer.id,
+				customerEmail,
+			})
+		: null;
 
 	return {
 		salesId: sale.id,
@@ -178,6 +185,7 @@ async function buildReminderData(
 		pdfAttachment: pdfToken
 			? await buildSalesPdfAttachmentFromToken(db, pdfToken)
 			: null,
+		dealerProgramBanner,
 		sales: [
 			{
 				orderId: sale.orderId,

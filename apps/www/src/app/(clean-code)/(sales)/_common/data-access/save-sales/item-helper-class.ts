@@ -1,4 +1,5 @@
 import { Prisma } from "@/db";
+import { roundMoney } from "@sales/payment-system/domain/money";
 
 import {
     DykeFormStepMeta,
@@ -317,8 +318,8 @@ export class ItemHelperClass {
                             id: prod.categoryId,
                         },
                     },
-                    totalPrice: prod.totalPrice,
-                    unitPrice: prod.salesPrice,
+                    totalPrice: roundMoney(prod.totalPrice),
+                    unitPrice: roundMoney(prod.salesPrice),
                     qty: prod.qty,
                     description: prod.title,
                     shelfProduct: {

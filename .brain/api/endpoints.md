@@ -53,13 +53,28 @@ Tracks notable API surfaces and where they are implemented.
   - `/api/download/sales-v2`: canonical sales PDF download/export route
   - `/api/download/sales`: compatibility redirect to `/api/download/sales-v2`; legacy `print.sales` and `sales.printInvoice` tRPC procedures are retired
 - Dealership/dealer-program routes now include:
+  - `dealerPortal.updateCustomerOfficeVisibility`: dealer-auth mutation that
+    changes only the active dealer's customer between `PRIVATE` and `SHARED`.
+  - `dealerProgram.invitation` / `submitApplication`: public opaque-token
+    landing and idempotent application endpoints.
+  - `dealerProgram.campaigns`, `audienceOptions`, `saveCampaign`, and
+    `setCampaignStatus`: Super Admin campaign workspace with serialized
+    one-active-campaign enforcement.
+  - `dealerProgram.applications`, `decideApplication`, and `resetSuppression`:
+    Super Admin review, approve/deny, and explicit re-invitation reset.
+  - `dealerProgram.setDealerSuspension`: Super Admin suspension/reactivation
+    with optional reason, history, portal lockout, and lifecycle email.
   - `apps/dealership` Better Auth `/api/auth/dealer-dev-quick-sign-in`: development-only quick-login endpoint for active linked dealer accounts; disabled outside non-production environments and used only to unblock local dealership browser QA
   - `apps/dealership` local `/api/trpc` uses the scoped `dealershipAppRouter`, exposing only `dealerPortal` and `google` routers instead of the full internal `appRouter`, so dealership deployments do not trace or typecheck unrelated API surfaces.
   - `dealerPortal.dashboard`: dealer-scoped summary for open quotes, pending requests, active orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent activity
   - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used by the dealer order overview and print/payment surfaces; payload now includes `createdAt`
   - `dealerPortal.createPaymentLink`: dealer-owned approved-order checkout-link mutation for orders with outstanding balance
+  - `dealerPortal.requestQuoteOrder`: creates or reuses the active dealer's pending quote-to-order request; it notifies the assigned sales rep, or all active Sales Team users when the quote/dealer has no assigned rep
+  - `dealerPortal.updateCustomerPaymentStatus`: dealer-owned mutation that records the dealer's customer receivable status and audit history without mutating the internal GND payable
+  - `dealerPortal.printDocument`: dealer-owned print access with explicit `pricingMode = customer | internal`; the customer mode is customer-facing and the internal mode is the dealership/GND-facing office amount
   - `dealerPortal.saveSettings`: dealer settings mutation accepts external logo URLs and bounded uploaded image data URLs for dealer invoice branding
   - `sales.approveDealerSalesRequest`: internal approval mutation now accepts optional reviewed `deliveryCost` and `approverNote`, assigns first approver ownership, stamps approval metadata, and sends the dealer approval email with a checkout URL when payment is due
+  - `filters.salesOrders`: now includes `Sales channel`, with `Dealership sales` and `Office sales` options; `sales.getOrders` and its summary accept `salesChannel=dealership|office`
 - Sales orders routes now include:
   - `sales.getOrders`: canonical sales orders list query for `/sales-book/orders`, `/sales-book/orders/bin`, web reminder/search helpers, and Expo order lists; uses the former V2 flat row contract, accepts the existing pagination `bin` flag, and forwards supported filters through the legacy sales filter adapter
     - Primary sort `latestPaymentAt` is reserved for the clean-payment review queue and returns only orders with a successful latest `SalesPayments.reviewStatus = "needs_review"` payment.
@@ -180,3 +195,15 @@ Tracks notable API surfaces and where they are implemented.
 ## TODO
 - Summarize the highest-value API surfaces by domain.
 - Link important sales, checkout, dispatch, jobs, and customer flows to their implementation areas.
+## Storefront e-commerce replacement (2026-07-20)
+
+- Public customer traffic uses `/api/storefront/trpc` and the allowlisted
+  `storefrontCommerce` router only.
+- Public groups: `catalog`, `content`, `configuration`, `cart`, `wishlist`,
+  `checkout`, `account`, `orders`, `auth`, and `inquiry`.
+- Employee operations use `storefrontAdmin` through the authenticated internal
+  router for workspace, catalog policy, carts, orders, inquiries, settings,
+  pages, and sections.
+- Public reads are publication/soft-delete scoped and bounded. Ownership,
+  configuration validity, price, payment, and order transitions are enforced
+  on the server.

@@ -18,6 +18,7 @@ import {
 	type WorkflowLineItemRecord,
 	type WorkflowStepRecord,
 } from "./workflow-records";
+import { divideMoney } from "../../../payment-system/domain/money";
 
 export type WorkflowDoorActionPatch = {
 	formSteps?: WorkflowStepRecord[];
@@ -28,7 +29,7 @@ export type WorkflowDoorActionPatch = {
 };
 
 function averageUnitPrice(totalPrice: number, totalQty: number) {
-	return totalQty > 0 ? Number((totalPrice / totalQty).toFixed(2)) : 0;
+	return totalQty > 0 ? divideMoney(totalPrice, totalQty) : 0;
 }
 
 function readWorkflowStepMeta(step?: WorkflowStepRecord | null) {
@@ -112,7 +113,9 @@ export function swapWorkflowDoorComponent(input: {
 			? {
 					...snapshotSelectedComponent(input.targetComponent),
 					redirectUid:
-						component?.redirectUid || input.targetComponent?.redirectUid || null,
+						component?.redirectUid ||
+						input.targetComponent?.redirectUid ||
+						null,
 				}
 			: component,
 	);
@@ -145,8 +148,9 @@ export function swapWorkflowDoorComponent(input: {
 
 	const sourceId = Number(input.sourceComponent?.id || 0);
 	const targetId = Number(input.targetComponent?.id || 0);
-	const remappedDoors = (((input.line as any).housePackageTool?.doors ||
-		[]) as DoorStoredRow[]).map((row) =>
+	const remappedDoors = (
+		((input.line as any).housePackageTool?.doors || []) as DoorStoredRow[]
+	).map((row) =>
 		Number(row?.stepProductId || 0) === sourceId
 			? {
 					...row,
@@ -251,9 +255,7 @@ export function removeWorkflowSelectedComponent(input: {
 		const selectedUids = getSelectedProdUids(step)
 			.map((uid) => String(uid))
 			.filter((uid) => uid !== input.componentUid);
-		const selectedComponents = (
-			readSelectedComponents(step)
-		).filter(
+		const selectedComponents = readSelectedComponents(step).filter(
 			(component) => String(component?.uid) !== input.componentUid,
 		) as WorkflowComponentRecord[];
 		steps[input.stepIndex] = summarizeSelectionStep(
@@ -311,9 +313,7 @@ export function removeWorkflowHptDoorOption(input: {
 	const selectedUids = getSelectedProdUids(step)
 		.map((uid) => String(uid))
 		.filter((uid) => uid !== componentUid);
-	const selectedComponents = (
-		readSelectedComponents(step)
-	).filter(
+	const selectedComponents = readSelectedComponents(step).filter(
 		(entry) => String(entry?.uid || "") !== componentUid,
 	) as WorkflowComponentRecord[];
 	steps[input.stepIndex] = summarizeSelectionStep(
@@ -322,7 +322,9 @@ export function removeWorkflowHptDoorOption(input: {
 		selectedComponents,
 	);
 
-	const existingRows = Array.isArray((input.line as any).housePackageTool?.doors)
+	const existingRows = Array.isArray(
+		(input.line as any).housePackageTool?.doors,
+	)
 		? (((input.line as any).housePackageTool.doors || []) as DoorStoredRow[])
 		: [];
 	const nextRows = existingRows.filter(
@@ -395,7 +397,8 @@ function summarizeSelectionStep(
 }
 
 function computeSalesMultiplier(profileCoefficient?: number | null) {
-	return Number.isFinite(Number(profileCoefficient)) && Number(profileCoefficient) > 0
-		? Number((1 / Number(profileCoefficient)).toFixed(2))
+	return Number.isFinite(Number(profileCoefficient)) &&
+		Number(profileCoefficient) > 0
+		? divideMoney(1, Number(profileCoefficient))
 		: 1;
 }

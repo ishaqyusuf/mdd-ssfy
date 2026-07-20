@@ -46,6 +46,12 @@ function getSettingDefaults(meta: unknown) {
 	};
 }
 
+function getBillingZip(meta: unknown) {
+	if (!meta || typeof meta !== "object" || Array.isArray(meta)) return "";
+	const value = (meta as { billingZip?: unknown }).billingZip;
+	return typeof value === "string" ? value : "";
+}
+
 export function DealerSettings() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -90,6 +96,7 @@ export function DealerSettings() {
 			address2: String(form.get("address2") || ""),
 			city: String(form.get("city") || ""),
 			state: String(form.get("state") || ""),
+			zip_code: String(form.get("zip_code") || ""),
 			country: String(form.get("country") || ""),
 			defaultTaxCode: String(form.get("defaultTaxCode") || "") || null,
 			defaultCustomerProfileId: defaultCustomerProfileId || null,
@@ -237,6 +244,11 @@ export function DealerSettings() {
 						defaultValue={settings?.primaryBillingAddress?.state || ""}
 						label="State"
 						name="state"
+					/>
+					<Field
+						defaultValue={getBillingZip(settings?.meta)}
+						label="ZIP / Postal code"
+						name="zip_code"
 					/>
 					<Field
 						defaultValue={settings?.primaryBillingAddress?.country || ""}

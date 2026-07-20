@@ -9,10 +9,7 @@ import {
 	recomputeSalesFormRecordSummary,
 } from "../selectors";
 import type { SalesFormState, SalesFormStateRecord } from "../types";
-
-function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
-}
+import { multiplyMoney } from "../../../payment-system/domain/money";
 
 export function setSalesFormLineItems<
 	TRecord extends SalesFormStateRecord,
@@ -95,8 +92,9 @@ export function updateSalesFormLineItem<
 			(Object.prototype.hasOwnProperty.call(patch, "qty") ||
 				Object.prototype.hasOwnProperty.call(patch, "unitPrice"))
 		) {
-			merged.lineTotal = roundCurrency(
-				Number(merged.qty || 0) * Number(merged.unitPrice || 0),
+			merged.lineTotal = multiplyMoney(
+				Number(merged.qty || 0),
+				Number(merged.unitPrice || 0),
 			);
 		}
 

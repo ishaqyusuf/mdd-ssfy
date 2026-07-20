@@ -341,6 +341,10 @@ describe("workflow row patches", () => {
 
 	it("builds shelf section patches", () => {
 		const patch = buildWorkflowShelfSectionsPatch({
+			line: {
+				uid: "shelf-line",
+				meta: { keep: true },
+			},
 			sections: [
 				{
 					uid: "section-1",
@@ -369,6 +373,11 @@ describe("workflow row patches", () => {
 		expect(patch.lineTotal).toBe(22);
 		expect((patch.linePatch as any).shelfItems).toHaveLength(1);
 		expect((patch.linePatch as any).shelfItems[0]?.totalPrice).toBe(22);
+		expect((patch.linePatch as any).meta).toMatchObject({
+			keep: true,
+			rateRoundingAdjustment: 0,
+			totalAuthoritative: true,
+		});
 	});
 
 	it("builds HPT row patches with shared surcharge", () => {

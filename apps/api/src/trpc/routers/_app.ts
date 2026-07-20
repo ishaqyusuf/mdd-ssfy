@@ -8,6 +8,7 @@ import { communityRouters } from "./community.route";
 import { customerServiceRouter } from "./customer-service.route";
 import { customerRouter } from "./customer.route";
 import { dealerPortalRouter } from "./dealer-portal.route";
+import { dealerProgramRouter } from "./dealer-program.route";
 import { dealerRouter } from "./dealer.route";
 import { dispatchRouters } from "./dispatch.route";
 import { emailsRoute } from "./emails.route";
@@ -33,6 +34,9 @@ import { shortLinksRouter } from "./short-links.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { squareTestRouter } from "./square-test.route";
 import { storefrontRouter } from "./storefront.route";
+import { storefrontAdminRouter } from "./storefront-admin.route";
+import { storefrontPublicRouter } from "./storefront-public.route";
+import { storefrontAuthRouter } from "./storefront-auth.route";
 import { taskEventsRouter } from "./task-events.route";
 import { taskRunDiagnosticsRouter } from "./task-run-diagnostics.route";
 import { taskTriggerRouter } from "./task-trigger.route";
@@ -50,6 +54,7 @@ export const appRouter = createTRPCRouter({
 	customers: customerRouter,
 	dealer: dealerRouter,
 	dealerPortal: dealerPortalRouter,
+	dealerProgram: dealerProgramRouter,
 	dispatch: dispatchRouters,
 	emails: emailsRoute,
 	filters: filterRouters,
@@ -71,6 +76,9 @@ export const appRouter = createTRPCRouter({
 	settings: settingsRouter,
 	shortLinks: shortLinksRouter,
 	storefront: storefrontRouter,
+	storefrontAdmin: storefrontAdminRouter,
+	storefrontCommerce: storefrontPublicRouter,
+	storefrontAuth: storefrontAuthRouter,
 	shoppingProducts: shoppingProductsRouter,
 	siteActions: siteActionsRoutes,
 	squareTest: squareTestRouter,

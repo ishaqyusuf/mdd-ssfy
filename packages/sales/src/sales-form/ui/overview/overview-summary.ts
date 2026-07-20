@@ -13,7 +13,8 @@ export function hasSalesFormSummaryDrift(
 			Number(nextSummary?.taxTotal || 0) ||
 		Number(currentSummary?.grandTotal || 0) !==
 			Number(nextSummary?.grandTotal || 0) ||
+		Number(currentSummary?.totalWithCcc || currentSummary?.grandTotal || 0) !==
+			Number(nextSummary?.totalWithCcc || nextSummary?.grandTotal || 0) ||
 		Number(currentSummary?.ccc || 0) !== Number(nextSummary?.ccc || 0)
 	);
 }
-

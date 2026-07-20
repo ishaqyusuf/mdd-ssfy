@@ -10,8 +10,9 @@ import {
 } from "@trpc/tanstack-react-query";
 import { cache } from "react";
 import superjson from "superjson";
+import { headers } from "next/headers";
 import { makeQueryClient } from "./query-client";
-import { AppRouter } from "@gnd/api/trpc/routers/_app";
+import type { AppRouter } from "@gnd/api/trpc/routers/_app";
 // import { AppRouter } from "./routers/_app";
 
 // IMPORTANT: Create a stable getter for the query client that
@@ -24,17 +25,16 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
         links: [
             httpBatchLink({
                 // url: `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
-                url:
-                    process.env.NODE_ENV === "production"
-                        ? `${process.env.NEXT_PUBLIC_APP_URL}/api/trpc`
-                        : `${process.env.NEXT_PUBLIC_API_URL}/api/trpc`,
+                url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3018"}/api/storefront/trpc`,
                 transformer: superjson as any,
+                fetch(url, options) {
+                    return fetch(url, { ...options, credentials: "include" });
+                },
                 async headers() {
+                    const requestHeaders = await headers();
                     return {
-                        // Authorization: `Bearer ${session?.access_token}`,
-                        // "x-user-timezone": await getTimezone(),
-                        // "x-user-locale": await getLocale(),
-                        // "x-user-country": await getCountryCode(),
+                        cookie: requestHeaders.get("cookie") || "",
+                        "x-request-id": requestHeaders.get("x-request-id") || "",
                     };
                 },
             }),
@@ -82,4 +82,3 @@ export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
         }
     }
 }
-

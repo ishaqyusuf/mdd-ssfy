@@ -1,4 +1,9 @@
 import { calculateSalesFormSummary } from "./costing";
+import {
+	divideMoney,
+	multiplyMoney,
+	roundMoney,
+} from "../../payment-system/domain/money";
 
 export type SalesFormPricingProfile = {
   id?: number | null;
@@ -71,7 +76,7 @@ export type DualPricingSnapshot = DualPricingResult & {
 };
 
 function roundCurrency(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
+  return roundMoney(value);
 }
 
 function coefficientValue(profile?: SalesFormPricingProfile | null) {
@@ -80,7 +85,7 @@ function coefficientValue(profile?: SalesFormPricingProfile | null) {
 }
 
 function coefficientMultiplier(profile?: SalesFormPricingProfile | null) {
-  return roundCurrency(1 / coefficientValue(profile));
+  return divideMoney(1, coefficientValue(profile));
 }
 
 function salesPercentageValue(profile?: SalesFormPricingProfile | null) {
@@ -95,8 +100,8 @@ function salesPercentageMultiplier(profile?: SalesFormPricingProfile | null) {
 function normalizeLine(line: DualPricingLineInput, multiplier: number) {
   const qty = Number(line.qty ?? 0);
   const baseUnitPrice = Number(line.unitPrice ?? 0);
-  const unitPrice = roundCurrency(baseUnitPrice * multiplier);
-  const lineTotal = roundCurrency(qty * unitPrice);
+  const unitPrice = multiplyMoney(baseUnitPrice, multiplier);
+  const lineTotal = multiplyMoney(qty, unitPrice);
 
   return {
     ...line,
@@ -110,8 +115,8 @@ function normalizeDealerLine(
   line: ReturnType<typeof normalizeLine>,
   multiplier: number,
 ) {
-  const unitPrice = roundCurrency(Number(line.unitPrice || 0) * multiplier);
-  const lineTotal = roundCurrency(Number(line.qty || 0) * unitPrice);
+  const unitPrice = multiplyMoney(Number(line.unitPrice || 0), multiplier);
+  const lineTotal = multiplyMoney(Number(line.qty || 0), unitPrice);
 
   return {
     ...line,

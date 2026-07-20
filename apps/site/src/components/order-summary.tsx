@@ -2,8 +2,7 @@ import { useCart } from "@/hooks/use-cart";
 
 export function OrderSummary() {
   const cart = useCart();
-  // const estimate
-  const { estimate } = cart.data;
+  const estimate = cart.data?.estimate;
   if (!estimate) return;
   const { subtotal, shipping, tax, total } = estimate;
   return (
@@ -14,20 +13,22 @@ export function OrderSummary() {
           <span>Subtotal</span>
           <span>${subtotal.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between text-muted-foreground">
           <span>Shipping</span>
-          <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+          <span>{shipping == null ? "Calculated at checkout" : `$${shipping.toFixed(2)}`}</span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex justify-between text-muted-foreground">
           <span>Tax</span>
-          <span>${tax.toFixed(2)}</span>
+          <span>{tax == null ? "Calculated at checkout" : `$${tax.toFixed(2)}`}</span>
         </div>
-        <div className="border-t pt-2 mt-2">
-          <div className="flex justify-between font-bold text-lg">
-            <span>Total</span>
-            <span>${total.toFixed(2)}</span>
+        {total != null && (
+          <div className="border-t pt-2 mt-2">
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

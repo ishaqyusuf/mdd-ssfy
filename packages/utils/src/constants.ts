@@ -157,6 +157,13 @@ export const PERMISSIONS = [
 	"editSalesResolution",
 	"generateSalesPaymentReport",
 	"generateSalesStatementReport",
+	"viewStorefront",
+	"editStorefront",
+	"viewStorefrontCarts",
+	"editStorefrontCarts",
+	"viewStorefrontOrders",
+	"editStorefrontOrders",
+	"publishStorefront",
 ] as const;
 export const PERMISSION_NAMES_PASCAL = [
 	"Project",
@@ -197,6 +204,9 @@ export const PERMISSION_NAMES_PASCAL = [
 	"SalesResolution",
 	"SalesLaborCost",
 	"SalesManager",
+	"Storefront",
+	"StorefrontCarts",
+	"StorefrontOrders",
 ] as const;
 
 export const PERMISSION_NAMES = [
@@ -239,6 +249,9 @@ export const PERMISSION_NAMES = [
 	"salesManager",
 	// "salesSupplierManager",
 	"tech",
+	"storefront",
+	"storefrontCarts",
+	"storefrontOrders",
 ] as const;
 export type PascalResource = (typeof PERMISSION_NAMES_PASCAL)[number];
 type Action = "edit" | "view";
@@ -247,6 +260,7 @@ export const EXTRA_PERMISSION_SCOPES = [
 	"submitBugReport",
 	"generateSalesPaymentReport",
 	"generateSalesStatementReport",
+	"publishStorefront",
 ] as const;
 export type ExtraPermissionScope = (typeof EXTRA_PERMISSION_SCOPES)[number];
 export type PermissionScope = `${Action}${PascalResource}` | ExtraPermissionScope;

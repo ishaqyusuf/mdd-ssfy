@@ -364,12 +364,12 @@ describe("sync sales inventory line items", () => {
 						productId: 55,
 						categoryId: 13,
 						description: "Relational shelf",
-						qty: 4,
-						unitPrice: 20,
-						totalPrice: 80,
+						qty: 2,
+						unitPrice: 12.34,
+						totalPrice: 24.68,
 						meta: {
 							basePrice: 12,
-							salesPrice: 20,
+							salesPrice: 12.34,
 						},
 						shelfProduct: {
 							id: 55,
@@ -390,7 +390,7 @@ describe("sync sales inventory line items", () => {
 		expect(candidates).toHaveLength(1);
 		expect(candidates[0]?.sourceUid).toBe("shelf-prod-55");
 		expect(candidates[0]?.unitCostPrice).toBe(12);
-		expect(candidates[0]?.unitSalesPrice).toBe(20);
+		expect(candidates[0]?.unitSalesPrice).toBe(12.34);
 	});
 
 	it("derives missing shelf cost from sales price and customer profile coefficient", () => {

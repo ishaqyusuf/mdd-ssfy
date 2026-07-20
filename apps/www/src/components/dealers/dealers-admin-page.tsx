@@ -37,6 +37,7 @@ import {
 	type FilterDefinition,
 	buildOptionLabelLookup,
 } from "../midday-search-filter/filter-definitions";
+import { DealerProgramAdmin } from "./dealer-program-admin";
 
 type AddMode = "existing" | "new";
 type CustomerCandidate = {
@@ -476,6 +477,7 @@ export function DealersAdminPage({ initialSettings }: Props) {
 					updatingProfileDealerId={updatingProfileDealerId}
 				/>
 			</div>
+			<DealerProgramAdmin />
 		</div>
 	);
 }

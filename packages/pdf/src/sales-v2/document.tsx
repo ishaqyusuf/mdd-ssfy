@@ -104,11 +104,13 @@ export function SalesPdfDocument({
 					page={page}
 					baseUrl={baseUrl}
 					watermark={watermark}
-					logoUrl={logoUrl}
+					logoUrl={
+						page.branding ? (page.branding.logoUrl ?? undefined) : logoUrl
+					}
 					previewUrl={i === 0 ? previewUrl : undefined}
 					qrCodeDataUrl={i === 0 ? qrCodeDataUrl : undefined}
 					pageIndex={i}
-					companyAddress={companyAddress}
+					companyAddress={page.branding?.companyAddress ?? companyAddress}
 					config={resolvedConfig}
 				/>
 			))}

@@ -185,7 +185,11 @@ export function ReviewStep() {
           ) : null}
           <TotalLine label="Tax" value={summary.taxTotal} />
           <View className="my-1 h-px bg-primary/20" />
-          <TotalLine label="Total" value={summary.grandTotal} strong />
+          <TotalLine
+            label="Total"
+            value={summary.totalWithCcc ?? summary.grandTotal}
+            strong
+          />
         </View>
       </View>
 

@@ -13,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@gnd/ui/alert-dialog";
 import { Button } from "@gnd/ui/button";
+import { Switch } from "@gnd/ui/switch";
 import {
   Table,
   TableBody,
@@ -97,6 +98,26 @@ export function DealerCustomers() {
       onError: (error) => {
         toast({
           title: "Could not delete customer.",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    }),
+  );
+  const updateOfficeVisibility = useMutation(
+    trpc.dealerPortal.updateCustomerOfficeVisibility.mutationOptions({
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: trpc.dealerPortal.customers.pathKey(),
+        });
+        toast({
+          title: "Office access updated.",
+          variant: "success",
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Could not update office access.",
           description: error.message,
           variant: "destructive",
         });
@@ -209,6 +230,7 @@ export function DealerCustomers() {
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Profile</TableHead>
+              <TableHead>Office access</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -216,7 +238,7 @@ export function DealerCustomers() {
           <TableBody>
             {customersQuery.isPending ? (
               <TableRow>
-                <TableCell className="h-24 text-center" colSpan={6}>
+                <TableCell className="h-24 text-center" colSpan={7}>
                   Loading customers...
                 </TableCell>
               </TableRow>
@@ -231,6 +253,30 @@ export function DealerCustomers() {
                   <TableCell>{customer.email || "-"}</TableCell>
                   <TableCell>{customer.phoneNo || "-"}</TableCell>
                   <TableCell>{customer.profile?.title || "-"}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        aria-label={`Share ${
+                          customer.businessName ||
+                          customer.name ||
+                          `customer ${customer.id}`
+                        } with the office`}
+                        checked={customer.officeVisibility === "SHARED"}
+                        disabled={updateOfficeVisibility.isPending}
+                        onCheckedChange={(checked) =>
+                          updateOfficeVisibility.mutate({
+                            id: customer.id,
+                            officeVisibility: checked ? "SHARED" : "PRIVATE",
+                          })
+                        }
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {customer.officeVisibility === "SHARED"
+                          ? "Shared (read-only)"
+                          : "Private"}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>{formatDate(customer.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -311,7 +357,7 @@ export function DealerCustomers() {
               ))
             ) : (
               <TableRow>
-                <TableCell className="h-24 text-center" colSpan={6}>
+                <TableCell className="h-24 text-center" colSpan={7}>
                   No customers yet.
                 </TableCell>
               </TableRow>

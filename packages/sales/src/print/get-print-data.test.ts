@@ -171,9 +171,9 @@ function createSale() {
 				shelfItems: [
 					{
 						description: "Shelf Panel",
-						qty: 1,
-						unitPrice: 50,
-						totalPrice: 50,
+						qty: 2,
+						unitPrice: 12.34,
+						totalPrice: 24.68,
 						shelfProduct: { title: "Shelf Panel", img: null },
 					},
 				],
@@ -224,6 +224,12 @@ describe("getPrintData", () => {
 		expect(result.pages[0]?.sections[3]?.rows).toHaveLength(1);
 		expect(result.pages[0]?.sections[3]?.rows[0]?.cells[1]?.value).toBe(
 			"GENERIC LINE ITEM",
+		);
+		expect(result.pages[0]?.sections[4]?.rows[0]?.cells[3]?.value).toBe(
+			"$12.34",
+		);
+		expect(result.pages[0]?.sections[4]?.rows[0]?.cells[4]?.value).toBe(
+			"$24.68",
 		);
 	});
 

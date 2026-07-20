@@ -1,24 +1,79 @@
 // @ts-expect-error packages/db typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 import {
+  calculateDealerApprovalPricing,
   calculateDealerQuotePricing,
   convertDealerPortalQuoteToOrder,
   getDealerPortalSalesDocument,
   getDealerPortalSalesDocuments,
   getDealerPortalCustomerOverview,
   getDealerPortalCustomers,
+  getDealerOrderRequestCount,
   getDealerPortalSettings,
   getDealerPortalSalesProfiles,
   getDealerPortalSalesList,
+  mergeDealerApprovalDeliveryMeta,
   deleteDealerPortalCustomer,
   saveDealerPortalQuote,
   saveDealerPortalCustomer,
   saveDealerPortalSettings,
   saveDealerPortalSalesProfile,
+  requestDealerPortalQuoteOrder,
   updateDealerSalesProfile,
+  updateDealerPortalCustomerPayment,
+  updateDealerPortalCustomerOfficeVisibility,
 } from "./dealers";
 
 describe("dealer portal pricing", () => {
+  it("rebuilds customer pricing after the office completes a dealer quote", () => {
+    const result = calculateDealerApprovalPricing({
+      lineItems: [
+        {
+          uid: "office-added-shelf-line",
+          title: "Shelf item",
+          qty: 1,
+          unitPrice: 380.38,
+          lineTotal: 380.38,
+          shelfItems: [
+            {
+              productId: 113,
+              qty: 1,
+              unitPrice: 380.38,
+              totalPrice: 380.38,
+              meta: {
+                basePrice: 247,
+              },
+            },
+          ],
+        },
+      ],
+      taxRate: 0,
+      internalGrandTotal: 405.38,
+      internalCoefficient: 1,
+      dealerSalesPercentage: 20,
+      fallbackDealerGrandTotal: 0,
+    });
+
+    expect(result.internalBaseTotal).toBe(380.38);
+    expect(result.dealerBaseTotal).toBe(481.46);
+  });
+
+  it("keeps the saved dealer total when no structured quote lines exist", () => {
+    const result = calculateDealerApprovalPricing({
+      lineItems: [],
+      taxRate: 0,
+      internalGrandTotal: 300,
+      internalCoefficient: 0.65,
+      dealerSalesPercentage: 20,
+      fallbackDealerGrandTotal: 360,
+    });
+
+    expect(result).toEqual({
+      internalBaseTotal: 300,
+      dealerBaseTotal: 360,
+    });
+  });
+
   it("keeps internal and dealer customer pricing snapshots separate", () => {
     const result = calculateDealerQuotePricing({
       createdAt: "2026-05-18T00:00:00.000Z",
@@ -141,6 +196,164 @@ describe("dealer portal pricing", () => {
     ]);
     expect(result.internalPricing.subTotal).toBe(1520);
     expect(result.dealerPricing.subTotal).toBe(1672);
+  });
+});
+
+describe("dealer order request visibility", () => {
+  it("lets Sales Team members review unassigned dealer requests", async () => {
+    let capturedWhere: Record<string, unknown> | undefined;
+    const db = {
+      users: {
+        findUnique: async () => ({
+          roles: [{ role: { name: "Sales Team" } }],
+        }),
+      },
+      dealerSalesRequest: {
+        count: async ({ where }: { where: Record<string, unknown> }) => {
+          capturedWhere = where;
+          return 1;
+        },
+      },
+    };
+
+    expect(await getDealerOrderRequestCount(db as never, 69)).toBe(1);
+    expect(capturedWhere).toMatchObject({
+      status: "pending",
+      OR: [{ sale: { salesRepId: 69 } }, { sale: { salesRepId: null } }],
+    });
+  });
+
+  it("captures an immutable direct-ship recipient snapshot on submission", async () => {
+    let addressData: Record<string, any> | undefined;
+    const saleUpdates: Record<string, any>[] = [];
+    const tx = {
+      salesOrders: {
+        findFirst: async () => ({
+          id: 81,
+          orderId: "DPP-81",
+          slug: "dpp-81",
+          meta: {
+            newSalesForm: {
+              form: { deliveryOption: "ship" },
+            },
+          },
+          deliveryOption: "ship",
+          billingAddressId: null,
+          shippingAddressId: null,
+          salesRepId: 9,
+          dealerAuth: {
+            id: 10,
+            email: "dealer@example.com",
+            companyName: "Dealer Co",
+            salesRepId: 9,
+          },
+          customer: {
+            id: 44,
+            businessName: "End Customer",
+            email: "ship@example.com",
+            phoneNo: "555-0100",
+            address: "123 Main St",
+            meta: {
+              dealerAddress: {
+                address1: "123 Main St",
+                city: "Orlando",
+                state: "FL",
+                zip_code: "32801",
+                country: "US",
+              },
+            },
+          },
+          requests: [],
+        }),
+        update: async ({ data }: { data: Record<string, any> }) => {
+          saleUpdates.push(data);
+          return { id: 81 };
+        },
+      },
+      addressBooks: {
+        create: async ({ data }: { data: Record<string, any> }) => {
+          addressData = data;
+          return { id: 501 };
+        },
+      },
+      dealerSalesRequest: {
+        create: async () => ({
+          id: 700,
+          status: "pending",
+          createdAt: new Date("2026-07-19T12:00:00.000Z"),
+        }),
+      },
+    };
+    const db = {
+      $transaction: async (callback: (value: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    const result = await requestDealerPortalQuoteOrder(db as any, 10, 81);
+
+    expect(addressData).toMatchObject({
+      name: "End Customer",
+      email: "ship@example.com",
+      phoneNo: "555-0100",
+      address1: "123 Main St",
+      city: "Orlando",
+      state: "FL",
+      meta: {
+        source: "dealer_order_recipient_snapshot",
+        dealerId: 10,
+        customerId: 44,
+        zip_code: "32801",
+      },
+    });
+    expect(saleUpdates[0]).toMatchObject({
+      billingAddressId: 501,
+      shippingAddressId: 501,
+      meta: {
+        dealerFulfillmentRecipient: {
+          customerId: 44,
+          email: "ship@example.com",
+          phoneNo: "555-0100",
+          zip_code: "32801",
+        },
+      },
+    });
+    expect(result.notification.fulfillmentRecipient).toMatchObject({
+      customerId: 44,
+      address1: "123 Main St",
+    });
+  });
+});
+
+describe("dealer approval delivery metadata", () => {
+  it("keeps the sales-form snapshot synchronized with the reviewed delivery row", () => {
+    const meta = mergeDealerApprovalDeliveryMeta({
+      meta: {
+        newSalesForm: {
+          extraCosts: [
+            { id: 10, label: "Labor", type: "Labor", amount: 0 },
+            { id: 11, label: "Old delivery", type: "Delivery", amount: 5 },
+          ],
+        },
+      },
+      deliveryCost: 25,
+      extraCostId: 12,
+    });
+
+    expect(meta).toMatchObject({
+      deliveryCost: 25,
+      newSalesForm: {
+        extraCosts: [
+          { id: 10, type: "Labor", amount: 0 },
+          {
+            id: 12,
+            label: "Delivery",
+            type: "Delivery",
+            amount: 25,
+            taxxable: false,
+          },
+        ],
+      },
+    });
   });
 });
 
@@ -928,7 +1141,11 @@ describe("dealer portal isolation", () => {
     let savedMeta: Record<string, unknown> | null = null;
     const db = {
       dealerAuth: {
-        findUnique: async ({ select }: { select?: Record<string, unknown> }) => {
+        findUnique: async ({
+          select,
+        }: {
+          select?: Record<string, unknown>;
+        }) => {
           const dealer = {
             id: 10,
             email: "dealer@example.com",
@@ -986,6 +1203,7 @@ describe("dealer portal isolation", () => {
       companyName: "Dealer Co",
       phoneNo: "555-111-2222",
       logoUrl: "https://example.com/logo.png",
+      zip_code: "32801",
       defaultCustomerProfileId: 45,
       defaultTaxCode: "FL",
       defaultFulfillmentMode: "delivery",
@@ -993,6 +1211,8 @@ describe("dealer portal isolation", () => {
 
     expect(savedMeta).toMatchObject({
       logoUrl: "https://example.com/logo.png",
+      billingZip: "32801",
+      brandingVersion: 1,
       defaultCustomerProfileId: 45,
       defaultTaxCode: "FL",
       defaultFulfillmentMode: "delivery",
@@ -1000,6 +1220,34 @@ describe("dealer portal isolation", () => {
     const settings = await getDealerPortalSettings(db as any, 10);
     expect(settings?.meta).toMatchObject({
       logoUrl: "https://example.com/old.png",
+    });
+  });
+
+  it("shares only a customer owned by the active dealer", async () => {
+    let update: Record<string, unknown> | undefined;
+    const db = {
+      customers: {
+        updateMany: async (args: Record<string, unknown>) => {
+          update = args;
+          return { count: 1 };
+        },
+      },
+    };
+
+    await updateDealerPortalCustomerOfficeVisibility(db as any, 10, {
+      id: 44,
+      officeVisibility: "SHARED",
+    });
+
+    expect(update).toEqual({
+      where: {
+        id: 44,
+        dealerOwnerId: 10,
+        deletedAt: null,
+      },
+      data: {
+        officeVisibility: "SHARED",
+      },
     });
   });
 
@@ -1319,6 +1567,14 @@ describe("dealer portal isolation", () => {
     });
     expect("meta" in document).toBe(false);
     expect("items" in document).toBe(false);
+    expect(document).toMatchObject({
+      grandTotal: 150,
+      amountDue: 150,
+      officeGrandTotal: 100,
+      officeAmountDue: 100,
+      customerPaymentStatus: "unpaid",
+      customerPaidAmount: 0,
+    });
     expect(document.lineItems).toEqual([
       {
         uid: "line-1",
@@ -1329,6 +1585,58 @@ describe("dealer portal isolation", () => {
         lineTotal: 150,
       },
     ]);
+  });
+
+  it("updates only the active dealer's customer-payment ledger and records history", async () => {
+    let updatedDue: number | null = null;
+    let historyData: Record<string, unknown> | null = null;
+    const tx = {
+      dealerSales: {
+        findFirst: async () => ({
+          id: 7,
+          grandTotal: 150,
+          dueAmount: 150,
+          salesOrderId: 55,
+        }),
+        update: async ({ data }: { data: { dueAmount: number } }) => {
+          updatedDue = data.dueAmount;
+          return {
+            grandTotal: 150,
+            dueAmount: data.dueAmount,
+            updatedAt: new Date("2026-07-18T00:00:00.000Z"),
+          };
+        },
+      },
+      salesHistory: {
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          historyData = data;
+          return data;
+        },
+      },
+    };
+    const db = {
+      $transaction: async (callback: (transaction: typeof tx) => unknown) =>
+        callback(tx),
+    };
+
+    const result = await updateDealerPortalCustomerPayment(db as never, 10, {
+      id: 55,
+      status: "paid",
+    });
+
+    expect(updatedDue).toBe(0);
+    expect(result).toMatchObject({ status: "paid", amountDue: 0 });
+    expect(historyData).toMatchObject({
+      salesId: 55,
+      name: "Dealer customer payment status updated",
+      authorName: "Dealer 10",
+      data: {
+        dealerId: 10,
+        status: "paid",
+        previousDue: 150,
+        nextDue: 0,
+      },
+    });
   });
 
   it("reopens dealer documents from saved package workflow payload", async () => {

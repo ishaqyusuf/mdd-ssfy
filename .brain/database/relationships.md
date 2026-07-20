@@ -4,6 +4,16 @@
 Tracks important cross-model relationships and ownership patterns.
 
 ## Current Notes
+- `Customers.dealerOwnerId` identifies a dealer-owned downstream customer.
+  `officeVisibility = SHARED` permits read-only office discovery without
+  transferring ownership or allowing unrelated office-origin sales.
+- `DealerRecruitmentCampaign` owns profile/customer audience targets,
+  invitations, and attributed applications. Each invitation belongs to one
+  office customer and normalized recipient email; only its token hash is
+  persisted, and it may create one idempotent application.
+- Approved applications link to the existing dealer account/onboarding-token
+  flow. Delivery/ship submissions separately persist an order recipient
+  snapshot so fulfillment does not depend on later customer visibility/edits.
 - Sales shipment relationship for the inventory cutover:
   - `SalesOrders` -> `OrderDelivery` is the shipment/dispatch header relationship.
   - `OrderDelivery` -> `OrderItemDelivery` is the shipment line relationship.
@@ -31,3 +41,17 @@ Tracks important cross-model relationships and ownership patterns.
 
 ## TODO
 - Document major relationships for sales, payments, resolution, documents, customers, and dispatch flows.
+## Storefront relationships (2026-07-20)
+
+- Storefront Category 1:N Storefront Offer.
+- Storefront Offer 1:N Step Policy and 1:N Offer Component Policy.
+- Storefront Category/Offer/Component source UID fields reference canonical
+  Dyke identities logically; Dyke remains the product, compatibility, and
+  pricing source of truth.
+- Commerce Collection 1:N Commerce Line; each line optionally references a
+  Storefront Offer and preserves the canonical configuration snapshot.
+- Commerce Collection 1:N Storefront Checkout; a completed checkout references
+  exactly one canonical `SalesOrders` record.
+- Storefront Page 1:N Storefront Section.
+- User/customer ownership is stored through server-derived user IDs without
+  exposing caller-controlled ownership mutations.

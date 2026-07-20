@@ -1,5 +1,5 @@
-import { Db } from "@gnd/db";
-import { GetStoreAddonComponentForm } from "./schema";
+import type { Db } from "@gnd/db";
+import type { GetStoreAddonComponentForm } from "./schema";
 
 export async function getStoreAddonComponentForm(
   db: Db,

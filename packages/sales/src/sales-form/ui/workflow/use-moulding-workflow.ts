@@ -8,6 +8,7 @@ import {
 	sharedMouldingComponentPrice,
 	summarizeMouldingPersistRows,
 } from "../../domain";
+import { roundMoney } from "../../../payment-system/domain/money";
 import { saveWorkflowMouldingSelectionWithQty as buildMouldingSelectionPatch } from "./workflow-moulding-actions";
 
 import type { SalesFormLineItemRecord } from "../../application";
@@ -72,7 +73,10 @@ export function useMouldingWorkflow(args: {
 	activeStepIndex: number;
 	normalizeTitle: (value?: string | null) => string;
 	visibleComponents: WorkflowComponent[];
-	updateLineItem: (uid: string, patch: Partial<SalesFormLineItemRecord>) => void;
+	updateLineItem: (
+		uid: string,
+		patch: Partial<SalesFormLineItemRecord>,
+	) => void;
 }) {
 	const {
 		activeLine,
@@ -108,11 +112,9 @@ export function useMouldingWorkflow(args: {
 			JSON.stringify(normalizedExistingRows) !==
 			JSON.stringify(summary.storedRows);
 		const qtyChanged = Number(activeLine.qty || 0) !== summary.qtyTotal;
-		const totalChanged =
-			Number(Number(activeLine.lineTotal || 0).toFixed(2)) !== summary.total;
+		const totalChanged = roundMoney(activeLine.lineTotal) !== summary.total;
 		const unitPriceChanged =
-			Number(Number(activeLine.unitPrice || 0).toFixed(2)) !==
-			summary.unitPrice;
+			roundMoney(activeLine.unitPrice) !== summary.unitPrice;
 		if (!rowsChanged && !qtyChanged && !totalChanged && !unitPriceChanged) {
 			return null;
 		}

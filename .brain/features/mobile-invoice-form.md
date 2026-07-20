@@ -23,6 +23,14 @@ Tracks the Expo mobile invoice/quote form under `apps/expo-app/src/features/sale
   - `shelfItems`
   - `housePackageTool.doors`
   - grouped row metadata such as `meta.serviceRows` and `meta.mouldingRows`
+- Mobile invoice summaries now expose `grandTotal` as the C.C.C-exclusive order
+  principal, `ccc` separately, and `totalWithCcc` for credit-card/link/terminal
+  display. The Costs, Review, and fixed footer totals use `totalWithCcc`, while
+  save/accounting payloads retain `grandTotal`.
+- Mobile ordinary, shelf, HPT, and grouped line calculations use the shared
+  decimal-safe money helpers. Shelf and grouped line totals remain
+  authoritative; two-decimal average rates are display-only and carry
+  `rateRoundingAdjustment` metadata when they cannot recompose the row sum.
 
 ## Mobile Step Editors
 

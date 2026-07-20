@@ -4,6 +4,7 @@ import { secureHeaders } from "hono/secure-headers";
 import { cors } from "hono/cors";
 import { trpcServer } from "@hono/trpc-server";
 import { appRouter } from "./trpc/routers/_app";
+import { storefrontAppRouter } from "./trpc/routers/storefront-app";
 import { createTRPCContext } from "./trpc/init";
 import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
 const app = new OpenAPIHono<Context>(); //.basePath("/api");
@@ -28,6 +29,23 @@ if (process.env.NODE_ENV === "development")
         "x-user-country",
       ],
       exposeHeaders: ["Content-Length"],
+      maxAge: 86400,
+    }),
+  );
+if (process.env.NODE_ENV === "development")
+  app.use(
+    "/api/storefront/trpc/*",
+    cors({
+      origin: process.env.ALLOWED_API_ORIGINS?.split(",") ?? [],
+      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowHeaders: [
+        "Authorization",
+        "Content-Type",
+        "x-request-id",
+        "x-trpc-source",
+      ],
+      exposeHeaders: ["Content-Length"],
+      credentials: true,
       maxAge: 86400,
     }),
   );
@@ -61,6 +79,14 @@ app.post("/api/dev-logger", async (c) => {
     return c.json({ ok: false, error: "WRITE_FAILED" }, 500);
   }
 });
+app.use(
+  "/api/storefront/trpc/*",
+  trpcServer({
+    router: storefrontAppRouter,
+    createContext: createTRPCContext,
+    endpoint: "/api/storefront/trpc",
+  }),
+);
 app.use(
   "/api/trpc/*",
   trpcServer({

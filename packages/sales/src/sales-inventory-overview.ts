@@ -12,6 +12,7 @@ import {
 	resolveSalesInventoryOverviewSetupMode,
 	resolveSalesInventoryRequirementDisplay,
 } from "./sales-inventory-policy";
+import { roundMoney } from "./payment-system/domain/money";
 export {
 	hasPassedInventoryTrackingRepairBoundary,
 	resolveSalesInventoryFulfillmentStatus,
@@ -289,7 +290,7 @@ function positiveNumberValue(value?: number | null) {
 }
 
 function roundCurrencyValue(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
+	return roundMoney(value);
 }
 
 function sumCurrencyBy<T>(

@@ -57,7 +57,7 @@ function QuoteActions({ item }: { item: Item }) {
 	const printDocument = useMutation(
 		trpc.dealerPortal.printDocument.mutationOptions({
 			onSuccess: (result) => {
-				window.open(result.previewUrl, "_blank", "noopener,noreferrer");
+				window.location.assign(result.previewUrl);
 			},
 			onError: (error) => {
 				toast({

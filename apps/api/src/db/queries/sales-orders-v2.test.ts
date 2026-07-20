@@ -52,6 +52,7 @@ describe("sales orders default query contract", () => {
 				orderNo: "08499PC",
 				bin: true,
 				paymentReview: "needs_review",
+				salesChannel: "dealership",
 				sort: ["grandTotal.desc"],
 			}),
 		).toEqual({
@@ -62,6 +63,7 @@ describe("sales orders default query contract", () => {
 			orderNo: "08499PC",
 			bin: true,
 			paymentReview: "needs_review",
+			salesChannel: "dealership",
 			sort: ["grandTotal.desc"],
 		});
 	});

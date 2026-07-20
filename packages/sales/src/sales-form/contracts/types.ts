@@ -46,6 +46,7 @@ export type SalesFormSummaryResult = {
   taxRate: number;
   taxTotal: number;
   grandTotal: number;
+  totalWithCcc: number;
   discount: number;
   discountPct: number;
   percentDiscountValue: number;

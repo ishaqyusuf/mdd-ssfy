@@ -12,6 +12,7 @@ const salesPrintFilterSchema = {
 	headlineFirstPage: parseAsBoolean,
 	mode: parseAsString,
 	preview: parseAsBoolean,
+	pricingMode: parseAsString,
 };
 
 export function useSalesPrintFilter() {

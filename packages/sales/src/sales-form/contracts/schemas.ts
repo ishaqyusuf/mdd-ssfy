@@ -142,6 +142,7 @@ export const salesFormSummarySchema = z.object({
   taxRate: z.number().min(0).max(100).default(0),
   taxTotal: z.number(),
   grandTotal: z.number(),
+  totalWithCcc: z.number().optional(),
   discount: z.number().optional(),
   discountPct: z.number().optional(),
   percentDiscountValue: z.number().optional(),

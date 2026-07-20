@@ -1,4 +1,8 @@
-import { createTRPCRouter, publicProcedure } from "../init";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "../init";
 import {
 	getCustomerDirectoryV2SummarySchema,
 	getCustomerStatementDetailSchema,
@@ -27,18 +31,18 @@ import {
 import type { CustomerProfileMeta } from "@sales/types";
 
 export const customerRouter = createTRPCRouter({
-	searchCustomers: publicProcedure
+	searchCustomers: protectedProcedure
 		.input(searchCustomersSchema)
 		.query(async (props) => {
 			return searchCustomers(props.ctx, props.input);
 		}),
-	customerInfoSearch: publicProcedure
+	customerInfoSearch: protectedProcedure
 		.input(customerInfoSearchSchema)
 		.query(async (props) => {
 			const result = await customerInfoSearch(props.ctx, props.input);
 			return result;
 		}),
-	getSalesCustomer: publicProcedure
+	getSalesCustomer: protectedProcedure
 		.input(getSalesCustomerSchema)
 		.query(async (props) => {
 			return getSalesCustomer(props.ctx, props.input);
@@ -48,22 +52,22 @@ export const customerRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getCustomerPayPortal(props.ctx, props.input);
 		}),
-	getCustomerDirectoryV2Summary: publicProcedure
+	getCustomerDirectoryV2Summary: protectedProcedure
 		.input(getCustomerDirectoryV2SummarySchema)
 		.query(async (props) => {
 			return getCustomerDirectoryV2Summary(props.ctx, props.input);
 		}),
-	getCustomerStatementReport: publicProcedure
+	getCustomerStatementReport: protectedProcedure
 		.input(getCustomerStatementReportSchema)
 		.query(async (props) => {
 			return getCustomerStatementReport(props.ctx, props.input);
 		}),
-	getCustomerStatementDetail: publicProcedure
+	getCustomerStatementDetail: protectedProcedure
 		.input(getCustomerStatementDetailSchema)
 		.query(async (props) => {
 			return getCustomerStatementDetail(props.ctx, props.input);
 		}),
-	getCustomerOverviewV2: publicProcedure
+	getCustomerOverviewV2: protectedProcedure
 		.input(getCustomerOverviewV2Schema)
 		.query(async (props) => {
 			return getCustomerOverviewV2(props.ctx, props.input);
@@ -92,17 +96,17 @@ export const customerRouter = createTRPCRouter({
 			meta: cp.meta as CustomerProfileMeta,
 		}));
 	}),
-	createCustomer: publicProcedure
+	createCustomer: protectedProcedure
 		.input(upsertCustomerSchema)
 		.mutation(async (props) => {
 			return createOrUpdateCustomer(props.ctx, props.input);
 		}),
-	createCustomerAddress: publicProcedure
+	createCustomerAddress: protectedProcedure
 		.input(upsertCustomerSchema)
 		.mutation(async (props) => {
 			return createOrUpdateCustomerAddress(props.ctx, props.input);
 		}),
-	updateCustomerEmail: publicProcedure
+	updateCustomerEmail: protectedProcedure
 		.input(updateCustomerEmailSchema)
 		.mutation(async (props) => {
 			return updateCustomerEmail(props.ctx, props.input);

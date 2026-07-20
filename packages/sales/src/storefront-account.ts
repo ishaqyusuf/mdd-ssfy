@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AddressBookMeta, Db } from "./types";
+import type { AddressBookMeta, Db } from "./types";
 import { nanoid } from "nanoid";
 import { devMode } from "@gnd/utils";
 import { hashPassword } from "@gnd/utils/crypto";

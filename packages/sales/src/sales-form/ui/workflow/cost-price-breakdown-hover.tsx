@@ -7,6 +7,13 @@ import {
 	HoverCardContent,
 	HoverCardTrigger,
 } from "@gnd/ui/hover-card";
+import {
+	divideMoney,
+	multiplyMoney,
+	percentageMoney,
+	roundMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
 
 function toNumber(value: unknown, fallback = 0) {
 	const number = Number(value);
@@ -29,7 +36,7 @@ function currency(value?: number | null) {
 }
 
 function roundCurrency(value: number) {
-	return Math.round((value + Number.EPSILON) * 100) / 100;
+	return roundMoney(value);
 }
 
 function coefficientValue(value?: number | null) {
@@ -38,7 +45,7 @@ function coefficientValue(value?: number | null) {
 }
 
 function coefficientMultiplier(value?: number | null) {
-	return Number((1 / coefficientValue(value)).toFixed(2));
+	return divideMoney(1, coefficientValue(value));
 }
 
 function salesPercentageValue(value?: number | null) {
@@ -114,31 +121,35 @@ export function resolveCostPriceBreakdown(
 	const useUnitQuantityCalculation =
 		unitCostPrice != null && quantity != null && quantity > 0;
 	const calculatedDealerProfileUnitSalesPrice = useUnitQuantityCalculation
-		? roundCurrency(unitCostPrice * internalProfileMultiplier)
+		? multiplyMoney(unitCostPrice, internalProfileMultiplier)
 		: null;
 	const calculatedCustomerUnitSalesPrice =
 		calculatedDealerProfileUnitSalesPrice == null
 			? null
-			: roundCurrency(
-					calculatedDealerProfileUnitSalesPrice *
-						(1 + dealerSalesPercentage / 100),
-				);
+			: sumMoney([
+					calculatedDealerProfileUnitSalesPrice,
+					percentageMoney(
+						calculatedDealerProfileUnitSalesPrice,
+						dealerSalesPercentage,
+					),
+				]);
 	const inputDealerProfileSalesPrice = firstPositiveNumber(
 		input.dealerProfileSalesPrice,
 	);
 	const dealerProfileSalesPrice =
 		inputDealerProfileSalesPrice ??
 		(useUnitQuantityCalculation && calculatedDealerProfileUnitSalesPrice != null
-			? roundCurrency(calculatedDealerProfileUnitSalesPrice * quantity)
-			: roundCurrency(costPrice * internalProfileMultiplier));
+			? multiplyMoney(calculatedDealerProfileUnitSalesPrice, quantity)
+			: multiplyMoney(costPrice, internalProfileMultiplier));
 	const inputCustomerSalesPrice = firstPositiveNumber(input.customerSalesPrice);
 	const customerSalesPrice =
 		inputCustomerSalesPrice ??
 		(useUnitQuantityCalculation && calculatedCustomerUnitSalesPrice != null
-			? roundCurrency(calculatedCustomerUnitSalesPrice * quantity)
-			: roundCurrency(
-					dealerProfileSalesPrice * (1 + dealerSalesPercentage / 100),
-				));
+			? multiplyMoney(calculatedCustomerUnitSalesPrice, quantity)
+			: sumMoney([
+					dealerProfileSalesPrice,
+					percentageMoney(dealerProfileSalesPrice, dealerSalesPercentage),
+				]));
 	const displayPrice =
 		firstPositiveNumber(input.displayPrice) ?? customerSalesPrice;
 

@@ -1,9 +1,9 @@
+import { salesFormPortableLineItemSchema } from "@gnd/sales/sales-form";
 import {
   US_PHONE_FORMAT_PATTERN,
   normalizeUSPhoneNumber,
 } from "@gnd/utils/format";
 import { paginationSchema } from "@gnd/utils/schema";
-import { salesFormPortableLineItemSchema } from "@gnd/sales/sales-form";
 import { z } from "zod";
 
 export const getDealersSchema = z
@@ -96,6 +96,11 @@ export type DealerPortalCustomerLookupSchema = z.infer<
   typeof dealerPortalCustomerLookupSchema
 >;
 
+export const dealerPortalCustomerOfficeVisibilitySchema = z.object({
+  id: z.number(),
+  officeVisibility: z.enum(["PRIVATE", "SHARED"]),
+});
+
 export const dealerPortalSalesProfileSchema = z.object({
   id: z.number().optional().nullable(),
   title: z.string().min(1),
@@ -169,6 +174,15 @@ export type DealerPortalCreatePaymentLinkSchema = z.infer<
   typeof dealerPortalCreatePaymentLinkSchema
 >;
 
+export const dealerPortalCustomerPaymentStatusSchema = z.object({
+  id: z.number(),
+  status: z.enum(["unpaid", "paid"]),
+  note: z.string().max(500).optional().nullable(),
+});
+export type DealerPortalCustomerPaymentStatusSchema = z.infer<
+  typeof dealerPortalCustomerPaymentStatusSchema
+>;
+
 export const dealerPortalSalesLineItemSchema = salesFormPortableLineItemSchema;
 export type DealerPortalSalesLineItemSchema = z.infer<
   typeof dealerPortalSalesLineItemSchema
@@ -240,6 +254,7 @@ export const dealerPortalSettingsSchema = z.object({
   address2: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
+  zip_code: z.string().optional().nullable(),
   country: z.string().optional().nullable(),
   defaultTaxCode: z.string().optional().nullable(),
   defaultCustomerProfileId: z.number().optional().nullable(),

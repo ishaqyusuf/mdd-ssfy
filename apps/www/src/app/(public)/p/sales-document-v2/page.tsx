@@ -17,6 +17,7 @@ export default async function Page(props: {
 		pageBreakMode?: string;
 		showImages?: string;
 		headlineFirstPage?: string;
+		pricingMode?: string;
 	}>;
 }) {
 	const searchParams = await props.searchParams;
@@ -31,6 +32,12 @@ export default async function Page(props: {
 			pageBreakMode={searchParams.pageBreakMode}
 			showImages={searchParams.showImages !== "false"}
 			headlineFirstPage={searchParams.headlineFirstPage !== "false"}
+			pricingMode={
+				searchParams.pricingMode === "customer" ||
+				searchParams.pricingMode === "internal"
+					? searchParams.pricingMode
+					: null
+			}
 		/>
 	);
 }

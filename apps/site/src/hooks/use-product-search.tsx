@@ -1,3 +1,5 @@
+"use client";
+
 import createContextFactory from "@/lib/context-factory";
 import { useProductsFilterParams } from "./use-products-filter-params";
 import { useQuery } from "@tanstack/react-query";

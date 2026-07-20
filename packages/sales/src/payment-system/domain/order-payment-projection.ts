@@ -3,7 +3,7 @@ import type {
 	PaymentAllocationRecord,
 	PaymentLedgerEntryRecord,
 } from "../contracts";
-import { roundMoney, sumMoney } from "./money";
+import { roundMoney, subtractMoney, sumMoney } from "./money";
 
 export interface BuildOrderPaymentProjectionInput {
 	salesOrderId?: number | null;
@@ -32,9 +32,9 @@ export function buildOrderPaymentProjection(
 	const totalRefunded = roundMoney(input.refundedAmount);
 	const totalVoided = roundMoney(input.voidedAmount);
 	const grandTotal = roundMoney(input.grandTotal);
-	const netSettled = roundMoney(totalAllocated - totalRefunded - totalVoided);
-	const amountDue = roundMoney(Math.max(grandTotal - netSettled, 0));
-	const overpaidAmount = roundMoney(Math.max(netSettled - grandTotal, 0));
+	const netSettled = subtractMoney(totalAllocated, totalRefunded, totalVoided);
+	const amountDue = Math.max(subtractMoney(grandTotal, netSettled), 0);
+	const overpaidAmount = Math.max(subtractMoney(netSettled, grandTotal), 0);
 
 	return {
 		salesOrderId: input.salesOrderId || null,

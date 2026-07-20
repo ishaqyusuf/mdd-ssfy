@@ -243,6 +243,7 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
 	templateId?: string | null;
 	pageBreakMode?: SalesPageBreakMode | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
+	pricingMode?: "customer" | "internal" | null;
 	preview?: boolean;
 	fresh?: boolean;
 	origin?: string;
