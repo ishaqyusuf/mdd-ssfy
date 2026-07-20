@@ -146,3 +146,7 @@ Tracks notable migrations and migration strategy.
 - Normal local `migrate dev` stopped on pre-existing drift that requested a
   reset. Normal `db push` stopped on unrelated LongText-to-JSON conversions and
   a dealer uniqueness warning. Neither reset nor `--accept-data-loss` was used.
+- The user confirmed on 2026-07-20 that the resulting schema was safely pushed
+  to both development and production. This confirmation clears schema
+  deployment as a storefront release gate; traffic cutover and transactional
+  checkout rehearsal remain separate gates.

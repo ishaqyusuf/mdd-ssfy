@@ -2,7 +2,8 @@
 
 **Type:** research
 
-**Status:** in progress; shared baseline and production rehearsal pending
+**Status:** in progress; schema deployed, shared baseline and production
+rehearsal pending
 
 **Blocked by:** Define the storefront security and API boundary; Define the
 shared sales-form storefront surface and exposure contract; Define checkout

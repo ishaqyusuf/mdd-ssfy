@@ -323,6 +323,7 @@ export async function initializeCheckout(
 					amountDue: true,
 					customerId: true,
 					salesRepId: true,
+					meta: true,
 					customer: {
 						select: {
 							businessName: true,
@@ -381,6 +382,7 @@ export async function initializeCheckout(
 					sale.shippingAddress?.address1 ||
 					sale.billingAddress?.address1 ||
 					null,
+				meta: sale.meta,
 			}))
 			.filter((sale) => sale.due > 0),
 		customerName:

@@ -99,9 +99,9 @@ item, customer, and permission workspaces.
 - Storefront migration `20260720130000_storefront_ecommerce_replacement`
   applied with all 102 repository migrations to isolated MySQL database
   `gnd_storefront_verify`.
-- The shared local database was not reset or pushed with
-  `--accept-data-loss`; its pre-existing migration drift must be reconciled
-  before normal deployment.
+- The user confirmed the storefront schema was safely pushed to both
+  development and production on 2026-07-20. No reset was performed by this
+  implementation session.
 - Focused storefront tests: 7 passed, 0 failed.
 - Browser QA against the isolated database: responsive homepage 200, guest
   cart 200, contact page 200, inquiry submission 200, and no browser console
@@ -110,10 +110,14 @@ item, customer, and permission workspaces.
   inventory, document, and duplicate React-type baseline failures. Focused
   storefront diagnostic filtering is clean except the jobs test compiler's
   existing lack of `bun:test` declarations.
+- The production storefront bundle compiled successfully. Next.js then stopped
+  during its workspace TypeScript gate on the pre-existing
+  `apps/api/src/db/queries/inbound-receiving.ts` readonly dispatch-status tuple
+  incompatibility; no storefront diagnostic was reported.
 
 ## Status
 
-Implemented and migration-verified. Production cutover remains release-gated
-on shared migration-history reconciliation, approved production content and
-policy copy, real Square/email credentials, representative canonical catalog
-publication, and full payment/fulfillment rehearsal.
+Implemented, migration-verified, and schema-deployed to development and
+production. Traffic cutover remains release-gated on approved production
+content and policy copy, real Square/email credentials, representative
+canonical catalog publication, and full payment/fulfillment rehearsal.

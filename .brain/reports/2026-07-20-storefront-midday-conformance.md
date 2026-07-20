@@ -57,11 +57,14 @@ of GND until a repository-wide data-access migration is approved.
 
 ## Remaining Release Gates
 
-- Reconcile the shared development/production Prisma migration history before
-  applying the storefront migration; never reset or accept broad data loss.
+- Development and production schema application was confirmed complete by the
+  user on 2026-07-20. Preserve a deployment snapshot and verify the applied
+  schema before any traffic cutover.
 - Publish representative Door, Moulding, and Shelf Item fixtures and complete
   authenticated admin/configure/cart/real-Square/order/fulfillment browser
   rehearsal.
 - Approve production policy, service, contact, and legacy redirect content.
 - Repair the unrelated monorepo typecheck baseline so the broad release gate
-  can become fully green.
+  can become fully green. The storefront production bundle compiles; the
+  current build stops afterward on the existing Inventory inbound guard's
+  readonly dispatch-status tuple type.

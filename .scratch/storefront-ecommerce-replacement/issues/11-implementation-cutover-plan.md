@@ -2,7 +2,8 @@
 
 **Type:** task
 
-**Status:** in progress; implementation complete, production cutover pending
+**Status:** in progress; implementation and dev/prod schema deployment
+complete, production traffic cutover pending
 
 **Blocked by:** Define the storefront security and API boundary; Define the
 shared sales-form storefront surface and exposure contract; Define embedded

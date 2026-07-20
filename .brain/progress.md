@@ -6360,3 +6360,12 @@
   `gnd_storefront_verify`; shared local drift was not reset or force-pushed.
   Responsive homepage, guest cart, contact, and inquiry flows passed browser
   QA after client-boundary and guest-secret fixes.
+- 2026-07-20: user confirmed the storefront schema was safely pushed to both
+  development and production. Schema deployment is no longer a storefront
+  release blocker; payment/fulfillment rehearsal, content publication, and
+  monitored traffic cutover remain open.
+- 2026-07-20: storefront production build compilation passed after including
+  canonical sales metadata in legacy checkout initialization. The subsequent
+  workspace TypeScript phase remains blocked by the unrelated existing
+  Inventory inbound guard readonly-tuple diagnostic in
+  `apps/api/src/db/queries/inbound-receiving.ts`.

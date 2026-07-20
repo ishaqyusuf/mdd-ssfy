@@ -4,11 +4,11 @@
 Tracks the active work queue. Keep this focused and execution-ready.
 
 ## Current Focus
-- [ ] Storefront production cutover: implementation and isolated migration
-  verification are complete. Remaining gates are shared Prisma-history
-  reconciliation, production catalog/content publication, real Square/email
-  rehearsal, representative Door/Moulding/Shelf parity fixtures, broad
-  typecheck-baseline repair, and monitored DNS/redirect cutover. See
+- [ ] Storefront production cutover: implementation, isolated migration
+  verification, and user-confirmed development/production schema pushes are
+  complete. Remaining gates are production catalog/content publication, real
+  Square/email rehearsal, representative Door/Moulding/Shelf parity fixtures,
+  broad typecheck-baseline repair, and monitored DNS/redirect cutover. See
   `.brain/features/storefront-ecommerce-replacement.md`.
 - [ ] Dealership Program Expansion and Recruitment: branding ZIP/cache
   freshness, private/shared dealer customers, immutable direct-ship snapshots,
