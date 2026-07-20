@@ -35,7 +35,7 @@ import {
 	moneyRatio,
 	multiplyMoney,
 	roundMoney,
-} from "@gnd/sales/payment-system";
+} from "@gnd/sales/payment-system/money";
 import { Alert, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
 import { Menu } from "@gnd/ui/custom/menu";

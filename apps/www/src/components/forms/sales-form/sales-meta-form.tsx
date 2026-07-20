@@ -28,7 +28,7 @@ import { SalesHistory } from "@/components/sales-hx";
 import { SalesCustomerInput } from "./sales-customer-input";
 import salesData from "@sales/sales-data";
 import { PaymentMethodReviewDialog } from "./payment-method-review-dialog";
-import { addMoney, subtractMoney } from "@gnd/sales/payment-system";
+import { addMoney, subtractMoney } from "@gnd/sales/payment-system/money";
 
 export type SalesMetaTab = "summary" | "history";
 

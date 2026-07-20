@@ -1,6 +1,6 @@
 import { useFormDataStore } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_common/_stores/form-data-store";
 import { AnimatedNumber } from "@/components/animated-number";
-import { addMoney } from "@gnd/sales/payment-system";
+import { addMoney } from "@gnd/sales/payment-system/money";
 
 export function Footer() {
 	const zus = useFormDataStore();
