@@ -58,11 +58,13 @@ function Content() {
 				</div>
 			</div>
 			<Form {...ctx.form}>
-				<CleanCodeDoorSizeSelectLinesTable
-					data={rows}
-					showSwing={Boolean(config.hasSwing)}
-					noHandle={Boolean(config.noHandle)}
-				/>
+				<div className="-mx-4 max-h-[50vh] overflow-auto px-4">
+					<CleanCodeDoorSizeSelectLinesTable
+						data={rows}
+						showSwing={Boolean(config.hasSwing)}
+						noHandle={Boolean(config.noHandle)}
+					/>
+				</div>
 			</Form>
 			{door ? (
 				<Modal.Footer

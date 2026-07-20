@@ -1,5 +1,4 @@
 import { StepHelperClass } from "@/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class";
-import { DoorSuppliersColumnVisibility } from "@/components/tables-2/door-suppliers/column-visibility";
 import type { DoorSupplierRow } from "@/components/tables-2/door-suppliers/columns";
 import { DataTable as DoorSuppliersDataTable } from "@/components/tables-2/door-suppliers/data-table";
 import { useTRPC } from "@/trpc/client";
@@ -93,7 +92,6 @@ function Content({ itemStepUid }: DoorSuppliersProps) {
 							)}
 						</div>
 						<div className="flex-1" />
-						<DoorSuppliersColumnVisibility />
 						<Button
 							size="sm"
 							onClick={(e) => {

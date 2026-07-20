@@ -10,107 +10,71 @@ function readSource(path: string) {
 	return readFileSync(resolve(root, path), "utf8");
 }
 
-function assertContains(source: string, search: string) {
-	assert.ok(source.includes(search), `Expected source to contain: ${search}`);
-}
+const legacyTableAdapters = [
+	"components/tables-2/sales-form-hpt-lines/data-table.tsx",
+	"components/tables-2/sales-form-takeoff-hpt-lines/data-table.tsx",
+	"components/tables-2/sales-form-shelf-items/data-table.tsx",
+	"components/tables-2/sales-form-moulding-lines/data-table.tsx",
+	"components/tables-2/sales-form-service-lines/data-table.tsx",
+	"components/tables-2/clean-code-door-size-select-lines/data-table.tsx",
+	"components/tables-2/clean-code-sales-form-moulding-lines/data-table.tsx",
+	"components/tables-2/clean-code-sales-form-service-lines/data-table.tsx",
+	"components/tables-2/door-suppliers/data-table.tsx",
+];
 
-function assertNotContains(source: string, search: string) {
-	assert.ok(
-		!source.includes(search),
-		`Expected source not to contain: ${search}`,
-	);
-}
-
-describe("Sales form HPT lines table migration parity", () => {
-	it("keeps the HPT desktop grid off the embedded raw table", () => {
+describe("legacy sales-form table style compatibility", () => {
+	it("renders form grids with the established semantic table layout", () => {
 		const source = readSource(
-			"components/forms/sales-form/hpt/hpt-section.tsx",
-		);
-		const noteSource = readSource(
-			"components/forms/sales-form/hpt/hpt-note.tsx",
+			"components/forms/sales-form/legacy-form-data-table.tsx",
 		);
 
-		assertContains(source, "SalesFormHptLinesTable");
-		assertContains(source, "data={hptRows}");
-		assertContains(source, "isSlab={isSlab}");
-		assertContains(source, "showSwing={showSwingColumn}");
-		assertContains(source, "noHandle={Boolean(ctx.config.noHandle)}");
-		assertContains(source, "HptNotesPanel");
-		assertNotContains(source, 'from "@gnd/ui/table"');
-		assertNotContains(source, "<Table");
-		assertNotContains(source, "TableHeader");
-		assertNotContains(source, "TableBody");
-		assertNotContains(source, "TableRow");
-		assertNotContains(source, "TableCell");
-		assertNotContains(source, "table-sm");
-		assertNotContains(noteSource, 'from "@gnd/ui/table"');
-		assertNotContains(noteSource, "<TableRow");
-		assertNotContains(noteSource, "<TableCell");
+		assert.match(source, /<Table/);
+		assert.match(source, /<TableHeader/);
+		assert.match(source, /<TableBody/);
+		assert.match(source, /<TableRow/);
+		assert.match(source, /<TableCell/);
+		assert.match(source, /table-fixed p-4 text-xs font-medium/);
+		assert.match(source, /getLegacyColumnStyle/);
+		assert.match(source, /contentClassName/);
+		assert.doesNotMatch(source, /DndContext|VirtualRow|useVirtualizer/);
+		assert.doesNotMatch(source, /useTableSettings|useTableScroll/);
 	});
 
-	it("keeps table-owned scroll, DnD, resize, virtualization, and mode visibility", () => {
-		const source = readSource(
-			"components/tables-2/sales-form-hpt-lines/data-table.tsx",
-		);
+	it("keeps every sales-form editor outside restarted table behavior", () => {
+		for (const path of legacyTableAdapters) {
+			const source = readSource(path);
 
-		assertContains(source, "useScrollHeader(parentRef)");
-		assertContains(source, "useTableDnd(table)");
-		assertContains(source, "<DndContext");
-		assertContains(source, 'id="sales-form-hpt-lines-table-dnd"');
-		assertContains(source, "collisionDetection={closestCenter}");
-		assertContains(source, "VirtualRow");
-		assertContains(source, "rowHeight={tableConfig.rowHeight}");
-		assertContains(source, "estimateSize: () => tableConfig.rowHeight");
-		assertContains(source, "useTableScroll");
-		assertContains(source, "production: isSlab");
-		assertContains(source, "swing: showSwing");
-		assertContains(source, "qty: noHandle");
-		assertContains(source, "lh: !noHandle");
-		assertContains(source, "rh: !noHandle");
+			assert.match(
+				source,
+				/LegacyFormDataTable/,
+				`${path} must use the legacy form table`,
+			);
+			assert.doesNotMatch(source, /DndContext|VirtualRow|useVirtualizer/);
+			assert.doesNotMatch(source, /useTableSettings|useTableScroll/);
+		}
 	});
 
-	it("keeps compact editable HPT columns bound to HPT line context", () => {
-		const source = readSource(
-			"components/tables-2/sales-form-hpt-lines/columns.tsx",
+	it("preserves conditional door columns and editor callbacks", () => {
+		const hptSource = readSource(legacyTableAdapters[0]);
+		const takeoffSource = readSource(legacyTableAdapters[1]);
+		const sizeSelectSource = readSource(legacyTableAdapters[5]);
+		const supplierSource = readSource(legacyTableAdapters[8]);
+		const sizeSelectModalSource = readSource(
+			"app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx",
 		);
 
-		assertContains(source, 'id: "sn"');
-		assertContains(source, 'id: "size"');
-		assertContains(source, 'id: "production"');
-		assertContains(source, 'id: "swing"');
-		assertContains(source, 'id: "qty"');
-		assertContains(source, 'id: "lh"');
-		assertContains(source, 'id: "rh"');
-		assertContains(source, 'id: "estimate"');
-		assertContains(source, 'id: "total"');
-		assertContains(source, 'id: "actions"');
-		assertContains(source, "HptLineContextProvider");
-		assertContains(source, "lineUid: row.lineUid");
-		assertContains(source, 'name="prodOverride.production"');
-		assertContains(source, 'name="swing"');
-		assertContains(source, 'name="qty.total"');
-		assertContains(source, 'name="qty.lh"');
-		assertContains(source, 'name="qty.rh"');
-		assertContains(source, "PriceEstimateCell");
-		assertContains(source, "AnimatedNumber");
-		assertContains(source, "ConfirmBtn");
-		assertContains(source, "Icons.Notebook");
-		assertContains(source, "sizes.custom(112, 190, 132)");
-		assertContains(source, "sizes.custom(84, 120, 96)");
-	});
+		for (const source of [hptSource, takeoffSource, sizeSelectSource]) {
+			assert.match(source, /swing: showSwing/);
+			assert.match(source, /qty: noHandle/);
+			assert.match(source, /lh: !noHandle/);
+			assert.match(source, /rh: !noHandle/);
+		}
 
-	it("registers compact content-fit HPT line table settings", () => {
-		const configSource = readSource("utils/table-configs.ts");
-		const settingsSource = readSource("utils/table-settings.ts");
-
-		assertContains(settingsSource, '"sales-form-hpt-lines"');
-		assertContains(configSource, '"sales-form-hpt-lines": {');
-		assertContains(configSource, 'tableId: "sales-form-hpt-lines"');
-		assertContains(configSource, "rowHeight: 48");
-		assertContains(configSource, 'style: "compact"');
-		assertContains(
-			configSource,
-			'nonReorderableColumns: new Set(["sn", "size", "actions"])',
-		);
+		assert.match(supplierSource, /selectedSupplierUid/);
+		assert.match(supplierSource, /onRowClick=\{onSelect\}/);
+		assert.match(supplierSource, /onSelect/);
+		assert.match(supplierSource, /onEdit/);
+		assert.match(supplierSource, /onDelete/);
+		assert.match(sizeSelectModalSource, /max-h-\[50vh\] overflow-auto/);
 	});
 });
