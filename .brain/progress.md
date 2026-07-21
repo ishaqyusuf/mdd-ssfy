@@ -6382,3 +6382,63 @@
   workspace TypeScript phase remains blocked by the unrelated existing
   Inventory inbound guard readonly-tuple diagnostic in
   `apps/api/src/db/queries/inbound-receiving.ts`.
+- 2026-07-20: fixed `/sales-book/create-order` evaluating Prisma in the browser.
+  Browser-facing legacy and new sales-form modules now import money arithmetic
+  from the dedicated `@gnd/sales/payment-system/money` export instead of the
+  broad payment-system barrel, which also exports server application and
+  infrastructure modules. Added a focused boundary regression test; it passed
+  with 2 tests / 2 assertions. No dev server restart, build, broad typecheck, or
+  browser QA was run under the fast Bun monorepo command discipline.
+- 2026-07-20: completed production-only Sentry observability for web and mobile.
+  Created separate `gnd-52/gnd-prodesk-web` and
+  `gnd-52/gnd-prodesk-mobile` projects, replaced the hardcoded web DSN with
+  environment wiring, added release/source-map handling, installed and
+  configured the Expo React Native SDK, preserved the NativeWind singleton
+  resolver, and wrapped the mobile root layout. Vercel Production and Expo
+  Production now contain the matching project values; the Expo token is stored
+  as a secret. Root/app local envs are disabled while production envs are
+  enabled and organized. Lightweight Next/Expo/Metro config imports passed; no
+  dev server, full build, broad typecheck, or synthetic production error was
+  run.
+- 2026-07-21: fixed the local storefront homepage tRPC JSON parse regression.
+  `apps/storefront` now uses the allowlisted `StorefrontAppRouter` type and its
+  server tRPC client prefers `STOREFRONT_APP_URL` while rewriting SSR fetches to
+  the current request origin behind portless. This prevents storefront
+  prefetches for `/api/storefront/trpc` from accidentally using
+  `gndprodesk.localhost` from `NEXT_PUBLIC_APP_URL` and receiving the internal
+  app's HTML 404. The homepage route now awaits its content/category/search
+  prefetches before hydration, fixing the follow-up featured-products
+  skeleton-versus-empty hydration mismatch when the local catalog is empty.
+  Direct local storefront tRPC route smokes returned JSON, the storefront
+  homepage returned `200`, and the open in-app browser tab reloaded with the
+  hero visible, no `Data failed` text, no redacted/Unexpected-token text, and
+  zero fresh console warnings/errors. Broad `@gnd/storefront` typecheck remains
+  blocked by unrelated existing API/inventory/shared UI baseline diagnostics.
+- 2026-07-21: restored the October 2025 storefront product-detail architecture
+  at `/product/[categorySlug]/[productSlug]`, including the two-column product
+  view, variant buttons, slab/components tabs, lazy one-open add-on accordions,
+  door schedule, live server pricing, cart, and wishlist. Batched route
+  component pricing reduced previews from roughly 15 seconds to about 0.45
+  seconds, and semantic preview keys removed an unchanged-request render loop.
+  Split the admin workspace into Categories, Catalog, Carts & Wishlists,
+  Orders, Inquiries, Pages & Sections, and Settings, with a bounded catalog
+  card grid and canonical sales-form profile pricing. A local end-to-end
+  rehearsal registered a customer, configured and purchased a Carrara door,
+  created order `08897CST`, assigned Laura Ruth Godoy, approved its payment
+  link, completed Square sandbox settlement, persisted the online payment and
+  `$0.00` balance, generated the invoice, and verified customer/admin paid
+  views. Fixed the existing dealer-auth selection typo that blocked the
+  Storefront Orders handoff, then verified the same configured door and
+  schedule load in the office sales editor. Mandatory rep review notification
+  persistence is verified; local
+  email transport remained intentionally skipped by `SKIP_EMAIL=1`. Eighteen
+  focused tests passed; filtered storefront diagnostics are clean while broad
+  typechecks remain blocked by unrelated repository baseline errors.
+# 2026-07-21 - Storefront deployment root and WIP navigation
+
+- Updated the Vercel `gnd-storefront` project root from `apps/site` to
+  `apps/storefront` after the workspace rename.
+- Added reusable storefront dashboard navigation metadata and a visible `WIP`
+  badge while production release gates remain open.
+- Removed stale `apps/site` references from the storefront environment example,
+  web README, and system architecture overview.

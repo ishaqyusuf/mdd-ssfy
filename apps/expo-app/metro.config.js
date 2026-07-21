@@ -1,9 +1,9 @@
-const { getDefaultConfig } = require("expo/metro-config");
+const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 const { withNativewind } = require("nativewind/metro");
 const { sep } = require("node:path");
 
 /** @type {import('expo/metro-config').MetroConfig} */
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 // config.resolver.unstable_enablePackageExports = true;
 
 const nativewindConfig = withNativewind(config);

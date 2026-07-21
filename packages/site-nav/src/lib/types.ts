@@ -15,6 +15,7 @@ export type LinkItem = {
 	paths?: string[];
 	level?;
 	meta?: boolean;
+	wip?: boolean;
 	show?: boolean;
 	globalIndex?;
 	index?;
@@ -75,6 +76,7 @@ export const createNavLink = (
 		targetHref: href,
 		skipDefaultHref: false,
 		meta: false,
+		wip: false,
 		subLinks,
 		access,
 		index: -1,
@@ -103,6 +105,10 @@ export const createNavLink = (
 		},
 		meta() {
 			res.meta = true;
+			return ctx;
+		},
+		wip() {
+			res.wip = true;
 			return ctx;
 		},
 	};

@@ -46,8 +46,8 @@ Redis is only enabled when `--redis-local`, `--redis-remote`, or `--redis-remote
 Dev commands can also be narrowed to selected Turbo targets:
 
 ```bash
-bun run dev --filter @gnd/site @gnd/www @gnd/jobs
-bun run dev --filter @gnd/api! @gnd/site!
+bun run dev --filter @gnd/storefront @gnd/www @gnd/jobs
+bun run dev --filter @gnd/api! @gnd/storefront!
 bun run dev --filter api site! @gnd/jobs
 bun run dev -f api site!
 ```

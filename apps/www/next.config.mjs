@@ -133,6 +133,11 @@ const config = {
 
 // module.exports = nextConfig;
 const isProduction = process.env.NODE_ENV === "production";
+const sentryRelease =
+    process.env.SENTRY_RELEASE ??
+    process.env.VERCEL_GIT_COMMIT_SHA ??
+    process.env.GIT_COMMIT_SHA ??
+    undefined;
 
 export default isProduction
     ? withSentryConfig(config, {
@@ -147,7 +152,16 @@ export default isProduction
           // Upload source maps for better stack traces
           widenClientFileUpload: true,
 
-          // Tree-shake Sentry logger statements to reduce bundle size
-          disableLogger: true,
+          webpack: {
+              treeshake: {
+                  removeDebugLogging: true,
+              },
+          },
+
+          ...(sentryRelease ? { release: { name: sentryRelease } } : {}),
+
+          sourcemaps: {
+              deleteSourcemapsAfterUpload: true,
+          },
       })
     : config;

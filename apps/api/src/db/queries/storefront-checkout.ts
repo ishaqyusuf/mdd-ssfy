@@ -18,6 +18,8 @@ import type {
 } from "@api/schemas/storefront-checkout";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
+import { Notifications } from "@gnd/notifications";
+import { EmailService } from "@gnd/notifications/services/email-service";
 import {
 	addMoney,
 	calculatePaymentChannelCharge,
@@ -39,6 +41,7 @@ type StorefrontSettings = {
 	deliveryEnabled: boolean;
 	deliveryFlatRate: number;
 	freeDeliveryThreshold: number | null;
+	defaultSalesRepId: number | null;
 };
 
 function safeRecord(value: unknown): Record<string, unknown> {
@@ -67,6 +70,11 @@ async function loadStorefrontSettings(
 			Number.isFinite(freeThreshold) && freeThreshold > 0
 				? roundMoney(freeThreshold)
 				: null,
+		defaultSalesRepId:
+			Number.isInteger(Number(meta.defaultSalesRepId)) &&
+			Number(meta.defaultSalesRepId) > 0
+				? Number(meta.defaultSalesRepId)
+				: null,
 	};
 }
 
@@ -92,6 +100,64 @@ async function loadCheckoutCustomer(ctx: CustomerStorefrontContext) {
 	});
 	if (!customer) throw new TRPCError({ code: "UNAUTHORIZED" });
 	return customer;
+}
+
+async function notifyStorefrontOrderReview(input: {
+	ctx: CustomerStorefrontContext;
+	salesRepId: number;
+	salesId: number;
+	salesNo: string;
+	customerName: string;
+}) {
+	const salesRep = await input.ctx.db.users.findFirst({
+		where: {
+			id: input.salesRepId,
+			deletedAt: null,
+			accessRevokedAt: null,
+		},
+		select: { id: true, name: true, email: true },
+	});
+	if (!salesRep) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "The configured storefront sales rep is unavailable.",
+		});
+	}
+	const adminUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3010"}/storefront/orders`;
+	const notifications = new Notifications(input.ctx.db);
+	const emailService = new EmailService(input.ctx.db);
+	await Promise.allSettled([
+		notifications.create(
+			"sales_info",
+			{
+				headline: `Storefront order ${input.salesNo} needs review`,
+				note: `${input.customerName} submitted a storefront order. Verify the configuration before sending its payment link.`,
+				color: "blue",
+				salesId: input.salesId,
+				salesNo: input.salesNo,
+			},
+			{
+				author: { id: input.ctx.userId, role: "customer" },
+				recipients: [{ role: "employee", ids: [salesRep.id] }],
+				includeChannelSubscribers: false,
+				allowFallbackRecipient: false,
+				forceInAppRecipients: true,
+			},
+		),
+		emailService.sendTransactional({
+			to: salesRep.email,
+			subject: `Review storefront order ${input.salesNo}`,
+			template: "dealer-program-status",
+			data: {
+				preview: "A storefront order is ready for review",
+				heading: "Storefront order review",
+				recipientName: salesRep.name,
+				message: `${input.customerName} submitted order ${input.salesNo}. Verify its configuration and totals before sending the payment link.`,
+				actionLabel: "Review order",
+				actionUrl: adminUrl,
+			},
+		}),
+	]);
 }
 
 async function persistCustomerAddress(
@@ -231,13 +297,27 @@ export async function createStorefrontCheckout(
 		}
 		const totals = safeRecord(existing.totals);
 		if (existing.status === "PAYMENT_PENDING" && totals.paymentUrl) {
+			const sale = existing.salesOrderId
+				? await ctx.db.salesOrders.findUnique({
+						where: { id: existing.salesOrderId },
+						select: { orderId: true },
+					})
+				: null;
 			return {
 				checkoutId: existing.id,
 				salesOrderId: existing.salesOrderId,
+				orderId: sale?.orderId || String(existing.salesOrderId || ""),
+				status: "PAYMENT_PENDING" as const,
 				paymentUrl: String(totals.paymentUrl),
 			};
 		}
 		if (existing.status === "PAID") {
+			const sale = existing.salesOrderId
+				? await ctx.db.salesOrders.findUnique({
+						where: { id: existing.salesOrderId },
+						select: { orderId: true },
+					})
+				: null;
 			const appUrl = (
 				process.env.NEXT_PUBLIC_APP_URL ||
 				process.env.STOREFRONT_APP_URL ||
@@ -246,7 +326,22 @@ export async function createStorefrontCheckout(
 			return {
 				checkoutId: existing.id,
 				salesOrderId: existing.salesOrderId,
+				orderId: sale?.orderId || String(existing.salesOrderId || ""),
+				status: "PAID" as const,
 				paymentUrl: `${appUrl}/checkout/complete?checkoutId=${existing.id}`,
+			};
+		}
+		if (existing.status === "ORDER_CREATED" && existing.salesOrderId) {
+			const sale = await ctx.db.salesOrders.findUnique({
+				where: { id: existing.salesOrderId },
+				select: { orderId: true },
+			});
+			return {
+				checkoutId: existing.id,
+				salesOrderId: existing.salesOrderId,
+				orderId: sale?.orderId || String(existing.salesOrderId),
+				status: "ORDER_CREATED" as const,
+				paymentUrl: null,
 			};
 		}
 	}
@@ -262,6 +357,13 @@ export async function createStorefrontCheckout(
 		}),
 	]);
 	const salesSettings = deriveNewSalesFormSettings(salesSetting?.meta);
+	if (!settings.defaultSalesRepId) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Online checkout is waiting for a default sales rep to be configured.",
+		});
+	}
 	if (cart.version !== input.cartVersion) {
 		throw new TRPCError({
 			code: "CONFLICT",
@@ -408,11 +510,13 @@ export async function createStorefrontCheckout(
 
 	let salesOrderId = checkout.salesOrderId;
 	let orderId: string | null = null;
+	let createdOrder = false;
 	if (!salesOrderId) {
 		const sales = await saveStorefrontSalesOrder(ctx, {
 			checkoutId: checkout.id,
 			customerId: customer.id,
 			customerProfileId: customer.customerTypeId,
+			salesRepId: settings.defaultSalesRepId,
 			billingAddressId: billing.id,
 			shippingAddressId: shipping.id,
 			taxCode: taxProfile?.taxCode || null,
@@ -425,6 +529,7 @@ export async function createStorefrontCheckout(
 		});
 		salesOrderId = sales.salesId;
 		orderId = sales.orderId;
+		createdOrder = true;
 		await ctx.db.$transaction([
 			ctx.db.storefrontCheckout.update({
 				where: { id: checkout.id },
@@ -445,12 +550,89 @@ export async function createStorefrontCheckout(
 		});
 		orderId = sale?.orderId || null;
 	}
+	if (createdOrder) {
+		await notifyStorefrontOrderReview({
+			ctx,
+			salesRepId: settings.defaultSalesRepId,
+			salesId: salesOrderId,
+			salesNo: orderId || String(salesOrderId),
+			customerName:
+				customer.businessName || customer.name || customer.email || "Customer",
+		});
+	}
+	return {
+		checkoutId: checkout.id,
+		salesOrderId,
+		orderId: orderId || String(salesOrderId),
+		status: "ORDER_CREATED" as const,
+		paymentUrl: null,
+	};
+}
 
+export async function approveStorefrontCheckoutPayment(
+	ctx: TRPCContext,
+	checkoutId: string,
+) {
+	const checkout = await ctx.db.storefrontCheckout.findUnique({
+		where: { id: checkoutId },
+	});
+	if (!checkout?.salesOrderId) {
+		throw new TRPCError({ code: "NOT_FOUND", message: "Checkout not found." });
+	}
+	const currentTotals = safeRecord(checkout.totals);
+	if (checkout.status === "PAYMENT_PENDING" && currentTotals.paymentUrl) {
+		return {
+			checkoutId: checkout.id,
+			paymentUrl: String(currentTotals.paymentUrl),
+			alreadyApproved: true,
+		};
+	}
+	if (checkout.status !== "ORDER_CREATED") {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Only orders awaiting review can receive a payment link.",
+		});
+	}
+	const sale = await ctx.db.salesOrders.findUnique({
+		where: { id: checkout.salesOrderId },
+		select: {
+			id: true,
+			orderId: true,
+			amountDue: true,
+			grandTotal: true,
+			salesRepId: true,
+			customer: {
+				select: {
+					id: true,
+					name: true,
+					businessName: true,
+					email: true,
+					phoneNo: true,
+				},
+			},
+		},
+	});
+	if (!sale?.customer || !sale.salesRepId) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: "Assign the order to a sales rep before approving payment.",
+		});
+	}
+	if (!sale.customer.email) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"The customer needs an email address before payment can be sent.",
+		});
+	}
+	const amountDue = Number(
+		currentTotals.paymentTotal || sale.amountDue || sale.grandTotal || 0,
+	);
 	const paymentToken = await buildFullPaymentToken(ctx, {
-		salesId: salesOrderId,
-		customerId: customer.id,
-		customerPhone: customer.phoneNo,
-		amountDue: total,
+		salesId: sale.id,
+		customerId: sale.customer.id,
+		customerPhone: sale.customer.phoneNo,
+		amountDue,
 	});
 	if (!paymentToken) {
 		throw new TRPCError({
@@ -458,17 +640,15 @@ export async function createStorefrontCheckout(
 			message: "Unable to initialize payment for this order.",
 		});
 	}
-	const appUrl = (
-		process.env.NEXT_PUBLIC_APP_URL ||
-		process.env.STOREFRONT_APP_URL ||
-		"http://localhost:3018"
+	const storefrontUrl = (
+		process.env.STOREFRONT_APP_URL || "http://localhost:3018"
 	).replace(/\/$/, "");
 	const payment = await createSalesCheckoutLink(
 		ctx,
-		{ token: paymentToken, selectedSalesIds: [salesOrderId] },
+		{ token: paymentToken, selectedSalesIds: [sale.id] },
 		{
-			redirectUrl: `${appUrl}/checkout/complete?checkoutId=${checkout.id}`,
-			idempotencyKey: checkout.idempotencyKey,
+			redirectUrl: `${storefrontUrl}/checkout/complete?checkoutId=${checkout.id}`,
+			idempotencyKey: `${checkout.idempotencyKey}:approved`,
 		},
 	);
 	if (!payment?.paymentLink || !payment.squarePaymentId) {
@@ -477,31 +657,50 @@ export async function createStorefrontCheckout(
 			message: "The payment provider did not return a checkout link.",
 		});
 	}
-	await ctx.db.storefrontCheckout.update({
-		where: { id: checkout.id },
-		data: {
-			status: "PAYMENT_PENDING",
-			paymentProvider: "square",
-			paymentReference: payment.squarePaymentId,
-			totals: {
-				currency: "USD",
-				subtotal,
-				delivery: deliveryAmount,
-				tax,
-				taxRate,
-				orderTotal: total,
-				paymentFee: paymentCharge.amount,
-				paymentTotal: paymentCharge.chargeAmount,
-				cardFeePercentage: paymentCharge.percentage,
-				paymentUrl: payment.paymentLink,
-				orderId,
+	await ctx.db.$transaction([
+		ctx.db.storefrontCheckout.update({
+			where: { id: checkout.id },
+			data: {
+				status: "PAYMENT_PENDING",
+				paymentProvider: "square",
+				paymentReference: payment.squarePaymentId,
+				totals: {
+					...currentTotals,
+					paymentUrl: payment.paymentLink,
+					orderId: sale.orderId,
+				},
 			},
+		}),
+		ctx.db.storefrontAuditEvent.create({
+			data: {
+				actorUserId: ctx.userId,
+				action: "checkout.payment_link_approved",
+				entityType: "StorefrontCheckout",
+				entityId: checkout.id,
+				requestId: ctx.requestId,
+				metadata: { salesOrderId: sale.id, salesRepId: sale.salesRepId },
+			},
+		}),
+	]);
+	const emailService = new EmailService(ctx.db);
+	await emailService.sendTransactional({
+		to: sale.customer.email,
+		subject: `Payment is ready for order ${sale.orderId}`,
+		template: "dealer-program-status",
+		data: {
+			preview: "Your GND order is ready for payment",
+			heading: "Payment link ready",
+			recipientName:
+				sale.customer.businessName || sale.customer.name || sale.customer.email,
+			message: `Order ${sale.orderId} has been reviewed and is ready for payment.`,
+			actionLabel: "Pay order",
+			actionUrl: payment.paymentLink,
 		},
 	});
 	return {
 		checkoutId: checkout.id,
-		salesOrderId,
 		paymentUrl: payment.paymentLink,
+		alreadyApproved: false,
 	};
 }
 

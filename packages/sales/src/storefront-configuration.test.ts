@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
-	projectStorefrontOfferRoute,
 	type StorefrontComponent,
+	deduplicateStorefrontOptions,
+	isStorefrontStepWaivedBySelection,
+	projectStorefrontOfferRoute,
 } from "./storefront-configuration";
 
 const routeData = {
@@ -96,15 +98,17 @@ describe("projectStorefrontOfferRoute", () => {
 		});
 
 		expect(result.ready).toBe(true);
-		expect(result.steps.find((step) => step.stepUid === "door-style"))
-			.toMatchObject({
-				components: [{ uid: "shaker", title: "Shaker Door" }],
-			});
-		expect(result.steps.find((step) => step.stepUid === "hinge"))
-			.toMatchObject({
+		expect(
+			result.steps.find((step) => step.stepUid === "door-style"),
+		).toMatchObject({
+			components: [{ uid: "shaker", title: "Shaker Door" }],
+		});
+		expect(result.steps.find((step) => step.stepUid === "hinge")).toMatchObject(
+			{
 				visible: false,
 				selectedComponentUid: "brass",
-			});
+			},
+		);
 	});
 
 	it("blocks readiness when a hidden step has no published default", () => {
@@ -132,5 +136,88 @@ describe("projectStorefrontOfferRoute", () => {
 			"DEFAULT_NOT_AVAILABLE",
 		);
 	});
+
+	it("hides structural route steps that have no selectable components", () => {
+		const structuralRouteData = structuredClone(routeData);
+		structuralRouteData.composedRouter.doors.routeSequence.push({
+			uid: "house-package-tool",
+		});
+		Object.assign(structuralRouteData.stepsByUid, {
+			"house-package-tool": {
+				id: 4,
+				uid: "house-package-tool",
+				title: "House Package Tool",
+				components: [],
+			},
+		});
+
+		const result = projectStorefrontOfferRoute({
+			routeData: structuralRouteData,
+			rootStepUid: "item-type",
+			rootComponentUid: "doors",
+			components,
+			stepPolicies: [],
+			componentPolicies: [],
+		});
+
+		expect(result.ready).toBe(true);
+		expect(
+			result.steps.find((step) => step.stepUid === "house-package-tool"),
+		).toMatchObject({ visible: false, components: [] });
+	});
+
+	it("locks the offer product without rendering it as a customer option", () => {
+		const result = projectStorefrontOfferRoute({
+			routeData,
+			rootStepUid: "item-type",
+			rootComponentUid: "doors",
+			offerSourceStepUid: "door-style",
+			offerSourceComponentUid: "shaker",
+			components,
+			stepPolicies: [],
+			componentPolicies: [],
+		});
+
+		expect(result.ready).toBe(true);
+		expect(
+			result.steps.find((step) => step.stepUid === "door-style"),
+		).toMatchObject({
+			visible: false,
+			selectedComponentUid: "shaker",
+		});
+	});
 });
 
+describe("storefront option presentation", () => {
+	it("deduplicates customer options by normalized title", () => {
+		expect(
+			deduplicateStorefrontOptions([
+				{ uid: "jamb-a", title: '5-3/4"' },
+				{ uid: "jamb-b", title: " 5 3/4 " },
+				{ uid: "jamb-c", title: '6-9/16"' },
+			]),
+		).toEqual([
+			{ uid: "jamb-a", title: '5-3/4"' },
+			{ uid: "jamb-c", title: '6-9/16"' },
+		]);
+	});
+
+	it("waives a dependent step when the customer explicitly selects none", () => {
+		const steps = [
+			{
+				stepUid: "casing-toggle",
+				components: [{ uid: "none", title: "No Casing" }],
+			},
+			{
+				stepUid: "casing",
+				components: [{ uid: "colonial", title: "Colonial" }],
+			},
+		];
+
+		expect(
+			isStorefrontStepWaivedBySelection({ title: "Casing" }, steps, {
+				"casing-toggle": "none",
+			}),
+		).toBe(true);
+	});
+});

@@ -1,13 +1,14 @@
 import { type Roles, type Users, db } from "@gnd/db";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { parse as parseCookie } from "cookie";
 import type { DefaultSession, NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
 import { getToken } from "next-auth/jwt";
+import CredentialsProvider from "next-auth/providers/credentials";
 
 import {
 	AUTH_SESSION_MAX_AGE_SECONDS,
-	buildSessionExpiry,
 	type ICan,
+	buildSessionExpiry,
 	loginAction,
 } from "./utils";
 
@@ -113,14 +114,19 @@ async function getValidSessionRecord(
  * server-side session and user are both active.
  */
 export async function getLegacyWebAuthUserId(cookieHeader?: string | null) {
-	if (!cookieHeader || !process.env.JWT_SECRET) return undefined;
+	const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+	if (!cookieHeader || !secret) return undefined;
+	const cookieName = cookieHeader.includes("__Secure-next-auth.session-token")
+		? "__Secure-next-auth.session-token"
+		: "next-auth.session-token";
+	const request = {
+		cookies: parseCookie(cookieHeader),
+		headers: { cookie: cookieHeader },
+	} as Parameters<typeof getToken>[0]["req"];
 	const token = await getToken({
-		req: {
-			headers: {
-				cookie: cookieHeader,
-			},
-		} as any,
-		secret: process.env.JWT_SECRET,
+		req: request,
+		secret,
+		cookieName,
 	});
 	const userId = Number(token?.user?.id);
 	if (!Number.isFinite(userId) || !token?.sessionId) return undefined;

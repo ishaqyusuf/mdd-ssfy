@@ -485,6 +485,15 @@ export async function getStorefrontOrder(
 	orderId: string,
 ) {
 	const order = await findOwnedStorefrontOrder(ctx, orderId);
+	const checkout = await ctx.db.storefrontCheckout.findFirst({
+		where: {
+			salesOrderId: order.id,
+			ownerUserId: ctx.userId,
+		},
+		orderBy: { createdAt: "desc" },
+		select: { status: true, totals: true },
+	});
+	const checkoutTotals = safeRecord(checkout?.totals);
 	const summary = mapOrderListItem(order as any);
 	const timeline = [
 		{
@@ -517,6 +526,16 @@ export async function getStorefrontOrder(
 	].filter((event) => Boolean(event.at));
 	return {
 		...summary,
+		checkout: checkout
+			? {
+					status: checkout.status,
+					paymentUrl:
+						checkout.status === "PAYMENT_PENDING" &&
+						typeof checkoutTotals.paymentUrl === "string"
+							? checkoutTotals.paymentUrl
+							: null,
+				}
+			: null,
 		subTotal: Number(order.subTotal || 0),
 		tax: Number(order.tax || 0),
 		taxPercentage: Number(order.taxPercentage || 0),

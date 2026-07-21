@@ -94,6 +94,22 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/orders"]?.hasAccess).toBe(true);
 	});
 
+	test("marks the storefront workspace as work in progress", () => {
+		const links = getLinkModules(
+			validateLinks({
+				role: { name: "Admin" },
+				can: permissions({ viewStorefront: true }),
+				userId: "admin-1",
+			}),
+		);
+		const storefrontLink = links.modules
+			.flatMap((module) => module.sections)
+			.flatMap((section) => section.links)
+			.find((link) => link?.href === "/storefront");
+
+		expect(storefrontLink?.wip).toBe(true);
+	});
+
 	test("keeps create and edit order routes limited to editOrders", () => {
 		const links = getLinkModules(
 			validateLinks({

@@ -302,3 +302,14 @@ Tracks important request/response contracts and shared schema boundaries.
   charge or order.
 - Availability is an online merchandising/lead-time policy, not an inventory
   reservation guarantee.
+- Public and guest storefront calls use the allowlisted
+  `/api/storefront/trpc` endpoint. Guest ownership comes from the signed guest
+  cookie; customer ownership may come from the existing chunked secure
+  NextAuth session cookie.
+- Configuration preview may validate a partial selection and returns
+  `complete: boolean`. Cart, wishlist, and checkout writes still require a
+  complete server-valid configuration. Hidden, unavailable, and explicitly
+  waived dependent steps do not block completion.
+- `NotificationOptions.forceInAppRecipients` is reserved for mandatory,
+  explicitly addressed operational notices. Storefront order review uses it
+  for the assigned sales rep; it does not enable email or WhatsApp delivery.

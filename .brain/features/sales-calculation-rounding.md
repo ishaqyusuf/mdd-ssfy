@@ -23,6 +23,10 @@ Defines the shared money, grouped-pricing, shelf persistence, discount, and C.C.
 - `totalWithCcc` is the payment-channel display total.
 - Delivery, labor, flat labor, and other applicable costs are included in the C.C.C principal.
 - Cash/order balance accounting uses `grandTotal`; card/link/terminal display uses `totalWithCcc`.
+- Browser sales-form code imports canonical arithmetic through
+  `@gnd/sales/payment-system/money`. The broad
+  `@gnd/sales/payment-system` barrel includes server application and
+  infrastructure modules and must not cross a client boundary.
 
 ## Compatibility
 
@@ -33,3 +37,8 @@ Defines the shared money, grouped-pricing, shelf persistence, discount, and C.C.
 ## Verification
 
 See `.brain/reports/2026-07-20-legacy-vs-new-sales-calculation-rounding-audit.md`.
+
+- `apps/www/src/components/forms/sales-form/payment-system-browser-boundary.test.ts`
+  verifies the browser-safe money export resolves without Prisma and prevents
+  the broad server payment barrel from returning to the browser sales-form
+  trees.

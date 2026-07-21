@@ -1,4 +1,20 @@
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
+import {
+	getStorefrontCatalogDetail,
+	getStorefrontCatalogFamilies,
+	getStorefrontCatalogList,
+	getStorefrontCatalogProfiles,
+} from "@api/db/queries/storefront-admin";
+import { approveStorefrontCheckoutPayment } from "@api/db/queries/storefront-checkout";
+import {
+	storefrontCatalogBulkSchema,
+	storefrontCatalogDetailSchema,
+	storefrontCatalogFeaturedSchema,
+	storefrontCatalogImageSchema,
+	storefrontCatalogListSchema,
+	storefrontCatalogMetadataSchema,
+	storefrontCatalogStatusSchema,
+} from "@api/schemas/storefront-admin";
 import { requireStorefrontEmployeePermission } from "@api/utils/storefront-permissions";
 import type { Prisma } from "@gnd/db";
 import {
@@ -19,6 +35,7 @@ const operationsListSchema = z.object({
 	limit: z.number().int().min(1).max(50).default(25),
 });
 const storefrontSettingsSchema = z.object({
+	defaultSalesRepId: z.number().int().positive().nullable(),
 	pickupEnabled: z.boolean(),
 	deliveryEnabled: z.boolean(),
 	deliveryFlatRate: z.number().min(0).max(1_000_000),
@@ -84,51 +101,298 @@ function publicationDates(status: "DRAFT" | "PUBLISHED" | "ARCHIVED") {
 }
 
 export const storefrontAdminRouter = createTRPCRouter({
-	workspace: protectedProcedure.query(async ({ ctx }) => {
-		await requireStorefrontEmployeePermission({
-			db: ctx.db,
-			userId: ctx.userId,
-			permission: "viewStorefront",
-		});
-		const [routeData, categories, components, pages] = await Promise.all([
-			getNewSalesFormStepRouting(ctx, {}),
-			ctx.db.storefrontCategory.findMany({
+	catalog: {
+		families: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return getStorefrontCatalogFamilies(ctx);
+		}),
+		profiles: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return getStorefrontCatalogProfiles(ctx);
+		}),
+		list: protectedProcedure
+			.input(storefrontCatalogListSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				return getStorefrontCatalogList(ctx, input);
+			}),
+		detail: protectedProcedure
+			.input(storefrontCatalogDetailSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				const detail = await getStorefrontCatalogDetail(
+					ctx,
+					input.componentUid,
+				);
+				if (!detail) throw new TRPCError({ code: "NOT_FOUND" });
+				return detail;
+			}),
+		setStatus: protectedProcedure
+			.input(storefrontCatalogStatusSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: input.online ? "publishStorefront" : "editStorefront",
+				});
+				const source = await ctx.db.dykeStepProducts.findUnique({
+					where: { uid: input.componentUid },
+					select: { step: { select: { uid: true } } },
+				});
+				if (!source?.step.uid) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Catalog component not found.",
+					});
+				}
+				const component = await ctx.db.storefrontComponent.upsert({
+					where: { sourceComponentUid: input.componentUid },
+					create: {
+						sourceComponentUid: input.componentUid,
+						sourceStepUid: source.step.uid,
+						availableOnStorefront: input.online,
+						status: input.online ? "PUBLISHED" : "DRAFT",
+						createdByUserId: ctx.userId,
+						updatedByUserId: ctx.userId,
+					},
+					update: {
+						sourceStepUid: source.step.uid,
+						availableOnStorefront: input.online,
+						status: input.online ? "PUBLISHED" : "DRAFT",
+						updatedByUserId: ctx.userId,
+						deletedAt: null,
+					},
+				});
+				await ctx.db.storefrontAuditEvent.create({
+					data: {
+						actorUserId: ctx.userId,
+						action: input.online ? "component.online" : "component.offline",
+						entityType: "StorefrontComponent",
+						entityId: component.id,
+						requestId: ctx.requestId,
+					},
+				});
+				return { ok: true };
+			}),
+		setImage: protectedProcedure
+			.input(storefrontCatalogImageSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefront",
+				});
+				const source = await ctx.db.dykeStepProducts.findUnique({
+					where: { uid: input.componentUid },
+					select: { step: { select: { uid: true } } },
+				});
+				if (!source?.step.uid) throw new TRPCError({ code: "NOT_FOUND" });
+				await ctx.db.storefrontComponent.upsert({
+					where: { sourceComponentUid: input.componentUid },
+					create: {
+						sourceComponentUid: input.componentUid,
+						sourceStepUid: source.step.uid,
+						imageUrl: input.imageUrl,
+						createdByUserId: ctx.userId,
+						updatedByUserId: ctx.userId,
+					},
+					update: {
+						imageUrl: input.imageUrl,
+						updatedByUserId: ctx.userId,
+						deletedAt: null,
+					},
+				});
+				return { ok: true };
+			}),
+		saveMetadata: protectedProcedure
+			.input(storefrontCatalogMetadataSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefront",
+				});
+				const source = await ctx.db.dykeStepProducts.findUnique({
+					where: { uid: input.componentUid },
+					select: { step: { select: { uid: true } } },
+				});
+				if (!source?.step.uid) throw new TRPCError({ code: "NOT_FOUND" });
+				await ctx.db.storefrontComponent.upsert({
+					where: { sourceComponentUid: input.componentUid },
+					create: {
+						sourceComponentUid: input.componentUid,
+						sourceStepUid: source.step.uid,
+						title: input.title,
+						description: input.description,
+						imageUrl: input.imageUrl,
+						createdByUserId: ctx.userId,
+						updatedByUserId: ctx.userId,
+					},
+					update: {
+						title: input.title,
+						description: input.description,
+						imageUrl: input.imageUrl,
+						updatedByUserId: ctx.userId,
+						deletedAt: null,
+					},
+				});
+				return { ok: true };
+			}),
+		setFeatured: protectedProcedure
+			.input(storefrontCatalogFeaturedSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefront",
+				});
+				const offer = await ctx.db.storefrontOffer.findUnique({
+					where: { sourceComponentUid: input.componentUid },
+					select: { id: true },
+				});
+				if (!offer) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "Create the storefront product before featuring it.",
+					});
+				}
+				await ctx.db.storefrontOffer.update({
+					where: { id: offer.id },
+					data: {
+						featured: input.featured,
+						featuredOrder: input.featured ? 0 : null,
+						updatedByUserId: ctx.userId,
+					},
+				});
+				return { ok: true };
+			}),
+		bulkUpdate: protectedProcedure
+			.input(storefrontCatalogBulkSchema)
+			.mutation(async ({ ctx, input }) => {
+				const publishing = input.action === "online";
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: publishing ? "publishStorefront" : "editStorefront",
+				});
+				if (input.action === "feature" || input.action === "unfeature") {
+					const result = await ctx.db.storefrontOffer.updateMany({
+						where: {
+							sourceComponentUid: { in: input.componentUids },
+							deletedAt: null,
+						},
+						data: {
+							featured: input.action === "feature",
+							featuredOrder: input.action === "feature" ? 0 : null,
+							updatedByUserId: ctx.userId,
+						},
+					});
+					return {
+						updated: result.count,
+						skipped: input.componentUids.length - result.count,
+					};
+				}
+				const sources = await ctx.db.dykeStepProducts.findMany({
+					where: { uid: { in: input.componentUids }, deletedAt: null },
+					select: { uid: true, step: { select: { uid: true } } },
+				});
+				await ctx.db.$transaction(
+					sources.flatMap((source) =>
+						source.uid && source.step.uid
+							? [
+									ctx.db.storefrontComponent.upsert({
+										where: { sourceComponentUid: source.uid },
+										create: {
+											sourceComponentUid: source.uid,
+											sourceStepUid: source.step.uid,
+											availableOnStorefront: publishing,
+											status: publishing ? "PUBLISHED" : "DRAFT",
+											createdByUserId: ctx.userId,
+											updatedByUserId: ctx.userId,
+										},
+										update: {
+											sourceStepUid: source.step.uid,
+											availableOnStorefront: publishing,
+											status: publishing ? "PUBLISHED" : "DRAFT",
+											updatedByUserId: ctx.userId,
+											deletedAt: null,
+										},
+									}),
+								]
+							: [],
+					),
+				);
+				return {
+					updated: sources.length,
+					skipped: input.componentUids.length - sources.length,
+				};
+			}),
+	},
+
+	categories: {
+		list: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return ctx.db.storefrontCategory.findMany({
 				where: { deletedAt: null },
 				orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
 				take: 250,
-				include: {
-					offers: {
-						where: { deletedAt: null },
-						orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-						take: 1_000,
-						include: {
-							stepPolicies: { orderBy: { sortOrder: "asc" } },
-							componentPolicies: { orderBy: { sortOrder: "asc" } },
-						},
+				select: {
+					id: true,
+					title: true,
+					slug: true,
+					imageUrl: true,
+					status: true,
+					rootComponentUid: true,
+					listingStepUid: true,
+					_count: { select: { offers: true } },
+				},
+			});
+		}),
+		setStatus: protectedProcedure
+			.input(
+				idSchema.extend({
+					status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]),
+				}),
+			)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission:
+						input.status === "PUBLISHED"
+							? "publishStorefront"
+							: "editStorefront",
+				});
+				await ctx.db.storefrontCategory.update({
+					where: { id: input.id },
+					data: {
+						...publicationDates(input.status),
+						updatedByUserId: ctx.userId,
 					},
-				},
+				});
+				return { ok: true };
 			}),
-			ctx.db.storefrontComponent.findMany({
-				where: { deletedAt: null },
-				orderBy: [{ sourceStepUid: "asc" }, { sortOrder: "asc" }],
-				take: 5_000,
-			}),
-			ctx.db.storefrontPage.findMany({
-				where: { deletedAt: null },
-				orderBy: [{ title: "asc" }],
-				take: 200,
-				include: {
-					sections: { orderBy: { sortOrder: "asc" }, take: 500 },
-				},
-			}),
-		]);
-		return {
-			routeData,
-			categories,
-			components,
-			pages,
-		};
-	}),
+	},
 
 	saveCategory: protectedProcedure
 		.input(storefrontCategoryInputSchema)
@@ -294,6 +558,8 @@ export const storefrontAdminRouter = createTRPCRouter({
 				routeData,
 				rootStepUid: category.rootStepUid,
 				rootComponentUid: category.rootComponentUid,
+				offerSourceStepUid: input.sourceStepUid,
+				offerSourceComponentUid: input.sourceComponentUid,
 				stepPolicies: input.stepPolicies,
 				componentPolicies,
 				components: components.map((component) => ({
@@ -635,10 +901,21 @@ export const storefrontAdminRouter = createTRPCRouter({
 								phoneNo: true,
 							},
 						},
+						salesRep: { select: { id: true, name: true, email: true } },
 						_count: { select: { items: true } },
 					},
 				});
 				const page = rows.slice(0, input.limit);
+				const checkouts = page.length
+					? await ctx.db.storefrontCheckout.findMany({
+							where: { salesOrderId: { in: page.map((order) => order.id) } },
+							orderBy: { createdAt: "desc" },
+							select: { id: true, salesOrderId: true, status: true },
+						})
+					: [];
+				const checkoutBySalesId = new Map(
+					checkouts.map((checkout) => [checkout.salesOrderId, checkout]),
+				);
 				return {
 					items: page.map((order) => ({
 						...order,
@@ -646,11 +923,23 @@ export const storefrontAdminRouter = createTRPCRouter({
 						grandTotal: Number(order.grandTotal || 0),
 						amountDue: Number(order.amountDue || 0),
 						itemCount: order._count.items,
+						checkout: checkoutBySalesId.get(order.id) || null,
 						_count: undefined,
 					})),
 					nextCursor:
 						rows.length > input.limit ? String(page.at(-1)?.id || "") : null,
 				};
+			}),
+
+		verifyOrder: protectedProcedure
+			.input(z.object({ checkoutId: z.string().trim().min(1) }))
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefrontOrders",
+				});
+				return approveStorefrontCheckoutPayment(ctx, input.checkoutId);
 			}),
 
 		inquiries: protectedProcedure
@@ -739,6 +1028,27 @@ export const storefrontAdminRouter = createTRPCRouter({
 	},
 
 	settings: {
+		salesReps: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return ctx.db.users.findMany({
+				where: {
+					deletedAt: null,
+					accessRevokedAt: null,
+					roles: {
+						some: {
+							deletedAt: null,
+							role: { name: { contains: "Sales" } },
+						},
+					},
+				},
+				orderBy: { name: "asc" },
+				select: { id: true, name: true, email: true },
+			});
+		}),
 		get: protectedProcedure.query(async ({ ctx }) => {
 			await requireStorefrontEmployeePermission({
 				db: ctx.db,
@@ -760,6 +1070,11 @@ export const storefrontAdminRouter = createTRPCRouter({
 					: {};
 			return {
 				id: setting?.id || null,
+				defaultSalesRepId:
+					Number.isInteger(Number(meta.defaultSalesRepId)) &&
+					Number(meta.defaultSalesRepId) > 0
+						? Number(meta.defaultSalesRepId)
+						: null,
 				checkout: {
 					pickupEnabled: checkout.pickupEnabled !== false,
 					deliveryEnabled: checkout.deliveryEnabled === true,
@@ -785,11 +1100,24 @@ export const storefrontAdminRouter = createTRPCRouter({
 					current?.meta && typeof current.meta === "object"
 						? (current.meta as Record<string, unknown>)
 						: {};
+				const {
+					defaultSalesRepId,
+					pickupEnabled,
+					deliveryEnabled,
+					deliveryFlatRate,
+					freeDeliveryThreshold,
+				} = input;
 				const data = {
 					type: "storefront-settings",
 					meta: asJson({
 						...existingMeta,
-						checkout: input,
+						defaultSalesRepId,
+						checkout: {
+							pickupEnabled,
+							deliveryEnabled,
+							deliveryFlatRate,
+							freeDeliveryThreshold,
+						},
 					}),
 					deletedAt: null,
 				};
@@ -813,6 +1141,21 @@ export const storefrontAdminRouter = createTRPCRouter({
 	},
 
 	content: {
+		list: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return ctx.db.storefrontPage.findMany({
+				where: { deletedAt: null },
+				orderBy: { title: "asc" },
+				take: 100,
+				include: {
+					sections: { orderBy: { sortOrder: "asc" }, take: 100 },
+				},
+			});
+		}),
 		savePage: protectedProcedure
 			.input(storefrontPageSchema)
 			.mutation(async ({ ctx, input }) => {

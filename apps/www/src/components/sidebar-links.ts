@@ -32,6 +32,7 @@ export type LinkItem = {
 	level?;
 	show?: boolean;
 	meta?: boolean;
+	wip?: boolean;
 	globalIndex?;
 	index?;
 	access?;
@@ -74,6 +75,7 @@ const _link = (
 		href,
 		skipDefaultHref: false,
 		meta: false,
+		wip: false,
 		subLinks,
 		access,
 		index: -1,
@@ -102,6 +104,10 @@ const _link = (
 		},
 		meta() {
 			res.meta = true;
+			return ctx;
+		},
+		wip() {
+			res.wip = true;
 			return ctx;
 		},
 		subLinks(...subLinks: LinkItem[]) {
@@ -299,7 +305,8 @@ export const linkModules = [
 			).data,
 			_link("Storefront", "products", "/storefront")
 				.access(_perm.in("viewStorefront", "editStorefront"))
-				.childPaths("/storefront/").data,
+				.childPaths("/storefront/")
+				.wip().data,
 		]),
 		_section(null, null, [
 			_link("My Dashboard", "dashboard", "/sales-rep")

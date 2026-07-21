@@ -168,6 +168,10 @@ type RouteStep = {
 	components?: RouteComponent[];
 };
 
+type StorefrontRouteData = {
+	stepsByUid?: Record<string, RouteStep>;
+};
+
 export type PublicStorefrontStep = {
 	stepId: number | null;
 	stepUid: string;
@@ -188,6 +192,48 @@ export type PublicStorefrontStep = {
 
 function safeString(value: unknown) {
 	return String(value ?? "").trim();
+}
+
+function storefrontOptionKey(value: string) {
+	return value
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, " ")
+		.trim();
+}
+
+export function deduplicateStorefrontOptions<
+	T extends { uid: string; title: string },
+>(components: T[]) {
+	const seen = new Set<string>();
+	return components.filter((component) => {
+		const key = storefrontOptionKey(component.title) || component.uid;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+}
+
+export function isStorefrontStepWaivedBySelection(
+	step: { title: string },
+	steps: Array<{
+		stepUid: string;
+		components: Array<{ uid: string; title: string }>;
+	}>,
+	selections: Record<string, string>,
+) {
+	const stepTitle = storefrontOptionKey(step.title);
+	if (!stepTitle) return false;
+	const selectedTitles = steps.flatMap((candidate) => {
+		const selectedUid = selections[candidate.stepUid];
+		const selected = candidate.components.find(
+			(component) => component.uid === selectedUid,
+		);
+		return selected ? [storefrontOptionKey(selected.title)] : [];
+	});
+	return selectedTitles.some(
+		(title) => title === `no ${stepTitle}` || title === `without ${stepTitle}`,
+	);
 }
 
 function publicComponent(
@@ -213,9 +259,11 @@ function publicComponent(
  * silently changing the customer configuration.
  */
 export function projectStorefrontOfferRoute(input: {
-	routeData: any;
+	routeData: StorefrontRouteData;
 	rootStepUid: string;
 	rootComponentUid: string;
+	offerSourceStepUid?: string | null;
+	offerSourceComponentUid?: string | null;
 	stepPolicies: StorefrontStepPolicy[];
 	componentPolicies: StorefrontOfferComponentPolicy[];
 	components: StorefrontComponent[];
@@ -246,6 +294,23 @@ export function projectStorefrontOfferRoute(input: {
 	const stepPolicies = new Map(
 		input.stepPolicies.map((policy) => [policy.stepUid, policy]),
 	);
+	const offerSourceStepUid = safeString(input.offerSourceStepUid);
+	const offerSourceComponentUid = safeString(input.offerSourceComponentUid);
+	if (offerSourceStepUid && offerSourceComponentUid) {
+		const configuredPolicy = stepPolicies.get(offerSourceStepUid);
+		stepPolicies.set(offerSourceStepUid, {
+			stepUid: offerSourceStepUid,
+			title: configuredPolicy?.title ?? null,
+			helpText: configuredPolicy?.helpText ?? null,
+			visible: false,
+			required: true,
+			allowSkip: false,
+			autoSelect: true,
+			defaultComponentUid: offerSourceComponentUid,
+			sortOrder: configuredPolicy?.sortOrder ?? 0,
+			metadata: configuredPolicy?.metadata ?? null,
+		});
+	}
 	const componentOverlays = new Map(
 		input.components.map((component) => [
 			component.sourceComponentUid,
@@ -279,7 +344,9 @@ export function projectStorefrontOfferRoute(input: {
 		}
 
 		const offerPolicies = offerPoliciesByStep.get(stepUid);
-		const available = (sourceStep?.components ?? [])
+		const sourceComponents = sourceStep?.components ?? [];
+		const structuralStep = sourceComponents.length === 0;
+		const available = sourceComponents
 			.filter((component) => {
 				const uid = safeString(component.uid);
 				const overlay = componentOverlays.get(uid);
@@ -317,20 +384,20 @@ export function projectStorefrontOfferRoute(input: {
 				)?.sourceComponentUid,
 			) ||
 			null;
-		const visible = policy?.visible ?? true;
+		const visible = structuralStep ? false : (policy?.visible ?? true);
 		const selectedComponentUid =
 			defaultUid && available.some((component) => component.uid === defaultUid)
 				? defaultUid
 				: null;
 
-		if (!available.length && stepUid !== input.rootStepUid) {
+		if (!structuralStep && !available.length && stepUid !== input.rootStepUid) {
 			issues.push({
 				code: "NO_AVAILABLE_COMPONENTS",
 				message: "This step has no published storefront components.",
 				stepUid,
 			});
 		}
-		if (!visible && !defaultUid) {
+		if (!structuralStep && !visible && !defaultUid) {
 			issues.push({
 				code: "HIDDEN_STEP_WITHOUT_DEFAULT",
 				message: "A hidden storefront step requires a valid default.",

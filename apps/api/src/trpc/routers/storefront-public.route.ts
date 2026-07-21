@@ -188,22 +188,64 @@ export const storefrontPublicRouter = createTRPCRouter({
 					title: true,
 					description: true,
 					imageUrl: true,
-					offers: {
-						where: {
-							status: "PUBLISHED",
-							publishedAt: { lte: new Date() },
+					_count: {
+						select: {
+							offers: {
+								where: {
+									status: "PUBLISHED",
+									publishedAt: { lte: new Date() },
+									deletedAt: null,
+								},
+							},
 						},
-						take: 1_000,
-						select: { id: true },
 					},
 				},
 			});
-			return categories.map(({ offers, ...category }) => ({
+			return categories.map(({ _count, ...category }) => ({
 				...category,
 				href: `/categories/${category.slug}`,
-				offerCount: offers.length,
+				offerCount: _count.offers,
 			}));
 		}),
+		featured: publicProcedure
+			.input(z.object({ limit: z.number().int().min(1).max(24).default(8) }))
+			.query(async ({ ctx, input }) => {
+				const offers = await ctx.db.storefrontOffer.findMany({
+					where: {
+						featured: true,
+						status: "PUBLISHED",
+						publishedAt: { lte: new Date() },
+						deletedAt: null,
+						category: {
+							status: "PUBLISHED",
+							publishedAt: { lte: new Date() },
+							deletedAt: null,
+						},
+					},
+					orderBy: [
+						{ featuredOrder: "asc" },
+						{ sortOrder: "asc" },
+						{ title: "asc" },
+					],
+					take: input.limit,
+					select: {
+						id: true,
+						slug: true,
+						title: true,
+						description: true,
+						imageUrl: true,
+						availability: true,
+						category: { select: { slug: true, title: true } },
+					},
+				});
+				return {
+					items: offers.map((offer) => ({
+						...offer,
+						availability: normalizeStorefrontAvailability(offer.availability),
+						href: `/product/${offer.category.slug}/${offer.slug}`,
+					})),
+				};
+			}),
 
 		category: publicProcedure
 			.input(slugSchema)
@@ -253,7 +295,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 					offers: category.offers.map((offer) => ({
 						...offer,
 						availability: normalizeStorefrontAvailability(offer.availability),
-						href: `/products/${offer.slug}`,
+						href: `/product/${category.slug}/${offer.slug}`,
 					})),
 				};
 			}),
@@ -302,6 +344,8 @@ export const storefrontPublicRouter = createTRPCRouter({
 				routeData,
 				rootStepUid: offer.category.rootStepUid,
 				rootComponentUid: offer.category.rootComponentUid,
+				offerSourceStepUid: offer.sourceStepUid,
+				offerSourceComponentUid: offer.sourceComponentUid,
 				stepPolicies: offer.stepPolicies.map((step) => ({
 					...step,
 					metadata: (step.metadata as Record<string, unknown> | null) || null,
@@ -386,7 +430,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 					items: offers.map((offer) => ({
 						...offer,
 						availability: normalizeStorefrontAvailability(offer.availability),
-						href: `/products/${offer.slug}`,
+						href: `/product/${offer.category.slug}/${offer.slug}`,
 					})),
 					count: offers.length,
 				};
@@ -437,8 +481,10 @@ export const storefrontPublicRouter = createTRPCRouter({
 				const priced = await validateAndPriceStorefrontConfiguration(
 					ctx,
 					input,
+					{ allowIncomplete: true },
 				);
 				return {
+					complete: priced.complete,
 					currency: "USD" as const,
 					unitPrice: priced.unitPrice,
 					lineTotal: priced.lineTotal,

@@ -390,10 +390,8 @@ function salesEmailAttemptData({
 			hasPaymentLink: Boolean(data.paymentLink),
 			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
-			dealerProgramCampaignId:
-				data.dealerProgramBanner?.campaignId || null,
-			dealerProgramInvitationId:
-				data.dealerProgramBanner?.invitationId || null,
+			dealerProgramCampaignId: data.dealerProgramBanner?.campaignId || null,
+			dealerProgramInvitationId: data.dealerProgramBanner?.invitationId || null,
 		},
 	};
 }
@@ -482,6 +480,11 @@ export class Notifications {
 				this.#db,
 				validatedActivity,
 				author?.id,
+				options?.forceInAppRecipients
+					? contacts
+							?.filter((contact) => contact.inAppNotification)
+							.map((contact) => contact.id)
+					: undefined,
 			);
 			return activity ? [activity] : [];
 		}
@@ -771,13 +774,17 @@ export class Notifications {
 						whatsAppNotification: true,
 					}))
 				: [];
-		const contacts = [...contactsRaw, ...fallbackContacts].filter(
-			(contact, index, arr) => {
+		const contacts = [...contactsRaw, ...fallbackContacts]
+			.filter((contact, index, arr) => {
 				// if (!contact?.id || contact.id === author?.id)
 				// 	return false;
 				return arr.findIndex((item) => item?.id === contact.id) === index;
-			},
-		);
+			})
+			.map((contact) =>
+				options?.forceInAppRecipients
+					? { ...contact, inAppNotification: true }
+					: contact,
+			);
 		this.emailMeta = author
 			? generateEmailMeta(author, type)
 			: {

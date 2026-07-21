@@ -20,6 +20,10 @@
 			"channel": "preview"
 		},
 		"production": {
+			"environment": "production",
+			"env": {
+				"APP_VARIANT": "production"
+			},
 			"autoIncrement": true
 		}
 	},

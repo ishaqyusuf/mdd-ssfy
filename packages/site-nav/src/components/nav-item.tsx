@@ -40,9 +40,7 @@ export const NavItem = ({
 	const hasChildren = item.subLinks && item.subLinks.length > 0;
 	const [isHovered, setIsHovered] = useState(false);
 	const expandTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-		null,
-	);
+	const collapseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const resetPreserveFrameRef = useRef<number | null>(null);
 	const childContainerRef = useRef<HTMLDivElement>(null);
 	const pendingScrollCompensationRef = useRef<number | null>(null);
@@ -182,9 +180,7 @@ export const NavItem = ({
 					/>
 
 					{isExpanded && isActive && (
-						<>
-							<div className="absolute inset-y-[9px] left-[13px] w-[3px] rounded-full bg-sidebar-primary" />
-						</>
+						<div className="absolute inset-y-[9px] left-[13px] w-[3px] rounded-full bg-sidebar-primary" />
 					)}
 
 					<div className="pointer-events-none absolute left-[10px] top-0 flex h-[42px] w-[42px] items-center justify-center text-sidebar-foreground/48 group-hover:text-sidebar-foreground/88">
@@ -210,6 +206,11 @@ export const NavItem = ({
 							>
 								{item.name}
 							</span>
+							{item.wip ? (
+								<span className="ml-2 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300">
+									WIP
+								</span>
+							) : null}
 							{hasChildren && (
 								<button
 									type="button"

@@ -20,6 +20,7 @@ import { ToastProviderWithViewport } from "@/components/ui/toast";
 import { useColorScheme } from "@/hooks/use-color";
 import { NAV_THEME } from "@/lib/theme";
 import { getThemeOverride } from "@/lib/theme-preference";
+import { Sentry, initSentry } from "@/lib/sentry";
 import { TRPCReactProvider } from "@/trpc/client";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { StatusBar } from "expo-status-bar";
@@ -40,8 +41,9 @@ export const unstable_settings = {
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+initSentry();
 
-export default function RootLayout() {
+function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
@@ -212,3 +214,5 @@ function RootLayoutNav() {
     </GestureHandlerRootView>
   );
 }
+
+export default Sentry.wrap(RootLayout);

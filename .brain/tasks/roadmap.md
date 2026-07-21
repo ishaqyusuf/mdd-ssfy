@@ -129,15 +129,6 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan File: brain/plans/2026-07-05-feature-desktop-feedback-issue-board.md
 - Created Date: 2026-07-05
 
-### Production-Only Sentry For Web And Mobile App
-- Priority: Medium
-- Description: Track plan in `brain/plans/2026-07-02-bug-fix-production-only-sentry-for-web-and-mobile-app.md`.
-- Related Feature: Observability and mobile app reliability
-- Status: Roadmap
-- Plan Status: Proposed
-- Plan File: brain/plans/2026-07-02-bug-fix-production-only-sentry-for-web-and-mobile-app.md
-- Created Date: 2026-07-02
-
 ### Sales Document WhatsApp And SMS Delivery
 - Priority: High
 - Description: Track plan in `brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md`.

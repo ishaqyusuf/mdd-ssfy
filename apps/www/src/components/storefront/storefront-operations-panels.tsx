@@ -22,6 +22,15 @@ import { parseAsString, useQueryState } from "nuqs";
 import { FormEvent, useEffect, useState } from "react";
 
 const listInput = { limit: 25 } as const;
+const storefrontDateFormatter = new Intl.DateTimeFormat("en-US", {
+	timeZone: "America/New_York",
+	dateStyle: "short",
+	timeStyle: "medium",
+});
+
+function formatStorefrontDate(value: string | Date) {
+	return storefrontDateFormatter.format(new Date(value));
+}
 
 export function StorefrontCartsPanel() {
 	const trpc = useTRPC();
@@ -67,7 +76,7 @@ export function StorefrontCartsPanel() {
 						</Badge>,
 						String(cart.itemCount),
 						`$${cart.subtotal.toFixed(2)}`,
-						new Date(cart.updatedAt).toLocaleString(),
+						formatStorefrontDate(cart.updatedAt),
 						<Button
 							key="action"
 							size="sm"
@@ -139,8 +148,29 @@ export function StorefrontCartsPanel() {
 
 export function StorefrontOrdersPanel() {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const orders = useQuery(
 		trpc.storefrontAdmin.operations.orders.queryOptions(listInput),
+	);
+	const verifyOrder = useMutation(
+		trpc.storefrontAdmin.operations.verifyOrder.mutationOptions({
+			onSuccess: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: trpc.storefrontAdmin.operations.orders.queryKey(),
+				});
+				toast({
+					title: "Order verified",
+					description: "The payment link was sent to the customer.",
+					variant: "success",
+				});
+			},
+			onError: (error) =>
+				toast({
+					title: "Unable to verify order",
+					description: error.message,
+					variant: "destructive",
+				}),
+		}),
 	);
 	return (
 		<Card>
@@ -158,6 +188,8 @@ export function StorefrontOrdersPanel() {
 						"Order",
 						"Customer",
 						"Status",
+						"Sales rep",
+						"Payment",
 						"Items",
 						"Total",
 						"Due",
@@ -170,15 +202,32 @@ export function StorefrontOrdersPanel() {
 						<Badge variant="secondary" key="status">
 							{order.status || "Active"}
 						</Badge>,
+						order.salesRep?.name || order.salesRep?.email || "Unassigned",
+						<Badge variant="secondary" key="checkout-status">
+							{order.checkout?.status || "Not started"}
+						</Badge>,
 						String(order.itemCount),
 						`$${order.grandTotal.toFixed(2)}`,
 						`$${order.amountDue.toFixed(2)}`,
-						order.createdAt ? new Date(order.createdAt).toLocaleString() : "",
-						<Button asChild key="action" size="sm" variant="outline">
-							<Link href={`/sales-form/edit-order/${order.slug}`}>
-								Open in Sales
-							</Link>
-						</Button>,
+						order.createdAt ? formatStorefrontDate(order.createdAt) : "",
+						<div key="action" className="flex justify-end gap-2">
+							{order.checkout?.status === "ORDER_CREATED" ? (
+								<Button
+									size="sm"
+									disabled={verifyOrder.isPending}
+									onClick={() =>
+										verifyOrder.mutate({ checkoutId: order.checkout.id })
+									}
+								>
+									Verify & send link
+								</Button>
+							) : null}
+							<Button asChild size="sm" variant="outline">
+								<Link href={`/sales-form/edit-order/${order.slug}`}>
+									Open in Sales
+								</Link>
+							</Button>
+						</div>,
 					])}
 				/>
 			</CardContent>
@@ -248,7 +297,7 @@ export function StorefrontInquiriesPanel() {
 								{inquiry.phone || "No phone"}
 							</p>
 						</div>,
-						new Date(inquiry.createdAt).toLocaleString(),
+						formatStorefrontDate(inquiry.createdAt),
 						<select
 							key="status"
 							className="h-9 rounded-md border bg-background px-2 text-sm"
@@ -283,14 +332,22 @@ export function StorefrontSettingsPanel() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const settings = useQuery(trpc.storefrontAdmin.settings.get.queryOptions());
+	const salesReps = useQuery(
+		trpc.storefrontAdmin.settings.salesReps.queryOptions(),
+	);
 	const [form, setForm] = useState({
+		defaultSalesRepId: null as number | null,
 		pickupEnabled: true,
 		deliveryEnabled: false,
 		deliveryFlatRate: 0,
 		freeDeliveryThreshold: null as number | null,
 	});
 	useEffect(() => {
-		if (settings.data) setForm(settings.data.checkout);
+		if (settings.data)
+			setForm({
+				...settings.data.checkout,
+				defaultSalesRepId: settings.data.defaultSalesRepId,
+			});
 	}, [settings.data]);
 	const save = useMutation(
 		trpc.storefrontAdmin.settings.save.mutationOptions({
@@ -325,6 +382,28 @@ export function StorefrontSettingsPanel() {
 						save.mutate(form);
 					}}
 				>
+					<label className="grid gap-1 text-sm">
+						Default sales rep
+						<select
+							className="h-9 rounded-md border bg-background px-3"
+							value={form.defaultSalesRepId || ""}
+							onChange={(event) =>
+								setForm((current) => ({
+									...current,
+									defaultSalesRepId: event.target.value
+										? Number(event.target.value)
+										: null,
+								}))
+							}
+						>
+							<option value="">Select a sales rep</option>
+							{salesReps.data?.map((salesRep) => (
+								<option key={salesRep.id} value={salesRep.id}>
+									{salesRep.name || salesRep.email}
+								</option>
+							))}
+						</select>
+					</label>
 					<SwitchRow
 						label="Allow pickup"
 						checked={form.pickupEnabled}
@@ -379,7 +458,7 @@ export function StorefrontSettingsPanel() {
 export function StorefrontContentPanel() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const workspace = useQuery(trpc.storefrontAdmin.workspace.queryOptions());
+	const pages = useQuery(trpc.storefrontAdmin.content.list.queryOptions());
 	const [pageId, setPageId] = useState("");
 	const [page, setPage] = useState({
 		slug: "home",
@@ -405,7 +484,7 @@ export function StorefrontContentPanel() {
 	});
 	const refresh = () =>
 		queryClient.invalidateQueries({
-			queryKey: trpc.storefrontAdmin.workspace.queryKey(),
+			queryKey: trpc.storefrontAdmin.content.list.queryKey(),
 		});
 	const savePage = useMutation(
 		trpc.storefrontAdmin.content.savePage.mutationOptions({
@@ -424,7 +503,7 @@ export function StorefrontContentPanel() {
 			},
 		}),
 	);
-	const selectedPage = workspace.data?.pages.find((item) => item.id === pageId);
+	const selectedPage = pages.data?.find((item) => item.id === pageId);
 	return (
 		<div className="grid gap-5 xl:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]">
 			<Card>
@@ -436,7 +515,7 @@ export function StorefrontContentPanel() {
 						className="h-9 w-full rounded-md border bg-background px-3 text-sm"
 						value={pageId}
 						onChange={(event) => {
-							const selected = workspace.data?.pages.find(
+							const selected = pages.data?.find(
 								(item) => item.id === event.target.value,
 							);
 							setPageId(event.target.value);
@@ -452,7 +531,7 @@ export function StorefrontContentPanel() {
 						}}
 					>
 						<option value="">Create a page</option>
-						{workspace.data?.pages.map((item) => (
+						{pages.data?.map((item) => (
 							<option key={item.id} value={item.id}>
 								{item.title}
 							</option>

@@ -1,39 +1,40 @@
 {
-  "name": "@gnd/auth",
-  "version": "1.0.0",
-  "private": true,
-  "exports": {
-    ".": "./src/index.ts",
-    "./utils": "./src/utils.ts",
-    "./new-device-login": "./src/new-device-login.ts",
-    "./better-auth/dealership": "./src/better-auth/dealership.ts",
-    "./better-auth/www": "./src/better-auth/www.ts",
-    "./better-auth/www-session": "./src/better-auth/www-session.ts"
-  },
-  "prisma": {
-    "schema": "./src/schema"
-  },
-  "scripts": {
-    "clean": "rm -rf .turbo node_modules",
-    "format": "biome format --write .",
-    "lint": "biome check .",
-    "typecheck": "tsc --noEmit",
-    "with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
-    "with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
-  },
-  "dependencies": {
-    "@gnd/db": "workspace:*",
-    "@gnd/utils": "workspace:*",
-    "@better-auth/prisma-adapter": "^1.4.0",
-    "better-auth": "^1.4.0",
-    "@next-auth/prisma-adapter": "^1.0.7",
-    "next-auth": "^4.24.11",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@gnd/tsconfig": "workspace:*",
-    "react": "catalog:",
-    "react-dom": "catalog:",
-    "typescript": "^5.9.3"
-  }
+	"name": "@gnd/auth",
+	"version": "1.0.0",
+	"private": true,
+	"exports": {
+		".": "./src/index.ts",
+		"./utils": "./src/utils.ts",
+		"./new-device-login": "./src/new-device-login.ts",
+		"./better-auth/dealership": "./src/better-auth/dealership.ts",
+		"./better-auth/www": "./src/better-auth/www.ts",
+		"./better-auth/www-session": "./src/better-auth/www-session.ts"
+	},
+	"prisma": {
+		"schema": "./src/schema"
+	},
+	"scripts": {
+		"clean": "rm -rf .turbo node_modules",
+		"format": "biome format --write .",
+		"lint": "biome check .",
+		"typecheck": "tsc --noEmit",
+		"with-env": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --",
+		"with-env:prod": "bun ../../../../local-infra-kit/bin/with-env.ts --profile gnd --mode prod --"
+	},
+	"dependencies": {
+		"@better-auth/prisma-adapter": "^1.4.0",
+		"@gnd/db": "workspace:*",
+		"@gnd/utils": "workspace:*",
+		"@next-auth/prisma-adapter": "^1.0.7",
+		"better-auth": "^1.4.0",
+		"cookie": "^0.7.2",
+		"next-auth": "^4.24.11",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@gnd/tsconfig": "workspace:*",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"typescript": "^5.9.3"
+	}
 }

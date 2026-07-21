@@ -12,7 +12,8 @@ Tracks the current technical topology and major module boundaries.
   - `apps/www` for the main web app
   - `apps/api` for API services
   - `apps/expo-app` for mobile
-  - `apps/site` and `apps/gnd-backlog` for additional surfaces
+  - `apps/storefront` for the customer-facing storefront
+  - `apps/gnd-backlog` for the supporting backlog surface
 - Shared packages: domain and infrastructure modules under `packages/*` including `db`, `ui`, `auth`, `notifications`, `jobs`, `sales`, `documents`, and supporting utilities
 
 ## Notable Architecture Directions

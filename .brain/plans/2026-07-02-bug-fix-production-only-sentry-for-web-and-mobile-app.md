@@ -4,13 +4,13 @@
 Bug Fix
 
 ## Status
-Proposed
+Implemented
 
 ## Created Date
 2026-07-02
 
 ## Last Updated
-2026-07-02
+2026-07-20
 
 ## Goal Or Problem
 Sentry should be disabled in local/development runtimes and enabled in production across the Next.js web app and Expo mobile app. The current web client initializes Sentry unconditionally with a hardcoded DSN, while the Expo app does not have Sentry wiring yet.
@@ -87,9 +87,27 @@ flowchart TD
 - `onRequestError` and router transition exports should remain compatible with Next.js even when Sentry is disabled.
 - Source-map upload requires valid `SENTRY_AUTH_TOKEN`, org, and project values only in production/release workflows.
 
-## Open Questions
-- TODO: Should Expo `preview` builds send Sentry events, or should only `production` builds send events?
-- TODO: Should web production source-map uploads use `SENTRY_RELEASE`/`GIT_COMMIT_SHA` and delete source maps after upload, matching the newer Midday reference exactly?
+## Decisions
+- Only production web deployments and production Expo builds send Sentry events. Preview and local/development environments do not receive the DSNs/enabled flag needed to send.
+- Web releases use `SENTRY_RELEASE`, then `VERCEL_GIT_COMMIT_SHA`, then `GIT_COMMIT_SHA`; uploaded source maps are deleted from the deployment artifact.
+- Web and mobile use separate Sentry projects under `gnd-52`: `gnd-prodesk-web` and `gnd-prodesk-mobile`.
+- The Expo production build profile explicitly selects the EAS `production` environment and `APP_VARIANT=production`.
+
+## Implementation Evidence
+- Web client/server/edge initialization now uses environment DSNs, explicit production enablement, and `0.1` trace sampling.
+- The hardcoded legacy web DSN was removed.
+- `withSentryConfig` remains production-only and now has release tagging, production source-map upload credentials, current debug-log tree shaking, and post-upload source-map deletion.
+- Expo now uses `@sentry/react-native`, the Expo config plugin, Sentry-aware Metro serialization composed with the existing NativeWind singleton resolver, one-time initialization, Expo update tags, and `Sentry.wrap(RootLayout)`.
+- Vercel Production contains the new web DSN, organization, web project slug, and organization build token.
+- Expo Production contains the mobile DSN, enable/debug flags, organization, mobile project slug, and secret build token.
+- Root and app-local `.env.local` files are explicitly disabled for mobile telemetry; production env files contain the matching production values.
+
+## Validation Evidence
+- Production Expo config import resolved `gnd-52` / `gnd-prodesk-mobile`.
+- Metro config import confirmed the Sentry serializer and the composed custom resolver.
+- Production Next config import completed without Sentry deprecation warnings.
+- Sentry, Vercel, and Expo dashboards were inspected after writes and showed the expected projects, production scopes, and masked secrets.
+- No dev server, full build, broad typecheck, or synthetic production error was run.
 
 ## Linked Task
 - Task Title: Production-Only Sentry For Web And Mobile App

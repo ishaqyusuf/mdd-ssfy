@@ -1,52 +1,51 @@
-import type { TRPCContext } from "@api/trpc/init";
-import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
-import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
-import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
+import { getSalesCustomer } from "@api/db/queries/customer";
 import {
-	bootstrapNewSalesFormSchema,
-	deleteNewSalesFormShelfProductSchema,
-	deleteNewSalesFormLineItemSchema,
-	getNewSalesFormHistorySnapshotSchema,
-	getNewSalesFormSchema,
-	getNewSalesFormStepRoutingSchema,
-	getNewSalesFormShelfCategoriesSchema,
-	getNewSalesFormShelfProductDetailsSchema,
-	getNewSalesFormShelfProductIndexSchema,
-	getNewSalesFormShelfProductsSchema,
-	recalculateNewSalesFormSchema,
-	saveDraftNewSalesFormSchema,
-	saveFinalNewSalesFormSchema,
-	searchNewSalesCustomersSchema,
-	searchNewSalesFormServiceSuggestionsSchema,
-	searchNewSalesFormShelfProductsSchema,
-	updateNewSalesFormShelfProductSchema,
-	resolveNewSalesCustomerSchema,
 	type BootstrapNewSalesFormSchema,
-	type DeleteNewSalesFormShelfProductSchema,
 	type DeleteNewSalesFormLineItemSchema,
+	type DeleteNewSalesFormShelfProductSchema,
 	type GetNewSalesFormHistorySnapshotSchema,
 	type GetNewSalesFormSchema,
-	type GetNewSalesFormStepRoutingSchema,
 	type GetNewSalesFormShelfCategoriesSchema,
 	type GetNewSalesFormShelfProductDetailsSchema,
 	type GetNewSalesFormShelfProductIndexSchema,
 	type GetNewSalesFormShelfProductsSchema,
-	type NewSalesFormLineItem,
+	type GetNewSalesFormStepRoutingSchema,
 	type NewSalesFormExtraCost,
+	type NewSalesFormLineItem,
 	type NewSalesFormMeta,
 	type NewSalesFormSummary,
 	type RecalculateNewSalesFormSchema,
+	type ResolveNewSalesCustomerSchema,
 	type SaveDraftNewSalesFormSchema,
 	type SaveFinalNewSalesFormSchema,
 	type SearchNewSalesCustomersSchema,
 	type SearchNewSalesFormServiceSuggestionsSchema,
 	type SearchNewSalesFormShelfProductsSchema,
 	type UpdateNewSalesFormShelfProductSchema,
-	type ResolveNewSalesCustomerSchema,
+	bootstrapNewSalesFormSchema,
+	deleteNewSalesFormLineItemSchema,
+	deleteNewSalesFormShelfProductSchema,
+	getNewSalesFormHistorySnapshotSchema,
+	getNewSalesFormSchema,
+	getNewSalesFormShelfCategoriesSchema,
+	getNewSalesFormShelfProductDetailsSchema,
+	getNewSalesFormShelfProductIndexSchema,
+	getNewSalesFormShelfProductsSchema,
+	getNewSalesFormStepRoutingSchema,
+	recalculateNewSalesFormSchema,
+	resolveNewSalesCustomerSchema,
+	saveDraftNewSalesFormSchema,
+	saveFinalNewSalesFormSchema,
+	searchNewSalesCustomersSchema,
+	searchNewSalesFormServiceSuggestionsSchema,
+	searchNewSalesFormShelfProductsSchema,
+	updateNewSalesFormShelfProductSchema,
 } from "@api/schemas/new-sales-form";
-import { getSalesCustomer } from "@api/db/queries/customer";
+import type { TRPCContext } from "@api/trpc/init";
 import { salesAddressLines } from "@api/utils/sales";
-import { TRPCError } from "@trpc/server";
+import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
+import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
+import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
 import { assertDealerSaleOfficeAccess } from "@gnd/db/queries";
 import { projectLegacyOrderPayments } from "@gnd/sales";
 import {
@@ -55,7 +54,6 @@ import {
 	roundMoney,
 	sumMoney,
 } from "@gnd/sales/payment-system";
-import { generateRandomString } from "@gnd/utils";
 import {
 	calculateLegacyPaymentDueDate,
 	calculateSalesFormSummary,
@@ -66,8 +64,10 @@ import {
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,
 } from "@gnd/sales/sales-form";
-import { generateSalesSlug } from "@gnd/sales/utils";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
+import { generateSalesSlug } from "@gnd/sales/utils";
+import { generateRandomString } from "@gnd/utils";
+import { TRPCError } from "@trpc/server";
 import { captureNewSalesFormSavePayload } from "./new-sales-form-debug";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
@@ -515,18 +515,14 @@ function storedOrderSummary<
 		ccc?: number;
 		totalWithCcc?: number;
 	},
->(
-	summary: T,
-) {
+>(summary: T) {
 	const grandTotal = roundMoney(summary.grandTotal);
 	const ccc = roundMoney(summary.ccc);
 	return {
 		...summary,
 		grandTotal,
 		ccc,
-		totalWithCcc: roundMoney(
-			summary.totalWithCcc ?? addMoney(grandTotal, ccc),
-		),
+		totalWithCcc: roundMoney(summary.totalWithCcc ?? addMoney(grandTotal, ccc)),
 	};
 }
 
@@ -1234,6 +1230,7 @@ export async function getNewSalesForm(
 						email: true,
 					},
 				},
+				dealerAuthId: true,
 				dealerAuth: {
 					select: {
 						id: true,
@@ -1245,7 +1242,6 @@ export async function getNewSalesForm(
 								name: true,
 								businessName: true,
 							},
-							dealerAuthId: true,
 						},
 					},
 				},
@@ -2840,8 +2836,7 @@ async function saveNewSalesFormInternal(
 					grandTotal: persistedSummary.grandTotal,
 					amountDue: nextAmountDue,
 					meta: nextMeta as any,
-					salesChannel:
-						origin?.salesChannel || order.salesChannel || null,
+					salesChannel: origin?.salesChannel || order.salesChannel || null,
 				},
 			});
 			await tx.salesExtraCosts.updateMany({
@@ -3438,6 +3433,7 @@ export async function saveStorefrontSalesOrder(
 		checkoutId: string;
 		customerId: number;
 		customerProfileId?: number | null;
+		salesRepId: number;
 		billingAddressId: number;
 		shippingAddressId: number;
 		taxCode?: string | null;
@@ -3501,6 +3497,10 @@ export async function saveStorefrontSalesOrder(
 	const result = await saveNewSalesFormInternal(ctx, payload, "Active", {
 		salesChannel: "storefront",
 		storefrontCheckoutId: input.checkoutId,
+	});
+	await ctx.db.salesOrders.update({
+		where: { id: result.salesId },
+		data: { salesRepId: input.salesRepId },
 	});
 	await runNewSalesFormPostSaveTasks(ctx, result);
 	return result;

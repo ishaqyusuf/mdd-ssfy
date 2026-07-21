@@ -1,10 +1,10 @@
 import "server-only";
 
 import {
-    HydrationBoundary,
-    dehydrate,
-    type TRPCQueryOptions,
-    createTRPCOptionsProxy,
+	HydrationBoundary,
+	dehydrate,
+	type TRPCQueryOptions,
+	createTRPCOptionsProxy,
 } from "@gnd/ui/tanstack";
 
 import { cache } from "react";
@@ -17,54 +17,55 @@ import { getServerAuthSession } from "@/lib/auth/session";
 export const getQueryClient = cache(makeQueryClient);
 
 export const trpc = createTRPCOptionsProxy<AppRouter>({
-    queryClient: getQueryClient,
-    router: appRouter,
-    ctx: createServerTRPCContext,
+	queryClient: getQueryClient,
+	router: appRouter,
+	ctx: createServerTRPCContext,
 });
 
 export function HydrateClient(props: { children: React.ReactNode }) {
-    const queryClient = getQueryClient();
+	const queryClient = getQueryClient();
 
-    return (
-        <HydrationBoundary state={dehydrate(queryClient)}>
-            {props.children as any}
-        </HydrationBoundary>
-    );
+	return (
+		<HydrationBoundary state={dehydrate(queryClient)}>
+			{props.children as any}
+		</HydrationBoundary>
+	);
 }
 
-export function batchPrefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
-    queryOptionsArray: T[],
-) {
-    const queryClient = getQueryClient();
+export async function batchPrefetch<
+	T extends ReturnType<TRPCQueryOptions<any>>,
+>(queryOptionsArray: T[]) {
+	const queryClient = getQueryClient();
 
-    for (const queryOptions of queryOptionsArray) {
-        if (queryOptions.queryKey[1]?.type === "infinite") {
-            void queryClient.prefetchInfiniteQuery(queryOptions as any);
-        } else {
-            void queryClient.prefetchQuery(queryOptions);
-        }
-    }
+	await Promise.all(
+		queryOptionsArray.map((queryOptions) => {
+			if (queryOptions.queryKey[1]?.type === "infinite") {
+				return queryClient.prefetchInfiniteQuery(queryOptions as any);
+			}
+			return queryClient.prefetchQuery(queryOptions);
+		}),
+	);
 }
 
 async function createServerTRPCContext() {
-    const session = await getServerAuthSession();
+	const session = await getServerAuthSession();
 
-    return {
-        db,
-        userId: parseUserId(session?.user?.id),
-    };
+	return {
+		db,
+		userId: parseUserId(session?.user?.id),
+	};
 }
 
 function parseUserId(userId: unknown) {
-    if (typeof userId === "number") {
-        return Number.isFinite(userId) ? userId : undefined;
-    }
+	if (typeof userId === "number") {
+		return Number.isFinite(userId) ? userId : undefined;
+	}
 
-    if (typeof userId === "string") {
-        const parsed = Number(userId);
+	if (typeof userId === "string") {
+		const parsed = Number(userId);
 
-        return Number.isFinite(parsed) ? parsed : undefined;
-    }
+		return Number.isFinite(parsed) ? parsed : undefined;
+	}
 
-    return undefined;
+	return undefined;
 }

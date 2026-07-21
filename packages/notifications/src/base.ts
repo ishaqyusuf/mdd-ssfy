@@ -84,6 +84,7 @@ export type NotificationOptions = {
 	}[];
 	includeChannelSubscribers?: boolean;
 	allowFallbackRecipient?: boolean;
+	forceInAppRecipients?: boolean;
 	testEmailMode?: boolean;
 	// priority?: number;
 	// sendEmail?: boolean;

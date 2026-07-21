@@ -5,13 +5,15 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-    dsn: "https://c9379ca7d8c836c5cccaf67e3d2e4e61@o4503970060238848.ingest.us.sentry.io/4508013542244352",
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    enabled: process.env.NODE_ENV === "production",
 
     // Add optional integrations for additional features
     integrations: [Sentry.replayIntegration()],
 
-    // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-    tracesSampleRate: 1,
+    // Keep production tracing useful without exhausting the Sentry quota.
+    tracesSampleRate: 0.1,
     // Enable logs to be sent to Sentry
     enableLogs: true,
 
@@ -23,7 +25,6 @@ Sentry.init({
     // Define how likely Replay events are sampled when an error occurs.
     replaysOnErrorSampleRate: 1.0,
 
-    // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
 });
 

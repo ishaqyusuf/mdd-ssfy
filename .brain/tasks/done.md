@@ -608,9 +608,15 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - [x] Fixed the sales dashboard chart-date regression by normalizing dashboard date params as explicit `yyyy-MM-dd` calendar days on the API and client, preserving same-day revenue buckets and date picker labels; validation: `bun test apps/api/src/db/queries/sales-dashboard.test.ts` passed (2026-06-09).
 - [x] Added Super Admin Sales Settings with persisted V1/V2 template selection, page-break policy, image/headline controls, recent-order live preview, and configuration-aware print/snapshot/download behavior (2026-07-18).
 - [x] Standardized legacy/new sales on decimal-safe 2dp arithmetic, authoritative grouped totals, Decimal shelf prices, subtractive percentage discounts, final HPT custom pricing, and a C.C.C-exclusive `grandTotal` contract (2026-07-20).
+- [x] Completed production-only Sentry for web and mobile: created separate `gnd-prodesk-web` and `gnd-prodesk-mobile` projects, updated Vercel/Expo production environments, added production source maps/releases, and wired the Expo SDK/Metro/root layout while keeping local and preview telemetry disabled (2026-07-20).
 - [x] 2026-07-20 Storefront e-commerce implementation: dedicated public API,
   canonical Dyke configuration projection for Doors/Mouldings/Shelf Items,
   admin publication/configuration workspace, cart/wishlist, customer auth and
   account, idempotent Square checkout into standard Sales Orders, inquiry/CMS/
   SEO/jobs/email/permissions, additive migration, focused tests, and isolated
   responsive browser QA.
+- [x] 2026-07-21 Storefront historical product-page and operations completion:
+  restored the October 2025 variant/configurator experience, split and bounded
+  the admin catalog workspace, fixed guest/auth/cart/payment boundaries,
+  guaranteed assigned-rep review activity, and completed local Square sandbox
+  order `08897CST` through paid customer/admin views.

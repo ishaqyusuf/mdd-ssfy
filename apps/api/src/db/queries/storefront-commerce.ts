@@ -16,6 +16,7 @@ import {
 } from "@gnd/sales/sales-form";
 import {
 	type PublicStorefrontStep,
+	isStorefrontStepWaivedBySelection,
 	normalizeStorefrontAvailability,
 	projectStorefrontOfferRoute,
 } from "@gnd/sales/storefront-configuration";
@@ -116,7 +117,10 @@ function selectedUidsForStep(
 export async function validateAndPriceStorefrontConfiguration(
 	ctx: TRPCContext,
 	rawInput: StorefrontConfigurationInput,
-	options?: { requireWorkflowConfiguration?: boolean },
+	options?: {
+		requireWorkflowConfiguration?: boolean;
+		allowIncomplete?: boolean;
+	},
 ) {
 	const input = storefrontConfigurationInputSchema.parse(rawInput);
 	const [offer, routeData] = await Promise.all([
@@ -142,6 +146,8 @@ export async function validateAndPriceStorefrontConfiguration(
 		routeData,
 		rootStepUid: offer.category.rootStepUid,
 		rootComponentUid: offer.category.rootComponentUid,
+		offerSourceStepUid: offer.sourceStepUid,
+		offerSourceComponentUid: offer.sourceComponentUid,
 		stepPolicies: offer.stepPolicies.map((step) => ({
 			...step,
 			metadata: (step.metadata as Record<string, unknown> | null) || null,
@@ -168,12 +174,6 @@ export async function validateAndPriceStorefrontConfiguration(
 			step.stepUid,
 		);
 		const selectedUids = selectedUidsForStep(step, configuredStep);
-		if (step.required && !step.allowSkip && !selectedUids.length) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `Choose an option for ${step.title}.`,
-			});
-		}
 		const allowed = new Set(step.components.map((component) => component.uid));
 		for (const uid of selectedUids) {
 			if (!allowed.has(uid)) {
@@ -201,19 +201,43 @@ export async function validateAndPriceStorefrontConfiguration(
 	const pricedSteps: Array<Record<string, unknown>> = [];
 	const componentUnitPrices: number[] = [];
 	const resolvedSteps: PublicStorefrontStep[] = [];
+	let configurationComplete = true;
+	const routeStepIds = policy.steps.flatMap((step) =>
+		step.stepUid !== offer.category.rootStepUid && step.stepId
+			? [step.stepId]
+			: [],
+	);
+	const routeComponents = routeStepIds.length
+		? ((await getStepComponents(ctx, {
+				stepIds: routeStepIds,
+			})) as Array<Record<string, unknown>>)
+		: [];
+	const routeComponentsByStepUid = new Map<
+		string,
+		Array<Record<string, unknown>>
+	>();
+	for (const component of routeComponents) {
+		const stepUid = safeString(component.stepUid);
+		if (!stepUid) continue;
+		const components = routeComponentsByStepUid.get(stepUid) ?? [];
+		components.push(component);
+		routeComponentsByStepUid.set(stepUid, components);
+	}
 	const selectedCanonicalByStepUid = new Map<
 		string,
 		Array<Record<string, unknown>>
 	>();
 
 	for (const selection of selectedSteps) {
+		const waivedBySelection = isStorefrontStepWaivedBySelection(
+			selection.step,
+			policy.steps,
+			selectedByStepUid,
+		);
 		const canonicalComponents: Array<Record<string, unknown>> = (
 			selection.step.stepUid === offer.category.rootStepUid
 				? (routeData.stepsByUid[selection.step.stepUid]?.components ?? [])
-				: await getStepComponents(ctx, {
-						stepId: selection.step.stepId || undefined,
-						stepTitle: selection.step.title,
-					})
+				: (routeComponentsByStepUid.get(selection.step.stepUid) ?? [])
 		) as Array<Record<string, unknown>>;
 		const byUid = new Map(
 			canonicalComponents.map((component) => [
@@ -238,13 +262,39 @@ export async function validateAndPriceStorefrontConfiguration(
 				)
 				.map((component) => safeString(component.uid)),
 		);
-		resolvedSteps.push({
+		const visibleComponents = selection.step.components.filter((component) =>
+			visibleUids.has(component.uid),
+		);
+		const resolvedStep = {
 			...selection.step,
-			components: selection.step.components.filter((component) =>
-				visibleUids.has(component.uid),
-			),
-		});
-		const selectedComponents = selection.selectedUids.map((uid) => {
+			visible:
+				selection.step.visible &&
+				visibleComponents.length > 0 &&
+				!waivedBySelection,
+			components: visibleComponents,
+		};
+		resolvedSteps.push(resolvedStep);
+		const selectedVisibleUids = selection.selectedUids.filter((uid) =>
+			visibleUids.has(uid),
+		);
+		if (
+			resolvedStep.visible &&
+			resolvedStep.required &&
+			!resolvedStep.allowSkip &&
+			!selectedVisibleUids.length
+		) {
+			configurationComplete = false;
+			if (!options?.allowIncomplete) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Choose an option for ${selection.step.title}.`,
+				});
+			}
+		}
+		if (selectedVisibleUids.length !== selection.selectedUids.length) {
+			configurationComplete = false;
+		}
+		const selectedComponents = selectedVisibleUids.map((uid) => {
 			const component = byUid.get(uid);
 			if (!component) {
 				throw new TRPCError({
@@ -292,12 +342,13 @@ export async function validateAndPriceStorefrontConfiguration(
 		});
 		selectedCanonicalByStepUid.set(
 			selection.step.stepUid,
-			selection.selectedUids
+			selectedVisibleUids
 				.map((uid) => byUid.get(uid))
 				.filter((component): component is Record<string, unknown> =>
 					Boolean(component),
 				),
 		);
+		if (!selectedComponents.length) continue;
 		const primary = selectedComponents[0];
 		pricedSteps.push({
 			id: null,
@@ -575,6 +626,7 @@ export async function validateAndPriceStorefrontConfiguration(
 
 	return {
 		offer,
+		complete: configurationComplete,
 		configuration: normalizedConfiguration,
 		configurationHash,
 		normalizedQuantity,

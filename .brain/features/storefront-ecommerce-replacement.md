@@ -10,7 +10,8 @@ item, customer, and permission workspaces.
 
 ## Canonical Terms
 
-- **Storefront**: the customer-facing e-commerce application in `apps/site`.
+- **Storefront**: the customer-facing e-commerce application in
+  `apps/storefront`.
 - **Storefront Admin**: permission-gated merchant operations in `apps/www`.
 - **Dyke Sales Configuration**: the shared office-authored step graph,
   components, dependencies, routes, and pricing behavior used by the sales
@@ -33,7 +34,7 @@ item, customer, and permission workspaces.
 
 ## Current State
 
-- `apps/site` now provides database-backed home, category, search, product
+- `apps/storefront` now provides database-backed home, category, search, product
   configuration, cart, wishlist, authentication, checkout, account, order,
   invoice, contact, custom-quote, CMS page, sitemap, and robots surfaces.
 - The public site uses a dedicated allowlisted storefront tRPC endpoint.
@@ -46,8 +47,11 @@ item, customer, and permission workspaces.
 - Checkout reprices every line, calculates configured delivery/tax/card
   charges, uses an idempotent Square flow, and promotes the cart into one
   canonical `SalesOrders` record with `salesChannel = "storefront"`.
-- The internal Storefront workspace provides permission-gated Catalog,
-  Carts, Orders, Content, Settings, and Inquiries operations.
+- The internal Storefront workspace provides separate permission-gated
+  Categories, Catalog, Carts & Wishlists, Orders, Inquiries, Pages & Sections,
+  and Settings routes. Catalog availability is paged and card-based rather
+  than hydrating the complete component catalog. Its dashboard navigation link
+  is marked `WIP` while the release gates below remain open.
 - Lifecycle cleanup and order-confirmation email run as background jobs.
 
 ## Product Direction
@@ -93,6 +97,38 @@ item, customer, and permission workspaces.
 - Public catalog and admin queries are bounded and soft-delete aware.
 - Production must configure a durable storefront guest signing secret and
   Square/auth/email environment settings.
+- The Vercel `gnd-storefront` project root is `apps/storefront`, matching the
+  rename from the former `apps/site` workspace.
+- The storefront app's server-side tRPC client must use the storefront origin
+  for `/api/storefront/trpc`, not the shared `NEXT_PUBLIC_APP_URL` when that
+  value points at the internal `apps/www` host. Server prefetches preserve the
+  current request host and forwarded headers so local portless/proxy rendering
+  returns JSON instead of the main app's HTML 404.
+- Storefront homepage prefetches are awaited before hydration so the server and
+  first client render share the same content, category, and featured-offer
+  query state. This prevents empty catalog responses from hydrating as
+  skeleton markup on the server and empty-state markup on the client.
+- Product-detail compatibility is intentional: the canonical historical
+  `/product/[categorySlug]/[productSlug]` route restores the October 2025
+  two-column presentation, option-button variant picker, `Door Slab Only` /
+  `Add Components` tabs, one-open-at-a-time component accordions, component
+  image/list modes, quantity, live price, cart, and wishlist actions.
+  `/products/[productSlug]` redirects to this route.
+- A canonical offer's source product is always applied as a hidden default. It
+  must not appear as another customer-selectable option on its own product
+  page; only compatible variants and add-on components are exposed.
+- Configuration preview accepts incomplete selections and returns
+  `complete: false` until every currently visible required step is selected.
+  Hidden and selection-waived steps are not required. Canonical components for
+  all route steps are loaded in one bounded query, and the browser keys preview
+  effects by semantic request content so an unchanged page does not poll.
+- Guest cart traffic uses the dedicated `/api/storefront/trpc` endpoint.
+  Customer checkout also recognizes the existing chunked secure NextAuth
+  session cookie without exposing the internal application router.
+- Storefront order review is intentionally mandatory in-app for the explicitly
+  assigned sales rep, even when the local notification-channel seed or the
+  rep's general channel preference is absent. Email remains independently
+  governed by the configured email transport.
 
 ## Verification
 
@@ -102,7 +138,7 @@ item, customer, and permission workspaces.
 - The user confirmed the storefront schema was safely pushed to both
   development and production on 2026-07-20. No reset was performed by this
   implementation session.
-- Focused storefront tests: 7 passed, 0 failed.
+- Focused storefront/catalog/notification tests: 18 passed, 0 failed.
 - Browser QA against the isolated database: responsive homepage 200, guest
   cart 200, contact page 200, inquiry submission 200, and no browser console
   errors after fixes.
@@ -114,10 +150,33 @@ item, customer, and permission workspaces.
   during its workspace TypeScript gate on the pre-existing
   `apps/api/src/db/queries/inbound-receiving.ts` readonly dispatch-status tuple
   incompatibility; no storefront diagnostic was reported.
+- Local browser regression on 2026-07-21: `https://gnd-storefront.localhost/`
+  reloads with the homepage hero visible and no `Unexpected token '<'`,
+  redacted tRPC, `Data failed`, or hydration mismatch errors after the
+  storefront SSR tRPC origin and awaited-homepage-prefetch fixes. Direct
+  storefront tRPC route smoke returns JSON for public content and catalog
+  requests.
+- Product-page browser regression on 2026-07-21: the Carrara test offer renders
+  the restored October 2025 interaction model, exposes the add-components tab,
+  hides the fixed Carrara source component from the picker, and settles after
+  one approximately 0.45-second configuration preview instead of continuously
+  polling. Homepage/category/search expose the enabled Interior Pre-Hung
+  category and both representative door offers without the zero-height image
+  warning.
+- Full local sandbox rehearsal on 2026-07-21 created customer order
+  `08897CST`, assigned Laura Ruth Godoy, produced the reviewed Square payment
+  link, completed a Square sandbox payment, persisted the online payment,
+  reduced amount due to `$0.00`, generated the invoice, displayed Payment
+  received in the customer account, and displayed PAID in Storefront Orders.
+  The Storefront Orders handoff opens the same configured order in the office
+  sales editor with its door schedule and totals intact.
+  The rep review activity is persisted unread for the assigned employee.
+  Local `SKIP_EMAIL=1` recorded email attempts as skipped, so provider
+  delivery was not claimed.
 
 ## Status
 
-Implemented, migration-verified, and schema-deployed to development and
-production. Traffic cutover remains release-gated on approved production
-content and policy copy, real Square/email credentials, representative
-canonical catalog publication, and full payment/fulfillment rehearsal.
+Implemented, migration-verified, schema-deployed, and locally rehearsed through
+Square sandbox settlement. Traffic cutover remains release-gated on approved
+production content and policy copy, real Square/email credentials, and a
+physical fulfillment rehearsal.

@@ -91,6 +91,8 @@ model StorefrontOffer {
     seo                   Json?                       @db.Json
     availability         Json?                       @db.Json
     status               StorefrontPublicationStatus @default(DRAFT)
+    featured             Boolean                     @default(false)
+    featuredOrder        Int?
     sortOrder             Int                         @default(0)
     configurationVersion Int                         @default(1)
     publishedAt          DateTime?                    @db.Timestamp(0)
@@ -105,6 +107,7 @@ model StorefrontOffer {
 
     @@unique([categoryId, slug])
     @@index([categoryId, status, sortOrder])
+    @@index([status, featured, featuredOrder])
     @@index([sourceStepUid])
     @@index([deletedAt])
 }
