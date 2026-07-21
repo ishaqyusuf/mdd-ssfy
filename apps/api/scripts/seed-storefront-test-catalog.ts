@@ -94,6 +94,31 @@ await db.storefrontComponent.updateMany({
 	},
 });
 
+const carraraOverlay = await db.storefrontComponent.findUnique({
+	where: { sourceComponentUid: "QSOAe" },
+	select: { metadata: true },
+});
+const carraraMetadata =
+	carraraOverlay?.metadata &&
+	typeof carraraOverlay.metadata === "object" &&
+	!Array.isArray(carraraOverlay.metadata)
+		? carraraOverlay.metadata
+		: {};
+await db.storefrontComponent.update({
+	where: { sourceComponentUid: "QSOAe" },
+	data: {
+		metadata: {
+			...carraraMetadata,
+			galleryImages: [
+				"https://res.cloudinary.com/dsuwvkg3d/image/upload/v1705575174/dyke/bre4i2ws2wl6y3aiyhlv.jpg",
+				"https://res.cloudinary.com/dsuwvkg3d/image/upload/c_fill,g_north,w_1200,h_1200/v1705575174/dyke/kmaiyk36smeg11dyoqzb.png",
+				"https://res.cloudinary.com/dsuwvkg3d/image/upload/c_fill,g_south,w_1200,h_1200/v1705575174/dyke/kmaiyk36smeg11dyoqzb.png",
+			],
+		},
+		updatedByUserId: actor.id,
+	},
+});
+
 const category = await db.storefrontCategory.upsert({
 	where: { rootComponentUid: rootComponent.uid },
 	create: {

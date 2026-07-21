@@ -1,8 +1,6 @@
 import { z } from "zod";
-import {
-	buildConfiguredRouteSteps,
-	readSalesFormObjectMetadata,
-} from "./sales-form";
+import { readSalesFormObjectMetadata } from "./sales-form/domain/metadata";
+import { buildConfiguredRouteSteps } from "./sales-form/domain/route-engine";
 
 export const storefrontPublicationStatusSchema = z.enum([
 	"DRAFT",
@@ -158,6 +156,7 @@ type RouteComponent = {
 	title?: string | null;
 	img?: string | null;
 	redirectUid?: string | null;
+	meta?: unknown;
 };
 
 type RouteStep = {
@@ -170,6 +169,17 @@ type RouteStep = {
 
 type StorefrontRouteData = {
 	stepsByUid?: Record<string, RouteStep>;
+	composedRouter?: Record<string, unknown>;
+};
+
+export type PublicStorefrontComponent = {
+	id: number | null;
+	uid: string;
+	title: string;
+	img: string | null;
+	redirectUid: string | null;
+	price?: number | null;
+	basePrice?: number | null;
 };
 
 export type PublicStorefrontStep = {
@@ -181,13 +191,8 @@ export type PublicStorefrontStep = {
 	required: boolean;
 	allowSkip: boolean;
 	selectedComponentUid: string | null;
-	components: Array<{
-		id: number | null;
-		uid: string;
-		title: string;
-		img: string | null;
-		redirectUid: string | null;
-	}>;
+	role: "ROOT" | "IDENTITY" | "PRODUCT" | "OPTION";
+	components: PublicStorefrontComponent[];
 };
 
 function safeString(value: unknown) {
@@ -252,6 +257,82 @@ function publicComponent(
 	};
 }
 
+function storefrontProductIdentityUids(component?: RouteComponent) {
+	const meta = readSalesFormObjectMetadata(component?.meta);
+	const show = meta?.show;
+	if (!show || typeof show !== "object" || Array.isArray(show)) return [];
+	return Object.entries(show)
+		.filter(([, enabled]) => enabled === true)
+		.map(([uid]) => safeString(uid))
+		.filter(Boolean);
+}
+
+/** Finds every root route explicitly allowed by the canonical product rules. */
+export function resolveStorefrontProductTypes(input: {
+	routeData: StorefrontRouteData;
+	rootStepUid: string;
+	fallbackRootComponentUid: string;
+	offerSourceStepUid?: string | null;
+	offerSourceComponentUid?: string | null;
+	components?: StorefrontComponent[];
+}) {
+	const rootStep = input.routeData.stepsByUid?.[input.rootStepUid];
+	const sourceStep =
+		input.routeData.stepsByUid?.[safeString(input.offerSourceStepUid)];
+	const sourceComponent = sourceStep?.components?.find(
+		(component) =>
+			safeString(component.uid) === safeString(input.offerSourceComponentUid),
+	);
+	const sourceMeta = readSalesFormObjectMetadata(sourceComponent?.meta);
+	const candidateUids = new Set([safeString(input.fallbackRootComponentUid)]);
+	const variations = Array.isArray(sourceMeta?.variations)
+		? sourceMeta.variations
+		: [];
+	for (const variation of variations) {
+		const rules = Array.isArray(variation?.rules) ? variation.rules : [];
+		for (const rule of rules) {
+			if (
+				safeString(rule?.stepUid) !== input.rootStepUid ||
+				safeString(rule?.operator).toLowerCase() !== "is"
+			) {
+				continue;
+			}
+			const componentUids = Array.isArray(rule?.componentsUid)
+				? rule.componentsUid
+				: [];
+			for (const uid of componentUids) {
+				const normalized = safeString(uid);
+				if (normalized) candidateUids.add(normalized);
+			}
+		}
+	}
+
+	const overlays = new Map(
+		(input.components || []).map((component) => [
+			component.sourceComponentUid,
+			component,
+		]),
+	);
+	return deduplicateStorefrontOptions(
+		(rootStep?.components || [])
+			.filter((component) => candidateUids.has(safeString(component.uid)))
+			.filter((component) =>
+				Boolean(input.routeData.composedRouter?.[safeString(component.uid)]),
+			)
+			.filter((component) => {
+				if (!input.components) return true;
+				const overlay = overlays.get(safeString(component.uid));
+				return (
+					overlay?.availableOnStorefront === true &&
+					overlay.status === "PUBLISHED"
+				);
+			})
+			.map((component) =>
+				publicComponent(component, overlays.get(safeString(component.uid))),
+			),
+	);
+}
+
 /**
  * Projects a canonical Dyke route into a restrictive public workflow. It does
  * not calculate compatibility or prices; those stay in the shared sales
@@ -264,6 +345,7 @@ export function projectStorefrontOfferRoute(input: {
 	rootComponentUid: string;
 	offerSourceStepUid?: string | null;
 	offerSourceComponentUid?: string | null;
+	rootComponentUids?: string[];
 	stepPolicies: StorefrontStepPolicy[];
 	componentPolicies: StorefrontOfferComponentPolicy[];
 	components: StorefrontComponent[];
@@ -296,6 +378,21 @@ export function projectStorefrontOfferRoute(input: {
 	);
 	const offerSourceStepUid = safeString(input.offerSourceStepUid);
 	const offerSourceComponentUid = safeString(input.offerSourceComponentUid);
+	const identityUids = storefrontProductIdentityUids(
+		input.routeData.stepsByUid?.[offerSourceStepUid]?.components?.find(
+			(component) => safeString(component.uid) === offerSourceComponentUid,
+		),
+	);
+	const identityUidByStep = new Map<string, string>();
+	for (const configuredStep of configured) {
+		const stepUid = safeString(configuredStep?.step?.uid);
+		const identityUid = identityUids.find((uid) =>
+			input.routeData.stepsByUid?.[stepUid]?.components?.some(
+				(component) => safeString(component.uid) === uid,
+			),
+		);
+		if (identityUid) identityUidByStep.set(stepUid, identityUid);
+	}
 	if (offerSourceStepUid && offerSourceComponentUid) {
 		const configuredPolicy = stepPolicies.get(offerSourceStepUid);
 		stepPolicies.set(offerSourceStepUid, {
@@ -307,6 +404,21 @@ export function projectStorefrontOfferRoute(input: {
 			allowSkip: false,
 			autoSelect: true,
 			defaultComponentUid: offerSourceComponentUid,
+			sortOrder: configuredPolicy?.sortOrder ?? 0,
+			metadata: configuredPolicy?.metadata ?? null,
+		});
+	}
+	for (const [stepUid, identityUid] of identityUidByStep) {
+		const configuredPolicy = stepPolicies.get(stepUid);
+		stepPolicies.set(stepUid, {
+			stepUid,
+			title: configuredPolicy?.title ?? null,
+			helpText: configuredPolicy?.helpText ?? null,
+			visible: false,
+			required: true,
+			allowSkip: false,
+			autoSelect: true,
+			defaultComponentUid: identityUid,
 			sortOrder: configuredPolicy?.sortOrder ?? 0,
 			metadata: configuredPolicy?.metadata ?? null,
 		});
@@ -344,10 +456,18 @@ export function projectStorefrontOfferRoute(input: {
 		}
 
 		const offerPolicies = offerPoliciesByStep.get(stepUid);
-		const sourceComponents = sourceStep?.components ?? [];
+		const allowedRootUids = new Set(
+			input.rootComponentUids || [input.rootComponentUid],
+		);
+		const sourceComponents = (sourceStep?.components ?? []).filter(
+			(component) =>
+				stepUid !== input.rootStepUid ||
+				allowedRootUids.has(safeString(component.uid)),
+		);
 		const structuralStep = sourceComponents.length === 0;
 		const available = sourceComponents
 			.filter((component) => {
+				if (stepUid === input.rootStepUid) return true;
 				const uid = safeString(component.uid);
 				const overlay = componentOverlays.get(uid);
 				const offerPolicy = offerPolicies?.get(uid);
@@ -428,14 +548,19 @@ export function projectStorefrontOfferRoute(input: {
 			visible,
 			required: policy?.required ?? !policy?.allowSkip,
 			allowSkip: policy?.allowSkip ?? false,
+			role:
+				stepUid === input.rootStepUid
+					? "ROOT"
+					: stepUid === offerSourceStepUid
+						? "PRODUCT"
+						: identityUidByStep.has(stepUid)
+							? "IDENTITY"
+							: "OPTION",
 			selectedComponentUid:
 				stepUid === input.rootStepUid
 					? input.rootComponentUid
 					: selectedComponentUid,
-			components:
-				stepUid === input.rootStepUid
-					? [publicComponent(rootComponent)]
-					: available,
+			components: available,
 		};
 	});
 

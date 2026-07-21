@@ -4,6 +4,7 @@ import { useStorefrontCatalogFilterParams } from "@/hooks/use-storefront-catalog
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
+import { Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import {
@@ -18,6 +19,14 @@ import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import { type FormEvent, useEffect, useState } from "react";
+
+function readGalleryImages(value: unknown) {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+	const galleryImages = (value as Record<string, unknown>).galleryImages;
+	return Array.isArray(galleryImages)
+		? galleryImages.map((image) => String(image || "").trim()).filter(Boolean)
+		: [];
+}
 
 export function StorefrontCatalogItemSheet() {
 	const trpc = useTRPC();
@@ -42,6 +51,7 @@ export function StorefrontCatalogItemSheet() {
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [imageUrl, setImageUrl] = useState("");
+	const [galleryImageUrls, setGalleryImageUrls] = useState<string[]>([]);
 	const [online, setOnline] = useState(false);
 	const [featured, setFeaturedValue] = useState(false);
 
@@ -52,6 +62,7 @@ export function StorefrontCatalogItemSheet() {
 		setImageUrl(
 			detail.data.overlay?.imageUrl || detail.data.source.imageUrl || "",
 		);
+		setGalleryImageUrls(readGalleryImages(detail.data.overlay?.metadata));
 		setOnline(
 			Boolean(detail.data.overlay?.availableOnStorefront) &&
 				detail.data.overlay?.status === "PUBLISHED",
@@ -83,6 +94,9 @@ export function StorefrontCatalogItemSheet() {
 				title: title.trim() || null,
 				description: description.trim() || null,
 				imageUrl: imageUrl.trim() || null,
+				galleryImageUrls: galleryImageUrls
+					.map((image) => image.trim())
+					.filter(Boolean),
 			});
 			await setStatus.mutateAsync({ componentUid, online });
 			if (detail.data?.offer) {
@@ -169,6 +183,78 @@ export function StorefrontCatalogItemSheet() {
 									detail.data.source.imageUrl || "Default component image"
 								}
 							/>
+						</div>
+						<div className="space-y-3">
+							<div className="flex items-center justify-between gap-3">
+								<Label>Gallery images</Label>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									disabled={galleryImageUrls.length >= 12}
+									onClick={() =>
+										setGalleryImageUrls((current) => [...current, ""])
+									}
+								>
+									<Icons.Plus className="mr-2 size-4" />
+									Add image
+								</Button>
+							</div>
+							{galleryImageUrls.length ? (
+								<div className="space-y-2">
+									{galleryImageUrls.map((image, index) => (
+										<div
+											key={`${index}-${image}`}
+											className="flex items-center gap-2"
+										>
+											<div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-sm border bg-muted">
+												{image ? (
+													<img
+														src={image}
+														alt=""
+														className="size-full object-contain"
+													/>
+												) : (
+													<Icons.Image className="size-4 text-muted-foreground" />
+												)}
+											</div>
+											<Input
+												type="url"
+												aria-label={`Gallery image ${index + 1} URL`}
+												value={image}
+												onChange={(event) =>
+													setGalleryImageUrls((current) =>
+														current.map((value, currentIndex) =>
+															currentIndex === index
+																? event.target.value
+																: value,
+														),
+													)
+												}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												aria-label={`Remove gallery image ${index + 1}`}
+												onClick={() =>
+													setGalleryImageUrls((current) =>
+														current.filter(
+															(_, currentIndex) => currentIndex !== index,
+														),
+													)
+												}
+											>
+												<Icons.Trash className="size-4" />
+											</Button>
+										</div>
+									))}
+								</div>
+							) : (
+								<p className="text-xs text-muted-foreground">
+									No additional product images.
+								</p>
+							)}
 						</div>
 						<div className="flex items-center justify-between border-y py-4">
 							<div>

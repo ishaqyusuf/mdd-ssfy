@@ -30,6 +30,10 @@ export const storefrontCatalogMetadataSchema =
 		title: z.string().trim().max(255).nullable(),
 		description: z.string().trim().max(20_000).nullable(),
 		imageUrl: z.string().trim().max(4_000).nullable(),
+		galleryImageUrls: z
+			.array(z.string().trim().url().max(4_000))
+			.max(12)
+			.default([]),
 	});
 
 export const storefrontCatalogFeaturedSchema =

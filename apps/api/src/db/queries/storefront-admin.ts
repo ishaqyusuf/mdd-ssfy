@@ -212,6 +212,10 @@ export async function getStorefrontCatalogList(
 				sourceComponentUid: true,
 				featured: true,
 				status: true,
+				slug: true,
+				category: {
+					select: { slug: true, status: true, deletedAt: true },
+				},
 			},
 		}),
 		ctx.db.dykePricingSystem.findMany({
@@ -249,11 +253,25 @@ export async function getStorefrontCatalogList(
 		profileCoefficient: profile?.coefficient,
 	});
 	const sourceIdByUid = new Map(page.map((row) => [row.uid, row.id]));
+	const offerByUid = new Map(
+		offers.map((offer) => [offer.sourceComponentUid, offer]),
+	);
 	return {
-		items: projection.items.map((item) => ({
-			...item,
-			sourceId: sourceIdByUid.get(item.uid) || 0,
-		})),
+		items: projection.items.map((item) => {
+			const offer = offerByUid.get(item.uid);
+			const storefrontPath =
+				item.online &&
+				offer?.status === "PUBLISHED" &&
+				offer.category.status === "PUBLISHED" &&
+				!offer.category.deletedAt
+					? `/product/${offer.category.slug}/${offer.slug}`
+					: null;
+			return {
+				...item,
+				sourceId: sourceIdByUid.get(item.uid) || 0,
+				storefrontPath,
+			};
+		}),
 		nextCursor: rows.length > input.limit ? page.at(-1)?.id || null : null,
 	};
 }

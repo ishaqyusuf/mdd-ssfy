@@ -109,11 +109,22 @@ item, customer, and permission workspaces.
   query state. This prevents empty catalog responses from hydrating as
   skeleton markup on the server and empty-state markup on the client.
 - Product-detail compatibility is intentional: the canonical historical
-  `/product/[categorySlug]/[productSlug]` route restores the October 2025
-  two-column presentation, option-button variant picker, `Door Slab Only` /
-  `Add Components` tabs, one-open-at-a-time component accordions, component
-  image/list modes, quantity, live price, cart, and wishlist actions.
-  `/products/[productSlug]` redirects to this route.
+  `/product/[categorySlug]/[productSlug]` route keeps the image-led presentation
+  and option-button variant picker without exposing an office-style table.
+  Product identity controls such as Door Type are locked and rendered as badges
+  below the description. Item Type is the first selectable control and switches
+  the canonical sales route, so pre-hung and slab-only products expose only the
+  steps configured for that route. `/products/[productSlug]` redirects here.
+- Door dimensions render as priced buttons. Selecting a dimension updates the
+  displayed sales price, and routes that require handling expose persistent
+  left/right controls. Component add-ons remain one-open-at-a-time accordions;
+  their options render as image cards with server-calculated prices.
+- Product media supports one primary image plus a bounded merchandising gallery
+  stored in the source component's storefront overlay metadata. The admin item
+  sheet edits the gallery without changing the canonical Dyke product image.
+- Catalog cards expose `Open in storefront` from their context menu only when
+  the component, offer, and category are all published. The action remains
+  visible but disabled for offline or otherwise unpublished components.
 - A canonical offer's source product is always applied as a hidden default. It
   must not appear as another customer-selectable option on its own product
   page; only compatible variants and add-on components are exposed.
@@ -157,12 +168,13 @@ item, customer, and permission workspaces.
   storefront tRPC route smoke returns JSON for public content and catalog
   requests.
 - Product-page browser regression on 2026-07-21: the Carrara test offer renders
-  the restored October 2025 interaction model, exposes the add-components tab,
-  hides the fixed Carrara source component from the picker, and settles after
-  one approximately 0.45-second configuration preview instead of continuously
-  polling. Homepage/category/search expose the enabled Interior Pre-Hung
-  category and both representative door offers without the zero-height image
-  warning.
+  a four-image gallery, an `HC Molded` identity badge, canonical Item Type
+  buttons, and no product table. Interior pre-hung exposes route-specific door
+  configuration, height, bore, priced size buttons, and handing; Door Slabs Only
+  reconfigures to slab height/size plus the Bore add-on and omits handing.
+  Selecting `1-6 x 6-8` preserves the selection through a Left hand choice and
+  displays `$47.50`. The admin Carrara context menu enables `Open in storefront`,
+  while an offline moulding exposes the same item disabled.
 - Full local sandbox rehearsal on 2026-07-21 created customer order
   `08897CST`, assigned Laura Ruth Godoy, produced the reviewed Square payment
   link, completed a Square sandbox payment, persisted the online payment,

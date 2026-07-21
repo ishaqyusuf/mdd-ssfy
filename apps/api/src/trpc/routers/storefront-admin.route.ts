@@ -228,11 +228,27 @@ export const storefrontAdminRouter = createTRPCRouter({
 					userId: ctx.userId,
 					permission: "editStorefront",
 				});
-				const source = await ctx.db.dykeStepProducts.findUnique({
-					where: { uid: input.componentUid },
-					select: { step: { select: { uid: true } } },
-				});
+				const [source, existing] = await Promise.all([
+					ctx.db.dykeStepProducts.findUnique({
+						where: { uid: input.componentUid },
+						select: { step: { select: { uid: true } } },
+					}),
+					ctx.db.storefrontComponent.findUnique({
+						where: { sourceComponentUid: input.componentUid },
+						select: { metadata: true },
+					}),
+				]);
 				if (!source?.step.uid) throw new TRPCError({ code: "NOT_FOUND" });
+				const existingMetadata =
+					existing?.metadata &&
+					typeof existing.metadata === "object" &&
+					!Array.isArray(existing.metadata)
+						? existing.metadata
+						: {};
+				const metadata = asJson({
+					...existingMetadata,
+					galleryImages: input.galleryImageUrls,
+				});
 				await ctx.db.storefrontComponent.upsert({
 					where: { sourceComponentUid: input.componentUid },
 					create: {
@@ -241,6 +257,7 @@ export const storefrontAdminRouter = createTRPCRouter({
 						title: input.title,
 						description: input.description,
 						imageUrl: input.imageUrl,
+						metadata,
 						createdByUserId: ctx.userId,
 						updatedByUserId: ctx.userId,
 					},
@@ -248,6 +265,7 @@ export const storefrontAdminRouter = createTRPCRouter({
 						title: input.title,
 						description: input.description,
 						imageUrl: input.imageUrl,
+						metadata,
 						updatedByUserId: ctx.userId,
 						deletedAt: null,
 					},

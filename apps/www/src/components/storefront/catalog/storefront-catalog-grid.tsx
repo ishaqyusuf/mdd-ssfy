@@ -14,6 +14,12 @@ import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@gnd/ui/context-menu";
+import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
@@ -164,6 +170,13 @@ export function StorefrontCatalogGrid(props: StorefrontCatalogGridProps) {
 			return next;
 		});
 	}
+	function openStorefront(path: string | null) {
+		if (!path) return;
+		const origin = window.location.hostname.endsWith(".localhost")
+			? "https://gnd-storefront.localhost"
+			: "https://gndmillwork.com";
+		window.open(new URL(path, origin), "_blank", "noopener,noreferrer");
+	}
 
 	return (
 		<section className="space-y-5" aria-labelledby="storefront-catalog-title">
@@ -281,6 +294,7 @@ export function StorefrontCatalogGrid(props: StorefrontCatalogGridProps) {
 								onFeatured={(featured) =>
 									featuredMutation.mutate({ componentUid: item.uid, featured })
 								}
+								onOpenStorefront={() => openStorefront(item.storefrontPath)}
 							/>
 						))}
 					</div>
@@ -437,58 +451,74 @@ function CatalogCard(props: {
 	onStatus: (online: boolean) => void;
 	onResetImage: () => void;
 	onFeatured: (featured: boolean) => void;
+	onOpenStorefront: () => void;
 }) {
 	return (
-		<div style={{ contentVisibility: "auto", containIntrinsicSize: "280px" }}>
-			<WorkflowComponentCard
-				selected={props.selected}
-				badgesSlot={
-					<div className="absolute left-2 top-2 z-[2] flex items-center gap-1.5">
-						<Checkbox
-							checked={props.selected}
-							onCheckedChange={props.onToggle}
-							aria-label={`Select ${props.item.title}`}
-							className="bg-background"
-						/>
-						{props.item.online ? (
-							<Badge className="bg-emerald-600 text-white">Online</Badge>
-						) : (
-							<Badge variant="secondary">Offline</Badge>
-						)}
-						{props.item.featured ? (
-							<Badge className="bg-amber-500 text-black">Featured</Badge>
-						) : null}
-					</div>
-				}
-				actionsSlot={<CatalogCardMenu {...props} />}
-			>
-				<button
-					type="button"
-					className="block w-full text-left"
-					onClick={props.onEdit}
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<div
+					style={{ contentVisibility: "auto", containIntrinsicSize: "280px" }}
 				>
-					<WorkflowComponentPreview
-						imageSrc={resolveWorkflowComponentImageSrc(props.item.imageUrl)}
-						title={props.item.title}
-						priceSlot={
-							<div className="flex flex-wrap gap-1.5 pt-1">
-								<Badge className="bg-red-100 text-red-700 hover:bg-red-100">
-									Cost {formatMoney(props.item.costPrice)}
-								</Badge>
-								{props.showSalesPrice ? (
-									<Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
-										Sales {formatMoney(props.item.salesPrice)}
-									</Badge>
+					<WorkflowComponentCard
+						selected={props.selected}
+						badgesSlot={
+							<div className="absolute left-2 top-2 z-[2] flex items-center gap-1.5">
+								<Checkbox
+									checked={props.selected}
+									onCheckedChange={props.onToggle}
+									aria-label={`Select ${props.item.title}`}
+									className="bg-background"
+								/>
+								{props.item.online ? (
+									<Badge className="bg-emerald-600 text-white">Online</Badge>
+								) : (
+									<Badge variant="secondary">Offline</Badge>
+								)}
+								{props.item.featured ? (
+									<Badge className="bg-amber-500 text-black">Featured</Badge>
 								) : null}
 							</div>
 						}
-					/>
-					<div className="border-t px-3 py-2 text-xs capitalize text-muted-foreground">
-						{props.item.family.replace("-", " ")}
-					</div>
-				</button>
-			</WorkflowComponentCard>
-		</div>
+						actionsSlot={<CatalogCardMenu {...props} />}
+					>
+						<button
+							type="button"
+							className="block w-full text-left"
+							onClick={props.onEdit}
+						>
+							<WorkflowComponentPreview
+								imageSrc={resolveWorkflowComponentImageSrc(props.item.imageUrl)}
+								title={props.item.title}
+								priceSlot={
+									<div className="flex flex-wrap gap-1.5 pt-1">
+										<Badge className="bg-red-100 text-red-700 hover:bg-red-100">
+											Cost {formatMoney(props.item.costPrice)}
+										</Badge>
+										{props.showSalesPrice ? (
+											<Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+												Sales {formatMoney(props.item.salesPrice)}
+											</Badge>
+										) : null}
+									</div>
+								}
+							/>
+							<div className="border-t px-3 py-2 text-xs capitalize text-muted-foreground">
+								{props.item.family.replace("-", " ")}
+							</div>
+						</button>
+					</WorkflowComponentCard>
+				</div>
+			</ContextMenuTrigger>
+			<ContextMenuContent className="w-52">
+				<ContextMenuItem
+					disabled={!props.item.storefrontPath}
+					onSelect={props.onOpenStorefront}
+				>
+					<Icons.ExternalLink className="mr-2 size-4" />
+					Open in storefront
+				</ContextMenuItem>
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }
 

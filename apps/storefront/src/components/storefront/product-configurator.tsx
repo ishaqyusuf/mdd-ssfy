@@ -13,7 +13,6 @@ import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { QuantityInput } from "@gnd/ui/quantity-input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@gnd/ui/tabs";
 import { toast } from "@gnd/ui/use-toast";
 import {
 	useMutation,
@@ -25,6 +24,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 type Offer = StorefrontRouterOutputs["storefrontCommerce"]["catalog"]["offer"];
 type Step = Offer["configuration"]["steps"][number];
+type DoorSchedule =
+	StorefrontRouterOutputs["storefrontCommerce"]["configuration"]["preview"]["workflow"]["doorSchedule"];
+
+function formatMoney(value: number) {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
+		currency: "USD",
+	}).format(value);
+}
 
 function initialSelections(steps: Step[]) {
 	return Object.fromEntries(
@@ -36,7 +44,57 @@ function initialSelections(steps: Step[]) {
 	);
 }
 
-const addOnStepPattern = /casing|frame|hinge|jamb|mould|trim/i;
+function ProductGallery({ offer }: { offer: Offer }) {
+	const images = offer.images.length
+		? offer.images
+		: offer.imageUrl
+			? [offer.imageUrl]
+			: [];
+	const firstImage = images[0] || "";
+	const [selectedImage, setSelectedImage] = useState(firstImage);
+
+	useEffect(() => {
+		setSelectedImage(firstImage);
+	}, [firstImage]);
+
+	return (
+		<section aria-label={`${offer.title} images`}>
+			<div className="relative aspect-square overflow-hidden rounded-md bg-gray-100">
+				{selectedImage ? (
+					<img
+						src={selectedImage}
+						alt={offer.title}
+						className="size-full object-contain p-4"
+					/>
+				) : (
+					<div className="flex size-full items-center justify-center text-gray-500">
+						Product image coming soon
+					</div>
+				)}
+			</div>
+			{images.length > 1 ? (
+				<div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5">
+					{images.map((image, index) => (
+						<button
+							type="button"
+							key={image}
+							aria-label={`View product image ${index + 1}`}
+							aria-pressed={selectedImage === image}
+							onClick={() => setSelectedImage(image)}
+							className={`aspect-square overflow-hidden rounded-sm border bg-white p-1 transition-colors ${
+								selectedImage === image
+									? "border-amber-700 ring-1 ring-amber-700"
+									: "border-gray-200 hover:border-gray-400"
+							}`}
+						>
+							<img src={image} alt="" className="size-full object-contain" />
+						</button>
+					))}
+				</div>
+			) : null}
+		</section>
+	);
+}
 
 function StepOptions({
 	step,
@@ -74,7 +132,7 @@ function StepOptions({
 						type="button"
 						size="sm"
 						variant={selectedUid ? "outline" : "default"}
-						className={showImages ? "h-full min-h-20" : undefined}
+						className={showImages ? "h-full min-h-28" : undefined}
 						onClick={() => onSelect(null)}
 					>
 						None
@@ -90,7 +148,7 @@ function StepOptions({
 							variant={selected ? "default" : "outline"}
 							className={
 								showImages
-									? "h-auto min-h-28 flex-col overflow-hidden whitespace-normal p-0"
+									? "h-auto min-h-32 flex-col overflow-hidden whitespace-normal p-0"
 									: undefined
 							}
 							aria-pressed={selected}
@@ -109,9 +167,14 @@ function StepOptions({
 											<Icons.Image className="size-5 text-gray-400" />
 										)}
 									</div>
-									<span className="w-full px-2 py-2 text-left">
+									<span className="w-full px-2 pt-2 text-left">
 										{component.title}
 									</span>
+									{component.price != null ? (
+										<span className="w-full px-2 pb-2 text-left text-xs font-normal opacity-80">
+											{formatMoney(component.price)}
+										</span>
+									) : null}
 								</>
 							) : (
 								component.title
@@ -138,19 +201,14 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 		initialSelections(offer.configuration.steps),
 	);
 	const [resolvedSteps, setResolvedSteps] = useState(offer.configuration.steps);
-	const [showComponentImages, setShowComponentImages] = useState(false);
+	const [doorSchedule, setDoorSchedule] = useState<DoorSchedule>(null);
+	const [selectedDoorSize, setSelectedDoorSize] = useState<{
+		stepProductId: number;
+		dimension: string;
+	} | null>(null);
+	const [handing, setHanding] = useState<"LH" | "RH" | null>(null);
 	const [activeAddOnStep, setActiveAddOnStep] = useState("");
-	const [doorRows, setDoorRows] = useState<
-		Array<{
-			stepProductId: number;
-			dimension: string;
-			lhQty: number;
-			rhQty: number;
-			totalQty: number;
-		}>
-	>([]);
-	const doorQuantity = doorRows.reduce((total, row) => total + row.totalQty, 0);
-	const effectiveQuantity = doorQuantity > 0 ? doorQuantity : quantity;
+
 	const displaySteps = useMemo(
 		() =>
 			resolvedSteps.map((step) => ({
@@ -159,33 +217,74 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			})),
 		[resolvedSteps],
 	);
-	const selectableSteps = useMemo(
-		() =>
-			displaySteps.filter(
-				(step) =>
-					step.visible &&
-					!(step.selectedComponentUid && step.components.length === 1),
-			),
-		[displaySteps],
+	const rootStep = displaySteps.find((step) => step.role === "ROOT");
+	const productStepIndex = displaySteps.findIndex(
+		(step) => step.role === "PRODUCT",
 	);
-	const variantSteps = selectableSteps.filter(
-		(step) => !addOnStepPattern.test(step.title),
+	const identitySteps = displaySteps.filter(
+		(step) => step.role === "IDENTITY" && step.selectedComponentUid,
 	);
-	const addOnSteps = selectableSteps.filter((step) =>
-		addOnStepPattern.test(step.title),
+	const selectableOptionSteps = displaySteps.filter(
+		(step) =>
+			step.role === "OPTION" &&
+			step.visible &&
+			!(step.selectedComponentUid && step.components.length === 1),
 	);
+	const primaryOptionSteps = selectableOptionSteps.filter(
+		(step) =>
+			productStepIndex < 0 ||
+			displaySteps.findIndex(
+				(candidate) => candidate.stepUid === step.stepUid,
+			) < productStepIndex,
+	);
+	const addOnSteps = selectableOptionSteps.filter(
+		(step) =>
+			productStepIndex >= 0 &&
+			displaySteps.findIndex(
+				(candidate) => candidate.stepUid === step.stepUid,
+			) > productStepIndex,
+	);
+
+	const doorRows = useMemo(() => {
+		if (!selectedDoorSize || (!doorSchedule?.noHandle && !handing)) return [];
+		return [
+			{
+				stepProductId: selectedDoorSize.stepProductId,
+				dimension: selectedDoorSize.dimension,
+				lhQty: handing === "LH" ? quantity : 0,
+				rhQty: handing === "RH" ? quantity : 0,
+				totalQty: quantity,
+			},
+		];
+	}, [doorSchedule?.noHandle, handing, quantity, selectedDoorSize]);
+
+	function selectStep(step: Step, uid: string | null) {
+		if (step.role === "ROOT") {
+			setSelections(uid ? { [step.stepUid]: uid } : {});
+			setDoorSchedule(null);
+			setSelectedDoorSize(null);
+			setHanding(null);
+			return;
+		}
+		setSelections((current) => {
+			const next = { ...current };
+			if (uid) next[step.stepUid] = uid;
+			else delete next[step.stepUid];
+			return next;
+		});
+	}
 
 	const configuration = useMemo(
 		() => ({
 			uid: lineUid,
 			title: offer.title,
 			description: offer.description,
-			qty: effectiveQuantity,
+			qty: quantity,
 			unitPrice: 0,
 			lineTotal: 0,
 			taxxable: true,
 			meta: {},
-			formSteps: offer.configuration.steps.flatMap((step) => {
+			formSteps: displaySteps.flatMap((step) => {
 				const selectedUid = selections[step.stepUid];
 				const selected = step.components.find(
 					(component) => component.uid === selectedUid,
@@ -197,7 +296,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 								componentId: selected.id,
 								prodUid: selected.uid,
 								value: selected.title,
-								qty: effectiveQuantity,
+								qty: quantity,
 								price: 0,
 								basePrice: 0,
 								meta: { selectedProdUids: [selected.uid] },
@@ -214,38 +313,61 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			housePackageTool: doorRows.length
 				? {
 						id: null,
-						totalDoors: doorQuantity,
+						totalDoors: quantity,
 						totalPrice: 0,
 						doors: doorRows,
 						meta: {},
 					}
 				: null,
 		}),
-		[lineUid, offer, effectiveQuantity, selections, doorRows, doorQuantity],
+		[displaySteps, doorRows, lineUid, offer, quantity, selections],
 	);
 	const request = useMemo(
-		() => ({ offerId: offer.id, quantity: effectiveQuantity, configuration }),
-		[configuration, effectiveQuantity, offer.id],
+		() => ({ offerId: offer.id, quantity, configuration }),
+		[configuration, offer.id, quantity],
 	);
 	const preview = useMutation(
 		trpc.storefrontCommerce.configuration.preview.mutationOptions({
 			onSuccess: (data) => {
 				setResolvedSteps(data.steps);
+				setDoorSchedule(data.workflow.doorSchedule);
+				setSelectedDoorSize((current) => {
+					if (!current || !data.workflow.doorSchedule) return current;
+					const matchingComponent = data.workflow.doorSchedule.components.find(
+						(component) =>
+							component.sizes.some(
+								(size) => size.dimension === current.dimension,
+							),
+					);
+					return matchingComponent
+						? {
+								stepProductId: matchingComponent.stepProductId,
+								dimension: current.dimension,
+							}
+						: null;
+				});
 				setSelections((current) => {
 					const next = { ...current };
 					let changed = false;
+					const availableStepUids = new Set(
+						data.steps.map((step) => step.stepUid),
+					);
+					for (const stepUid of Object.keys(next)) {
+						if (!availableStepUids.has(stepUid)) {
+							delete next[stepUid];
+							changed = true;
+						}
+					}
 					for (const step of data.steps) {
-						if (
-							next[step.stepUid] &&
-							!step.components.some(
-								(component) => component.uid === next[step.stepUid],
-							)
-						) {
-							if (step.selectedComponentUid) {
-								next[step.stepUid] = step.selectedComponentUid;
-							} else {
-								delete next[step.stepUid];
-							}
+						const selectedUid = next[step.stepUid];
+						const selectedIsAvailable = step.components.some(
+							(component) => component.uid === selectedUid,
+						);
+						if (!selectedIsAvailable && step.selectedComponentUid) {
+							next[step.stepUid] = step.selectedComponentUid;
+							changed = true;
+						} else if (selectedUid && !selectedIsAvailable) {
+							delete next[step.stepUid];
 							changed = true;
 						}
 					}
@@ -254,11 +376,24 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			},
 		}),
 	);
-	const doorSchedule = preview.data?.workflow.doorSchedule || null;
+	const doorReady =
+		!doorSchedule?.required ||
+		(Boolean(selectedDoorSize) && (doorSchedule.noHandle || Boolean(handing)));
 	const isComplete =
 		offer.availability.purchasable &&
 		preview.data?.complete === true &&
-		(!doorSchedule?.required || doorQuantity > 0);
+		doorReady;
+	const selectedDoorPrice = useMemo(() => {
+		if (!doorSchedule || !selectedDoorSize) return null;
+		for (const component of doorSchedule.components) {
+			if (component.stepProductId !== selectedDoorSize.stepProductId) continue;
+			const size = component.sizes.find(
+				(candidate) => candidate.dimension === selectedDoorSize.dimension,
+			);
+			if (size) return size.unitPrice + doorSchedule.sharedDoorSurcharge;
+		}
+		return null;
+	}, [doorSchedule, selectedDoorSize]);
 	const previewConfigurationRef = useRef(preview.mutate);
 	previewConfigurationRef.current = preview.mutate;
 	const previewRequestRef = useRef(request);
@@ -326,21 +461,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			</Button>
 
 			<div className="mb-12 grid gap-12 lg:grid-cols-2">
-				<section>
-					<div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
-						{offer.imageUrl ? (
-							<img
-								src={offer.imageUrl}
-								alt={offer.title}
-								className="size-full object-contain p-4"
-							/>
-						) : (
-							<div className="flex size-full items-center justify-center text-gray-500">
-								Product image coming soon
-							</div>
-						)}
-					</div>
-				</section>
+				<ProductGallery offer={offer} />
 
 				<section className="space-y-6">
 					<header>
@@ -360,258 +481,177 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 						<h1 className="mb-2 text-3xl font-bold text-gray-900">
 							{offer.title}
 						</h1>
-						<div className="mb-4 flex items-center gap-4">
-							<div className="flex" aria-label="Product rating">
-								{[0, 1, 2, 3, 4].map((rating) => (
-									<span key={rating} className="text-lg text-yellow-400">
-										★
-									</span>
-								))}
-							</div>
-							<span className="text-sm text-gray-600">New product</span>
-						</div>
 						{offer.description ? (
 							<p className="text-gray-700">{offer.description}</p>
 						) : null}
+						<div className="mt-3 flex flex-wrap gap-2">
+							{rootStep?.components.length === 1 ? (
+								<Badge variant="secondary">
+									{rootStep.components[0]?.title}
+								</Badge>
+							) : null}
+							{identitySteps.map((step) => {
+								const selected = step.components.find(
+									(component) => component.uid === step.selectedComponentUid,
+								);
+								return selected ? (
+									<Badge key={step.stepUid} variant="secondary">
+										{selected.title}
+									</Badge>
+								) : null;
+							})}
+						</div>
 					</header>
 
-					<div className="space-y-4">
-						{variantSteps.map((step) => (
+					<div className="space-y-5">
+						{rootStep && rootStep.components.length > 1 ? (
 							<StepOptions
-								key={step.stepUid}
-								step={step}
-								selectedUid={selections[step.stepUid]}
-								onSelect={(uid) =>
-									setSelections((current) => {
-										const next = { ...current };
-										if (uid) next[step.stepUid] = uid;
-										else delete next[step.stepUid];
-										return next;
-									})
-								}
+								step={rootStep}
+								selectedUid={selections[rootStep.stepUid]}
+								onSelect={(uid) => selectStep(rootStep, uid)}
 							/>
-						))}
+						) : null}
 
-						<Tabs defaultValue="slab">
-							<TabsList className="flex w-full">
-								<TabsTrigger className="flex-1" value="slab">
-									Door Slab Only
-								</TabsTrigger>
-								<TabsTrigger className="flex-1" value="door-component">
-									Add Components
-								</TabsTrigger>
-							</TabsList>
-							<TabsContent value="door-component" className="space-y-4 pt-2">
-								<div className="flex justify-end">
-									<div className="flex overflow-hidden rounded-md border">
-										<Button
-											type="button"
-											variant={showComponentImages ? "default" : "ghost"}
-											size="icon"
-											aria-label="Show component images"
-											onClick={() => setShowComponentImages(true)}
-										>
-											<Icons.Grid className="size-4" />
-										</Button>
-										<Button
-											type="button"
-											variant={!showComponentImages ? "default" : "ghost"}
-											size="icon"
-											aria-label="Show component list"
-											onClick={() => setShowComponentImages(false)}
-										>
-											<Icons.List className="size-4" />
-										</Button>
-									</div>
-								</div>
-								<Accordion
-									type="single"
-									collapsible
-									value={activeAddOnStep}
-									onValueChange={setActiveAddOnStep}
-								>
-									{addOnSteps.map((step) => {
-										const selected = step.components.find(
-											(component) => component.uid === selections[step.stepUid],
-										);
-										return (
-											<AccordionItem key={step.stepUid} value={step.stepUid}>
-												<AccordionTrigger className="gap-4">
-													<span className="flex flex-1 items-center gap-2 text-left">
-														<span className="font-medium">
-															{step.title}
-															{step.required && !step.allowSkip ? ":" : ""}
-														</span>
-														<span className="text-sm font-normal text-muted-foreground">
-															{selected?.title || "Click to select"}
-														</span>
-													</span>
-												</AccordionTrigger>
-												<AccordionContent>
-													{activeAddOnStep === step.stepUid ? (
-														<StepOptions
-															step={step}
-															selectedUid={selections[step.stepUid]}
-															showImages={showComponentImages}
-															hideLegend
-															onSelect={(uid) =>
-																setSelections((current) => {
-																	const next = { ...current };
-																	if (uid) next[step.stepUid] = uid;
-																	else delete next[step.stepUid];
-																	return next;
-																})
-															}
-														/>
-													) : null}
-												</AccordionContent>
-											</AccordionItem>
-										);
-									})}
-								</Accordion>
-							</TabsContent>
-						</Tabs>
-
-						{doorSchedule ? (
-							<fieldset>
-								<legend className="text-sm font-medium text-gray-900">
-									Door sizes and handing *
-								</legend>
-								<p className="mt-1 text-sm text-gray-600">
-									Enter left-hand and right-hand quantities for each required
-									size.
-								</p>
-								<div className="mt-3 overflow-x-auto rounded-md border">
-									<table className="w-full text-sm">
-										<thead>
-											<tr className="border-b bg-muted/40 text-left">
-												<th className="px-3 py-2 font-medium">Door</th>
-												<th className="px-3 py-2 font-medium">Size</th>
-												<th className="w-24 px-3 py-2 font-medium">LH</th>
-												<th className="w-24 px-3 py-2 font-medium">RH</th>
-												<th className="px-3 py-2 text-right font-medium">
-													Unit
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											{doorSchedule.components.flatMap((component) =>
-												component.sizes.map((size) => {
-													const row = doorRows.find(
-														(item) =>
-															item.stepProductId === component.stepProductId &&
-															item.dimension === size.dimension,
-													);
-													const setQty = (
-														field: "lhQty" | "rhQty",
-														value: number,
-													) => {
-														setDoorRows((current) => {
-															const next = current.filter(
-																(item) =>
-																	!(
-																		item.stepProductId ===
-																			component.stepProductId &&
-																		item.dimension === size.dimension
-																	),
-															);
-															const candidate = {
-																stepProductId: component.stepProductId,
-																dimension: size.dimension,
-																lhQty:
-																	field === "lhQty"
-																		? Math.max(0, value)
-																		: row?.lhQty || 0,
-																rhQty:
-																	field === "rhQty"
-																		? Math.max(0, value)
-																		: row?.rhQty || 0,
-																totalQty: 0,
-															};
-															candidate.totalQty =
-																candidate.lhQty + candidate.rhQty;
-															return candidate.totalQty > 0
-																? [...next, candidate]
-																: next;
-														});
-													};
-													return (
-														<tr
-															key={`${component.stepProductId}-${size.dimension}`}
-															className="border-b last:border-0"
-														>
-															<td className="px-3 py-2">{component.title}</td>
-															<td className="px-3 py-2">{size.dimension}</td>
-															<td className="px-3 py-2">
-																<input
-																	aria-label={`${size.dimension} left-hand quantity`}
-																	type="number"
-																	min={0}
-																	value={row?.lhQty || 0}
-																	className="h-9 w-20 rounded-md border bg-background px-2"
-																	onChange={(event) =>
-																		setQty(
-																			"lhQty",
-																			Number(event.target.value || 0),
-																		)
-																	}
-																/>
-															</td>
-															<td className="px-3 py-2">
-																<input
-																	aria-label={`${size.dimension} right-hand quantity`}
-																	type="number"
-																	min={0}
-																	value={row?.rhQty || 0}
-																	className="h-9 w-20 rounded-md border bg-background px-2"
-																	onChange={(event) =>
-																		setQty(
-																			"rhQty",
-																			Number(event.target.value || 0),
-																		)
-																	}
-																/>
-															</td>
-															<td className="px-3 py-2 text-right">
-																$
-																{(
-																	size.unitPrice +
-																	doorSchedule.sharedDoorSurcharge
-																).toFixed(2)}
-															</td>
-														</tr>
-													);
-												}),
-											)}
-										</tbody>
-									</table>
-								</div>
-								<p className="mt-2 text-sm">
-									Total doors: <strong>{doorQuantity}</strong>
-								</p>
-							</fieldset>
-						) : (
-							<div>
-								<p className="mb-2 text-lg font-medium">Quantity:</p>
-								<QuantityInput
-									min={1}
-									value={quantity}
-									onChange={(value) => value > 0 && setQuantity(value)}
+						{preview.data ? (
+							primaryOptionSteps.map((step) => (
+								<StepOptions
+									key={step.stepUid}
+									step={step}
+									selectedUid={selections[step.stepUid]}
+									onSelect={(uid) => selectStep(step, uid)}
 								/>
-							</div>
+							))
+						) : (
+							<div className="h-20 animate-pulse rounded-md bg-gray-100" />
 						)}
 
-						{preview.error && (
+						{doorSchedule ? (
+							<div className="space-y-4 border-t pt-5">
+								<fieldset className="space-y-2">
+									<legend className="text-sm font-medium text-gray-900">
+										Size *
+									</legend>
+									<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+										{doorSchedule.components.flatMap((component) =>
+											component.sizes.map((size) => {
+												const selected =
+													selectedDoorSize?.stepProductId ===
+														component.stepProductId &&
+													selectedDoorSize.dimension === size.dimension;
+												return (
+													<Button
+														key={`${component.stepProductId}-${size.dimension}`}
+														type="button"
+														variant={selected ? "default" : "outline"}
+														className="h-auto min-h-14 flex-col items-start whitespace-normal px-3 py-2"
+														aria-pressed={selected}
+														onClick={() =>
+															setSelectedDoorSize({
+																stepProductId: component.stepProductId,
+																dimension: size.dimension,
+															})
+														}
+													>
+														<span>{size.dimension}</span>
+														<span className="text-xs font-normal opacity-80">
+															{formatMoney(
+																size.unitPrice +
+																	doorSchedule.sharedDoorSurcharge,
+															)}
+														</span>
+													</Button>
+												);
+											}),
+										)}
+									</div>
+								</fieldset>
+
+								{doorSchedule.noHandle ? null : (
+									<fieldset className="space-y-2">
+										<legend className="text-sm font-medium text-gray-900">
+											Handing *
+										</legend>
+										<div className="flex gap-2">
+											{(["LH", "RH"] as const).map((value) => (
+												<Button
+													key={value}
+													type="button"
+													variant={handing === value ? "default" : "outline"}
+													aria-pressed={handing === value}
+													onClick={() => setHanding(value)}
+												>
+													{value === "LH" ? "Left hand" : "Right hand"}
+												</Button>
+											))}
+										</div>
+									</fieldset>
+								)}
+							</div>
+						) : null}
+
+						<div>
+							<p className="mb-2 text-sm font-medium text-gray-900">Quantity</p>
+							<QuantityInput
+								min={1}
+								value={quantity}
+								onChange={(value) => value > 0 && setQuantity(value)}
+							/>
+						</div>
+
+						{addOnSteps.length ? (
+							<Accordion
+								type="single"
+								collapsible
+								value={activeAddOnStep}
+								onValueChange={setActiveAddOnStep}
+								className="border-y"
+							>
+								{addOnSteps.map((step) => {
+									const selected = step.components.find(
+										(component) => component.uid === selections[step.stepUid],
+									);
+									return (
+										<AccordionItem key={step.stepUid} value={step.stepUid}>
+											<AccordionTrigger className="gap-4">
+												<span className="flex flex-1 items-center gap-2 text-left">
+													<span className="font-medium">{step.title}</span>
+													<span className="text-sm font-normal text-muted-foreground">
+														{selected?.title || "Choose component"}
+													</span>
+												</span>
+											</AccordionTrigger>
+											<AccordionContent>
+												{activeAddOnStep === step.stepUid ? (
+													<StepOptions
+														step={step}
+														selectedUid={selections[step.stepUid]}
+														showImages
+														hideLegend
+														onSelect={(uid) => selectStep(step, uid)}
+													/>
+												) : null}
+											</AccordionContent>
+										</AccordionItem>
+									);
+								})}
+							</Accordion>
+						) : null}
+
+						{preview.error ? (
 							<p role="alert" className="text-sm text-destructive">
 								{preview.error.message}
 							</p>
-						)}
+						) : null}
 
 						<div className="flex items-center justify-between border-t pt-4">
 							<div className="text-3xl font-bold text-gray-900">
-								{preview.data?.complete
-									? `$${preview.data.lineTotal.toFixed(2)}`
-									: "Price pending"}
+								{doorSchedule?.required
+									? selectedDoorPrice != null
+										? `${formatMoney(selectedDoorPrice * quantity)}`
+										: "Select a size"
+									: preview.data?.complete
+										? formatMoney(preview.data.lineTotal)
+										: "Price pending"}
 							</div>
 							<div
 								className={`text-sm font-medium ${
@@ -634,7 +674,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 								onClick={() => addToCart.mutate(request)}
 							>
 								<Icons.ShoppingCart className="mr-2 size-4" />
-								{addToCart.isPending ? "Adding…" : "Add to cart"}
+								{addToCart.isPending ? "Adding..." : "Add to cart"}
 							</Button>
 							<Button
 								type="button"
@@ -646,24 +686,6 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 							>
 								<Icons.Heart className="size-4" />
 							</Button>
-						</div>
-					</div>
-
-					<div className="grid grid-cols-3 gap-4 border-t pt-6">
-						<div className="text-center">
-							<Icons.Truck className="mx-auto mb-2 size-6 text-amber-600" />
-							<div className="text-sm font-medium">Free Delivery</div>
-							<div className="text-xs text-gray-600">Within 50 miles</div>
-						</div>
-						<div className="text-center">
-							<Icons.Shield className="mx-auto mb-2 size-6 text-amber-600" />
-							<div className="text-sm font-medium">5 Year Warranty</div>
-							<div className="text-xs text-gray-600">Full coverage</div>
-						</div>
-						<div className="text-center">
-							<Icons.RotateCcw className="mx-auto mb-2 size-6 text-amber-600" />
-							<div className="text-sm font-medium">30 Day Returns</div>
-							<div className="text-xs text-gray-600">Easy returns</div>
 						</div>
 					</div>
 				</section>

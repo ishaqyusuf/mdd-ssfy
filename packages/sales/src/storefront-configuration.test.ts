@@ -4,6 +4,7 @@ import {
 	deduplicateStorefrontOptions,
 	isStorefrontStepWaivedBySelection,
 	projectStorefrontOfferRoute,
+	resolveStorefrontProductTypes,
 } from "./storefront-configuration";
 
 const routeData = {
@@ -184,6 +185,86 @@ describe("projectStorefrontOfferRoute", () => {
 		).toMatchObject({
 			visible: false,
 			selectedComponentUid: "shaker",
+		});
+	});
+
+	it("discovers product types from the product visibility rules", () => {
+		const configuredRouteData = structuredClone(routeData);
+		configuredRouteData.stepsByUid["item-type"].components.push({
+			id: 11,
+			uid: "slab-only",
+			title: "Door Slabs Only",
+		});
+		configuredRouteData.composedRouter["slab-only"] = {
+			routeSequence: [{ uid: "door-style" }],
+			route: { "slab-only": "door-style" },
+		};
+		configuredRouteData.stepsByUid["door-style"].components[0].meta = {
+			variations: [
+				{
+					rules: [
+						{
+							stepUid: "item-type",
+							operator: "is",
+							componentsUid: ["doors", "slab-only"],
+						},
+					],
+				},
+			],
+		};
+
+		expect(
+			resolveStorefrontProductTypes({
+				routeData: configuredRouteData,
+				rootStepUid: "item-type",
+				fallbackRootComponentUid: "doors",
+				offerSourceStepUid: "door-style",
+				offerSourceComponentUid: "shaker",
+			}).map((component) => component.uid),
+		).toEqual(["doors", "slab-only"]);
+	});
+
+	it("turns visibility identity controls into hidden product badges", () => {
+		const configuredRouteData = structuredClone(routeData);
+		configuredRouteData.composedRouter.doors.routeSequence.unshift({
+			uid: "door-type",
+		});
+		configuredRouteData.stepsByUid["door-type"] = {
+			id: 4,
+			uid: "door-type",
+			title: "Door Type",
+			components: [{ id: 40, uid: "wood", title: "Wood Stile & Rail" }],
+		};
+		configuredRouteData.stepsByUid["door-style"].components[0].meta = {
+			show: { wood: true },
+		};
+		const result = projectStorefrontOfferRoute({
+			routeData: configuredRouteData,
+			rootStepUid: "item-type",
+			rootComponentUid: "doors",
+			offerSourceStepUid: "door-style",
+			offerSourceComponentUid: "shaker",
+			components: [
+				...components,
+				{
+					sourceStepUid: "door-type",
+					sourceComponentUid: "wood",
+					availableOnStorefront: true,
+					status: "PUBLISHED",
+					sortOrder: 0,
+				},
+			],
+			stepPolicies: [],
+			componentPolicies: [],
+		});
+
+		expect(result.ready).toBe(true);
+		expect(
+			result.steps.find((step) => step.stepUid === "door-type"),
+		).toMatchObject({
+			role: "IDENTITY",
+			visible: false,
+			selectedComponentUid: "wood",
 		});
 	});
 });

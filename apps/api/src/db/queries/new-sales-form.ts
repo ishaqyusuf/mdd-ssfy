@@ -56,14 +56,18 @@ import {
 } from "@gnd/sales/payment-system";
 import {
 	calculateLegacyPaymentDueDate,
-	calculateSalesFormSummary,
-	collapseLegacyGroupedLines,
-	expandGroupedLineForLegacySave,
-	hydrateHptLineFromLegacy,
-	normalizeHptLineForLegacy,
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,
-} from "@gnd/sales/sales-form";
+} from "@gnd/sales/sales-form/application/legacy-metadata";
+import { calculateSalesFormSummary } from "@gnd/sales/sales-form/domain/costing";
+import {
+	collapseLegacyGroupedLines,
+	expandGroupedLineForLegacySave,
+} from "@gnd/sales/sales-form/domain/grouping";
+import {
+	hydrateHptLineFromLegacy,
+	normalizeHptLineForLegacy,
+} from "@gnd/sales/sales-form/domain/hpt-compatibility";
 import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-sync-job";
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
@@ -1503,6 +1507,7 @@ async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
 						uid: true,
 						name: true,
 						img: true,
+						meta: true,
 						redirectUid: true,
 						product: {
 							select: {
@@ -1572,6 +1577,7 @@ async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
 				title: string | null;
 				redirectUid: string | null;
 				img: string | null;
+				meta: unknown;
 			}>;
 		}
 	> = {};
@@ -1596,6 +1602,7 @@ async function fetchNewSalesFormStepRoutingFromDb(ctx: TRPCContext) {
 						component.door?.title ||
 						null,
 					redirectUid: component.redirectUid || null,
+					meta: component.meta,
 					img:
 						component.img ||
 						component.product?.img ||

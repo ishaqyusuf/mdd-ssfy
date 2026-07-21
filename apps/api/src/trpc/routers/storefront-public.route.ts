@@ -39,6 +39,7 @@ import { multiplyMoney } from "@gnd/sales/payment-system";
 import {
 	normalizeStorefrontAvailability,
 	projectStorefrontOfferRoute,
+	resolveStorefrontProductTypes,
 } from "@gnd/sales/storefront-configuration";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -326,6 +327,13 @@ export const storefrontPublicRouter = createTRPCRouter({
 				});
 			}
 			const routeData = await getNewSalesFormStepRouting(ctx, {});
+			const productTypes = resolveStorefrontProductTypes({
+				routeData,
+				rootStepUid: offer.category.rootStepUid,
+				fallbackRootComponentUid: offer.category.rootComponentUid,
+				offerSourceStepUid: offer.sourceStepUid,
+				offerSourceComponentUid: offer.sourceComponentUid,
+			});
 			const route = routeData.composedRouter[offer.category.rootComponentUid];
 			const stepUids = [
 				offer.category.rootStepUid,
@@ -344,6 +352,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 				routeData,
 				rootStepUid: offer.category.rootStepUid,
 				rootComponentUid: offer.category.rootComponentUid,
+				rootComponentUids: productTypes.map((component) => component.uid),
 				offerSourceStepUid: offer.sourceStepUid,
 				offerSourceComponentUid: offer.sourceComponentUid,
 				stepPolicies: offer.stepPolicies.map((step) => ({
@@ -367,12 +376,35 @@ export const storefrontPublicRouter = createTRPCRouter({
 					message: "This product is temporarily unavailable.",
 				});
 			}
+			const sourceOverlay = components.find(
+				(component) =>
+					component.sourceComponentUid === offer.sourceComponentUid,
+			);
+			const overlayMetadata =
+				sourceOverlay?.metadata &&
+				typeof sourceOverlay.metadata === "object" &&
+				!Array.isArray(sourceOverlay.metadata)
+					? (sourceOverlay.metadata as Record<string, unknown>)
+					: {};
+			const galleryImages = Array.isArray(overlayMetadata.galleryImages)
+				? overlayMetadata.galleryImages
+						.map((value) => String(value || "").trim())
+						.filter(Boolean)
+				: [];
+			const images = Array.from(
+				new Set(
+					[offer.imageUrl, sourceOverlay?.imageUrl, ...galleryImages].filter(
+						(value): value is string => Boolean(value),
+					),
+				),
+			);
 			return {
 				id: offer.id,
 				slug: offer.slug,
 				title: offer.title,
 				description: offer.description,
 				imageUrl: offer.imageUrl,
+				images,
 				seo: offer.seo,
 				availability: normalizeStorefrontAvailability(offer.availability),
 				configurationVersion: offer.configurationVersion,
@@ -544,7 +576,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 								collectionId: collection.id,
 								offerId: priced.offer.id,
 								rootStepUid: priced.offer.category.rootStepUid,
-								rootComponentUid: priced.offer.category.rootComponentUid,
+								rootComponentUid: priced.rootComponentUid,
 								quantity,
 								configuration: asJson(priced.configuration),
 								configurationHash: priced.configurationHash,
@@ -847,7 +879,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 						collectionId: wishlist.id,
 						offerId: priced.offer.id,
 						rootStepUid: priced.offer.category.rootStepUid,
-						rootComponentUid: priced.offer.category.rootComponentUid,
+						rootComponentUid: priced.rootComponentUid,
 						quantity: priced.normalizedQuantity,
 						configuration: asJson(priced.configuration),
 						configurationHash: priced.configurationHash,

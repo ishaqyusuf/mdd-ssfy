@@ -3,22 +3,28 @@ import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import { getStepComponents } from "@api/db/queries/sales-form";
 import type { TRPCContext } from "@api/trpc/init";
 import { addMoney, multiplyMoney, roundMoney } from "@gnd/sales/payment-system";
+import { salesFormPortableLineItemSchema } from "@gnd/sales/sales-form/contracts/schemas";
+import {
+	computeHptSharedDoorSurcharge,
+	normalizeHptDoorRowForLegacy,
+} from "@gnd/sales/sales-form/domain/hpt-compatibility";
 import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
-	computeHptSharedDoorSurcharge,
-	deriveDoorSizeCandidates,
 	isComponentVisibleByRules,
-	normalizeHptDoorRowForLegacy,
 	resolveComponentPriceByDeps,
+} from "@gnd/sales/sales-form/domain/step-engine";
+import {
+	deriveDoorSizeCandidates,
+	getRouteConfigForLine,
 	resolveDoorTierPricing,
-	salesFormPortableLineItemSchema,
-} from "@gnd/sales/sales-form";
+} from "@gnd/sales/sales-form/domain/workflow-calculators";
 import {
 	type PublicStorefrontStep,
 	isStorefrontStepWaivedBySelection,
 	normalizeStorefrontAvailability,
 	projectStorefrontOfferRoute,
+	resolveStorefrontProductTypes,
 } from "@gnd/sales/storefront-configuration";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -127,8 +133,30 @@ export async function validateAndPriceStorefrontConfiguration(
 		loadPublishedOffer(ctx, input.offerId),
 		getNewSalesFormStepRouting(ctx, {}),
 	]);
-	const route =
-		routeData.composedRouter[offer.category.rootComponentUid] || null;
+	const productTypes = resolveStorefrontProductTypes({
+		routeData,
+		rootStepUid: offer.category.rootStepUid,
+		fallbackRootComponentUid: offer.category.rootComponentUid,
+		offerSourceStepUid: offer.sourceStepUid,
+		offerSourceComponentUid: offer.sourceComponentUid,
+	});
+	const configuredRoot = findConfiguredStep(
+		input.configuration,
+		offer.category.rootStepUid,
+	);
+	const requestedRootComponentUid =
+		safeString(configuredRoot?.prodUid) || offer.category.rootComponentUid;
+	if (
+		!productTypes.some(
+			(component) => component.uid === requestedRootComponentUid,
+		)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "The selected product type is unavailable.",
+		});
+	}
+	const route = routeData.composedRouter[requestedRootComponentUid] || null;
 	const stepUids = [
 		offer.category.rootStepUid,
 		...(route?.routeSequence.map((step) => step.uid) ?? []),
@@ -145,7 +173,8 @@ export async function validateAndPriceStorefrontConfiguration(
 	const policy = projectStorefrontOfferRoute({
 		routeData,
 		rootStepUid: offer.category.rootStepUid,
-		rootComponentUid: offer.category.rootComponentUid,
+		rootComponentUid: requestedRootComponentUid,
+		rootComponentUids: productTypes.map((component) => component.uid),
 		offerSourceStepUid: offer.sourceStepUid,
 		offerSourceComponentUid: offer.sourceComponentUid,
 		stepPolicies: offer.stepPolicies.map((step) => ({
@@ -265,13 +294,32 @@ export async function validateAndPriceStorefrontConfiguration(
 		const visibleComponents = selection.step.components.filter((component) =>
 			visibleUids.has(component.uid),
 		);
+		const pricedVisibleComponents = visibleComponents.map((publicOption) => {
+			if (selection.step.stepUid === offer.category.rootStepUid) {
+				return { ...publicOption, price: 0, basePrice: 0 };
+			}
+			const canonical = byUid.get(publicOption.uid);
+			if (!canonical) return publicOption;
+			const pricing = resolveComponentPriceByDeps(
+				canonical,
+				selectedByStepUid,
+				{ selectedProdUidsByStepUid },
+			);
+			const price = Number(pricing.salesPrice);
+			const basePrice = Number(pricing.basePrice);
+			return {
+				...publicOption,
+				price: Number.isFinite(price) ? roundMoney(price) : null,
+				basePrice: Number.isFinite(basePrice) ? roundMoney(basePrice) : null,
+			};
+		});
 		const resolvedStep = {
 			...selection.step,
 			visible:
 				selection.step.visible &&
 				visibleComponents.length > 0 &&
 				!waivedBySelection,
-			components: visibleComponents,
+			components: pricedVisibleComponents,
 		};
 		resolvedSteps.push(resolvedStep);
 		const selectedVisibleUids = selection.selectedUids.filter((uid) =>
@@ -484,6 +532,12 @@ export async function validateAndPriceStorefrontConfiguration(
 	const sharedDoorSurcharge = computeHptSharedDoorSurcharge({
 		formSteps: pricedSteps,
 	});
+	const doorRouteConfig = getRouteConfigForLine({
+		routeData,
+		line: { formSteps: pricedSteps },
+		step: null,
+	});
+	const noHandle = Boolean(doorRouteConfig.noHandle);
 	const normalizedDoorRows = requestedDoorRows
 		.filter((row) => Number(row.totalQty || 0) > 0)
 		.map((row) => {
@@ -574,7 +628,7 @@ export async function validateAndPriceStorefrontConfiguration(
 				configurationVersion: offer.configurationVersion,
 				categoryId: offer.category.id,
 				rootStepUid: offer.category.rootStepUid,
-				rootComponentUid: offer.category.rootComponentUid,
+				rootComponentUid: requestedRootComponentUid,
 			},
 		},
 	};
@@ -626,6 +680,7 @@ export async function validateAndPriceStorefrontConfiguration(
 
 	return {
 		offer,
+		rootComponentUid: requestedRootComponentUid,
 		complete: configurationComplete,
 		configuration: normalizedConfiguration,
 		configurationHash,
@@ -635,6 +690,7 @@ export async function validateAndPriceStorefrontConfiguration(
 			doorSchedule: doorScheduleComponents.length
 				? {
 						required: true,
+						noHandle,
 						sharedDoorSurcharge,
 						components: doorScheduleComponents,
 					}
