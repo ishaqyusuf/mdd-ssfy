@@ -3,6 +3,7 @@ import { generateToken } from "@/actions/token-action";
 import Link from "@/components/link";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
+import { reviewSelectedPayments } from "@/components/tables-2/sales-orders/review-selected-payments";
 import { useAuth } from "@/hooks/use-auth";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
@@ -357,6 +358,7 @@ type ActionProps = {
 type MarkAsProps = ActionProps & {
 	asSubmenu?: boolean;
 	includePaymentReviewed?: boolean;
+	onPaymentReviewed?: () => void;
 };
 
 const markAsActionLabels: Record<SalesInventoryMarkAsAction, string> = {
@@ -912,6 +914,7 @@ function SalesMenuMarkAs({
 	disabled,
 	asSubmenu = true,
 	includePaymentReviewed = false,
+	onPaymentReviewed,
 }: MarkAsProps) {
 	const { state, actions } = useSalesMenuContext();
 	const auth = useAuth();
@@ -940,8 +943,12 @@ function SalesMenuMarkAs({
 	const autoResolveInventoryMarkAsMutation = useMutation(
 		trpc.inventories.resolveSalesInventoryMarkAsAutoForContinue.mutationOptions(),
 	);
-	const markPaymentReviewedMutation = useMutation(
-		trpc.sales.markLatestPaymentReviewed.mutationOptions(),
+	const markPaymentsReviewedMutation = useMutation(
+		trpc.sales.markPaymentsReviewed.mutationOptions({
+			meta: {
+				queryEvents: false,
+			},
+		}),
 	);
 	const invalidateOrders = async () => {
 		await Promise.all([
@@ -1144,18 +1151,13 @@ function SalesMenuMarkAs({
 
 	const markPaymentReviewed = async () => {
 		try {
-			const results = await Promise.allSettled(
-				salesIds.map((salesId) =>
-					markPaymentReviewedMutation.mutateAsync({
-						salesId,
-						note: "Reviewed from batch Mark as menu.",
-					}),
-				),
-			);
-			const successCount = results.filter(
-				(result) => result.status === "fulfilled",
-			).length;
-			const failedCount = results.length - successCount;
+			const result = await reviewSelectedPayments({
+				salesIds,
+				review: (input) => markPaymentsReviewedMutation.mutateAsync(input),
+				invalidate: (sales) => sq.invalidate.salesPaymentChanged(sales),
+			});
+			const successCount = result.reviewed.length;
+			const failedCount = result.skipped.length;
 
 			if (successCount > 0) {
 				toast({
@@ -1179,6 +1181,7 @@ function SalesMenuMarkAs({
 				});
 			}
 
+			onPaymentReviewed?.();
 			actions.closeMenu();
 		} catch (error) {
 			toast({
@@ -1290,7 +1293,7 @@ function SalesMenuMarkAs({
 			</SalesMenuItem>
 			{includePaymentReviewed ? (
 				<SalesMenuItem
-					disabled={isDisabled || markPaymentReviewedMutation.isPending}
+					disabled={isDisabled || markPaymentsReviewedMutation.isPending}
 					onSelect={(event) => {
 						event.preventDefault();
 						void markPaymentReviewed();

@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(75);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(76);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(14);
 	});
 
@@ -53,6 +53,49 @@ describe("query event mutation registry", () => {
 						{
 							orderNo: "08894LM",
 							salesId: 44,
+							salesType: "order",
+						},
+					],
+				},
+			},
+		]);
+	});
+
+	it("scopes a batch payment review event to every reviewed order", () => {
+		expect(
+			resolveMutationQueryEvents({
+				data: {
+					reviewed: [
+						{
+							paymentId: 91,
+							salesId: 44,
+							orderId: "08894LM",
+							type: "order",
+						},
+						{
+							paymentId: 92,
+							salesId: 45,
+							orderId: "08895LM",
+							type: "order",
+						},
+					],
+					skipped: [],
+				},
+				mutationKey: [["sales", "markPaymentsReviewed"]],
+			}),
+		).toEqual([
+			{
+				name: "sales.payment.changed",
+				scope: {
+					sales: [
+						{
+							orderNo: "08894LM",
+							salesId: 44,
+							salesType: "order",
+						},
+						{
+							orderNo: "08895LM",
+							salesId: 45,
 							salesType: "order",
 						},
 					],

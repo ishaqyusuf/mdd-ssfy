@@ -246,6 +246,7 @@ export const MUTATION_QUERY_EVENTS = {
 	"sales.deleteSale": ["sales.order.changed", "sales.quote.changed"],
 	"sales.deleteSalesByOrderIds": ["sales.order.changed", "sales.quote.changed"],
 	"sales.markLatestPaymentReviewed": ["sales.payment.changed"],
+	"sales.markPaymentsReviewed": ["sales.payment.changed"],
 	"sales.moveSale": ["sales.order.changed", "sales.quote.changed"],
 	"sales.resolvePayment": ["sales.payment.changed"],
 	"sales.transferSalesRep": ["sales.order.changed"],
@@ -317,6 +318,9 @@ function extractMutationSalesRefs(
 	switch (route) {
 		case "sales.markLatestPaymentReviewed":
 			candidates = [result.order];
+			break;
+		case "sales.markPaymentsReviewed":
+			candidates = Array.isArray(result.reviewed) ? result.reviewed : [];
 			break;
 		case "checkout.verifyPayment":
 		case "salesPaymentProcessor.applyPayment":

@@ -105,6 +105,7 @@ import {
 	SALES_PAYMENT_REVIEW_ACTIONS,
 	calculatePaymentChannelCharge,
 	markLatestSalesPaymentReviewed,
+	markSalesPaymentsReviewed,
 	normalizeSalesPaymentReviewSettings,
 } from "@gnd/sales/payment-system";
 import {
@@ -164,6 +165,10 @@ const updatePaymentReviewSettingsSchema = z.object({
 		fulfillment: z.boolean(),
 		inbound: z.boolean(),
 	}),
+});
+const markPaymentsReviewedSchema = z.object({
+	salesIds: z.array(z.number().int().positive()).min(1).max(100),
+	note: z.string().trim().max(500).optional().nullable(),
 });
 
 function getDealershipUrl() {
@@ -700,6 +705,16 @@ export const salesRouter = createTRPCRouter({
 				throw new Error("No payment needs review for this order.");
 			}
 			return payment;
+		}),
+	markPaymentsReviewed: protectedProcedure
+		.input(markPaymentsReviewedSchema)
+		.mutation(async (props) => {
+			return markSalesPaymentsReviewed(props.ctx.db, {
+				salesIds: props.input.salesIds,
+				reviewedById: props.ctx.userId,
+				reviewNote:
+					props.input.note || "Reviewed from batch Mark as menu.",
+			});
 		}),
 	createPaymentLink: protectedProcedure
 		.input(

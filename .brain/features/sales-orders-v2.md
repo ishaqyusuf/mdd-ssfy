@@ -58,6 +58,9 @@
   - Super Admin-only mutation storing payment review automation settings in `sales-settings.meta.paymentReview`
 - `sales.markLatestPaymentReviewed`
   - protected manual review mutation that marks the latest clean successful payment on an order as reviewed
+- `sales.markPaymentsReviewed`
+  - protected batch review mutation for 1-100 selected orders
+  - deduplicates selected ids, selects the latest eligible clean payment per order, updates the selected payments together in one transaction, and returns reviewed order references plus explicit no-payment skips
 - `sales.createPaymentLink`
   - protected row-action mutation that returns a checkout URL for an order with outstanding balance
 - Migration note:
@@ -146,6 +149,7 @@
   - selecting one or more orders opens the floating bottom batch bar
   - selected rows also enable the header Excel report export; the table resolves selected UUID row keys to numeric sales order ids before export
   - the batch bar exposes a dedicated `Mark as` dropdown backed by `SalesMenu.MarkAs` for multi-order `Production completed` and `Fulfilled` updates
+  - payment-review mode sends one `sales.markPaymentsReviewed` request for all selected orders, awaits one scoped `sales.payment.changed` refresh, clears selection, and only then closes the batch menu; partial/no-op outcomes use the server's reviewed/skipped counts
   - print remains a print-only batch menu so status changes are no longer hidden inside the print action
   - batch `Print > PDF` actions use the shared sales print service and were browser-validated on 2026-07-16 for five selected orders; the root auth provider now receives the server session so protected tRPC queries no longer render once with an empty auth header during SSR on this page
   - a 2026-07-16 Cimera/Pablo Cruz/pending-invoice filter verified that the summary count and active table rows both return three orders (`08682PC`, `08680PC`, `08472PC`) after the soft-delete scope fix
@@ -179,6 +183,12 @@
 
 ## Validation
 
+- 2026-07-22 batch payment review:
+  - Replaced the per-order `markLatestPaymentReviewed` request loop with one `markPaymentsReviewed` mutation capped at 100 selected sales ids.
+  - The payment domain deduplicates ids, selects the latest eligible payment per order, performs one transactional `updateMany`, and reports reviewed/no-payment outcomes.
+  - The batch client opts out of automatic per-mutation events and awaits one coalesced payment event before clearing selection and closing, including a broad refresh when every selected row was already stale.
+  - Focused payment-domain, query-event trigger/registry/executor, and Sales Orders review tests passed with 37 tests / 77 assertions; the dedicated batch orchestration tests additionally prove one request and an awaited single invalidation.
+  - Focused Biome checks passed for the payment domain, query registry, Sales Orders batch helper/bar, and `sales-menu.tsx`; scoped `git diff --check` passed.
 - 2026-07-16 saved-tab edit dialog crash fix:
   - Fixed a maximum-update-depth crash when opening the page-tabs Edit dialog by replacing the render-created default tab array with a stable empty tab snapshot before syncing local dialog state.
   - Updated the root Next catalog and the WWW Next lint config from `16.2.9` to latest verified `16.2.10`, then refreshed `bun.lock`.

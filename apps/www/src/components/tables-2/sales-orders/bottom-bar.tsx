@@ -135,6 +135,7 @@ export function BottomBar({ data }: Props) {
 							<SalesMenu.MarkAs
 								asSubmenu={false}
 								includePaymentReviewed={isPaymentReviewMode}
+								onPaymentReviewed={() => setRowSelection({})}
 							/>
 						</SalesMenu>
 

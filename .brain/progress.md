@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-07-22: Fixed stale Sales Orders payment-review batches by replacing the
+  client-side per-order mutation loop with `sales.markPaymentsReviewed`. The
+  shared payment domain now deduplicates up to 100 selected sales ids, selects
+  the latest eligible clean payment per order, updates them together in one
+  transaction, and returns reviewed/no-payment outcomes. The batch client
+  suppresses automatic per-call events, awaits one coalesced
+  `sales.payment.changed` invalidation, reconciles all-stale selections with an
+  unscoped refresh, clears row selection, and then closes the menu. Focused
+  payment-domain, query-event trigger/registry/executor, and Sales Orders tests
+  passed with 37 tests / 77 assertions; dedicated orchestration coverage proves
+  one request and an awaited single invalidation. Focused Biome and scoped
+  `git diff --check` passed. Browser mutation proof remains pending because it
+  requires changing local payment-review records.
 - 2026-07-22: Hardened staff POS terminal checkout and identified the remaining
   physical-device blocker. Local dev can now explicitly use production Square
   through `SQUARE_FORCE_PRODUCTION=true`; the terminal select requires an

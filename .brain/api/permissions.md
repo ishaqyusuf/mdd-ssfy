@@ -44,6 +44,7 @@ Tracks authentication and authorization patterns across API surfaces.
 - Sales / dispatch permission surface now includes `viewPacking` for the warehouse pickup-packing tunnel at `/sales/packing-list`.
 - `viewPacking` grants access to the packing-list workspace itself.
 - Sales rep transfer supports existing orders and quotes and is ownership-only: the authenticated user's id must match `SalesOrders.salesRepId`. `editOrders` does not grant authority to transfer another rep's sale.
+- Manual single and batch payment review use protected sales mutations. The server stamps `reviewedById` from the authenticated context; the client cannot choose the reviewer. Batch review retains the existing authenticated-office permission boundary and is capped at 100 selected sales ids.
 - Both the option list and mutation require an authenticated active user and a `salesId` so ownership is verified before target reps are exposed.
 - The transfer mutation also requires password confirmation for the signed-in actor before updating ownership.
 - The transfer target must be an active, non-revoked internal user whose role is sales/order-capable by sales role name or order permissions; the server revalidates the target during the mutation instead of trusting the client picker.

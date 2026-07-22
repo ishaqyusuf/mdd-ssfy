@@ -141,3 +141,11 @@ On 2026-07-18, the Sales Orders `markLatestPaymentReviewed` action was moved ful
 - Focused Biome and scoped `git diff --check` passed.
 - Filtered `@gnd/www` TypeScript output contained no diagnostics for the touched payment-review/query-event files; the broad app typecheck remains blocked by unrelated existing repository errors.
 - Static UI coverage confirms both row and batch payment-review actions use `Reviewed`. The user requested that browser mutation testing be skipped, so no payment record was changed during validation.
+
+### Batch Sales Payment Review Follow-up
+
+On 2026-07-22, multi-order payment review moved from parallel calls to `sales.markLatestPaymentReviewed` onto the dedicated `sales.markPaymentsReviewed` mutation. The batch call opts out of its automatic mutation event so the caller can await one coalesced `sales.payment.changed` event containing all reviewed order references. This creates a deterministic completion boundary: active Sales Orders, summary, accounting, overview, and page-tab queries finish invalidating before the selection is cleared and the menu closes. If every selected row is already stale, the caller emits an unscoped payment event so the review queue still reconciles with server truth.
+
+- The mutation route remains registered to `sales.payment.changed` for any future ordinary caller that does not opt into the batch's explicit awaited event.
+- Focused payment-domain, query-event, and Sales Orders review coverage passed with 37 tests / 77 assertions.
+- A dedicated orchestration test proves one batch request, one scoped invalidation, and that the operation remains pending until invalidation completes.

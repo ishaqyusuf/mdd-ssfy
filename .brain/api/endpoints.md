@@ -107,6 +107,7 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.updatePrintSettings`: Super Admin-only mutation that merges the validated print configuration into `sales-settings.meta.print`
   - `sales.getPrintPreviewOrders`: Super Admin-only bounded query returning the 12 most recent active orders for the Sales Settings preview picker
   - `sales.markLatestPaymentReviewed`: protected mutation that manually marks the latest clean payment for an order as reviewed
+  - `sales.markPaymentsReviewed`: protected batch mutation accepting 1-100 sales ids, reviewing the latest eligible clean payment per distinct order in one transaction, and returning reviewed order references plus explicit no-payment skips
   - `sales.createPaymentLink`: protected mutation that returns a checkout URL/token for an order with outstanding balance
   - `filters.salesOrders`: filter metadata query used by `SalesOrdersV2Header`
 - New sales form routes now include:

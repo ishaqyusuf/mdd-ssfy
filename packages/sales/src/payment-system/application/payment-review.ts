@@ -115,6 +115,91 @@ export async function markLatestSalesPaymentReviewed(
 	});
 }
 
+export async function markSalesPaymentsReviewed(
+	db: Db,
+	input: {
+		salesIds: readonly number[];
+		reviewedById?: number | null;
+		reviewNote?: string | null;
+	},
+) {
+	const salesIds = Array.from(new Set(input.salesIds));
+	if (!salesIds.length) {
+		return {
+			reviewed: [],
+			skipped: [],
+		};
+	}
+
+	return db.$transaction(async (tx) => {
+		const payments = await tx.salesPayments.findMany({
+			where: {
+				orderId: {
+					in: salesIds,
+				},
+				deletedAt: null,
+				reviewStatus: "needs_review",
+				status: {
+					in: ["success", "completed", "paid"],
+				},
+			},
+			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+			select: {
+				id: true,
+				orderId: true,
+				order: {
+					select: {
+						id: true,
+						orderId: true,
+						type: true,
+					},
+				},
+			},
+		});
+		const latestPayments = new Map<number, (typeof payments)[number]>();
+		for (const payment of payments) {
+			if (!latestPayments.has(payment.orderId)) {
+				latestPayments.set(payment.orderId, payment);
+			}
+		}
+
+		const selectedPayments = Array.from(latestPayments.values());
+		if (selectedPayments.length) {
+			await tx.salesPayments.updateMany({
+				where: {
+					id: {
+						in: selectedPayments.map((payment) => payment.id),
+					},
+					reviewStatus: "needs_review",
+				},
+				data: {
+					reviewStatus: "reviewed",
+					reviewMethod: "manual",
+					reviewedByAction: null,
+					reviewedAt: new Date(),
+					reviewedById: input.reviewedById ?? null,
+					reviewNote: input.reviewNote || null,
+				},
+			});
+		}
+
+		return {
+			reviewed: selectedPayments.map((payment) => ({
+				paymentId: payment.id,
+				salesId: payment.order.id,
+				orderId: payment.order.orderId,
+				type: payment.order.type,
+			})),
+			skipped: salesIds
+				.filter((salesId) => !latestPayments.has(salesId))
+				.map((salesId) => ({
+					salesId,
+					reason: "no_payment_needs_review" as const,
+				})),
+		};
+	});
+}
+
 export async function autoReviewSalesPaymentsForOrderAction(
 	db: Db | TransactionClient,
 	input: {
