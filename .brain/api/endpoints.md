@@ -67,7 +67,7 @@ Tracks notable API surfaces and where they are implemented.
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
   - `sales.salesRepOptions`: protected active-sales-user option list for the sales overview transfer control
-  - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that changes `SalesOrders.salesRepId` and writes `SalesHistory` audit evidence
+  - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that accepts account- or master-password confirmation, changes `SalesOrders.salesRepId`, writes `SalesHistory`, and atomically records master-password transfer usage when applicable
 - Sales print routes now include:
   - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`
   - `/p/sales-document-v2`: canonical signed HTML sales document preview route

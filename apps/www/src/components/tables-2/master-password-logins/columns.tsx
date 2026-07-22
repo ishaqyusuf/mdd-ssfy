@@ -49,6 +49,18 @@ function userEmail(row: MasterPasswordLoginRow) {
 	return row.targetUser?.email || row.targetUserEmail || "No email snapshot";
 }
 
+function usageLabel(row: MasterPasswordLoginRow) {
+	return row.usageType === "SALES_REP_TRANSFER"
+		? "Sales rep transfer"
+		: "Login";
+}
+
+function usageResourceLabel(row: MasterPasswordLoginRow) {
+	if (row.usageType !== "SALES_REP_TRANSFER" || !row.resourceId) return null;
+	const resourceType = row.resourceType === "quote" ? "Quote" : "Order";
+	return `${resourceType} ${row.resourceId}`;
+}
+
 function platformLabel(platform: MasterPasswordLoginRow["platform"]) {
 	switch (platform) {
 		case "WEBSITE":
@@ -143,6 +155,37 @@ const dateColumn: Column = {
 	),
 };
 
+const usageColumn: Column = {
+	id: "usage",
+	header: "Usage",
+	accessorFn: usageLabel,
+	...sizes.custom(180, 300, 220),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "text", width: "w-36" },
+		headerLabel: "Usage",
+		className: sizeClass(sizes.custom(180, 300, 220)),
+	},
+	cell: ({ row }) => {
+		const resource = usageResourceLabel(row.original);
+
+		return (
+			<div className="min-w-0 space-y-0.5">
+				<TextWithTooltip
+					className="max-w-full truncate font-medium"
+					text={usageLabel(row.original)}
+				/>
+				{resource ? (
+					<TextWithTooltip
+						className="max-w-full truncate text-xs text-muted-foreground"
+						text={resource}
+					/>
+				) : null}
+			</div>
+		);
+	},
+};
+
 const platformColumn: Column = {
 	id: "platform",
 	header: "Platform",
@@ -229,19 +272,19 @@ const browserColumn: Column = {
 
 const sessionColumn: Column = {
 	id: "session",
-	header: "Session",
-	accessorKey: "sessionId",
+	header: "Session / Request",
+	accessorFn: (row) => row.sessionId || row.requestId,
 	...sizes.custom(160, 300, 210),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-36" },
-		headerLabel: "Session",
+		headerLabel: "Session / Request",
 		className: sizeClass(sizes.custom(160, 300, 210)),
 	},
 	cell: ({ row }) => (
 		<TextWithTooltip
 			className="max-w-full truncate font-mono text-xs"
-			text={row.original.sessionId || "-"}
+			text={row.original.sessionId || row.original.requestId || "-"}
 		/>
 	),
 };
@@ -317,6 +360,7 @@ const actionsColumn: Column = {
 
 export const columns: Column[] = [
 	userColumn,
+	usageColumn,
 	dateColumn,
 	platformColumn,
 	ipColumn,

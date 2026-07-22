@@ -46,7 +46,8 @@ Tracks authentication and authorization patterns across API surfaces.
 - Sales rep transfer supports existing orders and quotes and is ownership-only: the authenticated user's id must match `SalesOrders.salesRepId`. `editOrders` does not grant authority to transfer another rep's sale.
 - Manual single and batch payment review use protected sales mutations. The server stamps `reviewedById` from the authenticated context; the client cannot choose the reviewer. Batch review retains the existing authenticated-office permission boundary and is capped at 100 selected sales ids.
 - Both the option list and mutation require an authenticated active user and a `salesId` so ownership is verified before target reps are exposed.
-- The transfer mutation also requires password confirmation for the signed-in actor before updating ownership.
+- The transfer mutation also requires confirmation with the signed-in owner's account password or the configured master password before updating ownership. Master password does not bypass the ownership or target checks and may confirm an owner who has no account-password hash.
+- Only completed master-password transfers create usage evidence; invalid credentials, forbidden/non-owner attempts, invalid targets, and unchanged assignments create no usage row. The transfer fails closed if its atomic usage write fails.
 - The transfer target must be an active, non-revoked internal user whose role is sales/order-capable by sales role name or order permissions; the server revalidates the target during the mutation instead of trusting the client picker.
 - Sales email ledger access requires an authenticated active user with sales read/write capability (`viewOrders`, `editOrders`, or `viewEstimates`) or Super Admin role behavior.
 - Non-Super Admin sales email ledger reads are scoped to attempts where the authenticated user is the sender or the attached sales rep.

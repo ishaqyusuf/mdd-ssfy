@@ -4,6 +4,16 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Master Password Support for Sales Rep Transfers
+- Priority: High
+- Description: Allowed owner-confirmed order and quote sales-rep transfers to use either the owner's account password or the configured master password, with atomic, fail-closed transfer usage auditing and a searchable Master Password Usage review surface.
+- Related Feature: Sales rep transfer, authentication audit
+- Status: Done
+- Plan File: brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md
+- Feature Files: brain/features/sales-orders-v2.md, brain/features/master-password-login-audit.md
+- Decision: brain/decisions/ADR-020-master-password-usage-audit-consistency.md
+- Completed Date: 2026-07-22
+
 ### Sales Customer Direct Dealership Invitations
 - Priority: High
 - Description: Added batched partnership status to Sales Customers/Customer

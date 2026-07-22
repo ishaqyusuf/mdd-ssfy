@@ -17,6 +17,7 @@ describe("Master Password Logins Sales Orders table migration parity", () => {
 		const pageSource = readSource(
 			"components/master-password-login-audit-page.tsx",
 		);
+		const sidebarSource = readSource("components/sidebar-links.ts");
 
 		expect(routeSource.includes("ScrollableContent")).toBe(true);
 		expect(routeSource.includes("batchPrefetch([")).toBe(true);
@@ -43,6 +44,8 @@ describe("Master Password Logins Sales Orders table migration parity", () => {
 		expect(routeSource.includes("PageStickyHeader")).toBe(false);
 		expect(routeSource.includes("getQueryClient")).toBe(false);
 		expect(routeSource.includes("fetchQuery")).toBe(false);
+		expect(routeSource.includes("Master Password Usage")).toBe(true);
+		expect(sidebarSource.includes("Master Password Usage")).toBe(true);
 	});
 
 	it("keeps table-owned scroll, DnD, resize, and persisted settings", () => {
@@ -80,6 +83,9 @@ describe("Master Password Logins Sales Orders table migration parity", () => {
 		expect(columnsSource.includes("sizes.custom(110, 142, 124)")).toBe(true);
 		expect(columnsSource.includes('id: "country"')).toBe(true);
 		expect(columnsSource.includes('accessorKey: "countryCode"')).toBe(true);
+		expect(columnsSource.includes('id: "usage"')).toBe(true);
+		expect(columnsSource.includes("Sales rep transfer")).toBe(true);
+		expect(columnsSource.includes("row.original.requestId")).toBe(true);
 		expect(columnsSource.includes("onClearRecord(audit)")).toBe(true);
 		expect(headerSource.includes("SortableContext")).toBe(true);
 		expect(headerSource.includes("horizontalListSortingStrategy")).toBe(true);
@@ -92,5 +98,25 @@ describe("Master Password Logins Sales Orders table migration parity", () => {
 		);
 		expect(configSource.includes("rowHeight: 64")).toBe(true);
 		expect(configSource.includes('style: "compact"')).toBe(true);
+	});
+
+	it("keeps existing audit rows compatible through the LOGIN default", () => {
+		const migrationSource = readSource(
+			"../../../packages/db/src/migrations/20260722180000_master_password_usage_audit/migration.sql",
+		);
+		const schemaSource = readSource(
+			"../../../packages/db/src/schema/master-password-login-audits.prisma",
+		);
+
+		expect(
+			/`usageType` ENUM\('LOGIN', 'SALES_REP_TRANSFER'\) NOT NULL DEFAULT 'LOGIN'/.test(
+				migrationSource,
+			),
+		).toBe(true);
+		expect(
+			schemaSource.includes(
+				"usageType             MasterPasswordUsageType     @default(LOGIN)",
+			),
+		).toBe(true);
 	});
 });

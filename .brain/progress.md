@@ -730,6 +730,16 @@
   - Updated `apps/www/README.md` and `brain/database/migrations.md` to document the hosted dev branch as the normal development database target and leave the old Docker MySQL import script as legacy/manual recovery only.
   - No Prisma schema, migration file, API contract, permission, or runtime feature behavior changed.
 
+- Extended sales order and quote sales rep transfer with master-password confirmation and atomic usage auditing.
+  - Preserved owner-only authorization and active target validation for both orders and quotes; `editOrders` and master password provide no non-owner override.
+  - Distinguished account-password from master-password confirmation so a configured master credential can confirm an owner without an account-password hash.
+  - Shared the master-password audit writer between best-effort login auditing and fail-closed transfer transactions. Master transfers atomically update `SalesOrders.salesRepId`, write `SalesHistory`, and record actor/request/device/location plus order/quote evidence.
+  - Extended `MasterPasswordLoginAudit` additively with `LOGIN | SALES_REP_TRANSFER`, request id, resource type/id, and supporting indexes; existing rows default to `LOGIN` and passwords are never stored.
+  - Renamed the existing compatibility page to **Master Password Usage** and added usage filtering, sale-reference search/display, request evidence, filtered clearing, and pagination compatibility.
+  - Validation: 38 focused tests passed across transfer, audit query/writer, login best-effort behavior, auth, country parsing, migration defaults, and table parity; Prisma generation, the database package typecheck, targeted Biome, and whitespace checks passed. The repository-wide suite ran 1,920 tests (`1,886` pass, `1` skip, `33` unrelated baseline failures); the focused feature suites remained green. Root/API/auth/WWW typechecks were run but remain blocked by unrelated baseline diagnostics; filtered/scoped output contains no diagnostics for the changed API, auth-audit, or usage-page files. Browser QA verified the page title, transfer usage row, usage filtering, order-number search, and request/platform evidence; disposable test data was deleted afterward.
+  - Migration note: isolated additive SQL was generated with Prisma diff and applied only to local `gnd-prisma2`; normal migrate/push remained blocked by pre-existing drift and unrelated storefront data-loss warnings, so no reset/forced push occurred and production was not changed.
+  - Brain files updated: `brain/features/master-password-login-audit.md`, `brain/features/sales-orders-v2.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/api/permissions.md`, `brain/database/schema.md`, `brain/database/migrations.md`, `brain/decisions/ADR-020-master-password-usage-audit-consistency.md`, `brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md`, `brain/tasks/done.md`, and `brain/progress.md`.
+
 - Implemented sales order and quote sales rep transfer.
   - Added protected sales tRPC routes `sales.salesRepOptions` and `sales.transferSalesRep` plus `transferSalesRepSchema`.
   - Reused `SalesOrders.salesRepId` and `SalesHistory`; no database schema or migration changed.

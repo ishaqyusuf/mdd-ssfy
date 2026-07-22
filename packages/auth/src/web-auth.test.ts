@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	getActiveWebLegacyUserWhere,
+	recordWebMasterPasswordLoginAudit,
 	resolveWebLegacyCredentialSignIn,
 } from "./better-auth/www";
 import { toMobileAuthSession } from "./better-auth/www-session";
@@ -14,6 +15,67 @@ describe("www Better Auth legacy user lookup", () => {
 			deletedAt: null,
 			OR: [{ type: null }, { type: { in: ["EMPLOYEE", "MANAGER"] } }],
 		});
+	});
+});
+
+describe("www master password login audit", () => {
+	test("writes LOGIN usage through the shared writer", async () => {
+		const calls: unknown[] = [];
+
+		await recordWebMasterPasswordLoginAudit(
+			{
+				accountEmail: "rep@example.com",
+				accountName: "Sales Rep",
+				countryCode: "US",
+				ipAddress: "203.0.113.10",
+				platform: "WEBSITE",
+				sessionId: "session-id",
+				userAgent: "Browser UA",
+				userId: 42,
+			},
+			{
+				writeUsage: async (_db, input) => {
+					calls.push(input);
+					return { id: "audit-id" };
+				},
+			},
+		);
+
+		const recorded = calls[0] as Record<string, unknown>;
+		expect(calls.length).toBe(1);
+		expect(recorded.usageType).toBe("LOGIN");
+		expect(recorded.targetUserId).toBe(42);
+		expect(recorded.sessionId).toBe("session-id");
+		expect(recorded.requestId).toBe(null);
+		expect(recorded.resourceType).toBe(null);
+		expect(recorded.resourceId).toBe(null);
+	});
+
+	test("keeps login auditing best-effort when persistence fails", async () => {
+		const failure = new Error("audit unavailable");
+		const errors: unknown[] = [];
+
+		await expect(
+			recordWebMasterPasswordLoginAudit(
+				{
+					accountEmail: "rep@example.com",
+					accountName: "Sales Rep",
+					countryCode: null,
+					ipAddress: null,
+					platform: "WEBSITE",
+					sessionId: "session-id",
+					userAgent: null,
+					userId: 42,
+				},
+				{
+					onError: (error) => errors.push(error),
+					writeUsage: async () => {
+						throw failure;
+					},
+				},
+			),
+		).resolves.toBeUndefined();
+		expect(errors).toEqual([failure]);
 	});
 });
 

@@ -6,6 +6,8 @@
 		".": "./src/index.ts",
 		"./utils": "./src/utils.ts",
 		"./new-device-login": "./src/new-device-login.ts",
+		"./master-password-audit": "./src/master-password-audit.ts",
+		"./request-country": "./src/request-country.ts",
 		"./better-auth/dealership": "./src/better-auth/dealership.ts",
 		"./better-auth/www": "./src/better-auth/www.ts",
 		"./better-auth/www-session": "./src/better-auth/www-session.ts"

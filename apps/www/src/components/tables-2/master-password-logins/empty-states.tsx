@@ -12,8 +12,8 @@ type NoResultsProps = {
 export function EmptyState() {
 	return (
 		<CoreEmptyState
-			title="No master password logins"
-			description="Master password login audit records will appear here when a configured master password is used."
+			title="No master password usage"
+			description="Login and protected-action audit records will appear here when a configured master password is used."
 			actionLabel="Refresh"
 			onAction={() => window.location.reload()}
 		/>

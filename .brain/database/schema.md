@@ -94,8 +94,10 @@ Tracks important schema-level entities and ownership boundaries.
   - `SalesEmailAttempt` remains the domain-specific email delivery ledger and should be read alongside generic task diagnostics when diagnosing sales document email tasks
 - Master password login audit schema now lives in `packages/db/src/schema/master-password-login-audits.prisma`:
   - `MasterPasswordLoginPlatform` enum values are `WEBSITE`, `MOBILE`, and `UNKNOWN`
-  - `MasterPasswordLoginAudit` stores each ENV master-password login event for the web/mobile auth flow
-  - rows snapshot target user id/name/email, app surface, platform, IP address, optional two-letter ISO country code, browser, user agent, safe session id, login timestamp, and clear/archive metadata
+  - `MasterPasswordUsageType` enum values are `LOGIN` and `SALES_REP_TRANSFER`; existing and newly omitted values default to `LOGIN`
+  - `MasterPasswordLoginAudit` stores ENV master-password login and sales-rep transfer usage without storing a password or hash
+  - rows snapshot target user id/name/email, app surface, platform, IP address, optional two-letter ISO country code, browser, user agent, safe session/request id, timestamp, optional order/quote resource type and number, and clear/archive metadata
+  - usage/date and resource type/id indexes support the Super Admin usage filter and sale-reference search
   - clear actions set `clearedAt` and `clearedBySuperAdminId`; records are hidden from the default admin view instead of hard-deleted
 - Sales shelf order pricing now stores
   `DykeSalesShelfItem.unitPrice` and `DykeSalesShelfItem.totalPrice` as nullable

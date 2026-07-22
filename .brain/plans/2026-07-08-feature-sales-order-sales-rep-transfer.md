@@ -5,6 +5,8 @@
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/36
 - Created Date: 2026-07-08
 - Implemented Date: 2026-07-08
+- Master Password Audit Extension: Implemented 2026-07-22
+- Decision: `brain/decisions/ADR-020-master-password-usage-audit-consistency.md`
 
 ## Source Request
 Client asked to make the system able to change the sales rep attached to an order. The example was a door customer buying while the owner is away from the desk, another sales rep uses the owner's computer/session to create the sale, and the business later needs to transfer that sale to the rep who actually created it.
@@ -41,6 +43,9 @@ The transfer should update the current order sales rep, record audit history, re
 - The transfer mutation supports orders and quotes, requires password confirmation, and authorizes only the currently assigned sales rep whose user id matches `salesRepId`; `editOrders` does not grant transfer access to another rep's sale. It validates an active sales/order-capable target user, updates only `salesRepId`, and writes `SalesHistory` metadata for the previous rep, next rep, actor, sale id, and optional reason.
 - The sales overview `SALES REPRESENTATIVE` section shows an inline `Change Rep` control only for the current owner on both orders and quotes, opens a password confirmation modal before completing the transfer, and refreshes sales document/list/dashboard query families after success.
 - Added focused regression coverage in `apps/api/src/db/queries/sales-rep-transfer.test.ts`.
+- The confirmation method is distinguished as `ACCOUNT_PASSWORD` or `MASTER_PASSWORD`. A configured master password works for the current owner even without an account-password hash, but never bypasses owner-only authorization, target eligibility, or the prompt.
+- Master-password transfers atomically write the `SalesOrders` ownership update, `SalesHistory`, and `MasterPasswordLoginAudit` usage row with actor/request/device/location and order/quote reference evidence. Audit failure rolls back the transfer; rejected or unchanged requests write no transfer usage.
+- Kept `/settings/master-password-logins` and existing tRPC audit routes for compatibility while renaming the review surface to **Master Password Usage** and adding usage filtering and sale-reference search/display.
 
 ## Testing Seam
 Primary seam: the protected sales transfer mutation/API behavior. It should prove the externally visible contract in one place: ownership changes, history is written, invalid transfers are rejected, unrelated business data is unchanged, and rep-scoped list behavior follows the new owner.

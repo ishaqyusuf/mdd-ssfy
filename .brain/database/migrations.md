@@ -151,6 +151,11 @@ Tracks notable migrations and migration strategy.
   - 2026-07-17 country follow-up added nullable `countryCode VARCHAR(2)` through `packages/db/src/schema/migrations/20260717120000_add_master_password_login_country_code/migration.sql`.
   - `bun --cwd packages/db db-migrate` refused the existing local drift/reset and `bun --cwd packages/db push:dev` refused unrelated legacy JSON conversions and a `DealerAuthAccount` uniqueness change without `--accept-data-loss`; neither broad operation was forced.
   - Applied only the additive `countryCode` column to local `gnd-prisma2`, verified its information-schema shape, and ran a Super Admin API smoke that created/listed/archived/hid/deleted a disposable `NG` audit row. A live non-Super Admin query was also rejected with `FORBIDDEN`.
+- 2026-07-22 master password usage audit extension:
+  - Added `MasterPasswordUsageType` (`LOGIN | SALES_REP_TRANSFER`) and nullable `requestId`, `resourceType`, and `resourceId` fields to `MasterPasswordLoginAudit`; existing rows read as `LOGIN` through the additive default.
+  - Added usage/date and resource-reference indexes in `packages/db/src/migrations/20260722180000_master_password_usage_audit/migration.sql`; no credential value or hash is persisted and no data backfill is required.
+  - `bun run db:generate` passed. Normal `migrate dev` stopped on pre-existing local drift that requested a reset, and `push:dev` stopped on unrelated storefront data-loss warnings; neither unsafe operation was forced.
+  - Generated the isolated additive SQL with Prisma schema diff, applied only that migration to local `gnd-prisma2` for browser QA, and verified the four columns and indexes. Production remains untouched pending normal deployment.
 
 ## TODO
 - Add a migration history summary with timestamps, intent, rollout notes, and any backfill requirements.

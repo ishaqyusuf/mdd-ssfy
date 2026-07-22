@@ -12,12 +12,16 @@ const auditSelect = {
 	targetUserName: true,
 	targetUserEmail: true,
 	appSurface: true,
+	usageType: true,
 	platform: true,
 	ipAddress: true,
 	countryCode: true,
 	browser: true,
 	userAgent: true,
 	sessionId: true,
+	requestId: true,
+	resourceType: true,
+	resourceId: true,
 	loginAt: true,
 	clearedAt: true,
 	clearedBySuperAdminId: true,
@@ -99,7 +103,7 @@ async function requireSuperAdmin(ctx: TRPCContext) {
 function buildAuditWhere(
 	input: Pick<
 		ListMasterPasswordLoginAuditsInput,
-		"includeCleared" | "platform" | "q"
+		"includeCleared" | "platform" | "q" | "usageType"
 	>,
 ) {
 	const where: Prisma.MasterPasswordLoginAuditWhereInput = {
@@ -114,9 +118,26 @@ function buildAuditWhere(
 		where.platform = input.platform;
 	}
 
+	if (input.usageType) {
+		where.usageType = input.usageType;
+	}
+
 	const query = input.q?.trim();
 	if (query) {
+		const normalizedQuery = query.toLowerCase();
+		const usageMatches: Prisma.MasterPasswordLoginAuditWhereInput[] = [];
+		if ("login".includes(normalizedQuery)) {
+			usageMatches.push({ usageType: "LOGIN" });
+		}
+		if (
+			"sales rep transfer".includes(normalizedQuery) ||
+			"sales_rep_transfer".includes(normalizedQuery)
+		) {
+			usageMatches.push({ usageType: "SALES_REP_TRANSFER" });
+		}
+
 		where.OR = [
+			...usageMatches,
 			{ targetUserName: { contains: query } },
 			{ targetUserEmail: { contains: query } },
 			{ ipAddress: { contains: query } },
@@ -124,6 +145,9 @@ function buildAuditWhere(
 			{ browser: { contains: query } },
 			{ userAgent: { contains: query } },
 			{ sessionId: { contains: query } },
+			{ requestId: { contains: query } },
+			{ resourceType: { contains: query } },
+			{ resourceId: { contains: query } },
 		];
 	}
 
@@ -172,6 +196,7 @@ export async function clearMasterPasswordLoginAudits(
 	const where = buildAuditWhere({
 		q: input.q,
 		platform: input.platform,
+		usageType: input.usageType,
 		includeCleared: false,
 	});
 

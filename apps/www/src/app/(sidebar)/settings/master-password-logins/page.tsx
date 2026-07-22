@@ -27,7 +27,7 @@ export default async function Page() {
 			<HydrateClient>
 				<ScrollableContent>
 					<div className="flex flex-col gap-4">
-						<PageTitle>Master Password Logins</PageTitle>
+						<PageTitle>Master Password Usage</PageTitle>
 						<ErrorBoundary errorComponent={ErrorFallback}>
 							<Suspense
 								fallback={

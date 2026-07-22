@@ -1,10 +1,11 @@
+import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { getLegacyWebAuthUserId } from "@gnd/auth";
 import { getWebAuthSession } from "@gnd/auth/better-auth/www";
 import { buildWebAppSessionByToken } from "@gnd/auth/better-auth/www-session";
-import { getLegacyWebAuthUserId } from "@gnd/auth";
+import { getRequestCountryCode } from "@gnd/auth/request-country";
 import { type Database, db } from "@gnd/db";
 import type { getActiveDealerByAuthUserId } from "@gnd/db/queries";
 import { TRPCError, initTRPC } from "@trpc/server";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { Context } from "hono";
 import { getSignedCookie, setSignedCookie } from "hono/cookie";
 import { type JwtPayload, verify } from "jsonwebtoken";
@@ -21,6 +22,7 @@ export type TRPCContext = {
 	requestId?: string;
 	userAgent?: string;
 	ipAddress?: string;
+	countryCode?: string;
 	//   geo: ReturnType<typeof getGeoContext>;
 	//   teamId?: string;
 };
@@ -106,6 +108,7 @@ export const createTRPCContext = async (
 		ipAddress:
 			c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
 			c.req.header("x-real-ip"),
+		countryCode: getRequestCountryCode(c.req.raw.headers) ?? undefined,
 	};
 };
 

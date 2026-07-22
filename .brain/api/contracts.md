@@ -214,9 +214,10 @@ Tracks important request/response contracts and shared schema boundaries.
   - changing an unpaid order to a C.C.C-applicable payment method recalculates display/backfill `meta.ccc` from the current principal `amountDue`, not the original order total, so prior payments do not inflate the remaining card-payable estimate
   - overview DTOs expose `salesRepId` alongside the display `salesRep`/initials so client surfaces can distinguish the current owner from eligible transfer targets
   - `sales.salesRepOptions({ salesId })` returns active internal sales/order-capable users with `{ id, name, email, initials, roles }` only when the referenced order or quote is assigned to the signed-in user
-  - `sales.transferSalesRep({ salesId, salesRepId, reason?, password })` accepts positive integer ids, an optional note up to 500 characters, and the signed-in user's password; it supports orders and quotes and rejects deleted sales, ineligible targets, wrong password confirmation, and any actor whose user id does not match the sale's `salesRepId`
-  - successful transfer updates only `SalesOrders.salesRepId` and writes a structured `SalesHistory` row with previous rep, next rep, actor id/name, order id, and reason
-  - selecting the order's current rep is a no-op response with `changed=false` and does not create duplicate history
+  - `sales.transferSalesRep({ salesId, salesRepId, reason?, password })` accepts positive integer ids, an optional note up to 500 characters, and confirmation with either the signed-in owner's account password or the configured, case-sensitive master password; it supports orders and quotes and rejects deleted sales, ineligible targets, invalid credentials, and any actor whose user id does not match the sale's `salesRepId`
+  - successful account-password transfer updates only `SalesOrders.salesRepId` and writes a structured `SalesHistory` row with previous rep, next rep, actor id/name, order id, and reason
+  - successful master-password transfer writes the sale update, `SalesHistory`, and `MasterPasswordLoginAudit.usageType=SALES_REP_TRANSFER` row atomically; the usage row snapshots request/device/location evidence and the order/quote type and number, and an audit failure rejects and rolls back the transaction
+  - selecting the order's current rep is a no-op response with `changed=false` and creates neither duplicate history nor transfer-usage audit
 - Sales payment processor C.C.C contract:
   - payment previews and payment writes calculate C.C.C from the external principal being applied to the current outstanding balance after wallet credit and prior payments
   - overpayment wallet credit may be included in the external customer charge, but it must not expand the C.C.C fee base beyond the remaining principal due
@@ -294,6 +295,13 @@ Tracks important request/response contracts and shared schema boundaries.
 
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.
+
+## Sales document email attachment contract (2026-07-22)
+
+- `simple_sales_document_email` no longer accepts or emits `skipPdfAttachment`.
+- Simple and composed sales document emails always attempt to render one PDF attachment for the selected order/quote documents.
+- A PDF render failure is non-fatal: the email may still send with its signed PDF download link, and the failure is logged for diagnosis.
+- Attachment behavior is deterministic across development and production and is not gated by an environment variable.
 
 ## Staff Square terminal payment contract (2026-07-22)
 

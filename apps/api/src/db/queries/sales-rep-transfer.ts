@@ -3,7 +3,8 @@ import type {
 	TransferSalesRepSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import { checkPassword } from "@gnd/auth/utils";
+import { recordMasterPasswordUsage } from "@gnd/auth/master-password-audit";
+import { checkPassword, isMasterPassword } from "@gnd/auth/utils";
 import type { Prisma } from "@gnd/db";
 import { getNameInitials } from "@gnd/utils";
 import { generatePermissions } from "@gnd/utils/constants";
@@ -55,8 +56,10 @@ type SalesRepCandidateUser = Prisma.UsersGetPayload<{
 type SalesRepDb = Pick<TRPCContext["db"], "users">;
 type SalesRepTransferDb = Pick<
 	TRPCContext["db"],
-	"users" | "salesOrders" | "salesHistory"
+	"users" | "salesOrders" | "salesHistory" | "masterPasswordLoginAudit"
 >;
+
+type PasswordConfirmationMethod = "ACCOUNT_PASSWORD" | "MASTER_PASSWORD";
 
 function roleNamesFor(user: SalesRepCandidateUser) {
 	return user.roles
@@ -171,6 +174,13 @@ async function requirePasswordConfirmedActor(
 	password: string,
 ) {
 	const actor = await loadSalesRepTransferActor(ctx);
+	const method: PasswordConfirmationMethod = isMasterPassword(password)
+		? "MASTER_PASSWORD"
+		: "ACCOUNT_PASSWORD";
+
+	if (method === "MASTER_PASSWORD") {
+		return { ...actor, passwordConfirmationMethod: method };
+	}
 
 	if (!actor.user.password) {
 		throw new TRPCError({
@@ -188,7 +198,7 @@ async function requirePasswordConfirmedActor(
 		});
 	}
 
-	return actor;
+	return { ...actor, passwordConfirmationMethod: method };
 }
 
 function assertCanTransferSalesRep(
@@ -301,6 +311,7 @@ export async function transferSalesRep(
 				id: true,
 				orderId: true,
 				slug: true,
+				type: true,
 				salesRepId: true,
 				salesRep: {
 					select: {
@@ -371,6 +382,24 @@ export async function transferSalesRep(
 				},
 			},
 		});
+
+		if (actor.passwordConfirmationMethod === "MASTER_PASSWORD") {
+			await recordMasterPasswordUsage(db, {
+				usageType: "SALES_REP_TRANSFER",
+				targetUserId: actor.user.id,
+				targetUserName: actor.user.name,
+				targetUserEmail: actor.user.email,
+				appSurface: "www",
+				platform: "WEBSITE",
+				ipAddress: ctx.ipAddress ?? null,
+				countryCode: ctx.countryCode ?? null,
+				userAgent: ctx.userAgent ?? null,
+				sessionId: null,
+				requestId: ctx.requestId ?? null,
+				resourceType: sale.type,
+				resourceId: sale.orderId,
+			});
+		}
 
 		return {
 			changed: true,

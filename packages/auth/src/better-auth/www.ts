@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { type Prisma, type Users, db } from "@gnd/db";
 import { compare } from "bcrypt-ts";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
@@ -12,6 +12,7 @@ import { setSessionCookie } from "better-auth/cookies";
 import { parseUserOutput } from "better-auth/db";
 import { nextCookies } from "better-auth/next-js";
 import * as z from "zod";
+import { recordMasterPasswordUsage } from "../master-password-audit";
 import { isNewLoginDevice, normalizeLoginDevice } from "../new-device-login";
 import { getRequestCountryCode } from "../request-country";
 import {
@@ -479,7 +480,7 @@ function auditWebMasterPasswordSignIn(input: {
   });
 }
 
-async function recordWebMasterPasswordLoginAudit(input: {
+export async function recordWebMasterPasswordLoginAudit(input: {
   accountEmail: string;
   accountName: string | null;
   countryCode: string | null;
@@ -488,27 +489,33 @@ async function recordWebMasterPasswordLoginAudit(input: {
   sessionId: string;
   userAgent: string | null;
   userId: number;
-}) {
-  const loginAt = new Date();
-  const device = normalizeLoginDevice(input.userAgent);
+}, dependencies: {
+  onError?: (error: unknown) => void;
+  writeUsage?: typeof recordMasterPasswordUsage;
+} = {}) {
+  const writeUsage = dependencies.writeUsage ?? recordMasterPasswordUsage;
 
   try {
-    await db.masterPasswordLoginAudit.create({
-      data: {
-        targetUserId: input.userId,
-        targetUserName: input.accountName,
-        targetUserEmail: input.accountEmail,
-        appSurface: "www",
-        platform: input.platform,
-        ipAddress: input.ipAddress,
-        countryCode: input.countryCode,
-        browser: device.browser,
-        userAgent: input.userAgent,
-        sessionId: input.sessionId,
-        loginAt,
-      },
+    await writeUsage(db, {
+      usageType: "LOGIN",
+      targetUserId: input.userId,
+      targetUserName: input.accountName,
+      targetUserEmail: input.accountEmail,
+      appSurface: "www",
+      platform: input.platform,
+      ipAddress: input.ipAddress,
+      countryCode: input.countryCode,
+      userAgent: input.userAgent,
+      sessionId: input.sessionId,
+      requestId: null,
+      resourceType: null,
+      resourceId: null,
     });
   } catch (error) {
+    if (dependencies.onError) {
+      dependencies.onError(error);
+      return;
+    }
     console.error("Failed to record web master password login audit:", error);
   }
 }

@@ -50,8 +50,10 @@
   - requires `salesId` and loads targets only when the current order or quote is assigned to the signed-in user
 - `sales.transferSalesRep`
   - protected mutation for transferring an existing order or quote to another sales rep
-  - validates that the current order or quote is assigned to the signed-in actor, the sale is non-deleted, the target is an active eligible internal sales user, and the actor's password confirmation succeeds
+  - validates that the current order or quote is assigned to the signed-in actor, the sale is non-deleted, the target is an active eligible internal sales user, and confirmation succeeds with either the actor's account password or the configured master password
+  - master password does not bypass ownership or target checks and works when the owner has no account-password hash
   - updates only `SalesOrders.salesRepId` and writes `SalesHistory` audit metadata for previous rep, next rep, actor, order id, and optional note
+  - for master-password confirmation, writes `SALES_REP_TRANSFER` master-password usage evidence in the same transaction; audit failure rolls back the transfer and history
 - `sales.getPaymentReviewSettings`
   - protected query returning Super Admin manage capability plus `paymentReview.autoReviewActions` for production, fulfillment, and inbound
 - `sales.updatePaymentReviewSettings`

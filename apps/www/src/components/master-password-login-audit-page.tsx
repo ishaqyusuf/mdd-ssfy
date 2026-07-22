@@ -31,12 +31,19 @@ import { Suspense, useMemo, useState } from "react";
 
 type ListInput = NonNullable<RouterInputs["masterPasswordLoginAudits"]["list"]>;
 type PlatformFilter = "ALL" | "WEBSITE" | "MOBILE" | "UNKNOWN";
+type UsageFilter = "ALL" | "LOGIN" | "SALES_REP_TRANSFER";
 
 const platforms: Array<{ value: PlatformFilter; label: string }> = [
 	{ value: "ALL", label: "All platforms" },
 	{ value: "WEBSITE", label: "Website" },
 	{ value: "MOBILE", label: "Mobile" },
 	{ value: "UNKNOWN", label: "Unknown" },
+];
+
+const usageTypes: Array<{ value: UsageFilter; label: string }> = [
+	{ value: "ALL", label: "All usage" },
+	{ value: "LOGIN", label: "Login" },
+	{ value: "SALES_REP_TRANSFER", label: "Sales rep transfer" },
 ];
 
 type Props = {
@@ -58,6 +65,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 	const queryClient = useQueryClient();
 	const [search, setSearch] = useState("");
 	const [platform, setPlatform] = useState<PlatformFilter>("ALL");
+	const [usageType, setUsageType] = useState<UsageFilter>("ALL");
 	const [showCleared, setShowCleared] = useState(false);
 	const [page, setPage] = useState(1);
 	const [pageInfo, setPageInfo] = useState<MasterPasswordLoginPageInfo | null>(
@@ -72,14 +80,18 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 			({
 				q: search.trim() || undefined,
 				platform: platform === "ALL" ? undefined : platform,
+				usageType: usageType === "ALL" ? undefined : usageType,
 				includeCleared: showCleared || undefined,
 				page,
 				size,
 			}) satisfies ListInput,
-		[page, platform, search, showCleared],
+		[page, platform, search, showCleared, usageType],
 	);
 	const hasFilters =
-		Boolean(search.trim()) || platform !== "ALL" || showCleared;
+		Boolean(search.trim()) ||
+		platform !== "ALL" ||
+		usageType !== "ALL" ||
+		showCleared;
 
 	const refresh = async () => {
 		await queryClient.invalidateQueries({
@@ -92,7 +104,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 			async onSuccess(result) {
 				await refresh();
 				toast({
-					title: "Master password login records cleared",
+					title: "Master password usage records cleared",
 					description: `${result.count.toLocaleString()} record${
 						result.count === 1 ? "" : "s"
 					} archived.`,
@@ -131,6 +143,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 			clearMutation.mutate({
 				q: search.trim() || undefined,
 				platform: platform === "ALL" ? undefined : platform,
+				usageType: usageType === "ALL" ? undefined : usageType,
 			});
 		}
 
@@ -140,6 +153,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 	const clearFilters = () => {
 		setSearch("");
 		setPlatform("ALL");
+		setUsageType("ALL");
 		setShowCleared(false);
 		setPage(1);
 	};
@@ -157,7 +171,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 	return (
 		<div className="flex min-w-0 flex-col gap-4">
 			<div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-				<div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_180px_auto] lg:flex-1">
+				<div className="grid gap-3 md:grid-cols-[minmax(240px,1fr)_180px_190px_auto] lg:flex-1">
 					<div className="grid gap-1.5">
 						<Label htmlFor="master-password-login-search">Search</Label>
 						<div className="relative">
@@ -169,10 +183,31 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 									setSearch(event.target.value);
 									setPage(1);
 								}}
-								placeholder="User, email, country, IP, browser, or session"
+								placeholder="User, usage, sale number, country, IP, browser, or reference"
 								className="pl-9"
 							/>
 						</div>
+					</div>
+					<div className="grid gap-1.5">
+						<Label>Usage</Label>
+						<Select
+							value={usageType}
+							onValueChange={(value) => {
+								setUsageType(value as UsageFilter);
+								setPage(1);
+							}}
+						>
+							<SelectTrigger>
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{usageTypes.map((option) => (
+									<SelectItem key={option.value} value={option.value}>
+										{option.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 					<div className="grid gap-1.5">
 						<Label>Platform</Label>
@@ -271,7 +306,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 						? `${pageInfo.total.toLocaleString()} record${
 								pageInfo.total === 1 ? "" : "s"
 							} • Page ${pageInfo.page} of ${pageInfo.pageCount}`
-						: "Loading master password login records"}
+						: "Loading master password usage records"}
 				</p>
 				<div className="flex items-center gap-2">
 					<Button
@@ -311,7 +346,7 @@ export function MasterPasswordLoginAuditPage({ initialSettings }: Props) {
 				<AlertDialog.Content>
 					<AlertDialog.Header>
 						<AlertDialog.Title>
-							Clear master password login{" "}
+							Clear master password usage{" "}
 							{clearConfirmation?.type === "filtered" ? "records" : "record"}?
 						</AlertDialog.Title>
 						<AlertDialog.Description>

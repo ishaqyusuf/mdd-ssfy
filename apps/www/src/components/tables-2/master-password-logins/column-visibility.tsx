@@ -17,7 +17,7 @@ export function MasterPasswordLoginsColumnVisibility() {
 				<Button
 					variant="outline"
 					size="icon"
-					aria-label="Master password login columns"
+					aria-label="Master password usage columns"
 				>
 					<Icons.Tune size={18} />
 				</Button>
