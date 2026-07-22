@@ -73,12 +73,8 @@ export function DataTable({
 	const { params, setParams } = useResolutionCenterParams();
 	const selectedIds = params.resolutionIds ?? [];
 	const parentRef = useRef<HTMLDivElement>(null);
-	const {
-		rowSelection,
-		setRowSelection,
-		setColumns,
-		bindShowColumnDividers,
-	} = useSalesResolutionTableStore();
+	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
+		useSalesResolutionTableStore();
 
 	useScrollHeader(parentRef);
 
@@ -246,7 +242,8 @@ export function DataTable({
 					}}
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
-						height: "max(360px, calc(100vh - 330px + var(--header-offset, 0px)))",
+						height:
+							"max(360px, calc(100vh - 330px + var(--header-offset, 0px)))",
 					}}
 				>
 					<DndContext
@@ -279,6 +276,7 @@ export function DataTable({
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

@@ -6,6 +6,7 @@ import {
 	type TableScrollState,
 	getHeaderLabel,
 	getTableCellPaddingClass,
+	getTableHeaderLayoutStyle,
 } from "@/components/tables-2/core";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
@@ -73,21 +74,17 @@ export function DataTableHeader<TData>({
 							.find((item) => isVisible(item.column.id));
 						const showRightDivider =
 							showColumnDividers && Boolean(nextVisibleHeader);
-						const isLastVisible = !headers
-							.slice(headerIndex + 1)
-							.some((item) => isVisible(item.column.id));
-						const shouldFlex = isLastVisible && !isSticky;
+						const { style: columnLayoutStyle } = getTableHeaderLayoutStyle({
+							headers,
+							header,
+							isVisible,
+							preferredFillColumnId: tableConfig.fillColumnId,
+							isSticky,
+						});
 						const headerStyle = {
 							...HEADER_CELL_BACKGROUND_STYLE,
-							width: header.getSize(),
-							minWidth: isSticky
-								? header.getSize()
-								: header.column.columnDef.minSize,
-							maxWidth: isSticky
-								? header.getSize()
-								: header.column.columnDef.maxSize,
+							...columnLayoutStyle,
 							...getStickyStyle(columnId),
-							...(shouldFlex && { flex: 1 }),
 						};
 						const stickyClass = getStickyClassName(
 							columnId,

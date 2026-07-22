@@ -106,7 +106,9 @@ export function DataTable({
 	const tableHeight = Math.min(
 		360,
 		Math.max(
-			tableConfig.headerHeight + tableConfig.rowHeight * Math.max(rows.length, 1) + 2,
+			tableConfig.headerHeight +
+				tableConfig.rowHeight * Math.max(rows.length, 1) +
+				2,
 			140,
 		),
 	);
@@ -156,6 +158,7 @@ export function DataTable({
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

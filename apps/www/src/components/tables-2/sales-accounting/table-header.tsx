@@ -8,6 +8,7 @@ import {
 	type TableScrollState,
 	getHeaderLabel,
 	getTableCellPaddingClass,
+	getTableHeaderLayoutStyle,
 } from "@/components/tables-2/core";
 import { DraggableHeader } from "@/components/tables-2/draggable-header";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
@@ -99,37 +100,18 @@ export function DataTableHeader<TData>({
 								showColumnDividers &&
 								Boolean(nextVisibleHeader) &&
 								nextVisibleHeader?.column.id !== "actions";
-							const hasNonStickyVisible = headers.some((item) => {
-								if (item.column.id === "actions") return false;
-								if (!isVisible(item.column.id)) return false;
-
-								const itemMeta = item.column.columnDef.meta as
-									| TableColumnMeta
-									| undefined;
-
-								return !(itemMeta?.sticky ?? false);
-							});
-							const actionsFullWidth = isActions && !hasNonStickyVisible;
-							const isLastBeforeActions =
-								headerIndex === headers.length - 2 &&
-								headers[headers.length - 1]?.column.id === "actions";
-							const shouldFlex =
-								(isLastBeforeActions && !isSticky) || actionsFullWidth;
+							const { actionsFullWidth, style: columnLayoutStyle } =
+								getTableHeaderLayoutStyle({
+									headers,
+									header,
+									isVisible,
+									preferredFillColumnId: tableConfig.fillColumnId,
+									isSticky,
+								});
 							const headerStyle = {
 								...HEADER_CELL_BACKGROUND_STYLE,
-								width: actionsFullWidth ? undefined : header.getSize(),
-								minWidth: actionsFullWidth
-									? undefined
-									: isSticky
-										? header.getSize()
-										: header.column.columnDef.minSize,
-								maxWidth: actionsFullWidth
-									? undefined
-									: isSticky
-										? header.getSize()
-										: header.column.columnDef.maxSize,
+								...columnLayoutStyle,
 								...(!actionsFullWidth && getStickyStyle(columnId)),
-								...(shouldFlex && { flex: 1 }),
 							};
 
 							if (!canReorder) {

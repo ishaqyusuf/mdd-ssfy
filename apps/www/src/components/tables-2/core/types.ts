@@ -28,6 +28,7 @@ export type TableStyle = "default" | "compact";
 
 export interface TableConfig {
 	tableId: string;
+	fillColumnId: string | null;
 	stickyColumns: StickyColumnConfig[];
 	sortFieldMap: Record<string, string>;
 	nonReorderableColumns: Set<string>;

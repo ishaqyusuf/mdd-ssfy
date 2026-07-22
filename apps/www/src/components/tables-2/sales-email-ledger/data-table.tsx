@@ -207,6 +207,7 @@ export function DataTable({
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

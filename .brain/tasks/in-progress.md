@@ -1,5 +1,11 @@
 # In Progress
 
+- 2026-07-22 execution note: the responsive full-width Tables-2 core contract
+  was tracked here during implementation and moved to
+  `.brain/tasks/done.md` after focused tests, configuration audit, and canonical
+  responsive browser validation completed. See
+  `.brain/features/tables-2-responsive-full-width.md` and ADR-019.
+
 ## Purpose
 Tracks the active work queue. Keep this focused and execution-ready.
 

@@ -18,4 +18,12 @@ describe("VirtualRow selection styling", () => {
 			true,
 		);
 	});
+
+	it("uses the shared semantic fill resolver and layout style", () => {
+		expect(source.includes("resolveTableFillColumnId(")).toBe(true);
+		expect(source.includes("getTableColumnLayoutStyle({")).toBe(true);
+		expect(source.includes("columnId === resolvedFillColumnId")).toBe(true);
+		expect(source.includes("isActions && !resolvedFillColumnId")).toBe(true);
+		expect(source.includes("...(shouldFlex && { flex: 1 })")).toBe(false);
+	});
 });

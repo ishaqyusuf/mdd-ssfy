@@ -92,10 +92,13 @@ export function DataTable({
 		...(defaultFilters || {}),
 	} as JobsInput;
 
-	const infiniteQueryOptions = trpc.jobs.getJobs.infiniteQueryOptions(queryInput, {
-		getNextPageParam: ({ meta }) =>
-			(meta as { cursor?: string | number | null } | undefined)?.cursor,
-	});
+	const infiniteQueryOptions = trpc.jobs.getJobs.infiniteQueryOptions(
+		queryInput,
+		{
+			getNextPageParam: ({ meta }) =>
+				(meta as { cursor?: string | number | null } | undefined)?.cursor,
+		},
+	);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
 		useSuspenseInfiniteQuery<JobsPage>(infiniteQueryOptions as never);
@@ -214,6 +217,7 @@ export function DataTable({
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

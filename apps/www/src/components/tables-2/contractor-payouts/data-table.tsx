@@ -65,12 +65,8 @@ export function DataTable({
 	const { filters, hasFilters } = useContractorPayoutFilterParams();
 	const { params } = useSortParams();
 	const parentRef = useRef<HTMLDivElement>(null);
-	const {
-		rowSelection,
-		setRowSelection,
-		setColumns,
-		bindShowColumnDividers,
-	} = useContractorPayoutsTableStore();
+	const { rowSelection, setRowSelection, setColumns, bindShowColumnDividers } =
+		useContractorPayoutsTableStore();
 
 	useScrollHeader(parentRef);
 
@@ -96,11 +92,13 @@ export function DataTable({
 		sort: params.sort,
 	} as ContractorPayoutsInput;
 
-	const infiniteQueryOptions =
-		trpc.jobs.contractorPayouts.infiniteQueryOptions(queryInput, {
+	const infiniteQueryOptions = trpc.jobs.contractorPayouts.infiniteQueryOptions(
+		queryInput,
+		{
 			getNextPageParam: ({ meta }) =>
 				(meta as { cursor?: string | number | null } | undefined)?.cursor,
-		});
+		},
+	);
 
 	const { data, fetchNextPage, hasNextPage, isFetchingNextPage } =
 		useSuspenseInfiniteQuery<ContractorPayoutsPage>(
@@ -186,7 +184,8 @@ export function DataTable({
 					}}
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
-						height: "max(360px, calc(100vh - 420px + var(--header-offset, 0px)))",
+						height:
+							"max(360px, calc(100vh - 420px + var(--header-offset, 0px)))",
 					}}
 				>
 					<DndContext
@@ -219,6 +218,7 @@ export function DataTable({
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

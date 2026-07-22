@@ -609,6 +609,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - [x] Added Super Admin Sales Settings with persisted V1/V2 template selection, page-break policy, image/headline controls, recent-order live preview, and configuration-aware print/snapshot/download behavior (2026-07-18).
 - [x] Standardized legacy/new sales on decimal-safe 2dp arithmetic, authoritative grouped totals, Decimal shelf prices, subtractive percentage discounts, final HPT custom pricing, and a C.C.C-exclusive `grandTotal` contract (2026-07-20).
 - [x] Completed production-only Sentry for web and mobile: created separate `gnd-prodesk-web` and `gnd-prodesk-mobile` projects, updated Vercel/Expo production environments, added production source maps/releases, and wired the Expo SDK/Metro/root layout while keeping local and preview telemetry disabled (2026-07-20).
+- [x] Completed responsive full-width Tables-2 layout: registered one semantic fill column for all 84 virtualized configurations, preserved nine fixed legacy form grids, centralized header/row/skeleton sizing and fallback behavior, added registry regression coverage, and browser-validated the canonical orders table at 760/1280/1440/1920 widths (2026-07-22).
 - [x] 2026-07-20 Storefront e-commerce implementation: dedicated public API,
   canonical Dyke configuration projection for Doors/Mouldings/Shelf Items,
   admin publication/configuration workspace, cart/wishlist, customer auth and

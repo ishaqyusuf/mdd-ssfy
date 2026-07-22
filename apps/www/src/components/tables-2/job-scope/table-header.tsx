@@ -6,6 +6,7 @@ import {
 	type TableScrollState,
 	getHeaderLabel,
 	getTableCellPaddingClass,
+	getTableHeaderLayoutStyle,
 } from "@/components/tables-2/core";
 import { DraggableHeader } from "@/components/tables-2/draggable-header";
 import { ResizeHandle } from "@/components/tables-2/resize-handle";
@@ -93,19 +94,17 @@ export function DataTableHeader<TData>({
 								.find((item) => isVisible(item.column.id));
 							const showRightDivider =
 								showColumnDividers && Boolean(nextVisibleHeader);
-							const shouldFlex =
-								headerIndex === headers.length - 1 && !isSticky;
+							const { style: columnLayoutStyle } = getTableHeaderLayoutStyle({
+								headers,
+								header,
+								isVisible,
+								preferredFillColumnId: tableConfig.fillColumnId,
+								isSticky,
+							});
 							const headerStyle = {
 								...HEADER_CELL_BACKGROUND_STYLE,
-								width: header.getSize(),
-								minWidth: isSticky
-									? header.getSize()
-									: header.column.columnDef.minSize,
-								maxWidth: isSticky
-									? header.getSize()
-									: header.column.columnDef.maxSize,
+								...columnLayoutStyle,
 								...getStickyStyle(columnId),
-								...(shouldFlex && { flex: 1 }),
 							};
 
 							if (!canReorder) {

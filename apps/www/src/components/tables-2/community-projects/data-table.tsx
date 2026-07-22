@@ -45,8 +45,7 @@ const COLUMN_IDS = getColumnIds(columns);
 const TABLE_ID = "community-projects";
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
 
-type CommunityProjectsInput =
-	RouterInputs["community"]["getCommunityProjects"];
+type CommunityProjectsInput = RouterInputs["community"]["getCommunityProjects"];
 type CommunityProjectsPage = {
 	data?: CommunityProjectRow[];
 	meta?: {
@@ -218,6 +217,7 @@ export function DataTable({
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

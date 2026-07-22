@@ -18,10 +18,14 @@ export {
 	tableCellPaddingVariants,
 } from "./table-style";
 export {
+	getTableColumnLayoutStyle,
+	getTableHeaderLayoutStyle,
 	getTableColumnSizeStyle,
+	resolveTableFillColumnId,
 	sizeClass,
 	sizes,
 	tableColumnSizeClass,
+	type TableLayoutColumn,
 	type TableColumnSize,
 } from "./table-sizes";
 export { VirtualRow } from "./virtual-row";

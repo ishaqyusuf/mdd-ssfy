@@ -20,11 +20,7 @@ import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 
-import {
-	type EmployeeRow,
-	columns,
-	getEmployeeRowId,
-} from "./columns";
+import { type EmployeeRow, columns, getEmployeeRowId } from "./columns";
 import { EmptyState, NoResults } from "./empty-states";
 import { useEmployeesTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
@@ -208,6 +204,7 @@ export function DataTable({ initialSettings, defaultFilters }: Props) {
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

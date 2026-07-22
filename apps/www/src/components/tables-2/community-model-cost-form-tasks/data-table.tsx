@@ -28,7 +28,9 @@ const NON_CLICKABLE_COLUMNS = new Set<string>();
 const TABLE_ID = "community-model-cost-form-tasks";
 const COLUMN_IDS = getColumnIds(columns);
 const tableConfig = TABLE_CONFIGS[TABLE_ID];
-type CommunityModelCostFormValues = z.infer<typeof saveCommunityModelCostSchema>;
+type CommunityModelCostFormValues = z.infer<
+	typeof saveCommunityModelCostSchema
+>;
 
 type Props = {
 	data: CommunityModelCostTaskRow[];
@@ -98,7 +100,9 @@ export function DataTable({ data, control, initialSettings }: Props) {
 	const tableHeight = Math.min(
 		360,
 		Math.max(
-			tableConfig.headerHeight + tableConfig.rowHeight * Math.max(rows.length, 1) + 2,
+			tableConfig.headerHeight +
+				tableConfig.rowHeight * Math.max(rows.length, 1) +
+				2,
 			140,
 		),
 	);
@@ -145,6 +149,7 @@ export function DataTable({ data, control, initialSettings }: Props) {
 											row={row}
 											virtualStart={virtualRow.start}
 											rowHeight={tableConfig.rowHeight}
+											fillColumnId={tableConfig.fillColumnId}
 											tableStyle={tableConfig.style}
 											getStickyStyle={getStickyStyle}
 											getStickyClassName={getStickyClassName}

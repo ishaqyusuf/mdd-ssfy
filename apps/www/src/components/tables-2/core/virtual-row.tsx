@@ -14,7 +14,10 @@ import { memo } from "react";
 import type React from "react";
 import type { CSSProperties } from "react";
 
-import { getTableColumnSizeStyle } from "./table-sizes";
+import {
+	getTableColumnLayoutStyle,
+	resolveTableFillColumnId,
+} from "./table-sizes";
 import { getTableCellPaddingClass } from "./table-style";
 import {
 	ACTIONS_FULL_WIDTH_CELL_CLASS,
@@ -38,6 +41,7 @@ interface VirtualRowProps<TData> {
 	showColumnDividers?: boolean;
 	tableStyle?: TableStyle;
 	rowClassName?: (row: Row<TData>) => string;
+	fillColumnId?: string | null;
 }
 
 function VirtualRowInner<TData>({
@@ -52,14 +56,16 @@ function VirtualRowInner<TData>({
 	showColumnDividers = false,
 	tableStyle = "default",
 	rowClassName,
+	fillColumnId,
 }: VirtualRowProps<TData>) {
 	const cells = row.getVisibleCells();
-	const lastCellId = cells[cells.length - 1]?.column.id ?? "";
-	const hasNonStickyBeforeActions = cells.some((cell) => {
-		if (cell.column.id === "actions") return false;
-		const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
-		return !(meta?.sticky ?? false);
-	});
+	const resolvedFillColumnId = resolveTableFillColumnId(
+		cells.map((cell) => ({
+			id: cell.column.id,
+			canResize: cell.column.getCanResize(),
+		})),
+		fillColumnId,
+	);
 
 	return (
 		<TableRow
@@ -84,27 +90,21 @@ function VirtualRowInner<TData>({
 				const meta = cell.column.columnDef.meta as TableColumnMeta | undefined;
 				const isSticky = meta?.sticky ?? false;
 				const isActions = columnId === "actions";
-				const isLastBeforeActions =
-					cellIndex === cells.length - 2 && lastCellId === "actions";
-				const actionsFullWidth = isActions && !hasNonStickyBeforeActions;
-				const shouldFlex =
-					(isLastBeforeActions && !isSticky) || actionsFullWidth;
+				const isFillColumn = columnId === resolvedFillColumnId;
+				const actionsFullWidth = isActions && !resolvedFillColumnId;
 				const columnSize = cell.column.getSize();
 				const minSize = cell.column.columnDef.minSize ?? columnSize;
 				const maxSize = cell.column.columnDef.maxSize ?? columnSize;
 
 				const cellStyle: CSSProperties = {
-					...(!actionsFullWidth &&
-						getTableColumnSizeStyle({
-							size: columnSize,
-							minSize,
-							maxSize,
-						})),
-					width: actionsFullWidth ? undefined : columnSize,
-					minWidth: actionsFullWidth ? undefined : minSize,
-					maxWidth: actionsFullWidth ? undefined : maxSize,
+					...getTableColumnLayoutStyle({
+						size: columnSize,
+						minSize,
+						maxSize,
+						isFillColumn,
+						actionsFullWidth,
+					}),
 					...(!actionsFullWidth && getStickyStyle(columnId)),
-					...(shouldFlex && { flex: 1 }),
 				};
 
 				const cellClassName = actionsFullWidth
@@ -161,6 +161,7 @@ function arePropsEqual<TData>(
 		prevProps.columnVisibility === nextProps.columnVisibility &&
 		prevProps.showColumnDividers === nextProps.showColumnDividers &&
 		prevProps.tableStyle === nextProps.tableStyle &&
+		prevProps.fillColumnId === nextProps.fillColumnId &&
 		prevProps.row.original === nextProps.row.original
 	);
 }

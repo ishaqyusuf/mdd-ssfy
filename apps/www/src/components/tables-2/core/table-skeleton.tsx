@@ -18,6 +18,10 @@ import type {
 import { type CSSProperties, useMemo } from "react";
 
 import { SkeletonCell } from "./skeleton-cell";
+import {
+	getTableColumnLayoutStyle,
+	resolveTableFillColumnId,
+} from "./table-sizes";
 import { getTableCellPaddingClass } from "./table-style";
 import {
 	type TableColumnMeta,
@@ -106,6 +110,13 @@ export function TableSkeleton<TData>({
 
 		return positions;
 	}, [columnSizing, resolvedStickyColumnIds, visibleColumns]);
+	const resolvedFillColumnId = resolveTableFillColumnId(
+		visibleColumns.map((column) => ({
+			id: getColumnId(column),
+			canResize: column.enableResizing !== false,
+		})),
+		tableConfig?.fillColumnId,
+	);
 
 	const getStickyStyle = (columnId: string) => {
 		const position = stickyPositions[columnId];
@@ -148,10 +159,12 @@ export function TableSkeleton<TData>({
 								const meta = column.meta as TableColumnMeta | undefined;
 								const sticky = resolvedStickyColumnIds.includes(columnId);
 								const isActions = columnId === actionsColumnId;
+								const actionsFullWidth = isActions && !resolvedFillColumnId;
+								const isFillColumn = columnId === resolvedFillColumnId;
 								const isStatus = columnId === "status";
 								const width = columnSizing[columnId] ?? column.size ?? 150;
-								const minWidth = sticky ? width : (column.minSize ?? width);
-								const maxWidth = sticky ? width : (column.maxSize ?? width);
+								const minWidth = column.minSize ?? width;
+								const maxWidth = column.maxSize ?? width;
 								const stickyClass = getStickyClassName(
 									columnId,
 									cn(
@@ -161,7 +174,8 @@ export function TableSkeleton<TData>({
 								);
 								const headerClassName = isActions
 									? cn(
-											"group/header relative h-full border-t border-border flex items-center justify-center md:sticky md:right-0 z-10",
+											"group/header relative h-full border-t border-border flex items-center justify-center z-10",
+											!actionsFullWidth && "md:sticky md:right-0",
 											getTableCellPaddingClass(tableStyle),
 											HEADER_BACKGROUND_CLASS,
 										)
@@ -175,10 +189,15 @@ export function TableSkeleton<TData>({
 										className={headerClassName}
 										style={{
 											...HEADER_CELL_BACKGROUND_STYLE,
-											width,
-											minWidth,
-											maxWidth,
-											...getStickyStyle(columnId),
+											...getTableColumnLayoutStyle({
+												size: width,
+												minSize: minWidth,
+												maxSize: maxWidth,
+												isFillColumn,
+												actionsFullWidth,
+												lockToSize: sticky,
+											}),
+											...(!actionsFullWidth && getStickyStyle(columnId)),
 											...(!isActions &&
 												!isStatus && {
 													borderRight: "1px solid hsl(var(--border))",
@@ -214,15 +233,17 @@ export function TableSkeleton<TData>({
 									const meta = column.meta as TableColumnMeta | undefined;
 									const sticky = resolvedStickyColumnIds.includes(columnId);
 									const isActions = columnId === actionsColumnId;
+									const actionsFullWidth = isActions && !resolvedFillColumnId;
+									const isFillColumn = columnId === resolvedFillColumnId;
 									const width = columnSizing[columnId] ?? column.size ?? 150;
-									const minWidth = sticky ? width : (column.minSize ?? width);
-									const maxWidth = sticky ? width : (column.maxSize ?? width);
+									const minWidth = column.minSize ?? width;
+									const maxWidth = column.maxSize ?? width;
 									const cellClassName = cn(
 										"flex h-full items-center",
 										getTableCellPaddingClass(tableStyle),
 										getStickyClassName(columnId, meta?.className),
-										isActions &&
-											"md:sticky md:right-0 bg-background z-10 justify-center",
+										isActions && "bg-background z-10 justify-center",
+										isActions && !actionsFullWidth && "md:sticky md:right-0",
 									);
 
 									return (
@@ -230,10 +251,14 @@ export function TableSkeleton<TData>({
 											key={columnId}
 											className={cellClassName}
 											style={{
-												width,
-												minWidth,
-												maxWidth,
-												...getStickyStyle(columnId),
+												...getTableColumnLayoutStyle({
+													size: width,
+													minSize: minWidth,
+													maxSize: maxWidth,
+													isFillColumn,
+													actionsFullWidth,
+												}),
+												...(!actionsFullWidth && getStickyStyle(columnId)),
 												...(isActions && {
 													borderLeft: "1px solid hsl(var(--border))",
 													borderBottom: "1px solid hsl(var(--border))",

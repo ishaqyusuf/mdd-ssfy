@@ -6476,3 +6476,22 @@
   badge while production release gates remain open.
 - Removed stale `apps/site` references from the storefront environment example,
   web README, and system architecture overview.
+
+- 2026-07-22: completed responsive full-width sizing for all 84 virtualized
+  `tables-2/core` configurations. `TableConfig` now carries a semantic
+  `fillColumnId`; shared resolver/style helpers keep saved widths as the base,
+  let only the resolved fill column exceed its rendered `maxSize`, and choose a
+  deterministic visible data fallback while excluding Actions/selection/drag
+  utilities. All 79 headers, 79 `VirtualRow` consumers, and `TableSkeleton` now
+  share the rule; the nine `LegacyFormDataTable` grids remain `table-fixed` with
+  null mappings. Validation: core tests passed with 16 tests / 389 assertions;
+  the full Tables-2 suite passed 291 tests with one unrelated existing Dealers
+  route assertion failure; focused Biome passed; task-owned typecheck filtering
+  found no implementation diagnostics after removing test-matcher noise, while
+  broad `@gnd/www` remains blocked by existing API/Prisma/React diagnostics;
+  `git diff --check` passed. Authenticated browser proof on
+  `/sales-book/orders` at 760/1280/1440/1920 showed exactly one matching fill
+  header/body column, zero-pixel edge drift, zero document overflow, table-owned
+  narrow overflow, and `scrollWidth === clientWidth === 1786` at 1920. The
+  dirty runtime did not produce a loaded customer table for additional route
+  proof, so that route was not counted as passed browser evidence.
