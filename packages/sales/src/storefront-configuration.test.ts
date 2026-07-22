@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import { resolveDoorTierPricing } from "./sales-form/domain/workflow-calculators";
 import {
 	type StorefrontComponent,
 	deduplicateStorefrontOptions,
 	isStorefrontStepWaivedBySelection,
+	projectStorefrontDoorScheduleComponents,
 	projectStorefrontOfferRoute,
 	resolveStorefrontProductTypes,
 } from "./storefront-configuration";
@@ -270,6 +272,85 @@ describe("projectStorefrontOfferRoute", () => {
 });
 
 describe("storefront option presentation", () => {
+	it("keeps an unpriced door in the schedule with no selectable sizes", () => {
+		const tier = resolveDoorTierPricing({
+			pricing: {},
+			size: "2-8 x 6-8",
+		});
+		expect(
+			projectStorefrontDoorScheduleComponents([
+				{
+					stepProductId: 20,
+					componentUid: "birkdale",
+					title: "Birkdale 3 Panel",
+					sizes: [
+						{
+							dimension: "2-8 x 6-8",
+							hasPrice: tier.hasPrice,
+							unitPrice: tier.salesPrice,
+							basePrice: tier.basePrice,
+						},
+					],
+				},
+			]),
+		).toEqual([
+			{
+				stepProductId: 20,
+				componentUid: "birkdale",
+				title: "Birkdale 3 Panel",
+				sizes: [],
+			},
+		]);
+	});
+
+	it("keeps configured positive and zero-dollar door sizes selectable", () => {
+		const pricing = {
+			"1-6 x 6-8": { price: 38 },
+			"2-0 x 6-8": { price: 0 },
+		};
+		const sizes = Object.keys(pricing).map((dimension) => {
+			const tier = resolveDoorTierPricing({
+				pricing,
+				size: dimension,
+				salesMultiplier: 1.25,
+			});
+			return {
+				dimension,
+				hasPrice: tier.hasPrice,
+				unitPrice: tier.salesPrice,
+				basePrice: tier.basePrice,
+			};
+		});
+		expect(
+			projectStorefrontDoorScheduleComponents([
+				{
+					stepProductId: 21,
+					componentUid: "carrara",
+					title: "Carrara",
+					sizes,
+				},
+			]),
+		).toEqual([
+			{
+				stepProductId: 21,
+				componentUid: "carrara",
+				title: "Carrara",
+				sizes: [
+					{
+						dimension: "1-6 x 6-8",
+						unitPrice: 47.5,
+						basePrice: 38,
+					},
+					{
+						dimension: "2-0 x 6-8",
+						unitPrice: 0,
+						basePrice: 0,
+					},
+				],
+			},
+		]);
+	});
+
 	it("deduplicates customer options by normalized title", () => {
 		expect(
 			deduplicateStorefrontOptions([

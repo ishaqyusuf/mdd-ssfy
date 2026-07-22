@@ -208,6 +208,8 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 	} | null>(null);
 	const [handing, setHanding] = useState<"LH" | "RH" | null>(null);
 	const [activeAddOnStep, setActiveAddOnStep] = useState("");
+	const [resolvedPreviewRequestKey, setResolvedPreviewRequestKey] =
+		useState("");
 
 	const displaySteps = useMemo(
 		() =>
@@ -326,9 +328,11 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 		() => ({ offerId: offer.id, quantity, configuration }),
 		[configuration, offer.id, quantity],
 	);
+	const previewRequestKey = JSON.stringify(request);
 	const preview = useMutation(
 		trpc.storefrontCommerce.configuration.preview.mutationOptions({
-			onSuccess: (data) => {
+			onSuccess: (data, variables) => {
+				setResolvedPreviewRequestKey(JSON.stringify(variables));
 				setResolvedSteps(data.steps);
 				setDoorSchedule(data.workflow.doorSchedule);
 				setSelectedDoorSize((current) => {
@@ -376,11 +380,22 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			},
 		}),
 	);
+	const hasDoorSizes =
+		doorSchedule?.components.some((component) => component.sizes.length > 0) ??
+		false;
 	const doorReady =
 		!doorSchedule?.required ||
-		(Boolean(selectedDoorSize) && (doorSchedule.noHandle || Boolean(handing)));
+		(hasDoorSizes &&
+			Boolean(selectedDoorSize) &&
+			(doorSchedule.noHandle || Boolean(handing)));
+	const configurationPurchasable =
+		offer.availability.purchasable && (!doorSchedule?.required || hasDoorSizes);
+	const previewIsCurrent = resolvedPreviewRequestKey === previewRequestKey;
 	const isComplete =
-		offer.availability.purchasable &&
+		configurationPurchasable &&
+		previewIsCurrent &&
+		!preview.isPending &&
+		!preview.isError &&
 		preview.data?.complete === true &&
 		doorReady;
 	const selectedDoorPrice = useMemo(() => {
@@ -398,7 +413,6 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 	previewConfigurationRef.current = preview.mutate;
 	const previewRequestRef = useRef(request);
 	previewRequestRef.current = request;
-	const previewRequestKey = JSON.stringify(request);
 	const addToCart = useMutation(
 		trpc.storefrontCommerce.cart.add.mutationOptions({
 			onSuccess: () => {
@@ -531,42 +545,48 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 									<legend className="text-sm font-medium text-gray-900">
 										Size *
 									</legend>
-									<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-										{doorSchedule.components.flatMap((component) =>
-											component.sizes.map((size) => {
-												const selected =
-													selectedDoorSize?.stepProductId ===
-														component.stepProductId &&
-													selectedDoorSize.dimension === size.dimension;
-												return (
-													<Button
-														key={`${component.stepProductId}-${size.dimension}`}
-														type="button"
-														variant={selected ? "default" : "outline"}
-														className="h-auto min-h-14 flex-col items-start whitespace-normal px-3 py-2"
-														aria-pressed={selected}
-														onClick={() =>
-															setSelectedDoorSize({
-																stepProductId: component.stepProductId,
-																dimension: size.dimension,
-															})
-														}
-													>
-														<span>{size.dimension}</span>
-														<span className="text-xs font-normal opacity-80">
-															{formatMoney(
-																size.unitPrice +
-																	doorSchedule.sharedDoorSurcharge,
-															)}
-														</span>
-													</Button>
-												);
-											}),
-										)}
-									</div>
+									{hasDoorSizes ? (
+										<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+											{doorSchedule.components.flatMap((component) =>
+												component.sizes.map((size) => {
+													const selected =
+														selectedDoorSize?.stepProductId ===
+															component.stepProductId &&
+														selectedDoorSize.dimension === size.dimension;
+													return (
+														<Button
+															key={`${component.stepProductId}-${size.dimension}`}
+															type="button"
+															variant={selected ? "default" : "outline"}
+															className="h-auto min-h-14 flex-col items-start whitespace-normal px-3 py-2"
+															aria-pressed={selected}
+															onClick={() =>
+																setSelectedDoorSize({
+																	stepProductId: component.stepProductId,
+																	dimension: size.dimension,
+																})
+															}
+														>
+															<span>{size.dimension}</span>
+															<span className="text-xs font-normal opacity-80">
+																{formatMoney(
+																	size.unitPrice +
+																		doorSchedule.sharedDoorSurcharge,
+																)}
+															</span>
+														</Button>
+													);
+												}),
+											)}
+										</div>
+									) : (
+										<output className="text-sm text-muted-foreground">
+											Sizes are not available for this product.
+										</output>
+									)}
 								</fieldset>
 
-								{doorSchedule.noHandle ? null : (
+								{doorSchedule.noHandle || !hasDoorSizes ? null : (
 									<fieldset className="space-y-2">
 										<legend className="text-sm font-medium text-gray-900">
 											Handing *
@@ -646,21 +666,21 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 						<div className="flex items-center justify-between border-t pt-4">
 							<div className="text-3xl font-bold text-gray-900">
 								{doorSchedule?.required
-									? selectedDoorPrice != null
-										? `${formatMoney(selectedDoorPrice * quantity)}`
-										: "Select a size"
+									? !hasDoorSizes
+										? "Unavailable"
+										: selectedDoorPrice != null
+											? `${formatMoney(selectedDoorPrice * quantity)}`
+											: "Select a size"
 									: preview.data?.complete
 										? formatMoney(preview.data.lineTotal)
 										: "Price pending"}
 							</div>
 							<div
 								className={`text-sm font-medium ${
-									offer.availability.purchasable
-										? "text-green-600"
-										: "text-red-600"
+									configurationPurchasable ? "text-green-600" : "text-red-600"
 								}`}
 							>
-								{offer.availability.purchasable ? "Available" : "Unavailable"}
+								{configurationPurchasable ? "Available" : "Unavailable"}
 							</div>
 						</div>
 

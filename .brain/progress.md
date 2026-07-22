@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-07-22: Fixed the storefront door product empty-price state. Selected
+  doors now preserve their required workflow schedule even when every derived
+  size is unpriced, and the product page keeps Size visible with an unavailable
+  message while suppressing Handing and disabling purchase actions. Explicit
+  zero-dollar size prices remain selectable. Focused configuration coverage
+  passes 10 tests / 16 assertions; Birkdale and fully configured Carrara browser
+  QA passed with no console errors. Broad sales, storefront, and API typechecks
+  remain blocked by unrelated repository baseline diagnostics, with no errors
+  in the changed files.
 - 2026-07-20: Fixed the production `@gnd/www` Turbopack build failure while
   collecting `/api/bug-reports/upload` page data. The shared Prisma client no
   longer reads the internal `Prisma.dmmf.datamodel` export during module

@@ -23,6 +23,7 @@ import {
 	type PublicStorefrontStep,
 	isStorefrontStepWaivedBySelection,
 	normalizeStorefrontAvailability,
+	projectStorefrontDoorScheduleComponents,
 	projectStorefrontOfferRoute,
 	resolveStorefrontProductTypes,
 } from "@gnd/sales/storefront-configuration";
@@ -471,57 +472,53 @@ export async function validateAndPriceStorefrontConfiguration(
 	const doorSelection = selectedSteps.find(
 		(selection) => selection.step.title.trim().toLowerCase() === "door",
 	);
+	const hasDoorSizeWorkflow = Boolean(doorSelection);
 	const selectedDoors = doorSelection
 		? selectedCanonicalByStepUid.get(doorSelection.step.stepUid) || []
 		: [];
-	const doorScheduleComponents = selectedDoors.flatMap((component) => {
-		const pricing = safeRecord(component.pricing);
-		const sizes = deriveDoorSizeCandidates(
-			{ formSteps: pricedSteps },
-			pricing,
-			routeData,
-		);
-		const pricedSizes = sizes.flatMap((dimension) => {
-			const tier = resolveDoorTierPricing({
+	const doorScheduleComponents = projectStorefrontDoorScheduleComponents(
+		selectedDoors.map((component) => {
+			const pricing = safeRecord(component.pricing);
+			const sizes = deriveDoorSizeCandidates(
+				{ formSteps: pricedSteps },
 				pricing,
-				size: dimension,
-				supplierUid: null,
-				supplierVariants: Array.isArray(component.supplierVariants)
-					? component.supplierVariants
-					: [],
-				fallbackSalesPrice: Number(component.salesPrice || 0),
-				fallbackBasePrice: Number(component.basePrice || 0),
+				routeData,
+			);
+			const scheduleSizes = sizes.map((dimension) => {
+				const tier = resolveDoorTierPricing({
+					pricing,
+					size: dimension,
+					supplierUid: null,
+					supplierVariants: Array.isArray(component.supplierVariants)
+						? component.supplierVariants
+						: [],
+					fallbackSalesPrice: Number(component.salesPrice || 0),
+					fallbackBasePrice: Number(component.basePrice || 0),
+				});
+				return {
+					dimension,
+					hasPrice: tier.hasPrice,
+					unitPrice: roundMoney(tier.salesPrice),
+					basePrice: roundMoney(tier.basePrice),
+				};
 			});
-			return tier.hasPrice
-				? [
-						{
-							dimension,
-							unitPrice: roundMoney(tier.salesPrice),
-							basePrice: roundMoney(tier.basePrice),
-						},
-					]
-				: [];
-		});
-		return pricedSizes.length
-			? [
-					{
-						stepProductId: Number(component.id || 0),
-						componentUid: safeString(component.uid),
-						title:
-							doorSelection?.step.components.find(
-								(item) => item.uid === safeString(component.uid),
-							)?.title ||
-							safeString(component.name) ||
-							"Door",
-						sizes: pricedSizes,
-					},
-				]
-			: [];
-	});
+			return {
+				stepProductId: Number(component.id || 0),
+				componentUid: safeString(component.uid),
+				title:
+					doorSelection?.step.components.find(
+						(item) => item.uid === safeString(component.uid),
+					)?.title ||
+					safeString(component.name) ||
+					"Door",
+				sizes: scheduleSizes,
+			};
+		}),
+	);
 	const requestedDoorRows = input.configuration.housePackageTool?.doors ?? [];
 	if (
 		options?.requireWorkflowConfiguration &&
-		doorScheduleComponents.length &&
+		hasDoorSizeWorkflow &&
 		!requestedDoorRows.some((row) => Number(row.totalQty || 0) > 0)
 	) {
 		throw new TRPCError({
@@ -687,7 +684,7 @@ export async function validateAndPriceStorefrontConfiguration(
 		normalizedQuantity,
 		resolvedSteps,
 		workflow: {
-			doorSchedule: doorScheduleComponents.length
+			doorSchedule: hasDoorSizeWorkflow
 				? {
 						required: true,
 						noHandle,

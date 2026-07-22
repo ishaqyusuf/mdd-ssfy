@@ -195,6 +195,39 @@ export type PublicStorefrontStep = {
 	components: PublicStorefrontComponent[];
 };
 
+export type StorefrontDoorScheduleComponentCandidate = {
+	stepProductId: number;
+	componentUid: string;
+	title: string;
+	sizes: Array<{
+		dimension: string;
+		hasPrice: boolean;
+		unitPrice: number;
+		basePrice: number;
+	}>;
+};
+
+export function projectStorefrontDoorScheduleComponents(
+	components: StorefrontDoorScheduleComponentCandidate[],
+) {
+	return components.map((component) => ({
+		stepProductId: component.stepProductId,
+		componentUid: component.componentUid,
+		title: component.title,
+		sizes: component.sizes.flatMap((size) =>
+			size.hasPrice
+				? [
+						{
+							dimension: size.dimension,
+							unitPrice: size.unitPrice,
+							basePrice: size.basePrice,
+						},
+					]
+				: [],
+		),
+	}));
+}
+
 function safeString(value: unknown) {
 	return String(value ?? "").trim();
 }

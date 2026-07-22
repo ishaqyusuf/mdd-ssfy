@@ -119,6 +119,11 @@ item, customer, and permission workspaces.
   displayed sales price, and routes that require handling expose persistent
   left/right controls. Component add-ons remain one-open-at-a-time accordions;
   their options render as image cards with server-calculated prices.
+- A selected door whose size candidates have no configured price keeps its
+  required storefront door schedule with empty size arrays. The product page
+  keeps the Size section visible, labels the sizes and price as unavailable,
+  hides handling, and disables cart and wishlist actions until a priced size
+  exists. Explicitly configured zero-dollar prices remain valid sizes.
 - Product media supports one primary image plus a bounded merchandising gallery
   stored in the source component's storefront overlay metadata. The admin item
   sheet edits the gallery without changing the canonical Dyke product image.
@@ -175,6 +180,13 @@ item, customer, and permission workspaces.
   Selecting `1-6 x 6-8` preserves the selection through a Left hand choice and
   displays `$47.50`. The admin Carrara context menu enables `Open in storefront`,
   while an offline moulding exposes the same item disabled.
+- Product-page browser regression on 2026-07-22: the unpriced Birkdale offer
+  keeps the Size section visible with `Sizes are not available for this
+  product.`, shows unavailable pricing/availability, omits Handing, and disables
+  cart and wishlist. A fully configured Carrara path still renders priced size
+  buttons and enables cart/wishlist; both checks completed without browser
+  console errors. Focused storefront configuration coverage passes 10 tests / 16
+  assertions, including unpriced, positive-price, and zero-dollar size cases.
 - Full local sandbox rehearsal on 2026-07-21 created customer order
   `08897CST`, assigned Laura Ruth Godoy, produced the reviewed Square payment
   link, completed a Square sandbox payment, persisted the online payment,
