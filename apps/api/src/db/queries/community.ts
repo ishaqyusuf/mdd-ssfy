@@ -1860,8 +1860,8 @@ export async function uploadCommunityProjectDocuments(
         title: input.files[index]?.filename || upload.filename || null,
         description: input.note?.trim() || null,
         meta: {
-          projectSlug: project.slug,
-          projectTitle: project.title,
+        projectSlug: project.slug ?? String(project.id),
+        projectTitle: project.title ?? "Project",
           uploadedAt: new Date().toISOString(),
           originalContentType: input.files[index]?.contentType || null,
           originalSize: input.files[index]?.size ?? null,
@@ -1895,8 +1895,8 @@ export async function uploadCommunityProjectDocuments(
       "community_documents",
       {
         projectId: project.id,
-        projectSlug: project.slug,
-        projectTitle: project.title,
+        projectSlug: project.slug ?? String(project.id),
+        projectTitle: project.title ?? "Project",
         uploadedByName: actor.name || "Unknown",
         documentIds: createdDocuments.map((document) => document.id),
         documentNames: createdDocuments.map(
@@ -2771,7 +2771,7 @@ export async function getProjectUnitPrintPreflight(
     });
     const hasProductionActive = activeProductionTasks.length > 0;
     const productionStatus = activeProductionTasks.length
-      ? getProductionState(activeProductionTasks[0])
+      ? getProductionState(activeProductionTasks[0]!)
       : "Idle";
     const blockingReasons: string[] = [];
     const canPrint = hasTemplate && !isTemplateEmpty;

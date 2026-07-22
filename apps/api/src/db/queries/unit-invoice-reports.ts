@@ -132,7 +132,7 @@ export async function getUnitInvoiceAgingReport(
       );
 
       const openBalance = totals.due - totals.paid;
-      const openedOn = new Date(item.createdAt);
+      const openedOn = new Date(item.createdAt ?? 0);
       openedOn.setHours(0, 0, 0, 0);
       const ageDays = Math.max(
         Math.floor((today.getTime() - openedOn.getTime()) / 86400000),

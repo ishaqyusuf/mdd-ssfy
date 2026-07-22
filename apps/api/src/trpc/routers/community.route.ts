@@ -141,7 +141,7 @@ import {
 	jobFormSchema,
 } from "@community/schema";
 import type { JobStatus } from "@community/types";
-import type { Prisma } from "@gnd/db";
+import type { Db, Prisma } from "@gnd/db";
 import { getSettingAction } from "@gnd/settings";
 import {
 	consoleLog,
@@ -457,7 +457,7 @@ export const communityRouters = createTRPCRouter({
 			const normalizedJobTitle =
 				typeof jobInput.title === "string" ? jobInput.title.trim() : jobInput.title;
 			const customProjectSetting = isProjectlessCustomJob
-				? await getSettingAction("jobs-settings", db)
+				? await getSettingAction("jobs-settings", db as Db)
 				: null;
 			const allowCustomProject = !!(
 				customProjectSetting?.meta as
@@ -654,6 +654,9 @@ export const communityRouters = createTRPCRouter({
 				if (input.requestTaskConfig) {
 					if (!input.builderTaskId) {
 						throw new Error("builderTaskId is required for requestTaskConfig");
+					}
+					if (!input.modelId) {
+						throw new Error("modelId is required for requestTaskConfig");
 					}
 					await notification.channel.jobTaskConfigureRequest({
 						contractorId: job?.user?.id!,

@@ -1,4 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
+import type { Prisma } from "@gnd/db";
 
 export type InventoryInboundSummary = {
   id: number;
@@ -112,7 +113,7 @@ const salesInventoryInboundStatusBackfillCandidateWhere = {
   type: "order",
   ...staleInventoryInboundStatusWhere,
   ...activeInventoryOwnedInboundSalesOrderWhere,
-} as const;
+} as unknown as Prisma.SalesOrdersWhereInput;
 
 function uniquePositiveIds(values: number[]) {
   return Array.from(

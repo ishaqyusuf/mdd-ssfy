@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { TransactionClient } from "@gnd/db";
+import type { Db, Prisma, TransactionClient } from "@gnd/db";
 import {
 	approveBulkStockAllocation,
 	approveStockAllocation,
@@ -68,7 +68,7 @@ const allocationGuardSaleSelect = {
 			percentage: true,
 		},
 	},
-} as const;
+} as unknown as Prisma.SalesOrdersSelect;
 
 function assertSaleCanAllocateStock(sale: AllocationGuardSale) {
 	const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
@@ -132,7 +132,7 @@ export async function assertStockAllocationRequestCanAllocate(
 
 	for (const allocation of allocations) {
 		const sale = allocation.lineItemComponent.parent.sale;
-		if (sale) salesById.set(sale.id, sale);
+		if (sale) salesById.set(sale.id, sale as unknown as AllocationGuardSale);
 	}
 
 	for (const sale of salesById.values()) {
@@ -146,7 +146,7 @@ export async function approveStockAllocationQuery(
 ) {
 	return ctx.db.$transaction(async (tx) => {
 		await assertStockAllocationRequestCanAllocate(tx, [input.allocationId]);
-		return approveStockAllocation(tx, input);
+		return approveStockAllocation(tx as Db, input);
 	});
 }
 
@@ -156,7 +156,7 @@ export async function rejectStockAllocationQuery(
 ) {
 	return ctx.db.$transaction(async (tx) => {
 		await assertStockAllocationRequestCanAllocate(tx, [input.allocationId]);
-		return rejectStockAllocation(tx, input);
+		return rejectStockAllocation(tx as Db, input);
 	});
 }
 
@@ -166,6 +166,6 @@ export async function approveBulkStockAllocationQuery(
 ) {
 	return ctx.db.$transaction(async (tx) => {
 		await assertStockAllocationRequestCanAllocate(tx, input.allocationIds);
-		return approveBulkStockAllocation(tx, input);
+		return approveBulkStockAllocation(tx as Db, input);
 	});
 }

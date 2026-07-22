@@ -2,16 +2,16 @@ import type { TRPCContext } from "@api/trpc/init";
 import { slugify } from "@gnd/utils";
 
 export async function getMainCategories(ctx: TRPCContext) {
-  const inventories = await ctx.db.inventoryType.findMany({
+  const inventories = await ctx.db.inventoryCategory.findMany({
     where: {
-      type: "shelf-item",
+      productKind: "inventory",
     },
   });
 
   return inventories.map((inventory) => {
     return {
-      title: inventory.name,
-      slug: slugify(inventory.name),
+      title: inventory.title,
+      slug: slugify(inventory.title),
       uid: inventory.uid,
       img: inventory.img,
     };

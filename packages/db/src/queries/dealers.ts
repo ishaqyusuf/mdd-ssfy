@@ -2091,11 +2091,11 @@ export async function getDealerPortalSalesDocuments(
 		take: 100,
 		select: {
 			id: true,
+			createdAt: true,
 			orderId: true,
 			title: true,
 			status: true,
 			type: true,
-			createdAt: true,
 			grandTotal: true,
 			amountDue: true,
 			meta: true,
@@ -2170,6 +2170,7 @@ export async function getDealerPortalSalesDocument(
 		},
 		select: {
 			id: true,
+			createdAt: true,
 			orderId: true,
 			title: true,
 			status: true,

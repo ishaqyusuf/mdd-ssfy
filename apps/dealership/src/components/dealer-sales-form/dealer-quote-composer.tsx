@@ -2,6 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import {
+	type DealerSalesFormQuoteSource,
 	type DealerSalesFormQuotePricingContext,
 	SalesFormFloatingActions,
 	SalesFormHeaderActions,
@@ -334,7 +335,11 @@ export function DealerQuoteComposer({
 
 	useEffect(() => {
 		if (editingQuoteId && !quoteQuery.data) return;
-		form.hydrateQuote(editingQuoteId ? quoteQuery.data : null);
+		form.hydrateQuote(
+			editingQuoteId
+				? (quoteQuery.data as DealerSalesFormQuoteSource | null | undefined)
+				: null,
+		);
 		setPricingSnapshotChoice(null);
 	}, [editingQuoteId, form.hydrateQuote, quoteQuery.data]);
 

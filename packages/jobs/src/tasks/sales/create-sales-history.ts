@@ -13,7 +13,8 @@ export const createSalesHistory = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (props) => {
-		if (!props.salesNo) {
+		const salesNo = props.salesNo;
+		if (!salesNo) {
 			throw new Error("Sales history requires a sales number.");
 		}
     //TODO: before creating a new history, compare current sales record with last history, if there is any change, then create a history,
@@ -21,10 +22,13 @@ export const createSalesHistory = schemaTask({
     const result = await copySales({
       db: db,
       as: props.salesType == "order" ? "order-hx" : "quote-hx",
-      salesUid: props.salesNo,
+      salesUid: salesNo,
       author: props.author,
       type: props.salesType,
     });
+		if (!result.slug) {
+			throw new Error("Sales history copy did not produce a slug.");
+		}
     await createNoteAction({
       authorId: props.author.id,
       db,

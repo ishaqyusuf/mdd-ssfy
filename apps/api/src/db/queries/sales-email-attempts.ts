@@ -423,8 +423,8 @@ export async function resendSalesEmailAttempt(
 			customerEmail: attempt.customerEmail,
 			senderId: actor.user.id,
 			salesRepId: attempt.salesRepId,
-			salesIds: attempt.salesIds,
-			salesNos: attempt.salesNos,
+			salesIds: attempt.salesIds as Prisma.InputJsonValue,
+			salesNos: attempt.salesNos as Prisma.InputJsonValue,
 			salesIdsText: attempt.salesIdsText,
 			salesNosText: attempt.salesNosText,
 			originalAttemptId: attempt.id,
@@ -434,8 +434,8 @@ export async function resendSalesEmailAttempt(
 				retry: true,
 				retriedById: actor.user.id,
 				sourceAttemptId: attempt.id,
-			},
-		} satisfies Prisma.SalesEmailAttemptUncheckedCreateInput,
+			} as unknown as Prisma.InputJsonObject,
+		},
 	});
 
 	try {

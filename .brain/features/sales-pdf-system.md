@@ -158,6 +158,15 @@ apps/www/src/app/(public)/p/sales-document-v2/        # signed HTML preview rout
 
 2026-07-16 filtered batch proof: applying `q=cimera`, `invoice=pending`, and `sales.rep=Pablo Cruz` returned active orders `08682PC`, `08680PC`, and `08472PC`; the batch `Print > PDF > Order` UI path reached `PDF download started`, but the in-app browser did not persist a fresh blob download, so the same sales PDF route/rendering path was used to save `~/Downloads/Sales_Print_Cimera_Pablo_Cruz_pending.pdf`. PDF text extraction confirmed all three order numbers, `CIMERA`, and `Pablo Cruz`.
 
+2026-07-22 follow-up: PDF downloads from the HTML sales-document preview now use the
+same-origin blob-fetch path as the sales-menu controller instead of opening a
+synthetic new tab. The download URL preserves the canonical print mode (including
+`quote`) and fetches with credentials plus `no-store`, so public quote previews
+surface a real response failure instead of silently losing the download. Focused
+sales-print service, print-data, query, and PDF renderer coverage passes 42 tests /
+154 assertions; browser proof of the public quote-preview button remains a release
+validation gate.
+
 ---
 
 ## Type contract

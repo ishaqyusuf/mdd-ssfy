@@ -3,7 +3,7 @@ import {
   type StoredDocumentRecord,
   type StoredDocumentRepository,
 } from "@gnd/documents";
-import type { Db } from "@gnd/db";
+import type { Db, Prisma } from "@gnd/db";
 
 export function createStoredDocumentRepository(
   db: Db,
@@ -11,14 +11,14 @@ export function createStoredDocumentRepository(
   return {
     create(input) {
       return db.storedDocument.create({
-        data: input,
+				data: input as unknown as Prisma.StoredDocumentUncheckedCreateInput,
       });
     },
     update(input) {
       const { id, ...data } = input;
       return db.storedDocument.update({
         where: { id },
-        data,
+				data: data as unknown as Prisma.StoredDocumentUpdateInput,
       });
     },
     findCurrentByOwner(input) {

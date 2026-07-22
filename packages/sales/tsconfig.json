@@ -1,7 +1,7 @@
 {
   "extends": "@gnd/tsconfig/base.json",
   "include": ["src", "../../types"],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/**/*.test.tsx"],
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",

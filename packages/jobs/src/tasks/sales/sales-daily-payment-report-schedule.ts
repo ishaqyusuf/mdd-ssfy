@@ -397,7 +397,10 @@ async function storeWorkbook(input: {
 	const documentService = createDocumentService(
 		createVercelBlobProvider({
 			put: (pathname, body, options) =>
-				put(pathname, body as Buffer, options),
+				put(pathname, body as Buffer, {
+					...options,
+					access: options?.access ?? "public",
+				}),
 			token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
 			access: "public",
 			addRandomSuffix: false,

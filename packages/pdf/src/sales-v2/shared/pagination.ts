@@ -84,11 +84,11 @@ export function paginatePrintSections(
 
 	sections.forEach((section, sourceIndex) => {
 		const hasImageColumn = sectionHasImageColumn(section, options.showImages);
-		const rows = section.rows;
+		const rows = section.rows as PrintRow[];
 		const wholeSectionHeight =
 			sectionGapHeight +
 			estimateLeadInHeight(section, false, pageBreakMode) +
-			rows.reduce(
+			rows.reduce<number>(
 				(total, row) => total + estimateRowHeight(section, row, hasImageColumn),
 				0,
 			);

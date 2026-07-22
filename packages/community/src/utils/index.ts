@@ -115,10 +115,10 @@ type UnitProductionStatusHome = {
 };
 
 export function getUnitProductionStatus(home: UnitProductionStatusHome) {
-  const prod = home?.tasks?.filter((t) => t.produceable);
+  const prod = home.tasks?.filter((t) => t.produceable) ?? [];
   let prodDate: any = null;
   // if (home.builderId == 14)
-  const produceables = prod?.length;
+  const produceables = prod.length;
   let produced = prod?.filter((p) => p.producedAt).length;
   const hasJob = home?._count.jobs;
   if (hasJob) produced = prod.length;
@@ -126,7 +126,7 @@ export function getUnitProductionStatus(home: UnitProductionStatusHome) {
   let productionStatus = "Idle";
   if (home.id == 10217) {
   }
-  const sent = prod?.filter((p) => p.sentToProductionAt)?.length;
+  const sent = prod.filter((p) => p.sentToProductionAt).length;
   prodDate = prod.filter((p) => p.productionDueDate)?.[0]?.productionDueDate;
   if (sent > 0) productionStatus = "Queued";
   if (produced > 0) {

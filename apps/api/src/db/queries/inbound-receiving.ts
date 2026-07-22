@@ -1,5 +1,5 @@
 import type { TRPCContext } from "@api/trpc/init";
-import type { TransactionClient } from "@gnd/db";
+import type { Prisma, TransactionClient } from "@gnd/db";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
 import {
 	createStoredDocumentRegistry,
@@ -120,7 +120,7 @@ const inboundGuardSaleSelect = {
 			percentage: true,
 		},
 	},
-} as const;
+} as unknown as Prisma.SalesOrdersSelect;
 
 function assertSaleCanCreateInbound(sale: InboundGuardSale) {
 	const fulfillmentStatus = resolveSalesInventoryFulfillmentStatus({
@@ -198,7 +198,7 @@ async function assertInboundRequestCanCreateDemand(
 
 		for (const component of components) {
 			const sale = component.parent.sale;
-			if (sale) salesById.set(sale.id, sale);
+			if (sale) salesById.set(sale.id, sale as unknown as InboundGuardSale);
 		}
 	}
 
@@ -227,7 +227,7 @@ async function assertInboundRequestCanCreateDemand(
 
 		for (const demand of demands) {
 			const sale = demand.lineItemComponent.parent.sale;
-			if (sale) salesById.set(sale.id, sale);
+			if (sale) salesById.set(sale.id, sale as unknown as InboundGuardSale);
 		}
 	}
 
@@ -1124,11 +1124,11 @@ export async function createInboundShipmentFromDemandsQuery(
 
 	const { result, linkedSales, updatedSalesOrderCount } =
 		await ctx.db.$transaction(async (tx) => {
+			await assertInboundRequestCanCreateDemand({ db: tx }, input);
 			const setting = await getSettingAction("sales-settings", tx as any);
 			const paymentReviewSettings = normalizeSalesPaymentReviewSettings(
 				((setting.meta || {}) as Record<string, any>).paymentReview,
 			);
-			await assertInboundRequestCanCreateDemand({ db: tx }, input);
 			const ensuredDemandIds = input.componentSelections?.length
 				? await ensureSelectedInboundDemandsForStockComponents(
 						{ db: tx },

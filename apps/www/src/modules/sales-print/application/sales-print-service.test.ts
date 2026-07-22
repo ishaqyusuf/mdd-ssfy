@@ -190,12 +190,13 @@ describe("sales print service", () => {
 		expect(
 			buildSalesPdfDownloadUrlFromQuery({
 				accessToken: "access-123",
+				mode: "quote",
 				templateId: "template-2",
 				preview: true,
 				origin: "https://app.example.com",
 			}),
 		).toBe(
-			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=true",
+			"https://app.example.com/api/download/sales-v2?accessToken=access-123&preview=true&mode=quote",
 		);
 
 		expect(
@@ -313,7 +314,7 @@ describe("sales print service", () => {
 		}
 
 		expect(fetchedUrl).toBe(
-			"https://app.example.com/api/download/sales-v2?token=legacy-123&preview=false",
+			"https://app.example.com/api/download/sales-v2?token=legacy-123&preview=false&mode=invoice",
 		);
 		expect(clickedHref).toBe("blob:pdf-123");
 		expect(clickedDownload).toBe("batch.pdf");

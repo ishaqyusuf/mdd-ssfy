@@ -11,6 +11,7 @@ import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
 
 import { cva, VariantProps } from "class-variance-authority";
 import { cn } from "../utils";
+import type * as React from "react";
 import type { ComponentType, ReactNode } from "react";
 
 export type LucideProps = Omit<

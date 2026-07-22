@@ -1,4 +1,3 @@
-// @ts-expect-error packages/sales typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 import {
   type CopySalesInTransactionProps,

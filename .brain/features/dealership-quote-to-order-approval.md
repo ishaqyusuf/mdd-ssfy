@@ -18,10 +18,12 @@ payload guarantees.
 - Dealer quote save/reopen, package workflow payload persistence, dealer
   pricing, print/PDF fallbacks, and inventory sync fallbacks are covered by the
   new sales form migration docs and gate.
-- Existing code supports direct dealer quote-to-order conversion through
-  `dealerPortal.convertQuoteToOrder`.
-- The desired product change is to replace dealer-owned direct conversion with
-  a sales-rep approval request workflow.
+- The legacy `dealerPortal.convertQuoteToOrder` route remains as a compatibility
+  boundary but is hard-disabled with an actionable `FORBIDDEN` response; it no
+  longer converts dealer-owned quotes directly.
+- The canonical path is `dealerPortal.requestQuoteOrder` followed by the
+  office request-review/approval workflow. The internal conversion helper is
+  intentionally retained only for that transactional approval path.
 - Authenticated local browser proof is complete for the quote-to-order path,
   using seeded dealership and office users against the shared local database.
 - Dealer Sales / Dealer Quotes tabs now show dealer-scoped count badges from the

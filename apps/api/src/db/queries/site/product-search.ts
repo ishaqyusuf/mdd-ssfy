@@ -16,18 +16,12 @@ async function searchShelfInventories(
 ) {
   const inventories = await ctx.db.inventory.findMany({
     where: {
-      type: {
-        AND: query.categoryIds.map((qid) => ({
-          categories: {
-            some: {
-              id: qid,
-            },
-          },
-        })),
-      },
+      productKind: "inventory",
+      inventoryCategoryId: { in: query.categoryIds },
+      ...(query.q.trim() ? { name: { contains: query.q.trim() } } : {}),
     },
     include: {
-      category: true,
+      inventoryCategory: true,
       variantPricings: {
         select: {
           inventoryId: true,
@@ -37,6 +31,6 @@ async function searchShelfInventories(
     },
   });
   return inventories.map((i) => ({
-    title: i.title,
+    title: i.name,
   }));
 }

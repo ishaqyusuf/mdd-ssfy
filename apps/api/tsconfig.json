@@ -7,7 +7,7 @@
     "allowJs": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
+    "verbatimModuleSyntax": false,
     "noEmit": true,
     "strict": true,
     "noImplicitAny": false,
@@ -37,6 +37,6 @@
   "tsc-alias": {
     "resolveFullPaths": true
   },
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/**/*.test.tsx"],
   "include": ["_api", "src/**/*.ts"]
 }

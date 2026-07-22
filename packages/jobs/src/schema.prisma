@@ -1788,6 +1788,7 @@ model StorefrontInquiry {
     assignedToId Int?
     customerId   Int?
     salesQuoteId Int?                    @unique
+    authorizedUploadCount Int            @default(0)
     quoteConversionStartedAt DateTime?   @db.Timestamp(0)
     quoteConversionById Int?
     requestId    String?                 @db.VarChar(191)

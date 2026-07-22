@@ -174,7 +174,7 @@ export async function getSaleTransactions(
 				paymentMethod === "link" &&
 				status?.toLocaleLowerCase() === "pending"
 			) {
-				status = spStatus;
+				status = spStatus ?? status;
 			}
 			const order = item.salesPayments?.[0]?.order;
 			const laborCost = order?.extraCosts?.find(

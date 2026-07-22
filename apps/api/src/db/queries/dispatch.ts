@@ -375,8 +375,8 @@ function mapPackingListRow(row: {
 		status: row.status ?? null,
 		orderNo: row.order?.orderId ?? "",
 		salesRep: row.order?.salesRep?.name ?? null,
-		customerName: formatPackingListCustomerName(row.order),
-		address: formatPackingAddress(row.order?.shippingAddress),
+		customerName: formatPackingListCustomerName(row.order ?? undefined),
+		address: formatPackingAddress(row.order?.shippingAddress ?? undefined),
 		phone:
 			row.order?.shippingAddress?.phoneNo ||
 			row.order?.customer?.phoneNo ||

@@ -323,7 +323,6 @@ export async function getJobs(ctx: TRPCContext, query: GetJobsSchema) {
 					jobType: getJobType(meta),
 					adminNote,
 					amount,
-					builderTask: rest.builderTask,
 					createdAt,
 					description,
 					home,

@@ -44,6 +44,10 @@ item, customer, and permission workspaces.
   sales-form route. Storefront policy controls publication, presentation,
   visible steps, hidden defaults, ordering, and automatic selection without
   redefining canonical compatibility or price.
+- Public inventory category and product search projections read the current
+  `InventoryCategory`/`Inventory` schema (`productKind = "inventory"`), so
+  category navigation and shelf inventory results stay aligned with the
+  canonical catalog model.
 - Checkout reprices every line, calculates configured delivery/tax/card
   charges, uses an idempotent Square flow, and promotes the cart into one
   canonical `SalesOrders` record with `salesChannel = "storefront"`.
@@ -163,10 +167,16 @@ item, customer, and permission workspaces.
 - Browser QA against the isolated database: responsive homepage 200, guest
   cart 200, contact page 200, inquiry submission 200, and no browser console
   errors after fixes.
-- Broad workspace typechecks remain blocked by unrelated existing Prisma,
+- Earlier in the migration, broad workspace typechecks were blocked by
+  unrelated existing Prisma,
   inventory, document, and duplicate React-type baseline failures. Focused
   storefront diagnostic filtering is clean except the jobs test compiler's
   existing lack of `bun:test` declarations.
+- 2026-07-22 follow-up: the complete Turbo production typecheck now passes all
+  28 packages. Focused storefront, API guard, sales inventory, lifecycle, and
+  notification coverage passes 43 tests / 99 assertions; the remaining release
+  gates are browser/provider/data readiness and the existing migration shadow
+  database issue.
 - The production storefront bundle compiled successfully. Next.js then stopped
   during its workspace TypeScript gate on the pre-existing
   `apps/api/src/db/queries/inbound-receiving.ts` readonly dispatch-status tuple

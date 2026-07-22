@@ -147,7 +147,10 @@ class SharedRedisClient {
 
       socket.on("data", (chunk) => {
         try {
-          responseBuffer = Buffer.concat([responseBuffer, chunk]);
+			responseBuffer = Buffer.concat([
+				responseBuffer as unknown as Uint8Array<ArrayBufferLike>,
+				chunk as unknown as Uint8Array<ArrayBufferLike>,
+			]);
 
           while (pending > 0) {
             const parsed = parseResp(responseBuffer);

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
 	buildSalesDocumentRouteFromQuery,
 	buildSalesPdfDownloadUrlFromQuery,
+	downloadSalesPdfUrl,
 } from "@/modules/sales-print/application/sales-print-service";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTRPC } from "@/trpc/client";
@@ -80,6 +81,7 @@ export function SalesDocumentPreviewPage({
 	const resolvedPageBreakMode = normalizeSalesPageBreakMode(pageBreakMode);
 	const [regeneratedAccess, setRegeneratedAccess] =
 		useState<ResolveSalesDocumentAccessResult | null>(null);
+	const [isDirectDownloading, setIsDirectDownloading] = useState(false);
 	const effectivePt = regeneratedAccess ? undefined : pt;
 	const effectiveToken = regeneratedAccess ? undefined : token;
 	const effectiveAccessToken = regeneratedAccess?.accessToken ?? accessToken;
@@ -132,6 +134,7 @@ export function SalesDocumentPreviewPage({
 			templateId,
 			pageBreakMode: resolvedPageBreakMode,
 			printConfig: { showImages, headlineFirstPage },
+			mode: data?.mode,
 			pricingMode,
 			origin: baseUrl,
 		});
@@ -146,6 +149,7 @@ export function SalesDocumentPreviewPage({
 		showImages,
 		templateId,
 		resolvedPageBreakMode,
+		data?.mode,
 	]);
 	const pdfPrintPageQuery = useMemo(() => {
 		if (
@@ -247,7 +251,18 @@ export function SalesDocumentPreviewPage({
 		}
 
 		if (pdfPageQuery) {
-			openLink(pdfPageQuery, null, true);
+			setIsDirectDownloading(true);
+			try {
+				await downloadSalesPdfUrl(pdfPageQuery);
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Unable to download PDF. Please try again.",
+				);
+			} finally {
+				setIsDirectDownloading(false);
+			}
 		}
 	}
 
@@ -547,14 +562,16 @@ export function SalesDocumentPreviewPage({
 							onClick={() => {
 								void handleDownloadPdf();
 							}}
-							disabled={salesPrint.isDownloading}
+							disabled={salesPrint.isDownloading || isDirectDownloading}
 						>
-							{salesPrint.isDownloading ? (
+							{salesPrint.isDownloading || isDirectDownloading ? (
 								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
 							) : (
 								<Icons.File className="mr-2 size-4" />
 							)}
-							{salesPrint.isDownloading ? "Preparing..." : "PDF"}
+							{salesPrint.isDownloading || isDirectDownloading
+								? "Preparing..."
+								: "PDF"}
 						</Button>
 						{auth.can?.editSales && resolvedSalesOrderId ? (
 							<Button

@@ -1,5 +1,8 @@
 import { db } from "@gnd/db";
-import type { NotificationOptions, NotificationResult } from "@notifications/base";
+import type {
+	NotificationOptions,
+	NotificationResult,
+} from "@notifications/base";
 import {
 	type NotificationJobInput,
 	notificationJobSchema,
@@ -162,10 +165,7 @@ export const notification = schemaTask({
 					payload,
 				});
 
-				return createFailedSalesDocumentEmailResult(
-					channel,
-					userErrorMessage,
-				);
+				return createFailedSalesDocumentEmailResult(channel, userErrorMessage);
 			}
 		})();
 		if (

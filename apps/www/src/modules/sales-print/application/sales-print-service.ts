@@ -243,6 +243,7 @@ export function buildSalesPdfDownloadUrlFromQuery(input: {
 	templateId?: string | null;
 	pageBreakMode?: SalesPageBreakMode | null;
 	printConfig?: Partial<SalesPrintSettings> | null;
+	mode?: string;
 	pricingMode?: "customer" | "internal" | null;
 	preview?: boolean;
 	fresh?: boolean;
@@ -443,10 +444,11 @@ export async function downloadSalesPrintDocument(
 	const access = await resolveSalesPrintAccess(request, dependencies);
 	const href = buildSalesDocumentRouteUrl(DOWNLOAD_ROUTE_PATH, access, {
 		preview: false,
+		mode: resolveSalesPrintMode(request.mode),
 		printConfig: access.printConfig,
 		pricingMode: request.pricingMode ?? null,
 	});
-	await downloadSilently(href);
+	await downloadSalesPdfUrl(href);
 }
 
 export async function regenerateSalesPrintDocument(
@@ -548,8 +550,11 @@ function buildSalesDocumentRouteUrl(
 	return `${url.pathname}${url.search}`;
 }
 
-async function downloadSilently(url: string) {
-	const response = await fetch(url);
+export async function downloadSalesPdfUrl(url: string) {
+	const response = await fetch(url, {
+		credentials: "include",
+		cache: "no-store",
+	});
 	if (!response.ok) {
 		throw new Error(`Unable to download PDF (${response.status}).`);
 	}

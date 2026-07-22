@@ -698,5 +698,5 @@ export function whereUnitProductions(query: Partial<GetUnitProductionsSchema>) {
     }
   }
 
-  return composeQuery(where);
+  return composeQuery(where) ?? {};
 }
