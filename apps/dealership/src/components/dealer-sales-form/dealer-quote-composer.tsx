@@ -501,11 +501,15 @@ export function DealerQuoteComposer({
 				lineItems: record?.lineItems || [],
 				dealerProfile: effectiveDealerProfile,
 				internalProfile: effectiveInternalProfile,
+				sellerOfRecord: record?.form.sellerOfRecord || "DEALER",
+				resaleCertificateOnFile: Boolean(record?.form.resaleCertificateOnFile),
 			}),
 		[
 			effectiveDealerProfile,
 			effectiveInternalProfile,
 			record?.lineItems,
+			record?.form.sellerOfRecord,
+			record?.form.resaleCertificateOnFile,
 			selectedTaxRate,
 		],
 	);
@@ -753,6 +757,10 @@ export function DealerQuoteComposer({
 						po={record.form.po}
 						showMargin={showMargin}
 						taxCode={selectedTaxCode}
+						sellerOfRecord={record.form.sellerOfRecord || "DEALER"}
+						resaleCertificateOnFile={Boolean(
+							record.form.resaleCertificateOnFile,
+						)}
 						taxOptions={taxSelectOptions}
 						isEditing={Boolean(editingQuoteId)}
 						isFetching={quoteQuery.isFetching}
@@ -782,6 +790,18 @@ export function DealerQuoteComposer({
 								resolveSalesFormTaxRateByCode(taxOptions, taxCode),
 							);
 						}}
+						onSellerOfRecordChange={(sellerOfRecord) =>
+							form.setMeta({
+								sellerOfRecord,
+								resaleCertificateOnFile:
+									sellerOfRecord === "DEALER"
+										? record.form.resaleCertificateOnFile
+										: false,
+							})
+						}
+						onResaleCertificateOnFileChange={(checked) =>
+							form.setMeta({ resaleCertificateOnFile: checked })
+						}
 						onSave={save}
 						subTotal={activePricing.subTotal}
 						taxTotal={activePricing.taxTotal}

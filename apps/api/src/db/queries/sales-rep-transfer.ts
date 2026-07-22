@@ -3,11 +3,7 @@ import type {
 	TransferSalesRepSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
-import {
-	checkPassword,
-	getUserSpecificPermissions,
-	mergePermissionRecords,
-} from "@gnd/auth/utils";
+import { checkPassword } from "@gnd/auth/utils";
 import type { Prisma } from "@gnd/db";
 import { getNameInitials } from "@gnd/utils";
 import { generatePermissions } from "@gnd/utils/constants";
@@ -46,7 +42,9 @@ const salesRepCandidateSelect = {
 } satisfies Prisma.UsersSelect;
 
 const salesRepTransferActorSelect = {
-	...salesRepCandidateSelect,
+	id: true,
+	name: true,
+	email: true,
 	password: true,
 } satisfies Prisma.UsersSelect;
 
@@ -158,16 +156,6 @@ async function loadSalesRepTransferActor(ctx: TRPCContext) {
 		});
 	}
 
-	const roleName = primaryRoleNameFor(user as SalesRepCandidateUser);
-	const specificPermissions = await getUserSpecificPermissions(ctx.db, user.id);
-	const can = generatePermissions(
-		roleName,
-		mergePermissionRecords(
-			rolePermissionsFor(user as SalesRepCandidateUser),
-			specificPermissions,
-		),
-	);
-
 	return {
 		user: {
 			id: user.id,
@@ -175,8 +163,6 @@ async function loadSalesRepTransferActor(ctx: TRPCContext) {
 			email: user.email,
 			password: user.password,
 		},
-		roleTitle: roleName,
-		can,
 	};
 }
 
@@ -207,14 +193,13 @@ async function requirePasswordConfirmedActor(
 
 function assertCanTransferSalesRep(
 	actor: Awaited<ReturnType<typeof loadSalesRepTransferActor>>,
-	order: { salesRepId: number | null },
+	sale: { salesRepId: number | null },
 ) {
-	if (actor.can.editOrders) return;
-	if (order.salesRepId === actor.user.id) return;
+	if (sale.salesRepId === actor.user.id) return;
 
 	throw new TRPCError({
 		code: "FORBIDDEN",
-		message: "You can only transfer orders assigned to you.",
+		message: "You can only transfer sales assigned to you.",
 	});
 }
 
@@ -250,34 +235,32 @@ export async function getSalesRepTransferOptions(
 ) {
 	const actor = await loadSalesRepTransferActor(ctx);
 
-	if (!actor.can.editOrders) {
-		if (!input?.salesId) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: "Order id is required.",
-			});
-		}
-
-		const order = await ctx.db.salesOrders.findFirst({
-			where: {
-				id: input.salesId,
-				type: "order",
-				deletedAt: null,
-			},
-			select: {
-				salesRepId: true,
-			},
+	if (!input?.salesId) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Sale id is required.",
 		});
-
-		if (!order) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: "Order not found.",
-			});
-		}
-
-		assertCanTransferSalesRep(actor, order);
 	}
+
+	const sale = await ctx.db.salesOrders.findFirst({
+		where: {
+			id: input.salesId,
+			type: { in: ["order", "quote"] },
+			deletedAt: null,
+		},
+		select: {
+			salesRepId: true,
+		},
+	});
+
+	if (!sale) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Sale not found.",
+		});
+	}
+
+	assertCanTransferSalesRep(actor, sale);
 
 	const users = await ctx.db.users.findMany({
 		where: {
@@ -308,10 +291,10 @@ export async function transferSalesRep(
 
 	return ctx.db.$transaction(async (tx) => {
 		const db = tx as SalesRepTransferDb;
-		const order = await db.salesOrders.findFirst({
+		const sale = await db.salesOrders.findFirst({
 			where: {
 				id: input.salesId,
-				type: "order",
+				type: { in: ["order", "quote"] },
 				deletedAt: null,
 			},
 			select: {
@@ -329,14 +312,14 @@ export async function transferSalesRep(
 			},
 		});
 
-		if (!order) {
+		if (!sale) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
-				message: "Order not found.",
+				message: "Sale not found.",
 			});
 		}
 
-		assertCanTransferSalesRep(actor, order);
+		assertCanTransferSalesRep(actor, sale);
 
 		const targetSalesRep = await findSalesRepCandidate(db, input.salesRepId);
 		if (!targetSalesRep) {
@@ -346,14 +329,14 @@ export async function transferSalesRep(
 			});
 		}
 
-		const previousSalesRep = mapOrderSalesRep(order.salesRep, order.salesRepId);
-		if (order.salesRepId === targetSalesRep.id) {
+		const previousSalesRep = mapOrderSalesRep(sale.salesRep, sale.salesRepId);
+		if (sale.salesRepId === targetSalesRep.id) {
 			return {
 				changed: false,
 				order: {
-					id: order.id,
-					orderId: order.orderId,
-					slug: order.slug,
+					id: sale.id,
+					orderId: sale.orderId,
+					slug: sale.slug,
 				},
 				previousSalesRep,
 				salesRep: targetSalesRep,
@@ -362,7 +345,7 @@ export async function transferSalesRep(
 
 		await db.salesOrders.update({
 			where: {
-				id: order.id,
+				id: sale.id,
 			},
 			data: {
 				salesRepId: targetSalesRep.id,
@@ -374,12 +357,12 @@ export async function transferSalesRep(
 
 		await db.salesHistory.create({
 			data: {
-				salesId: order.id,
+				salesId: sale.id,
 				name: "Sales rep transferred",
 				authorName: actor.user.name || actor.user.email || "System",
 				data: {
 					type: "sales_rep_transfer",
-					orderId: order.orderId,
+					orderId: sale.orderId,
 					previousSalesRep,
 					nextSalesRep: targetSalesRep,
 					reason,
@@ -392,9 +375,9 @@ export async function transferSalesRep(
 		return {
 			changed: true,
 			order: {
-				id: order.id,
-				orderId: order.orderId,
-				slug: order.slug,
+				id: sale.id,
+				orderId: sale.orderId,
+				slug: sale.slug,
 			},
 			previousSalesRep,
 			salesRep: targetSalesRep,

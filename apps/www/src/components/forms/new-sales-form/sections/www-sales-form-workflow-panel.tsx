@@ -1,50 +1,27 @@
 "use client";
 
-import { FileUploader } from "@/components/common/file-uploader";
 import { MouldingCalculator } from "@/components/moulding-calculator";
 import { useAuth } from "@/hooks/use-auth";
 import {
-	buildWorkflowComponentEditState,
-	ComponentEditDialog,
 	DoorSizeVariantDialog,
 	DoorSupplierManager,
+	SalesFormEnginePanel,
 	getRedirectableRoutes,
 	getWorkflowSteps,
 	resolveConfiguredRouteStepsForLine,
-	removeWorkflowSelectedComponent,
-	saveWorkflowComponentEdit,
-	SalesFormEnginePanel,
-	setWorkflowComponentRedirect,
-	type ComponentEditDialogRouteOption,
-	type WorkflowComponentEditState,
-	type WorkflowComponentRecord,
 } from "@gnd/sales/sales-form";
 import { useMemo, useState } from "react";
+import { useWwwSalesFormWorkflowData } from "../adapters/use-sales-form-workflow-data";
 import {
 	useSalesDeleteSupplierMutation,
 	useSalesSaveSupplierMutation,
 	useSalesSuppliersQuery,
 	useSalesUpdateStepMetaMutation,
 } from "../api";
-import { useWwwSalesFormWorkflowData } from "../adapters/use-sales-form-workflow-data";
 import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
+import { useWorkflowComponentAdmin } from "./use-workflow-component-admin";
 import { createWwwWorkflowAdminCapabilities } from "./workflow-capabilities";
-
-const initialComponentEditState: WorkflowComponentEditState = {
-	open: false,
-	mode: "edit",
-	lineUid: null,
-	stepIndex: -1,
-	componentUid: "",
-	componentTitle: "",
-	componentImg: "",
-	salesPrice: "0",
-	redirectUid: "",
-	overrideMode: false,
-	noHandle: false,
-	hasSwing: true,
-};
 
 export function WwwSalesFormWorkflowPanel() {
 	const auth = useAuth();
@@ -59,10 +36,6 @@ export function WwwSalesFormWorkflowPanel() {
 	const saveSupplierMutation = useSalesSaveSupplierMutation();
 	const deleteSupplierMutation = useSalesDeleteSupplierMutation();
 	const updateStepMetaMutation = useSalesUpdateStepMetaMutation();
-	const [componentEditModal, setComponentEditModal] =
-		useState<WorkflowComponentEditState>(initialComponentEditState);
-	const [componentEditRedirectOptions, setComponentEditRedirectOptions] =
-		useState<ComponentEditDialogRouteOption[]>([]);
 	const [doorSizeVariantModal, setDoorSizeVariantModal] = useState<{
 		open: boolean;
 		lineUid: string | null;
@@ -83,6 +56,10 @@ export function WwwSalesFormWorkflowPanel() {
 		() => createWwwWorkflowAdminCapabilities(auth.roleTitle),
 		[auth.roleTitle],
 	);
+	const componentAdmin = useWorkflowComponentAdmin({
+		record: { lineItems: record?.lineItems || [] },
+		updateLineItem: (uid, patch) => updateLineItem(uid, patch),
+	});
 
 	const workflowEditor = useMemo(
 		() => ({
@@ -123,84 +100,6 @@ export function WwwSalesFormWorkflowPanel() {
 			uid: route.uid,
 			title: route.title,
 		}));
-	}
-
-	function openComponentEdit(input: {
-		routeData: Record<string, any> | null;
-		line: NewSalesFormLineItem;
-		stepIndex: number;
-		component: WorkflowComponentRecord;
-		mode?: "edit" | "sectionOverride";
-	}) {
-		const next = buildWorkflowComponentEditState({
-			line: input.line,
-			stepIndex: input.stepIndex,
-			component: input.component,
-			mode: input.mode,
-		});
-		if (!next) return;
-		setComponentEditRedirectOptions(getRouteOptions(input.routeData));
-		setComponentEditModal(next);
-	}
-
-	function updateComponentRedirect(input: {
-		routeData: Record<string, any> | null;
-		line: NewSalesFormLineItem;
-		stepIndex: number;
-		component: WorkflowComponentRecord;
-		redirectUid: string | null;
-	}) {
-		const result = setWorkflowComponentRedirect({
-			routeData: input.routeData,
-			line: input.line,
-			stepIndex: input.stepIndex,
-			componentUid: String(input.component.uid || ""),
-			redirectUid: input.redirectUid,
-		});
-		if (!result) return;
-		updateLineItem(
-			input.line.uid,
-			result.linePatch as Partial<NewSalesFormLineItem>,
-		);
-	}
-
-	function removeComponent(input: {
-		line: NewSalesFormLineItem;
-		stepIndex: number;
-		component: WorkflowComponentRecord;
-	}) {
-		const result = removeWorkflowSelectedComponent({
-			line: input.line,
-			stepIndex: input.stepIndex,
-			componentUid: String(input.component.uid || ""),
-		});
-		if (!result) return;
-		updateLineItem(
-			input.line.uid,
-			result.linePatch as Partial<NewSalesFormLineItem>,
-		);
-	}
-
-	function saveComponentEdit() {
-		if (!componentEditModal.lineUid || componentEditModal.stepIndex < 0) {
-			setComponentEditModal(initialComponentEditState);
-			return;
-		}
-		const line = record?.lineItems.find(
-			(item) => item.uid === componentEditModal.lineUid,
-		);
-		if (!line) {
-			setComponentEditModal(initialComponentEditState);
-			return;
-		}
-		const patch = saveWorkflowComponentEdit({
-			line,
-			state: componentEditModal,
-		});
-		if (patch) {
-			updateLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
-		}
-		setComponentEditModal(initialComponentEditState);
 	}
 
 	async function saveDoorSizeVariants(variations: unknown[]) {
@@ -372,29 +271,7 @@ export function WwwSalesFormWorkflowPanel() {
 								}
 							: undefined,
 					componentActions: {
-						onOpenPricing: workflowAdminCapabilities.canEditWorkflowComponents
-							? (input) =>
-									openComponentEdit({
-										...input,
-										line: input.line as NewSalesFormLineItem,
-									})
-							: undefined,
-						onEdit: workflowAdminCapabilities.canEditWorkflowComponents
-							? (input) =>
-									openComponentEdit({
-										...input,
-										line: input.line as NewSalesFormLineItem,
-									})
-							: undefined,
-						onEditSectionOverride:
-							workflowAdminCapabilities.canEditSectionOverrides
-								? (input) =>
-										openComponentEdit({
-											...input,
-											line: input.line as NewSalesFormLineItem,
-											mode: "sectionOverride",
-										})
-								: undefined,
+						...componentAdmin.componentActions,
 						onOpenDoorSizeVariant:
 							workflowAdminCapabilities.canManageDoorSizeVariants
 								? (input) =>
@@ -405,28 +282,6 @@ export function WwwSalesFormWorkflowPanel() {
 											routeData: input.routeData,
 										})
 								: undefined,
-						onClearRedirect: workflowAdminCapabilities.canManageRedirects
-							? (input) =>
-									updateComponentRedirect({
-										...input,
-										line: input.line as NewSalesFormLineItem,
-										redirectUid: null,
-									})
-							: undefined,
-						onSetRedirect: workflowAdminCapabilities.canManageRedirects
-							? (input) =>
-									updateComponentRedirect({
-										...input,
-										line: input.line as NewSalesFormLineItem,
-										redirectUid: input.redirectUid,
-									})
-							: undefined,
-						onDelete: (input) =>
-							removeComponent({
-								line: input.line as NewSalesFormLineItem,
-								stepIndex: input.stepIndex,
-								component: input.component,
-							}),
 					},
 				}}
 			/>
@@ -450,49 +305,7 @@ export function WwwSalesFormWorkflowPanel() {
 					}}
 				/>
 			) : null}
-			<ComponentEditDialog
-				open={componentEditModal.open}
-				onOpenChange={(open) =>
-					setComponentEditModal((prev) =>
-						open
-							? { ...prev, open }
-							: {
-									...initialComponentEditState,
-									mode: prev.mode,
-								},
-					)
-				}
-				mode={componentEditModal.mode}
-				componentTitle={componentEditModal.componentTitle}
-				salesPrice={componentEditModal.salesPrice}
-				redirectUid={componentEditModal.redirectUid}
-				overrideMode={componentEditModal.overrideMode}
-				noHandle={componentEditModal.noHandle}
-				hasSwing={componentEditModal.hasSwing}
-				redirectOptions={componentEditRedirectOptions}
-				imageUploadSlot={
-					<FileUploader
-						src={componentEditModal.componentImg || null}
-						label="Component Image"
-						folder="dyke"
-						width={120}
-						height={120}
-						onUpload={(assetId) =>
-							setComponentEditModal((prev) => ({
-								...prev,
-								componentImg: String(assetId || ""),
-							}))
-						}
-					/>
-				}
-				onPatch={(patch) =>
-					setComponentEditModal((prev) => ({
-						...prev,
-						...patch,
-					}))
-				}
-				onSave={saveComponentEdit}
-			/>
+			{componentAdmin.dialogs}
 		</>
 	);
 }

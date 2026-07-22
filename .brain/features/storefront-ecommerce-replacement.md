@@ -108,6 +108,11 @@ item, customer, and permission workspaces.
   first client render share the same content, category, and featured-offer
   query state. This prevents empty catalog responses from hydrating as
   skeleton markup on the server and empty-state markup on the client.
+- The homepage hero uses one shared photo-led component for both the fallback
+  and CMS-authored home-page paths. CMS title, body, image, and primary action
+  remain configurable, while the fallback uses a locally bundled architectural
+  door photograph, a primary catalog action, a subordinate custom-project
+  action, and a compact product-family rail.
 - Product-detail compatibility is intentional: the canonical historical
   `/product/[categorySlug]/[productSlug]` route keeps the image-led presentation
   and option-button variant picker without exposing an office-style table.
@@ -172,6 +177,12 @@ item, customer, and permission workspaces.
   storefront SSR tRPC origin and awaited-homepage-prefetch fixes. Direct
   storefront tRPC route smoke returns JSON for public content and catalog
   requests.
+- Hero browser regression on 2026-07-22: an isolated local preview rendered the
+  shared hero at 1440x1000 and 375x812 with the local image loaded, both actions
+  visible, no console errors, and no mobile horizontal overflow (`375px`
+  scroll/client width). Full homepage regression remains blocked by the
+  unrelated existing missing `normalizeTerminalDeviceId` export in
+  `@gnd/square`, which makes the storefront API route compile return `500`.
 - Product-page browser regression on 2026-07-21: the Carrara test offer renders
   a four-image gallery, an `HC Molded` identity badge, canonical Item Type
   buttons, and no product table. Interior pre-hung exposes route-specific door
@@ -197,10 +208,22 @@ item, customer, and permission workspaces.
   The rep review activity is persisted unread for the assigned employee.
   Local `SKIP_EMAIL=1` recorded email attempts as skipped, so provider
   delivery was not claimed.
+- Vercel preview deployment `dpl_9d1gkWTDKzuEdCP4wgvi2tnzXqTw` reached
+  `READY` on 2026-07-22 at
+  `https://gnd-storefront-dejeiq01a-gndprodesk.vercel.app`. The remote build
+  generated Prisma Client 6.19.2, compiled the storefront with Next.js
+  16.2.10/Turbopack, and generated all static routes. Protected-preview smoke
+  checks returned HTTP 200 for `/`, `/robots.txt`, `/sitemap.xml`, `/login`,
+  and `/verify`; the sitemap returned `application/xml`. The stale storefront
+  `DATABASE_URL` was synchronized from the `www` Vercel project across
+  Development, Preview, and Production without recording its value. Production
+  aliases were not promoted or changed. A non-blocking Turbopack NFT tracing
+  warning remains in the internal API/dev-logger dependency path.
 
 ## Status
 
 Implemented, migration-verified, schema-deployed, and locally rehearsed through
 Square sandbox settlement. Traffic cutover remains release-gated on approved
 production content and policy copy, real Square/email credentials, and a
-physical fulfillment rehearsal.
+physical fulfillment rehearsal. A healthy protected Vercel preview now exists;
+production promotion remains intentionally gated.

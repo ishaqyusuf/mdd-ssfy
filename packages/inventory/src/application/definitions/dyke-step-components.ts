@@ -232,6 +232,7 @@ export async function saveDykeStepComponent(db: Db, input: DykeStepComponent) {
         },
         data: {
           ...data,
+          productCode,
         },
         select: {
           id: true,
@@ -242,6 +243,7 @@ export async function saveDykeStepComponent(db: Db, input: DykeStepComponent) {
         data: {
           uid: generateRandomString(5),
           ...data,
+          productCode,
           step: {
             connect: {
               id: stepId!,

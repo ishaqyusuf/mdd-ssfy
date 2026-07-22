@@ -4,6 +4,21 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Sales Customer Direct Dealership Invitations
+- Priority: High
+- Description: Added batched partnership status to Sales Customers/Customer
+  Overview and Super Admin-only direct invitations with controlled resend,
+  provider evidence, hash-only links, concurrency leases, and safe link
+  supersession.
+- Related Feature: Dealership recruitment, Sales Customers, customer overview,
+  transactional email
+- Status: Done
+- Plan Status: Implemented; provider-backed browser proof remains a rollout QA
+- Plan File: brain/plans/2026-07-21-feature-sales-customer-direct-dealership-invitations.md
+- Feature File: brain/features/dealership-program-recruitment.md
+- Decision: brain/decisions/ADR-015-dealer-customer-privacy-and-recruitment-suppression.md
+- Completed Date: 2026-07-22
+
 ### Dealership Program Expansion Implementation
 - Priority: High
 - Description: Implemented tickets 1–8 for dealer branding, customer privacy,
@@ -105,9 +120,9 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Evidence: packages/db/src/schema/sales-email-attempts.prisma; apps/api/src/db/queries/sales-email-attempts.ts; apps/www/src/components/sales-email-ledger-page.tsx; packages/notifications/src/index.ts; packages/jobs/src/tasks/sales/create-send-sales-email-task.ts
 - Completed Date: 2026-07-09
 
-### Sales Order Sales Rep Transfer
+### Sales Order And Quote Sales Rep Transfer
 - Priority: High
-- Description: Added a permission-controlled way to correct the sales rep attached to an existing order from the sales overview. Managers can transfer any active order, current-owner sales reps can transfer orders assigned to them, the mutation requires password confirmation, and the API transfers only `SalesOrders.salesRepId`, records structured `SalesHistory` audit evidence, and refreshes sales list/overview/dashboard query families from the UI.
+- Description: Added an ownership-controlled way to transfer an existing order or quote from the sales overview. Only the current sales rep whose user id matches `SalesOrders.salesRepId` can transfer the sale; `editOrders` grants no override. The mutation requires password confirmation, changes only `salesRepId`, records structured `SalesHistory` audit evidence, and refreshes sales list/overview/dashboard query families from the UI.
 - Related Feature: Sales orders, sales overview, sales rep dashboard, sales ownership correction
 - Status: Done
 - Plan Status: Implemented

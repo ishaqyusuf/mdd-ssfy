@@ -66,7 +66,7 @@ export function ComboboxField<
             <Field.Label htmlFor={props.name}>{props.label}</Field.Label>
           )}
           {/* {props.suffix || props.prefix ? ( */}
-          <Select
+      <Select.Root
             name={field.name}
             value={field.value}
             onValueChange={field.onChange}
@@ -95,7 +95,7 @@ export function ComboboxField<
                 )
               )} */}
             </Select.Content>
-          </Select>
+      </Select.Root>
           {!props.description || (
             <Field.Description>{props.description}</Field.Description>
           )}

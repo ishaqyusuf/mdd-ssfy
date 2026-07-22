@@ -10,6 +10,28 @@ Tracks notable migrations and migration strategy.
 - If the configured database is unavailable or drift blocks migration, record the exact limitation here rather than forcing a reset or data-destructive action.
 
 ## Current Notes
+- 2026-07-22 Sales Customer direct dealership invitations:
+  - Prisma-generated additive SQL lives at
+    `packages/db/src/migrations/20260722150000_dealer_customer_direct_partnership_invitations/migration.sql`.
+  - It adds invitation source/delivery/provider/sender/revocation/supersession
+    fields, the `DealerRecruitmentCustomerState` lease table, and supporting
+    indexes. Existing invitations default to sales-banner source; historical
+    delivered rows are backfilled to `SENT` with `deliveryAttemptedAt` copied
+    from `deliveredAt`.
+  - `bun run db:generate` passed. `prisma migrate dev` reached local MySQL but
+    refused broad pre-existing drift and requested a destructive reset; the
+    reset was not accepted.
+  - Prisma generated the SQL by diffing the live local datasource to the target
+    datamodel. The additive file was applied directly to local `gnd-prisma2`,
+    direct package `prisma db push` reported the database already in sync, a
+    follow-up live-schema diff reported no difference, and a Prisma read smoke
+    accessed both the invitation source and lease models.
+  - `_prisma_migrations` was not rewritten. Reconcile the repository's older
+    dealership-table migration gap before using migration-based deployment in
+    another environment.
+  - The datasource uses `relationMode = "prisma"`; therefore the generated SQL
+    intentionally creates relation indexes without database foreign-key
+    constraints, matching the rest of this Prisma-managed relationship mode.
 - 2026-07-19 dealership program expansion:
   - Added `packages/db/src/schema/dealer-program.prisma` and
     `Customers.officeVisibility`.

@@ -100,7 +100,7 @@
       "persistent": true
     },
     "dev": {
-      "env": ["SQUARE_SANDBOX_ACCESS_TOKEN"],
+      "env": ["SQUARE_FORCE_PRODUCTION", "SQUARE_SANDBOX_ACCESS_TOKEN"],
       "dependsOn": ["^dev", "^generate"],
       "persistent": true,
       "cache": false

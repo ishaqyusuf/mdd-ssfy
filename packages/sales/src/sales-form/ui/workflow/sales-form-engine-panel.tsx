@@ -12,11 +12,11 @@ import type {
 	SalesFormWorkflowSurfaceSlots,
 } from "../../contracts";
 import { createSalesFormWorkflowCapabilities } from "../../contracts";
-import type { WorkflowLineItemRecord } from "./workflow-records";
 import {
 	SalesFormWorkflowPanel,
 	type SalesFormWorkflowPanelProps,
 } from "./sales-form-workflow-panel";
+import type { WorkflowLineItemRecord } from "./workflow-records";
 
 export type SalesFormEnginePanelProps<
 	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
@@ -52,11 +52,14 @@ export function filterSalesFormWorkflowSlots<
 			: undefined,
 		componentActions: slots.componentActions
 			? {
-					onOpenPricing: capabilities.canEditWorkflowComponents
+					onOpenPricing: capabilities.canEditWorkflowComponentPricing
 						? slots.componentActions.onOpenPricing
 						: undefined,
-					onEdit: capabilities.canEditWorkflowComponents
-						? slots.componentActions.onEdit
+					onEditDetails: capabilities.canEditWorkflowComponents
+						? slots.componentActions.onEditDetails
+						: undefined,
+					onEditVisibility: capabilities.canEditWorkflowComponents
+						? slots.componentActions.onEditVisibility
 						: undefined,
 					onEditSectionOverride: capabilities.canEditSectionOverrides
 						? slots.componentActions.onEditSectionOverride
@@ -73,8 +76,8 @@ export function filterSalesFormWorkflowSlots<
 					onEnableCustomComponent: capabilities.canEnableCustomComponents
 						? slots.componentActions.onEnableCustomComponent
 						: undefined,
-					onDelete: capabilities.canDeleteSelectedComponents
-						? slots.componentActions.onDelete
+					onArchive: capabilities.canArchiveWorkflowComponents
+						? slots.componentActions.onArchive
 						: undefined,
 				}
 			: undefined,
@@ -107,10 +110,7 @@ export function SalesFormEnginePanel<
 	);
 	const dataSource = useMemo(
 		() =>
-			filterSalesFormWorkflowDataSource(
-				props.dataSource,
-				workflowCapabilities,
-			),
+			filterSalesFormWorkflowDataSource(props.dataSource, workflowCapabilities),
 		[props.dataSource, workflowCapabilities],
 	);
 	const slots = useMemo(

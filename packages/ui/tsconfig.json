@@ -6,7 +6,9 @@
       "@/*": ["./src/*"]
     },
     "strict": false,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "types": ["node", "bun"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"]
   },
   "include": [
     "src",

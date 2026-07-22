@@ -2,39 +2,10 @@
 
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
-import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
-function approvalPayload(request: {
-	id: number;
-	deliveryOption?: string | null;
-}) {
-	const mode = request.deliveryOption?.toLowerCase();
-	if (mode === "pickup") {
-		return { requestId: request.id };
-	}
-
-	const value = window.prompt(
-		mode === "delivery" || mode === "ship"
-			? `Enter reviewed ${mode} cost before approving this dealer request.`
-			: "Enter the reviewed delivery cost before approving this dealer request. Use 0 when no delivery charge applies.",
-		"0",
-	);
-	if (value == null) return null;
-	const deliveryCost = Number(value);
-	if (!Number.isFinite(deliveryCost) || deliveryCost < 0) {
-		toast.error("Enter a valid delivery cost.");
-		return null;
-	}
-
-	return {
-		requestId: request.id,
-		deliveryCost,
-	};
-}
+import { DealerRequestDecisionActions } from "./dealer-request-decision-actions";
 
 export function DealerRequestReviewBanner({
 	requestId,
@@ -60,6 +31,9 @@ export function DealerRequestReviewBanner({
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.dealerOrderRequestCount.pathKey(),
 					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.dealerOrderRequestAnalytics.pathKey(),
+					}),
 				]);
 				toast.success("Dealer request approved.");
 				router.push("/sales-rep?tab=requests");
@@ -79,6 +53,9 @@ export function DealerRequestReviewBanner({
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.dealerOrderRequestCount.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.dealerOrderRequestAnalytics.pathKey(),
 					}),
 				]);
 				toast.success("Dealer request rejected.");
@@ -100,6 +77,23 @@ export function DealerRequestReviewBanner({
 						<Badge variant={isPending ? "default" : "outline"}>
 							{request.status}
 						</Badge>
+						{isPending ? (
+							<Badge
+								variant={
+									request.sla.status === "overdue"
+										? "destructive"
+										: request.sla.status === "due_soon"
+											? "secondary"
+											: "outline"
+								}
+							>
+								{request.sla.status === "overdue"
+									? `SLA overdue · ${Math.round(request.sla.ageHours)}h`
+									: request.sla.status === "due_soon"
+										? `Due soon · ${Math.round(request.sla.ageHours)}h`
+										: `On track · ${Math.round(request.sla.ageHours)}h`}
+							</Badge>
+						) : null}
 					</div>
 					<p className="text-sm">
 						{request.dealerName} requested quote {request.quoteNo} for{" "}
@@ -117,31 +111,13 @@ export function DealerRequestReviewBanner({
 					) : null}
 				</div>
 				{isPending ? (
-					<div className="flex flex-wrap items-center gap-2">
-						<Button
-							size="sm"
-							disabled={!isPending || approve.isPending}
-							onClick={() => {
-								const payload = approvalPayload({
-									id: requestId,
-									deliveryOption: request.deliveryOption,
-								});
-								if (payload) approve.mutate(payload);
-							}}
-						>
-							<Icons.CheckCheck className="mr-2 size-4" />
-							Approve
-						</Button>
-						<Button
-							size="sm"
-							variant="outline"
-							disabled={!isPending || reject.isPending}
-							onClick={() => reject.mutate({ requestId })}
-						>
-							<Icons.XCircle className="mr-2 size-4" />
-							Reject
-						</Button>
-					</div>
+					<DealerRequestDecisionActions
+						request={request}
+						onApprove={(payload) => approve.mutateAsync(payload)}
+						onReject={(payload) => reject.mutateAsync(payload)}
+						isApproving={approve.isPending}
+						isRejecting={reject.isPending}
+					/>
 				) : null}
 			</div>
 		</div>

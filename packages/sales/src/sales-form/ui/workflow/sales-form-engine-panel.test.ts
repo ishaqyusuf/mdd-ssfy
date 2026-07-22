@@ -16,13 +16,14 @@ describe("sales form engine panel gating", () => {
 				getComponentRedirectOptions: (() => []) as any,
 				componentActions: {
 					onOpenPricing: noop,
-					onEdit: noop,
+					onEditDetails: noop,
+					onEditVisibility: noop,
 					onEditSectionOverride: noop,
 					onOpenDoorSizeVariant: noop,
 					onClearRedirect: noop,
 					onSetRedirect: noop,
 					onEnableCustomComponent: noop,
-					onDelete: noop,
+					onArchive: noop,
 				},
 			},
 			createSalesFormWorkflowCapabilities({
@@ -34,13 +35,14 @@ describe("sales form engine panel gating", () => {
 		expect(slots?.renderDoorSupplierPanel).toBeUndefined();
 		expect(slots?.getComponentRedirectOptions).toBeUndefined();
 		expect(slots?.componentActions?.onOpenPricing).toBeUndefined();
-		expect(slots?.componentActions?.onEdit).toBeUndefined();
+		expect(slots?.componentActions?.onEditDetails).toBeUndefined();
+		expect(slots?.componentActions?.onEditVisibility).toBeUndefined();
 		expect(slots?.componentActions?.onEditSectionOverride).toBeUndefined();
 		expect(slots?.componentActions?.onOpenDoorSizeVariant).toBeUndefined();
 		expect(slots?.componentActions?.onClearRedirect).toBeUndefined();
 		expect(slots?.componentActions?.onSetRedirect).toBeUndefined();
 		expect(slots?.componentActions?.onEnableCustomComponent).toBeUndefined();
-		expect(slots?.componentActions?.onDelete).toBe(noop);
+		expect(slots?.componentActions?.onArchive).toBeUndefined();
 	});
 
 	test("keeps admin workflow slots when capabilities are enabled", () => {
@@ -52,17 +54,20 @@ describe("sales form engine panel gating", () => {
 				getComponentRedirectOptions: (() => []) as any,
 				componentActions: {
 					onOpenPricing: noop,
-					onEdit: noop,
+					onEditDetails: noop,
+					onEditVisibility: noop,
 					onEditSectionOverride: noop,
 					onOpenDoorSizeVariant: noop,
 					onClearRedirect: noop,
 					onSetRedirect: noop,
 					onEnableCustomComponent: noop,
-					onDelete: noop,
+					onArchive: noop,
 				},
 			},
 			createSalesFormWorkflowCapabilities({
 				canEditWorkflowComponents: true,
+				canEditWorkflowComponentPricing: true,
+				canArchiveWorkflowComponents: true,
 				canEditSectionOverrides: true,
 				canManageRedirects: true,
 				canManageDoorSizeVariants: true,
@@ -77,13 +82,14 @@ describe("sales form engine panel gating", () => {
 		expect(slots?.renderDoorSupplierPanel).toBe(noop);
 		expect(slots?.getComponentRedirectOptions).toBeDefined();
 		expect(slots?.componentActions?.onOpenPricing).toBe(noop);
-		expect(slots?.componentActions?.onEdit).toBe(noop);
+		expect(slots?.componentActions?.onEditDetails).toBe(noop);
+		expect(slots?.componentActions?.onEditVisibility).toBe(noop);
 		expect(slots?.componentActions?.onEditSectionOverride).toBe(noop);
 		expect(slots?.componentActions?.onOpenDoorSizeVariant).toBe(noop);
 		expect(slots?.componentActions?.onClearRedirect).toBe(noop);
 		expect(slots?.componentActions?.onSetRedirect).toBe(noop);
 		expect(slots?.componentActions?.onEnableCustomComponent).toBe(noop);
-		expect(slots?.componentActions?.onDelete).toBe(noop);
+		expect(slots?.componentActions?.onArchive).toBe(noop);
 	});
 
 	test("removes moulding calculator render hook when not allowed", () => {

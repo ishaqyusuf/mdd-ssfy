@@ -116,11 +116,11 @@ export function MouldingBlock({ section, baseUrl, showImages }: MouldingBlockPro
                   <TableCell
                     key={`${column.key}-${ci}`}
                     value={column.value}
-                    width={widths[column.key]}
+                    width={widths[column.key] ?? "0%"}
                     align={column.align}
                     bold={column.bold}
                     isLast={ci === visualCells.length - 1}
-                    imageSrc={column.key === "image" ? imageSrc : null}
+                    imageSrc={column.key === "image" ? imageSrc ?? null : null}
                     borderColor={BORDER}
                   />
                 ))}
@@ -235,7 +235,7 @@ function getColumnWidths(headers: CellHeader[], hasImageColumn: boolean) {
       acc[key] = key in COLUMN_WIDTHS ? `${COLUMN_WIDTHS[key]}%` : flexibleWidth;
       return acc;
     },
-    hasImageColumn ? { image: `${COLUMN_WIDTHS.image}%` } : {},
+    hasImageColumn ? { image: `${COLUMN_WIDTHS.image ?? 0}%` } : {},
   );
 }
 

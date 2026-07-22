@@ -7,7 +7,10 @@ import {
 	getAvailablePaymentSales,
 	getListedPaymentAmount,
 	getListedPaymentSales,
+	isAvailablePaymentTerminal,
+	resolveAvailablePaymentTerminal,
 	resolveDefaultPaymentMethod,
+	resolveDefaultPaymentTerminal,
 } from "./utils";
 
 describe("sales payment processor utils", () => {
@@ -59,6 +62,45 @@ describe("sales payment processor utils", () => {
 
 		expect(getListedPaymentAmount(sales, [1, 2])).toBe(100);
 		expect(getListedPaymentAmount(sales, [])).toBe(0);
+	});
+
+	it("resolves only an available terminal and accepts stored unprefixed ids", () => {
+		const terminals = [
+			{
+				label: "Offline terminal",
+				status: "OFFLINE",
+				value: "device:offline",
+			},
+			{
+				label: "Counter terminal",
+				status: "AVAILABLE",
+				value: "device:terminal-1",
+			},
+		];
+
+		expect(resolveAvailablePaymentTerminal(terminals, "terminal-1")).toEqual(
+			terminals[1],
+		);
+		expect(
+			resolveAvailablePaymentTerminal(terminals, "device:offline"),
+		).toBeUndefined();
+		expect(isAvailablePaymentTerminal(terminals[0])).toBe(false);
+		expect(isAvailablePaymentTerminal(terminals[1])).toBe(true);
+	});
+
+	it("requires an explicit terminal choice when multiple devices are online", () => {
+		const terminal1451 = {
+			label: "Terminal 1451",
+			status: "AVAILABLE",
+			value: "device:1451",
+		};
+		const terminals = [
+			terminal1451,
+			{ label: "Terminal 2443", status: "AVAILABLE", value: "device:2443" },
+		];
+
+		expect(resolveDefaultPaymentTerminal(terminals)).toBeUndefined();
+		expect(resolveDefaultPaymentTerminal([terminal1451])).toEqual(terminal1451);
 	});
 
 	it("uses the selected sale payment method when available", () => {

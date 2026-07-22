@@ -79,7 +79,7 @@ export function QuantityInput({
           autoComplete="off"
           step={0.1}
           value={String(value || "")}
-          onInput={handleInput}
+          onInput={handleInput as unknown as React.InputEventHandler<HTMLInputElement>}
           onBlur={onBlur}
           onFocus={onFocus}
           inputMode="decimal"
@@ -135,7 +135,7 @@ export function QuantityInput({
           autoComplete="off"
           step={0.1}
           value={String(value || "")}
-          onInput={handleInput}
+          onInput={handleInput as unknown as React.InputEventHandler<HTMLInputElement>}
           onBlur={onBlur}
           onFocus={onFocus}
           inputMode="decimal"

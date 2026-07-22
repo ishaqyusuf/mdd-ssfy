@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { FileText, MoreHorizontal, Printer } from "lucide-react";
 import Link from "next/link";
+import { DealerRequestTimeline } from "../../dealer-portal/dealer-request-timeline";
 
 export type Item = RouterOutputs["dealerPortal"]["quotes"]["data"][number];
 type Column = ColumnDef<Item>;
@@ -107,7 +108,12 @@ function QuoteActions({ item }: { item: Item }) {
 		<div className="flex justify-end gap-2">
 			<DropdownMenu.Root>
 				<DropdownMenu.Trigger asChild>
-					<Button size="sm" type="button" variant="ghost">
+					<Button
+						aria-label={`Actions for quote ${item.orderId || item.id}`}
+						size="sm"
+						type="button"
+						variant="ghost"
+					>
 						<MoreHorizontal className="size-4" />
 					</Button>
 				</DropdownMenu.Trigger>
@@ -194,9 +200,17 @@ export const columns: Column[] = [
 		header: "Status",
 		accessorKey: "status",
 		cell: ({ row: { original: item } }) => (
-			<Badge className="capitalize" variant="outline">
-				{requestStatusLabel(item.requestStatus) || item.status || "open"}
-			</Badge>
+			<div>
+				<Badge className="capitalize" variant="outline">
+					{requestStatusLabel(item.requestStatus) || item.status || "open"}
+				</Badge>
+				<DealerRequestTimeline
+					status={item.requestStatus}
+					requestedAt={item.requestCreatedAt}
+					decisionAt={item.requestDecisionAt}
+					decisionNote={item.requestDecisionNote}
+				/>
+			</div>
 		),
 	},
 	{
@@ -244,7 +258,9 @@ export const mobileColumn: Column[] = [
 				</div>
 				<div className="shrink-0 text-right">
 					<p className="text-sm font-medium">{currency(item.grandTotal)}</p>
-					<p className="text-xs text-muted-foreground">{date(item.createdAt)}</p>
+					<p className="text-xs text-muted-foreground">
+						{date(item.createdAt)}
+					</p>
 				</div>
 			</div>
 		),

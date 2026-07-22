@@ -99,7 +99,7 @@ export const notesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getNotificationChannels(props.ctx, props.input);
 		}),
-	syncNotificationChannels: publicProcedure.mutation(async (props) => {
+	syncNotificationChannels: protectedProcedure.mutation(async (props) => {
 		return syncNotificationChannels(props.ctx);
 	}),
 	getNotificationChannel: publicProcedure
@@ -114,7 +114,7 @@ export const notesRouter = createTRPCRouter({
 			});
 			return data[0];
 		}),
-	updateNotificationChannel: publicProcedure
+	updateNotificationChannel: protectedProcedure
 		.input(
 			z.object({
 				id: z.number(),
@@ -144,7 +144,7 @@ export const notesRouter = createTRPCRouter({
 				},
 			});
 		}),
-	removeNotificationChannelRole: publicProcedure
+	removeNotificationChannelRole: protectedProcedure
 		.input(
 			z.object({
 				notificationChannelId: z.number(),
@@ -160,7 +160,7 @@ export const notesRouter = createTRPCRouter({
 				},
 			});
 		}),
-	addNotificationChannelRole: publicProcedure
+	addNotificationChannelRole: protectedProcedure
 		.input(
 			z.object({
 				notificationChannelId: z.number(),
@@ -188,7 +188,7 @@ export const notesRouter = createTRPCRouter({
 				},
 			});
 		}),
-	removeNotificationChannelSubscriber: publicProcedure
+	removeNotificationChannelSubscriber: protectedProcedure
 		.input(
 			z.object({
 				notificationChannelId: z.number(),
@@ -198,7 +198,7 @@ export const notesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return removeNotificationChannelSubscriber(props.ctx, props.input);
 		}),
-	addNotificationChannelSubscriber: publicProcedure
+	addNotificationChannelSubscriber: protectedProcedure
 		.input(
 			z.object({
 				notificationChannelId: z.number(),
@@ -208,12 +208,12 @@ export const notesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return addNotificationChannelSubscriber(props.ctx, props.input);
 		}),
-	saveInboundNote: publicProcedure
+	saveInboundNote: protectedProcedure
 		.input(saveInboundNoteSchema)
 		.mutation(async (props) => {
 			return saveInboundNote(props.ctx, props.input);
 		}),
-	saveNote: publicProcedure.input(saveNoteSchema).mutation(async (props) => {
+	saveNote: protectedProcedure.input(saveNoteSchema).mutation(async (props) => {
 		return saveNote(props.ctx.db, props.input, props.ctx.userId);
 	}),
 	createInboxActivity: protectedProcedure

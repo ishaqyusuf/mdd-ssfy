@@ -13,6 +13,15 @@ Tracks important schema-level entities and ownership boundaries.
   rows, and reviewed `DealerProgramApplication` rows. Campaigns store structured
   banner content/lifecycle/dates, invitations store delivery/open evidence, and
   applications store decision and suppression-reset evidence.
+- `DealerRecruitmentInvitation.source` distinguishes
+  `SALES_EMAIL_BANNER | MANUAL_CUSTOMER`; `deliveryStatus` distinguishes
+  `PENDING | SENT | FAILED | SKIPPED`. The row also stores the Super Admin
+  sender, provider attempt/message/status, sanitized failure, revocation, and
+  supersession timestamps while continuing to store only the SHA-256 token
+  hash.
+- `DealerRecruitmentCustomerState` is keyed by office customer and stores the
+  latest invitation pointer plus a short-lived unique send lease used to
+  serialize manual invitations and recover stale attempts.
 - Dealer billing ZIP and `brandingVersion` use the existing dealer settings
   metadata. Every branding settings save increments the version.
 - Primary schema work appears to live in `packages/db`.

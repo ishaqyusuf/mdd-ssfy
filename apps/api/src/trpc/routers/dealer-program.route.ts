@@ -1,5 +1,6 @@
 import {
 	dealerAccountSuspensionSchema,
+	dealerCustomerInvitationSchema,
 	dealerProgramApplicationDecisionSchema,
 	dealerProgramApplicationResetSchema,
 	dealerProgramApplicationSubmitSchema,
@@ -9,27 +10,30 @@ import {
 } from "@api/schemas/dealer-program";
 import type { TRPCContext } from "@api/trpc/init";
 import {
+	DealerProgramInvitationError,
 	decideDealerProgramApplication,
 	getDealerProgramInvitation,
 	listDealerProgramApplications,
 	listDealerRecruitmentCampaigns,
 	resetDealerProgramApplicationSuppression,
 	saveDealerRecruitmentCampaign,
+	sendDirectDealerProgramInvitation,
 	setDealerAccountSuspension,
 	setDealerRecruitmentCampaignStatus,
 	submitDealerProgramApplication,
 } from "@gnd/db/queries";
 import { EmailService } from "@gnd/notifications/services/email-service";
+import { getAppUrl } from "@gnd/utils/envs";
 import { TRPCError } from "@trpc/server";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
-async function requireSuperAdmin(ctx: TRPCContext) {
+export async function requireDealerProgramSuperAdmin(ctx: TRPCContext) {
 	if (!ctx.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 	const user = await ctx.db.users.findFirst({
-		where: { id: ctx.userId, deletedAt: null },
+		where: { id: ctx.userId, deletedAt: null, accessRevokedAt: null },
 		select: {
 			roles: {
-				where: { deletedAt: null },
+				where: { deletedAt: null, role: { deletedAt: null } },
 				select: { role: { select: { name: true } } },
 			},
 		},
@@ -45,6 +49,19 @@ async function requireSuperAdmin(ctx: TRPCContext) {
 		});
 	}
 	return ctx.userId;
+}
+
+function invitationError(error: unknown) {
+	if (!(error instanceof DealerProgramInvitationError)) return error;
+	return new TRPCError({
+		code:
+			error.code === "CONFLICT" || error.code === "TOO_EARLY"
+				? "CONFLICT"
+				: error.code === "NOT_FOUND"
+					? "NOT_FOUND"
+					: "BAD_REQUEST",
+		message: error.message,
+	});
 }
 
 async function getActiveSuperAdmins(ctx: TRPCContext) {
@@ -180,11 +197,11 @@ export const dealerProgramRouter = createTRPCRouter({
 			};
 		}),
 	campaigns: protectedProcedure.query(async ({ ctx }) => {
-		await requireSuperAdmin(ctx);
+		await requireDealerProgramSuperAdmin(ctx);
 		return listDealerRecruitmentCampaigns(ctx.db);
 	}),
 	audienceOptions: protectedProcedure.query(async ({ ctx }) => {
-		await requireSuperAdmin(ctx);
+		await requireDealerProgramSuperAdmin(ctx);
 		const [profiles, customers] = await Promise.all([
 			ctx.db.customerTypes.findMany({
 				where: { dealerOwnerId: null, deletedAt: null },
@@ -213,7 +230,7 @@ export const dealerProgramRouter = createTRPCRouter({
 	saveCampaign: protectedProcedure
 		.input(dealerRecruitmentCampaignSchema)
 		.mutation(async ({ ctx, input }) => {
-			const actorId = await requireSuperAdmin(ctx);
+			const actorId = await requireDealerProgramSuperAdmin(ctx);
 			return saveDealerRecruitmentCampaign(ctx.db, actorId, {
 				...input,
 				imageUrl: input.imageUrl || null,
@@ -222,17 +239,17 @@ export const dealerProgramRouter = createTRPCRouter({
 	setCampaignStatus: protectedProcedure
 		.input(dealerRecruitmentCampaignStatusSchema)
 		.mutation(async ({ ctx, input }) => {
-			const actorId = await requireSuperAdmin(ctx);
+			const actorId = await requireDealerProgramSuperAdmin(ctx);
 			return setDealerRecruitmentCampaignStatus(ctx.db, actorId, input);
 		}),
 	applications: protectedProcedure.query(async ({ ctx }) => {
-		await requireSuperAdmin(ctx);
+		await requireDealerProgramSuperAdmin(ctx);
 		return listDealerProgramApplications(ctx.db);
 	}),
 	decideApplication: protectedProcedure
 		.input(dealerProgramApplicationDecisionSchema)
 		.mutation(async ({ ctx, input }) => {
-			const actorId = await requireSuperAdmin(ctx);
+			const actorId = await requireDealerProgramSuperAdmin(ctx);
 			const result = await decideDealerProgramApplication(
 				ctx.db,
 				actorId,
@@ -284,13 +301,13 @@ export const dealerProgramRouter = createTRPCRouter({
 	resetSuppression: protectedProcedure
 		.input(dealerProgramApplicationResetSchema)
 		.mutation(async ({ ctx, input }) => {
-			const actorId = await requireSuperAdmin(ctx);
+			const actorId = await requireDealerProgramSuperAdmin(ctx);
 			return resetDealerProgramApplicationSuppression(ctx.db, actorId, input);
 		}),
 	setDealerSuspension: protectedProcedure
 		.input(dealerAccountSuspensionSchema)
 		.mutation(async ({ ctx, input }) => {
-			const actorId = await requireSuperAdmin(ctx);
+			const actorId = await requireDealerProgramSuperAdmin(ctx);
 			const result = await setDealerAccountSuspension(ctx.db, actorId, input);
 			const dealer = result.dealer;
 			if (!result.changed) return result;
@@ -324,5 +341,48 @@ export const dealerProgramRouter = createTRPCRouter({
 					);
 				});
 			return result;
+		}),
+	sendCustomerInvitation: protectedProcedure
+		.input(dealerCustomerInvitationSchema)
+		.mutation(async ({ ctx, input }) => {
+			const actorId = await requireDealerProgramSuperAdmin(ctx);
+			const emailService = new EmailService(ctx.db);
+			try {
+				return await sendDirectDealerProgramInvitation(
+					ctx.db,
+					actorId,
+					{
+						customerId: input.customerId,
+						baseUrl: getAppUrl(),
+					},
+					async ({ to, customerName, campaign, applicationUrl }) => {
+						const delivery = await emailService.sendTransactionalWithResult({
+							to,
+							subject: campaign.headline,
+							template: "dealer-partnership-invitation",
+							data: {
+								recipientName: customerName,
+								headline: campaign.headline,
+								benefitText: campaign.benefitText,
+								ctaLabel: campaign.ctaLabel,
+								imageUrl: campaign.imageUrl,
+								accentColor: campaign.accentColor,
+								invitationUrl: applicationUrl,
+							},
+						});
+						return {
+							status: delivery.status.toUpperCase() as
+								| "SENT"
+								| "FAILED"
+								| "SKIPPED",
+							providerMessageId: delivery.providerMessageId,
+							providerStatus: delivery.providerStatus,
+							failure: delivery.errorMessage,
+						};
+					},
+				);
+			} catch (error) {
+				throw invitationError(error);
+			}
 		}),
 });

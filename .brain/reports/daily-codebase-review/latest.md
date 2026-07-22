@@ -1,13 +1,13 @@
 # Latest Daily GND Codebase Review
 
-Latest report: [2026-07-21](./2026-07-21.md)
+Latest report: [2026-07-22](./2026-07-22.md)
 
 ## Executive Summary
 
-Today's review focused on the revenue, fulfillment, dealership, customer-document, and mobile-worker paths requested for the GND monorepo. The active Brain directory is `.brain/`; there is no `brain/` directory in this workspace.
+Today's read-only review focused on the revenue, dealership, production-readiness, inventory, document, and mobile-worker paths requested for GND. The active Brain directory in this checkout is `.brain/`; there is still no `brain/` directory.
 
-The highest-risk items remain operational rather than cosmetic. Broad internal tRPC route families still use `publicProcedure`, especially dispatch, inventory, jobs, HRM, settings, notes, sales, and document upload surfaces. Dealership approval is implemented and QA-proven, but `dealerPortal.convertQuoteToOrder` still exists beside the approval request path. Mobile dispatch completion collects signature/photo proof, but the client uploads proof assets before calling the completion mutation, so a field worker on weak connectivity can leave partial proof without a completed dispatch or a completed dispatch retry story. Full repo typecheck is still blocked before broad app validation completes, now in `@gnd/documents`.
+The highest-risk codebase issues remain operational. Broad internal tRPC route families still expose sensitive employee, document, notification, jobs, and list/mutation behavior through `publicProcedure` even though Brain now documents stronger permission expectations. Full repo typecheck still fails before broad app validation reaches the reviewed surfaces, again in `@gnd/documents`. Sales document sharing still has a live hard-coded phone recipient, dealer delivery-cost approval still uses a raw browser prompt, and mobile dispatch completion still performs proof uploads before final completion instead of as one atomic/resumable operation.
 
-Most feature ideas are already covered by Brain. The best new daily-report-only candidate is a dealership delivery-cost review modal/rate-helper to replace prompt-based approval and make office review more trainable.
+The most practical next work is not another broad feature push. Tighten public/protected route boundaries for high-value operational mutations, clear the `@gnd/documents` typecheck blocker, and replace the brittle customer/dealer communication edges with trainable, auditable workflows.
 
 No source files, schemas, migrations, env files, or Brain task ledgers were edited by this automation. Only the daily review report files and automation memory were updated.

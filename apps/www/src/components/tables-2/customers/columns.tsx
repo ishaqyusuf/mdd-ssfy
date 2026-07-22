@@ -1,5 +1,6 @@
 "use client";
 
+import { CustomerPartnershipStatus } from "@/components/dealers/customer-partnership-status";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useCustomerOverviewV2SheetQuery } from "@/hooks/use-customer-overview-v2-sheet-query";
 import { cn } from "@/lib/utils";
@@ -182,12 +183,33 @@ const actionsColumn: Column = {
 	cell: ({ row }) => <CustomerActions customer={row.original} />,
 };
 
+const partnershipColumn: Column = {
+	id: "partnership",
+	header: "Partnership",
+	accessorFn: (row) => row.partnership.state,
+	...sizes.custom(190, 320, 230),
+	enableResizing: true,
+	enableSorting: false,
+	meta: {
+		skeleton: { type: "button", width: "w-32" },
+		headerLabel: "Partnership",
+		className: sizeClass(sizes.custom(190, 320, 230)),
+	},
+	cell: ({ row }) => (
+		<CustomerPartnershipStatus
+			customerId={row.original.id}
+			partnership={row.original.partnership}
+		/>
+	),
+};
+
 export const columns: Column[] = [
 	customerColumn,
 	phoneColumn,
 	secondaryContactColumn,
 	emailColumn,
 	addressColumn,
+	partnershipColumn,
 	actionsColumn,
 ];
 

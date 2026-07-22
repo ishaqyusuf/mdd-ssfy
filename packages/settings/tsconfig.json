@@ -8,6 +8,8 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "noImplicitAny": false,
+    "types": ["node", "bun"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"],
     "baseUrl": ".",
     "paths": {
       "@sales/*": ["../sales/src/*"]

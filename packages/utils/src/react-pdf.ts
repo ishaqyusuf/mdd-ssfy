@@ -147,22 +147,22 @@ export function cva(style) {
 export function cn(
   ...classNames: (string | Partial<any> | false | null | undefined)[]
 ) {
-  return classNames.reduce((acc, curr) => {
-    if (!curr) return acc;
+  const result: Record<string, any> = {};
+  for (const curr of classNames) {
+    if (!curr) continue;
 
     if (typeof curr === "string") {
       curr.split(" ").forEach((name) => {
         const style = tw[name as keyof typeof tw];
-        if (style) Object.assign(acc, style);
+        if (style) Object.assign(result, style);
       });
     }
 
     if (typeof curr === "object" && !Array.isArray(curr)) {
-      Object.assign(acc, curr);
+      Object.assign(result, curr);
     }
-
-    return acc;
-  }, {} as Record<string, any>) as any;
+  }
+  return result;
 }
 
 export function style(...names: (StyleType | false | undefined | null)[]) {

@@ -237,7 +237,7 @@ function getColumnWidths(headers: CellHeader[], hasImageColumn: boolean) {
 	const flexibleKeys = keys.filter((key) => !(key in COLUMN_WIDTHS));
 	const remaining = Math.max(
 		0,
-		100 - fixedUsed - (hasImageColumn ? COLUMN_WIDTHS.image : 0),
+		100 - fixedUsed - (hasImageColumn ? (COLUMN_WIDTHS.image ?? 0) : 0),
 	);
 	const flexibleWidth =
 		flexibleKeys.length > 0 ? `${remaining / flexibleKeys.length}%` : "0%";
@@ -248,7 +248,7 @@ function getColumnWidths(headers: CellHeader[], hasImageColumn: boolean) {
 				key in COLUMN_WIDTHS ? `${COLUMN_WIDTHS[key]}%` : flexibleWidth;
 			return acc;
 		},
-		hasImageColumn ? { image: `${COLUMN_WIDTHS.image}%` } : {},
+		hasImageColumn ? { image: `${COLUMN_WIDTHS.image ?? 0}%` } : {},
 	);
 }
 

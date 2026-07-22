@@ -2,14 +2,8 @@ import {
 	accountingIndex,
 	accountingIndexSchema,
 } from "@api/db/queries/accounting";
+import { buildFullPaymentToken } from "@api/db/queries/checkout";
 import { getCustomers } from "@api/db/queries/customer";
-import {
-	approveDealerOrderRequest,
-	getDealerOrderRequest,
-	getDealerOrderRequestCount,
-	getDealerOrderRequests,
-	rejectDealerOrderRequest,
-} from "@gnd/db/queries";
 import { getInboundSummary, getInbounds } from "@api/db/queries/inbound";
 import {
 	getProductReport,
@@ -24,20 +18,14 @@ import {
 	startNewSales,
 } from "@api/db/queries/sales";
 import {
-	getSalesRepTransferOptions,
-	transferSalesRep,
-} from "@api/db/queries/sales-rep-transfer";
-import {
 	getSalesAccountings,
 	getSalesAccountingsSchema,
 } from "@api/db/queries/sales-accounting";
-import {
-	getSaleTransactions,
-	getSaleTransactionsSchema,
-} from "@api/db/queries/sales-transactions";
 import { copySale, moveSale } from "@api/db/queries/sales-actions";
 import { getMobileSalesDashboardOverview } from "@api/db/queries/sales-dashboard";
 import {
+	archiveWorkflowComponents,
+	archiveWorkflowComponentsSchema,
 	deleteSupplier,
 	deleteSupplierSchema,
 	getMultiLineComponents,
@@ -47,6 +35,16 @@ import {
 	getSuppliers,
 	getSuppliersSchema,
 	saveSupplier,
+	saveWorkflowComponentDetails,
+	saveWorkflowComponentDetailsSchema,
+	saveWorkflowComponentPricing,
+	saveWorkflowComponentPricingSchema,
+	saveWorkflowComponentRedirect,
+	saveWorkflowComponentRedirectSchema,
+	saveWorkflowComponentSectionOverride,
+	saveWorkflowComponentSectionOverrideSchema,
+	saveWorkflowComponentVisibility,
+	saveWorkflowComponentVisibilitySchema,
 	updateStepMeta,
 	updateStepMetaSchema,
 } from "@api/db/queries/sales-form";
@@ -58,10 +56,18 @@ import {
 	getOrdersSummarySchema,
 } from "@api/db/queries/sales-orders-v2";
 import {
+	getSalesRepTransferOptions,
+	transferSalesRep,
+} from "@api/db/queries/sales-rep-transfer";
+import {
 	getSalesResolutions,
 	getSalesResolutionsSchema,
 	getSalesResolutionsSummary,
 } from "@api/db/queries/sales-resolution";
+import {
+	getSaleTransactions,
+	getSaleTransactionsSchema,
+} from "@api/db/queries/sales-transactions";
 import { resolvePayment, resolvePaymentSchema } from "@api/db/queries/wallet";
 import { getCustomersSchema } from "@api/schemas/customer";
 import {
@@ -71,8 +77,8 @@ import {
 	getSaleOverviewSchema,
 	inboundQuerySchema,
 	moveSaleSchema,
-	salesRepOptionsSchema,
 	salesQueryParamsSchema,
+	salesRepOptionsSchema,
 	saveOrderProductionGateSchema,
 	startNewSalesSchema,
 	transferSalesRepSchema,
@@ -80,11 +86,36 @@ import {
 } from "@api/schemas/sales";
 import { saveSupplierSchema } from "@api/schemas/sales-form";
 import { transformSalesFilterQuery } from "@api/utils/sales";
-import { getSaleInformation } from "@gnd/sales/get-sale-information";
-import { generateRandomString, timeLog } from "@gnd/utils";
-import { createNoteAction } from "@notifications/note";
+import {
+	dealerDeliveryPricingSchema,
+	normalizeDealerDeliveryPricingSettings,
+	resolveDealerDeliveryCostSuggestion,
+} from "@api/utils/dealer-delivery-pricing";
+import {
+	approveDealerOrderRequest,
+	getDealerOrderRequest,
+	getDealerOrderRequestAnalytics,
+	getDealerOrderRequestCount,
+	getDealerOrderRequests,
+	rejectDealerOrderRequest,
+} from "@gnd/db/queries";
 import { EmailService } from "@gnd/notifications/services/email-service";
-import { buildFullPaymentToken } from "@api/db/queries/checkout";
+import { getSaleInformation } from "@gnd/sales/get-sale-information";
+import {
+	SALES_PAYMENT_REVIEW_ACTIONS,
+	calculatePaymentChannelCharge,
+	markLatestSalesPaymentReviewed,
+	normalizeSalesPaymentReviewSettings,
+} from "@gnd/sales/payment-system";
+import {
+	getSettingAction,
+	normalizeSalesPrintSettings,
+	salesPrintSettingsSchema,
+	updateSettingsMeta,
+} from "@gnd/settings";
+import { generateRandomString, timeLog } from "@gnd/utils";
+import { getAppUrl } from "@gnd/utils/envs";
+import { createNoteAction } from "@notifications/note";
 import {
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
@@ -102,24 +133,11 @@ import {
 } from "@sales/sales-production";
 import { salesPayWithWallet, salesPayWithWalletSchema } from "@sales/wallet";
 import { z } from "zod";
-import { getAppUrl } from "@gnd/utils/envs";
 import {
-	calculatePaymentChannelCharge,
-	markLatestSalesPaymentReviewed,
-	normalizeSalesPaymentReviewSettings,
-	SALES_PAYMENT_REVIEW_ACTIONS,
-} from "@gnd/sales/payment-system";
-import {
-	getSettingAction,
-	normalizeSalesPrintSettings,
-	salesPrintSettingsSchema,
-	updateSettingsMeta,
-} from "@gnd/settings";
-import {
+	type TRPCContext,
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
-	type TRPCContext,
 } from "../init";
 
 const dealerOrderRequestsSchema = z.object({
@@ -135,10 +153,10 @@ const dealerOrderRequestIdSchema = z.object({
 });
 const approveDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
 	deliveryCost: z.number().min(0).optional().nullable(),
-	approverNote: z.string().optional().nullable(),
+	approverNote: z.string().trim().max(1000).optional().nullable(),
 });
 const rejectDealerOrderRequestSchema = dealerOrderRequestIdSchema.extend({
-	reason: z.string().optional().nullable(),
+	reason: z.string().trim().max(1000).optional().nullable(),
 });
 const updatePaymentReviewSettingsSchema = z.object({
 	autoReviewActions: z.object({
@@ -231,6 +249,30 @@ async function requireSuperAdmin(ctx: TRPCContext) {
 	}
 }
 
+async function requireWorkflowComponentAdmin(ctx: TRPCContext) {
+	if (!ctx.userId) throw new Error("Authentication is required.");
+	const user = await ctx.db.users.findFirst({
+		where: { id: ctx.userId },
+		select: {
+			roles: {
+				where: { deletedAt: null },
+				select: { role: { select: { name: true } } },
+			},
+		},
+	});
+	const allowed = user?.roles?.some((assignment) => {
+		const role = String(assignment.role?.name || "")
+			.trim()
+			.toLowerCase();
+		return role === "admin" || role === "super admin";
+	});
+	if (!allowed) {
+		throw new Error(
+			"Only Admin or Super Admin can manage workflow components.",
+		);
+	}
+}
+
 async function sendDealerRejectedEmail(
 	ctx: { db: any },
 	result: Awaited<ReturnType<typeof rejectDealerOrderRequest>>,
@@ -277,23 +319,53 @@ export const salesRouter = createTRPCRouter({
 	dealerOrderRequestCount: protectedProcedure.query(async (props) => {
 		return getDealerOrderRequestCount(props.ctx.db, props.ctx.userId);
 	}),
+	dealerOrderRequestAnalytics: protectedProcedure.query(async (props) => {
+		return getDealerOrderRequestAnalytics(props.ctx.db, props.ctx.userId);
+	}),
 	dealerOrderRequests: protectedProcedure
 		.input(dealerOrderRequestsSchema)
 		.query(async (props) => {
-			return getDealerOrderRequests(
-				props.ctx.db,
-				props.ctx.userId,
-				props.input,
+			const [result, setting] = await Promise.all([
+				getDealerOrderRequests(props.ctx.db, props.ctx.userId, props.input),
+				getSettingAction("sales-settings", props.ctx.db),
+			]);
+			const settings = normalizeDealerDeliveryPricingSettings(
+				asRecord(setting.meta)?.dealerDeliveryPricing,
 			);
+			return {
+				...result,
+				data: result.data.map((request) => ({
+					...request,
+					deliveryCostSuggestion: resolveDealerDeliveryCostSuggestion({
+						settings,
+						deliveryOption: request.deliveryOption,
+						grandTotal: request.grandTotal,
+					}),
+				})),
+			};
 		}),
 	dealerOrderRequest: protectedProcedure
 		.input(dealerOrderRequestIdSchema)
 		.query(async (props) => {
-			return getDealerOrderRequest(
-				props.ctx.db,
-				props.ctx.userId,
-				props.input.requestId,
+			const [request, setting] = await Promise.all([
+				getDealerOrderRequest(
+					props.ctx.db,
+					props.ctx.userId,
+					props.input.requestId,
+				),
+				getSettingAction("sales-settings", props.ctx.db),
+			]);
+			const settings = normalizeDealerDeliveryPricingSettings(
+				asRecord(setting.meta)?.dealerDeliveryPricing,
 			);
+			return {
+				...request,
+				deliveryCostSuggestion: resolveDealerDeliveryCostSuggestion({
+					settings,
+					deliveryOption: request.deliveryOption,
+					grandTotal: request.grandTotal,
+				}),
+			};
 		}),
 	approveDealerSalesRequest: protectedProcedure
 		.input(approveDealerOrderRequestSchema)
@@ -442,7 +514,7 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getMultiLineComponents(props.ctx, props.input);
 		}),
-	customersIndex: publicProcedure
+	customersIndex: protectedProcedure
 		.input(getCustomersSchema)
 		.query(async (props) => {
 			return getCustomers(props.ctx, props.input);
@@ -529,9 +601,29 @@ export const salesRouter = createTRPCRouter({
 		const meta = (setting.meta || {}) as Record<string, unknown>;
 		return {
 			settings: normalizeSalesPrintSettings(meta.print),
+			dealerDeliveryPricing: normalizeDealerDeliveryPricingSettings(
+				meta.dealerDeliveryPricing,
+			),
 			canManage,
 		};
 	}),
+	updateDealerDeliveryPricingSettings: protectedProcedure
+		.input(dealerDeliveryPricingSchema)
+		.mutation(async (props) => {
+			await requireSuperAdmin(props.ctx);
+			const dealerDeliveryPricing = normalizeDealerDeliveryPricingSettings(
+				props.input,
+			);
+			const setting = await getSettingAction("sales-settings", props.ctx.db);
+			const meta = (setting.meta || {}) as Record<string, unknown>;
+			await updateSettingsMeta(
+				"sales-settings",
+				{ ...meta, dealerDeliveryPricing },
+				props.ctx.db,
+				"full",
+			);
+			return { dealerDeliveryPricing };
+		}),
 	updatePrintSettings: protectedProcedure
 		.input(salesPrintSettingsSchema)
 		.mutation(async (props) => {
@@ -840,6 +932,42 @@ export const salesRouter = createTRPCRouter({
 		.input(updateStepMetaSchema)
 		.mutation(async (props) => {
 			return updateStepMeta(props.ctx, props.input);
+		}),
+	saveWorkflowComponentDetails: protectedProcedure
+		.input(saveWorkflowComponentDetailsSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentAdmin(ctx);
+			return saveWorkflowComponentDetails(ctx, input);
+		}),
+	saveWorkflowComponentVisibility: protectedProcedure
+		.input(saveWorkflowComponentVisibilitySchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentAdmin(ctx);
+			return saveWorkflowComponentVisibility(ctx, input);
+		}),
+	saveWorkflowComponentSectionOverride: protectedProcedure
+		.input(saveWorkflowComponentSectionOverrideSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentAdmin(ctx);
+			return saveWorkflowComponentSectionOverride(ctx, input);
+		}),
+	saveWorkflowComponentRedirect: protectedProcedure
+		.input(saveWorkflowComponentRedirectSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentAdmin(ctx);
+			return saveWorkflowComponentRedirect(ctx, input);
+		}),
+	saveWorkflowComponentPricing: protectedProcedure
+		.input(saveWorkflowComponentPricingSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireSuperAdmin(ctx);
+			return saveWorkflowComponentPricing(ctx, input);
+		}),
+	archiveWorkflowComponents: protectedProcedure
+		.input(archiveWorkflowComponentsSchema)
+		.mutation(async ({ ctx, input }) => {
+			await requireWorkflowComponentAdmin(ctx);
+			return archiveWorkflowComponents(ctx, input);
 		}),
 	copySale: protectedProcedure.input(copySaleSchema).mutation(async (props) => {
 		return copySale(props.ctx, props.input);

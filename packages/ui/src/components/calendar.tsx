@@ -123,7 +123,7 @@ function Calendar({
           return (
             <div
               data-slot="calendar"
-              ref={rootRef}
+              ref={rootRef as unknown as React.Ref<HTMLDivElement>}
               className={cn(className)}
               {...props}
             />
@@ -165,6 +165,8 @@ function Calendar({
     />
   );
 }
+
+export type CalendarProps = React.ComponentProps<typeof Calendar>;
 
 function CalendarDayButton({
   className,

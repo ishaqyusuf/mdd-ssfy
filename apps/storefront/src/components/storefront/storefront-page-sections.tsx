@@ -1,6 +1,7 @@
 "use client";
 
 import { FeaturedCategorySection } from "@/components/featured-category-section";
+import { Hero } from "@/components/hero";
 import { FeaturedProducts } from "@/components/storefront/featured-products";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
@@ -58,30 +59,14 @@ export function StorefrontPageSections({
 				}
 				if (section.type === "hero") {
 					return (
-						<section key={section.id} className="bg-amber-50 py-16">
-							<div className="container mx-auto grid items-center gap-10 px-4 md:grid-cols-2">
-								<div>
-									<h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-										{title || page.data.title}
-									</h1>
-									{body && (
-										<p className="mt-5 text-lg text-muted-foreground">{body}</p>
-									)}
-									{actionLabel && actionUrl.startsWith("/") && (
-										<Button asChild className="mt-6">
-											<Link href={actionUrl}>{actionLabel}</Link>
-										</Button>
-									)}
-								</div>
-								{imageUrl && (
-									<img
-										src={imageUrl}
-										alt=""
-										className="aspect-[4/3] w-full rounded-lg object-cover"
-									/>
-								)}
-							</div>
-						</section>
+						<Hero
+							key={section.id}
+							title={title || page.data.title}
+							description={body || undefined}
+							imageUrl={imageUrl || undefined}
+							actionLabel={actionLabel || undefined}
+							actionUrl={actionUrl || undefined}
+						/>
 					);
 				}
 				return (

@@ -5,7 +5,10 @@ import {
 import type { TRPCContext } from "@api/trpc/init";
 import { txContext } from "@api/utils/db";
 import { salesWorkflowCache } from "@gnd/cache/sales-workflow-cache";
-import { queueDykeStepToInventorySync } from "@gnd/inventory";
+import {
+	queueDykeStepToInventorySync,
+	updateDykeComponentPricing,
+} from "@gnd/inventory";
 import { type RenturnTypeAsync, generateRandomString, sum } from "@gnd/utils";
 import { composeQuery } from "@gnd/utils/query-response";
 import type { DykeStepMeta, Prisma, StepComponentMeta } from "@sales/types";
@@ -196,6 +199,298 @@ export async function invalidateSalesWorkflowForStepComponent(input: {
 			? salesWorkflowCache.invalidateStepRouting()
 			: Promise.resolve(),
 	]);
+}
+
+const workflowVisibilityRuleSchema = z.object({
+	stepUid: z.string().trim().min(1),
+	operator: z.enum(["is", "isNot"]),
+	componentsUid: z.array(z.string().trim().min(1)).min(1),
+});
+
+export const saveWorkflowComponentDetailsSchema = z.object({
+	componentId: z.number().int().positive(),
+	title: z.string().trim().min(1),
+	productCode: z.string().trim().nullable().optional(),
+	img: z.string().trim().nullable().optional(),
+});
+
+export const saveWorkflowComponentVisibilitySchema = z.object({
+	componentIds: z.array(z.number().int().positive()).min(1),
+	variations: z.array(
+		z.object({
+			rules: z.array(workflowVisibilityRuleSchema).min(1),
+		}),
+	),
+});
+
+export const saveWorkflowComponentSectionOverrideSchema = z.object({
+	componentId: z.number().int().positive(),
+	sectionOverride: z.object({
+		overrideMode: z.boolean(),
+		noHandle: z.boolean(),
+		hasSwing: z.boolean(),
+	}),
+});
+
+export const saveWorkflowComponentRedirectSchema = z.object({
+	componentId: z.number().int().positive(),
+	redirectUid: z.string().trim().min(1).nullable(),
+});
+
+export const saveWorkflowComponentPricingSchema = z.object({
+	componentId: z.number().int().positive(),
+	pricings: z.array(
+		z.object({
+			id: z.number().int().positive().optional(),
+			dependenciesUid: z.string().trim().optional(),
+			price: z.number().finite().nullable().optional(),
+		}),
+	),
+});
+
+export const archiveWorkflowComponentsSchema = z.object({
+	componentIds: z.array(z.number().int().positive()).min(1),
+});
+
+type WorkflowComponentMutationResult = {
+	componentIds: number[];
+	stepIds: number[];
+};
+
+function workflowMeta(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? { ...(value as Record<string, unknown>) }
+		: {};
+}
+
+async function activeWorkflowComponents(
+	ctx: TRPCContext,
+	componentIds: number[],
+) {
+	const components = await ctx.db.dykeStepProducts.findMany({
+		where: { id: { in: componentIds }, deletedAt: null },
+		select: {
+			id: true,
+			uid: true,
+			dykeStepId: true,
+			meta: true,
+		},
+	});
+	if (components.length !== new Set(componentIds).size) {
+		throw new Error("One or more workflow components do not exist.");
+	}
+	return components;
+}
+
+async function finishWorkflowComponentMutation(
+	result: WorkflowComponentMutationResult & {
+		componentUids?: Array<string | null>;
+		routing?: boolean;
+	},
+) {
+	await Promise.all(
+		result.componentIds.map((componentId, index) =>
+			invalidateSalesWorkflowForStepComponent({
+				componentId,
+				componentUid: result.componentUids?.[index],
+				stepId: result.stepIds[index],
+				routing: result.routing,
+			}),
+		),
+	);
+	await Promise.all(
+		Array.from(new Set(result.stepIds)).map((stepId) =>
+			queueDykeStepToInventorySync({ stepId, source: "event" }),
+		),
+	);
+	return result;
+}
+
+export async function saveWorkflowComponentDetails(
+	ctx: TRPCContext,
+	input: z.infer<typeof saveWorkflowComponentDetailsSchema>,
+) {
+	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
+	if (!component) throw new Error("Workflow component does not exist.");
+	await ctx.db.dykeStepProducts.update({
+		where: { id: component.id },
+		data: {
+			name: input.title,
+			productCode: input.productCode || null,
+			img: input.img || null,
+		},
+	});
+	return finishWorkflowComponentMutation({
+		componentIds: [component.id],
+		componentUids: [component.uid],
+		stepIds: [component.dykeStepId],
+		routing: true,
+	});
+}
+
+async function validateWorkflowVisibilityRules(
+	ctx: TRPCContext,
+	variations: z.infer<
+		typeof saveWorkflowComponentVisibilitySchema
+	>["variations"],
+) {
+	const rules = variations.flatMap((variation) => variation.rules);
+	const stepUids = Array.from(new Set(rules.map((rule) => rule.stepUid)));
+	if (!stepUids.length) return;
+	const steps = await ctx.db.dykeSteps.findMany({
+		where: { uid: { in: stepUids }, deletedAt: null },
+		select: {
+			uid: true,
+			stepProducts: {
+				where: { deletedAt: null },
+				select: { uid: true },
+			},
+		},
+	});
+	if (steps.length !== stepUids.length) {
+		throw new Error("A visibility rule references an unavailable step.");
+	}
+	const allowedByStep = new Map(
+		steps.map((step) => [
+			String(step.uid || ""),
+			new Set(
+				step.stepProducts.map((component) => String(component.uid || "")),
+			),
+		]),
+	);
+	for (const rule of rules) {
+		const allowed = allowedByStep.get(rule.stepUid);
+		if (!allowed || rule.componentsUid.some((uid) => !allowed.has(uid))) {
+			throw new Error("A visibility rule references an unavailable component.");
+		}
+	}
+}
+
+export async function saveWorkflowComponentVisibility(
+	ctx: TRPCContext,
+	input: z.infer<typeof saveWorkflowComponentVisibilitySchema>,
+) {
+	const components = await activeWorkflowComponents(ctx, input.componentIds);
+	await validateWorkflowVisibilityRules(ctx, input.variations);
+	await ctx.db.$transaction(
+		components.map((component) =>
+			ctx.db.dykeStepProducts.update({
+				where: { id: component.id },
+				data: {
+					meta: {
+						...workflowMeta(component.meta),
+						variations: input.variations,
+					} as Prisma.InputJsonValue,
+				},
+			}),
+		),
+	);
+	return finishWorkflowComponentMutation({
+		componentIds: components.map((component) => component.id),
+		componentUids: components.map((component) => component.uid),
+		stepIds: components.map((component) => component.dykeStepId),
+		routing: true,
+	});
+}
+
+export async function saveWorkflowComponentSectionOverride(
+	ctx: TRPCContext,
+	input: z.infer<typeof saveWorkflowComponentSectionOverrideSchema>,
+) {
+	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
+	if (!component) throw new Error("Workflow component does not exist.");
+	await ctx.db.dykeStepProducts.update({
+		where: { id: component.id },
+		data: {
+			meta: {
+				...workflowMeta(component.meta),
+				sectionOverride: input.sectionOverride,
+			} as Prisma.InputJsonValue,
+		},
+	});
+	return finishWorkflowComponentMutation({
+		componentIds: [component.id],
+		componentUids: [component.uid],
+		stepIds: [component.dykeStepId],
+		routing: true,
+	});
+}
+
+export async function saveWorkflowComponentRedirect(
+	ctx: TRPCContext,
+	input: z.infer<typeof saveWorkflowComponentRedirectSchema>,
+) {
+	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
+	if (!component) throw new Error("Workflow component does not exist.");
+	if (input.redirectUid) {
+		const target = await ctx.db.dykeSteps.findFirst({
+			where: { uid: input.redirectUid, deletedAt: null },
+			select: { id: true },
+		});
+		if (!target) throw new Error("Redirect target is unavailable.");
+	}
+	await ctx.db.dykeStepProducts.update({
+		where: { id: component.id },
+		data: { redirectUid: input.redirectUid },
+	});
+	return finishWorkflowComponentMutation({
+		componentIds: [component.id],
+		componentUids: [component.uid],
+		stepIds: [component.dykeStepId],
+		routing: true,
+	});
+}
+
+export async function saveWorkflowComponentPricing(
+	ctx: TRPCContext,
+	input: z.infer<typeof saveWorkflowComponentPricingSchema>,
+) {
+	const [component] = await activeWorkflowComponents(ctx, [input.componentId]);
+	if (!component?.uid)
+		throw new Error("Workflow component has no canonical uid.");
+	const pricingIds = input.pricings.flatMap((pricing) =>
+		pricing.id ? [pricing.id] : [],
+	);
+	if (pricingIds.length) {
+		const ownedRows = await ctx.db.dykePricingSystem.count({
+			where: {
+				id: { in: pricingIds },
+				stepProductUid: component.uid,
+				deletedAt: null,
+			},
+		});
+		if (ownedRows !== new Set(pricingIds).size) {
+			throw new Error("A pricing row does not belong to this component.");
+		}
+	}
+	await updateDykeComponentPricing(ctx.db, {
+		stepId: component.dykeStepId,
+		stepProductUid: component.uid,
+		pricings: input.pricings,
+		triggerInventorySync: false,
+	});
+	return finishWorkflowComponentMutation({
+		componentIds: [component.id],
+		componentUids: [component.uid],
+		stepIds: [component.dykeStepId],
+	});
+}
+
+export async function archiveWorkflowComponents(
+	ctx: TRPCContext,
+	input: z.infer<typeof archiveWorkflowComponentsSchema>,
+) {
+	const components = await activeWorkflowComponents(ctx, input.componentIds);
+	await ctx.db.dykeStepProducts.updateMany({
+		where: { id: { in: components.map((component) => component.id) } },
+		data: { deletedAt: new Date() },
+	});
+	return finishWorkflowComponentMutation({
+		componentIds: components.map((component) => component.id),
+		componentUids: components.map((component) => component.uid),
+		stepIds: components.map((component) => component.dykeStepId),
+		routing: true,
+	});
 }
 
 export const getStepComponentsSchema = z.object({

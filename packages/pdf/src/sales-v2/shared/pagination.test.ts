@@ -1,4 +1,3 @@
-// @ts-expect-error - @gnd/pdf test typecheck does not include Bun ambient types yet.
 import { describe, expect, test } from "bun:test";
 import type { DoorSection, MouldingSection } from "@gnd/sales/print/types";
 import { paginatePrintSections } from "./pagination";

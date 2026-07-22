@@ -34,7 +34,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "@gnd/tsconfig": "workspace:*",
+	"@gnd/tsconfig": "workspace:*",
+	"@types/bun": "^1.2.17",
     "typescript": "^5.9.3"
   }
 }

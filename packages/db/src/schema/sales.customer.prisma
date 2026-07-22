@@ -25,6 +25,8 @@ model Customers {
     wallet         CustomerWallet?
     auth           DealerAuth?
     dealerOwner    DealerAuth?           @relation(name: "dealerOwnedCustomers", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    dealerRecruitmentInvitations DealerRecruitmentInvitation[]
+    dealerRecruitmentState DealerRecruitmentCustomerState?
     userId         Int?                  @unique
     user           Users?                @relation(fields: [userId], references: [id])
 

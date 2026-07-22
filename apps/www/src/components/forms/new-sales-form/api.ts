@@ -6,14 +6,14 @@ import type {
 	NewSalesFormGetInput,
 	NewSalesFormRecalculateInput,
 	NewSalesFormResolveCustomerInput,
+	NewSalesFormSaveDraftInput,
+	NewSalesFormSaveFinalInput,
 	NewSalesFormShelfCategoriesInput,
 	NewSalesFormShelfProductDetailsInput,
 	NewSalesFormShelfProductIndexInput,
 	NewSalesFormShelfProductSearchInput,
 	NewSalesFormShelfProductsInput,
 	NewSalesFormStepRoutingInput,
-	NewSalesFormSaveDraftInput,
-	NewSalesFormSaveFinalInput,
 } from "./schema";
 
 export function useNewSalesFormBootstrapQuery(
@@ -187,6 +187,42 @@ export function useSalesDeleteSupplierMutation() {
 export function useSalesUpdateStepMetaMutation() {
 	const trpc = useTRPC();
 	return useMutation(trpc.sales.updateStepMeta.mutationOptions());
+}
+
+export function useSaveWorkflowComponentDetailsMutation() {
+	const trpc = useTRPC();
+	return useMutation(trpc.sales.saveWorkflowComponentDetails.mutationOptions());
+}
+
+export function useSaveWorkflowComponentVisibilityMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.sales.saveWorkflowComponentVisibility.mutationOptions(),
+	);
+}
+
+export function useSaveWorkflowComponentSectionOverrideMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.sales.saveWorkflowComponentSectionOverride.mutationOptions(),
+	);
+}
+
+export function useSaveWorkflowComponentRedirectMutation() {
+	const trpc = useTRPC();
+	return useMutation(
+		trpc.sales.saveWorkflowComponentRedirect.mutationOptions(),
+	);
+}
+
+export function useSaveWorkflowComponentPricingMutation() {
+	const trpc = useTRPC();
+	return useMutation(trpc.sales.saveWorkflowComponentPricing.mutationOptions());
+}
+
+export function useArchiveWorkflowComponentsMutation() {
+	const trpc = useTRPC();
+	return useMutation(trpc.sales.archiveWorkflowComponents.mutationOptions());
 }
 
 export function useUpdateDykeComponentPricingMutation() {

@@ -86,6 +86,7 @@ export type DealerPortalQuoteLineItemInput = {
 	qty?: number | null;
 	unitPrice?: number | null;
 	lineTotal?: number | null;
+	taxxable?: boolean | null;
 	meta?: Record<string, unknown> | null;
 	formSteps?: Record<string, unknown>[] | null;
 	shelfItems?: Record<string, unknown>[] | null;
@@ -107,6 +108,8 @@ export type DealerPortalSaveQuoteInput = {
 	paymentMethod?: string | null;
 	taxCode?: string | null;
 	taxRate?: number | null;
+	sellerOfRecord?: "DEALER" | "GND" | null;
+	resaleCertificateOnFile?: boolean | null;
 	lineItems: DealerPortalQuoteLineItemInput[];
 };
 
@@ -1443,6 +1446,9 @@ function mapDealerSalesDocument(document: {
 	}>;
 }) {
 	const latestRequest = document.requests?.[0] || null;
+	const documentMeta = getObjectMeta(document.meta);
+	const approvalMeta = getObjectMeta(documentMeta.dealerRequestApproval);
+	const rejectionMeta = getObjectMeta(documentMeta.dealerRequestRejection);
 	const { meta: _meta, ...safeDocument } = document;
 	const customerTotal = Number(
 		document.dealerSale?.grandTotal ?? document.grandTotal ?? 0,
@@ -1462,6 +1468,22 @@ function mapDealerSalesDocument(document: {
 		),
 		requestId: latestRequest?.id ?? null,
 		requestStatus: latestRequest?.status ?? null,
+		requestCreatedAt: latestRequest?.createdAt ?? null,
+		requestUpdatedAt: latestRequest?.updatedAt ?? null,
+		requestDecisionAt:
+			(typeof approvalMeta.approvedAt === "string"
+				? approvalMeta.approvedAt
+				: null) ||
+			(typeof rejectionMeta.rejectedAt === "string"
+				? rejectionMeta.rejectedAt
+				: null) ||
+			latestRequest?.updatedAt ||
+			null,
+		requestDecisionNote:
+			(typeof approvalMeta.approverNote === "string"
+				? approvalMeta.approverNote
+				: null) ||
+			(typeof rejectionMeta.reason === "string" ? rejectionMeta.reason : null),
 	};
 }
 
@@ -2169,7 +2191,10 @@ export async function getDealerPortalSalesDocument(
 				select: {
 					customerId: true,
 					dealerCustomerProfileId: true,
+					sellerOfRecord: true,
+					selectedTaxModelSnapshot: true,
 					dealerSalesPercentage: true,
+					resaleCertificateOnFile: true,
 					grandTotal: true,
 					dueAmount: true,
 					dealerCustomerProfile: {
@@ -2308,6 +2333,16 @@ export async function getDealerPortalSalesDocument(
 		paymentMethod:
 			typeof form?.paymentMethod === "string" ? form.paymentMethod : null,
 		taxCode: typeof form?.taxCode === "string" ? form.taxCode : null,
+		sellerOfRecord:
+			form?.sellerOfRecord === "GND" ||
+			document.dealerSale?.sellerOfRecord === "GND"
+				? "GND"
+				: "DEALER",
+		resaleCertificateOnFile:
+			typeof form?.resaleCertificateOnFile === "boolean"
+				? form.resaleCertificateOnFile
+				: Boolean(document.dealerSale?.resaleCertificateOnFile),
+		taxSnapshot: document.dealerSale?.selectedTaxModelSnapshot || null,
 		lineItems: metaLineItems?.length
 			? metaLineItems
 			: items.map((item) => {
@@ -2474,10 +2509,14 @@ function dealerLineServiceRows(line: DealerPortalQuoteLineItemInput) {
 }
 
 function dealerLineIsTaxable(line: DealerPortalQuoteLineItemInput) {
+	if (typeof line.taxxable === "boolean") return line.taxxable;
 	const meta = dealerLineMeta(line);
 	if (typeof meta.taxxable === "boolean") return meta.taxxable;
 	if (typeof meta.tax === "boolean") return meta.tax;
-	return dealerLineServiceRows(line).some((row) => row.taxxable === true);
+	if (Array.isArray(meta.serviceRows)) {
+		return dealerLineServiceRows(line).some((row) => row.taxxable === true);
+	}
+	return true;
 }
 
 function dealerLineIsProduceable(line: DealerPortalQuoteLineItemInput) {
@@ -2697,6 +2736,8 @@ export function calculateDealerQuotePricing({
 	internalProfile,
 	dealerProfile,
 	createdAt,
+	sellerOfRecord = "DEALER",
+	resaleCertificateOnFile = false,
 }: {
 	lineItems: DealerPortalQuoteLineItemInput[];
 	taxRate: number;
@@ -2712,6 +2753,8 @@ export function calculateDealerQuotePricing({
 		salesPercentage?: number | null;
 	} | null;
 	createdAt?: string | Date | null;
+	sellerOfRecord?: "DEALER" | "GND";
+	resaleCertificateOnFile?: boolean;
 }) {
 	const internalCoefficient = pricingCoefficient(internalProfile);
 	const dealerCoefficient = pricingCoefficient(dealerProfile);
@@ -2734,6 +2777,7 @@ export function calculateDealerQuotePricing({
 			title: line.title?.trim() || null,
 			description: line.description?.trim() || "",
 			qty,
+			taxable: dealerLineIsTaxable(line),
 			internalUnitPrice,
 			internalLineTotal: roundCurrency(qty * internalUnitPrice),
 			dealerUnitPrice,
@@ -2747,8 +2791,24 @@ export function calculateDealerQuotePricing({
 	const dealerSubTotal = roundCurrency(
 		lines.reduce((sum, line) => sum + line.dealerLineTotal, 0),
 	);
-	const internalTaxTotal = roundCurrency(internalSubTotal * (taxRate / 100));
-	const dealerTaxTotal = roundCurrency(dealerSubTotal * (taxRate / 100));
+	const internalTaxableSubTotal = roundCurrency(
+		lines.reduce(
+			(sum, line) => sum + (line.taxable ? line.internalLineTotal : 0),
+			0,
+		),
+	);
+	const dealerTaxableSubTotal = roundCurrency(
+		lines.reduce(
+			(sum, line) => sum + (line.taxable ? line.dealerLineTotal : 0),
+			0,
+		),
+	);
+	const internalTaxExempt =
+		sellerOfRecord === "DEALER" && resaleCertificateOnFile;
+	const internalTaxTotal = internalTaxExempt
+		? 0
+		: roundCurrency(internalTaxableSubTotal * (taxRate / 100));
+	const dealerTaxTotal = roundCurrency(dealerTaxableSubTotal * (taxRate / 100));
 
 	return {
 		source: "dealer_portal_dual_pricing",
@@ -2772,6 +2832,7 @@ export function calculateDealerQuotePricing({
 		internalPricing: {
 			subTotal: internalSubTotal,
 			adjustedSubTotal: internalSubTotal,
+			taxableSubTotal: internalTaxableSubTotal,
 			taxRate,
 			taxTotal: internalTaxTotal,
 			grandTotal: roundCurrency(internalSubTotal + internalTaxTotal),
@@ -2786,6 +2847,7 @@ export function calculateDealerQuotePricing({
 		dealerPricing: {
 			subTotal: dealerSubTotal,
 			adjustedSubTotal: dealerSubTotal,
+			taxableSubTotal: dealerTaxableSubTotal,
 			taxRate,
 			taxTotal: dealerTaxTotal,
 			grandTotal: roundCurrency(dealerSubTotal + dealerTaxTotal),
@@ -2962,6 +3024,7 @@ export async function saveDealerPortalQuote(
 			},
 			select: {
 				meta: true,
+				salesRepId: true,
 			},
 		} as any);
 		const dealerDefaults = getDealerDefaultsFromMeta(
@@ -3032,30 +3095,30 @@ export async function saveDealerPortalQuote(
 			input.taxCode === undefined
 				? customerTaxProfile.taxCode || dealerDefaults.defaultTaxCode
 				: input.taxCode || null;
-		const taxProfileRate =
-			customer.taxProfiles?.[0]?.tax?.percentage == null
-				? null
-				: Number(customer.taxProfiles[0].tax.percentage);
+		const selectedTaxModel = effectiveTaxCode
+			? await tx.taxes.findFirst({
+					where: {
+						taxCode: effectiveTaxCode,
+						deletedAt: null,
+					},
+					select: {
+						taxCode: true,
+						title: true,
+						percentage: true,
+						taxOn: true,
+					},
+				})
+			: null;
 		const defaultTaxRate =
-			effectiveTaxCode && taxProfileRate == null
-				? await tx.taxes
-						.findFirst({
-							where: {
-								taxCode: effectiveTaxCode,
-								deletedAt: null,
-							},
-							select: {
-								percentage: true,
-							},
-						})
-						.then((tax) =>
-							tax?.percentage == null ? null : Number(tax.percentage),
-						)
-				: taxProfileRate;
+			selectedTaxModel?.percentage == null
+				? null
+				: Number(selectedTaxModel.percentage);
 		const effectiveTaxRate =
 			effectiveTaxCode && defaultTaxRate != null
 				? defaultTaxRate
 				: Number(input.taxRate || 0);
+		const sellerOfRecord = input.sellerOfRecord === "GND" ? "GND" : "DEALER";
+		const resaleCertificateOnFile = Boolean(input.resaleCertificateOnFile);
 		const effectiveDeliveryOption =
 			input.deliveryOption || dealerDefaults.defaultFulfillmentMode || "pickup";
 
@@ -3086,6 +3149,7 @@ export async function saveDealerPortalQuote(
 				qty,
 				unitPrice,
 				lineTotal,
+				taxxable: typeof line.taxxable === "boolean" ? line.taxxable : null,
 				meta:
 					line.meta &&
 					typeof line.meta === "object" &&
@@ -3122,7 +3186,34 @@ export async function saveDealerPortalQuote(
 			internalProfile: effectiveInternalProfile,
 			dealerProfile: effectiveDealerProfile,
 			lineItems: normalizedLines,
+			sellerOfRecord,
+			resaleCertificateOnFile,
 		});
+		const dealerMarkupAmount = roundCurrency(
+			pricing.dealerPricing.subTotal - pricing.internalPricing.subTotal,
+		);
+		const selectedTaxModelSnapshot = {
+			capturedAt: pricing.createdAt,
+			taxCode: effectiveTaxCode || null,
+			taxModelName: selectedTaxModel?.title || null,
+			taxOn: selectedTaxModel?.taxOn || "total",
+			rate: effectiveTaxRate,
+			sellerOfRecord,
+			resaleCertificateOnFile,
+			internalTaxApplies: !(
+				sellerOfRecord === "DEALER" && resaleCertificateOnFile
+			),
+			internalTaxableSubtotal: pricing.internalPricing.taxableSubTotal,
+			internalTax: pricing.internalPricing.taxTotal,
+			dealerTaxableSubtotal: pricing.dealerPricing.taxableSubTotal,
+			dealerCustomerTax: pricing.dealerPricing.taxTotal,
+			taxableLines: pricing.lines.map((line) => ({
+				uid: line.uid,
+				taxable: line.taxable,
+				internalAmount: line.internalLineTotal,
+				dealerAmount: line.dealerLineTotal,
+			})),
+		};
 		const existing = input.id
 			? await tx.salesOrders.findFirst({
 					where: {
@@ -3152,6 +3243,9 @@ export async function saveDealerPortalQuote(
 			status: "Draft",
 			isDyke: true,
 			dealerAuthId: dealerId,
+			salesRepId:
+				(dealerAccount as { salesRepId?: number | null } | null)?.salesRepId ||
+				null,
 			customerId: customer.id,
 			customerProfileId: internalProfile?.id || null,
 			dealerSalesProfileId: dealerProfile?.id || null,
@@ -3163,6 +3257,7 @@ export async function saveDealerPortalQuote(
 			amountDue: pricing.internalPricing.grandTotal,
 			meta: {
 				salesCoefficient: pricing.profiles.internal.coefficient,
+				dealerTaxSnapshot: selectedTaxModelSnapshot,
 				newSalesForm: {
 					version: `${Date.now()}`,
 					updatedAt: new Date().toISOString(),
@@ -3179,6 +3274,8 @@ export async function saveDealerPortalQuote(
 						deliveryOption: effectiveDeliveryOption,
 						paymentMethod: input.paymentMethod || null,
 						taxCode: effectiveTaxCode || null,
+						sellerOfRecord,
+						resaleCertificateOnFile,
 					},
 				},
 			} as Prisma.InputJsonValue,
@@ -3242,7 +3339,19 @@ export async function saveDealerPortalQuote(
 				dealerAuthId: dealerId,
 				customerId: customer.id,
 				dealerCustomerProfileId: dealerProfile.id,
+				sellerOfRecord,
+				selectedTaxModelId: effectiveTaxCode || null,
+				selectedTaxModelName: selectedTaxModel?.title || null,
+				selectedTaxModelSnapshot,
+				internalSubtotal: pricing.internalPricing.subTotal,
+				internalTaxableSubtotal: pricing.internalPricing.taxableSubTotal,
+				internalTax: pricing.internalPricing.taxTotal,
+				dealerSubtotal: pricing.dealerPricing.subTotal,
+				dealerTaxableSubtotal: pricing.dealerPricing.taxableSubTotal,
+				dealerCustomerTax: pricing.dealerPricing.taxTotal,
+				dealerMarkupAmount,
 				dealerSalesPercentage: pricing.profiles.dealer.salesPercentage,
+				resaleCertificateOnFile,
 				grandTotal: pricing.dealerPricing.grandTotal,
 				dueAmount: pricing.dealerPricing.grandTotal,
 			},
@@ -3250,7 +3359,19 @@ export async function saveDealerPortalQuote(
 				dealerAuthId: dealerId,
 				customerId: customer.id,
 				dealerCustomerProfileId: dealerProfile.id,
+				sellerOfRecord,
+				selectedTaxModelId: effectiveTaxCode || null,
+				selectedTaxModelName: selectedTaxModel?.title || null,
+				selectedTaxModelSnapshot,
+				internalSubtotal: pricing.internalPricing.subTotal,
+				internalTaxableSubtotal: pricing.internalPricing.taxableSubTotal,
+				internalTax: pricing.internalPricing.taxTotal,
+				dealerSubtotal: pricing.dealerPricing.subTotal,
+				dealerTaxableSubtotal: pricing.dealerPricing.taxableSubTotal,
+				dealerCustomerTax: pricing.dealerPricing.taxTotal,
+				dealerMarkupAmount,
 				dealerSalesPercentage: pricing.profiles.dealer.salesPercentage,
+				resaleCertificateOnFile,
 				grandTotal: pricing.dealerPricing.grandTotal,
 				dueAmount: pricing.dealerPricing.grandTotal,
 			},
@@ -3641,6 +3762,17 @@ function mapDealerOrderRequest(row: any) {
 	const dealer = sale.dealerAuth || {};
 	const customer = sale.customer || {};
 	const saleMeta = getObjectMeta(sale.meta);
+	const approvalMeta = getObjectMeta(saleMeta.dealerRequestApproval);
+	const rejectionMeta = getObjectMeta(saleMeta.dealerRequestRejection);
+	const rawDeliveryCost = approvalMeta.deliveryCost ?? saleMeta.deliveryCost;
+	const currentDeliveryCost = Number(rawDeliveryCost);
+	const decisionAt =
+		(typeof approvalMeta.approvedAt === "string"
+			? approvalMeta.approvedAt
+			: null) ||
+		(typeof rejectionMeta.rejectedAt === "string"
+			? rejectionMeta.rejectedAt
+			: null);
 	return {
 		id: row.id,
 		status: row.status,
@@ -3664,8 +3796,138 @@ function mapDealerOrderRequest(row: any) {
 		customerEmail: customer.email || null,
 		customerPhone: customer.phoneNo || null,
 		fulfillmentRecipient: getObjectMeta(saleMeta.dealerFulfillmentRecipient),
+		currentDeliveryCost: Number.isFinite(currentDeliveryCost)
+			? currentDeliveryCost
+			: null,
+		decisionAt,
+		decisionNote:
+			(typeof approvalMeta.approverNote === "string"
+				? approvalMeta.approverNote
+				: null) ||
+			(typeof rejectionMeta.reason === "string" ? rejectionMeta.reason : null),
 		salesRepId: sale.salesRepId || null,
+		sla: getDealerRequestSla({
+			createdAt: row.createdAt,
+			decisionAt:
+				decisionAt || (row.status !== "pending" ? row.updatedAt : null),
+			status: row.status,
+		}),
 	};
+}
+
+const DEALER_REQUEST_SLA_HOURS = 24;
+const DEALER_REQUEST_DUE_SOON_HOURS = 18;
+
+function validDate(value: unknown) {
+	const date = value instanceof Date ? value : new Date(String(value || ""));
+	return Number.isFinite(date.getTime()) ? date : null;
+}
+
+export function getDealerRequestSla({
+	createdAt,
+	decisionAt,
+	status,
+	now = new Date(),
+}: {
+	createdAt: Date | string | null | undefined;
+	decisionAt?: Date | string | null;
+	status?: string | null;
+	now?: Date;
+}) {
+	const created = validDate(createdAt);
+	const completed = validDate(decisionAt);
+	const end = status === "pending" || !completed ? now : completed;
+	const ageHours = created
+		? Math.max(0, (end.getTime() - created.getTime()) / 3_600_000)
+		: 0;
+	const dueAt = created
+		? new Date(
+				created.getTime() + DEALER_REQUEST_SLA_HOURS * 3_600_000,
+			).toISOString()
+		: null;
+	const slaStatus =
+		status !== "pending"
+			? "resolved"
+			: ageHours >= DEALER_REQUEST_SLA_HOURS
+				? "overdue"
+				: ageHours >= DEALER_REQUEST_DUE_SOON_HOURS
+					? "due_soon"
+					: "on_track";
+
+	return {
+		status: slaStatus as "on_track" | "due_soon" | "overdue" | "resolved",
+		ageHours: Math.round(ageHours * 10) / 10,
+		targetHours: DEALER_REQUEST_SLA_HOURS,
+		dueAt,
+	};
+}
+
+export function summarizeDealerRequestSla(
+	rows: Array<{
+		status?: string | null;
+		createdAt?: Date | string | null;
+		updatedAt?: Date | string | null;
+	}>,
+	now = new Date(),
+) {
+	let pending = 0;
+	let dueSoon = 0;
+	let overdue = 0;
+	let approved = 0;
+	let rejected = 0;
+	let totalDecisionHours = 0;
+	let decided = 0;
+
+	for (const row of rows) {
+		const sla = getDealerRequestSla({
+			createdAt: row.createdAt,
+			decisionAt: row.status === "pending" ? null : row.updatedAt,
+			status: row.status,
+			now,
+		});
+		if (row.status === "pending") {
+			pending += 1;
+			if (sla.status === "due_soon") dueSoon += 1;
+			if (sla.status === "overdue") overdue += 1;
+		} else {
+			decided += 1;
+			totalDecisionHours += sla.ageHours;
+			if (row.status === "approved") approved += 1;
+			if (row.status === "rejected") rejected += 1;
+		}
+	}
+
+	return {
+		total: rows.length,
+		pending,
+		dueSoon,
+		overdue,
+		approved,
+		rejected,
+		averageDecisionHours:
+			decided > 0 ? Math.round((totalDecisionHours / decided) * 10) / 10 : 0,
+		approvalRate:
+			decided > 0 ? Math.round((approved / decided) * 1000) / 10 : 0,
+		targetHours: DEALER_REQUEST_SLA_HOURS,
+	};
+}
+
+export async function getDealerOrderRequestAnalytics(
+	db: Database,
+	userId: number,
+) {
+	const scope = await getSalesRequestUserScope(db, userId);
+	const rows = await db.dealerSalesRequest.findMany({
+		where: dealerOrderRequestWhere(userId, scope.canReviewUnassigned, {
+			status: "all",
+		}),
+		select: {
+			status: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+	});
+	return summarizeDealerRequestSla(rows);
 }
 
 export async function getDealerOrderRequests(

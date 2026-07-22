@@ -37,4 +37,19 @@ describe("sales payment processor contract", () => {
 
 		expect(result.success).toBe(false);
 	});
+
+	it("requires a device for terminal payments", () => {
+		const missingDevice = salesPaymentProcessorApplyPaymentSchema.safeParse({
+			...basePayment,
+			paymentMethod: "terminal",
+		});
+		const selectedDevice = salesPaymentProcessorApplyPaymentSchema.safeParse({
+			...basePayment,
+			deviceId: "device:238CS149B2002443",
+			paymentMethod: "terminal",
+		});
+
+		expect(missingDevice.success).toBe(false);
+		expect(selectedDevice.success).toBe(true);
+	});
 });

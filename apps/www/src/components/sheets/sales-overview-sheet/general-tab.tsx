@@ -31,6 +31,7 @@ import { DeliveryOption } from "./delivery-option";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
 import { SalesPrioritySelect } from "@/components/sales-priority-control";
 import { SalesOverviewPaymentMethodSelect } from "@/components/sales-overview-payment-method-select";
+import { SalesRepTransferControl } from "@/components/sales-rep-transfer-control";
 import { getSalesOverviewDocumentStatus } from "@/components/sales-overview-system/lib/document-status";
 
 type CostLine = {
@@ -401,6 +402,7 @@ export function GeneralTab({}) {
                                         `(${saleData?.salesRepInitial})`}
                                 </p>
                             </DataSkeleton>
+                            <SalesRepTransferControl sale={saleData} />
                         </div>
                     </div>
 

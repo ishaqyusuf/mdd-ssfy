@@ -33,5 +33,5 @@ const templates: Record<string, CustomerStatementTemplateRegistryEntry> = {
 };
 
 export function getTemplate(id: string): CustomerStatementTemplateRegistryEntry {
-	return templates[id] ?? templates["template-1"];
+	return templates[id] ?? templates["template-1"]!;
 }

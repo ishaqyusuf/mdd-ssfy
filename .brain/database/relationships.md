@@ -11,6 +11,13 @@ Tracks important cross-model relationships and ownership patterns.
   invitations, and attributed applications. Each invitation belongs to one
   office customer and normalized recipient email; only its token hash is
   persisted, and it may create one idempotent application.
+- `DealerRecruitmentInvitation.customerId` belongs to `Customers.id` and
+  `sentById` optionally identifies the Super Admin sender. One customer may
+  have many invitation attempts; superseded/revoked rows remain audit evidence.
+- `DealerRecruitmentCustomerState.customerId` is one-to-one with `Customers`
+  and serializes sends for that customer. `latestInvitationId` is a lookup
+  pointer; token validation continues to use the invitation's hash plus
+  revoked/superseded/expiry/campaign constraints.
 - Approved applications link to the existing dealer account/onboarding-token
   flow. Delivery/ship submissions separately persist an order recipient
   snapshot so fulfillment does not depend on later customer visibility/edits.

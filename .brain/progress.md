@@ -1,5 +1,35 @@
 # Progress
 
+- 2026-07-22: Hardened staff POS terminal checkout and identified the remaining
+  physical-device blocker. Local dev can now explicitly use production Square
+  through `SQUARE_FORCE_PRODUCTION=true`; the terminal select requires an
+  explicit choice when multiple devices are online, and the API revalidates
+  device availability, same-app pairing, and a live `PING` acknowledgement
+  before creating or persisting a checkout. Added coverage for environment
+  selection, device-id normalization, same-app pairing, client terminal
+  resolution, form requirements, readiness, and server failure ordering (35
+  tests / 64 assertions). The Square
+  package typecheck and focused Biome checks pass; broad API/WWW typechecks
+  remain red on existing repository diagnostics, with the one touched-file
+  status-union diagnostic corrected. Authenticated localhost QA listed
+  production Terminals 1451/2443 and confirmed both are paired to the GND app.
+  A $0.01 checkout on 2443 received HTTP 200 create/get/dismiss responses but
+  did not appear on the hardware; same-app `PING` actions to both devices stayed
+  pending with no acknowledgement. Checkout now detects that condition and
+  shows a Connected-mode sign-in instruction without creating a payment. A
+  physical terminal sign-in and repeated charge/cancel test remain pending.
+- 2026-07-22: Redesigned the storefront homepage hero around the selected
+  RealCraft-inspired direction. The fallback and CMS-authored home-page paths
+  now share one full-bleed, photo-led hero with editorial typography, a primary
+  catalog CTA, a subordinate custom-project CTA, and a compact product-family
+  rail. The licensed Pexels image is bundled locally to avoid third-party
+  runtime failures and preserve Next image optimization. Focused Biome and diff
+  checks pass; the storefront typecheck has no diagnostics in the changed
+  files but remains red on existing repository-wide API/Prisma/React-type
+  failures. Isolated browser proof passed at desktop and mobile with both CTAs
+  visible, no console errors, and no mobile horizontal overflow. Full homepage
+  proof is currently blocked by the unrelated missing
+  `normalizeTerminalDeviceId` export in `@gnd/square`.
 - 2026-07-22: Extended Update Order Inbound demand selection so every
   prompt-mutable demand is preselected when the active query settles, and added
   a visible `Mark all` control that restores the full mutable selection after
@@ -34,6 +64,47 @@
   QA passed with no console errors. Broad sales, storefront, and API typechecks
   remain blocked by unrelated repository baseline diagnostics, with no errors
   in the changed files.
+- 2026-07-22: Implemented Sales Customer direct dealership invitations. Sales
+  Customers now has a resizable Partnership column and Customer Overview has a
+  full partnership card; both use one batched, precedence-based status contract.
+  Super Admin can invite or controlled-resend through the active campaign while
+  every other office role is read-only/`FORBIDDEN`. Added manual/banner source,
+  provider attempt state, sender/failure/revocation/supersession evidence,
+  per-customer send leases, hash-only 30-day links, 24-hour sent/opened resend,
+  immediate failed/skipped/expired/inactive/stale retry, and safe preservation
+  of an older link when replacement delivery fails. Focused validation passes
+  with 25 tests / 98 assertions; `@gnd/db` typecheck passes and filtered
+  API/WWW/email/notification typecheck scans report no feature-local
+  diagnostics. Prisma generation passed. Local `migrate dev` refused existing
+  broad drift without a destructive reset; Prisma-generated additive SQL was
+  applied directly to local `gnd-prisma2`, `db push` reported in sync, the
+  live-schema diff is empty, and a Prisma model read smoke passed. Migration
+  metadata reconciliation and provider-backed browser QA remain rollout work.
+- 2026-07-21: Restored legacy component-card menu parity in the new sales form.
+  The shared menu now nests Details, Visibility, Price, and Section Setting
+  Override under Edit; Select uses isolated batch catalog-management state;
+  Redirect and confirmed Delete persist global catalog changes. Added one WWW
+  admin controller shared by both workflow-panel implementations, six protected
+  typed sales mutations, Admin/Super Admin and Super Admin-only pricing gates,
+  cache invalidation, inventory sync, active snapshot refresh, and the missing
+  `productCode` persistence in the inventory save helper. Focused regression
+  coverage passes (16 tests / 82 assertions). The migration gate reached 166
+  passing tests before stopping on the unrelated existing composer expectation
+  that a $110 total be greater than $110; broad typecheck remains red on the
+  existing repository baseline with no new diagnostics in the changed API,
+  inventory, menu, or controller files. Authenticated browser smoke loaded both
+  workflow-panel implementations and confirmed catalog controls stay hidden for
+  the current non-Super-Admin session; Super Admin mutation acceptance was not
+  run against live catalog data.
+- 2026-07-21: Fixed the `www` new sales form component-selection crash where
+  `saveSelectedComponent` referenced `visibleComponentsOverride` without
+  destructuring it from the callback arguments. The optional override is now
+  bound before it is passed to the shared workflow selection helper, preserving
+  the existing visible-component fallback. Added a focused source regression
+  guard; all 3 workflow-capability tests pass, `git diff --check` passes, and the
+  filtered `@gnd/www` typecheck no longer reports the missing identifier. Two
+  unrelated existing `WorkflowComponentRecord[]` shape diagnostics remain in
+  the same panel.
 - 2026-07-20: Fixed the production `@gnd/www` Turbopack build failure while
   collecting `/api/bug-reports/upload` page data. The shared Prisma client no
   longer reads the internal `Prisma.dmmf.datamodel` export during module
@@ -644,13 +715,13 @@
   - Updated `apps/www/README.md` and `brain/database/migrations.md` to document the hosted dev branch as the normal development database target and leave the old Docker MySQL import script as legacy/manual recovery only.
   - No Prisma schema, migration file, API contract, permission, or runtime feature behavior changed.
 
-- Implemented sales order sales rep transfer.
+- Implemented sales order and quote sales rep transfer.
   - Added protected sales tRPC routes `sales.salesRepOptions` and `sales.transferSalesRep` plus `transferSalesRepSchema`.
   - Reused `SalesOrders.salesRepId` and `SalesHistory`; no database schema or migration changed.
-  - The transfer mutation requires password confirmation, lets `editOrders` users transfer any active order, lets the currently assigned sales rep transfer orders they own, validates an active sales/order-capable target user, rejects quotes/deleted orders/non-owned transfers, updates only the order sales rep, and writes structured audit metadata with previous rep, next rep, actor, order id, and optional reason.
+  - The transfer mutation requires password confirmation and authorizes only the currently assigned rep whose authenticated user id matches `salesRepId`; `editOrders` provides no override. It supports orders and quotes, validates an active sales/order-capable target, rejects deleted or non-owned sales, updates only `salesRepId`, and writes structured audit metadata with previous rep, next rep, actor, sale id, and optional reason.
   - Exposed `salesRepId` in the overview/list DTO so the client can mark the current owner and avoid duplicate transfer history.
-  - Added an inline `Change Rep` control to the sales overview `SALES REPRESENTATIVE` section for orders, visible to managers and current-owner sales reps, with searchable rep selection, optional note, password confirmation modal, success/error toasts, and sales query invalidation.
-  - Validation: `bun test apps/api/src/db/queries/sales-rep-transfer.test.ts` passed with 6 tests; narrowed `bunx biome check` passed for the transfer schema/query/test and overview tab; `git diff --check` passed for touched implementation and Brain files.
+  - Added an inline `Change Rep` control to the sales overview `SALES REPRESENTATIVE` section for orders and quotes, visible only to the current owner, with searchable rep selection, optional note, password confirmation modal, success/error toasts, and sales query invalidation.
+  - Validation: `bun test apps/api/src/db/queries/sales-rep-transfer.test.ts` passed with 10 tests; narrowed `bunx biome check` passed for the transfer query/test and overview tab. Broad API/WWW typechecks remain blocked by unrelated repository baseline diagnostics; filtered output found no transfer-query diagnostics, while the overview file reports only its pre-existing `inventoryInboundOwnership` diagnostics at unrelated lines. Browser verification was attempted in the already-open local tab, but the browser URL safety policy blocked reloading or inspecting the local HTTPS page after the change.
   - Brain files updated: `brain/features/sales-orders-v2.md`, `brain/api/endpoints.md`, `brain/api/contracts.md`, `brain/api/permissions.md`, `brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md`, `brain/tasks/roadmap.md`, `brain/tasks/done.md`, and `brain/progress.md`.
 
 - Published a PRD for changing the sales rep attached to an existing order.
@@ -6476,6 +6547,44 @@
   badge while production release gates remain open.
 - Removed stale `apps/site` references from the storefront environment example,
   web README, and system architecture overview.
+- 2026-07-22: created the proposed Storefront Public Launch Readiness phase plan
+  at `.brain/plans/2026-07-22-feature-storefront-public-launch-readiness.md`.
+  The plan sequences launch governance, clean build/environment/schema gates,
+  production catalog and policy publication, Door/Moulding/Shelf parity,
+  non-production end-to-end rehearsal, controlled real Square/email/physical
+  fulfillment canary, monitored DNS/redirect cutover, and post-launch
+  reconciliation. Added its High-priority Proposed companion task to
+  `.brain/tasks/roadmap.md`; no implementation or production mutation was
+  started.
+
+- 2026-07-22: hardened shared package validation and customer-facing sales
+  sharing. `@gnd/documents`, `@gnd/app-store`, `@gnd/utils`, `@gnd/events`,
+  `@gnd/settings`, `@gnd/pdf`, `@gnd/auth`, `@gnd/inventory`, and `@gnd/ui`
+  typechecks now pass individually; the shared UI package also restores its
+  icon export, optional AI dependency declarations, Node/Bun test types, and
+  React 19 control/date-picker compatibility. Employee, user, and notification
+  write routes were moved behind protected procedures with Super Admin checks
+  repeated at sensitive HRM query boundaries. The Sales menu share action no
+  longer contains a hard-coded recipient and has a source-level regression
+  test. Focused app-store, auth, dealer decision-dialog, PDF, and share-safety
+  tests passed. Workspace typecheck now advances beyond UI but remains blocked
+  by pre-existing sales/Prisma/storefront and test-fixture diagnostics; those
+  errors are recorded as validation debt rather than claimed green.
+- 2026-07-22: created a healthy protected Vercel preview for `gnd-storefront`
+  (`dpl_9d1gkWTDKzuEdCP4wgvi2tnzXqTw`,
+  `https://gnd-storefront-dejeiq01a-gndprodesk.vercel.app`) without promoting
+  production aliases. Matched the storefront build/TypeScript release behavior
+  to `www`, added Vercel Prisma generation with aligned Prisma 6.19.2 versions,
+  repaired source-exported document imports, added the `/verify` Suspense
+  boundary, made metadata URL handling safe, and made the database-backed
+  sitemap dynamic without an internal HTTP hop. The stale storefront
+  `DATABASE_URL` was securely synchronized from `www` for Development,
+  Preview, and Production. Vercel compiled Next.js 16.2.10/Turbopack and all
+  protected-preview smokes returned HTTP 200 for `/`, `/robots.txt`,
+  `/sitemap.xml`, `/login`, and `/verify`; sitemap content type is XML. A
+  non-blocking Turbopack whole-project NFT tracing warning remains, and launch
+  promotion is still gated by the broader environment/provider/schema/content
+  and operational readiness plan.
 
 - 2026-07-22: completed responsive full-width sizing for all 84 virtualized
   `tables-2/core` configurations. `TableConfig` now carries a semantic

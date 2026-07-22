@@ -1,17 +1,20 @@
 import { whereCustomer, whereSales } from "@api/prisma-where";
 import type {
 	GetCustomerDirectoryV2SummarySchema,
+	GetCustomerOverviewV2Schema,
 	GetCustomerStatementDetailSchema,
 	GetCustomerStatementReportSchema,
-	GetCustomerOverviewV2Schema,
 	GetCustomers,
 	SearchCustomersSchema,
-	UpsertCustomerSchema,
 	UpdateCustomerEmailSchema,
+	UpsertCustomerSchema,
 } from "@api/schemas/customer";
 import type { TRPCContext } from "@api/trpc/init";
 import type { Prisma } from "@gnd/db";
-import { buildOfficeCustomerVisibilityWhere } from "@gnd/db/queries";
+import {
+	buildOfficeCustomerVisibilityWhere,
+	getDealerPartnershipSummaries,
+} from "@gnd/db/queries";
 import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
 import { fetchDevicesByLocations, getSquareDevices } from "@gnd/square";
 import { nextId, sum } from "@gnd/utils";
@@ -21,12 +24,12 @@ import {
 	type SalesPaymentTokenSchema,
 	tryTokenize,
 } from "@gnd/utils/tokenizer";
+import { serializeTagValue } from "@notifications/tag-values";
 import type { SalesQueryParamsSchema } from "@sales/schema";
 import type { AddressBookMeta, CustomerMeta } from "@sales/types";
 import { salesAddressLines } from "@sales/utils/utils";
 import { getCustomerWallet } from "@sales/wallet";
 import { TRPCError } from "@trpc/server";
-import { serializeTagValue } from "@notifications/tag-values";
 import { addDays, format } from "date-fns";
 import { z } from "zod";
 import { auth } from "./user";
@@ -40,6 +43,24 @@ async function assertCanGenerateSalesStatementReport(ctx: TRPCContext) {
 			message: "You do not have permission to access customer statements.",
 		});
 	}
+}
+
+async function canManageDealerProgram(ctx: TRPCContext) {
+	if (!ctx.userId) return false;
+	const user = await ctx.db.users.findFirst({
+		where: { id: ctx.userId, deletedAt: null },
+		select: {
+			roles: {
+				where: { deletedAt: null },
+				select: { role: { select: { name: true } } },
+			},
+		},
+	});
+	return Boolean(
+		user?.roles.some(
+			(entry) => entry.role?.name?.toLowerCase() === "super admin",
+		),
+	);
 }
 
 function buildCustomerLookupWhere(
@@ -425,7 +446,19 @@ export async function getCustomers(ctx: TRPCContext, query: GetCustomers) {
 		...searchMeta,
 		include: {},
 	});
-	return await response(data.map((line) => line));
+	const canManage = await canManageDealerProgram(ctx);
+	const partnershipByCustomer = await getDealerPartnershipSummaries(db, data, {
+		canManage,
+	});
+	return await response(
+		data.map((line) => {
+			const partnership = partnershipByCustomer.get(line.id);
+			if (!partnership) {
+				throw new Error(`Partnership status missing for customer ${line.id}.`);
+			}
+			return { ...line, partnership };
+		}),
+	);
 }
 
 export async function getCustomersCount(ctx: TRPCContext, query: GetCustomers) {
@@ -1228,13 +1261,23 @@ export async function getCustomerOverviewV2(
 		orderRecords,
 		quoteRecords,
 		recentActivity,
+		canManagePartnership,
 	] = await Promise.all([
 		getCustomerPendingSales(ctx, accountNo),
 		getCustomerWallet(db, accountNo),
 		getCustomerWorkspaceSales(ctx, accountNo, "order"),
 		getCustomerWorkspaceSales(ctx, accountNo, "quote"),
 		getCustomerRecentActivity(ctx, accountNo),
+		canManageDealerProgram(ctx),
 	]);
+	const partnership = (
+		await getDealerPartnershipSummaries(db, [customer], {
+			canManage: canManagePartnership,
+		})
+	).get(customer.id);
+	if (!partnership) {
+		throw new Error(`Partnership status missing for customer ${customer.id}.`);
+	}
 
 	const orders = orderRecords.map(mapCustomerWorkspaceItem);
 	const quotes = quoteRecords.map(mapCustomerWorkspaceItem);
@@ -1290,6 +1333,7 @@ export async function getCustomerOverviewV2(
 					}
 				: null,
 		},
+		partnership,
 		addresses: {
 			primary: primaryAddress,
 			secondary: secondaryAddresses,

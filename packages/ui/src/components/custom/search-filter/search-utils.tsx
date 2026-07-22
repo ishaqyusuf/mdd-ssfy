@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import type { IconKeys } from "../icons";
+import type { IconKeys } from "../../icons";
 
 export const searchIcons: Partial<{
 	[id in string]: IconKeys;

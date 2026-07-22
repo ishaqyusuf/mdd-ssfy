@@ -227,19 +227,25 @@ Create deterministic reproduction coverage for every user-reported parity gap be
   - UI render/action coverage.
 - Triage: Partial (Implemented, Runtime Repro Pending)
 
-13. Component menu parity (edit/select/redirect/delete)
+13. Component menu parity (nested edit/select/redirect/delete)
 - Old anchors:
   - `apps/www/src/components/forms/sales-form/component-item-card.tsx:320`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `packages/sales/src/sales-form/ui/workflow/workflow-component-action-menu.tsx`
+  - `packages/sales/src/sales-form/ui/workflow/workflow-step-component-panel.tsx`
+  - `apps/www/src/components/forms/new-sales-form/sections/use-workflow-component-admin.tsx`
 - Manual repro:
   1. Inspect each component card actions.
-- Expected: full action menu parity.
-- Current observed (new): implemented. Component cards now provide context actions for edit/select/redirect/delete.
+- Expected: `Edit` nests Details, Visibility, Price, and Section Setting
+  Override; Select enters catalog-management marking; Redirect and confirmed
+  Delete persist globally.
+- Current observed (new): implemented in shared package UI and protected sales
+  mutations. Admin/Super Admin role gates and Super Admin-only component
+  pricing are covered; browser runtime reproduction remains pending.
 - Evidence path: `brain/new-sales-form-parity-evidence/component-menu/`
 - Automation target:
   - component action menu integration tests.
-- Triage: Partial (Implemented, Runtime Repro Pending)
+- Triage: Partial (Implemented + Automated, Browser Repro Pending)
 
 14. Component icon indicators (top-left)
 - Old anchors:

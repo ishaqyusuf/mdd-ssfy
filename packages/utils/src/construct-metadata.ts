@@ -39,6 +39,8 @@ export function constructMetadata({
   noIndex?: boolean;
 } = {}): any {
   // } = {}): Metadata {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
   return {
     title,
     description,
@@ -63,8 +65,7 @@ export function constructMetadata({
       creator: "@ishaaq_yusuf",
     },
     icons,
-    // @ts-ignore
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL!),
+    ...(appUrl && { metadataBase: new URL(appUrl) }),
     ...(noIndex && {
       robots: {
         index: false,

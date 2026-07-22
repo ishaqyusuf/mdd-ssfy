@@ -21,12 +21,13 @@ describe("dealer auth lookup", () => {
 	});
 
 	test("can require a specific linked auth user", () => {
-		expect(getActiveDealerAuthUserWhere("dealer@example.com", "auth-user-id"))
-			.toMatchObject({
-				email: "dealer@example.com",
-				authUserId: "auth-user-id",
-				deletedAt: null,
-			});
+		const where = getActiveDealerAuthUserWhere(
+			"dealer@example.com",
+			"auth-user-id",
+		);
+		expect(where.email).toBe("dealer@example.com");
+		expect(where.authUserId).toBe("auth-user-id");
+		expect(where.deletedAt).toBe(null);
 	});
 
 	test("allows Google provisioning lookup before a dealer auth user exists", () => {

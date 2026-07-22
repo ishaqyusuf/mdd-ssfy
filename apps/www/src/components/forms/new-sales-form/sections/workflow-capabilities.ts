@@ -1,25 +1,26 @@
 import {
-    createInternalSalesFormWorkflowCapabilities,
-    type SalesFormWorkflowCapabilities,
+	type SalesFormWorkflowCapabilities,
+	createInternalSalesFormWorkflowCapabilities,
 } from "@gnd/sales/sales-form";
 
 function normalizeWorkflowRoleTitle(roleTitle?: string | null) {
-    return String(roleTitle || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ");
+	return String(roleTitle || "")
+		.trim()
+		.toLowerCase()
+		.replace(/[_-]+/g, " ")
+		.replace(/\s+/g, " ");
 }
 
 export function createWwwWorkflowAdminCapabilities(
-    roleTitle?: string | null,
+	roleTitle?: string | null,
 ): SalesFormWorkflowCapabilities {
-    const normalizedRole = normalizeWorkflowRoleTitle(roleTitle);
-    const compactRole = normalizedRole.replace(/\s+/g, "");
-    const isSuperAdmin =
-        normalizedRole === "super admin" || compactRole === "superadmin";
-    return createInternalSalesFormWorkflowCapabilities({
-        isWorkflowAdmin: normalizedRole === "admin" || isSuperAdmin,
-        canEditLinePricing: isSuperAdmin,
-    });
+	const normalizedRole = normalizeWorkflowRoleTitle(roleTitle);
+	const compactRole = normalizedRole.replace(/\s+/g, "");
+	const isSuperAdmin =
+		normalizedRole === "super admin" || compactRole === "superadmin";
+	return createInternalSalesFormWorkflowCapabilities({
+		isWorkflowAdmin: normalizedRole === "admin" || isSuperAdmin,
+		canEditLinePricing: isSuperAdmin,
+		canEditWorkflowComponentPricing: isSuperAdmin,
+	});
 }

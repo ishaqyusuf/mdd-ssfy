@@ -35,6 +35,7 @@ function buildTransferContext({
 	actorRole = "Super Admin",
 	currentSalesRepId = 2,
 	targetSalesRepId = 3,
+	saleType = "order",
 	passwordHash = "",
 }: {
 	actorId?: number;
@@ -42,10 +43,14 @@ function buildTransferContext({
 	actorRole?: string;
 	currentSalesRepId?: number | null;
 	targetSalesRepId?: number;
+	saleType?: "order" | "quote";
 	passwordHash?: string;
 } = {}) {
 	const actor = buildUser(actorId, actorName, actorRole, passwordHash);
-	const target = buildUser(targetSalesRepId, "Actual Rep", "Sales Rep");
+	const target =
+		targetSalesRepId === actor.id
+			? actor
+			: buildUser(targetSalesRepId, "Actual Rep", "Sales Rep");
 	const users = new Map<number, ReturnType<typeof buildUser>>([
 		[actor.id, actor],
 		[target.id, target],
@@ -58,19 +63,32 @@ function buildTransferContext({
 			findMany: async () => Array.from(users.values()),
 		},
 		salesOrders: {
-			findFirst: async () => ({
-				id: 44,
-				orderId: "04780AD",
-				slug: "04780ad",
-				salesRepId: currentSalesRepId,
-				salesRep: currentSalesRepId
-					? {
-							id: currentSalesRepId,
-							name: "Original Rep",
-							email: "original.rep@example.com",
-						}
-					: null,
-			}),
+			findFirst: async ({
+				where,
+			}: {
+				where: { type?: string | { in?: string[] } };
+			}) => {
+				const allowedTypes =
+					typeof where.type === "string"
+						? [where.type]
+						: (where.type?.in ?? []);
+				if (!allowedTypes.includes(saleType)) return null;
+
+				return {
+					id: 44,
+					orderId: saleType === "quote" ? "Q04780AD" : "04780AD",
+					slug: saleType === "quote" ? "q04780ad" : "04780ad",
+					type: saleType,
+					salesRepId: currentSalesRepId,
+					salesRep: currentSalesRepId
+						? {
+								id: currentSalesRepId,
+								name: "Original Rep",
+								email: "original.rep@example.com",
+							}
+						: null,
+				};
+			},
 			update: async (payload: unknown) => {
 				calls.push({ name: "salesOrders.update", payload });
 				return { id: 44 };
@@ -101,8 +119,11 @@ function buildTransferContext({
 }
 
 describe("transferSalesRep", () => {
-	test("updates the order sales rep and writes sales history", async () => {
+	test("updates an owned order sales rep and writes sales history", async () => {
 		const { ctx, calls } = buildTransferContext({
+			actorId: 2,
+			actorName: "Original Rep",
+			actorRole: "Sales Rep",
 			passwordHash: await hashPassword("confirm-pass"),
 		});
 
@@ -131,7 +152,7 @@ describe("transferSalesRep", () => {
 				data: {
 					salesId: 44,
 					name: "Sales rep transferred",
-					authorName: "Admin User",
+					authorName: "Original Rep",
 					data: {
 						type: "sales_rep_transfer",
 						orderId: "04780AD",
@@ -144,11 +165,33 @@ describe("transferSalesRep", () => {
 							name: "Actual Rep",
 						},
 						reason: "created by actual rep",
-						triggeredByUserId: 1,
+						triggeredByUserId: 2,
 					},
 				},
 			},
 		});
+	});
+
+	test("allows a sales rep to transfer a quote assigned to them", async () => {
+		const { ctx, calls } = buildTransferContext({
+			actorId: 2,
+			actorName: "Original Rep",
+			actorRole: "Sales Rep",
+			currentSalesRepId: 2,
+			saleType: "quote",
+			passwordHash: await hashPassword("owner-pass"),
+		});
+
+		const result = await transferSalesRep(ctx, {
+			salesId: 44,
+			salesRepId: 3,
+			reason: "Handing off quote",
+			password: "owner-pass",
+		});
+
+		expect(result.changed).toBe(true);
+		expect(result.order.orderId).toBe("Q04780AD");
+		expect(calls.some((call) => call.name === "salesOrders.update")).toBe(true);
 	});
 
 	test("allows a sales rep to transfer an order assigned to them", async () => {
@@ -187,7 +230,27 @@ describe("transferSalesRep", () => {
 				reason: null,
 				password: "other-pass",
 			}),
-		).rejects.toThrow("You can only transfer orders assigned to you.");
+		).rejects.toThrow("You can only transfer sales assigned to you.");
+		expect(calls).toEqual([]);
+	});
+
+	test("rejects editOrders users when they do not own the sale", async () => {
+		const { ctx, calls } = buildTransferContext({
+			actorId: 1,
+			actorName: "Admin User",
+			actorRole: "Super Admin",
+			currentSalesRepId: 2,
+			passwordHash: await hashPassword("admin-pass"),
+		});
+
+		await expect(
+			transferSalesRep(ctx, {
+				salesId: 44,
+				salesRepId: 3,
+				reason: null,
+				password: "admin-pass",
+			}),
+		).rejects.toThrow("You can only transfer sales assigned to you.");
 		expect(calls).toEqual([]);
 	});
 
@@ -209,6 +272,9 @@ describe("transferSalesRep", () => {
 
 	test("does not write history when the selected rep is already assigned", async () => {
 		const { ctx, calls } = buildTransferContext({
+			actorId: 3,
+			actorName: "Actual Rep",
+			actorRole: "Sales Rep",
 			currentSalesRepId: 3,
 			targetSalesRepId: 3,
 			passwordHash: await hashPassword("confirm-pass"),
@@ -240,5 +306,36 @@ describe("transferSalesRep", () => {
 			"Actual Rep",
 			"Original Rep",
 		]);
+	});
+
+	test("allows an owner rep to load transfer options for their own quote", async () => {
+		const { ctx } = buildTransferContext({
+			actorId: 2,
+			actorName: "Original Rep",
+			actorRole: "Sales Rep",
+			currentSalesRepId: 2,
+			saleType: "quote",
+			passwordHash: await hashPassword("owner-pass"),
+		});
+
+		const options = await getSalesRepTransferOptions(ctx, { salesId: 44 });
+
+		expect(options.map((option) => option.name)).toEqual([
+			"Actual Rep",
+			"Original Rep",
+		]);
+	});
+
+	test("rejects transfer options for editOrders users who do not own the sale", async () => {
+		const { ctx } = buildTransferContext({
+			actorId: 1,
+			actorName: "Admin User",
+			actorRole: "Super Admin",
+			currentSalesRepId: 2,
+		});
+
+		await expect(
+			getSalesRepTransferOptions(ctx, { salesId: 44 }),
+		).rejects.toThrow("You can only transfer sales assigned to you.");
 	});
 });

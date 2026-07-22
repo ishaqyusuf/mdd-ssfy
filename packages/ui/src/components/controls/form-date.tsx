@@ -14,100 +14,110 @@ import { Textarea } from "@gnd/ui/textarea";
 import { NumericFormat, NumericFormatProps } from "react-number-format";
 import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { formatDate } from "@gnd/utils/dayjs";
-import { Calendar, CalendarProps } from "@gnd/ui/calendar";
+import { Calendar } from "@gnd/ui/calendar";
+import type { ComponentProps } from "react";
+
+type CalendarProps = ComponentProps<typeof Calendar>;
+type FormDateCalendarProps = Omit<
+	CalendarProps,
+	"mode" | "onSelect" | "selected"
+>;
+const CalendarAny = Calendar as unknown as React.ComponentType<
+	Record<string, unknown>
+>;
 
 interface Props<T> {
-  label?: string;
-  placeholder?: string;
-  className?: string;
-  suffix?: string;
-  type?: string;
-  list?: boolean;
-  size?: "sm" | "default" | "xs";
-  prefix?: string;
-  tabIndex?;
-  format?;
-  calendarProps?: CalendarProps;
+	label?: string;
+	placeholder?: string;
+	className?: string;
+	suffix?: string;
+	type?: string;
+	list?: boolean;
+	size?: "sm" | "default" | "xs";
+	prefix?: string;
+	tabIndex?;
+	format?;
+	calendarProps?: FormDateCalendarProps;
 }
 export default function FormDate<
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
-  TOptionType = any,
+	TFieldValues extends FieldValues = FieldValues,
+	TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
+	TOptionType = any,
 >({
-  label,
-  placeholder,
-  className,
-  suffix,
-  type,
-  list,
-  prefix,
-  tabIndex,
-  size = "default",
-  calendarProps,
-  format,
-  ...props
+	label,
+	placeholder,
+	className,
+	suffix,
+	type,
+	list,
+	prefix,
+	tabIndex,
+	size = "default",
+	calendarProps,
+	format,
+	...props
 }: Partial<ControllerProps<TFieldValues, TName>> & Props<TOptionType>) {
-  const load = useDataSkeleton();
-  const [open, setOpen] = useState(false);
-  return (
-    <FormField
-      {...(props as any)}
-      render={({ field, fieldState }) => (
-        <FormItem
-          className={cn(
-            className,
-            props.disabled && "text-muted-foreground",
-            "mx-1",
-            "flex flex-col"
-          )}
-        >
-          {label && (
-            <FormLabel className={cn(fieldState.error && "border-red-400")}>
-              {label}
-            </FormLabel>
-          )}
-          {/* <FormControl {...inputProps}> */}
-          {load?.loading ? (
-            <Skeleton className="h-8 w-full" />
-          ) : (
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground",
-                      size == "sm" && "h-8"
-                    )}
-                  >
-                    {field.value ? (
-                      formatDate(field.value, format)
-                    ) : (
-                      <span>{placeholder || "Pick a date"}</span>
-                    )}
-                    <Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  selected={field.value}
-                  disabled={(date) => date < new Date("1900-01-01")}
-                  initialFocus
-                  {...calendarProps}
-                  mode="single"
-                  onSelect={(e) => {
-                    field.onChange(e);
-                    setOpen(false);
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-          {/* </FormControl> */}
-        </FormItem>
-      )}
-    />
-  );
+	const load = useDataSkeleton();
+	const [open, setOpen] = useState(false);
+	return (
+		<FormField
+			{...(props as any)}
+			render={({ field, fieldState }) => (
+				<FormItem
+					className={cn(
+						className,
+						props.disabled && "text-muted-foreground",
+						"mx-1",
+						"flex flex-col",
+					)}
+				>
+					{label && (
+						<FormLabel className={cn(fieldState.error && "border-red-400")}>
+							{label}
+						</FormLabel>
+					)}
+					{/* <FormControl {...inputProps}> */}
+					{load?.loading ? (
+						<Skeleton className="h-8 w-full" />
+					) : (
+						<Popover open={open} onOpenChange={setOpen}>
+							<PopoverTrigger asChild>
+								<FormControl>
+									<Button
+										variant={"outline"}
+										className={cn(
+											"pl-3 text-left font-normal",
+											!field.value && "text-muted-foreground",
+											size == "sm" && "h-8",
+										)}
+									>
+										{field.value ? (
+											formatDate(field.value, format)
+										) : (
+											<span>{placeholder || "Pick a date"}</span>
+										)}
+										<Icons.CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+									</Button>
+								</FormControl>
+							</PopoverTrigger>
+							<PopoverContent className="w-auto p-0" align="start">
+								<CalendarAny
+									selected={field.value}
+									disabled={(date) => date < new Date("1900-01-01")}
+									initialFocus
+									{...calendarProps}
+									mode="single"
+									onSelect={(e) => {
+										field.onChange(e as Date | undefined);
+										setOpen(false);
+									}}
+								/>
+							</PopoverContent>
+						</Popover>
+					)}
+					{/* </FormControl> */}
+				</FormItem>
+			)}
+		/>
+	);
 }

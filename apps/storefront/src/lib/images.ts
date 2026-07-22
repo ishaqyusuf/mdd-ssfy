@@ -80,7 +80,8 @@ export const images = {
       "https://images.pexels.com/photos/3806261/pexels-photo-3806261.jpeg",
   },
   hero: {
-    main: "https://images.pexels.com/photos/2091166/pexels-photo-2091166.jpeg",
+    // Pexels photo 36777846 by Curtis Adams.
+    main: "/images/storefront-hero.jpg",
     showroom:
       "https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg",
     workshop:

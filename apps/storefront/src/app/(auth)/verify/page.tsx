@@ -11,7 +11,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 const passwordSchema = z
@@ -31,6 +31,14 @@ const passwordSchema = z
   });
 
 export default function VerifyPage() {
+  return (
+    <Suspense fallback={<VerificationLoading />}>
+      <VerifyPageContent />
+    </Suspense>
+  );
+}
+
+function VerifyPageContent() {
   const token = useSearchParams().get("token") ?? "";
   const trpc = useTRPC();
   const started = useRef(false);
@@ -58,13 +66,7 @@ export default function VerifyPage() {
     return <VerificationError message={verify.error.message} />;
   }
   if (!verified) {
-    return (
-      <div className="flex min-h-[70vh] items-center justify-center">
-        <p className="animate-pulse text-muted-foreground">
-          Verifying your email…
-        </p>
-      </div>
-    );
+    return <VerificationLoading />;
   }
 
   return (
@@ -73,6 +75,16 @@ export default function VerifyPage() {
       email={verified.email}
       name={verified.name}
     />
+  );
+}
+
+function VerificationLoading() {
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center">
+      <p className="animate-pulse text-muted-foreground">
+        Verifying your email…
+      </p>
+    </div>
   );
 }
 

@@ -32,6 +32,8 @@
 		"zod": "catalog:"
 	},
 	"devDependencies": {
+		"@types/bun": "^1.2.17",
+		"@types/node": "^25.2.3",
 		"@gnd/tsconfig": "workspace:*",
 		"react": "catalog:",
 		"react-dom": "catalog:",

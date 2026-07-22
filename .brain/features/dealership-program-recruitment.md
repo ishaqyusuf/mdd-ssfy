@@ -31,14 +31,33 @@ weakening dealer-customer privacy or fulfillment continuity.
   permits later recruitment.
 - Suspension/reactivation is Super Admin-only, accepts an optional reason,
   records history, sends email, and uses the active-dealer guard for lockout.
+- Sales Customers and Customer Overview expose a shared partnership summary to
+  authenticated office users. Super Admin can manually invite an eligible
+  office-owned customer through the currently active campaign even when that
+  customer is outside the campaign's configured audience.
+- Manual invitations record source, provider-attempt delivery state, sender,
+  sanitized failure, revocation, and supersession evidence. A per-customer
+  lease prevents duplicate concurrent sends. Sent/opened invitations have a
+  24-hour resend delay; failed, skipped, expired, inactive-campaign, and stale
+  pending attempts are retryable immediately.
+- Replacement links supersede older unused links only after provider
+  acceptance. A failed replacement is revoked while the previous usable link
+  remains valid. All public token reads/submissions reject revoked or
+  superseded links.
 
 ## Validation and Rollout
 
 - Focused suite: 70 passing tests / 178 assertions.
+- Direct Sales Customer invitation slice: 25 passing tests / 98 assertions,
+  covering domain lifecycle/concurrency, API role enforcement, email rendering,
+  and table/overview source parity.
 - `@gnd/db` and `@gnd/email` typechecks pass; filtered task-file checks are
   clean.
 - Browser QA covered the Super Admin workspace, audiences/applications/access
   tabs, dealer settings ZIP, and seeded dealer portal shell.
-- Apply the Prisma schema and restart services before final database-backed
-  customer sharing and public-token browser proof, then execute Wayfinder ticket
-  9 before activating a campaign.
+- Restart services before final database-backed customer-sharing and
+  public-token browser proof, then execute Wayfinder ticket 9 before activating
+  a campaign outside local development.
+- The direct-invitation additive schema is applied to local `gnd-prisma2` and a
+  live-schema diff is clean. The existing repository/local Prisma migration
+  history drift still requires reconciliation before migration-based rollout.

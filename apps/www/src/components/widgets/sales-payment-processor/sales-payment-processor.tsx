@@ -35,7 +35,11 @@ import React, {
 	useState,
 	useTransition,
 } from "react";
-import { useFieldArray } from "react-hook-form";
+import {
+	type FieldErrors,
+	useController,
+	useFieldArray,
+} from "react-hook-form";
 import type z from "zod";
 import { PaymentProcessorSkeleton } from "./payment-processor-skeleton";
 import { PaymentStatusOverlay } from "./payment-status-overlay";
@@ -54,7 +58,10 @@ import {
 	getAvailablePaymentSales,
 	getListedPaymentAmount,
 	getListedPaymentSales,
+	isAvailablePaymentTerminal,
+	resolveAvailablePaymentTerminal,
 	resolveDefaultPaymentMethod,
+	resolveDefaultPaymentTerminal,
 } from "./utils";
 
 type SalesPrintExecutor = ReturnType<typeof useSalesPrintController>["print"];
@@ -170,20 +177,29 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		}),
 	);
 	const terminalPaymentsEnabled = data?.terminalPaymentsEnabled !== false;
+	const terminalLoadError =
+		data.error.terminal?.[0]?.detail ||
+		(data.error.terminal ? "Unable to load Square terminals." : null);
 	const availableSalesPaymentMethods = salesPaymentMethods.filter(
 		(method) => terminalPaymentsEnabled || method.value !== "terminal",
 	);
 	const form = useZodForm(formSchema, {
 		defaultValues: {},
 	});
+	const { field: terminalDeviceField, fieldState: terminalDeviceFieldState } =
+		useController({
+			control: form.control,
+			name: "deviceId",
+		});
 	const pendingPrintRequestsRef = useRef<PendingPrintRequest[]>([]);
 	const pendingAppliedPaymentCheckRef =
 		useRef<PendingAppliedPaymentCheck | null>(null);
 	const lastExternalPaymentMethodRef =
 		useRef<ExternalPaymentMethod>("credit-card");
 	const lastSubmittedAmountRef = useRef<number | null>(null);
-	const lastSubmittedPaymentMethodRef =
-		useRef<z.infer<typeof formSchema>["paymentMethod"] | null>(null);
+	const lastSubmittedPaymentMethodRef = useRef<
+		z.infer<typeof formSchema>["paymentMethod"] | null
+	>(null);
 	const hasSubmittedCompletedTerminalRef = useRef(false);
 	const lastFormResetKeyRef = useRef<string | null>(null);
 	const [terminalState, setTerminalState] =
@@ -207,6 +223,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		if (terminalPaymentsEnabled && data.error.terminal) {
 			toast({
 				title: "Unable to load PoS",
+				description: terminalLoadError,
 				variant: "destructive",
 				footer: (
 					<div className="">
@@ -244,9 +261,11 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 				terminalEnabled: terminalPaymentsEnabled,
 			},
 		);
+		const recentTerminal = resolveDefaultPaymentTerminal(data.terminals);
 
 		form.reset({
-			deviceId: terminalPaymentsEnabled ? data?.lastTerminalId : undefined,
+			deviceId: terminalPaymentsEnabled ? recentTerminal?.value : undefined,
+			deviceName: terminalPaymentsEnabled ? recentTerminal?.label : undefined,
 			terminalPaymentSession: null,
 			notifyCustomer: false,
 			useWallet: false,
@@ -270,6 +289,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		refetch,
 		selectedIds,
 		selectedIdsKey,
+		terminalLoadError,
 		terminalPaymentsEnabled,
 	]);
 	const {
@@ -779,17 +799,20 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const [sendingLink, startTransition] = useTransition();
 
 	const selectedSalesCount = salesFields.length;
-	const selectedTerminal = data?.terminals?.find(
-		(terminal) => terminal?.value === deviceId,
+	const selectedTerminal = resolveAvailablePaymentTerminal(
+		data?.terminals,
+		deviceId,
 	);
+	const availableTerminals =
+		data?.terminals?.filter(isAvailablePaymentTerminal) || [];
 	const isTerminalFlowActive = terminalState !== "form";
 	const hasActiveTerminalCheckout =
 		!!terminalPaymentSession && terminalPaymentSession.status !== "COMPLETED";
 	const selectedBalanceAmount = Number(amount || 0);
 	const walletBalanceAmount = Number(data?.walletBalance || 0);
 	const cccPercentage = resolveCccPercentageFromSales(
-		data?.pendingSales?.filter((sale) =>
-			wSales?.find((field) => field.id === sale.id)?.selected,
+		data?.pendingSales?.filter(
+			(sale) => wSales?.find((field) => field.id === sale.id)?.selected,
 		) || [],
 	);
 	const walletAppliedPreview =
@@ -825,8 +848,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	const selectedPaymentMethodLabel =
 		paymentMethodOptions.find(
 			(method) => method.value === effectivePaymentMethod,
-		)?.label ||
-		"Payment";
+		)?.label || "Payment";
 	const sendLink = effectivePaymentMethod === "link" && !linkProcessed;
 	const submitLabel = sendLink ? "Send link" : "Apply payment";
 	const paymentDisplayAmount =
@@ -867,22 +889,33 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			clearSession: terminalPaymentSession?.status !== "COMPLETED",
 		});
 	};
+	const handleInvalidPaymentForm = (
+		errors: FieldErrors<z.infer<typeof formSchema>>,
+	) => {
+		const message =
+			errors.deviceId?.message ||
+			errors.amount?.message ||
+			errors.checkNo?.message ||
+			errors.root?.message ||
+			"Review the payment details and try again.";
+
+		toast({
+			title: "Payment details required",
+			description: message,
+			variant: "destructive",
+		});
+	};
 	return (
 		<Form {...form}>
 			<form
 				className="flex max-h-[90vh] flex-col"
-				onSubmit={form.handleSubmit(
-					(formData: z.infer<typeof formSchema>) => {
-						if (sendLink) {
-							sendPaymentLink(formData);
-						} else {
-							initPayment(formData);
-						}
-					},
-					(e) => {
-						console.log("Form Errors: ", e);
-					},
-				)}
+				onSubmit={form.handleSubmit((formData: z.infer<typeof formSchema>) => {
+					if (sendLink) {
+						sendPaymentLink(formData);
+					} else {
+						initPayment(formData);
+					}
+				}, handleInvalidPaymentForm)}
 			>
 				<div className="flex min-h-0 flex-col">
 					<div className="shrink-0 border-b bg-muted/30 px-6 py-5">
@@ -1120,7 +1153,9 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 											Selected balance
 										</span>
 										<span className="font-medium tabular-nums">
-											{formatPaymentAmount(paymentChargePreview.selectedBalance)}
+											{formatPaymentAmount(
+												paymentChargePreview.selectedBalance,
+											)}
 										</span>
 									</div>
 									{paymentChargePreview.walletApplied > 0 ? (
@@ -1129,7 +1164,10 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 												Wallet applied
 											</span>
 											<span className="font-medium tabular-nums text-emerald-700">
-												-{formatPaymentAmount(paymentChargePreview.walletApplied)}
+												-
+												{formatPaymentAmount(
+													paymentChargePreview.walletApplied,
+												)}
 											</span>
 										</div>
 									) : null}
@@ -1363,6 +1401,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 																},
 															);
 															if (e !== "terminal") {
+																form.clearErrors("deviceId");
 																form.setValue("terminalPaymentSession", null);
 																setTerminalError(null);
 																setTerminalState("form");
@@ -1395,16 +1434,32 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 													/>
 												</InputGroup>
 											) : effectivePaymentMethod === "terminal" ? (
-												<Field>
+												<Field data-invalid={terminalDeviceFieldState.invalid}>
 													<Field.Content>
 														<Select.Root
-															{...form.register("deviceId")}
-															value={deviceId || undefined}
+															name={terminalDeviceField.name}
+															value={terminalDeviceField.value || undefined}
 															onValueChange={(e) => {
-																form.setValue("deviceId", e);
+																terminalDeviceField.onChange(e);
+																const terminal =
+																	resolveAvailablePaymentTerminal(
+																		data.terminals,
+																		e,
+																	);
+																form.setValue(
+																	"deviceName",
+																	terminal?.label || null,
+																	{
+																		shouldDirty: true,
+																	},
+																);
 															}}
 														>
-															<Select.Trigger>
+															<Select.Trigger
+																id="terminal-device"
+																aria-invalid={terminalDeviceFieldState.invalid}
+																onBlur={terminalDeviceField.onBlur}
+															>
 																<Select.Value placeholder="Select Terminal" />
 															</Select.Trigger>
 															<Select.Content>
@@ -1418,19 +1473,38 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 																		value={terminal?.value}
 																	>
 																		{terminal.label}
+																		{isAvailablePaymentTerminal(terminal)
+																			? ""
+																			: " (offline)"}
 																	</Select.Item>
 																))}
 															</Select.Content>
 														</Select.Root>
+														{terminalDeviceFieldState.invalid ? (
+															<Field.Error
+																errors={[terminalDeviceFieldState.error]}
+															/>
+														) : terminalLoadError ? (
+															<Field.Error>{terminalLoadError}</Field.Error>
+														) : availableTerminals.length > 1 && !deviceId ? (
+															<Field.Description>
+																Choose the terminal beside you.
+															</Field.Description>
+														) : availableTerminals.length === 0 ? (
+															<Field.Description>
+																No online Square terminals are available.
+															</Field.Description>
+														) : null}
 													</Field.Content>
 												</Field>
 											) : undefined}
 										</div>
-											{sendLink ? (
-												<Button
-													disabled={sendingLink || selectedSalesCount === 0}
-													className="min-w-32"
-												>
+										{sendLink ? (
+											<Button
+												type="submit"
+												disabled={sendingLink || selectedSalesCount === 0}
+												className="min-w-32"
+											>
 												{sendingLink ? (
 													<Spinner />
 												) : (
@@ -1441,12 +1515,15 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 												)}
 											</Button>
 										) : (
-												<Button
-													disabled={
-														selectedSalesCount === 0 ||
-														makePayment.isPending ||
-														hasActiveTerminalCheckout
-													}
+											<Button
+												type="submit"
+												disabled={
+													selectedSalesCount === 0 ||
+													(effectivePaymentMethod === "terminal" &&
+														!selectedTerminal) ||
+													makePayment.isPending ||
+													hasActiveTerminalCheckout
+												}
 												className="min-w-36"
 											>
 												{makePayment.isPending || hasActiveTerminalCheckout ? (

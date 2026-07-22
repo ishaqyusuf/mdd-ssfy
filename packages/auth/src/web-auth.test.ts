@@ -228,6 +228,6 @@ describe("www Better Auth mobile session payload", () => {
 					id: 42,
 				} as never,
 			}),
-		).toBeNull();
+		).toBe(null);
 	});
 });

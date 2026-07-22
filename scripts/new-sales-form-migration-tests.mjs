@@ -16,6 +16,7 @@ const commands = [
 			"packages/sales/src/sales-form/contracts/schemas.test.ts",
 			"packages/sales/src/sales-form/contracts/workflow-capabilities.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/sales-form-engine-panel.test.ts",
+			"packages/sales/src/sales-form/ui/workflow/workflow-component-action-menu.test.ts",
 			"packages/sales/src/sales-form/ui/workflow/component-image-src.test.ts",
 			"packages/sales/src/sales-form/domain/dual-pricing.test.ts",
 			"packages/sales/src/sales-form/composer/composer.test.ts",
@@ -41,6 +42,14 @@ const commands = [
 		args: ["test", "apps/api/src/db/queries/new-sales-form.test.ts"],
 	},
 	{
+		label: "workflow component catalog mutation tests",
+		args: [
+			"test",
+			"apps/api/src/db/queries/sales-form-workflow-components.test.ts",
+			"apps/www/src/components/forms/new-sales-form/sections/use-workflow-component-admin.test.ts",
+		],
+	},
+	{
 		label: "sales quote overview open params tests",
 		args: ["test", "apps/www/src/hooks/sales-overview-open-params.test.ts"],
 	},
@@ -56,6 +65,8 @@ const commands = [
 			"apps/www/src/components/forms/new-sales-form/adapters/use-sales-form-workflow-data.ts",
 			"apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx",
 			"apps/www/src/components/forms/new-sales-form/sections/www-sales-form-workflow-panel.tsx",
+			"apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx",
+			"apps/www/src/components/forms/new-sales-form/sections/use-workflow-component-admin.tsx",
 			"apps/www/src/components/forms/new-sales-form/new-sales-form.tsx",
 			"apps/www/src/hooks/sales-overview-open-params.ts",
 			"apps/www/src/hooks/use-sales-overview-open.ts",

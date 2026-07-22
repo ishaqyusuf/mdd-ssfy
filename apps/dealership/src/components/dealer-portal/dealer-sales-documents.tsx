@@ -15,6 +15,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText } from "lucide-react";
 import Link from "next/link";
+import { DealerRequestTimeline } from "./dealer-request-timeline";
 import { formatCurrency, formatDate } from "./shared";
 
 export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
@@ -101,11 +102,19 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 											"-"}
 									</TableCell>
 									<TableCell>
-										<Badge className="capitalize" variant="outline">
-											{requestStatusLabel(document.requestStatus) ||
-												document.status ||
-												"open"}
-										</Badge>
+										<div>
+											<Badge className="capitalize" variant="outline">
+												{requestStatusLabel(document.requestStatus) ||
+													document.status ||
+													"open"}
+											</Badge>
+											<DealerRequestTimeline
+												status={document.requestStatus}
+												requestedAt={document.requestCreatedAt}
+												decisionAt={document.requestDecisionAt}
+												decisionNote={document.requestDecisionNote}
+											/>
+										</div>
 									</TableCell>
 									<TableCell>{formatCurrency(document.grandTotal)}</TableCell>
 									<TableCell>{formatCurrency(document.amountDue)}</TableCell>
@@ -113,12 +122,7 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 									{type === "quote" ? (
 										<TableCell className="text-right">
 											<div className="flex justify-end gap-2">
-												<Button
-													asChild
-													size="sm"
-													type="button"
-													variant="ghost"
-												>
+												<Button asChild size="sm" type="button" variant="ghost">
 													<Link href={quoteEditHref(document)}>Edit</Link>
 												</Button>
 												<Button

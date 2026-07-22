@@ -77,4 +77,53 @@ describe("Sales Customers Sales Orders table migration parity", () => {
 		expect(columnsSource.includes("sizes.custom(180, 360, 240)")).toBe(true);
 		expect(columnsSource.includes("size-6")).toBe(true);
 	});
+
+	it("shows partnership status and keeps invitation controls isolated from row navigation", () => {
+		const columnsSource = readSource(
+			"components/tables-2/customers/columns.tsx",
+		);
+		const partnershipSource = readSource(
+			"components/dealers/customer-partnership-status.tsx",
+		);
+		const tableSource = readSource(
+			"components/tables-2/customers/data-table.tsx",
+		);
+		const overviewSource = readSource(
+			"components/customer-v2/customer-overview-v2-content.tsx",
+		);
+
+		expect(columnsSource.includes('id: "partnership"')).toBe(true);
+		expect(columnsSource.includes("CustomerPartnershipStatus")).toBe(true);
+		expect(partnershipSource.includes("sendCustomerInvitation")).toBe(true);
+		expect(partnershipSource.includes("event.stopPropagation()")).toBe(true);
+		expect(partnershipSource.includes("AlertDialog")).toBe(true);
+		expect(
+			tableSource.includes(
+				'const NON_CLICKABLE_COLUMNS = new Set(["partnership", "actions"])',
+			),
+		).toBe(true);
+		expect(
+			partnershipSource.includes(
+				"const canAct = partnership.canSend || partnership.canResend",
+			),
+		).toBe(true);
+		expect(
+			partnershipSource.includes("trpc.sales.customersIndex.pathKey()"),
+		).toBe(true);
+		expect(
+			partnershipSource.includes(
+				"trpc.customers.getCustomerOverviewV2.pathKey()",
+			),
+		).toBe(true);
+		expect(
+			partnershipSource.includes("trpc.dealerProgram.campaigns.pathKey()"),
+		).toBe(true);
+		expect(
+			partnershipSource.includes("trpc.dealerProgram.applications.pathKey()"),
+		).toBe(true);
+		expect(partnershipSource.includes('label="Application reviewed"')).toBe(
+			true,
+		);
+		expect(overviewSource.includes("CustomerPartnershipCard")).toBe(true);
+	});
 });

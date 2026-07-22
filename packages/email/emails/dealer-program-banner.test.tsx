@@ -1,4 +1,3 @@
-// @ts-expect-error package typecheck does not include Bun test types.
 import { describe, expect, it } from "bun:test";
 import { render } from "../render";
 import ComposedSalesDocumentEmail from "./composed-sales-document-email";

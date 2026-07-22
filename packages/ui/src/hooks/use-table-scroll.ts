@@ -31,7 +31,9 @@ export function useTableScroll(options: UseTableScrollOptions = {}) {
   const [isScrollable, setIsScrollable] = useState(false);
   const currentColumnIndex = useRef(startFromColumn);
   const isScrollingProgrammatically = useRef(false);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   const getColumnPositions = useCallback(() => {
     const container = containerRef.current;

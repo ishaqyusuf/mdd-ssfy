@@ -11,6 +11,8 @@ describe("sales form workflow capabilities", () => {
 	test("defaults workflow controls to disabled while preserving component context", () => {
 		expect(createSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentPricing: false,
+			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,
 			canManageRedirects: false,
 			canManageDoorSizeVariants: false,
@@ -31,6 +33,8 @@ describe("sales form workflow capabilities", () => {
 			createInternalSalesFormWorkflowCapabilities({ isWorkflowAdmin: true }),
 		).toMatchObject({
 			canEditWorkflowComponents: true,
+			canEditWorkflowComponentPricing: false,
+			canArchiveWorkflowComponents: true,
 			canEditSectionOverrides: true,
 			canManageRedirects: true,
 			canManageDoorSizeVariants: true,
@@ -48,9 +52,11 @@ describe("sales form workflow capabilities", () => {
 			createInternalSalesFormWorkflowCapabilities({
 				isWorkflowAdmin: true,
 				canEditLinePricing: true,
+				canEditWorkflowComponentPricing: true,
 			}),
 		).toMatchObject({
 			canEditWorkflowComponents: true,
+			canEditWorkflowComponentPricing: true,
 			canEditLinePricing: true,
 			isDealershipMode: false,
 			isStorefrontMode: false,
@@ -60,6 +66,8 @@ describe("sales form workflow capabilities", () => {
 			createInternalSalesFormWorkflowCapabilities({ isWorkflowAdmin: false }),
 		).toMatchObject({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentPricing: false,
+			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,
 			canManageRedirects: false,
 			canManageDoorSizeVariants: false,
@@ -77,6 +85,8 @@ describe("sales form workflow capabilities", () => {
 	test("keeps dealership workflow controls dealer-safe", () => {
 		expect(createDealerSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentPricing: false,
+			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,
 			canManageRedirects: false,
 			canManageDoorSizeVariants: false,
@@ -95,6 +105,8 @@ describe("sales form workflow capabilities", () => {
 	test("keeps the storefront surface restrictive", () => {
 		expect(createStorefrontSalesFormWorkflowCapabilities()).toEqual({
 			canEditWorkflowComponents: false,
+			canEditWorkflowComponentPricing: false,
+			canArchiveWorkflowComponents: false,
 			canEditSectionOverrides: false,
 			canManageRedirects: false,
 			canManageDoorSizeVariants: false,

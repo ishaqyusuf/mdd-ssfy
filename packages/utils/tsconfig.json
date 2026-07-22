@@ -3,6 +3,9 @@
   "include": ["."],
   "exclude": ["node_modules"],
   "compilerOptions": {
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"]
   }
 }

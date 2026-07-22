@@ -21,6 +21,17 @@ customers who already acted must not keep receiving the same call to action.
   recruitment banners for that customer.
 - Only an explicit Super Admin suppression reset restores eligibility.
 - Invitation URLs contain random opaque tokens; only token hashes are stored.
+- A Super Admin may manually select an eligible office-owned customer from
+  Sales Customers. This bypasses campaign audience membership only; it does not
+  bypass the active campaign window, dealer/account/email checks, or
+  application suppression.
+- Partnership status is a shared read contract with precedence `dealer account
+  → application → latest invitation → eligibility`. Send controls are derived
+  server-side and are never granted to non-Super-Admin office users.
+- Manual and sales-banner invitations share one delivery ledger. Concurrent
+  manual sends use a per-customer lease; successful resends supersede older
+  unused links, while failed replacements are revoked without destroying the
+  prior usable link.
 
 ## Consequences
 
@@ -29,3 +40,6 @@ customers who already acted must not keep receiving the same call to action.
 - Denied applicants are not automatically re-marketed.
 - Fulfillment snapshots intentionally remain unchanged when customer profiles
   are edited later.
+- Provider acceptance is represented as `SENT`, not confirmed inbox delivery.
+- Invitation lifecycle evidence can grow per customer; old rows remain audit
+  records even after supersession or revocation.

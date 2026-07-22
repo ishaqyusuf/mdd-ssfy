@@ -2,6 +2,7 @@
 
 import { Icons } from "@gnd/ui/icons";
 
+import { CustomerPartnershipCard } from "@/components/dealers/customer-partnership-status";
 import Link from "@/components/link";
 import { SendSalesReminder } from "@/components/send-sales-reminder";
 import { TransactionsTab } from "@/components/sheets/customer-overview-sheet/transactions-tab";
@@ -121,6 +122,12 @@ export function CustomerOverviewV2Content({
 							/>
 						</div>
 						<div className="grid gap-4">
+							{data?.customer.id && data.partnership ? (
+								<CustomerPartnershipCard
+									customerId={data.customer.id}
+									partnership={data.partnership}
+								/>
+							) : null}
 							<RecentActivityCard
 								data={data}
 								isPending={overviewQuery.isPending}

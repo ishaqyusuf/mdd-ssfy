@@ -7,6 +7,8 @@ import type { SalesPrintSettings } from "@gnd/settings";
 import { Button } from "@gnd/ui/button";
 import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
+import { Label } from "@gnd/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -20,6 +22,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { type ReactNode, useEffect, useState } from "react";
 
 type PrintSettingsResult = RouterOutputs["sales"]["getPrintSettings"];
+type DealerDeliveryPricing = PrintSettingsResult["dealerDeliveryPricing"];
 type PreviewOrder = RouterOutputs["sales"]["getPrintPreviewOrders"][number];
 
 const TEMPLATE_OPTIONS = [
@@ -81,6 +84,8 @@ export function SalesPrintSettingsPage() {
 	);
 	const orders = ordersQuery.data ?? [];
 	const [settings, setSettings] = useState<SalesPrintSettings | null>(null);
+	const [dealerDeliveryPricing, setDealerDeliveryPricing] =
+		useState<DealerDeliveryPricing | null>(null);
 	const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [previewError, setPreviewError] = useState<string | null>(null);
@@ -91,6 +96,12 @@ export function SalesPrintSettingsPage() {
 			setSettings(settingsQuery.data.settings);
 		}
 	}, [settings, settingsQuery.data?.settings]);
+
+	useEffect(() => {
+		if (settingsQuery.data?.dealerDeliveryPricing && !dealerDeliveryPricing) {
+			setDealerDeliveryPricing(settingsQuery.data.dealerDeliveryPricing);
+		}
+	}, [dealerDeliveryPricing, settingsQuery.data?.dealerDeliveryPricing]);
 
 	useEffect(() => {
 		if (selectedOrderId == null && orders[0]) {
@@ -152,8 +163,31 @@ export function SalesPrintSettingsPage() {
 			},
 		}),
 	);
+	const updateDealerDeliveryPricing = useMutation(
+		trpc.sales.updateDealerDeliveryPricingSettings.mutationOptions({
+			async onSuccess(data) {
+				setDealerDeliveryPricing(data.dealerDeliveryPricing);
+				await queryClient.invalidateQueries({
+					queryKey: trpc.sales.getPrintSettings.queryKey(),
+				});
+				toast({
+					title: "Dealer delivery pricing saved",
+					description:
+						"New dealer requests will show the configured office suggestion.",
+					variant: "success",
+				});
+			},
+			onError(error) {
+				toast({
+					title: "Unable to save dealer delivery pricing",
+					description: error.message,
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 
-	if (settingsQuery.isPending || !settings) {
+	if (settingsQuery.isPending || !settings || !dealerDeliveryPricing) {
 		return <SalesPrintSettingsSkeleton />;
 	}
 
@@ -305,6 +339,109 @@ export function SalesPrintSettingsPage() {
 							)
 						}
 					/>
+				</div>
+			</SettingsCard>
+
+			<SettingsCard
+				title="Dealer delivery pricing"
+				description="Suggest delivery and shipping charges during office approval. Reviewers retain the final override."
+			>
+				<div className="space-y-5">
+					<SwitchRow
+						title="Enable automated suggestions"
+						description="Pre-fill the review dialog from these rules without auto-approving the request."
+						checked={dealerDeliveryPricing.enabled}
+						onCheckedChange={(enabled) =>
+							setDealerDeliveryPricing((current) =>
+								current ? { ...current, enabled } : current,
+							)
+						}
+					/>
+					<div className="grid gap-4 border-t pt-5 sm:grid-cols-3">
+						<div className="space-y-2">
+							<Label htmlFor="dealer-delivery-base-cost">
+								Delivery base cost
+							</Label>
+							<Input
+								id="dealer-delivery-base-cost"
+								type="number"
+								min="0"
+								step="0.01"
+								value={dealerDeliveryPricing.deliveryBaseCost}
+								onChange={(event) =>
+									setDealerDeliveryPricing((current) =>
+										current
+											? {
+													...current,
+													deliveryBaseCost: Number(event.target.value),
+												}
+											: current,
+									)
+								}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="dealer-ship-base-cost">Shipping base cost</Label>
+							<Input
+								id="dealer-ship-base-cost"
+								type="number"
+								min="0"
+								step="0.01"
+								value={dealerDeliveryPricing.shipBaseCost}
+								onChange={(event) =>
+									setDealerDeliveryPricing((current) =>
+										current
+											? {
+													...current,
+													shipBaseCost: Number(event.target.value),
+												}
+											: current,
+									)
+								}
+							/>
+						</div>
+						<div className="space-y-2">
+							<Label htmlFor="dealer-free-delivery-minimum">
+								Free-delivery minimum
+							</Label>
+							<Input
+								id="dealer-free-delivery-minimum"
+								type="number"
+								min="0"
+								step="0.01"
+								placeholder="No threshold"
+								value={dealerDeliveryPricing.freeDeliveryOrderMinimum ?? ""}
+								onChange={(event) =>
+									setDealerDeliveryPricing((current) =>
+										current
+											? {
+													...current,
+													freeDeliveryOrderMinimum: event.target.value
+														? Number(event.target.value)
+														: null,
+												}
+											: current,
+									)
+								}
+							/>
+						</div>
+					</div>
+					<div className="flex justify-end">
+						<Button
+							variant="outline"
+							disabled={updateDealerDeliveryPricing.isPending}
+							onClick={() =>
+								updateDealerDeliveryPricing.mutate(dealerDeliveryPricing)
+							}
+						>
+							{updateDealerDeliveryPricing.isPending ? (
+								<Icons.Loader2 className="mr-2 size-4 animate-spin" />
+							) : (
+								<Icons.Save className="mr-2 size-4" />
+							)}
+							Save delivery rules
+						</Button>
+					</div>
 				</div>
 			</SettingsCard>
 

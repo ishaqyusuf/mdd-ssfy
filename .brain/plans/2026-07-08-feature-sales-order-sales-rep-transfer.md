@@ -38,8 +38,8 @@ The transfer should update the current order sales rep, record audit history, re
 ## Implementation Notes
 - Added `sales.salesRepOptions` and `sales.transferSalesRep` under the sales tRPC router.
 - Reused existing `SalesOrders.salesRepId`; no database migration or schema change was required.
-- The transfer mutation is order-only, requires password confirmation, allows `editOrders` users to transfer any active order, allows the currently assigned sales rep to transfer orders they own, validates an active sales/order-capable target user, updates only `salesRepId`, and writes `SalesHistory` metadata for previous rep, next rep, actor, order id, and optional reason.
-- The sales overview `SALES REPRESENTATIVE` section now shows an inline `Change Rep` control for managers and current-owner sales reps, opens a password confirmation modal before completing the transfer, refreshes sales document/list/dashboard query families after success, and leaves quotes out of scope.
+- The transfer mutation supports orders and quotes, requires password confirmation, and authorizes only the currently assigned sales rep whose user id matches `salesRepId`; `editOrders` does not grant transfer access to another rep's sale. It validates an active sales/order-capable target user, updates only `salesRepId`, and writes `SalesHistory` metadata for the previous rep, next rep, actor, sale id, and optional reason.
+- The sales overview `SALES REPRESENTATIVE` section shows an inline `Change Rep` control only for the current owner on both orders and quotes, opens a password confirmation modal before completing the transfer, and refreshes sales document/list/dashboard query families after success.
 - Added focused regression coverage in `apps/api/src/db/queries/sales-rep-transfer.test.ts`.
 
 ## Testing Seam

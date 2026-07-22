@@ -8,6 +8,7 @@ import ComposedSalesDocumentEmail from "@gnd/email/emails/composed-sales-documen
 import CustomerStatementEmail from "@gnd/email/emails/customer-statement";
 import DealerMagicLoginLinkEmail from "@gnd/email/emails/dealer-magic-login-link";
 import DealerOnboardingEmail from "@gnd/email/emails/dealer-onboarding";
+import DealerPartnershipInvitationEmail from "@gnd/email/emails/dealer-partnership-invitation";
 import DealerPasswordResetEmail from "@gnd/email/emails/dealer-password-reset";
 import DealerProfileUpdatedEmail from "@gnd/email/emails/dealer-profile-updated";
 import DealerProgramStatusEmail from "@gnd/email/emails/dealer-program-status";
@@ -148,8 +149,38 @@ export class EmailService {
 		data: Record<string, unknown>;
 		from?: string;
 	}) {
+		const result = await this.sendTransactionalWithResult({
+			to,
+			subject,
+			template,
+			data,
+			from,
+		});
+		if (result.status === "failed") {
+			throw new Error(result.errorMessage || "Failed to send email.");
+		}
+	}
+
+	async sendTransactionalWithResult({
+		to,
+		subject,
+		template,
+		data,
+		from,
+	}: {
+		to: string;
+		subject: string;
+		template: string;
+		data: Record<string, unknown>;
+		from?: string;
+	}): Promise<EmailDeliveryResult> {
 		if (shouldSkipEmail()) {
-			return;
+			return {
+				inputIndex: 0,
+				status: "skipped",
+				to: [to],
+				providerStatus: "skipped_by_environment",
+			};
 		}
 
 		const emailTemplate = this.#getTemplate(template);
@@ -163,7 +194,13 @@ export class EmailService {
 				subject,
 				template,
 			});
-			return;
+			return {
+				inputIndex: 0,
+				status: "sent",
+				to: recipients,
+				providerMessageId: mockProviderMessageId(0),
+				providerStatus: "mocked_by_environment",
+			};
 		}
 
 		const response = await this.client.emails.send({
@@ -178,8 +215,22 @@ export class EmailService {
 
 		if (response.error) {
 			console.error("Failed to send transactional email:", response.error);
-			throw new Error(`Failed to send email: ${response.error.message}`);
+			return {
+				inputIndex: 0,
+				status: "failed",
+				to: recipients,
+				providerStatus: "failed",
+				errorCode: responseErrorCode(response.error),
+				errorMessage: responseErrorMessage(response.error),
+			};
 		}
+		return {
+			inputIndex: 0,
+			status: "sent",
+			to: recipients,
+			providerMessageId: responseMessageId(response),
+			providerStatus: "accepted",
+		};
 	}
 
 	async sendBulk(
@@ -461,6 +512,7 @@ export class EmailService {
 			"dealer-onboarding": DealerOnboardingEmail,
 			"dealer-profile-updated": DealerProfileUpdatedEmail,
 			"dealer-program-status": DealerProgramStatusEmail,
+			"dealer-partnership-invitation": DealerPartnershipInvitationEmail,
 			"dealer-sales-request": DealerSalesRequestEmail,
 			"dealer-sales-request-approved": DealerSalesRequestApprovedEmail,
 			"dealer-sales-request-rejected": DealerSalesRequestRejectedEmail,

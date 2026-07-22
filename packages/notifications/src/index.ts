@@ -1,5 +1,5 @@
 import type { Db } from "@gnd/db";
-import { markDealerRecruitmentInvitationDelivered } from "@gnd/db/queries";
+import { markDealerRecruitmentInvitationDelivery } from "@gnd/db/queries";
 import { logger } from "@gnd/logger";
 import { consoleLog } from "@gnd/utils";
 import { getTestEmails } from "@gnd/utils/envs";
@@ -669,14 +669,26 @@ export class Notifications {
 		result: EmailSendBulkResult,
 		data?: SalesEmailResolvedData,
 	) {
-		if (
-			result.deliveries.some((delivery) => delivery.status === "sent") &&
-			data?.dealerProgramBanner?.invitationId
-		) {
-			await markDealerRecruitmentInvitationDelivered(
-				this.#db,
-				data.dealerProgramBanner.invitationId,
-			);
+		if (data?.dealerProgramBanner?.invitationId && result.deliveries.length) {
+			const delivery =
+				result.deliveries.find((entry) => entry.status === "sent") ||
+				result.deliveries.find((entry) => entry.status === "failed") ||
+				result.deliveries[0];
+			if (delivery) {
+				await markDealerRecruitmentInvitationDelivery(
+					this.#db,
+					data.dealerProgramBanner.invitationId,
+					{
+						status: delivery.status.toUpperCase() as
+							| "SENT"
+							| "FAILED"
+							| "SKIPPED",
+						providerMessageId: delivery.providerMessageId,
+						providerStatus: delivery.providerStatus,
+						failure: delivery.errorMessage,
+					},
+				);
+			}
 		}
 		if (!attempts.length) return;
 		const db = this.#db.salesEmailAttempt;

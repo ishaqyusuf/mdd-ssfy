@@ -35,7 +35,7 @@ export function SelectField<
             <Field.Label htmlFor={props.name}>{props.label}</Field.Label>
           )}
           {/* {props.suffix || props.prefix ? ( */}
-          <Select
+          <Select.Root
             name={field.name}
             value={field.value}
             onValueChange={field.onChange}
@@ -64,7 +64,7 @@ export function SelectField<
                 ),
               )}
             </Select.Content>
-          </Select>
+          </Select.Root>
           {!props.description || (
             <Field.Description>{props.description}</Field.Description>
           )}

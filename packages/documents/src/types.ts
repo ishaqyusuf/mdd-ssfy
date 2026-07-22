@@ -42,5 +42,5 @@ export type DocumentProvider = {
 	upload(input: DocumentUploadInput): Promise<DocumentUploadResult>;
 	uploadMany?(inputs: DocumentUploadInput[]): Promise<DocumentUploadResult[]>;
 	delete?(input: DocumentDeleteInput): Promise<DocumentDeleteResult>;
-	getPublicUrl?(pathname: string): string;
+	getPublicUrl?(pathname: string): string | undefined;
 };

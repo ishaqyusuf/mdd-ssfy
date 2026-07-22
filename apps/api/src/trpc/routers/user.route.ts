@@ -1,4 +1,4 @@
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import {
 	auth,
 	changePassword,
@@ -32,10 +32,10 @@ export const userRoutes = createTRPCRouter({
 	auth: publicProcedure.query(async (props) => {
 		return auth(props.ctx);
 	}),
-	getProfile: publicProcedure.query(async (props) => {
+	getProfile: protectedProcedure.query(async (props) => {
 		return getProfile(props.ctx);
 	}),
-	updateProfile: publicProcedure
+	updateProfile: protectedProcedure
 		.input(
 			z.object({
 				name: z.string().min(1),
@@ -47,7 +47,7 @@ export const userRoutes = createTRPCRouter({
 		.mutation(async (props) => {
 			return updateProfile(props.ctx, props.input);
 		}),
-	changePassword: publicProcedure
+	changePassword: protectedProcedure
 		.input(
 			z.object({
 				currentPassword: z.string().min(1),
@@ -57,7 +57,7 @@ export const userRoutes = createTRPCRouter({
 		.mutation(async (props) => {
 			return changePassword(props.ctx, props.input);
 		}),
-	saveDocument: publicProcedure
+	saveDocument: protectedProcedure
 		.input(
 			z.object({
 				id: z.number().optional().nullable(),
@@ -71,7 +71,7 @@ export const userRoutes = createTRPCRouter({
 		.mutation(async (props) => {
 			return saveUserDocument(props.ctx, props.input);
 		}),
-	uploadDocumentAsset: publicProcedure
+	uploadDocumentAsset: protectedProcedure
 		.input(
 			z.object({
 				filename: z.string().min(1),
@@ -95,12 +95,12 @@ export const userRoutes = createTRPCRouter({
 				url: uploaded.url || uploaded.pathname,
 			};
 		}),
-	getDocumentReview: publicProcedure
+	getDocumentReview: protectedProcedure
 		.input(z.object({ id: z.number() }))
 		.query(async (props) => {
 			return getDocumentReview(props.ctx, props.input.id);
 		}),
-	saveDocumentReviewNote: publicProcedure
+	saveDocumentReviewNote: protectedProcedure
 		.input(
 			z.object({
 				documentId: z.number(),
@@ -112,12 +112,12 @@ export const userRoutes = createTRPCRouter({
 		.mutation(async (props) => {
 			return saveDocumentReviewNote(props.ctx, props.input);
 		}),
-	deleteDocument: publicProcedure
+	deleteDocument: protectedProcedure
 		.input(z.object({ id: z.number() }))
 		.mutation(async (props) => {
 			return deleteUserDocument(props.ctx, props.input.id);
 		}),
-	updateNotificationPreferences: publicProcedure
+	updateNotificationPreferences: protectedProcedure
 		.input(
 			z.object({
 				emailNotifications: z.boolean(),
@@ -131,7 +131,7 @@ export const userRoutes = createTRPCRouter({
 		.mutation(async (props) => {
 			return updateNotificationPreferences(props.ctx, props.input);
 		}),
-	notificationAccount: publicProcedure.query(async (props) => {
+	notificationAccount: protectedProcedure.query(async (props) => {
 		const user = await auth(props.ctx);
 		const recipient = (await getSubscriberAccount(
 			props.ctx.db,

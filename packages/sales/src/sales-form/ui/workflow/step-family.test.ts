@@ -4,6 +4,37 @@ import { describe, expect, it } from "bun:test";
 import { getItemWorkflowStepFamily } from "./step-family";
 
 describe("item workflow step family", () => {
+	it("shows the moulding catalog before the first grouped row is selected", () => {
+		const family = getItemWorkflowStepFamily(
+			{
+				title: "Mouldings",
+				formSteps: [
+					{
+						step: {
+							title: "Item Type",
+						},
+						value: "Mouldings",
+					},
+					{
+						step: {
+							title: "Moulding",
+						},
+					},
+				],
+				meta: {
+					mouldingRows: [],
+				},
+			} as any,
+			{
+				step: {
+					title: "Moulding",
+				},
+			} as any,
+		);
+
+		expect(family).toBe("component-grid");
+	});
+
 	it("renders persisted moulding rows on edit reopen from the moulding step", () => {
 		const family = getItemWorkflowStepFamily(
 			{

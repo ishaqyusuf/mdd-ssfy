@@ -1,5 +1,28 @@
 # API Contracts
 
+## Sales Customer Dealership Partnership Summary
+
+- `DealerPartnershipState` is `ELIGIBLE | INELIGIBLE | INVITE_PENDING |
+  INVITE_SENT | INVITE_OPENED | INVITE_FAILED | INVITE_EXPIRED |
+  CAMPAIGN_INACTIVE | APPLICATION_PENDING | APPLICATION_DENIED |
+  APPLICATION_APPROVED | DEALER_ACTIVE | DEALER_SUSPENDED |
+  DEALER_RESTRICTED`.
+- `DealerPartnershipSummary` includes the state/label/blocking reason, active or
+  attributed campaign, latest invitation source/provider-attempt dates/sender,
+  application details, dealer status, `canSend`, `canResend`, and `retryAt`.
+  It never returns a raw invitation token or token hash.
+- Precedence is dealer account, application, latest invitation, eligibility.
+  Sent/opened rows expose a 24-hour retry boundary; pending rows become stale
+  after ten minutes; failed/skipped/expired/inactive-campaign rows have no
+  additional resend delay when a current active campaign exists.
+- `dealerProgram.sendCustomerInvitation` accepts `{ customerId: positive int }`
+  and returns `{ invitationId, campaignId, deliveryStatus }`. `SENT` means the
+  provider accepted the message, not that inbox delivery was confirmed.
+- Direct invitations require an active in-window campaign, office-owned
+  non-deleted customer, syntactically valid customer email, no linked dealer or
+  dealer-email conflict, and no non-reset application. Manual selection bypasses
+  only campaign audience targeting.
+
 ## Purpose
 Tracks important request/response contracts and shared schema boundaries.
 
@@ -189,8 +212,8 @@ Tracks important request/response contracts and shared schema boundaries.
   - `sales.updatePaymentMethod({ salesId, paymentMethod })` updates order metadata for unpaid orders only, mirrors the value into `meta.newSalesForm.form.paymentMethod` when present, and rejects fully paid orders whose principal `amountDue` is zero or below
   - changing an unpaid order to a C.C.C-applicable payment method recalculates display/backfill `meta.ccc` from the current principal `amountDue`, not the original order total, so prior payments do not inflate the remaining card-payable estimate
   - overview DTOs expose `salesRepId` alongside the display `salesRep`/initials so client surfaces can distinguish the current owner from eligible transfer targets
-  - `sales.salesRepOptions({ salesId? })` returns active internal sales/order-capable users with `{ id, name, email, initials, roles }` for transfer pickers; `editOrders` users can load it broadly, while regular sales reps must pass an order they currently own
-  - `sales.transferSalesRep({ salesId, salesRepId, reason?, password })` accepts positive integer ids, an optional note up to 500 characters, and the signed-in user's password; it rejects quotes/deleted orders/ineligible target users, wrong password confirmation, and non-manager users trying to transfer orders not assigned to them
+  - `sales.salesRepOptions({ salesId })` returns active internal sales/order-capable users with `{ id, name, email, initials, roles }` only when the referenced order or quote is assigned to the signed-in user
+  - `sales.transferSalesRep({ salesId, salesRepId, reason?, password })` accepts positive integer ids, an optional note up to 500 characters, and the signed-in user's password; it supports orders and quotes and rejects deleted sales, ineligible targets, wrong password confirmation, and any actor whose user id does not match the sale's `salesRepId`
   - successful transfer updates only `SalesOrders.salesRepId` and writes a structured `SalesHistory` row with previous rep, next rep, actor id/name, order id, and reason
   - selecting the order's current rep is a no-op response with `changed=false` and does not create duplicate history
 - Sales payment processor C.C.C contract:
@@ -271,6 +294,16 @@ Tracks important request/response contracts and shared schema boundaries.
 ## TODO
 - Document canonical contracts for sales, checkout, dispatch, notifications, and document workflows.
 
+## Staff Square terminal payment contract (2026-07-22)
+
+- Terminal payment submission requires a selected Square device id and a positive external amount.
+- The API re-queries the configured Square location before checkout creation and matches `device:<id>` and `<id>` forms through one canonical device id.
+- Only a device currently reported as `AVAILABLE` may be used. A stale, offline, unknown, or unverifiable device fails before Square checkout creation and before a local `SquarePayments` pending row is written.
+- Device discovery is intersected with `PAIRED` `TERMINAL_API` device codes returned for the same Square application and location; merchant devices paired to another mode/application are not checkout candidates.
+- Before checkout creation, the API creates a `PING` Terminal action and waits briefly for `COMPLETED`. A device that does not acknowledge Connected mode fails with an operator-facing sign-in instruction; checkout creation and local pending-payment persistence do not run.
+- Square checkout creation runs before the local pending-payment write. When Square rejects the checkout, no pending local payment is recorded.
+- The persisted terminal id and display name come from the server-observed Square device, not client-supplied display metadata.
+
 ## Sales Summary Money Contract (2026-07-20)
 
 - Sales summary responses expose numeric `grandTotal`, `ccc`, and
@@ -313,3 +346,21 @@ Tracks important request/response contracts and shared schema boundaries.
 - `NotificationOptions.forceInAppRecipients` is reserved for mandatory,
   explicitly addressed operational notices. Storefront order review uses it
   for the assigned sales rep; it does not enable email or WhatsApp delivery.
+
+## Workflow component catalog contracts (2026-07-21)
+
+- All writes identify existing active catalog components by positive numeric
+  `componentId`; batch visibility/archive inputs require a non-empty id list.
+- Visibility is `variations[]` (OR), each containing non-empty `rules[]` (AND).
+  A rule contains canonical `stepUid`, `operator = is | isNot`, and non-empty
+  `componentsUid[]`; server validation requires every target to remain active
+  under the referenced step.
+- Details and section writes merge only their owned fields. Component metadata
+  unrelated to `variations` or `sectionOverride` is preserved.
+- Redirect targets must resolve to an active canonical Dyke step; null clears.
+- Pricing rows accept optional ids, dependency keys, and nullable prices. Any
+  supplied row id must belong to the target component UID before mutation.
+- Archive writes `DykeStepProducts.deletedAt`; it never deletes sale-line or
+  selected-component snapshots already persisted in sales JSON/rows.
+- The shared `saveDykeStepComponent` helper persists `productCode` on both
+  update and create paths.

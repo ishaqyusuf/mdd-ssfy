@@ -7,6 +7,7 @@ import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { toast } from "sonner";
+import { DealerRequestDecisionActions } from "./dealer-request-decision-actions";
 
 function currency(value?: number | null) {
 	return new Intl.NumberFormat("en-US", {
@@ -23,6 +24,50 @@ function date(value?: Date | string | null) {
 		hour: "numeric",
 		minute: "2-digit",
 	}).format(new Date(value));
+}
+
+function ageLabel(hours?: number | null) {
+	const value = Number(hours || 0);
+	if (value < 1) return "<1h old";
+	if (value < 48) return `${Math.round(value)}h old`;
+	return `${Math.round(value / 24)}d old`;
+}
+
+function RequestAnalytics({
+	analytics,
+}: {
+	analytics?: {
+		pending: number;
+		dueSoon: number;
+		overdue: number;
+		averageDecisionHours: number;
+		approvalRate: number;
+		targetHours: number;
+	} | null;
+}) {
+	if (!analytics) return null;
+	const metrics = [
+		["Pending", analytics.pending],
+		["Due soon", analytics.dueSoon],
+		["Overdue", analytics.overdue],
+		["Avg. decision", `${analytics.averageDecisionHours}h`],
+		["Approval rate", `${analytics.approvalRate}%`],
+	];
+
+	return (
+		<div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+			{metrics.map(([label, value]) => (
+				<div key={label} className="rounded-lg border bg-card p-4">
+					<div className="text-xs text-muted-foreground">{label}</div>
+					<div className="mt-1 text-2xl font-semibold">{value}</div>
+				</div>
+			))}
+			<p className="text-xs text-muted-foreground sm:col-span-2 xl:col-span-5">
+				Office review SLA: {analytics.targetHours} hours from request
+				submission.
+			</p>
+		</div>
+	);
 }
 
 function fulfillmentRecipient(value: unknown) {
@@ -48,34 +93,6 @@ function fulfillmentRecipient(value: unknown) {
 	};
 }
 
-function approvalPayload(request: {
-	id: number;
-	deliveryOption?: string | null;
-}) {
-	const mode = request.deliveryOption?.toLowerCase();
-	if (mode === "pickup") {
-		return { requestId: request.id };
-	}
-
-	const value = window.prompt(
-		mode === "delivery" || mode === "ship"
-			? `Enter reviewed ${mode} cost before approving this dealer request.`
-			: "Enter the reviewed delivery cost before approving this dealer request. Use 0 when no delivery charge applies.",
-		"0",
-	);
-	if (value == null) return null;
-	const deliveryCost = Number(value);
-	if (!Number.isFinite(deliveryCost) || deliveryCost < 0) {
-		toast.error("Enter a valid delivery cost.");
-		return null;
-	}
-
-	return {
-		requestId: request.id,
-		deliveryCost,
-	};
-}
-
 export function SalesRepDealerRequests() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -84,6 +101,9 @@ export function SalesRepDealerRequests() {
 			status: "all",
 			size: 25,
 		}),
+	);
+	const analyticsQuery = useQuery(
+		trpc.sales.dealerOrderRequestAnalytics.queryOptions(),
 	);
 	const approve = useMutation(
 		trpc.sales.approveDealerSalesRequest.mutationOptions({
@@ -94,6 +114,9 @@ export function SalesRepDealerRequests() {
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.dealerOrderRequestCount.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.dealerOrderRequestAnalytics.pathKey(),
 					}),
 				]);
 				toast.success("Dealer request approved.");
@@ -110,6 +133,9 @@ export function SalesRepDealerRequests() {
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.dealerOrderRequestCount.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.dealerOrderRequestAnalytics.pathKey(),
 					}),
 				]);
 				toast.success("Dealer request rejected.");
@@ -129,19 +155,21 @@ export function SalesRepDealerRequests() {
 
 	if (!requests.length) {
 		return (
-			<div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
-				No dealer order requests yet.
+			<div className="space-y-4">
+				<RequestAnalytics analytics={analyticsQuery.data} />
+				<div className="rounded-lg border p-8 text-center text-sm text-muted-foreground">
+					No dealer order requests yet.
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-3">
+		<div className="space-y-4">
+			<RequestAnalytics analytics={analyticsQuery.data} />
 			{requests.map((request) => {
 				const isPending = request.status === "pending";
-				const recipient = fulfillmentRecipient(
-					request.fulfillmentRecipient,
-				);
+				const recipient = fulfillmentRecipient(request.fulfillmentRecipient);
 				const editor =
 					request.orderType === "order" ? "edit-order" : "edit-quote";
 				return (
@@ -155,6 +183,23 @@ export function SalesRepDealerRequests() {
 								<Badge variant={isPending ? "default" : "outline"}>
 									{request.status}
 								</Badge>
+								{isPending ? (
+									<Badge
+										variant={
+											request.sla.status === "overdue"
+												? "destructive"
+												: request.sla.status === "due_soon"
+													? "secondary"
+													: "outline"
+										}
+									>
+										{request.sla.status === "overdue"
+											? "SLA overdue"
+											: request.sla.status === "due_soon"
+												? "Due soon"
+												: "On track"}
+									</Badge>
+								) : null}
 							</div>
 							<div className="text-sm text-muted-foreground">
 								{request.dealerName} requested an order for{" "}
@@ -163,6 +208,9 @@ export function SalesRepDealerRequests() {
 							<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
 								<span>{currency(request.grandTotal)}</span>
 								<span>{date(request.createdAt)}</span>
+								{isPending ? (
+									<span>{ageLabel(request.sla.ageHours)}</span>
+								) : null}
 								{request.dealerEmail ? (
 									<span>{request.dealerEmail}</span>
 								) : null}
@@ -170,7 +218,8 @@ export function SalesRepDealerRequests() {
 							{recipient ? (
 								<div className="mt-2 rounded-md border bg-muted/30 p-3 text-xs">
 									<div className="font-medium text-foreground">
-										Direct-ship recipient: {recipient.name || request.customerName}
+										Direct-ship recipient:{" "}
+										{recipient.name || request.customerName}
 									</div>
 									<div className="mt-1 text-muted-foreground">
 										{[recipient.phoneNo, recipient.email, recipient.address]
@@ -202,32 +251,13 @@ export function SalesRepDealerRequests() {
 								</Link>
 							</Button>
 							{isPending ? (
-								<Button
-									size="sm"
-									disabled={approve.isPending}
-									onClick={() => {
-										const payload = approvalPayload(request);
-										if (payload) approve.mutate(payload);
-									}}
-								>
-									<Icons.CheckCheck className="mr-2 size-4" />
-									Approve
-								</Button>
-							) : null}
-							{isPending ? (
-								<Button
-									size="sm"
-									variant="outline"
-									disabled={reject.isPending}
-									onClick={() =>
-										reject.mutate({
-											requestId: request.id,
-										})
-									}
-								>
-									<Icons.XCircle className="mr-2 size-4" />
-									Reject
-								</Button>
+								<DealerRequestDecisionActions
+									request={request}
+									onApprove={(payload) => approve.mutateAsync(payload)}
+									onReject={(payload) => reject.mutateAsync(payload)}
+									isApproving={approve.isPending}
+									isRejecting={reject.isPending}
+								/>
 							) : null}
 						</div>
 					</div>

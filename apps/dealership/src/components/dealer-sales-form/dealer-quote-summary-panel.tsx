@@ -1,14 +1,14 @@
 "use client";
 
 import {
-	SalesFormInvoiceDetailsPanel,
 	SalesFormDealerProfileCard,
+	SalesFormInvoiceDetailsPanel,
 	SalesFormPricingOverview,
+	type SalesFormSelectOption,
 	buildSalesFormSelectOptions,
 	salesFormDeliveryOptions,
 	salesFormPaymentMethods,
 	salesFormPaymentTerms,
-	type SalesFormSelectOption,
 } from "@gnd/sales/sales-form";
 import { Button } from "@gnd/ui/button";
 import { Switch } from "@gnd/ui/switch";
@@ -42,6 +42,8 @@ type DealerQuoteSummaryPanelProps = {
 	taxTotal?: number | null;
 	grandTotal?: number | null;
 	taxCode?: string | null;
+	sellerOfRecord?: "DEALER" | "GND" | null;
+	resaleCertificateOnFile?: boolean;
 	taxOptions: SalesFormSelectOption[];
 	po?: string | null;
 	paymentTerm?: string | null;
@@ -58,6 +60,8 @@ type DealerQuoteSummaryPanelProps = {
 	onPricingViewChange: (pricingView: "internal" | "dealer") => void;
 	onShowMarginChange: (showMargin: boolean) => void;
 	onTaxCodeChange: (taxCode: string | null) => void;
+	onSellerOfRecordChange: (sellerOfRecord: "DEALER" | "GND") => void;
+	onResaleCertificateOnFileChange: (checked: boolean) => void;
 	onPoChange: (value: string) => void;
 	onPaymentTermChange: (value: string) => void;
 	onGoodUntilChange: (value: string | null) => void;
@@ -167,6 +171,49 @@ export function DealerQuoteSummaryPanel(props: DealerQuoteSummaryPanelProps) {
 					props.onTaxCodeChange(value === "none" ? null : value)
 				}
 			/>
+			<div className="space-y-4 rounded-xl border bg-card p-4">
+				<div className="space-y-1">
+					<label className="text-sm font-semibold" htmlFor="seller-of-record">
+						Seller of record
+					</label>
+					<p className="text-xs text-muted-foreground">
+						Controls which party owns the customer sale and its tax record.
+					</p>
+				</div>
+				<select
+					id="seller-of-record"
+					className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+					value={props.sellerOfRecord || "DEALER"}
+					onChange={(event) =>
+						props.onSellerOfRecordChange(
+							event.target.value === "GND" ? "GND" : "DEALER",
+						)
+					}
+				>
+					<option value="DEALER">Dealer</option>
+					<option value="GND">GND</option>
+				</select>
+				<div className="flex items-start justify-between gap-4 border-t pt-4">
+					<div className="space-y-1">
+						<label
+							className="text-sm font-medium"
+							htmlFor="resale-certificate-on-file"
+						>
+							Resale certificate on file
+						</label>
+						<p className="text-xs text-muted-foreground">
+							Exempts the GND-to-dealer tax layer only. Confirm applicability
+							with the tax advisor.
+						</p>
+					</div>
+					<Switch
+						id="resale-certificate-on-file"
+						checked={Boolean(props.resaleCertificateOnFile)}
+						disabled={(props.sellerOfRecord || "DEALER") !== "DEALER"}
+						onCheckedChange={props.onResaleCertificateOnFileChange}
+					/>
+				</div>
+			</div>
 			<div className="rounded-xl border bg-card p-4">
 				<div className="grid grid-cols-2 gap-2">
 					<Button

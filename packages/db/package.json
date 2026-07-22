@@ -21,6 +21,7 @@
     "format": "biome format --write .",
     "lint": "biome check .",
     "prisma-generate": "bun run with-env prisma generate",
+    "prisma:generate:ci": "prisma generate",
     "pull": "bun run with-env prisma db pull",
     "push:dev": "bun run with-env prisma db push",
     "push:prod": "bun run with-env:prod prisma db push",

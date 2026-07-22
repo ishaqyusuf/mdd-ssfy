@@ -26,7 +26,10 @@ import { getCustomerWallet } from "@gnd/sales/wallet";
 import {
 	cancelSquareTerminalPayment,
 	createSquareTerminalCheckout,
+	getSquareDevices,
 	getTerminalPaymentStatus,
+	normalizeTerminalDeviceId,
+	verifySquareTerminalReady,
 } from "@gnd/square";
 import { consoleLog } from "@gnd/utils";
 import { tokenize } from "@gnd/utils/tokenizer";
@@ -262,11 +265,8 @@ async function applySalesPayment(
 	const pendingSalesData = await getCustomerPendingSales(ctx, props.accountNo);
 	const selectedOrders = (props.salesIds || [])
 		.map((orderId) => pendingSalesData.find((item) => item.id === orderId))
-		.filter(
-			(
-				order,
-			): order is NonNullable<(typeof pendingSalesData)[number]> =>
-				Boolean(order),
+		.filter((order): order is NonNullable<(typeof pendingSalesData)[number]> =>
+			Boolean(order),
 		);
 	const selectedBalance = selectedOrders.reduce(
 		(total, order) => total + Number(order?.amountDue || 0),
@@ -456,21 +456,35 @@ async function applySalesPayment(
 	});
 }
 
-async function createTerminalPayment(
+type TerminalPaymentDependencies = {
+	createSquareTerminalCheckout: typeof createSquareTerminalCheckout;
+	getCustomerPendingSales: typeof getCustomerPendingSales;
+	getCustomerWallet: typeof getCustomerWallet;
+	getSquareDevices: typeof getSquareDevices;
+	verifySquareTerminalReady: typeof verifySquareTerminalReady;
+};
+
+const terminalPaymentDependencies: TerminalPaymentDependencies = {
+	createSquareTerminalCheckout,
+	getCustomerPendingSales,
+	getCustomerWallet,
+	getSquareDevices,
+	verifySquareTerminalReady,
+};
+
+export async function createTerminalPayment(
 	ctx: TRPCContext & { userId: number },
 	props: SalesPaymentProcessorApplyPaymentInput,
+	dependencies: TerminalPaymentDependencies = terminalPaymentDependencies,
 ) {
 	if (!props.deviceId) throw new Error("Square terminal device is required.");
 	const pendingSalesData = props.accountNo
-		? await getCustomerPendingSales(ctx, props.accountNo)
+		? await dependencies.getCustomerPendingSales(ctx, props.accountNo)
 		: [];
 	const selectedOrders = (props.salesIds || [])
 		.map((orderId) => pendingSalesData.find((item) => item.id === orderId))
-		.filter(
-			(
-				order,
-			): order is NonNullable<(typeof pendingSalesData)[number]> =>
-				Boolean(order),
+		.filter((order): order is NonNullable<(typeof pendingSalesData)[number]> =>
+			Boolean(order),
 		);
 	const selectedBalance = selectedOrders.reduce(
 		(total, order) => total + Number(order.amountDue || 0),
@@ -478,7 +492,7 @@ async function createTerminalPayment(
 	);
 	const wallet =
 		props.useWallet && props.accountNo
-			? await getCustomerWallet(ctx.db, props.accountNo)
+			? await dependencies.getCustomerWallet(ctx.db, props.accountNo)
 			: null;
 	const walletAppliedAmount = props.useWallet
 		? roundMoney(Math.min(Number(wallet?.balance || 0), selectedBalance))
@@ -509,8 +523,34 @@ async function createTerminalPayment(
 		walletAppliedAmount,
 		walletCreditAmount: Math.max(externalAmount - remainingAfterWallet, 0),
 	};
-	const checkout = await createSquareTerminalCheckout({
-		deviceId: props.deviceId,
+	const terminalResult = await dependencies.getSquareDevices();
+	if (terminalResult.errors?.length) {
+		throw new Error(
+			terminalResult.errors[0]?.detail ||
+				"Unable to verify Square terminals. Refresh the payment form and try again.",
+		);
+	}
+	const requestedTerminalId = normalizeTerminalDeviceId(props.deviceId);
+	const selectedTerminal = terminalResult.terminals?.find(
+		(terminal) =>
+			terminal.value &&
+			normalizeTerminalDeviceId(terminal.value) === requestedTerminalId &&
+			terminal.status === "AVAILABLE",
+	);
+	if (!selectedTerminal?.value) {
+		throw new Error(
+			"The selected Square terminal is offline or unavailable. Refresh and select an online terminal.",
+		);
+	}
+	await dependencies.verifySquareTerminalReady(selectedTerminal.value);
+
+	logger.info("Creating Square terminal checkout", {
+		amount: paymentCharge.chargeAmount,
+		deviceIdSuffix: requestedTerminalId.slice(-4),
+		orderCount: props.orderNos?.length || 0,
+	});
+	const checkout = await dependencies.createSquareTerminalCheckout({
+		deviceId: selectedTerminal.value,
 		allowTipping: props.enableTip || undefined,
 		amount: paymentCharge.chargeAmount,
 		orderIds: props?.orderNos || undefined,
@@ -531,15 +571,15 @@ async function createTerminalPayment(
 				},
 			},
 			status: "PENDING",
-			paymentTerminal: props.deviceId
+			paymentTerminal: selectedTerminal.value
 				? {
 						connectOrCreate: {
 							where: {
-								terminalId: props.deviceId,
+								terminalId: selectedTerminal.value,
 							},
 							create: {
-								terminalId: props.deviceId,
-								terminalName: props.deviceName,
+								terminalId: selectedTerminal.value,
+								terminalName: selectedTerminal.label,
 							},
 						},
 					}

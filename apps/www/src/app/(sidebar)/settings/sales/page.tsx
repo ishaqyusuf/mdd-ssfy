@@ -24,12 +24,12 @@ export default function Page() {
 						<div>
 							<PageTitle>Sales Settings</PageTitle>
 							<p className="mt-1 text-sm text-muted-foreground">
-								Configure how sales documents are generated and printed.
+								Configure sales documents and dealer-order operations.
 							</p>
 						</div>
 						<nav className="flex border-b" aria-label="Sales settings sections">
 							<span className="border-b-2 border-foreground px-1 pb-3 text-sm font-medium">
-								Print documents
+								Sales operations
 							</span>
 						</nav>
 						<SalesPrintSettingsPage />

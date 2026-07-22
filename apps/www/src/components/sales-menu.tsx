@@ -582,7 +582,6 @@ function useSalesPrintAction() {
 			await share({
 				url: shareUrl,
 				msg: `Hello! download your sales ${shareUrl}`,
-				recipient: "+234 8186877306",
 			});
 			actions.closeMenu();
 			return;

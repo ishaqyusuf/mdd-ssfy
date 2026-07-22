@@ -72,7 +72,7 @@ function formatPermissionLabel(name: string) {
     .join(" ");
 }
 
-async function requireSuperAdmin(ctx: TRPCContext) {
+export async function requireSuperAdmin(ctx: TRPCContext) {
   if (!ctx.userId) {
     throw new TRPCError({
       code: "UNAUTHORIZED",
@@ -316,6 +316,7 @@ export async function getEmployeesList(
   return resp.data;
 }
 export async function saveEmployee(ctx: TRPCContext, data: EmployeeFormSchema) {
+  await requireSuperAdmin(ctx);
   const { id, password: passwordString, permissionIds, ...formData } = data;
   const password = await hashPassword(passwordString);
   const user = id
@@ -391,6 +392,7 @@ export async function getEmployeeFormData(
   ctx: TRPCContext,
   { id }: GetEmployeeFormDataSchema,
 ): Promise<EmployeeFormSchema> {
+  await requireSuperAdmin(ctx);
   await ensureEmployeeSpecificPermissions(ctx);
   const employee = await ctx.db.users.findUniqueOrThrow({
     where: {
@@ -438,7 +440,8 @@ export async function getEmployeeFormData(
     ),
   };
 }
-export async function resetEmployeePassword(ctx: TRPCContext, userId) {
+export async function resetEmployeePassword(ctx: TRPCContext, userId: number) {
+  await requireSuperAdmin(ctx);
   const user = await ctx.db.users.update({
     where: {
       id: userId,
@@ -452,6 +455,7 @@ export async function resetEmployeePassword(ctx: TRPCContext, userId) {
 }
 
 export async function deleteEmployee(ctx: TRPCContext, userId: number) {
+  await requireSuperAdmin(ctx);
   await ctx.db.users.update({
     where: {
       id: userId,

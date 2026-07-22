@@ -1,8 +1,15 @@
 /** @jsxImportSource react */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { Button } from "@gnd/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@gnd/ui/dialog";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import {
@@ -12,16 +19,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@gnd/ui/dialog";
+import { useEffect, useMemo, useState } from "react";
 
+import { sumMoney } from "../../../../payment-system/domain/money";
 import type { SalesFormLineItemRecord } from "../../../application";
+import {
+	type DoorPriceBreakdownContext,
+	DoorPriceCell,
+	formatDoorSizeTitle,
+	updateDoorRowBasePrice,
+} from "../door-price-cell";
 import {
 	calcWorkflowDoorRow,
 	clearUnpricedDoorRowQty,
@@ -29,13 +36,6 @@ import {
 	isDoorRowPriceMissing,
 	rowsForDoorComponent,
 } from "../door-utils";
-import {
-	type DoorPriceBreakdownContext,
-	DoorPriceCell,
-	formatDoorSizeTitle,
-	updateDoorRowBasePrice,
-} from "../door-price-cell";
-import { sumMoney } from "../../../../payment-system/domain/money";
 
 type DoorLine = NonNullable<
 	NonNullable<SalesFormLineItemRecord["housePackageTool"]>["doors"]
@@ -313,6 +313,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 											<Label>Qty</Label>
 											<Input
 												type="number"
+												aria-label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
 												value={qtyInputValue(row.totalQty)}
 												onChange={(e) =>
 													setRows((prev) =>
@@ -337,6 +338,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 												<Label>LH</Label>
 												<Input
 													type="number"
+													aria-label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 													value={qtyInputValue(row.lhQty)}
 													onChange={(e) =>
 														setRows((prev) =>
@@ -357,6 +359,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 												<Label>RH</Label>
 												<Input
 													type="number"
+													aria-label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 													value={qtyInputValue(row.rhQty)}
 													onChange={(e) =>
 														setRows((prev) =>
@@ -473,6 +476,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 												<td className="px-4 py-3">
 													<Input
 														type="number"
+														aria-label={`Quantity for ${formatDoorSizeTitle(row.dimension)}`}
 														value={qtyInputValue(row.totalQty)}
 														onChange={(e) =>
 															setRows((prev) =>
@@ -497,6 +501,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 													<td className="px-4 py-3">
 														<Input
 															type="number"
+															aria-label={`LH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 															value={qtyInputValue(row.lhQty)}
 															onChange={(e) =>
 																setRows((prev) =>
@@ -517,6 +522,7 @@ export function DoorSizeQtyDialog(props: DoorSizeQtyDialogProps) {
 													<td className="px-4 py-3">
 														<Input
 															type="number"
+															aria-label={`RH quantity for ${formatDoorSizeTitle(row.dimension)}`}
 															value={qtyInputValue(row.rhQty)}
 															onChange={(e) =>
 																setRows((prev) =>

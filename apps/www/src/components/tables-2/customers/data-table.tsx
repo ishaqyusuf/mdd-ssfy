@@ -26,7 +26,7 @@ import { EmptyState, NoResults } from "./empty-states";
 import { useCustomersTableStore } from "./store";
 import { DataTableHeader } from "./table-header";
 
-const NON_CLICKABLE_COLUMNS = new Set(["actions"]);
+const NON_CLICKABLE_COLUMNS = new Set(["partnership", "actions"]);
 const COLUMN_IDS = getColumnIds(columns);
 const TABLE_ID = "customers";
 const tableConfig = TABLE_CONFIGS[TABLE_ID];

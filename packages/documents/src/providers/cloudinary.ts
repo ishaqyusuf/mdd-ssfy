@@ -33,7 +33,7 @@ export function createCloudinaryProvider(
 ): DocumentProvider {
 	return {
 		name: "cloudinary",
-		async upload(input): Promise<DocumentUploadResult> {
+		async upload(input: DocumentUploadInput): Promise<DocumentUploadResult> {
 			const filename = fileNameFrom(input);
 			const folder = input.folder ? normalizePathname(input.folder) : undefined;
 			const uploaded = await options.upload({

@@ -7,6 +7,44 @@ export const formatPaymentAmount = (value?: number | string | null) =>
 		currency: "USD",
 	}).format(Number(value || 0));
 
+type PaymentTerminal = {
+	label?: string | null;
+	status?: string | null;
+	value?: string | null;
+};
+
+const normalizeTerminalId = (value?: string | null) =>
+	String(value || "").replace(/^device:/, "");
+
+export function isAvailablePaymentTerminal(terminal?: PaymentTerminal | null) {
+	return (
+		Boolean(terminal?.value) &&
+		(terminal?.status === "AVAILABLE" || terminal?.status === "PAIRED")
+	);
+}
+
+export function resolveAvailablePaymentTerminal<T extends PaymentTerminal>(
+	terminals: T[] | null | undefined,
+	deviceId?: string | null,
+): T | undefined {
+	if (!deviceId) return undefined;
+	const normalizedDeviceId = normalizeTerminalId(deviceId);
+
+	return terminals?.find(
+		(terminal) =>
+			isAvailablePaymentTerminal(terminal) &&
+			normalizeTerminalId(terminal.value) === normalizedDeviceId,
+	);
+}
+
+export function resolveDefaultPaymentTerminal<T extends PaymentTerminal>(
+	terminals: T[] | null | undefined,
+): T | undefined {
+	const availableTerminals =
+		terminals?.filter(isAvailablePaymentTerminal) || [];
+	return availableTerminals.length === 1 ? availableTerminals[0] : undefined;
+}
+
 type PaymentSaleWithId<T extends { id?: number | null }> = T & { id: number };
 
 function indexPaymentSalesById<T extends { id?: number | null }>(sales: T[]) {

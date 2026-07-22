@@ -46,3 +46,7 @@ export const dealerAccountSuspensionSchema = z.object({
 	suspended: z.boolean(),
 	reason: z.string().trim().max(5000).optional().nullable(),
 });
+
+export const dealerCustomerInvitationSchema = z.object({
+	customerId: z.number().int().positive(),
+});

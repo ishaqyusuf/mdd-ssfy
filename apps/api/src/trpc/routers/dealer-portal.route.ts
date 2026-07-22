@@ -49,7 +49,6 @@ import {
 } from "@api/utils/dealer-workflow-visibility";
 import { resolveSalesDocumentHtmlPreviewAccess } from "@api/utils/sales-document-access";
 import {
-  convertDealerPortalQuoteToOrder,
   deleteDealerPortalCustomer,
   getDealerPortalCustomer,
   getDealerPortalCustomerOverview,
@@ -397,8 +396,12 @@ export const dealerPortalRouter = createTRPCRouter({
     }),
   convertQuoteToOrder: dealerProtectedProcedure
     .input(dealerPortalConvertQuoteSchema)
-    .mutation(({ ctx, input }) => {
-      return convertDealerPortalQuoteToOrder(ctx.db, ctx.dealer.id, input.id);
+    .mutation(() => {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message:
+          "Direct quote conversion has been retired. Request office approval to create an order.",
+      });
     }),
   requestQuoteOrder: dealerProtectedProcedure
     .input(dealerPortalRequestQuoteOrderSchema)

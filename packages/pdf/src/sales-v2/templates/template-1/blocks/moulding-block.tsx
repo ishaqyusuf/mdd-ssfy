@@ -91,11 +91,11 @@ export function MouldingBlock({
                   <TableCell
                     key={`${column.key}-${columnIndex}`}
                     value={column.value}
-                    width={widths[column.key]}
+                    width={widths[column.key] ?? "0%"}
                     align={column.align}
                     bold={column.bold}
                     isLast={columnIndex === visualCells.length - 1}
-                    imageSrc={column.key === "image" ? imageSrc : null}
+                    imageSrc={column.key === "image" ? imageSrc ?? null : null}
                   />
                 ))}
               </View>
@@ -210,14 +210,14 @@ function getColumnWidths(headers: CellHeader[], hasImageColumn: boolean) {
   const fixedUsed = keys.reduce((sum, key) => sum + (COLUMN_WIDTHS[key] ?? 0), 0);
   const flexibleKeys = keys.filter((key) => !(key in COLUMN_WIDTHS));
   const remaining =
-    100 - fixedUsed - (hasImageColumn ? COLUMN_WIDTHS.image : 0);
+    100 - fixedUsed - (hasImageColumn ? (COLUMN_WIDTHS.image ?? 0) : 0);
   const flexibleWidth =
     flexibleKeys.length > 0 ? `${remaining / flexibleKeys.length}%` : "0%";
 
   return keys.reduce<Record<string, string>>((acc, key) => {
     acc[key] = key in COLUMN_WIDTHS ? `${COLUMN_WIDTHS[key]}%` : flexibleWidth;
     return acc;
-  }, hasImageColumn ? { image: `${COLUMN_WIDTHS.image}%` } : {});
+  }, hasImageColumn ? { image: `${COLUMN_WIDTHS.image ?? 0}%` } : {});
 }
 
 function headerKey(header: CellHeader, index: number) {

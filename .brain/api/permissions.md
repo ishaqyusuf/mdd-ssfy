@@ -4,6 +4,13 @@
 Tracks authentication and authorization patterns across API surfaces.
 
 ## Current Notes
+- All authenticated office users may read Sales Customer partnership status.
+  Only Super Admin receives enabled `canSend`/`canResend` state and only Super
+  Admin may call `dealerProgram.sendCustomerInvitation`; Sales Team and other
+  office roles receive `FORBIDDEN` even if they forge the mutation directly.
+- Direct invitation authorization is rechecked server-side together with
+  customer ownership/deletion/email, dealer linkage/email conflict, campaign
+  window, application suppression, resend timing, and the customer send lease.
 - Dealer-customer visibility is enforced in directory, search, counts,
   overview, statement, and office sale-customer lookups. Shared records are
   dealer-owned/read-only; private records remain absent.
@@ -36,8 +43,8 @@ Tracks authentication and authorization patterns across API surfaces.
 - Only Super Admin can create or switch tabs to public/general visibility. Public-tab management is limited to the creator or a Super Admin; other users can view/use the tab, reorder it for themselves, and set it as their own default, but cannot rename, draft, publish, change visibility, or delete it.
 - Sales / dispatch permission surface now includes `viewPacking` for the warehouse pickup-packing tunnel at `/sales/packing-list`.
 - `viewPacking` grants access to the packing-list workspace itself.
-- Sales rep transfer for existing orders allows two actor paths: users with `editOrders` may transfer any active order, while the currently assigned sales rep may transfer only orders whose `SalesOrders.salesRepId` matches their authenticated user id.
-- Both the option list and mutation require an authenticated active user. The option list accepts `salesId` so non-manager reps can be verified as the current owner before seeing target reps.
+- Sales rep transfer supports existing orders and quotes and is ownership-only: the authenticated user's id must match `SalesOrders.salesRepId`. `editOrders` does not grant authority to transfer another rep's sale.
+- Both the option list and mutation require an authenticated active user and a `salesId` so ownership is verified before target reps are exposed.
 - The transfer mutation also requires password confirmation for the signed-in actor before updating ownership.
 - The transfer target must be an active, non-revoked internal user whose role is sales/order-capable by sales role name or order permissions; the server revalidates the target during the mutation instead of trusting the client picker.
 - Sales email ledger access requires an authenticated active user with sales read/write capability (`viewOrders`, `editOrders`, or `viewEstimates`) or Super Admin role behavior.
@@ -74,3 +81,28 @@ Tracks authentication and authorization patterns across API surfaces.
 - Super Admin retains implicit authority; all other employee access is checked
   against the normal form-permission model. Customer reads remain strictly
   owner-scoped and are never authorized through employee sessions.
+
+## Workflow component catalog permissions (2026-07-21)
+
+- Admin and Super Admin may edit component details, visibility, section
+  overrides, redirects, enter catalog selection, and soft archive components.
+- Only Super Admin may edit shared component base pricing.
+- Ordinary internal sales users retain normal sale-component selection only.
+- Dealership and storefront capability sets never expose internal
+  catalog-management actions.
+- All catalog mutations are `protectedProcedure` routes and repeat role checks
+  server-side; UI capability checks are not an authorization boundary.
+
+## Employee, profile, and notification mutation boundaries (2026-07-22)
+
+- HRM employee mutations and employee-form reads now require an authenticated
+  procedure. The query layer additionally requires Super Admin for password
+  reset, delete, access revocation/restoration, employee saves, and employee
+  form data; profile and role edits repeat the Super Admin check in the route.
+- User profile, password, employee-document, document-review, and notification
+  preference mutations are protected and execute against the authenticated
+  actor context rather than an anonymous request.
+- Notification channel administration, subscriber/role membership, inbound-note
+  writes, and note creation are protected. Public channel/activity reads remain
+  intentionally available to existing login and shared notification surfaces;
+  personal activity mutations use the current authenticated contact.

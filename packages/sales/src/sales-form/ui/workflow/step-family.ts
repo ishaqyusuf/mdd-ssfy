@@ -40,10 +40,7 @@ export function getItemWorkflowStepFamily(
     hasServiceRows && (!itemType || isServiceItem(line));
   if (
     mouldingRowsMatchType ||
-    (isMouldingItem(line) &&
-      (title.includes("line item") ||
-        title === "moulding" ||
-        title === "item type"))
+    (isMouldingItem(line) && title.includes("line item"))
   ) {
     return "moulding-line-item";
   }

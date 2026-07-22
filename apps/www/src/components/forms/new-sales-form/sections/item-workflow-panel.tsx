@@ -1,9 +1,8 @@
 "use client";
 
-import { FileUploader } from "@/components/common/file-uploader";
 import {
-	buildCustomComponentOptions,
 	CustomComponentCombobox,
+	buildCustomComponentOptions,
 	customComponentPriceChanged,
 	findCustomComponentOption,
 	normalizeCustomComponentTitleInput,
@@ -14,6 +13,12 @@ import { env } from "@/env.mjs";
 import { useAuth } from "@/hooks/use-auth";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import { CUSTOM_IMG_ID } from "@/utils/constants";
+import {
+	addMoney,
+	moneyRatio,
+	multiplyMoney,
+	roundMoney,
+} from "@gnd/sales/payment-system/money";
 import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
@@ -31,13 +36,97 @@ import {
 	summarizeDoors,
 } from "@gnd/sales/sales-form";
 import {
-	addMoney,
-	moneyRatio,
-	multiplyMoney,
-	roundMoney,
-} from "@gnd/sales/payment-system/money";
+	type CustomerProfileRecord,
+	DoorSizeQtyDialog,
+	DoorSizeVariantDialog,
+	DoorStepPanel,
+	type DoorStoredRow,
+	DoorSupplierManager,
+	DoorSwapDialog,
+	HousePackageToolPanel,
+	MouldingCalculatorDialog,
+	MouldingLineItemsEditor,
+	type MouldingRow,
+	RootComponentPicker,
+	ServiceLineItemsEditor,
+	type ServiceRow,
+	ShelfCategoryPathInput,
+	type ShelfCategoryRecord,
+	ShelfInlineItemsEditor,
+	type ShelfItemRow,
+	ShelfProductCombobox,
+	type ShelfProductOption,
+	type ShelfProductRecord,
+	ShelfRowDraft,
+	type ShelfSectionDraft,
+	WorkflowComponentPreview,
+	type WorkflowComponentRecord,
+	WorkflowComponentToolbar,
+	WorkflowLineList,
+	WorkflowShelfPanel,
+	WorkflowStepComponentPanel,
+	type WorkflowStepRecord,
+	WorkflowStepRenderer,
+	buildInitialWorkflowShelfPatch,
+	buildShelfProductsById,
+	buildStepComponentOverrideMap,
+	buildWorkflowDoorRowsPatch,
+	buildWorkflowDoorSizeVariantPatch,
+	buildWorkflowDoorSyncPatch,
+	buildWorkflowMouldingRowsContext,
+	buildWorkflowMouldingRowsPatch,
+	buildWorkflowServiceRowsContext,
+	buildWorkflowServiceRowsPatch,
+	buildWorkflowShelfSectionsContext,
+	buildWorkflowShelfSectionsPatch,
+	buildWorkflowShelfSyncPatch,
+	clearUnpricedDoorRowQty,
+	componentLabel,
+	computeSharedDoorSurcharge,
+	createShelfProductDraft,
+	createShelfSectionDraft,
+	firstFiniteNumber,
+	getDoorSupplierMeta,
+	getHptDoorSalesUnitPrice,
+	getItemWorkflowStepFamily,
+	getLineTitlePlaceholder,
+	getShelfLeafCategoryIds,
+	getShelfRowBasePrice,
+	getShelfRowDisplayTotal,
+	getShelfRowDisplayUnitPrice,
+	getShelfRowSalesPrice,
+	getStepPriceDeps,
+	getWorkflowLineDisplayTotal,
+	getWorkflowSteps,
+	isComponentEnabledForView,
+	isDoorStepTitle,
+	isHousePackageToolStepTitle,
+	isMultiSelectStepTitle,
+	isRedirectDisabledStep,
+	lineItemPickerLabel,
+	money,
+	moneyIfPositive,
+	normalizeStoredDoorRows,
+	proceedWorkflowMultiSelectStep,
+	profileAdjustedDoorSalesPrice,
+	profileAdjustedSalesPrice,
+	removeWorkflowHptDoorOption,
+	removeWorkflowMouldingSelection,
+	resolveConfiguredRouteStepsForLine,
+	resolveInteractiveStepIndex,
+	resolveWorkflowVisibleComponents,
+	saveWorkflowSelectedComponent,
+	selectAllWorkflowComponents,
+	selectWorkflowRootComponent,
+	stepKey,
+	swapWorkflowDoorComponent,
+	updateWorkflowDoorSupplier,
+	useItemWorkflowController,
+	useMouldingWorkflow,
+} from "@gnd/sales/sales-form";
 import { Alert, AlertTitle } from "@gnd/ui/alert";
 import { Button } from "@gnd/ui/button";
+import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Dialog,
@@ -47,15 +136,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { ConfirmBtn } from "@gnd/ui/confirm-button";
 import { Icon } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-	useCustomerProfilesQuery,
 	useArchiveDykeCustomStepComponentMutation,
+	useCustomerProfilesQuery,
 	useNewSalesFormShelfCategoriesQuery,
 	useNewSalesFormShelfProductSearchQuery,
 	useNewSalesFormShelfProductsQuery,
@@ -70,103 +158,8 @@ import {
 } from "../api";
 import type { NewSalesFormLineItem } from "../schema";
 import { useNewSalesFormStore } from "../store";
+import { useWorkflowComponentAdmin } from "./use-workflow-component-admin";
 import { createWwwWorkflowAdminCapabilities } from "./workflow-capabilities";
-import {
-	applyWorkflowComponentPriceOverride,
-	buildShelfProductsById,
-	buildStepComponentOverrideMap,
-	buildInitialWorkflowShelfPatch,
-	buildWorkflowDoorRowsPatch,
-	buildWorkflowDoorSizeVariantPatch,
-	buildWorkflowComponentEditState,
-	buildWorkflowDoorSyncPatch,
-	buildWorkflowMouldingRowsContext,
-	buildWorkflowMouldingRowsPatch,
-	buildWorkflowServiceRowsContext,
-	buildWorkflowServiceRowsPatch,
-	buildWorkflowShelfSyncPatch,
-	buildWorkflowShelfSectionsContext,
-	buildWorkflowShelfSectionsPatch,
-	clearUnpricedDoorRowQty,
-	componentLabel,
-	computeSharedDoorSurcharge,
-	createShelfProductDraft,
-	createShelfSectionDraft,
-	CustomerProfileRecord,
-	DoorStoredRow,
-	DoorSupplierManager,
-	DoorStepPanel,
-	firstFiniteNumber,
-	getDoorSupplierMeta,
-	getHptDoorSalesUnitPrice,
-	getItemWorkflowStepFamily,
-	getLineTitlePlaceholder,
-	getShelfLeafCategoryIds,
-	getShelfRowBasePrice,
-	getShelfRowDisplayTotal,
-	getShelfRowDisplayUnitPrice,
-	getShelfRowSalesPrice,
-	getStepPriceDeps,
-	getWorkflowSteps,
-	HousePackageToolPanel,
-	isComponentEnabledForView,
-	isDoorStepTitle,
-	isHousePackageToolStepTitle,
-	isMultiSelectStepTitle,
-	isRedirectDisabledStep,
-	lineItemPickerLabel,
-	MouldingRow,
-	MouldingLineItemsEditor,
-	money,
-	moneyIfPositive,
-	normalizeStoredDoorRows,
-	profileAdjustedSalesPrice,
-	profileAdjustedDoorSalesPrice,
-	removeWorkflowHptDoorOption,
-	removeWorkflowMouldingSelection,
-	removeWorkflowSelectedComponent,
-	resolveInteractiveStepIndex,
-	RootComponentPicker,
-	saveWorkflowSelectedComponent,
-	saveWorkflowComponentEdit,
-	ServiceLineItemsEditor,
-	ServiceRow,
-	selectAllWorkflowComponents,
-	ShelfCategoryPathInput,
-	ShelfCategoryRecord,
-	ShelfItemRow,
-	ShelfInlineItemsEditor,
-	ShelfProductCombobox,
-	ShelfProductOption,
-	ShelfProductRecord,
-	ShelfRowDraft,
-	ShelfSectionDraft,
-	selectWorkflowRootComponent,
-	setWorkflowComponentRedirect,
-	stepKey,
-	swapWorkflowDoorComponent,
-	updateWorkflowDoorSupplier,
-	WorkflowComponentRecord,
-	WorkflowComponentEditState,
-	WorkflowComponentPreview,
-	WorkflowComponentToolbar,
-	ComponentEditDialog,
-	DoorSizeQtyDialog,
-	DoorSizeVariantDialog,
-	DoorSwapDialog,
-	MouldingCalculatorDialog,
-	useItemWorkflowController,
-	useMouldingWorkflow,
-	WorkflowLineList,
-	getWorkflowLineDisplayTotal,
-	WorkflowShelfPanel,
-	WorkflowStepComponentPanel,
-	WorkflowStepRenderer,
-	WorkflowStepRecord,
-	resolveWorkflowVisibleComponents,
-	proceedWorkflowMultiSelectStep,
-	resolveConfiguredRouteStepsForLine,
-} from "@gnd/sales/sales-form";
 
 type WorkflowStep = WorkflowStepRecord;
 type WorkflowComponent = WorkflowComponentRecord;
@@ -253,21 +246,6 @@ export function ItemWorkflowPanel() {
 		lineUid: null,
 		sourceUid: null,
 	});
-	const [componentEditModal, setComponentEditModal] =
-		useState<WorkflowComponentEditState>({
-			open: false,
-			mode: "edit",
-			lineUid: null,
-			stepIndex: -1,
-			componentUid: "",
-			componentTitle: "",
-			componentImg: "",
-			salesPrice: "",
-			redirectUid: "",
-			overrideMode: false,
-			noHandle: false,
-			hasSwing: true,
-		});
 	const [customComponentDialog, setCustomComponentDialog] = useState<{
 		open: boolean;
 		lineUid: string | null;
@@ -317,6 +295,10 @@ export function ItemWorkflowPanel() {
 		() => createWwwWorkflowAdminCapabilities(auth.roleTitle),
 		[auth.roleTitle],
 	);
+	const componentAdmin = useWorkflowComponentAdmin({
+		record,
+		updateLineItem: (uid, patch) => updateLineItem(uid, patch),
+	});
 	const routeScopedLineItems = useMemo(() => {
 		return record.lineItems.map((line) => ({
 			...line,
@@ -725,6 +707,7 @@ export function ItemWorkflowPanel() {
 		steps,
 		currentStepIndex,
 		component,
+		visibleComponentsOverride,
 		selectedOverride,
 	}: {
 		line: (typeof record.lineItems)[number];
@@ -1100,26 +1083,6 @@ export function ItemWorkflowPanel() {
 		});
 		if (patch) updateLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
 	}
-	function setComponentRedirectUid(
-		line: (typeof record.lineItems)[number],
-		stepIndex: number,
-		componentUid: string,
-		redirectUid: string | null,
-	) {
-		const result = setWorkflowComponentRedirect({
-			routeData,
-			line,
-			stepIndex,
-			componentUid,
-			redirectUid,
-		});
-		if (!result) return;
-		updateLineItem(line.uid, result.linePatch as Partial<NewSalesFormLineItem>);
-		setActiveStepByLine((prev) => ({
-			...prev,
-			[line.uid]: result.activeStepIndex,
-		}));
-	}
 	async function saveDoorSizeVariants(
 		line: (typeof record.lineItems)[number],
 		stepIndex: number,
@@ -1166,98 +1129,6 @@ export function ItemWorkflowPanel() {
 			...prev,
 			[line.uid]: result.activeDoorUid,
 		}));
-	}
-	function openComponentEditForm(
-		line: (typeof record.lineItems)[number],
-		stepIndex: number,
-		component: WorkflowComponent,
-		mode: "edit" | "sectionOverride" = "edit",
-	) {
-		const nextState = buildWorkflowComponentEditState({
-			line,
-			stepIndex,
-			component,
-			mode,
-		});
-		if (nextState) setComponentEditModal(nextState);
-	}
-	function saveComponentEditForm() {
-		if (!componentEditModal.lineUid || componentEditModal.stepIndex < 0) {
-			setComponentEditModal((prev) => ({ ...prev, open: false }));
-			return;
-		}
-		const line = record.lineItems.find(
-			(item) => item.uid === componentEditModal.lineUid,
-		);
-		if (!line) {
-			setComponentEditModal((prev) => ({
-				...prev,
-				open: false,
-				mode: "edit",
-			}));
-			return;
-		}
-		const patch = saveWorkflowComponentEdit({
-			line,
-			state: componentEditModal,
-		});
-		if (!patch) {
-			setComponentEditModal((prev) => ({
-				...prev,
-				open: false,
-				mode: "edit",
-			}));
-			return;
-		}
-		updateLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
-		setComponentEditModal((prev) => ({
-			...prev,
-			open: false,
-			mode: "edit",
-		}));
-	}
-	function removeSelectedComponentFromStep(
-		line: (typeof record.lineItems)[number],
-		stepIndex: number,
-		componentUid: string,
-	) {
-		const result = removeWorkflowSelectedComponent({
-			line,
-			stepIndex,
-			componentUid,
-		});
-		if (!result) return;
-		updateLineItem(line.uid, result.linePatch as Partial<NewSalesFormLineItem>);
-		setActiveStepByLine((prev) => ({
-			...prev,
-			[line.uid]: result.activeStepIndex,
-		}));
-	}
-	function quickEditComponentPrice(
-		line: (typeof record.lineItems)[number],
-		stepIndex: number,
-		component: WorkflowComponent,
-	) {
-		if (typeof window === "undefined") return;
-		const currentPrice = Number(component?.salesPrice ?? 0);
-		const raw = window.prompt(
-			"Set line-level component price override",
-			currentPrice ? String(currentPrice) : "",
-		);
-		if (raw == null) return;
-		const parsed = Number(raw);
-		if (!Number.isFinite(parsed) || parsed < 0) return;
-		const patch = applyWorkflowComponentPriceOverride({
-			line,
-			stepIndex,
-			component,
-			price: parsed,
-			fallbackBasePrice: firstFiniteNumber(
-				getWorkflowSteps(line)[stepIndex]?.basePrice,
-				parsed,
-			),
-		});
-		if (patch) updateLineItem(line.uid, patch as Partial<NewSalesFormLineItem>);
 	}
 	function removeDoorOptionFromHpt(
 		line: (typeof record.lineItems)[number],
@@ -2609,16 +2480,19 @@ export function ItemWorkflowPanel() {
 										);
 									}
 								}}
-								onOpenPricing={(component) => {
-									if (isDoorStepTitle(activeItemStep?.step?.title)) {
-										setDoorStepModal({
-											open: true,
-											component,
-										});
-										return;
-									}
-									quickEditComponentPrice(line, activeIndex, component);
-								}}
+								onOpenPricing={
+									workflowAdminCapabilities.canEditWorkflowComponentPricing
+										? (component) =>
+												componentAdmin.componentActions.onOpenPricing?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													component,
+												})
+										: undefined
+								}
 								onOpenDoorSizeVariant={() =>
 									setDoorSizeVariantModal({
 										open: true,
@@ -2643,16 +2517,59 @@ export function ItemWorkflowPanel() {
 								onProceedMultiSelect={() =>
 									proceedMultiSelectStep(line, activeIndex)
 								}
-								onEdit={(component) =>
-									openComponentEditForm(line, activeIndex, component)
+								onEditDetails={
+									workflowAdminCapabilities.canEditWorkflowComponents
+										? (component) =>
+												componentAdmin.componentActions.onEditDetails?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													component,
+												})
+										: undefined
 								}
-								onEditSectionOverride={(component) =>
-									openComponentEditForm(
-										line,
-										activeIndex,
-										component,
-										"sectionOverride",
-									)
+								onEditVisibility={
+									workflowAdminCapabilities.canEditWorkflowComponents
+										? (components) =>
+												componentAdmin.componentActions.onEditVisibility?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													components,
+												})
+										: undefined
+								}
+								onEditPricing={
+									workflowAdminCapabilities.canEditWorkflowComponentPricing
+										? (component) =>
+												componentAdmin.componentActions.onOpenPricing?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													component,
+												})
+										: undefined
+								}
+								onEditSectionOverride={
+									workflowAdminCapabilities.canEditSectionOverrides
+										? (component) =>
+												componentAdmin.componentActions.onEditSectionOverride?.(
+													{
+														routeData,
+														line,
+														steps,
+														step: activeItemStep,
+														stepIndex: activeIndex,
+														component,
+													},
+												)
+										: undefined
 								}
 								onSelect={(component) =>
 									saveSelectedComponent({
@@ -2662,23 +2579,45 @@ export function ItemWorkflowPanel() {
 										component,
 									})
 								}
-								onClearRedirect={(component) =>
-									setComponentRedirectUid(
-										line,
-										activeIndex,
-										component.uid,
-										null,
-									)
+								onClearRedirect={
+									workflowAdminCapabilities.canManageRedirects
+										? (component) =>
+												componentAdmin.componentActions.onClearRedirect?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													component,
+												})
+										: undefined
 								}
-								onSetRedirect={(component, uid) =>
-									setComponentRedirectUid(line, activeIndex, component.uid, uid)
+								onSetRedirect={
+									workflowAdminCapabilities.canManageRedirects
+										? (component, uid) =>
+												componentAdmin.componentActions.onSetRedirect?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													component,
+													redirectUid: uid,
+												})
+										: undefined
 								}
-								onDelete={(component) =>
-									removeSelectedComponentFromStep(
-										line,
-										activeIndex,
-										component.uid,
-									)
+								onArchive={
+									workflowAdminCapabilities.canArchiveWorkflowComponents
+										? (components) =>
+												componentAdmin.componentActions.onArchive?.({
+													routeData,
+													line,
+													steps,
+													step: activeItemStep,
+													stepIndex: activeIndex,
+													components,
+												})
+										: undefined
 								}
 								onOpenDoorSizes={(component) =>
 									setDoorStepModal({
@@ -3036,49 +2975,7 @@ export function ItemWorkflowPanel() {
 				/>
 			) : null}
 
-			<ComponentEditDialog
-				open={componentEditModal.open}
-				onOpenChange={(open) =>
-					setComponentEditModal((prev) => ({
-						...prev,
-						open,
-						mode: open ? prev.mode : "edit",
-					}))
-				}
-				mode={componentEditModal.mode}
-				componentTitle={componentEditModal.componentTitle}
-				salesPrice={componentEditModal.salesPrice}
-				redirectUid={componentEditModal.redirectUid}
-				overrideMode={componentEditModal.overrideMode}
-				noHandle={componentEditModal.noHandle}
-				hasSwing={componentEditModal.hasSwing}
-				redirectOptions={getRedirectableRoutes(routeData).map((route) => ({
-					uid: route.uid,
-					title: route.title,
-				}))}
-				imageUploadSlot={
-					<FileUploader
-						src={componentEditModal.componentImg || null}
-						label="Component Image"
-						folder="dyke"
-						width={120}
-						height={120}
-						onUpload={(assetId) =>
-							setComponentEditModal((prev) => ({
-								...prev,
-								componentImg: String(assetId || ""),
-							}))
-						}
-					/>
-				}
-				onPatch={(patch) =>
-					setComponentEditModal((prev) => ({
-						...prev,
-						...patch,
-					}))
-				}
-				onSave={saveComponentEditForm}
-			/>
+			{componentAdmin.dialogs}
 		</>
 	);
 }

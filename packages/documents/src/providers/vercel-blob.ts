@@ -40,7 +40,7 @@ export function createVercelBlobProvider(
 ): DocumentProvider {
 	return {
 		name: "vercel-blob",
-		async upload(input): Promise<DocumentUploadResult> {
+		async upload(input: DocumentUploadInput): Promise<DocumentUploadResult> {
 			const pathname = withFolder(fileNameFrom(input), input.folder);
 			const uploaded = await options.put(pathname, input.body, {
 				access: options.access || "public",

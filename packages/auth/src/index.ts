@@ -190,13 +190,13 @@ export function nextAuthOptions(options: {
 					token.activeSession = activeSession ?? null;
 				}
 
-				if (!token.sessionId) return null;
+				if (!token.sessionId) return null as never;
 				const activeSession = await getValidSessionRecord(
 					token.sessionId,
 					token.user?.id,
 				);
 				if (!activeSession) {
-					return null;
+					return null as never;
 				}
 
 				token.can = normalizeCan(token.can);
@@ -238,15 +238,15 @@ export function nextAuthOptions(options: {
 						password: credentials.password,
 						token: credentials.token,
 						sessionMeta: {
-							ipAddress: getRequestIpAddress(req.headers),
-							userAgent: getRequestUserAgent(req.headers),
+							ipAddress: getRequestIpAddress(req.headers ?? {}),
+							userAgent: getRequestUserAgent(req.headers ?? {}),
 						},
 					});
 					if (!login) {
 						return null;
 					}
 
-					return login;
+					return login as never;
 				},
 			}),
 		],

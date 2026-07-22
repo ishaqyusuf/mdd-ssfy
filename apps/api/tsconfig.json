@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "target": "ESNext",
     "module": "ESNext",
     "moduleDetection": "force",
@@ -19,6 +19,8 @@
     "noPropertyAccessFromIndexSignature": false,
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
+    "types": ["node", "bun"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"],
     "baseUrl": ".",
     "paths": {
       "@auth/*": ["../../packages/auth/src/*"],

@@ -878,7 +878,7 @@ type InventoryItemDashboardSummaryInput = {
 };
 
 function isQuoteInventoryLine(
-  line: InventoryItemDashboardSummaryInput["relatedLineItems"][number],
+	line: NonNullable<InventoryItemDashboardSummaryInput["relatedLineItems"]>[number],
 ) {
   const lineType = String(line.lineItemType || "").toLowerCase();
   const saleType = String(line.sale?.type || "").toLowerCase();

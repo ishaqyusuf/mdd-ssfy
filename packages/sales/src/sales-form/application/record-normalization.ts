@@ -393,6 +393,8 @@ export function normalizeSalesFormMeta(meta: Partial<SalesFormMetaRecord>) {
 		deliveryOption: meta.deliveryOption ?? "pickup",
 		paymentMethod: meta.paymentMethod ?? null,
 		taxCode: meta.taxCode ?? null,
+		sellerOfRecord: meta.sellerOfRecord === "GND" ? "GND" : "DEALER",
+		resaleCertificateOnFile: Boolean(meta.resaleCertificateOnFile),
 	};
 }
 

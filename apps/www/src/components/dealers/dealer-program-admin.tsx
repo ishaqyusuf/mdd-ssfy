@@ -469,6 +469,7 @@ export function DealerProgramAdmin() {
 											}
 										/>
 										<Button
+											aria-label={`Approve dealership application for ${application.customer?.businessName || application.customer?.name || application.invitation.recipientEmail}`}
 											onClick={() =>
 												decideApplication.mutate({
 													id: application.id,
@@ -481,6 +482,7 @@ export function DealerProgramAdmin() {
 											Approve
 										</Button>
 										<Button
+											aria-label={`Deny dealership application for ${application.customer?.businessName || application.customer?.name || application.invitation.recipientEmail}`}
 											variant="outline"
 											onClick={() =>
 												decideApplication.mutate({
@@ -500,6 +502,7 @@ export function DealerProgramAdmin() {
 									</p>
 								) : (
 									<Button
+										aria-label={`Reset dealership application eligibility for ${application.customer?.businessName || application.customer?.name || application.invitation.recipientEmail}`}
 										className="mt-3"
 										size="sm"
 										variant="outline"
@@ -553,6 +556,7 @@ export function DealerProgramAdmin() {
 										}
 									/>
 									<Button
+										aria-label={`${suspended ? "Reactivate" : "Suspend"} dealer ${dealer.companyName || dealer.name || dealer.email}`}
 										disabled={setSuspension.isPending}
 										variant={suspended ? "default" : "outline"}
 										onClick={() =>

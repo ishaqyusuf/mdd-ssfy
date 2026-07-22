@@ -4,9 +4,9 @@ import type {
 	MouldingRow,
 	ServiceRow,
 	ShelfCategoryRecord,
+	ShelfProductRecord,
 	ShelfProductSearchIndexRecord,
 	ShelfSectionDraft,
-	ShelfProductRecord,
 	WorkflowComponentRecord,
 	WorkflowLineItemRecord,
 	WorkflowRouteData,
@@ -145,7 +145,12 @@ export type SalesFormWorkflowSurfaceSlots<
 		onEnableCustomComponent?: (
 			input: Omit<SalesFormWorkflowComponentActionInput<TLine>, "component">,
 		) => void;
-		onEdit?: (input: SalesFormWorkflowComponentActionInput<TLine>) => void;
+		onEditDetails?: (
+			input: SalesFormWorkflowComponentActionInput<TLine>,
+		) => void;
+		onEditVisibility?: (
+			input: SalesFormWorkflowComponentBatchActionInput<TLine>,
+		) => void;
 		onEditSectionOverride?: (
 			input: SalesFormWorkflowComponentActionInput<TLine>,
 		) => void;
@@ -157,8 +162,16 @@ export type SalesFormWorkflowSurfaceSlots<
 				redirectUid: string;
 			},
 		) => void;
-		onDelete?: (input: SalesFormWorkflowComponentActionInput<TLine>) => void;
+		onArchive?: (
+			input: SalesFormWorkflowComponentBatchActionInput<TLine>,
+		) => Promise<boolean | undefined> | boolean | undefined;
 	};
+};
+
+export type SalesFormWorkflowComponentBatchActionInput<
+	TLine extends WorkflowLineItemRecord = WorkflowLineItemRecord,
+> = Omit<SalesFormWorkflowComponentActionInput<TLine>, "component"> & {
+	components: WorkflowComponentRecord[];
 };
 
 export type SalesFormWorkflowComponentActionInput<

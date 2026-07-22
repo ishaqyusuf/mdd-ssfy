@@ -15,6 +15,20 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ## Planned Tasks
 
+### Sales Customer Direct Dealership Invitations
+- Priority: High
+- Description: Add partnership status and direct Super Admin invitation/resend
+  controls to Sales Customers and Customer Overview, reusing the active
+  campaign and existing secure application/onboarding lifecycle.
+- Related Feature: Dealership recruitment, Sales Customers, Customer Overview
+- Status: Done
+- Initial Plan Status: Proposed
+- Plan Status: Implemented
+- Plan File: brain/plans/2026-07-21-feature-sales-customer-direct-dealership-invitations.md
+- Created Date: 2026-07-21
+- Completed Date: 2026-07-22
+- Local Only: yes
+
 ### Sales Online Payment Follow-Up Reliability
 - Priority: High
 - Description: Wayfinder map created at `.scratch/sales-online-payment-follow-up/map.md` from the client complaint that online-paid sales can be missed when emails are buried and the notification bell is not actionable. The effort should produce an implementation-ready spec and tickets for payment acknowledgement/email reliability, notification badge/inbox improvements, a recent-paid sales follow-up queue, and safe payment-to-fulfillment boundaries.
@@ -105,7 +119,7 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/36
 - Created Date: 2026-07-08
 - Completed Date: 2026-07-08
-- Latest Implementation Note: Added protected `sales.salesRepOptions` and `sales.transferSalesRep`, manager/current-owner transfer access, password confirmation, a sales overview `Change Rep` control, structured `SalesHistory` transfer audit metadata, overview DTO `salesRepId`, and focused mutation tests.
+- Latest Implementation Note: `sales.salesRepOptions` and `sales.transferSalesRep` now support orders and quotes with strict current-owner authorization (`salesRepId === authenticated user id`), no `editOrders` override, password confirmation, a sales overview `Change Rep` control, structured `SalesHistory` transfer audit metadata, and focused mutation tests.
 
 ### Web Bug Reporting Workflow
 - Priority: High
@@ -448,3 +462,13 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan File: brain/plans/2026-06-23-ux-ui-mobile-sales-ledger-tabs-search-order-overview.md
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md
 - Created Date: 2026-06-23
+
+### Storefront Public Launch Readiness
+- Priority: High
+- Description: Track the gated implementation and cutover plan in
+  `.brain/plans/2026-07-22-feature-storefront-public-launch-readiness.md`.
+- Related Feature: Storefront e-commerce replacement and production cutover
+- Status: Roadmap
+- Plan Status: Proposed
+- Plan File: .brain/plans/2026-07-22-feature-storefront-public-launch-readiness.md
+- Created Date: 2026-07-22

@@ -9,6 +9,7 @@ import {
   resetEmployeePassword,
   saveEmployee,
   setEmployeeBugReportingAccess,
+  requireSuperAdmin,
 } from "@api/db/queries/hrm";
 import { createSiteAction } from "@api/db/queries/site-action";
 import {
@@ -16,7 +17,7 @@ import {
   employeesQueryParamsSchema,
   getEmployeeFormDataSchema,
 } from "@api/schemas/hrm";
-import { createTRPCRouter, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import { z } from "zod";
 
 export const hrmRoutes = createTRPCRouter({
@@ -61,7 +62,7 @@ export const hrmRoutes = createTRPCRouter({
   getPermissions: publicProcedure.query(async (props) => {
     return getEmployeePermissionOptions(props.ctx);
   }),
-  resetEmployeePassword: publicProcedure
+  resetEmployeePassword: protectedProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -70,7 +71,7 @@ export const hrmRoutes = createTRPCRouter({
     .mutation(async (props) => {
       return resetEmployeePassword(props.ctx, props.input.userId);
     }),
-  deleteEmployee: publicProcedure
+  deleteEmployee: protectedProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -79,7 +80,7 @@ export const hrmRoutes = createTRPCRouter({
     .mutation(async (props) => {
       return deleteEmployee(props.ctx, props.input.userId);
     }),
-  revokeEmployee: publicProcedure
+  revokeEmployee: protectedProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -88,7 +89,7 @@ export const hrmRoutes = createTRPCRouter({
     .mutation(async (props) => {
       return revokeEmployee(props.ctx, props.input.userId);
     }),
-  restoreEmployeeAccess: publicProcedure
+  restoreEmployeeAccess: protectedProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -97,7 +98,7 @@ export const hrmRoutes = createTRPCRouter({
     .mutation(async (props) => {
       return restoreEmployeeAccess(props.ctx, props.input.userId);
     }),
-  setEmployeeBugReportingAccess: publicProcedure
+  setEmployeeBugReportingAccess: protectedProcedure
     .input(
       z.object({
         userId: z.number().int().positive(),
@@ -107,17 +108,17 @@ export const hrmRoutes = createTRPCRouter({
     .mutation(async (props) => {
       return setEmployeeBugReportingAccess(props.ctx, props.input);
     }),
-  saveEmployee: publicProcedure
+  saveEmployee: protectedProcedure
     .input(employeeFormSchema)
     .mutation(async (props) => {
       return saveEmployee(props.ctx, props.input);
     }),
-  getEmployeeForm: publicProcedure
+  getEmployeeForm: protectedProcedure
     .input(getEmployeeFormDataSchema)
     .query(async (props) => {
       return getEmployeeFormData(props.ctx, props.input);
     }),
-  updateEmployeeProfile: publicProcedure
+  updateEmployeeProfile: protectedProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -125,6 +126,7 @@ export const hrmRoutes = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
       const { userId: id, profileId } = props.input;
       const user = await props.ctx.db.users.update({
         where: {
@@ -151,7 +153,7 @@ export const hrmRoutes = createTRPCRouter({
         },
       });
     }),
-  updateEmployeeRole: publicProcedure
+  updateEmployeeRole: protectedProcedure
     .input(
       z.object({
         userId: z.number(),
@@ -159,6 +161,7 @@ export const hrmRoutes = createTRPCRouter({
       }),
     )
     .mutation(async (props) => {
+      await requireSuperAdmin(props.ctx);
       const { userId: id, roleId } = props.input;
       const { db: prisma } = props.ctx;
       await prisma.modelHasRoles.deleteMany({

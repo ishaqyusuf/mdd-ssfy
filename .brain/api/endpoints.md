@@ -4,6 +4,16 @@
 Tracks notable API surfaces and where they are implemented.
 
 ## Current Notes
+- Sales Customer dealership invitation routes:
+  - `sales.customersIndex` is now a protected query and returns a batched
+    `partnership` summary per row.
+  - `customers.getCustomerOverviewV2` returns the same partnership summary for
+    the selected customer.
+  - `dealerProgram.sendCustomerInvitation({ customerId })` is a protected,
+    Super Admin-only mutation. It uses the current active in-window campaign,
+    bypasses audience targeting for the explicitly selected office customer,
+    acquires the customer send lease, sends the dedicated partnership email,
+    and records provider acceptance/failure/supersession.
 - Primary API implementation lives in `apps/api`.
 - The codebase uses route/query organization around domain-specific files and tRPC routers.
 - Shared page-tab routes now include:
@@ -17,6 +27,18 @@ Tracks notable API surfaces and where they are implemented.
 - Master password login audit routes:
   - `masterPasswordLoginAudits.list`: Super Admin-only paginated audit query with text search, platform filtering, and optional cleared-record visibility.
   - `masterPasswordLoginAudits.clear`: Super Admin-only archive mutation for explicit row ids or the current active search/platform filter; stamps `clearedAt` and the acting Super Admin id.
+
+- Employee/user/notification route boundaries (2026-07-22):
+  - `hrm.resetEmployeePassword`, `deleteEmployee`, `revokeEmployee`,
+    `restoreEmployeeAccess`, `setEmployeeBugReportingAccess`, `saveEmployee`,
+    and `getEmployeeForm` are protected procedures; sensitive employee writes
+    repeat Super Admin authorization in the query/route boundary.
+  - `user.getProfile`, profile/password/document/review/notification preference
+    mutations, and `user.notificationAccount` are protected procedures.
+  - Notification channel administration, subscriber/role membership,
+    inbound-note, and note-write mutations are protected procedures. Public
+    notification/channel reads remain for compatibility with shared activity
+    and login surfaces.
 - Web bug reporting routes now include:
   - `/api/bug-reports/upload`: web route handler for Vercel Blob client uploads; generates short-lived upload tokens only for authenticated users with `submitBugReport`, scoped to `bug-reports/<userId>/`, and supports image/video/audio evidence uploads
   - `bugReports.create`: creates a web bug report after the browser uploads screenshot or video evidence to Vercel Blob; requires `submitBugReport`; accepts optional initial voice-note evidence; best-effort external issue creation supports configured GitHub or Jira providers
@@ -45,7 +67,7 @@ Tracks notable API surfaces and where they are implemented.
 - Sales overview routes now include:
   - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
   - `sales.salesRepOptions`: protected active-sales-user option list for the sales overview transfer control
-  - `sales.transferSalesRep`: protected order-only sales rep transfer mutation that changes `SalesOrders.salesRepId` and writes `SalesHistory` audit evidence
+  - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that changes `SalesOrders.salesRepId` and writes `SalesHistory` audit evidence
 - Sales print routes now include:
   - `print.salesV2`: canonical sales print data route for invoice, quote, production, packing-slip, and order-packing preview/download payloads, backed by `packages/sales/src/print/*` and `@gnd/pdf/sales-v2`
   - `/p/sales-document-v2`: canonical signed HTML sales document preview route
@@ -195,6 +217,22 @@ Tracks notable API surfaces and where they are implemented.
 ## TODO
 - Summarize the highest-value API surfaces by domain.
 - Link important sales, checkout, dispatch, jobs, and customer flows to their implementation areas.
+
+## Workflow component catalog mutations (2026-07-21)
+
+- `sales.saveWorkflowComponentDetails`: protected component name, product-code,
+  and image update.
+- `sales.saveWorkflowComponentVisibility`: protected multi-component OR/AND
+  visibility-rule update with canonical rule-target validation.
+- `sales.saveWorkflowComponentSectionOverride`: protected metadata-merged
+  section behavior update.
+- `sales.saveWorkflowComponentRedirect`: protected validated redirect set/clear.
+- `sales.saveWorkflowComponentPricing`: protected Super Admin component base
+  pricing update with pricing-row ownership validation.
+- `sales.archiveWorkflowComponents`: protected confirmed UI path backed by a
+  physical `deletedAt` soft archive.
+- Each mutation invalidates component caches; routing-sensitive changes also
+  invalidate route data. Affected steps queue targeted Dyke-to-inventory sync.
 ## Storefront e-commerce replacement (2026-07-20)
 
 - Public customer traffic uses `/api/storefront/trpc` and the allowlisted

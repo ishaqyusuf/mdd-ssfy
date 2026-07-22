@@ -1,16 +1,25 @@
-import { env } from "process";
-import {
-  SquareClient as Client,
-  SquareEnvironment as Environment,
-  SquareError as ApiError,
-  DeviceStatusCategory,
-} from "square";
+import crypto from "node:crypto";
+import { env } from "node:process";
 import type { TransactionClient } from "@gnd/db";
-import crypto from "crypto";
-const isProd = env.NODE_ENV === "production" || env.VERCEL_ENV === "production";
-const forceProductionSquare = env.SQUARE_FORCE_PRODUCTION === "true";
+import {
+  SquareError as ApiError,
+  SquareClient as Client,
+  type DeviceStatusCategory,
+  SquareEnvironment as Environment,
+} from "square";
 
-const devMode = !isProd && !forceProductionSquare;
+export function isProductionSquareEnvironment(runtime: NodeJS.ProcessEnv) {
+  return (
+    runtime.NODE_ENV === "production" ||
+    runtime.VERCEL_ENV === "production" ||
+    runtime.SQUARE_FORCE_PRODUCTION === "true"
+  );
+}
+
+export const SQUARE_MODE = isProductionSquareEnvironment(env)
+  ? "production"
+  : "sandbox";
+const devMode = SQUARE_MODE === "sandbox";
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
   token: devMode ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,
@@ -18,6 +27,54 @@ export const squareClient = new Client({
 export const SQUARE_LOCATION_ID = devMode
   ? env.SQUARE_SANDBOX_LOCATION_ID
   : env.SQUARE_LOCATION_ID;
+
+export const normalizeTerminalDeviceId = (deviceId: string) =>
+  deviceId.replace(/^device:/, "");
+
+type SquareTerminalDevice = {
+  attributes?: { name?: string | null } | null;
+  id?: string | null;
+  status?: { category?: DeviceStatusCategory | null } | null;
+};
+
+type SquareTerminalDeviceCode = {
+  deviceId?: string | null;
+  productType?: string | null;
+  status?: string | null;
+};
+
+export function resolvePairedSquareTerminals(
+  devices: SquareTerminalDevice[],
+  deviceCodes: SquareTerminalDeviceCode[],
+) {
+  const pairedDeviceIds = new Set(
+    deviceCodes.flatMap((code) =>
+      code.status === "PAIRED" &&
+      code.productType === "TERMINAL_API" &&
+      code.deviceId
+        ? [normalizeTerminalDeviceId(code.deviceId)]
+        : [],
+    ),
+  );
+
+  return devices
+    .filter(
+      (device) =>
+        device.id &&
+        pairedDeviceIds.has(normalizeTerminalDeviceId(device.id)),
+    )
+    .map((device) => ({
+      label: device.attributes?.name || "Square Terminal",
+      status: device.status?.category || undefined,
+      value: device.id || undefined,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+    .filter(
+      (terminal, index, terminals) =>
+        terminals.findIndex((candidate) => candidate.value === terminal.value) ===
+        index,
+    );
+}
 interface SquareCreateRefundProps {
   squarePaymentId: string;
   tx: TransactionClient;
@@ -88,22 +145,33 @@ interface Devices {
 }
 export async function getSquareDevices(): Promise<Devices> {
   try {
-    // const terminals = await squareClient.devices.codes
-    const devices = await squareClient.devices.list(
-      SQUARE_LOCATION_ID ? { locationId: SQUARE_LOCATION_ID } : undefined,
-    );
-    const _ = devices?.data
-      ?.map((device) => ({
-        label: device?.attributes.name,
-        status: device?.status?.category, // as "PAIRED" | "OFFLINE",
-        value: device.id,
-        _: device,
-      }))
-      .sort((a, b) => a?.label?.localeCompare(b.label as any) as any);
-    return {
-      terminals: (_ || [])!?.filter(
-        (a, b) => _!.findIndex((c) => c.value == a.value) == b,
+    const [devices, deviceCodes] = await Promise.all([
+      squareClient.devices.list(
+        SQUARE_LOCATION_ID ? { locationId: SQUARE_LOCATION_ID } : undefined,
       ),
+      squareClient.devices.codes.list(
+        SQUARE_LOCATION_ID ? { locationId: SQUARE_LOCATION_ID } : undefined,
+      ),
+    ]);
+    const terminals = resolvePairedSquareTerminals(
+      devices?.data ?? [],
+      deviceCodes?.data ?? [],
+    );
+    if (!terminals.length) {
+      return {
+        errors: [
+          {
+            category: "API_ERROR",
+            code: "UNPAIRED_TERMINAL",
+            detail:
+              "No Square Terminal is paired to the GND production app. Pair the terminal with a GND Devices API code before checkout.",
+          },
+        ],
+        terminals: [],
+      };
+    }
+    return {
+      terminals,
     };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -114,7 +182,16 @@ export async function getSquareDevices(): Promise<Devices> {
       };
     }
   }
-  return {} as any;
+  return {
+    errors: [
+      {
+        category: "API_ERROR",
+        code: "INTERNAL_SERVER_ERROR",
+        detail: "Unable to load Square terminals.",
+      },
+    ],
+    terminals: [],
+  };
 }
 export async function fetchDevicesByLocations() {
   try {
@@ -204,9 +281,6 @@ const toSquareSalesNote = (orderIds?: string[]) => {
   )}`;
 };
 
-const normalizeTerminalDeviceId = (deviceId: string) =>
-  deviceId.replace(/^device:/, "");
-
 export async function createSquareTerminalCheckout(
   props: CreateTerminalCheckoutProps,
 ) {
@@ -243,6 +317,42 @@ export async function createSquareTerminalCheckout(
     id: checkout.id,
     squareOrderId: checkout.orderId,
   };
+}
+
+export async function verifySquareTerminalReady(deviceId: string) {
+  const normalizedDeviceId = normalizeTerminalDeviceId(deviceId);
+  const { action } = await squareClient.terminal.actions.create({
+    idempotencyKey: crypto.randomUUID(),
+    action: {
+      deadlineDuration: "PT10S",
+      deviceId: normalizedDeviceId,
+      type: "PING",
+    },
+  });
+  if (!action?.id) {
+    throw new Error("Square could not start a terminal readiness check.");
+  }
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+    const currentAction =
+      attempt === 0
+        ? action
+        : (await squareClient.terminal.actions.get({ actionId: action.id })).action;
+    if (currentAction?.status === "COMPLETED") return;
+    if (
+      currentAction?.status === "CANCELED" ||
+      currentAction?.status === "CANCEL_REQUESTED"
+    ) {
+      break;
+    }
+  }
+
+  throw new Error(
+    "The selected Square Terminal is not responding in Connected mode. On the terminal, sign out of Square POS and sign in with its GND device code, then try again.",
+  );
 }
 
 export async function createTerminalCheckout({

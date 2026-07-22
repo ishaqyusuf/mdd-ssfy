@@ -1,10 +1,10 @@
 /** @jsxImportSource react */
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { ConfirmBtn } from "@gnd/ui/confirm-button";
+import { Menu } from "@gnd/ui/custom/menu";
 import {
 	Dialog,
 	DialogContent,
@@ -13,12 +13,20 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@gnd/ui/dialog";
-import { Menu } from "@gnd/ui/custom/menu";
 import { Icon } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
 import { Label } from "@gnd/ui/label";
 import { Textarea } from "@gnd/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@gnd/ui/tooltip";
+import { useCallback, useMemo, useState } from "react";
+import {
+	addMoney,
+	moneyRatio,
+	multiplyMoney,
+	percentageMoney,
+	roundMoney,
+	sumMoney,
+} from "../../../payment-system/domain/money";
 import type {
 	SalesFormWorkflowActions,
 	SalesFormWorkflowCapabilities,
@@ -30,31 +38,19 @@ import type {
 } from "../../contracts";
 import { createSalesFormWorkflowCapabilities } from "../../contracts";
 import {
-	addMoney,
-	moneyRatio,
-	multiplyMoney,
-	percentageMoney,
-	roundMoney,
-	sumMoney,
-} from "../../../payment-system/domain/money";
-import {
-	CostPriceBreakdownHover,
-	type CostPriceBreakdownContext,
-} from "./cost-price-breakdown-hover";
-import {
 	buildSelectedByStepUid,
 	buildSelectedProdUidsByStepUid,
 	deriveDoorSizeCandidates,
-	getRedirectableRoutes,
 	getHptDoorSalesUnitPrice,
+	getRedirectableRoutes,
+	getRouteConfigForLine,
 	getSelectedDoorComponentsForLine,
 	getSelectedProdUids,
-	getRouteConfigForLine,
-	resolveConfiguredRouteStepsForLine,
 	isComponentVisibleByRules,
 	isMouldingItem,
 	normalizeSalesFormTitle as normalizeTitle,
 	resolveComponentPriceByDeps,
+	resolveConfiguredRouteStepsForLine,
 	resolveDoorTierPricing,
 	searchShelfProductIndex,
 	summarizeDoors,
@@ -64,11 +60,41 @@ import {
 	applySingleSelectStepMutation,
 } from "../../domain/mutation-engine";
 import {
+	type CostPriceBreakdownContext,
+	CostPriceBreakdownHover,
+} from "./cost-price-breakdown-hover";
+import {
+	DoorSizeQtyDialog,
+	DoorStepPanel,
+	type DoorStepPanelTab,
+	type DoorStoredRow,
+	DoorSwapDialog,
+	HousePackageToolPanel,
+	MouldingLineItemsEditor,
+	RootComponentPicker,
+	ServiceLineItemsEditor,
+	ShelfCategoryPathInput,
+	type ShelfCategoryRecord,
+	ShelfInlineItemsEditor,
+	ShelfProductCombobox,
+	type ShelfProductOption,
+	type ShelfRowDraft,
+	type ShelfSectionDraft,
+	WorkflowComponentPreview,
+	type WorkflowComponentRecord,
+	WorkflowComponentToolbar,
+	type WorkflowLineItemRecord,
+	WorkflowLineList,
+	WorkflowShelfPanel,
+	WorkflowStepComponentPanel,
+	type WorkflowStepRecord,
+	WorkflowStepRenderer,
+	buildShelfProductsById,
 	buildStepComponentOverrideMap,
-	buildWorkflowMouldingRowsContext,
-	buildWorkflowMouldingRowsPatch,
 	buildWorkflowDoorRowsPatch,
 	buildWorkflowDoorSizeVariantPatch,
+	buildWorkflowMouldingRowsContext,
+	buildWorkflowMouldingRowsPatch,
 	buildWorkflowServiceRowsContext,
 	buildWorkflowServiceRowsPatch,
 	buildWorkflowShelfSectionsContext,
@@ -78,7 +104,6 @@ import {
 	computeSharedDoorSurcharge,
 	createShelfProductDraft,
 	createShelfSectionDraft,
-	buildShelfProductsById,
 	getDoorSupplierMeta,
 	getItemWorkflowStepFamily,
 	getLineTitlePlaceholder,
@@ -97,42 +122,17 @@ import {
 	isRedirectDisabledStep,
 	lineItemPickerLabel,
 	moneyIfPositive,
+	profileAdjustedDoorSalesPrice,
 	profileAdjustedSalesPrice,
+	removeWorkflowHptDoorOption,
 	resolveInteractiveStepIndex,
-	RootComponentPicker,
 	saveWorkflowSelectedComponent,
 	selectWorkflowRootComponent,
-	DoorSizeQtyDialog,
-	DoorSwapDialog,
-	DoorStepPanel,
-	type DoorStepPanelTab,
-	HousePackageToolPanel,
-	MouldingLineItemsEditor,
-	profileAdjustedDoorSalesPrice,
-	removeWorkflowHptDoorOption,
-	ServiceLineItemsEditor,
-	ShelfCategoryPathInput,
-	ShelfInlineItemsEditor,
-	ShelfProductCombobox,
 	stepKey,
-	useItemWorkflowController,
-	useMouldingWorkflow,
-	WorkflowComponentPreview,
-	WorkflowComponentToolbar,
-	WorkflowLineList,
-	WorkflowShelfPanel,
-	WorkflowStepComponentPanel,
-	WorkflowStepRenderer,
 	swapWorkflowDoorComponent,
 	updateWorkflowDoorSupplier,
-	type WorkflowComponentRecord,
-	type DoorStoredRow,
-	type WorkflowLineItemRecord,
-	type ShelfCategoryRecord,
-	type ShelfProductOption,
-	type ShelfRowDraft,
-	type ShelfSectionDraft,
-	type WorkflowStepRecord,
+	useItemWorkflowController,
+	useMouldingWorkflow,
 } from "./index";
 import { WorkflowPanelNotice } from "./workflow-panel-notice";
 import {
@@ -1178,6 +1178,14 @@ export function SalesFormWorkflowPanel<
 						selectComponent(line, steps, activeIndex, component, true);
 					}
 				}}
+				onEditPricing={
+					props.slots?.componentActions?.onOpenPricing
+						? (component) =>
+								props.slots?.componentActions?.onOpenPricing?.(
+									componentActionContext(component),
+								)
+						: undefined
+				}
 				onOpenPricing={
 					props.slots?.componentActions?.onOpenPricing
 						? (component) =>
@@ -1221,12 +1229,25 @@ export function SalesFormWorkflowPanel<
 				onProceedMultiSelect={() =>
 					proceedMultiSelect(line, steps, activeIndex)
 				}
-				onEdit={
-					props.slots?.componentActions?.onEdit
+				onEditDetails={
+					props.slots?.componentActions?.onEditDetails
 						? (component) =>
-								props.slots?.componentActions?.onEdit?.(
+								props.slots?.componentActions?.onEditDetails?.(
 									componentActionContext(component),
 								)
+						: undefined
+				}
+				onEditVisibility={
+					props.slots?.componentActions?.onEditVisibility
+						? (components) =>
+								props.slots?.componentActions?.onEditVisibility?.({
+									routeData,
+									line,
+									steps,
+									step: activeItemStep,
+									stepIndex: activeIndex,
+									components,
+								})
 						: undefined
 				}
 				onEditSectionOverride={
@@ -1257,12 +1278,17 @@ export function SalesFormWorkflowPanel<
 								})
 						: undefined
 				}
-				onDelete={
-					props.slots?.componentActions?.onDelete
-						? (component) =>
-								props.slots?.componentActions?.onDelete?.(
-									componentActionContext(component),
-								)
+				onArchive={
+					props.slots?.componentActions?.onArchive
+						? (components) =>
+								props.slots?.componentActions?.onArchive?.({
+									routeData,
+									line,
+									steps,
+									step: activeItemStep,
+									stepIndex: activeIndex,
+									components,
+								})
 						: undefined
 				}
 				onOpenDoorSizes={(component) => openDoorSizeModal(line, component)}

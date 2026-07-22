@@ -47,7 +47,7 @@ export function JobsSelectionPdfDocument({
 	);
 	const hasSingleContractor = contractorNames.length === 1;
 	const contractorLabel = hasSingleContractor
-		? contractorNames[0]
+		? (contractorNames[0] ?? "Unknown contractor")
 		: `${contractorNames.length} contractors`;
 	const contextLabel =
 		data.context === "payment-portal"

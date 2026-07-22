@@ -4,7 +4,8 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"]
+    "types": ["node", "bun"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"]
   },
   "include": ["src", ".", "images.d.ts"],
   "exclude": ["node_modules"]

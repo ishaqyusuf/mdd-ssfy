@@ -115,21 +115,38 @@ model SalesOrders {
     @@index([pickupId])
 }
 
+enum DealerSellerOfRecord {
+    DEALER
+    GND
+}
+
 model DealerSales {
-    id                      Int           @unique @default(autoincrement())
-    salesOrderId            Int           @unique
-    dealerAuthId            Int
-    customerId              Int
-    dealerCustomerProfileId Int
-    dealerSalesPercentage   Float
-    grandTotal              Float
-    dueAmount               Float
-    createdAt               DateTime?     @default(now()) @db.Timestamp(0)
-    updatedAt               DateTime?     @updatedAt
-    salesOrder              SalesOrders   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-    dealerAuth              DealerAuth    @relation(fields: [dealerAuthId], references: [id])
-    customer                Customers     @relation(fields: [customerId], references: [id])
-    dealerCustomerProfile   CustomerTypes @relation(name: "dealerSaleCustomerProfile", fields: [dealerCustomerProfileId], references: [id])
+    id                        Int                  @unique @default(autoincrement())
+    salesOrderId              Int                  @unique
+    dealerAuthId              Int
+    customerId                Int
+    dealerCustomerProfileId   Int
+    sellerOfRecord            DealerSellerOfRecord @default(DEALER)
+    selectedTaxModelId        String?              @db.VarChar(255)
+    selectedTaxModelName      String?              @db.VarChar(255)
+    selectedTaxModelSnapshot  Json?                @db.Json
+    internalSubtotal          Float                 @default(0)
+    internalTaxableSubtotal   Float                 @default(0)
+    internalTax               Float                 @default(0)
+    dealerSubtotal            Float                 @default(0)
+    dealerTaxableSubtotal     Float                 @default(0)
+    dealerCustomerTax         Float                 @default(0)
+    dealerMarkupAmount        Float                 @default(0)
+    dealerSalesPercentage     Float
+    resaleCertificateOnFile   Boolean               @default(false)
+    grandTotal                Float
+    dueAmount                 Float
+    createdAt                 DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt                 DateTime?             @updatedAt
+    salesOrder                SalesOrders           @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    dealerAuth                DealerAuth            @relation(fields: [dealerAuthId], references: [id])
+    customer                  Customers             @relation(fields: [customerId], references: [id])
+    dealerCustomerProfile     CustomerTypes         @relation(name: "dealerSaleCustomerProfile", fields: [dealerCustomerProfileId], references: [id])
 
     @@index([dealerAuthId])
     @@index([customerId])
