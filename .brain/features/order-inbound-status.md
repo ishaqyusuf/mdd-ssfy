@@ -39,6 +39,7 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 - Sales overview action bars no longer expose the old `Inbound` / `Update Inbound` shortcut. Order inbound status updates remain available from inbound-management workflows and inventory-oriented surfaces that use the shared inbound status modal.
 - The inbound status modal fetches the order's active mapped inventory demand and can submit selected `InboundDemand` rows through `demandIds` for line-scoped prompt changes.
 - Demand rows in the inbound status modal join through `inventories.salesInventoryOverview` by `InboundDemand.id`, so component name, shared category/step formatting, and human-readable variant labels match the Sales Overview Inventory tab's Create inbound form. Queue-provided sales-line, inventory-name, and SKU labels remain the fallback when overview metadata is unavailable.
+- The modal preselects every prompt-mutable demand after the active demand query settles. A visible `Mark all` action restores that complete mutable selection after manual deselection, while linked or received demand remains disabled and excluded.
 - Successful manual inbound updates invalidate the Sales Activity tree and sales inventory overview. The existing `Sales Inbound` activity note therefore appears without a page reload, with no duplicate activity write.
 - `/inventory/inbounds` includes an inbound reconciliation panel showing orders where the manual prompt and open inventory demand disagree.
 

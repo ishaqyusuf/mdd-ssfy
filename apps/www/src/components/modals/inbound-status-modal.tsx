@@ -14,7 +14,7 @@ import {
 import { ScrollArea } from "@gnd/ui/scroll-area";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { orderInboundStatuses } from "@gnd/utils/constants";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FormProvider, useFieldArray } from "react-hook-form";
 import type { z } from "zod";
 import FormInput from "../common/controls/form-input";
@@ -28,10 +28,8 @@ import Image from "next/image";
 import ConfirmBtn from "../confirm-button";
 import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upload-zone";
 import { buildInboundDemandDisplayById } from "./inbound-demand-display";
-import {
-	InboundDemandSelection,
-	isPromptMutableDemand,
-} from "./inbound-demand-selection";
+import { InboundDemandSelection } from "./inbound-demand-selection";
+import { getPromptMutableDemandIds } from "./inbound-demand-selection-state";
 import { invalidateInboundStatusQueries } from "./inbound-status-invalidation";
 
 // get schema from zod input
@@ -88,6 +86,11 @@ export function InboundSalesModal() {
 	);
 	const selectedStatus = form.watch("status");
 	const selectedDemandIds = form.watch("demandIds") ?? [];
+	const mutableDemandIds = useMemo(
+		() => getPromptMutableDemandIds(demandRows, selectedStatus),
+		[demandRows, selectedStatus],
+	);
+	const autoSelectedContextRef = useRef<string | null>(null);
 	const saveInboundStatus = useMutation(
 		trpc.notes.saveInboundNote.mutationOptions({
 			onSuccess: () => {
@@ -111,6 +114,7 @@ export function InboundSalesModal() {
 	const resetForm = form.reset;
 	useEffect(() => {
 		if (params.inboundOrderId) {
+			autoSelectedContextRef.current = null;
 			resetForm({
 				salesId: params.inboundOrderId,
 				orderNo: params.inboundOrderNo,
@@ -123,12 +127,27 @@ export function InboundSalesModal() {
 		}
 	}, [params, resetForm]);
 	useEffect(() => {
+		if (
+			!params.inboundOrderId ||
+			!params.updateInboundStatus ||
+			!selectedStatus ||
+			!demandRowsQuery.isSuccess ||
+			demandRowsQuery.isFetching
+		) {
+			return;
+		}
+
+		const selectionContext = `${params.inboundOrderId}:${selectedStatus}`;
+		if (autoSelectedContextRef.current !== selectionContext) {
+			autoSelectedContextRef.current = selectionContext;
+			form.setValue("demandIds", mutableDemandIds, {
+				shouldDirty: false,
+			});
+			return;
+		}
+
 		const nextDemandIds = selectedDemandIds.filter((demandId) =>
-			demandRows.some(
-				(demand) =>
-					demand.id === demandId &&
-					isPromptMutableDemand(demand, selectedStatus),
-			),
+			mutableDemandIds.includes(demandId),
 		);
 
 		if (nextDemandIds.length === selectedDemandIds.length) return;
@@ -136,7 +155,16 @@ export function InboundSalesModal() {
 		form.setValue("demandIds", nextDemandIds, {
 			shouldDirty: true,
 		});
-	}, [demandRows, form, selectedDemandIds, selectedStatus]);
+	}, [
+		demandRowsQuery.isFetching,
+		demandRowsQuery.isSuccess,
+		form,
+		mutableDemandIds,
+		params.inboundOrderId,
+		params.updateInboundStatus,
+		selectedDemandIds,
+		selectedStatus,
+	]);
 	if (!params.inboundOrderId) return null;
 	function onSubmit(values: z.infer<typeof formSchema>) {
 		saveInboundStatus.mutate({
@@ -149,6 +177,11 @@ export function InboundSalesModal() {
 			: selectedDemandIds.filter((id) => id !== demandId);
 
 		form.setValue("demandIds", nextDemandIds, {
+			shouldDirty: true,
+		});
+	}
+	function markAllDemands() {
+		form.setValue("demandIds", mutableDemandIds, {
 			shouldDirty: true,
 		});
 	}
@@ -192,6 +225,7 @@ export function InboundSalesModal() {
 								selectedDemandIds={selectedDemandIds}
 								displayByDemandId={demandDisplayById}
 								onSelectionChange={toggleDemandSelection}
+								onMarkAll={markAllDemands}
 							/>
 							<div className="flex gap-4">
 								{attachments.fields.map((a, ai) => (

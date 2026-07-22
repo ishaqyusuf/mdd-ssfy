@@ -1,5 +1,15 @@
 # Progress
 
+- 2026-07-22: Extended Update Order Inbound demand selection so every
+  prompt-mutable demand is preselected when the active query settles, and added
+  a visible `Mark all` control that restores the full mutable selection after
+  manual deselection. Linked, partially received, and received demand remains
+  disabled and excluded. Focused modal coverage passes with 7 tests / 10
+  assertions, targeted Biome and diff checks pass, and the filtered `@gnd/www`
+  typecheck reports no touched-file diagnostics. Live UI verification was
+  attempted after restarting the unresponsive local `www` process, but the
+  browser's local-URL security policy blocked page reload, so authenticated
+  modal proof remains pending.
 - 2026-07-22: Aligned Update Order Inbound demand labels with the Sales
   Overview Inventory tab. The modal now joins active demand ids to the existing
   sales inventory overview projection and shows the same component,

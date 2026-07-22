@@ -1,12 +1,16 @@
 import type { RouterOutputs } from "@api/trpc/routers/_app";
-import { canOrderInboundPromptMutateDemand } from "@gnd/inventory/inbound-policy";
 import { Badge } from "@gnd/ui/badge";
+import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 
 import {
 	type InboundDemandDisplayMetadata,
 	resolveInboundDemandDisplay,
 } from "./inbound-demand-display";
+import {
+	getPromptMutableDemandIds,
+	isPromptMutableDemand,
+} from "./inbound-demand-selection-state";
 
 type InboundDemandRow =
 	RouterOutputs["inventories"]["inboundDemandQueue"][number];
@@ -17,19 +21,8 @@ type InboundDemandSelectionProps = {
 	selectedDemandIds: number[];
 	displayByDemandId: ReadonlyMap<number, InboundDemandDisplayMetadata>;
 	onSelectionChange: (demandId: number, checked: boolean) => void;
+	onMarkAll: () => void;
 };
-
-export function isPromptMutableDemand(
-	demand: InboundDemandRow,
-	status: string | null | undefined,
-) {
-	return canOrderInboundPromptMutateDemand({
-		orderInventoryStatus: status,
-		demandStatus: demand.status,
-		qtyReceived: demand.qtyReceived,
-		inboundShipmentItemId: demand.inboundShipmentItemId,
-	});
-}
 
 function formatQty(value: number | null | undefined) {
 	return Number(value || 0).toLocaleString(undefined, {
@@ -43,8 +36,13 @@ export function InboundDemandSelection({
 	selectedDemandIds,
 	displayByDemandId,
 	onSelectionChange,
+	onMarkAll,
 }: InboundDemandSelectionProps) {
 	if (!rows.length) return null;
+	const mutableDemandIds = getPromptMutableDemandIds(rows, selectedStatus);
+	const allMutableDemandSelected =
+		mutableDemandIds.length > 0 &&
+		mutableDemandIds.every((demandId) => selectedDemandIds.includes(demandId));
 
 	return (
 		<div className="rounded-md border border-border bg-card">
@@ -55,7 +53,18 @@ export function InboundDemandSelection({
 						Mapped shortage demand for this order.
 					</div>
 				</div>
-				<Badge variant="outline">{selectedDemandIds.length} selected</Badge>
+				<div className="flex items-center gap-2">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={!mutableDemandIds.length || allMutableDemandSelected}
+						onClick={onMarkAll}
+					>
+						Mark all
+					</Button>
+					<Badge variant="outline">{selectedDemandIds.length} selected</Badge>
+				</div>
 			</div>
 			<div className="max-h-56 divide-y divide-border overflow-auto">
 				{rows.map((demand) => {
