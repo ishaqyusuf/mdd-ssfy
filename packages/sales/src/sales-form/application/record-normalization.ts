@@ -43,8 +43,8 @@ export type SalesFormLineItemRecord = Record<string, any> & {
 	lineTotal?: number | null;
 	taxxable?: boolean | null;
 	meta?: Record<string, any> | null;
-	formSteps?: any[];
-	shelfItems?: any[];
+	formSteps?: any[] | null;
+	shelfItems?: any[] | null;
 	housePackageTool?: any | null;
 };
 

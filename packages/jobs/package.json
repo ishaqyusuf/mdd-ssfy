@@ -17,6 +17,7 @@
   "dependencies": {
     "@fast-csv/format": "5.0.2",
     "@gnd/db": "workspace:*",
+    "@gnd/auth": "workspace:*",
     "@gnd/documents": "workspace:*",
     "@gnd/inventory": "workspace:*",
     "@gnd/utils": "workspace:*",
@@ -38,11 +39,12 @@
     "qs": "^6.14.0",
     "@prisma/client": "^6.18.0",
     "@prisma/instrumentation": "^6.18.0",
-    "@vercel/blob": "^1.1.1",
+    "@vercel/blob": "^2.3.0",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",
+    "@types/bun": "^1.2.17",
     "@types/heic-convert": "2.1.0",
     "@types/qs": "^6.14.0",
     "trigger.dev": "4.0.1"

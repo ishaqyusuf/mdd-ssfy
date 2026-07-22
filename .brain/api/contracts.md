@@ -310,6 +310,7 @@ Tracks important request/response contracts and shared schema boundaries.
 - Only a device currently reported as `AVAILABLE` may be used. A stale, offline, unknown, or unverifiable device fails before Square checkout creation and before a local `SquarePayments` pending row is written.
 - Device discovery is intersected with `PAIRED` `TERMINAL_API` device codes returned for the same Square application and location; merchant devices paired to another mode/application are not checkout candidates.
 - Before checkout creation, the API creates a `PING` Terminal action and waits briefly for `COMPLETED`. A device that does not acknowledge Connected mode fails with an operator-facing sign-in instruction; checkout creation and local pending-payment persistence do not run.
+- Square Sandbox exposes the official successful simulated Terminal id and skips production-only pairing/`PING` gates because physical Square hardware cannot connect to the Sandbox.
 - Square checkout creation runs before the local pending-payment write. When Square rejects the checkout, no pending local payment is recorded.
 - The persisted terminal id and display name come from the server-observed Square device, not client-supplied display metadata.
 
@@ -348,6 +349,23 @@ Tracks important request/response contracts and shared schema boundaries.
   `/api/storefront/trpc` endpoint. Guest ownership comes from the signed guest
   cookie; customer ownership may come from the existing chunked secure
   NextAuth session cookie.
+
+## Custom millwork inquiry contract (2026-07-22)
+
+- A custom brief requires at least one canonical project type, property type,
+  city/state/postal code, a 20-character description, contact name/email, and a
+  contact preference. Dimensions, materials, budget, target date, fulfillment
+  notes, and phone are optional except phone is required for phone-only contact.
+- Attachment finalization accepts no more than five verified private files.
+  Each file is at most 10 MB and must be JPEG, PNG, WebP, HEIC/HEIF, or PDF.
+- Submission is idempotent for an inquiry/upload token pair and returns the
+  stable customer reference. Notification delivery is outside the commit and
+  cannot change submission success.
+- Inquiry statuses are `DRAFT`, `NEW`, `IN_REVIEW`, `AWAITING_CUSTOMER`,
+  `QUOTE_CREATED`, `RESPONDED`, `CLOSED`, and `SPAM`; transitions are validated
+  by the shared sales-domain state machine.
+- Quote conversion requires a linked office customer and assigned rep. Repeated
+  conversion returns the already-linked quote rather than creating another.
 - Configuration preview may validate a partial selection and returns
   `complete: boolean`. Cart, wishlist, and checkout writes still require a
   complete server-valid configuration. Hidden, unavailable, and explicitly

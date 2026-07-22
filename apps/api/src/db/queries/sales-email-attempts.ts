@@ -249,7 +249,6 @@ function getRetryPayload(attempt: SalesEmailAttemptRecord) {
 		salesIds,
 		customerEmail: attempt.customerEmail || attempt.recipientEmail,
 		note: attempt.message || undefined,
-		skipPdfAttachment: true,
 	};
 }
 

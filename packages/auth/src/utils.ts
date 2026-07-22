@@ -55,6 +55,51 @@ export async function getUserSpecificPermissions(
 	return permissions.map((item) => item.permissions);
 }
 
+export async function getUserIdsWithPermission(db: Db, permission: string) {
+	const [roleUsers, specificPermissions] = await Promise.all([
+		db.users.findMany({
+			where: {
+				deletedAt: null,
+				accessRevokedAt: null,
+				roles: {
+					some: {
+						deletedAt: null,
+						role: {
+							OR: [
+								{ name: "Super Admin" },
+								{
+									RoleHasPermissions: {
+										some: {
+											deletedAt: null,
+											permission: {
+												name: permission,
+												deletedAt: null,
+											},
+										},
+									},
+								},
+							],
+						},
+					},
+				},
+			},
+			select: { id: true },
+		}),
+		db.modelHasPermissions.findMany({
+			where: {
+				deletedAt: null,
+				modelType: { in: [...USER_PERMISSION_MODEL_TYPE_ALIASES] },
+				permissions: { name: permission, deletedAt: null },
+			},
+			select: { modelId: true },
+		}),
+	]);
+	return new Set([
+		...roleUsers.map((user) => user.id),
+		...specificPermissions.map((entry) => Number(entry.modelId)),
+	]);
+}
+
 export function mergePermissionRecords(
 	...collections: Array<Array<{ id?: number; name: string }>>
 ) {

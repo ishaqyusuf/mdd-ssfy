@@ -69,6 +69,7 @@ import {
 	type DoorStepPanelTab,
 	type DoorStoredRow,
 	DoorSwapDialog,
+	type DoorSwapDialogComponent,
 	HousePackageToolPanel,
 	MouldingLineItemsEditor,
 	RootComponentPicker,
@@ -633,9 +634,10 @@ export function SalesFormWorkflowPanel<
 				? line.housePackageTool.doors || []
 				: []
 		).map(clearUnpricedDoorRowQty);
-		let selectedDoorComponents = getSelectedDoorComponentsForLine(line, {
-			availableComponents: visibleDoorComponents,
-		});
+		let selectedDoorComponents: WorkflowComponentRecord[] =
+			getSelectedDoorComponentsForLine(line, {
+				availableComponents: visibleDoorComponents,
+			}) as WorkflowComponentRecord[];
 		if (!selectedDoorComponents.length && rows.length) {
 			const recoveredComponentIds = Array.from(
 				new Set(rows.map((row) => Number(row?.stepProductId || 0))),
@@ -649,9 +651,11 @@ export function SalesFormWorkflowPanel<
 						uid: componentId
 							? `persisted-door-${componentId}`
 							: `persisted-door-${index + 1}`,
-						title: componentId ? `Door ${componentId}` : "Saved Door",
-						img: null,
-						salesPrice: null,
+							title: componentId ? `Door ${componentId}` : "Saved Door",
+							img: null,
+							inventoryId: null,
+							inventoryVariantId: null,
+							salesPrice: null,
 						basePrice: null,
 						pricing: null,
 						supplierVariants: [],
@@ -760,7 +764,9 @@ export function SalesFormWorkflowPanel<
 				pricing: activeDoorComponent?.pricing || {},
 				size,
 				supplierUid: supplier.supplierUid,
-				supplierVariants: activeDoorComponent?.supplierVariants || [],
+				supplierVariants: Array.isArray(activeDoorComponent?.supplierVariants)
+					? activeDoorComponent.supplierVariants
+					: [],
 				salesMultiplier: activeSalesMultiplier,
 				fallbackSalesPrice: activeDoorComponent?.salesPrice,
 				fallbackBasePrice: activeDoorComponent?.basePrice,
@@ -1577,10 +1583,10 @@ export function SalesFormWorkflowPanel<
 	const doorSwapModalDoorStepIndex = doorSwapModalSteps.findIndex((step) =>
 		isDoorStepTitle(step?.step?.title),
 	);
-	const doorSwapSelectedComponents = doorSwapModalLine
-		? getSelectedDoorComponentsForLine(doorSwapModalLine, {
+	const doorSwapSelectedComponents: WorkflowComponentRecord[] = doorSwapModalLine
+		? (getSelectedDoorComponentsForLine(doorSwapModalLine, {
 				availableComponents: visibleDoorComponents,
-			})
+			}) as WorkflowComponentRecord[])
 		: [];
 	const doorSwapSourceComponent =
 		doorSwapSelectedComponents.find(
@@ -1760,7 +1766,7 @@ export function SalesFormWorkflowPanel<
 				/>
 			) : null}
 			{doorSwapModalLine ? (
-				<DoorSwapDialog
+				<DoorSwapDialog<DoorSwapDialogComponent>
 					open={
 						doorSwapModal.open &&
 						String(doorSwapModal.lineUid || "") ===

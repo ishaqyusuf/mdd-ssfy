@@ -62,3 +62,14 @@ Tracks important cross-model relationships and ownership patterns.
 - Storefront Page 1:N Storefront Section.
 - User/customer ownership is stored through server-derived user IDs without
   exposing caller-controlled ownership mutations.
+
+## Storefront custom millwork inquiry links (2026-07-22)
+
+- `StorefrontInquiryActivity.inquiryId -> StorefrontInquiry.id` is a cascading
+  Prisma relation.
+- `StorefrontInquiry.customerId -> Customers.id` and
+  `StorefrontInquiry.salesQuoteId -> SalesOrders.id` are application-enforced
+  links because the legacy customer/Sales tables do not expose compatible
+  relation ownership in this bounded schema.
+- `StoredDocument.ownerType/ownerId` polymorphically associates private files to
+  `StorefrontInquiry.id`; every read repeats both values.

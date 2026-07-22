@@ -110,10 +110,10 @@ export function composeFooter(
   }
 
   // Delivery
-  if (meta?.deliveryCost > 0) {
+  if ((meta?.deliveryCost ?? 0) > 0) {
     lines.push({
       label: "Delivery",
-      value: `$${formatCurrency(meta.deliveryCost)}`,
+      value: `$${formatCurrency(meta?.deliveryCost ?? 0)}`,
     });
   }
 

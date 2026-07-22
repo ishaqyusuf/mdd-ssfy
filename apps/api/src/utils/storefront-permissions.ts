@@ -87,3 +87,55 @@ export async function requireStorefrontEmployeePermission(input: {
 	}
 	return permissions;
 }
+
+export async function requireStorefrontQuoteCreationPermission(input: {
+	db: Database;
+	userId?: number;
+}) {
+	if (!input.userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+	const user = await input.db.users.findFirst({
+		where: {
+			id: input.userId,
+			deletedAt: null,
+			accessRevokedAt: null,
+		},
+		select: {
+			roles: {
+				where: { deletedAt: null },
+				select: {
+					role: {
+						select: {
+							name: true,
+							RoleHasPermissions: {
+								where: { deletedAt: null },
+								select: {
+									permission: { select: { name: true } },
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+	if (!user) throw new TRPCError({ code: "UNAUTHORIZED" });
+	const isSuperAdmin = user.roles.some(
+		(entry) => entry.role?.name?.trim().toLowerCase() === "super admin",
+	);
+	const specific = await getUserSpecificPermissions(input.db, input.userId);
+	const canEditOrders = [
+		...specific.map((permission) => permission.name),
+		...user.roles.flatMap(
+			(entry) =>
+				entry.role?.RoleHasPermissions.map(
+					(item) => item.permission.name,
+				) || [],
+		),
+	].includes("editOrders");
+	if (!isSuperAdmin && !canEditOrders) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Creating a sales quote requires editOrders permission.",
+		});
+	}
+}

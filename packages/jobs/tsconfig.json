@@ -3,6 +3,11 @@
   "include": ["src", "../../types"],
   "exclude": ["node_modules"],
   "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noImplicitAny": false,
+    "types": ["node", "bun"],
+    "typeRoots": ["./node_modules/@types", "../../node_modules/@types", "../../types"],
     "baseUrl": ".",
     "paths": {
       "@jobs/*": ["src/*"],

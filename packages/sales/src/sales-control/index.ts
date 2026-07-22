@@ -318,7 +318,7 @@ export async function updateSalesItemControlAction(db: Db, salesId) {
     },
   });
 
-  const arr = [];
+	const arr: Awaited<ReturnType<typeof tx.salesItemControl.create>>[] = [];
   for (const c of controls) {
     const qtyControlData = Array.from(
       c.qtyControlData.reduce((map, row) => {

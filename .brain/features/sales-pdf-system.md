@@ -12,6 +12,12 @@ Build a clean, isolated sales PDF system with zero legacy dependencies, typed da
 
 One shared data pipeline produces typed `PrintPage` payloads. Templates never touch the database.
 
+The print query projects only the `DealerSales` fields used by dealer pricing
+(`dealerSalesPercentage` and `dueAmount`) instead of loading every scalar
+column. This keeps invoice and quote generation compatible while additive
+dealership schema changes are being rolled out and prevents unrelated
+client/schema drift from breaking sales documents.
+
 The print data layer owns C.C.C/payment footer semantics. `composeFooter` and `composeMeta` use a shared payment footer state helper. Customer-facing print footers use a compact summary: unpaid card estimates show `Order Due Amount`, `Estimated Card Fee`, and `Total if Paying by Card`; paid and partially paid records show `Order Total`, optional aggregated `Card Fees`, `Total Paid`, and principal-only `Balance Due`. `Total Paid` combines principal applied to the order with only safely matched recorded card fees; it never infers historical fees from the selected payment method. HTML preview and both PDF templates render the shared `PrintPage` payload and do not calculate payment totals themselves. Internal sales overview `costLines` retain their detailed accounting labels and continue to use the shared payment state helper.
 
 ```

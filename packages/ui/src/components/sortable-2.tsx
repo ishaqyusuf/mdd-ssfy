@@ -325,7 +325,7 @@ function SortableContent(props: SortableContentProps) {
 
   const context = useSortableContext(CONTENT_NAME);
 
-  const ContentPrimitive = asChild ? Slot : "div";
+  const ContentPrimitive = (asChild ? Slot : "div") as React.ElementType;
 
   return (
     <SortableContentContext.Provider value={true}>

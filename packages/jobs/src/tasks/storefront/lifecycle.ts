@@ -4,5 +4,6 @@ export function storefrontLifecycleCutoffs(now = new Date()) {
 	return {
 		abandonedCartAt: new Date(now.getTime() - 14 * DAY_MS),
 		deleteRecoveryTokenAt: new Date(now.getTime() - 30 * DAY_MS),
+		deleteInquiryDraftAt: new Date(now.getTime() - DAY_MS),
 	};
 }

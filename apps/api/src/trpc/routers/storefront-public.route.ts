@@ -15,6 +15,11 @@ import {
 	getStorefrontCheckoutState,
 } from "@api/db/queries/storefront-checkout";
 import {
+	finalizeStorefrontCustomInquiry,
+	getStorefrontInquiryBlobToken,
+	startStorefrontCustomInquiry,
+} from "@api/db/queries/storefront-inquiries";
+import {
 	assertStorefrontLineOwnership,
 	getOrCreateStorefrontCollection,
 	getStorefrontCollection,
@@ -41,7 +46,12 @@ import {
 	projectStorefrontOfferRoute,
 	resolveStorefrontProductTypes,
 } from "@gnd/sales/storefront-configuration";
+import {
+	storefrontCustomInquiryDraftSchema,
+	storefrontFinalizeCustomInquirySchema,
+} from "@gnd/sales/storefront-inquiry";
 import { TRPCError } from "@trpc/server";
+import { tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 import { createTRPCRouter, customerProcedure, publicProcedure } from "../init";
 
@@ -95,6 +105,45 @@ async function writeCommerceAudit(input: {
 
 export const storefrontPublicRouter = createTRPCRouter({
 	inquiry: {
+		attachmentsEnabled: publicProcedure.query(() => ({
+			enabled: Boolean(getStorefrontInquiryBlobToken()),
+			maxFiles: 5,
+			maxFileSizeBytes: 10 * 1024 * 1024,
+		})),
+		startCustom: publicProcedure
+			.input(storefrontCustomInquiryDraftSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontRateLimit({
+					ctx,
+					action: "custom-inquiry",
+					identity: input.email,
+					limit: 5,
+					windowSeconds: 60 * 60,
+				});
+				return startStorefrontCustomInquiry(ctx, input);
+			}),
+		finalizeCustom: publicProcedure
+			.input(storefrontFinalizeCustomInquirySchema)
+			.mutation(async ({ ctx, input }) => {
+				const result = await finalizeStorefrontCustomInquiry(ctx, input);
+				if (!result.alreadySubmitted) {
+					await tasks
+						.trigger("storefront-custom-inquiry-submitted", {
+							inquiryId: result.id,
+						})
+						.catch((error) => {
+							console.error(
+								"Unable to enqueue storefront inquiry notifications",
+								error,
+							);
+						});
+				}
+				return {
+					...result,
+					message:
+						"Your custom project request was received. Our team will follow up.",
+				};
+			}),
 		submit: publicProcedure
 			.input(inquirySchema)
 			.mutation(async ({ ctx, input }) => {

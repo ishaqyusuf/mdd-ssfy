@@ -228,7 +228,6 @@ type SalesEmailResolvedData = {
 	sales?: Array<{ orderId?: string | null }>;
 	emailAttemptId?: string | null;
 	sourceAttemptId?: string | null;
-	skipPdfAttachment?: boolean | null;
 	dealerProgramBanner?: {
 		campaignId?: string | null;
 		invitationId?: string | null;
@@ -329,7 +328,6 @@ function retryPayloadForSalesEmail(
 		salesIds,
 		customerEmail: data.customerEmail,
 		note: data.note || undefined,
-		skipPdfAttachment: data.skipPdfAttachment ?? true,
 	};
 }
 

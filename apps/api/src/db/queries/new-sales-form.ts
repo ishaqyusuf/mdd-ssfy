@@ -2524,6 +2524,8 @@ async function saveNewSalesFormInternal(
 	origin?: {
 		salesChannel?: string;
 		storefrontCheckoutId?: string;
+		storefrontInquiryId?: string;
+		storefrontInquiryReference?: string;
 	},
 ) {
 	if (payload.salesId || payload.slug) {
@@ -2729,14 +2731,25 @@ async function saveNewSalesFormInternal(
 			extraCosts: payload.extraCosts,
 			cccPercentage: settings.cccPercentage,
 		});
-		const originMeta = origin?.storefrontCheckoutId
-			? {
+		const originMeta = {
+			...(origin?.storefrontCheckoutId
+				? {
 					storefront: {
 						checkoutId: origin.storefrontCheckoutId,
 						channel: origin.salesChannel || "storefront",
 					},
-				}
-			: {};
+					}
+				: {}),
+			...(origin?.storefrontInquiryId
+				? {
+					storefrontInquiry: {
+						id: origin.storefrontInquiryId,
+						reference: origin.storefrontInquiryReference || null,
+						channel: origin.salesChannel || "storefront-custom",
+					},
+					}
+				: {}),
+		};
 		const nextMeta: NewSalesFormContainer = {
 			...legacyMeta,
 			...originMeta,
@@ -3504,6 +3517,48 @@ export async function saveStorefrontSalesOrder(
 	const result = await saveNewSalesFormInternal(ctx, payload, "Active", {
 		salesChannel: "storefront",
 		storefrontCheckoutId: input.checkoutId,
+	});
+	await ctx.db.salesOrders.update({
+		where: { id: result.salesId },
+		data: { salesRepId: input.salesRepId },
+	});
+	await runNewSalesFormPostSaveTasks(ctx, result);
+	return result;
+}
+
+export async function saveStorefrontInquiryQuote(
+	ctx: TRPCContext,
+	input: {
+		inquiryId: string;
+		reference: string;
+		customerId: number;
+		salesRepId: number;
+		notes: string;
+	},
+) {
+	const bootstrap = await bootstrapNewSalesForm(ctx, {
+		type: "quote",
+		customerId: input.customerId,
+	});
+	const payload: SaveDraftNewSalesFormSchema = {
+		type: "quote",
+		slug: null,
+		salesId: null,
+		version: null,
+		autosave: false,
+		meta: {
+			...bootstrap.form,
+			notes: input.notes,
+		},
+		lineItems: [],
+		extraCosts:
+			bootstrap.extraCosts as SaveDraftNewSalesFormSchema["extraCosts"],
+		summary: bootstrap.summary,
+	};
+	const result = await saveNewSalesFormInternal(ctx, payload, "Draft", {
+		salesChannel: "storefront-custom",
+		storefrontInquiryId: input.inquiryId,
+		storefrontInquiryReference: input.reference,
 	});
 	await ctx.db.salesOrders.update({
 		where: { id: result.salesId },

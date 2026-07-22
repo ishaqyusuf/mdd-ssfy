@@ -243,6 +243,23 @@ Tracks notable API surfaces and where they are implemented.
 - Employee operations use `storefrontAdmin` through the authenticated internal
   router for workspace, catalog policy, carts, orders, inquiries, settings,
   pages, and sections.
+
+### Custom millwork inquiry workflow (2026-07-22)
+
+- Public `storefrontCommerce.inquiry.attachmentsEnabled` reports private-upload
+  capability and enforced file limits without exposing credentials.
+- Public `storefrontCommerce.inquiry.startCustom` validates and creates the
+  identity-bound draft/upload session; `finalizeCustom` verifies registered
+  blobs and submits the inquiry idempotently.
+- Employee `storefrontAdmin.operations` exposes `inquiries`, `inquirySummary`,
+  `inquiryDetail`, `inquiryDocuments`, `inquiryActivity`,
+  `inquiryAssignees`, `updateInquiryStatus`, `assignInquiry`,
+  `addInquiryNote`, `linkInquiryCustomer`, and `createInquiryQuote`.
+- `POST /api/storefront/inquiries/upload` issues scoped Vercel Blob client-upload
+  tokens for private files below the inquiry-specific pathname.
+- `GET /api/storefront/inquiries/:id/attachments/:documentId` authenticates an
+  employee, repeats `viewStorefrontOrders`, verifies document ownership, and
+  streams the private blob without exposing the storage token or blob URL.
 - Public reads are publication/soft-delete scoped and bounded. Ownership,
   configuration validity, price, payment, and order transitions are enforced
   on the server.

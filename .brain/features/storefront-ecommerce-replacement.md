@@ -227,3 +227,33 @@ Square sandbox settlement. Traffic cutover remains release-gated on approved
 production content and policy copy, real Square/email credentials, and a
 physical fulfillment rehearsal. A healthy protected Vercel preview now exists;
 production promotion remains intentionally gated.
+
+## Custom millwork intake and office handoff (2026-07-22)
+
+- `/custom` is a four-step project brief for project category, site, scope,
+  timing/budget, contact preference, and up to five private reference files.
+- The customer receives a stable `CMW-*` reference. Submission persists a
+  `DRAFT` first, verifies any private Vercel Blob uploads, then atomically moves
+  the inquiry to `NEW`. A configured storefront sales rep is assigned when
+  eligible; otherwise the office inbox shows it as unassigned.
+- Private files use `STOREFRONT_INQUIRY_BLOB_READ_WRITE_TOKEN` (falling back to
+  `BLOB_READ_WRITE_TOKEN`) and are never returned as public blob URLs. Authorized
+  employees download them through a permission-checked `www` proxy route.
+- The office `/storefront/inquiries` workspace provides summary counts, search,
+  owner/status filters, structured brief and attachment review, assignment,
+  status transitions, internal notes, customer matching/linking, and activity.
+- Quote creation requires both `editStorefrontOrders` and canonical
+  `editOrders`. It creates one Draft through the existing Sales form save path,
+  assigns the inquiry rep, records storefront inquiry origin metadata, and links
+  the canonical Sales quote back to the inquiry.
+- Customer and sales-rep notifications are best effort. Notification transport
+  failures are recorded in inquiry activity and cannot make a committed customer
+  submission fail.
+- Unsubmitted drafts and their private blob prefixes are cleaned after 24 hours.
+- Browser verification submitted `CMW-IXPC1FJXSK` with no console errors and
+  verified its `NEW` state, structured brief, assignment activity, office list,
+  detail, and summary reads. Focused storefront/email/lifecycle tests pass 23/23.
+- Prisma migration creation is currently blocked by the unrelated existing
+  `20260722180000_master_password_usage_audit` shadow-database failure. The new
+  additive schema was pushed to local `gnd-prisma2` for integration testing;
+  production was not changed.

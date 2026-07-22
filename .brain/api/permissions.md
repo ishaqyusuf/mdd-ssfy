@@ -92,6 +92,19 @@ Tracks authentication and authorization patterns across API surfaces.
 - Ordinary internal sales users retain normal sale-component selection only.
 - Dealership and storefront capability sets never expose internal
   catalog-management actions.
+
+## Custom millwork inquiries (2026-07-22)
+
+- Reading the office inquiry inbox, briefs, activity, and private documents
+  requires `viewStorefrontOrders`.
+- Assignment, notes, customer linking, status changes, and the storefront side
+  of quote conversion require `editStorefrontOrders`.
+- Quote creation repeats the canonical Sales authorization and additionally
+  requires `editOrders` (or Super Admin). Possessing storefront permissions
+  alone cannot create a Sales quote.
+- Private attachment downloads repeat employee authentication, permission, and
+  document owner checks on every request. Storage credentials and private blob
+  URLs never cross the office API boundary.
 - All catalog mutations are `protectedProcedure` routes and repeat role checks
   server-side; UI capability checks are not an authorization boundary.
 

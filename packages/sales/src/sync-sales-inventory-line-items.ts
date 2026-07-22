@@ -388,6 +388,7 @@ function normalizeDykeDependencyUid(value: unknown): string | null {
 	const doorSizeMatch = dependency.match(/^(\d+-\d+)\s*x\s*(\d+-\d+)$/i);
 	if (doorSizeMatch) {
 		const [, width, height] = doorSizeMatch;
+		if (!width || !height) return null;
 		return `w${width.replace(/-/g, "_")}-h${height.replace(/-/g, "_")}`;
 	}
 
@@ -834,7 +835,7 @@ async function resolveInventoryMappingForItem(
 			? item.housePackageTool
 			: metadataHousePackageTool(item);
 	const hptStepProduct = housePackageTool?.stepProduct;
-	if (hptStepProduct?.uid && hptStepProduct.step?.uid) {
+	if (housePackageTool && hptStepProduct?.uid && hptStepProduct.step?.uid) {
 		const hptCandidate = buildHousePackageCandidate(
 			housePackageTool,
 			item.qty,

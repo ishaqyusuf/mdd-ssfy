@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-07-22: Fixed production sales quote/invoice printing after Prisma began
+  selecting additive `DealerSales` pricing/tax columns that had not been
+  applied to production. The isolated print query now selects only
+  `dealerSalesPercentage` and `dueAmount`, the two dealer-sale fields used by
+  print pricing. A query-shape regression test protects both dynamic and full
+  print includes. The focused print suite passes with 15 tests / 80 assertions,
+  and the exact production read for sales order `24629` changed from Prisma
+  `P2022` to one rendered `Quote_03363-PC` page. No database mutation or schema
+  push was required for this compatibility hotfix.
 - 2026-07-22: Fixed stale Sales Orders payment-review batches by replacing the
   client-side per-order mutation loop with `sales.markPaymentsReviewed`. The
   shared payment domain now deduplicates up to 100 selected sales ids, selects
@@ -22,8 +31,10 @@
   device availability, same-app pairing, and a live `PING` acknowledgement
   before creating or persisting a checkout. Added coverage for environment
   selection, device-id normalization, same-app pairing, client terminal
-  resolution, form requirements, readiness, and server failure ordering (35
-  tests / 64 assertions). The Square
+  resolution, form requirements, readiness, and server failure ordering (36
+  tests / 65 assertions). The production hardening preserves the existing
+  Sandbox flow through Square's successful simulated Terminal id and skips
+  physical readiness only in Sandbox. The Square
   package typecheck and focused Biome checks pass; broad API/WWW typechecks
   remain red on existing repository diagnostics, with the one touched-file
   status-union diagnostic corrected. Authenticated localhost QA listed
@@ -6629,3 +6640,34 @@
   narrow overflow, and `scrollWidth === clientWidth === 1786` at 1920. The
   dirty runtime did not produce a loaded customer table for additional route
   proof, so that route was not counted as passed browser evidence.
+- 2026-07-22: Follow-up validation keeps the shared gates green for `@gnd/ui`,
+  `@gnd/utils`, and `@gnd/app-store`; React `Slot` boundaries now cast their
+  polymorphic primitive explicitly to avoid duplicate-workspace React ref types,
+  and the NextAuth Prisma adapter bridges the extended shared database client
+  through an explicit structural cast. Focused permission, safe-share, and
+  dealer-delivery tests pass. The full workspace typecheck still stops in the
+  downstream sales/storefront/API domain graph with existing fixture, Prisma
+  schema, and nullability diagnostics.
+
+- 2026-07-22: completed custom millwork intake-to-quote implementation. The
+  storefront now collects a guided structured brief and private reference files;
+  the office inbox supports triage, assignment, notes, status, customer linking,
+  attachment review, and canonical draft quote creation with combined
+  storefront/Sales permissions. Added confirmation and rep notifications,
+  24-hour stale-draft cleanup, private file proxying, activity/audit history,
+  schema/client updates, and environment documentation. Focused tests pass
+  23/23. Chromium submitted and rendered `CMW-IXPC1FJXSK` at desktop/mobile
+  without console errors; DB and office-query checks verified its structured
+  `NEW` record and assignment timeline. Local schema push passed. Normal Prisma
+  migration generation remains blocked by the unrelated existing
+  `20260722180000_master_password_usage_audit` shadow-database failure; no
+  production mutation occurred.
+- 2026-07-22: Continued the typecheck debt cleanup in `@gnd/sales`: aligned
+  fulfillment queries with the current Prisma schema (removed invalid
+  `LineItemComponents.deletedAt` predicates and completed dispatch result
+  fields), normalized nullable control flags, fixed print/dealer select typing,
+  guarded date and inventory-variant parsing, and switched the package to the
+  bundler module resolver so Bun tests are treated as ESM. Remaining sales
+  diagnostics are concentrated in stale test fixtures/expectations and a small
+  number of test-only structural assumptions rather than the repaired runtime
+  fulfillment/control paths.

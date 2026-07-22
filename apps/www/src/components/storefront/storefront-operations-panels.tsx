@@ -20,6 +20,7 @@ import { toast } from "@gnd/ui/use-toast";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
 import { FormEvent, useEffect, useState } from "react";
+import { StorefrontInquiriesWorkspace } from "./storefront-inquiries-workspace";
 
 const listInput = { limit: 25 } as const;
 const storefrontDateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -236,96 +237,7 @@ export function StorefrontOrdersPanel() {
 }
 
 export function StorefrontInquiriesPanel() {
-	const trpc = useTRPC();
-	const queryClient = useQueryClient();
-	const inquiries = useQuery(
-		trpc.storefrontAdmin.operations.inquiries.queryOptions(listInput),
-	);
-	const updateStatus = useMutation(
-		trpc.storefrontAdmin.operations.updateInquiryStatus.mutationOptions({
-			onSuccess: async () => {
-				await queryClient.invalidateQueries({
-					queryKey: trpc.storefrontAdmin.operations.inquiries.queryKey(),
-				});
-				toast({ title: "Inquiry status updated", variant: "success" });
-			},
-			onError: (error) =>
-				toast({
-					title: "Unable to update inquiry",
-					description: error.message,
-					variant: "destructive",
-				}),
-		}),
-	);
-	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Contact and custom quote inquiries</CardTitle>
-				<p className="text-sm text-muted-foreground">
-					Securely persisted customer requests awaiting office follow-up.
-				</p>
-			</CardHeader>
-			<CardContent>
-				<OperationsTable
-					loading={inquiries.isPending}
-					error={inquiries.error?.message}
-					headers={[
-						"Customer",
-						"Type",
-						"Request",
-						"Contact",
-						"Received",
-						"Status",
-					]}
-					rows={(inquiries.data?.items || []).map((inquiry) => [
-						inquiry.name,
-						inquiry.type === "CUSTOM_QUOTE" ? "Custom quote" : "Contact",
-						<div key="request" className="max-w-md">
-							<p className="font-medium">
-								{inquiry.subject || "Customer request"}
-							</p>
-							<p className="line-clamp-3 text-muted-foreground">
-								{inquiry.message}
-							</p>
-							{inquiry.budget ? (
-								<p className="mt-1 text-xs">Budget: {inquiry.budget}</p>
-							) : null}
-						</div>,
-						<div key="contact">
-							<p>{inquiry.email}</p>
-							<p className="text-muted-foreground">
-								{inquiry.phone || "No phone"}
-							</p>
-						</div>,
-						formatStorefrontDate(inquiry.createdAt),
-						<select
-							key="status"
-							className="h-9 rounded-md border bg-background px-2 text-sm"
-							value={inquiry.status}
-							disabled={updateStatus.isPending}
-							onChange={(event) =>
-								updateStatus.mutate({
-									id: inquiry.id,
-									status: event.target.value as
-										| "NEW"
-										| "IN_REVIEW"
-										| "RESPONDED"
-										| "CLOSED"
-										| "SPAM",
-								})
-							}
-						>
-							<option value="NEW">New</option>
-							<option value="IN_REVIEW">In review</option>
-							<option value="RESPONDED">Responded</option>
-							<option value="CLOSED">Closed</option>
-							<option value="SPAM">Spam</option>
-						</select>,
-					])}
-				/>
-			</CardContent>
-		</Card>
-	);
+	return <StorefrontInquiriesWorkspace />;
 }
 
 export function StorefrontSettingsPanel() {

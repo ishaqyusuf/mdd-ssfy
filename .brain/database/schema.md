@@ -127,3 +127,20 @@ Tracks important schema-level entities and ownership boundaries.
   records.
 - `SalesOrders.salesChannel`: nullable origin discriminator; storefront
   checkout sets `"storefront"`.
+
+### Storefront custom millwork inquiries (2026-07-22)
+
+- `StorefrontInquiry.reference` is the unique customer-facing `CMW-*` or
+  `MSG-*` reference.
+- `projectBrief` stores the validated structured intake alongside the existing
+  display/search fields. `submittedAt` and `lastActivityAt` separate abandoned
+  drafts from live office work.
+- `customerId` and unique `salesQuoteId` link an approved brief into the
+  canonical customer/Sales records. `quoteConversionStartedAt` and
+  `quoteConversionById` provide a short conversion lease.
+- `StorefrontInquiryActivity` is an append-only timeline for notes and workflow
+  outcomes; security-sensitive mutations are also written to
+  `StorefrontAuditEvent`.
+- Private reference files are registered in `StoredDocument` with
+  `ownerType = storefront_inquiry`, `visibility = private`, and the inquiry ID
+  as `ownerId`.

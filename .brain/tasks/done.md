@@ -646,3 +646,10 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   the admin catalog workspace, fixed guest/auth/cart/payment boundaries,
   guaranteed assigned-rep review activity, and completed local Square sandbox
   order `08897CST` through paid customer/admin views.
+
+- [x] 2026-07-22: Implemented the custom millwork customer brief and office
+  handoff: private files, deterministic references, sales-rep assignment,
+  lifecycle/activity tracking, office inbox, customer linking, guarded
+  canonical quote creation, best-effort notifications, stale-draft cleanup, and
+  responsive browser verification. Migration generation remains separately
+  blocked by the existing master-password shadow migration failure.

@@ -1,7 +1,7 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-import { getAppUrl, shouldAttachSalesEmailPdf } from "@gnd/utils/envs";
+import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
 	type SalesPdfToken,
@@ -13,11 +13,11 @@ import type { NotificationHandler, UserData } from "../base";
 import {
 	type ComposedSalesDocumentEmailInput,
 	type ComposedSalesDocumentEmailTags,
-	salesPdfAttachmentSchema,
 	dealerProgramBannerSchema,
+	salesPdfAttachmentSchema,
 } from "../schemas";
-import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
+import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 const DEFAULT_TEMPLATE_ID = "template-2";
 const LINK_TTL_DAYS = 7;
@@ -262,9 +262,7 @@ async function buildComposedSalesDocumentEmailData(
 	const type = input.printType === "quote" ? "quote" : "order";
 	const paymentLink = await buildPaymentLink(db, sales);
 	const pdfLink = buildPdfLink(sales, type);
-	const pdfAttachment = shouldAttachSalesEmailPdf()
-		? await buildPdfAttachment(db, sales, type)
-		: null;
+	const pdfAttachment = await buildPdfAttachment(db, sales, type);
 	const dealerProgramBanner = primarySale.customerId
 		? await resolveSalesEmailDealerProgramBanner(db, {
 				customerId: primarySale.customerId,

@@ -50,7 +50,10 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
   }) {
-  const Comp = asChild ? Slot : "button";
+  // Radix's Slot may resolve React types from a different workspace copy.
+  // Keep the polymorphic primitive boundary explicit so consumers do not
+  // inherit incompatible ref callback types from that duplicate copy.
+  const Comp = (asChild ? Slot : "button") as React.ElementType;
 
   return (
     <Comp

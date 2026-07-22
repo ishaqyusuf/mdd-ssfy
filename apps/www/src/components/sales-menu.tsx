@@ -432,7 +432,6 @@ function useSendSalesEmailAction({
 				printType: isQuote ? "quote" : "order",
 				salesIds: state.id ? [state.id] : state.salesIds,
 				customerEmail: state.customerEmail?.trim() || undefined,
-				skipPdfAttachment: true,
 				testEmailMode: shouldUseTestEmailMode,
 			});
 			closeMenu();

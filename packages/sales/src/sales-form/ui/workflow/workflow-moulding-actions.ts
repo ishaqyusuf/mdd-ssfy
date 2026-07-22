@@ -165,6 +165,7 @@ export function removeWorkflowMouldingSelection(input: {
 	if (mouldingStepIndex < 0) return patch;
 
 	const mouldingStep = steps[mouldingStepIndex];
+	if (!mouldingStep) return patch;
 	const selectedUids = readSelectedMouldingUids(mouldingStep).filter(
 		(uid) => uid !== input.mouldingUid,
 	);

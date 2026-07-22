@@ -1,9 +1,5 @@
 import type { db, Prisma, SalesStat } from "@gnd/db";
-import type {
-  composeSalesItemControl,
-  getSaleInformation,
-  PrintInvoice,
-} from "./exports";
+import type { composeSalesItemControl, getSaleInformation } from "./exports";
 import type { RenturnTypeAsync } from "@gnd/utils";
 import { DISPATCH_ITEM_PACKING_STATUS } from "./utils/constants";
 import type { CSSProperties } from "react";
@@ -285,7 +281,7 @@ export interface PrintData {
       [id in TableHeaders]: PrintDataTable;
     }[];
   }[];
-  query?: PrintInvoice;
+	query?: Record<string, unknown>;
 }
 export type PrintLineSection = PrintData["linesSection"][number];
 export type TableHeaders =

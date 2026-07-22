@@ -20,6 +20,8 @@ export const SQUARE_MODE = isProductionSquareEnvironment(env)
   ? "production"
   : "sandbox";
 const devMode = SQUARE_MODE === "sandbox";
+export const SQUARE_SANDBOX_TERMINAL_DEVICE_ID =
+  "9fa747a2-25ff-48ee-b078-04381f7c828f";
 export const squareClient = new Client({
   environment: devMode ? Environment.Sandbox : Environment.Production,
   token: devMode ? env.SQUARE_SANDBOX_ACCESS_TOKEN : env.SQUARE_ACCESS_TOKEN,
@@ -144,6 +146,18 @@ interface Devices {
   errors?: ApiError["errors"] | null | undefined;
 }
 export async function getSquareDevices(): Promise<Devices> {
+  if (devMode) {
+    return {
+      terminals: [
+        {
+          label: "Square Sandbox Terminal",
+          status: "AVAILABLE",
+          value: SQUARE_SANDBOX_TERMINAL_DEVICE_ID,
+        },
+      ],
+    };
+  }
+
   try {
     const [devices, deviceCodes] = await Promise.all([
       squareClient.devices.list(
@@ -320,6 +334,8 @@ export async function createSquareTerminalCheckout(
 }
 
 export async function verifySquareTerminalReady(deviceId: string) {
+  if (devMode) return;
+
   const normalizedDeviceId = normalizeTerminalDeviceId(deviceId);
   const { action } = await squareClient.terminal.actions.create({
     idempotencyKey: crypto.randomUUID(),

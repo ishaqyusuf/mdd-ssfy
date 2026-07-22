@@ -5,6 +5,20 @@ import {
 	getStorefrontCatalogList,
 	getStorefrontCatalogProfiles,
 } from "@api/db/queries/storefront-admin";
+import {
+	addStorefrontInquiryNote,
+	assignStorefrontInquiry,
+	createStorefrontInquiryQuote,
+	getStorefrontInquiryDetail,
+	getStorefrontInquirySummary,
+	linkStorefrontInquiryCustomer,
+	listStorefrontInquiries,
+	listStorefrontInquiryActivity,
+	listStorefrontInquiryAssignees,
+	listStorefrontInquiryDocuments,
+	storefrontInquiryListSchema,
+	updateStorefrontInquiryStatus,
+} from "@api/db/queries/storefront-inquiries";
 import { approveStorefrontCheckoutPayment } from "@api/db/queries/storefront-checkout";
 import {
 	storefrontCatalogBulkSchema,
@@ -15,7 +29,10 @@ import {
 	storefrontCatalogMetadataSchema,
 	storefrontCatalogStatusSchema,
 } from "@api/schemas/storefront-admin";
-import { requireStorefrontEmployeePermission } from "@api/utils/storefront-permissions";
+import {
+	requireStorefrontEmployeePermission,
+	requireStorefrontQuoteCreationPermission,
+} from "@api/utils/storefront-permissions";
 import type { Prisma } from "@gnd/db";
 import {
 	projectStorefrontOfferRoute,
@@ -23,6 +40,7 @@ import {
 	storefrontComponentSchema,
 	storefrontOfferInputSchema,
 } from "@gnd/sales/storefront-configuration";
+import { storefrontInquiryStatusSchema } from "@gnd/sales/storefront-inquiry";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../init";
@@ -70,9 +88,9 @@ const storefrontSectionSchema = z.object({
 	status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]),
 	sortOrder: z.number().int().min(0).max(10_000),
 });
-const storefrontInquiryStatusSchema = z.object({
+const storefrontInquiryStatusInputSchema = z.object({
 	id: z.string().trim().min(1),
-	status: z.enum(["NEW", "IN_REVIEW", "RESPONDED", "CLOSED", "SPAM"]),
+	status: storefrontInquiryStatusSchema.exclude(["DRAFT", "QUOTE_CREATED"]),
 });
 const commerceStatusSchema = z.enum([
 	"ACTIVE",
@@ -80,13 +98,6 @@ const commerceStatusSchema = z.enum([
 	"COMPLETED",
 	"ABANDONED",
 	"EXPIRED",
-]);
-const inquiryStatusSchema = z.enum([
-	"NEW",
-	"IN_REVIEW",
-	"RESPONDED",
-	"CLOSED",
-	"SPAM",
 ]);
 
 function asJson(value: unknown): Prisma.InputJsonValue {
@@ -961,87 +972,142 @@ export const storefrontAdminRouter = createTRPCRouter({
 			}),
 
 		inquiries: protectedProcedure
-			.input(operationsListSchema)
+			.input(storefrontInquiryListSchema)
 			.query(async ({ ctx, input }) => {
 				await requireStorefrontEmployeePermission({
 					db: ctx.db,
 					userId: ctx.userId,
 					permission: "viewStorefrontOrders",
 				});
-				const rows = await ctx.db.storefrontInquiry.findMany({
-					where: {
-						...(input.status
-							? { status: inquiryStatusSchema.parse(input.status) }
-							: {}),
-						...(input.query
-							? {
-									OR: [
-										{ name: { contains: input.query } },
-										{ email: { contains: input.query } },
-										{ subject: { contains: input.query } },
-									],
-								}
-							: {}),
-					},
-					cursor: input.cursor ? { id: input.cursor } : undefined,
-					skip: input.cursor ? 1 : 0,
-					orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-					take: input.limit + 1,
-					select: {
-						id: true,
-						type: true,
-						status: true,
-						name: true,
-						email: true,
-						phone: true,
-						subject: true,
-						message: true,
-						projectTypes: true,
-						budget: true,
-						createdAt: true,
-					},
-				});
-				const page = rows.slice(0, input.limit);
-				return {
-					items: page.map((row) => ({
-						...row,
-						createdAt: row.createdAt.toISOString(),
-					})),
-					nextCursor:
-						rows.length > input.limit ? page.at(-1)?.id || null : null,
-				};
+				return listStorefrontInquiries(ctx, input);
 			}),
 
+		inquirySummary: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefrontOrders",
+			});
+			return getStorefrontInquirySummary(ctx);
+		}),
+
+		inquiryDetail: protectedProcedure
+			.input(idSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefrontOrders",
+				});
+				return getStorefrontInquiryDetail(ctx, input.id);
+			}),
+
+		inquiryDocuments: protectedProcedure
+			.input(idSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefrontOrders",
+				});
+				return listStorefrontInquiryDocuments(ctx, input.id);
+			}),
+
+		inquiryActivity: protectedProcedure
+			.input(idSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefrontOrders",
+				});
+				return listStorefrontInquiryActivity(ctx, input.id);
+			}),
+
+		inquiryAssignees: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefrontOrders",
+			});
+			return listStorefrontInquiryAssignees(ctx);
+		}),
+
 		updateInquiryStatus: protectedProcedure
-			.input(storefrontInquiryStatusSchema)
+			.input(storefrontInquiryStatusInputSchema)
 			.mutation(async ({ ctx, input }) => {
 				await requireStorefrontEmployeePermission({
 					db: ctx.db,
 					userId: ctx.userId,
 					permission: "editStorefrontOrders",
 				});
-				const inquiry = await ctx.db.storefrontInquiry.update({
-					where: { id: input.id },
-					data: {
-						status: input.status,
-						assignedToId: input.status === "IN_REVIEW" ? ctx.userId : undefined,
-						closedAt:
-							input.status === "CLOSED" || input.status === "SPAM"
-								? new Date()
-								: null,
-					},
+				return updateStorefrontInquiryStatus(ctx, input);
+			}),
+
+		assignInquiry: protectedProcedure
+			.input(
+				z.object({
+					id: z.string().trim().min(1),
+					assignedToId: z.number().int().positive().nullable(),
+				}),
+			)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefrontOrders",
 				});
-				await ctx.db.storefrontAuditEvent.create({
-					data: {
-						actorUserId: ctx.userId,
-						action: "inquiry.status_updated",
-						entityType: "StorefrontInquiry",
-						entityId: inquiry.id,
-						requestId: ctx.requestId,
-						metadata: { status: inquiry.status },
-					},
+				return assignStorefrontInquiry(ctx, {
+					id: input.id,
+					assignedToId: input.assignedToId ?? null,
 				});
-				return { ok: true };
+			}),
+
+		addInquiryNote: protectedProcedure
+			.input(
+				z.object({
+					id: z.string().trim().min(1),
+					body: z.string().trim().min(1).max(10_000),
+				}),
+			)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefrontOrders",
+				});
+				return addStorefrontInquiryNote(ctx, input);
+			}),
+
+		linkInquiryCustomer: protectedProcedure
+			.input(
+				z.object({
+					id: z.string().trim().min(1),
+					customerId: z.number().int().positive(),
+				}),
+			)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefrontOrders",
+				});
+				return linkStorefrontInquiryCustomer(ctx, input);
+			}),
+
+		createInquiryQuote: protectedProcedure
+			.input(idSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefrontOrders",
+				});
+				await requireStorefrontQuoteCreationPermission({
+					db: ctx.db,
+					userId: ctx.userId,
+				});
+				return createStorefrontInquiryQuote(ctx, input.id);
 			}),
 	},
 

@@ -80,11 +80,10 @@ describe("transitionInventoryDispatchAllocations", () => {
 		});
 		expect(calls[1]).toMatchObject({
 			name: "lineItemComponents.updateMany",
-			payload: {
-				where: {
-					id: 101,
-					deletedAt: null,
-				},
+				payload: {
+					where: {
+						id: 101,
+					},
 				data: {
 					qtyAllocated: 1,
 					status: "allocated",
@@ -238,11 +237,10 @@ describe("transitionInventoryDispatchAllocations", () => {
 			},
 			{
 				name: "lineItemComponents.updateMany",
-				payload: {
-					where: {
-						id: 102,
-						deletedAt: null,
-					},
+					payload: {
+						where: {
+							id: 102,
+						},
 					data: {
 						qtyAllocated: 0,
 						qtyInbound: 0,

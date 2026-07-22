@@ -1,7 +1,12 @@
-/// <reference types="bun-types" />
-
 import { describe, expect, it } from "bun:test";
-import { buildPrintSalesInclude } from "./query";
+import { PrintSalesInclude, buildPrintSalesInclude } from "./query";
+
+const expectedDealerSaleSelect = {
+	select: {
+		dealerSalesPercentage: true,
+		dueAmount: true,
+	},
+};
 
 describe("buildPrintSalesInclude", () => {
 	it("skips financial and packing relations for production mode", () => {
@@ -29,5 +34,14 @@ describe("buildPrintSalesInclude", () => {
 		expect(include.payments).toBeTruthy();
 		expect(include.taxes).toBeTruthy();
 		expect(include.deliveries).toBeTruthy();
+	});
+
+	it("selects only the dealer-sale fields required by print pricing", () => {
+		expect(JSON.stringify(buildPrintSalesInclude("quote").dealerSale)).toBe(
+			JSON.stringify(expectedDealerSaleSelect),
+		);
+		expect(JSON.stringify(PrintSalesInclude.dealerSale)).toBe(
+			JSON.stringify(expectedDealerSaleSelect),
+		);
 	});
 });

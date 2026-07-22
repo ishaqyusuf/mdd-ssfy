@@ -642,6 +642,7 @@ model SalesOrders {
     deliveryOption    String?
     customerProfileId Int?
     dealerSalesProfileId Int?
+    salesChannel      String?                          @db.VarChar(64)
     taxes             SalesTaxes[]
     checkouts         SalesCheckout[]
     refunds           Refunds[]                        @relation(name: "salesRefunds")
@@ -687,6 +688,7 @@ model SalesOrders {
     @@index([dealerAuthId])
     @@index([dealerSalesProfileId])
     @@index([customerId])
+    @@index([salesChannel, createdAt])
     @@index([shippingAddressId])
     @@index([billingAddressId])
     @@index([prodId])
@@ -694,21 +696,38 @@ model SalesOrders {
     @@index([pickupId])
 }
 
+enum DealerSellerOfRecord {
+    DEALER
+    GND
+}
+
 model DealerSales {
-    id                      Int           @unique @default(autoincrement())
-    salesOrderId            Int           @unique
-    dealerAuthId            Int
-    customerId              Int
-    dealerCustomerProfileId Int
-    dealerSalesPercentage   Float
-    grandTotal              Float
-    dueAmount               Float
-    createdAt               DateTime?     @default(now()) @db.Timestamp(0)
-    updatedAt               DateTime?     @updatedAt
-    salesOrder              SalesOrders   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
-    dealerAuth              DealerAuth    @relation(fields: [dealerAuthId], references: [id])
-    customer                Customers     @relation(fields: [customerId], references: [id])
-    dealerCustomerProfile   CustomerTypes @relation(name: "dealerSaleCustomerProfile", fields: [dealerCustomerProfileId], references: [id])
+    id                        Int                  @unique @default(autoincrement())
+    salesOrderId              Int                  @unique
+    dealerAuthId              Int
+    customerId                Int
+    dealerCustomerProfileId   Int
+    sellerOfRecord            DealerSellerOfRecord @default(DEALER)
+    selectedTaxModelId        String?              @db.VarChar(255)
+    selectedTaxModelName      String?              @db.VarChar(255)
+    selectedTaxModelSnapshot  Json?                @db.Json
+    internalSubtotal          Float                 @default(0)
+    internalTaxableSubtotal   Float                 @default(0)
+    internalTax               Float                 @default(0)
+    dealerSubtotal            Float                 @default(0)
+    dealerTaxableSubtotal     Float                 @default(0)
+    dealerCustomerTax         Float                 @default(0)
+    dealerMarkupAmount        Float                 @default(0)
+    dealerSalesPercentage     Float
+    resaleCertificateOnFile   Boolean               @default(false)
+    grandTotal                Float
+    dueAmount                 Float
+    createdAt                 DateTime?             @default(now()) @db.Timestamp(0)
+    updatedAt                 DateTime?             @updatedAt
+    salesOrder                SalesOrders           @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    dealerAuth                DealerAuth            @relation(fields: [dealerAuthId], references: [id])
+    customer                  Customers             @relation(fields: [customerId], references: [id])
+    dealerCustomerProfile     CustomerTypes         @relation(name: "dealerSaleCustomerProfile", fields: [dealerCustomerProfileId], references: [id])
 
     @@index([dealerAuthId])
     @@index([customerId])
@@ -1361,8 +1380,8 @@ model DykeSalesShelfItem {
     productId        Int?
     categoryId       Int
     qty              Int?
-    unitPrice        Int?
-    totalPrice       Int?
+    unitPrice        Decimal?                         @db.Decimal(12, 2)
+    totalPrice       Decimal?                         @db.Decimal(12, 2)
     meta             Json?                            @db.Json
     createdAt        DateTime?                        @default(now()) @db.Timestamp(0)
     updatedAt        DateTime?                        @updatedAt
@@ -1423,6 +1442,401 @@ model SalesLaborCosts {
     deletedAt DateTime? @db.Timestamp(0)
     createdAt DateTime? @default(now()) @db.Timestamp(0)
     updatedAt DateTime? @updatedAt
+}
+
+// ---- storefront.prisma ----
+enum StorefrontPublicationStatus {
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+}
+
+enum StorefrontCollectionType {
+    CART
+    WISHLIST
+}
+
+enum StorefrontCollectionStatus {
+    ACTIVE
+    CHECKOUT
+    COMPLETED
+    ABANDONED
+    EXPIRED
+}
+
+enum StorefrontLineValidationStatus {
+    PENDING
+    VALID
+    PRICE_CHANGED
+    UNAVAILABLE
+    INVALID
+}
+
+enum StorefrontCheckoutStatus {
+    DRAFT
+    READY
+    PAYMENT_PENDING
+    PAID
+    ORDER_CREATED
+    FAILED
+    CANCELLED
+    EXPIRED
+}
+
+enum StorefrontInquiryType {
+    CONTACT
+    CUSTOM_QUOTE
+}
+
+enum StorefrontInquiryStatus {
+    DRAFT
+    NEW
+    IN_REVIEW
+    AWAITING_CUSTOMER
+    QUOTE_CREATED
+    RESPONDED
+    CLOSED
+    SPAM
+}
+
+/// Public presentation for an existing Item Type component. The Dyke component
+/// remains the owner of compatibility and routing.
+model StorefrontCategory {
+    id                   String                      @id @default(cuid())
+    rootStepUid          String
+    rootComponentUid     String                      @unique
+    listingStepUid       String?
+    slug                 String                      @unique @db.VarChar(191)
+    title                String                      @db.VarChar(255)
+    description          String?                     @db.LongText
+    imageUrl             String?                     @db.Text
+    seo                   Json?                       @db.Json
+    status               StorefrontPublicationStatus @default(DRAFT)
+    sortOrder             Int                         @default(0)
+    publishedAt          DateTime?                    @db.Timestamp(0)
+    createdByUserId      Int?
+    updatedByUserId      Int?
+    createdAt            DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime                     @updatedAt
+    deletedAt            DateTime?                    @db.Timestamp(0)
+    offers               StorefrontOffer[]
+
+    @@index([status, sortOrder])
+    @@index([rootStepUid])
+    @@index([listingStepUid])
+    @@index([deletedAt])
+}
+
+/// Customer-facing entry into an existing Dyke route. This is an overlay, not
+/// a second product or pricing definition.
+model StorefrontOffer {
+    id                   String                      @id @default(cuid())
+    categoryId           String
+    sourceStepUid        String
+    sourceComponentUid   String                      @unique
+    slug                 String                      @unique @db.VarChar(191)
+    title                String                      @db.VarChar(255)
+    description          String?                     @db.LongText
+    imageUrl             String?                     @db.Text
+    seo                   Json?                       @db.Json
+    availability         Json?                       @db.Json
+    status               StorefrontPublicationStatus @default(DRAFT)
+    featured             Boolean                     @default(false)
+    featuredOrder        Int?
+    sortOrder             Int                         @default(0)
+    configurationVersion Int                         @default(1)
+    publishedAt          DateTime?                    @db.Timestamp(0)
+    createdByUserId      Int?
+    updatedByUserId      Int?
+    createdAt            DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime                     @updatedAt
+    deletedAt            DateTime?                    @db.Timestamp(0)
+    category             StorefrontCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    stepPolicies         StorefrontStepPolicy[]
+    componentPolicies    StorefrontOfferComponentPolicy[]
+
+    @@unique([categoryId, slug])
+    @@index([categoryId, status, sortOrder])
+    @@index([status, featured, featuredOrder])
+    @@index([sourceStepUid])
+    @@index([deletedAt])
+}
+
+/// Storefront availability and public metadata for any existing Dyke
+/// component. The source component continues to own its name, image,
+/// relationships, and internal metadata.
+model StorefrontComponent {
+    id                    String                      @id @default(cuid())
+    sourceStepUid         String
+    sourceComponentUid    String                      @unique
+    availableOnStorefront Boolean                     @default(false)
+    title                 String?                     @db.VarChar(255)
+    description           String?                     @db.LongText
+    imageUrl              String?                     @db.Text
+    status                StorefrontPublicationStatus @default(DRAFT)
+    sortOrder             Int                         @default(0)
+    metadata              Json?                       @db.Json
+    createdByUserId       Int?
+    updatedByUserId       Int?
+    createdAt             DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                     @updatedAt
+    deletedAt             DateTime?                    @db.Timestamp(0)
+
+    @@index([sourceStepUid, availableOnStorefront, sortOrder], map: "StorefrontComponent_step_available_sort_idx")
+    @@index([status])
+    @@index([deletedAt])
+}
+
+/// Controls which canonical steps a customer sees and which valid canonical
+/// component is applied when a step is hidden or automatically configured.
+model StorefrontStepPolicy {
+    id                  String   @id @default(cuid())
+    offerId             String
+    stepUid             String
+    title               String?  @db.VarChar(255)
+    helpText            String?  @db.LongText
+    visible             Boolean  @default(true)
+    required            Boolean  @default(false)
+    allowSkip           Boolean  @default(false)
+    autoSelect          Boolean  @default(false)
+    defaultComponentUid String?
+    sortOrder           Int      @default(0)
+    metadata            Json?    @db.Json
+    createdAt           DateTime @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime @updatedAt
+    offer               StorefrontOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+    @@unique([offerId, stepUid])
+    @@index([offerId, sortOrder])
+    @@index([stepUid])
+}
+
+/// Optional offer-specific component restriction/default layered over the
+/// global StorefrontComponent availability flag.
+model StorefrontOfferComponentPolicy {
+    id                 String   @id @default(cuid())
+    offerId            String
+    stepUid            String
+    sourceComponentUid String
+    enabled            Boolean  @default(true)
+    defaultSelected    Boolean  @default(false)
+    sortOrder          Int      @default(0)
+    metadata           Json?    @db.Json
+    createdAt          DateTime @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime @updatedAt
+    offer              StorefrontOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+    @@unique([offerId, stepUid, sourceComponentUid])
+    @@index([offerId, stepUid, enabled, sortOrder])
+    @@index([sourceComponentUid])
+}
+
+/// One server-owned collection format supports both cart and wishlist while
+/// preserving the same lossless canonical sales-line configuration.
+model StorefrontCommerceCollection {
+    id                    String                       @id @default(cuid())
+    type                  StorefrontCollectionType
+    status                StorefrontCollectionStatus  @default(ACTIVE)
+    ownerUserId           Int?
+    guestTokenHash        String?                      @db.VarChar(191)
+    currency              String                       @default("USD") @db.VarChar(3)
+    version               Int                          @default(1)
+    expiresAt             DateTime?                    @db.Timestamp(0)
+    completedSalesOrderId Int?
+    createdAt             DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                     @updatedAt
+    lines                 StorefrontCommerceLine[]
+    checkouts             StorefrontCheckout[]
+
+    @@index([ownerUserId, type, status])
+    @@index([guestTokenHash, type, status])
+    @@index([status, expiresAt])
+    @@index([completedSalesOrderId])
+}
+
+model StorefrontCommerceLine {
+    id                       String                         @id @default(cuid())
+    collectionId             String
+    offerId                  String?
+    rootStepUid              String
+    rootComponentUid         String
+    quantity                 Decimal                        @db.Decimal(12, 3)
+    configuration            Json                           @db.Json
+    configurationHash        String                         @db.VarChar(191)
+    configurationVersion     Int                            @default(1)
+    pricingSnapshot          Json                           @db.Json
+    unitPrice                Decimal                        @db.Decimal(12, 2)
+    lineTotal                Decimal                        @db.Decimal(12, 2)
+    validationStatus         StorefrontLineValidationStatus @default(PENDING)
+    validationMessage        String?                        @db.Text
+    lastValidatedAt          DateTime?                      @db.Timestamp(0)
+    createdAt                DateTime                        @default(now()) @db.Timestamp(0)
+    updatedAt                DateTime                        @updatedAt
+    collection               StorefrontCommerceCollection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+    @@index([collectionId, createdAt])
+    @@index([offerId])
+    @@index([rootComponentUid])
+    @@index([configurationHash])
+    @@index([validationStatus])
+}
+
+/// Durable, idempotent transition from a cart snapshot to the canonical
+/// SalesOrders workflow. It is checkout state, not a parallel order.
+model StorefrontCheckout {
+    id                    String                   @id @default(cuid())
+    collectionId          String
+    ownerUserId           Int?
+    idempotencyKey        String                   @unique @db.VarChar(191)
+    status                StorefrontCheckoutStatus @default(DRAFT)
+    version               Int                      @default(1)
+    acceptedConfiguration Json?                    @db.Json
+    totals                Json?                    @db.Json
+    shippingAddress       Json?                    @db.Json
+    billingAddress        Json?                    @db.Json
+    paymentProvider       String?                  @db.VarChar(64)
+    paymentReference      String?                  @db.VarChar(191)
+    salesOrderId          Int?
+    errorCode             String?                  @db.VarChar(191)
+    errorMessage          String?                  @db.Text
+    expiresAt             DateTime?                @db.Timestamp(0)
+    paidAt                DateTime?                @db.Timestamp(0)
+    completedAt           DateTime?                @db.Timestamp(0)
+    createdAt             DateTime                  @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime                  @updatedAt
+    collection            StorefrontCommerceCollection @relation(fields: [collectionId], references: [id], onDelete: Restrict)
+
+    @@index([collectionId, status])
+    @@index([ownerUserId, createdAt])
+    @@index([salesOrderId])
+    @@index([paymentReference])
+}
+
+model StorefrontPage {
+    id              String                      @id @default(cuid())
+    slug            String                      @unique @db.VarChar(191)
+    title           String                      @db.VarChar(255)
+    description     String?                     @db.LongText
+    seo             Json?                       @db.Json
+    status          StorefrontPublicationStatus @default(DRAFT)
+    publishedAt     DateTime?                    @db.Timestamp(0)
+    createdByUserId Int?
+    updatedByUserId Int?
+    createdAt       DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt       DateTime                     @updatedAt
+    deletedAt       DateTime?                    @db.Timestamp(0)
+    sections        StorefrontSection[]
+
+    @@index([status, publishedAt])
+    @@index([deletedAt])
+}
+
+model StorefrontSection {
+    id          String                      @id @default(cuid())
+    pageId      String
+    key         String                      @db.VarChar(191)
+    type        String                      @db.VarChar(64)
+    content     Json                        @db.Json
+    status      StorefrontPublicationStatus @default(DRAFT)
+    sortOrder   Int                         @default(0)
+    publishedAt DateTime?                   @db.Timestamp(0)
+    createdAt   DateTime                     @default(now()) @db.Timestamp(0)
+    updatedAt   DateTime                     @updatedAt
+    page        StorefrontPage               @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+    @@unique([pageId, key])
+    @@index([pageId, status, sortOrder])
+}
+
+model StorefrontAuditEvent {
+    id          String   @id @default(cuid())
+    actorUserId Int?
+    ownerUserId Int?
+    guestHash   String?  @db.VarChar(191)
+    action      String   @db.VarChar(191)
+    entityType  String   @db.VarChar(64)
+    entityId    String?  @db.VarChar(191)
+    requestId   String?  @db.VarChar(191)
+    ipHash      String?  @db.VarChar(191)
+    userAgent   String?  @db.Text
+    metadata    Json?    @db.Json
+    createdAt   DateTime @default(now()) @db.Timestamp(0)
+
+    @@index([actorUserId, createdAt])
+    @@index([ownerUserId, createdAt])
+    @@index([guestHash, createdAt])
+    @@index([entityType, entityId, createdAt])
+    @@index([action, createdAt])
+}
+
+/// Contact and custom-quote intake is persisted for staff follow-up. It never
+/// creates an order or quote without an explicit office-side review.
+model StorefrontInquiry {
+    id           String                  @id @default(cuid())
+    reference    String?                 @unique @db.VarChar(32)
+    type         StorefrontInquiryType
+    status       StorefrontInquiryStatus @default(NEW)
+    ownerUserId  Int?
+    name         String                  @db.VarChar(255)
+    email        String                  @db.VarChar(320)
+    phone        String?                 @db.VarChar(64)
+    subject      String?                 @db.VarChar(255)
+    message      String                  @db.LongText
+    projectTypes Json?                   @db.Json
+    projectBrief Json?                   @db.Json
+    budget       String?                 @db.VarChar(191)
+    assignedToId Int?
+    customerId   Int?
+    salesQuoteId Int?                    @unique
+    quoteConversionStartedAt DateTime?   @db.Timestamp(0)
+    quoteConversionById Int?
+    requestId    String?                 @db.VarChar(191)
+    ipHash       String?                 @db.VarChar(191)
+    submittedAt  DateTime?               @db.Timestamp(0)
+    lastActivityAt DateTime?             @db.Timestamp(0)
+    createdAt    DateTime                @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime                @updatedAt
+    closedAt     DateTime?               @db.Timestamp(0)
+    activities   StorefrontInquiryActivity[]
+
+    @@index([status, createdAt])
+    @@index([type, status, createdAt])
+    @@index([ownerUserId, createdAt])
+    @@index([assignedToId, status])
+    @@index([customerId, createdAt])
+    @@index([lastActivityAt])
+}
+
+/// Append-only operational timeline for a customer inquiry. Security-sensitive
+/// mutations are also mirrored into StorefrontAuditEvent.
+model StorefrontInquiryActivity {
+    id          String   @id @default(cuid())
+    inquiryId   String
+    type        String   @db.VarChar(64)
+    actorUserId Int?
+    body        String?  @db.LongText
+    metadata    Json?    @db.Json
+    createdAt   DateTime @default(now()) @db.Timestamp(0)
+    inquiry     StorefrontInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+    @@index([inquiryId, createdAt])
+    @@index([actorUserId, createdAt])
+    @@index([type, createdAt])
+}
+
+/// Single-use, hashed recovery credential for customer password resets. Raw
+/// reset tokens are only sent to the customer and never stored.
+model StorefrontPasswordResetToken {
+    id          String    @id @default(cuid())
+    userId      Int
+    tokenHash   String    @unique @db.VarChar(191)
+    expiresAt   DateTime  @db.Timestamp(0)
+    consumedAt  DateTime? @db.Timestamp(0)
+    requestHash String?   @db.VarChar(191)
+    createdAt   DateTime  @default(now()) @db.Timestamp(0)
+
+    @@index([userId, createdAt])
+    @@index([expiresAt, consumedAt])
 }
 
 // ---- utils.prisma ----
@@ -3359,6 +3773,55 @@ model ResolutionRun {
     @@index([runType, status, startedAt])
 }
 
+// ---- task-run-diagnostics.prisma ----
+enum TaskRunDiagnosticStatus {
+    RUNNING
+    SUCCEEDED
+    FAILED
+    CANCELED
+    STALE
+    START_FAILED
+}
+
+model TaskRunDiagnostic {
+    id             String                  @id @default(cuid())
+    runId          String?                 @unique @db.VarChar(255)
+    status         TaskRunDiagnosticStatus @default(RUNNING)
+    taskName       String                  @db.VarChar(255)
+    taskFamily     String?                 @db.VarChar(120)
+    title          String?                 @db.VarChar(500)
+    description    String?                 @db.Text
+    source         String?                 @db.VarChar(120)
+    environment    String?                 @db.VarChar(80)
+    actorId        Int?
+    actorName      String?                 @db.VarChar(255)
+    actorEmail     String?                 @db.VarChar(255)
+    entityType     String?                 @db.VarChar(120)
+    entityId       String?                 @db.VarChar(255)
+    entityLabel    String?                 @db.VarChar(500)
+    userMessage    String?                 @db.Text
+    internalError  String?                 @db.Text
+    errorName      String?                 @db.VarChar(255)
+    outputSummary  Json?                   @db.Json
+    metadata       Json?                   @db.Json
+    startedAt      DateTime?               @db.Timestamp(0)
+    finishedAt     DateTime?               @db.Timestamp(0)
+    lastSyncedAt   DateTime?               @db.Timestamp(0)
+    reviewedAt     DateTime?               @db.Timestamp(0)
+    reviewedById   Int?
+    createdAt      DateTime?               @default(now()) @db.Timestamp(0)
+    updatedAt      DateTime?               @updatedAt
+    deletedAt      DateTime?               @db.Timestamp(0)
+    actor          Users?                  @relation(name: "taskRunDiagnosticActor", fields: [actorId], references: [id])
+    reviewedBy     Users?                  @relation(name: "taskRunDiagnosticReviewedBy", fields: [reviewedById], references: [id])
+
+    @@index([status, createdAt])
+    @@index([taskName, createdAt])
+    @@index([actorId, createdAt])
+    @@index([entityType, entityId])
+    @@index([deletedAt])
+}
+
 // ---- site-action.prisma ----
 model SiteActionTicket {
     id                       Int                     @unique @default(autoincrement())
@@ -3412,10 +3875,23 @@ enum BugReportStatus {
     CLOSED
 }
 
+enum BugReportCaptureType {
+    VIDEO
+    SCREENSHOT
+}
+
+enum BugReportTranscriptionStatus {
+    NOT_REQUESTED
+    PENDING
+    COMPLETED
+    FAILED
+}
+
 model BugReport {
     id                  String          @id @default(cuid())
     createdById         Int
     status              BugReportStatus @default(NEW)
+    captureType         BugReportCaptureType @default(VIDEO)
     description         String?         @db.Text
     currentUrl          String?         @db.VarChar(2048)
     userAgent           String?         @db.Text
@@ -3423,6 +3899,12 @@ model BugReport {
     recordingDocumentId String?         @db.VarChar(191)
     durationMs          Int?
     microphoneEnabled   Boolean         @default(false)
+    externalIssueProvider String?        @db.VarChar(50)
+    externalIssueKey    String?         @db.VarChar(191)
+    externalIssueUrl    String?         @db.VarChar(512)
+    externalIssueStatus String?         @db.VarChar(50)
+    externalIssueError  String?         @db.Text
+    externalIssueCreatedAt DateTime?    @db.Timestamp(0)
     statusUpdatedById   Int?
     statusUpdatedAt     DateTime?       @db.Timestamp(0)
     createdAt           DateTime?       @default(now()) @db.Timestamp(0)
@@ -3433,21 +3915,76 @@ model BugReport {
     @@index([createdById, createdAt])
     @@index([status, createdAt])
     @@index([recordingDocumentId])
+    @@index([externalIssueProvider, externalIssueKey])
+    @@index([externalIssueStatus, createdAt])
     @@index([deletedAt])
 }
 
 model BugReportFollowUp {
-    id          String    @id @default(cuid())
-    bugReportId String
-    authorId    Int
-    body        String    @db.Text
-    createdAt   DateTime? @default(now()) @db.Timestamp(0)
-    updatedAt   DateTime? @updatedAt
-    deletedAt   DateTime? @db.Timestamp(0)
-    bugReport   BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
+    id                  String    @id @default(cuid())
+    bugReportId         String
+    authorId            Int
+    body                String    @db.Text
+    audioDocumentId     String?   @db.VarChar(191)
+    audioDurationMs     Int?
+    transcriptionStatus BugReportTranscriptionStatus @default(NOT_REQUESTED)
+    transcriptionText   String?   @db.Text
+    transcriptionProvider String? @db.VarChar(100)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    deletedAt           DateTime? @db.Timestamp(0)
+    bugReport           BugReport @relation(fields: [bugReportId], references: [id], onDelete: Cascade)
 
     @@index([bugReportId, createdAt])
     @@index([authorId, createdAt])
+    @@index([audioDocumentId])
+    @@index([transcriptionStatus, createdAt])
+    @@index([deletedAt])
+}
+
+// ---- master-password-login-audits.prisma ----
+enum MasterPasswordLoginPlatform {
+    WEBSITE
+    MOBILE
+    UNKNOWN
+}
+
+enum MasterPasswordUsageType {
+    LOGIN
+    SALES_REP_TRANSFER
+}
+
+model MasterPasswordLoginAudit {
+    id                    String                      @id @default(cuid())
+    targetUserId          Int?
+    targetUserName        String?                     @db.VarChar(255)
+    targetUserEmail       String?                     @db.VarChar(255)
+    appSurface            String                      @default("www") @db.VarChar(40)
+    usageType             MasterPasswordUsageType     @default(LOGIN)
+    platform              MasterPasswordLoginPlatform @default(UNKNOWN)
+    ipAddress             String?                     @db.VarChar(255)
+    countryCode           String?                     @db.VarChar(2)
+    browser               String?                     @db.VarChar(255)
+    userAgent             String?                     @db.Text
+    sessionId             String?                     @db.VarChar(255)
+    requestId             String?                     @db.VarChar(255)
+    resourceType          String?                     @db.VarChar(40)
+    resourceId            String?                     @db.VarChar(255)
+    loginAt               DateTime                    @default(now()) @db.Timestamp(0)
+    clearedAt             DateTime?                   @db.Timestamp(0)
+    clearedBySuperAdminId Int?
+    createdAt             DateTime?                   @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime?                   @updatedAt
+    deletedAt             DateTime?                   @db.Timestamp(0)
+    targetUser            Users?                      @relation(name: "masterPasswordLoginAuditTarget", fields: [targetUserId], references: [id])
+    clearedBySuperAdmin   Users?                      @relation(name: "masterPasswordLoginAuditClearedBy", fields: [clearedBySuperAdminId], references: [id])
+
+    @@index([clearedAt, loginAt])
+    @@index([targetUserId, loginAt])
+    @@index([usageType, loginAt])
+    @@index([platform, loginAt])
+    @@index([resourceType, resourceId])
+    @@index([sessionId])
     @@index([deletedAt])
 }
 
@@ -3684,6 +4221,7 @@ model Users {
     pageView                    PageView[]
     notes                       Progress[]
     approvedDealerStatusHistory DealerStatusHistory[]
+    sentDealerRecruitmentInvitations DealerRecruitmentInvitation[]
     assignedDealers             DealerAuth[]                     @relation(name: "dealerSalesRep")
     mailEvents                  MailEventTrigger[]
     sessions                    Session[]
@@ -3697,6 +4235,10 @@ model Users {
     definedProductionGates      OrderProductionGate[]
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
+    taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")
+    taskRunDiagnosticsReviewed  TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticReviewedBy")
+    masterPasswordLoginAudits    MasterPasswordLoginAudit[]       @relation(name: "masterPasswordLoginAuditTarget")
+    clearedMasterPasswordAudits  MasterPasswordLoginAudit[]       @relation(name: "masterPasswordLoginAuditClearedBy")
     salesPayrolls               Payroll[]
     myPayouts                   SalesPayout[]                    @relation(name: "myPayouts")
     salesPayoutsByMe            SalesPayout[]                    @relation(name: "myIssuedPayouts")
@@ -3811,6 +4353,177 @@ model WebAuthVerification {
     updatedAt  DateTime?
 }
 
+// ---- dealer-program.prisma ----
+enum DealerCustomerOfficeVisibility {
+    PRIVATE
+    SHARED
+}
+
+enum DealerRecruitmentCampaignStatus {
+    DRAFT
+    ACTIVE
+    PAUSED
+    ARCHIVED
+}
+
+enum DealerRecruitmentAudienceMode {
+    ALL_ELIGIBLE
+    SELECTED
+}
+
+enum DealerRecruitmentBannerPlacement {
+    TOP
+    BOTTOM
+}
+
+enum DealerProgramApplicationStatus {
+    PENDING
+    APPROVED
+    DENIED
+}
+
+enum DealerRecruitmentInvitationSource {
+    SALES_EMAIL_BANNER
+    MANUAL_CUSTOMER
+}
+
+enum DealerRecruitmentInvitationDeliveryStatus {
+    PENDING
+    SENT
+    FAILED
+    SKIPPED
+}
+
+model DealerRecruitmentCampaign {
+    id           String                             @id @default(cuid())
+    title        String                             @db.VarChar(255)
+    status       DealerRecruitmentCampaignStatus    @default(DRAFT)
+    audienceMode DealerRecruitmentAudienceMode      @default(ALL_ELIGIBLE)
+    headline     String                             @db.VarChar(255)
+    benefitText  String                             @db.Text
+    ctaLabel     String                             @db.VarChar(100)
+    imageUrl     String?                            @db.VarChar(1000)
+    accentColor  String                             @default("#0f766e") @db.VarChar(20)
+    placement    DealerRecruitmentBannerPlacement   @default(BOTTOM)
+    startsAt     DateTime?                          @db.Timestamp(0)
+    endsAt       DateTime?                          @db.Timestamp(0)
+    activatedAt  DateTime?                          @db.Timestamp(0)
+    createdById  Int
+    updatedById  Int
+    deletedAt    DateTime?                          @db.Timestamp(0)
+    createdAt    DateTime?                          @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?                          @updatedAt
+    profiles     DealerRecruitmentCampaignProfile[]
+    customers    DealerRecruitmentCampaignCustomer[]
+    invitations  DealerRecruitmentInvitation[]
+    applications DealerProgramApplication[]
+
+    @@index([status, startsAt, endsAt])
+    @@index([createdById, createdAt])
+    @@index([deletedAt])
+}
+
+model DealerRecruitmentCampaignProfile {
+    id                String                    @id @default(cuid())
+    campaignId        String
+    customerProfileId Int
+    createdAt         DateTime?                 @default(now()) @db.Timestamp(0)
+    campaign          DealerRecruitmentCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@unique([campaignId, customerProfileId])
+    @@index([customerProfileId])
+}
+
+model DealerRecruitmentCampaignCustomer {
+    id         String                    @id @default(cuid())
+    campaignId String
+    customerId Int
+    createdAt  DateTime?                 @default(now()) @db.Timestamp(0)
+    campaign   DealerRecruitmentCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@unique([campaignId, customerId])
+    @@index([customerId])
+}
+
+model DealerRecruitmentInvitation {
+    id                    String                                      @id @default(cuid())
+    campaignId            String
+    customerId            Int
+    recipientEmail        String                                      @db.VarChar(255)
+    tokenHash             String                                      @unique @db.Char(64)
+    source                DealerRecruitmentInvitationSource           @default(SALES_EMAIL_BANNER)
+    deliveryStatus        DealerRecruitmentInvitationDeliveryStatus   @default(PENDING)
+    sentById              Int?
+    deliveryAttemptedAt   DateTime?                                   @db.Timestamp(0)
+    providerMessageId     String?                                     @db.VarChar(255)
+    providerStatus        String?                                     @db.VarChar(100)
+    deliveryFailure       String?                                     @db.Text
+    expiresAt             DateTime                                    @db.Timestamp(0)
+    firstOpenedAt         DateTime?                                   @db.Timestamp(0)
+    lastOpenedAt          DateTime?                                   @db.Timestamp(0)
+    openCount             Int                                         @default(0)
+    deliveredAt           DateTime?                                   @db.Timestamp(0)
+    revokedAt             DateTime?                                   @db.Timestamp(0)
+    supersededAt          DateTime?                                   @db.Timestamp(0)
+    supersededById        String?                                     @db.VarChar(191)
+    deletedAt             DateTime?                                   @db.Timestamp(0)
+    createdAt             DateTime?                                   @default(now()) @db.Timestamp(0)
+    updatedAt             DateTime?                                   @updatedAt
+    campaign              DealerRecruitmentCampaign                   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    customer              Customers                                   @relation(fields: [customerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    sentBy                Users?                                      @relation(fields: [sentById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    application           DealerProgramApplication?
+
+    @@index([campaignId, customerId, createdAt])
+    @@index([customerId, expiresAt])
+    @@index([customerId, source, createdAt])
+    @@index([deliveryStatus, deliveryAttemptedAt])
+    @@index([sentById])
+    @@index([revokedAt, supersededAt])
+    @@index([deliveredAt])
+    @@index([deletedAt])
+}
+
+model DealerRecruitmentCustomerState {
+    customerId          Int       @id
+    latestInvitationId  String?   @unique @db.VarChar(191)
+    sendLeaseId         String?   @unique @db.VarChar(191)
+    sendLeaseExpiresAt  DateTime? @db.Timestamp(0)
+    createdAt           DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt           DateTime? @updatedAt
+    customer            Customers @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+    @@index([sendLeaseExpiresAt])
+}
+
+model DealerProgramApplication {
+    id                   String                         @id @default(cuid())
+    campaignId           String
+    invitationId         String                         @unique
+    customerId           Int
+    status               DealerProgramApplicationStatus @default(PENDING)
+    consentAt            DateTime                       @db.Timestamp(0)
+    submittedAt          DateTime                       @default(now()) @db.Timestamp(0)
+    reviewedAt           DateTime?                      @db.Timestamp(0)
+    reviewedById         Int?
+    decisionNote         String?                        @db.Text
+    dealerAuthId         Int?
+    suppressionResetAt   DateTime?                      @db.Timestamp(0)
+    suppressionResetById Int?
+    suppressionResetReason String?                      @db.Text
+    deletedAt            DateTime?                      @db.Timestamp(0)
+    createdAt            DateTime?                      @default(now()) @db.Timestamp(0)
+    updatedAt            DateTime?                      @updatedAt
+    campaign             DealerRecruitmentCampaign      @relation(fields: [campaignId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    invitation           DealerRecruitmentInvitation    @relation(fields: [invitationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+    @@index([status, submittedAt])
+    @@index([customerId, submittedAt])
+    @@index([campaignId, status])
+    @@index([dealerAuthId])
+    @@index([deletedAt])
+}
+
 // ---- sales.takeoff.prisma ----
 model SalesTakeOffTemplates {
     id         String @unique @default(uuid())
@@ -3829,6 +4542,7 @@ model Customers {
     addressId      Int?
     customerTypeId Int?
     dealerOwnerId  Int?
+    officeVisibility DealerCustomerOfficeVisibility @default(PRIVATE)
     slug           String?               @unique @db.VarChar(255)
     walletId       Int?                  @unique
     name           String?               @db.VarChar(255)
@@ -3850,12 +4564,15 @@ model Customers {
     wallet         CustomerWallet?
     auth           DealerAuth?
     dealerOwner    DealerAuth?           @relation(name: "dealerOwnedCustomers", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+    dealerRecruitmentInvitations DealerRecruitmentInvitation[]
+    dealerRecruitmentState DealerRecruitmentCustomerState?
     userId         Int?                  @unique
     user           Users?                @relation(fields: [userId], references: [id])
 
     @@index([createdAt, deletedAt, name, email, phoneNo])
     @@index([customerTypeId])
     @@index([dealerOwnerId])
+    @@index([dealerOwnerId, officeVisibility])
     @@index([phoneNo])
 }
 
@@ -4047,6 +4764,13 @@ model SalesPayments {
     tip              Float?
     meta             Json?                @db.Json
     status           String? // success,pending,paid
+    origin           String?
+    reviewStatus     String?
+    reviewedAt       DateTime?            @db.Timestamp(0)
+    reviewedById     Int?
+    reviewMethod     String?
+    reviewedByAction String?
+    reviewNote       String?              @db.Text
     deletedAt        DateTime?            @db.Timestamp(0)
     createdAt        DateTime?            @default(now()) @db.Timestamp(0)
     updatedAt        DateTime?            @updatedAt
@@ -4061,6 +4785,8 @@ model SalesPayments {
 
     @@index([authorId])
     @@index([orderId])
+    @@index([orderId, reviewStatus, createdAt])
+    @@index([reviewStatus, createdAt])
     // @@index([customerId])
     @@index([transactionId])
     @@index([squarePaymentsId])

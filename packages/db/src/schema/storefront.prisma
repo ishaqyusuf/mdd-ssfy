@@ -42,8 +42,11 @@ enum StorefrontInquiryType {
 }
 
 enum StorefrontInquiryStatus {
+    DRAFT
     NEW
     IN_REVIEW
+    AWAITING_CUSTOMER
+    QUOTE_CREATED
     RESPONDED
     CLOSED
     SPAM
@@ -323,6 +326,7 @@ model StorefrontAuditEvent {
 /// creates an order or quote without an explicit office-side review.
 model StorefrontInquiry {
     id           String                  @id @default(cuid())
+    reference    String?                 @unique @db.VarChar(32)
     type         StorefrontInquiryType
     status       StorefrontInquiryStatus @default(NEW)
     ownerUserId  Int?
@@ -332,18 +336,46 @@ model StorefrontInquiry {
     subject      String?                 @db.VarChar(255)
     message      String                  @db.LongText
     projectTypes Json?                   @db.Json
+    projectBrief Json?                   @db.Json
     budget       String?                 @db.VarChar(191)
     assignedToId Int?
+    customerId   Int?
+    salesQuoteId Int?                    @unique
+    authorizedUploadCount Int            @default(0)
+    quoteConversionStartedAt DateTime?   @db.Timestamp(0)
+    quoteConversionById Int?
     requestId    String?                 @db.VarChar(191)
     ipHash       String?                 @db.VarChar(191)
+    submittedAt  DateTime?               @db.Timestamp(0)
+    lastActivityAt DateTime?             @db.Timestamp(0)
     createdAt    DateTime                @default(now()) @db.Timestamp(0)
     updatedAt    DateTime                @updatedAt
     closedAt     DateTime?               @db.Timestamp(0)
+    activities   StorefrontInquiryActivity[]
 
     @@index([status, createdAt])
     @@index([type, status, createdAt])
     @@index([ownerUserId, createdAt])
     @@index([assignedToId, status])
+    @@index([customerId, createdAt])
+    @@index([lastActivityAt])
+}
+
+/// Append-only operational timeline for a customer inquiry. Security-sensitive
+/// mutations are also mirrored into StorefrontAuditEvent.
+model StorefrontInquiryActivity {
+    id          String   @id @default(cuid())
+    inquiryId   String
+    type        String   @db.VarChar(64)
+    actorUserId Int?
+    body        String?  @db.LongText
+    metadata    Json?    @db.Json
+    createdAt   DateTime @default(now()) @db.Timestamp(0)
+    inquiry     StorefrontInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+
+    @@index([inquiryId, createdAt])
+    @@index([actorUserId, createdAt])
+    @@index([type, createdAt])
 }
 
 /// Single-use, hashed recovery credential for customer password resets. Raw

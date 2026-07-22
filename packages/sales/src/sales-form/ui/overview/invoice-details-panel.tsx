@@ -47,6 +47,9 @@ function dateDisplayValue(value?: string | null) {
 	const normalized = dateInputValue(value);
 	if (!normalized) return "Pick a date";
 	const [year, month, day] = normalized.split("-").map(Number);
+	if (year === undefined || month === undefined || day === undefined) {
+		return "Pick a date";
+	}
 	const date = new Date(year, month - 1, day);
 	return new Intl.DateTimeFormat("en-US", {
 		month: "short",
@@ -59,6 +62,9 @@ function datePickerValue(value?: string | null) {
 	const normalized = dateInputValue(value);
 	if (!normalized) return undefined;
 	const [year, month, day] = normalized.split("-").map(Number);
+	if (year === undefined || month === undefined || day === undefined) {
+		return undefined;
+	}
 	return new Date(year, month - 1, day);
 }
 

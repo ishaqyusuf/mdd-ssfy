@@ -177,7 +177,12 @@ export function nextAuthOptions(options: {
 			secret: process.env.JWT_SECRET,
 			maxAge: AUTH_SESSION_MAX_AGE_SECONDS,
 		},
-		adapter: PrismaAdapter(db),
+		// The shared database client applies a query extension. The NextAuth
+		// adapter only needs the Prisma delegate surface, so bridge the
+		// extension's structural type explicitly across the package boundary.
+		adapter: PrismaAdapter(
+			db as unknown as Parameters<typeof PrismaAdapter>[0],
+		),
 		secret: options.secret,
 		callbacks: {
 			jwt: async ({ token, user: cred }) => {

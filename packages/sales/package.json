@@ -43,6 +43,7 @@
 		"./storefront": "./src/storefront.ts",
 		"./storefront-catalog": "./src/storefront-catalog.ts",
 		"./storefront-configuration": "./src/storefront-configuration.ts",
+		"./storefront-inquiry": "./src/storefront-inquiry.ts",
 		"./utils/where-queries": "./src/utils/where-queries.ts",
 		"./wallet": "./src/wallet.ts",
 		"./control": "./src/control/index.ts",

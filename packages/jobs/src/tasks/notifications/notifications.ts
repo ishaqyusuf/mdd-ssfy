@@ -91,7 +91,7 @@ async function isSuperAdminAuthor(author: NotificationJobInput["author"]) {
 export const notification = schemaTask({
 	id: "notification",
 	schema: notificationJobSchema,
-	machine: "micro",
+	machine: "medium-1x",
 	maxDuration: 60,
 	queue: {
 		concurrencyLimit: 5,

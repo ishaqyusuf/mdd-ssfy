@@ -123,17 +123,19 @@ function emptyControlStats(): ControlStats {
 }
 
 function sumQtyStat(...stats: (QtyStat | null | undefined)[]): QtyStat {
-  return toQtyStat(
-    stats.filter(Boolean).reduce(
-      (acc, stat) => ({
+	return toQtyStat(
+		stats
+			.filter((stat): stat is QtyStat => stat != null)
+			.reduce<QtyStat>(
+				(acc, stat) => ({
         lhQty: toNumber(acc.lhQty) + toNumber(stat?.lhQty),
         rhQty: toNumber(acc.rhQty) + toNumber(stat?.rhQty),
         qty: toNumber(acc.qty) + toNumber(stat?.qty),
         total: toNumber(acc.total) + toNumber(stat?.total),
       }),
-      { lhQty: 0, rhQty: 0, qty: 0, total: 0 },
-    ),
-  );
+				{ lhQty: 0, rhQty: 0, qty: 0, total: 0 },
+			),
+	);
 }
 
 function diffQtyStat(base: QtyStat, subtract: QtyStat): QtyStat {
@@ -455,7 +457,7 @@ function buildDispatchListedMap(
 }
 
 async function loadOrderLevelData(orderIds: number[], db: Db) {
-  const itemControls = await db.salesItemControl.findMany({
+	const itemControls = (await db.salesItemControl.findMany({
     where: {
       salesId: { in: orderIds },
       deletedAt: null,
@@ -466,7 +468,11 @@ async function loadOrderLevelData(orderIds: number[], db: Db) {
       produceable: true,
       shippable: true,
     },
-  });
+	})).map((control) => ({
+		...control,
+		produceable: control.produceable ?? false,
+		shippable: control.shippable ?? false,
+	}));
 
   const controlUids = itemControls.map((c) => c.uid);
 

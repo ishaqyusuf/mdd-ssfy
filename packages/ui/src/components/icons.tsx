@@ -485,6 +485,7 @@ export const IconsBase = {
   ),
 };
 const IconsStatic = {
+	...IconsBase,
   Logo: () => <Image alt="" src="/logo_mini.png" width={48} height={49} />,
   LogoLg: () => <Image alt="" src="/logo.png" height={48} width={120} />,
   logoLg: ({ width = 120 }: { width?: number }) => (
@@ -1103,7 +1104,6 @@ const IconsStatic = {
   Files: MdOutlineInventory2,
   placeholder: ImageIcon,
   documents: FileLock,
-  ...IconsBase,
 };
 const dynamicHugeIconAliases = {
   Activity: "Activity",

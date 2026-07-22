@@ -27,6 +27,7 @@ import SalesEmail from "@gnd/email/emails/sales-email";
 import SalesReminderScheduleAdminNotificationEmail from "@gnd/email/emails/sales-reminder-schedule-admin-notification";
 import { SalesRepOnlinePaymentReceived } from "@gnd/email/emails/sales-rep-online-payment-received";
 import StorefrontOrderConfirmation from "@gnd/email/emails/storefront-order-confirmation";
+import StorefrontCustomInquiryReceived from "@gnd/email/emails/storefront-custom-inquiry-received";
 import StorefrontPasswordResetRequest from "@gnd/email/emails/storefront-password-reset-request";
 import { render } from "@gnd/email/render";
 import {
@@ -142,12 +143,14 @@ export class EmailService {
 		template,
 		data,
 		from,
+		idempotencyKey,
 	}: {
 		to: string;
 		subject: string;
 		template: string;
 		data: Record<string, unknown>;
 		from?: string;
+		idempotencyKey?: string;
 	}) {
 		const result = await this.sendTransactionalWithResult({
 			to,
@@ -155,6 +158,7 @@ export class EmailService {
 			template,
 			data,
 			from,
+			idempotencyKey,
 		});
 		if (result.status === "failed") {
 			throw new Error(result.errorMessage || "Failed to send email.");
@@ -167,12 +171,14 @@ export class EmailService {
 		template,
 		data,
 		from,
+		idempotencyKey,
 	}: {
 		to: string;
 		subject: string;
 		template: string;
 		data: Record<string, unknown>;
 		from?: string;
+		idempotencyKey?: string;
 	}): Promise<EmailDeliveryResult> {
 		if (shouldSkipEmail()) {
 			return {
@@ -203,15 +209,18 @@ export class EmailService {
 			};
 		}
 
-		const response = await this.client.emails.send({
-			from: from || "GND Millwork <noreply@gndprodesk.com>",
-			to: recipients,
-			subject,
-			html,
-			headers: {
-				"X-Entity-Ref-ID": nanoid(),
+		const response = await this.client.emails.send(
+			{
+				from: from || "GND Millwork <noreply@gndprodesk.com>",
+				to: recipients,
+				subject,
+				html,
+				headers: {
+					"X-Entity-Ref-ID": idempotencyKey || nanoid(),
+				},
 			},
-		});
+			idempotencyKey ? { idempotencyKey } : undefined,
+		);
 
 		if (response.error) {
 			console.error("Failed to send transactional email:", response.error);
@@ -523,6 +532,7 @@ export class EmailService {
 			"login-link-email": LoginEmail,
 			"password-reset-request": StorefrontPasswordResetRequest,
 			"storefront-order-confirmation": StorefrontOrderConfirmation,
+			"storefront-custom-inquiry-received": StorefrontCustomInquiryReceived,
 		};
 
 		const template = templates[templateName as keyof typeof templates];

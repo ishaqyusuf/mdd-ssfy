@@ -12,5 +12,8 @@ describe("storefrontLifecycleCutoffs", () => {
 		expect(result.deleteRecoveryTokenAt.toISOString()).toBe(
 			"2026-06-20T12:00:00.000Z",
 		);
+		expect(result.deleteInquiryDraftAt.toISOString()).toBe(
+			"2026-07-19T12:00:00.000Z",
+		);
 	});
 });

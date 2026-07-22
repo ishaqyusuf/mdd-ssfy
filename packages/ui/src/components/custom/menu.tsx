@@ -57,7 +57,7 @@ interface RowActionMoreMenuProps {
   // dir?:  ComponentPropsWithoutRef<>
 }
 type MenuContext = ReturnType<typeof createMenuContext>;
-export const MenuContext = createContext<MenuContext>(undefined);
+export const MenuContext = createContext<MenuContext | undefined>(undefined);
 export const MenuProvider = MenuContext.Provider;
 export const createMenuContext = (props: RowActionMoreMenuProps, ref) => {
   const [_open, _onOpenChanged] = useState(props.open);

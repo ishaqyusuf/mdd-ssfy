@@ -1157,7 +1157,6 @@ export const salesEmailReminderSchema = z.object({
 	salesNos: z.array(z.string()).optional().nullable(),
 	emailAttemptId: z.string().optional().nullable(),
 	sourceAttemptId: z.string().optional().nullable(),
-	skipPdfAttachment: z.boolean().optional().nullable(),
 	dealerProgramBanner: dealerProgramBannerSchema.optional().nullable(),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
@@ -1212,7 +1211,6 @@ export const simpleSalesDocumentEmailSchema = z.object({
 	salesNos: z.array(z.string()).optional().nullable(),
 	customerEmail: z.string().email().optional().nullable(),
 	note: z.string().optional().nullable(),
-	skipPdfAttachment: z.boolean().optional().nullable().default(true),
 	emailAttemptId: z.string().optional().nullable(),
 	sourceAttemptId: z.string().optional().nullable(),
 });

@@ -1,7 +1,7 @@
 import type { Db } from "@gnd/db";
 import { logger } from "@gnd/logger";
 import { getCustomerWallet } from "@gnd/sales/wallet";
-import { getAppUrl, shouldAttachSalesEmailPdf } from "@gnd/utils/envs";
+import { getAppUrl } from "@gnd/utils/envs";
 import {
 	type SalesPaymentTokenSchema,
 	type SalesPdfToken,
@@ -17,8 +17,8 @@ import {
 	salesEmailReminderSchema,
 	salesPdfAttachmentSchema,
 } from "../schemas";
-import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
+import { buildSalesPdfAttachment } from "./sales-pdf-attachment";
 
 function normalizeText(value: string | null | undefined) {
 	return value?.trim() || null;
@@ -211,28 +211,24 @@ async function buildSalesDocumentEmailData(
 					pdfToken,
 				)}&preview=false`
 			: null;
-	const attachPdf =
-		shouldAttachSalesEmailPdf() && input.skipPdfAttachment === false;
-	const pdfAttachment = attachPdf
-		? await (async () => {
-				try {
-					return await buildSalesPdfAttachment(db, {
-						salesIds,
-						mode: input.printType,
-					});
-				} catch (error) {
-					logger.warn(
-						"Failed to build sales PDF attachment; sending simple sales document email without attachment",
-						{
-							error,
-							salesIds,
-							mode: input.printType,
-						},
-					);
-					return null;
-				}
-			})()
-		: null;
+	const pdfAttachment = await (async () => {
+		try {
+			return await buildSalesPdfAttachment(db, {
+				salesIds,
+				mode: input.printType,
+			});
+		} catch (error) {
+			logger.warn(
+				"Failed to build sales PDF attachment; sending simple sales document email without attachment",
+				{
+					error,
+					salesIds,
+					mode: input.printType,
+				},
+			);
+			return null;
+		}
+	})();
 	const dealerProgramBanner = primarySale.customerId
 		? await resolveSalesEmailDealerProgramBanner(db, {
 				customerId: primarySale.customerId,
@@ -259,7 +255,6 @@ async function buildSalesDocumentEmailData(
 		salesNos: sales.map((sale) => sale.orderId),
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
-		skipPdfAttachment: !attachPdf,
 		dealerProgramBanner,
 		sales: sales.map((sale) => ({
 			orderId: sale.orderId,

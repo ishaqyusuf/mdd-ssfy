@@ -2625,7 +2625,6 @@ async function recomputeLineItemComponentFulfillment(
 	const component = await db.lineItemComponents.findFirst({
 		where: {
 			id: lineItemComponentId,
-			deletedAt: null,
 		},
 		select: {
 			id: true,
@@ -2690,7 +2689,6 @@ async function recomputeLineItemComponentFulfillment(
 	const updatedComponent = await db.lineItemComponents.updateMany({
 		where: {
 			id: component.id,
-			deletedAt: null,
 		},
 		data: {
 			qtyAllocated,
@@ -2864,7 +2862,6 @@ export async function allocateReceivedInboundToBackorders(
 			const component = await tx.lineItemComponents.findFirst({
 				where: {
 					id: demand.lineItemComponentId,
-					deletedAt: null,
 				},
 				select: {
 					qty: true,
@@ -3624,12 +3621,14 @@ export async function fulfillInventoryDispatch(
 			),
 			consumedAllocationQty,
 			inboundDemandCreatedQty: 0,
+			heldLineCount: 0,
 			lines: fulfilledLines.map(({ line, plan }) => ({
 				lineItemId: line.id,
 				salesItemId: line.salesItemId!,
 				shipQty: plan.shipQty,
 				backorderedQty: plan.backorderedQty,
 			})),
+			skipped: [],
 		};
 	});
 }

@@ -207,7 +207,6 @@ async function recordSkippedSalesEmails(
 								emailType: props.emailType,
 								printType: props.printType,
 								salesIds: [sale.id],
-								skipPdfAttachment: true,
 							},
 							reasons: sale.reasons,
 						},
@@ -280,7 +279,6 @@ export function createSendSalesEmailTask(id: SalesEmailTaskId) {
 						emailType: props.emailType,
 						printType: props.printType,
 						salesIds,
-						skipPdfAttachment: true,
 					},
 					{
 						includeChannelSubscribers: false,

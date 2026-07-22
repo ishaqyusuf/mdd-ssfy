@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	SQUARE_SANDBOX_TERMINAL_DEVICE_ID,
 	isProductionSquareEnvironment,
 	normalizeTerminalDeviceId,
 	resolvePairedSquareTerminals,
@@ -25,6 +26,12 @@ describe("Square runtime environment", () => {
 				SQUARE_FORCE_PRODUCTION: "true",
 			}),
 		).toBe(true);
+	});
+
+	it("uses Square's successful simulated terminal for sandbox checkout", () => {
+		expect(SQUARE_SANDBOX_TERMINAL_DEVICE_ID).toBe(
+			"9fa747a2-25ff-48ee-b078-04381f7c828f",
+		);
 	});
 });
 

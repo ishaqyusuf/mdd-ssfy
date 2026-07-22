@@ -108,7 +108,7 @@ export class ControlRepairService {
             take: batchSize,
           })
         ).map((s) => s.id);
-    const results = [];
+		const results: Awaited<ReturnType<typeof this.rebuildFromSource>>[] = [];
     for (const salesId of salesIds) {
       results.push(await this.rebuildFromSource(salesId, input.authorId));
     }

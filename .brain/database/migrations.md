@@ -177,3 +177,18 @@ Tracks notable migrations and migration strategy.
   to both development and production. This confirmation clears schema
   deployment as a storefront release gate; traffic cutover and transactional
   checkout rehearsal remain separate gates.
+
+## 2026-07-22 storefront custom millwork inquiry workflow
+
+- Prisma schema adds inquiry draft/office statuses, unique references and quote
+  links, structured briefs, conversion lease fields, submission/activity dates,
+  and `StorefrontInquiryActivity`.
+- `bun run db:generate` passed.
+- `prisma migrate dev --name storefront_custom_millwork_workflow` could not
+  generate a migration because unrelated existing migration
+  `20260722180000_master_password_usage_audit` fails against the shadow database
+  by updating `MasterPasswordLoginAudit` before that table exists.
+- Local `gnd-prisma2` was synchronized with `prisma db push
+  --accept-data-loss`; the warning was limited to adding unique constraints for
+  nullable `reference` and `salesQuoteId`. The push succeeded and generated the
+  client. No production database was changed.
