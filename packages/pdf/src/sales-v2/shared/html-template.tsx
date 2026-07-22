@@ -356,6 +356,7 @@ function SectionBlock({
 	variant: "template-1" | "template-2";
 }) {
 	const hasDetails = "details" in section && Array.isArray(section.details);
+	const uppercaseText = section.kind === "door";
 
 	return (
 		<section
@@ -376,7 +377,7 @@ function SectionBlock({
 					textTransform: "uppercase",
 				}}
 			>
-				{section.title}
+				{formatSectionText(section.title, uppercaseText)}
 			</div>
 			{hasDetails ? (
 				<div
@@ -390,9 +391,11 @@ function SectionBlock({
 				>
 					{section.details.map((detail, index) => (
 						<div key={`${detail.label}-${index}`}>
-							<span style={{ color: COLORS.muted }}>{detail.label}: </span>
+							<span style={{ color: COLORS.muted }}>
+								{formatSectionText(detail.label, uppercaseText)}:{" "}
+							</span>
 							<span style={{ color: COLORS.text, fontWeight: 600 }}>
-								{detail.value}
+								{formatSectionText(detail.value, uppercaseText)}
 							</span>
 						</div>
 					))}
@@ -410,7 +413,7 @@ function SectionBlock({
 									style={headerCellStyle(header)}
 									colSpan={header.colSpan || 1}
 								>
-									{header.title}
+									{formatSectionText(header.title, uppercaseText)}
 								</th>
 							))}
 						</tr>
@@ -444,7 +447,7 @@ function SectionBlock({
 												/>
 											) : null}
 											<span>
-												{cell.value == null ? "" : String(cell.value)}
+												{formatSectionText(cell.value, uppercaseText)}
 											</span>
 										</div>
 									</td>
@@ -456,6 +459,12 @@ function SectionBlock({
 			</div>
 		</section>
 	);
+}
+
+function formatSectionText(value: string | number | null, uppercase: boolean) {
+	if (value == null) return "";
+	const text = String(value);
+	return uppercase ? text.toUpperCase() : text;
 }
 
 function FooterBlock({
