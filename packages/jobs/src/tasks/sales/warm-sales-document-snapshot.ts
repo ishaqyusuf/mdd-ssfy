@@ -226,14 +226,30 @@ function createStoredDocumentRepository(): StoredDocumentRepository {
 	return {
 		create(input: CreateStoredDocumentRecordInput) {
 			return db.storedDocument.create({
-				data: input,
+				data: {
+					...input,
+					meta:
+						input.meta === undefined
+							? undefined
+							: input.meta
+								? (input.meta as Prisma.InputJsonValue)
+								: Prisma.JsonNull,
+				},
 			});
 		},
 		update(input: UpdateStoredDocumentRecordInput) {
 			const { id, ...data } = input;
 			return db.storedDocument.update({
 				where: { id },
-				data,
+				data: {
+					...data,
+					meta:
+						data.meta === undefined
+							? undefined
+							: data.meta
+								? (data.meta as Prisma.InputJsonValue)
+								: Prisma.JsonNull,
+				},
 			});
 		},
 		findCurrentByOwner(input: {
@@ -381,7 +397,8 @@ async function warmSnapshot(payload: WarmSalesDocumentSnapshotPayload) {
 		const registry = createDocumentRegistry(createStoredDocumentRepository());
 		const documentService = createDocumentService(
 			createVercelBlobProvider({
-				put,
+				put: (pathname, body, options) =>
+					put(pathname, body as Buffer, options),
 				token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
 				access: "public",
 				addRandomSuffix: true,

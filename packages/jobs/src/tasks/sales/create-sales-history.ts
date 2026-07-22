@@ -13,6 +13,9 @@ export const createSalesHistory = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (props) => {
+		if (!props.salesNo) {
+			throw new Error("Sales history requires a sales number.");
+		}
     //TODO: before creating a new history, compare current sales record with last history, if there is any change, then create a history,
     // compare basically all important record used in copySales. such as: unitCost, grandTotal, items: total,qty,description,swing, stepItems: price,value etc, hpt, doors etc.
     const result = await copySales({

@@ -1,4 +1,4 @@
-import { db } from "@gnd/db";
+import { db, type Db } from "@gnd/db";
 import {
 	type LegacyUpdateSalesControlAction,
 	type UpdateSalesControl,
@@ -26,7 +26,7 @@ import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import type { TaskName } from "../../schema";
 
 type SalesControlActionHandler = (
-	db: typeof db,
+	db: Db,
 	input: UpdateSalesControl,
 ) => Promise<unknown>;
 

@@ -413,19 +413,24 @@ async function runPendingBillReminder(runType: RunType) {
 			});
 			continue;
 		}
+		const groupedSalesRepId = salesRepId as number;
+		const groupedRecipientId = recipientId as number;
+		const groupedRecipientRole = recipientRole as ReminderRecipientRole;
+		const groupedCustomerEmail = customerEmail as string;
+		const groupedSalesRepEmail = salesRepEmail as string;
 
-		const key = `${salesRepId}|${recipientRole}|${recipientId}`;
+		const key = `${groupedSalesRepId}|${groupedRecipientRole}|${groupedRecipientId}`;
 		const po = (sale.meta as { po?: string | null } | null)?.po;
 		const existing = grouped.get(key);
 
 		if (!existing) {
 			grouped.set(key, {
-				salesRepId,
+				salesRepId: groupedSalesRepId,
 				salesRep,
-				salesRepEmail,
-				recipientId,
-				recipientRole,
-				customerEmail,
+				salesRepEmail: groupedSalesRepEmail,
+				recipientId: groupedRecipientId,
+				recipientRole: groupedRecipientRole,
+				customerEmail: groupedCustomerEmail,
 				customerName,
 				salesIds: [sale.id],
 				sales: [

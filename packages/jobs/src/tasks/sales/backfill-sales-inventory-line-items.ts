@@ -4,7 +4,7 @@ import {
   type BackfillSalesInventoryLineItemsSchemaTask,
   type TaskName,
 } from "../../schema";
-import { db } from "@gnd/db";
+import { db, type Prisma } from "@gnd/db";
 import { syncSalesInventoryLineItems } from "@gnd/sales/sync-sales-inventory-line-items";
 
 const id: TaskName = "backfill-sales-inventory-line-items";
@@ -31,7 +31,7 @@ export const backfillSalesInventoryLineItemsTask = schemaTask({
     const salesOrderIds = payload.salesOrderIds?.length
       ? payload.salesOrderIds
       : null;
-    const where = salesOrderIds
+    const where: Prisma.SalesOrdersWhereInput = salesOrderIds
       ? {
           id: {
             in: salesOrderIds,

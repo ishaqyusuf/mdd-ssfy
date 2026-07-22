@@ -1,4 +1,4 @@
-import { db } from "@gnd/db";
+import { Prisma, db } from "@gnd/db";
 import {
 	type CreateStoredDocumentRecordInput,
 	type StoredDocumentRepository,
@@ -72,14 +72,30 @@ function createStoredDocumentRepository(): StoredDocumentRepository {
 	return {
 		create(input: CreateStoredDocumentRecordInput) {
 			return db.storedDocument.create({
-				data: input,
+				data: {
+					...input,
+					meta:
+						input.meta === undefined
+							? undefined
+							: input.meta
+								? (input.meta as Prisma.InputJsonValue)
+								: Prisma.JsonNull,
+				},
 			});
 		},
 		update(input: UpdateStoredDocumentRecordInput) {
 			const { id, ...data } = input;
 			return db.storedDocument.update({
 				where: { id },
-				data,
+				data: {
+					...data,
+					meta:
+						data.meta === undefined
+							? undefined
+							: data.meta
+								? (data.meta as Prisma.InputJsonValue)
+								: Prisma.JsonNull,
+				},
 			});
 		},
 		findCurrentByOwner(input: FindCurrentByOwnerInput) {
@@ -380,7 +396,8 @@ async function storeWorkbook(input: {
 	});
 	const documentService = createDocumentService(
 		createVercelBlobProvider({
-			put,
+			put: (pathname, body, options) =>
+				put(pathname, body as Buffer, options),
 			token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
 			access: "public",
 			addRandomSuffix: false,
@@ -426,9 +443,9 @@ async function storeWorkbook(input: {
 		documentId: storedDocument.id,
 		filename: input.filename,
 		pathname: storedDocument.pathname,
-		url: storedDocument.url,
+		url: storedDocument.url ?? null,
 		contentType: EXCEL_MIME,
-		size: storedDocument.size,
+		size: storedDocument.size ?? null,
 	} satisfies StoredReportArtifact;
 }
 
