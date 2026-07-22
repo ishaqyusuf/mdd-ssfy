@@ -185,9 +185,9 @@
 
 - 2026-07-22 batch payment review:
   - Replaced the per-order `markLatestPaymentReviewed` request loop with one `markPaymentsReviewed` mutation capped at 100 selected sales ids.
-  - The payment domain deduplicates ids, selects the latest eligible payment per order, performs one transactional `updateMany`, and reports reviewed/no-payment outcomes.
-  - The batch client opts out of automatic per-mutation events and awaits one coalesced payment event before clearing selection and closing, including a broad refresh when every selected row was already stale.
-  - Focused payment-domain, query-event trigger/registry/executor, and Sales Orders review tests passed with 37 tests / 77 assertions; the dedicated batch orchestration tests additionally prove one request and an awaited single invalidation.
+  - The payment domain deduplicates ids, selects the latest eligible payment per order, applies guarded updates in one transaction, and reports concurrent/no-payment skips without overstating success.
+  - The batch client opts out of automatic per-mutation events and awaits one coalesced payment event before clearing selection and closing; zero-success batches do not emit a change event.
+  - Focused payment-domain, query-event trigger/registry/executor, and Sales Orders review tests passed with 38 tests / 81 assertions; the dedicated batch orchestration tests additionally prove one request, an awaited single invalidation, and post-invalidation selection/menu callbacks.
   - Focused Biome checks passed for the payment domain, query registry, Sales Orders batch helper/bar, and `sales-menu.tsx`; scoped `git diff --check` passed.
 - 2026-07-16 saved-tab edit dialog crash fix:
   - Fixed a maximum-update-depth crash when opening the page-tabs Edit dialog by replacing the render-created default tab array with a stable empty tab snapshot before syncing local dialog state.

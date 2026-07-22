@@ -144,8 +144,8 @@ On 2026-07-18, the Sales Orders `markLatestPaymentReviewed` action was moved ful
 
 ### Batch Sales Payment Review Follow-up
 
-On 2026-07-22, multi-order payment review moved from parallel calls to `sales.markLatestPaymentReviewed` onto the dedicated `sales.markPaymentsReviewed` mutation. The batch call opts out of its automatic mutation event so the caller can await one coalesced `sales.payment.changed` event containing all reviewed order references. This creates a deterministic completion boundary: active Sales Orders, summary, accounting, overview, and page-tab queries finish invalidating before the selection is cleared and the menu closes. If every selected row is already stale, the caller emits an unscoped payment event so the review queue still reconciles with server truth.
+On 2026-07-22, multi-order payment review moved from parallel calls to `sales.markLatestPaymentReviewed` onto the dedicated `sales.markPaymentsReviewed` mutation. The batch call opts out of its automatic mutation event so the caller can await one coalesced `sales.payment.changed` event containing all successfully reviewed order references. This creates a deterministic completion boundary: active Sales Orders, summary, accounting, overview, and page-tab queries finish invalidating before the selection is cleared and the menu closes. Zero-success batches do not emit a change event.
 
 - The mutation route remains registered to `sales.payment.changed` for any future ordinary caller that does not opt into the batch's explicit awaited event.
-- Focused payment-domain, query-event, and Sales Orders review coverage passed with 37 tests / 77 assertions.
-- A dedicated orchestration test proves one batch request, one scoped invalidation, and that the operation remains pending until invalidation completes.
+- Focused payment-domain, query-event, and Sales Orders review coverage passed with 38 tests / 81 assertions.
+- Dedicated orchestration coverage proves one batch request, one scoped invalidation, that the operation remains pending until invalidation completes, and that selection/menu callbacks happen afterward.

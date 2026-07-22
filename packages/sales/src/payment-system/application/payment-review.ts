@@ -23,6 +23,23 @@ export type SalesPaymentReviewSettings = {
 	autoReviewActions?: Partial<Record<SalesPaymentReviewAction, boolean>>;
 };
 
+export type ReviewedSalesPayment = {
+	paymentId: number;
+	salesId: number;
+	orderId: string;
+	type: "order" | "quote";
+};
+
+export type SkippedSalesPaymentReview = {
+	salesId: number;
+	reason: "no_payment_needs_review";
+};
+
+export type BatchSalesPaymentReviewResult = {
+	reviewed: ReviewedSalesPayment[];
+	skipped: SkippedSalesPaymentReview[];
+};
+
 const REVIEWABLE_PAYMENT_STATUSES = new Set(["success", "completed", "paid"]);
 
 export function isReviewableSalesPaymentStatus(status?: string | null) {
@@ -122,7 +139,7 @@ export async function markSalesPaymentsReviewed(
 		reviewedById?: number | null;
 		reviewNote?: string | null;
 	},
-) {
+): Promise<BatchSalesPaymentReviewResult> {
 	const salesIds = Array.from(new Set(input.salesIds));
 	if (!salesIds.length) {
 		return {
@@ -163,13 +180,11 @@ export async function markSalesPaymentsReviewed(
 			}
 		}
 
-		const selectedPayments = Array.from(latestPayments.values());
-		if (selectedPayments.length) {
-			await tx.salesPayments.updateMany({
+		const reviewedPayments: (typeof payments)[number][] = [];
+		for (const payment of latestPayments.values()) {
+			const update = await tx.salesPayments.updateMany({
 				where: {
-					id: {
-						in: selectedPayments.map((payment) => payment.id),
-					},
+					id: payment.id,
 					reviewStatus: "needs_review",
 				},
 				data: {
@@ -181,17 +196,23 @@ export async function markSalesPaymentsReviewed(
 					reviewNote: input.reviewNote || null,
 				},
 			});
+			if (update.count > 0) {
+				reviewedPayments.push(payment);
+			}
 		}
+		const reviewedSalesIds = new Set(
+			reviewedPayments.map((payment) => payment.orderId),
+		);
 
 		return {
-			reviewed: selectedPayments.map((payment) => ({
+			reviewed: reviewedPayments.map((payment) => ({
 				paymentId: payment.id,
 				salesId: payment.order.id,
 				orderId: payment.order.orderId,
-				type: payment.order.type,
+				type: payment.order.type === "quote" ? "quote" : "order",
 			})),
 			skipped: salesIds
-				.filter((salesId) => !latestPayments.has(salesId))
+				.filter((salesId) => !reviewedSalesIds.has(salesId))
 				.map((salesId) => ({
 					salesId,
 					reason: "no_payment_needs_review" as const,

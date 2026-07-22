@@ -104,7 +104,7 @@ describe("sales payment review", () => {
 
 	it("reviews the latest eligible payment for each selected order in one transaction", async () => {
 		let findManyPayload: unknown;
-		let updateManyPayload: unknown;
+		const updateManyPayloads: unknown[] = [];
 		const tx = {
 			salesPayments: {
 				findMany(payload: unknown) {
@@ -128,8 +128,8 @@ describe("sales payment review", () => {
 					]);
 				},
 				updateMany(payload: unknown) {
-					updateManyPayload = payload;
-					return Promise.resolve({ count: 2 });
+					updateManyPayloads.push(payload);
+					return Promise.resolve({ count: 1 });
 				},
 			},
 		};
@@ -157,18 +157,26 @@ describe("sales payment review", () => {
 			},
 			orderBy: [{ createdAt: "desc" }, { id: "desc" }],
 		});
-		expect(updateManyPayload).toMatchObject({
-			where: {
-				id: { in: [102, 201] },
-				reviewStatus: "needs_review",
-			},
-			data: {
-				reviewStatus: "reviewed",
-				reviewMethod: "manual",
-				reviewedById: 7,
-				reviewNote: "Reviewed from batch Mark as menu.",
-			},
-		});
+		expect(updateManyPayloads).toEqual([
+			expect.objectContaining({
+				where: {
+					id: 102,
+					reviewStatus: "needs_review",
+				},
+				data: expect.objectContaining({
+					reviewStatus: "reviewed",
+					reviewMethod: "manual",
+					reviewedById: 7,
+					reviewNote: "Reviewed from batch Mark as menu.",
+				}),
+			}),
+			expect.objectContaining({
+				where: {
+					id: 201,
+					reviewStatus: "needs_review",
+				},
+			}),
+		]);
 		expect(result).toEqual({
 			reviewed: [
 				{
@@ -185,6 +193,52 @@ describe("sales payment review", () => {
 				},
 			],
 			skipped: [{ salesId: 14, reason: "no_payment_needs_review" }],
+		});
+	});
+
+	it("reports a concurrently reviewed payment as skipped", async () => {
+		let updateIndex = 0;
+		const tx = {
+			salesPayments: {
+				findMany: async () => [
+					{
+						id: 301,
+						orderId: 31,
+						order: { id: 31, orderId: "ORDER-31", type: "order" },
+					},
+					{
+						id: 302,
+						orderId: 32,
+						order: { id: 32, orderId: "ORDER-32", type: "order" },
+					},
+				],
+				updateMany: async () => ({ count: updateIndex++ === 0 ? 1 : 0 }),
+			},
+		};
+		const db = {
+			$transaction: async <T>(
+				callback: (transaction: typeof tx) => Promise<T>,
+			) => callback(tx),
+		};
+
+		const result = await markSalesPaymentsReviewed(
+			db as unknown as Parameters<typeof markSalesPaymentsReviewed>[0],
+			{
+				salesIds: [31, 32],
+				reviewedById: 7,
+			},
+		);
+
+		expect(result).toEqual({
+			reviewed: [
+				{
+					paymentId: 301,
+					salesId: 31,
+					orderId: "ORDER-31",
+					type: "order",
+				},
+			],
+			skipped: [{ salesId: 32, reason: "no_payment_needs_review" }],
 		});
 	});
 

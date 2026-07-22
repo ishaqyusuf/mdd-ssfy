@@ -4,14 +4,6 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
-### Sales Orders Batch Payment Review
-- Priority: High
-- Description: Replaced per-order payment-review API calls with one protected transactional batch mutation, reviewed/skipped outcomes, one awaited scoped cache event, and automatic selection cleanup.
-- Related Feature: Sales Orders, payment review, query invalidation
-- Status: Done
-- Feature Files: brain/features/sales-orders-v2.md; brain/features/query-invalidation-events.md
-- Completed Date: 2026-07-22
-
 ### Sales Customer Direct Dealership Invitations
 - Priority: High
 - Description: Added batched partnership status to Sales Customers/Customer

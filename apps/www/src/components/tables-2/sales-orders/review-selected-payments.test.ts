@@ -5,6 +5,7 @@ describe("review selected payments", () => {
 	it("uses one batch mutation and waits for one scoped invalidation", async () => {
 		const mutationInputs: unknown[] = [];
 		const invalidationScopes: unknown[] = [];
+		const completionEvents: string[] = [];
 		let releaseInvalidation: (() => void) | undefined;
 		let completed = false;
 
@@ -32,10 +33,13 @@ describe("review selected payments", () => {
 			},
 			invalidate: (sales) => {
 				invalidationScopes.push(sales);
+				completionEvents.push("invalidate");
 				return new Promise<void>((resolve) => {
 					releaseInvalidation = resolve;
 				});
 			},
+			onPaymentReviewed: () => completionEvents.push("selection-cleared"),
+			closeMenu: () => completionEvents.push("menu-closed"),
 		});
 		void operation.then(() => {
 			completed = true;
@@ -43,6 +47,7 @@ describe("review selected payments", () => {
 
 		await Promise.resolve();
 		expect(completed).toBe(false);
+		expect(completionEvents).toEqual(["invalidate"]);
 		expect(mutationInputs).toEqual([
 			{
 				salesIds: [12, 13],
@@ -59,11 +64,17 @@ describe("review selected payments", () => {
 		releaseInvalidation?.();
 		const result = await operation;
 		expect(completed).toBe(true);
+		expect(completionEvents).toEqual([
+			"invalidate",
+			"selection-cleared",
+			"menu-closed",
+		]);
 		expect(result.reviewed).toHaveLength(2);
 	});
 
-	it("refreshes the review queue when every selected order is already stale", async () => {
+	it("does not invalidate when every selected order is already stale", async () => {
 		const invalidationScopes: unknown[] = [];
+		const completionEvents: string[] = [];
 		const result = await reviewSelectedPayments({
 			salesIds: [21, 22],
 			review: async () => ({
@@ -76,9 +87,12 @@ describe("review selected payments", () => {
 			invalidate: async (sales) => {
 				invalidationScopes.push(sales);
 			},
+			onPaymentReviewed: () => completionEvents.push("selection-cleared"),
+			closeMenu: () => completionEvents.push("menu-closed"),
 		});
 
-		expect(invalidationScopes).toEqual([[]]);
+		expect(invalidationScopes).toEqual([]);
+		expect(completionEvents).toEqual(["selection-cleared", "menu-closed"]);
 		expect(result.skipped).toHaveLength(2);
 	});
 });

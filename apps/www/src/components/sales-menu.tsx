@@ -1155,6 +1155,8 @@ function SalesMenuMarkAs({
 				salesIds,
 				review: (input) => markPaymentsReviewedMutation.mutateAsync(input),
 				invalidate: (sales) => sq.invalidate.salesPaymentChanged(sales),
+				onPaymentReviewed,
+				closeMenu: actions.closeMenu,
 			});
 			const successCount = result.reviewed.length;
 			const failedCount = result.skipped.length;
@@ -1180,9 +1182,6 @@ function SalesMenuMarkAs({
 					} had no payment needing review.`,
 				});
 			}
-
-			onPaymentReviewed?.();
-			actions.closeMenu();
 		} catch (error) {
 			toast({
 				title: "Unable to review payments",
