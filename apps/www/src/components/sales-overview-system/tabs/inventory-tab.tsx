@@ -59,6 +59,7 @@ import {
 	type SalesInventorySegment,
 	useSalesInventorySegmentQuery,
 } from "../hooks/use-sales-inventory-segment-query";
+import { formatInventoryCategoryStepLabel } from "../lib/inventory-display";
 import { useSalesOverviewSystem } from "../provider";
 import { OverviewEmptyState } from "../section-primitives";
 
@@ -146,12 +147,6 @@ function titleCaseLabel(value: string | null | undefined) {
 	return readinessLabel(value).replace(/\b[a-z]/g, (char) =>
 		char.toUpperCase(),
 	);
-}
-
-function formatCategoryStepLabel(value: string | null | undefined) {
-	return (value || "")
-		.replaceAll("_", " ")
-		.replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
 function normalizedProductKind(
@@ -986,7 +981,10 @@ function InventoryActionBar({
 											{row.componentName}
 										</div>
 										<div className="mt-0.5 text-[11px] text-muted-foreground">
-											{[formatCategoryStepLabel(row.stepName), row.variantName]
+											{[
+												formatInventoryCategoryStepLabel(row.stepName),
+												row.variantName,
+											]
 												.filter(Boolean)
 												.join(" • ")}
 										</div>
@@ -1513,7 +1511,7 @@ function InventoryInboundsPanel({
 											className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"
 										>
 											<span className="min-w-0 truncate">
-												{formatCategoryStepLabel(
+												{formatInventoryCategoryStepLabel(
 													demand.lineItemComponent.inventoryCategory?.title,
 												) || "Component"}{" "}
 												•{" "}
@@ -1550,7 +1548,7 @@ function InventoryLineRow({
 	readOnlyReason: string | null;
 }) {
 	const variantLabel = inventoryVariantLabel(row);
-	const categoryStepLabel = formatCategoryStepLabel(row.stepName);
+	const categoryStepLabel = formatInventoryCategoryStepLabel(row.stepName);
 	const kindTags = inventoryLineKindTags(row);
 	const pendingTone = row.qtyPending > 0 ? "warning" : "default";
 	const allocatedTone = row.qtyAllocated > 0 ? "success" : "default";
@@ -1802,7 +1800,7 @@ function InventoryLineActions({
 		categoryProductKind === "inventory" && categoryStockMode === "monitored"
 			? "needed"
 			: "not_needed";
-	const categoryStepLabel = formatCategoryStepLabel(row.stepName);
+	const categoryStepLabel = formatInventoryCategoryStepLabel(row.stepName);
 	const canConfigureTracking = capabilities.canConfigureTracking && !isReadOnly;
 	const canAllocateFromStock =
 		capabilities.canAllocateStock &&

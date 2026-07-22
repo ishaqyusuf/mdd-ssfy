@@ -1,5 +1,20 @@
 # Progress
 
+- 2026-07-22: Aligned Update Order Inbound demand labels with the Sales
+  Overview Inventory tab. The modal now joins active demand ids to the existing
+  sales inventory overview projection and shows the same component,
+  category/step, and human-readable variant names while retaining queue-label
+  fallback and existing mutability rules. Successful updates now invalidate the
+  Sales Activity tree and sales inventory overview, so the existing tagged
+  `Sales Inbound` note appears without a reload or duplicate write. The modal
+  and Inventory tab also share one category/step label formatter to prevent
+  future presentation drift. Focused tests pass with 5 tests / 5 assertions,
+  targeted Biome passes, and the
+  filtered `@gnd/www` typecheck reports no touched-file diagnostics; the broad
+  app typecheck remains blocked by existing repository baseline errors. The
+  orders route returned `200` and Quick Login reached the Super Admin picker,
+  but the authenticated browser chain stalled after account selection, so the
+  live status-mutation proof remains pending.
 - 2026-07-22: Fixed the storefront door product empty-price state. Selected
   doors now preserve their required workflow schedule even when every derived
   size is unpriced, and the product page keeps Size visible with an unavailable
