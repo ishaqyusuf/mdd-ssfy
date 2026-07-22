@@ -148,4 +148,5 @@ On 2026-07-22, multi-order payment review moved from parallel calls to `sales.ma
 
 - The mutation route remains registered to `sales.payment.changed` for any future ordinary caller that does not opt into the batch's explicit awaited event.
 - Focused payment-domain, query-event, and Sales Orders review coverage passed with 38 tests / 81 assertions.
+- Authorized local browser QA proved one UI batch action reviewed two selected payments together. The local Next runtime became unresponsive immediately afterward, so same-page DOM evidence was not captured; exact payment fields and temporary auth records were restored. The orchestration regression test verifies the awaited event completes before selection/menu cleanup, which is the behavior that removes the manual-refresh race.
 - Dedicated orchestration coverage proves one batch request, one scoped invalidation, that the operation remains pending until invalidation completes, and that selection/menu callbacks happen afterward.

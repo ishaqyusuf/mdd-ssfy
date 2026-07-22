@@ -10,12 +10,6 @@
 Tracks the active work queue. Keep this focused and execution-ready.
 
 ## Current Focus
-- [ ] Sales Orders batch payment review: the protected transactional batch
-  mutation, guarded concurrency results, single awaited successful-change
-  invalidation, and focused regression coverage are complete. Remaining gate:
-  authorized browser mutation proof that two or more reviewed rows disappear,
-  counts refresh, and selection clears without a reload. See
-  `.brain/features/sales-orders-v2.md`. (Sales + API + UI + Validation)
 - [ ] Storefront production cutover: implementation, isolated migration
   verification, and user-confirmed development/production schema pushes are
   complete. Remaining gates are production catalog/content publication, real

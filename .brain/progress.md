@@ -1,5 +1,17 @@
 # Progress
 
+- 2026-07-22: Hardened the custom millwork intake/office handoff after review.
+  Private upload authorization now atomically requires an open draft and caps at
+  five files; stale drafts are retained whenever private Blob cleanup cannot
+  complete; assignment and staff notification eligibility now follows
+  `viewStorefrontOrders`; `QUOTE_CREATED` is system-owned; quote retries recover
+  origin-tagged Sales drafts after a linkage crash; transactional emails use
+  stable provider idempotency keys and retries avoid existing in-app recipients.
+  Added focused regression coverage for upload authorization, system status
+  guards, quote recovery, notification request options, and cleanup fail-closed
+  behavior. Prisma generation and a second local `db push` passed; production
+  remains unchanged and migration generation remains blocked by the unrelated
+  pre-existing master-password audit shadow migration.
 - 2026-07-22: Fixed production sales quote/invoice printing after Prisma began
   selecting additive `DealerSales` pricing/tax columns that had not been
   applied to production. The isolated print query now selects only
@@ -6671,3 +6683,13 @@
   diagnostics are concentrated in stale test fixtures/expectations and a small
   number of test-only structural assumptions rather than the repaired runtime
   fulfillment/control paths.
+- 2026-07-22: Completed Sales Orders batch payment review. The v2 table now sends one protected `sales.markPaymentsReviewed` request for up to 100 selected orders, the payment domain performs guarded latest-payment updates in one transaction with accurate concurrent/no-payment skips, and the client awaits one scoped `sales.payment.changed` invalidation before clearing selection and closing the menu. Focused payment-domain, query-event, and Sales Orders orchestration coverage passed with 38 tests / 81 assertions. Authorized local browser QA selected `08897CST` and `08894LM` together and one `Reviewed` action updated both latest payments at the same batch timestamp; all payment fields were restored exactly, the eligible queue returned to three, and the temporary auth token/session were deleted. The shared Next process stopped returning bytes and logged `write EIO` before post-action DOM evidence could be collected; a temporary isolated server compiled but also stalled serving requests, so the no-refresh ordering claim is grounded in the deterministic orchestration test rather than an overstated browser assertion.
+- 2026-07-22: fixed production sales-document PDF attachments. Removed the
+  `ATTACH_SALES_EMAIL_PDF` environment opt-in and all `skipPdfAttachment`
+  payload gates, retained the signed-link fallback only for render failures,
+  and moved the notification task from Trigger `micro` to `medium-1x` after a
+  production canary identified an OOM kill during PDF rendering. Deployed
+  Trigger version `20260722.6`; controlled production run
+  `run_06fom77927l4afl8hvdg9mrv01` sent one email with zero failures. Resend
+  reported it as delivered with one 420,906-byte `application/pdf` attachment,
+  and the provider-stored download had valid `%PDF-` magic.

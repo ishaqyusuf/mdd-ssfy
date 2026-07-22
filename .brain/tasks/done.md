@@ -4,6 +4,15 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Sales Orders Batch Payment Review
+- Priority: High
+- Description: Replaced parallel per-order review requests with one protected transactional batch mutation for up to 100 selected orders, guarded concurrent results, and one awaited coalesced payment invalidation before selection/menu cleanup.
+- Related Feature: Sales Orders payment review, typed query invalidation events
+- Status: Done
+- Feature Files: `.brain/features/sales-orders-v2.md`, `.brain/features/query-invalidation-events.md`
+- Validation: 38 focused tests / 81 assertions passed. Authorized local browser QA proved one UI batch action updated two selected payments together; exact payment and temporary auth state was restored. The local Next runtime failed before post-action DOM capture, so the deterministic orchestration test supplies the no-refresh ordering proof.
+- Completed Date: 2026-07-22
+
 ### Master Password Support for Sales Rep Transfers
 - Priority: High
 - Description: Allowed owner-confirmed order and quote sales-rep transfers to use either the owner's account password or the configured master password, with atomic, fail-closed transfer usage auditing and a searchable Master Password Usage review surface.
