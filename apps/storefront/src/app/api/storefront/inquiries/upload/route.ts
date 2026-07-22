@@ -1,4 +1,5 @@
 import {
+	authorizeStorefrontInquiryUpload,
 	decodeStorefrontInquiryUploadToken,
 	getStorefrontInquiryBlobToken,
 } from "@api/db/queries/storefront-inquiries";
@@ -57,19 +58,7 @@ export async function POST(request: Request) {
 				if (!clean.startsWith(prefix) || clean.includes("..")) {
 					throw new Error("Project attachment path is invalid.");
 				}
-				const authorized = await db.storefrontInquiry.updateMany({
-					where: {
-						id: payload.inquiryId,
-						status: "DRAFT",
-						authorizedUploadCount: { lt: 5 },
-					},
-					data: { authorizedUploadCount: { increment: 1 } },
-				});
-				if (!authorized.count) {
-					throw new Error(
-						"This draft is closed or already has five authorized attachments.",
-					);
-				}
+				await authorizeStorefrontInquiryUpload(db, payload.inquiryId);
 				return {
 					allowedContentTypes,
 					maximumSizeInBytes: 10 * 1024 * 1024,

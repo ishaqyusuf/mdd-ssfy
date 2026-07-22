@@ -1,7 +1,10 @@
 // @ts-expect-error package typecheck does not include Bun test types.
 import { afterEach, describe, expect, test } from "bun:test";
 import { shouldMockEmail, shouldSkipEmail } from "@gnd/utils/envs";
-import { resolveEmailRecipients } from "./email-service";
+import {
+	resolveEmailRecipients,
+	transactionalEmailRequestOptions,
+} from "./email-service";
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalTestEmails = process.env.TEST_EMAILS;
@@ -50,6 +53,15 @@ describe("resolveEmailRecipients", () => {
 				testEmailMode: true,
 			}),
 		).toThrow("TEST_EMAILS must be configured for test email mode");
+	});
+});
+
+describe("transactionalEmailRequestOptions", () => {
+	test("passes a stable provider idempotency key when supplied", () => {
+		expect(transactionalEmailRequestOptions("inquiry-1-customer")).toEqual({
+			idempotencyKey: "inquiry-1-customer",
+		});
+		expect(transactionalEmailRequestOptions()).toBeUndefined();
 	});
 });
 

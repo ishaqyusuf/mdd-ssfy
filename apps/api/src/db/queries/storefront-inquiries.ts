@@ -7,6 +7,7 @@ import {
 	canTransitionStorefrontInquiry,
 	storefrontCustomInquiryDraftSchema,
 	storefrontFinalizeCustomInquirySchema,
+	storefrontInquiryOperationalStatusSchema,
 	storefrontInquiryReference,
 	storefrontInquiryStatusSchema,
 	storefrontProjectTypeLabel,
@@ -99,6 +100,27 @@ export function decodeStorefrontInquiryUploadToken(
 		throw new TRPCError({ code: "FORBIDDEN", message: "Invalid upload path." });
 	}
 	return payload;
+}
+
+export async function authorizeStorefrontInquiryUpload(
+	db: Pick<TRPCContext["db"], "storefrontInquiry">,
+	inquiryId: string,
+) {
+	const authorized = await db.storefrontInquiry.updateMany({
+		where: {
+			id: inquiryId,
+			status: "DRAFT",
+			authorizedUploadCount: { lt: 5 },
+		},
+		data: { authorizedUploadCount: { increment: 1 } },
+	});
+	if (!authorized.count) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"This draft is closed or already has five authorized attachments.",
+		});
+	}
 }
 
 export function verifyStorefrontInquiryUploadToken(input: {
@@ -648,9 +670,7 @@ export async function updateStorefrontInquiryStatus(
 	ctx: TRPCContext & { userId: number },
 	input: { id: string; status: StorefrontInquiryStatus },
 ) {
-	const status = storefrontInquiryStatusSchema
-		.exclude(["DRAFT", "QUOTE_CREATED"])
-		.parse(input.status);
+	const status = storefrontInquiryOperationalStatusSchema.parse(input.status);
 	const current = await ctx.db.storefrontInquiry.findFirst({
 		where: { id: input.id, status: { not: "DRAFT" } },
 		select: { id: true, status: true },
@@ -698,22 +718,23 @@ export async function assignStorefrontInquiry(
 	ctx: TRPCContext & { userId: number },
 	input: { id: string; assignedToId: number | null },
 ) {
-	const assignee = input.assignedToId
-		? await (async () => {
+	const requestedAssigneeId = input.assignedToId;
+	const assignee = requestedAssigneeId
+		? await (async (assigneeId: number) => {
 				const eligibleIds = await getUserIdsWithPermission(
 					ctx.db,
 					"viewStorefrontOrders",
 				);
-				if (!eligibleIds.has(input.assignedToId!)) return null;
+				if (!eligibleIds.has(assigneeId)) return null;
 				return ctx.db.users.findFirst({
 					where: {
-						id: input.assignedToId,
+						id: assigneeId,
 						deletedAt: null,
 						accessRevokedAt: null,
 					},
 					select: { id: true, name: true, email: true },
 				});
-			})()
+			})(requestedAssigneeId)
 		: null;
 	if (input.assignedToId && !assignee) {
 		throw new TRPCError({

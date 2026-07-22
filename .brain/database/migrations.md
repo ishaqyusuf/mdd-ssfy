@@ -182,7 +182,8 @@ Tracks notable migrations and migration strategy.
 
 - Prisma schema adds inquiry draft/office statuses, unique references and quote
   links, structured briefs, conversion lease fields, submission/activity dates,
-  and `StorefrontInquiryActivity`.
+  an atomic private-upload authorization count, and
+  `StorefrontInquiryActivity`.
 - `bun run db:generate` passed.
 - `prisma migrate dev --name storefront_custom_millwork_workflow` could not
   generate a migration because unrelated existing migration
@@ -191,4 +192,5 @@ Tracks notable migrations and migration strategy.
 - Local `gnd-prisma2` was synchronized with `prisma db push
   --accept-data-loss`; the warning was limited to adding unique constraints for
   nullable `reference` and `salesQuoteId`. The push succeeded and generated the
-  client. No production database was changed.
+  client. A second local push after the upload authorization counter was added
+  also completed successfully. No production database was changed.

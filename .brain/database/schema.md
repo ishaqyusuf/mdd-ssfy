@@ -135,9 +135,14 @@ Tracks important schema-level entities and ownership boundaries.
 - `projectBrief` stores the validated structured intake alongside the existing
   display/search fields. `submittedAt` and `lastActivityAt` separate abandoned
   drafts from live office work.
+- `authorizedUploadCount` is atomically incremented when the private upload
+  endpoint issues each file authorization. Only an open `DRAFT` below five
+  authorizations can receive another upload capability.
 - `customerId` and unique `salesQuoteId` link an approved brief into the
   canonical customer/Sales records. `quoteConversionStartedAt` and
-  `quoteConversionById` provide a short conversion lease.
+  `quoteConversionById` provide a short conversion lease; Sales origin metadata
+  is the recovery key if a process stops after quote persistence but before the
+  inquiry link commits.
 - `StorefrontInquiryActivity` is an append-only timeline for notes and workflow
   outcomes; security-sensitive mutations are also written to
   `StorefrontAuditEvent`.

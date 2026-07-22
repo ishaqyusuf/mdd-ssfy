@@ -1,7 +1,10 @@
 import { db } from "@gnd/db";
 import { logger, schedules, task } from "@trigger.dev/sdk/v3";
 import { del, list } from "@vercel/blob";
-import { storefrontLifecycleCutoffs } from "./lifecycle";
+import {
+	canDeleteStaleInquiryDraft,
+	storefrontLifecycleCutoffs,
+} from "./lifecycle";
 
 const EVENT_NAME = "storefront-lifecycle-schedule";
 
@@ -46,7 +49,14 @@ async function runStorefrontLifecycle() {
 				}
 				cursor = page.hasMore ? page.cursor : undefined;
 			} while (cursor);
-			deletableDraftIds.push(draft.id);
+			if (
+				canDeleteStaleInquiryDraft({
+					blobCleanupConfigured: Boolean(blobToken),
+					blobCleanupSucceeded: true,
+				})
+			) {
+				deletableDraftIds.push(draft.id);
+			}
 		} catch (error) {
 			logger.error("Unable to clean up stale inquiry draft files", {
 				inquiryId: draft.id,

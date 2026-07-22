@@ -238,21 +238,31 @@ production promotion remains intentionally gated.
   eligible; otherwise the office inbox shows it as unassigned.
 - Private files use `STOREFRONT_INQUIRY_BLOB_READ_WRITE_TOKEN` (falling back to
   `BLOB_READ_WRITE_TOKEN`) and are never returned as public blob URLs. Authorized
-  employees download them through a permission-checked `www` proxy route.
+  employees download them through a permission-checked `www` proxy route. The
+  upload endpoint atomically caps authorization at five files and rejects tokens
+  after the draft is submitted.
 - The office `/storefront/inquiries` workspace provides summary counts, search,
   owner/status filters, structured brief and attachment review, assignment,
   status transitions, internal notes, customer matching/linking, and activity.
 - Quote creation requires both `editStorefrontOrders` and canonical
   `editOrders`. It creates one Draft through the existing Sales form save path,
   assigns the inquiry rep, records storefront inquiry origin metadata, and links
-  the canonical Sales quote back to the inquiry.
+  the canonical Sales quote back to the inquiry. A retry reconciles an
+  origin-tagged Sales quote before creating anything, closing the crash window
+  between Sales persistence and inquiry linkage.
 - Customer and sales-rep notifications are best effort. Notification transport
   failures are recorded in inquiry activity and cannot make a committed customer
-  submission fail.
+  submission fail. Recipient selection uses `viewStorefrontOrders`, transactional
+  emails carry stable provider idempotency keys, and existing in-app recipients
+  are checked before retry writes.
 - Unsubmitted drafts and their private blob prefixes are cleaned after 24 hours.
+  If private Blob cleanup is unavailable or fails, the database draft is retained
+  so a later run still has the cleanup prefix.
 - Browser verification submitted `CMW-IXPC1FJXSK` with no console errors and
   verified its `NEW` state, structured brief, assignment activity, office list,
-  detail, and summary reads. Focused storefront/email/lifecycle tests pass 23/23.
+  detail, and summary reads. Follow-up persistence regression coverage verifies
+  the upload cap, system-owned statuses, quote recovery, notification idempotency
+  options, and cleanup fail-closed behavior.
 - Prisma migration creation is currently blocked by the unrelated existing
   `20260722180000_master_password_usage_audit` shadow-database failure. The new
   additive schema was pushed to local `gnd-prisma2` for integration testing;

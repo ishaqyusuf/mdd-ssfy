@@ -358,14 +358,21 @@ Tracks important request/response contracts and shared schema boundaries.
   notes, and phone are optional except phone is required for phone-only contact.
 - Attachment finalization accepts no more than five verified private files.
   Each file is at most 10 MB and must be JPEG, PNG, WebP, HEIC/HEIF, or PDF.
+  Upload authorization also atomically requires `DRAFT` state and fewer than
+  five prior authorizations, so a reusable client token cannot upload after
+  submission or exceed the server-side cap.
 - Submission is idempotent for an inquiry/upload token pair and returns the
   stable customer reference. Notification delivery is outside the commit and
   cannot change submission success.
 - Inquiry statuses are `DRAFT`, `NEW`, `IN_REVIEW`, `AWAITING_CUSTOMER`,
   `QUOTE_CREATED`, `RESPONDED`, `CLOSED`, and `SPAM`; transitions are validated
-  by the shared sales-domain state machine.
+  by the shared sales-domain state machine. `DRAFT` and `QUOTE_CREATED` are
+  system-owned and cannot be selected through the generic office status mutation.
 - Quote conversion requires a linked office customer and assigned rep. Repeated
-  conversion returns the already-linked quote rather than creating another.
+  conversion returns the already-linked quote rather than creating another. If
+  the Sales write committed before inquiry linkage, retry locates the unique
+  storefront-inquiry origin metadata and repairs the link instead of duplicating
+  the quote.
 - Configuration preview may validate a partial selection and returns
   `complete: boolean`. Cart, wishlist, and checkout writes still require a
   complete server-valid configuration. Hidden, unavailable, and explicitly

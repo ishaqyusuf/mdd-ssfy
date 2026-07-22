@@ -7,3 +7,10 @@ export function storefrontLifecycleCutoffs(now = new Date()) {
 		deleteInquiryDraftAt: new Date(now.getTime() - DAY_MS),
 	};
 }
+
+export function canDeleteStaleInquiryDraft(input: {
+	blobCleanupConfigured: boolean;
+	blobCleanupSucceeded: boolean;
+}) {
+	return input.blobCleanupConfigured && input.blobCleanupSucceeded;
+}

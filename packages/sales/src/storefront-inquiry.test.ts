@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	canTransitionStorefrontInquiry,
 	storefrontCustomInquiryDraftSchema,
+	storefrontInquiryOperationalStatusSchema,
 	storefrontInquiryReference,
 } from "./storefront-inquiry";
 
@@ -79,5 +80,18 @@ describe("storefront custom inquiry", () => {
 		expect(storefrontInquiryReference("cm1234567890", "CUSTOM_QUOTE")).toBe(
 			"CMW-1234567890",
 		);
+	});
+
+	test("reserves draft and quote-created statuses for system transitions", () => {
+		expect(
+			storefrontInquiryOperationalStatusSchema.safeParse("IN_REVIEW").success,
+		).toBe(true);
+		expect(
+			storefrontInquiryOperationalStatusSchema.safeParse("DRAFT").success,
+		).toBe(false);
+		expect(
+			storefrontInquiryOperationalStatusSchema.safeParse("QUOTE_CREATED")
+				.success,
+		).toBe(false);
 	});
 });

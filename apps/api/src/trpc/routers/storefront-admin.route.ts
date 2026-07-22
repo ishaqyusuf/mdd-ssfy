@@ -5,6 +5,7 @@ import {
 	getStorefrontCatalogList,
 	getStorefrontCatalogProfiles,
 } from "@api/db/queries/storefront-admin";
+import { approveStorefrontCheckoutPayment } from "@api/db/queries/storefront-checkout";
 import {
 	addStorefrontInquiryNote,
 	assignStorefrontInquiry,
@@ -19,7 +20,6 @@ import {
 	storefrontInquiryListSchema,
 	updateStorefrontInquiryStatus,
 } from "@api/db/queries/storefront-inquiries";
-import { approveStorefrontCheckoutPayment } from "@api/db/queries/storefront-checkout";
 import {
 	storefrontCatalogBulkSchema,
 	storefrontCatalogDetailSchema,
@@ -40,7 +40,7 @@ import {
 	storefrontComponentSchema,
 	storefrontOfferInputSchema,
 } from "@gnd/sales/storefront-configuration";
-import { storefrontInquiryStatusSchema } from "@gnd/sales/storefront-inquiry";
+import { storefrontInquiryOperationalStatusSchema } from "@gnd/sales/storefront-inquiry";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../init";
@@ -90,7 +90,7 @@ const storefrontSectionSchema = z.object({
 });
 const storefrontInquiryStatusInputSchema = z.object({
 	id: z.string().trim().min(1),
-	status: storefrontInquiryStatusSchema.exclude(["DRAFT", "QUOTE_CREATED"]),
+	status: storefrontInquiryOperationalStatusSchema,
 });
 const commerceStatusSchema = z.enum([
 	"ACTIVE",

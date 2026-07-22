@@ -12,6 +12,8 @@ export const storefrontInquiryStatuses = [
 ] as const;
 
 export const storefrontInquiryStatusSchema = z.enum(storefrontInquiryStatuses);
+export const storefrontInquiryOperationalStatusSchema =
+	storefrontInquiryStatusSchema.exclude(["DRAFT", "QUOTE_CREATED"]);
 
 export const storefrontProjectTypeSchema = z.enum([
 	"CUSTOM_DOOR",

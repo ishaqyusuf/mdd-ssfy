@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { storefrontLifecycleCutoffs } from "./lifecycle";
+import {
+	canDeleteStaleInquiryDraft,
+	storefrontLifecycleCutoffs,
+} from "./lifecycle";
 
 describe("storefrontLifecycleCutoffs", () => {
 	it("uses stable retention windows", () => {
@@ -15,5 +18,28 @@ describe("storefrontLifecycleCutoffs", () => {
 		expect(result.deleteInquiryDraftAt.toISOString()).toBe(
 			"2026-07-19T12:00:00.000Z",
 		);
+	});
+});
+
+describe("canDeleteStaleInquiryDraft", () => {
+	it("retains a draft unless private blob cleanup is configured and succeeds", () => {
+		expect(
+			canDeleteStaleInquiryDraft({
+				blobCleanupConfigured: false,
+				blobCleanupSucceeded: true,
+			}),
+		).toBe(false);
+		expect(
+			canDeleteStaleInquiryDraft({
+				blobCleanupConfigured: true,
+				blobCleanupSucceeded: false,
+			}),
+		).toBe(false);
+		expect(
+			canDeleteStaleInquiryDraft({
+				blobCleanupConfigured: true,
+				blobCleanupSucceeded: true,
+			}),
+		).toBe(true);
 	});
 });

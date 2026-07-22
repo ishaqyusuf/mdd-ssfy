@@ -43,9 +43,9 @@ const statuses = [
 	"SPAM",
 ] as const;
 type InquiryStatus = (typeof statuses)[number];
+type OperationalInquiryStatus = Exclude<InquiryStatus, "QUOTE_CREATED">;
 const editableStatuses = statuses.filter(
-	(status): status is Exclude<InquiryStatus, "QUOTE_CREATED"> =>
-		status !== "QUOTE_CREATED",
+	(status): status is OperationalInquiryStatus => status !== "QUOTE_CREATED",
 );
 type OwnerFilter = "all" | "mine" | "unassigned";
 
@@ -461,7 +461,7 @@ export function StorefrontInquiriesWorkspace() {
 										onChange={(event) =>
 											updateStatus.mutate({
 												id: detail.data.id,
-												status: event.target.value as InquiryStatus,
+												status: event.target.value as OperationalInquiryStatus,
 											})
 										}
 									>

@@ -97,6 +97,9 @@ Tracks authentication and authorization patterns across API surfaces.
 
 - Reading the office inquiry inbox, briefs, activity, and private documents
   requires `viewStorefrontOrders`.
+- Default assignment, assignee options, and staff notification recipients use
+  the same `viewStorefrontOrders` grant (including user-specific permission and
+  Super Admin resolution); role-name matching is not an authorization boundary.
 - Assignment, notes, customer linking, status changes, and the storefront side
   of quote conversion require `editStorefrontOrders`.
 - Quote creation repeats the canonical Sales authorization and additionally
