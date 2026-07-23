@@ -34,6 +34,31 @@ describe("New Job install task table migration parity", () => {
 		assertContains(source, "md:max-h-[60vh]");
 	});
 
+	it("keeps the final job form contained and usable on extra-small screens", () => {
+		const modalSource = readSource("components/modals/new-job/index.tsx");
+		const formSource = readSource("components/modals/new-job/form-step.tsx");
+		const footerSource = readSource(
+			"components/modals/new-job/new-job-footer.tsx",
+		);
+		const submitSource = readSource(
+			"components/modals/new-job/job-submit-button.tsx",
+		);
+		const tableSource = readSource(
+			"components/tables-2/new-job-install-tasks/data-table.tsx",
+		);
+
+		assertContains(modalSource, 'className="min-w-0 w-full max-w-full"');
+		assertContains(modalSource, "overflow-x-hidden");
+		assertContains(
+			modalSource,
+			"[&_[data-radix-scroll-area-viewport]>div]:!min-w-0",
+		);
+		assertContains(formSource, "min-w-0 w-full max-w-full");
+		assertContains(footerSource, "flex-row");
+		assertNotContains(submitSource, "{...form}");
+		assertContains(tableSource, "scrollbar-hide");
+	});
+
 	it("keeps the install task list off the embedded raw table", () => {
 		const source = readSource(
 			"components/modals/new-job/install-tasks-list.tsx",
@@ -66,9 +91,9 @@ describe("New Job install task table migration parity", () => {
 		assertContains(source, "rowHeight={tableConfig.rowHeight}");
 		assertContains(source, "estimateSize: () => tableConfig.rowHeight");
 		assertContains(source, "useTableScroll");
+		assertContains(source, 'useMediaQuery("(max-width: 767px)")');
 		assertContains(source, "effectiveColumnVisibility");
-		assertContains(source, "rate: showTaskQty");
-		assertContains(source, "total: showTaskQty");
+		assertContains(source, "showTaskQty && !isSmallScreen");
 	});
 
 	it("keeps compact editable item, rate, quantity, and total columns", () => {
@@ -88,10 +113,14 @@ describe("New Job install task table migration parity", () => {
 		assertContains(source, "disabled={row.original.maxQty === 0}");
 		assertContains(source, "InputGroup.Addon");
 		assertContains(source, "NumberFlow");
-		assertContains(source, "sizes.custom(220, 420, 280)");
+		assertContains(source, "sizes.custom(170, 420, 180)");
 		assertContains(source, "sizes.custom(84, 124, 96)");
-		assertContains(source, "sizes.custom(118, 168, 132)");
+		assertContains(source, "sizes.custom(100, 168, 120)");
 		assertContains(source, "sizes.custom(96, 132, 108)");
+		assertContains(source, 'className="md:hidden"');
+		assertContains(source, "Max: {row.original.maxQty}.");
+		assertContains(source, "Rate: {formatCompactMoney(row.original.rate)}.");
+		assertContains(source, "formatCompactMoney(");
 	});
 
 	it("registers compact content-fit new job install task table settings", () => {

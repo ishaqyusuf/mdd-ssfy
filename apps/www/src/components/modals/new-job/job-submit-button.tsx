@@ -84,7 +84,6 @@ export function JobSubmitButton({
 	);
 	return (
 		<form
-			{...form}
 			onSubmit={form.handleSubmit(
 				// @ts-ignore
 				(values: JobFormSchema) => {
@@ -115,8 +114,7 @@ export function JobSubmitButton({
 						? undefined
 						: {
 								id: normalizedValues.unit?.id ?? unitId ?? 0,
-								projectId:
-									normalizedValues.unit?.projectId ?? projectId ?? 0,
+								projectId: normalizedValues.unit?.projectId ?? projectId ?? 0,
 							};
 					const resolvedBuilderTaskId =
 						normalizedValues.builderTaskId ?? builderTaskId ?? undefined;
@@ -126,7 +124,7 @@ export function JobSubmitButton({
 							: undefined;
 					normalizedValues.modelId = isCustomProject
 						? undefined
-						: normalizedValues.modelId ?? modelId ?? 0;
+						: (normalizedValues.modelId ?? modelId ?? 0);
 					const defaultMeta = typedDefaultValues?.job?.meta || {};
 					const addonPercent =
 						Number(normalizedValues.job?.meta?.addonPercent) ||

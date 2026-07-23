@@ -42,7 +42,7 @@ export function NewJobModal() {
 				}
 			}}
 			title={
-				<span>
+				<span className="block min-w-0 pr-8 text-left leading-tight">
 					<span>Assign New Job</span>
 					<span id="step-title" />
 				</span>
@@ -52,9 +52,15 @@ export function NewJobModal() {
 		>
 			<JobFormProvider value={jobFormContext}>
 				<div className="" id="sub-header" />
-				<CustomModal.Content className="relative -mx-0 max-h-none min-h-0 flex-1 md:max-h-[60vh] md:min-h-[60vh]">
-					<Tabs value={String(params.step)}>
-						<Tabs.Content value={String(params.step || 1)}>
+				<CustomModal.Content className="relative -mx-0 max-h-none min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!min-w-0 [&_[data-radix-scroll-area-viewport]>div]:!w-full md:max-h-[60vh] md:min-h-[60vh]">
+					<Tabs
+						className="min-w-0 w-full max-w-full"
+						value={String(params.step)}
+					>
+						<Tabs.Content
+							className="min-w-0 w-full max-w-full overflow-x-hidden"
+							value={String(params.step || 1)}
+						>
 							<ActiveStep />
 						</Tabs.Content>
 					</Tabs>

@@ -9,6 +9,7 @@ import { useTableSettings } from "@/hooks/use-table-settings";
 import { TABLE_CONFIGS } from "@/utils/table-configs";
 import { type TableSettings, getColumnIds } from "@/utils/table-settings";
 import { DndContext, closestCenter } from "@dnd-kit/core";
+import { useMediaQuery } from "@gnd/ui/hooks";
 import { Table, TableBody } from "@gnd/ui/table";
 import { getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { type VirtualItem, useVirtualizer } from "@tanstack/react-virtual";
@@ -44,6 +45,7 @@ export function DataTable({
 	initialSettings,
 }: Props) {
 	const parentRef = useRef<HTMLDivElement>(null);
+	const isSmallScreen = useMediaQuery("(max-width: 767px)");
 
 	useScrollHeader(parentRef);
 
@@ -66,10 +68,10 @@ export function DataTable({
 	const effectiveColumnVisibility = useMemo(
 		() => ({
 			...columnVisibility,
-			rate: showTaskQty && columnVisibility.rate !== false,
-			total: showTaskQty && columnVisibility.total !== false,
+			rate: showTaskQty && !isSmallScreen && columnVisibility.rate !== false,
+			total: showTaskQty && !isSmallScreen && columnVisibility.total !== false,
 		}),
-		[columnVisibility, showTaskQty],
+		[columnVisibility, isSmallScreen, showTaskQty],
 	);
 	const table = useReactTable({
 		data: tableData,
@@ -123,14 +125,14 @@ export function DataTable({
 	const virtualItems = rowVirtualizer.getVirtualItems();
 
 	return (
-		<div className="relative">
-			<div className="w-full">
+		<div className="relative min-w-0 max-w-full">
+			<div className="min-w-0 w-full max-w-full">
 				<div
 					ref={(element) => {
 						parentRef.current = element;
 						tableScroll.containerRef.current = element;
 					}}
-					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
+					className="max-w-full overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{ height: tableHeight }}
 				>
 					<DndContext

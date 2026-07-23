@@ -1,4 +1,3 @@
-import { Icons } from "@gnd/ui/icons";
 import { useJobFormContext } from "@/contexts/job-form-context";
 import { useBuilderParams } from "@/hooks/use-builder-params";
 import { useJobFormParams } from "@/hooks/use-job-form-params";
@@ -11,12 +10,13 @@ import { type JobFormSchema, jobFormSchema } from "@community/schema";
 import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import Portal from "@gnd/ui/custom/portal";
+import { Icons } from "@gnd/ui/icons";
 import { Card, Field, InputGroup, Item } from "@gnd/ui/namespace";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { handleNumberInput, percentageValue, sum } from "@gnd/utils";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Controller, useFieldArray } from "react-hook-form";
 import { useEffect } from "react";
+import { Controller, useFieldArray } from "react-hook-form";
 import { AdminJobFormContent } from "./admin-job-form-content";
 import { InstallTasksList } from "./install-tasks-list";
 import { JobSubmitButton } from "./job-submit-button";
@@ -87,7 +87,8 @@ function FormContent() {
 		trpc.community.projectsList.queryOptions(),
 	);
 	const typedDefaultValues = defaultValues as JobFormDefaults | undefined;
-	const resolvedDefaultValues = (typedDefaultValues || {}) as Partial<JobFormSchema>;
+	const resolvedDefaultValues = (typedDefaultValues ||
+		{}) as Partial<JobFormSchema>;
 	const form = useZodForm(jobFormSchema, {
 		defaultValues: {
 			...resolvedDefaultValues,
@@ -139,9 +140,9 @@ function FormContent() {
 	);
 	const isAdminMode = formType === "assign";
 	const isSubmitMode = formType === "submit";
-	const selectedProject = (projects as Array<{ id: number; builderId?: number | null }> | undefined)?.find(
-		(project) => project.id === params.projectId,
-	);
+	const selectedProject = (
+		projects as Array<{ id: number; builderId?: number | null }> | undefined
+	)?.find((project) => project.id === params.projectId);
 	const builderId = selectedProject?.builderId;
 	const isProjectlessCustomJob =
 		params.builderTaskId === -1 && !params.projectId;
@@ -208,7 +209,6 @@ function FormContent() {
 		form,
 		params.builderTaskId,
 		isProjectlessCustomJob,
-		params.projectId,
 		params.step,
 		setJobFormParams,
 		state.allowCustomProject,
@@ -217,28 +217,34 @@ function FormContent() {
 
 	return (
 		<>
-			<div className="space-y-6 h-full flex flex-col">
+			<div className="flex h-full min-w-0 w-full max-w-full flex-col space-y-6">
 				<div className="flex flex-wrap gap-2 text-xs">
-					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-						<Icons.User className="size-3" />{" "}
-						{typedDefaultValues.user?.name || "Unknown User"}
+					<span className="flex min-w-0 max-w-full items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-muted-foreground">
+						<Icons.User className="size-3 shrink-0" />
+						<span className="min-w-0 truncate">
+							{typedDefaultValues.user?.name || "Unknown User"}
+						</span>
 					</span>
-					<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-						<Icons.Building2 className="size-3" />{" "}
-						{isProjectlessCustomJob
-							? customProjectTitle?.trim() || "Custom Project"
-							: params.builderTaskId === -1
-								? "Custom"
-							: typedDefaultValues.unit?.projectTitle || "Unknown Project"}
+					<span className="flex min-w-0 max-w-full items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-muted-foreground">
+						<Icons.Building2 className="size-3 shrink-0" />
+						<span className="min-w-0 truncate">
+							{isProjectlessCustomJob
+								? customProjectTitle?.trim() || "Custom Project"
+								: params.builderTaskId === -1
+									? "Custom"
+									: typedDefaultValues.unit?.projectTitle || "Unknown Project"}
+						</span>
 					</span>
 					{params.builderTaskId === -1 ? null : (
-						<span className="px-2 py-1 bg-muted rounded border border-border text-muted-foreground flex items-center gap-1">
-							<Icons.Home className="size-3" />
-							{`${typedDefaultValues.unit?.modelName} ${typedDefaultValues.unit?.lotBlock}`}
+						<span className="flex min-w-0 max-w-full items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-muted-foreground">
+							<Icons.Home className="size-3 shrink-0" />
+							<span className="min-w-0 truncate">
+								{`${typedDefaultValues.unit?.modelName} ${typedDefaultValues.unit?.lotBlock}`}
+							</span>
 						</span>
 					)}
 				</div>
-				<div className="flex-1 overflow-y-auto pr-2 space-y-6">
+				<div className="min-w-0 max-w-full flex-1 space-y-6 overflow-x-hidden overflow-y-auto pr-2">
 					{params.builderTaskId === -1 || !state.allowCustomJobs ? null : (
 						<div className="space-y-2">
 							<Controller
@@ -353,10 +359,10 @@ function FormContent() {
 						</div>
 					) : (
 						/* Builder Task Form */
-						<div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+						<div className="min-w-0 max-w-full space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
 							{/* Total Estimate Block */}
 							<AdminJobFormContent>
-								<div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
+								<div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:flex-row sm:items-center">
 									<div className="flex flex-col">
 										<span className="text-xs font-bold text-primary uppercase tracking-wider mb-0.5">
 											Total Install Estimate

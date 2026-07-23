@@ -41,6 +41,14 @@ function formatMoney(value: number) {
 	})}`;
 }
 
+function formatCompactMoney(value: number) {
+	if (!Number.isFinite(value)) return "$0";
+
+	return `$${value.toLocaleString(undefined, {
+		maximumFractionDigits: 2,
+	})}`;
+}
+
 export function getNewJobInstallTaskRowId(row: NewJobInstallTaskRow) {
 	return row.id;
 }
@@ -49,7 +57,7 @@ const taskColumn: Column = {
 	id: "task",
 	header: "Item",
 	accessorKey: "title",
-	...sizes.custom(220, 420, 280),
+	...sizes.custom(170, 420, 180),
 	enableResizing: true,
 	enableHiding: false,
 	meta: {
@@ -57,7 +65,7 @@ const taskColumn: Column = {
 		skeleton: { type: "text", width: "w-40" },
 		headerLabel: "Item",
 		className: sizeClass(
-			sizes.custom(220, 420, 280),
+			sizes.custom(170, 420, 180),
 			"md:sticky md:left-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
@@ -71,9 +79,21 @@ const taskColumn: Column = {
 					text={row.original.title || "-"}
 				/>
 				{meta?.showTaskQty ? (
-					<div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-						Max: {row.original.maxQty}
-					</div>
+					<Controller
+						control={meta.control}
+						name={`job.tasks.${row.original.index}.qty`}
+						render={({ field: { value } }) => (
+							<div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+								Max: {row.original.maxQty}.{" "}
+								<span className="md:hidden">
+									Rate: {formatCompactMoney(row.original.rate)}. Total:{" "}
+									{formatCompactMoney(
+										(row.original.rate || 0) * (Number(value) || 0),
+									)}
+								</span>
+							</div>
+						)}
+					/>
 				) : null}
 			</div>
 		);
@@ -102,12 +122,12 @@ const rateColumn: Column = {
 const qtyColumn: Column = {
 	id: "qty",
 	header: "Qty",
-	...sizes.custom(118, 168, 132),
+	...sizes.custom(100, 168, 120),
 	enableResizing: true,
 	meta: {
 		skeleton: { type: "text", width: "w-20" },
 		headerLabel: "Qty",
-		className: sizeClass(sizes.custom(118, 168, 132), "justify-center"),
+		className: sizeClass(sizes.custom(100, 168, 120), "justify-center"),
 		contentClassName: "flex justify-center",
 	},
 	cell: ({ row, table }) => {
