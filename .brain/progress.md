@@ -1,5 +1,16 @@
 # Progress
 
+- 2026-07-23: Repaired mobile contractor job submission after operational route
+  hardening applied the community-editor gate to `community.saveJobForm`.
+  The mutation now checks action, target worker, existing-job ownership, and
+  custom-job entitlement inside the write transaction; authenticated
+  contractors can submit/update/request configuration for themselves while
+  `editJobs` remains required for assignment, review, and cross-worker changes.
+  Expo now shows the API rejection message instead of silently returning to the
+  submit state. Focused route coverage passes 5 tests / 20 assertions. No
+  schema, migration, dev server, build, typecheck, browser, or emulator check
+  was run.
+
 - 2026-07-23: Fixed Expo preview OTA export failing when Metro followed the
   broad `@gnd/sales/payment-system` barrel into server-only payment tokenization,
   `jsonwebtoken`, and Node `crypto`. The three mobile invoice money-helper

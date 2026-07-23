@@ -15,8 +15,15 @@ Key behavior:
 - inventory configuration writes are Super Admin-only;
 - contractors retain own-job submission, including globally enabled custom
   jobs, while assignment/review/payment operations use separate permissions;
+- `community.saveJobForm` checks the live target worker and existing-job owner
+  inside the write transaction: non-managers may submit, update existing owned
+  jobs, or request configuration only for themselves; custom jobs still require
+  `submitCustomJob` or global `allowCustomJobs`, and `editJobs` remains required
+  for assignment, review, and cross-worker changes;
 - community writes are split across template, builder, unit, cost, invoice,
   job, and production scopes;
 - shared job settings require authentication to read and Super Admin to change.
 
 UI capability checks do not replace these server boundaries.
+Expo surfaces `saveJobForm` API errors in the job form instead of silently
+returning to the submit state.

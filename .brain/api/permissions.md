@@ -98,6 +98,10 @@ Tracks authentication and authorization patterns across API surfaces.
   payment create/cancel/reverse requires `editJobPayment`. Contractors may
   submit/update only their own work, and custom submissions require either
   `submitCustomJob` or the global `allowCustomJobs` setting.
+- `community.saveJobForm` enforces that self-service boundary inside its
+  transaction: a non-`editJobs` actor may submit, update an existing owned job,
+  or request task configuration; the requested worker and any existing job must
+  belong to that actor, and assignment/review/cross-worker changes fail closed.
 - Community mutations are protected and divided into template/project,
   builder, unit, cost, invoice, job, and production capability sets.
   CommunityUnit cost restrictions remain enforced after authentication.

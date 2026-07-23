@@ -350,7 +350,6 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 	const {
 		mutate: saveJobForm,
 		isPending: isSaving,
-		error: saveJobError,
 	} = useMutation(
 		_trpc.community.saveJobForm.mutationOptions({
 			onSuccess(data, args) {
@@ -383,6 +382,14 @@ export function useCreateJobFormV2Context(props: JobFormV2Props) {
 							? "assigned"
 							: "submitted";
 				navigateToJobAlert(savedJobId, alert);
+			},
+			onError(error) {
+				Toast.show(
+					error.message?.trim() || "Unable to save job right now.",
+					{
+						type: "error",
+					},
+				);
 			},
 			// meta: {
 			//   toastTitle: {

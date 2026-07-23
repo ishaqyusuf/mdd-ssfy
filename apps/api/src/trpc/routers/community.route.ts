@@ -57,6 +57,7 @@ import {
 	getProjectUnits,
 	getProjectUnitsSchema,
 } from "@api/db/queries/project-units";
+import { auth } from "@api/db/queries/user";
 import {
 	getUnitInvoiceAgingReport,
 	getUnitInvoiceAgingReportSchema,
@@ -139,6 +140,7 @@ import {
 import {
 	builderFormSchema,
 	communityInstallCostRateSchema,
+	type JobFormSchema,
 	jobFormSchema,
 } from "@community/schema";
 import type { JobStatus } from "@community/types";
@@ -153,6 +155,7 @@ import {
 import { type CommunityBuilderMeta, getPivotModel } from "@gnd/utils/community";
 import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { TRPCError } from "@trpc/server";
 import slugify from "slugify";
 import { z } from "zod";
 import {
@@ -202,12 +205,69 @@ async function requireCommunityInvoiceEditor(ctx: TRPCContext) {
 	);
 }
 
-async function requireCommunityJobEditor(ctx: TRPCContext) {
-	return requireAnyOperationalPermission(
-		ctx,
-		["editCommunity", "editProject", "editCommunityUnit", "editJobs"],
-		"You do not have permission to edit community jobs.",
-	);
+async function requireCommunityJobSaveAccess(
+	ctx: TRPCContext & { userId: number },
+	input: JobFormSchema,
+	db: Db,
+) {
+	const session = await auth({ ...ctx, db });
+	if (session.can.editJobs) return session;
+
+	const action = input.action ?? "submit";
+	if (
+		!["submit", "update", "request-task-config"].includes(action) ||
+		(action === "update" && !input.job.id)
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You do not have permission to perform this job action.",
+		});
+	}
+
+	const targetUserId = input.user?.id ?? ctx.userId;
+	if (targetUserId !== ctx.userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You can only submit work for your own account.",
+		});
+	}
+
+	const existingJob = input.job.id
+		? await db.jobs.findFirst({
+				where: {
+					id: input.job.id,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					isCustom: true,
+					userId: true,
+				},
+			})
+		: null;
+	if (input.job.id && !existingJob) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Job not found.",
+		});
+	}
+	if (existingJob && existingJob.userId !== ctx.userId) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You can only update your own job submission.",
+		});
+	}
+
+	if (!input.job.isCustom && !existingJob?.isCustom) return session;
+	if (session.can.submitCustomJob) return session;
+
+	const setting = await getSettingAction("jobs-settings", db);
+	if (setting.meta?.allowCustomJobs) return session;
+
+	throw new TRPCError({
+		code: "FORBIDDEN",
+		message: "Custom job submission is not enabled for this account.",
+	});
 }
 
 async function requireCommunityProductionEditor(ctx: TRPCContext) {
@@ -517,9 +577,9 @@ export const communityRouters = createTRPCRouter({
 		.input(getCommunityJobFormSchema)
 		.query(async (props) => getCommunityJobForm(props.ctx, props.input)),
 	saveJobForm: protectedProcedure.input(jobFormSchema).mutation(async (props) => {
-		await requireCommunityJobEditor(props.ctx);
 		const { ctx, input } = props;
 		return ctx.db.$transaction(async (db) => {
+			await requireCommunityJobSaveAccess(ctx, input, db as Db);
 			const { unit, user, job: jobInput } = input;
 			const isProjectlessCustomJob =
 				!!jobInput.isCustom && !unit?.id && !unit?.projectId;
@@ -656,7 +716,7 @@ export const communityRouters = createTRPCRouter({
 						title: normalizedJobTitle,
 						subtitle: jobInput.subtitle,
 						// type: job.type,
-						user: { connect: { id: user!.id || props.ctx.userId } },
+						user: { connect: { id: user?.id ?? props.ctx.userId } },
 						home: unit?.id ? { connect: { id: unit.id } } : undefined,
 						project: unit?.projectId
 							? { connect: { id: unit.projectId } }
