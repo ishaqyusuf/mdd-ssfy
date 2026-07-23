@@ -30,9 +30,12 @@ The initial catalog contains:
 - Inventory: catalog, stock, inbound, allocation, and fulfillment changes.
 - Jobs: job and contractor-payment changes.
 - HRM: employee changes.
+- Customers: customer profile and address changes.
 - Shared navigation: page-tab changes.
 
-The route registry maps 75 high-impact mutations across dispatch, inventory, sales, office/online payment processing, contractor jobs, HRM employees, the new sales form, and page tabs.
+The route registry maps 78 high-impact mutations across dispatch, inventory,
+sales, customers, office/online payment processing, contractor jobs, HRM
+employees, the new sales form, and page tabs.
 
 ## Calling Contract
 
@@ -110,6 +113,16 @@ The current transport refreshes the initiating tab and other open GND tabs in th
 - New-form draft autosaves and final saves derive the order/quote event family from the returned document type. Legacy sales saves, priority/payment-method edits, sales-rep transfer, copy/move, production events, fulfillment task intents, and dispatch helpers carry sale scope when available. Move scope includes both the deleted source and created target sale.
 - Production events refresh the current worker task/filter queues, legacy/v2 production lists, dashboards, overview, Sales Orders aggregates, and the exact affected Sales Overview. Fulfillment task completion uses the fulfillment event family, which also owns inventory, dispatch, packing, and production query families.
 - Payment events still path-invalidate Sales Orders lists/summaries, dashboards, accounting reads, filters, and page tabs. Only Sales Overview detail invalidation is narrowed.
+
+## Customer Coverage
+
+- `customers.createCustomer` and `customers.createCustomerAddress` map to
+  `customer.changed`.
+- The event refreshes customer search, directory, overview, filter, and
+  new-sales-form customer-resolution queries.
+- Customer information is projected into many sales. Until customer mutations
+  carry every affected sale reference, the event intentionally path-invalidates
+  Sales Overview details so all visible customer projections refresh.
 
 ## Extension Checklist
 

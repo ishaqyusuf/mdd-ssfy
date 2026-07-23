@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import {
 	SalesFormCreditLimitMeter,
@@ -39,6 +40,7 @@ interface Props {
 	mode: "create" | "edit";
 	type: "order" | "quote";
 	historyRestoreActive?: boolean;
+	canEditCustomer: boolean;
 }
 
 function formDateValue(value: string | null) {
@@ -46,6 +48,7 @@ function formDateValue(value: string | null) {
 }
 
 export function InvoiceOverviewPanel(props: Props) {
+	const { setParams: setCreateCustomerParams } = useCreateCustomerParams();
 	const record = useNewSalesFormStore((s) => s.record);
 	const setMeta = useNewSalesFormStore((s) => s.setMeta);
 	const setCustomerProfileMeta = useNewSalesFormStore(
@@ -457,6 +460,15 @@ export function InvoiceOverviewPanel(props: Props) {
 					"Not selected"
 				}
 				onChangeCustomer={() => setIsCustomerSelectorOpen(true)}
+				onEditCustomer={
+					props.canEditCustomer && customerId
+						? () =>
+								setCreateCustomerParams({
+									customerForm: true,
+									customerId,
+								})
+						: undefined
+				}
 				onProfileChange={applyCustomerProfile}
 				profileOptions={profileSelectOptions}
 				profileValue={

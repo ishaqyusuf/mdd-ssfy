@@ -4,6 +4,7 @@ import { Fragment } from "react";
 
 import Money from "@/components/_v1/money";
 import { DataSkeleton } from "@/components/data-skeleton";
+import { SalesCustomerEditButton } from "@/components/sales-customer-edit-button";
 import { SalesRepTransferControl } from "@/components/sales-rep-transfer-control";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import {
@@ -309,9 +310,15 @@ export function SalesOverviewOverviewTab() {
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 					<div className="space-y-6">
 						<div>
-							<SectionTitle icon={Icons.User}>
-								CUSTOMER INFORMATION
-							</SectionTitle>
+							<div className="flex items-center justify-between gap-3">
+								<SectionTitle icon={Icons.User}>
+									CUSTOMER INFORMATION
+								</SectionTitle>
+								<SalesCustomerEditButton
+									customerId={data?.customerId}
+									readOnly={Boolean(data?.isDealerSale)}
+								/>
+							</div>
 							<div className="space-y-3">
 								<div className="flex items-center gap-2">
 									<Icons.User className="mt-0.5 h-4 w-4 text-muted-foreground" />

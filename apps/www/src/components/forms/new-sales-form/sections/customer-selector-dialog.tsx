@@ -1,6 +1,7 @@
 "use client";
 
 import { getCustomerFormAction } from "@/actions/get-customer-form";
+import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Button } from "@gnd/ui/button";
 import {
@@ -16,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNewSalesFormCustomerPickerQuery } from "../api";
 import { useNewSalesFormStore } from "../store";
 import { useCreateFormQueryParams } from "../use-create-form-query-params";
-import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
+import { resolveCustomerFormSelection } from "./customer-form-selection";
 
 interface Props {
 	mode: "create" | "edit";
@@ -73,31 +74,42 @@ export function CustomerSelectorDialog(props: Props) {
 		let cancelled = false;
 
 		(async () => {
-			const createdCustomer = await getCustomerFormAction(createdCustomerId);
-			if (cancelled || !createdCustomer?.customerId) return;
+			const savedCustomer = await getCustomerFormAction(createdCustomerId);
+			const currentRecord = useNewSalesFormStore.getState().record;
+			if (cancelled || !savedCustomer?.customerId || !currentRecord) return;
 
-			setMeta({
-				customerId: createdCustomer.customerId,
-				customerProfileId: createdCustomer.profileId
-					? Number(createdCustomer.profileId)
-					: null,
-				billingAddressId: createdCustomer.addressId ?? null,
-				shippingAddressId: createdCustomer.addressId ?? null,
-				paymentTerm: createdCustomer.netTerm || null,
-				taxCode: createdCustomer.taxCode || null,
-			});
+			setMeta(
+				resolveCustomerFormSelection({
+					current: {
+						customerId: currentRecord.form.customerId,
+						customerProfileId: currentRecord.form.customerProfileId,
+						billingAddressId: currentRecord.form.billingAddressId,
+						shippingAddressId: currentRecord.form.shippingAddressId,
+					},
+					editedCustomerId: createCustomerParams.customerId,
+					savedCustomer: {
+						customerId: savedCustomer.customerId,
+						profileId: savedCustomer.profileId
+							? Number(savedCustomer.profileId)
+							: null,
+						addressId: savedCustomer.addressId ?? null,
+						netTerm: savedCustomer.netTerm || null,
+						taxCode: savedCustomer.taxCode || null,
+					},
+				}),
+			);
 			patchRecord({
 				customer: {
-					id: createdCustomer.customerId,
-					name: createdCustomer.name,
-					businessName: createdCustomer.businessName,
-					phoneNo: createdCustomer.phoneNo,
-					email: createdCustomer.email,
+					id: savedCustomer.customerId,
+					name: savedCustomer.name,
+					businessName: savedCustomer.businessName,
+					phoneNo: savedCustomer.phoneNo,
+					email: savedCustomer.email,
 				},
 			});
 			if (props.mode === "create") {
 				await setParams({
-					selectedCustomerId: createdCustomer.customerId,
+					selectedCustomerId: savedCustomer.customerId,
 				});
 			}
 			setSearchQuery("");
@@ -113,6 +125,7 @@ export function CustomerSelectorDialog(props: Props) {
 			cancelled = true;
 		};
 	}, [
+		createCustomerParams.customerId,
 		createCustomerParams?.payload?.customerId,
 		patchRecord,
 		props.mode,

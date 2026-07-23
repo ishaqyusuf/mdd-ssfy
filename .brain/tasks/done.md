@@ -4,6 +4,24 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Sales Customer Editing From Form And Overview
+- Priority: High
+- Description: Added distinct customer Edit and Change actions to the new sales
+  form and one shared Edit customer action across all Sales Overview variants,
+  backed by coherent customer-change refresh behavior and existing ownership
+  rules.
+- Related Feature: Sales customer editing
+- Status: Done
+- Plan File:
+  `.brain/plans/2026-07-23-bug-fix-sales-customer-editing-from-form-and-overview.md`
+- Feature File: `.brain/features/sales-customer-editing.md`
+- Validation: 38 focused tests / 80 assertions, focused Biome, API and sales
+  typechecks, scoped diff checks, and authenticated non-mutating browser proof
+  on office order `08890PC`. The broad WWW typecheck retains its documented
+  unrelated baseline. The complete repository test run finished with 2,113
+  passing, 1 skipped, and 25 existing unrelated failures.
+- Completed Date: 2026-07-23
+
 ### Sales Orders Batch Payment Review
 - Priority: High
 - Description: Replaced parallel per-order review requests with one protected transactional batch mutation for up to 100 selected orders, guarded concurrent results, and one awaited coalesced payment invalidation before selection/menu cleanup.

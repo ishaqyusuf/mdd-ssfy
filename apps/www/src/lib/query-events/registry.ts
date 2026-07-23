@@ -68,6 +68,19 @@ const salesDispatchTargets = [
 	pathTarget("dispatch.packingList"),
 ] as const;
 
+const customerTargets = [
+	pathTarget("customers.customerInfoSearch"),
+	pathTarget("customers.getCustomerDirectoryV2Summary"),
+	pathTarget("customers.getCustomerOverviewV2"),
+	pathTarget("customers.getSalesCustomer"),
+	pathTarget("customers.searchCustomers"),
+	pathTarget("filters.customer"),
+	pathTarget("newSalesForm.resolveCustomer"),
+	pathTarget("newSalesForm.searchCustomers"),
+	pathTarget("sales.customersIndex"),
+	...pageTabTargets,
+] as const;
+
 const inventoryCatalogTargets = [
 	pathTarget("inventories.inventoryProducts"),
 	pathTarget("inventories.inventoryVariantsWorkspace"),
@@ -123,6 +136,10 @@ export const QUERY_EVENTS = {
 		includeSalesOverview: true,
 		targets: salesDispatchTargets,
 	},
+	"customer.changed": {
+		includeSalesOverview: true,
+		targets: customerTargets,
+	},
 	"inventory.catalog.changed": {
 		targets: inventoryCatalogTargets,
 	},
@@ -168,6 +185,8 @@ export type QueryEvent = {
 };
 
 export const MUTATION_QUERY_EVENTS = {
+	"customers.createCustomer": ["customer.changed"],
+	"customers.createCustomerAddress": ["customer.changed"],
 	"dispatch.bulkAssignDriver": ["sales.dispatch.changed"],
 	"dispatch.bulkCancel": ["sales.dispatch.changed"],
 	"dispatch.cancelDispatch": ["sales.dispatch.changed"],

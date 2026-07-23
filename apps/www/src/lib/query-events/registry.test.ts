@@ -8,8 +8,8 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(76);
-		expect(Object.keys(QUERY_EVENTS).length).toBe(14);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(78);
+		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
 	it("reads the tRPC mutation route from its typed mutation key", () => {
@@ -31,6 +31,16 @@ describe("query event mutation registry", () => {
 				mutationKey: [["sales", "markLatestPaymentReviewed"]],
 			}),
 		).toEqual([{ name: "sales.payment.changed" }]);
+	});
+
+	it("publishes customer changes after customer and address saves", () => {
+		for (const mutation of ["createCustomer", "createCustomerAddress"]) {
+			expect(
+				resolveMutationQueryEvents({
+					mutationKey: [["customers", mutation]],
+				}),
+			).toEqual([{ name: "customer.changed" }]);
+		}
 	});
 
 	it("scopes a reviewed payment event to its sale overview", () => {

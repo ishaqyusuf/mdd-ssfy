@@ -1,5 +1,38 @@
 # Progress
 
+- 2026-07-23: Completed sales customer editing from both requested entry
+  points. The new sales form now exposes distinct accessible Edit and Change
+  actions; Edit opens the existing customer sheet prefilled for the selected
+  customer, and completion preserves the sale customer id plus any distinct
+  shipping address. Current v1, v2, and legacy compatibility Sales Overview
+  customer sections now share the same permission-gated Edit customer action,
+  hidden for dealer/read-only sales. Customer and address mutations publish
+  `customer.changed`, refreshing customer directory/overview/form reads and
+  Sales Overview projections. Existing server ownership rejection for
+  dealer-owned customer/profile/address edits now has regression coverage.
+  Validation passed 38 focused tests / 80 assertions, focused Biome, API and
+  sales typechecks, scoped diff checks, and authenticated non-mutating browser
+  proof on office order `08890PC`. Both Sales Overview and the new sales form
+  opened a prefilled Craig editor; no customer data was submitted or changed.
+  The broad WWW typecheck retains its documented unrelated baseline, with no
+  new production diagnostic from this feature in filtered output. The complete
+  repository test run finished with 2,113 passing, 1 skipped, and 25 existing
+  unrelated failures; none were in the focused customer-editing set. Brain files
+  updated: feature, plan, query-event feature, Sales Overview architecture,
+  tasks, and progress; no API contract, database schema, migration, or ADR
+  update was required because existing mutations/ownership rules were reused.
+
+- 2026-07-23: Verified that sales customer editing is not fixed end-to-end.
+  The new sales form can change the assigned customer and its save API persists
+  that association, but it has no action to edit the selected customer's
+  profile. Current and compatibility Sales Overview surfaces only open customer
+  overview and likewise have no customer edit action. Recorded a Proposed,
+  high-priority bug-fix plan to reuse the existing customer sheet, add separate
+  Edit and Change actions, publish typed customer-change invalidation, enforce
+  customer ownership rules, and validate order/quote behavior from both entry
+  points. No application code, API contract, permission, or database behavior
+  changed during this verification/planning pass.
+
 - 2026-07-22: Reconciled the dealership quote-to-order approval ledger with
   production behavior. The legacy `dealerPortal.convertQuoteToOrder` endpoint
   is already hard-disabled with an actionable `FORBIDDEN` response and its

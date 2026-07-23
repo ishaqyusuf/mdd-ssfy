@@ -9,7 +9,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@gnd/ui/select";
-import { useMemo, useState, type ReactNode } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import type { SalesFormSelectOption } from "./invoice-pricing-overview";
 
 export type SalesFormCustomerOverviewCardProps = {
@@ -23,6 +23,7 @@ export type SalesFormCustomerOverviewCardProps = {
 	billingFallback?: string;
 	shippingFallback?: string;
 	onChangeCustomer?: () => void;
+	onEditCustomer?: () => void;
 	onProfileChange?: (value: string) => void;
 };
 
@@ -47,21 +48,31 @@ export function SalesFormCustomerOverviewCard(
 				<h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
 					Customer
 				</h3>
-				{props.onChangeCustomer ? (
-					<button
-						onClick={props.onChangeCustomer}
-						className="text-xs font-bold text-primary hover:underline"
-						type="button"
-					>
-						Change
-					</button>
-				) : null}
+				<div className="flex items-center gap-3">
+					{props.onEditCustomer ? (
+						<button
+							aria-label="Edit customer"
+							onClick={props.onEditCustomer}
+							className="text-xs font-bold text-primary hover:underline"
+							type="button"
+						>
+							Edit
+						</button>
+					) : null}
+					{props.onChangeCustomer ? (
+						<button
+							aria-label="Change customer"
+							onClick={props.onChangeCustomer}
+							className="text-xs font-bold text-primary hover:underline"
+							type="button"
+						>
+							Change
+						</button>
+					) : null}
+				</div>
 			</div>
 
-			<div
-				className="relative overflow-hidden rounded-xl border border-border bg-card shadow-sm"
-				onClick={() => setIsExpanded((prev) => !prev)}
-			>
+			<div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-sm">
 				<div className="flex items-start gap-4 p-4">
 					<div className="relative shrink-0">
 						<div className="flex h-12 w-12 items-center justify-center rounded-full border bg-blue-100 text-sm font-black text-primary">
@@ -72,7 +83,13 @@ export function SalesFormCustomerOverviewCard(
 						</div>
 					</div>
 					<div className="min-w-0 flex-1">
-						<div className="flex items-start justify-between gap-3">
+						<button
+							aria-expanded={isExpanded}
+							aria-label="Toggle customer address details"
+							className="flex w-full items-start justify-between gap-3 text-left"
+							onClick={() => setIsExpanded((prev) => !prev)}
+							type="button"
+						>
 							<p className="truncate text-base font-bold leading-tight text-foreground">
 								{props.customerName || "Not selected"}
 							</p>
@@ -87,7 +104,7 @@ export function SalesFormCustomerOverviewCard(
 									className="shrink-0 text-muted-foreground"
 								/>
 							)}
-						</div>
+						</button>
 						<p className="mt-0.5 text-xs text-muted-foreground">
 							Account #: {props.accountNumber || "N/A"}
 						</p>

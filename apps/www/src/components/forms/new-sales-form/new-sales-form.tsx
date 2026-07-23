@@ -1840,6 +1840,9 @@ export function NewSalesForm(props: Props) {
                     ),
                     SummaryPanel: (
                         <InvoiceOverviewPanel
+                            canEditCustomer={
+                                salesFormPermissions.canEditCustomer
+                            }
                             historyRestoreActive={Boolean(restoredHistoryEntry)}
                             mode={props.mode}
                             type={props.type}

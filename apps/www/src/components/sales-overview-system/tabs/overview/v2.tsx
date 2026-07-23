@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { SalesCustomerEditButton } from "@/components/sales-customer-edit-button";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
 import { openLink } from "@/lib/open-link";
 import { middleTruncate } from "@/lib/truncate-middle";
@@ -47,16 +48,21 @@ function Section({
 	title,
 	children,
 	className,
+	action,
 }: {
 	title: string;
 	children: ReactNode;
 	className?: string;
+	action?: ReactNode;
 }) {
 	return (
 		<section className={cn("border-t border-border/70 pt-3", className)}>
-			<h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-				{title}
-			</h3>
+			<div className="mb-2 flex items-center justify-between gap-3">
+				<h3 className="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+					{title}
+				</h3>
+				{action}
+			</div>
 			{children}
 		</section>
 	);
@@ -125,7 +131,16 @@ export function SalesOverviewOverviewTabV2() {
 		<div className="space-y-3 p-1">
 			<QuickActionsBar />
 
-			<Section title="Customer" className="border-t-0 pt-0">
+			<Section
+				title="Customer"
+				className="border-t-0 pt-0"
+				action={
+					<SalesCustomerEditButton
+						customerId={overviewData?.customerId}
+						readOnly={Boolean(overviewData?.isDealerSale)}
+					/>
+				}
+			>
 				<Grid className="md:grid-cols-2">
 					<div>
 						<Row

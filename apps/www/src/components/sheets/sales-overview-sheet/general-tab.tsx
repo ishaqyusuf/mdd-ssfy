@@ -10,6 +10,7 @@ import { useSalesInventorySegmentQuery } from "@/components/sales-overview-syste
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
+import { SalesCustomerEditButton } from "@/components/sales-customer-edit-button";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { middleTruncate } from "@/lib/truncate-middle";
@@ -169,10 +170,16 @@ export function GeneralTab({}) {
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="space-y-6">
                         <div>
-                            <h3 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                                <Icons.User className="h-4 w-4" />
-                                CUSTOMER INFORMATION
-                            </h3>
+                            <div className="mb-3 flex items-center justify-between gap-3">
+                                <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                                    <Icons.User className="h-4 w-4" />
+                                    CUSTOMER INFORMATION
+                                </h3>
+                                <SalesCustomerEditButton
+                                    customerId={saleData?.customerId}
+                                    readOnly={Boolean(saleData?.isDealerSale)}
+                                />
+                            </div>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
                                     <Icons.User className="mt-0.5 h-4 w-4 text-muted-foreground" />

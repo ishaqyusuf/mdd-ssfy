@@ -20,9 +20,23 @@ function procedure(path: string) {
 
 function createTRPCProxy() {
 	return {
+		customers: {
+			customerInfoSearch: procedure("customers.customerInfoSearch"),
+			getCustomerDirectoryV2Summary: procedure(
+				"customers.getCustomerDirectoryV2Summary",
+			),
+			getCustomerOverviewV2: procedure("customers.getCustomerOverviewV2"),
+			getSalesCustomer: procedure("customers.getSalesCustomer"),
+			searchCustomers: procedure("customers.searchCustomers"),
+		},
 		filters: {
+			customer: procedure("filters.customer"),
 			salesOrders: procedure("filters.salesOrders"),
 			salesQuotes: procedure("filters.salesQuotes"),
+		},
+		newSalesForm: {
+			resolveCustomer: procedure("newSalesForm.resolveCustomer"),
+			searchCustomers: procedure("newSalesForm.searchCustomers"),
 		},
 		pageTabs: {
 			defaults: procedure("pageTabs.defaults"),
@@ -30,6 +44,7 @@ function createTRPCProxy() {
 		},
 		sales: {
 			accountingIndex: procedure("sales.accountingIndex"),
+			customersIndex: procedure("sales.customersIndex"),
 			getOrders: procedure("sales.getOrders"),
 			getOrdersSummary: procedure("sales.getOrdersSummary"),
 			getSalesAccountings: procedure("sales.getSalesAccountings"),
@@ -107,6 +122,28 @@ describe("query event executor", () => {
 					JSON.stringify(queryKey) === JSON.stringify([["pageTabs.list"]]),
 			),
 		).toBe(true);
+	});
+
+	it("refreshes customer and sales projections after a customer edit", async () => {
+		const { invalidated, queryClient } = createQueryClientSpy();
+
+		const results = await executeQueryEvent({
+			event: { name: "customer.changed" },
+			queryClient,
+			trpc: createTRPCProxy(),
+		});
+
+		expect(results.every((result) => result.status === "fulfilled")).toBe(true);
+		const serialized = invalidated.map((queryKey) => JSON.stringify(queryKey));
+		for (const route of [
+			"customers.getSalesCustomer",
+			"customers.getCustomerOverviewV2",
+			"sales.customersIndex",
+			"newSalesForm.resolveCustomer",
+			"sales.getSaleOverview",
+		]) {
+			expect(serialized.includes(JSON.stringify([[route]]))).toBe(true);
+		}
 	});
 
 	it("refreshes sales orders and page tabs after a payment review", async () => {

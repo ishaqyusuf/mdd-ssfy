@@ -6,6 +6,16 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 
 ## Current Status
 
+### 2026-07-23
+
+- Current v1, redesigned v2, and legacy compatibility customer sections now
+  consume one shared `SalesCustomerEditButton`.
+- Authorized office users can open the existing prefilled customer editor
+  directly from Sales Overview; dealer/read-only sales remain non-editable.
+- Successful customer/profile/address changes publish `customer.changed` and
+  refresh Sales Overview plus customer-dependent reads without routing through
+  the sales form.
+
 ### 2026-04-16
 
 - Added a tab-version registry at `apps/www/src/components/sales-overview-system/tab-versions.tsx` so each tab can resolve a default version without changing the provider, shell, or access-policy flow.
