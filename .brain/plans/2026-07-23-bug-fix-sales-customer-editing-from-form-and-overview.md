@@ -200,16 +200,18 @@ flowchart TD
   and `Change` actions. `Edit` opens the existing prefilled customer sheet;
   `Change` retains the existing customer-selector behavior.
 - Customer-sheet completion reconciles the selected customer's display,
-  profile, tax, and primary address metadata while preserving a distinct sale
-  shipping address and never changing the assigned customer id.
+  contact, and primary address metadata while preserving the sale pricing
+  profile, terms, tax code, distinct shipping address, and assigned customer id.
 - Current v1, v2, and compatibility Sales Overview customer sections consume
-  one shared edit action. The action is permission-gated, hidden for
-  dealer/read-only sales, and consumes only its matching completion payload.
+  one shared edit action. The action requires `editSalesCustomers`, is hidden
+  for dealer/read-only sales, and consumes only its matching completion payload.
+- Customer and address mutation routes independently require
+  `editSalesCustomers` and retain their dealer-ownership rejection.
 - `customer.changed` now refreshes customer directory/overview/form queries and
   sales projections after customer or customer-address saves.
 - Existing server ownership guards for dealer-owned customers and addresses are
   protected by focused regression tests.
-- Validation passed 38 focused tests / 80 assertions, focused Biome, API and
+- Validation passed 40 focused tests / 86 assertions, focused Biome, API and
   sales package typechecks, scoped diff checks, and authenticated browser proof
   on office order `08890PC`. Browser proof opened prefilled editors from Sales
   Overview and the new sales form without submitting or changing customer data.
@@ -217,3 +219,7 @@ flowchart TD
   filtered output showed no new production diagnostic from this feature. The
   complete repository test run finished with 2,113 passing, 1 skipped, and 25
   existing unrelated failures; none were in the focused customer-editing set.
+- Independent review found no documented-standards violations. Its two P1 spec
+  findings were corrected before handoff: permission enforcement now uses
+  `editSalesCustomers` at the UI and API boundaries, and same-customer
+  reconciliation no longer changes sale pricing metadata.

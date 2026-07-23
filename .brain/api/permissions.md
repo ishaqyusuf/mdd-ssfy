@@ -26,6 +26,10 @@ Tracks authentication and authorization patterns across API surfaces.
 - Dealer-customer visibility is enforced in directory, search, counts,
   overview, statement, and office sale-customer lookups. Shared records are
   dealer-owned/read-only; private records remain absent.
+- Customer profile and address mutations require the authenticated
+  `editSalesCustomers` capability and independently reject dealer-owned
+  customers. The new sales form and Sales Overview mirror both restrictions,
+  but the server remains the authorization boundary.
 - Fulfillment staff receive the order-specific direct-ship snapshot through the
   authorized dealer request/order workflow, not broad directory access.
 - Campaign management, application review/reset, and dealer

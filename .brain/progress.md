@@ -14,12 +14,14 @@
   actions; Edit opens the existing customer sheet prefilled for the selected
   customer, and completion preserves the sale customer id plus any distinct
   shipping address. Current v1, v2, and legacy compatibility Sales Overview
-  customer sections now share the same permission-gated Edit customer action,
-  hidden for dealer/read-only sales. Customer and address mutations publish
-  `customer.changed`, refreshing customer directory/overview/form reads and
-  Sales Overview projections. Existing server ownership rejection for
+  customer sections now share the same `editSalesCustomers`-gated Edit customer
+  action, hidden for dealer/read-only sales. Customer and address mutations
+  independently enforce that permission and publish `customer.changed`,
+  refreshing customer directory/overview/form reads and Sales Overview
+  projections. Same-customer reconciliation preserves the sale pricing
+  profile, payment terms, and tax code; existing server ownership rejection for
   dealer-owned customer/profile/address edits now has regression coverage.
-  Validation passed 38 focused tests / 80 assertions, focused Biome, API and
+  Validation passed 40 focused tests / 86 assertions, focused Biome, API and
   sales typechecks, scoped diff checks, and authenticated non-mutating browser
   proof on office order `08890PC`. Both Sales Overview and the new sales form
   opened a prefilled Craig editor; no customer data was submitted or changed.
@@ -27,9 +29,11 @@
   new production diagnostic from this feature in filtered output. The complete
   repository test run finished with 2,113 passing, 1 skipped, and 25 existing
   unrelated failures; none were in the focused customer-editing set. Brain files
-  updated: feature, plan, query-event feature, Sales Overview architecture,
-  tasks, and progress; no API contract, database schema, migration, or ADR
-  update was required because existing mutations/ownership rules were reused.
+  updated: feature, plan, API permissions, query-event feature, Sales Overview
+  architecture, tasks, and progress; no API contract, database schema,
+  migration, or ADR update was required. Independent review found no documented
+  standards violations, and its permission/pricing-metadata findings were
+  corrected before handoff.
 
 - 2026-07-23: Verified that sales customer editing is not fixed end-to-end.
   The new sales form can change the assigned customer and its save API persists

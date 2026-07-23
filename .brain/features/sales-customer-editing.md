@@ -34,11 +34,12 @@ directory.
 
 ## Authorization
 
-- Sales Overview requires the existing order-edit capability before rendering
-  the edit action.
+- Both the new sales form and Sales Overview require the existing
+  `editSalesCustomers` capability before rendering the edit action.
 - Dealer/read-only sales do not render the office customer-edit action.
-- Server-side customer and address mutations reject dealer-owned customer data;
-  UI gating is not the authorization boundary.
+- Server-side customer and address mutations require `editSalesCustomers` and
+  reject dealer-owned customer data; UI gating is not the authorization
+  boundary.
 
 ## Freshness
 
@@ -49,7 +50,7 @@ resolution, Sales Customers, and Sales Overview projections.
 
 ## Validation
 
-- 38 focused tests / 80 assertions passed.
+- 40 focused tests / 86 assertions passed.
 - Focused Biome, API and sales package typechecks, and scoped diff checks
   passed.
 - Authenticated browser proof on office order `08890PC` verified both entry
@@ -59,6 +60,10 @@ resolution, Sales Customers, and Sales Overview projections.
 - The complete repository test run finished with 2,113 passing, 1 skipped, and
   25 existing unrelated failures; none were in the focused customer-editing
   set.
+- Independent review found no documented-standards violations. Its two
+  substantive spec findings were closed by enforcing `editSalesCustomers` at
+  UI/API boundaries and preserving sale pricing profile, terms, and tax during
+  customer edits.
 
 ## Related Plan
 
