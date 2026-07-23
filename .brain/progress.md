@@ -21,7 +21,7 @@
   projections. Same-customer reconciliation preserves the sale pricing
   profile, payment terms, and tax code; existing server ownership rejection for
   dealer-owned customer/profile/address edits now has regression coverage.
-  Validation passed 40 focused tests / 86 assertions, focused Biome, API and
+  Validation passed 49 focused tests / 95 assertions, focused Biome, API and
   sales typechecks, scoped diff checks, and authenticated non-mutating browser
   proof on office order `08890PC`. Both Sales Overview and the new sales form
   opened a prefilled Craig editor; no customer data was submitted or changed.
@@ -33,7 +33,8 @@
   architecture, tasks, and progress; no API contract, database schema,
   migration, or ADR update was required. Independent review found no documented
   standards violations, and its permission/pricing-metadata findings were
-  corrected before handoff.
+  corrected before handoff; targeted re-review confirmed both P1 findings
+  closed.
 
 - 2026-07-23: Verified that sales customer editing is not fixed end-to-end.
   The new sales form can change the assigned customer and its save API persists

@@ -25,13 +25,13 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan File:
   `.brain/plans/2026-07-23-bug-fix-sales-customer-editing-from-form-and-overview.md`
 - Feature File: `.brain/features/sales-customer-editing.md`
-- Validation: 40 focused tests / 86 assertions, focused Biome, API and sales
+- Validation: 49 focused tests / 95 assertions, focused Biome, API and sales
   typechecks, scoped diff checks, and authenticated non-mutating browser proof
   on office order `08890PC`. The broad WWW typecheck retains its documented
   unrelated baseline. The complete repository test run finished with 2,113
   passing, 1 skipped, and 25 existing unrelated failures.
 - Review: No documented-standards violations. Permission and pricing-metadata
-  spec findings were corrected before handoff.
+  spec findings were corrected and confirmed closed before handoff.
 - Completed Date: 2026-07-23
 
 ### Shared Document Caller Migration

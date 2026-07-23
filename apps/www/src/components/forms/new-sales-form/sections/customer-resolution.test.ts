@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	shouldPreserveEditCustomerPricingMeta,
 	shouldPreserveInitialEditCustomerResolution,
 	shouldPreserveInitialEditTaxRate,
 } from "./customer-resolution";
@@ -37,6 +38,41 @@ describe("shouldPreserveInitialEditCustomerResolution", () => {
 				currentCustomerId: 42,
 				resolvedCustomerId: 42,
 				initialResolutionHandled: false,
+			}),
+		).toBe(false);
+	});
+});
+
+describe("shouldPreserveEditCustomerPricingMeta", () => {
+	it("preserves sale pricing metadata on later same-customer refreshes", () => {
+		expect(
+			shouldPreserveEditCustomerPricingMeta({
+				mode: "edit",
+				initialCustomerId: 42,
+				currentCustomerId: 42,
+				resolvedCustomerId: 42,
+			}),
+		).toBe(true);
+	});
+
+	it("allows defaults after explicitly changing the assigned customer", () => {
+		expect(
+			shouldPreserveEditCustomerPricingMeta({
+				mode: "edit",
+				initialCustomerId: 42,
+				currentCustomerId: 84,
+				resolvedCustomerId: 84,
+			}),
+		).toBe(false);
+	});
+
+	it("allows create forms to resolve customer pricing defaults", () => {
+		expect(
+			shouldPreserveEditCustomerPricingMeta({
+				mode: "create",
+				initialCustomerId: undefined,
+				currentCustomerId: 42,
+				resolvedCustomerId: 42,
 			}),
 		).toBe(false);
 	});

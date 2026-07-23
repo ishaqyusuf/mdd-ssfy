@@ -18,6 +18,17 @@ export function shouldPreserveInitialEditCustomerResolution(
 	);
 }
 
+export function shouldPreserveEditCustomerPricingMeta(
+	input: Omit<InitialCustomerResolutionInput, "initialResolutionHandled">,
+) {
+	return (
+		input.mode === "edit" &&
+		input.initialCustomerId != null &&
+		input.currentCustomerId === input.initialCustomerId &&
+		input.resolvedCustomerId === input.initialCustomerId
+	);
+}
+
 export function shouldPreserveInitialEditTaxRate(input: {
 	mode: "create" | "edit";
 	initialTaxCode?: string | null;

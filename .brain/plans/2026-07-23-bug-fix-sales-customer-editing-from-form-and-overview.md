@@ -211,7 +211,7 @@ flowchart TD
   sales projections after customer or customer-address saves.
 - Existing server ownership guards for dealer-owned customers and addresses are
   protected by focused regression tests.
-- Validation passed 40 focused tests / 86 assertions, focused Biome, API and
+- Validation passed 49 focused tests / 95 assertions, focused Biome, API and
   sales package typechecks, scoped diff checks, and authenticated browser proof
   on office order `08890PC`. Browser proof opened prefilled editors from Sales
   Overview and the new sales form without submitting or changing customer data.
@@ -222,4 +222,5 @@ flowchart TD
 - Independent review found no documented-standards violations. Its two P1 spec
   findings were corrected before handoff: permission enforcement now uses
   `editSalesCustomers` at the UI and API boundaries, and same-customer
-  reconciliation no longer changes sale pricing metadata.
+  reconciliation or later query refreshes no longer change sale pricing
+  metadata. Targeted re-review confirmed both P1 findings closed.

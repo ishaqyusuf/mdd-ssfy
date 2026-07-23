@@ -50,7 +50,7 @@ resolution, Sales Customers, and Sales Overview projections.
 
 ## Validation
 
-- 40 focused tests / 86 assertions passed.
+- 49 focused tests / 95 assertions passed.
 - Focused Biome, API and sales package typechecks, and scoped diff checks
   passed.
 - Authenticated browser proof on office order `08890PC` verified both entry
@@ -63,7 +63,7 @@ resolution, Sales Customers, and Sales Overview projections.
 - Independent review found no documented-standards violations. Its two
   substantive spec findings were closed by enforcing `editSalesCustomers` at
   UI/API boundaries and preserving sale pricing profile, terms, and tax during
-  customer edits.
+  direct reconciliation and later customer-query refreshes.
 
 ## Related Plan
 

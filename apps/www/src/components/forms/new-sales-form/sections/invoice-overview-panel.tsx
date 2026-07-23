@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useCreateCustomerParams } from "@/hooks/use-create-customer-params";
 import { endFlow, logStage, startFlow } from "@/lib/dev-flow-logger";
 import {
@@ -9,6 +8,7 @@ import {
 	SalesFormDealerProfileCard,
 	SalesFormInvoiceDetailsPanel,
 	SalesFormPricingOverview,
+	type SalesFormSelectOption,
 	buildSalesFormProfileSelectOptions,
 	buildSalesFormSelectOptions,
 	buildSalesFormTaxSelectOptions,
@@ -21,20 +21,21 @@ import {
 	salesFormDeliveryOptions,
 	salesFormPaymentMethods,
 	salesFormPaymentTerms,
-	type SalesFormSelectOption,
 } from "@gnd/sales/sales-form";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useCustomerProfilesQuery,
 	useCustomerTaxProfilesQuery,
 	useNewSalesFormResolveCustomerQuery,
 } from "../api";
-import { useNewSalesFormStore } from "../store";
 import { computeSummary, repriceLineItemsByProfile } from "../mappers";
-import { CustomerSelectorDialog } from "./customer-selector-dialog";
+import { useNewSalesFormStore } from "../store";
 import {
+	shouldPreserveEditCustomerPricingMeta,
 	shouldPreserveInitialEditCustomerResolution,
 	shouldPreserveInitialEditTaxRate,
 } from "./customer-resolution";
+import { CustomerSelectorDialog } from "./customer-selector-dialog";
 
 interface Props {
 	mode: "create" | "edit";
@@ -168,13 +169,25 @@ export function InvoiceOverviewPanel(props: Props) {
 		if (props.mode === "edit") {
 			initialCustomerResolutionHandledRef.current = true;
 		}
+		const preserveSalePricingMeta = shouldPreserveEditCustomerPricingMeta({
+			mode: props.mode,
+			initialCustomerId: initialEditCustomerIdRef.current,
+			currentCustomerId: customerId,
+			resolvedCustomerId,
+		});
 		const nextMeta = {
 			customerId: resolvedCustomerId,
-			customerProfileId: data.profileId ?? customerProfileId,
+			customerProfileId: preserveSalePricingMeta
+				? customerProfileId
+				: (data.profileId ?? customerProfileId),
 			billingAddressId: data.billing?.id ?? data.billingId ?? null,
 			shippingAddressId: data.shipping?.id ?? data.shippingId ?? null,
-			paymentTerm: normalizeSalesFormPaymentTerm(data.netTerm, paymentTerm),
-			taxCode: (data.taxCode as string) || null,
+			paymentTerm: preserveSalePricingMeta
+				? paymentTerm
+				: normalizeSalesFormPaymentTerm(data.netTerm, paymentTerm),
+			taxCode: preserveSalePricingMeta
+				? taxCode
+				: (data.taxCode as string) || null,
 		};
 		const changed =
 			nextMeta.customerId !== customerId ||
