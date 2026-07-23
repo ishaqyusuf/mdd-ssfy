@@ -25,7 +25,7 @@ import {
 	updateStorefrontInquiryStatus,
 } from "@api/db/queries/storefront-inquiries";
 import {
-	getStorefrontShippingPolicy,
+	getStorefrontShippingSettings,
 	reviewStorefrontShippingQuote,
 	saveStorefrontShippingPolicy,
 } from "@api/db/queries/storefront-shipping";
@@ -271,9 +271,21 @@ export const storefrontAdminRouter = createTRPCRouter({
 					!Array.isArray(existing.metadata)
 						? existing.metadata
 						: {};
+				const existingShipping =
+					existingMetadata.shipping &&
+					typeof existingMetadata.shipping === "object" &&
+					!Array.isArray(existingMetadata.shipping)
+						? existingMetadata.shipping
+						: {};
 				const metadata = asJson({
 					...existingMetadata,
 					galleryImages: input.galleryImageUrls,
+					shipping: {
+						...existingShipping,
+						weightPerUnitLb: input.shippingWeightPerUnitLb,
+						lbPerLinearFoot: input.shippingLbPerLinearFoot,
+						shelfCategoryId: input.shippingShelfCategoryId,
+					},
 				});
 				await ctx.db.storefrontComponent.upsert({
 					where: { sourceComponentUid: input.componentUid },
@@ -1183,7 +1195,7 @@ export const storefrontAdminRouter = createTRPCRouter({
 				userId: ctx.userId,
 				permission: "viewStorefront",
 			});
-			return getStorefrontShippingPolicy(ctx);
+			return getStorefrontShippingSettings(ctx);
 		}),
 		saveShipping: protectedProcedure
 			.input(storefrontShippingPolicyInputSchema)

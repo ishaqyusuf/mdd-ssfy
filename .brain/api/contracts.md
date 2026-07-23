@@ -532,10 +532,25 @@ Tracks important request/response contracts and shared schema boundaries.
   a non-expired, owner/cart-matched quote for the selected Google Place. V1
   quote amounts remain provisional; V2 may return `AUTO_APPROVED` only without
   calculation or confidence blockers.
-- Shipping line evidence uses Door product/size override then profile then
-  global fallback; Moulding product/category/global pounds-per-shipped-LF; and
-  Shelf product/child-category/parent-category/global pounds per unit. Unmapped,
-  route-failed, out-of-area, or capacity-blocked quotes require manual review.
+- Shipping line evidence uses catalog Door per-unit override then canonical
+  size profile; catalog Moulding pounds-per-LF override then the general
+  pounds-per-shipped-LF setting; and catalog Shelf per-unit override then
+  child/parent category pounds per unit. Unmapped, route-failed, out-of-area, or
+  capacity-blocked quotes require manual review.
+- Shipping settings project Door dimensions from Dyke
+  `doorSizeVariation`/Height data plus Door pricing dependency dimensions, and
+  Shelf rows from active parent `DykeShelfCategories`. Product-specific
+  overrides belong to
+  `StorefrontComponent.metadata.shipping`; policy save no longer accepts manual
+  product override or Moulding profile JSON.
+- Catalog Shelf metadata carries the numeric `DykeShelfCategories.id`, and
+  catalog family behavior is resolved from the canonical Dyke source step
+  rather than a public Storefront category slug/title.
+- The active legacy policy remains read-compatible. Settings returns a legacy
+  configuration summary, and `saveShipping` requires
+  `acknowledgeLegacyReplacement=true` before replacing unrepresentable legacy
+  mappings with the typed settings/catalog model. The prior immutable version
+  remains available as rollback evidence.
 - Payment-link creation accepts shipping only in `AUTO_APPROVED`, `APPROVED`,
   or `OVERRIDDEN`. Office finalization transactionally updates checkout totals,
   canonical Sales Delivery extra cost, `grandTotal`, and `amountDue`.

@@ -634,22 +634,13 @@ function StorefrontShippingSettingsCard() {
 	);
 	const [originSearch, setOriginSearch] = useState("");
 	const [sessionToken, setSessionToken] = useState(() => crypto.randomUUID());
-	const [profiles, setProfiles] = useState({
-		doors: "[]",
-		mouldings: "[]",
-		shelves: "[]",
-		overrides: "[]",
-	});
+	const [weightTab, setWeightTab] = useState<"doors" | "mouldings" | "shelves">(
+		"doors",
+	);
 	useEffect(() => {
 		if (!settings.data) return;
 		setForm(settings.data);
 		setOriginSearch(settings.data.originFormattedAddress || "");
-		setProfiles({
-			doors: JSON.stringify(settings.data.doorWeightProfiles, null, 2),
-			mouldings: JSON.stringify(settings.data.mouldingWeightProfiles, null, 2),
-			shelves: JSON.stringify(settings.data.shelfCategoryWeights, null, 2),
-			overrides: JSON.stringify(settings.data.productWeightOverrides, null, 2),
-		});
 	}, [settings.data]);
 	const originSuggestions = useQuery(
 		trpc.storefrontAdmin.settings.addressAutocomplete.queryOptions(
@@ -704,9 +695,6 @@ function StorefrontShippingSettingsCard() {
 		["maxDistanceMiles", "Maximum one-way miles"],
 		["maxWeightLb", "Maximum shipment weight (lb)"],
 		["freeDeliveryThreshold", "Free delivery subtotal"],
-		["globalDoorWeightLb", "Fallback door weight (lb)"],
-		["globalMouldingLbPerLinearFoot", "Fallback moulding weight / linear ft"],
-		["globalShelfWeightPerUnitLb", "Fallback shelf item weight (lb)"],
 		["autoApprovalMaxDistanceMiles", "Auto max one-way miles"],
 		["autoApprovalMaxWeightLb", "Auto max shipment weight (lb)"],
 		["autoApprovalMaxAmount", "Auto max delivery amount"],
@@ -717,9 +705,8 @@ function StorefrontShippingSettingsCard() {
 				<CardTitle>Product-aware delivery calculation</CardTitle>
 				<p className="text-sm text-muted-foreground">
 					Formula: dispatch + route miles × vehicle rate + route miles ×
-					excess-weight units × weight rate + handling. V1 always sends the
-					result to the office; V2 auto-approves only quotes inside every
-					confidence limit.
+					excess-weight units × weight rate. V1 always sends the result to the
+					office; V2 auto-approves only quotes inside every confidence limit.
 				</p>
 			</CardHeader>
 			<CardContent>
@@ -727,22 +714,30 @@ function StorefrontShippingSettingsCard() {
 					className="space-y-6"
 					onSubmit={(event) => {
 						event.preventDefault();
-						try {
-							save.mutate({
-								...form,
-								doorWeightProfiles: parseProfileJson(profiles.doors),
-								mouldingWeightProfiles: parseProfileJson(profiles.mouldings),
-								shelfCategoryWeights: parseProfileJson(profiles.shelves),
-								productWeightOverrides: parseProfileJson(profiles.overrides),
-							});
-						} catch (error) {
-							toast({
-								title: "Invalid profile JSON",
-								description:
-									error instanceof Error ? error.message : String(error),
-								variant: "destructive",
-							});
-						}
+						const {
+							doorSizes,
+							shelfCategories,
+							legacyWeightConfiguration: _legacyWeightConfiguration,
+							...policy
+						} = form;
+						save.mutate({
+							...policy,
+							doorWeightProfiles: doorSizes.flatMap((row) =>
+								row.weightLb && row.weightLb > 0
+									? [{ dimension: row.dimension, weightLb: row.weightLb }]
+									: [],
+							),
+							shelfCategoryWeights: shelfCategories.flatMap((row) =>
+								row.weightPerUnitLb && row.weightPerUnitLb > 0
+									? [
+											{
+												categoryId: row.id,
+												weightPerUnitLb: row.weightPerUnitLb,
+											},
+										]
+									: [],
+							),
+						});
 					}}
 				>
 					<div className="grid gap-4 sm:grid-cols-2">
@@ -861,8 +856,7 @@ function StorefrontShippingSettingsCard() {
 														key.startsWith("auto") ||
 														key.startsWith("max") ||
 														key === "maximumCharge" ||
-														key === "freeDeliveryThreshold" ||
-														key.startsWith("global")
+														key === "freeDeliveryThreshold"
 															? value > 0
 																? value
 																: null
@@ -876,7 +870,7 @@ function StorefrontShippingSettingsCard() {
 					</div>
 					<div className="grid gap-4 sm:grid-cols-2">
 						<SwitchRow
-							label="Allow global fallback in V2"
+							label="Allow general moulding weight in V2 auto-approval"
 							checked={form.allowGlobalFallbackForAutoApproval}
 							onChange={(allowGlobalFallbackForAutoApproval) =>
 								setForm((current) =>
@@ -888,42 +882,142 @@ function StorefrontShippingSettingsCard() {
 						/>
 					</div>
 
-					<div className="grid gap-4 lg:grid-cols-2">
-						<ProfileJsonField
-							label="Door size weights"
-							help='Example: [{"dimension":"3-0 x 6-8","weightLb":80,"handlingFeePerUnit":5}]'
-							value={profiles.doors}
-							onChange={(doors) =>
-								setProfiles((current) => ({ ...current, doors }))
-							}
-						/>
-						<ProfileJsonField
-							label="Moulding weight profiles"
-							help='Example: [{"categoryId":"category-id","lbPerLinearFoot":0.5}]'
-							value={profiles.mouldings}
-							onChange={(mouldings) =>
-								setProfiles((current) => ({ ...current, mouldings }))
-							}
-						/>
-						<ProfileJsonField
-							label="Shelf category weights"
-							help='Example: [{"categoryId":12,"weightPerUnitLb":8}]'
-							value={profiles.shelves}
-							onChange={(shelves) =>
-								setProfiles((current) => ({ ...current, shelves }))
-							}
-						/>
-						<ProfileJsonField
-							label="Product overrides"
-							help='Keys: component UID, "door:UID:size", "moulding:UID", or "shelf:productId".'
-							value={profiles.overrides}
-							onChange={(overrides) =>
-								setProfiles((current) => ({ ...current, overrides }))
-							}
-						/>
+					{form.legacyWeightConfiguration.requiresAcknowledgement ? (
+						<div className="space-y-3 rounded-md border border-amber-500/50 bg-amber-50 p-4 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100">
+							<div>
+								<p className="text-sm font-medium">
+									Legacy weight settings need replacement
+								</p>
+								<p className="text-xs">
+									The active policy contains hidden component, handling,
+									Moulding-profile, product-override, global fallback, or
+									non-main Shelf mappings. Recreate the values in these tables
+									and catalog items. Publishing this version removes the legacy
+									mappings; the prior policy version remains in history.
+								</p>
+							</div>
+							<SwitchRow
+								label="I understand this publish replaces legacy weight mappings"
+								checked={form.acknowledgeLegacyReplacement}
+								onChange={(acknowledgeLegacyReplacement) =>
+									setForm((current) =>
+										current
+											? { ...current, acknowledgeLegacyReplacement }
+											: current,
+									)
+								}
+							/>
+						</div>
+					) : null}
+
+					<div className="space-y-4 rounded-md border p-4">
+						<div>
+							<h3 className="font-medium">Product weight defaults</h3>
+							<p className="text-xs text-muted-foreground">
+								Catalog item weights override these defaults. Empty values
+								require office review.
+							</p>
+						</div>
+						<div className="flex flex-wrap gap-2 border-b pb-3">
+							{(
+								[
+									["doors", "Door sizes"],
+									["mouldings", "Mouldings"],
+									["shelves", "Shelf categories"],
+								] as const
+							).map(([tab, label]) => (
+								<Button
+									key={tab}
+									type="button"
+									size="sm"
+									variant={weightTab === tab ? "default" : "outline"}
+									onClick={() => setWeightTab(tab)}
+								>
+									{label}
+								</Button>
+							))}
+						</div>
+						{weightTab === "doors" ? (
+							<ShippingWeightTable
+								label="Door size"
+								valueLabel="Weight (lb)"
+								rows={form.doorSizes.map((row) => ({
+									key: row.dimension,
+									label: row.dimension,
+									value: row.weightLb,
+								}))}
+								onChange={(dimension, weightLb) =>
+									setForm((current) =>
+										current
+											? {
+													...current,
+													doorSizes: current.doorSizes.map((row) =>
+														row.dimension === dimension
+															? { ...row, weightLb }
+															: row,
+													),
+												}
+											: current,
+									)
+								}
+							/>
+						) : null}
+						{weightTab === "mouldings" ? (
+							<div className="max-w-md space-y-2">
+								<p className="text-sm text-muted-foreground">
+									Applied to shipped linear feet unless the catalog moulding has
+									its own override.
+								</p>
+								<NumberField
+									label="General weight per linear foot (lb)"
+									value={form.globalMouldingLbPerLinearFoot ?? 0}
+									onChange={(value) =>
+										setForm((current) =>
+											current
+												? {
+														...current,
+														globalMouldingLbPerLinearFoot:
+															value > 0 ? value : null,
+													}
+												: current,
+										)
+									}
+								/>
+							</div>
+						) : null}
+						{weightTab === "shelves" ? (
+							<ShippingWeightTable
+								label="Main category"
+								valueLabel="Weight per unit (lb)"
+								rows={form.shelfCategories.map((row) => ({
+									key: String(row.id),
+									label: row.name,
+									value: row.weightPerUnitLb,
+								}))}
+								onChange={(categoryId, weightPerUnitLb) =>
+									setForm((current) =>
+										current
+											? {
+													...current,
+													shelfCategories: current.shelfCategories.map((row) =>
+														String(row.id) === categoryId
+															? { ...row, weightPerUnitLb }
+															: row,
+													),
+												}
+											: current,
+									)
+								}
+							/>
+						) : null}
 					</div>
 					<Button
-						disabled={save.isPending || (form.enabled && !form.originPlaceId)}
+						disabled={
+							save.isPending ||
+							(form.enabled && !form.originPlaceId) ||
+							(form.legacyWeightConfiguration.requiresAcknowledgement &&
+								!form.acknowledgeLegacyReplacement)
+						}
 					>
 						{save.isPending ? "Publishing…" : "Publish shipping policy"}
 					</Button>
@@ -933,37 +1027,55 @@ function StorefrontShippingSettingsCard() {
 	);
 }
 
-function ProfileJsonField({
+function ShippingWeightTable({
 	label,
-	help,
-	value,
+	valueLabel,
+	rows,
 	onChange,
 }: {
 	label: string;
-	help: string;
-	value: string;
-	onChange: (value: string) => void;
+	valueLabel: string;
+	rows: Array<{ key: string; label: string; value: number | null }>;
+	onChange: (key: string, value: number | null) => void;
 }) {
-	const id = `shipping-profile-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 	return (
-		<label htmlFor={id} className="grid gap-1 text-sm">
-			{label}
-			<Textarea
-				id={id}
-				className="min-h-32 font-mono text-xs"
-				value={value}
-				onChange={(event) => onChange(event.target.value)}
-			/>
-			<span className="text-xs text-muted-foreground">{help}</span>
-		</label>
+		<div className="max-h-[32rem] overflow-auto rounded-md border">
+			<table className="w-full text-sm">
+				<thead className="sticky top-0 bg-muted">
+					<tr>
+						<th className="px-3 py-2 text-left font-medium">{label}</th>
+						<th className="w-52 px-3 py-2 text-left font-medium">
+							{valueLabel}
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{rows.map((row) => (
+						<tr key={row.key} className="border-t">
+							<td className="px-3 py-2">{row.label}</td>
+							<td className="px-3 py-2">
+								<Input
+									type="number"
+									min="0"
+									step="0.01"
+									aria-label={`${row.label} ${valueLabel}`}
+									value={row.value ?? ""}
+									placeholder="Not set"
+									onChange={(event) => {
+										const value = Number(event.target.value);
+										onChange(
+											row.key,
+											event.target.value && value > 0 ? value : null,
+										);
+									}}
+								/>
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
 	);
-}
-
-function parseProfileJson(value: string) {
-	const parsed = JSON.parse(value);
-	if (!Array.isArray(parsed))
-		throw new Error("Each profile must be a JSON array.");
-	return parsed;
 }
 
 export function StorefrontContentPanel() {

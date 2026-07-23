@@ -26,15 +26,7 @@ export const storefrontShippingPreviewSchema = z.object({
 
 const doorWeightProfileSchema = z.object({
 	dimension: z.string().trim().min(1).max(100),
-	componentUid: z.string().trim().min(1).max(191).nullable().optional(),
 	weightLb: z.number().positive().max(100_000),
-	handlingFeePerUnit: z.number().min(0).max(1_000_000).default(0),
-});
-
-const mouldingWeightProfileSchema = z.object({
-	categoryId: z.string().trim().min(1).max(191).nullable().optional(),
-	componentUid: z.string().trim().min(1).max(191).nullable().optional(),
-	lbPerLinearFoot: z.number().positive().max(10_000),
 });
 
 const shelfCategoryWeightSchema = z.object({
@@ -43,13 +35,6 @@ const shelfCategoryWeightSchema = z.object({
 		z.string().trim().min(1).max(191),
 	]),
 	weightPerUnitLb: z.number().positive().max(100_000),
-});
-
-const productWeightOverrideSchema = z.object({
-	key: z.string().trim().min(1).max(191),
-	weightLb: z.number().positive().max(100_000).nullable().optional(),
-	lbPerLinearFoot: z.number().positive().max(10_000).nullable().optional(),
-	handlingFeePerUnit: z.number().min(0).max(1_000_000).default(0),
 });
 
 export const storefrontShippingPolicyInputSchema = z.object({
@@ -74,13 +59,10 @@ export const storefrontShippingPolicyInputSchema = z.object({
 	autoApprovalMaxWeightLb: optionalWeight,
 	autoApprovalMaxAmount: optionalAmount,
 	allowGlobalFallbackForAutoApproval: z.boolean(),
-	globalDoorWeightLb: optionalWeight,
+	acknowledgeLegacyReplacement: z.boolean().default(false),
 	globalMouldingLbPerLinearFoot: optionalWeight,
-	globalShelfWeightPerUnitLb: optionalWeight,
 	doorWeightProfiles: z.array(doorWeightProfileSchema).max(1_000),
-	mouldingWeightProfiles: z.array(mouldingWeightProfileSchema).max(1_000),
 	shelfCategoryWeights: z.array(shelfCategoryWeightSchema).max(5_000),
-	productWeightOverrides: z.array(productWeightOverrideSchema).max(10_000),
 });
 
 export const storefrontShippingReviewSchema = z.object({

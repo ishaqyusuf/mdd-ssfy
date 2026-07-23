@@ -28,6 +28,15 @@ function readGalleryImages(value: unknown) {
 		: [];
 }
 
+function readShippingNumber(value: unknown, key: string) {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+	const shipping = (value as Record<string, unknown>).shipping;
+	if (!shipping || typeof shipping !== "object" || Array.isArray(shipping))
+		return "";
+	const number = Number((shipping as Record<string, unknown>)[key]);
+	return Number.isFinite(number) && number > 0 ? String(number) : "";
+}
+
 export function StorefrontCatalogItemSheet() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -52,6 +61,9 @@ export function StorefrontCatalogItemSheet() {
 	const [description, setDescription] = useState("");
 	const [imageUrl, setImageUrl] = useState("");
 	const [galleryImageUrls, setGalleryImageUrls] = useState<string[]>([]);
+	const [shippingWeightPerUnitLb, setShippingWeightPerUnitLb] = useState("");
+	const [shippingLbPerLinearFoot, setShippingLbPerLinearFoot] = useState("");
+	const [shippingShelfCategoryId, setShippingShelfCategoryId] = useState("");
 	const [online, setOnline] = useState(false);
 	const [featured, setFeaturedValue] = useState(false);
 
@@ -63,6 +75,15 @@ export function StorefrontCatalogItemSheet() {
 			detail.data.overlay?.imageUrl || detail.data.source.imageUrl || "",
 		);
 		setGalleryImageUrls(readGalleryImages(detail.data.overlay?.metadata));
+		setShippingWeightPerUnitLb(
+			readShippingNumber(detail.data.overlay?.metadata, "weightPerUnitLb"),
+		);
+		setShippingLbPerLinearFoot(
+			readShippingNumber(detail.data.overlay?.metadata, "lbPerLinearFoot"),
+		);
+		setShippingShelfCategoryId(
+			readShippingNumber(detail.data.overlay?.metadata, "shelfCategoryId"),
+		);
 		setOnline(
 			Boolean(detail.data.overlay?.availableOnStorefront) &&
 				detail.data.overlay?.status === "PUBLISHED",
@@ -97,6 +118,19 @@ export function StorefrontCatalogItemSheet() {
 				galleryImageUrls: galleryImageUrls
 					.map((image) => image.trim())
 					.filter(Boolean),
+				shippingWeightPerUnitLb:
+					detail.data?.source.family === "mouldings" || !shippingWeightPerUnitLb
+						? null
+						: Number(shippingWeightPerUnitLb),
+				shippingLbPerLinearFoot:
+					detail.data?.source.family !== "mouldings" || !shippingLbPerLinearFoot
+						? null
+						: Number(shippingLbPerLinearFoot),
+				shippingShelfCategoryId:
+					detail.data?.source.family !== "shelf-items" ||
+					!shippingShelfCategoryId
+						? null
+						: Number(shippingShelfCategoryId),
 			});
 			await setStatus.mutateAsync({ componentUid, online });
 			if (detail.data?.offer) {
@@ -254,6 +288,78 @@ export function StorefrontCatalogItemSheet() {
 								<p className="text-xs text-muted-foreground">
 									No additional product images.
 								</p>
+							)}
+						</div>
+						<div className="rounded-md border bg-muted/30 p-4">
+							<div className="mb-3">
+								<p className="text-sm font-medium">Shipping weight override</p>
+								<p className="text-xs text-muted-foreground">
+									This catalog value overrides the general shipping setting for
+									this item.
+								</p>
+							</div>
+							{detail.data.source.family === "mouldings" ? (
+								<div className="space-y-2">
+									<Label htmlFor="catalog-shipping-lb-per-foot">
+										Weight per linear foot (lb)
+									</Label>
+									<Input
+										id="catalog-shipping-lb-per-foot"
+										type="number"
+										min="0"
+										step="0.01"
+										placeholder="Use general moulding weight"
+										value={shippingLbPerLinearFoot}
+										onChange={(event) =>
+											setShippingLbPerLinearFoot(event.target.value)
+										}
+									/>
+								</div>
+							) : (
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="catalog-shipping-unit-weight">
+											Weight per unit (lb)
+										</Label>
+										<Input
+											id="catalog-shipping-unit-weight"
+											type="number"
+											min="0"
+											step="0.01"
+											placeholder={
+												detail.data.source.family === "doors"
+													? "Use the selected door-size weight"
+													: "Use the shelf-category weight"
+											}
+											value={shippingWeightPerUnitLb}
+											onChange={(event) =>
+												setShippingWeightPerUnitLb(event.target.value)
+											}
+										/>
+									</div>
+									{detail.data.source.family === "shelf-items" ? (
+										<div className="space-y-2">
+											<Label htmlFor="catalog-shipping-shelf-category">
+												Default shelf category
+											</Label>
+											<select
+												id="catalog-shipping-shelf-category"
+												className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+												value={shippingShelfCategoryId}
+												onChange={(event) =>
+													setShippingShelfCategoryId(event.target.value)
+												}
+											>
+												<option value="">No category default</option>
+												{detail.data.shelfCategories.map((category) => (
+													<option key={category.id} value={category.id}>
+														{category.name}
+													</option>
+												))}
+											</select>
+										</div>
+									) : null}
+								</div>
 							)}
 						</div>
 						<div className="flex items-center justify-between border-y py-4">

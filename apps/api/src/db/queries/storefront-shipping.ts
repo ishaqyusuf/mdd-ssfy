@@ -15,7 +15,17 @@ import {
 	type StorefrontShippingPolicy,
 	buildStorefrontShippingQuote,
 } from "@gnd/sales/storefront-shipping";
+import {
+	collectCanonicalDoorSizes,
+	projectMainShelfCategories,
+	readCatalogShippingMetadata,
+} from "@gnd/sales/storefront-shipping-settings";
+import { storefrontCatalogFamilyFromStepTitle } from "@gnd/sales/storefront-catalog";
 import { TRPCError } from "@trpc/server";
+import {
+	getNewSalesFormShelfCategories,
+	getNewSalesFormStepRouting,
+} from "./new-sales-form";
 import {
 	buildFinalizedStorefrontCheckoutTotals,
 	isStorefrontShippingPaymentLocked,
@@ -51,13 +61,10 @@ export const defaultStorefrontShippingPolicy: StorefrontShippingPolicyInput = {
 	autoApprovalMaxWeightLb: null,
 	autoApprovalMaxAmount: null,
 	allowGlobalFallbackForAutoApproval: false,
-	globalDoorWeightLb: null,
+	acknowledgeLegacyReplacement: false,
 	globalMouldingLbPerLinearFoot: null,
-	globalShelfWeightPerUnitLb: null,
 	doorWeightProfiles: [],
-	mouldingWeightProfiles: [],
 	shelfCategoryWeights: [],
-	productWeightOverrides: [],
 };
 
 export async function getStorefrontShippingPolicy(ctx: TRPCContext) {
@@ -68,13 +75,127 @@ export async function getStorefrontShippingPolicy(ctx: TRPCContext) {
 	return policy ? serializePolicy(policy) : defaultStorefrontShippingPolicy;
 }
 
+export async function getStorefrontShippingSettings(ctx: TRPCContext) {
+	const [policy, routeData, categories, rawPolicy] = await Promise.all([
+		getStorefrontShippingPolicy(ctx),
+		getNewSalesFormStepRouting(ctx, {}),
+		getNewSalesFormShelfCategories(ctx, {}),
+		ctx.db.storefrontShippingPolicy.findFirst({
+			where: { active: true },
+			orderBy: { version: "desc" },
+			select: {
+				globalDoorWeightLb: true,
+				globalShelfWeightPerUnitLb: true,
+				doorWeightProfiles: true,
+				mouldingWeightProfiles: true,
+				shelfCategoryWeights: true,
+				productWeightOverrides: true,
+			},
+		}),
+	]);
+	const doorWeightBySize = new Map(
+		policy.doorWeightProfiles.map((profile) => [
+			profile.dimension,
+			profile.weightLb,
+		]),
+	);
+	const shelfWeightByCategory = new Map(
+		policy.shelfCategoryWeights.map((profile) => [
+			Number(profile.categoryId),
+			profile.weightPerUnitLb,
+		]),
+	);
+	const doorComponentUids = Object.values(routeData.stepsByUid)
+		.filter(
+			(step) =>
+				String(step.title || "")
+					.trim()
+					.toLowerCase() === "door",
+		)
+		.flatMap((step) => step.components.map((component) => component.uid));
+	const pricingRows = doorComponentUids.length
+		? await ctx.db.dykePricingSystem.findMany({
+				where: {
+					stepProductUid: { in: doorComponentUids },
+					deletedAt: null,
+				},
+				select: { dependenciesUid: true },
+			})
+		: [];
+	const mainCategoryIds = new Set(
+		categories
+			.filter((category) => category.type === "parent")
+			.map((category) => category.id),
+	);
+	const legacyWeightConfiguration = summarizeLegacyWeightConfiguration(
+		rawPolicy,
+		mainCategoryIds,
+	);
+	return {
+		...policy,
+		legacyWeightConfiguration: {
+			...legacyWeightConfiguration,
+			requiresAcknowledgement: legacyWeightConfigurationRequiresAcknowledgement(
+				legacyWeightConfiguration,
+			),
+		},
+		doorSizes: collectCanonicalDoorSizes(
+			Object.values(routeData.stepsByUid),
+			pricingRows.flatMap((row) =>
+				row.dependenciesUid ? [row.dependenciesUid] : [],
+			),
+		).map((dimension) => ({
+			dimension,
+			weightLb: doorWeightBySize.get(dimension) ?? null,
+		})),
+		shelfCategories: projectMainShelfCategories(categories).map((category) => ({
+			...category,
+			weightPerUnitLb: shelfWeightByCategory.get(category.id) ?? null,
+		})),
+	};
+}
+
 export async function saveStorefrontShippingPolicy(
 	ctx: TRPCContext,
 	input: StorefrontShippingPolicyInput,
 ) {
-	const latest = await ctx.db.storefrontShippingPolicy.aggregate({
-		_max: { version: true },
-	});
+	const [latest, rawPolicy, mainShelfCategories] = await Promise.all([
+		ctx.db.storefrontShippingPolicy.aggregate({
+			_max: { version: true },
+		}),
+		ctx.db.storefrontShippingPolicy.findFirst({
+			where: { active: true },
+			orderBy: { version: "desc" },
+			select: {
+				globalDoorWeightLb: true,
+				globalShelfWeightPerUnitLb: true,
+				doorWeightProfiles: true,
+				mouldingWeightProfiles: true,
+				shelfCategoryWeights: true,
+				productWeightOverrides: true,
+			},
+		}),
+		ctx.db.dykeShelfCategories.findMany({
+			where: { deletedAt: null, type: "parent" },
+			select: { id: true },
+		}),
+	]);
+	const legacyWeightConfiguration = summarizeLegacyWeightConfiguration(
+		rawPolicy,
+		new Set(mainShelfCategories.map((category) => category.id)),
+	);
+	if (
+		legacyWeightConfigurationRequiresAcknowledgement(
+			legacyWeightConfiguration,
+		) &&
+		!input.acknowledgeLegacyReplacement
+	) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Acknowledge the legacy weight configuration replacement before publishing.",
+		});
+	}
 	const version = (latest._max.version || 0) + 1;
 	const saved = await ctx.db.$transaction(async (tx) => {
 		await tx.storefrontShippingPolicy.updateMany({
@@ -107,13 +228,13 @@ export async function saveStorefrontShippingPolicy(
 				autoApprovalMaxAmount: input.autoApprovalMaxAmount,
 				allowGlobalFallbackForAutoApproval:
 					input.allowGlobalFallbackForAutoApproval,
-				globalDoorWeightLb: input.globalDoorWeightLb,
+				globalDoorWeightLb: null,
 				globalMouldingLbPerLinearFoot: input.globalMouldingLbPerLinearFoot,
-				globalShelfWeightPerUnitLb: input.globalShelfWeightPerUnitLb,
+				globalShelfWeightPerUnitLb: null,
 				doorWeightProfiles: asJson(input.doorWeightProfiles),
-				mouldingWeightProfiles: asJson(input.mouldingWeightProfiles),
+				mouldingWeightProfiles: asJson([]),
 				shelfCategoryWeights: asJson(input.shelfCategoryWeights),
-				productWeightOverrides: asJson(input.productWeightOverrides),
+				productWeightOverrides: asJson([]),
 				createdByUserId: ctx.userId,
 			},
 		});
@@ -175,6 +296,61 @@ export async function previewStorefrontShipping(
 			message: "The cart changed. Refresh it before calculating delivery.",
 		});
 	}
+	const componentUids = new Set<string>();
+	for (const line of cart.lines) {
+		componentUids.add(line.offer?.sourceComponentUid || line.rootComponentUid);
+		const configuration = safeRecord(line.configuration);
+		const housePackageTool = safeRecord(configuration.housePackageTool);
+		for (const door of recordArray(housePackageTool.doors)) {
+			const componentUid = String(
+				safeRecord(door.meta).storefrontComponentUid || "",
+			).trim();
+			if (componentUid) componentUids.add(componentUid);
+		}
+	}
+	const componentUidList = Array.from(componentUids).filter(Boolean);
+	const [catalogComponents, catalogSources] = await Promise.all([
+		ctx.db.storefrontComponent.findMany({
+			where: {
+				sourceComponentUid: { in: componentUidList },
+				deletedAt: null,
+			},
+			select: { sourceComponentUid: true, metadata: true },
+		}),
+		ctx.db.dykeStepProducts.findMany({
+			where: { uid: { in: componentUidList }, deletedAt: null },
+			select: { uid: true, step: { select: { title: true } } },
+		}),
+	]);
+	const familyByComponentUid = new Map(
+		catalogSources.flatMap((source) => {
+			const family = storefrontCatalogFamilyFromStepTitle(source.step.title);
+			return source.uid && family ? [[source.uid, family] as const] : [];
+		}),
+	);
+	const metadataByComponentUid = new Map(
+		catalogComponents.map((component) => [
+			component.sourceComponentUid,
+			component.metadata,
+		]),
+	);
+	const catalogWeights = new Map(
+		catalogSources.flatMap((source) => {
+			if (!source.uid) return [];
+			const shipping = readCatalogShippingMetadata(
+				metadataByComponentUid.get(source.uid),
+			);
+			return [
+				[
+					source.uid,
+					{
+						...shipping,
+						family: familyByComponentUid.get(source.uid) ?? null,
+					},
+				] as const,
+			];
+		}),
+	);
 
 	const destination = await resolveStorefrontPlace(input.destination).catch(
 		(error) => {
@@ -195,7 +371,11 @@ export async function previewStorefrontShipping(
 		destination,
 	}).catch(() => null);
 	const domainPolicy = toDomainPolicy(policy);
-	const domainLines = buildCartShippingLines(cart.lines, policy);
+	const domainLines = buildCartShippingLines(
+		cart.lines,
+		policy,
+		catalogWeights,
+	);
 	const subtotal = cart.lines.reduce(
 		(total, line) => total + Number(line.lineTotal || 0),
 		0,
@@ -474,7 +654,7 @@ export async function reviewStorefrontShippingQuote(
 	return { id: quote.id, status, finalAmount };
 }
 
-function buildCartShippingLines(
+export function buildCartShippingLines(
 	lines: Array<{
 		id: string;
 		rootComponentUid: string;
@@ -494,12 +674,21 @@ function buildCartShippingLines(
 		shelfCategoryWeights: unknown;
 		productWeightOverrides: unknown;
 	},
+	catalogWeights: Map<
+		string,
+		{
+			weightPerUnitLb: number | null;
+			lbPerLinearFoot: number | null;
+			shelfCategoryId: number | null;
+			family: "doors" | "mouldings" | "shelf-items" | null;
+		}
+	>,
 ) {
 	const result: StorefrontShippingLine[] = [];
 	const doorProfiles = recordArray(policy.doorWeightProfiles);
 	const mouldingProfiles = recordArray(policy.mouldingWeightProfiles);
 	const shelfWeights = recordArray(policy.shelfCategoryWeights);
-	const overrides = recordArray(policy.productWeightOverrides);
+	const legacyOverrides = recordArray(policy.productWeightOverrides);
 	for (const line of lines) {
 		const resolvedLineCount = result.length;
 		const configuration = safeRecord(line.configuration);
@@ -512,7 +701,8 @@ function buildCartShippingLines(
 				doorMeta.storefrontComponentUid || line.rootComponentUid,
 			);
 			const dimension = String(door.dimension || "").trim();
-			const override = findOverride(overrides, [
+			const override = catalogWeights.get(componentUid);
+			const legacyOverride = findOverride(legacyOverrides, [
 				`door:${componentUid}:${dimension}`,
 				componentUid,
 			]);
@@ -529,28 +719,34 @@ function buildCartShippingLines(
 				quantity: Number(door.totalQty || 0),
 				dimension,
 				weights: {
-					overrideWeightLb: numberOrNull(override?.weightLb),
+					overrideWeightLb: numberOrNull(
+						override?.weightPerUnitLb ?? legacyOverride?.weightLb,
+					),
 					profileWeightLb: numberOrNull(profile?.weightLb),
 					globalDefaultWeightLb: numberOrNull(policy.globalDoorWeightLb),
 				},
 				handlingFeePerUnit: numberOrNull(
-					override?.handlingFeePerUnit ?? profile?.handlingFeePerUnit,
+					legacyOverride?.handlingFeePerUnit ?? profile?.handlingFeePerUnit,
 				),
 			});
 		});
 
 		const isMoulding =
+			catalogWeights.get(
+				line.offer?.sourceComponentUid || line.rootComponentUid,
+			)?.family === "mouldings" ||
 			line.offer?.category.slug === "mouldings" ||
 			/moulding|molding/i.test(line.offer?.category.title || "");
 		if (isMoulding) {
 			const moulding = safeRecord(meta.storefrontMoulding);
 			const componentUid =
 				line.offer?.sourceComponentUid || line.rootComponentUid;
-			const override = findOverride(overrides, [
+			const override = catalogWeights.get(componentUid);
+			const legacyOverride = findOverride(legacyOverrides, [
 				`moulding:${componentUid}`,
 				componentUid,
 			]);
-			const profile = mouldingProfiles.find(
+			const legacyProfile = mouldingProfiles.find(
 				(candidate) =>
 					(!candidate.categoryId ||
 						String(candidate.categoryId) === line.offer?.category.id) &&
@@ -568,20 +764,23 @@ function buildCartShippingLines(
 				wastePercentage: Number(moulding.wastePercentage || 0),
 				unitPrice: Number(configuration.unitPrice || 0),
 				weights: {
-					overrideLbPerLinearFoot: numberOrNull(override?.lbPerLinearFoot),
-					categoryLbPerLinearFoot: numberOrNull(profile?.lbPerLinearFoot),
+					overrideLbPerLinearFoot: numberOrNull(
+						override?.lbPerLinearFoot ?? legacyOverride?.lbPerLinearFoot,
+					),
+					categoryLbPerLinearFoot: numberOrNull(legacyProfile?.lbPerLinearFoot),
 					globalDefaultLbPerLinearFoot: numberOrNull(
 						policy.globalMouldingLbPerLinearFoot,
 					),
 				},
-				handlingFeePerUnit: numberOrNull(override?.handlingFeePerUnit),
+				handlingFeePerUnit: numberOrNull(legacyOverride?.handlingFeePerUnit),
 			});
 		}
 
 		const shelfItems = recordArray(configuration.shelfItems);
 		shelfItems.forEach((shelf, index) => {
-			const productId = Number(shelf.productId || 0);
-			const override = findOverride(overrides, [`shelf:${productId}`]);
+			const legacyOverride = findOverride(legacyOverrides, [
+				`shelf:${Number(shelf.productId || 0)}`,
+			]);
 			const child = shelfWeights.find(
 				(candidate) =>
 					Number(candidate.categoryId || 0) === Number(shelf.categoryId || 0),
@@ -597,32 +796,34 @@ function buildCartShippingLines(
 				description: String(shelf.description || "Shelf item"),
 				quantity: Number(shelf.qty || 0),
 				weights: {
-					overrideWeightPerUnitLb: numberOrNull(override?.weightLb),
+					overrideWeightPerUnitLb: numberOrNull(legacyOverride?.weightLb),
 					childCategoryWeightPerUnitLb: numberOrNull(child?.weightPerUnitLb),
 					parentCategoryWeightPerUnitLb: numberOrNull(parent?.weightPerUnitLb),
 					globalDefaultWeightPerUnitLb: numberOrNull(
 						policy.globalShelfWeightPerUnitLb,
 					),
 				},
-				handlingFeePerUnit: numberOrNull(override?.handlingFeePerUnit),
+				handlingFeePerUnit: numberOrNull(legacyOverride?.handlingFeePerUnit),
 			});
 		});
+		const offerComponentUid =
+			line.offer?.sourceComponentUid || line.rootComponentUid;
+		const offerCatalogWeight = catalogWeights.get(offerComponentUid);
 		const isShelfOffer =
 			shelfItems.length === 0 &&
-			/shelf|hardware/i.test(
-				`${line.offer?.category.slug || ""} ${line.offer?.category.title || ""}`,
-			);
+			(offerCatalogWeight?.family === "shelf-items" ||
+				/shelf|hardware/i.test(
+					`${line.offer?.category.slug || ""} ${line.offer?.category.title || ""}`,
+				));
 		if (isShelfOffer) {
-			const componentUid =
-				line.offer?.sourceComponentUid || line.rootComponentUid;
-			const override = findOverride(overrides, [
-				`shelf:${componentUid}`,
-				componentUid,
+			const legacyOverride = findOverride(legacyOverrides, [
+				`shelf:${offerComponentUid}`,
+				offerComponentUid,
 			]);
 			const category = shelfWeights.find(
 				(candidate) =>
-					String(candidate.categoryId || "") ===
-					String(line.offer?.category.id || ""),
+					Number(candidate.categoryId || 0) ===
+					Number(offerCatalogWeight?.shelfCategoryId || 0),
 			);
 			result.push({
 				kind: "SHELF",
@@ -630,28 +831,33 @@ function buildCartShippingLines(
 				description: String(configuration.title || "Shelf item"),
 				quantity: Number(line.quantity || 0),
 				weights: {
-					overrideWeightPerUnitLb: numberOrNull(override?.weightLb),
+					overrideWeightPerUnitLb: numberOrNull(
+						offerCatalogWeight?.weightPerUnitLb ?? legacyOverride?.weightLb,
+					),
 					childCategoryWeightPerUnitLb: numberOrNull(category?.weightPerUnitLb),
 					globalDefaultWeightPerUnitLb: numberOrNull(
 						policy.globalShelfWeightPerUnitLb,
 					),
 				},
-				handlingFeePerUnit: numberOrNull(override?.handlingFeePerUnit),
+				handlingFeePerUnit: numberOrNull(legacyOverride?.handlingFeePerUnit),
 			});
 		}
 		if (result.length === resolvedLineCount) {
 			const componentUid =
 				line.offer?.sourceComponentUid || line.rootComponentUid;
-			const override = findOverride(overrides, [componentUid]);
+			const override = catalogWeights.get(componentUid);
+			const legacyOverride = findOverride(legacyOverrides, [componentUid]);
 			result.push({
 				kind: "SHELF",
 				key: `${line.id}:product`,
 				description: String(configuration.title || "Storefront product"),
 				quantity: Number(line.quantity || 0),
 				weights: {
-					overrideWeightPerUnitLb: numberOrNull(override?.weightLb),
+					overrideWeightPerUnitLb: numberOrNull(
+						override?.weightPerUnitLb ?? legacyOverride?.weightLb,
+					),
 				},
-				handlingFeePerUnit: numberOrNull(override?.handlingFeePerUnit),
+				handlingFeePerUnit: numberOrNull(legacyOverride?.handlingFeePerUnit),
 			});
 		}
 	}
@@ -676,9 +882,7 @@ function serializePolicy(policy: Record<string, unknown>) {
 		allowGlobalFallbackForAutoApproval:
 			policy.allowGlobalFallbackForAutoApproval === true,
 		doorWeightProfiles: recordArray(policy.doorWeightProfiles),
-		mouldingWeightProfiles: recordArray(policy.mouldingWeightProfiles),
 		shelfCategoryWeights: recordArray(policy.shelfCategoryWeights),
-		productWeightOverrides: recordArray(policy.productWeightOverrides),
 	});
 }
 
@@ -716,6 +920,59 @@ function findOverride(overrides: JsonRecord[], keys: string[]) {
 	return overrides.find((override) =>
 		keys.includes(String(override.key || "")),
 	);
+}
+
+function summarizeLegacyWeightConfiguration(
+	policy: Record<string, unknown> | null | undefined,
+	mainShelfCategoryIds: Set<number>,
+) {
+	const rawDoorProfiles = recordArray(policy?.doorWeightProfiles);
+	const rawShelfProfiles = recordArray(policy?.shelfCategoryWeights);
+	return {
+		componentDoorProfiles: rawDoorProfiles.filter((profile) =>
+			Boolean(profile.componentUid),
+		).length,
+		doorHandlingProfiles: rawDoorProfiles.filter(
+			(profile) => Number(profile.handlingFeePerUnit || 0) > 0,
+		).length,
+		duplicateDoorSizeProfiles: duplicateValueCount(
+			rawDoorProfiles.map((profile) => String(profile.dimension || "").trim()),
+		),
+		mouldingProfiles: recordArray(policy?.mouldingWeightProfiles).length,
+		productOverrides: recordArray(policy?.productWeightOverrides).length,
+		unprojectedShelfProfiles: rawShelfProfiles.filter(
+			(profile) => !mainShelfCategoryIds.has(Number(profile.categoryId || 0)),
+		).length,
+		duplicateShelfCategoryProfiles: duplicateValueCount(
+			rawShelfProfiles.map((profile) => {
+				const numericId = Number(profile.categoryId);
+				return Number.isFinite(numericId)
+					? String(numericId)
+					: String(profile.categoryId || "").trim();
+			}),
+		),
+		hasGlobalDoorFallback: numberOrNull(policy?.globalDoorWeightLb) != null,
+		hasGlobalShelfFallback:
+			numberOrNull(policy?.globalShelfWeightPerUnitLb) != null,
+	};
+}
+
+function legacyWeightConfigurationRequiresAcknowledgement(
+	summary: ReturnType<typeof summarizeLegacyWeightConfiguration>,
+) {
+	return Object.values(summary).some(
+		(value) => value === true || (typeof value === "number" && value > 0),
+	);
+}
+
+function duplicateValueCount(values: string[]) {
+	const seen = new Set<string>();
+	const duplicates = new Set<string>();
+	for (const value of values.filter(Boolean)) {
+		if (seen.has(value)) duplicates.add(value);
+		seen.add(value);
+	}
+	return duplicates.size;
 }
 
 function recordArray(value: unknown): JsonRecord[] {

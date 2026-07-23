@@ -297,7 +297,7 @@ export async function getStorefrontCatalogDetail(
 		},
 	});
 	if (!source?.uid || !source.step.uid) return null;
-	const [overlay, offer, categories] = await Promise.all([
+	const [overlay, offer, categories, shelfCategories] = await Promise.all([
 		ctx.db.storefrontComponent.findUnique({
 			where: { sourceComponentUid: componentUid },
 		}),
@@ -312,6 +312,11 @@ export async function getStorefrontCatalogDetail(
 			where: { deletedAt: null },
 			orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
 			select: { id: true, title: true, status: true },
+		}),
+		ctx.db.dykeShelfCategories.findMany({
+			where: { deletedAt: null, type: "parent" },
+			orderBy: { name: "asc" },
+			select: { id: true, name: true },
 		}),
 	]);
 	return {
@@ -330,5 +335,6 @@ export async function getStorefrontCatalogDetail(
 		overlay,
 		offer,
 		categories,
+		shelfCategories,
 	};
 }

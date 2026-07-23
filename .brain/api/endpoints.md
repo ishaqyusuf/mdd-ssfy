@@ -320,6 +320,14 @@ Tracks notable API surfaces and where they are implemented.
 - Employee shipping routes are `storefrontAdmin.settings.shipping`,
   `settings.saveShipping`, `settings.addressAutocomplete`,
   `settings.placeDetails`, and `operations.reviewShipping`.
+- `storefrontAdmin.settings.shipping` returns the active policy plus projected
+  canonical `doorSizes` and active parent `shelfCategories`; the save input
+  accepts typed size/category rows and the general Moulding lb/LF value, not
+  free-form product/profile JSON.
+- `storefrontAdmin.catalog.saveMetadata` accepts the family-specific catalog
+  shipping override (`shippingWeightPerUnitLb` or
+  `shippingLbPerLinearFoot`) plus an optional canonical Shelf category ID, and
+  persists it in the existing storefront component metadata.
 
 ### Custom millwork inquiry workflow (2026-07-22)
 

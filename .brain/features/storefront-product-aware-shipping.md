@@ -27,9 +27,14 @@ The shared implementation is
 
 ### Doors
 
-Weight resolution order is product/size override, assigned size profile,
-global fallback, then unmapped. Each resolved row may add a fixed handling
-amount. Door weight is resolved pounds multiplied by configured door quantity.
+Weight resolution order is the selected catalog door's per-unit override,
+assigned canonical size profile, then unmapped. Door weight is resolved pounds
+multiplied by configured door quantity.
+
+The admin size table is projected from the same Dyke sales-form data as the
+sales form: configured `doorSizeVariation` widths crossed with canonical Height
+components, plus dimensions present only in Door pricing dependencies. Shipping
+settings do not maintain a duplicate size list.
 
 ### Mouldings
 
@@ -43,16 +48,17 @@ price = pieces × piece unit price
 weight = shipped LF × resolved pounds per LF
 ```
 
-Pounds per LF resolves from a product override, category profile, global
-fallback, then unmapped. Persisted line metadata contains requested LF, waste,
-piece length, whole pieces, and shipped LF so pricing and shipping use the same
-canonical evidence.
+Pounds per LF resolves from the selected catalog moulding's override, the
+general moulding pounds-per-linear-foot setting, then unmapped. Persisted line
+metadata contains requested LF, waste, piece length, whole pieces, and shipped
+LF so pricing and shipping use the same canonical evidence.
 
 ### Shelf Items
 
-Pounds per unit resolves from product override, child category, parent category,
-global fallback, then unmapped. Weight is resolved pounds per unit multiplied by
-quantity.
+Pounds per unit resolves from a catalog item override, child category, parent
+category, then unmapped. Weight is resolved pounds per unit multiplied by
+quantity. The settings editor projects active `DykeShelfCategories` parent rows
+and stores weights against their canonical numeric IDs.
 
 ## Delivery Formula
 
@@ -66,7 +72,6 @@ delivery =
   base dispatch
   + route miles × base vehicle rate per mile
   + route miles × excess weight units × weight-distance rate
-  + fixed line handling
 ```
 
 The result is clamped to the configured minimum and optional maximum. Free
@@ -101,8 +106,26 @@ Storefront Settings exposes:
 - Google Place origin;
 - formula, packaging, clamp, capacity, service-area, and free-delivery values;
 - V2 confidence gates;
-- Door size profiles, Moulding category weights, Shelf category weights, and
-  product overrides.
+- a Door sizes tab populated from the canonical sales-form dimensions;
+- a Mouldings tab with the general pounds-per-linear-foot value;
+- a Shelf categories tab populated from live top-level shelf categories.
+
+Catalog item editing owns product-specific shipping overrides. Doors and shelf
+items accept pounds per unit; mouldings accept pounds per linear foot. These
+values are stored under `StorefrontComponent.metadata.shipping` and take
+precedence over shipping-policy defaults. The settings screen no longer accepts
+manual JSON profiles or product-override keys. Shelf catalog components also
+store their canonical main Shelf category ID so their category default never
+depends on a merchandising category ID. Quote projection identifies Moulding
+behavior from the canonical Dyke source step, not the public category title.
+
+An existing active policy remains read-compatible with legacy Moulding
+profiles, product overrides, global Door/Shelf fallbacks, component-specific
+Door profiles, and handling values. The settings response summarizes legacy
+values that the typed editors cannot represent. Publishing is server-blocked
+until the employee explicitly acknowledges that the new immutable policy
+replaces them; the prior policy version remains in history. New configuration
+belongs in the typed tables and catalog metadata.
 
 Publishing creates a new immutable policy version and deactivates the previous
 version. Existing quotes retain their original version.
@@ -119,18 +142,21 @@ Before enabling calculated shipping:
 1. Configure and verify the Google Places and Routes credential.
 2. Select the origin Place.
 3. Calibrate rates and limits from representative deliveries.
-4. Populate Door, Moulding, and Shelf mappings; use global fallbacks only when
-   the business accepts their accuracy.
+4. Populate Door-size and Shelf-category mappings plus the general Moulding
+   value; add catalog overrides for exceptional products.
 5. Begin with V1 and review accepted-versus-overridden evidence.
 6. Enable V2 only after setting conservative distance, weight, and amount gates.
 
 ## Validation
 
-- Shipping formula and persistence/payment guards: 9 tests, 37 assertions.
+- Shipping formula, projection, and persistence/payment guards include focused
+  shared-domain coverage for canonical sizes, shelf categories, and catalog
+  metadata weight semantics.
 - API, Sales, and DB package typechecks pass.
 - Prisma client generation and local schema push pass.
-- Admin settings, office orders, storefront catalog, and product configuration
-  received local browser smoke coverage.
+- Admin settings rendered 45 canonical Door rows and 18 live top-level Shelf
+  categories in local data; the Door, Moulding, and Shelf tabs and family-aware
+  catalog weight inputs received local browser smoke coverage.
 - Normal migration replay is currently blocked by the pre-existing
   `20260722180000_master_password_usage_audit` shadow-database ordering failure;
   no reset was performed.

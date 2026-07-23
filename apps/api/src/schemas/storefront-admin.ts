@@ -34,6 +34,9 @@ export const storefrontCatalogMetadataSchema =
 			.array(z.string().trim().url().max(4_000))
 			.max(12)
 			.default([]),
+		shippingWeightPerUnitLb: z.number().positive().max(100_000).nullable(),
+		shippingLbPerLinearFoot: z.number().positive().max(10_000).nullable(),
+		shippingShelfCategoryId: z.number().int().positive().nullable(),
 	});
 
 export const storefrontCatalogFeaturedSchema =
