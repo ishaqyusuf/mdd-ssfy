@@ -11,7 +11,6 @@ import { useInventoryInboundParams } from "@/hooks/use-inventory-inbound-params"
 import { useInventoryParams } from "@/hooks/use-inventory-params";
 import { useRolesParams } from "@/hooks/use-roles-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
 import dynamic from "next/dynamic";
 import { AuthGuard } from "../auth-guard";
 import { _perm } from "../sidebar-links";
@@ -57,13 +56,9 @@ const InventoryProductSheet = dynamic(() =>
 );
 const RolesProfilesSheet = dynamic(() => import("./roles-profile-sheet"));
 const SalesOverviewSheet = dynamic(() => import("./sales-overview-sheet"));
-const SalesOverviewSystemSheet = dynamic(
-    () => import("./sales-overview-system-sheet"),
-);
 export function GlobalSheets() {
     const { params: inboundViewParams } = useInboundView();
     const legacySalesOverview = useSalesOverviewQuery();
-    const v2SalesOverview = useSalesOverviewV2SheetQuery();
     const { opened: customerOverviewOpen } = useCustomerOverviewQuery();
     const customerOverviewV2 = useCustomerOverviewV2SheetQuery();
     const { params: createCustomerParams } = useCreateCustomerParams();
@@ -84,9 +79,6 @@ export function GlobalSheets() {
             {inboundViewParams.viewInboundId ? <InboundOverviewSheet /> : null}
             {legacySalesOverview["sales-overview-id"] ? (
                 <SalesOverviewSheet />
-            ) : null}
-            {v2SalesOverview.params.overviewSheetId ? (
-                <SalesOverviewSystemSheet />
             ) : null}
             {customerOverviewOpen ? <CustomerOverviewSheet /> : null}
             {customerOverviewV2.opened ? <CustomerOverviewV2Sheet /> : null}

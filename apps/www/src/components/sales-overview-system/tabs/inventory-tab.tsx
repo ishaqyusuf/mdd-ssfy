@@ -72,7 +72,6 @@ import {
 	resolveInventoryInboundCountState,
 } from "../lib/inventory-inbounds-utils";
 import { OrderInventoryRepairPanel } from "../order-inventory-repair-panel";
-import { useSalesOverviewSystem } from "../provider";
 import { OverviewEmptyState } from "../section-primitives";
 
 type InventoryOverview = RouterOutputs["inventories"]["salesInventoryOverview"];
@@ -2477,17 +2476,5 @@ export function SalesOverviewInventoryContent({
 			) : null}
 			<SalesOverviewInventoryContentBody salesOrderId={salesOrderId} />
 		</>
-	);
-}
-
-export function SalesOverviewInventoryTab() {
-	const {
-		state: { data },
-	} = useSalesOverviewSystem();
-
-	return (
-		<SalesOverviewInventoryContent
-			salesOrderId={data?.id ? Number(data.id) : null}
-		/>
 	);
 }

@@ -25,6 +25,17 @@ export function LoginQuickAccess({
   onSelectEmail,
   variant = "default",
 }: LoginQuickAccessProps) {
+  if (!__DEV__) return null;
+
+  return (
+    <DevLoginQuickAccess onSelectEmail={onSelectEmail} variant={variant} />
+  );
+}
+
+function DevLoginQuickAccess({
+  onSelectEmail,
+  variant = "default",
+}: LoginQuickAccessProps) {
   const [employeeSearch, setEmployeeSearch] = useState("");
   const employeesModal = useModal();
   const colors = useColors();
@@ -33,15 +44,15 @@ export function LoginQuickAccess({
     color: colors.foreground,
   };
   const employeesQuery = useQuery(
-    _trpc.hrm.getEmployees.queryOptions({ size: 999 }),
+    _trpc.hrm.getQuickLoginEmployees.queryOptions(),
   );
   const loginableEmployees = useMemo(
     () =>
-      ((employeesQuery.data?.data ?? []) as LoginEmployee[]).filter(
+      ((employeesQuery.data ?? []) as LoginEmployee[]).filter(
         (employee) =>
           typeof employee.email === "string" && employee.email.trim(),
       ),
-    [employeesQuery.data?.data],
+    [employeesQuery.data],
   );
   const filteredEmployees = useMemo(() => {
     const query = employeeSearch.trim().toLowerCase();

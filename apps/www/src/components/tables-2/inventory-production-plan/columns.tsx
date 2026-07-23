@@ -1,6 +1,7 @@
 "use client";
 
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -50,13 +51,9 @@ function formatLabel(value: string | null | undefined) {
 
 function getSalesOverviewUrl(orderId: string | null) {
 	if (!orderId) return null;
-	const params = new URLSearchParams({
-		overviewId: orderId,
-		overviewType: "sales",
-		overviewMode: "sales-production",
-		overviewTab: "production",
+	return buildSalesOverviewUrl(orderId, "sales-production", {
+		salesTab: "production",
 	});
-	return `/sales-book/orders/overview-v2?${params.toString()}`;
 }
 
 export function getInventoryProductionPlanRowId(

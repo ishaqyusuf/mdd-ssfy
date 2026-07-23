@@ -208,15 +208,17 @@ export function LegacySalesOverviewHeader({
 }
 
 export function LegacySalesOverviewPanels({
+	activeTab,
 	tabs,
 }: {
+	activeTab: LegacySalesOverviewTabId;
 	tabs: LegacySalesOverviewTabDefinition[];
 }) {
 	return (
 		<>
 			{tabs.map((tab) => (
 				<TabsContent key={tab.value} value={tab.value}>
-					{tab.content ?? null}
+					{tab.value === activeTab ? (tab.content ?? null) : null}
 				</TabsContent>
 			))}
 		</>

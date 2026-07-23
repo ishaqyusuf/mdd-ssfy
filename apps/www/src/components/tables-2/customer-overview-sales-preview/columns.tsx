@@ -43,8 +43,7 @@ function getStatusLabel(
 
 type ColumnOptions = {
 	type: CustomerOverviewSalesPreviewType;
-	onOpenPage: (orderNo: string) => void;
-	onOpenSheet: (orderNo: string) => void;
+	onOpen: (orderNo: string) => void;
 };
 
 export function getCustomerOverviewSalesPreviewRowId(
@@ -58,8 +57,7 @@ export function getCustomerOverviewSalesPreviewRowId(
 
 export function createColumns({
 	type,
-	onOpenPage,
-	onOpenSheet,
+	onOpen,
 }: ColumnOptions): Column[] {
 	const referenceColumn: Column = {
 		id: "reference",
@@ -168,25 +166,15 @@ export function createColumns({
 			contentClassName: "justify-end",
 		},
 		cell: ({ row }) => (
-			<div className="relative z-10 flex justify-end gap-1.5">
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={(event) => {
-						event.stopPropagation();
-						onOpenSheet(row.original.uuid);
-					}}
-				>
-					Sheet
-				</Button>
+			<div className="relative z-10 flex justify-end">
 				<Button
 					size="sm"
 					onClick={(event) => {
 						event.stopPropagation();
-						onOpenPage(row.original.uuid);
+						onOpen(row.original.uuid);
 					}}
 				>
-					Page
+					Open
 				</Button>
 			</div>
 		),
@@ -203,6 +191,5 @@ export function createColumns({
 
 export const columns = createColumns({
 	type: "order",
-	onOpenPage: () => {},
-	onOpenSheet: () => {},
+	onOpen: () => {},
 });

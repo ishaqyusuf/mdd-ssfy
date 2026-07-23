@@ -5,6 +5,12 @@ Persist master-password login and sales-rep transfer usage for Super Admin revie
 
 ## Current Behavior
 - The web and mobile Better Auth legacy sign-in endpoints still allow configured ENV master passwords to bypass normal user-password verification.
+- Expo development may prefill the configured development login credential, but
+  quick login and its prefills are `__DEV__`-only. Preview build/update commands
+  strip the public development email/token before bundling, disable Expo dotenv
+  reload, and app config rejects explicit preview/production variants that
+  still carry those values. Preview and production mobile artifacts must never
+  contain the server master password.
 - Sales-rep transfer confirmation accepts either the current owner's account password or the configured, case-sensitive master password. Master-password confirmation never bypasses sale ownership, target eligibility, or the confirmation prompt.
 - `MasterPasswordLoginAudit` records usage as `LOGIN` or `SALES_REP_TRANSFER`, including the actor snapshot, app surface, platform, IP address, best-effort ISO country code from trusted Vercel/Cloudflare edge headers, browser/user agent, session/request id, timestamp, and optional order/quote reference.
 - Audit persistence failure is logged server-side and does not block emergency master-password access.

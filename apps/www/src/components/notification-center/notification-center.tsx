@@ -125,24 +125,24 @@ export function NotificationCenter() {
 			if (!firstOrderNo) return;
 
 			context.close();
-			salesOverview.openSalesAdminPage(String(firstOrderNo));
+			salesOverview.openOrder(String(firstOrderNo));
 		},
 		sales_payment_recorded: (data, _notification, context) => {
 			context.close();
-			salesOverview.openSalesAdminPage(String(data.orderNo));
+			salesOverview.openOrder(String(data.orderNo));
 		},
 		sales_marked_as_production_completed: (data, _notification, context) => {
 			context.close();
-			salesOverview.openSalesAdminPage(String(data.orderNo ?? data.salesId));
+			salesOverview.openOrder(String(data.orderNo ?? data.salesId));
 		},
 		sales_production_all_completed: (data, _notification, context) => {
 			context.close();
-			salesOverview.openSalesAdminPage(String(data.orderNo ?? data.salesId));
+			salesOverview.openOrder(String(data.orderNo ?? data.salesId));
 		},
 		sales_dispatch_assigned: (data, _notification, context) => {
 			context.close();
 			if (data.orderNo) {
-				salesOverview.openDispatchPage(
+				salesOverview.openDispatch(
 					String(data.orderNo),
 					String(data.dispatchId),
 				);

@@ -1,7 +1,6 @@
 "use client";
 
 import { SalesMenu } from "@/components/sales-menu";
-import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 
@@ -50,10 +49,6 @@ export function QuoteRowActionsMenu({
 			}
 			contentClassName="min-w-52"
 		>
-			<SalesOverviewVersionMenuItems
-				type="quote"
-				uuid={item.uuid ?? undefined}
-			/>
 			<SalesMenu.AcceptQuote />
 			<SalesMenu.QuoteEmailMenuItems />
 			<SalesMenu.SalesPrintMenuItems />

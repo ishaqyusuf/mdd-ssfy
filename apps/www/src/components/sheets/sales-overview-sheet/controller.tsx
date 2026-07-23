@@ -8,45 +8,22 @@ import Note from "@/modules/notes";
 import { noteTagFilter } from "@/modules/notes/utils";
 
 import { TransactionsTab } from "../customer-overview-sheet/transactions-tab";
+import { useSaleOverview } from "./context";
 import { DispatchTab } from "./dispatch-tab";
 import { GeneralTab } from "./general-tab";
 import { PackingTab } from "./packing-tab";
 import { ProductionTab } from "./production-tab";
-import { useSaleOverview } from "./context";
 import type {
 	LegacySalesOverviewMode,
 	LegacySalesOverviewTabDefinition,
 	LegacySalesOverviewTabId,
 } from "./types";
+export { resolveLegacySalesOverviewMode } from "./mode";
 
 function LegacySalesOverviewInventoryTab() {
 	const { data } = useSaleOverview();
 
 	return <SalesOverviewInventoryContent salesOrderId={data?.id} />;
-}
-
-export function shouldRenderLegacySalesOverviewSheet({
-	legacyOverviewId,
-	v2OverviewId,
-	v2OverviewSheetId,
-}: {
-	legacyOverviewId?: string | null;
-	v2OverviewId?: string | null;
-	v2OverviewSheetId?: string | null;
-}) {
-	return !!legacyOverviewId && !v2OverviewId && !v2OverviewSheetId;
-}
-
-export function resolveLegacySalesOverviewMode({
-	assignedTo,
-	viewMode,
-}: {
-	assignedTo?: string | number | null;
-	viewMode?: string | null;
-}): LegacySalesOverviewMode {
-	if (assignedTo) return "assigned-production";
-	if (viewMode === "dispatch-modal") return "dispatch-modal";
-	return "default";
 }
 
 export function resolveLegacySalesOverviewActiveTab({
@@ -131,9 +108,8 @@ export function createLegacySalesOverviewTabs({
 				{
 					value: "production",
 					label: "Productions",
-					disabled: !prodQty,
 					hidden: isQuote,
-					badge: prodBadge as ReactNode,
+					badge: prodBadge ? (prodBadge as ReactNode) : undefined,
 					content: <ProductionTab />,
 				},
 				{

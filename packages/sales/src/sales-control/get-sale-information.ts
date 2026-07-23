@@ -26,14 +26,30 @@ import { deriveOrderProductionGateState } from "../production-gate";
 
 export type SalesInfoData = RenturnTypeAsync<typeof salesInformationData>;
 type SalesInfoDataItem = SalesInfoData["order"]["items"][number];
+export type GetSaleInformationOptions = {
+  persistDerivedState?: boolean;
+};
+
+export function composeFullSalesSelect(assignedToId?: number | null) {
+  return {
+    ...FullSalesSelect,
+    assignments: {
+      ...FullSalesSelect.assignments,
+      where: {
+        ...FullSalesSelect.assignments.where,
+        assignedToId: assignedToId ?? undefined,
+      },
+    },
+  };
+}
+
 export async function salesInformationData(
   db: Db,
-  params: GetFullSalesDataSchema
+  params: GetFullSalesDataSchema,
+  options: GetSaleInformationOptions = {},
 ) {
   const { assignedToId } = params;
-  let select = FullSalesSelect;
-  if (params.assignedToId)
-    select.assignments.where.assignedToId = params.assignedToId as any;
+  const select = composeFullSalesSelect(params.assignedToId);
   const order = await db.salesOrders.findFirstOrThrow({
     where: {
       type: "order" as SalesType,
@@ -47,7 +63,11 @@ export async function salesInformationData(
     gate: order.productionGate,
     order,
   });
-  if (order.productionGate?.id && gateState.shouldPersistTriggeredAt) {
+  if (
+    options.persistDerivedState &&
+    order.productionGate?.id &&
+    gateState.shouldPersistTriggeredAt
+  ) {
     await db.orderProductionGate.update({
       where: {
         salesOrderId: order.id,
@@ -233,9 +253,10 @@ export function composeSalesItemControl(
 export async function getSaleInformation(
   //   ctx: TRPCContext,
   db: Db,
-  params: GetFullSalesDataSchema
+  params: GetFullSalesDataSchema,
+  options: GetSaleInformationOptions = {},
 ) {
-  const data = await salesInformationData(db, params);
+  const data = await salesInformationData(db, params, options);
   const { order } = data;
 
   let items = order.items
@@ -269,21 +290,23 @@ export async function getSaleInformation(
     .map((item) => item!);
   items = items.sort((a, b) => a.itemIndex! - b.itemIndex!);
   // order.deliveries.
-  await Promise.all(
-    items.map(async (item) => {
-      if (item.analytics?.assignmentUidUpdates?.length)
-        await db.orderItemProductionAssignments.updateMany({
-          where: {
-            id: {
-              in: item.analytics.assignmentUidUpdates,
+  if (options.persistDerivedState) {
+    await Promise.all(
+      items.map(async (item) => {
+        if (item.analytics?.assignmentUidUpdates?.length)
+          await db.orderItemProductionAssignments.updateMany({
+            where: {
+              id: {
+                in: item.analytics.assignmentUidUpdates,
+              },
             },
-          },
-          data: {
-            salesItemControlUid: item.controlUid,
-          },
-        });
-    })
-  );
+            data: {
+              salesItemControlUid: item.controlUid,
+            },
+          });
+      })
+    );
+  }
   // let orderRequiresUpdate = //= {};
   //   // items?.map((item) => {
   //   //   const stats = item.analytics?.stats;

@@ -46,8 +46,9 @@ describe("Customer Overview sales preview table migration parity", () => {
 		expect(source.includes("<thead")).toBe(false);
 		expect(source.includes("<tbody")).toBe(false);
 		expect(source.includes("list.map((item)")).toBe(false);
-		expect(source.includes("onOpenSheet={onOpenSheet}")).toBe(true);
-		expect(source.includes("onOpenPage={onOpenPage}")).toBe(true);
+		expect(source.includes("onOpen={onOpen}")).toBe(true);
+		expect(source.includes("onOpenPage")).toBe(false);
+		expect(source.includes("onOpenSheet")).toBe(false);
 		expect(source.includes("isLoading={isPending}")).toBe(true);
 	});
 
@@ -72,7 +73,7 @@ describe("Customer Overview sales preview table migration parity", () => {
 			true,
 		);
 		expect(source.includes("startFromColumn: 1")).toBe(true);
-		expect(source.includes("onOpenSheet(row.original.uuid)")).toBe(true);
+		expect(source.includes("onOpen(row.original.uuid)")).toBe(true);
 		expect(source.includes('height: "var(--header-offset, 0px)"')).toBe(true);
 	});
 
@@ -120,7 +121,7 @@ describe("Customer Overview sales preview table migration parity", () => {
 		expect(columnsSource.includes("sizes.custom(168, 230, 190)")).toBe(true);
 		expect(columnsSource.includes("md:sticky md:left-0")).toBe(true);
 		expect(columnsSource.includes("md:sticky md:right-0")).toBe(true);
-		expect(columnsSource.includes("onOpenSheet(row.original.uuid)")).toBe(true);
-		expect(columnsSource.includes("onOpenPage(row.original.uuid)")).toBe(true);
+		expect(columnsSource.includes("onOpen(row.original.uuid)")).toBe(true);
+		expect(columnsSource.includes("onOpenPage")).toBe(false);
 	});
 });

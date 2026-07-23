@@ -1,5 +1,40 @@
 # Progress
 
+- 2026-07-23: Fixed Expo preview OTA export failing when Metro followed the
+  broad `@gnd/sales/payment-system` barrel into server-only payment tokenization,
+  `jsonwebtoken`, and Node `crypto`. The three mobile invoice money-helper
+  imports now use `@gnd/sales/payment-system/money`; the native boundary test
+  rejects future bare payment-system imports from Expo source. The associated
+  preview security fix replaces the temporary unconditional quick-login hide
+  with an explicit `__DEV__` boundary, gates login prefills and Debug wrappers,
+  strips public development email/token values from preview build/update
+  commands, disables Expo dotenv reload for those commands, and fails explicit
+  preview/production config if those values remain. The focused regression
+  suite passes 24 tests / 65 assertions; targeted lint/Biome and scoped diff
+  checks pass. The sanitized production-environment Android Expo export
+  completes with 10,272 modules, and the exported Hermes bundle contains
+  neither the configured public master token nor `jsonwebtoken` / unresolved
+  Node `crypto` paths. No API, database, or migration changed.
+
+- 2026-07-23: Discontinued the unshipped Sales Overview V2 page and sheet and
+  consolidated order/quote detail on the canonical `/sales-book/orders`
+  workspace plus URL-driven Sales Overview sheet. Removed the V2 route, sheet,
+  query hooks, action-menu CTA, provider/shell/registry graph, and unused V2
+  tabs; migrated notification, customer preview, document preview, and
+  inventory operational links to one typed open contract. The canonical sheet
+  now mounts only active tab content, avoids the eager production-detail badge
+  query, and honors explicit dispatch mode while retaining assigned-production
+  restrictions. Production overview reads now compose request-local Prisma
+  selects, default to no hidden gate/assignment repair writes, and require
+  authentication plus relevant operational permissions; mutation workflows opt
+  into derived-state persistence explicitly. Focused coverage passes 18 tests,
+  `@gnd/sales` and `@gnd/api` typechecks pass, static V2 runtime scans are
+  clean, and changed-surface web diagnostics show only the documented existing
+  Sales Overview/Sales Document baseline. ADR-028, the canonical feature
+  contract, API permissions, discontinued V2 plans, and the detailed
+  legacy/V2/Midday comparison report record the cutover. No database schema or
+  migration changed.
+
 - 2026-07-23: Closed the Sales PDF V2 quote-download and representative batch
   artifact release gates. Authenticated Chrome validation rendered quote
   `03341LM`, fetched the quote-mode V2 download endpoint with HTTP 200, and

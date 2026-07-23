@@ -11,7 +11,6 @@ import {
 } from "@/components/sales-inbound-status-badge";
 import { SalesMenu } from "@/components/sales-menu";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
-import { SalesOverviewVersionMenuItems } from "@/components/sales-overview-version-menu-items";
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
@@ -779,7 +778,6 @@ function ActionCell({ item }: { item: SalesOrder }) {
 					}
 					contentClassName="min-w-56"
 				>
-					<SalesOverviewVersionMenuItems type="order" uuid={item.uuid} />
 					<SalesMenu.Item
 						disabled={!item.id}
 						onSelect={() => {

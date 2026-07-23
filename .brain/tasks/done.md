@@ -1,5 +1,22 @@
 # Done
 
+### Canonical Sales Overview Consolidation
+- Status: Done
+- Description: Discontinued the unused Sales Overview V2 page/sheet and
+  consolidated all order/quote opening on the canonical Sales Orders workspace
+  and URL-driven production sheet. Added active-tab-only rendering, one typed
+  open contract, pure production reads, request-local selects, and protected
+  overview permissions.
+- Feature File: `.brain/features/sales-overview.md`
+- Decision:
+  `.brain/decisions/ADR-028-canonical-sales-overview-workspace-and-sheet.md`
+- Report:
+  `.brain/reports/2026-07-23-sales-overview-legacy-v2-midday-review.md`
+- Validation: 18 focused tests, passing `@gnd/sales` and `@gnd/api`
+  typechecks, clean V2 runtime scans, scoped diff checks, and filtered web
+  diagnostics against the existing WWW baseline.
+- Completed Date: 2026-07-23
+
 ### Sales PDF V2 Release Proof
 - Status: Done
 - Description: Authenticated browser validation rendered and downloaded quote

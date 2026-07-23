@@ -1,5 +1,10 @@
 # Sales Overview System Architecture Plan
 
+> **Discontinued 2026-07-23.** The separate V2 page/sheet architecture was
+> removed before production adoption. ADR-028 replaces this plan with one
+> canonical `/sales-book/orders` workspace and URL-driven Sales Overview sheet.
+> The history below is retained for context only.
+
 ## Objective
 
 Design a new sales overview system that replaces the current noisy sheet with a reusable architecture supporting both side-sheet and full-page rendering from the same feature core.
@@ -7,6 +12,14 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 ## Current Status
 
 ### 2026-07-23
+
+- Discontinued the separate V2 page and sheet.
+- Removed the unshipped V2 runtime and migrated internal links to the canonical
+  Sales Overview sheet.
+- Adopted active-tab-only rendering, typed open parameters, pure overview
+  reads, and permission-aware API boundaries in the canonical flow.
+- See
+  `.brain/decisions/ADR-028-canonical-sales-overview-workspace-and-sheet.md`.
 
 - Current v1, redesigned v2, and legacy compatibility customer sections now
   consume one shared `SalesCustomerEditButton`.

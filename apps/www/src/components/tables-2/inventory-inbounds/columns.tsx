@@ -1,6 +1,7 @@
 "use client";
 
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -57,13 +58,7 @@ function formatProgress(value: number | null | undefined) {
 
 function getSalesOverviewUrl(orderId: string | null | undefined) {
 	if (!orderId) return null;
-	const params = new URLSearchParams({
-		overviewId: orderId,
-		overviewType: "sales",
-		overviewMode: "sales",
-		overviewTab: "inventory",
-	});
-	return `/sales-book/orders/overview-v2?${params.toString()}`;
+	return buildSalesOverviewUrl(orderId, "sales", { salesTab: "inventory" });
 }
 
 function getCustomerName(order: InventoryInboundRow["linkedOrders"][number]) {

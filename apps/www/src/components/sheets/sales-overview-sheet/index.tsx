@@ -1,15 +1,10 @@
 "use client";
 
 import { DataSkeleton } from "@/components/data-skeleton";
-import { getProductionTabItemCount } from "@/components/sales-overview-system/lib/production-items";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
-import { useSalesOverviewV2PageQuery } from "@/hooks/use-sales-overview-v2-page-query";
-import { useSalesOverviewV2SheetQuery } from "@/hooks/use-sales-overview-v2-sheet-query";
-import { useTRPC } from "@/trpc/client";
 import { Tabs } from "@gnd/ui/tabs";
-import { useQuery } from "@gnd/ui/tanstack";
 
 import { CustomSheet, CustomSheetContent } from "../custom-sheet-content";
 import { SalesOverviewProvider, useSaleOverview } from "./context";
@@ -17,23 +12,14 @@ import {
 	createLegacySalesOverviewTabs,
 	resolveLegacySalesOverviewActiveTab,
 	resolveLegacySalesOverviewMode,
-	shouldRenderLegacySalesOverviewSheet,
 } from "./controller";
 import { LegacySalesOverviewHeader, LegacySalesOverviewPanels } from "./layout";
 import type { LegacySalesOverviewTabId } from "./types";
 
 export default function SalesOverviewSheet() {
 	const query = useSalesOverviewQuery();
-	const v2PageQuery = useSalesOverviewV2PageQuery();
-	const v2SheetQuery = useSalesOverviewV2SheetQuery();
 
-	return shouldRenderLegacySalesOverviewSheet({
-		legacyOverviewId: query["sales-overview-id"],
-		v2OverviewId: v2PageQuery.params.overviewId,
-		v2OverviewSheetId: v2SheetQuery.params.overviewSheetId,
-	}) ? (
-		<Modal />
-	) : null;
+	return query["sales-overview-id"] ? <Modal /> : null;
 }
 function Modal() {
 	return (
@@ -45,36 +31,18 @@ function Modal() {
 function Content() {
 	usePageTitle();
 	const query = useSalesOverviewQuery();
-	const trpc = useTRPC();
 	const { data } = useSaleOverview();
 	const isQuote =
 		data?.type === "quote" || query.params["sales-type"] === "quote";
-	const overviewId = query.params["sales-overview-id"];
-	const numericAssignedToId = Number(query.assignedTo);
-	const assignedToId =
-		query.assignedTo && Number.isFinite(numericAssignedToId)
-			? numericAssignedToId
-			: null;
-	const { data: productionOverview } = useQuery(
-		trpc.sales.productionOverview.queryOptions(
-			{
-				salesNo: overviewId,
-				assignedToId,
-			},
-			{
-				enabled: !!overviewId && !isQuote,
-			},
-		),
-	);
-	const prodQty = getProductionTabItemCount(productionOverview?.items);
 	const mode = resolveLegacySalesOverviewMode({
 		assignedTo: query.assignedTo,
+		requestedMode: query.params.mode,
 		viewMode: query.viewMode,
 	});
 	const tabs = createLegacySalesOverviewTabs({
 		mode,
 		isQuote,
-		prodQty,
+		prodQty: 0,
 		saleId: data?.id,
 		orderId: data?.orderId,
 	});
@@ -114,7 +82,7 @@ function Content() {
 			</Tabs>
 			<CustomSheetContent className="-mt-4">
 				<Tabs value={activeTab}>
-					<LegacySalesOverviewPanels tabs={tabs} />
+					<LegacySalesOverviewPanels activeTab={activeTab} tabs={tabs} />
 				</Tabs>
 			</CustomSheetContent>
 		</CustomSheet>

@@ -25,12 +25,8 @@ describe("Customer Sales Workspace table migration parity", () => {
 		expect(source.includes("<TableBody")).toBe(false);
 		expect(source.includes("StatusBadge")).toBe(false);
 		expect(source.includes("onToggleAll={toggleAll}")).toBe(true);
-		expect(source.includes("overviewOpen.openQuoteSheet(item.uuid)")).toBe(
-			true,
-		);
-		expect(source.includes("overviewOpen.openSalesAdminSheet(item.uuid)")).toBe(
-			true,
-		);
+		expect(source.includes("overviewOpen.openQuote(item.uuid)")).toBe(true);
+		expect(source.includes("overviewOpen.openOrder(item.uuid)")).toBe(true);
 	});
 
 	it("keeps table-owned scroll, DnD, resize, selection, and row-open behavior", () => {

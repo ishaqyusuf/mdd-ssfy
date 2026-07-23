@@ -34,9 +34,12 @@ theme preference across cold starts, JavaScript reloads, and Expo OTA updates.
   filtered output contains no diagnostics in the touched theme implementation
   files.
 - Android native build and installation completed successfully on the
-  `Pixel_3a_API_34` emulator. Full visual reload proof is currently blocked
-  before app mount by the pre-existing Metro incompatibility where
-  `jsonwebtoken/sign.js` imports Node's `crypto` module.
+  `Pixel_3a_API_34` emulator. The pre-existing Metro incompatibility where
+  `jsonwebtoken/sign.js` imported Node's `crypto` module was removed on
+  2026-07-23 by moving Expo money-helper imports from the broad Sales payment
+  barrel to its native-safe `/money` subpath. The production-environment Android
+  export now completes; visual reload acceptance remains a separate manual QA
+  step.
 
 ## References
 

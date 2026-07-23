@@ -4,6 +4,11 @@
 Tracks authentication and authorization patterns across API surfaces.
 
 ## Current Notes
+- Sales Overview reads are authenticated and capability-aware.
+  `sales.getSaleOverview` accepts order, estimate, production, delivery, pickup,
+  or packing viewers; `sales.productionOverview` accepts order, production,
+  delivery, pickup, or packing viewers. UI tab visibility is not the
+  authorization boundary, and both queries are side-effect-free.
 - Shared `storage.upload` and `storage.delete` require an authenticated user.
   Upload ownership/uploader ids come only from API context; delete repeats
   provider, pathname, owner, uploader, active-state, and trusted browser-staging

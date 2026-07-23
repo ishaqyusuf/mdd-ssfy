@@ -1,5 +1,6 @@
 "use client";
 
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import { useAuth } from "@/hooks/use-auth";
 import { getBaseUrl } from "@/lib/base-url";
 import { openLink } from "@/lib/open-link";
@@ -188,12 +189,10 @@ export function SalesDocumentPreviewPage({
 	]);
 	const overviewUrl = useMemo(() => {
 		if (!data?.orderNo) return null;
-		const query = new URLSearchParams({
-			overviewId: data.orderNo,
-			overviewType: data.mode === "quote" ? "quote" : "sales",
-			overviewMode: data.mode === "quote" ? "quote" : "sales",
-		});
-		return `/sales-book/orders/overview-v2?${query.toString()}`;
+		return buildSalesOverviewUrl(
+			data.orderNo,
+			data.mode === "quote" ? "quote" : "sales",
+		);
 	}, [data?.mode, data?.orderNo]);
 	const editSalesUrl = useMemo(() => {
 		if (!data?.orderNo) return null;

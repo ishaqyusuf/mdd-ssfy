@@ -35,7 +35,7 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
 	const info = await getSaleInformation(db, {
 		salesId: data.meta.salesId,
 		assignedToId: submitArgs?.assignedToId ?? undefined,
-	});
+	}, { persistDerivedState: true });
 	const resp = await db.$transaction(
 		async (tx) => {
 			const resp = await submitAssignmentsAction(tx as any, {
@@ -64,7 +64,7 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
 	const paymentReviewSettings = await getPaymentReviewSettings(db);
 	const info = await getSaleInformation(db, {
 		salesId: data.meta.salesId,
-	});
+	}, { persistDerivedState: true });
 
 	const createAssignments: CreateSalesAssignmentProps["items"] = [];
 	for (const item of info.items) {
@@ -129,7 +129,7 @@ export async function submitNonProductionsTask(
 ) {
 	const info = await getSaleInformation(db, {
 		salesId: data.meta.salesId,
-	});
+	}, { persistDerivedState: true });
 	const response = await db.$transaction(
 		async (tx) => {
 			const resp = await submitNonProductionsAction(tx as any, {
@@ -468,7 +468,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 	if (packMode == "all") {
 		const assignmentInfo = await getSaleInformation(db, {
 			salesId: data.meta.salesId,
-		});
+		}, { persistDerivedState: true });
 		const createAssignments: CreateSalesAssignmentProps["items"] =
 			assignmentInfo.items
 				.filter(
@@ -503,7 +503,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 		});
 	const info = await getSaleInformation(db, {
 		salesId: data.meta.salesId,
-	});
+	}, { persistDerivedState: true });
 	if (
 		data.packItems?.packMode === "selection" &&
 		(data.packItems?.requestedItems?.length || 0) > 0
@@ -519,7 +519,7 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 			} as UpdateSalesControl);
 			const refreshed = await getSaleInformation(db, {
 				salesId: data.meta.salesId,
-			});
+			}, { persistDerivedState: true });
 			built = buildSelectionPackingLinesFromRequestedItems(
 				refreshed,
 				data.packItems!.requestedItems!,

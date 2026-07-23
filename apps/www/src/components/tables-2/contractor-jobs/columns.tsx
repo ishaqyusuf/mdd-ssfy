@@ -79,16 +79,27 @@ const jobColumn: Column = {
 			"md:sticky md:left-[50px] bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
 		),
 	},
-	cell: ({ row }) => (
-		<div className="min-w-0 space-y-1">
-			<p className="whitespace-nowrap font-mono font-semibold">
-				#J-{padStart(row.original.id, 5, "0")}
-			</p>
-			<p className="truncate text-xs text-muted-foreground">
-				{formatDate(row.original.createdAt)}
-			</p>
-		</div>
-	),
+	cell: ({ row }) => {
+		const job = row.original;
+
+		return (
+			<div className="min-w-0 space-y-1">
+				<div className="flex items-center gap-1.5">
+					<p className="whitespace-nowrap font-mono font-semibold">
+						#J-{padStart(job.id, 5, "0")}
+					</p>
+					{job.isCustom ? (
+						<Badge variant="outline" className="h-5 rounded-full text-[10px]">
+							Custom
+						</Badge>
+					) : null}
+				</div>
+				<p className="truncate text-xs text-muted-foreground">
+					{formatDate(job.createdAt)}
+				</p>
+			</div>
+		);
+	},
 };
 
 const descriptionColumn: Column = {
@@ -113,14 +124,6 @@ const descriptionColumn: Column = {
 						className="max-w-full truncate font-medium"
 						text={title || "Untitled job"}
 					/>
-					{job.isCustom ? (
-						<Badge variant="outline" className="h-5 rounded-full text-[10px]">
-							Custom
-						</Badge>
-					) : null}
-					<Badge variant="secondary" className="h-5 rounded-full text-[10px]">
-						{String(job.jobType || "v2").toUpperCase()}
-					</Badge>
 				</div>
 				<TextWithTooltip
 					className="max-w-full truncate text-sm text-muted-foreground"

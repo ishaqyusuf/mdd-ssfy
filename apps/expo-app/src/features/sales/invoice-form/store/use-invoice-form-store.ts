@@ -1,13 +1,15 @@
-import { create } from "zustand";
-import { divideMoney, multiplyMoney } from "@gnd/sales/payment-system";
+import { divideMoney, multiplyMoney } from "@gnd/sales/payment-system/money";
 import {
+	type ShelfRowDraft,
+	addSalesFormLineItem,
+	hydrateSalesFormRecord,
 	normalizeSalesFormExtraCosts,
 	normalizeSalesFormLineItems,
 	normalizeSalesFormMeta,
+	normalizeSalesFormPaymentTerm,
 	patchShelfRowPrice,
 	patchShelfRowQty,
 	readSalesFormObjectMetadata,
-	normalizeSalesFormPaymentTerm,
 	removeSalesFormExtraCost,
 	removeSalesFormLineItem,
 	setSalesFormCustomerProfileMeta,
@@ -17,11 +19,17 @@ import {
 	toSalesFormSaveDraftPayload,
 	updateSalesFormLineItem,
 	upsertSalesFormExtraCost,
-	addSalesFormLineItem,
-	hydrateSalesFormRecord,
 	validateSalesFormBeforeSave,
-	type ShelfRowDraft,
 } from "@gnd/sales/sales-form-core";
+import { create } from "zustand";
+import { calculateInvoiceSummary } from "../lib/calculate-summary";
+import type { InvoiceFormRecoverySnapshot } from "../lib/local-recovery";
+import { getSalesDocumentLabels } from "../lib/sales-document-labels";
+import {
+	type MobileSalesFormState,
+	fromSharedSalesFormState,
+	toSharedSalesFormState,
+} from "../lib/sales-form-bridge";
 import {
 	createDefaultLineItems,
 	defaultExtraCosts,
@@ -43,14 +51,6 @@ import type {
 	NewSalesFormType,
 	SaveDraftNewSalesFormPayload,
 } from "../types";
-import { calculateInvoiceSummary } from "../lib/calculate-summary";
-import type { InvoiceFormRecoverySnapshot } from "../lib/local-recovery";
-import { getSalesDocumentLabels } from "../lib/sales-document-labels";
-import {
-	fromSharedSalesFormState,
-	type MobileSalesFormState,
-	toSharedSalesFormState,
-} from "../lib/sales-form-bridge";
 
 const steps: InvoiceFormStep[] = [
 	"customer",

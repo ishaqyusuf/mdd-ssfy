@@ -86,6 +86,7 @@ import {
 } from "@api/schemas/sales";
 import { saveSupplierSchema } from "@api/schemas/sales-form";
 import { transformSalesFilterQuery } from "@api/utils/sales";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import {
 	dealerDeliveryPricingSchema,
 	normalizeDealerDeliveryPricingSettings,
@@ -170,6 +171,44 @@ const markPaymentsReviewedSchema = z.object({
 	salesIds: z.array(z.number().int().positive()).min(1).max(100),
 	note: z.string().trim().max(500).optional().nullable(),
 });
+
+async function requireSalesOverviewViewer(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		[
+			"viewOrders",
+			"editOrders",
+			"viewEstimates",
+			"editEstimates",
+			"viewProduction",
+			"editProduction",
+			"viewDelivery",
+			"editDelivery",
+			"viewPickup",
+			"editPickup",
+			"viewPacking",
+		],
+		"You do not have permission to view sales order details.",
+	);
+}
+
+async function requireProductionOverviewViewer(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		[
+			"viewOrders",
+			"editOrders",
+			"viewProduction",
+			"editProduction",
+			"viewDelivery",
+			"editDelivery",
+			"viewPickup",
+			"editPickup",
+			"viewPacking",
+		],
+		"You do not have permission to view sales production details.",
+	);
+}
 
 function getDealershipUrl() {
 	if (process.env.NEXT_PUBLIC_DEALERSHIP_URL) {
@@ -488,9 +527,10 @@ export const salesRouter = createTRPCRouter({
 	getSalesHx: publicProcedure.input(getSalesHxSchema).query(async (props) => {
 		return getSalesHx(props.ctx, props.input);
 	}),
-	getSaleOverview: publicProcedure
+	getSaleOverview: protectedProcedure
 		.input(getSaleOverviewSchema)
 		.query(async (props) => {
+			await requireSalesOverviewViewer(props.ctx);
 			return getSaleOverview(props.ctx, props.input);
 		}),
 	getSaleTransactions: publicProcedure
@@ -534,12 +574,11 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return getInboundSummary(props.ctx, props.input);
 		}),
-	productionOverview: publicProcedure
+	productionOverview: protectedProcedure
 		.input(getFullSalesDataSchema)
 		.query(async (props) => {
-			// const resp = await getSalesLifeCycle(props.ctx, props.input);
-			// return resp;
-			return await getSaleInformation(props.ctx.db, props.input);
+			await requireProductionOverviewViewer(props.ctx);
+			return getSaleInformation(props.ctx.db, props.input);
 		}),
 	saveOrderProductionGate: protectedProcedure
 		.input(saveOrderProductionGateSchema)

@@ -8,7 +8,11 @@ import {
 } from "nuqs";
 import { z } from "zod";
 
-import { composeLegacySalesOverviewOpenParams } from "./sales-overview-open-params";
+import {
+	type LegacySalesOverviewMode,
+	type LegacySalesOverviewTab,
+	composeLegacySalesOverviewOpenParams,
+} from "./sales-overview-open-params";
 import { useAuth } from "./use-auth";
 import { useOnCloseQuery } from "./use-on-close-query";
 import { useSalesQueryClient } from "./use-sales-query-client";
@@ -96,6 +100,21 @@ export function useSalesOverviewQuery() {
 				salesTab,
 				dispatchId,
 			});
+		},
+		open(
+			orderNo: string,
+			mode: LegacySalesOverviewMode,
+			options: {
+				dispatchId?: number | string | null;
+				salesTab?: LegacySalesOverviewTab | null;
+			} = {},
+		) {
+			setParams(
+				composeLegacySalesOverviewOpenParams(orderNo, mode, {
+					assignedTo,
+					...options,
+				}),
+			);
 		},
 		open2(orderNo: string, mode: Modes) {
 			setParams(

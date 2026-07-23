@@ -1,6 +1,7 @@
 "use client";
 
 import { VirtualRow } from "@/components/tables-2/core";
+import { buildSalesOverviewUrl } from "@/hooks/sales-overview-open-params";
 import { useScrollHeader } from "@/hooks/use-scroll-header";
 import { useStickyColumns } from "@/hooks/use-sticky-columns";
 import { useTableDnd } from "@/hooks/use-table-dnd";
@@ -37,13 +38,9 @@ type Props = {
 
 function getSalesOverviewUrl(orderId: string | null) {
 	if (!orderId) return null;
-	const params = new URLSearchParams({
-		overviewId: orderId,
-		overviewType: "sales",
-		overviewMode: "sales-production",
-		overviewTab: "production",
+	return buildSalesOverviewUrl(orderId, "sales-production", {
+		salesTab: "production",
 	});
-	return `/sales-book/orders/overview-v2?${params.toString()}`;
 }
 
 export function DataTable({ data, initialSettings, isLoading }: Props) {

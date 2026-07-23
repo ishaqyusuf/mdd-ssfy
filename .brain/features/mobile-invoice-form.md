@@ -8,7 +8,13 @@ Tracks the Expo mobile invoice/quote form under `apps/expo-app/src/features/sale
 
 - The form uses shared `@gnd/sales/sales-form-core` helpers for workflow line pricing, grouped row patches, HPT door summaries, shelf row patches, record hydration, and save payload generation.
 - `@gnd/sales/sales-form-core` is treated as the native-safe sales-form boundary for Expo; it must not export from web UI TSX files or any module importing `@gnd/ui`, and this boundary is covered by `packages/sales/src/sales-form-core.native-safety.test.ts`.
-- Expo app source must not import the web UI package directly; `apps/expo-app/src/features/sales/invoice-form/native-ui-boundary.test.ts` scans mobile source for `@gnd/ui` and direct `packages/ui` references so mobile remains native-owned while sharing only pure sales-domain helpers.
+- Expo app source must not import the web UI package directly or consume the
+  broad `@gnd/sales/payment-system` server barrel.
+  `apps/expo-app/src/features/sales/invoice-form/native-ui-boundary.test.ts`
+  scans mobile source for `@gnd/ui`, direct `packages/ui` references, and the
+  server payment barrel. Mobile money calculations import the native-safe
+  `@gnd/sales/payment-system/money` subpath so Metro does not traverse payment
+  application tokenization into Node-only `jsonwebtoken` / `crypto`.
 - Shared sales-form workflow helpers use one domain metadata parser for object-or-JSON metadata shapes, keeping mobile reopen behavior consistent without duplicating parser code across domain and workflow modules.
 - Mobile save/edit/update flows remain routed through the invoice form store:
   - `actions.patchLineItem(...)`

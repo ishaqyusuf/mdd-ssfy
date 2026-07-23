@@ -208,7 +208,7 @@ export function GeneralTab({ setCustomerName }: Props) {
 									size="sm"
 									variant="ghost"
 									onClick={() =>
-										overviewOpen.openSalesAdminSheet(item.uuid || item.orderId)
+										overviewOpen.openOrder(item.uuid || item.orderId)
 									}
 								>
 									Open
@@ -231,7 +231,7 @@ export function GeneralTab({ setCustomerName }: Props) {
 									size="sm"
 									variant="ghost"
 									onClick={() =>
-										overviewOpen.openSalesAdminSheet(item.uuid || item.orderId)
+										overviewOpen.openOrder(item.uuid || item.orderId)
 									}
 								>
 									Open

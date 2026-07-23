@@ -97,12 +97,7 @@ export function CustomerOverviewV2Content({
 								initialSettings={customerOverviewSalesPreviewInitialSettings}
 								isPending={overviewQuery.isPending}
 								items={data?.salesWorkspace.orders || []}
-								onOpenSheet={(orderNo) =>
-									salesOverviewOpen.openSalesAdminSheet(orderNo)
-								}
-								onOpenPage={(orderNo) =>
-									salesOverviewOpen.openSalesAdminPage(orderNo)
-								}
+								onOpen={(orderNo) => salesOverviewOpen.openOrder(orderNo)}
 								title="Recent sales"
 								type="order"
 							/>
@@ -111,12 +106,7 @@ export function CustomerOverviewV2Content({
 								initialSettings={customerOverviewSalesPreviewInitialSettings}
 								isPending={overviewQuery.isPending}
 								items={data?.salesWorkspace.quotes || []}
-								onOpenSheet={(orderNo) =>
-									salesOverviewOpen.openQuoteSheet(orderNo)
-								}
-								onOpenPage={(orderNo) =>
-									salesOverviewOpen.openQuotePage(orderNo)
-								}
+								onOpen={(orderNo) => salesOverviewOpen.openQuote(orderNo)}
 								title="Recent quotes"
 								type="quote"
 							/>
@@ -154,12 +144,7 @@ export function CustomerOverviewV2Content({
 						initialSettings={customerOverviewSalesPreviewInitialSettings}
 						isPending={overviewQuery.isPending}
 						items={data?.salesWorkspace.orders || []}
-						onOpenSheet={(orderNo) =>
-							salesOverviewOpen.openSalesAdminSheet(orderNo)
-						}
-						onOpenPage={(orderNo) =>
-							salesOverviewOpen.openSalesAdminPage(orderNo)
-						}
+						onOpen={(orderNo) => salesOverviewOpen.openOrder(orderNo)}
 						showAll
 						title="Sales orders"
 						type="order"
@@ -172,8 +157,7 @@ export function CustomerOverviewV2Content({
 						initialSettings={customerOverviewSalesPreviewInitialSettings}
 						isPending={overviewQuery.isPending}
 						items={data?.salesWorkspace.quotes || []}
-						onOpenSheet={(orderNo) => salesOverviewOpen.openQuoteSheet(orderNo)}
-						onOpenPage={(orderNo) => salesOverviewOpen.openQuotePage(orderNo)}
+						onOpen={(orderNo) => salesOverviewOpen.openQuote(orderNo)}
 						showAll
 						title="Quotes"
 						type="quote"
@@ -681,8 +665,7 @@ function CustomerSalesPreview({
 	initialSettings,
 	isPending,
 	items,
-	onOpenPage,
-	onOpenSheet,
+	onOpen,
 	showAll = false,
 	title,
 	type,
@@ -694,8 +677,7 @@ function CustomerSalesPreview({
 	initialSettings?: Partial<TableSettings>;
 	isPending?: boolean;
 	showAll?: boolean;
-	onOpenSheet: (orderNo: string) => void;
-	onOpenPage: (orderNo: string) => void;
+	onOpen: (orderNo: string) => void;
 }) {
 	const list = showAll ? items : items.slice(0, 6);
 
@@ -705,8 +687,8 @@ function CustomerSalesPreview({
 				<CardTitle>{title}</CardTitle>
 				<CardDescription>
 					{type === "order"
-						? "Open customer sales with direct v2 overview actions."
-						: "Customer quotes with direct v2 overview actions."}
+						? "Open customer sales in the canonical order overview."
+						: "Open customer quotes in the canonical quote overview."}
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -715,8 +697,7 @@ function CustomerSalesPreview({
 					emptyText={emptyText}
 					initialSettings={initialSettings}
 					isLoading={isPending}
-					onOpenPage={onOpenPage}
-					onOpenSheet={onOpenSheet}
+					onOpen={onOpen}
 					type={type}
 				/>
 			</CardContent>

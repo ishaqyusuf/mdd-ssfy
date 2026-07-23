@@ -1,6 +1,6 @@
 import type { ExpoConfig } from "expo/config";
 
-export const UPDATE_VERSION = "2026.07.15.04";
+export const UPDATE_VERSION = "2026.07.23.02";
 const DEFAULT_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS = 5 * 60 * 1000;
 
 const appVariant =
@@ -9,8 +9,24 @@ const appVariant =
   (process.env.EAS_BUILD_PROFILE === "development" ? "development" : undefined);
 
 const normalizedAppVariant = (appVariant ?? "production").toLowerCase();
+const normalizedEasBuildProfile =
+  process.env.EAS_BUILD_PROFILE?.toLowerCase() ?? "";
 const isDevelopmentBuild =
   normalizedAppVariant === "development" || normalizedAppVariant === "dev";
+const isExplicitReleaseBuild =
+  (["preview", "production"].includes(normalizedAppVariant) &&
+    appVariant !== undefined) ||
+  ["preview", "production"].includes(normalizedEasBuildProfile);
+const exposedDevCredentialKeys = [
+  "EXPO_PUBLIC_EMAIL",
+  "EXPO_PUBLIC_TOK",
+].filter((key) => process.env[key]);
+
+if (isExplicitReleaseBuild && exposedDevCredentialKeys.length > 0) {
+  throw new Error(
+    `${exposedDevCredentialKeys.join(", ")} must not be set for preview or production Expo builds.`,
+  );
+}
 
 const variantConfig = isDevelopmentBuild
   ? {

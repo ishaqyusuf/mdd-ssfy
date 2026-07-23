@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted
+Superseded by
+[ADR-028](./ADR-028-canonical-sales-overview-workspace-and-sheet.md)
+
+The separate V2 page/sheet architecture was discontinued on 2026-07-23 before
+production adoption. The canonical decision is now to improve the existing
+orders workspace and Sales Overview sheet directly while retaining the useful
+URL-state, lazy-domain, and controller seams from this experiment.
 
 ## Context
 

@@ -14,7 +14,6 @@ const SHEET_QUERY_KEYS = [
 	"viewRoles",
 	"viewInboundId",
 	"sales-overview-id",
-	"overviewSheetId",
 	"viewCustomer",
 	"accountNo",
 	"customerOverviewV2",

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildSalesOverviewUrl,
 	composeLegacyQuoteOverviewOpenParams,
 	composeLegacySalesOverviewOpenParams,
-	composeV2QuoteOverviewPageParams,
-	composeV2QuoteOverviewSheetParams,
 } from "./sales-overview-open-params";
 
 describe("sales overview open params", () => {
@@ -29,16 +28,28 @@ describe("sales overview open params", () => {
 		});
 	});
 
-	it("maps a V2 quote id to sheet and page overview query state", () => {
-		expect(composeV2QuoteOverviewSheetParams("quote-00001al")).toEqual({
-			overviewSheetId: "quote-00001al",
-			overviewSheetType: "quote",
-			overviewSheetMode: "quote",
+	it("preserves the requested canonical tab and dispatch context", () => {
+		expect(
+			composeLegacySalesOverviewOpenParams("order-1", "dispatch-modal", {
+				dispatchId: "42",
+				salesTab: "packing",
+			}),
+		).toEqual({
+			"sales-overview-id": "order-1",
+			"sales-type": "order",
+			mode: "dispatch-modal",
+			salesTab: "packing",
+			dispatchId: 42,
 		});
-		expect(composeV2QuoteOverviewPageParams("quote-00001al")).toEqual({
-			overviewId: "quote-00001al",
-			overviewType: "quote",
-			overviewMode: "quote",
-		});
+	});
+
+	it("builds one canonical orders workspace URL", () => {
+		expect(
+			buildSalesOverviewUrl("order 1", "sales-production", {
+				salesTab: "production",
+			}),
+		).toBe(
+			"/sales-book/orders?sales-overview-id=order+1&sales-type=order&mode=sales-production&salesTab=production",
+		);
 	});
 });

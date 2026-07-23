@@ -107,6 +107,12 @@ function publishUpdate(nextVersion) {
 		[
 			"run",
 			"with-env:prod",
+			"env",
+			"-u",
+			"EXPO_PUBLIC_EMAIL",
+			"-u",
+			"EXPO_PUBLIC_TOK",
+			"EXPO_NO_DOTENV=1",
 			"eas",
 			"update",
 			"--channel",

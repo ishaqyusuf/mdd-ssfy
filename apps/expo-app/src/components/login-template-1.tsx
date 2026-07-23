@@ -38,8 +38,10 @@ export function LoginTemplate1() {
   const { width } = Dimensions.get("window");
   const form = useZodForm(signInSchema, {
     defaultValues: {
-      email: process.env.EXPO_PUBLIC_EMAIL?.split(",")?.[0] ?? "",
-      password: process.env.EXPO_PUBLIC_TOK ?? "",
+      email: __DEV__
+        ? process.env.EXPO_PUBLIC_EMAIL?.split(",")?.[0] ?? ""
+        : "",
+      password: __DEV__ ? process.env.EXPO_PUBLIC_TOK ?? "" : "",
     },
   });
   const auth = useAuthContext();

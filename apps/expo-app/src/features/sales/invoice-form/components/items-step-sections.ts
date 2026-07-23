@@ -1,5 +1,5 @@
+import { addMoney, roundMoney } from "@gnd/sales/payment-system/money";
 import { readSalesFormObjectMetadata } from "@gnd/sales/sales-form-core";
-import { addMoney, roundMoney } from "@gnd/sales/payment-system";
 import type { NewSalesFormLineItem } from "../types";
 
 export type InvoiceItemSection = {

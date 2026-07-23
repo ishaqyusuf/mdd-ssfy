@@ -21,6 +21,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import { z } from "zod";
 
 export const hrmRoutes = createTRPCRouter({
+  getQuickLoginEmployees: publicProcedure.query(() => []),
   getEmployees: publicProcedure
     .input(employeesQueryParamsSchema)
     .query(async (props) => {

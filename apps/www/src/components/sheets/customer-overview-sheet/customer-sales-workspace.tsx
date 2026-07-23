@@ -259,10 +259,10 @@ export function CustomerSalesWorkspace({ accountNo }: Props) {
 						onToggleRow={(item, checked) => toggleRow(item.id, checked)}
 						onOpenRow={(item) => {
 							if (item.type === "quote") {
-								overviewOpen.openQuoteSheet(item.uuid);
+								overviewOpen.openQuote(item.uuid);
 								return;
 							}
-							overviewOpen.openSalesAdminSheet(item.uuid);
+							overviewOpen.openOrder(item.uuid);
 						}}
 						onDeleted={(item) => {
 							setItems((current) =>

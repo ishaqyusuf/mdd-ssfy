@@ -34,8 +34,7 @@ type Props = {
 	emptyText: string;
 	initialSettings?: Partial<TableSettings>;
 	isLoading?: boolean;
-	onOpenPage: (orderNo: string) => void;
-	onOpenSheet: (orderNo: string) => void;
+	onOpen: (orderNo: string) => void;
 	type: CustomerOverviewSalesPreviewType;
 };
 
@@ -44,8 +43,7 @@ export function DataTable({
 	emptyText,
 	initialSettings,
 	isLoading,
-	onOpenPage,
-	onOpenSheet,
+	onOpen,
 	type,
 }: Props) {
 	const parentRef = useRef<HTMLDivElement>(null);
@@ -55,8 +53,8 @@ export function DataTable({
 	useScrollHeader(parentRef);
 
 	const tableColumns = useMemo(
-		() => createColumns({ type, onOpenPage, onOpenSheet }),
-		[type, onOpenPage, onOpenSheet],
+		() => createColumns({ type, onOpen }),
+		[type, onOpen],
 	);
 	const columnIds = useMemo(() => getColumnIds(tableColumns), [tableColumns]);
 
@@ -184,7 +182,7 @@ export function DataTable({
 											getStickyClassName={getStickyClassName}
 											nonClickableColumns={NON_CLICKABLE_COLUMNS}
 											onCellClick={() => {
-												onOpenSheet(row.original.uuid);
+												onOpen(row.original.uuid);
 											}}
 											columnSizing={columnSizing}
 											columnOrder={columnOrder}

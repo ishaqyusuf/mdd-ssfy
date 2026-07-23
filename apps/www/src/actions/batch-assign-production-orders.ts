@@ -30,7 +30,7 @@ export const batchAssignProductionOrdersAction = actionClient
 		for (const salesId of input.salesIds) {
 			const info = await getSaleInformation(prisma as any, {
 				salesId,
-			});
+			}, { persistDerivedState: true });
 
 			const selections = info.items
 				.filter(
