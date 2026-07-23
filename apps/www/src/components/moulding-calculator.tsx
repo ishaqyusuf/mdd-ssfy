@@ -1,7 +1,7 @@
 import { useZodForm } from "@/hooks/use-zod-form";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
-import { AlertDialog, Field, InputGroup } from "@gnd/ui/namespace";
+import { Dialog, Field, InputGroup } from "@gnd/ui/namespace";
 import { Slider } from "@gnd/ui/slider";
 import { Fragment, useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
@@ -20,7 +20,6 @@ interface Props {
     onCalculate?: (qty) => void;
 }
 export function MouldingCalculator(props: Props) {
-    console.log(props);
     const form = useZodForm(
         z.object({
             unitPrice: z.number().min(0).optional(),
@@ -43,6 +42,25 @@ export function MouldingCalculator(props: Props) {
     );
     const [opened, setOpened] = useState(false);
     const data = form.watch();
+    useEffect(() => {
+        if (opened) return;
+        form.reset({
+            unitPrice: props.unitPrice,
+            wastePercentage: props.wastePercentage,
+            longFoot: props.longFoot,
+            unitLF: props.unitLF || Number(getMouldingLength(props.title)),
+            qty: props.qty,
+            totalPrice: props.unitPrice,
+        });
+    }, [
+        opened,
+        props.longFoot,
+        props.qty,
+        props.title,
+        props.unitLF,
+        props.unitPrice,
+        props.wastePercentage,
+    ]);
     useEffect(() => {
         if (!opened) return;
         // qty = longFoot / unitLF * (1 + wastePercentage/100)
@@ -76,13 +94,13 @@ export function MouldingCalculator(props: Props) {
     const totalPieces = data.qty || 0;
     const totalFootage = data.longFoot;
     const pricePerLF =
-        data.longFoot && data.unitPrice ? data.longFoot / data.unitPrice : 0;
+        data.unitLF && data.unitPrice ? data.unitPrice / data.unitLF : 0;
     const calculatedBaseLF = pricePerLF
         ? (data.totalPrice || 0) / pricePerLF
         : 0;
     return (
-        <AlertDialog open={opened} onOpenChange={setOpened}>
-            <AlertDialog.Trigger asChild>
+        <Dialog open={opened} onOpenChange={setOpened}>
+            <Dialog.Trigger asChild>
                 <Button
                     onClick={() => {
                         // handleCalculatorOpen('5-1/4" Crown Moulding')
@@ -94,17 +112,28 @@ export function MouldingCalculator(props: Props) {
                 >
                     <Icons.Calculator className="" />
                 </Button>
-            </AlertDialog.Trigger>
-            <AlertDialog.Content size="default">
-                <AlertDialog.Header className="relative">
-                    <AlertDialog.Title>Moulding Calculator</AlertDialog.Title>
-                    <AlertDialog.Description className="">
+            </Dialog.Trigger>
+            <Dialog.Content
+                className="max-h-[90vh] w-[min(94vw,560px)] overflow-y-auto"
+                onPointerDownOutside={() => setOpened(false)}
+            >
+                <Dialog.Header className="relative pr-8">
+                    <Dialog.Title>Moulding Calculator</Dialog.Title>
+                    <Dialog.Description className="">
                         {props.title}
-                    </AlertDialog.Description>
-                    <AlertDialog.Cancel className="absolute right-0 top-0 ">
-                        <Icons.Close className="" />
-                    </AlertDialog.Cancel>
-                </AlertDialog.Header>
+                    </Dialog.Description>
+                    <Dialog.Close asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0"
+                            aria-label="Close calculator"
+                        >
+                            <Icons.Close className="" />
+                        </Button>
+                    </Dialog.Close>
+                </Dialog.Header>
                 <form>
                     <div className="grid gap-4">
                         {/* Content */}
@@ -186,7 +215,7 @@ export function MouldingCalculator(props: Props) {
                                     <Controller
                                         control={form.control}
                                         name="unitPrice"
-                                        render={({ field }) => (
+                                        render={() => (
                                             <Field>
                                                 <Field.Label>
                                                     Price per LF (Derived)
@@ -200,8 +229,8 @@ export function MouldingCalculator(props: Props) {
                                                         type="number"
                                                         placeholder="0.00"
                                                         className=""
-                                                        defaultValue={String(
-                                                            field.value,
+                                                        value={pricePerLF.toFixed(
+                                                            2,
                                                         )}
                                                     />
                                                     <InputGroup.Addon
@@ -341,12 +370,12 @@ export function MouldingCalculator(props: Props) {
                         </div>
                     </div>
                 </form>
-                <AlertDialog.Footer className="">
+                <Dialog.Footer className="">
                     {/* Footer */}
                     <div className="gap-1 w-full">
                         <Button
                             onClick={() => {
-                                props.onCalculate(
+                                props.onCalculate?.(
                                     data.qty,
                                     // data.price,
                                     // data.wastePercentage,
@@ -363,9 +392,9 @@ export function MouldingCalculator(props: Props) {
                             quantity.
                         </p>
                     </div>
-                </AlertDialog.Footer>
-            </AlertDialog.Content>
-        </AlertDialog>
+                </Dialog.Footer>
+            </Dialog.Content>
+        </Dialog>
     );
 }
 
@@ -377,15 +406,12 @@ function getMouldingLength(title: string) {
 
     const parts = dims[1].split(/\s*X\s*/i);
     const r = parts[2]?.replace(/['"]/g, "").trim() ?? null;
-    // console.log("Moulding length from dims:", r);
     return r;
     // const regex = /x\s*([^)]+)/i;
     // const match = title?.toLocaleLowerCase().match(regex);
     // if (match && match[1]) {
     //     const r = parseFloat(match[1]);
-    //     console.log("Moulding length parsed:", r);
     //     return r;
     // }
     // return 0;
 }
-

@@ -764,6 +764,7 @@ function ActionCell({ item }: { item: SalesOrder }) {
 					type="order"
 					orderNo={item.orderId}
 					customerEmail={item.email}
+					customerPhone={item.customerPhone}
 					customerName={item.customerName}
 					trigger={
 						<Button

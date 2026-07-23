@@ -26,7 +26,10 @@ interface Props<T> {
     prefix?: string;
     tabIndex?;
     format?;
-    calendarProps?: CalendarProps;
+    calendarProps?: Omit<
+        CalendarProps,
+        "mode" | "selected" | "onSelect" | "required"
+    >;
 }
 export default function FormDate<
     TFieldValues extends FieldValues = FieldValues,
@@ -106,7 +109,7 @@ export default function FormDate<
                                     initialFocus
                                     {...calendarProps}
                                     mode="single"
-                                    onSelect={(e) => {
+                                    onSelect={(e: Date | undefined) => {
                                         field.onChange(e);
                                         setOpen(false);
                                     }}

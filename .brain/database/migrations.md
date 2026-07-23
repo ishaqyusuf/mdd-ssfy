@@ -194,3 +194,28 @@ Tracks notable migrations and migration strategy.
   nullable `reference` and `salesQuoteId`. The push succeeded and generated the
   client. A second local push after the upload authorization counter was added
   also completed successfully. No production database was changed.
+
+## 20260723143000_storefront_product_aware_shipping
+
+- Adds shipping approval/quote status enums, versioned
+  `StorefrontShippingPolicy`, revisioned `StorefrontShippingQuote`, and the
+  optional unique `StorefrontCheckout.shippingQuoteId` relation.
+- Policy mappings and quote calculations are JSON evidence; monetary, route,
+  and weight totals use explicit Decimal columns for indexed/auditable values.
+- Existing checkouts and orders require no backfill. Calculated shipping is not
+  activated until an admin publishes an enabled active policy.
+- `bun run db:generate` and local `db push --accept-data-loss` passed.
+- Normal `prisma migrate dev` replay remains blocked by the pre-existing
+  `20260722180000_master_password_usage_audit` shadow-database ordering failure
+  because that migration references `MasterPasswordLoginAudit` before the
+  table exists in the shadow history. No reset was performed and no production
+  database was changed.
+
+## 2026-07-23 sales document WhatsApp/SMS delivery
+
+- No schema or migration was required.
+- Reusable links/clicks use existing `ShortLink` rows, email provider attempts
+  remain in `SalesEmailAttempt`, and WhatsApp/SMS channel outcomes use existing
+  notification activity/tag storage.
+- No migration, `db push`, sync, or database write command was run for this
+  feature.

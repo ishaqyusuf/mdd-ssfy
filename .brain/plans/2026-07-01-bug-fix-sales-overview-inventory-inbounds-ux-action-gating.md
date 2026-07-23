@@ -4,7 +4,7 @@
 Bug Fix
 
 ## Status
-Proposed
+Implementation slice complete; authenticated browser validation remains pending
 
 ## Created Date
 2026-07-01
@@ -81,6 +81,15 @@ Treat this as a focused sales overview bug/polish slice. Fix action gating for c
   - read-only fulfilled/cancelled order
   - inbound status click from sales orders and overview.
 - Run `bun run typecheck` or the narrowest relevant check after contract changes.
+
+## Implementation Note (2026-07-22)
+
+- Completed guarded `Mark all available`, lightweight pre-open inbound counts,
+  pending-stock empty-state CTAs, and collapsible linked-inbound rows in the
+  shared Sales Overview Inventory tab.
+- Focused helper/API tests and API/WWW typechecks pass. Authenticated browser
+  fixture validation for pending-stock, linked-inbound, and read-only states
+  remains the release gate.
 
 ## Brain Update Requirements
 - Update `brain/features/inventory-backed-sales-fulfillment.md`.

@@ -119,6 +119,34 @@ describe("sales PDF email attachments", () => {
 		expect(email?.attachments).toBeUndefined();
 		expect(email?.data).toMatchObject({
 			subject: "Invoice ready",
+			hasPdfAttachment: false,
+			pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
+		});
+	});
+
+	it("marks composed sales document emails when the PDF is attached", () => {
+		const email = composedSalesDocumentEmail.createEmail?.(
+			{
+				type: "order",
+				customerEmail: "customer@example.com",
+				customerName: "Customer",
+				salesRep: "Sales Rep",
+				salesRepEmail: "rep@gndprodesk.com",
+				subject: "Invoice ready",
+				message: "Please review your invoice.",
+				paymentLink: null,
+				pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
+				pdfAttachment,
+				sales: [sale],
+			} as never,
+			{} as never,
+			{} as never,
+			{},
+		);
+
+		expect(email?.attachments).toEqual([pdfAttachment]);
+		expect(email?.data).toMatchObject({
+			hasPdfAttachment: true,
 			pdfLink: "https://example.com/api/download/sales-v2?token=pdf-token",
 		});
 	});
@@ -176,26 +204,25 @@ describe("sales PDF email attachments", () => {
 	});
 
 	it("attaches invoices for customer payment receipt emails without download links", () => {
-		const contact =
-			salesCustomerPaymentReceived.createDirectEmailContact?.(
-				{
-					customerEmail: "customer@example.com",
-					customerName: "Customer",
-					paymentMethod: "card",
-					totalAmount: 100,
-					invoiceDownloadUrl: null,
-					invoicePdfAttachment: pdfAttachment,
-					sales: [
-						{
-							salesId: 1,
-							orderNo: "100",
-							amountApplied: 100,
-							remainingDue: 0,
-						},
-					],
-				},
-				{} as never,
-			);
+		const contact = salesCustomerPaymentReceived.createDirectEmailContact?.(
+			{
+				customerEmail: "customer@example.com",
+				customerName: "Customer",
+				paymentMethod: "card",
+				totalAmount: 100,
+				invoiceDownloadUrl: null,
+				invoicePdfAttachment: pdfAttachment,
+				sales: [
+					{
+						salesId: 1,
+						orderNo: "100",
+						amountApplied: 100,
+						remainingDue: 0,
+					},
+				],
+			},
+			{} as never,
+		);
 		const email = salesCustomerPaymentReceived.createEmail?.(
 			{
 				customerEmail: "customer@example.com",

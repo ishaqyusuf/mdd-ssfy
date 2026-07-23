@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNotificationTrigger } from "@/hooks/use-notification-trigger";
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
+import { isValidCustomerPhoneNumber } from "@gnd/notifications/phone-number";
+import type { SalesDocumentDeliveryChannel } from "@gnd/notifications/sales-document-message";
 import { Button } from "@gnd/ui/button";
 import {
 	Dialog,
@@ -30,6 +32,7 @@ type SalesDocumentEmailDialogProps = {
 	documentTitle: string;
 	orderNo?: string | null;
 	customerEmail?: string | null;
+	customerPhone?: string | null;
 	customerName?: string | null;
 	downloadUrl?: string | null;
 	disabled?: boolean;
@@ -52,6 +55,7 @@ export function SalesDocumentEmailDialog({
 	documentTitle,
 	orderNo,
 	customerEmail,
+	customerPhone,
 	customerName,
 	downloadUrl,
 	disabled = false,
@@ -64,6 +68,10 @@ export function SalesDocumentEmailDialog({
 	const queryClient = useQueryClient();
 	const [internalOpen, setInternalOpen] = useState(false);
 	const [email, setEmail] = useState(customerEmail || "");
+	const [phone, setPhone] = useState(customerPhone || "");
+	const [channels, setChannels] = useState<SalesDocumentDeliveryChannel[]>([
+		"email",
+	]);
 	const [subject, setSubject] = useState(buildDefaultSubject(orderNo));
 	const [message, setMessage] = useState("");
 	const [sendError, setSendError] = useState<string | null>(null);
@@ -76,13 +84,14 @@ export function SalesDocumentEmailDialog({
 	const notification = useNotificationTrigger({
 		monitor: true,
 		silent: true,
-		taskTitle: `Sending ${mode === "quote" ? "quote" : "invoice"} email`,
-		taskDescription: "Watch this email job in the task monitor.",
+		taskTitle: `Sending ${mode === "quote" ? "quote" : "invoice"}`,
+		taskDescription: "Watch this document delivery in the task monitor.",
 		onSuccess: async () => {
 			setSendError(null);
 			setOpen(false);
 			setSubject(buildDefaultSubject(orderNo));
 			setMessage("");
+			setChannels(["email"]);
 			await Promise.all([
 				queryClient.invalidateQueries({
 					queryKey: trpc.notes.activityTree.pathKey(),
@@ -93,25 +102,29 @@ export function SalesDocumentEmailDialog({
 			]);
 		},
 		onError: (message) => {
-			setSendError(message || "Email sending failed. Please try again.");
+			setSendError(message || "Document delivery failed. Please try again.");
 		},
 	});
 
 	const isQuote = mode === "quote";
 	const isEmailValid = EMAIL_RE.test(email.trim());
+	const isPhoneValid = isValidCustomerPhoneNumber(phone);
+	const wantsEmail = channels.includes("email");
+	const wantsPhone = channels.includes("whatsapp") || channels.includes("sms");
 	const isSending =
 		notification.isActionPending || notification.status === "SYNCING";
 	const canSend =
 		!disabled &&
 		!isSending &&
 		!!salesOrderId &&
-		isEmailValid &&
-		subject.trim().length > 0;
+		channels.length > 0 &&
+		(!wantsEmail || (isEmailValid && subject.trim().length > 0)) &&
+		(!wantsPhone || isPhoneValid);
 	const helperText = useMemo(() => {
 		if (customerName?.trim()) {
-			return `This email will be sent to ${customerName}. You can update the address and subject before sending.`;
+			return `Choose how to send this document to ${customerName}. Recipient details can be corrected before sending.`;
 		}
-		return "Enter the customer email address and subject for this document.";
+		return "Choose a delivery channel and enter the customer contact details.";
 	}, [customerName]);
 	const defaultTrigger = (
 		<Button
@@ -120,6 +133,8 @@ export function SalesDocumentEmailDialog({
 			disabled={disabled || !salesOrderId}
 			onClick={() => {
 				setEmail(customerEmail || "");
+				setPhone(customerPhone || "");
+				setChannels(["email"]);
 				setSubject(buildDefaultSubject(orderNo));
 				setMessage("");
 				setSendError(null);
@@ -131,9 +146,9 @@ export function SalesDocumentEmailDialog({
 				className={triggerVariant === "icon" ? "size-4" : "mr-2 size-4"}
 			/>
 			{triggerVariant === "icon" ? (
-				<span className="sr-only">Email</span>
+				<span className="sr-only">Send document</span>
 			) : (
-				"Email"
+				"Send"
 			)}
 		</Button>
 	);
@@ -142,10 +157,12 @@ export function SalesDocumentEmailDialog({
 	useEffect(() => {
 		if (!open) return;
 		setEmail(customerEmail || "");
+		setPhone(customerPhone || "");
+		setChannels(["email"]);
 		setSubject(buildDefaultSubject(orderNo));
 		setMessage("");
 		setSendError(null);
-	}, [customerEmail, open, orderNo]);
+	}, [customerEmail, customerPhone, open, orderNo]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -164,7 +181,7 @@ export function SalesDocumentEmailDialog({
 						sideOffset={14}
 						className="rounded-none px-2 py-1 font-medium text-[10px]"
 					>
-						Email
+						Send document
 					</TooltipContent>
 				</Tooltip>
 			) : (
@@ -174,9 +191,7 @@ export function SalesDocumentEmailDialog({
 			<Dialog open={open} onOpenChange={setOpen}>
 				<DialogContent className="sm:max-w-xl">
 					<DialogHeader>
-						<DialogTitle>
-							Compose {isQuote ? "Quote" : "Invoice"} Email
-						</DialogTitle>
+						<DialogTitle>Send {isQuote ? "Quote" : "Invoice"}</DialogTitle>
 						<DialogDescription>{helperText}</DialogDescription>
 					</DialogHeader>
 
@@ -200,6 +215,52 @@ export function SalesDocumentEmailDialog({
 						</div>
 
 						<div className="space-y-2">
+							<Label>Delivery Channels</Label>
+							<div className="grid grid-cols-3 gap-2">
+								{(
+									[
+										["email", "Email", Icons.Mail],
+										["whatsapp", "WhatsApp", Icons.WhatsApp],
+										["sms", "SMS", Icons.Smartphone],
+									] as const
+								).map(([channel, label, ChannelIcon]) => {
+									const selected = channels.includes(channel);
+									const disabledChannel =
+										channel !== "email" && !isPhoneValid && !selected;
+									return (
+										<Button
+											key={channel}
+											type="button"
+											variant={selected ? "default" : "outline"}
+											disabled={disabledChannel || isSending}
+											onClick={() =>
+												setChannels((current) =>
+													current.includes(channel)
+														? current.filter((item) => item !== channel)
+														: [...current, channel],
+												)
+											}
+											className="justify-start"
+										>
+											<ChannelIcon className="mr-2 size-4" />
+											{label}
+										</Button>
+									);
+								})}
+							</div>
+							{!isPhoneValid ? (
+								<p className="text-xs text-muted-foreground">
+									Add a valid customer phone number to enable WhatsApp and SMS.
+								</p>
+							) : null}
+							{channels.length === 0 ? (
+								<p className="text-xs text-rose-600">
+									Select at least one delivery channel.
+								</p>
+							) : null}
+						</div>
+
+						<div className="space-y-2">
 							<Label htmlFor="sales-preview-email-address">
 								Customer Email
 							</Label>
@@ -218,17 +279,38 @@ export function SalesDocumentEmailDialog({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="sales-preview-email-subject">Subject</Label>
+							<Label htmlFor="sales-preview-phone">Customer Phone</Label>
 							<Input
-								id="sales-preview-email-subject"
-								value={subject}
-								onChange={(event) => setSubject(event.target.value)}
-								placeholder="Regarding your GND sales"
+								id="sales-preview-phone"
+								type="tel"
+								value={phone}
+								onChange={(event) => setPhone(event.target.value)}
+								placeholder="(305) 555-0100"
 							/>
-							{!subject.trim() ? (
-								<p className="text-xs text-rose-600">Subject is required.</p>
+							{phone.trim() && !isPhoneValid ? (
+								<p className="text-xs text-rose-600">
+									Enter a valid phone number, including country code when
+									outside the US.
+								</p>
 							) : null}
 						</div>
+
+						{wantsEmail ? (
+							<div className="space-y-2">
+								<Label htmlFor="sales-preview-email-subject">Subject</Label>
+								<Input
+									id="sales-preview-email-subject"
+									value={subject}
+									onChange={(event) => setSubject(event.target.value)}
+									placeholder="Regarding your GND sales"
+								/>
+								{!subject.trim() ? (
+									<p className="text-xs text-rose-600">
+										Subject is required for email.
+									</p>
+								) : null}
+							</div>
+						) : null}
 
 						<div className="space-y-2">
 							<Label htmlFor="sales-preview-email-message">Message</Label>
@@ -240,8 +322,8 @@ export function SalesDocumentEmailDialog({
 								className="min-h-32"
 							/>
 							<p className="text-xs text-muted-foreground">
-								If this sale has an outstanding balance, a payment button will
-								be included automatically.
+								Short document, acceptance, and payment links are included
+								automatically when applicable.
 							</p>
 						</div>
 
@@ -271,11 +353,13 @@ export function SalesDocumentEmailDialog({
 								notification.composedSalesDocumentEmail({
 									printType: isQuote ? "quote" : "order",
 									salesIds: [salesOrderId],
-									customerEmail: email.trim(),
+									customerEmail: email.trim() || undefined,
+									customerPhone: phone.trim() || undefined,
 									customerName: customerName?.trim() || undefined,
 									subject: subject.trim(),
 									message: message.trim() || undefined,
-									testEmailMode: shouldUseTestEmailMode,
+									channels,
+									testEmailMode: wantsEmail && shouldUseTestEmailMode,
 								});
 							}}
 						>
@@ -284,7 +368,7 @@ export function SalesDocumentEmailDialog({
 							) : (
 								<Icons.Send className="mr-2 size-4" />
 							)}
-							Send Email
+							Send Document
 						</Button>
 					</DialogFooter>
 				</DialogContent>

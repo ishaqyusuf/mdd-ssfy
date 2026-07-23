@@ -46,9 +46,10 @@ import {
   writeInvoiceFormRecoverySnapshot,
 } from "../lib/local-recovery";
 import {
-  isMobileInvoiceSaveTimeoutError,
-  runMobileInvoiceSaveRequest,
-} from "../lib/mobile-save-timeout";
+  classifyMobileInvoiceSaveError,
+  getMobileInvoiceSaveErrorMessage,
+} from "../lib/mobile-save-diagnostics";
+import { runMobileInvoiceSaveRequest } from "../lib/mobile-save-timeout";
 import { getSalesDocumentLabels } from "../lib/sales-document-labels";
 import { useInvoiceFormStore } from "../store/use-invoice-form-store";
 import type {
@@ -683,19 +684,19 @@ export function InvoiceFormScreen({
         : typeof error === "string"
           ? error
           : "";
-    if (message.toLowerCase().includes("out of date")) {
-      actions.markStale();
-      return;
-    }
-    if (isMobileInvoiceSaveTimeoutError(error)) {
-      actions.markError(
-        `Could not finish saving this ${type === "quote" ? "quote" : "invoice"}. Check your connection and try again.`,
-      );
-      return;
-    }
-    actions.markError(
-      `Could not save ${type === "quote" ? "quote" : "invoice"}. Check your connection and try again.`,
+    const documentLabel = type === "quote" ? "quote" : "invoice";
+    const failureMessage = getMobileInvoiceSaveErrorMessage(
+      error,
+      documentLabel,
     );
+    if (
+      message.toLowerCase().includes("out of date") ||
+      classifyMobileInvoiceSaveError(error) === "conflict"
+    ) {
+      actions.markStale(failureMessage);
+      return;
+    }
+    actions.markError(failureMessage);
   };
 
   const dismissRecoverySnapshot = () => {

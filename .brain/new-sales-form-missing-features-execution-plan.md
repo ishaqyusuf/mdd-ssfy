@@ -27,8 +27,8 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - New anchor:
   - `apps/www/src/components/forms/new-sales-form/mappers.ts:96`
   - `packages/sales/src/sales-form/domain/costing.ts:109`
-- Status: Partial (engine exists, user reports incorrect tax outcomes in real workflow)
-- Gap: Runtime integration parity scenarios are incomplete; tax/taxable interaction must be validated against old mixed item profiles.
+- Status: Implemented in code; runtime proof pending
+- Gap: summary tax now honors grouped service row flags at row granularity, with stale parent flags unable to tax or exempt sibling rows incorrectly. Remaining work is authenticated mixed-item/tax-code/profile transition proof against legacy fixtures.
 
 2. Customer profile change repricing and sales cost update
 - Legacy anchor:
@@ -37,8 +37,8 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
 - New anchor:
   - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx` (profile coefficient watcher)
   - `packages/sales/src/sales-form/domain/profile-repricing.ts`
-- Status: Partial
-- Gap: parity exists at engine level, but field workflow from customer/profile change to visible repricing is still reported broken by user and needs scenario hardening.
+- Status: Implemented in code; runtime proof pending
+- Gap: profile changes reprice steps, doors, shelves, and grouped moulding rows with custom/addon preservation and summary recomputation. The UI now defers repricing when the selected profile option is still loading, preserving the prior coefficient as the baseline; authenticated customer/profile workflow proof remains.
 
 3. Step/Component operational controls (floating action + component menu)
 - Legacy anchor:
@@ -46,149 +46,150 @@ Deliver full behavioral parity for critical sales-form workflows by closing all 
   - `apps/www/src/components/forms/sales-form/component-item-card.tsx:320`
 - New anchor:
   - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
-- Status: Missing
-- Gap: no equivalent floating action menu for `Tabs`, `Select All`, `Pricing`, `Component`, `Refresh`, `Enable Custom`; no per-component `Edit`, `Select`, `Redirect`, `Delete` menu parity.
+- Status: Implemented in code; runtime proof pending
+- Gap: the new workflow toolbar and per-card action menu now expose `Tabs`, `Select All`, `Pricing`, custom controls, `Refresh`, `Edit`, `Select`, `Redirect`, and `Delete` with capability gating. Remaining work is authenticated interaction proof.
 
 ### Requested Feature Matrix
 1. Moulding line items + calculator parity
 - Legacy: `apps/www/src/components/forms/sales-form/moulding-and-service/moulding-content.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:956`
-- Status: Partial/Improved
-- Gap: grouped edit/save round-trip now preserves legacy moulding sibling rows and HPT rows, but full calculator/price-summary parity and user flow still need completion.
+- Status: Implemented in code; runtime proof pending
+- Gap: grouped edit/save round-trip preserves legacy moulding sibling rows and HPT rows; the hosted calculator now derives per-LF pricing from piece price/length, refreshes defaults when reused for another row, and safely applies optional callbacks. Remaining work is authenticated calculator and full price-summary workflow proof.
 
 2. Customer profile update not changing pricing
 - Legacy: `apps/www/src/components/forms/sales-form/sales-customer-input.tsx:129-133`
 - New: `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
-- Status: Partial/Fail in field
-- Gap: enforce reliable recost trigger chain on customer/profile change.
+- Status: Implemented in code; runtime proof pending
+- Gap: profile changes now reprice grouped moulding rows as well as steps, shelves, and doors, preserve custom prices/addons, and recompute parent totals. Remaining work is authenticated customer/profile workflow proof.
 
 3. Supplier changing in door qty modal
 - Legacy: `.../modals/door-size-select-modal/index.tsx:87` (supplier badge in modal)
 - New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx` + supplier props wiring
-- Status: Partial
-- Gap: verify active supplier changes are reflected instantly in modal pricing rows and saved rows.
+- Status: Implemented in code; runtime proof pending
+- Gap: supplier selection now re-derives modal rows and persists the selected supplier with saved base-price dependencies. Remaining work is authenticated fixture proof.
 
 4. Quick base price update within size/qty modal
 - Legacy: `.../modals/door-size-select-modal/index.tsx:245` (`PriceCell` popover edits pricing)
 - New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
-- Status: Missing
-- Gap: no inline privileged base-price editor in new door size/qty modal.
+- Status: Implemented in code; runtime proof pending
+- Gap: privileged users now get an inline `DoorPriceCell` base-price editor with supplier-aware dependency keys; non-privileged users retain read-only pricing. Remaining work is authenticated UX proof.
 
 5. HPT list estimate column click -> breakdown
 - Legacy: `apps/www/src/components/forms/sales-form/hpt/price-estimate-cell.tsx`
 - New: HPT table in `item-workflow-panel.tsx`
-- Status: Missing
-- Gap: estimate cell is static text; no breakdown popover/modal.
+- Status: Implemented in code; runtime proof pending
+- Gap: HPT estimate cells now expose the compact cost-price breakdown hover surface. Remaining work is authenticated UX proof on real HPT rows.
 
 6. Component cost not adding right to door estimate
 - Legacy: grouped estimate in `costing-class.ts` + HPT tooling
 - New: `summarizeDoors` + apply paths in `item-workflow-panel.tsx`
-- Status: Partial/Fail in field
-- Gap: verify composed component price contribution chain (step/component/shared totals) into HPT line totals.
+- Status: Implemented in code; runtime proof pending
+- Gap: HPT surcharge calculation now falls back to authoritative selected-component snapshots when persisted `formStep.price` is missing, while preserving the step-price fallback for older rows. Remaining work is authenticated proof against fixture-specific composed routes and totals.
 
 7. Selected mouldings default qty = 1
 - Legacy: grouped line defaults from class-managed forms
 - New: `packages/sales/src/sales-form/domain/workflow-calculators.ts:243`
-- Status: Partial
-- Gap: engine default is `1` for new rows, but user reports misses; need enforce default on selection transitions and persistence merges.
+- Status: Implemented in code; runtime proof pending
+- Gap: selection transitions clamp new/blank moulding quantities to one and preserve existing positive quantities through sync and persistence. Remaining work is authenticated grouped-line proof.
 
 8. New form loses state / refreshes and drops data
 - Legacy: autosave/history flows + long-lived state model
-- New: autosave exists but disabled by default (`store.ts:74`), flushes on unmount
-- Status: Fail in field
-- Gap: resilience strategy not sufficient for long sessions/network interruptions/tab refresh.
+- New: autosave and local recovery are enabled by default, with flush-on-unmount
+- Status: Implemented in code; runtime proof pending
+- Gap: hydrated forms now default autosave on, with debounced flush, local recovery snapshots, page-leave warnings, and manual-save override. Remaining work is authenticated refresh/leave/recovery proof.
 
 9. Shelf item feature parity
 - Legacy: `apps/www/src/components/forms/sales-form/shelf-items.tsx`
 - New: grouped shelf sections now implemented in `item-workflow-panel.tsx` on top of shared shelf adapters in `packages/sales/src/sales-form/domain/workflow-calculators.ts`
-- Status: Partial
-- Gap: sectioned parent/category/product workflow, shelf price editing, and subtotal rollups are now implemented in code; remaining parity work is runtime verification plus any legacy-only category-create/clear edge cases that still diverge from the old shelf UI.
+- Status: Implemented in code; runtime proof pending
+- Gap: the default V2 editor now exposes section category paths and clears stale product/pricing state when categories change or are cleared; shelf price editing and subtotal rollups remain covered by shared adapters. Remaining work is authenticated runtime verification.
 
 10. Service line items tax switch + production switch
 - Legacy: `service-content.tsx` tax/prod `LineSwitch`
-- New: service rows currently no production switch UI
-- Status: Partial/Improved
-- Gap: row-level tax and production flags now hydrate/save through grouped service rows; remaining work is UI toggle parity and full costing/tax scenario proof.
+- New: grouped service rows/editor in `item-workflow-panel.tsx`
+- Status: Implemented in code; runtime proof pending
+- Gap: row-level tax and production flags now hydrate/save through grouped service rows, and the new-form editor exposes them behind the Super-Admin line-pricing capability. Remaining work is browser parity proof and full costing/tax scenario coverage.
 
 11. Tax not getting calculated
 - Legacy: `taxCodeChanged()` always triggers `calculateTotalPrice()`
 - New: `setTaxRate` + summary recompute path exists
-- Status: Partial/Fail in field
-- Gap: likely integration gaps in row tax flags and profile/tax transitions; requires parity scenarios.
+- Status: Implemented in code; runtime proof pending
+- Gap: grouped service row tax switches now synchronize the parent line tax flag, including stale legacy parent booleans and sparse row metadata. Remaining work is authenticated tax-code/profile transition proof across mixed item types.
 
 12. Step floating bar options (tabs/select all/pricing/component/refresh/enable custom)
 - Legacy: floating action menu in components section
-- New: not present
-- Status: Missing
+- New: `packages/sales/src/sales-form/ui/workflow/workflow-step-component-panel.tsx`
+- Status: Implemented in code; runtime proof pending
 
 13. Component menu (edit/select/redirect/delete)
 - Legacy: per-card menu in `component-item-card.tsx`
-- New: not present
-- Status: Missing
+- New: `packages/sales/src/sales-form/ui/workflow/workflow-component-action-menu.tsx`
+- Status: Implemented in code; runtime proof pending
 
 14. Component top-left icon indicators
 - Legacy: variation/override/redirect badges in `component-item-card.tsx`
-- New: not present
-- Status: Missing
+- New: `packages/sales/src/sales-form/ui/workflow/workflow-component-badges.tsx`
+- Status: Implemented in code; runtime proof pending
 
 15. Sales save history sidebar (Google-doc-like)
 - Legacy: `SalesMetaForm` history tab + `SalesHistory` + save trigger `create-sales-history`
-- New: no history sidebar flow
-- Status: Missing
+- New: history listing, lazy snapshot preview, and restore flow
+- Status: Implemented in code; runtime proof pending
+- Gap: history listing, lazy snapshot preview, read-only preview banner, local restore, and restored-version banner are implemented; remaining work is authenticated existing-order proof.
 
 16. Component edit parity
 - Legacy: `apps/www/src/components/forms/sales-form/component-item-card.tsx:320` + `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (component edit dialog)
-- Status: Partial/Fail in field
-- Gap: edit action exists, but the practical edit-component workflow still does not match old-form behavior.
+- Status: Implemented in code; runtime proof pending
+- Gap: catalog details, image attachment, visibility, pricing, section overrides, redirects, and local selected-component snapshots now have dedicated save dialogs/mutations. Remaining work is authenticated edit-and-reopen proof.
 
 17. Component image attachment in edit flow
 - Legacy: component edit/product modal flow under `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/*`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (component edit dialog)
-- Status: Missing
-- Gap: no equivalent image attachment/update path exists in the new component edit surface.
+- Status: Implemented in code; runtime proof pending
+- Gap: component edit details now include image upload/update persistence; remaining work is authenticated attachment proof.
 
 18. Redirect component route list parity
 - Legacy: `apps/www/src/components/forms/sales-form/component-item-card.tsx:343` + `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts:109`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:143`
-- Status: Partial/Fail in field
-- Gap: redirect selector/menu exists, but the route options shown do not yet match old-form redirectable route semantics.
+- Status: Implemented in code; runtime proof pending
+- Gap: route options now preserve configured order, dedupe only by UID, and retain distinct steps that share a title, matching the legacy settings helper. Remaining work is authenticated selector proof.
 
 19. Door size inline base-cost edit parity
 - Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
 - New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
-- Status: Partial/Fail in field
-- Gap: quick base-price support exists in principle, but the inline edit UX still needs to behave like the old form.
+- Status: Implemented in code; runtime proof pending
+- Gap: privileged users receive the shared inline `DoorPriceCell` editor with supplier-aware dependency keys, profile-adjusted sales preview, surcharge preservation, and missing-price recovery; read-only users see the resolved price/breakdown. Remaining work is authenticated UX proof.
 
 20. Component cost display should show calculated sales cost
 - Legacy: sales-form component pricing surfaces show resolved sales pricing, not raw base cost.
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` + `packages/sales/src/sales-form/domain/step-engine.ts`
-- Status: Partial/Fail in field
-- Gap: component price display is using base cost in places where old form shows calculated sales cost after dependency/profile resolution.
+- Status: Implemented in code; runtime proof pending
+- Gap: dependency/profile-resolved sales pricing is now rendered as the primary card price, with an accessible hover label for calculated sales cost and base-cost context. Remaining work is authenticated browser proof across profile and dependency changes.
 
 21. HPT add-size action broken
 - Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1410`
-- Status: Partial
-- Gap: shared candidate-derivation logic and variant-aware filtering are now implemented; runtime parity proof is still needed for real Door/HPT fixtures.
+- Status: Implemented in code; runtime proof pending
+- Gap: the HPT size menu now remains available when the active door has no persisted rows (including when another selected door owns the only rows), while retaining variant-aware candidate filtering and configure-size fallback. Remaining work is authenticated fixture proof.
 
 22. HPT section add-door option parity
 - Legacy: grouped door workflow in `apps/www/src/components/forms/sales-form/hpt/*` and legacy sales-book grouped door controls
-- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
-- Status: Missing/Fail in field
-- Gap: new-form HPT section is missing the old-form-style add-door option flow.
+- New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` + `packages/sales/src/sales-form/ui/workflow/house-package-tool-panel.tsx`
+- Status: Implemented in code; runtime proof pending
+- Gap: HPT now exposes `Add Door` and returns to the existing Door multi-select step without changing configured rows; authenticated browser parity proof remains open.
 
 23. Moulding calculator outside-click dismiss parity
 - Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/moulding-step/index.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx:613`
-- Status: Partial/Fail in field
-- Gap: moulding calculator should close on outside click like the old flow, but current dialog behavior does not match.
+- Status: Implemented in code; runtime proof pending
+- Gap: both picker and grouped moulding calculators now dismiss on outside pointer interaction; remaining work is authenticated interaction proof.
 
 24. Door size variant control parity
 - Legacy: `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal/index.tsx` + `.../_components/components-section/component-section-footer.tsx`
 - New: `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` + `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
-- Status: Partial
-- Gap: new control and redesigned editor are implemented, and configured variants now hydrate from route-step meta plus persist back through `sales.updateStepMeta`; runtime parity proof is still needed for existing-record reopen/filter flows in both Door modal and HPT.
+- Status: Implemented in code; runtime proof pending
+- Gap: the redesigned editor hydrates configured variants from line/route metadata, persists through `sales.updateStepMeta`, and shares the canonical candidate helper with Door and HPT size lists. Remaining work is authenticated existing-record reopen/filter proof.
 
 ## Detailed Execution Plan
 
@@ -240,7 +241,7 @@ Dependencies: Phase 1
 - Validation added in `packages/sales/src/sales-form/domain/grouping.test.ts`, `apps/api/src/db/queries/new-sales-form.multi-line.test.ts`, and `apps/www/src/components/forms/new-sales-form/sections/item-workflow/step-family.test.ts`.
 
 1. Moulding workflow completion
-- Finalize calculator parity and line estimate breakdown behavior.
+- Calculator pricing semantics and grouped line estimate breakdown behavior are implemented; complete authenticated parity proof.
 - Enforce default qty `1` on selected mouldings (selection + re-selection + persistence merge).
 
 2. HPT modal parity

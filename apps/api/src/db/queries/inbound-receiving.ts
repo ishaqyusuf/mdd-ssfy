@@ -953,6 +953,34 @@ export async function listOrderInboundShipmentsQuery(
 	});
 }
 
+export async function countOrderInboundShipmentsQuery(
+	ctx: TRPCContext,
+	input: {
+		salesOrderId: number;
+	},
+) {
+	return ctx.db.inboundShipment.count({
+		where: {
+			deletedAt: null,
+			items: {
+				some: {
+					deletedAt: null,
+					inboundDemands: {
+						some: {
+							deletedAt: null,
+							lineItemComponent: {
+								parent: {
+									saleId: input.salesOrderId,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+}
+
 export async function updateInboundShipmentStatusQuery(
 	ctx: TRPCContext,
 	input: {

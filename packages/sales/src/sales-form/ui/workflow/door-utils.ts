@@ -2,6 +2,7 @@
 
 import {
 	deriveDoorSizeCandidates,
+	computeHptSharedDoorSurcharge,
 	getSelectedDoorComponentsForLine,
 	hasDoorSizeVariationConfig,
 	normalizeHptDoorRowForLegacy,
@@ -299,22 +300,7 @@ export function getDoorSupplierMeta(step?: WorkflowStepWithMeta | null) {
 }
 
 export function computeSharedDoorSurcharge(line: DoorLine) {
-	return sumMoney(
-		(line.formSteps || [])
-			.filter((step) => {
-				const title = String(step?.step?.title || "")
-					.trim()
-					.toLowerCase();
-				return (
-					title &&
-					title !== "item type" &&
-					title !== "door" &&
-					title !== "house package tool" &&
-					title !== "hpt"
-				);
-			})
-			.map((step) => Number(step?.price || 0)),
-	);
+	return computeHptSharedDoorSurcharge(line);
 }
 
 export function applySharedDoorSurcharge(

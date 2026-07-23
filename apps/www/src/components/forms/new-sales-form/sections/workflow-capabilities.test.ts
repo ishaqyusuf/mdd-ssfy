@@ -42,6 +42,20 @@ describe("WWW sales form workflow capabilities", () => {
 		);
 	});
 
+	test("wires grouped service and shelf pricing editability through capabilities", () => {
+		const source = readFileSync(
+			new URL("./item-workflow-panel.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toMatch(
+			/<ServiceLineItemsEditor[\s\S]*canEditPricing=\{workflowAdminCapabilities\.canEditLinePricing\}/,
+		);
+		expect(source).toMatch(
+			/<ShelfInlineItemsEditor[\s\S]*canEditPricing=\{workflowAdminCapabilities\.canEditLinePricing\}/,
+		);
+	});
+
 	test("binds the visible component override before saving a selection", () => {
 		const source = readFileSync(
 			new URL("./item-workflow-panel.tsx", import.meta.url),
@@ -53,6 +67,53 @@ describe("WWW sales form workflow capabilities", () => {
 
 		expect(saveSelectedComponentArguments).toContain(
 			"visibleComponentsOverride",
+		);
+	});
+
+	test("labels picker prices as calculated sales cost while retaining base cost context", () => {
+		const source = readFileSync(
+			new URL("./item-workflow-panel.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source).toMatch(
+			/priceSlot=\{renderCalculatedComponentPrice\(component\)\}/,
+		);
+		expect(source).toContain("priceSlot={renderCalculatedComponentPrice}");
+		expect(source).toContain("Calculated sales cost:");
+		expect(source).toContain("Base cost:");
+		expect(source).toContain(
+			"aria-label={`Calculated sales cost ${salesPrice}`}",
+		);
+	});
+
+	test("returns from HPT to the Door step for an additional door", () => {
+		const source = readFileSync(
+			new URL("./item-workflow-panel.tsx", import.meta.url),
+			"utf8",
+		);
+		const hptSource = readFileSync(
+			new URL(
+				"../../../../../../../packages/sales/src/sales-form/ui/workflow/house-package-tool-panel.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+		const sharedWorkflowPanelSource = readFileSync(
+			new URL(
+				"../../../../../../../packages/sales/src/sales-form/ui/workflow/sales-form-workflow-panel.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+
+		expect(source).toContain("onAddDoor={");
+		expect(source).toContain("[line.uid]: doorStepIndex");
+		expect(hptSource).toContain('aria-label="Add door"');
+		expect(hptSource).toContain("onClick={props.onAddDoor}");
+		expect(sharedWorkflowPanelSource).toContain("onAddDoor={");
+		expect(sharedWorkflowPanelSource).toContain(
+			'setActiveStep(String(line.uid || ""), doorStepIndex)',
 		);
 	});
 });

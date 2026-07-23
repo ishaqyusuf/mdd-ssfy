@@ -17,12 +17,12 @@ export function PreviewMetricCard({
 		<View
 			style={{
 				flex: 1,
-				minWidth: compact ? 94 : 74,
+				minWidth: compact ? 84 : 74,
 				borderRadius: system.radius.card,
 				borderWidth: 1,
 				borderColor: system.colors.border,
 				backgroundColor: system.colors.surface,
-				padding: compact ? 12 : 10,
+				padding: 10,
 				gap: 6,
 			}}
 		>

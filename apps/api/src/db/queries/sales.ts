@@ -1,5 +1,10 @@
-import { salesOrderDto, salesQuoteDto } from "@api/dto/sales-dto";
+import {
+  salesOrderDto,
+  salesOverviewDto,
+  salesQuoteDto,
+} from "@api/dto/sales-dto";
 import { whereSales } from "@api/prisma-where";
+import { resolveSalesOverviewDocumentReadiness } from "@gnd/sales/pdf-system";
 import { composeQueryData } from "@gnd/utils/query-response";
 import type {
   GetFullSalesDataSchema,
@@ -245,18 +250,46 @@ export async function getSaleOverview(
 
   if (!sale) return null;
 
-  const overview =
-    salesType === "quote" ? salesQuoteDto(sale) : salesOrderDto(sale);
+  const overview = salesOverviewDto(sale, salesType);
 
   if (salesType === "quote") return overview;
 
-  const inventoryInboundOwnership = await getSalesInventoryInboundOwnership(
-    db,
-    sale.id,
-  );
+  const [inventoryInboundOwnership, documentSnapshot] = await Promise.all([
+    getSalesInventoryInboundOwnership(db, sale.id),
+    db.salesDocumentSnapshot.findFirst({
+      where: {
+        salesOrderId: sale.id,
+        documentType: {
+          startsWith: "invoice_pdf",
+        },
+        isCurrent: true,
+        deletedAt: null,
+      },
+      orderBy: [
+        {
+          generatedAt: "desc",
+        },
+        {
+          updatedAt: "desc",
+        },
+      ],
+      select: {
+        id: true,
+        generationStatus: true,
+        storedDocumentId: true,
+        sourceUpdatedAt: true,
+        generatedAt: true,
+        errorMessage: true,
+      },
+    }),
+  ]);
   const overviewWithInventoryInboundOwnership = {
     ...overview,
     inventoryInboundOwnership,
+    documentReadiness: resolveSalesOverviewDocumentReadiness({
+      saleUpdatedAt: sale.updatedAt,
+      snapshot: documentSnapshot,
+    }),
   };
 
   const [saleWithControl] = isControlReadV2Enabled()

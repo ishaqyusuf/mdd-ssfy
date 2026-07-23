@@ -3,7 +3,7 @@ import { markDealerRecruitmentInvitationDelivery } from "@gnd/db/queries";
 import { logger } from "@gnd/logger";
 import { consoleLog } from "@gnd/utils";
 import { getTestEmails } from "@gnd/utils/envs";
-import { createActivity, createNote } from "./activities";
+import { appendActivityTags, createActivity, createNote } from "./activities";
 import type {
 	EmailInput,
 	NotificationHandler,
@@ -15,6 +15,7 @@ import {
 	getSubscribersAccount,
 	getSubscribersForNotificationType,
 } from "./channel-subscribers";
+import { buildSalesDocumentDeliveryResultTags } from "./sales-document-delivery-result";
 import {
 	type CreateActivityInput,
 	type NotificationTypes,
@@ -25,7 +26,11 @@ import {
 	type EmailSendBulkResult,
 	EmailService,
 } from "./services/email-service";
-import { WhatsAppService } from "./services/whatsapp-service";
+import { type SmsDeliveryResult, SmsService } from "./services/sms-service";
+import {
+	type WhatsAppDeliveryResult,
+	WhatsAppService,
+} from "./services/whatsapp-service";
 import { authMasterPasswordLoginAlert } from "./types/auth-master-password-login-alert";
 import { authNewDeviceLogin } from "./types/auth-new-device-login";
 import { communityDocuments } from "./types/community-documents";
@@ -223,6 +228,9 @@ type SalesEmailResolvedData = {
 	paymentLink?: string | null;
 	pdfLink?: string | null;
 	pdfAttachment?: unknown;
+	acceptQuoteLink?: string | null;
+	customerPhone?: string | null;
+	channels?: Array<"email" | "whatsapp" | "sms">;
 	salesIds?: unknown[];
 	salesNos?: unknown[];
 	sales?: Array<{ orderId?: string | null }>;
@@ -435,6 +443,7 @@ function statusPatchFromDelivery(delivery: EmailDeliveryResult) {
 export class Notifications {
 	#emailService: EmailService;
 	#whatsAppService: WhatsAppService;
+	#smsService: SmsService;
 	#db: Db;
 	public emailMeta:
 		| {
@@ -449,6 +458,7 @@ export class Notifications {
 	) {
 		this.#emailService = new EmailService(db);
 		this.#whatsAppService = new WhatsAppService();
+		this.#smsService = new SmsService();
 		this.#db = db;
 	}
 
@@ -587,6 +597,17 @@ export class Notifications {
 		}
 		return handler.createWhatsApp(validatedData, author, user);
 	}
+	#createSmsInput<T extends keyof NotificationTypes>(
+		handler: NotificationHandler<NotificationTypes[T]>,
+		validatedData: NotificationTypes[T],
+		author: UserData,
+		user: UserData,
+	) {
+		if (!handler.createSms) {
+			throw new Error("Notification handler does not support SMS.");
+		}
+		return handler.createSms(validatedData, author, user);
+	}
 	async saveNote(
 		data: Parameters<typeof createNote>[1],
 		authId: Parameters<typeof createNote>[2],
@@ -602,6 +623,8 @@ export class Notifications {
 		emailInputs: EmailInput[],
 	): Promise<SalesEmailAttemptRef[]> {
 		if (!isSalesDocumentEmailType(type as string)) return [];
+		const requestedChannels = (data as SalesEmailResolvedData).channels;
+		if (requestedChannels && !requestedChannels.includes("email")) return [];
 		const db = this.#db.salesEmailAttempt;
 		if (!db) return [];
 
@@ -956,18 +979,30 @@ export class Notifications {
 				}
 			}
 
-			let whatsapp = {
+			let whatsapp: {
+				sent: number;
+				skipped: number;
+				failed: number;
+				deliveries: WhatsAppDeliveryResult[];
+			} = {
 				sent: 0,
 				skipped: contacts?.length || 0,
 				failed: 0,
+				deliveries: [],
 			};
 
 			if (handler?.createWhatsApp) {
-				const whatsAppContacts = (contacts || []).filter(
+				const directWhatsAppContact =
+					handler.createDirectWhatsAppContact?.(validatedData, author) ?? null;
+				const whatsAppCandidates = [
+					...(contacts || []),
+					...(directWhatsAppContact ? [directWhatsAppContact] : []),
+				];
+				const whatsAppContacts = whatsAppCandidates.filter(
 					(user) => !!user.whatsAppNotification,
 				);
 				const filteredOutCount =
-					(contacts?.length || 0) - whatsAppContacts.length;
+					whatsAppCandidates.length - whatsAppContacts.length;
 				const whatsAppInputs = whatsAppContacts.reduce<
 					Array<{ user: UserData; message: string }>
 				>((acc, user) => {
@@ -986,8 +1021,9 @@ export class Notifications {
 				if (!whatsAppInputs.length) {
 					whatsapp = {
 						sent: 0,
-						skipped: contacts?.length || 0,
+						skipped: whatsAppCandidates.length,
 						failed: 0,
+						deliveries: [],
 					};
 				} else {
 					const result = await this.#whatsAppService.sendBulk(whatsAppInputs);
@@ -995,18 +1031,95 @@ export class Notifications {
 						sent: result.sent,
 						skipped: result.skipped + filteredOutCount,
 						failed: result.failed,
+						deliveries: result.deliveries,
 					};
 				}
 			}
 
-			return {
+			let sms: {
+				sent: number;
+				skipped: number;
+				failed: number;
+				deliveries: SmsDeliveryResult[];
+			} = {
+				sent: 0,
+				skipped: contacts?.length || 0,
+				failed: 0,
+				deliveries: [],
+			};
+
+			if (handler?.createSms) {
+				const directSmsContact =
+					handler.createDirectSmsContact?.(validatedData, author) ?? null;
+				const smsCandidates = [
+					...(contacts || []),
+					...(directSmsContact ? [directSmsContact] : []),
+				];
+				const smsContacts = smsCandidates.filter(
+					(user) => !!user.smsNotification,
+				);
+				const filteredOutCount = smsCandidates.length - smsContacts.length;
+				const smsInputs = smsContacts.reduce<
+					Array<{ user: UserData; message: string }>
+				>((acc, user) => {
+					const payload = this.#createSmsInput(
+						handler,
+						validatedData,
+						author,
+						user,
+					);
+					if (payload?.message) {
+						acc.push({ user, message: payload.message });
+					}
+					return acc;
+				}, []);
+
+				if (!smsInputs.length) {
+					sms = {
+						sent: 0,
+						skipped: smsCandidates.length,
+						failed: 0,
+						deliveries: [],
+					};
+				} else {
+					const result = await this.#smsService.sendBulk(smsInputs);
+					sms = {
+						sent: result.sent,
+						skipped: result.skipped + filteredOutCount,
+						failed: result.failed,
+						deliveries: result.deliveries,
+					};
+				}
+			}
+
+			const result = {
 				type: type as string,
 				activities: activities.length,
 				activityIds: activities.map((activity) => activity.id),
 				emailAttemptIds,
 				emails,
 				whatsapp,
+				sms,
 			};
+
+			if (isSalesDocumentEmailType(type as string) && activities.length) {
+				const requestedChannels = (validatedData as SalesEmailResolvedData)
+					.channels || ["email"];
+				const deliveryTags = buildSalesDocumentDeliveryResultTags({
+					requestedChannels,
+					emailAttemptIds,
+					emails: result.emails,
+					whatsapp: result.whatsapp,
+					sms: result.sms,
+				});
+				await Promise.all(
+					activities.map((activity) =>
+						appendActivityTags(this.#db, activity.id, deliveryTags),
+					),
+				);
+			}
+
+			return result;
 		} catch (error) {
 			console.error(`Failed to send notification ${type}:`, error);
 			throw error;

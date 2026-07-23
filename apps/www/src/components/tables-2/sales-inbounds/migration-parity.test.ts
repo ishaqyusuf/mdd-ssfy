@@ -47,6 +47,23 @@ describe("Sales Book Inbounds table migration parity", () => {
 		expect(source.includes("Activity History")).toBe(true);
 	});
 
+	it("keeps search, status, and selected inbound state in the URL", () => {
+		const source = readSource("components/sales-inbounds-workspace.tsx");
+		const sidebarSource = readSource("components/sidebar-links.ts");
+		const actionsSource = readSource(
+			"components/tables-2/inbound-management/columns.tsx",
+		);
+
+		expect(source.includes("parseAsStringLiteral(inboundStatuses)")).toBe(true);
+		expect(source.includes("inboundId: parseAsInteger")).toBe(true);
+		expect(source.includes("<SearchFilterTRPC")).toBe(true);
+		expect(source.includes("void setParams({ inboundId })")).toBe(true);
+		expect(sidebarSource.includes('"/sales-book/inbounds"')).toBe(true);
+		expect(
+			actionsSource.includes("router.push(`/sales-book/inbounds${query}`)"),
+		).toBe(true);
+	});
+
 	it("uses core table behavior with compact tailored columns", () => {
 		const tableSource = readSource(
 			"components/tables-2/sales-inbounds/data-table.tsx",

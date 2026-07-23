@@ -60,7 +60,8 @@ describe("sales form composer", () => {
     expect(payload.autosave).toBe(false);
     expect(payload.summary.subTotal).toBe(100);
     expect(payload.summary.taxTotal).toBe(10);
-    expect(payload.summary.grandTotal).toBeGreaterThan(110);
+    expect(payload.summary.grandTotal).toBe(110);
+    expect(payload.summary.totalWithCcc).toBeGreaterThan(110);
   });
 
   it("keeps coefficient pricing isolated from dealer sales percentage", () => {

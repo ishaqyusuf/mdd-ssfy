@@ -1,25 +1,27 @@
+import type { Prisma } from "@gnd/db";
+import type { RenturnTypeAsync } from "@gnd/utils";
 import type { NoteTagTypes } from "@gnd/utils/constants";
+import { type SaveNoteSchema, noteTag, saveNote } from "@gnd/utils/note";
+import { hasQty } from "@gnd/utils/sales";
 import { updateSalesItemControlAction, updateSalesStatControlAction } from ".";
+import { autoReviewSalesPaymentsForOrderAction } from "../payment-system/application/payment-review";
 import type { DeletePackingSchema, UpdateSalesControl } from "../schema";
 import type {
 	Db,
 	DispatchItemPackingStatus,
 	SalesDispatchStatus,
 } from "../types";
+import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
 import {
-	createSalesAssignmentAction,
 	type CreateSalesAssignmentProps,
+	createSalesAssignmentAction,
 	packDispatchItemsAction,
 	resetSalesAction,
 	submitAssignmentsAction,
 	submitNonProductionsAction,
 } from "./actions";
+import { resolveDispatchCompletionAttempt } from "./dispatch-completion";
 import { getSaleInformation } from "./get-sale-information";
-import { noteTag, saveNote, type SaveNoteSchema } from "@gnd/utils/note";
-import { pickQtyFrom, recomposeQty } from "../utils/sales-control";
-import { hasQty } from "@gnd/utils/sales";
-import type { RenturnTypeAsync } from "@gnd/utils";
-import { autoReviewSalesPaymentsForOrderAction } from "../payment-system/application/payment-review";
 import { getSalesSetting } from "./settings";
 
 async function getPaymentReviewSettings(db: Db) {
@@ -210,7 +212,17 @@ export async function startDispatchTask(db: Db, data: UpdateSalesControl) {
 		await resetSalesAction(tx as any, data.meta.salesId);
 	});
 }
-export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
+export async function submitDispatchTask(
+	db: Db,
+	data: UpdateSalesControl,
+	internal?: {
+		allowCompletedResign?: boolean;
+		packingSignoff?: {
+			requestId: string;
+			documentId: string;
+		};
+	},
+) {
 	const task = data.submitDispatch!;
 	const paymentReviewSettings = await getPaymentReviewSettings(db);
 	const attachmentTags = (task?.attachments ?? [])
@@ -218,13 +230,106 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 		.map((a) => noteTag("attachment", a.pathname));
 	const response = await db.$transaction(
 		async (tx) => {
+			const currentDispatch = await tx.orderDelivery.findFirst({
+				where: {
+					id: task.dispatchId!,
+					deletedAt: null,
+				},
+				select: {
+					status: true,
+					deliveredAt: true,
+					salesOrderId: true,
+					meta: true,
+				},
+			});
+			if (!currentDispatch) {
+				throw new Error("Dispatch not found.");
+			}
+			if (currentDispatch.salesOrderId !== data.meta.salesId) {
+				throw new Error("Dispatch does not belong to this sales order.");
+			}
+
+			const completionRequestId = task.completionRequestId?.trim();
+			const currentMeta = asJsonRecord(currentDispatch.meta);
+			const currentCompletion = asJsonRecord(currentMeta.dispatchCompletion);
+			const completionAttempt = internal?.allowCompletedResign
+				? "new"
+				: resolveDispatchCompletionAttempt({
+						status: currentDispatch.status,
+						meta: currentDispatch.meta,
+						requestId: completionRequestId,
+					});
+			if (completionAttempt === "replay") {
+				return {
+					status: "completed" as const,
+					idempotent: true,
+				};
+			}
+			if (completionAttempt === "conflict") {
+				throw new Error("Dispatch was already completed by another request.");
+			}
+
+			const completionMeta = completionRequestId
+				? ({
+						...currentCompletion,
+						requestId: completionRequestId,
+						status: "completed",
+						signaturePathname: task.signature || undefined,
+						attachments: Array.isArray(currentCompletion.attachments)
+							? currentCompletion.attachments
+							: (task.attachments || []).map((attachment) => ({
+									pathname: attachment.pathname,
+								})),
+						completedAt: new Date().toISOString(),
+					} as Record<string, unknown>)
+				: null;
+			if (internal?.packingSignoff) {
+				const currentPackingSignoff = asJsonRecord(currentMeta.packingSignoff);
+				if (
+					currentPackingSignoff.requestId !==
+						internal.packingSignoff.requestId ||
+					currentPackingSignoff.status !== "uploaded" ||
+					currentPackingSignoff.documentId !==
+						internal.packingSignoff.documentId
+				) {
+					throw new Error("Packing sign-off lease ownership changed.");
+				}
+			}
+			const packingSignoff =
+				internal?.packingSignoff?.requestId &&
+				internal.packingSignoff.documentId
+					? {
+							...asJsonRecord(currentMeta.packingSignoff),
+							requestId: internal.packingSignoff.requestId,
+							status: "domain_completed",
+							documentId: internal.packingSignoff.documentId,
+							domainCompletedAt: new Date().toISOString(),
+						}
+					: null;
 			await tx.orderDelivery.update({
 				where: {
 					id: task?.dispatchId!,
 				},
 				data: {
 					status: "completed" as SalesDispatchStatus,
-					deliveredAt: task?.receivedDate ?? new Date(),
+					deliveredAt:
+						internal?.allowCompletedResign &&
+						currentDispatch.status === "completed"
+							? (currentDispatch.deliveredAt ??
+								task?.receivedDate ??
+								new Date())
+							: (task?.receivedDate ?? new Date()),
+					...(completionMeta || packingSignoff
+						? {
+								meta: toInputJson({
+									...currentMeta,
+									...(completionMeta
+										? { dispatchCompletion: completionMeta }
+										: {}),
+									...(packingSignoff ? { packingSignoff } : {}),
+								}),
+							}
+						: {}),
 				},
 			});
 			// await resetSalesTask(tx as any, data.meta.salesId);
@@ -252,12 +357,26 @@ export async function submitDispatchTask(db: Db, data: UpdateSalesControl) {
 				],
 			};
 			await saveNote(tx, note, data.meta.authorId);
+			return {
+				status: "completed" as const,
+				idempotent: false,
+			};
 		},
 		{
 			maxWait: 30 * 1000,
 		},
 	);
 	return response;
+}
+
+function asJsonRecord(value: unknown): Record<string, unknown> {
+	return value && typeof value === "object" && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+function toInputJson(value: unknown): Prisma.InputJsonValue {
+	return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
 export function buildAutoPackingLines(

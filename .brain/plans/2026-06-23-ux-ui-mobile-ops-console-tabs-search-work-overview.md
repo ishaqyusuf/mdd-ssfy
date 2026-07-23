@@ -4,13 +4,20 @@
 UX/UI
 
 ## Status
-Proposed
+Completed
 
 ## Created Date
 2026-06-23
 
 ## Last Updated
-2026-06-23
+2026-07-23
+
+## Completion
+- Completed Home, Inbox, Sales, Calendar, and More workspaces with distinct
+  operational records.
+- Added priority/owner/due-window/work-type filters and Overview, Timeline,
+  Checklist, Notes, and Actions detail tabs.
+- All behavior remains static, development-only preview state.
 
 ## Intake
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md

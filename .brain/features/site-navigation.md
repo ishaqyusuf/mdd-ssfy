@@ -5,7 +5,7 @@ Tracks shared sidebar and navigation behavior used by web surfaces.
 
 ## Current Behavior
 - The expanded desktop sidebar header shows the compact GND mark with visible `GND` / `Millwork Corp` brand text; it does not render the faint wide wordmark asset or append a separate "Workspace / Control Panel" label.
-- Desktop sidebar hover expansion is shared by the sidebar shell, sidebar footer, shared `SiteNav.Header`, and the custom `apps/www` header. Leaving the hover surface collapses the sidebar after a short transfer grace period.
+- Desktop sidebar hover expansion remains owned by the sidebar shell and the shared `SiteNav.Header` used by other surfaces. The custom `apps/www` header behaves like page content: hovering it does not expand the sidebar, and entering it from an expanded sidebar starts the normal collapse delay.
 - Desktop sidebar parent links with child links expand on hover after a 1 second delay.
 - Hover-open child groups collapse 1 second after mouse leave.
 - When the pointer leaves an expanded child group downward and the sidebar has enough scroll offset to compensate, the sidebar preserves the scroll position of the following nav items during collapse so the next link does not jump upward under the cursor.

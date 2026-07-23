@@ -111,8 +111,6 @@ export class StepHelperClass extends SettingsClass {
         return this.getItemForm()?.groupItem?.itemIds?.length;
     }
     public getSelectionComponentUids() {
-        console.log(this.getItemForm()?.groupItem);
-
         return this.getItemForm()?.groupItem?.itemIds;
     }
     public getTotalSelectionsQty() {
@@ -589,7 +587,6 @@ export class StepHelperClass extends SettingsClass {
         const itemSteps = this.getItemStepForms();
         return itemSteps
             .map((step) => {
-                console.log(step);
                 return {
                     title: step.title,
                     price: step.salesPrice,
@@ -771,7 +768,6 @@ export class ComponentHelperClass extends StepHelperClass {
     }
     public componentIsMoulding() {
         // return this.getStepForm().title == "Moulding";
-        // console.log(this.getItemForm().groupItem?.type);
         const t = this.component?.title?.trim();
 
         return [
@@ -783,10 +779,8 @@ export class ComponentHelperClass extends StepHelperClass {
     }
     public selectComponent(takeOff = false) {
         let component = this.getComponent;
-        // console.log(this.getRouteConfig());
         // const config = this.getRouteConfig(component.uid)
         if (this.isMoulding()) {
-            // console.log(this.getStepForm()?.title);
             let groupItem = this.getItemForm()?.groupItem;
             groupItem.type = "MOULDING";
             groupItem.stepUid = component.uid;
@@ -832,7 +826,6 @@ export class ComponentHelperClass extends StepHelperClass {
             groupItem.itemIds = Object.entries(groupItem.form)
                 .filter(([uid, data]) => data.selected)
                 .map(([uid, data]) => uid);
-            console.log(groupItem.itemIds);
 
             groupItem.qty.total = groupItem.itemIds?.length;
 

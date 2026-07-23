@@ -66,7 +66,7 @@ export function SalesCustomerEditButton({
 		}
 	}, [params.customerForm, payloadCustomerId, setParams]);
 
-	if (!editParams || readOnly || !auth.can?.editOrders) return null;
+	if (!editParams || readOnly || !auth.can?.editSalesCustomers) return null;
 
 	return (
 		<Button

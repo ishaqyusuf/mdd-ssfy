@@ -22,6 +22,8 @@ export interface NotificationHandler<T = NotificationPayload> {
 		author: UserData,
 	) => Promise<unknown> | unknown;
 	createDirectEmailContact?: (data: T, author: UserData) => UserData | null;
+	createDirectWhatsAppContact?: (data: T, author: UserData) => UserData | null;
+	createDirectSmsContact?: (data: T, author: UserData) => UserData | null;
 	createActivityWithoutContact?: boolean;
 	email?: {
 		template: string;
@@ -50,6 +52,13 @@ export interface NotificationHandler<T = NotificationPayload> {
 	) => {
 		message: string;
 	};
+	createSms?: (
+		data: T,
+		author: UserData,
+		user: UserData,
+	) => {
+		message: string;
+	};
 }
 
 export interface UserData {
@@ -62,6 +71,7 @@ export interface UserData {
 	emailNotification?: boolean;
 	inAppNotification?: boolean;
 	whatsAppNotification?: boolean;
+	smsNotification?: boolean;
 }
 
 // Combine template data with all Resend options using intersection type
@@ -99,6 +109,7 @@ export type NotificationOptions = {
 
 export interface NotificationResult {
 	type: string;
+	errorMessage?: string | null;
 	activities: number;
 	activityIds?: number[];
 	emailAttemptIds?: string[];
@@ -112,6 +123,25 @@ export interface NotificationResult {
 		sent: number;
 		skipped: number;
 		failed?: number;
+		deliveries?: Array<{
+			inputIndex: number;
+			status: "sent" | "skipped" | "failed";
+			providerMessageId?: string | null;
+			providerStatus?: string | null;
+			errorMessage?: string | null;
+		}>;
+	};
+	sms?: {
+		sent: number;
+		skipped: number;
+		failed?: number;
+		deliveries?: Array<{
+			inputIndex: number;
+			status: "sent" | "skipped" | "failed";
+			providerMessageId?: string | null;
+			providerStatus?: string | null;
+			errorMessage?: string | null;
+		}>;
 	};
 }
 

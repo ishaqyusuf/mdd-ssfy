@@ -164,8 +164,38 @@ synthetic new tab. The download URL preserves the canonical print mode (includin
 `quote`) and fetches with credentials plus `no-store`, so public quote previews
 surface a real response failure instead of silently losing the download. Focused
 sales-print service, print-data, query, and PDF renderer coverage passes 42 tests /
-154 assertions; browser proof of the public quote-preview button remains a release
-validation gate.
+154 assertions.
+
+2026-07-23 browser proof: authenticated quote `03341LM` rendered through the
+HTML preview and the preview PDF action fetched
+`/api/download/sales-v2?...&mode=quote` with HTTP 200. Chrome persisted
+`Quote_03341-LM.pdf` as a valid one-page, 33,984-byte PDF. The representative
+batch path selected orders `08894LM`, then `08893LM`, used
+`Print > PDF > Order`, and persisted `Sales_Print_2_ (3).pdf` as a valid
+two-page, 127,468-byte PDF. Text extraction and rendered-page inspection
+confirmed page order `08894-LM`, then `08893-LM`, with readable, unclipped
+invoice tables and totals. This closes the quote-download and representative
+batch artifact release gate.
+
+2026-07-22 follow-up: the Sales Overview quick-actions bar now exposes a direct
+V2 Print action for the current order or quote. It reuses the shared
+`useSalesPrintController`, resolves `invoice` versus `quote` from the overview
+record, and disables/relabels the action while access and print preparation are
+in flight. The existing More menu remains available for packing, production, and
+combined print variants.
+
+The PDF follow-up implementation is now complete in code: the HTML preview path
+uses the V2 template renderer, access resolution deduplicates concurrent requests,
+single-order stored print data is reused until source/config invalidation, and
+batch requests resolve each order through that cache before flattening pages in
+the requested order into one merged PDF. Focused cache coverage verifies a hit
+plus generated miss in the same batch and preserves `INV-10`, then `INV-11` page
+ordering. The 2026-07-23 browser proof above closes the quote-download and
+representative batch-artifact release gate.
+
+Batch cache resolution also deduplicates repeated sales IDs while preserving
+first-seen order, avoiding duplicate pages and duplicate generation work when a
+selection source accidentally repeats an order.
 
 ---
 
@@ -307,3 +337,8 @@ The stored-document phase should answer these operational rules explicitly:
   recipient. It uses the browser native share sheet when available and falls
   back to an unaddressed WhatsApp composer so the operator deliberately picks
   the recipient. The generated signed sales URL and message remain unchanged.
+- 2026-07-23: Audited quote/order delivery replaces the ad hoc share action.
+  Email, WhatsApp, and SMS use the composed sales document flow; direct-message
+  bodies contain stable reusable `/sh/<slug>` links for the signed PDF and any
+  available payment or quote-acceptance action. Direct-message delivery stops
+  if a secure PDF link cannot be generated.

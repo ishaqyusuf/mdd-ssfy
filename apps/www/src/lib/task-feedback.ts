@@ -7,7 +7,9 @@ export const DEFAULT_TASK_FAILURE_TOAST_MESSAGE =
 	"The background task failed. Please try again.";
 
 export const DEFAULT_SALES_EMAIL_FAILURE_MESSAGE =
-	"Email sending failed. No email was delivered.";
+	"Document delivery failed. No requested channel was delivered.";
+
+type SalesDocumentDeliveryChannel = "email" | "whatsapp" | "sms";
 
 type TaskInputLike = {
 	taskName?: string | null;
@@ -55,39 +57,80 @@ export function isSalesEmailTask(input: FailureMessageInput) {
 }
 
 export function getSalesEmailOutputFailure(output: unknown) {
-	const emails = (output as { emails?: unknown } | null)?.emails as
-		| {
-				sent?: number;
-				skipped?: number;
-				failed?: number;
-				errorMessage?: unknown;
-				error?: unknown;
-		  }
-		| undefined;
-	if (!emails) return null;
+	return getSalesDocumentDeliveryOutputFailure(output, ["email"]);
+}
 
-	const sent = Number(emails.sent || 0);
-	const skipped = Number(emails.skipped || 0);
-	const failed = Number(emails.failed || 0);
-	const explicitError = normalizeErrorMessage(
-		emails.errorMessage ?? emails.error,
-	);
+export function getSalesDocumentDeliveryOutputFailure(
+	output: unknown,
+	channels: SalesDocumentDeliveryChannel[],
+) {
+	const result = output as {
+		errorMessage?: unknown;
+		emails?: unknown;
+		whatsapp?: unknown;
+		sms?: unknown;
+	} | null;
+	const topLevelError = normalizeErrorMessage(result?.errorMessage);
+	if (topLevelError) return topLevelError;
 
-	if (explicitError && (failed > 0 || sent === 0)) {
-		return explicitError;
-	}
+	for (const channel of channels) {
+		const channelKey = channel === "email" ? "emails" : channel;
+		const delivery = result?.[channelKey] as
+			| {
+					sent?: number;
+					skipped?: number;
+					failed?: number;
+					errorMessage?: unknown;
+					error?: unknown;
+			  }
+			| undefined;
+		if (!delivery) continue;
 
-	if (failed > 0) {
-		return failed === 1
-			? "Email provider reported 1 failed message."
-			: `Email provider reported ${failed} failed messages.`;
-	}
+		const sent = Number(delivery.sent || 0);
+		const skipped = Number(delivery.skipped || 0);
+		const failed = Number(delivery.failed || 0);
+		const explicitError = normalizeErrorMessage(
+			delivery.errorMessage ?? delivery.error,
+		);
+		const label =
+			channel === "email"
+				? "Email"
+				: channel === "whatsapp"
+					? "WhatsApp"
+					: "SMS";
 
-	if (sent === 0 && skipped > 0) {
-		return "Email was skipped before it could be sent.";
+		if (explicitError && (failed > 0 || sent === 0)) {
+			return explicitError;
+		}
+
+		if (failed > 0) {
+			return failed === 1
+				? `${label} provider reported 1 failed message.`
+				: `${label} provider reported ${failed} failed messages.`;
+		}
+
+		if (sent === 0 && skipped > 0) {
+			return `${label} was skipped before it could be sent.`;
+		}
 	}
 
 	return null;
+}
+
+function getRequestedSalesDocumentChannels(
+	input?: TaskInputLike | null,
+): SalesDocumentDeliveryChannel[] {
+	const event = input?.payload as
+		| { payload?: { channels?: unknown } | null }
+		| null
+		| undefined;
+	const channels = event?.payload?.channels;
+	if (!Array.isArray(channels)) return ["email"];
+	const supported = channels.filter(
+		(channel): channel is SalesDocumentDeliveryChannel =>
+			channel === "email" || channel === "whatsapp" || channel === "sms",
+	);
+	return supported.length ? supported : ["email"];
 }
 
 export function getTaskOutputFailureMessage(input: {
@@ -96,7 +139,10 @@ export function getTaskOutputFailureMessage(input: {
 	output: unknown;
 }) {
 	if (!isSalesEmailTask(input)) return null;
-	return getSalesEmailOutputFailure(input.output);
+	return getSalesDocumentDeliveryOutputFailure(
+		input.output,
+		getRequestedSalesDocumentChannels(input.input),
+	);
 }
 
 export function getTaskFailureMessage(input: FailureMessageInput) {
@@ -117,12 +163,12 @@ export function getTaskFailureToastMessage(input: FailureMessageInput) {
 }
 
 export function getTaskFailureTitle(input: FailureMessageInput) {
-	if (isSalesEmailTask(input)) return "Email sending failed";
+	if (isSalesEmailTask(input)) return "Document delivery failed";
 	return "Task failed";
 }
 
 export function getTaskStartFailureTitle(input: FailureMessageInput) {
-	if (isSalesEmailTask(input)) return "Unable to start email send";
+	if (isSalesEmailTask(input)) return "Unable to start document delivery";
 	return "Unable to start task";
 }
 

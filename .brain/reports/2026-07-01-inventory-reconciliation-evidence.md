@@ -9,13 +9,55 @@ Not Clean
 ## Source
 - Plan: `brain/plans/2026-07-01-inventory-system-correctness-cutover-plan.md`
 - Invariant Matrix: `brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md`
-- Command: `bun --env-file=.env.local run inventory:reconciliation-evidence --markdown` for the latest successful snapshot after eleven additional materializable backfill batches.
+- Command: `bun run inventory:reconciliation-evidence --markdown` for the
+  latest successful read-only refresh on 2026-07-23.
 - Script: `scripts/inventory-reconciliation-evidence.ts`
 
 ## Purpose
 Record the latest reproducible Phase 8 reconciliation evidence after the repair-path audit checkpoint and reviewed repair slices. This is a read-only evidence snapshot. It does not satisfy the clean reconciliation gate. The HPT door zero-component blocker has been repaired; the current blockers are missing-sales scope, shipment/allocation mismatch review, one skipped comparison, and the partial reconciliation cursor.
 
-## Result Summary
+## 2026-07-23 Read-Only Refresh
+
+The local `gnd-prisma2` database no longer reproduces the cleaner July 1
+post-repair checkpoint recorded below. The refresh was evidence-only: it ran
+the monitor, reconciliation, stale-cleanup dry run, and classification output;
+it did not run the repair command, an apply, a migration, a sync, or a database
+write.
+
+- Monitor status: `needs_backfill`
+- Sync coverage: `0.87%`
+- Total sales: `21936`
+- Synced sales: `191`
+- Missing sales: `21745`
+- Inventory sale lines: `423`
+- Componentless inventory sale lines: `5` across sales `23730` (`08708PC`) and
+  `23732` (`08709LM`)
+- Stale inventory sale lines: `50`
+- Stale stock allocations: `0`
+- Stale inbound demand: `58`
+- Failed risk count: `347`
+- Backfill cursor: `55`
+- Missing-sales reviewed scope: `2226` active/order candidates, of which `844`
+  are materializable and `1382` are mapping-blocked
+- Reconciliation: `needs_review`, `200` checked lines, `281` drift, `14`
+  skipped comparisons, `hasMore=true`, next cursor `200`
+- Reconciliation domains: sales sync `7` drift / `0` skipped;
+  shipment/allocation `73` drift / `7` skipped; component fulfillment `201`
+  drift / `7` skipped
+- Shipment/allocation classes:
+  `completed_delivery_exceeds_consumed_allocation=73`,
+  `missing_component_rows=7`
+- Stale cleanup remained dry-run only: `50` matched lines and `81` component
+  rows; `0` lines were cleaned
+
+Gate implication: the Phase 8 gate remains open and has regressed relative to
+the historical July 1 checkpoint. Because repairs remain stopped by user
+request, none of the emitted stale-line, componentless-sale, or missing-sale
+repair payloads were executed. Before any repair is resumed, reconcile why the
+local data now has fewer synced sales/lines and re-review the exact current
+candidate baselines.
+
+## 2026-07-01 Result Summary (Historical Checkpoint)
 - Monitor status: `needs_backfill`
 - Sync coverage: `3.05%`
 - Total sales: `21093`

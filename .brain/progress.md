@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-07-23: Closed the Sales PDF V2 quote-download and representative batch
+  artifact release gates. Authenticated Chrome validation rendered quote
+  `03341LM`, fetched the quote-mode V2 download endpoint with HTTP 200, and
+  persisted a valid one-page, 33,984-byte PDF. The batch workflow selected
+  `08894LM`, then `08893LM`, used `Print > PDF > Order`, and persisted a valid
+  two-page, 127,468-byte PDF. Text extraction and rendered PNG inspection
+  confirmed page order `08894-LM`, then `08893-LM`, and found no visible
+  clipping, overlap, or unreadable table/totals content.
+
 - 2026-07-23: Completed sales customer editing from both requested entry
   points. The new sales form now exposes distinct accessible Edit and Change
   actions; Edit opens the existing customer sheet prefilled for the selected
@@ -33,6 +42,227 @@
   points. No application code, API contract, permission, or database behavior
   changed during this verification/planning pass.
 
+- 2026-07-23: Fixed the `apps/www` desktop sidebar opening when the pointer
+  entered the page header. The custom WWW header no longer registers as a site
+  navigation hover surface or subscribes to the sidebar enter/leave handlers,
+  while its existing expanded-state padding transition, the actual sidebar
+  hover behavior, shared `SiteNav.Header`, and mobile navigation remain
+  unchanged. A focused source regression test now protects the header boundary.
+  The test, targeted Biome, and `@gnd/www` typecheck passed; user browser
+  verification confirmed the corrected pointer behavior. Brain files updated:
+  `.brain/features/site-navigation.md` and `.brain/progress.md`; no API,
+  database, migration, or permission docs were needed for this client-only
+  navigation fix.
+
+- 2026-07-23: Completed the shared mobile design-system preview interaction
+  architecture and the Ops Console, Field Flow, and Sales Ledger template
+  plans. Every bottom tab now has distinct content; global search covers record
+  metadata and details; detached bottom sheets support status plus template
+  facets; and record selection opens substantive, template-specific detail
+  tabs while Back preserves the originating workspace. Field Flow includes
+  Continue Route, and Sales Ledger keeps payment and fulfillment distinct.
+  The feature remains static, development-only preview state with no API,
+  mutation, schema, or production UI changes. Focused coverage passes 8 tests /
+  86 assertions, focused Biome passes, and the preview TypeScript boundary has
+  no diagnostics. Expo web and Android rendering were attempted but stopped
+  before route mount on existing app-level `FlatList` and Node `crypto` bundle
+  failures.
+
+- 2026-07-23: Completed dealer-facing request, payment, and fulfillment
+  next-step guidance. One tested policy now explains draft request submission,
+  GND review, rejected/locked follow-up, approved payment, fulfillment
+  preparation, readiness, and completion across quote/order tables, dashboard
+  request activity, and order detail/progress. Dealer payment is gated only by
+  `officeAmountDue`; the customer receivable remains separately labeled and
+  never blocks fulfillment copy. A missing/invalid GND payable now requires
+  review instead of being treated as paid. Dealer list/detail reads project one
+  typed order-level fulfillment state without leaking raw relations; production
+  completion and one partial dispatch cannot promote the whole order. Focused
+  coverage passes 65 tests / 172 assertions; DB, API, and dealership typechecks
+  pass; focused Biome passes.
+  Authenticated browser QA proved an approved dashboard link, draft quote
+  guidance, the payment-due order row/detail for `00003DPP`, and the 375px
+  mobile quote/order rows with their Request order and Pay GND actions and no
+  browser console errors. Independent Standards and Spec re-review reported no
+  remaining findings after unknown GND balances were kept visibly unavailable
+  and open throughout order detail. No schema, migration, payment, fulfillment,
+  inventory, or request mutation was performed.
+
+- 2026-07-23: completed the admin/order Sales Overview `Production Preflight`
+  card. It derives six manager checks from protected overview contracts: door
+  dimensions/handing, customer profile/tax, supplier variant pricing,
+  stock/inbound readiness, pickup/delivery, and current/on-demand PDF
+  readiness. Review actions reuse the Details and Inventory tabs; no production,
+  inventory, or document mutation was added. Package-owned preflight,
+  persisted-route, and PDF readiness coverage passes 14 tests / 26 assertions,
+  Sales overview DTO coverage passes 10 tests / 19 assertions, and inventory
+  overview coverage passes 24 tests / 45 assertions. The regression set
+  conservatively covers missing handing, explicit no-handle precedence,
+  supplier-price gaps, shipping-only address truth, soft-deleted tax/form-step
+  exclusion, and query failure. `@gnd/sales` and `@gnd/api` typechecks pass, the
+  broad WWW scan reports no diagnostics in touched preflight/overview files,
+  focused Biome and `git diff --check` pass, and authenticated Super Admin
+  browser proof found the card and Review actions on order `08893LM` with no
+  application console errors. Independent Standards and Spec review passes
+  reported no remaining findings after the conservative-gating fixes.
+
+- 2026-07-23: Completed sales document WhatsApp and SMS delivery. The shared
+  composed delivery contract now preserves legacy email defaults while allowing
+  deliberate Email/WhatsApp/SMS combinations, normalizes customer phones,
+  generates stable reusable `/sh` links for secure PDF/payment/quote actions,
+  and fails closed when a direct-message PDF link cannot be created. WhatsApp
+  and the new explicitly configured Twilio SMS transport return independent
+  provider outcomes; those outcomes and link kinds are appended to existing
+  activity evidence while `SalesEmailAttempt` remains email-only. Key
+  order/quote/customer/overview/form entry points now seed the central delivery
+  dialog and missing phone/provider conditions are visible through disabled
+  states and task feedback. Validation passed 39 focused tests / 92 assertions,
+  notifications/jobs/API typechecks, targeted Biome, diff checks, and local
+  authenticated orders data smoke. Turbo passed 24 of 25 packages and remains
+  blocked only by the existing broad WWW baseline. No schema, migration,
+  permission, sync, or external send was performed.
+
+- 2026-07-23: Made Expo dispatch proof completion dispatch-bound and resumable.
+  One protected server mutation now validates the assigned driver/manager,
+  stages deterministic signature/photo paths under a stable request id in
+  `OrderDelivery.meta`, packs pickups server-side, and finalizes completion
+  idempotently so a retry cannot duplicate its note or payment review. The
+  mobile form remains open with its proof on failure and closes only after
+  confirmed completion. The generic unbound dispatch upload mutation and unused
+  mobile hook were removed. API and sales typechecks pass; focused proof,
+  idempotency, mobile-flow, and permission coverage passes 17 tests / 229
+  assertions; targeted Biome and diff checks pass. The broad Expo typecheck
+  retains unrelated baseline failures, but changed runtime source has no
+  filtered diagnostics. No Prisma schema or migration was required.
+
+- 2026-07-23: Continued inventory correctness proof with the explicitly
+  read-only `inventory:reconciliation-evidence` command. The current local
+  database no longer reproduces the cleaner July 1 checkpoint: it reports
+  `21745` missing sales, `50` stale sale lines, `5` componentless lines across
+  two sales, `281` reconciliation drifts, `14` skipped comparisons,
+  `hasMore=true`, and next cursor `200`. Shipment/allocation alone has `73`
+  drift and `7` missing-component skips; component fulfillment has `201` drift
+  and `7` skips. The stale cleanup stayed dry-run (`50` matched, `0` cleaned).
+  No repair runner, repair apply, migration, database sync, or inventory write
+  was run. The Phase 8 gate remains open and current candidates must be
+  re-reviewed before repairs are ever resumed.
+
+- 2026-07-23: Repaired the `@gnd/storefront` compiler and production-build
+  gates. Address autocomplete now consumes optional Google suggestion fields
+  safely and searches only the user's debounced input; product search maps URL
+  filters into the current API query/sort shape; date, form-resolver, shared
+  icon, navigation, and tRPC compatibility boundaries are explicitly typed.
+  The complete storefront typecheck passes, targeted Biome lint passes across
+  all nine changed files, `git diff --check` passes, and Next.js
+  16.2.10/Turbopack compiled successfully and generated all 21 static pages.
+  The existing non-blocking NFT tracing warning remains, and the local build
+  correctly warns that production must provide `BETTER_AUTH_SECRET`. A full
+  Turbo typecheck then completed 24 of 25 packages, including storefront; only
+  the separately documented broad `@gnd/www` baseline remained red.
+
+- 2026-07-23: Executed the operational public-route hardening plan across
+  dispatch, inventory configuration, contractor jobs/payments, community, and
+  shared settings. Every reviewed mutation now requires a session and a scoped
+  server capability; assigned dispatch lifecycle actions also recheck the live
+  driver, contractor self-service rechecks job ownership/custom-job enablement,
+  payment authority is separate, community uses operation-specific editor
+  scopes, and inventory/settings deny first under Super Admin. Focused boundary,
+  jobs, and router-evaluation coverage passes 14 tests / 239 assertions; API
+  typecheck passes. A read-only role-grant audit confirmed the delivery,
+  dispatch, office, sales, and admin mappings. No schema, migration, sync, or
+  repair work was run.
+
+- 2026-07-23: Closed the dealer quote post-request edit gap. Quote list actions
+  now expose an explicit editing lock, direct edit URLs render the request-state
+  explanation instead of the composer, and the transactional save boundary
+  rejects pending, approved, and rejected requests as `CONFLICT` before
+  customer/pricing/item/order writes. Focused coverage passes 61 tests / 187
+  assertions; dealership and API typechecks, targeted Biome, and diff checks
+  pass. Authenticated browser QA reached the dealer quote surface, but its
+  active dealer had no quotes and the only pending local quote was an orphaned
+  historical row, so no data was mutated to manufacture a locked fixture.
+
+- 2026-07-23: Added bounded batch retained disposition and closed the source-label operations gap. Operators can select up to 12 visible reviewed rows of one inventory kind, choose a common active same-kind category and standard/custom visibility, and confirm one batch. The server accepts at most 25 unique rows and executes the established single-row exact-baseline transaction sequentially, returning ordered applied/skipped evidence while preserving independent `Event` audits and projection diagnostics. Projection history now reports queued/failed/retryable health counts used by System Checks and summary badges. Combined retained/category/projection/permission coverage passes 20 tests / 106 assertions; API and inventory typechecks, targeted Biome, `git diff --check`, and the WWW touched-file diagnostic scan pass. Authenticated batch interaction proof remains fixture-dependent because the current source review is empty.
+
+- 2026-07-23: Added durable retained-item projection attempt and retry evidence. Each post-disposition inventory-to-Dyke dispatch now records the authenticated actor, inventory/disposition identity, and Trigger run or `START_FAILED` outcome in `TaskRunDiagnostic`. The control center shows bounded retained-item attempts and offers retry only for unclaimed failure/canceled/stale rows; retry validates live inventory, atomically claims the prior diagnostic, and records a linked new attempt so concurrent clicks cannot dispatch the same failure twice. Authenticated browser QA renders the bounded projection-history empty state without an access/error fallback; no retry or import mutation was triggered.
+
+- 2026-07-23: Added explicit retained disposition for stale import-source rows. Each bounded review candidate can now move to an active same-kind category as standard operational inventory or a custom exception. Apply exact-baseline guards the current category/source labels, clears legacy source UIDs rather than claiming an unproven target-step mapping, writes authenticated actor plus before/after `Event` evidence in the same transaction, and reports whether post-commit inventory-to-Dyke projection queued. A shared Super Admin guard now closes the previously public/import-only-authenticated reset, backfill, delete, import, projection, archive, disposition, and category-cleanup route boundaries. Combined retained/category/permission coverage passes 12 tests / 78 assertions; API and inventory typechecks, targeted Biome, `git diff --check`, and the WWW touched-file diagnostic scan pass. Authenticated browser QA loaded the control center and proved the cleanup gate's two-ready/one-blocked state; the retained-row form correctly stayed absent because the live source review reported no stale/orphaned labels, so mutation interaction proof remains fixture-dependent. The progressive control-center UI uses the deferred cleanup query's bounded active targets and accessible per-row selects.
+
+- 2026-07-23: Implemented Storefront Product-Aware Shipping V1 and V2. Delivery
+  now supports server-resolved Google Places/Routes, a shared Door
+  size/profile, Moulding shipped-LF, and Shelf category/product weight engine,
+  versioned policies and quote revisions, a configurable base plus
+  weight-distance formula, V1 office approval/override, and conservative V2
+  auto-approval gates. Checkout blocks payment links until shipping is final,
+  office review updates checkout and canonical Sales delivery/totals
+  transactionally, and customers receive the final amount. Review hardening
+  binds checkout to the active policy and canonical Google address, locks
+  payment-started quotes, prevents linked-quote supersession, rate-limits
+  previews, and refuses V2 auto-approval without every safety gate. Focused
+  coverage passes 9 tests / 37 assertions; API/Sales/DB typechecks, Prisma
+  generation, local schema push, targeted Biome/diff checks, and local
+  admin/storefront browser smoke pass. Normal migration replay remains blocked by the
+  pre-existing master-password shadow-history ordering failure; production
+  settings and schema were not changed.
+
+- 2026-07-23: Added the stale imported-category cleanup gate. A protected bounded review now reports active categories outside the sales-settings route graph as ready only when no live inventory children remain, with blocked standard/custom counts otherwise. The confirmation-gated apply path is dry-run by default, re-resolves route scope and the no-live-child invariant inside the transaction, soft-archives only confirmed empty categories, queues category-level Dyke projection, and excludes archived categories from subsequent stale-scope counts. Focused coverage passes 2 tests / 8 assertions; API and inventory typechecks, targeted Biome, the WWW touched-file typecheck scan, and diff checks pass. Visual browser proof remains unavailable because the in-app browser rejected the localhost reload under its URL security policy before render.
+
+- 2026-07-23: Added persistent inventory import run history. `inventories.runFullImport` is now protected and records the authenticated operator, scope, strategy, compare/reset intent, and Trigger run identity in `TaskRunDiagnostic` without allowing a diagnostic-write failure to hide a successfully queued import. Trigger start failures are recorded separately when possible, history is bounded to import tasks, internal diagnostic errors remain restricted to the Super Admin diagnostics surface, and the control center shows the latest eight runs, polls active work, and finalizes terminal status from the monitored Trigger run. Focused coverage passes 3 tests / 9 assertions; API and inventory typechecks, targeted Biome, the WWW touched-file typecheck scan, and diff checks pass. The broad WWW typecheck remains blocked by unrelated baseline diagnostics across legacy app-deps, actions, tests, shared React types, and other existing surfaces. Visual browser validation was attempted after restarting the stale local WWW process, but the in-app browser security policy rejected the localhost reload before the page rendered; no import mutation was triggered.
+
+- 2026-07-23: Planned Storefront Product-Aware Shipping Quotes. The proposed V1
+  uses a server-resolved Google Place destination, driving distance, Door
+  component/weight-profile size mappings, shared length-first Moulding
+  whole-piece calculation, Shelf product/category weight fallback, and a
+  configurable base plus weight-distance formula. Every V1 delivery quote
+  remains provisional until an authorized office employee accepts it or records
+  an override reason; payment-link creation stays blocked until shipping and all
+  dependent Sales/checkout totals are finalized atomically. The roadmap plan
+  includes manual-review fallbacks, quote revisions, calibration evidence,
+  customer notification, and later confidence-gated automation.
+
+- 2026-07-23: Ported EwaTrade's OTA-safe persisted-theme runtime into the GND
+  Expo app. Stored System/Light/Dark now hydrates before the splash hides,
+  explicit overrides notify React consumers through an app-owned external
+  store, and resolved palettes drive React Navigation, status bars, token
+  consumers, and NativeWind semantic variables together. Focused theme and
+  launch-update coverage passes with 13 tests / 46 assertions; targeted Biome,
+  scoped diff checks, and the Android native build pass. The broad Expo
+  TypeScript run remains blocked by unrelated baseline diagnostics, with no
+  diagnostics in the touched theme implementation files. The app installed on
+  `Pixel_3a_API_34`, but visual reload acceptance is blocked before app mount by
+  the existing Metro `jsonwebtoken/sign.js` Node `crypto` incompatibility.
+
+- 2026-07-23: Added source-aware inventory import safety review and the explicit archive bridge. The protected `inventories.inventoryImportSourceReview` query classifies stale/orphaned imported rows as standard archive candidates, custom exceptions, or operationally protected based on stock, active sales references, allocations, inbound demand, and storefront publication. The Import Control Center now surfaces bounded candidates, links each item for review, and exposes a confirmation-gated archive action that is dry-run by default, revalidates inside a transaction, soft-archives only unused standard rows, and queues the existing inventory-to-Dyke sync for confirmed rows. Focused package coverage passes 5 tests / 12 assertions; inventory/API typechecks and targeted Biome pass, and the WWW touched-file typecheck scan reports no diagnostics.
+
+- 2026-07-23: Promoted the order-update inventory repair panel into the shared Sales Overview Inventory surface, covering reopened orders and alternate save paths in addition to the post-save configurator. The API route normalizes nullable reviewed inbound ids before the guarded mutation; focused repair/policy/sync coverage passes 28 tests / 78 assertions, API typecheck and targeted Biome pass, while the broad WWW typecheck remains blocked by unrelated baseline diagnostics. Browser QA reached Quick Login and the server-side sign-in action returned 200, but the headless session did not retain the auth cookie, so authenticated stale-order proof remains open.
+
+- 2026-07-22: Added guarded order-update inventory repair preview/apply. The saved-order configurator now loads exact demand/allocation baselines, separates mutable residue from linked/received/picked review rows, applies selected safe rows through an audited transaction with component-state recomputation, and refreshes inventory queries. Focused API repair tests pass (2 tests / 10 assertions); API and WWW typechecks pass; authenticated stale-order browser proof remains open.
+
+- 2026-07-22: Hardened order-update inventory cleanup. Sales inventory sync now auto-cleans only unreceived/unlinked mutable inbound demand and pending/approved/reserved allocations; shipment-linked or received demand and picked/consumed allocations remain for review, and stale components are not deleted while protected residue exists. Focused repair-policy plus sync coverage passes 26 tests / 68 assertions, Sales package typecheck and Biome pass; repair preview/apply UI/API and authenticated proof remain open.
+
+- 2026-07-22: Completed the next Sales Book Inbounds parity slice. `/sales-book/inbounds` now uses the shared `SearchFilterTRPC` control with URL-backed `q`, `status`, and `inboundId` state; sidebar and inventory-owned inbound-management actions target the canonical route and preserve direct shipment selection. Focused parity/sidebar tests pass (13 tests / 83 assertions), targeted Biome and WWW typecheck pass, and authenticated browser proof for deep links/back-forward/action routing remains open.
+
+- 2026-07-22: Hardened the Sales Overview Inventory/Inbounds workspace. `Mark all available` now uses the guarded availability resolver and explains read-only, no-pending, shipment-linked, and allocation-blocked states; a lightweight `orderInboundShipmentCount` query keeps the inactive Inbounds badge accurate; remaining pending stock exposes Check stock/Create inbound actions; and linked shipments render as collapsible rows with status/receive controls and read-only locks. Focused helper/API coverage passes 11 tests / 29 assertions, API and WWW typechecks pass, and authenticated browser fixture validation remains open.
+
+- 2026-07-22: Added Phase 0 mobile invoice save observability. Mobile draft/final saves now attach a bounded `clientRequestId`, log sanitized payload shape and elapsed/classified outcomes in development, and the API correlates that id with its request id while logging ingress, payload capture, core-save completion, and bounded post-save completion. The id is diagnostic-only and is not persisted. Focused mobile/API diagnostics coverage passes (6 tests / 22 assertions), API typecheck passes, and the full sales-form migration suite remains green (349 tests / 1232 assertions); physical-device save replay remains pending.
+- 2026-07-22: Mobile invoice save failure UX now maps timeout, network, conflict/stale, auth, validation, and server errors to actionable footer copy while preserving stale-save state. Focused diagnostics/store coverage passes (10 tests / 39 assertions); physical-device replay remains pending.
+
+- 2026-07-22: Reconciled the sales-form composer regression assertion with the established C.C.C contract: `grandTotal` remains the principal and `totalWithCcc` is the card display amount. The complete `packages/sales/src/sales-form` suite now passes 321 tests / 1,049 assertions after the mixed-service tax fix.
+- 2026-07-22: Fixed mixed grouped-service tax calculation. Current-summary costing now derives taxable subtotal from each service row rather than treating the whole grouped line as taxable when any row is taxable; explicit row flags override stale parent metadata and missing flags fall back to the parent. Added a regression for taxable/non-taxable siblings under a stale parent flag; costing, normalization, workflow, and state coverage passes 82 tests / 315 assertions, with authenticated mixed-item tax-code proof still open.
+- 2026-07-22: Fixed an asynchronous customer-profile repricing race in the new sales form. When customer/profile resolution finishes before the profile-options query, the form now updates metadata without repricing against multiplier `1`; it waits for the selected coefficient, then reprices from the prior known coefficient. Focused profile, state, row-patch, and transition coverage passes 36 tests / 185 assertions; authenticated profile-switch proof remains open.
+- 2026-07-22: Closed two hosted moulding-calculator parity defects. The legacy-hosted calculator now derives displayed price per LF as piece price divided by selected piece length (matching grouped calculator/domain semantics), invokes its optional apply callback safely, and resets defaults when a reused row calculator receives new props while closed. Added focused source coverage; combined moulding/calculator/row-patch coverage passes 22 tests / 82 assertions, with authenticated calculator and full price-summary proof still open.
+- 2026-07-22: Reconciled the remaining component-management and door-size matrix statuses with the current implementation. Toolbar/card actions, component edit/image/visibility/pricing/redirect flows, supplier-aware inline base-price editing, and shared Door/HPT variant controls are all implemented behind the existing capability/mutation paths; focused source/domain suites remain green, with authenticated interaction proof still open.
+- 2026-07-22: Closed the HPT first-size dead-end. The Add Size menu now remains reachable before the first active-door row exists and when another selected door owns the only persisted rows, while sharing the same size candidate and supplier/profile pricing path as populated HPT tables. Focused HPT panel, candidate, and door-row suites pass (53 tests / 167 assertions); authenticated HPT fixture proof remains open.
+- 2026-07-22: Closed a shelf workflow parity gap in the default V2 editor. Each shelf section now exposes the legacy category path, and changing or clearing that path resets stale product selection, pricing metadata, and subtotal before the next product is chosen. Focused shelf category/product coverage passes (10 tests / 42 assertions); authenticated shelf category/product proof remains open.
+- 2026-07-22: Closed a grouped-service tax precedence gap. Service-row tax switches now fall back to the parent metadata only when a row omits the flag, and grouped-row persistence mirrors the aggregate taxability onto the parent line so stale legacy `line.taxxable` values cannot suppress newly taxable service rows. Focused workflow-row-patch, costing, and new-form costing suites pass (36 tests / 149 assertions); authenticated tax-code/profile transition proof remains open.
+- 2026-07-22: Closed a customer-profile repricing hole for grouped moulding lines. Profile changes now reprice persisted `meta.mouldingRows` from base prices, preserve custom prices/addons, recompute grouped quantities/totals, and keep row metadata normalized. Focused profile-repricing coverage passes (8 tests / 63 assertions); authenticated profile-switch proof remains open.
+- 2026-07-22: Closed the remaining moulding-calculator outside-click implementation gap. The picker calculator now uses the dismissible Dialog primitive and closes on outside pointer interaction, matching the grouped new-form calculator; focused source coverage passes (1 test / 1 assertion). The execution matrix now records the picker controls, history, component image, and autosave rows as implemented in code with authenticated runtime proof still pending.
+- 2026-07-22: Hardened HPT composed-component costing. Shared door surcharge now reads selected-component sales prices from persisted step metadata when `formStep.price` is absent, preserving the legacy step-price fallback for older rows. Focused HPT compatibility, row-patch, door-utils, and workflow-calculator suites pass (80 tests / 289 assertions); authenticated composed-route/browser proof remains open.
+- 2026-07-22: Closed the new-sales-form component price-display parity gap. Picker cards now make the dependency/profile-resolved calculated sales cost explicit and expose the underlying base cost on hover, while `resolveWorkflowVisibleComponents` remains the single pricing source. Added a source regression beside the workflow capability tests (6 tests / 19 assertions); authenticated browser proof across profile/dependency changes remains open.
+- 2026-07-22: Closed a new-sales-form pricing permission gap. Grouped Service and Shelf editors now receive `workflowAdminCapabilities.canEditLinePricing`, matching Door/HPT gating so only Super Admins can edit unit price, tax, production, and shelf-price controls. Added a source regression beside the existing capability tests (4 tests / 12 assertions); browser parity remains open.
+- 2026-07-22: Hardened legacy sales-form tax recomputation for sparse service rows. `CostingClass.calculateTotalPrice()` now safely treats missing service metadata as non-taxable instead of throwing, and focused coverage now includes sparse service metadata plus Labor/FlatLabor/card-charge composition (13 tests / 50 assertions). No API or database contract changed; authenticated pricing/browser proof remains open.
+- 2026-07-22: Tightened shared mobile Door/HPT editor controls to the native 44pt hit-target contract by updating section actions, icon actions, text inputs, and add/configure/swap buttons. Door/HPT focused helpers plus workflow Proceed/floating-action tests pass (23 tests / 57 assertions); targeted patch-helper scans and scoped `git diff --check` are clean. Manual mobile QA remains open.
+- 2026-07-22: Tightened the mobile custom-component result rows to meet the native 44pt tap-target contract and added explicit accessibility labels for edit/archive actions. Focused custom-option, customer-search, workflow-copy, and floating-action tests pass (32 tests / 69 assertions); scoped UID scan and `git diff --check` are clean. Manual mobile QA remains the release gate.
 - 2026-07-22: Reconciled the dealership quote-to-order approval ledger with
   production behavior. The legacy `dealerPortal.convertQuoteToOrder` endpoint
   is already hard-disabled with an actionable `FORBIDDEN` response and its
@@ -40,6 +270,43 @@
   dealer request plus office approval transaction. The internal conversion
   helper is intentionally retained for that approval path, so no API or
   database contract change was needed.
+- 2026-07-22: Closed the sales-form hardening Phase 0 implementation audit.
+  `saveNewSalesFormInternal` already recomputes authoritative totals before a
+  real transaction, scopes every relational write to `tx`, and queues bounded
+  post-save work only after commit. The main and mixed-line parity suites pass
+  with 29 tests / 237 assertions, and the post-save timeout/rejection suite
+  passes with 3 tests / 8 assertions. Updated the multi-line fixture for the
+  current customer/office-access checks; remaining Phase 0 work is authenticated
+  real-database browser/runtime proof.
+- 2026-07-22: Fixed a legacy sales-form pricing writeback hole in
+  `CostingClass.softCalculateTotalPrice`. Pricing totals are now persisted even
+  when a valid form has no optional `Labor` extra-cost row; only the derived
+  Labor row update remains conditional. Added regression coverage for the
+  no-Labor shape; the focused costing suite passes with 10 tests / 38
+  assertions.
+- 2026-07-22: Re-enabled the shared sales-form resilience default. Hydrated
+  forms now start with autosave enabled while preserving the manual-save
+  toggle; the existing debounced queue, page-leave/local-recovery snapshots,
+  and risky-navigation warnings remain the fallback safety contract. Focused
+  sales state coverage passes with 10 tests / 46 assertions. Added ADR-022;
+  authenticated browser proof of save/restore/leave-warning behavior remains.
+- 2026-07-22: Corrected the legacy sales summary subtotal source. Both visible
+  “Sub Total” surfaces now render authoritative `metaData.pricing.subTotal`
+  instead of deriving a value from grand total minus tax, which drifted when
+  discounts/extra costs changed. Added a source regression; the focused
+  costing/subtotal gate passes with 11 tests / 40 assertions.
+- 2026-07-22: Added `.brain/features/sales-form-system-hardening.md` as the durable feature
+  record for the autosave, local-recovery, pricing-writeback, and subtotal
+  contracts validated in this pass.
+- 2026-07-22: Removed four raw `console.log` diagnostics from legacy sales-form
+  production paths (supplier selection, HPT context, quantity editing, and
+  moulding calculator). A static regression scan now covers those files and
+  passes with 1 test / 4 assertions.
+- 2026-07-22: Extended the production debug-log cleanup across the remaining
+  legacy sales workflow helpers: door-size modal opener, step component class,
+  dispatch control utility, sales-progress loader, and shipping DTO. The
+  second static scan passes with 1 test / 5 assertions; no interaction or data
+  contract changed.
 - 2026-07-22: Hardened the custom millwork intake/office handoff after review.
   Private upload authorization now atomically requires an open draft and caps at
   five files; stale drafts are retained whenever private Blob cleanup cannot
@@ -6770,3 +7037,30 @@
   PDF renderer coverage passes 42 tests / 154 assertions, and `@gnd/www`
   typecheck passes. Browser proof of a public quote preview download remains
   the only task-owned validation gate.
+2026-07-22: Added a direct V2 Print action to the Sales Overview quick-actions bar. It uses the shared sales-print controller with order/quote mode resolution and in-flight feedback; the existing More menu still handles packing, production, and combined variants. Focused source regression passes (2 tests / 6 assertions). Remaining PDF release gates are browser quote-download proof plus the documented renderer/cache/merge follow-up.
+2026-07-22: Closed the web new-sales-form HPT add-door parity gap. The shared HPT panel now exposes an accessible `Add Door` action, and the web item workflow returns to the existing Door step so users can add another selected door without replacing configured HPT rows. Focused workflow coverage passes 128 tests / 429 assertions, including corrected Decimal half-up expectations for door base/sales prices; the web capability regression now covers the navigation wiring (5 tests / 16 assertions). Browser fixture proof remains open.
+2026-07-22: Audited the Sales PDF V2 follow-up end to end. The remaining batch behavior is implemented: each order resolves through the per-order print-data cache, stale/missing rows regenerate, and merged output flattens pages in the caller’s requested order. Focused cache/service coverage passes 38 tests / 108 assertions, including mixed hit/miss ordering; remaining release evidence is authenticated browser quote-download and representative batch PDF artifact proof.
+2026-07-22: Hardened Sales PDF batch resolution to deduplicate repeated sales IDs before per-order cache lookup/generation while preserving first-seen page order. The cache regression now covers `[10, 10, 11, 10]` resolving to `INV-10`, `INV-11` with only order `11` generated (11 tests / 31 assertions in the cache suite).
+- 2026-07-23: removed redundant download UI from attached sales-document
+  emails. Standard invoice, quote, and composed templates now hide the Actions
+  card and Download PDF button when the PDF attachment is present, while
+  preserving quote acceptance and invoice payment actions. The signed download
+  link remains a render-failure fallback when no attachment is available.
+  Focused email rendering and notification contract coverage passed 12 tests;
+  `@gnd/email` and `@gnd/notifications` typechecks and focused Biome checks
+  passed.
+- 2026-07-23: deployed the current jobs workspace to Trigger production as
+  version `20260723.1` with 37 detected tasks. The repository deploy wrapper's
+  configured `gnd` Trigger profile could not access the project, so the
+  successful deployment used the authenticated `default` profile explicitly.
+- 2026-07-23: completed the shared document caller migration. Expo employee
+  gallery and dispatch proof, packing signatures, authenticated browser
+  attachments, and generated Sales PDFs now retain canonical
+  `StoredDocument` lifecycle ownership. Browser upload/delete and notification
+  attachment handoffs use server validation, compensated uploads, fenced
+  claims, stale recovery, and durable ownership transitions; packing sign-off
+  uses a server-only PNG upload, serializable lease, immutable five-minute
+  re-sign window, atomic domain checkpoint, and idempotent promotion recovery.
+  Focused validation passed 46 tests / 329 assertions, API/sales/utils/jobs/
+  storefront typechecks, scoped Biome, diff checks, and two independent final
+  reviews. No migration, inventory repair, sync, or data mutation ran.

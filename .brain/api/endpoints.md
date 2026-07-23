@@ -4,6 +4,15 @@
 Tracks notable API surfaces and where they are implemented.
 
 ## Current Notes
+- Operational route boundaries (2026-07-23):
+  - reviewed `dispatch`, inventory configuration, `jobs`, `community`, and
+    shared `settings` mutations are protected procedures with the scoped
+    permission/ownership matrix documented in
+    `.brain/plans/2026-07-23-api-public-route-hardening.md`;
+  - shared `settings.getJobSettings` is authenticated, while
+    `settings.updateSetting` is Super Admin-only;
+  - assigned dispatch start/completion/signature and contractor self-service job
+    changes recheck persisted ownership before mutation.
 - Sales Customer dealership invitation routes:
   - `sales.customersIndex` is now a protected query and returns a batched
     `partnership` summary per row.
@@ -52,6 +61,10 @@ Tracks notable API surfaces and where they are implemented.
 - Sales email ledger routes now include:
   - `emails.salesEmailAttempts`: protected query for `/sales-book/emails`; supports search, status, sales rep, date, and pagination filters. Super Admin sees all attempts, while non-Super Admin sales users are scoped to attempts they sent or attempts attached to them as the sales rep.
   - `emails.resendSalesEmailAttempt`: protected Super Admin mutation that retries `FAILED` or `SKIPPED` sales document email attempts by creating a linked child attempt and queueing the original simple/composed sales document email payload through the notification Trigger task.
+- Sales document WhatsApp/SMS delivery reuses the protected notification task
+  and existing public `/sh/[slug]` redirect; it adds no tRPC or public mutation
+  endpoint. Channel intent and provider outcomes are carried by the composed
+  notification payload/result contract.
 - Task diagnostics routes now include:
   - `taskRunDiagnostics.list`: protected Super Admin query for `/task-events/diagnostics`; supports search, status, task name, entity, date, and pagination filters.
   - `taskRunDiagnostics.get`: protected Super Admin detail query for one diagnostic row.
@@ -65,7 +78,11 @@ Tracks notable API surfaces and where they are implemented.
   - `sales.productionTasks`: worker-scoped production queue list using the authenticated user as `workerId`
   - `sales.productionDashboard`: production workspace summary query for alert buckets, queue counts, and compact due-date calendar data
 - Sales overview routes now include:
-  - `sales.getSaleOverview`: dedicated single-sale overview query used by the v2 sales overview system; loads one order/quote directly instead of routing through the broader sales list query
+  - `sales.getSaleOverview`: dedicated single-sale overview query used by the
+    v2 sales overview system; loads one order/quote directly instead of routing
+    through the broader sales list query. Order responses also join current
+    invoice-PDF snapshot readiness for the manager production-preflight card;
+    the read never generates a document.
   - `sales.salesRepOptions`: protected active-sales-user option list for the sales overview transfer control
   - `sales.transferSalesRep`: protected owner-only order/quote sales rep transfer mutation that accepts account- or master-password confirmation, changes `SalesOrders.salesRepId`, writes `SalesHistory`, and atomically records master-password transfer usage when applicable
 - Sales print routes now include:
@@ -89,9 +106,17 @@ Tracks notable API surfaces and where they are implemented.
   - `apps/dealership` Better Auth `/api/auth/dealer-dev-quick-sign-in`: development-only quick-login endpoint for active linked dealer accounts; disabled outside non-production environments and used only to unblock local dealership browser QA
   - `apps/dealership` local `/api/trpc` uses the scoped `dealershipAppRouter`, exposing only `dealerPortal` and `google` routers instead of the full internal `appRouter`, so dealership deployments do not trace or typecheck unrelated API surfaces.
   - `dealerPortal.dashboard`: dealer-scoped summary for open quotes, pending requests, active orders, unpaid balance, paid revenue, dealer earnings, dealer-facing taxes, customers, and recent activity
-  - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used by the dealer order overview and print/payment surfaces; payload now includes `createdAt`
+  - `dealerPortal.salesDocument`: dealer-scoped single quote/order document used
+    by the dealer order overview and print/payment surfaces; payload includes
+    `createdAt`, separate customer/GND balances, `deliveryOption`, and bounded
+    `fulfillmentStatus` without exposing raw pickup/delivery relations.
+  - `dealerPortal.salesDocuments`, `dealerPortal.orders`, and
+    `dealerPortal.quotes`: dealer-scoped sales lists include request state,
+    separate customer/GND balances, delivery option, and the bounded
+    fulfillment projection used by dealer next-step guidance.
   - `dealerPortal.createPaymentLink`: dealer-owned approved-order checkout-link mutation for orders with outstanding balance
   - `dealerPortal.requestQuoteOrder`: creates or reuses the active dealer's pending quote-to-order request; it notifies the assigned sales rep, or all active Sales Team users when the quote/dealer has no assigned rep
+  - `dealerPortal.saveQuote`: creates dealer-owned drafts and edits only quotes whose latest active `make_order` request is absent; pending, approved, and rejected requests lock the quote and return `CONFLICT` before quote-dependent writes
   - `dealerPortal.updateCustomerPaymentStatus`: dealer-owned mutation that records the dealer's customer receivable status and audit history without mutating the internal GND payable
   - `dealerPortal.printDocument`: dealer-owned print access with explicit `pricingMode = customer | internal`; the customer mode is customer-facing and the internal mode is the dealership/GND-facing office amount
   - `dealerPortal.saveSettings`: dealer settings mutation accepts external logo URLs and bounded uploaded image data URLs for dealer invoice branding
@@ -128,7 +153,34 @@ Tracks notable API surfaces and where they are implemented.
   - `dispatch.sendSaleForPickup`: creates or reuses a pickup `OrderDelivery` in `queue` and records packing-workflow membership on the `sales-packing-list` notification channel
   - `dispatch.packingList`: tab-aware query powering `/sales/packing-list` for `current`, `completed`, and admin-only `cancelled` views
   - `dispatch.signPackingSlip`: saves signature + packed/received names, packs all items into the delivery, and completes packing through the `/p/sales-invoice-v2` flow
+  - `dispatch.completeDispatchWithProof`: assigned-driver/manager mobile
+    completion mutation that stages bounded signature/photo proof under one
+    request id, packs pickups server-side, and idempotently finalizes the
+    canonical dispatch. The previous generic `uploadDispatchDocument` mutation
+    is removed.
+  - `dispatch.signPackingSlip` now accepts only a PNG data URL, uploads and
+    registers it server-side as a staged dispatch signature, and promotes it
+    only after packing succeeds. It uses a serializable per-dispatch lease,
+    preserves the five-minute completed re-sign window on the server, and
+    reconciles a committed `domain_completed` canonical document on the next
+    request if post-commit current-document promotion failed.
+  - `dispatch.completeDispatchWithProof` returns canonical
+    `signatureDocumentId` / attachment `documentId` values and rejects a
+    different request while another proof upload is active.
   - Expo mobile now consumes `dispatch.packingList` for a separate `/(drivers)/warehouse-packing` workspace exposed from Settings, while item-level execution still reuses `dispatch.dispatchOverviewV2` + the shared dispatch detail packing flow
+- Shared storage and employee document routes now include:
+  - `storage.upload`: protected, server-mediated inbound/dispatch browser
+    attachment upload with base64, size, MIME, magic-byte, owner, and canonical
+    registration checks.
+  - `storage.delete`: protected deletion for an active staged Vercel Blob
+    browser-upload document owned and uploaded by the current user; requires
+    the trusted staging source/key/status and tombstones the `StoredDocument`.
+    Consumed note attachments and employee documents cannot be deleted here.
+    Unregistered legacy path-only blobs are not physically deleted because they
+    have no trustworthy uploader identity.
+  - `user.uploadDocumentAsset`: protected atomic Expo employee gallery upload,
+    canonical registration, and `UserDocuments` save. Failed feature saves
+    compensate the staged blob/record.
 - Inventory dispatch routes now include:
   - `inventories.assignInventoryDispatchAllocations`: moves eligible inventory allocations into `reserved` for dispatch mode, using status-guarded updates so concurrent reruns return skipped evidence instead of overwriting rows already moved by another action
   - `inventories.packInventoryDispatchAllocations`: moves reserved inventory allocations into `picked`, using the same status-guarded transition behavior as dispatch assignment
@@ -164,7 +216,10 @@ Tracks notable API surfaces and where they are implemented.
 - Inventory reconciliation routes now include:
   - `inventories.inventoryReconciliationReport`: dry-run report over inventory-backed sales lines with `synced` / `needs_review` / `partial` status, checked counts, drift counts, total skipped-comparison count, severity, samples, skipped counts, skipped reasons, next cursor, and has-more state. Optional `salesOrderId` must be a positive integer, `cursorId` must be a non-negative integer, and `limit` / `sampleLimit` must be integers within their bounded ranges so clean-run evidence cannot be based on decimal or invalid cursors.
   - `inventories.runInventoryReconciliationReport`: queues Trigger task `run-inventory-reconciliation-report` for bounded dry-run reconciliation using the same integer-safe reconciliation schema; no repair or mutation is performed by this job, and Trigger output carries status, checked, drift, skipped-comparison, cursor, and has-more evidence for operator run summaries
-  - `inventories.salesInventoryOverview`: single-order inventory overview query used by the sales overview Inventory tab, returning sale metadata, inventory-backed line items, summary, and invoice-item `groups[]`
+  - `inventories.salesInventoryOverview`: single-order inventory overview query
+    used by the sales overview Inventory tab and manager production preflight,
+    returning sale metadata, inventory-backed line items, summary, invoice-item
+    `groups[]`, and active variant supplier/price evidence
   - `inventories.salesInventoryTrackingChangeRepairPreview`: bounded read-only mutation-style check used after a category becomes tracked. It accepts `inventoryCategoryId` and optional `limit`, returns eligible pre-production/in-production orders with pending quantity, and reports skipped read-only orders that have already reached the production/fulfillment boundary.
   - `inventories.salesInventoryMarkAsPreflight`: batch-safe preflight query used by the shared web `SalesMenu.MarkAs` actions; it accepts only a non-empty positive-integer `salesOrderIds` array capped at 100, blocks production-complete/fulfilled task starts when configured inventory still has required components awaiting inbound or allocation, preserves normal behavior for orders without inventory-backed rows, and returns the allocation ids plus inbound component/supplier hints needed by the fulfilled auto-resolution shortcut
   - `inventories.resolveSalesInventoryMarkAsAutoForContinue`: transitional Mark As Fulfilled auto-resolution mutation for active non-terminal orders; it accepts the same positive-integer `salesOrderIds` batch contract, approves pending stock allocations, creates/links inbound demand and inbound shipments grouped by preferred/default/fallback supplier, updates affected order inbound status to `ORDERED` or `AVAILABLE`, writes order-scoped `SalesHistory` audit rows, reruns preflight for evidence, and lets the UI continue fulfillment even if the remaining preflight still reports awaiting inbound
@@ -177,6 +232,20 @@ Tracks notable API surfaces and where they are implemented.
   - `inventories.createInboundShipmentFromDemands`: creates an inbound shipment from selected open demand ids and/or monitored stock component selections with requested qty; supplier, demand, and component ids are positive-integer guarded, and selected component quantities must be positive before demand preparation runs; when component selections are provided, it prepares only the requested pending `InboundDemand` quantity, can split an existing unlinked pending demand for partial inbound creation, ignores non-stock rows, commits shipment item quantity only from demand rows confirmed linked by guarded writes matching the pre-read `qtyReceived` baseline and a final parent-inbound active-state guard, guards empty item/shipment cleanup after zero confirmed links, and commits affected order `inventoryStatus=ORDERED` updates for confirmed linked demand in the same transaction
   - `inventories.assignInboundDemands`: assigns demand rows to an existing non-deleted, non-terminal inbound shipment in one API transaction, with positive-integer `inboundId` and non-empty positive-integer `demandIds` enforced before assignment planning; it uses only active unassigned demand confirmed linked by guarded writes matching the pre-read `qtyReceived` baseline for shipment item quantity and timeline order references; existing inbound item quantity is incremented atomically by confirmed linked quantity and the item quantity commit is guarded by parent inbound status, so retries, already-linked rows, concurrent receipts, concurrent claims, or concurrent terminal inbound changes do not inflate or mislabel inbound quantities; zero confirmed links fail without writing assignment activity, and cleanup of a newly-created empty item is parent-state guarded
   - `inventories.orderInboundShipments`: sales-overview inbound list for one order, scoped through linked `InboundDemand` rows
+  - `inventories.orderInboundShipmentCount`: lightweight count of active inbound shipments linked to one sale, used to keep the Inventory/Inbounds tab badge accurate before the detail list is opened
+  - `inventories.salesInventoryOrderRepairPreview`: protected, read-only order-update repair preview. It returns exact demand/allocation baselines, safe-to-repair rows, and linked/received/picked review rows for one live sales order.
+ - `inventories.resolveSalesInventoryOrderRepair`: protected guarded repair mutation. It accepts only the reviewed baselines, revalidates sale ownership and current row identity/status/quantities, cancels safe unlinked demand, releases safe allocations, recomputes affected components, and writes one order-scoped SalesHistory audit record.
+  - `inventories.inventoryImports`: read-only scope breakdown for the settings-driven Dyke import control center, reporting active/dependency/excluded steps, imported standard/custom counts, and stale imported categories.
+  - `inventories.runFullImport`: Super Admin inventory-import task dispatcher. It queues the compare/update/full-refresh Trigger task, records the authenticated operator plus scope/strategy/reset metadata in `TaskRunDiagnostic`, and preserves the queued run even if diagnostic persistence fails.
+  - `inventories.inventoryImportRunHistory`: protected bounded history query for the latest inventory import update/system-check diagnostics, including Trigger run identity, operator, scope/strategy metadata, lifecycle status, timestamps, and operator-facing failure status; internal diagnostic errors remain on the Super Admin task-diagnostics surface.
+  - `inventories.inventoryImportSourceReview`: protected, read-only source safety query for imported inventory rows outside the active sales-settings scope or with incomplete/orphaned source labels. It classifies standard archive candidates, custom exceptions, and operationally protected rows using positive stock, active sales references, allocations, inbound demand, and storefront publication guards.
+  - `inventories.archiveInventoryImportSourceCandidates`: Super Admin, dry-run-by-default mutation for the bounded source-review sample. Apply revalidates candidate status in a transaction, soft-archives only unused standard rows, returns skipped safety evidence, and queues the existing inventory-to-Dyke projection sync for confirmed rows.
+  - `inventories.applyInventoryImportSourceDisposition`: Super Admin retained-row mutation. It requires the exact reviewed category/source-label baseline, moves one candidate only to an active same-kind category, detaches unproven legacy source ownership, applies the operator-selected standard/custom visibility, and transactionally records actor-attributed `Event` evidence before queuing inventory-to-Dyke projection.
+  - `inventories.applyInventoryImportSourceDispositionBatch`: Super Admin bounded batch retained-row mutation. It accepts 1-25 unique single-row disposition inputs, runs each as its own exact-baseline guarded transaction, and returns per-row applied/skipped plus projection diagnostic evidence instead of making one stale row roll back the whole reviewed batch.
+  - `inventories.inventoryImportProjectionHistory`: Super Admin bounded query for retained-item inventory-to-Dyke projection attempts. It exposes only diagnostics tagged as inventory-import projections, including actor, inventory/disposition identity, queue/run status, retry lineage, whether the failed attempt remains claimable, and bounded queued/failed/retryable health counts.
+  - `inventories.retryInventoryImportProjection`: Super Admin retry mutation for one retryable projection diagnostic. It verifies the diagnostic metadata and live inventory row, atomically claims the prior failure through `reviewedAt`/`reviewedById`, queues one new projection, and persists a linked success or start-failure diagnostic.
+  - `inventories.inventoryImportCategoryCleanupReview`: protected bounded query for active inventory categories whose Dyke step is outside the current sales-settings route graph. Categories are ready only when they have zero live inventory children; otherwise the response reports blocking standard/custom row counts.
+  - `inventories.cleanupInventoryImportCategories`: Super Admin, dry-run-by-default category cleanup mutation. Apply re-resolves scope and rechecks the no-live-child relation inside the transaction, soft-archives only confirmed empty stale categories, returns changed/blocked evidence, and queues category-level inventory-to-Dyke projection.
   - `inventories.inboundShipments`: general Sales Book inbound list with linked order/customer summary data for search, filters, analytics, and collapsed row headers
   - `inventories.updateInboundShipmentStatus`: positive-integer guards `inboundId`, updates the inbound lifecycle status with a non-deleted and previous-status guard, then writes a notification-backed activity event; cancelling an inbound releases unreceived active demand only through rows still linked to that cancelled parent shipment, recomputes affected components only after confirmed release evidence, and returns release/recompute counts
   - `inventories.inboundActivity`: inbound lifecycle timeline query, ordered from created/oldest to newest so the creation event is the first lifecycle row
@@ -243,6 +312,14 @@ Tracks notable API surfaces and where they are implemented.
 - Employee operations use `storefrontAdmin` through the authenticated internal
   router for workspace, catalog policy, carts, orders, inquiries, settings,
   pages, and sections.
+- Public checkout shipping routes are
+  `storefrontCommerce.checkout.addressAutocomplete`,
+  `storefrontCommerce.checkout.placeDetails`, and
+  `storefrontCommerce.checkout.shippingPreview`. They search/resolve Google
+  Places server-side and produce an owner-scoped, versioned cart quote.
+- Employee shipping routes are `storefrontAdmin.settings.shipping`,
+  `settings.saveShipping`, `settings.addressAutocomplete`,
+  `settings.placeDetails`, and `operations.reviewShipping`.
 
 ### Custom millwork inquiry workflow (2026-07-22)
 

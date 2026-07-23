@@ -4,10 +4,11 @@
 - 2026-06-16: `/sales-book/inbound-management` is migrated to the `tables-2` table standard.
 - 2026-07-17: `/sales-book/inbound-management` was retuned for the Sales Orders/Midday compact density target with narrower content-fit widths, `56px` rows, table-owned scroll-header offset behavior, and draggable headers.
 - 2026-07-17: `/sales-book/inbounds` is migrated to the restarted `tables-2` table standard for the primary inbound shipment queue.
+- 2026-07-22: `/sales-book/inbounds` is now the canonical operational route for inbound shipment workspaces. Search (`q`), status (`status`), and selected shipment (`inboundId`) state are URL-backed, and inbound-management navigation/action links target this route while the legacy route remains available.
 
 ## Route
-- Canonical route: `/sales-book/inbound-management`
-- No `/v2` route was added for this migration.
+- Canonical operational route: `/sales-book/inbounds`
+- Compatibility route: `/sales-book/inbound-management` remains available for legacy management views.
 
 ## Frontend Implementation
 - Route: `apps/www/src/app/(sidebar)/(sales)/sales-book/inbound-management/page.tsx`
@@ -33,6 +34,8 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
 - The route now uses `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, and `getInitialTableSettings("sales-inbounds")`.
 - The primary inbound shipment selector no longer uses hand-mapped collapsible cards. It renders through `tables-2/sales-inbounds` with compact `64px` rows, sticky Inbound/Actions columns, tailored Inbound/Status/Order/Counts/Dates/Progress/Actions widths, `VirtualRow`, table-owned scroll, DnD headers, resize handles, horizontal pagination, and persisted visibility/sizing/order/dividers.
 - Existing `inventories.inboundShipments`, local search/status filtering, analytics cards, selected-inbound detail, status update, receive-stock, linked order cards, stock-line cards, and activity history behavior are preserved.
+- The workspace uses the standard `SearchFilterTRPC` input and stores `q`, `status`, and `inboundId` in the URL so deep links and browser back/forward preserve the active queue state.
+- Sidebar links and inventory-owned inbound-management row actions now open `/sales-book/inbounds`, optionally carrying `inboundId` for direct shipment selection.
 
 ## Contracts Reused
 - Existing list query: `trpc.sales.inboundIndex`
@@ -83,3 +86,8 @@ Removed after import scans:
   - Filtered `@gnd/www` typecheck grep reported no diagnostics for `sales-inbounds`, the route, workspace, or table registry files while broad typecheck remains blocked by unrelated baseline errors.
   - HTTPS route smoke returned `200` for `/sales-book/inbounds`.
   - `git diff --check` passed and `components/tables-2/core` has no diff.
+- 2026-07-22 URL/canonical-route slice:
+  - Focused Sales Book Inbounds parity and sidebar tests passed with 13 tests / 83 assertions.
+  - Targeted Biome passed for the workspace, inbound-management actions, sidebar links, and parity test.
+  - `bun run --cwd apps/www typecheck` and `git diff --check` passed.
+  - Authenticated browser interaction proof remains pending for deep-link selection, search/status back-forward behavior, and the retargeted row action.

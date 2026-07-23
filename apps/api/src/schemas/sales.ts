@@ -268,7 +268,14 @@ export type PackingListQuerySchema = z.infer<typeof packingListQuerySchema>;
 export const signPackingSlipSchema = z.object({
 	dispatchId: z.number(),
 	receivedBy: z.string().optional().nullable(),
-	signature: z.string().min(1),
+	signature: z
+		.string()
+		.min(1)
+		.max(5_400_100)
+		.regex(
+			/^data:image\/png;base64,[A-Za-z0-9+/]*={0,2}$/,
+			"Packing signature must be a PNG data URL.",
+		),
 	note: z.string().optional().nullable(),
 	noteType: z.enum(["dispatch", "pickup"]).optional().nullable(),
 });

@@ -2,6 +2,12 @@ import type { Db, TransactionClient } from "@gnd/db";
 import { resolveOrderInboundDemandStatus } from "@gnd/inventory/inbound";
 import { generateInventoryCategoryUidFromShelfCategoryId } from "@gnd/inventory/inventory-utils";
 import { roundMoney } from "./payment-system/domain/money";
+import {
+	AUTO_RELEASABLE_STOCK_ALLOCATION_STATUSES,
+	MUTABLE_INBOUND_DEMAND_STATUSES,
+	canAutoCancelInboundDemand,
+	canAutoReleaseStockAllocation,
+} from "./sales-inventory-repair-policy";
 
 type DbLike = Db | TransactionClient;
 const ACTIVE_STOCK_ALLOCATION_STATUSES = [
@@ -1686,6 +1692,9 @@ async function syncComponentFulfillment(
 					id: {
 						in: existingAllocations.map((allocation) => allocation.id),
 					},
+					status: {
+						in: [...AUTO_RELEASABLE_STOCK_ALLOCATION_STATUSES],
+					},
 				},
 				data: {
 					status: "released",
@@ -1700,6 +1709,11 @@ async function syncComponentFulfillment(
 					id: {
 						in: existingInboundDemands.map((demand) => demand.id),
 					},
+					status: {
+						in: [...MUTABLE_INBOUND_DEMAND_STATUSES],
+					},
+					qtyReceived: { lte: 0 },
+					inboundShipmentItemId: null,
 				},
 				data: {
 					status: "cancelled",
@@ -1812,6 +1826,7 @@ async function syncComponentFulfillment(
 
 	const staleAllocationIds = existingAllocations
 		.filter((allocation) => {
+			if (!canAutoReleaseStockAllocation(allocation.status)) return false;
 			const inventoryStockId = allocation.inventoryStockId;
 			if (!inventoryStockId) return true;
 			return !desiredAllocations.has(inventoryStockId);
@@ -1900,6 +1915,11 @@ async function syncComponentFulfillment(
 				id: {
 					in: existingInboundDemands.map((demand) => demand.id),
 				},
+				status: {
+					in: [...MUTABLE_INBOUND_DEMAND_STATUSES],
+				},
+				qtyReceived: { lte: 0 },
+				inboundShipmentItemId: null,
 			},
 			data: {
 				deletedAt: new Date(),
@@ -1911,6 +1931,7 @@ async function syncComponentFulfillment(
 	if (existingInboundDemands.length > 1) {
 		const extraDemandIds = existingInboundDemands
 			.slice(1)
+			.filter((demand) => canAutoCancelInboundDemand(demand))
 			.map((demand) => demand.id);
 		if (extraDemandIds.length) {
 			await db.inboundDemand.updateMany({
@@ -2349,7 +2370,12 @@ export async function syncSalesInventoryLineItems(
 				},
 			};
 			await db.stockAllocation.updateMany({
-				where: staleComponentResidueWhere,
+				where: {
+					...staleComponentResidueWhere,
+					status: {
+						in: [...AUTO_RELEASABLE_STOCK_ALLOCATION_STATUSES],
+					},
+				},
 				data: {
 					deletedAt: now,
 					status: "released",
@@ -2365,7 +2391,14 @@ export async function syncSalesInventoryLineItems(
 				},
 			});
 			await db.inboundDemand.updateMany({
-				where: staleComponentResidueWhere,
+				where: {
+					...staleComponentResidueWhere,
+					status: {
+						in: [...MUTABLE_INBOUND_DEMAND_STATUSES],
+					},
+					qtyReceived: { lte: 0 },
+					inboundShipmentItemId: null,
+				},
 				data: {
 					deletedAt: now,
 					status: "cancelled",
@@ -2383,6 +2416,22 @@ export async function syncSalesInventoryLineItems(
 			await db.lineItemComponents.deleteMany({
 				where: {
 					...staleComponentIdentityWhere,
+					stockAllocations: {
+						none: {
+							deletedAt: null,
+							status: { in: ["picked", "consumed"] },
+						},
+					},
+					inboundDemands: {
+						none: {
+							deletedAt: null,
+							OR: [
+								{ status: { notIn: [...MUTABLE_INBOUND_DEMAND_STATUSES] } },
+								{ qtyReceived: { gt: 0 } },
+								{ inboundShipmentItemId: { not: null } },
+							],
+						},
+					},
 				},
 			});
 		}
@@ -2459,7 +2508,12 @@ export async function syncSalesInventoryLineItems(
 					},
 				};
 				await db.stockAllocation.updateMany({
-					where: staleLineResidueWhere,
+					where: {
+						...staleLineResidueWhere,
+						status: {
+							in: [...AUTO_RELEASABLE_STOCK_ALLOCATION_STATUSES],
+						},
+					},
 					data: {
 						deletedAt: now,
 						status: "released",
@@ -2475,7 +2529,14 @@ export async function syncSalesInventoryLineItems(
 					},
 				});
 				await db.inboundDemand.updateMany({
-					where: staleLineResidueWhere,
+					where: {
+						...staleLineResidueWhere,
+						status: {
+							in: [...MUTABLE_INBOUND_DEMAND_STATUSES],
+						},
+						qtyReceived: { lte: 0 },
+						inboundShipmentItemId: null,
+					},
 					data: {
 						deletedAt: now,
 						status: "cancelled",
@@ -2500,6 +2561,22 @@ export async function syncSalesInventoryLineItems(
 								deletedAt: {
 									not: null,
 								},
+							},
+						},
+						stockAllocations: {
+							none: {
+								deletedAt: null,
+								status: { in: ["picked", "consumed"] },
+							},
+						},
+						inboundDemands: {
+							none: {
+								deletedAt: null,
+								OR: [
+									{ status: { notIn: [...MUTABLE_INBOUND_DEMAND_STATUSES] } },
+									{ qtyReceived: { gt: 0 } },
+									{ inboundShipmentItemId: { not: null } },
+								],
 							},
 						},
 					},

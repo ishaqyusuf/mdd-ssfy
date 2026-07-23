@@ -87,9 +87,9 @@ After implementation, update only the relevant files:
 Do not move linked tasks to `done`. `brain-review-handoff` owns final approval for the review unit.
 
 ## Completion Notes
-Fill this in after implementation:
+Implementation is present; the latest hardening pass tightened shared Door/HPT editor hit targets without changing patch or pricing semantics.
 
-- Changed files:
-- Checks run:
-- Brain docs updated:
-- Unresolved issues:
+- Changed files: `apps/expo-app/src/features/sales/invoice-form/steps/shared/mobile-editor-primitives.tsx`, `apps/expo-app/src/features/sales/invoice-form/steps/house-package-tool/house-package-tool-editor.tsx`
+- Checks run: focused Bun tests (23 tests / 57 assertions), targeted patch-helper scans, and scoped `git diff --check`
+- Brain docs updated: `.brain/features/mobile-invoice-form.md`, `.brain/progress.md`
+- Unresolved issues: manual mobile QA and review-unit approval remain open; no API or payload contract changes were required.

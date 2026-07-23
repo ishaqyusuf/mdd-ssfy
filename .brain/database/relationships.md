@@ -24,6 +24,9 @@ Tracks important cross-model relationships and ownership patterns.
 - Sales shipment relationship for the inventory cutover:
   - `SalesOrders` -> `OrderDelivery` is the shipment/dispatch header relationship.
   - `OrderDelivery` -> `OrderItemDelivery` is the shipment line relationship.
+  - `OrderDelivery.meta.dispatchCompletion` is the resumable mobile proof
+    staging record; completed proof paths are also copied into the canonical
+    completion `NotePad` tags keyed by `deliveryId`.
   - `OrderItemDelivery.orderItemId` points to the legacy sales line.
   - `OrderItemDelivery.meta.lineItemId` should point to inventory `LineItem.id` for inventory-origin shipment writes.
   - `LineItemComponents` -> `StockAllocation` remains the inventory-side component reservation/pick/consume relationship.
@@ -59,6 +62,12 @@ Tracks important cross-model relationships and ownership patterns.
   Storefront Offer and preserves the canonical configuration snapshot.
 - Commerce Collection 1:N Storefront Checkout; a completed checkout references
   exactly one canonical `SalesOrders` record.
+- Commerce Collection 1:N Storefront Shipping Quote. Each quote belongs to one
+  immutable Storefront Shipping Policy version and is uniquely revisioned
+  within its collection.
+- Storefront Checkout optionally has one unique Storefront Shipping Quote; the
+  quote may exist before checkout, while checkout linkage identifies the quote
+  accepted for that order snapshot.
 - Storefront Page 1:N Storefront Section.
 - User/customer ownership is stored through server-derived user IDs without
   exposing caller-controlled ownership mutations.
@@ -73,3 +82,26 @@ Tracks important cross-model relationships and ownership patterns.
   relation ownership in this bounded schema.
 - `StoredDocument.ownerType/ownerId` polymorphically associates private files to
   `StorefrontInquiry.id`; every read repeats both values.
+
+## Shared document caller links (2026-07-23)
+
+- `UserDocuments.meta.storedDocumentId` manually points to
+  `StoredDocument.id`. New writes validate `ownerType = "user"` and
+  `ownerId = UserDocuments.userId`, then derive `UserDocuments.url` from the
+  canonical record.
+- `OrderDelivery.meta.dispatchCompletion.signatureDocumentId` and each
+  attachment `documentId` manually point to dispatch-owned `StoredDocument`
+  rows. Compatibility signature/attachment pathnames remain in the same
+  metadata and completion note payload.
+- Packing signatures use polymorphic dispatch ownership.
+  `OrderDelivery.meta.packingSignoff.documentId` manually points to the staged
+  canonical record; `domain_completed` proves the business transaction
+  committed, and current-document promotion may then be reconciled safely.
+- Browser-staged user attachments move to `ownerType = "note"` and
+  `ownerId = NotePad.id` in the same transaction that persists a generic or
+  inbound note, preventing later generic staged-file deletion.
+- Inbox activity attachments move to `ownerType = "notification_activity"`;
+  `ownerId` uses the created activity id when available, with the server claim
+  id as the durable fallback for activity handlers that emit no activity row.
+- `SalesDocumentSnapshot.storedDocumentId` remains the generated Sales PDF
+  lifecycle link.

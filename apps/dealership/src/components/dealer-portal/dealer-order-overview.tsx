@@ -1,5 +1,9 @@
 "use client";
 
+import {
+	getDealerOfficePaymentState,
+	getDealerOrderNextStep,
+} from "@/lib/dealer-next-step";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
@@ -9,6 +13,7 @@ import { toast } from "@gnd/ui/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Printer } from "lucide-react";
 import Link from "next/link";
+import { DealerNextStep } from "./dealer-next-step";
 
 type DealerOrder = RouterOutputs["dealerPortal"]["salesDocument"];
 
@@ -47,6 +52,14 @@ function customerPaymentLabel(order?: DealerOrder | null) {
 
 function progressItems(order?: DealerOrder | null) {
 	const due = Number(order?.amountDue || 0);
+	const officePayment = getDealerOfficePaymentState(order?.officeAmountDue);
+	const nextStep = getDealerOrderNextStep({
+		officeAmountDue: order?.officeAmountDue,
+		customerAmountDue: order?.amountDue,
+		deliveryOption: order?.deliveryOption,
+		status: order?.status,
+		fulfillmentStatus: order?.fulfillmentStatus,
+	});
 	return [
 		{
 			label: "Order approved",
@@ -61,15 +74,17 @@ function progressItems(order?: DealerOrder | null) {
 		{
 			label: "GND payment",
 			value:
-				Number(order?.officeAmountDue || 0) <= 0
-					? "Paid"
-					: `${currency(order?.officeAmountDue)} due`,
-			done: Number(order?.officeAmountDue || 0) <= 0,
+				officePayment.state === "review"
+					? "Balance unavailable — contact GND"
+					: officePayment.state === "paid"
+						? "Paid"
+						: `${currency(officePayment.amount)} due`,
+			done: officePayment.state === "paid",
 		},
 		{
 			label: "Fulfillment",
-			value: order?.status || "Not started",
-			done: false,
+			value: nextStep.title,
+			done: nextStep.phase === "fulfilled",
 		},
 	];
 }
@@ -150,7 +165,8 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 		}),
 	);
 	const order = orderQuery.data;
-	const hasOfficeBalance = Number(order?.officeAmountDue || 0) > 0;
+	const officePayment = getDealerOfficePaymentState(order?.officeAmountDue);
+	const hasOfficeBalance = officePayment.state === "due";
 	const customerHasBalance = Number(order?.amountDue || 0) > 0;
 
 	if (orderQuery.isPending) {
@@ -168,6 +184,13 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 			</div>
 		);
 	}
+	const nextStep = getDealerOrderNextStep({
+		officeAmountDue: order.officeAmountDue,
+		customerAmountDue: order.amountDue,
+		deliveryOption: order.deliveryOption,
+		status: order.status,
+		fulfillmentStatus: order.fulfillmentStatus,
+	});
 
 	return (
 		<div className="space-y-6">
@@ -232,6 +255,8 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 				</div>
 			</div>
 
+			<DealerNextStep guidance={nextStep} />
+
 			<Tabs defaultValue="overview" className="space-y-4">
 				<TabsList className="w-full justify-start">
 					<TabsTrigger value="overview">Overview</TabsTrigger>
@@ -247,7 +272,11 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 						/>
 						<Metric
 							label="GND balance"
-							value={currency(order.officeAmountDue)}
+							value={
+								officePayment.state === "review"
+									? "Unavailable"
+									: currency(officePayment.amount)
+							}
 						/>
 						<Metric
 							label="Fulfillment"
@@ -335,7 +364,9 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 							<div>
 								<h2 className="text-base font-semibold">GND payment</h2>
 								<p className="text-sm text-muted-foreground">
-									Outstanding balance: {currency(order.officeAmountDue)}
+									{officePayment.state === "review"
+										? "Balance unavailable. Contact GND before treating this order as paid."
+										: `Outstanding balance: ${currency(officePayment.amount)}`}
 								</p>
 							</div>
 							{hasOfficeBalance ? (
@@ -347,8 +378,10 @@ export function DealerOrderOverview({ orderId }: { orderId: number }) {
 									<CreditCard className="mr-2 size-4" />
 									Pay GND balance
 								</Button>
-							) : (
+							) : officePayment.state === "paid" ? (
 								<Badge>Paid</Badge>
+							) : (
+								<Badge variant="outline">Review with GND</Badge>
 							)}
 						</div>
 					</section>

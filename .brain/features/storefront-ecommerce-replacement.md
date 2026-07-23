@@ -157,6 +157,21 @@ item, customer, and permission workspaces.
 
 ## Verification
 
+- 2026-07-23 compiler-gate repair: `@gnd/storefront` now passes its complete
+  `tsc --noEmit` check. The repair aligns Google Places suggestions with their
+  optional response shape, maps URL search filters into the current storefront
+  query contract, narrows date-picker and form-resolver compatibility types,
+  uses supported shared icon APIs, removes the undeclared Radix icon import,
+  and supplies explicit tRPC package-boundary types for client/server
+  transformers and prefetch helpers. Targeted Biome lint passes for all nine
+  changed storefront files, `git diff --check` passes, and the Next.js
+  16.2.10/Turbopack production build completes all 21 static pages and dynamic
+  route registration. The build still reports the documented non-blocking
+  workspace NFT tracing warning and warns that local build-time auth is using
+  the default secret; production must continue to provide
+  `BETTER_AUTH_SECRET`. The subsequent full Turbo typecheck advanced through
+  storefront and completed 24 of 25 packages; only the separately documented
+  broad `@gnd/www` baseline failed.
 - Storefront migration `20260720130000_storefront_ecommerce_replacement`
   applied with all 102 repository migrations to isolated MySQL database
   `gnd_storefront_verify`.

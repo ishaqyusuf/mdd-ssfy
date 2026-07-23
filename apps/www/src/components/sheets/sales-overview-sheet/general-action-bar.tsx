@@ -120,6 +120,7 @@ export function GeneralActionBar({ type, salesNo, salesId }) {
 				type={data?.type}
 				orderNo={data?.orderId}
 				customerEmail={data?.email ?? null}
+				customerPhone={data?.customerPhone}
 				customerName={data?.displayName}
 			>
 				{isQuote ? (

@@ -37,17 +37,13 @@ function TestEmailModeButton() {
 }
 
 export function Header() {
-	const { isExpanded, linkModules, handleNavMouseEnter, handleNavMouseLeave } =
-		useSiteNav();
+	const { isExpanded, linkModules } = useSiteNav();
 	const sidebarHeaderOffset =
 		isExpanded && !linkModules?.noSidebar ? "184px" : "0px";
 
 	return (
 		<>
 			<header
-				data-site-nav-hover-surface="true"
-				onMouseEnter={handleNavMouseEnter}
-				onMouseLeave={handleNavMouseLeave}
 				className="fixed inset-x-0 top-0 z-50 flex h-[70px] items-center justify-between gap-4 border-b bg-background/90 px-4 shadow-sm backdrop-blur-xl backdrop-filter transition-[padding-left,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none md:relative md:m-0 md:border-b md:bg-background/70 md:pl-[calc(1.5rem+var(--site-nav-header-offset))] md:pr-6 md:shadow-none md:backdrop-blur-none md:backdrop-filter desktop:rounded-t-[10px]"
 				style={
 					{

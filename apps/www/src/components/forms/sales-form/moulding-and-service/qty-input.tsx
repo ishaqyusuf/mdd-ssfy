@@ -16,7 +16,6 @@ export function QtyInput({}) {
             placeholder={`QTY`}
             onValueChange={(e) => {
                 let value = e.floatValue;
-                console.log(value);
 
                 grp.setValue("qty.total", lineUid, value);
                 grp?.valueChanged();

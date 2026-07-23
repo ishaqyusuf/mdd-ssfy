@@ -1,5 +1,6 @@
 # Daily Codebase Review Index
 
+- [2026-07-23](./2026-07-23.md) - Typecheck now stops in storefront; public operational mutations, dealer quote edit locks, dispatch proof atomicity, and inventory release readiness remain risks.
 - [2026-07-22](./2026-07-22.md) - Typecheck still stops in documents; public operational routes, hard-coded sales Share, prompt-based dealer delivery approval, dispatch proof atomicity, and inventory readiness remain risks.
 - [2026-07-21](./2026-07-21.md) - Typecheck now stops in documents; public operational routes, dealer direct conversion, dispatch proof atomicity, hard-coded Share, and inventory readiness remain risks.
 - [2026-07-20](./2026-07-20.md) - Typecheck still stops in app-store; public operational routes, dealer direct conversion, dispatch proof atomicity, inventory readiness, and hard-coded Share remain risks.

@@ -145,6 +145,7 @@ export function buildWorkflowServiceRowsPatch(input: {
 			rateRoundingAdjustment: next.rateRoundingAdjustment,
 			totalAuthoritative: next.totalAuthoritative,
 		},
+		taxxable: next.taxxable,
 		qty: next.qtyTotal,
 		unitPrice: next.unitPrice,
 		lineTotal: next.lineTotal,

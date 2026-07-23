@@ -4,7 +4,7 @@
 UX/UI
 
 ## Status
-Partially Implemented
+Partially Implemented; URL/canonical-route slice complete, authenticated browser validation remains pending
 
 ## Created Date
 2026-07-01
@@ -106,5 +106,11 @@ Lower agent must report:
 - The route uses the restarted table shell with `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, and `getInitialTableSettings("sales-inbounds")`.
 - The old hand-mapped collapsible shipment queue was removed from `SalesInboundsWorkspace`; selected shipment detail/status/receive/timeline content now renders below the table.
 - Compact analytics, local search/status filtering, existing inbound shipment/detail/activity queries, status update, and receive-stock mutations were preserved.
-- Deferred from this slice: URL-backed `q/status/selected inbound` params, retargeting sidebar/sales-tab/inbound-management links to make `/sales-book/inbounds` canonical everywhere, and browser-driven mobile/desktop interaction proof beyond route smoke.
+- Deferred from the initial migration slice: authenticated browser-driven mobile/desktop interaction proof beyond route smoke.
 - Validation: focused Sales Book Inbounds parity test passed with 3 tests / 40 assertions; full restarted `tables-2` suite passed with 216 tests / 2249 assertions; targeted Biome passed; static runtime scans were clean; filtered WWW typecheck grep found no touched-file diagnostics; HTTPS route smoke returned `200`; `git diff --check` passed; `components/tables-2/core` diff stayed clean.
+
+## 2026-07-22 URL and Canonical Route Slice
+- `/sales-book/inbounds` now uses the standard `SearchFilterTRPC` search control and URL-backed `q`, `status`, and `inboundId` state for search, status filtering, selected shipment deep links, and back/forward restoration.
+- Active sidebar links and inventory-owned `/sales-book/inbound-management` row actions now target `/sales-book/inbounds`, carrying `inboundId` when a single shipment is known; the legacy route remains available as a compatibility view.
+- Focused Sales Book Inbounds parity and sidebar tests passed with 13 tests / 83 assertions; targeted Biome, WWW typecheck, and `git diff --check` passed.
+- Deferred: authenticated browser proof for deep-link selection, back/forward behavior, and the retargeted action.

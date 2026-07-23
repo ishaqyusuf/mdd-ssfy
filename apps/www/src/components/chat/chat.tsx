@@ -1,6 +1,7 @@
 "use client";
 
 import { FileUpload } from "@/components/file-upload";
+import type { UploadedBlobResult } from "@/components/file-upload";
 import { env } from "@/env.mjs";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
@@ -21,7 +22,6 @@ import {
 	isChannelName,
 } from "@notifications/channels";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type PutBlobResult, del } from "@vercel/blob";
 import Image from "next/image";
 import {
 	type FormEvent,
@@ -682,7 +682,7 @@ function ChatContent({
 									? "Release to attach this image."
 									: "Release to attach this image or PDF."
 							}
-							onUploadComplete={(results: PutBlobResult[]) => {
+							onUploadComplete={(results: UploadedBlobResult[]) => {
 								appendAttachments(results.map((result) => result.pathname));
 							}}
 						>
@@ -836,6 +836,7 @@ function ChatRoot({
 }: ChatProps) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const deleteUpload = useMutation(trpc.storage.delete.mutationOptions());
 
 	const defaultChannelOptions = useMemo(
 		() => getChannelsOptionList({ names }),
@@ -1003,6 +1004,7 @@ function ChatRoot({
 				await fallbackMutation.mutateAsync({
 					channel: submitData.channel as ChannelName,
 					payload: submitData.payload,
+					attachments: submitData.attachments,
 					contacts: submitData.contacts,
 					message: submitData.message,
 					noteColor: submitData.noteColor,
@@ -1140,16 +1142,21 @@ function ChatRoot({
 		[multiAttachmentSupport],
 	);
 
-	const removeAttachment = useCallback(async (pathname: string) => {
-		try {
-			await del(pathname);
-		} catch {}
+	const removeAttachment = useCallback(
+		async (pathname: string) => {
+			try {
+				await deleteUpload.mutateAsync({
+					pathname,
+				});
+			} catch {}
 
-		setState((prev) => ({
-			...prev,
-			attachments: prev.attachments.filter((value) => value !== pathname),
-		}));
-	}, []);
+			setState((prev) => ({
+				...prev,
+				attachments: prev.attachments.filter((value) => value !== pathname),
+			}));
+		},
+		[deleteUpload],
+	);
 
 	const contextValue = useMemo<ChatContextValue>(
 		() => ({

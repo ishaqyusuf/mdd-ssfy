@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react";
@@ -136,7 +135,10 @@ export function ProductImageCarousel({
             disabled={prevBtnDisabled}
             onClick={scrollPrev}
           >
-            <ChevronLeftIcon className="size-3 sm:size-4" aria-hidden="true" />
+            <Icons.ChevronLeftIcon
+              className="size-3 sm:size-4"
+              aria-hidden="true"
+            />
             <span className="sr-only">Previous slide</span>
           </Button>
           {images.map((image, i) => (
@@ -170,7 +172,10 @@ export function ProductImageCarousel({
             disabled={nextBtnDisabled}
             onClick={scrollNext}
           >
-            <ChevronRightIcon className="size-3 sm:size-4" aria-hidden="true" />
+            <Icons.ChevronRightIcon
+              className="size-3 sm:size-4"
+              aria-hidden="true"
+            />
             <span className="sr-only">Next slide</span>
           </Button>
         </div>

@@ -1,16 +1,14 @@
 "use client";
 
-import { Icons } from "@gnd/ui/icons";
-
-import { Button } from "@gnd/ui/button";
-
-import { Input } from "@gnd/ui/input";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useTRPC } from "@/trpc/client";
+import { Button } from "@gnd/ui/button";
+import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
+import { Icons } from "@gnd/ui/icons";
+import { Input } from "@gnd/ui/input";
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 // import AddressDialog from "./address-dialog";
-import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
-import { useTRPC } from "@/trpc/client";
-import { useQuery } from "@tanstack/react-query";
 // const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export interface AddressType {
   address1: string;
@@ -36,13 +34,6 @@ interface AddressAutoCompleteProps {
   placeholder?: string;
 }
 
-type Prediction = {
-  placePrediction: {
-    placeId: string;
-    place: string;
-    text: { text: string };
-  };
-};
 export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
   const {
     setAddress,
@@ -89,7 +80,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
       __setAddress(data.address as AddressType);
     }
   }, [data, setAddress]);
-  const [address, __setAddress] = useState<any>({});
+  const [address, __setAddress] = useState<Partial<AddressType>>({});
   return (
     <>
       {selectedPlaceId !== "" || address.formattedAddress ? (
@@ -100,7 +91,7 @@ export default function AddressAutoComplete(props: AddressAutoCompleteProps) {
             onClick={() => {
               setSelectedPlaceId("");
               __setAddress({});
-              setAddress({} as any);
+              setAddress({} as AddressType);
             }}
             size="icon"
             variant="outline"
@@ -167,31 +158,37 @@ function AddressAutoCompleteInput(props: CommonProps) {
   const { data } = useQuery(
     trpc.google.places.queryOptions(
       {
-        q: debouncedSearchInput || "13285 SW",
+        q: debouncedSearchInput,
       },
       {
-        // enabled: !!debouncedSearchInput,
+        enabled: debouncedSearchInput.trim().length >= 3,
       },
     ),
   );
 
-  const predictions: Prediction[] = data || [];
+  const predictions = (data || []).flatMap((suggestion) => {
+    const placeId = suggestion.placePrediction?.placeId?.trim();
+    const label = suggestion.placePrediction?.text?.text?.trim();
+    if (!placeId || !label) return [];
+    return [
+      {
+        ...suggestion,
+        id: placeId,
+        label,
+      },
+    ];
+  });
   return (
     <div>
       <ComboboxDropdown
         placeholder="Search Address"
         searchPlaceholder="Search Address"
         onSelect={(item) => {
-          // console.log(item);
-          setSelectedPlaceId(item?.placePrediction?.placeId);
+          setSelectedPlaceId(item.id);
         }}
-        items={predictions?.map((prediction) => ({
-          ...prediction,
-          label: prediction.placePrediction.text.text,
-          id: prediction.placePrediction.placeId,
-        }))}
+        items={predictions}
         onSearch={setSearchInput}
-      ></ComboboxDropdown>
+      />
     </div>
   );
 }

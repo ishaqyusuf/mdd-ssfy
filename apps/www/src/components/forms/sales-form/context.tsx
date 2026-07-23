@@ -132,7 +132,6 @@ export const { Provider: HptLineContextProvider, useContext: useHptLine } =
                 size,
             };
         }, [lineUid, ctx?.door?.sizePrice]);
-        console.log({ size, sizeForm, sp: ctx?.door?.sizePrice });
         const setValue = <K extends FieldPath<ZusGroupItemFormPath>>(
             pathName: K,
             value: FieldPathValue<ZusGroupItemFormPath, K>

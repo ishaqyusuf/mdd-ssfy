@@ -72,7 +72,10 @@ import { queueSalesInventoryLineItemsSync } from "@gnd/sales/sales-inventory-syn
 import { generateSalesSlug } from "@gnd/sales/utils";
 import { generateRandomString } from "@gnd/utils";
 import { TRPCError } from "@trpc/server";
-import { captureNewSalesFormSavePayload } from "./new-sales-form-debug";
+import {
+	captureNewSalesFormSavePayload,
+	logNewSalesFormSaveDiagnostic,
+} from "./new-sales-form-debug";
 
 const DEFAULT_DELIVERY_OPTION = "pickup";
 const DEFAULT_PAYMENT_TERM = "None";
@@ -3422,13 +3425,48 @@ export async function saveDraftNewSalesForm(
 	input: SaveDraftNewSalesFormSchema,
 ) {
 	const payload = saveDraftNewSalesFormSchema.parse(input);
+	const startedAt = performance.now();
+	logNewSalesFormSaveDiagnostic({
+		action: "save-draft",
+		stage: "ingress",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		payload,
+	});
 	await captureNewSalesFormSavePayload({
 		action: "save-draft",
 		payload,
 		userId: ctx.userId,
+		requestId: ctx.requestId,
+	});
+	logNewSalesFormSaveDiagnostic({
+		action: "save-draft",
+		stage: "payload-captured",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		payload,
 	});
 	const result = await saveNewSalesFormInternal(ctx, payload, "Draft");
+	logNewSalesFormSaveDiagnostic({
+		action: "save-draft",
+		stage: "core-complete",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		salesId: result.salesId,
+		payload,
+	});
 	await runNewSalesFormPostSaveTasks(ctx, result);
+	logNewSalesFormSaveDiagnostic({
+		action: "save-draft",
+		stage: "post-save-complete",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		salesId: result.salesId,
+	});
 	return result;
 }
 
@@ -3437,13 +3475,48 @@ export async function saveFinalNewSalesForm(
 	input: SaveFinalNewSalesFormSchema,
 ) {
 	const payload = saveFinalNewSalesFormSchema.parse(input);
+	const startedAt = performance.now();
+	logNewSalesFormSaveDiagnostic({
+		action: "save-final",
+		stage: "ingress",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		payload,
+	});
 	await captureNewSalesFormSavePayload({
 		action: "save-final",
 		payload,
 		userId: ctx.userId,
+		requestId: ctx.requestId,
+	});
+	logNewSalesFormSaveDiagnostic({
+		action: "save-final",
+		stage: "payload-captured",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		payload,
 	});
 	const result = await saveNewSalesFormInternal(ctx, payload, "Active");
+	logNewSalesFormSaveDiagnostic({
+		action: "save-final",
+		stage: "core-complete",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		salesId: result.salesId,
+		payload,
+	});
 	await runNewSalesFormPostSaveTasks(ctx, result);
+	logNewSalesFormSaveDiagnostic({
+		action: "save-final",
+		stage: "post-save-complete",
+		requestId: ctx.requestId,
+		clientRequestId: payload.clientRequestId,
+		startedAt,
+		salesId: result.salesId,
+	});
 	return result;
 }
 

@@ -78,7 +78,8 @@ export type NewSalesFormExtraCost = {
 };
 
 export type SaveDraftNewSalesFormPayload = {
-  type: NewSalesFormType;
+	clientRequestId?: string | null;
+	type: NewSalesFormType;
   slug?: string | null;
   salesId?: number | null;
   inventoryStatus?: string | null;

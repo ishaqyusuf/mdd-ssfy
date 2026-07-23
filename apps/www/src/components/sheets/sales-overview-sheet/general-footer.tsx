@@ -63,6 +63,7 @@ export function GeneralFooter({}) {
 					slug={data?.uuid}
 					type={data?.type}
 					customerEmail={data?.email ?? null}
+					customerPhone={data?.customerPhone}
 					customerName={data?.displayName}
 				>
 					<SalesMenu.Share />

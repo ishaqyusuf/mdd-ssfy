@@ -4,13 +4,19 @@
 UX/UI
 
 ## Status
-Proposed
+Completed
 
 ## Created Date
 2026-06-23
 
 ## Last Updated
-2026-06-23
+2026-07-23
+
+## Completion
+- Completed Home, Route, Pack, Proof, and Me workspaces with distinct records.
+- Added Continue Route behavior, assignment/route-window/work-type filters, and
+  Overview, Stops, Items, Proof, and Activity detail tabs.
+- All behavior remains static, development-only preview state.
 
 ## Intake
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md

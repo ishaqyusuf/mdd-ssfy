@@ -18,6 +18,8 @@ export function PreviewRecordCard({
 }) {
 	return (
 		<Pressable
+			accessibilityLabel={`${record.id}, ${record.title}, ${record.status}`}
+			accessibilityRole="button"
 			transition
 			onPress={onPress}
 			style={{
@@ -101,6 +103,38 @@ export function PreviewRecordCard({
 					</View>
 				))}
 			</View>
+			{record.amount || record.action ? (
+				<View
+					style={{
+						alignItems: "center",
+						flexDirection: "row",
+						gap: 12,
+						justifyContent: "space-between",
+					}}
+				>
+					<Text
+						style={{
+							color: system.colors.primary,
+							fontSize: 12,
+							fontWeight: "800",
+						}}
+					>
+						{record.action || "Open"}
+					</Text>
+					{record.amount ? (
+						<Text
+							style={{
+								color: system.colors.text,
+								fontSize: 13,
+								fontVariant: ["tabular-nums"],
+								fontWeight: "900",
+							}}
+						>
+							{record.amount}
+						</Text>
+					) : null}
+				</View>
+			) : null}
 		</Pressable>
 	);
 }

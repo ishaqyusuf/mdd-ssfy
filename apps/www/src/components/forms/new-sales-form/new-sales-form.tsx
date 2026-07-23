@@ -1560,6 +1560,7 @@ export function NewSalesForm(props: Props) {
             type={props.type}
             orderNo={record.orderId}
             customerEmail={customer?.email ?? null}
+            customerPhone={customer?.phoneNo ?? null}
             customerName={customerName}
             trigger={
                 <Button
@@ -1588,6 +1589,7 @@ export function NewSalesForm(props: Props) {
             type={props.type}
             orderNo={record.orderId}
             customerEmail={customer?.email ?? null}
+            customerPhone={customer?.phoneNo ?? null}
             customerName={customerName}
             trigger={
                 <DropdownMenuItem onSelect={(event) => event.preventDefault()}>
@@ -1841,7 +1843,9 @@ export function NewSalesForm(props: Props) {
                     SummaryPanel: (
                         <InvoiceOverviewPanel
                             canEditCustomer={
-                                salesFormPermissions.canEditCustomer
+                                salesFormPermissions.canEditCustomer &&
+                                !(record as { dealerProfileCard?: unknown })
+                                    .dealerProfileCard
                             }
                             historyRestoreActive={Boolean(restoredHistoryEntry)}
                             mode={props.mode}

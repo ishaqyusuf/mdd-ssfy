@@ -1,5 +1,5 @@
-import type { Database, Prisma } from "..";
 import { formatUSPhoneNumber } from "@gnd/utils/format";
+import type { Database, Prisma } from "..";
 
 export type DealerListInput = {
 	search?: string | null;
@@ -157,6 +157,44 @@ export type DealerPortalSalesListInput = {
 
 export type DealerSalesRequestStatus = "pending" | "approved" | "rejected";
 export const DEALER_ORDER_REQUEST_TYPE = "make_order";
+
+export function getDealerQuoteEditLock(status?: string | null) {
+	if (status === "pending") {
+		return {
+			locked: true,
+			reason: "This quote is locked while GND reviews the order request.",
+		} as const;
+	}
+	if (status === "approved") {
+		return {
+			locked: true,
+			reason: "This quote is locked because its order request was approved.",
+		} as const;
+	}
+	if (status === "rejected") {
+		return {
+			locked: true,
+			reason:
+				"This quote is locked after GND reviewed the request. Contact GND to start a revision.",
+		} as const;
+	}
+	return {
+		locked: false,
+		reason: null,
+	} as const;
+}
+
+export class DealerQuoteEditLockedError extends Error {
+	readonly code = "DEALER_QUOTE_EDIT_LOCKED";
+
+	constructor(
+		readonly requestStatus: DealerSalesRequestStatus,
+		reason: string,
+	) {
+		super(reason);
+		this.name = "DealerQuoteEditLockedError";
+	}
+}
 
 export type DealerOrderRequestsInput = {
 	cursor?: number | null;
@@ -1421,6 +1459,9 @@ function mapDealerSalesDocument(document: {
 	title: string | null;
 	status: string | null;
 	type: string | null;
+	prodStatus?: string | null;
+	deliveredAt?: Date | null;
+	deliveryOption?: string | null;
 	grandTotal: number | null;
 	amountDue: number | null;
 	meta: Prisma.JsonValue | null;
@@ -1430,6 +1471,14 @@ function mapDealerSalesDocument(document: {
 	} | null;
 	invoiceStatus: string | null;
 	createdAt: Date | null;
+	pickup?: {
+		pickupAt: Date | null;
+		deletedAt?: Date | null;
+	} | null;
+	deliveries?: Array<{
+		status: string | null;
+		deliveredAt: Date | null;
+	}>;
 	customer: {
 		id: number;
 		name: string | null;
@@ -1446,10 +1495,18 @@ function mapDealerSalesDocument(document: {
 	}>;
 }) {
 	const latestRequest = document.requests?.[0] || null;
+	const editLock = getDealerQuoteEditLock(latestRequest?.status);
 	const documentMeta = getObjectMeta(document.meta);
 	const approvalMeta = getObjectMeta(documentMeta.dealerRequestApproval);
 	const rejectionMeta = getObjectMeta(documentMeta.dealerRequestRejection);
-	const { meta: _meta, ...safeDocument } = document;
+	const {
+		meta: _meta,
+		pickup: _pickup,
+		deliveries: _deliveries,
+		prodStatus: _prodStatus,
+		deliveredAt: _deliveredAt,
+		...safeDocument
+	} = document;
 	const customerTotal = Number(
 		document.dealerSale?.grandTotal ?? document.grandTotal ?? 0,
 	);
@@ -1459,13 +1516,14 @@ function mapDealerSalesDocument(document: {
 	return {
 		...safeDocument,
 		officeGrandTotal: Number(document.grandTotal || 0),
-		officeAmountDue: Number(document.amountDue || 0),
+		officeAmountDue: nullableFiniteNumber(document.amountDue),
 		grandTotal: customerTotal,
 		amountDue: customerAmountDue,
 		customerPaymentStatus: customerAmountDue <= 0 ? "paid" : "unpaid",
 		customerPaidAmount: roundCurrency(
 			Math.max(0, customerTotal - customerAmountDue),
 		),
+		fulfillmentStatus: getDealerFulfillmentStatus(document),
 		requestId: latestRequest?.id ?? null,
 		requestStatus: latestRequest?.status ?? null,
 		requestCreatedAt: latestRequest?.createdAt ?? null,
@@ -1484,7 +1542,45 @@ function mapDealerSalesDocument(document: {
 				? approvalMeta.approverNote
 				: null) ||
 			(typeof rejectionMeta.reason === "string" ? rejectionMeta.reason : null),
+		editLocked: editLock.locked,
+		editLockReason: editLock.reason,
 	};
+}
+
+function getDealerFulfillmentStatus(document: {
+	status?: string | null;
+	type?: string | null;
+	deliveredAt?: Date | null;
+	pickup?: { pickupAt: Date | null; deletedAt?: Date | null } | null;
+}) {
+	const status = String(document.status || "")
+		.trim()
+		.toLowerCase()
+		.replace(/[_-]+/g, " ");
+	if (document.type === "quote") return "preparing" as const;
+	if (
+		document.deliveredAt ||
+		(document.pickup?.pickupAt && !document.pickup.deletedAt) ||
+		(!/\b(?:not|never)\s+(?:completed|complete|delivered|fulfilled|picked up)\b/.test(
+			status,
+		) &&
+			/\b(?:completed|complete|delivered|fulfilled|picked up)\b/.test(status))
+	) {
+		return "completed" as const;
+	}
+	if (
+		!/\b(?:not|never)\s+(?:ready|packed)\b/.test(status) &&
+		/\b(?:ready|packed|awaiting pickup)\b/.test(status)
+	) {
+		return "ready" as const;
+	}
+	return "preparing" as const;
+}
+
+function nullableFiniteNumber(value: unknown) {
+	if (value == null) return null;
+	const number = Number(value);
+	return Number.isFinite(number) ? number : null;
 }
 
 export async function getDealerPortalSalesList(
@@ -1510,6 +1606,8 @@ export async function getDealerPortalSalesList(
 				title: true,
 				status: true,
 				type: true,
+				deliveredAt: true,
+				deliveryOption: true,
 				grandTotal: true,
 				amountDue: true,
 				meta: true,
@@ -1521,6 +1619,12 @@ export async function getDealerPortalSalesList(
 				},
 				invoiceStatus: true,
 				createdAt: true,
+				pickup: {
+					select: {
+						pickupAt: true,
+						deletedAt: true,
+					},
+				},
 				customer: {
 					select: {
 						id: true,
@@ -2096,6 +2200,8 @@ export async function getDealerPortalSalesDocuments(
 			title: true,
 			status: true,
 			type: true,
+			deliveredAt: true,
+			deliveryOption: true,
 			grandTotal: true,
 			amountDue: true,
 			meta: true,
@@ -2106,6 +2212,12 @@ export async function getDealerPortalSalesDocuments(
 				},
 			},
 			invoiceStatus: true,
+			pickup: {
+				select: {
+					pickupAt: true,
+					deletedAt: true,
+				},
+			},
 			customer: {
 				select: {
 					id: true,
@@ -2175,6 +2287,8 @@ export async function getDealerPortalSalesDocument(
 			title: true,
 			status: true,
 			type: true,
+			deliveredAt: true,
+			deliveryOption: true,
 			grandTotal: true,
 			amountDue: true,
 			taxPercentage: true,
@@ -2182,6 +2296,12 @@ export async function getDealerPortalSalesDocument(
 			customerProfileId: true,
 			dealerSalesProfileId: true,
 			meta: true,
+			pickup: {
+				select: {
+					pickupAt: true,
+					deletedAt: true,
+				},
+			},
 			salesProfile: {
 				select: {
 					id: true,
@@ -2246,7 +2366,19 @@ export async function getDealerPortalSalesDocument(
 	const metaLineItems = Array.isArray(newSalesForm?.lineItems)
 		? newSalesForm.lineItems
 		: null;
-	const { meta: _meta, items, ...safeDocument } = document;
+	const privateDocument = document as typeof document & {
+		deliveries?: unknown;
+		prodStatus?: unknown;
+	};
+	const {
+		meta: _meta,
+		items,
+		pickup: _pickup,
+		deliveredAt: _deliveredAt,
+		deliveries: _deliveries,
+		prodStatus: _prodStatus,
+		...safeDocument
+	} = privateDocument;
 	const metaRecord =
 		document.meta &&
 		typeof document.meta === "object" &&
@@ -2277,11 +2409,12 @@ export async function getDealerPortalSalesDocument(
 	return {
 		...safeDocument,
 		officeGrandTotal: Number(document.grandTotal || 0),
-		officeAmountDue: Number(document.amountDue || 0),
+		officeAmountDue: nullableFiniteNumber(document.amountDue),
 		customerPaymentStatus: customerAmountDue <= 0 ? "paid" : "unpaid",
 		customerPaidAmount: roundCurrency(
 			Math.max(0, customerGrandTotal - customerAmountDue),
 		),
+		fulfillmentStatus: getDealerFulfillmentStatus(document),
 		pricingContext: {
 			internal: {
 				customerProfileId: document.customerProfileId || null,
@@ -2330,7 +2463,9 @@ export async function getDealerPortalSalesDocument(
 			typeof form?.paymentTerm === "string" ? form.paymentTerm : "None",
 		goodUntil: typeof form?.goodUntil === "string" ? form.goodUntil : null,
 		deliveryOption:
-			typeof form?.deliveryOption === "string" ? form.deliveryOption : "pickup",
+			typeof form?.deliveryOption === "string"
+				? form.deliveryOption
+				: document.deliveryOption || "pickup",
 		paymentMethod:
 			typeof form?.paymentMethod === "string" ? form.paymentMethod : null,
 		taxCode: typeof form?.taxCode === "string" ? form.taxCode : null,
@@ -2988,6 +3123,47 @@ export async function saveDealerPortalQuote(
 	input: DealerPortalSaveQuoteInput,
 ) {
 	return db.$transaction(async (tx) => {
+		const existing = input.id
+			? await tx.salesOrders.findFirst({
+					where: {
+						id: input.id,
+						dealerAuthId: dealerId,
+						deletedAt: null,
+						type: "quote",
+					},
+					select: {
+						id: true,
+						orderId: true,
+						slug: true,
+						requests: {
+							where: {
+								request: DEALER_ORDER_REQUEST_TYPE,
+								deletedAt: null,
+							},
+							orderBy: {
+								createdAt: "desc",
+							},
+							take: 1,
+							select: {
+								status: true,
+							},
+						},
+					},
+				})
+			: null;
+
+		if (input.id && !existing) {
+			throw new Error("Dealer quote could not be found.");
+		}
+		const latestRequestStatus = existing?.requests?.[0]?.status;
+		const editLock = getDealerQuoteEditLock(latestRequestStatus);
+		if (editLock.locked) {
+			throw new DealerQuoteEditLockedError(
+				latestRequestStatus as DealerSalesRequestStatus,
+				editLock.reason,
+			);
+		}
+
 		const customer = await tx.customers.findFirst({
 			where: {
 				id: input.customerId,
@@ -3215,26 +3391,6 @@ export async function saveDealerPortalQuote(
 				dealerAmount: line.dealerLineTotal,
 			})),
 		};
-		const existing = input.id
-			? await tx.salesOrders.findFirst({
-					where: {
-						id: input.id,
-						dealerAuthId: dealerId,
-						deletedAt: null,
-						type: "quote",
-					},
-					select: {
-						id: true,
-						orderId: true,
-						slug: true,
-					},
-				})
-			: null;
-
-		if (input.id && !existing) {
-			throw new Error("Dealer quote could not be found.");
-		}
-
 		const identity =
 			existing || (await createDealerProgramPartnerIdentity(tx, "quote"));
 		const orderData = {

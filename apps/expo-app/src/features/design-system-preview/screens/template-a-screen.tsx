@@ -1,16 +1,16 @@
-import { Icon } from "@/components/ui/icon";
-import { Pressable } from "@/components/ui/pressable";
-import type { BottomSheetModal } from "@gorhom/bottom-sheet";
-import { useRef } from "react";
-import { Text, View } from "react-native";
+import { useState } from "react";
+import { View } from "react-native";
 import { PreviewBottomFilterSheet } from "../components/preview-bottom-filter-sheet";
-import { PreviewRecordCard } from "../components/preview-card";
-import { PreviewDetailTabs } from "../components/preview-detail-tabs";
 import { PreviewMetricCard } from "../components/preview-metric";
+import { PreviewRecordDetail } from "../components/preview-record-detail";
+import { PreviewRecordList } from "../components/preview-record-list";
 import { PreviewBottomNav, PreviewShell } from "../components/preview-shell";
-import { PreviewTabContent } from "../components/preview-tab-content";
 import { opsMetrics, opsRecords } from "../data/sample-data";
-import { opsConsoleTabs, opsDetailTabs } from "../data/template-tabs";
+import {
+	opsConsoleTabs,
+	opsDetailTabs,
+	opsFilterGroups,
+} from "../data/template-tabs";
 import { opsConsoleSystem } from "../design-systems/template-a-ops-console";
 import { usePreviewDesignSystem } from "../design-systems/types";
 import { usePreviewFilters } from "../hooks/use-preview-filters";
@@ -18,105 +18,81 @@ import { usePreviewSelection } from "../hooks/use-preview-selection";
 import { usePreviewTabs } from "../hooks/use-preview-tabs";
 import { filterPreviewRecords } from "../utils/preview-filtering";
 
+const opsTabCopy: Record<string, { title: string; subtitle: string }> = {
+	Home: {
+		title: "Work queue",
+		subtitle:
+			"Priority work across sales, production, warehouse, and field teams.",
+	},
+	Inbox: {
+		title: "Inbox",
+		subtitle:
+			"Alerts, closeout requests, and customer issues needing a response.",
+	},
+	Sales: {
+		title: "Sales review",
+		subtitle:
+			"Quotes and orders with a pricing, margin, or production decision.",
+	},
+	Calendar: {
+		title: "Schedule",
+		subtitle: "Today’s jobs, routes, and upcoming production commitments.",
+	},
+	More: {
+		title: "Operations tools",
+		subtitle: "Team coverage and workspace preferences for the mobile console.",
+	},
+};
+
 export function TemplateAScreen() {
 	const system = usePreviewDesignSystem(opsConsoleSystem);
 	const { activeTab, setActiveTab } = usePreviewTabs("Home");
-	const { filters, setSearch, toggleStatus, clearFilters } =
-		usePreviewFilters();
+	const { filters, setSearch, applyFilters } = usePreviewFilters();
 	const { selectedRecord, setSelectedRecord, clearSelection } =
 		usePreviewSelection();
-
-	const filterSheetRef = useRef<BottomSheetModal>(null);
-	const filteredRecords = filterPreviewRecords(opsRecords, filters);
-	const { activeTab: activeDetailTab, setActiveTab: setActiveDetailTab } =
+	const { activeTab: detailTab, setActiveTab: setDetailTab } =
 		usePreviewTabs("Overview");
+	const [filterSheetVisible, setFilterSheetVisible] = useState(false);
+	const records = filterPreviewRecords(opsRecords, filters, activeTab);
+	const copy = opsTabCopy[activeTab] || opsTabCopy.Home;
 
 	return (
 		<>
 			<PreviewShell
-				searchValue={filters.search}
-				onSearchChange={setSearch}
-				onFilterPress={() => filterSheetRef.current?.present()}
 				bottomNavigation={
-					<PreviewBottomNav
-						active={activeTab}
-						items={opsConsoleTabs}
-						system={system}
-						onSelect={(tab) => {
-							setActiveTab(tab);
-							clearSelection();
-						}}
-					/>
+					selectedRecord ? undefined : (
+						<PreviewBottomNav
+							active={activeTab}
+							items={opsConsoleTabs}
+							onSelect={(tab) => {
+								setActiveTab(tab);
+								clearSelection();
+							}}
+							system={system}
+						/>
+					)
 				}
 				eyebrow="Template A"
+				onFilterPress={() => setFilterSheetVisible(true)}
+				onSearchChange={setSearch}
+				searchPlaceholder={`Search ${activeTab.toLowerCase()} work`}
+				searchValue={filters.search}
 				system={system}
 				title="Ops Console"
 			>
 				{selectedRecord ? (
-					<View style={{ flex: 1 }}>
-						<Pressable
-							onPress={clearSelection}
-							style={{
-								flexDirection: "row",
-								alignItems: "center",
-								gap: 8,
-								marginBottom: 16,
-							}}
-						>
-							<Icon name="ArrowLeft" size={16} color={system.colors.muted} />
-							<Text style={{ color: system.colors.muted, fontWeight: "600" }}>
-								Back
-							</Text>
-						</Pressable>
-
-						<Text
-							style={{
-								color: system.colors.text,
-								fontSize: 24,
-								fontWeight: "bold",
-								marginBottom: 8,
-							}}
-						>
-							{selectedRecord.title}
-						</Text>
-						<Text style={{ color: system.colors.muted, marginBottom: 24 }}>
-							{selectedRecord.subtitle}
-						</Text>
-
-						<PreviewDetailTabs
-							tabs={opsDetailTabs}
-							activeTab={activeDetailTab}
-							onTabSelect={setActiveDetailTab}
-							system={system}
-						/>
-
-						<PreviewTabContent activeTab={activeDetailTab} tab="Overview">
-							<Text style={{ color: system.colors.text }}>
-								Overview details for {selectedRecord.id}...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeDetailTab} tab="Timeline">
-							<Text style={{ color: system.colors.text }}>
-								Timeline information...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeDetailTab} tab="Checklist">
-							<Text style={{ color: system.colors.text }}>
-								Checklist for this task...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeDetailTab} tab="Notes">
-							<Text style={{ color: system.colors.text }}>
-								Documents and notes...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeDetailTab} tab="Actions">
-							<Text style={{ color: system.colors.text }}>Actions...</Text>
-						</PreviewTabContent>
-					</View>
+					<PreviewRecordDetail
+						activeTab={detailTab}
+						mode="ops"
+						onBack={clearSelection}
+						onTabSelect={setDetailTab}
+						record={selectedRecord}
+						system={system}
+						tabs={opsDetailTabs}
+					/>
 				) : (
-					<View style={{ flex: 1, gap: 16 }}>
-						<PreviewTabContent activeTab={activeTab} tab="Home">
+					<View style={{ flex: 1, gap: 18 }}>
+						{activeTab === "Home" ? (
 							<View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
 								{opsMetrics.map((metric) => (
 									<PreviewMetricCard
@@ -126,89 +102,29 @@ export function TemplateAScreen() {
 									/>
 								))}
 							</View>
-
-							<View style={{ gap: 10 }}>
-								<View
-									style={{
-										alignItems: "center",
-										flexDirection: "row",
-										justifyContent: "space-between",
-									}}
-								>
-									<Text
-										style={{
-											color: system.colors.text,
-											fontSize: 16,
-											fontWeight: "900",
-										}}
-									>
-										Work Queue
-									</Text>
-									<Text
-										style={{
-											color: system.colors.muted,
-											fontSize: 12,
-											fontWeight: "700",
-										}}
-									>
-										{filteredRecords.length} priority items
-									</Text>
-								</View>
-								{filteredRecords.map((record) => (
-									<PreviewRecordCard
-										key={record.id}
-										record={record}
-										system={system}
-										onPress={() => {
-											setSelectedRecord(record);
-											setActiveDetailTab("Overview");
-										}}
-									/>
-								))}
-								{filteredRecords.length === 0 && (
-									<Text
-										style={{
-											color: system.colors.muted,
-											textAlign: "center",
-											marginTop: 24,
-										}}
-									>
-										No records found.
-									</Text>
-								)}
-							</View>
-						</PreviewTabContent>
-
-						<PreviewTabContent activeTab={activeTab} tab="Inbox">
-							<Text style={{ color: system.colors.text }}>
-								Inbox alerts here...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeTab} tab="Sales">
-							<Text style={{ color: system.colors.text }}>
-								Sales records here...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeTab} tab="Calendar">
-							<Text style={{ color: system.colors.text }}>
-								Calendar view here...
-							</Text>
-						</PreviewTabContent>
-						<PreviewTabContent activeTab={activeTab} tab="More">
-							<Text style={{ color: system.colors.text }}>
-								Admin actions here...
-							</Text>
-						</PreviewTabContent>
+						) : null}
+						<PreviewRecordList
+							emptyCopy="Try another search or reset the active filters."
+							onSelect={(record) => {
+								setSelectedRecord(record);
+								setDetailTab("Overview");
+							}}
+							records={records}
+							subtitle={copy.subtitle}
+							system={system}
+							title={copy.title}
+						/>
 					</View>
 				)}
 			</PreviewShell>
 
 			<PreviewBottomFilterSheet
-				ref={filterSheetRef}
-				system={system}
 				filters={filters}
-				toggleStatus={toggleStatus}
-				clearFilters={clearFilters}
+				groups={opsFilterGroups}
+				onApply={applyFilters}
+				onClose={() => setFilterSheetVisible(false)}
+				system={system}
+				visible={filterSheetVisible}
 			/>
 		</>
 	);

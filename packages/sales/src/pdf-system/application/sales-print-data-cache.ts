@@ -128,15 +128,16 @@ export async function createOrRefreshBatchSalesPrintData(
 		salesOrderIds: number[];
 	},
 ) {
+	const salesOrderIds = Array.from(new Set(input.salesOrderIds));
 	const results = await Promise.all(
-		input.salesOrderIds.map(async (salesOrderId) => {
+		salesOrderIds.map(async (salesOrderId) => {
 			return createOrRefreshSalesPrintData(db, {
 				...input,
 				salesOrderId,
 				reason: input.reason ?? "batch_print",
 				meta: {
 					...(input.meta ?? {}),
-					batchSalesOrderIds: input.salesOrderIds,
+					batchSalesOrderIds: salesOrderIds,
 				},
 			});
 		}),
@@ -158,7 +159,7 @@ export async function createOrRefreshBatchSalesPrintData(
 		mode: input.mode,
 		dispatchId: input.dispatchId ?? null,
 		templateId: input.templateId || DEFAULT_TEMPLATE_ID,
-		salesOrderIds: input.salesOrderIds,
+		salesOrderIds,
 		records: records.length,
 		pages: pages.length,
 		generatedCount,

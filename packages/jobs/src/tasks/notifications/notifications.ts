@@ -31,11 +31,23 @@ function getSalesDocumentEmailUserErrorMessage(error: unknown) {
 	if (!message) return null;
 
 	if (message.includes("No eligible sales found")) {
-		return "Email was not sent. The selected sales document is missing a customer email, customer name, or sales rep email.";
+		return "Document delivery was not sent. The selected sale is missing required customer or sales representative details.";
 	}
 
 	if (message.includes("requires all sales to belong to one recipient")) {
-		return "Email was not sent. Select documents for one customer email at a time.";
+		return "Document delivery was not sent. Select documents for one customer at a time.";
+	}
+
+	if (message.includes("requires a valid customer phone")) {
+		return "Document delivery was not sent. Add a valid customer phone number for WhatsApp or SMS.";
+	}
+
+	if (message.includes("requires a customer email and sales rep email")) {
+		return "Document delivery was not sent. Add the customer and sales representative email addresses.";
+	}
+
+	if (message.includes("requires a secure document link")) {
+		return "Document delivery was not sent because a secure document link could not be created.";
 	}
 
 	return null;
@@ -47,6 +59,7 @@ function createFailedSalesDocumentEmailResult(
 ): NotificationResult {
 	return {
 		type: channel,
+		errorMessage,
 		activities: 0,
 		activityIds: [],
 		emailAttemptIds: [],
@@ -57,6 +70,11 @@ function createFailedSalesDocumentEmailResult(
 			errorMessage,
 		},
 		whatsapp: {
+			sent: 0,
+			skipped: 0,
+			failed: 0,
+		},
+		sms: {
 			sent: 0,
 			skipped: 0,
 			failed: 0,

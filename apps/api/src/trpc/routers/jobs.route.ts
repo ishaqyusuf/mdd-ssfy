@@ -31,16 +31,21 @@ import {
 	reverseCancelledContractorPaymentSchema,
 } from "@api/db/queries/jobs";
 import { sortInstallCosts } from "@api/utils/install-cost-sort";
-import { createJobSchema } from "@community/create-job-schema";
+import {
+	type CreateJobSchema,
+	createJobSchema,
+} from "@community/create-job-schema";
 import type { JobStatus } from "@community/types";
 import { generateJobId } from "@community/utils/job";
 import { sum } from "@gnd/utils";
 import { saveNote } from "@gnd/utils/note";
 import { NotificationService } from "@notifications/services/triggers";
+import { getSettingAction } from "@gnd/settings";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import { auth } from "@api/db/queries/user";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -66,6 +71,91 @@ const jobReviewInputSchema = z.object({
 
 type JobReviewInput = z.infer<typeof jobReviewInputSchema>;
 type NotificationTasks = ConstructorParameters<typeof NotificationService>[0];
+
+async function requireJobManager(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editJobs"],
+		"You do not have permission to manage contractor jobs.",
+	);
+}
+
+async function requireJobPaymentManager(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editJobPayment"],
+		"You do not have permission to manage contractor payments.",
+	);
+}
+
+async function requireJobReviewAccess(
+	ctx: TRPCContext & { userId: number },
+	input: JobReviewInput,
+) {
+	const session = await auth(ctx);
+	if (session.can.editJobs) return session;
+	if (input.action === "submit") {
+		const job = await ctx.db.jobs.findFirst({
+			where: {
+				id: input.jobId,
+				deletedAt: null,
+			},
+			select: {
+				userId: true,
+			},
+		});
+		if (job?.userId === ctx.userId) return session;
+	}
+	throw new TRPCError({
+		code: "FORBIDDEN",
+		message: "You do not have permission to change this job review state.",
+	});
+}
+
+async function requireJobCreationAccess(
+	ctx: TRPCContext & { userId: number },
+	input: CreateJobSchema,
+) {
+	const session = await auth(ctx);
+	if (session.can.editJobs) return session;
+
+	if (
+		input.mode === "assign" ||
+		(input.worker?.id != null && input.worker.id !== ctx.userId)
+	) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Only job managers can assign work to another contractor.",
+		});
+	}
+
+	if (input.id) {
+		const existing = await ctx.db.jobs.findFirst({
+			where: {
+				id: input.id,
+				deletedAt: null,
+			},
+			select: {
+				userId: true,
+			},
+		});
+		if (existing?.userId !== ctx.userId) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You can only update your own job submission.",
+			});
+		}
+	}
+
+	if (!input.isCustom || session.can.submitCustomJob) return session;
+	const setting = await getSettingAction("jobs-settings", ctx.db);
+	if (setting.meta?.allowCustomJobs) return session;
+
+	throw new TRPCError({
+		code: "FORBIDDEN",
+		message: "Custom job submission is not enabled for this account.",
+	});
+}
 
 function logJobReviewSideEffectError(
 	stage: "activity" | "notification",
@@ -260,13 +350,14 @@ export const jobRoutes = createTRPCRouter({
 			// return dataAsType(activities);
 			return [];
 		}),
-	restoreJob: publicProcedure
+	restoreJob: protectedProcedure
 		.input(
 			z.object({
 				jobId: z.number(),
 			}),
 		)
 		.mutation(async (props) => {
+			await requireJobManager(props.ctx);
 			const { ctx } = props;
 			const restored = await props.ctx.db.jobs.update({
 				where: { id: props.input.jobId, deletedAt: {} },
@@ -296,7 +387,7 @@ export const jobRoutes = createTRPCRouter({
 				});
 			}
 		}),
-	reAssignJob: publicProcedure
+	reAssignJob: protectedProcedure
 		.input(
 			z.object({
 				jobId: z.number(),
@@ -305,6 +396,7 @@ export const jobRoutes = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireJobManager(props.ctx);
 			const { ctx, input } = props;
 			const db = ctx.db;
 			// return reAssignJob(props.ctx, props.input);
@@ -352,9 +444,10 @@ export const jobRoutes = createTRPCRouter({
 	jobReview: protectedProcedure
 		.input(jobReviewInputSchema)
 		.mutation(async (props) => {
+			await requireJobReviewAccess(props.ctx, props.input);
 			return reviewJobStatus(props.ctx, props.input);
 		}),
-	cancelPayment: publicProcedure
+	cancelPayment: protectedProcedure
 		.input(
 			z.object({
 				jobId: z.number(),
@@ -362,6 +455,7 @@ export const jobRoutes = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireJobPaymentManager(props.ctx);
 			const job = await props.ctx.db.jobs.findFirst({
 				where: {
 					id: props.input.jobId,
@@ -379,17 +473,20 @@ export const jobRoutes = createTRPCRouter({
 				note: props.input.note,
 			});
 		}),
-	cancelContractorPayment: publicProcedure
+	cancelContractorPayment: protectedProcedure
 		.input(cancelContractorPaymentSchema)
 		.mutation(async (props) => {
+			await requireJobPaymentManager(props.ctx);
 			return cancelContractorPayment(props.ctx, props.input);
 		}),
-	reverseCancelledContractorPayment: publicProcedure
+	reverseCancelledContractorPayment: protectedProcedure
 		.input(reverseCancelledContractorPaymentSchema)
 		.mutation(async (props) => {
+			await requireJobPaymentManager(props.ctx);
 			return reverseCancelledContractorPayment(props.ctx, props.input);
 		}),
-	testActivity: publicProcedure.mutation(async (props) => {
+	testActivity: protectedProcedure.mutation(async (props) => {
+		await requireJobManager(props.ctx);
 		// const notifications = new Notifications(props.ctx.db);
 		// await notifications.create(
 		//   "job_assigned",
@@ -440,9 +537,10 @@ export const jobRoutes = createTRPCRouter({
 		.query(async (props) => {
 			return getContractorPayoutPrintData(props.ctx, props.input);
 		}),
-	createPaymentPortal: publicProcedure
+	createPaymentPortal: protectedProcedure
 		.input(createPaymentPortalSchema)
 		.mutation(async (props) => {
+			await requireJobPaymentManager(props.ctx);
 			return createPaymentPortal(props.ctx, props.input);
 		}),
 	getInstallCosts: publicProcedure
@@ -514,9 +612,12 @@ export const jobRoutes = createTRPCRouter({
 		.query(async (props) => {
 			return earningAnalytics(props.ctx, props.input);
 		}),
-	createJob: publicProcedure.input(createJobSchema).mutation(async (props) => {
-		return createJob(props.ctx, props.input);
-	}),
+	createJob: protectedProcedure
+		.input(createJobSchema)
+		.mutation(async (props) => {
+			await requireJobCreationAccess(props.ctx, props.input);
+			return createJob(props.ctx, props.input);
+		}),
 	adminAnalytics: publicProcedure
 		.input(adminAnalyticsSchema)
 		.query(async (props) => {

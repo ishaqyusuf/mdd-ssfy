@@ -855,6 +855,11 @@ export function SalesFormWorkflowPanel<
 						[String(line.uid || "")]: uid,
 					}))
 				}
+				onAddDoor={
+					doorStepIndex >= 0
+						? () => setActiveStep(String(line.uid || ""), doorStepIndex)
+						: undefined
+				}
 				onAddSize={addSizeRow}
 				onConfigureSizes={() =>
 					activeDoorComponent

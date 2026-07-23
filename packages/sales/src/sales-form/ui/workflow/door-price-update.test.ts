@@ -25,11 +25,11 @@ describe("door price updates", () => {
 
 		expect(row.meta).toMatchObject({
 			baseUnitPrice: 120,
-			doorSalesUnitPrice: 178.8,
+			doorSalesUnitPrice: 179.1,
 			priceMissing: false,
 		});
-		expect(row.unitPrice).toBe(188.8);
-		expect(row.lineTotal).toBe(377.6);
+		expect(row.unitPrice).toBe(188.85);
+		expect(row.lineTotal).toBe(377.7);
 	});
 
 	it("clears legacy custom-price metadata when returning to auto pricing", () => {

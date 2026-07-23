@@ -308,6 +308,7 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 			hasPaymentLink: Boolean(data.paymentLink),
 			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
+			requestedChannels: ["email"],
 			dealerProgramCampaignId:
 				data.dealerProgramBanner?.campaignId || undefined,
 		};
@@ -315,8 +316,8 @@ export const simpleSalesDocumentEmail: NotificationHandler = {
 		return {
 			type: "simple_sales_document_email",
 			source: "system",
-			subject: `${docType} email sent`,
-			headline: `${docType} email sent to ${data.customerName} (${data.customerEmail}) for ${data.sales.length} document${data.sales.length > 1 ? "s" : ""}.`,
+			subject: `${docType} email delivery requested`,
+			headline: `${docType} email delivery requested for ${data.customerName} (${data.customerEmail}) for ${data.sales.length} document${data.sales.length > 1 ? "s" : ""}.`,
 			authorId: author.id,
 			note: data.note || undefined,
 			tags: payload,

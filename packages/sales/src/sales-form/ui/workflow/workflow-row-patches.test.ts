@@ -221,6 +221,7 @@ describe("workflow row patches", () => {
 		expect(patch.lineTotal).toBe(60);
 		expect(patch.description).toBe("INSTALL");
 		expect((patch.meta as any).taxxable).toBe(true);
+		expect(patch.taxxable).toBe(true);
 	});
 
 	it("derives service rows from JSON line metadata", () => {
@@ -282,6 +283,28 @@ describe("workflow row patches", () => {
 		expect((patch.meta as any).taxxable).toBe(true);
 		expect((patch.meta as any).produceable).toBe(true);
 		expect((patch.meta as any).serviceRows).toHaveLength(2);
+		expect(patch.taxxable).toBe(true);
+	});
+
+	it("lets row tax switches override stale parent service taxability", () => {
+		const context = buildWorkflowServiceRowsContext({
+			uid: "service-line",
+			taxxable: false,
+			meta: {
+				taxxable: true,
+				serviceRows: [
+					{ uid: "svc-1", service: "Install", qty: 1, unitPrice: 100 },
+				],
+			},
+		} as any);
+
+		expect(context.rows[0]?.taxxable).toBe(true);
+		const patch = buildWorkflowServiceRowsPatch({
+			line: { uid: "service-line", taxxable: false, meta: {} } as any,
+			rows: [{ ...context.rows[0], taxxable: true }],
+		});
+
+		expect(patch.taxxable).toBe(true);
 	});
 
 	it("can keep service rows from renaming the parent line description", () => {

@@ -3,7 +3,7 @@ import { ThemeProvider } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
 import {
@@ -17,13 +17,15 @@ import { AppAutoUpdateModal } from "@/components/app-auto-update-modal";
 import { StaticRouter } from "@/components/static-router";
 import { StaticTrpc } from "@/components/static-trpc";
 import { ToastProviderWithViewport } from "@/components/ui/toast";
-import { useColorScheme } from "@/hooks/use-color";
+import { applyThemeOverride, useColorScheme } from "@/hooks/use-color";
+import { nativewindThemeVars } from "@/lib/nativewind-theme-vars";
+import { Sentry, initSentry } from "@/lib/sentry";
 import { NAV_THEME } from "@/lib/theme";
 import { getThemeOverride } from "@/lib/theme-preference";
-import { Sentry, initSentry } from "@/lib/sentry";
 import { TRPCReactProvider } from "@/trpc/client";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { StatusBar } from "expo-status-bar";
+import { VariableContextProvider } from "nativewind";
 import { View } from "react-native";
 import FlashMessage from "react-native-flash-message";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -44,6 +46,7 @@ SplashScreen.preventAutoHideAsync();
 initSentry();
 
 function RootLayout() {
+  const [themeReady, setThemeReady] = useState(false);
   const [loaded, error] = useFonts({
     SpaceMono: require("../../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
@@ -55,12 +58,25 @@ function RootLayout() {
   }, [error]);
 
   useEffect(() => {
-    if (loaded) {
+    let mounted = true;
+    void getThemeOverride()
+      .then(applyThemeOverride)
+      .catch(() => applyThemeOverride("system"))
+      .finally(() => {
+        if (mounted) setThemeReady(true);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (loaded && themeReady) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, themeReady]);
 
-  if (!loaded) {
+  if (!loaded || !themeReady) {
     return null;
   }
 
@@ -180,36 +196,30 @@ const InitialLayout = () => {
   );
 };
 function RootLayoutNav() {
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const navigationTheme =
     colorScheme === "dark" ? NAV_THEME.dark : NAV_THEME.light;
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const override = await getThemeOverride();
-      if (!mounted) return;
-      setColorScheme(override);
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [setColorScheme]);
+  const themeVariables = useMemo(
+    () => nativewindThemeVars(colorScheme),
+    [colorScheme],
+  );
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
-        <View className="flex-1 bg-background">
-          <ThemeProvider value={navigationTheme}>
-            <AuthProvider value={useCreateAuthContext()}>
-              <ToastProviderWithViewport>
-                <BottomSheetModalProvider>
-                  <FlashMessage position="top" />
-                  <InitialLayout />
-                </BottomSheetModalProvider>
-              </ToastProviderWithViewport>
-            </AuthProvider>
-          </ThemeProvider>
-        </View>
+        <VariableContextProvider value={themeVariables}>
+          <View className="flex-1 bg-background">
+            <ThemeProvider value={navigationTheme}>
+              <AuthProvider value={useCreateAuthContext()}>
+                <ToastProviderWithViewport>
+                  <BottomSheetModalProvider>
+                    <FlashMessage position="top" />
+                    <InitialLayout />
+                  </BottomSheetModalProvider>
+                </ToastProviderWithViewport>
+              </AuthProvider>
+            </ThemeProvider>
+          </View>
+        </VariableContextProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
   );

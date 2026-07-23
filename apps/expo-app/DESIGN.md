@@ -46,7 +46,7 @@ Preview header text/search contrast and native status bar style are computed fro
 
 The shared `Icon` component supports an `inverted` option for custom surfaces that need icon colors from the opposite app theme, such as dark preview chrome inside light mode.
 
-**Interactivity**: The preview screens share a common interaction architecture simulating tab navigation, global search, status filtering via bottom sheets, and master-detail record selection. Selecting a record replaces the list view with a detailed tabbed view, demonstrating how the layout scales from list to detail within the same screen boundary.
+**Interactivity**: The preview screens share a common interaction architecture simulating tab navigation, global search, status and multi-facet filtering via detached bottom sheets, and master-detail record selection. Search covers operational metadata and detail copy. Selecting a record replaces the list view with a detailed tabbed view; Back returns to the originating workspace tab.
 
 ## Sales Invoice List Cards
 
@@ -67,6 +67,8 @@ Best for admin, HRM, job queues, and sales dashboards.
 - metadata rows with icons
 - restrained status chips
 - closest match to the Fikri/Tiimi mobile reference direction
+- completed Home, Inbox, Sales, Calendar, and More workspaces
+- completed Overview, Timeline, Checklist, Notes, and Actions detail tabs
 
 ### Template B: Field Flow
 
@@ -78,6 +80,8 @@ Best for drivers, installers, warehouse packing, and job execution.
 - larger tap targets
 - fewer nested surfaces
 - persistent bottom navigation/action patterns
+- completed Home, Route, Pack, Proof, and Me workspaces
+- completed Continue Route flow and Overview, Stops, Items, Proof, and Activity detail tabs
 
 ### Template C: Sales Ledger
 
@@ -89,6 +93,8 @@ Best for sales, orders, invoices, and cost summaries.
 - tabular numeric alignment
 - strong financial hierarchy
 - lower radius and higher information density
+- completed Home, Sales, Money, Ship, and More workspaces
+- completed Overview, Items, Payments, Fulfillment, and Activity detail tabs
 
 ## Selection Criteria
 

@@ -1,6 +1,10 @@
 "use client";
 
 import ConfirmBtn from "@/components/confirm-button";
+import { InventoryImportProjectionHistory } from "@/components/inventory/inventory-import-projection-history";
+import { InventoryImportRunHistory } from "@/components/inventory/inventory-import-run-history";
+import { InventoryImportSourceBatchDisposition } from "@/components/inventory/inventory-import-source-batch-disposition";
+import { InventoryImportSourceDisposition } from "@/components/inventory/inventory-import-source-disposition";
 import { InventoryImportColumnVisibility } from "@/components/tables-2/inventory-import/column-visibility";
 import type { InventoryImportRow } from "@/components/tables-2/inventory-import/columns";
 import { DataTable } from "@/components/tables-2/inventory-import/data-table";
@@ -8,6 +12,7 @@ import { useIdleQueryEnabled } from "@/hooks/use-idle-query-enabled";
 import { useInventoryImportFilterParams } from "@/hooks/use-inventory-import-filter-params";
 import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
+import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Card } from "@gnd/ui/card";
@@ -19,6 +24,7 @@ import {
 	useSuspenseQuery,
 } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 type Strategy = "optimized" | "handcrafted";
@@ -36,6 +42,11 @@ type Props = {
 	initialScope?: ScopeMode;
 	initialTableSettings?: Partial<TableSettings>;
 };
+
+type InventoryImportSourceReview =
+	RouterOutputs["inventories"]["inventoryImportSourceReview"];
+type InventoryImportCategoryCleanupReview =
+	RouterOutputs["inventories"]["inventoryImportCategoryCleanupReview"];
 
 function StatCard({
 	title,
@@ -102,6 +113,8 @@ export function InventoryImportControlCenter({
 	const [lastRunSummary, setLastRunSummary] = useState<string | null>(null);
 	const [currentRunId, setCurrentRunId] = useState<string | null>(null);
 	const [currentRunLabel, setCurrentRunLabel] = useState<string | null>(null);
+	const [currentRunHasImportDiagnostic, setCurrentRunHasImportDiagnostic] =
+		useState(false);
 	const idleQueryEnabled = useIdleQueryEnabled(1000);
 	const { filters, hasFilters, setFilters } = useInventoryImportFilterParams();
 
@@ -142,6 +155,36 @@ export function InventoryImportControlCenter({
 			refetchOnWindowFocus: false,
 			staleTime: 60 * 1000,
 		}),
+	);
+	const sourceReview = useQuery(
+		trpc.inventories.inventoryImportSourceReview.queryOptions(
+			{ limit: 100 },
+			{
+				enabled: idleQueryEnabled,
+				refetchOnWindowFocus: false,
+				staleTime: 60 * 1000,
+			},
+		),
+	);
+	const categoryCleanupReview = useQuery(
+		trpc.inventories.inventoryImportCategoryCleanupReview.queryOptions(
+			{ limit: 50 },
+			{
+				enabled: idleQueryEnabled,
+				refetchOnWindowFocus: false,
+				staleTime: 60 * 1000,
+			},
+		),
+	);
+	const projectionHistory = useQuery(
+		trpc.inventories.inventoryImportProjectionHistory.queryOptions(
+			{ limit: 8 },
+			{
+				enabled: idleQueryEnabled,
+				refetchOnWindowFocus: false,
+				staleTime: 15 * 1000,
+			},
+		),
 	);
 	const salesInventorySyncMonitor = useQuery(
 		trpc.inventories.salesInventorySyncMonitor.queryOptions(
@@ -187,6 +230,12 @@ export function InventoryImportControlCenter({
 		(sum, row) => sum + Number(row.customProducts || 0),
 		0,
 	);
+	const sourceReviewData = sourceReview.data as
+		| InventoryImportSourceReview
+		| undefined;
+	const categoryCleanupData = categoryCleanupReview.data as
+		| InventoryImportCategoryCleanupReview
+		| undefined;
 
 	const invalidateAll = useCallback(async () => {
 		await Promise.all([
@@ -203,16 +252,39 @@ export function InventoryImportControlCenter({
 				queryKey: trpc.inventories.inventoryProductKindReview.queryKey(),
 			}),
 			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventoryImportSourceReview.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey:
+					trpc.inventories.inventoryImportCategoryCleanupReview.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventoryImportRunHistory.queryKey(),
+			}),
+			queryClient.invalidateQueries({
+				queryKey: trpc.inventories.inventoryImportProjectionHistory.queryKey(),
+			}),
+			queryClient.invalidateQueries({
 				queryKey: trpc.inventories.salesInventorySyncMonitor.queryKey(),
 			}),
 		]);
 	}, [queryClient, trpc]);
 
+	const finalizeImportRun = useMutation(
+		trpc.taskRunDiagnostics.finalize.mutationOptions({
+			onSettled: async () => {
+				await queryClient.invalidateQueries({
+					queryKey: trpc.inventories.inventoryImportRunHistory.queryKey(),
+				});
+			},
+		}),
+	);
 	const runFullImport = useMutation(
 		trpc.inventories.runFullImport.mutationOptions({
 			onSuccess: async (data, variables) => {
 				const input = (variables ?? {}) as RunFullImportInput;
 				setCurrentRunId(data.id);
+				setCurrentRunHasImportDiagnostic(data.diagnosticRecorded);
 				setCurrentRunLabel(
 					input.compare
 						? "System Check"
@@ -221,8 +293,11 @@ export function InventoryImportControlCenter({
 							: "Update Inventory",
 				);
 				setLastRunSummary(
-					`${input.compare ? "System check" : input.reset ? "Full refresh" : "Inventory update"} queued for ${input.scope ?? "active"} scope using ${input.strategy ?? strategy}.`,
+					`${input.compare ? "System check" : input.reset ? "Full refresh" : "Inventory update"} queued for ${input.scope ?? "active"} scope using ${input.strategy ?? strategy}.${data.diagnosticRecorded ? "" : " Run history could not be persisted; use the live status below for this run."}`,
 				);
+				await queryClient.invalidateQueries({
+					queryKey: trpc.inventories.inventoryImportRunHistory.queryKey(),
+				});
 				toast({
 					title: input.compare
 						? "System check queued"
@@ -244,6 +319,7 @@ export function InventoryImportControlCenter({
 		trpc.inventories.backfillSalesInventorySync.mutationOptions({
 			onSuccess: async (data) => {
 				setCurrentRunId(data.id);
+				setCurrentRunHasImportDiagnostic(false);
 				setCurrentRunLabel("Sales inventory backfill");
 				setLastRunSummary(
 					"Sales inventory backfill queued for the next unsynced batch.",
@@ -265,9 +341,12 @@ export function InventoryImportControlCenter({
 		trpc.inventories.runInventoryReconciliationReport.mutationOptions({
 			onSuccess: async (data, variables) => {
 				setCurrentRunId(data.id);
+				setCurrentRunHasImportDiagnostic(false);
 				setCurrentRunLabel("Inventory reconciliation");
+				const reconciliationInput =
+					variables && "cursorId" in variables ? variables : null;
 				setLastRunSummary(
-					`Inventory reconciliation queued from cursor ${variables.cursorId ?? 0} with a ${variables.limit ?? 50}-line batch.`,
+					`Inventory reconciliation queued from cursor ${reconciliationInput?.cursorId ?? 0} with a ${reconciliationInput?.limit ?? 50}-line batch.`,
 				);
 				toast({
 					title: "Inventory reconciliation queued",
@@ -302,12 +381,111 @@ export function InventoryImportControlCenter({
 			},
 		}),
 	);
+	const archiveSourceCandidates = useMutation(
+		trpc.inventories.archiveInventoryImportSourceCandidates.mutationOptions({
+			onSuccess: async (data) => {
+				setLastRunSummary(
+					`${data.archivedIds.length} reviewed inventory source row(s) archived; ${data.skipped.length} skipped by the safety policy.`,
+				);
+				toast({
+					title: "Reviewed import rows archived",
+					variant: "success",
+				});
+				await invalidateAll();
+			},
+			onError: () => {
+				toast({
+					title: "Import source archive failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const applySourceDisposition = useMutation(
+		trpc.inventories.applyInventoryImportSourceDisposition.mutationOptions({
+			onSuccess: async (data) => {
+				if (data.status === "applied") {
+					setLastRunSummary(
+						`Inventory item ${data.inventoryId} retained in category ${data.targetCategoryId}; audit event ${data.auditEventId} recorded.${data.syncQueued ? "" : " Dyke projection could not be queued and needs retry."}${data.projectionDiagnosticRecorded ? "" : " Projection attempt evidence could not be persisted."}`,
+					);
+					toast({
+						title: "Import item retained and moved",
+						variant: "success",
+					});
+				} else {
+					setLastRunSummary(
+						`Inventory item ${data.inventoryId} was not changed: ${data.reason.replaceAll("_", " ")}.`,
+					);
+					toast({
+						title: "Import item disposition skipped",
+						variant: "destructive",
+					});
+				}
+				await invalidateAll();
+			},
+			onError: () => {
+				toast({
+					title: "Import item disposition failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
+	const applySourceDispositionBatch = useMutation(
+		trpc.inventories.applyInventoryImportSourceDispositionBatch.mutationOptions(
+			{
+				onSuccess: async (data) => {
+					const projectionFailures = data.results.filter(
+						(result) => result.status === "applied" && !result.syncQueued,
+					).length;
+					setLastRunSummary(
+						`${data.appliedCount} reviewed inventory row(s) retained and moved; ${data.skippedCount} skipped.${projectionFailures ? ` ${projectionFailures} projection queue failure(s) remain retryable.` : ""}`,
+					);
+					toast({
+						title: "Batch retained disposition complete",
+						variant: data.appliedCount ? "success" : "destructive",
+					});
+					await invalidateAll();
+				},
+				onError: () => {
+					toast({
+						title: "Batch retained disposition failed",
+						variant: "destructive",
+					});
+				},
+			},
+		),
+	);
+	const cleanupImportCategories = useMutation(
+		trpc.inventories.cleanupInventoryImportCategories.mutationOptions({
+			onSuccess: async (data) => {
+				setLastRunSummary(
+					`${data.archivedCategoryIds.length} empty stale import category row(s) archived; ${data.skipped.length} skipped by the live-child safety gate.`,
+				);
+				toast({
+					title: "Reviewed import categories archived",
+					variant: "success",
+				});
+				await invalidateAll();
+			},
+			onError: () => {
+				toast({
+					title: "Import category cleanup failed",
+					variant: "destructive",
+				});
+			},
+		}),
+	);
 
 	const isImportRunning =
 		runFullImport.isPending ||
 		runSalesInventoryBackfill.isPending ||
 		runInventoryReconciliation.isPending ||
 		cleanupStaleSalesInventoryLines.isPending ||
+		archiveSourceCandidates.isPending ||
+		applySourceDisposition.isPending ||
+		applySourceDispositionBatch.isPending ||
+		cleanupImportCategories.isPending ||
 		runStatus.data?.isQueued ||
 		runStatus.data?.isExecuting ||
 		false;
@@ -340,9 +518,17 @@ export function InventoryImportControlCenter({
 				title: `${currentRunLabel || "Inventory import"} completed`,
 				variant: "success",
 			});
+			if (currentRunHasImportDiagnostic) {
+				finalizeImportRun.mutate({
+					runId: currentRunId,
+					observedStatus: "COMPLETED",
+					metadata: { type: "inventory-import" },
+				});
+			}
 			void invalidateAll();
 			setCurrentRunId(null);
 			setCurrentRunLabel(null);
+			setCurrentRunHasImportDiagnostic(false);
 			return;
 		}
 
@@ -354,10 +540,26 @@ export function InventoryImportControlCenter({
 				title: `${currentRunLabel || "Inventory import"} failed`,
 				variant: "destructive",
 			});
+			if (currentRunHasImportDiagnostic) {
+				finalizeImportRun.mutate({
+					runId: currentRunId,
+					observedStatus: runStatus.data.isCancelled ? "CANCELED" : "FAILED",
+					metadata: { type: "inventory-import" },
+				});
+			}
 			setCurrentRunId(null);
 			setCurrentRunLabel(null);
+			setCurrentRunHasImportDiagnostic(false);
 		}
-	}, [currentRunId, currentRunLabel, invalidateAll, runStatus.data, strategy]);
+	}, [
+		currentRunHasImportDiagnostic,
+		currentRunId,
+		currentRunLabel,
+		finalizeImportRun,
+		invalidateAll,
+		runStatus.data,
+		strategy,
+	]);
 
 	const resetInventory = useMutation(
 		trpc.inventories.resetInventorySystem.mutationOptions({
@@ -428,6 +630,50 @@ export function InventoryImportControlCenter({
 							: `${kindReview.data?.summary?.mismatched || 0} records still differ from the suggested kind.`,
 			},
 			{
+				label: "Import source review",
+				pending: !idleQueryEnabled || sourceReview.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!sourceReview.isPending &&
+					(sourceReviewData?.meta.protected || 0) === 0 &&
+					(sourceReviewData?.meta.customReview || 0) === 0 &&
+					(sourceReviewData?.meta.archiveCandidates || 0) === 0,
+				detail:
+					!idleQueryEnabled || sourceReview.isPending
+						? "Source safety review will load after the import table is ready."
+						: sourceReviewData?.meta.returned
+							? `${String(sourceReviewData.meta.archiveCandidates)} archive candidate(s), ${String(sourceReviewData.meta.customReview)} custom review row(s), and ${String(sourceReviewData.meta.protected)} protected row(s) need explicit handling.`
+							: "No stale or orphaned imported inventory source labels were found.",
+			},
+			{
+				label: "Retained-item projection queue",
+				pending: !idleQueryEnabled || projectionHistory.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!projectionHistory.isPending &&
+					(projectionHistory.data?.meta.retryable || 0) === 0,
+				detail:
+					!idleQueryEnabled || projectionHistory.isPending
+						? "Projection attempt evidence will load after the import table is ready."
+						: projectionHistory.data?.meta.retryable
+							? `${projectionHistory.data.meta.retryable} retained-item projection attempt(s) need retry; ${projectionHistory.data.meta.queued} are queued.`
+							: `${projectionHistory.data?.meta.queued || 0} retained-item projection attempt(s) are queued and none need retry.`,
+			},
+			{
+				label: "Category cleanup readiness",
+				pending: !idleQueryEnabled || categoryCleanupReview.isPending,
+				ok:
+					Boolean(idleQueryEnabled) &&
+					!categoryCleanupReview.isPending &&
+					(categoryCleanupData?.meta.staleCategoryCount || 0) === 0,
+				detail:
+					!idleQueryEnabled || categoryCleanupReview.isPending
+						? "Category cleanup safety will load after the import table is ready."
+						: (categoryCleanupData?.meta.staleCategoryCount || 0) === 0
+							? "No active inventory categories remain outside the sales-settings route graph."
+							: `${categoryCleanupData?.meta.ready || 0} empty stale category row(s) are ready to archive; ${categoryCleanupData?.meta.blocked || 0} remain blocked by live inventory rows.`,
+			},
+			{
 				label: "Import strategy",
 				ok: strategy === "optimized",
 				detail:
@@ -447,12 +693,11 @@ export function InventoryImportControlCenter({
 						? "Sales inventory sync monitor will load after the control center is ready."
 						: salesInventorySyncMonitor.data?.status === "synced"
 							? "Every legacy sale has inventory-backed line items."
-							: salesInventorySyncMonitor.data?.reconciliation?.status ===
-									"partial"
-								? `${salesInventorySyncMonitor.data.reconciliation.checkedLineCount} reconciled inventory lines checked clean so far; continue from cursor ${salesInventorySyncMonitor.data.reconciliation.nextCursorId ?? "none"} before cutover.`
+							: reconciliation?.status === "partial"
+								? `${reconciliation?.checkedLineCount ?? 0} reconciled inventory lines checked clean so far; continue from cursor ${reconciliation?.nextCursorId ?? "none"} before cutover.`
 								: reconciliationSkippedCount > 0
 									? `${reconciliationSkippedCount} reconciliation comparison row(s) were skipped; review coverage before treating sales sync as cutover-ready.`
-							: `${salesInventorySyncMonitor.data?.missingSalesCount || 0} sales still need backfill and ${salesInventorySyncMonitor.data?.failedRiskCount || 0} synced sales need review.`,
+									: `${salesInventorySyncMonitor.data?.missingSalesCount || 0} sales still need backfill and ${salesInventorySyncMonitor.data?.failedRiskCount || 0} synced sales need review.`,
 			},
 			{
 				label: "Inventory reconciliation",
@@ -460,19 +705,19 @@ export function InventoryImportControlCenter({
 				ok:
 					Boolean(idleQueryEnabled) &&
 					!salesInventorySyncMonitor.isPending &&
-					salesInventorySyncMonitor.data?.reconciliation?.status === "synced",
+					reconciliation?.status === "synced",
 				detail:
 					!idleQueryEnabled || salesInventorySyncMonitor.isPending
 						? "Inventory reconciliation summary will load after the sales sync monitor is ready."
-						: !salesInventorySyncMonitor.data?.reconciliation
+						: !reconciliation
 							? "Inventory reconciliation summary is unavailable for this monitor run."
-							: salesInventorySyncMonitor.data.reconciliation.totalDriftCount > 0
-								? `${salesInventorySyncMonitor.data.reconciliation.totalDriftCount} reconciliation drift rows need review across ${salesInventorySyncMonitor.data.reconciliation.driftDomains.length} domain(s).`
+							: reconciliation.totalDriftCount > 0
+								? `${reconciliation.totalDriftCount} reconciliation drift rows need review across ${reconciliation.driftDomains.length} domain(s).`
 								: reconciliationSkippedCount > 0
 									? `${reconciliationSkippedCount} reconciliation comparison row(s) were skipped; review the coverage cards before cutover.`
-								: salesInventorySyncMonitor.data.reconciliation.hasMore
-									? `${salesInventorySyncMonitor.data.reconciliation.checkedLineCount} inventory lines checked clean; continue from cursor ${salesInventorySyncMonitor.data.reconciliation.nextCursorId} for full coverage.`
-									: `${salesInventorySyncMonitor.data.reconciliation.checkedLineCount} inventory lines checked with no reconciliation drift.`,
+									: reconciliation.hasMore
+										? `${reconciliation.checkedLineCount} inventory lines checked clean; continue from cursor ${reconciliation.nextCursorId} for full coverage.`
+										: `${reconciliation.checkedLineCount} inventory lines checked with no reconciliation drift.`,
 			},
 			{
 				label: "Stale fulfillment residue",
@@ -480,13 +725,16 @@ export function InventoryImportControlCenter({
 				ok:
 					Boolean(idleQueryEnabled) &&
 					!salesInventorySyncMonitor.isPending &&
-					(salesInventorySyncMonitor.data?.staleStockAllocationCount || 0) === 0 &&
+					(salesInventorySyncMonitor.data?.staleStockAllocationCount || 0) ===
+						0 &&
 					(salesInventorySyncMonitor.data?.staleInboundDemandCount || 0) === 0,
 				detail:
 					!idleQueryEnabled || salesInventorySyncMonitor.isPending
 						? "Stale allocation and demand residue will load after the sales sync monitor is ready."
-						: (salesInventorySyncMonitor.data?.staleStockAllocationCount || 0) === 0 &&
-							  (salesInventorySyncMonitor.data?.staleInboundDemandCount || 0) === 0
+						: (salesInventorySyncMonitor.data?.staleStockAllocationCount ||
+									0) === 0 &&
+								(salesInventorySyncMonitor.data?.staleInboundDemandCount ||
+									0) === 0
 							? "No active allocation or inbound demand rows are attached to stale inventory sale lines."
 							: `${salesInventorySyncMonitor.data?.staleStockAllocationCount || 0} allocation rows and ${salesInventorySyncMonitor.data?.staleInboundDemandCount || 0} inbound demand rows are attached to stale inventory sale lines.`,
 			},
@@ -495,16 +743,23 @@ export function InventoryImportControlCenter({
 			idleQueryEnabled,
 			kindReview.isPending,
 			kindReview.data?.summary?.mismatched,
+			categoryCleanupData?.meta.blocked,
+			categoryCleanupData?.meta.ready,
+			categoryCleanupData?.meta.staleCategoryCount,
+			categoryCleanupReview.isPending,
+			projectionHistory.data?.meta.queued,
+			projectionHistory.data?.meta.retryable,
+			projectionHistory.isPending,
+			sourceReview.isPending,
+			sourceReviewData?.meta.archiveCandidates,
+			sourceReviewData?.meta.customReview,
+			sourceReviewData?.meta.protected,
+			sourceReviewData?.meta.returned,
 			pendingCount,
 			reconciliationSkippedCount,
 			salesInventorySyncMonitor.data?.failedRiskCount,
 			salesInventorySyncMonitor.data?.missingSalesCount,
-			salesInventorySyncMonitor.data?.reconciliation?.checkedLineCount,
-			salesInventorySyncMonitor.data?.reconciliation?.driftDomains.length,
-			salesInventorySyncMonitor.data?.reconciliation?.hasMore,
-			salesInventorySyncMonitor.data?.reconciliation?.nextCursorId,
-			salesInventorySyncMonitor.data?.reconciliation?.status,
-			salesInventorySyncMonitor.data?.reconciliation?.totalDriftCount,
+			reconciliation,
 			salesInventorySyncMonitor.data?.status,
 			salesInventorySyncMonitor.data?.staleInboundDemandCount,
 			salesInventorySyncMonitor.data?.staleStockAllocationCount,
@@ -582,6 +837,201 @@ export function InventoryImportControlCenter({
 					}
 				/>
 			</div>
+
+			{sourceReviewData?.candidates.length ? (
+				<Card className="p-5">
+					<div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+						<div className="space-y-1">
+							<h3 className="font-semibold">Imported Source Review</h3>
+							<p className="max-w-3xl text-sm text-muted-foreground">
+								Read-only safety evidence for imported rows outside the active
+								sales-settings scope. Standard rows can be archived only after
+								review; custom rows always stay an explicit exception.
+							</p>
+						</div>
+						<div className="flex flex-wrap gap-2">
+							<Badge variant="outline">
+								{sourceReviewData.meta.archiveCandidates} archive candidates
+							</Badge>
+							<Badge variant="outline">
+								{sourceReviewData.meta.protected} protected
+							</Badge>
+							<Badge variant="outline">
+								{sourceReviewData.meta.customReview} custom review
+							</Badge>
+							{sourceReviewData.meta.archiveCandidates ? (
+								<ConfirmBtn
+									variant="outline"
+									icon="Warn"
+									isDeleting={archiveSourceCandidates.isPending}
+									disabled={isImportRunning}
+									onClick={async () => {
+										archiveSourceCandidates.mutate({
+											inventoryIds: sourceReviewData.candidates
+												.filter(
+													(candidate) =>
+														candidate.status === "archive_candidate",
+												)
+												.map((candidate) => candidate.inventoryId),
+											apply: true,
+										});
+									}}
+								>
+									Archive safe standard rows
+								</ConfirmBtn>
+							) : null}
+						</div>
+					</div>
+					<InventoryImportSourceBatchDisposition
+						candidates={sourceReviewData.candidates}
+						targetCategories={categoryCleanupData?.targetCategories ?? []}
+						isPending={applySourceDispositionBatch.isPending}
+						onApply={(input) => applySourceDispositionBatch.mutate(input)}
+					/>
+					<div className="mt-4 grid gap-2 lg:grid-cols-2">
+						{sourceReviewData.candidates.slice(0, 12).map((candidate) => (
+							<div
+								key={candidate.inventoryId}
+								className="rounded-md border bg-muted/20 p-3 text-sm"
+							>
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="truncate font-medium">
+											{candidate.inventoryName}
+										</div>
+										<div className="text-xs text-muted-foreground">
+											{candidate.categoryTitle} ·{" "}
+											{candidate.sourceStepUid || "missing step"} ·{" "}
+											{candidate.sourceCustom ? "custom" : "standard"}
+										</div>
+									</div>
+									<Badge
+										variant={
+											candidate.status === "protected"
+												? "destructive"
+												: candidate.status === "custom_review"
+													? "outline"
+													: "secondary"
+										}
+										className="shrink-0"
+									>
+										{candidate.status.replaceAll("_", " ")}
+									</Badge>
+								</div>
+								<div className="mt-2 text-xs text-muted-foreground">
+									{candidate.reason.replaceAll("_", " ")}
+									{candidate.protectedReasons.length
+										? ` · protected by ${candidate.protectedReasons.join(", ")}`
+										: ""}
+								</div>
+								<div className="mt-2">
+									<Link
+										className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+										href={`/inventory/${candidate.inventoryId}`}
+									>
+										Open inventory item
+									</Link>
+								</div>
+								<InventoryImportSourceDisposition
+									candidate={candidate}
+									targetCategories={categoryCleanupData?.targetCategories ?? []}
+									isPending={applySourceDisposition.isPending}
+									onApply={(input) => applySourceDisposition.mutate(input)}
+								/>
+							</div>
+						))}
+					</div>
+					{sourceReviewData.candidates.length > 12 ? (
+						<div className="mt-3 text-xs text-muted-foreground">
+							Showing 12 of {sourceReviewData.candidates.length} returned
+							candidates. The query is bounded to 100 rows.
+						</div>
+					) : null}
+				</Card>
+			) : null}
+
+			{categoryCleanupData?.candidates.length ? (
+				<Card className="p-5">
+					<div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+						<div className="space-y-1">
+							<h3 className="font-semibold">Stale Category Cleanup Gate</h3>
+							<p className="max-w-3xl text-sm text-muted-foreground">
+								A category can be archived only after every child inventory row
+								has been moved, archived, or otherwise dispositioned. Apply
+								rechecks the active route graph and live children in the write
+								transaction.
+							</p>
+						</div>
+						<div className="flex flex-wrap gap-2">
+							<Badge variant="outline">
+								{categoryCleanupData.meta.ready} ready
+							</Badge>
+							<Badge variant="outline">
+								{categoryCleanupData.meta.blocked} blocked
+							</Badge>
+							{categoryCleanupData.meta.ready ? (
+								<ConfirmBtn
+									variant="outline"
+									icon="Warn"
+									isDeleting={cleanupImportCategories.isPending}
+									disabled={isImportRunning}
+									onClick={async () => {
+										cleanupImportCategories.mutate({
+											categoryIds: categoryCleanupData.candidates
+												.filter((candidate) => candidate.status === "ready")
+												.map((candidate) => candidate.categoryId),
+											apply: true,
+										});
+									}}
+								>
+									Archive empty stale categories
+								</ConfirmBtn>
+							) : null}
+						</div>
+					</div>
+					<div className="mt-4 grid gap-2 lg:grid-cols-2">
+						{categoryCleanupData.candidates.map((candidate) => (
+							<div
+								key={candidate.categoryId}
+								className="rounded-md border bg-muted/20 p-3 text-sm"
+							>
+								<div className="flex items-start justify-between gap-3">
+									<div className="min-w-0">
+										<div className="truncate font-medium">
+											{candidate.categoryTitle}
+										</div>
+										<div className="text-xs text-muted-foreground">
+											{candidate.categoryUid} · {candidate.activeStandardCount}{" "}
+											standard · {candidate.activeCustomCount} custom
+										</div>
+									</div>
+									<Badge
+										variant={
+											candidate.status === "ready" ? "secondary" : "destructive"
+										}
+										className="shrink-0"
+									>
+										{candidate.status}
+									</Badge>
+								</div>
+								<div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+									<span>
+										{candidate.status === "ready"
+											? "No live inventory rows remain."
+											: `${candidate.activeInventoryCount} live row(s) must be dispositioned first.`}
+									</span>
+									<Link
+										className="shrink-0 font-medium text-primary underline-offset-4 hover:underline"
+										href="/inventory/categories"
+									>
+										Open categories
+									</Link>
+								</div>
+							</div>
+						))}
+					</div>
+				</Card>
+			) : null}
 
 			<Card className="p-5">
 				<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -995,6 +1445,9 @@ export function InventoryImportControlCenter({
 					</div>
 				</Card>
 			</div>
+
+			<InventoryImportRunHistory enabled={idleQueryEnabled} />
+			<InventoryImportProjectionHistory enabled={idleQueryEnabled} />
 
 			<Card className="p-5">
 				<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

@@ -2,7 +2,7 @@
 
 Date: 2026-03-12
 Owner: Sales Form Team
-Status: Proposed
+Status: In progress (Phase 0 implementation complete; runtime rollout gates remain)
 
 ## Objective
 
@@ -60,6 +60,16 @@ Exit gate:
 - Save operation is atomic in integration tests.
 - Tampered money payloads are rejected or corrected server-side.
 
+Implementation status (2026-07-22): complete in the current API path. `saveNewSalesFormInternal`
+normalizes line items, recomputes the summary from server-side line/extra-cost
+inputs, persists all order and relation writes through the transaction client,
+and only queues bounded post-save work after the transaction resolves. The
+relational parity fixtures cover mixed door/shelf/service/moulding saves and
+re-save replacement; the main and multi-line suites pass with 29 tests / 237
+assertions, plus the post-save timeout/rejection suite (3 tests / 8 assertions).
+Remaining rollout evidence is authenticated browser/runtime proof against the
+real database, not another save-path implementation change.
+
 ### Phase 1: Pricing Integrity (API + UI)
 
 - Fix `CostingClass` writeback to always update `metaData.pricing`.
@@ -70,6 +80,32 @@ Exit gate:
 Completed slice (2026-07-17):
 - `CostingClass.softCalculateTotalPrice()` now preserves the taxable line subtotal accumulated by `calculateTotalPrice()`, adds the existing delivery/eligible extra-cost basis, applies the discount, clamps at zero, and stores that discounted taxable base.
 - Regression coverage proves unchecked service/labor lines are excluded, checked services and products remain taxable, mixed orders tax only eligible lines, oversized discounts clamp taxable subtotal to zero, negative discounts stay consistent across subtotal and tax, and delivery/eligible extra-cost behavior is preserved.
+
+Follow-up slice (2026-07-22):
+- Removed the legacy pricing-writeback dependency on a present `Labor`
+  extra-cost row. Totals now always persist to `metaData.pricing`; the derived
+  labor amount is written back only when that optional row exists.
+- Added a no-Labor-row regression fixture to the legacy `CostingClass` suite
+  (10 tests / 38 assertions passing). Taxable consistency and subtotal output
+  remain covered by the existing focused matrix; authenticated UI parity is
+  still a separate rollout gate.
+- Updated the legacy sales summary to render `pricing.subTotal` directly in
+  both summary surfaces instead of deriving it from grand total minus tax.
+  Added a source regression for the authoritative field (11 tests / 40
+  assertions across the focused costing/subtotal gate).
+- Hardened sparse service rows so missing `formData.meta` is treated as
+  non-taxable instead of throwing during `calculateTotalPrice()`. Added focused
+  coverage for sparse service metadata and the Labor + FlatLabor + card-charge
+  composition (13 tests / 50 assertions across the costing/subtotal gate).
+
+Phase 2 cleanup slice (2026-07-22):
+- Removed raw `console.log` diagnostics from the legacy supplier badge, HPT
+  line context, quantity input, and moulding calculator production paths.
+- Added a static regression scan covering all four files (1 test / 4
+  assertions). A second scan covers the door-size modal opener, step helper,
+  dispatch control utility, sales-progress loader, and shipping DTO after the
+  remaining legacy traces were removed (1 test / 5 assertions). No interaction
+  or data contract changed.
 
 Exit gate:
 - Deterministic parity tests pass for subtotal/tax/grandTotal permutations.

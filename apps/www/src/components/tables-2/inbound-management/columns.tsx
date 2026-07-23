@@ -5,10 +5,8 @@ import {
 	getInventoryInboundOwnershipTitle,
 	getSingleInventoryInboundId,
 } from "@/components/sales-inbound-status-badge";
-import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
-import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
@@ -17,6 +15,7 @@ import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { Icons } from "@gnd/ui/icons";
 import type { ColumnDef } from "@tanstack/react-table";
+import { useRouter } from "next/navigation";
 
 export type InboundManagementRow =
 	RouterOutputs["sales"]["inboundIndex"]["data"][number];
@@ -168,9 +167,8 @@ export const columns: Column[] = [
 
 function InboundActions({ item }: { item: InboundManagementRow }) {
 	const { setParams } = useInboundStatusModal();
-	const overviewQuery = useSalesOverviewQuery();
-	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const salesPreview = useSalesPreview();
+	const router = useRouter();
 	const hasInventoryInbound =
 		!!item.inventoryInboundOwnership?.hasInventoryInbound;
 	const selectedInventoryInboundId = getSingleInventoryInboundId(
@@ -198,21 +196,10 @@ function InboundActions({ item }: { item: InboundManagementRow }) {
 				event.preventDefault();
 				event.stopPropagation();
 				if (hasInventoryInbound) {
-					const orderNo = String(item.uuid || item.orderId || "");
-					if (!orderNo) return;
-
-					setInventorySegment("inbounds", {
-						inboundId: selectedInventoryInboundId,
-					});
-					overviewQuery.setParams({
-						"sales-overview-id": orderNo,
-						"sales-type": "order",
-						mode: "sales",
-						salesTab: "inventory",
-						"prod-item-tab": null,
-						"prod-item-view": null,
-						dispatchOverviewId: null,
-					});
+					const query = selectedInventoryInboundId
+						? `?inboundId=${selectedInventoryInboundId}`
+						: "";
+					router.push(`/sales-book/inbounds${query}`);
 					return;
 				}
 

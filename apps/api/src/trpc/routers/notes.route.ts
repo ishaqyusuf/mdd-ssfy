@@ -7,7 +7,11 @@ import {
 	syncNotificationChannels,
 } from "@api/db/queries/note";
 import { saveInboundNoteSchema } from "@api/schemas/notes";
-import { saveNote, saveNoteSchema } from "@gnd/utils/note";
+import {
+	adoptStoredDocumentAttachments,
+	saveNote,
+	saveNoteSchema,
+} from "@gnd/utils/note";
 import {
 	getActivityCount,
 	getActivityTypeSummaries,
@@ -70,6 +74,29 @@ const activityTagFilterNodeSchema: z.ZodTypeAny = z.lazy(() =>
 );
 
 const noteStatusSchema = z.enum(["unread", "read", "archived"]);
+const NOTIFICATION_ATTACHMENT_CLAIM_LEASE_MS = 15 * 60 * 1000;
+
+function collectPayloadStrings(
+	value: unknown,
+	result = new Set<string>(),
+	depth = 0,
+) {
+	if (result.size >= 200 || depth > 8) return result;
+	if (typeof value === "string") {
+		result.add(value);
+		return result;
+	}
+	if (Array.isArray(value)) {
+		for (const item of value) collectPayloadStrings(item, result, depth + 1);
+		return result;
+	}
+	if (value && typeof value === "object") {
+		for (const item of Object.values(value)) {
+			collectPayloadStrings(item, result, depth + 1);
+		}
+	}
+	return result;
+}
 
 async function getCurrentNotificationContactId(ctx: {
 	db: TRPCContext["db"];
@@ -88,9 +115,9 @@ async function getEnabledInAppNotificationChannels(ctx: {
 	db: TRPCContext["db"];
 	userId: number;
 }) {
-	return (await getUserNotificationChannelPreferences(ctx.db, ctx.userId)).filter(
-		(channel) => channel.preferences.inApp,
-	);
+	return (
+		await getUserNotificationChannelPreferences(ctx.db, ctx.userId)
+	).filter((channel) => channel.preferences.inApp);
 }
 
 export const notesRouter = createTRPCRouter({
@@ -214,13 +241,19 @@ export const notesRouter = createTRPCRouter({
 			return saveInboundNote(props.ctx, props.input);
 		}),
 	saveNote: protectedProcedure.input(saveNoteSchema).mutation(async (props) => {
-		return saveNote(props.ctx.db, props.input, props.ctx.userId);
+		return props.ctx.db.$transaction((tx) =>
+			saveNote(tx, props.input, props.ctx.userId),
+		);
 	}),
 	createInboxActivity: protectedProcedure
 		.input(
 			z.object({
 				channel: z.enum(channelNames),
 				payload: z.record(z.string(), z.any()).optional(),
+				attachments: z
+					.array(z.string().trim().min(1).max(512))
+					.max(25)
+					.optional(),
 				message: z.string().optional(),
 				noteColor: z.string().optional(),
 				contacts: z
@@ -234,6 +267,65 @@ export const notesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const attachmentClaimId = crypto.randomUUID();
+			const explicitAttachmentPathnames = Array.from(
+				new Set(input.attachments || []),
+			);
+			const attachmentPathnames = Array.from(
+				collectPayloadStrings(
+					input.payload,
+					new Set(explicitAttachmentPathnames),
+				),
+			);
+			if (attachmentPathnames.length) {
+				const staleBefore = new Date(
+					Date.now() - NOTIFICATION_ATTACHMENT_CLAIM_LEASE_MS,
+				);
+				await ctx.db.$transaction(async (tx) => {
+					await tx.storedDocument.updateMany({
+						where: {
+							pathname: { in: attachmentPathnames },
+							ownerType: "user",
+							ownerId: String(ctx.userId),
+							uploadedBy: ctx.userId,
+							sourceType: "notification_attachment_pending",
+							status: "processing",
+							updatedAt: { lt: staleBefore },
+							deletedAt: null,
+						},
+						data: {
+							sourceType: "authenticated_browser_upload",
+							sourceId: null,
+							status: "ready",
+						},
+					});
+					await adoptStoredDocumentAttachments(tx, {
+						pathnames: attachmentPathnames,
+						uploadedBy: ctx.userId,
+						ownerType: "user",
+						ownerId: String(ctx.userId),
+						sourceType: "notification_attachment_pending",
+						sourceId: attachmentClaimId,
+						status: "processing",
+					});
+					const competingClaim = await tx.storedDocument.findFirst({
+						where: {
+							pathname: { in: attachmentPathnames },
+							ownerType: "user",
+							ownerId: String(ctx.userId),
+							uploadedBy: ctx.userId,
+							sourceType: "notification_attachment_pending",
+							sourceId: { not: attachmentClaimId },
+							status: "processing",
+							deletedAt: null,
+						},
+						select: { id: true },
+					});
+					if (competingClaim) {
+						throw new Error("An attachment submission is already in progress.");
+					}
+				});
+			}
 			const recipientCount = Array.from(
 				new Set((input.contacts || []).flatMap((group) => group.ids || [])),
 			).length;
@@ -244,21 +336,62 @@ export const notesRouter = createTRPCRouter({
 				...(input.noteColor ? { color: input.noteColor } : {}),
 			};
 
-			const notifications = new Notifications(ctx.db);
-			const channel = input.channel as keyof NotificationTypes;
-			const result = await notifications.create(
-				channel,
-				payload as Omit<NotificationTypes[typeof channel], "users">,
-				{
-					author: {
-						id: ctx.userId,
-						role: "employee",
+			let result: Awaited<ReturnType<Notifications["create"]>>;
+			try {
+				const notifications = new Notifications(ctx.db);
+				const channel = input.channel as keyof NotificationTypes;
+				result = await notifications.create(
+					channel,
+					payload as Omit<NotificationTypes[typeof channel], "users">,
+					{
+						author: {
+							id: ctx.userId,
+							role: "employee",
+						},
+						recipients: input.contacts,
+						includeChannelSubscribers: false,
+						allowFallbackRecipient: false,
 					},
-					recipients: input.contacts,
-					includeChannelSubscribers: false,
-					allowFallbackRecipient: false,
-				},
-			);
+				);
+			} catch (error) {
+				await ctx.db.storedDocument.updateMany({
+					where: {
+						pathname: { in: attachmentPathnames },
+						uploadedBy: ctx.userId,
+						sourceType: "notification_attachment_pending",
+						sourceId: attachmentClaimId,
+						status: "processing",
+						deletedAt: null,
+					},
+					data: {
+						sourceType: "authenticated_browser_upload",
+						sourceId: null,
+						status: "ready",
+					},
+				});
+				throw error;
+			}
+			const activityId = result.activityIds?.[0];
+			if (attachmentPathnames.length) {
+				await ctx.db.storedDocument.updateMany({
+					where: {
+						pathname: { in: attachmentPathnames },
+						uploadedBy: ctx.userId,
+						sourceType: "notification_attachment_pending",
+						sourceId: attachmentClaimId,
+						status: "processing",
+						deletedAt: null,
+					},
+					data: {
+						ownerType: "notification_activity",
+						ownerId: String(activityId ?? attachmentClaimId),
+						ownerKey: "attachment",
+						sourceType: "notification_attachment",
+						sourceId: String(activityId ?? attachmentClaimId),
+						status: "ready",
+					},
+				});
+			}
 
 			return {
 				activities: result.activities,
@@ -370,9 +503,9 @@ export const notesRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const notePadContactId = await getCurrentNotificationContactId(ctx);
-			const enabledTypes = (
-				await getEnabledInAppNotificationChannels(ctx)
-			).map((channel) => channel.name);
+			const enabledTypes = (await getEnabledInAppNotificationChannels(ctx)).map(
+				(channel) => channel.name,
+			);
 
 			return getActivties(ctx.db, {
 				contactIds: [notePadContactId],
@@ -391,9 +524,9 @@ export const notesRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const notePadContactId = await getCurrentNotificationContactId(ctx);
-			const enabledTypes = (
-				await getEnabledInAppNotificationChannels(ctx)
-			).map((channel) => channel.name);
+			const enabledTypes = (await getEnabledInAppNotificationChannels(ctx)).map(
+				(channel) => channel.name,
+			);
 
 			return getActivityCount(ctx.db, {
 				contactIds: [notePadContactId],

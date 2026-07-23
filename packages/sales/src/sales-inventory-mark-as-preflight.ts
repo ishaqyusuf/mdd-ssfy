@@ -726,7 +726,7 @@ function computeComponentDemandState(input: {
 	};
 }
 
-async function recomputeLineItemComponentDemandState(
+export async function recomputeLineItemComponentDemandState(
 	db: DbLike,
 	lineItemComponentId: number,
 ) {

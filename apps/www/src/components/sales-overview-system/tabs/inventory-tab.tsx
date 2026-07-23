@@ -12,6 +12,11 @@ import { Calendar } from "@gnd/ui/calendar";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@gnd/ui/collapsible";
+import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
@@ -60,6 +65,13 @@ import {
 	useSalesInventorySegmentQuery,
 } from "../hooks/use-sales-inventory-segment-query";
 import { formatInventoryCategoryStepLabel } from "../lib/inventory-display";
+import {
+	canMarkAllInventoryAvailable,
+	getInventoryInboundEmptyStateCopy,
+	getPendingInventoryQty,
+	resolveInventoryInboundCountState,
+} from "../lib/inventory-inbounds-utils";
+import { OrderInventoryRepairPanel } from "../order-inventory-repair-panel";
 import { useSalesOverviewSystem } from "../provider";
 import { OverviewEmptyState } from "../section-primitives";
 
@@ -594,9 +606,13 @@ function LegacyInventoryStatusLockedState({
 function InventoryActionBar({
 	overview,
 	salesOrderId,
+	openInboundForm = false,
+	onInboundFormOpened,
 }: {
 	overview: NonNullable<InventoryOverview>;
 	salesOrderId: number;
+	openInboundForm?: boolean;
+	onInboundFormOpened?: () => void;
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
@@ -604,10 +620,7 @@ function InventoryActionBar({
 	const rows = overview.rows || [];
 	const capabilities = overview.capabilities;
 	const stockActionRows = rows.filter(isStockInventoryLine);
-	const pendingQty = stockActionRows.reduce(
-		(total, row) => total + row.qtyPending,
-		0,
-	);
+	const pendingQty = getPendingInventoryQty(stockActionRows);
 	const inboundRows = useMemo(
 		() =>
 			rows.filter(
@@ -624,7 +637,7 @@ function InventoryActionBar({
 		() => inboundRows.map((row) => row.id),
 		[inboundRows],
 	);
-	const [isInboundFormOpen, setIsInboundFormOpen] = useState(false);
+	const [isInboundFormOpen, setIsInboundFormOpen] = useState(openInboundForm);
 	const [selectedInboundRowIds, setSelectedInboundRowIds] = useState<string[]>(
 		[],
 	);
@@ -682,6 +695,11 @@ function InventoryActionBar({
 	const [expectedAt, setExpectedAt] = useState("");
 	const [reference, setReference] = useState("");
 	const [createdInboundId, setCreatedInboundId] = useState<number | null>(null);
+	useEffect(() => {
+		if (!openInboundForm) return;
+		setIsInboundFormOpen(true);
+		onInboundFormOpened?.();
+	}, [onInboundFormOpened, openInboundForm]);
 	const suppliersQuery = useQuery(
 		trpc.inventories.inboundSuppliers.queryOptions(undefined, {
 			enabled: isInboundFormOpen,
@@ -777,6 +795,65 @@ function InventoryActionBar({
 			},
 		}),
 	);
+	const markAvailable = useMutation(
+		trpc.inventories.resolveSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(
+			{
+				onSuccess: async (data) => {
+					await Promise.all([
+						queryClient.invalidateQueries({
+							queryKey: trpc.inventories.salesInventoryOverview.queryKey({
+								salesOrderId,
+							}),
+						}),
+						queryClient.invalidateQueries({
+							queryKey: trpc.inventories.orderInboundShipments.queryKey({
+								salesOrderId,
+							}),
+						}),
+						queryClient.invalidateQueries({
+							queryKey: trpc.sales.getSaleOverview.pathKey(),
+						}),
+						queryClient.invalidateQueries({
+							queryKey: trpc.sales.getOrders.pathKey(),
+						}),
+						queryClient.invalidateQueries({
+							queryKey: trpc.sales.getOrdersSummary.pathKey(),
+						}),
+					]);
+					if (!data.continueAllowed) {
+						setInventorySegment(
+							data.remainingPreflight.totals.openInboundQty > 0
+								? "inbounds"
+								: "stock",
+						);
+						toast({
+							title: "Inventory still needs review",
+							description:
+								data.remainingPreflight.totals.openInboundQty > 0
+									? "Shipment-linked receiving work was left unchanged. Review the linked inbound."
+									: "Some inventory rows still need allocation before they can be marked available.",
+							variant: "destructive",
+						});
+						return;
+					}
+					toast({
+						title: "Inventory marked available",
+						description: `${data.cancelledDemandCount} pending demand row${
+							data.cancelledDemandCount === 1 ? "" : "s"
+						} resolved.`,
+						variant: "success",
+					});
+				},
+				onError: (error) => {
+					toast({
+						title: "Unable to mark inventory available",
+						description: error.message,
+						variant: "destructive",
+					});
+				},
+			},
+		),
+	);
 
 	useEffect(() => {
 		if (!isInboundFormOpen) return;
@@ -847,6 +924,18 @@ function InventoryActionBar({
 			expectedAt: expectedAt ? new Date(`${expectedAt}T00:00:00`) : null,
 		});
 	};
+	const canMarkAllAvailable = canMarkAllInventoryAvailable({
+		canMarkAvailable: capabilities.canMarkAvailable,
+		pendingQty,
+		isReadOnly: overview.isInventoryReadOnly,
+	});
+	const markAllAvailable = () => {
+		if (!canMarkAllAvailable || markAvailable.isPending) return;
+		markAvailable.mutate({
+			salesOrderIds: [salesOrderId],
+			action: "production_completed",
+		});
+	};
 
 	if (overview.isInventoryReadOnly) {
 		return (
@@ -879,8 +968,24 @@ function InventoryActionBar({
 					>
 						Create inbound
 					</Button>
-					<Button type="button" size="sm" disabled>
-						Mark all available
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						disabled={!canMarkAllAvailable || markAvailable.isPending}
+						title={
+							!capabilities.canMarkAvailable
+								? overview.inventoryActionBlockReason ||
+									"Inventory availability is locked for this order."
+								: pendingQty <= 0
+									? "No pending inventory demand needs to be marked available."
+									: undefined
+						}
+						onClick={markAllAvailable}
+					>
+						{markAvailable.isPending
+							? "Checking inventory..."
+							: "Mark all available"}
 					</Button>
 				</div>
 			</div>
@@ -1160,7 +1265,7 @@ function InventoryStockFilterGroup({
 					variant={value === "inbounds" ? "secondary" : "outline"}
 					className="h-5 px-1.5 text-[10px]"
 				>
-					{inboundCount}
+					{inboundCount < 0 ? "…" : inboundCount}
 				</Badge>
 			</Button>
 			<Button
@@ -1183,16 +1288,230 @@ function InventoryStockFilterGroup({
 	);
 }
 
+function InventoryInboundShipmentRow({
+	shipment,
+	open,
+	onOpenChange,
+	isReadOnly,
+	readOnlyReason,
+	isUpdating,
+	isReceiving,
+	onUpdateStatus,
+	onReceive,
+}: {
+	shipment: OrderInboundShipment;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	isReadOnly: boolean;
+	readOnlyReason: string | null;
+	isUpdating: boolean;
+	isReceiving: boolean;
+	onUpdateStatus: (status: InboundShipmentStatus) => void;
+	onReceive: () => void;
+}) {
+	const canReceive =
+		!isReadOnly &&
+		!["completed", "closed", "cancelled"].includes(shipment.status) &&
+		shipment.items.some(
+			(item) =>
+				Number(item.receivedQty || item.qtyGood || 0) < Number(item.qty),
+		);
+
+	return (
+		<Collapsible open={open} onOpenChange={onOpenChange}>
+			<div className="rounded-md border bg-background">
+				<CollapsibleTrigger asChild>
+					<button
+						type="button"
+						className="w-full p-3 text-left transition hover:bg-muted/40"
+					>
+						<div className="flex items-start justify-between gap-3">
+							<div className="min-w-0">
+								<div className="flex items-center gap-2">
+									<Icons.ChevronDown
+										className={cn(
+											"size-4 shrink-0 transition-transform",
+											open && "rotate-180",
+										)}
+									/>
+									<span className="text-sm font-semibold">
+										Inbound #{shipment.id}
+									</span>
+								</div>
+								<div className="mt-0.5 pl-6 text-xs text-muted-foreground">
+									{shipment.supplier?.name || "No supplier"}{" "}
+									{shipment.reference ? `• ${shipment.reference}` : ""}
+								</div>
+							</div>
+							<Badge
+								variant="outline"
+								className={cn(
+									"h-5 shrink-0 px-1.5 text-[10px]",
+									inboundStatusClassName(shipment.status),
+								)}
+							>
+								{titleCaseLabel(shipment.status)}
+							</Badge>
+						</div>
+						<div className="mt-3 flex flex-wrap gap-1.5 pl-6">
+							<InventoryMetric label="ITEMS" value={shipment.itemCount} />
+							<InventoryMetric
+								label="QTY"
+								value={formatQty(shipment.qtyOrdered)}
+							/>
+							<InventoryMetric
+								label="RECEIVED"
+								value={formatQty(shipment.qtyReceived)}
+								tone={shipment.qtyReceived ? "success" : "default"}
+							/>
+						</div>
+					</button>
+				</CollapsibleTrigger>
+				<CollapsibleContent className="border-t px-3 pb-3 pt-3">
+					{isReadOnly ? (
+						<Alert className="mb-3 border-dashed bg-muted/20 text-left">
+							<Icons.LockKeyhole />
+							<AlertTitle>Inbound actions are locked</AlertTitle>
+							<AlertDescription>
+								{readOnlyReason ||
+									"This order is locked for inventory review and repair only."}
+							</AlertDescription>
+						</Alert>
+					) : null}
+					<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+						<p className="text-xs text-muted-foreground">
+							Expected {formatDateValue(shipment.expectedAt)}
+						</p>
+						<div className="flex flex-wrap gap-2">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<Button
+										type="button"
+										size="sm"
+										variant="outline"
+										disabled={isReadOnly || isUpdating}
+									>
+										Update status
+									</Button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end">
+									<DropdownMenuLabel>Status</DropdownMenuLabel>
+									<DropdownMenuSeparator />
+									{(
+										[
+											"pending",
+											"in_progress",
+											"issue_open",
+											"completed",
+											"closed",
+											"cancelled",
+										] satisfies InboundShipmentStatus[]
+									).map((status) => (
+										<DropdownMenuItem
+											key={status}
+											disabled={
+												isReadOnly || isUpdating || status === shipment.status
+											}
+											onSelect={() => onUpdateStatus(status)}
+										>
+											{titleCaseLabel(status)}
+										</DropdownMenuItem>
+									))}
+								</DropdownMenuContent>
+							</DropdownMenu>
+							<Button
+								type="button"
+								size="sm"
+								disabled={!canReceive || isReceiving}
+								onClick={onReceive}
+							>
+								Receive stock
+							</Button>
+						</div>
+					</div>
+					<div className="mt-4 space-y-2">
+						{shipment.items.map((item) => (
+							<div key={item.id} className="rounded-md border bg-muted/10 p-3">
+								<div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+									<div className="min-w-0">
+										<div className="truncate text-xs font-semibold uppercase">
+											{item.itemName}
+										</div>
+										<div className="mt-0.5 text-[11px] text-muted-foreground">
+											{item.inventoryVariant.sku ||
+												item.inventoryVariant.uid ||
+												`Variant #${item.inventoryVariantId}`}
+										</div>
+									</div>
+									<div className="flex flex-wrap gap-1.5">
+										<InventoryMetric
+											label="ORDERED"
+											value={formatQty(item.qty)}
+										/>
+										<InventoryMetric
+											label="RECEIVED"
+											value={formatQty(item.receivedQty || item.qtyGood)}
+											tone={
+												Number(item.receivedQty || item.qtyGood || 0) > 0
+													? "success"
+													: "default"
+											}
+										/>
+										{Number(item.qtyIssue || 0) > 0 ? (
+											<InventoryMetric
+												label="ISSUE"
+												value={formatQty(item.qtyIssue)}
+												tone="warning"
+											/>
+										) : null}
+									</div>
+								</div>
+								<div className="mt-2 space-y-1">
+									{item.inboundDemands.map((demand) => (
+										<div
+											key={demand.id}
+											className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"
+										>
+											<span className="min-w-0 truncate">
+												{formatInventoryCategoryStepLabel(
+													demand.lineItemComponent.inventoryCategory?.title,
+												) || "Component"}{" "}
+												•{" "}
+												{demand.lineItemComponent.inventory?.name ||
+													item.itemName}
+											</span>
+											<span className="tabular-nums">
+												{formatQty(demand.qtyReceived)} /{" "}
+												{formatQty(demand.qty)} {titleCaseLabel(demand.status)}
+											</span>
+										</div>
+									))}
+								</div>
+							</div>
+						))}
+					</div>
+				</CollapsibleContent>
+			</div>
+		</Collapsible>
+	);
+}
+
 function InventoryInboundsPanel({
 	salesOrderId,
 	shipments,
 	isLoading,
+	pendingQty,
+	onCheckStock,
+	onCreateInbound,
 	isReadOnly,
 	readOnlyReason,
 }: {
 	salesOrderId: number;
 	shipments: OrderInboundShipment[];
 	isLoading: boolean;
+	pendingQty: number;
+	onCheckStock: () => void;
+	onCreateInbound: () => void;
 	isReadOnly: boolean;
 	readOnlyReason: string | null;
 }) {
@@ -1203,10 +1522,6 @@ function InventoryInboundsPanel({
 	const [selectedInboundId, setSelectedInboundId] = useState<number | null>(
 		null,
 	);
-	const selectedShipment =
-		shipments.find((shipment) => shipment.id === selectedInboundId) ??
-		shipments[0] ??
-		null;
 	const refreshOrderInbounds = async (inboundId?: number | null) => {
 		await Promise.all([
 			queryClient.invalidateQueries({
@@ -1293,11 +1608,11 @@ function InventoryInboundsPanel({
 		setSelectedInboundId(shipments[0]?.id ?? null);
 	}, [selectedInboundId, selectedInventoryInboundId, shipments]);
 
-	const receiveAll = () => {
-		if (!selectedShipment || isReadOnly) return;
+	const receiveShipment = (shipment: OrderInboundShipment) => {
+		if (isReadOnly) return;
 		receiveInbound.mutate({
-			inboundId: selectedShipment.id,
-			items: selectedShipment.items.map((item) => ({
+			inboundId: shipment.id,
+			items: shipment.items.map((item) => ({
 				inboundShipmentItemId: item.id,
 				qtyReceived: Number(item.qty || item.demandQty || 0),
 				qtyGood: Number(item.qty || item.demandQty || 0),
@@ -1306,230 +1621,75 @@ function InventoryInboundsPanel({
 			})),
 		});
 	};
-	const canReceive =
-		!!selectedShipment &&
-		!isReadOnly &&
-		!["completed", "closed", "cancelled"].includes(selectedShipment.status) &&
-		selectedShipment.items.some(
-			(item) =>
-				Number(item.receivedQty || item.qtyGood || 0) < Number(item.qty),
-		);
 
 	if (isLoading) return <InventoryTabSkeleton />;
 
 	if (!shipments.length) {
+		const emptyState = getInventoryInboundEmptyStateCopy({
+			pendingQty,
+			shipmentCount: 0,
+		});
 		return (
-			<div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-				No inbound shipments are linked to this order yet.
+			<div className="rounded-md border border-dashed bg-muted/10 p-4">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+					<div>
+						<div className="text-sm font-semibold text-foreground">
+							{emptyState.title}
+						</div>
+						<p className="mt-1 text-xs text-muted-foreground">
+							{emptyState.description}
+						</p>
+					</div>
+					<div className="flex shrink-0 gap-2">
+						<Button
+							type="button"
+							size="sm"
+							variant="outline"
+							onClick={onCheckStock}
+						>
+							Check stock
+						</Button>
+						{pendingQty > 0 && !isReadOnly ? (
+							<Button type="button" size="sm" onClick={onCreateInbound}>
+								Create inbound
+							</Button>
+						) : null}
+					</div>
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
-			<div className="space-y-2">
-				{shipments.map((shipment) => {
-					const isSelected = selectedShipment?.id === shipment.id;
-					return (
-						<button
-							key={shipment.id}
-							type="button"
-							className={cn(
-								"w-full rounded-md border bg-background p-3 text-left transition hover:bg-muted/40",
-								isSelected && "border-primary bg-primary/5",
-							)}
-							onClick={() => {
-								setSelectedInboundId(shipment.id);
-								setSelectedInventoryInboundId(shipment.id);
-							}}
-						>
-							<div className="flex items-start justify-between gap-3">
-								<div className="min-w-0">
-									<div className="text-sm font-semibold">
-										Inbound #{shipment.id}
-									</div>
-									<div className="mt-0.5 truncate text-xs text-muted-foreground">
-										{shipment.supplier?.name || "No supplier"}{" "}
-										{shipment.reference ? `• ${shipment.reference}` : ""}
-									</div>
-								</div>
-								<Badge
-									variant="outline"
-									className={cn(
-										"h-5 shrink-0 px-1.5 text-[10px]",
-										inboundStatusClassName(shipment.status),
-									)}
-								>
-									{titleCaseLabel(shipment.status)}
-								</Badge>
-							</div>
-							<div className="mt-3 flex flex-wrap gap-1.5">
-								<InventoryMetric label="ITEMS" value={shipment.itemCount} />
-								<InventoryMetric
-									label="QTY"
-									value={formatQty(shipment.qtyOrdered)}
-								/>
-								<InventoryMetric
-									label="RECEIVED"
-									value={formatQty(shipment.qtyReceived)}
-									tone={shipment.qtyReceived ? "success" : "default"}
-								/>
-							</div>
-						</button>
-					);
-				})}
-			</div>
-			{selectedShipment ? (
-				<div className="min-w-0 rounded-md border bg-background p-3">
-					{isReadOnly ? (
-						<Alert className="mb-3 border-dashed bg-muted/20 text-left">
-							<Icons.LockKeyhole />
-							<AlertTitle>Inbound actions are locked</AlertTitle>
-							<AlertDescription>
-								{readOnlyReason ||
-									"This order is locked for inventory review and repair only."}
-							</AlertDescription>
-						</Alert>
-					) : null}
-					<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-						<div>
-							<div className="flex flex-wrap items-center gap-2">
-								<h3 className="text-sm font-semibold">
-									Inbound #{selectedShipment.id}
-								</h3>
-								<Badge
-									variant="outline"
-									className={cn(
-										"h-5 px-1.5 text-[10px]",
-										inboundStatusClassName(selectedShipment.status),
-									)}
-								>
-									{titleCaseLabel(selectedShipment.status)}
-								</Badge>
-							</div>
-							<p className="mt-1 text-xs text-muted-foreground">
-								{selectedShipment.supplier?.name || "No supplier"} • Expected{" "}
-								{formatDateValue(selectedShipment.expectedAt)}
-							</p>
-						</div>
-						<div className="flex flex-wrap gap-2">
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										type="button"
-										size="sm"
-										variant="outline"
-										disabled={isReadOnly || updateStatus.isPending}
-									>
-										Update status
-									</Button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent align="end">
-									<DropdownMenuLabel>Status</DropdownMenuLabel>
-									<DropdownMenuSeparator />
-									{(
-										[
-											"pending",
-											"in_progress",
-											"issue_open",
-											"completed",
-											"closed",
-											"cancelled",
-										] satisfies InboundShipmentStatus[]
-									).map((status) => (
-										<DropdownMenuItem
-											key={status}
-											disabled={
-												isReadOnly ||
-												updateStatus.isPending ||
-												status === selectedShipment.status
-											}
-											onSelect={() => {
-												if (isReadOnly) return;
-												updateStatus.mutate({
-													inboundId: selectedShipment.id,
-													status,
-												});
-											}}
-										>
-											{titleCaseLabel(status)}
-										</DropdownMenuItem>
-									))}
-								</DropdownMenuContent>
-							</DropdownMenu>
-							<Button
-								type="button"
-								size="sm"
-								disabled={!canReceive || receiveInbound.isPending}
-								onClick={receiveAll}
-							>
-								Receive stock
-							</Button>
-						</div>
-					</div>
-					<div className="mt-4 space-y-2">
-						{selectedShipment.items.map((item) => (
-							<div key={item.id} className="rounded-md border bg-muted/10 p-3">
-								<div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-									<div className="min-w-0">
-										<div className="truncate text-xs font-semibold uppercase">
-											{item.itemName}
-										</div>
-										<div className="mt-0.5 text-[11px] text-muted-foreground">
-											{item.inventoryVariant.sku ||
-												item.inventoryVariant.uid ||
-												`Variant #${item.inventoryVariantId}`}
-										</div>
-									</div>
-									<div className="flex flex-wrap gap-1.5">
-										<InventoryMetric
-											label="ORDERED"
-											value={formatQty(item.qty)}
-										/>
-										<InventoryMetric
-											label="RECEIVED"
-											value={formatQty(item.receivedQty || item.qtyGood)}
-											tone={
-												Number(item.receivedQty || item.qtyGood || 0) > 0
-													? "success"
-													: "default"
-											}
-										/>
-										{Number(item.qtyIssue || 0) > 0 ? (
-											<InventoryMetric
-												label="ISSUE"
-												value={formatQty(item.qtyIssue)}
-												tone="warning"
-											/>
-										) : null}
-									</div>
-								</div>
-								<div className="mt-2 space-y-1">
-									{item.inboundDemands.map((demand) => (
-										<div
-											key={demand.id}
-											className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-muted-foreground"
-										>
-											<span className="min-w-0 truncate">
-												{formatInventoryCategoryStepLabel(
-													demand.lineItemComponent.inventoryCategory?.title,
-												) || "Component"}{" "}
-												•{" "}
-												{demand.lineItemComponent.inventory?.name ||
-													item.itemName}
-											</span>
-											<span className="tabular-nums">
-												{formatQty(demand.qtyReceived)} /{" "}
-												{formatQty(demand.qty)} {titleCaseLabel(demand.status)}
-											</span>
-										</div>
-									))}
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
-			) : null}
+		<div className="space-y-3">
+			{shipments.map((shipment) => (
+				<InventoryInboundShipmentRow
+					key={shipment.id}
+					shipment={shipment}
+					open={selectedInboundId === shipment.id}
+					onOpenChange={(open) => {
+						if (open) {
+							setSelectedInboundId(shipment.id);
+							setSelectedInventoryInboundId(shipment.id);
+						} else if (selectedInboundId === shipment.id) {
+							setSelectedInboundId(null);
+						}
+					}}
+					isReadOnly={isReadOnly}
+					readOnlyReason={readOnlyReason}
+					isUpdating={updateStatus.isPending}
+					isReceiving={receiveInbound.isPending}
+					onUpdateStatus={(status) => {
+						if (!isReadOnly) {
+							updateStatus.mutate({
+								inboundId: shipment.id,
+								status,
+							});
+						}
+					}}
+					onReceive={() => receiveShipment(shipment)}
+				/>
+			))}
 		</div>
 	);
 }
@@ -2052,7 +2212,7 @@ function InventoryLineActions({
 	);
 }
 
-export function SalesOverviewInventoryContent({
+function SalesOverviewInventoryContentBody({
 	salesOrderId,
 }: {
 	salesOrderId?: number | null;
@@ -2060,6 +2220,7 @@ export function SalesOverviewInventoryContent({
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const [autoSyncOrderId, setAutoSyncOrderId] = useState<number | null>(null);
+	const [openInboundForm, setOpenInboundForm] = useState(false);
 	const { inventorySegment: stockFilter, setInventorySegment: setStockFilter } =
 		useSalesInventorySegmentQuery();
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
@@ -2087,6 +2248,18 @@ export function SalesOverviewInventoryContent({
 			},
 		),
 	);
+	const orderInboundCountQuery = useQuery(
+		trpc.inventories.orderInboundShipmentCount.queryOptions(
+			{
+				salesOrderId: normalizedSalesOrderId,
+			},
+			{
+				enabled: !!normalizedSalesOrderId,
+				staleTime: 60 * 1000,
+				refetchOnWindowFocus: false,
+			},
+		),
+	);
 	const syncInventory = useMutation(
 		trpc.inventories.syncSalesInventoryOverview.mutationOptions({
 			onSuccess: async () => {
@@ -2108,9 +2281,15 @@ export function SalesOverviewInventoryContent({
 		(row) => Number(row.qtyInboundLinkedOpen || 0) > 0,
 	).length;
 	const inboundCount =
-		stockFilter === "inbounds" && orderInboundsQuery.data
+		orderInboundCountQuery.data ??
+		(stockFilter === "inbounds" && orderInboundsQuery.data
 			? orderInboundShipments.length
-			: overviewLinkedInboundRowCount;
+			: overviewLinkedInboundRowCount);
+	const inboundCountState = resolveInventoryInboundCountState({
+		shipmentCount: orderInboundCountQuery.data,
+		pendingQty: getPendingInventoryQty(stockRows),
+		isLoading: orderInboundCountQuery.isLoading,
+	});
 	const filteredRows =
 		stockFilter === "stock"
 			? stockRows
@@ -2217,7 +2396,7 @@ export function SalesOverviewInventoryContent({
 					onChange={setStockFilter}
 					stockCount={stockRows.length}
 					nonStockCount={nonStockRows.length}
-					inboundCount={inboundCount}
+					inboundCount={inboundCountState === "loading" ? -1 : inboundCount}
 				/>
 				<div className="flex flex-wrap items-center gap-2">
 					<Badge variant="outline" className="capitalize">
@@ -2225,7 +2404,8 @@ export function SalesOverviewInventoryContent({
 					</Badge>
 					{stockFilter === "inbounds" ? (
 						<Badge variant="outline">
-							{formatQty(inboundCount)} inbound
+							{inboundCountState === "loading" ? "…" : formatQty(inboundCount)}{" "}
+							inbound
 							{inboundCount === 1 ? "" : "s"}
 						</Badge>
 					) : (
@@ -2250,17 +2430,23 @@ export function SalesOverviewInventoryContent({
 					)}
 				</div>
 			</div>
-			{stockFilter === "stock" ? (
-				<InventoryActionBar
-					overview={overview}
-					salesOrderId={normalizedSalesOrderId}
-				/>
-			) : null}
+			<InventoryActionBar
+				overview={overview}
+				salesOrderId={normalizedSalesOrderId}
+				openInboundForm={openInboundForm}
+				onInboundFormOpened={() => setOpenInboundForm(false)}
+			/>
 			{stockFilter === "inbounds" ? (
 				<InventoryInboundsPanel
 					salesOrderId={normalizedSalesOrderId}
 					shipments={orderInboundShipments}
 					isLoading={orderInboundsQuery.isLoading}
+					pendingQty={getPendingInventoryQty(stockRows)}
+					onCheckStock={() => setStockFilter("stock")}
+					onCreateInbound={() => {
+						setStockFilter("stock");
+						setOpenInboundForm(true);
+					}}
 					isReadOnly={overview.isInventoryReadOnly}
 					readOnlyReason={overview.inventoryActionBlockReason}
 				/>
@@ -2274,6 +2460,23 @@ export function SalesOverviewInventoryContent({
 				/>
 			)}
 		</div>
+	);
+}
+
+export function SalesOverviewInventoryContent({
+	salesOrderId,
+}: {
+	salesOrderId?: number | null;
+}) {
+	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
+
+	return (
+		<>
+			{normalizedSalesOrderId ? (
+				<OrderInventoryRepairPanel salesOrderId={normalizedSalesOrderId} />
+			) : null}
+			<SalesOverviewInventoryContentBody salesOrderId={salesOrderId} />
+		</>
 	);
 }
 

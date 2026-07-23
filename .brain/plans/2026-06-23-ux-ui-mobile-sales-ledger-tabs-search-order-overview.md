@@ -4,13 +4,21 @@
 UX/UI
 
 ## Status
-Proposed
+Completed
 
 ## Created Date
 2026-06-23
 
 ## Last Updated
-2026-06-23
+2026-07-23
+
+## Completion
+- Completed Home, Sales, Money, Ship, and More workspaces with distinct ledger
+  records.
+- Added document/payment/delivery/date filters and Overview, Items, Payments,
+  Fulfillment, and Activity detail tabs with payment and fulfillment kept
+  separate.
+- All behavior remains static, development-only preview state.
 
 ## Intake
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md

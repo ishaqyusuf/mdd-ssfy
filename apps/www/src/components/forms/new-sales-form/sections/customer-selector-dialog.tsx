@@ -85,6 +85,8 @@ export function CustomerSelectorDialog(props: Props) {
 						customerProfileId: currentRecord.form.customerProfileId,
 						billingAddressId: currentRecord.form.billingAddressId,
 						shippingAddressId: currentRecord.form.shippingAddressId,
+						paymentTerm: currentRecord.form.paymentTerm,
+						taxCode: currentRecord.form.taxCode,
 					},
 					editedCustomerId: createCustomerParams.customerId,
 					savedCustomer: {

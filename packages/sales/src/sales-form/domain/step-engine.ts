@@ -102,18 +102,16 @@ export function getRedirectableRoutes(routeData: any) {
 		}))
 		.filter((step: any) => step.uid && step.title);
 
-	const uniqueByUid = Array.from(
-		new Map(routes.map((step: any) => [step.uid, step])).values(),
+	const uniqueByUid: Array<{ uid: string; title: string }> = Array.from(
+		new Map<string, { uid: string; title: string }>(
+			routes.map((step: { uid: string; title: string }) => [step.uid, step]),
+		).values(),
 	);
 
-	const uniqueByTitle = new Map<string, any>();
-	uniqueByUid.forEach((step: any) => {
-		const titleKey = normalizeSalesFormTitle(step.title);
-		if (!titleKey || uniqueByTitle.has(titleKey)) return;
-		uniqueByTitle.set(titleKey, step);
-	});
-
-	return Array.from(uniqueByTitle.values());
+	// Legacy settings expose every configured step, including distinct steps
+	// that happen to share a title. Keep only duplicate UIDs out of the menu so
+	// redirect targets retain their configured order and identity.
+	return uniqueByUid;
 }
 
 export function isComponentVisibleByRules(

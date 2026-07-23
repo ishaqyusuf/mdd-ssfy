@@ -1,6 +1,6 @@
 import z from "zod";
 import type { TRPCContext } from "../init";
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+import { createTRPCRouter, protectedProcedure } from "../init";
 import {
   getSettingAction,
   SETTINGS_TYPE,
@@ -59,7 +59,7 @@ function toExpiryIso(expiresOn: string) {
 }
 
 export const settingsRouter = createTRPCRouter({
-  getJobSettings: publicProcedure.query(async ({ ctx }) => {
+  getJobSettings: protectedProcedure.query(async ({ ctx }) => {
     const setting = await getSettingAction("jobs-settings", ctx.db);
     return setting;
   }),
@@ -68,7 +68,7 @@ export const settingsRouter = createTRPCRouter({
 
     return getSettingAction("app-download-apk", ctx.db);
   }),
-  updateSetting: publicProcedure
+  updateSetting: protectedProcedure
     .input(
       z.object({
         type: z.enum(SETTINGS_TYPE),
@@ -77,8 +77,9 @@ export const settingsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input, ctx }) => {
+      await requireSuperAdmin(ctx);
       await updateSettingsMeta(
-        input.type as any,
+        input.type,
         input.meta,
         ctx.db,
         input.updateType,

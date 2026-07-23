@@ -8,11 +8,11 @@ import {
 	Text,
 } from "@react-email/components";
 import { format } from "date-fns";
-import { Footer } from "../components/footer";
 import {
 	DealerProgramBanner,
 	type DealerProgramBannerProps,
 } from "../components/dealer-program-banner";
+import { Footer } from "../components/footer";
 import { Logo } from "../components/logo";
 import {
 	Button,
@@ -27,9 +27,12 @@ type Props = {
 	message?: string;
 	paymentLink?: string;
 	pdfLink?: string;
-	dealerProgramBanner?: (DealerProgramBannerProps & {
-		placement: "TOP" | "BOTTOM";
-	}) | null;
+	hasPdfAttachment?: boolean;
+	dealerProgramBanner?:
+		| (DealerProgramBannerProps & {
+				placement: "TOP" | "BOTTOM";
+		  })
+		| null;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -51,6 +54,7 @@ export default function ComposedSalesDocumentEmail({
 	message,
 	paymentLink,
 	pdfLink,
+	hasPdfAttachment = false,
 	sales,
 	dealerProgramBanner,
 }: Props) {
@@ -199,7 +203,7 @@ export default function ComposedSalesDocumentEmail({
 						))}
 					</Section>
 
-					{pdfLink ? (
+					{pdfLink && !hasPdfAttachment ? (
 						<Section className="mb-[22px]">
 							<Text
 								className={`m-0 mb-[12px] text-[14px] ${themeClasses.text}`}

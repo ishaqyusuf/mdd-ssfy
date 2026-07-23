@@ -1,5 +1,11 @@
 import { _trpc } from "@/components/static-trpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  attachMobileInvoiceSaveRequestId,
+  failMobileInvoiceSaveDiagnostic,
+  finishMobileInvoiceSaveDiagnostic,
+  startMobileInvoiceSaveDiagnostic,
+} from "../lib/mobile-save-diagnostics";
 import type {
   DeleteNewSalesFormLineItemPayload,
   InvoiceFormSaveResult,
@@ -65,25 +71,47 @@ export function useInvoiceFormActions() {
     ]);
   };
 
-  const saveDraft = async (
-    payload: SaveDraftNewSalesFormPayload,
-  ): Promise<InvoiceFormSaveResult> => {
-    const result = (await realSaveDraft.mutateAsync(
-      payload as SaveDraftInput,
-    )) as InvoiceFormSaveResult;
-    await invalidateSalesDocumentQueries();
-    return result;
-  };
+	const saveDraft = async (
+		payload: SaveDraftNewSalesFormPayload,
+	): Promise<InvoiceFormSaveResult> => {
+		const payloadWithRequestId = attachMobileInvoiceSaveRequestId(payload);
+		const diagnostic = startMobileInvoiceSaveDiagnostic(
+			"save-draft",
+			payloadWithRequestId,
+		);
+		try {
+			const result = (await realSaveDraft.mutateAsync(
+				payloadWithRequestId as SaveDraftInput,
+			)) as InvoiceFormSaveResult;
+			await invalidateSalesDocumentQueries();
+			finishMobileInvoiceSaveDiagnostic(diagnostic, result);
+			return result;
+		} catch (error) {
+			failMobileInvoiceSaveDiagnostic(diagnostic, error);
+			throw error;
+		}
+	};
 
-  const saveFinal = async (
-    payload: SaveDraftNewSalesFormPayload,
-  ): Promise<InvoiceFormSaveResult> => {
-    const result = (await realSaveFinal.mutateAsync(
-      payload as SaveFinalInput,
-    )) as InvoiceFormSaveResult;
-    await invalidateSalesDocumentQueries();
-    return result;
-  };
+	const saveFinal = async (
+		payload: SaveDraftNewSalesFormPayload,
+	): Promise<InvoiceFormSaveResult> => {
+		const payloadWithRequestId = attachMobileInvoiceSaveRequestId(payload);
+		const diagnostic = startMobileInvoiceSaveDiagnostic(
+			"save-final",
+			payloadWithRequestId,
+		);
+		try {
+			const result = (await realSaveFinal.mutateAsync(
+				payloadWithRequestId as SaveFinalInput,
+			)) as InvoiceFormSaveResult;
+			await invalidateSalesDocumentQueries();
+			finishMobileInvoiceSaveDiagnostic(diagnostic, result);
+			return result;
+		} catch (error) {
+			failMobileInvoiceSaveDiagnostic(diagnostic, error);
+			throw error;
+		}
+	};
 
   const deleteLineItem = async (
     input: DeleteNewSalesFormLineItemPayload,

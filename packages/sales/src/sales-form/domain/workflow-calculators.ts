@@ -489,11 +489,13 @@ export function deriveServiceRows({
 		return existingRows.map((row: any, index: number) => {
 			const qty = Number(row?.qty ?? 0);
 			const unitPrice = Number(row?.unitPrice ?? 0);
+			const taxxable =
+				row?.taxxable == null ? Boolean(lineTaxxable) : Boolean(row?.taxxable);
 			return {
 				...row,
 				uid: String(row?.uid || "").trim() || `service-${lineUid}-${index + 1}`,
 				service: normalizeServiceText(row?.service ?? row?.description ?? ""),
-				taxxable: Boolean(row?.taxxable),
+				taxxable,
 				produceable: Boolean(row?.produceable),
 				qty,
 				unitPrice,

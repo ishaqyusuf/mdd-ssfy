@@ -196,7 +196,7 @@ export const attachSignedDispatchPdf = schemaTask({
 						...options,
 						access: options?.access ?? "public",
 					}),
-				token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+				token: process.env.BLOB_READ_WRITE_TOKEN,
 				access: "public",
 				addRandomSuffix: false,
 			}),

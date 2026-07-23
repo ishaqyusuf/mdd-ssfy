@@ -121,6 +121,16 @@ describe("useInvoiceFormStore customer selection", () => {
 		expect(useInvoiceFormStore.getState().validationError).toBe(
 			"Could not save invoice. Check your connection and try again.",
 		);
+
+		useInvoiceFormStore
+			.getState()
+			.actions.markStale(
+				"This invoice changed elsewhere. Reload it before saving again.",
+			);
+		expect(useInvoiceFormStore.getState().saveStatus).toBe("stale");
+		expect(useInvoiceFormStore.getState().validationError).toBe(
+			"This invoice changed elsewhere. Reload it before saving again.",
+		);
 	});
 });
 

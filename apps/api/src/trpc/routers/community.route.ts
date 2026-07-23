@@ -98,6 +98,7 @@ import {
 	sortInstallCosts,
 } from "@api/utils/install-cost-sort";
 import { buildInstallCostSuggestionsWhere } from "@api/utils/install-cost-suggestions";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { getBuilders, getBuildersSchema } from "@community/builder";
 import {
 	saveCommunityModel,
@@ -154,7 +155,68 @@ import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
 import slugify from "slugify";
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "../init";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+	type TRPCContext,
+} from "../init";
+
+async function requireCommunityEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject"],
+		"You do not have permission to edit community configuration.",
+	);
+}
+
+async function requireCommunityBuilderEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject", "editBuilders"],
+		"You do not have permission to edit community builders.",
+	);
+}
+
+async function requireCommunityUnitEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject", "editCommunityUnit"],
+		"You do not have permission to edit community units.",
+	);
+}
+
+async function requireCommunityCostEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject", "editCost"],
+		"You do not have permission to edit community costs.",
+	);
+}
+
+async function requireCommunityInvoiceEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject", "editCommunityUnit", "editInvoice"],
+		"You do not have permission to edit community invoices.",
+	);
+}
+
+async function requireCommunityJobEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject", "editCommunityUnit", "editJobs"],
+		"You do not have permission to edit community jobs.",
+	);
+}
+
+async function requireCommunityProductionEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editCommunity", "editProject", "editCommunityUnit", "editProduction"],
+		"You do not have permission to send community units to production.",
+	);
+}
 
 function toSuggestionKey(parts: string[]) {
 	return parts
@@ -273,9 +335,10 @@ export const communityRouters = createTRPCRouter({
 	buildersList: publicProcedure.query(async (q) => {
 		return buildersList(q.ctx);
 	}),
-	createCommunityTemplateBlock: publicProcedure
+	createCommunityTemplateBlock: protectedProcedure
 		.input(createCommunityTemplateBlockSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return createCommunityTemplateBlock(props.ctx.db, props.input);
 		}),
 	communityModelCostHistory: publicProcedure
@@ -297,9 +360,10 @@ export const communityRouters = createTRPCRouter({
 			const result = await communityInstallCostForm(props.ctx, props.input);
 			return result;
 		}),
-	updateInstallCost: publicProcedure
+	updateInstallCost: protectedProcedure
 		.input(updateInstallCostSchema)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			await assertInstallCostAccess(props.ctx);
 			return updateInstallCost(props.ctx, props.input);
 		}),
@@ -329,9 +393,10 @@ export const communityRouters = createTRPCRouter({
 		.query(async (props) => {
 			return communityProjectOverview(props.ctx, props.input);
 		}),
-	uploadCommunityProjectDocuments: publicProcedure
+	uploadCommunityProjectDocuments: protectedProcedure
 		.input(uploadCommunityProjectDocumentsSchema)
 		.mutation(async (props) => {
+			await requireCommunityUnitEditor(props.ctx);
 			return uploadCommunityProjectDocuments(props.ctx, props.input);
 		}),
 	communityProjectUnitOverview: publicProcedure
@@ -339,9 +404,10 @@ export const communityRouters = createTRPCRouter({
 		.query(async (props) => {
 			return communityProjectUnitOverview(props.ctx, props.input);
 		}),
-	createCommunityModelCost: publicProcedure
+	createCommunityModelCost: protectedProcedure
 		.input(createCommunityModelCostSchema)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			return createCommnunityModelCost(props.ctx, props.input);
 		}),
 	getBuilders: publicProcedure.input(getBuildersSchema).query(async (q) => {
@@ -362,14 +428,16 @@ export const communityRouters = createTRPCRouter({
 		.query(async (props) => {
 			return getUnitInvoiceForm(props.ctx, props.input);
 		}),
-	saveUnitInvoiceForm: publicProcedure
+	saveUnitInvoiceForm: protectedProcedure
 		.input(saveUnitInvoiceFormSchema)
 		.mutation(async (props) => {
+			await requireCommunityInvoiceEditor(props.ctx);
 			return saveUnitInvoiceForm(props.ctx, props.input);
 		}),
-	deleteUnitInvoiceTasks: publicProcedure
+	deleteUnitInvoiceTasks: protectedProcedure
 		.input(deleteUnitInvoiceTasksSchema)
 		.mutation(async (props) => {
+			await requireCommunityInvoiceEditor(props.ctx);
 			return deleteUnitInvoiceTasks(props.ctx, props.input);
 		}),
 	getBuilderForm: publicProcedure
@@ -448,7 +516,8 @@ export const communityRouters = createTRPCRouter({
 	getJobForm: publicProcedure
 		.input(getCommunityJobFormSchema)
 		.query(async (props) => getCommunityJobForm(props.ctx, props.input)),
-	saveJobForm: publicProcedure.input(jobFormSchema).mutation(async (props) => {
+	saveJobForm: protectedProcedure.input(jobFormSchema).mutation(async (props) => {
+		await requireCommunityJobEditor(props.ctx);
 		const { ctx, input } = props;
 		return ctx.db.$transaction(async (db) => {
 			const { unit, user, job: jobInput } = input;
@@ -755,7 +824,8 @@ export const communityRouters = createTRPCRouter({
 		];
 		return units;
 	}),
-	importLegacyInstallCosts: publicProcedure.mutation(async (props) => {
+	importLegacyInstallCosts: protectedProcedure.mutation(async (props) => {
+		await requireCommunityCostEditor(props.ctx);
 		await assertInstallCostAccess(props.ctx);
 		const ss = await getSettingAction("install-price-chart", props.ctx.db);
 		const s = ss?.meta?.list || [];
@@ -778,7 +848,7 @@ export const communityRouters = createTRPCRouter({
 			importedCount: costsToImport.length,
 		};
 	}),
-	updateCommunityModelInstallTask: publicProcedure
+	updateCommunityModelInstallTask: protectedProcedure
 		.input(
 			z.object({
 				id: z.number().optional().nullable(),
@@ -791,6 +861,7 @@ export const communityRouters = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			await assertInstallCostAccess(props.ctx);
 			if (!props.input.builderTaskInstallCostId) {
 				const lastInstallCost =
@@ -865,13 +936,14 @@ export const communityRouters = createTRPCRouter({
 				return result;
 			}
 		}),
-	deleteCommunityModelInstallCost: publicProcedure
+	deleteCommunityModelInstallCost: protectedProcedure
 		.input(
 			z.object({
 				builderTaskInstallCostId: z.number(),
 			}),
 		)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			await assertInstallCostAccess(props.ctx);
 			const { db } = props.ctx;
 			const { builderTaskInstallCostId } = props.input;
@@ -919,7 +991,7 @@ export const communityRouters = createTRPCRouter({
 			});
 			return { success: true };
 		}),
-	reorderBuilderTaskInstallCosts: publicProcedure
+	reorderBuilderTaskInstallCosts: protectedProcedure
 		.input(
 			z.object({
 				builderTaskId: z.number(),
@@ -927,6 +999,8 @@ export const communityRouters = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
+			await assertInstallCostAccess(props.ctx);
 			const { db } = props.ctx;
 			const { builderTaskId, builderTaskInstallCostIds } = props.input;
 			const existingRows = await db.builderTaskInstallCost.findMany({
@@ -966,9 +1040,10 @@ export const communityRouters = createTRPCRouter({
 
 			return { ok: true };
 		}),
-	updateInstallCostRate: publicProcedure
+	updateInstallCostRate: protectedProcedure
 		.input(communityInstallCostRateSchema)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			await assertInstallCostAccess(props.ctx);
 			const { id, title, unit, unitCost } = props.input;
 			if (id) {
@@ -1014,29 +1089,34 @@ export const communityRouters = createTRPCRouter({
 		.query(async (props) => {
 			return getProjectForm(props.ctx, props.input);
 		}),
-	saveTemplateInputListing: publicProcedure
+	saveTemplateInputListing: protectedProcedure
 		.input(saveTemplateInputListingSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return saveTemplateInputListing(props.ctx.db, props.input);
 		}),
-	deleteCommunityModelCost: publicProcedure
+	deleteCommunityModelCost: protectedProcedure
 		.input(deleteCommunityModelCostSchema)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			return deleteCommunityModelCost(props.ctx, props.input);
 		}),
-	deleteInputInventoryBlock: publicProcedure
+	deleteInputInventoryBlock: protectedProcedure
 		.input(deleteInputInventoryBlockSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return deleteInputInventoryBlock(props.ctx.db, props.input);
 		}),
-	deleteInputSchema: publicProcedure
+	deleteInputSchema: protectedProcedure
 		.input(deleteInputSchemaSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return deleteInputSchema(props.ctx.db, props.input);
 		}),
-	deleteUnits: publicProcedure
+	deleteUnits: protectedProcedure
 		.input(deleteUnitsSchema)
 		.mutation(async (props) => {
+			await requireCommunityUnitEditor(props.ctx);
 			return deleteUnits(props.ctx, props.input);
 		}),
 	getProjectUnitPrintPreflight: publicProcedure
@@ -1044,9 +1124,10 @@ export const communityRouters = createTRPCRouter({
 		.query(async (props) => {
 			return getProjectUnitPrintPreflight(props.ctx, props.input);
 		}),
-	sendProjectUnitsToProduction: publicProcedure
+	sendProjectUnitsToProduction: protectedProcedure
 		.input(sendProjectUnitsToProductionSchema)
 		.mutation(async (props) => {
+			await requireCommunityProductionEditor(props.ctx);
 			return sendProjectUnitsToProduction(props.ctx, props.input);
 		}),
 	getCommunityBlockSchema: publicProcedure
@@ -1188,45 +1269,53 @@ export const communityRouters = createTRPCRouter({
 	getBuilderTasksForProject: publicProcedure
 		.input(getBuilderTasksForProjectSchema)
 		.query(async (props) => getBuilderTasksForProject(props.ctx, props.input)),
-	saveCommunityModelCostForm: publicProcedure
+	saveCommunityModelCostForm: protectedProcedure
 		.input(saveCommunityModelCostSchema)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			const result = await saveCommunityModelCost(props.ctx, props.input);
 			return result;
 		}),
-	saveCommunityTemplateData: publicProcedure
+	saveCommunityTemplateData: protectedProcedure
 		.input(communityTemplateFormSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return saveCommunityTemplateForm(props.ctx, props.input);
 		}),
-	deleteCommunityTemplate: publicProcedure
+	deleteCommunityTemplate: protectedProcedure
 		.input(deleteCommunityTemplateSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return deleteCommunityTemplate(props.ctx, props.input);
 		}),
-	saveCommunityModelLegacy: publicProcedure
+	saveCommunityModelLegacy: protectedProcedure
 		.input(saveCommunityModelLegacySchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return saveCommunityModelLegacy(props.ctx.db, props.input);
 		}),
-	saveCommunityModel: publicProcedure
+	saveCommunityModel: protectedProcedure
 		.input(saveCommunityModelSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return saveCommunityModel(props.ctx.db, props.input);
 		}),
-	updateCommunityBlockInput: publicProcedure
+	updateCommunityBlockInput: protectedProcedure
 		.input(updateCommunityBlockInputSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return updateCommunityBlockInput(props.ctx.db, props.input);
 		}),
-	updateCommunityBlockInputAnalytics: publicProcedure
+	updateCommunityBlockInputAnalytics: protectedProcedure
 		.input(updateCommunityBlockInputAnalyticsSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return updateCommunityBlockInputAnalytics(props.ctx.db, props.input);
 		}),
-	updateRecordsIndicesIndices: publicProcedure
+	updateRecordsIndicesIndices: protectedProcedure
 		.input(updateRecordsIndicesSchema)
 		.mutation(async (props) => {
+			await requireCommunityEditor(props.ctx);
 			return updateRecordsIndices(props.ctx.db, props.input);
 		}),
 	workOrder: {
@@ -1234,9 +1323,10 @@ export const communityRouters = createTRPCRouter({
 			const result = await getWorkOrderForm(props.ctx, props.input);
 			return result;
 		}),
-		saveWorkOrderForm: publicProcedure
+		saveWorkOrderForm: protectedProcedure
 			.input(workOrderFormSchema)
 			.mutation(async (props) => {
+				await requireCommunityUnitEditor(props.ctx);
 				return saveWorkOrderForm(props.ctx, props.input);
 			}),
 		findHomeOwner: publicProcedure
@@ -1301,9 +1391,10 @@ export const communityRouters = createTRPCRouter({
 			});
 		}),
 	},
-	saveBuilder: publicProcedure
+	saveBuilder: protectedProcedure
 		.input(builderFormSchema)
 		.mutation(async (props) => {
+			await requireCommunityBuilderEditor(props.ctx);
 			const { db } = props.ctx;
 			const { id, name, address, tasks } = props.input;
 			let result;
@@ -1386,9 +1477,10 @@ export const communityRouters = createTRPCRouter({
 			});
 			return tasks;
 		}),
-	generateModelForUnit: publicProcedure
+	generateModelForUnit: protectedProcedure
 		.input(z.object({ unitId: z.number() }))
 		.mutation(async (props) => {
+			await requireCommunityUnitEditor(props.ctx);
 			const { db } = props.ctx;
 			const { unitId } = props.input;
 
@@ -1656,7 +1748,7 @@ export const communityRouters = createTRPCRouter({
 				installCosts,
 			};
 		}),
-	saveModelInstallTask: publicProcedure
+	saveModelInstallTask: protectedProcedure
 		.input(
 			z.object({
 				id: z.number().optional().nullable(),
@@ -1672,6 +1764,7 @@ export const communityRouters = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireCommunityCostEditor(props.ctx);
 			await assertInstallCostAccess(props.ctx);
 			const { db } = props.ctx;
 			const { id, modelId, qty, installCostModelId, builderTaskId, status } =
@@ -1699,9 +1792,10 @@ export const communityRouters = createTRPCRouter({
 				});
 			}
 		}),
-	upgradeBuilderToV2: publicProcedure
+	upgradeBuilderToV2: protectedProcedure
 		.input(z.object({ builderId: z.number() }))
 		.mutation(async (props) => {
+			await requireCommunityBuilderEditor(props.ctx);
 			const { db } = props.ctx;
 			const { builderId } = props.input;
 			// check if already exists

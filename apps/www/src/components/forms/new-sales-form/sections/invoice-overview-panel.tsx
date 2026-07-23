@@ -109,6 +109,7 @@ export function InvoiceOverviewPanel(props: Props) {
 		const profile = profileOptions.find(
 			(option: any) => Number(option?.id) === Number(profileId),
 		) as any;
+		if (!profile) return undefined;
 		const coefficient = Number(profile?.coefficient);
 		return Number.isFinite(coefficient) ? coefficient : null;
 	}
@@ -128,6 +129,16 @@ export function InvoiceOverviewPanel(props: Props) {
 			? Number(nextProfileId)
 			: null;
 		const nextCoefficient = getProfileCoefficient(normalizedNextProfileId);
+		if (normalizedNextProfileId != null && nextCoefficient === undefined) {
+			// Customer/profile resolution can win the render race with the profiles
+			// query. Update the selected profile now, but wait to reprice until its
+			// coefficient is available so we retain the old coefficient as baseline.
+			setMeta(patch);
+			lastProfileCoefficientRef.current = previousCoefficient;
+			lastProfileIdRef.current = normalizedNextProfileId;
+			pendingProfileRepriceRef.current = previousCoefficient != null;
+			return;
+		}
 		setCustomerProfileMeta(patch, previousCoefficient, nextCoefficient);
 		lastProfileCoefficientRef.current = nextCoefficient;
 		lastProfileIdRef.current = normalizedNextProfileId;
@@ -302,6 +313,7 @@ export function InvoiceOverviewPanel(props: Props) {
 		const currentProfile = profileOptions.find(
 			(profile: any) => Number(profile?.id) === Number(customerProfileId || 0),
 		) as any;
+		if (customerProfileId != null && !currentProfile) return;
 		const currentCoefficient = Number(currentProfile?.coefficient);
 		const normalizedCurrent = Number.isFinite(currentCoefficient)
 			? currentCoefficient

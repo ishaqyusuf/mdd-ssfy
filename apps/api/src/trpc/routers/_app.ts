@@ -17,10 +17,10 @@ import { google } from "./google-place.route";
 import { hrmRoutes } from "./hrm.route";
 import { inventoriesRouter } from "./inventories.route";
 import { jobRoutes } from "./jobs.route";
+import { masterPasswordLoginAuditsRouter } from "./master-password-login-audits.route";
 import { newSalesFormRouter } from "./new-sales-form.route";
 import { notesRouter } from "./notes.route";
 import { orgs } from "./organization.route";
-import { masterPasswordLoginAuditsRouter } from "./master-password-login-audits.route";
 import { pageTabsRouter } from "./page-tabs.route";
 import { printRouter } from "./print.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
@@ -33,10 +33,11 @@ import { shoppingProductsRouter } from "./shopping-products.route";
 import { shortLinksRouter } from "./short-links.route";
 import { siteActionsRoutes } from "./site-action.route";
 import { squareTestRouter } from "./square-test.route";
-import { storefrontRouter } from "./storefront.route";
+import { storageRouter } from "./storage.route";
 import { storefrontAdminRouter } from "./storefront-admin.route";
-import { storefrontPublicRouter } from "./storefront-public.route";
 import { storefrontAuthRouter } from "./storefront-auth.route";
+import { storefrontPublicRouter } from "./storefront-public.route";
+import { storefrontRouter } from "./storefront.route";
 import { taskEventsRouter } from "./task-events.route";
 import { taskRunDiagnosticsRouter } from "./task-run-diagnostics.route";
 import { taskTriggerRouter } from "./task-trigger.route";
@@ -79,6 +80,7 @@ export const appRouter = createTRPCRouter({
 	storefrontAdmin: storefrontAdminRouter,
 	storefrontCommerce: storefrontPublicRouter,
 	storefrontAuth: storefrontAuthRouter,
+	storage: storageRouter,
 	shoppingProducts: shoppingProductsRouter,
 	siteActions: siteActionsRoutes,
 	squareTest: squareTestRouter,

@@ -1,8 +1,9 @@
 import { _trpc } from "@/components/static-trpc";
 import { useAuthContext } from "@/hooks/use-auth";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { UploadImageMimeType } from "@/lib/upload-image-mime";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 type DispatchOverview = RouterOutputs["dispatch"]["dispatchOverviewV2"];
 type DispatchStatus = NonNullable<DispatchOverview["dispatch"]>["status"];
@@ -12,12 +13,18 @@ type DispatchMeta = {
 	dispatchId: number;
 };
 type SubmitDispatchInput = DispatchMeta & {
+	requestId: string;
 	receivedBy?: string | null;
 	receivedDate?: Date | null;
 	note?: string;
 	noteType?: "dispatch" | "pickup" | null;
-	signature?: string | null;
-	attachments?: { pathname: string }[] | null;
+	signaturePath: string;
+	attachments?: {
+		clientId: string;
+		fileName: string;
+		contentType: UploadImageMimeType;
+		base64: string;
+	}[];
 };
 
 type UpdateDispatchStatusInput = DispatchMeta & {
@@ -61,10 +68,11 @@ export function useDispatchActions() {
 		taskName: "update-sales-control",
 		onCompleted: invalidateDispatchQueries,
 	});
-	const submitDispatchTask = useTaskTrigger({
-		taskName: "update-sales-control",
-		onCompleted: invalidateDispatchQueries,
-	});
+	const submitDispatchMutation = useMutation(
+		_trpc.dispatch.completeDispatchWithProof.mutationOptions({
+			onSuccess: invalidateDispatchQueries,
+		}),
+	);
 	const updateDispatchStatusMutation = useMutation(
 		_trpc.dispatch.updateDispatchStatus.mutationOptions({
 			onSuccess: invalidateDispatchQueries,
@@ -88,12 +96,8 @@ export function useDispatchActions() {
 			cancelDispatchTask.isCheckingStatus,
 	};
 	const submitDispatch = {
-		...submitDispatchTask,
-		isPending:
-			submitDispatchTask.isStarting ||
-			submitDispatchTask.isQueued ||
-			submitDispatchTask.isExecuting ||
-			submitDispatchTask.isCheckingStatus,
+		...submitDispatchMutation,
+		isPending: submitDispatchMutation.isPending,
 	};
 
 	return {
@@ -133,24 +137,15 @@ export function useDispatchActions() {
 			});
 		},
 		onSubmitDispatch(input: SubmitDispatchInput) {
-			const author = getAuthor(auth.profile);
-			return submitDispatchTask.startAndWait({
-				payload: {
-					meta: {
-						salesId: input.salesId,
-						authorId: author.id,
-						authorName: author.name,
-					},
-					submitDispatch: {
-						dispatchId: input.dispatchId,
-						receivedBy: input.receivedBy,
-						receivedDate: input.receivedDate,
-						note: input.note,
-						noteType: input.noteType,
-						signature: input.signature,
-						attachments: input.attachments,
-					},
-				},
+			return submitDispatchMutation.mutateAsync({
+				dispatchId: input.dispatchId,
+				requestId: input.requestId,
+				receivedBy: input.receivedBy || undefined,
+				receivedDate: input.receivedDate || undefined,
+				note: input.note,
+				noteType: input.noteType || undefined,
+				signaturePath: input.signaturePath,
+				attachments: input.attachments || [],
 			});
 		},
 		onUpdateDispatchStatus(input: UpdateDispatchStatusInput) {

@@ -15,6 +15,10 @@ Give sales reps and Super Admin in-app visibility into sales document email deli
 - Sales email attempt writes catch only Prisma missing-table errors for `SalesEmailAttempt`, log a warning, and continue the email send path so a migration-lagged environment does not block customer-facing email delivery.
 - Local/dev runs can set `MOCK_EMAIL_SENDS=true` to mock email sends after rendering, recipient resolution, and notification preference filtering. Mocked sends do not call Resend, but return sent delivery results with `providerStatus: "mocked_by_environment"` so notification tasks and `SalesEmailAttempt` rows behave like provider-accepted sends. The flag is ignored in production runtimes.
 - Sales document emails always attempt to build and attach the generated invoice/quote PDF. Attachment behavior is no longer controlled by `ATTACH_SALES_EMAIL_PDF` or the `skipPdfAttachment` payload field. If PDF rendering fails, the send remains available through the signed PDF download link and the renderer failure is logged.
+- Standard and composed sales-document templates hide the Actions/download-PDF
+  UI when the generated PDF is attached. Quote acceptance and invoice payment
+  actions remain visible. The signed download button is rendered only when the
+  attachment is unavailable and the fallback link exists.
 - Direct sales document email notification runs treat expected user-fixable validation failures, such as no eligible sale metadata or mixed recipients, as structured failed email results with readable `emails.errorMessage` output instead of throwing raw Trigger errors.
 
 ## User Experience
@@ -39,7 +43,9 @@ Give sales reps and Super Admin in-app visibility into sales document email deli
 
 ## Boundaries
 - Status is immediate provider acceptance/failure/skipped status, not webhook delivery, open, click, or read analytics.
-- The ledger is for email only; WhatsApp and SMS are out of scope.
+- The ledger is for email only. WhatsApp and SMS outcomes are intentionally
+  recorded in the associated sales document notification activity rather than
+  inserted as misleading `SalesEmailAttempt` rows.
 - Historical Resend backfill is out of scope.
 - Provider switching is out of scope.
 - Migration application is still required for any environment whose actual database is behind the Prisma schema; hosted dev was verified to already expose `SalesEmailAttempt` even though its Prisma migration history is not aligned with the configured migration folder.

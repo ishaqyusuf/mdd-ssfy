@@ -1,20 +1,20 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
+import * as React from "react";
 
-import { NavItem } from "@/types/nav";
 import { siteConfig } from "@/config/site";
-import { cn } from "@gnd/ui/cn";
-import { Button } from "@gnd/ui/button";
+import type { NavItem } from "@/types/nav";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@gnd/ui/accordion";
-import { Sheet, SheetContent, SheetTrigger } from "@gnd/ui/sheet";
+import { Button } from "@gnd/ui/button";
+import { cn } from "@gnd/ui/cn";
 import { Icons } from "@gnd/ui/icons";
+import { Sheet, SheetContent, SheetTrigger } from "@gnd/ui/sheet";
 
 interface MobileNavProps {
   items?: NavItem[];
@@ -40,21 +40,26 @@ export function MobileNav({ items }: MobileNavProps) {
           className="flex items-center space-x-2"
           onClick={() => setOpen(false)}
         >
-          <Icons.Logo className="h-6 w-6" />
+          <span className="flex size-6 items-center [&_img]:size-6">
+            <Icons.Logo />
+          </span>
           <span className="font-bold">{siteConfig.name}</span>
         </Link>
         <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
           <Accordion type="multiple" className="w-full">
-            {items?.map((item, index) =>
+            {items?.map((item) =>
               item.items ? (
-                <AccordionItem value={item.title} key={index}>
+                <AccordionItem
+                  value={item.title}
+                  key={item.href ?? item.title}
+                >
                   <AccordionTrigger>{item.title}</AccordionTrigger>
                   <AccordionContent>
                     <div className="flex flex-col space-y-2">
-                      {item.items.map((subItem, index) =>
+                      {item.items.map((subItem) =>
                         subItem.href ? (
                           <Link
-                            key={index}
+                            key={`${subItem.href}:${subItem.title}`}
                             href={subItem.href}
                             className={cn(
                               "flex items-center text-sm font-medium text-muted-foreground",
@@ -66,7 +71,7 @@ export function MobileNav({ items }: MobileNavProps) {
                           </Link>
                         ) : (
                           <div
-                            key={index}
+                            key={subItem.title}
                             className="text-sm font-medium text-muted-foreground"
                           >
                             {subItem.title}
@@ -79,7 +84,7 @@ export function MobileNav({ items }: MobileNavProps) {
               ) : (
                 item.href && (
                   <Link
-                    key={index}
+                    key={item.href ?? item.title}
                     href={item.href}
                     className={cn(
                       "flex items-center text-sm font-medium text-muted-foreground",

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	computeHptSharedDoorSurcharge,
 	hydrateHptDoorRowFromLegacy,
 	hydrateHptLineFromLegacy,
 	normalizeHptDoorRowForLegacy,
@@ -8,6 +9,36 @@ import {
 } from "./hpt-compatibility";
 
 describe("HPT legacy compatibility", () => {
+	it("uses selected component prices when a persisted step price is missing", () => {
+		const surcharge = computeHptSharedDoorSurcharge({
+			formSteps: [
+				{
+					step: { title: "Specie" },
+					price: 0,
+					meta: {
+						selectedComponents: [{ salesPrice: 12 }, { salesPrice: 8 }],
+					},
+				},
+			],
+		});
+
+		expect(surcharge).toBe(20);
+	});
+
+	it("keeps the step price fallback when component snapshots have no price", () => {
+		const surcharge = computeHptSharedDoorSurcharge({
+			formSteps: [
+				{
+					step: { title: "Specie" },
+					price: 20,
+					meta: { selectedComponents: [{ uid: "specie" }] },
+				},
+			],
+		});
+
+		expect(surcharge).toBe(20);
+	});
+
 	it("maps door-only price and surcharge into legacy fields", () => {
 		const row: any = normalizeHptDoorRowForLegacy(
 			{

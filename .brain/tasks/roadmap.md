@@ -7,13 +7,29 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Sales form hardening
 - New sales form parity closure
 - Sales overview system redesign
-- Shared document platform migration
+- Shared document platform migration (active caller cutover completed
+  2026-07-23; inventory image metadata remains separately scoped)
 - Payment-system and resolution-system cutover
 - Jobs and notification reliability improvements
 - Expo sales, delivery, and dispatch workflow expansion
 - Inventory-backed sales fulfillment cutover (`brain/features/inventory-backed-sales-fulfillment.md`)
 
 ## Planned Tasks
+
+### Storefront Product-Aware Shipping Quotes
+- Priority: High
+- Description: Track the proposed Google Place, driving-distance, product-weight,
+  Moulding length, Shelf category, and mandatory office-reviewed shipping quote
+  workflow in `.brain/plans/2026-07-23-feature-storefront-product-aware-shipping-quotes.md`.
+- Related Feature: Storefront checkout, shipping pricing, office order review
+- Status: Done
+- Plan Status: Proposed
+- Implementation Status: Implemented locally
+- Plan File: .brain/plans/2026-07-23-feature-storefront-product-aware-shipping-quotes.md
+- Created Date: 2026-07-23
+- Completed Date: 2026-07-23
+- Release Gate: Calibrate and publish production policy; resolve the pre-existing
+  migration replay blocker before normal schema deployment.
 
 ### Sales Customer Direct Dealership Invitations
 - Priority: High
@@ -145,20 +161,25 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 
 ### Sales Document WhatsApp And SMS Delivery
 - Priority: High
-- Description: Track plan in `brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md`.
+- Description: Added explicit Email/WhatsApp/SMS document delivery, normalized
+  phone validation, reusable short links, Twilio SMS configuration, and
+  per-channel activity outcomes.
 - Related Feature: Sales quote/order document delivery
-- Status: Roadmap
-- Plan Status: Proposed
+- Status: Done
+- Plan Status: Completed
 - Plan File: brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md
+- Feature File: brain/features/sales-document-messaging.md
+- Decision: brain/decisions/ADR-027-sales-document-message-delivery.md
 - Intake File: brain/intake/2026-07-02-sales-document-whatsapp-sms-delivery.md
 - Created Date: 2026-07-02
+- Completed Date: 2026-07-23
 
 ### Sales Order Inventory Repair On Order Updates
 - Priority: High
 - Description: Track plan in `brain/plans/2026-07-01-feature-sales-order-inventory-repair-on-updates.md`.
 - Related Feature: Inventory-backed sales fulfillment
 - Status: Roadmap
-- Plan Status: Proposed
+- Plan Status: Shared preview/apply workflow implemented; authenticated browser proof remains
 - Plan File: brain/plans/2026-07-01-feature-sales-order-inventory-repair-on-updates.md
 - Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
 - Created Date: 2026-07-01
@@ -217,13 +238,18 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Created Date: 2026-07-01
 - Latest Completed Slices: Phase 0 invariant matrix, fulfilled/cancelled inventory read-only enforcement, Sales Overview Inventory active-tab/read-only UI, inbound create/assign parent-sale guards, route input validation and confirmed-write proof slices, Phase 8 repair-path audit/evidence runner/repair runner, reviewed stale/componentless repair apply evidence, sync stale-cleanup timestamp precision hardening, shipment/allocation classification evidence, missing-sales scope classification evidence, scoped active/order missing-sales batch evidence, materializable/mapping-blocked backfill classification, materializable active/order backfill apply evidence, zero-component componentless review evidence, zero-component source-shape classification evidence, HPT door component fallback, reviewed zero-component repair apply evidence, and eleven additional reviewed materializable backfill applies.
 - Phase 0 Evidence: brain/reports/2026-07-01-inventory-correctness-invariant-matrix.md
-- Latest Phase 8 Evidence: brain/reports/2026-07-01-inventory-reconciliation-evidence.md; current result is not clean (`needs_backfill`, `20449` missing sales, `0` componentless lines, `0` componentless sales, `9` shipment/allocation drift, `1` skipped comparison, `hasMore=true`, next cursor `208`). The previous `86` HPT zero-component lines were resolved, and eleven additional reviewed materializable active/order batches created `1323` more inventory sale lines while keeping componentless/stale evidence clear. Repairs are stopped by user request; if explicitly resumed, the latest repair plan starts with the next 50-id materializable active/order missing-sales batch (`244` materializable active/order candidates remain, `1380` active/order candidates are mapping-blocked), followed by non-active/mapping-blocked scope decisions and shipment/allocation review.
+- Latest Phase 8 Evidence: brain/reports/2026-07-01-inventory-reconciliation-evidence.md; the 2026-07-23 read-only refresh is not clean (`needs_backfill`, `21745` missing sales, `5` componentless lines across `2` sales, `50` stale lines, `281` reconciliation drift, `14` skipped comparisons, `hasMore=true`, next cursor `200`). It does not reproduce the cleaner July 1 post-repair checkpoint, so the local-baseline regression must be understood before any repair candidate is reused. Repairs remain stopped by user request.
 - Latest Ledger Correction: 2026-07-01 documentation-only alignment of the cutover plan, roadmap, in-progress ledger, done ledger, progress log, and reconciliation evidence after eleven additional reviewed materializable active/order backfill applies; this does not close the cutover.
 - Latest Documentation Alignment: 2026-07-01 intake and pending-phase audit confirmed the roadmap state without new data repair or new evidence collection. Completed slices remain done evidence only; the roadmap workstream remains In Progress until Phase 11 release acceptance is recorded.
 - Ledger Rule: Completed slices are recorded in `brain/tasks/done.md`, but the roadmap workstream stays In Progress until Phase 11 release acceptance is recorded in the cutover plan.
 - Open Gates: clean Phase 8 reconciliation evidence after the stopped repair loop is explicitly resumed or product-scoped, non-active and mapping-blocked missing-sales scope is decided, and classified shipment/allocation blockers are resolved; Phase 1/2/3/4/5/6/7 operator proof gaps; Phase 9 UI polish; Phase 10 browser proof matrix; and Phase 11 release acceptance.
 - Pending Phase Order: Phase 8 clean reconciliation -> Phase 1-7 operator proof gaps -> Phase 9 UI polish -> Phase 10 browser proof matrix -> Phase 11 release gates.
-- Next Gate: repairs are stopped by user request. Do not run more repair dry-runs or applies unless repairs are explicitly resumed; if resumed, the next 50-id materializable active/order backfill batch is `2792` through `2884`. Meanwhile, decide the non-active/mapping-blocked missing-sales buckets and review the remaining shipment/allocation mismatch classes. Clean Phase 8 reconciliation evidence must be recorded before moving to the broad browser/operator proof matrix.
+- Next Gate: repairs are stopped by user request. Do not run repair dry-runs or
+  applies unless explicitly resumed. First explain the 2026-07-23 local
+  evidence regression and re-review exact candidates; then decide the
+  non-active/mapping-blocked missing-sales buckets and review operator shipment
+  truth for the current mismatch classes. Clean Phase 8 reconciliation evidence
+  must be recorded before moving to the broad browser/operator proof matrix.
 
 ### Sales Payment C.C.C Record Visibility
 - Priority: Medium
@@ -427,41 +453,45 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Priority: High
 - Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-template-interaction-architecture.md`.
 - Related Feature: Mobile design-system preview templates
-- Status: Roadmap
-- Plan Status: Proposed
+- Status: Done
+- Plan Status: Done
 - Plan File: brain/plans/2026-06-23-ux-ui-mobile-template-interaction-architecture.md
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md
 - Created Date: 2026-06-23
+- Completed Date: 2026-07-23
 
 ### Mobile Field Flow Complete Tabs And Route Overview
 - Priority: High
 - Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-field-flow-tabs-route-overview.md`.
 - Related Feature: Mobile design-system preview templates
-- Status: Roadmap
-- Plan Status: Proposed
+- Status: Done
+- Plan Status: Done
 - Plan File: brain/plans/2026-06-23-ux-ui-mobile-field-flow-tabs-route-overview.md
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md
 - Created Date: 2026-06-23
+- Completed Date: 2026-07-23
 
 ### Mobile Ops Console Complete Tabs Search And Work Overview
 - Priority: High
 - Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-ops-console-tabs-search-work-overview.md`.
 - Related Feature: Mobile design-system preview templates
-- Status: Roadmap
-- Plan Status: Proposed
+- Status: Done
+- Plan Status: Done
 - Plan File: brain/plans/2026-06-23-ux-ui-mobile-ops-console-tabs-search-work-overview.md
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md
 - Created Date: 2026-06-23
+- Completed Date: 2026-07-23
 
 ### Mobile Sales Ledger Complete Tabs Search And Order Overview
 - Priority: Medium
 - Description: Track plan in `brain/plans/2026-06-23-ux-ui-mobile-sales-ledger-tabs-search-order-overview.md`.
 - Related Feature: Mobile design-system preview templates
-- Status: Roadmap
-- Plan Status: Proposed
+- Status: Done
+- Plan Status: Done
 - Plan File: brain/plans/2026-06-23-ux-ui-mobile-sales-ledger-tabs-search-order-overview.md
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md
 - Created Date: 2026-06-23
+- Completed Date: 2026-07-23
 
 ### Storefront Public Launch Readiness
 - Priority: High
@@ -472,3 +502,26 @@ Tracks durable workstreams that span multiple sessions and often multiple implem
 - Plan Status: Proposed
 - Plan File: .brain/plans/2026-07-22-feature-storefront-public-launch-readiness.md
 - Created Date: 2026-07-22
+
+### Sales Overview Production Preflight
+- Priority: High
+- Description: Add the admin/order manager checklist for door configuration,
+  customer/tax, supplier pricing, inventory, fulfillment, and current PDF
+  readiness without creating a second production gate.
+- Related Feature: Sales Overview and inventory-backed sales fulfillment
+- Status: Done
+- Plan Status: Done
+- Plan File: .brain/plans/2026-07-23-feature-sales-overview-production-preflight.md
+- Created Date: 2026-07-23
+- Completed Date: 2026-07-23
+
+### Dealer Request, Payment, and Fulfillment Next-Step Guidance
+- Priority: High
+- Description: Give dealers shared status-aware guidance from quote request
+  through GND payment and pickup/delivery without creating a second workflow.
+- Related Feature: Dealership Quote-to-Order Approval
+- Status: Done
+- Plan Status: Done
+- Plan File: .brain/plans/2026-07-23-feature-dealer-next-step-guidance.md
+- Created Date: 2026-07-23
+- Completed Date: 2026-07-23

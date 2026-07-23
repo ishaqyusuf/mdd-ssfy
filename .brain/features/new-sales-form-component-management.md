@@ -46,5 +46,24 @@ respond without reopening the sale.
 - Ordinary internal sales users: sales selection only.
 - Dealership/storefront surfaces: no internal catalog-management actions.
 
+Grouped service and shelf editors now consume the same `canEditLinePricing`
+capability as Door/HPT pricing. Non-Super-Admin roles retain text, quantity,
+and selection workflows while unit-price, tax, production, and shelf-price
+controls stay read-only.
+
 Authorization is duplicated intentionally at the capability/UI boundary and
 the protected tRPC mutation boundary. No database migration is required.
+
+## Grouped workflow parity slices
+
+- HPT keeps `Add Size` reachable before the first active-door row exists and
+  when another selected door owns the only persisted rows.
+- Shelf sections expose the category path used by the legacy editor; changing
+  or clearing it resets stale product, pricing, and subtotal state before the
+  next selection.
+- Hosted moulding calculators derive displayed price per linear foot from
+  piece price divided by piece length, refresh defaults when reused for a new
+  row while closed, and safely support hosts without an apply callback.
+
+These behaviors are covered by focused source/domain tests; authenticated
+browser proof remains a release gate.

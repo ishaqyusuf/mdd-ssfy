@@ -1,5 +1,3 @@
-import { z } from "zod";
-import { orderInboundStatuses } from "@gnd/utils/constants";
 import {
   salesFormExtraCostSchema,
   salesFormExtraCostTypeSchema,
@@ -9,6 +7,8 @@ import {
   salesFormRecalculateLineItemSchema,
   salesFormSummarySchema,
 } from "@gnd/sales/sales-form";
+import { orderInboundStatuses } from "@gnd/utils/constants";
+import { z } from "zod";
 
 export const newSalesFormTypeSchema = z.enum(["order", "quote"]);
 export type NewSalesFormType = z.infer<typeof newSalesFormTypeSchema>;
@@ -135,7 +135,8 @@ export type DeleteNewSalesFormShelfProductSchema = z.infer<
 >;
 
 export const saveDraftNewSalesFormSchema = z.object({
-  type: newSalesFormTypeSchema,
+	clientRequestId: z.string().trim().min(1).max(120).optional().nullable(),
+	type: newSalesFormTypeSchema,
   slug: z.string().optional().nullable(),
   salesId: z.number().optional().nullable(),
   inventoryStatus: z.enum(orderInboundStatuses).optional().nullable(),

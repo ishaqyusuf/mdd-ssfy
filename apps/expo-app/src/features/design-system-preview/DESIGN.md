@@ -37,8 +37,11 @@ The previews adapt those ideas to GND's actual mobile domains: jobs, dispatch, w
 - Preview screens resolve the active palette from the app color scheme.
 - Template screens expose the app theme toggle in the top-right header slot.
 - Template bottom tabs render as a floating overlay outside the scroll view, with transparent surrounding space so content remains visible around the tab card.
-- **Interactivity**: Previews implement shared local state for bottom tabs, global search, status filters, and active-record selection.
+- **Interactivity**: Previews implement shared local state for bottom tabs, global search, multi-facet filters, active-record selection, and nested detail tabs.
+- **Search**: Search matches identifiers, titles, subtitles, statuses, amounts, actions, tab labels, facet values, metadata, and detail content.
+- **Filters**: Status and template-owned facet groups use OR within one group and AND across groups. Sheet changes are staged until Apply; closing cancels them, and Reset clears the staged filters without clearing search.
 - **Record Details**: Selecting a record transitions the view from the list tab to a detailed view with its own nested tabs.
+- **Back Behavior**: Leaving a record detail returns to the bottom tab that opened it. Detail views hide the bottom navigation to keep one navigation layer active.
 - Header text, search controls, and native status bar style derive from header luminance so dark chrome uses light system icons and near-white chrome keeps dark text.
 - Header theme-toggle icons also derive from the header foreground instead of the global app theme artwork.
 - Header back, search, and filter icons use the shared `Icon` `inverted` option when the custom header surface is opposite the current app theme.
@@ -70,6 +73,12 @@ Visual system:
 - extended work queue sample so the screen scrolls beneath and around the floating tab card
 - bottom navigation mock
 
+Completed interactions:
+
+- Home, Inbox, Sales, Calendar, and More workspaces
+- priority, owner, due-window, and work-type filters
+- Overview, Timeline, Checklist, Notes, and Actions record detail tabs
+
 Tradeoff:
 
 - strongest Fikri reference match
@@ -98,6 +107,12 @@ Visual system:
 - direct primary action
 - clear bottom navigation mock
 
+Completed interactions:
+
+- Home, Route, Pack, Proof, and Me workspaces
+- assignment, route-window, and work-type filters
+- Continue Route selection plus Overview, Stops, Items, Proof, and Activity detail tabs
+
 Tradeoff:
 
 - best for field usability
@@ -124,6 +139,12 @@ Visual system:
 - restrained color
 - financial status hierarchy
 
+Completed interactions:
+
+- Home, Sales, Money, Ship, and More workspaces
+- document-type, payment-state, delivery-state, and date-window filters
+- Overview, Items, Payments, Fulfillment, and Activity detail tabs
+
 Tradeoff:
 
 - best for sales/accounting clarity
@@ -142,15 +163,25 @@ Use Template A as the likely overall mobile shell direction, then selectively bo
 
 ```text
 components/preview-card.tsx
+components/preview-bottom-filter-sheet.tsx
+components/preview-detail-tabs.tsx
 components/preview-metric.tsx
+components/preview-record-detail.tsx
+components/preview-record-list.tsx
 components/preview-shell.tsx
 components/preview-status.tsx
 data/sample-data.ts
+data/template-tabs.ts
 design-systems/template-a-ops-console.ts
 design-systems/template-b-field-flow.ts
 design-systems/template-c-sales-ledger.ts
+hooks/use-preview-filters.ts
+hooks/use-preview-selection.ts
+hooks/use-preview-tabs.ts
 screens/design-system-index-screen.tsx
 screens/template-a-screen.tsx
 screens/template-b-screen.tsx
 screens/template-c-screen.tsx
+utils/preview-detail-content.ts
+utils/preview-filtering.ts
 ```

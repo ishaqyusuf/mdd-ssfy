@@ -17,6 +17,7 @@ import type { Prisma } from "@gnd/db";
 import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
+import { resolvePersistedSalesLineDoorRouteConfig } from "@gnd/sales/sales-form";
 import { getNameInitials, sum, toNumber } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { DeliveryOption } from "@gnd/utils/sales";
@@ -32,14 +33,31 @@ export type Item = Prisma.SalesOrdersGetPayload<{
 		qty: number | null;
 		swing: string | null;
 		total: number | null;
+		meta?: unknown;
 		formSteps?: Array<{
 			title?: string | null;
 			value: string | null;
+			meta?: unknown;
 			step?: {
 				title?: string | null;
 			} | null;
+			component?: {
+				meta?: unknown;
+			} | null;
+		}>;
+		salesDoors?: Array<{
+			dimension?: string | null;
+			swing?: string | null;
+			lhQty?: number | null;
+			rhQty?: number | null;
+			totalQty?: number | null;
+			meta?: unknown;
 		}>;
 	}>;
+	salesProfile?: {
+		id: number;
+		title: string | null;
+	} | null;
 	payments?: Array<{
 		id?: number | null;
 		amount: number | null;
@@ -115,6 +133,36 @@ export function salesQuoteDto(data: Item, bin?: boolean) {
 		...commonListData(data, bin),
 	};
 }
+
+export function salesOverviewDto(data: Item, salesType: SalesType) {
+	const overview =
+		salesType === "quote" ? salesQuoteDto(data) : salesOrderDto(data);
+
+	return {
+		...overview,
+		customerProfile: data.salesProfile
+			? {
+					id: data.salesProfile.id,
+					title: data.salesProfile.title,
+				}
+			: null,
+		taxSummary: {
+			configured: data.taxes.length > 0,
+			codes: Array.from(
+				new Set(
+					data.taxes
+						.flatMap((tax) => [tax.taxCode, tax.taxConfig?.title])
+						.filter((value): value is string => Boolean(value)),
+				),
+			),
+		},
+		shippingAddressConfigured: Boolean(
+			data.shippingAddress?.address1?.trim() ||
+				data.shippingAddress?.address2?.trim(),
+		),
+		overviewItems: salesOverviewItemsDto(data.items, true),
+	};
+}
 function resolveSalesPaymentMethod(meta: unknown) {
 	const record =
 		meta && typeof meta === "object" && !Array.isArray(meta)
@@ -158,7 +206,10 @@ function getAddressDto(
 	};
 }
 
-function salesOverviewItemsDto(items: Item["items"]) {
+function salesOverviewItemsDto(
+	items: Item["items"],
+	includePreflightEvidence = false,
+) {
 	return (items || []).map((item) => {
 		const firstStep = item.formSteps?.[0];
 		const subtitle = [
@@ -168,12 +219,39 @@ function salesOverviewItemsDto(items: Item["items"]) {
 			.filter(Boolean)
 			.join(" | ");
 
-		return {
+		const overviewItem = {
 			id: item.id,
 			title: item.description || item.dykeDescription || "Line item",
 			subtitle,
 			qty: Number(item.qty || 0),
 			total: Number(item.total || 0),
+		};
+		if (!includePreflightEvidence) return overviewItem;
+		const lineNoHandle =
+			resolvePersistedSalesLineDoorRouteConfig(item).noHandle === true;
+
+		return {
+			...overviewItem,
+			swing: item.swing,
+			configurationSteps: (item.formSteps || []).map((step) => ({
+				label: step.step?.title || step.title || null,
+				value: step.value,
+			})),
+			doors: (item.salesDoors || []).map((door) => {
+				const meta =
+					door.meta && typeof door.meta === "object" && !Array.isArray(door.meta)
+						? (door.meta as Record<string, unknown>)
+						: null;
+				const totalQty = Number(door.totalQty || 0);
+				return {
+					dimension: door.dimension,
+					swing: door.swing,
+					lhQty: Number(door.lhQty || 0),
+					rhQty: Number(door.rhQty || 0),
+					totalQty,
+					noHandle: meta?.noHandle === true || lineNoHandle,
+				};
+			}),
 		};
 	});
 }

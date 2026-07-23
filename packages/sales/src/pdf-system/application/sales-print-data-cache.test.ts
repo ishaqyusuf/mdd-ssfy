@@ -219,6 +219,44 @@ describe("sales print data cache", () => {
 		expect(state.printData).toHaveLength(2);
 	});
 
+	it("deduplicates repeated batch sales ids while preserving first-seen order", async () => {
+		const { db, state } = createMockDb({
+			printData: [
+				readyRow({
+					id: "spd-10",
+					salesOrderId: 10,
+					title: "INV-10",
+					firstOrderId: "INV-10",
+					pages: [{ meta: { salesNo: "INV-10" }, sections: [] }],
+				}),
+			],
+		});
+		const generatedIds: number[] = [];
+
+		const result = await createOrRefreshBatchSalesPrintData(db, {
+			salesOrderIds: [10, 10, 11, 10],
+			mode: "invoice",
+			loadPrintDocumentData: (async (_db, input) => {
+				const salesOrderId = input.ids[0];
+				generatedIds.push(salesOrderId);
+				return {
+					pages: [{ meta: { salesNo: `INV-${salesOrderId}` }, sections: [] }],
+					title: `INV-${salesOrderId}`,
+					firstOrderId: `INV-${salesOrderId}`,
+					companyAddress: { address1: "Main", address2: "", phone: "555" },
+				};
+			}) as any,
+		});
+
+		expect(generatedIds).toEqual([11]);
+		expect(result.records.map((record) => record.salesOrderId)).toEqual([10, 11]);
+		expect(result.pages.map((page) => page.meta.salesNo)).toEqual([
+			"INV-10",
+			"INV-11",
+		]);
+		expect(state.printData).toHaveLength(2);
+	});
+
 	it("marks generated rows as failed when refresh generation fails", async () => {
 		const { db, state } = createMockDb();
 

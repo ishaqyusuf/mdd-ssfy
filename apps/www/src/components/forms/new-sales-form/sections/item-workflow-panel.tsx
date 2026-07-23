@@ -1286,6 +1286,15 @@ export function ItemWorkflowPanel() {
 						[line.uid]: uid,
 					}))
 				}
+				onAddDoor={
+					doorStepIndex >= 0
+						? () =>
+								setActiveStepByLine((prev) => ({
+									...prev,
+									[line.uid]: doorStepIndex,
+								}))
+						: undefined
+				}
 				onAddSize={addSizeRow}
 				onConfigureSizes={() =>
 					activeDoorComponent
@@ -1460,6 +1469,7 @@ export function ItemWorkflowPanel() {
 			<ServiceLineItemsEditor
 				rows={rows}
 				formatMoney={money}
+				canEditPricing={workflowAdminCapabilities.canEditLinePricing}
 				onRowsChange={persistRows}
 				createRow={(nextIndex) => ({
 					uid: `service-${nextIndex}-${Date.now().toString(36)}`,
@@ -1470,6 +1480,28 @@ export function ItemWorkflowPanel() {
 					unitPrice: 0,
 				})}
 			/>
+		);
+	}
+	function renderCalculatedComponentPrice(component: WorkflowComponent) {
+		const salesPrice =
+			moneyIfPositive(Number(component.salesPrice || 0)) || "$0.00";
+		const basePrice = moneyIfPositive(Number(component.basePrice || 0));
+		return (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span
+						className="cursor-help underline decoration-dotted underline-offset-2"
+						tabIndex={0}
+						aria-label={`Calculated sales cost ${salesPrice}`}
+					>
+						{salesPrice}
+					</span>
+				</TooltipTrigger>
+				<TooltipContent>
+					<div>Calculated sales cost: {salesPrice}</div>
+					{basePrice ? <div>Base cost: {basePrice}</div> : null}
+				</TooltipContent>
+			</Tooltip>
 		);
 	}
 	function renderItemComponentPanel(
@@ -1529,7 +1561,7 @@ export function ItemWorkflowPanel() {
 								imageSrc={resolveComponentImageSrc(component.img)}
 								alt={component.title || component.uid}
 								title={componentLabel(component.title || component.uid)}
-								price={moneyIfPositive(component.salesPrice)}
+								priceSlot={renderCalculatedComponentPrice(component)}
 							/>
 						</button>
 					)}
@@ -1693,7 +1725,9 @@ export function ItemWorkflowPanel() {
 												categories={shelfCategories}
 												products={shelfProducts}
 												profileCoefficient={activeProfileCoefficient}
-												canEditPricing
+												canEditPricing={
+													workflowAdminCapabilities.canEditLinePricing
+												}
 												formatMoney={(value) => moneyIfPositive(value) || null}
 												headerSlot={versionToggle}
 												onProductSearchChange={setShelfProductSearch}
@@ -2446,6 +2480,7 @@ export function ItemWorkflowPanel() {
 									}),
 								)}
 								formatPrice={moneyIfPositive}
+								priceSlot={renderCalculatedComponentPrice}
 								componentLabel={componentLabel}
 								resolveImageSrc={resolveComponentImageSrc}
 								calculatorSlot={(component) => (

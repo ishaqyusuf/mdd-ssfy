@@ -48,6 +48,16 @@ export type SalesOverviewData = RouterOutputs["sales"]["getSaleOverview"] & {
 	} | null;
 	costLines?: unknown[] | null;
 	dispatchList?: unknown[] | null;
+	inventoryInboundOwnership?: {
+		hasInventoryInbound?: boolean | null;
+		linkedInboundIds?: number[] | null;
+		linkedInbounds?: Array<{
+			id: number;
+			status?: string | null;
+		}> | null;
+		linkedInboundCount?: number | null;
+		primaryInboundStatus?: string | null;
+	} | null;
 	stats?: {
 		prodAssigned?: SalesOverviewProgressStat | null;
 		prodCompleted?: SalesOverviewProgressStat | null;

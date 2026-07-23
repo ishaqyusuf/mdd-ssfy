@@ -62,6 +62,10 @@ Tracks important schema-level entities and ownership boundaries.
   - pickup packing now uses normal `OrderDelivery.status` transitions (`queue`, `completed`, `cancelled`) instead of requiring a dedicated live `packing queue` status
   - membership/history for the packing-list workflow is recorded through the `sales-packing-list` notification/activity channel
   - pickup packing signatures remain note-backed rather than adding a new `OrderDelivery` signature column; the active lookup still resolves by `deliveryId` tags from `NotePad`
+  - mobile proof completion stages its request id, `uploading|completed` state,
+    deterministic signature/attachment paths, and timestamps in
+    `OrderDelivery.meta.dispatchCompletion`; this is a JSON metadata contract,
+    not a new column or migration
 - Inventory shipment source-of-truth decision:
   - `OrderDelivery` / `OrderItemDelivery` are canonical shipment records for the current inventory cutover phase; see `brain/decisions/ADR-008-inventory-shipment-record-source.md`
   - inventory-origin shipments are distinguished by metadata such as `meta.source = "inventory_partial_shipment"` or `meta.source = "inventory_dispatch_mode"`
@@ -80,6 +84,10 @@ Tracks important schema-level entities and ownership boundaries.
   - `SalesEmailAttempt` stores sales document email attempts for standard quote/order emails and custom composed sales document emails
   - each row snapshots sender, attached sales rep, recipient/customer, document type, email kind, subject/message, related sales ids/order numbers, provider name, provider message/status, Trigger task run id when known, failure details, timestamps, retry metadata, and soft-delete timestamp
   - resend attempts are stored as new rows linked to the failed/skipped source attempt through `originalAttemptId`
+  - WhatsApp and SMS sales document results do not create email-attempt rows;
+    their requested channels, link kinds, and immediate provider outcomes use
+    the existing notification activity/tag records, while targets/clicks use
+    existing `ShortLink` rows
 - Sales payment review fields now live on `SalesPayments` in `packages/db/src/schema/sales.wallet.prisma`:
   - `origin` records whether the payment was received `online` or in the `office`; it has no database default and must be set by payment write paths when known.
   - `reviewStatus` records whether the successful payment still `needs_review` or has been `reviewed`; it has no database default so payments only enter review when application code explicitly stamps them.
@@ -121,6 +129,12 @@ Tracks important schema-level entities and ownership boundaries.
   customer-owned carts/wishlists with normalized canonical configuration and
   server pricing snapshots.
 - `StorefrontCheckout`: idempotent checkout/payment/order transition ledger.
+- `StorefrontShippingPolicy`: immutable versioned formula, origin, confidence
+  gates, Door size profiles, Moulding pounds-per-LF profiles, Shelf category
+  weights, and product overrides. Only one version is active at a time.
+- `StorefrontShippingQuote`: revisioned route, product-weight, calculation,
+  blocker, approval, and office-review evidence. Checkout has an optional unique
+  link to its accepted quote.
 - `StorefrontPage` and `StorefrontSection`: structured merchandising content.
 - `StorefrontInquiry`, `StorefrontAuditEvent`, and
   `StorefrontPasswordResetToken`: durable intake, audit, and auth-recovery
@@ -149,3 +163,33 @@ Tracks important schema-level entities and ownership boundaries.
 - Private reference files are registered in `StoredDocument` with
   `ownerType = storefront_inquiry`, `visibility = private`, and the inquiry ID
   as `ownerId`.
+
+### Shared document caller conventions (2026-07-23)
+
+- No Prisma schema or migration changed for this caller cutover.
+- Employee gallery assets use `StoredDocument.ownerType = "user"`,
+  `ownerId = Users.id`, and `kind = "attachment"`.
+- Dispatch completion photos use `ownerType = "dispatch"` and
+  `kind = "dispatch_image"`; completion and packing signatures use
+  `kind = "signature"`.
+- Browser-staged inbound/dispatch attachments are non-current, user-owned
+  `attachment` records until their consuming note persists compatibility path
+  metadata. That note transaction changes ownership to `ownerType = "note"`,
+  `ownerId = NotePad.id`, `sourceType = "note_attachment"`.
+- Inbox activities claim staged rows as
+  `sourceType = "notification_attachment_pending"` / `status = "processing"`
+  before activity creation, then finalize them under
+  `ownerType = "notification_activity"` and
+  `sourceType = "notification_attachment"`. `sourceId` holds the unique pending
+  claim id for fencing; `updatedAt` supplies a 15-minute stale-claim lease.
+- Failed staged/finalization attempts use `status = "failed"` and never become
+  current. User-cancelled staged uploads use `status = "deleted"` plus
+  `deletedAt`.
+- Browser staged deletion temporarily uses
+  `ownerType = "user_delete_claim"` / `status = "deleting"` with the claim id
+  in `ownerId`; success restores user ownership while tombstoning, provider
+  failure restores ready staging, and one-hour-old claims are recoverable.
+- `OrderDelivery.meta.packingSignoff` is the compatibility recovery checkpoint
+  for packing signatures. It retains request ownership, lease timestamps,
+  canonical `documentId`, and `processing` / `uploaded` /
+  `domain_completed` / `completed` / `failed` status without a schema change.

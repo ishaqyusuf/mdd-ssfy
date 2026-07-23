@@ -294,6 +294,7 @@ function CustomerSalesWorkspaceActions({
 			slug={item.slug}
 			type={item.type}
 			customerEmail={item.email ?? null}
+			customerPhone={item.customerPhone}
 			customerName={item.displayName}
 			trigger={
 				<Button size="icon-sm" variant="ghost" aria-label="More sales actions">

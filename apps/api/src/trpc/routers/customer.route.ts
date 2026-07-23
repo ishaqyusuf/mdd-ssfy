@@ -1,34 +1,40 @@
 import {
-	createTRPCRouter,
-	protectedProcedure,
-	publicProcedure,
-} from "../init";
-import {
-	getCustomerDirectoryV2SummarySchema,
-	getCustomerStatementDetailSchema,
-	getCustomerStatementReportSchema,
-	getCustomerOverviewV2Schema,
-	searchCustomersSchema,
-	upsertCustomerSchema,
-	updateCustomerEmailSchema,
-} from "@api/schemas/customer";
-import {
 	createOrUpdateCustomer,
 	createOrUpdateCustomerAddress,
 	customerInfoSearch,
 	customerInfoSearchSchema,
 	getCustomerDirectoryV2Summary,
-	getCustomerStatementDetail,
-	getCustomerStatementReport,
+	getCustomerOverviewV2,
 	getCustomerPayPortal,
 	getCustomerPayPortalSchema,
-	getCustomerOverviewV2,
+	getCustomerStatementDetail,
+	getCustomerStatementReport,
 	getSalesCustomer,
 	getSalesCustomerSchema,
 	searchCustomers,
 	updateCustomerEmail,
 } from "@api/db/queries/customer";
+import {
+	getCustomerDirectoryV2SummarySchema,
+	getCustomerOverviewV2Schema,
+	getCustomerStatementDetailSchema,
+	getCustomerStatementReportSchema,
+	searchCustomersSchema,
+	updateCustomerEmailSchema,
+	upsertCustomerSchema,
+} from "@api/schemas/customer";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import type { CustomerProfileMeta } from "@sales/types";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
+import type { TRPCContext } from "../init";
+
+async function requireCustomerEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editSalesCustomers"],
+		"You do not have permission to edit customers.",
+	);
+}
 
 export const customerRouter = createTRPCRouter({
 	searchCustomers: protectedProcedure
@@ -99,11 +105,13 @@ export const customerRouter = createTRPCRouter({
 	createCustomer: protectedProcedure
 		.input(upsertCustomerSchema)
 		.mutation(async (props) => {
+			await requireCustomerEditor(props.ctx);
 			return createOrUpdateCustomer(props.ctx, props.input);
 		}),
 	createCustomerAddress: protectedProcedure
 		.input(upsertCustomerSchema)
 		.mutation(async (props) => {
+			await requireCustomerEditor(props.ctx);
 			return createOrUpdateCustomerAddress(props.ctx, props.input);
 		}),
 	updateCustomerEmail: protectedProcedure

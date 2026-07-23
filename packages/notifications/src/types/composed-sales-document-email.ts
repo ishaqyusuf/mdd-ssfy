@@ -10,10 +10,16 @@ import {
 import { addDays } from "date-fns";
 import { z } from "zod";
 import type { NotificationHandler, UserData } from "../base";
+import { normalizeCustomerPhoneNumber } from "../phone-number";
+import {
+	buildSalesDocumentChannelMessage,
+	shortenSalesDocumentMessageLinks,
+} from "../sales-document-message";
 import {
 	type ComposedSalesDocumentEmailInput,
 	type ComposedSalesDocumentEmailTags,
 	dealerProgramBannerSchema,
+	salesDocumentDeliveryChannelsSchema,
 	salesPdfAttachmentSchema,
 } from "../schemas";
 import { resolveSalesEmailDealerProgramBanner } from "./dealer-recruitment-banner";
@@ -30,10 +36,10 @@ type LoadedSale = {
 	id: number;
 	orderId: string;
 	type: "order" | "quote";
-	customerEmail: string;
+	customerEmail: string | null;
 	customerName: string;
 	salesRep: string;
-	salesRepEmail: string;
+	salesRepEmail: string | null;
 	salesRepId: number | null;
 	customerId: number | null;
 	customerPhone: string | null;
@@ -46,15 +52,19 @@ type LoadedSale = {
 
 const resolvedSchema = z.object({
 	type: z.enum(["order", "quote"]),
-	customerEmail: z.string().email(),
+	customerEmail: z.string().email().optional().nullable(),
+	customerPhone: z.string().optional().nullable(),
 	customerName: z.string(),
 	salesRep: z.string(),
-	salesRepEmail: z.string().email(),
+	salesRepEmail: z.string().email().optional().nullable(),
 	salesRepId: z.number().optional().nullable(),
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
+	channels: salesDocumentDeliveryChannelsSchema,
 	paymentLink: z.string().optional().nullable(),
 	pdfLink: z.string().optional().nullable(),
+	acceptQuoteLink: z.string().optional().nullable(),
+	channelMessage: z.string().min(1),
 	sales: z.array(
 		z.object({
 			orderId: z.string(),
@@ -129,7 +139,7 @@ async function loadSales(db: Db, input: ComposedSalesDocumentEmailInput) {
 			const salesRepEmail = normalizeText(sale.salesRep?.email);
 			const salesRep = normalizeText(sale.salesRep?.name) || "Sales Team";
 
-			if (!customerEmail || !customerName || !salesRepEmail) {
+			if (!customerName) {
 				return null;
 			}
 
@@ -232,9 +242,10 @@ async function buildPdfAttachment(
 	}
 }
 
-async function buildComposedSalesDocumentEmailData(
+export async function buildComposedSalesDocumentEmailData(
 	db: Db,
 	input: ComposedSalesDocumentEmailInput,
+	author: UserData,
 ) {
 	const sales = await loadSales(db, input);
 	if (!sales.length) {
@@ -250,31 +261,113 @@ async function buildComposedSalesDocumentEmailData(
 		);
 	}
 
-	const hasMixedRecipients = sales.some(
-		(sale) => sale.customerEmail !== primarySale.customerEmail,
+	const channels = input.channels || ["email"];
+	const customerEmail =
+		normalizeText(input.customerEmail) || primarySale.customerEmail;
+	const customerPhone = normalizeCustomerPhoneNumber(
+		normalizeText(input.customerPhone) || primarySale.customerPhone,
 	);
+	const hasMixedRecipients = sales.some((sale) => {
+		if (
+			channels.includes("email") &&
+			sale.customerEmail !== primarySale.customerEmail
+		) {
+			return true;
+		}
+		if (
+			(channels.includes("whatsapp") || channels.includes("sms")) &&
+			normalizeCustomerPhoneNumber(sale.customerPhone) !==
+				normalizeCustomerPhoneNumber(primarySale.customerPhone)
+		) {
+			return true;
+		}
+		return false;
+	});
 	if (hasMixedRecipients) {
 		throw new Error(
 			"composed_sales_document_email requires all sales to belong to one recipient",
+		);
+	}
+	if (
+		channels.includes("email") &&
+		(!customerEmail || !primarySale.salesRepEmail)
+	) {
+		throw new Error(
+			"Sales document email requires a customer email and sales rep email.",
+		);
+	}
+	if (
+		(channels.includes("whatsapp") || channels.includes("sms")) &&
+		!customerPhone
+	) {
+		throw new Error(
+			"Sales document WhatsApp or SMS delivery requires a valid customer phone.",
 		);
 	}
 
 	const type = input.printType === "quote" ? "quote" : "order";
 	const paymentLink = await buildPaymentLink(db, sales);
 	const pdfLink = buildPdfLink(sales, type);
-	const pdfAttachment = await buildPdfAttachment(db, sales, type);
-	const dealerProgramBanner = primarySale.customerId
-		? await resolveSalesEmailDealerProgramBanner(db, {
-				customerId: primarySale.customerId,
-				customerEmail:
-					normalizeText(input.customerEmail) || primarySale.customerEmail,
-			})
+	const acceptQuoteLink =
+		type !== "quote" || sales.length !== 1
+			? null
+			: (() => {
+					const appUrl = getAppUrl();
+					const token = tryTokenize({
+						salesId: primarySale.id,
+						orderId: primarySale.orderId,
+						expiry: addDays(new Date(), 14).toISOString(),
+					});
+					return token && appUrl
+						? `${appUrl}/sales/accept-quote/${primarySale.orderId}?token=${encodeURIComponent(
+								token,
+							)}`
+						: null;
+				})();
+	const salesIds = sales.map((sale) => sale.id);
+	const salesNos = sales.map((sale) => sale.orderId);
+	const shortLinks = await shortenSalesDocumentMessageLinks(db, {
+		type,
+		salesIds,
+		salesNos,
+		pdfLink,
+		paymentLink,
+		acceptQuoteLink,
+		expiresAt: addDays(new Date(), LINK_TTL_DAYS),
+		acceptQuoteExpiresAt: addDays(new Date(), 14),
+		createdById: author.id,
+	});
+	if (
+		(channels.includes("whatsapp") || channels.includes("sms")) &&
+		!shortLinks.pdfLink
+	) {
+		throw new Error("Sales document delivery requires a secure document link.");
+	}
+	const channelMessage = buildSalesDocumentChannelMessage({
+		type,
+		customerName:
+			normalizeText(input.customerName) ||
+			primarySale.customerName ||
+			"Customer",
+		salesNos,
+		message: input.message,
+		links: shortLinks,
+	});
+	const pdfAttachment = channels.includes("email")
+		? await buildPdfAttachment(db, sales, type)
 		: null;
+	const dealerProgramBanner =
+		channels.includes("email") && primarySale.customerId
+			? await resolveSalesEmailDealerProgramBanner(db, {
+					customerId: primarySale.customerId,
+					customerEmail: customerEmail || "",
+				})
+			: null;
 
 	return {
 		type,
-		customerEmail:
-			normalizeText(input.customerEmail) || primarySale.customerEmail,
+		customerEmail,
+		customerPhone,
 		customerName:
 			normalizeText(input.customerName) ||
 			primarySale.customerName ||
@@ -284,10 +377,13 @@ async function buildComposedSalesDocumentEmailData(
 		salesRepId: primarySale.salesRepId,
 		subject: input.subject.trim(),
 		message: normalizeText(input.message),
-		paymentLink,
-		pdfLink,
-		salesIds: sales.map((sale) => sale.id),
-		salesNos: sales.map((sale) => sale.orderId),
+		channels,
+		paymentLink: shortLinks.paymentLink,
+		pdfLink: shortLinks.pdfLink,
+		acceptQuoteLink: shortLinks.acceptQuoteLink,
+		channelMessage,
+		salesIds,
+		salesNos,
 		emailAttemptId: input.emailAttemptId,
 		sourceAttemptId: input.sourceAttemptId,
 		dealerProgramBanner,
@@ -305,12 +401,18 @@ async function buildComposedSalesDocumentEmailData(
 export const composedSalesDocumentEmail: NotificationHandler = {
 	schema: resolvedSchema,
 	createActivityWithoutContact: true,
-	async extendData(db, data: ComposedSalesDocumentEmailInput) {
-		return buildComposedSalesDocumentEmailData(db, data);
+	async extendData(db, data: ComposedSalesDocumentEmailInput, author) {
+		return buildComposedSalesDocumentEmailData(db, data, author);
 	},
 	createDirectEmailContact(
 		data: ResolvedComposedSalesDocumentEmailInput,
-	): UserData {
+	): UserData | null {
+		if (
+			!(data.channels || ["email"]).includes("email") ||
+			!data.customerEmail
+		) {
+			return null;
+		}
 		return {
 			id: 0,
 			profileId: 0,
@@ -320,15 +422,56 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			emailNotification: true,
 			inAppNotification: false,
 			whatsAppNotification: false,
+			smsNotification: false,
+		};
+	},
+	createDirectWhatsAppContact(
+		data: ResolvedComposedSalesDocumentEmailInput,
+	): UserData | null {
+		if (
+			!(data.channels || ["email"]).includes("whatsapp") ||
+			!data.customerPhone
+		) {
+			return null;
+		}
+		return {
+			id: 0,
+			profileId: 0,
+			name: data.customerName,
+			phoneNo: data.customerPhone,
+			role: "customer",
+			emailNotification: false,
+			inAppNotification: false,
+			whatsAppNotification: true,
+			smsNotification: false,
+		};
+	},
+	createDirectSmsContact(
+		data: ResolvedComposedSalesDocumentEmailInput,
+	): UserData | null {
+		if (!(data.channels || ["email"]).includes("sms") || !data.customerPhone) {
+			return null;
+		}
+		return {
+			id: 0,
+			profileId: 0,
+			name: data.customerName,
+			phoneNo: data.customerPhone,
+			role: "customer",
+			emailNotification: false,
+			inAppNotification: false,
+			whatsAppNotification: false,
+			smsNotification: true,
 		};
 	},
 	createActivity(data: ResolvedComposedSalesDocumentEmailInput, author) {
 		const docType = data.type === "quote" ? "Quote" : "Invoice";
+		const channels = data.channels || ["email"];
 		const payload: ComposedSalesDocumentEmailTags = {
 			type: "composed_sales_document_email",
 			source: "system",
 			priority: 5,
-			customerEmail: data.customerEmail,
+			customerEmail: data.customerEmail || undefined,
 			customerName: data.customerName,
 			salesCount: data.sales.length,
 			reminderType: data.type,
@@ -337,6 +480,9 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 			hasPaymentLink: Boolean(data.paymentLink),
 			hasPdfLink: Boolean(data.pdfLink),
 			hasPdfAttachment: Boolean(data.pdfAttachment),
+			hasAcceptQuoteLink: Boolean(data.acceptQuoteLink),
+			requestedChannels: channels,
+			customerPhone: data.customerPhone,
 			dealerProgramCampaignId:
 				data.dealerProgramBanner?.campaignId || undefined,
 		};
@@ -344,8 +490,8 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 		return {
 			type: "composed_sales_document_email",
 			source: "system",
-			subject: `${docType} email sent`,
-			headline: `${docType} email sent to ${data.customerName} (${data.customerEmail}).`,
+			subject: `${docType} delivery requested`,
+			headline: `${docType} delivery requested for ${data.customerName} by ${channels.join(", ")}.`,
 			authorId: author.id,
 			note: data.message || undefined,
 			tags: payload,
@@ -357,6 +503,9 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 		_user,
 		args,
 	) {
+		if (!data.customerEmail || !data.salesRepEmail) {
+			throw new Error("Sales document email contact is unavailable.");
+		}
 		return {
 			...args,
 			template: "composed-sales-document-email",
@@ -371,6 +520,7 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 				message: data.message || undefined,
 				paymentLink: data.paymentLink || undefined,
 				pdfLink: data.pdfLink || undefined,
+				hasPdfAttachment: Boolean(data.pdfAttachment),
 				dealerProgramBanner: data.dealerProgramBanner || undefined,
 				sales: data.sales.map((sale) => ({
 					...sale,
@@ -379,6 +529,16 @@ export const composedSalesDocumentEmail: NotificationHandler = {
 					po: sale.po || undefined,
 				})),
 			},
+		};
+	},
+	createWhatsApp(data: ResolvedComposedSalesDocumentEmailInput) {
+		return {
+			message: data.channelMessage,
+		};
+	},
+	createSms(data: ResolvedComposedSalesDocumentEmailInput) {
+		return {
+			message: data.channelMessage,
 		};
 	},
 };

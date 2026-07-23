@@ -429,18 +429,21 @@ export class CostingClass {
         estimate.grandTotal = baseGrandTotal;
         estimate.totalWithCcc = channelCharge.chargeAmount;
         const labor = this.getLaborCosts();
-        if (labor.index > -1)
-            if (this.setting?.staticZus) {
-                this.setting.staticZus.metaData.pricing = estimate;
+        if (this.setting?.staticZus) {
+            this.setting.staticZus.metaData.pricing = estimate;
+            if (labor.index > -1) {
                 this.setting.staticZus.metaData.extraCosts[labor.index].amount =
                     Labor;
-            } else {
-                this.setting.zus.dotUpdate("metaData.pricing", estimate);
+            }
+        } else {
+            this.setting.zus.dotUpdate("metaData.pricing", estimate);
+            if (labor.index > -1) {
                 this.setting.zus.dotUpdate(
                     `metaData.extraCosts.${labor?.index}.amount`,
                     Labor,
                 );
             }
+        }
     }
     public calculateTotalPrice() {
         const data = this.setting.zus;
@@ -460,7 +463,7 @@ export class CostingClass {
                     const isService = groupItem.type == "SERVICE";
                     const price = Number(formData.pricing?.totalPrice || 0);
                     const taxxable =
-                        !isService || (isService && formData.meta.taxxable);
+                        !isService || (isService && formData.meta?.taxxable);
                     subTotals.push(price);
                     if (taxxable) taxableTotals.push(price);
                 });

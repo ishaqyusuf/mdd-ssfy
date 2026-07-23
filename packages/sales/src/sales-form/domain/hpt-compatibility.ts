@@ -81,8 +81,28 @@ export function computeHptSharedDoorSurcharge(
 					title !== "hpt"
 				);
 			})
-			.map((step: any) => Number(step?.price || 0)),
+			.map((step: any) => resolveStepSalesPrice(step)),
 	);
+}
+
+function resolveStepSalesPrice(step: Record<string, unknown>) {
+	const meta = readSalesFormObjectMetadata(step?.meta) || {};
+	const selectedComponents = Array.isArray(meta.selectedComponents)
+		? meta.selectedComponents
+		: [];
+	const selectedComponentPrices = selectedComponents.map((component) => {
+		const record =
+			component && typeof component === "object"
+				? (component as Record<string, unknown>)
+				: {};
+		return firstFinite(record.salesPrice, record.price, record.basePrice);
+	});
+	if (selectedComponentPrices.some((price: number | null) => price != null)) {
+		return sumMoney(
+			selectedComponentPrices.map((price: number | null) => price ?? 0),
+		);
+	}
+	return firstFinite(step?.price, step?.salesPrice, step?.basePrice) ?? 0;
 }
 
 export function computeHptFlatRate(line: HptLine | null | undefined) {

@@ -1,41 +1,42 @@
 {
-  "name": "@gnd/inventory",
-  "private": true,
-  "main": "src/index.ts",
-  "scripts": {
-    "clean": "rm -rf .turbo node_modules",
-    "format": "biome format --write .",
-    "lint": "biome check .",
-    "typecheck": "tsc --noEmit"
-  },
-  "exports": {
-    ".": "./src/index.ts",
-    "./constants": "./src/constants.ts",
-    "./schema": "./src/schema.ts",
-    "./types": "./src/types.ts",
-    "./inventory": "./src/inventory.ts",
-    "./inventory-import": "./src/inventory-import.ts",
-    "./inventory-import-service": "./src/application/import/inventory-import-service.ts",
-    "./inbound": "./src/application/inbound/index.ts",
-    "./inbound-policy": "./src/inbound-policy.ts",
-    "./inventory-import-handcrafted": "./src/application/import/strategies/handcrafted-importer.ts",
-    "./inventory-import-optimized": "./src/application/import/strategies/optimized-importer.ts",
-    "./inventory-utils": "./src/utils/inventory-utils.ts",
-    "./sync": "./src/application/sync/index.ts",
-    "./jobs": "./src/application/jobs/index.ts",
-    "./definitions": "./src/application/definitions/index.ts",
-    "./pricing": "./src/application/pricing/index.ts",
-    "./suppliers": "./src/application/suppliers/index.ts"
-  },
-  "dependencies": {
-    "@gnd/db": "workspace:*",
-    "@gnd/utils": "workspace:*",
-    "@trigger.dev/sdk": "3.3.17",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-	"@gnd/tsconfig": "workspace:*",
-	"@types/bun": "^1.2.17",
-    "typescript": "^5.9.3"
-  }
+	"name": "@gnd/inventory",
+	"private": true,
+	"main": "src/index.ts",
+	"scripts": {
+		"clean": "rm -rf .turbo node_modules",
+		"format": "biome format --write .",
+		"lint": "biome check .",
+		"typecheck": "tsc --noEmit"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./constants": "./src/constants.ts",
+		"./schema": "./src/schema.ts",
+		"./types": "./src/types.ts",
+		"./inventory": "./src/inventory.ts",
+		"./inventory-import": "./src/inventory-import.ts",
+		"./inventory-import-service": "./src/application/import/inventory-import-service.ts",
+		"./inventory-import-source-review": "./src/application/import/inventory-import-source-review.ts",
+		"./inbound": "./src/application/inbound/index.ts",
+		"./inbound-policy": "./src/inbound-policy.ts",
+		"./inventory-import-handcrafted": "./src/application/import/strategies/handcrafted-importer.ts",
+		"./inventory-import-optimized": "./src/application/import/strategies/optimized-importer.ts",
+		"./inventory-utils": "./src/utils/inventory-utils.ts",
+		"./sync": "./src/application/sync/index.ts",
+		"./jobs": "./src/application/jobs/index.ts",
+		"./definitions": "./src/application/definitions/index.ts",
+		"./pricing": "./src/application/pricing/index.ts",
+		"./suppliers": "./src/application/suppliers/index.ts"
+	},
+	"dependencies": {
+		"@gnd/db": "workspace:*",
+		"@gnd/utils": "workspace:*",
+		"@trigger.dev/sdk": "3.3.17",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@gnd/tsconfig": "workspace:*",
+		"@types/bun": "^1.2.17",
+		"typescript": "^5.9.3"
+	}
 }

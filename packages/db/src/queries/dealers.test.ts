@@ -13,6 +13,7 @@ import {
 	getDealerPortalSettings,
 	getDealerPortalSalesProfiles,
 	getDealerPortalSalesList,
+	getDealerQuoteEditLock,
 	mergeDealerApprovalDeliveryMeta,
 	deleteDealerPortalCustomer,
 	saveDealerPortalQuote,
@@ -240,6 +241,21 @@ describe("dealer portal pricing", () => {
 });
 
 describe("dealer order request visibility", () => {
+	it("locks quote edits after every terminal handoff state", () => {
+		expect(getDealerQuoteEditLock(null)).toEqual({
+			locked: false,
+			reason: null,
+		});
+		for (const status of ["pending", "approved", "rejected"]) {
+			expect(getDealerQuoteEditLock(status)).toMatchObject({
+				locked: true,
+			});
+			expect(getDealerQuoteEditLock(status).reason?.toLowerCase()).toContain(
+				"locked",
+			);
+		}
+	});
+
 	it("tracks pending request aging against the 24-hour SLA", () => {
 		const createdAt = "2026-07-20T00:00:00.000Z";
 
@@ -1608,6 +1624,9 @@ describe("dealer portal isolation", () => {
 							title: "Dealer Quote",
 							status: "Draft",
 							type: "quote",
+							prodStatus: "completed",
+							deliveredAt: null,
+							deliveryOption: null,
 							grandTotal: 100,
 							amountDue: 100,
 							taxPercentage: 0,
@@ -1615,6 +1634,13 @@ describe("dealer portal isolation", () => {
 							customerProfileId: 30,
 							dealerSalesProfileId: 40,
 							meta: {},
+							pickup: null,
+							deliveries: [
+								{
+									status: "completed",
+									deliveredAt: new Date("2026-05-18T00:00:00.000Z"),
+								},
+							],
 							dealerSale: {
 								customerId: 20,
 								dealerCustomerProfileId: 40,
@@ -1658,6 +1684,10 @@ describe("dealer portal isolation", () => {
 		});
 		expect("meta" in document).toBe(false);
 		expect("items" in document).toBe(false);
+		expect("deliveries" in document).toBe(false);
+		expect("pickup" in document).toBe(false);
+		expect("prodStatus" in document).toBe(false);
+		expect("deliveredAt" in document).toBe(false);
 		expect(document).toMatchObject({
 			grandTotal: 150,
 			amountDue: 150,
@@ -1665,6 +1695,7 @@ describe("dealer portal isolation", () => {
 			officeAmountDue: 100,
 			customerPaymentStatus: "unpaid",
 			customerPaidAmount: 0,
+			fulfillmentStatus: "preparing",
 		});
 		expect(document.lineItems).toEqual([
 			{
@@ -1965,7 +1996,7 @@ describe("dealer portal isolation", () => {
 		expect(testDb.getCreatedOrderData()).toBeNull();
 	});
 
-	it("scopes dealer document lists to the active dealer and strips document metadata", async () => {
+	it("scopes dealer order lists and keeps partial dispatches out of order-level fulfillment", async () => {
 		let capturedWhere: Record<string, unknown> | null = null;
 		const documents = await getDealerPortalSalesDocuments(
 			{
@@ -1976,17 +2007,27 @@ describe("dealer portal isolation", () => {
 							{
 								id: 55,
 								orderId: "DQ-55",
-								title: "Dealer Quote",
-								status: "Draft",
-								type: "quote",
+								title: "Dealer Order",
+								status: "New",
+								type: "order",
+								prodStatus: "completed",
+								deliveredAt: null,
+								deliveryOption: "ship",
 								grandTotal: 100,
-								amountDue: 100,
+								amountDue: null,
 								meta: {},
 								dealerSale: {
 									grandTotal: 150,
 									dueAmount: 150,
 								},
 								invoiceStatus: null,
+								pickup: null,
+								deliveries: [
+									{
+										status: "packed",
+										deliveredAt: null,
+									},
+								],
 								createdAt: new Date("2026-05-18T00:00:00.000Z"),
 								customer: {
 									id: 20,
@@ -1995,22 +2036,96 @@ describe("dealer portal isolation", () => {
 									email: "customer@example.com",
 								},
 							},
+							{
+								id: 56,
+								orderId: "DQ-56",
+								title: "Ready Dealer Order",
+								status: "ready_to_fulfill",
+								type: "order",
+								prodStatus: "completed",
+								deliveredAt: null,
+								deliveryOption: "pickup",
+								grandTotal: 100,
+								amountDue: 0,
+								meta: {},
+								dealerSale: {
+									grandTotal: 150,
+									dueAmount: 0,
+								},
+								invoiceStatus: null,
+								pickup: null,
+								deliveries: [
+									{
+										status: "completed",
+										deliveredAt: new Date("2026-05-19T00:00:00.000Z"),
+									},
+								],
+								createdAt: new Date("2026-05-18T00:00:00.000Z"),
+								customer: null,
+							},
+							{
+								id: 57,
+								orderId: "DQ-57",
+								title: "Delivered Dealer Order",
+								status: "New",
+								type: "order",
+								deliveredAt: new Date("2026-05-20T00:00:00.000Z"),
+								deliveryOption: "delivery",
+								grandTotal: 100,
+								amountDue: 0,
+								meta: {},
+								dealerSale: null,
+								invoiceStatus: null,
+								pickup: null,
+								createdAt: new Date("2026-05-18T00:00:00.000Z"),
+								customer: null,
+							},
+							{
+								id: 58,
+								orderId: "DQ-58",
+								title: "Deleted Pickup Dealer Order",
+								status: "New",
+								type: "order",
+								deliveredAt: null,
+								deliveryOption: "pickup",
+								grandTotal: 100,
+								amountDue: 0,
+								meta: {},
+								dealerSale: null,
+								invoiceStatus: null,
+								pickup: {
+									pickupAt: new Date("2026-05-20T00:00:00.000Z"),
+									deletedAt: new Date("2026-05-21T00:00:00.000Z"),
+								},
+								createdAt: new Date("2026-05-18T00:00:00.000Z"),
+								customer: null,
+							},
 						];
 					},
 				},
 			} as any,
 			10,
-			"quote",
+			"order",
 		);
 
 		expect(capturedWhere).toMatchObject({
 			dealerAuthId: 10,
 			deletedAt: null,
-			type: "quote",
+			type: { not: "quote" },
 		});
 		expect(documents[0]?.grandTotal).toBe(150);
 		expect(documents[0]?.amountDue).toBe(150);
+		expect(documents[0]?.officeAmountDue).toBeNull();
+		expect(documents[0]?.deliveryOption).toBe("ship");
+		expect(documents[0]?.fulfillmentStatus).toBe("preparing");
+		expect(documents[1]?.fulfillmentStatus).toBe("ready");
+		expect(documents[2]?.fulfillmentStatus).toBe("completed");
+		expect(documents[3]?.fulfillmentStatus).toBe("preparing");
 		expect("meta" in documents[0]!).toBe(false);
+		expect("deliveries" in documents[0]!).toBe(false);
+		expect("pickup" in documents[0]!).toBe(false);
+		expect("prodStatus" in documents[0]!).toBe(false);
+		expect("deliveredAt" in documents[0]!).toBe(false);
 	});
 
 	it("applies dealer sales list filters to dealer-owned records", async () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { getDealerOrderNextStep } from "@/lib/dealer-next-step";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
@@ -11,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { CreditCard, FileText, MoreHorizontal, Printer } from "lucide-react";
 import Link from "next/link";
+import { DealerNextStep } from "../../dealer-portal/dealer-next-step";
 
 export type Item = RouterOutputs["dealerPortal"]["orders"]["data"][number];
 type Column = ColumnDef<Item>;
@@ -180,6 +182,22 @@ export const columns: Column[] = [
 		),
 	},
 	{
+		header: "Next step",
+		accessorKey: "nextStep",
+		cell: ({ row: { original: item } }) => (
+			<DealerNextStep
+				compact
+				guidance={getDealerOrderNextStep({
+					officeAmountDue: item.officeAmountDue,
+					customerAmountDue: item.amountDue,
+					deliveryOption: item.deliveryOption,
+					status: item.status,
+					fulfillmentStatus: item.fulfillmentStatus,
+				})}
+			/>
+		),
+	},
+	{
 		header: "Total",
 		accessorKey: "grandTotal",
 		cell: ({ row: { original: item } }) => (
@@ -187,7 +205,7 @@ export const columns: Column[] = [
 		),
 	},
 	{
-		header: "Balance",
+		header: "Customer balance",
 		accessorKey: "amountDue",
 		cell: ({ row: { original: item } }) => (
 			<span className="whitespace-nowrap">{currency(item.amountDue)}</span>
@@ -228,10 +246,27 @@ export const mobileColumn: Column[] = [
 							text={customerName(item)}
 						/>
 					</ItemUi.Description>
+					<div className="mt-2">
+						<DealerNextStep
+							compact
+							guidance={getDealerOrderNextStep({
+								officeAmountDue: item.officeAmountDue,
+								customerAmountDue: item.amountDue,
+								deliveryOption: item.deliveryOption,
+								status: item.status,
+								fulfillmentStatus: item.fulfillmentStatus,
+							})}
+						/>
+					</div>
+					<div className="mt-3">
+						<OrderActions item={item} />
+					</div>
 				</div>
 				<div className="shrink-0 text-right">
 					<p className="text-sm font-medium">{currency(item.grandTotal)}</p>
-					<p className="text-xs text-muted-foreground">{date(item.createdAt)}</p>
+					<p className="text-xs text-muted-foreground">
+						{date(item.createdAt)}
+					</p>
 				</div>
 			</div>
 		),

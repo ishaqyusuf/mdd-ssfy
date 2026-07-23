@@ -63,7 +63,12 @@ function dealerQuoteInput(
 
 function createDealerPortalSalesFormContext(
   options: {
-    existingQuote?: { id: number; orderId: string; slug: string } | null;
+    existingQuote?: {
+      id: number;
+      orderId: string;
+      slug: string;
+      requestStatus?: "pending" | "approved" | "rejected" | null;
+    } | null;
     dppDocuments?: Array<{ orderId: string; deletedAt?: Date | null }>;
     collidingOrderIds?: string[];
     customerTypeId?: number | null;
@@ -96,6 +101,9 @@ function createDealerPortalSalesFormContext(
   if (options.existingQuote) {
     state.orders.push({
       ...options.existingQuote,
+      requests: options.existingQuote.requestStatus
+        ? [{ status: options.existingQuote.requestStatus }]
+        : [],
       type: "quote",
       dealerAuthId: 10,
       deletedAt: null,
@@ -512,5 +520,38 @@ describe("dealer portal sales form DPP identities", () => {
       slug: "quote-00007dpp",
       type: "quote",
     });
+  });
+
+  it("rejects edits after pending, approved, or rejected order review state", async () => {
+    for (const requestStatus of [
+      "pending",
+      "approved",
+      "rejected",
+    ] as const) {
+      const { ctx, state } = createDealerPortalSalesFormContext({
+        existingQuote: {
+          id: 55,
+          orderId: "00007DPP",
+          slug: "quote-00007dpp",
+          requestStatus,
+        },
+      });
+
+      try {
+        await saveDealerPortalQuote(
+          ctx,
+          10,
+          dealerQuoteInput({ id: 55 }),
+        );
+        throw new Error(`Expected ${requestStatus} quote edit to be rejected.`);
+      } catch (error) {
+        expect(error).toMatchObject({
+          code: "CONFLICT",
+        });
+        expect((error as Error).message.toLowerCase()).toContain("locked");
+      }
+      expect(state.updatedOrderData).toBeNull();
+      expect(state.items).toHaveLength(0);
+    }
   });
 });

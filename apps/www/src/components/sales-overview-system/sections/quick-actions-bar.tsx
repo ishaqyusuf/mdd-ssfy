@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSalesPreview } from "@/hooks/use-sales-preview";
 import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { openLink } from "@/lib/open-link";
+import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { salesFormUrl } from "@/utils/sales-utils";
 
 import { Button } from "@gnd/ui/button";
@@ -28,6 +29,7 @@ export function QuickActionsBar() {
 		state: { data, isQuote },
 	} = useSalesOverviewSystem();
 	const sPreview = useSalesPreview();
+	const salesPrint = useSalesPrintController();
 	const auth = useAuth();
 	const salesQueryClient = useSalesQueryClient(
 		data?.orderId
@@ -50,6 +52,15 @@ export function QuickActionsBar() {
 		void sPreview.preview(data?.id, data?.type, {
 			customerEmail: data?.email,
 			customerName: data?.displayName,
+		});
+	}
+
+	function quickPrint() {
+		if (salesPrint.isPrinting) return;
+		void salesPrint.print({
+			salesIds: [data.id],
+			mode: isQuote ? "quote" : "invoice",
+			salesType: isQuote ? "quote" : "order",
 		});
 	}
 
@@ -88,6 +99,20 @@ export function QuickActionsBar() {
 				size="sm"
 				variant="secondary"
 				className={cn(actionButtonClass, "hover:bg-secondary")}
+				onClick={quickPrint}
+				disabled={salesPrint.isPrinting}
+			>
+				{salesPrint.isPrinting ? (
+					<Icons.Loader2 className="size-3.5 animate-spin" />
+				) : (
+					<Icons.Printer className="size-3.5" />
+				)}
+				<span>{salesPrint.isPrinting ? "Preparing..." : "Print"}</span>
+			</Button>
+			<Button
+				size="sm"
+				variant="secondary"
+				className={cn(actionButtonClass, "hover:bg-secondary")}
 				onClick={() => {
 					openLink(
 						salesFormUrl(data.type, data.orderId, data.isDyke),
@@ -117,6 +142,7 @@ export function QuickActionsBar() {
 				type={data.type}
 				orderNo={data.orderId}
 				customerEmail={data.email ?? null}
+				customerPhone={data.customerPhone}
 				customerName={data.displayName}
 			>
 				{isQuote ? (

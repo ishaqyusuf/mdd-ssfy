@@ -83,6 +83,11 @@ export {
 	type SalesFormProfileStepLike,
 } from "./profile-repricing";
 export {
+	type PersistedDoorRouteConfig,
+	type PersistedDoorRouteLine,
+	resolvePersistedSalesLineDoorRouteConfig,
+} from "./persisted-door-route-config";
+export {
 	buildDualSalesFormPricingSnapshot,
 	calculateDualSalesFormPricing,
 	type DualPricingSnapshot,

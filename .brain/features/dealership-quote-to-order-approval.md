@@ -69,6 +69,24 @@ payload guarantees.
   approved it, and produced order `00003DPP` (`SalesOrders.id = 24416`). The
   approved-history surface shows the approver and resulting order and prevents
   duplicate work.
+- 2026-07-23 hardening made quote request finality explicit. Once the latest
+  active `make_order` request is `pending`, `approved`, or `rejected`, dealer
+  quote lists disable Edit with the request-specific reason, the direct edit
+  route renders a locked-state explanation instead of mounting the composer,
+  and the save transaction rejects forged/stale edits before customer, pricing,
+  item, or order writes. The API exposes this as an actionable `CONFLICT`.
+  Rejected quotes remain locked until an explicit revision workflow is designed.
+- 2026-07-23 dealer guidance added one shared “What happens next” policy across
+  quote rows, order rows, approved dashboard activity, and order detail. Draft
+  quotes direct the dealer to request approval; pending requests explain office
+  review; rejected requests direct the dealer to GND without implying the locked
+  quote is editable; approved orders separate the GND payable from the dealer's
+  customer receivable. Paid orders advance to pickup/delivery preparation, ready,
+  or complete only when explicit fulfillment evidence supports the wording.
+  Missing/invalid GND balances remain visibly unavailable and open across the
+  guidance card, metrics, progress, and Payment tab; they are never coerced to
+  `$0.00` or presented as paid. Mobile rows preserve the same Request order and
+  Pay GND actions as desktop.
 - Sales Team notification fallback now targets all active Sales Team users when
   a dealer/quote has no assigned rep. The `dealer_sales_request` handler creates
   both an in-app activity and an email with a direct request-review URL.
@@ -180,6 +198,8 @@ Dealer portal:
   outstanding balance.
 - Return request status with dealer quote/order list/detail payloads.
 - Prevent duplicate pending requests for the same quote.
+- Lock dealer quote editing after a pending, approved, or rejected request at
+  both the UI and transaction boundary.
 - Enforce dealer ownership on every request path.
 
 Internal sales/admin:
@@ -215,12 +235,17 @@ Quotes:
 - Show request status: not requested, pending, approved/order created, rejected
   if enabled.
 - Disable duplicate request action while pending.
+- Show the next action and explain whether the quote is awaiting a dealer
+  request, under office review, approved, or returned for discussion.
 
 Sales/orders:
 
 - Show approved dealer orders.
 - Show payment CTA when amount due remains.
 - Show print/download actions for dealer and customer invoice modes.
+- Show “What happens next” from the internal/GND balance and bounded
+  fulfillment evidence. The customer receivable is informative and never
+  substitutes for the GND payable.
 
 Top tabs:
 
@@ -343,6 +368,15 @@ use focused static checks until a separate browser QA pass is requested.
 - Add request SLA/aging analytics once the request queue is in production use.
 
 ## Implementation Progress
+
+- 2026-07-23: Closed the post-request dealer quote edit gap. List actions and
+  direct edit routes now present an explicit lock, while `dealerPortal.saveQuote`
+  rechecks the latest active request inside the transaction and returns
+  `CONFLICT` before any dependent writes. Focused coverage passed 61 tests / 187
+  assertions; dealership and API typechecks, targeted Biome, and diff checks
+  passed. Authenticated browser QA reached the dealer quote list, but the active
+  dealer fixture had zero quotes and the database's only pending quote had no
+  dealer owner, so a live locked-row interaction was not fabricated.
 
 - 2026-07-19: Completed authenticated quote-to-order workflow QA and fixes.
   Proven surfaces include dealer quote create/save/request, office request

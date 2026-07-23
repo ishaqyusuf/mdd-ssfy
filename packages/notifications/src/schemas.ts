@@ -1160,6 +1160,16 @@ export const salesEmailReminderSchema = z.object({
 	dealerProgramBanner: dealerProgramBannerSchema.optional().nullable(),
 });
 export type SalesEmailReminderInput = z.infer<typeof salesEmailReminderSchema>;
+export const salesDocumentDeliveryChannelSchema = z.enum([
+	"email",
+	"whatsapp",
+	"sms",
+]);
+export const salesDocumentDeliveryChannelsSchema = z
+	.array(salesDocumentDeliveryChannelSchema)
+	.min(1)
+	.transform((channels) => Array.from(new Set(channels)))
+	.default(["email"]);
 export const salesEmailReminderTags = actityTagsSchema.extend({
 	customerEmail: z.string().email(),
 	customerName: z.string(),
@@ -1170,23 +1180,28 @@ export const salesEmailReminderTags = actityTagsSchema.extend({
 	hasPdfLink: z.boolean().optional(),
 	hasPdfAttachment: z.boolean().optional(),
 	dealerProgramCampaignId: z.string().optional(),
+	requestedChannels: z.array(salesDocumentDeliveryChannelSchema).optional(),
+	customerPhone: z.string().optional().nullable(),
+	hasAcceptQuoteLink: z.boolean().optional(),
 });
 export type SalesEmailReminderTags = z.infer<typeof salesEmailReminderTags>;
 export const composedSalesDocumentEmailSchema = z.object({
 	printType: z.enum(["order", "quote"]),
 	salesIds: z.array(z.number()).min(1),
-	customerEmail: z.string().email(),
+	customerEmail: z.string().email().optional().nullable(),
+	customerPhone: z.string().optional().nullable(),
 	customerName: z.string().optional().nullable(),
 	subject: z.string().min(1),
 	message: z.string().optional().nullable(),
+	channels: salesDocumentDeliveryChannelsSchema,
 	emailAttemptId: z.string().optional().nullable(),
 	sourceAttemptId: z.string().optional().nullable(),
 });
-export type ComposedSalesDocumentEmailInput = z.infer<
+export type ComposedSalesDocumentEmailInput = z.input<
 	typeof composedSalesDocumentEmailSchema
 >;
 export const composedSalesDocumentEmailTags = actityTagsSchema.extend({
-	customerEmail: z.string().email(),
+	customerEmail: z.string().email().optional().nullable(),
 	customerName: z.string().optional().nullable(),
 	salesCount: z.number(),
 	reminderType: z.enum(["order", "quote"]),
@@ -1196,6 +1211,9 @@ export const composedSalesDocumentEmailTags = actityTagsSchema.extend({
 	hasPdfLink: z.boolean().optional(),
 	hasPdfAttachment: z.boolean().optional(),
 	dealerProgramCampaignId: z.string().optional(),
+	requestedChannels: z.array(salesDocumentDeliveryChannelSchema).optional(),
+	customerPhone: z.string().optional().nullable(),
+	hasAcceptQuoteLink: z.boolean().optional(),
 });
 export type ComposedSalesDocumentEmailTags = z.infer<
 	typeof composedSalesDocumentEmailTags

@@ -1,20 +1,21 @@
-import { env } from "@/env.mjs";
-import { generateRandomString } from "@/lib/utils";
+import {
+	type SupportedUploadContentType,
+	resolveUploadContentType,
+} from "@/lib/upload-content-type";
 import { useTRPC } from "@/trpc/client";
 import { cn } from "@gnd/ui/cn";
 import type { IconKeys } from "@gnd/ui/icons";
 import { Label } from "@gnd/ui/label";
 import { useToast } from "@gnd/ui/use-toast";
-import { stripSpecialCharacters } from "@gnd/utils";
 import type { BlobPath } from "@gnd/utils/constants";
-import { type PutBlobResult, put } from "@vercel/blob";
+import { useMutation } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { Accept } from "react-dropzone";
 import { useDropzone } from "react-dropzone";
 
 type Props = {
 	children?: ReactNode;
-	onUploadComplete?: (results: PutBlobResult[]) => void;
+	onUploadComplete?: (results: UploadedBlobResult[]) => void;
 	path: BlobPath;
 	label?: string;
 	icon?: IconKeys;
@@ -26,6 +27,36 @@ type Props = {
 	dragDescription?: string;
 	dragActiveDescription?: string;
 };
+
+export { resolveUploadContentType };
+export type { SupportedUploadContentType };
+
+export type UploadedBlobResult = {
+	url: string;
+	downloadUrl: string;
+	pathname: string;
+	contentType: SupportedUploadContentType;
+	size: number | null;
+	storedDocumentId: string;
+};
+
+function readFileAsBase64(file: File) {
+	return new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onerror = () =>
+			reject(reader.error || new Error("File read failed."));
+		reader.onload = () => {
+			const value = typeof reader.result === "string" ? reader.result : "";
+			const separator = value.indexOf(",");
+			if (separator < 0) {
+				reject(new Error("File encoding failed."));
+				return;
+			}
+			resolve(value.slice(separator + 1));
+		};
+		reader.readAsDataURL(file);
+	});
+}
 const defaultAccept: Accept = {
 	"image/*": [".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif", ".avif"],
 	"application/pdf": [".pdf"],
@@ -42,6 +73,8 @@ export function FileUpload({
 	dragActiveDescription,
 }: Props) {
 	const trpc = useTRPC();
+	const upload = useMutation(trpc.storage.upload.mutationOptions());
+	const deleteUpload = useMutation(trpc.storage.delete.mutationOptions());
 	const [progress, setProgress] = useState(0);
 	const [showProgress, setShowProgress] = useState(false);
 	const [toastId, setToastId] = useState<string | undefined>(undefined);
@@ -82,39 +115,23 @@ export function FileUpload({
 		// Set default progress
 		uploadProgress.current = files.map(() => 0);
 		setShowProgress(true);
-		// const path = [path] as string[];
+		const results: UploadedBlobResult[] = [];
 		try {
-			const results = await Promise.all(
-				files.map(async (file: File, idx: number) => {
-					const filename = stripSpecialCharacters(file.name);
-					const [ext, ...nameReverse] = filename.split(".").reverse();
-					const name = nameReverse.reverse().join(".");
-					const rnd = `-uid-${generateRandomString(6)}`;
-					const fullPath = decodeURIComponent(
-						[path, `${name}${rnd}.${ext}`].join("/"),
-					);
-					const token = env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN;
-					return put(`/${fullPath}`, file, {
-						access: "public",
-						token,
-						onUploadProgress({
-							loaded: bytesUploaded,
-							total: bytesTotal,
-							percentage,
-						}) {
-							uploadProgress.current[idx] = (bytesUploaded / bytesTotal) * 100;
-
-							const _progress = uploadProgress.current.reduce(
-								(acc, currentValue) => {
-									return acc + currentValue;
-								},
-								0,
-							);
-							setProgress(Math.round(_progress / files.length));
-						},
-					});
-				}),
-			); //as UploadResult[];
+			for (const [idx, file] of files.entries()) {
+				const result = await upload.mutateAsync({
+					path,
+					filename: file.name,
+					contentType: resolveUploadContentType(file),
+					content: await readFileAsBase64(file),
+				});
+				uploadProgress.current[idx] = 100;
+				const totalProgress = uploadProgress.current.reduce(
+					(sum, value) => sum + value,
+					0,
+				);
+				setProgress(Math.round(totalProgress / files.length));
+				results.push(result);
+			}
 
 			// Trigger the upload jobs
 			// processAttachmentsMutation.mutate(
@@ -142,6 +159,18 @@ export function FileUpload({
 			toastApiRef.current.dismiss(toastId);
 			onUploadComplete?.(results);
 		} catch (e) {
+			await Promise.allSettled(
+				results.map((result) =>
+					deleteUpload.mutateAsync({
+						pathname: result.pathname,
+					}),
+				),
+			);
+			uploadProgress.current = [];
+			setProgress(0);
+			setShowProgress(false);
+			setToastId(undefined);
+			toastApiRef.current.dismiss(toastId);
 			toastApiRef.current.toast({
 				duration: 2500,
 				variant: "error",

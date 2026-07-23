@@ -63,6 +63,7 @@ export async function inventoryImport(db: Db, data: InventoryImport) {
   });
   const inventoryCategories = await db.inventoryCategory.findMany({
     where: {
+      deletedAt: null,
       uid: {
         in: [
           ...categories.map((c) => c.uid!),

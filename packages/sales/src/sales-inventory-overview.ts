@@ -4,6 +4,7 @@ import {
 	type SalesOrderLifecycleStatus,
 	getSalesOrderLifecycleStatusInfo,
 } from "./order-status";
+import { roundMoney } from "./payment-system/domain/money";
 import {
 	type SalesInventoryRequirementDisplayStatus,
 	hasPassedInventoryTrackingRepairBoundary,
@@ -12,7 +13,6 @@ import {
 	resolveSalesInventoryOverviewSetupMode,
 	resolveSalesInventoryRequirementDisplay,
 } from "./sales-inventory-policy";
-import { roundMoney } from "./payment-system/domain/money";
 export {
 	hasPassedInventoryTrackingRepairBoundary,
 	resolveSalesInventoryFulfillmentStatus,
@@ -88,6 +88,13 @@ export type SalesInventoryOverviewComponentLike = {
 		sku?: string | null;
 		description?: string | null;
 		status?: string | null;
+		supplierVariants?: Array<{
+			costPrice?: number | null;
+			salesPrice?: number | null;
+			supplier?: {
+				name?: string | null;
+			} | null;
+		}> | null;
 		attributes?: Array<{
 			value?: {
 				name?: string | null;
@@ -244,6 +251,9 @@ export type SalesOverviewInventoryLine = {
 	variantSku: string | null;
 	variantUid: string | null;
 	variantName: string | null;
+	supplierCount: number;
+	supplierNames: string[];
+	hasSupplierPrice: boolean;
 	inboundDemandIds: number[];
 	pendingInboundDemandIds: number[];
 	pendingStockAllocationIds: number[];
@@ -597,6 +607,15 @@ export function buildSalesOverviewInventoryGroups(
 				});
 				const cost = linePricingCostValue(component.price, qtyRequired);
 				const salesPrice = linePricingSalesValue(component.price, qtyRequired);
+				const supplierVariants =
+					component.inventoryVariant?.supplierVariants || [];
+				const supplierNames = Array.from(
+					new Set(
+						supplierVariants
+							.map((supplierVariant) => supplierVariant.supplier?.name?.trim())
+							.filter((name): name is string => Boolean(name)),
+					),
+				).sort((a, b) => a.localeCompare(b));
 				const inboundDemands = component.inboundDemands || [];
 				const inboundDemandIds = uniqueNumbers(
 					inboundDemands.map((demand) => demand.id ?? null),
@@ -667,6 +686,13 @@ export function buildSalesOverviewInventoryGroups(
 					variantSku: component.inventoryVariant?.sku ?? null,
 					variantUid: component.inventoryVariant?.uid ?? null,
 					variantName: inventoryVariantDisplayName(component.inventoryVariant),
+					supplierCount: supplierVariants.length,
+					supplierNames,
+					hasSupplierPrice: supplierVariants.some(
+						(supplierVariant) =>
+							supplierVariant.costPrice != null ||
+							supplierVariant.salesPrice != null,
+					),
 					inboundDemandIds,
 					pendingInboundDemandIds,
 					pendingStockAllocationIds,
@@ -841,6 +867,11 @@ export function buildSalesOverviewInventoryMergedRows(
 						base.inventoryCategoryId ??
 						rows.find((row) => row.inventoryCategoryId)?.inventoryCategoryId ??
 						null,
+					supplierCount: Math.max(...rows.map((row) => row.supplierCount)),
+					supplierNames: Array.from(
+						new Set(rows.flatMap((row) => row.supplierNames)),
+					).sort((a, b) => a.localeCompare(b)),
+					hasSupplierPrice: rows.some((row) => row.hasSupplierPrice),
 					inboundDemandIds: uniqueNumbers(
 						rows.flatMap((row) => row.inboundDemandIds),
 					),
@@ -1323,6 +1354,32 @@ export async function getSalesInventoryOverview(
 										},
 										select: {
 											qty: true,
+										},
+									},
+									supplierVariants: {
+										where: {
+											active: true,
+											deletedAt: null,
+											supplier: {
+												deletedAt: null,
+											},
+										},
+										orderBy: [
+											{
+												preferred: "desc",
+											},
+											{
+												id: "asc",
+											},
+										],
+										select: {
+											costPrice: true,
+											salesPrice: true,
+											supplier: {
+												select: {
+													name: true,
+												},
+											},
 										},
 									},
 								},

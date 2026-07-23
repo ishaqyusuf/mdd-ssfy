@@ -28,7 +28,7 @@ import { SalesHistory } from "@/components/sales-hx";
 import { SalesCustomerInput } from "./sales-customer-input";
 import salesData from "@sales/sales-data";
 import { PaymentMethodReviewDialog } from "./payment-method-review-dialog";
-import { addMoney, subtractMoney } from "@gnd/sales/payment-system/money";
+import { addMoney } from "@gnd/sales/payment-system/money";
 
 export type SalesMetaTab = "summary" | "history";
 
@@ -54,10 +54,7 @@ function SummaryTab({}) {
 	const [paymentReviewSeen, setPaymentReviewSeen] = useState(false);
 	const profiles = setting.salesProfiles();
 	const taxList = setting.taxList();
-	const displaySubTotal = subtractMoney(
-		md.pricing?.grandTotal,
-		md.pricing?.taxValue,
-	);
+	const displaySubTotal = Number(md.pricing?.subTotal || 0);
 	const displayGrandTotal = Number(
 		md.pricing?.totalWithCcc ??
 			addMoney(md.pricing?.grandTotal, md.pricing?.ccc),

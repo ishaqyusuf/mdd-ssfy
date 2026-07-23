@@ -96,9 +96,9 @@ After implementation, update only the relevant files:
 Do not move linked tasks to `done`. `brain-review-handoff` owns final approval for the review unit.
 
 ## Completion Notes
-Fill this in after implementation:
+Implementation is present; the latest hardening pass tightened custom result-row hit targets and accessibility labels.
 
-- Changed files:
-- Checks run:
-- Brain docs updated:
-- Unresolved issues:
+- Changed files: `apps/expo-app/src/features/sales/invoice-form/custom-component/custom-component-sheet.tsx`
+- Checks run: focused Bun tests (32 tests / 69 assertions), targeted UID/API scans, and scoped `git diff --check`
+- Brain docs updated: `.brain/features/mobile-invoice-form.md`, `.brain/progress.md`
+- Unresolved issues: manual mobile QA and review-unit approval remain open; no API contract changes were required.

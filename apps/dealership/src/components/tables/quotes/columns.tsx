@@ -1,5 +1,6 @@
 "use client";
 
+import { getDealerRequestNextStep } from "@/lib/dealer-next-step";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/dealership-app";
 import { Badge } from "@gnd/ui/badge";
@@ -11,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { FileText, MoreHorizontal, Printer } from "lucide-react";
 import Link from "next/link";
+import { DealerNextStep } from "../../dealer-portal/dealer-next-step";
 import { DealerRequestTimeline } from "../../dealer-portal/dealer-request-timeline";
 
 export type Item = RouterOutputs["dealerPortal"]["quotes"]["data"][number];
@@ -46,6 +48,13 @@ function requestStatusLabel(status?: string | null) {
 	if (status === "approved") return "Approved";
 	if (status === "rejected") return "Rejected";
 	return "Draft";
+}
+
+function requestActionLabel(status?: string | null) {
+	if (status === "pending") return "Requested";
+	if (status === "approved") return "Approved";
+	if (status === "rejected") return "Rejected";
+	return "Request order";
 }
 
 function quoteEditHref(item: Pick<Item, "id" | "orderId">) {
@@ -118,9 +127,18 @@ function QuoteActions({ item }: { item: Item }) {
 					</Button>
 				</DropdownMenu.Trigger>
 				<DropdownMenu.Content align="end" className="w-[190px]">
-					<DropdownMenu.Item asChild>
-						<Link href={quoteEditHref(item)}>Edit</Link>
-					</DropdownMenu.Item>
+					{item.editLocked ? (
+						<DropdownMenu.Item
+							disabled
+							title={item.editLockReason || undefined}
+						>
+							Editing locked
+						</DropdownMenu.Item>
+					) : (
+						<DropdownMenu.Item asChild>
+							<Link href={quoteEditHref(item)}>Edit</Link>
+						</DropdownMenu.Item>
+					)}
 					<DropdownMenu.Separator />
 					<DropdownMenu.Item
 						disabled={printDocument.isPending}
@@ -159,7 +177,7 @@ function QuoteActions({ item }: { item: Item }) {
 				type="button"
 				variant="outline"
 			>
-				{isPendingRequest ? "Requested" : "Request order"}
+				{requestActionLabel(item.requestStatus)}
 			</Button>
 		</div>
 	);
@@ -214,6 +232,18 @@ export const columns: Column[] = [
 		),
 	},
 	{
+		header: "Next step",
+		accessorKey: "nextStep",
+		cell: ({ row: { original: item } }) => (
+			<DealerNextStep
+				compact
+				guidance={getDealerRequestNextStep({
+					status: item.requestStatus,
+				})}
+			/>
+		),
+	},
+	{
 		header: "Total",
 		accessorKey: "grandTotal",
 		cell: ({ row: { original: item } }) => (
@@ -255,6 +285,17 @@ export const mobileColumn: Column[] = [
 							text={customerName(item)}
 						/>
 					</ItemUi.Description>
+					<div className="mt-2">
+						<DealerNextStep
+							compact
+							guidance={getDealerRequestNextStep({
+								status: item.requestStatus,
+							})}
+						/>
+					</div>
+					<div className="mt-3">
+						<QuoteActions item={item} />
+					</div>
 				</div>
 				<div className="shrink-0 text-right">
 					<p className="text-sm font-medium">{currency(item.grandTotal)}</p>

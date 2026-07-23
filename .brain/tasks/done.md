@@ -1,5 +1,15 @@
 # Done
 
+### Sales PDF V2 Release Proof
+- Status: Done
+- Description: Authenticated browser validation rendered and downloaded quote
+  `03341LM` through the HTML preview with an HTTP 200 quote-mode response, then
+  selected orders `08894LM` and `08893LM` and downloaded a valid two-page
+  merged order PDF. Extracted text and rendered-page inspection confirmed the
+  requested order, readable tables, unclipped totals, and valid one-page and
+  two-page artifacts.
+- Completed Date: 2026-07-23
+
 ## Purpose
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
@@ -20,6 +30,93 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   on office order `08890PC`. The broad WWW typecheck retains its documented
   unrelated baseline. The complete repository test run finished with 2,113
   passing, 1 skipped, and 25 existing unrelated failures.
+- Completed Date: 2026-07-23
+
+### Shared Document Caller Migration
+- Priority: High
+- Description: Cut the active Expo employee-gallery, dispatch-proof,
+  packing-signature, authenticated browser attachment, and Sales PDF callers
+  onto canonical `StoredDocument` ownership while preserving compatibility
+  URL/path reads.
+- Related Feature: Shared document platform
+- Status: Done
+- Plan File:
+  `.brain/plans/2026-07-23-feature-shared-document-caller-migration.md`
+- Completed Date: 2026-07-23
+- Scope Note: Legacy Prisma `Gallery` has no runtime caller and was closed as
+  obsolete/no-op. Inventory `ImageGallery` remains a separate future
+  inventory/schema/data decision.
+- Validation: 46 focused tests / 329 assertions; API, sales, utils, jobs, and
+  storefront typechecks; changed-runtime web/Expo diagnostic filtering;
+  focused Biome; diff validation; and two independent no-finding reviews.
+
+### Sales Document WhatsApp And SMS Delivery
+- Priority: High
+- Description: Unified quote/order delivery behind explicit Email, WhatsApp,
+  and SMS intent with validated recipients, reusable short links, Twilio SMS,
+  and per-channel activity evidence.
+- Related Feature: Sales quote/order document delivery
+- Status: Done
+- Plan File:
+  `.brain/plans/2026-07-02-feature-sales-document-whatsapp-sms-delivery.md`
+- Feature File: `.brain/features/sales-document-messaging.md`
+- Decision: `.brain/decisions/ADR-027-sales-document-message-delivery.md`
+- Validation: 39 focused tests / 92 assertions, notifications/jobs/API
+  typechecks, targeted Biome, diff checks, and local authenticated orders data
+  smoke passed. Turbo passed 24 of 25 packages; the broad WWW baseline remains.
+- Completed Date: 2026-07-23
+
+### Resumable Mobile Dispatch Proof Completion
+- Priority: High
+- Description: Replaced client-orchestrated proof uploads, pickup packing, and
+  final completion with one dispatch-bound server operation that durably stages
+  proof paths and idempotently resumes/finalizes the same request.
+- Related Feature: Mobile dispatch proof completion
+- Status: Done
+- Feature File: `.brain/features/mobile-dispatch-proof-completion.md`
+- Decision: `.brain/decisions/ADR-026-resumable-dispatch-proof-completion.md`
+- Validation: API and sales typechecks, 17 focused tests / 229 assertions,
+  targeted Biome, filtered Expo source diagnostics, and diff checks passed.
+- Completed Date: 2026-07-23
+
+### Storefront Compiler and Production-Build Gate Repair
+- Priority: High
+- Description: Reconciled the storefront UI, search, form, icon, and tRPC
+  package-boundary types with their current dependencies and removed the
+  hardcoded address-autocomplete fallback query.
+- Related Feature: Storefront e-commerce replacement
+- Status: Done
+- Feature File: `.brain/features/storefront-ecommerce-replacement.md`
+- Validation: Complete storefront typecheck, targeted lint for all nine changed
+  files, diff check, and the Next.js 16.2.10/Turbopack production build passed;
+  all 21 static pages generated.
+- Completed Date: 2026-07-23
+
+### Operational API Route Hardening
+- Priority: High
+- Description: Replaced public mutation boundaries across dispatch, inventory
+  configuration, contractor jobs/payments, community, and shared settings with
+  authenticated, permission-shaped server guards and live ownership checks.
+- Related Feature: Operational API authorization
+- Status: Done
+- Plan File: `.brain/plans/2026-07-23-api-public-route-hardening.md`
+- Feature File: `.brain/features/api-operational-route-hardening.md`
+- Decision: `.brain/decisions/ADR-025-operational-mutation-permission-boundaries.md`
+- Validation: 14 focused tests / 239 assertions and API typecheck passed;
+  read-only seeded-role audit matched the documented capability matrix.
+- Completed Date: 2026-07-23
+
+### Dealer Quote Post-Request Edit Lock
+- Priority: High
+- Description: Locked dealer quote editing after pending, approved, or rejected
+  order requests in both list/direct-route UI and the transactional save
+  boundary, with an actionable API conflict response.
+- Related Feature: Dealership quote-to-order approval
+- Status: Done
+- Feature File: `.brain/features/dealership-quote-to-order-approval.md`
+- Validation: 61 focused tests / 187 assertions, dealership and API typechecks,
+  targeted Biome, and diff checks passed. Live locked-row interaction remains
+  fixture-dependent; no quote data was fabricated.
 - Completed Date: 2026-07-23
 
 ### Sales Orders Batch Payment Review
@@ -680,3 +777,15 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   canonical quote creation, best-effort notifications, stale-draft cleanup, and
   responsive browser verification. Migration generation remains separately
   blocked by the existing master-password shadow migration failure.
+- [x] 2026-07-23: completed the Sales Overview manager production preflight.
+  Admin order views now derive six read-only checks for door configuration,
+  customer/tax, supplier pricing, stock/inbound, fulfillment, and current PDF
+  readiness, with review navigation into existing Details or Inventory tabs.
+  Focused projection, DTO, and inventory tests pass; sales/API typechecks and
+  focused Biome pass; authenticated browser proof loaded order `08893LM` and
+  found the card without application console errors.
+- [x] 2026-07-23: completed dealer request, payment, and fulfillment next-step
+  guidance. Quote/order tables, dashboard request activity, and order detail now
+  share one tested policy that keeps the customer receivable separate from the
+  GND payable and advances pickup/delivery wording only from affirmative
+  fulfillment evidence. Authenticated desktop and mobile dealership QA passed.

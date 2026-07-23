@@ -23,6 +23,7 @@ import {
 	type ShelfRowDraft,
 	type ShelfSectionDraft,
 } from "./workflow-records";
+import { ShelfCategoryPathInput } from "./shelf-inputs";
 import {
 	getShelfRowDisplayTotal,
 	getShelfRowDisplayUnitPrice,
@@ -49,6 +50,40 @@ type InlineRowEntry = {
 	row: ShelfRowDraft;
 	rowIndex: number;
 };
+
+function resetSectionRowsForCategory(
+	section: ShelfSectionDraft,
+	nextCategoryIds: number[],
+) {
+	const parentCategoryId = nextCategoryIds[0] ?? null;
+	const categoryId = nextCategoryIds.at(-1) ?? null;
+	return {
+		...section,
+		categoryIds: nextCategoryIds,
+		parentCategoryId,
+		categoryId,
+		rows: (section.rows || []).map((row) => {
+			const cleared = clearShelfRowProduct(row);
+			return {
+				...cleared,
+				categoryId,
+				meta: {
+					...(cleared.meta || {}),
+					categoryIds: nextCategoryIds,
+					shelfParentCategoryId: parentCategoryId,
+				},
+			};
+		}),
+		subTotal: 0,
+	};
+}
+
+export function patchShelfSectionCategories(
+	section: ShelfSectionDraft,
+	nextCategoryIds: number[],
+) {
+	return resetSectionRowsForCategory(section, nextCategoryIds);
+}
 
 export type ShelfInlineItemsEditorProps = {
 	sections: ShelfSectionDraft[];
@@ -456,6 +491,40 @@ export function ShelfInlineItemsEditor(props: ShelfInlineItemsEditorProps) {
 					Shelf Items
 				</p>
 				{props.headerSlot}
+			</div>
+			<div className="grid gap-2">
+				{props.sections.map((section, sectionIndex) => (
+					<div
+						key={`shelf-inline-section-category-${section.uid}`}
+						className="grid gap-1 rounded-lg border bg-muted/10 p-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-center"
+					>
+						<p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+							Section {sectionIndex + 1} category
+						</p>
+						<ShelfCategoryPathInput
+							categories={props.categories}
+							categoryIds={section.categoryIds || []}
+							onChange={(nextCategoryIds) =>
+								props.onSectionsChange(
+									props.sections.map((candidate, candidateIndex) =>
+										candidateIndex === sectionIndex
+											? patchShelfSectionCategories(candidate, nextCategoryIds)
+											: candidate,
+									),
+								)
+							}
+							onClearRequest={() =>
+								props.onSectionsChange(
+									props.sections.map((candidate, candidateIndex) =>
+										candidateIndex === sectionIndex
+											? patchShelfSectionCategories(candidate, [])
+											: candidate,
+									),
+								)
+							}
+						/>
+					</div>
+				))}
 			</div>
 			<div className="overflow-x-auto rounded-lg border">
 				<table className="w-full min-w-[780px] table-fixed text-sm">

@@ -47,4 +47,14 @@ describe("sales customer edit button", () => {
 			expect(source.includes("SalesCustomerEditButton")).toBe(true);
 		}
 	});
+
+	it("uses the customer-edit permission rather than the order-edit permission", () => {
+		const source = readFileSync(
+			new URL("./sales-customer-edit-button.tsx", import.meta.url),
+			"utf8",
+		);
+
+		expect(source.includes("editSalesCustomers")).toBe(true);
+		expect(source.includes("editOrders")).toBe(false);
+	});
 });

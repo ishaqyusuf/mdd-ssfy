@@ -6,21 +6,21 @@ import {
 	SALES_DISPATCH_FILTER_OPTIONS,
 	salesType,
 } from "@gnd/utils/constants";
+import { paginationSchema } from "@gnd/utils/schema";
+import { id } from "date-fns/locale";
 import { z } from "zod";
-import { SALES_DISPATCH_STATUS } from "./utils/constants";
-import {
-	SALES_CHANNEL_FILTER_OPTIONS,
-	SALES_HAS_FILTER_OPTIONS,
-} from "./filter-constants";
 import {
 	INVENTORY_STATUS,
 	SALES_PAYMENT_METHODS,
 	SALES_REFUND_METHODS,
 	type SalesProductionStatusFilter,
 } from "./constants";
-import { paginationSchema } from "@gnd/utils/schema";
-import { id } from "date-fns/locale";
+import {
+	SALES_CHANNEL_FILTER_OPTIONS,
+	SALES_HAS_FILTER_OPTIONS,
+} from "./filter-constants";
 import { salesPrioritySchema } from "./priority";
+import { SALES_DISPATCH_STATUS } from "./utils/constants";
 export const getFullSalesDataSchema = z.object({
 	salesId: z.number().optional().nullable(),
 	salesNo: z.string().optional().nullable(),
@@ -54,6 +54,7 @@ export const dispatchForm = z.object({
 	note: z.string().optional(),
 	noteType: z.enum(["dispatch", "pickup"]).optional().nullable(),
 	signature: z.string().optional().nullable(),
+	completionRequestId: z.string().min(12).max(100).optional().nullable(),
 	attachments: z
 		.array(
 			z.object({

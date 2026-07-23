@@ -11,10 +11,7 @@ import { useSalesQueryClient } from "@/hooks/use-sales-query-client";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
 import { openLink } from "@/lib/open-link";
 import type { SalesQueryRef } from "@/lib/query-events/types";
-import {
-	buildSalesPdfDownloadUrlFromQuery,
-	resolveSalesPrintMode,
-} from "@/modules/sales-print/application/sales-print-service";
+import { resolveSalesPrintMode } from "@/modules/sales-print/application/sales-print-service";
 import { useSalesPrintController } from "@/modules/sales-print/application/use-sales-print-controller";
 import { useTestEmailMode } from "@/store/test-email-mode";
 import { useTRPC } from "@/trpc/client";
@@ -29,11 +26,7 @@ import { Icons } from "@gnd/ui/icons";
 import { AlertDialog, DropdownMenu } from "@gnd/ui/namespace";
 import { ToastAction } from "@gnd/ui/toast";
 import { toast } from "@gnd/ui/use-toast";
-import { share } from "@gnd/utils/share";
-import type {
-	QuoteAcceptanceTokenSchema,
-	SalesPdfToken,
-} from "@gnd/utils/tokenizer";
+import type { QuoteAcceptanceTokenSchema } from "@gnd/utils/tokenizer";
 import type { UpdateSalesControl } from "@sales/schema";
 import { useMutation } from "@tanstack/react-query";
 import { addDays } from "date-fns";
@@ -58,6 +51,7 @@ type SalesMenuState = {
 	salesIds: number[];
 	orderNo?: string | null;
 	customerEmail?: string | null;
+	customerPhone?: string | null;
 	customerName?: string | null;
 	documentTitle?: string | null;
 };
@@ -107,6 +101,7 @@ type SalesMenuProps = {
 	salesRefs?: readonly SalesQueryRef[];
 	orderNo?: string | null;
 	customerEmail?: string | null;
+	customerPhone?: string | null;
 	customerName?: string | null;
 	documentTitle?: string | null;
 	children: ReactNode;
@@ -127,6 +122,7 @@ function SalesMenuRoot({
 	salesRefs,
 	orderNo,
 	customerEmail,
+	customerPhone,
 	customerName,
 	documentTitle,
 	children,
@@ -173,11 +169,13 @@ function SalesMenuRoot({
 			salesIds: resolvedIds,
 			orderNo,
 			customerEmail,
+			customerPhone,
 			customerName,
 			documentTitle,
 		};
 	}, [
 		customerEmail,
+		customerPhone,
 		customerName,
 		documentTitle,
 		id,
@@ -342,6 +340,7 @@ function SalesMenuRoot({
 				documentTitle={composeDocumentTitle}
 				orderNo={state.orderNo}
 				customerEmail={state.customerEmail}
+				customerPhone={state.customerPhone}
 				customerName={state.customerName}
 				trigger={null}
 				open={composeOpen}
@@ -551,7 +550,6 @@ function SalesMenuAcceptQuote({ disabled }: ActionProps) {
 
 type PrintActionProps = {
 	pdf?: boolean;
-	share?: boolean;
 	openInNewTab?: boolean;
 };
 
@@ -568,25 +566,6 @@ function useSalesPrintAction() {
 			params?.mode,
 			state.type === "quote" ? "quote" : "order",
 		);
-
-		if (options?.share) {
-			const token = await generateToken({
-				salesIds: state.salesIds,
-				expiry: addDays(new Date(), 7).toISOString(),
-				mode: params?.mode || state.type || "order",
-			} satisfies SalesPdfToken);
-			const shareUrl = buildSalesPdfDownloadUrlFromQuery({
-				token,
-				preview: false,
-				origin: window.location.origin,
-			});
-			await share({
-				url: shareUrl,
-				msg: `Hello! download your sales ${shareUrl}`,
-			});
-			actions.closeMenu();
-			return;
-		}
 
 		const dispatchId =
 			params?.mode === "packing list" && params?.dispatchId !== "all"
@@ -615,19 +594,18 @@ function useSalesPrintAction() {
 }
 
 function SalesMenuShare({ disabled }: ActionProps) {
-	const runPrint = useSalesPrintAction();
-	const { state } = useSalesMenuContext();
+	const { actions, state } = useSalesMenuContext();
 
 	return (
 		<DropdownMenu.Item
 			disabled={disabled || !state.salesIds.length}
 			onSelect={(e) => {
 				e.preventDefault();
-				void runPrint(undefined, { share: true });
+				actions.openComposeEmail();
 			}}
 		>
 			<Icons.Share2 className="mr-2 size-4 text-muted-foreground/70" />
-			Share
+			Send Document
 		</DropdownMenu.Item>
 	);
 }

@@ -4,13 +4,23 @@
 UX/UI
 
 ## Status
-Proposed
+Completed
 
 ## Created Date
 2026-06-23
 
 ## Last Updated
-2026-06-23
+2026-07-23
+
+## Completion
+- Completed shared bottom-tab, search, multi-facet filter, record-selection,
+  and nested-detail architecture for all three development-only templates.
+- Reused the app-owned safe-area and keyboard-aware floating bottom sheet with
+  staged Apply/cancel semantics.
+- Added pure filtering/detail utilities and focused regression coverage.
+- Expo web and Android renderer attempts were blocked before route mount by
+  existing app-level `FlatList` and Node `crypto` bundle failures; the preview
+  TypeScript boundary has no diagnostics.
 
 ## Intake
 - Intake File: brain/intake/2026-06-23-mobile-template-completion.md

@@ -3,44 +3,61 @@ import { ScrollView, Text, View } from "react-native";
 import type { ResolvedPreviewDesignSystem } from "../design-systems/types";
 
 export function PreviewDetailTabs({
-  tabs,
-  activeTab,
-  onTabSelect,
-  system,
+	tabs,
+	activeTab,
+	onTabSelect,
+	system,
 }: {
-  tabs: string[];
-  activeTab: string;
-  onTabSelect: (tab: string) => void;
-  system: ResolvedPreviewDesignSystem;
+	tabs: string[];
+	activeTab: string;
+	onTabSelect: (tab: string) => void;
+	system: ResolvedPreviewDesignSystem;
 }) {
-  return (
-    <View style={{ borderBottomWidth: 1, borderBottomColor: system.colors.border, marginBottom: 16, marginHorizontal: -16 }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 24 }}>
-        {tabs.map((tab) => {
-          const isActive = tab === activeTab;
-          return (
-            <Pressable
-              key={tab}
-              onPress={() => onTabSelect(tab)}
-              style={{
-                paddingVertical: 12,
-                borderBottomWidth: 2,
-                borderBottomColor: isActive ? system.colors.primary : "transparent",
-              }}
-            >
-              <Text
-                style={{
-                  color: isActive ? system.colors.primary : system.colors.muted,
-                  fontWeight: isActive ? "800" : "600",
-                  fontSize: 14,
-                }}
-              >
-                {tab}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
+	return (
+		<View
+			style={{
+				borderBottomColor: system.colors.border,
+				borderBottomWidth: 1,
+				marginHorizontal: -16,
+			}}
+		>
+			<ScrollView
+				contentContainerStyle={{ gap: 24, paddingHorizontal: 16 }}
+				horizontal
+				showsHorizontalScrollIndicator={false}
+			>
+				{tabs.map((tab) => {
+					const isActive = tab === activeTab;
+					return (
+						<Pressable
+							accessibilityLabel={`${tab} detail`}
+							accessibilityRole="button"
+							accessibilityState={{ selected: isActive }}
+							key={tab}
+							onPress={() => onTabSelect(tab)}
+							style={{
+								borderBottomColor: isActive
+									? system.colors.primary
+									: "transparent",
+								borderBottomWidth: 2,
+								justifyContent: "center",
+								minHeight: 44,
+								paddingVertical: 12,
+							}}
+						>
+							<Text
+								style={{
+									color: isActive ? system.colors.primary : system.colors.muted,
+									fontSize: 13,
+									fontWeight: isActive ? "800" : "600",
+								}}
+							>
+								{tab}
+							</Text>
+						</Pressable>
+					);
+				})}
+			</ScrollView>
+		</View>
+	);
 }

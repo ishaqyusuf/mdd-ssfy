@@ -2,15 +2,13 @@ import type { SaveInboundNoteSchema } from "@api/schemas/notes";
 import type { TRPCContext } from "@api/trpc/init";
 import { applyOrderInboundStatusToInventoryDemand } from "@gnd/inventory";
 import type { NoteTagNames } from "@gnd/utils/constants";
+import { adoptStoredDocumentAttachments } from "@gnd/utils/note";
 import {
+	getSubscriberAccount,
 	getSubscribersAccount,
 	getSubscribersForNotificationType,
-	getSubscriberAccount,
 } from "@notifications/channel-subscribers";
-import {
-	getChannels,
-	syncChannels,
-} from "@notifications/channels-query";
+import { getChannels, syncChannels } from "@notifications/channels-query";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
 import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 import { getAuthUser } from "./user";
@@ -134,6 +132,8 @@ export async function saveInboundNote(
 	ctx: TRPCContext,
 	data: SaveInboundNoteSchema,
 ) {
+	const uploadedBy = ctx.userId;
+	if (!uploadedBy) throw new Error("Unauthorized!");
 	const senderId = await getSenderId(ctx);
 	const order = await ctx.db.salesOrders.findFirstOrThrow({
 		where: {
@@ -166,8 +166,8 @@ export async function saveInboundNote(
 		: `Inbound status confirmed as ${nextStatus}.`;
 	const userNote = data.note?.trim();
 
-	const [updatedOrder, note] = await ctx.db.$transaction([
-		ctx.db.salesOrders.update({
+	const [updatedOrder, note] = await ctx.db.$transaction(async (tx) => {
+		const updatedOrder = await tx.salesOrders.update({
 			where: {
 				id: order.id,
 			},
@@ -179,10 +179,10 @@ export async function saveInboundNote(
 				orderId: true,
 				inventoryStatus: true,
 			},
-		}),
-		ctx.db.notePad.create({
+		});
+		const note = await tx.notePad.create({
 			data: {
-				headline: `Sales Inbound`,
+				headline: "Sales Inbound",
 				subject: `${nextStatus}`,
 				note: [statusNote, userNote].filter(Boolean).join("\n\n"),
 				color: data.noteColor,
@@ -212,30 +212,30 @@ export async function saveInboundNote(
 								tagName: "salesId" as NoteTagNames,
 								tagValue: `${data.salesId}`,
 							},
-								{
-									tagName: "salesNo" as NoteTagNames,
-									tagValue: `${data.orderNo || order.orderId}`,
-								},
-								...(previousStatus
-									? [
-											{
-												tagName: "previousInboundStatus" as NoteTagNames,
-												tagValue: previousStatus,
-											},
-										]
-									: []),
-								{
-									tagName: "inboundStatus" as NoteTagNames,
-									tagValue: nextStatus,
-								},
-								...(ctx.userId
-									? [
-											{
-												tagName: "userId" as NoteTagNames,
-												tagValue: `${ctx.userId}`,
-											},
-										]
-									: []),
+							{
+								tagName: "salesNo" as NoteTagNames,
+								tagValue: `${data.orderNo || order.orderId}`,
+							},
+							...(previousStatus
+								? [
+										{
+											tagName: "previousInboundStatus" as NoteTagNames,
+											tagValue: previousStatus,
+										},
+									]
+								: []),
+							{
+								tagName: "inboundStatus" as NoteTagNames,
+								tagValue: nextStatus,
+							},
+							...(ctx.userId
+								? [
+										{
+											tagName: "userId" as NoteTagNames,
+											tagValue: `${ctx.userId}`,
+										},
+									]
+								: []),
 							{
 								tagName: "type" as NoteTagNames,
 								tagValue: "inbound",
@@ -244,7 +244,7 @@ export async function saveInboundNote(
 								tagName: "status" as NoteTagNames,
 								tagValue: "public",
 							},
-							...(data?.attachments || [])?.map(({ pathname: tagValue }) => ({
+							...(data.attachments || []).map(({ pathname: tagValue }) => ({
 								tagValue,
 								tagName: "attachment" as NoteTagNames,
 							})),
@@ -252,14 +252,31 @@ export async function saveInboundNote(
 					},
 				},
 			},
-		}),
-	]);
-	const inventoryDemandUpdate =
-		await applyOrderInboundStatusToInventoryDemand(ctx.db, {
+		});
+		const attachmentPathnames = (data.attachments || []).map(
+			({ pathname }) => pathname,
+		);
+		if (attachmentPathnames.length) {
+			await adoptStoredDocumentAttachments(tx, {
+				pathnames: attachmentPathnames,
+				uploadedBy,
+				ownerType: "note",
+				ownerId: String(note.id),
+				ownerKey: "attachment",
+				sourceType: "note_attachment",
+				sourceId: String(note.id),
+			});
+		}
+		return [updatedOrder, note] as const;
+	});
+	const inventoryDemandUpdate = await applyOrderInboundStatusToInventoryDemand(
+		ctx.db,
+		{
 			saleId: order.id,
 			status: nextStatus,
 			demandIds: data.demandIds,
-		});
+		},
+	);
 
 	return {
 		order: updatedOrder,
@@ -274,8 +291,9 @@ export async function saveInboundNote(
 export async function getSenderId(ctx: TRPCContext) {
 	const user = await getAuthUser(ctx);
 	if (!user) throw new Error("Unauthorized!");
-	const senderContactId = (await getSubscriberAccount(ctx.db, user.id))?.id!;
-	return senderContactId;
+	const senderContact = await getSubscriberAccount(ctx.db, user.id);
+	if (!senderContact) throw new Error("Sender contact not found.");
+	return senderContact.id;
 }
 
 export async function deleteNotification(

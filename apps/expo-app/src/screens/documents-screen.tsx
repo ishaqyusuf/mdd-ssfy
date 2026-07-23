@@ -2,6 +2,10 @@ import { BackBtn } from "@/components/back-btn";
 import { InsuranceStatusAlert } from "@/components/insurance/insurance-status-alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import {
+	type UploadImageMimeType,
+	resolveUploadImageMimeType,
+} from "@/lib/upload-image-mime";
 import { useTRPC } from "@/trpc/client";
 import {
 	INSURANCE_DOCUMENT_TITLES,
@@ -34,7 +38,7 @@ export default function DocumentsScreen() {
 	const [selectedAsset, setSelectedAsset] = useState<{
 		base64: string;
 		fileName: string;
-		mimeType?: string;
+		mimeType: UploadImageMimeType;
 		uri: string;
 	} | null>(null);
 	const [title, setTitle] = useState(uploadTitleOptions[0] || "Insurance");
@@ -49,10 +53,7 @@ export default function DocumentsScreen() {
 	const insuranceStatus = profile ? getInsuranceRequirement(documents) : null;
 
 	const uploadAssetMutation = useMutation(
-		trpc.user.uploadDocumentAsset.mutationOptions(),
-	);
-	const saveDocumentMutation = useMutation(
-		trpc.user.saveDocument.mutationOptions({
+		trpc.user.uploadDocumentAsset.mutationOptions({
 			onSuccess: async () => {
 				await Promise.all([
 					refetch(),
@@ -77,8 +78,7 @@ export default function DocumentsScreen() {
 		}),
 	);
 
-	const isUploading =
-		uploadAssetMutation.isPending || saveDocumentMutation.isPending;
+	const isUploading = uploadAssetMutation.isPending;
 
 	const selectedFileLabel = useMemo(() => {
 		if (!selectedAsset) return "No file selected";
@@ -114,12 +114,23 @@ export default function DocumentsScreen() {
 			return;
 		}
 
+		const fileName =
+			asset.fileName ||
+			`employee-document-${Date.now()}.${asset.uri.split(".").pop() || "jpg"}`;
+		const mimeType = resolveUploadImageMimeType(asset.mimeType, fileName);
+		if (!mimeType) {
+			Toast.show({
+				type: "error",
+				text1: "Unsupported image",
+				text2: "Choose a JPEG, PNG, WebP, AVIF, HEIC, or HEIF image.",
+			});
+			return;
+		}
+
 		setSelectedAsset({
 			base64: asset.base64,
-			fileName:
-				asset.fileName ||
-				`employee-document-${Date.now()}.${asset.uri.split(".").pop() || "jpg"}`,
-			mimeType: asset.mimeType || "image/jpeg",
+			fileName,
+			mimeType,
 			uri: asset.uri,
 		});
 	}
@@ -135,15 +146,11 @@ export default function DocumentsScreen() {
 		}
 
 		try {
-			const uploaded = await uploadAssetMutation.mutateAsync({
+			await uploadAssetMutation.mutateAsync({
 				filename: selectedAsset.fileName,
 				contentType: selectedAsset.mimeType,
 				content: selectedAsset.base64,
-			});
-
-			await saveDocumentMutation.mutateAsync({
 				title,
-				url: uploaded.url,
 				expiresAt: expiresAt.trim() || undefined,
 				description: "Uploaded from mobile documents screen.",
 			});

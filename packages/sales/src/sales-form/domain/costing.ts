@@ -64,7 +64,23 @@ function isTaxableLineLegacy(line: SalesFormLineItemLike) {
 }
 
 function isTaxableLineCurrent(line: SalesFormLineItemLike) {
+	const lineMeta = readSalesFormObjectMetadata(line.meta) || {};
+	const serviceRows = Array.isArray(lineMeta.serviceRows)
+		? lineMeta.serviceRows
+		: [];
+	if (serviceRows.length) {
+		const fallback =
+			typeof lineMeta.taxxable === "boolean"
+				? lineMeta.taxxable
+				: typeof line.taxxable === "boolean"
+					? line.taxxable
+					: false;
+		return serviceRows.some((row: any) =>
+			typeof row?.taxxable === "boolean" ? row.taxxable : fallback,
+		);
+	}
 	if (typeof line.taxxable === "boolean") return line.taxxable;
+	if (typeof lineMeta.taxxable === "boolean") return lineMeta.taxxable;
 	return true;
 }
 
@@ -167,6 +183,44 @@ function deriveLineTotalForSummary(line: SalesFormLineItemLike) {
 		: roundMoney(safeNumber(line.lineTotal));
 }
 
+function deriveTaxableGroupedServiceTotal(line: SalesFormLineItemLike) {
+	const lineMeta = readSalesFormObjectMetadata(line.meta) || {};
+	const serviceRows = Array.isArray(lineMeta.serviceRows)
+		? lineMeta.serviceRows
+		: [];
+	if (!serviceRows.length) return null;
+
+	const fallbackTaxable =
+		typeof lineMeta.taxxable === "boolean"
+			? lineMeta.taxxable
+			: typeof line.taxxable === "boolean"
+				? line.taxxable
+				: false;
+	return sumMoney(
+		serviceRows.map((row: any) => {
+			const taxable =
+				typeof row?.taxxable === "boolean" ? row.taxxable : fallbackTaxable;
+			if (!taxable) return 0;
+			const explicitTotal = row?.lineTotal ?? row?.totalPrice;
+			if (explicitTotal != null) return roundMoney(safeNumber(explicitTotal));
+			return multiplyMoney(safeNumber(row?.qty), safeNumber(row?.unitPrice));
+		}),
+	);
+}
+
+function deriveTaxableLineTotal(
+	line: SalesFormLineItemLike,
+	strategy: "legacy" | "current",
+) {
+	const groupedServiceTotal = deriveTaxableGroupedServiceTotal(line);
+	if (groupedServiceTotal != null) return groupedServiceTotal;
+	const taxable =
+		strategy === "legacy"
+			? isTaxableLineLegacy(line)
+			: isTaxableLineCurrent(line);
+	return taxable ? deriveLineTotalForSummary(line) : 0;
+}
+
 export function calculateSalesFormSummary(
 	input: CalculateSalesFormSummaryInput,
 ): SalesFormSummaryResult {
@@ -237,9 +291,7 @@ export function calculateSalesFormSummary(
 
 	if (strategy === "legacy") {
 		const taxableLineSubTotal = sumMoney(
-			lineItems.map((line) =>
-				isTaxableLineLegacy(line) ? deriveLineTotalForSummary(line) : 0,
-			),
+			lineItems.map((line) => deriveTaxableLineTotal(line, "legacy")),
 		);
 
 		const taxableBeforeDiscount = sumMoney([
@@ -299,9 +351,7 @@ export function calculateSalesFormSummary(
 	}
 
 	const taxableLineSubTotalCurrent = sumMoney(
-		lineItems.map((line) =>
-			isTaxableLineCurrent(line) ? deriveLineTotalForSummary(line) : 0,
-		),
+		lineItems.map((line) => deriveTaxableLineTotal(line, "current")),
 	);
 	const taxableBeforeDiscount = sumMoney([
 		taxableLineSubTotalCurrent,

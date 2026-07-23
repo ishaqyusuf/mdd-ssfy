@@ -91,6 +91,7 @@ export type HousePackageToolPanelProps = {
 	componentLabel: (value?: string | null) => string;
 	resolveImageSrc: (value?: string | null) => string | null;
 	onActiveDoorChange: (uid: string) => void;
+	onAddDoor?: () => void;
 	onAddSize: (size: string) => void;
 	onConfigureSizes: () => void;
 	onSwapDoor: () => void;
@@ -116,6 +117,53 @@ function HptHeaderActionTooltip({
 	);
 }
 
+function HptAddSizeMenu(props: {
+	componentId: number;
+	availableSizes: string[];
+	onAddSize: (size: string) => void;
+	disabled?: boolean;
+}) {
+	return (
+		<TooltipProvider delayDuration={120}>
+			<DropdownMenu>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DropdownMenuTrigger asChild>
+							<Button
+								type="button"
+								size="icon"
+								variant="outline"
+								className="size-8 rounded-full"
+								disabled={props.disabled}
+								aria-label="Add Size"
+							>
+								<Icons.Plus className="size-3.5" />
+							</Button>
+						</DropdownMenuTrigger>
+					</TooltipTrigger>
+					<TooltipContent side="top" className="px-2 py-1 text-xs">
+						Add Size
+					</TooltipContent>
+				</Tooltip>
+				<DropdownMenuContent align="end" className="w-44">
+					{!props.availableSizes.length ? (
+						<DropdownMenuItem disabled>No more sizes</DropdownMenuItem>
+					) : (
+						props.availableSizes.map((size) => (
+							<DropdownMenuItem
+								key={`add-size-${props.componentId}-${size}`}
+								onClick={() => props.onAddSize(size)}
+							>
+								{size}
+							</DropdownMenuItem>
+						))
+					)}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</TooltipProvider>
+	);
+}
+
 export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 	const componentId = Number(props.activeDoorComponent?.id || 0);
 	const rowsForComponent = props.focusedRows.map(clearUnpricedDoorRowQty);
@@ -128,6 +176,20 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 
 	return (
 		<section className="mt-4 space-y-3">
+			{props.onAddDoor ? (
+				<div className="flex justify-end">
+					<Button
+						type="button"
+						size="sm"
+						variant="outline"
+						onClick={props.onAddDoor}
+						aria-label="Add door"
+					>
+						<Icons.Plus className="mr-1.5 size-3.5" />
+						Add Door
+					</Button>
+				</div>
+			) : null}
 			{showDoorTabs ? (
 				<div className="flex flex-wrap gap-2">
 					{props.selectedDoorComponents.map((component) => {
@@ -160,18 +222,46 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 						PACKAGE TOOL.
 					</div>
 				) : !props.summary.rows.length ? (
-					<div className="rounded-lg border border-dashed bg-background p-6 text-center text-sm text-muted-foreground">
-						Select a door component and apply size quantities to build the
-						package.
+					<div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-background p-6 text-center text-sm text-muted-foreground">
+						<p>
+							Select a door component and apply size quantities to build the
+							package.
+						</p>
+						<HptAddSizeMenu
+							componentId={componentId}
+							availableSizes={props.availableSizes}
+							onAddSize={props.onAddSize}
+							disabled={!props.activeDoorComponent}
+						/>
 					</div>
 				) : !rowsForComponent.length ? (
-					<div className="rounded-lg border border-dashed bg-background p-6 text-center text-sm text-muted-foreground">
-						No size rows for{" "}
-						{props.componentLabel(
-							props.activeDoorComponent?.title || "selected door",
-						)}{" "}
-						yet. Click <span className="font-semibold">Configure Sizes</span> to
-						add them.
+					<div className="flex flex-col items-center gap-3 rounded-lg border border-dashed bg-background p-6 text-center text-sm text-muted-foreground">
+						<p>
+							No size rows for{" "}
+							{props.componentLabel(
+								props.activeDoorComponent?.title || "selected door",
+							)}{" "}
+							yet. Add a configured size or open the size editor.
+						</p>
+						<div className="flex items-center gap-2">
+							<HptAddSizeMenu
+								componentId={componentId}
+								availableSizes={props.availableSizes}
+								onAddSize={props.onAddSize}
+								disabled={!props.activeDoorComponent}
+							/>
+							<HptHeaderActionTooltip label="Configure Sizes">
+								<Button
+									type="button"
+									size="sm"
+									variant="outline"
+									onClick={props.onConfigureSizes}
+									disabled={!props.activeDoorComponent}
+								>
+									Configure Sizes
+								</Button>
+							</HptHeaderActionTooltip>
+						</div>
 					</div>
 				) : (
 					<article className="overflow-hidden rounded-lg border bg-background">
@@ -206,43 +296,12 @@ export function HousePackageToolPanel(props: HousePackageToolPanelProps) {
 								</p>
 							</div>
 							<div className="ml-auto flex shrink-0 items-center gap-1">
+								<HptAddSizeMenu
+									componentId={componentId}
+									availableSizes={props.availableSizes}
+									onAddSize={props.onAddSize}
+								/>
 								<TooltipProvider delayDuration={120}>
-									<DropdownMenu>
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<DropdownMenuTrigger asChild>
-													<Button
-														type="button"
-														size="icon"
-														variant="outline"
-														className="size-8 rounded-full"
-														aria-label="Add Size"
-													>
-														<Icons.Plus className="size-3.5" />
-													</Button>
-												</DropdownMenuTrigger>
-											</TooltipTrigger>
-											<TooltipContent side="top" className="px-2 py-1 text-xs">
-												Add Size
-											</TooltipContent>
-										</Tooltip>
-										<DropdownMenuContent align="end" className="w-44">
-											{!props.availableSizes.length ? (
-												<DropdownMenuItem disabled>
-													No more sizes
-												</DropdownMenuItem>
-											) : (
-												props.availableSizes.map((size) => (
-													<DropdownMenuItem
-														key={`add-size-${componentId}-${size}`}
-														onClick={() => props.onAddSize(size)}
-													>
-														{size}
-													</DropdownMenuItem>
-												))
-											)}
-										</DropdownMenuContent>
-									</DropdownMenu>
 									<HptHeaderActionTooltip label="Configure Sizes">
 										<Button
 											type="button"

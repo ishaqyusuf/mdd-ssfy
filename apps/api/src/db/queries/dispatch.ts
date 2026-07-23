@@ -1,9 +1,11 @@
 import { whereDispatch } from "@api/prisma-where";
-import { composeQueryData } from "@gnd/utils/query-response";
 import type {
+	BulkAssignDriverSchema,
+	BulkCancelDispatchSchema,
 	CompletionModeSchema,
-	DispatchStatusSchema,
 	DispatchQueryParamsSchema,
+	DispatchStatusSchema,
+	ExportDispatchesSchema,
 	PackingListQuerySchema,
 	ResolveDuplicateDispatchGroupSchema,
 	SalesDispatchOverviewSchema,
@@ -13,16 +15,12 @@ import type {
 	UpdateDispatchDueDateSchema,
 	UpdateDispatchStatusSchema,
 	UpdateSalesDeliveryOptionSchema,
-	BulkAssignDriverSchema,
-	BulkCancelDispatchSchema,
-	ExportDispatchesSchema,
 } from "@api/schemas/sales";
 import type { TRPCContext } from "@api/trpc/init";
+import type { QtyControlType } from "@api/type";
 import { expireCurrentSalesDocumentSnapshots } from "@api/utils/sales-document-access";
 import { queueSalesDocumentSnapshotWarmups } from "@api/utils/sales-document-warm";
-import type { QtyControlType } from "@api/type";
 import type { Prisma } from "@gnd/db";
-import type { SalesDispatchStatus } from "@gnd/utils/constants";
 import {
 	isControlOverviewReadV2Enabled,
 	isControlReadV2Enabled,
@@ -33,20 +31,22 @@ import {
 	withSalesControl,
 	withSalesListControl,
 } from "@gnd/sales";
+import type { SalesDispatchStatus } from "@gnd/utils/constants";
+import { noteTag } from "@gnd/utils/note";
+import { composeQueryData } from "@gnd/utils/query-response";
+import { hasQty } from "@gnd/utils/sales";
 import { NotificationService } from "@notifications/services/triggers";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
-import { hasQty } from "@gnd/utils/sales";
-import { noteTag } from "@gnd/utils/note";
 
-import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
 import {
 	getSalesDispatchOverview,
 	packDispatchItemTask,
 	submitDispatchTask,
 } from "@sales/exports";
-import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
 import type { UpdateSalesControl } from "@sales/schema";
+import { qtyMatrixSum, transformQtyHandle } from "@sales/utils/sales-control";
+import { qtyMatrixDifference, recomposeQty } from "@sales/utils/sales-control";
 
 function isControlReadParityEnabled() {
 	return ["1", "true", "yes", "on"].includes(
@@ -854,8 +854,7 @@ export async function updateSalesDeliveryOption(
 					break;
 				case "status":
 					updateData.status = value;
-					updateData.deliveredAt =
-						value === "completed" ? new Date() : null;
+					updateData.deliveredAt = value === "completed" ? new Date() : null;
 					break;
 			}
 		});
@@ -1129,7 +1128,10 @@ export async function getPackingList(
 
 export async function signPackingSlip(
 	ctx: TRPCContext,
-	input: SignPackingSlipSchema,
+	input: SignPackingSlipSchema & {
+		packingRequestId: string;
+		signatureDocumentId: string;
+	},
 ) {
 	if (!ctx.userId) {
 		throw new TRPCError({
@@ -1211,59 +1213,80 @@ export async function signPackingSlip(
 		},
 	} as UpdateSalesControl);
 
-	await submitDispatchTask(ctx.db, {
-		meta,
-		submitDispatch: {
-			dispatchId: dispatch.id,
-			receivedBy,
-			receivedDate: new Date(),
-			signature: input.signature,
-			note: input.note || "",
-			noteType: input.noteType || "pickup",
-		},
-	} as UpdateSalesControl);
-
-	await new NotificationService(tasks, {
-		db: ctx.db,
-		userId: ctx.userId,
-	}).send("sales_dispatch_completed", {
-		author: {
-			id: ctx.userId,
-			role: "employee",
-		},
-		payload: {
-			salesId: dispatch.salesOrderId,
-			orderNo: dispatch.order?.orderId || undefined,
-			dispatchId: dispatch.id,
-			deliveryMode:
-				normalizeDispatchDeliveryMode(dispatch.deliveryMode) || undefined,
-			dueDate: dispatch.dueDate || undefined,
-			driverId: dispatch.driverId || undefined,
-			packedBy,
-			receivedBy,
-			signature: input.signature || undefined,
-		},
-	});
-
-	await expireCurrentSalesDocumentSnapshots({
-		db: ctx.db,
-		salesOrderId: dispatch.salesOrderId,
-		reason: "manual_regeneration",
-		documentPrefixes: ["packing_slip_pdf", "order_packing_pdf"],
-	});
-	await queueSalesDocumentSnapshotWarmups([
+	await submitDispatchTask(
+		ctx.db,
 		{
-			salesOrderId: dispatch.salesOrderId,
-			mode: "packing-slip",
-			dispatchId: dispatch.id,
-			forceRegenerate: true,
+			meta,
+			submitDispatch: {
+				dispatchId: dispatch.id,
+				receivedBy,
+				receivedDate: new Date(),
+				signature: input.signature,
+				note: input.note || "",
+				noteType: input.noteType || "pickup",
+			},
 		},
 		{
-			salesOrderId: dispatch.salesOrderId,
-			mode: "order-packing",
-			forceRegenerate: true,
+			allowCompletedResign: true,
+			packingSignoff: {
+				requestId: input.packingRequestId,
+				documentId: input.signatureDocumentId,
+			},
 		},
+	);
+
+	const postCommitResults = await Promise.allSettled([
+		new NotificationService(tasks, {
+			db: ctx.db,
+			userId: ctx.userId,
+		}).send("sales_dispatch_completed", {
+			author: {
+				id: ctx.userId,
+				role: "employee",
+			},
+			payload: {
+				salesId: dispatch.salesOrderId,
+				orderNo: dispatch.order?.orderId || undefined,
+				dispatchId: dispatch.id,
+				deliveryMode:
+					normalizeDispatchDeliveryMode(dispatch.deliveryMode) || undefined,
+				dueDate: dispatch.dueDate || undefined,
+				driverId: dispatch.driverId || undefined,
+				packedBy,
+				receivedBy,
+				signature: input.signature || undefined,
+			},
+		}),
+		(async () => {
+			await expireCurrentSalesDocumentSnapshots({
+				db: ctx.db,
+				salesOrderId: dispatch.salesOrderId,
+				reason: "manual_regeneration",
+				documentPrefixes: ["packing_slip_pdf", "order_packing_pdf"],
+			});
+			await queueSalesDocumentSnapshotWarmups([
+				{
+					salesOrderId: dispatch.salesOrderId,
+					mode: "packing-slip",
+					dispatchId: dispatch.id,
+					forceRegenerate: true,
+				},
+				{
+					salesOrderId: dispatch.salesOrderId,
+					mode: "order-packing",
+					forceRegenerate: true,
+				},
+			]);
+		})(),
 	]);
+	for (const postCommitResult of postCommitResults) {
+		if (postCommitResult.status === "rejected") {
+			console.error(
+				"Packing completed, but a post-commit side effect failed.",
+				postCommitResult.reason,
+			);
+		}
+	}
 
 	return {
 		ok: true,
@@ -1759,14 +1782,11 @@ export async function getDispatchOverview(
 			);
 			const totalListedQty = recomposeQty(
 				qtyMatrixSum(
-					...result.deliveries
-						.map((d) =>
-							d.items
-								.filter((i) => i.item.controlUid === item.uid)
-								.map(transformQtyHandle)
-								.flat(),
-						)
-						.flat(),
+					...result.deliveries.flatMap((d) =>
+						d.items
+							.filter((i) => i.item.controlUid === item.uid)
+							.flatMap(transformQtyHandle),
+					),
 				),
 			);
 			const trs = listedItems?.map(transformQtyHandle);
@@ -1975,13 +1995,11 @@ export async function getDispatchOverviewV2(
 			qtyMatrixSum(
 				...result.deliveries
 					.filter((d) => d.status !== "cancelled")
-					.map((d) =>
+					.flatMap((d) =>
 						d.items
 							.filter((i) => i.item.controlUid === item.uid)
-							.map(transformQtyHandle)
-							.flat(),
-					)
-					.flat(),
+							.flatMap(transformQtyHandle),
+					),
 			),
 		);
 		const listedQty = recomposeQty(

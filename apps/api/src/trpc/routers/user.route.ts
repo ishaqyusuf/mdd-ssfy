@@ -1,4 +1,3 @@
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 import {
 	auth,
 	changePassword,
@@ -15,12 +14,21 @@ import {
 } from "@api/db/queries/user";
 import { loginByTokenSchema } from "@api/schemas/hrm";
 import { createApiVercelBlobDocumentService } from "@api/utils/documents";
+import { registerStoredDocumentUpload } from "@api/utils/stored-documents";
+import { finalizeUploadedDocument } from "@api/utils/upload-finalization";
+import {
+	decodeValidatedDocumentBase64,
+	supportedDocumentMimeTypes,
+} from "@api/utils/upload-validation";
+import { buildOwnerDocumentFolder } from "@gnd/documents";
 import { consoleLog } from "@gnd/utils";
 import { getContact } from "@notifications/activities";
-import { sign } from "jsonwebtoken";
 import { getSubscriberAccount } from "@notifications/channel-subscribers";
-import { put } from "@vercel/blob";
+import { TRPCError } from "@trpc/server";
+import { del, put } from "@vercel/blob";
+import { sign } from "jsonwebtoken";
 import { z } from "zod";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "../init";
 
 export const userRoutes = createTRPCRouter({
 	// validateAuth: publicProcedure.input()
@@ -66,6 +74,7 @@ export const userRoutes = createTRPCRouter({
 				url: z.string().min(1),
 				description: z.string().optional().nullable(),
 				expiresAt: z.string().optional().nullable(),
+				storedDocumentId: z.string().min(1).optional().nullable(),
 			}),
 		)
 		.mutation(async (props) => {
@@ -75,25 +84,73 @@ export const userRoutes = createTRPCRouter({
 		.input(
 			z.object({
 				filename: z.string().min(1),
-				contentType: z.string().optional(),
-				content: z.string().min(1),
+				contentType: z.enum(supportedDocumentMimeTypes),
+				content: z
+					.string()
+					.min(1)
+					.max(10_700_000)
+					.regex(/^[A-Za-z0-9+/]*={0,2}$/),
+				title: z.string().trim().min(1),
+				description: z.string().optional().nullable(),
+				expiresAt: z.string().optional().nullable(),
 			}),
 		)
 		.mutation(async (props) => {
 			const documents = createApiVercelBlobDocumentService({
 				put,
 			});
+			const owner = {
+				ownerType: "user" as const,
+				ownerId: String(props.ctx.userId),
+				kind: "attachment" as const,
+			};
+			const body = decodeValidatedDocumentBase64(props.input);
 			const uploaded = await documents.upload({
 				filename: props.input.filename,
-				folder: "employee-documents",
+				folder: buildOwnerDocumentFolder(owner),
 				contentType: props.input.contentType,
-				body: Buffer.from(props.input.content, "base64"),
+				body,
 			});
-			return {
-				provider: uploaded.provider,
+			return finalizeUploadedDocument({
 				pathname: uploaded.pathname,
-				url: uploaded.url || uploaded.pathname,
-			};
+				deleteUpload: del,
+				register: () =>
+					registerStoredDocumentUpload(props.ctx.db, {
+						...owner,
+						upload: uploaded,
+						isCurrent: false,
+						uploadedBy: props.ctx.userId,
+						title: props.input.filename,
+						meta: {
+							workflow: "employee_document",
+							source: "mobile_gallery",
+						},
+					}),
+				finalize: async (storedDocument) => {
+					const document = await saveUserDocument(props.ctx, {
+						title: props.input.title,
+						description: props.input.description,
+						expiresAt: props.input.expiresAt,
+						url: uploaded.url || uploaded.pathname,
+						storedDocumentId: storedDocument.id,
+					});
+					return {
+						...document,
+						provider: uploaded.provider,
+						pathname: uploaded.pathname,
+						storedDocumentId: storedDocument.id,
+					};
+				},
+				markFailed: (storedDocument) =>
+					props.ctx.db.storedDocument.update({
+						where: { id: storedDocument.id },
+						data: {
+							status: "failed",
+							isCurrent: false,
+							deletedAt: new Date(),
+						},
+					}),
+			});
 		}),
 	getDocumentReview: protectedProcedure
 		.input(z.object({ id: z.number() }))
@@ -133,7 +190,7 @@ export const userRoutes = createTRPCRouter({
 		}),
 	notificationAccount: protectedProcedure.query(async (props) => {
 		const user = await auth(props.ctx);
-		const recipient = (await getSubscriberAccount(
+		const recipient = await getSubscriberAccount(
 			props.ctx.db,
 			user.id,
 			// {
@@ -143,7 +200,13 @@ export const userRoutes = createTRPCRouter({
 			//   id: user.id,
 			// },
 			"employee",
-		))!;
+		);
+		if (!recipient) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Notification account not found.",
+			});
+		}
 		return {
 			id: recipient.id,
 			email: recipient.email,
@@ -157,12 +220,19 @@ export const userRoutes = createTRPCRouter({
 	login: publicProcedure.input(loginSchema).mutation(async (props) => {
 		const data = await login(props.ctx, props.input);
 		if (!data) throw Error("Invalid credential");
+		const jwtSecret = process.env.JWT_SECRET;
+		if (!jwtSecret) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Login token configuration is unavailable.",
+			});
+		}
 		const token = sign(
 			{
 				sessionId: data?.sessionId,
 				userId: data?.user?.id,
 			},
-			process.env.JWT_SECRET!,
+			jwtSecret,
 			{
 				expiresIn: "30d",
 			},

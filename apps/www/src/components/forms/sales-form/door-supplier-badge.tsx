@@ -24,7 +24,6 @@ function Content({ itemStepUid }) {
     const trpc = useTRPC();
     const { data } = useSuspenseQuery(trpc.sales.getSuppliers.queryOptions({}));
     const select = (uid?, name?) => {
-        console.log("select", uid, name);
         ctx.cls.setDoorSupplier(door.itemStepUid, {
             uid,
             name,

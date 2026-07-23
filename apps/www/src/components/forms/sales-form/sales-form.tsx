@@ -237,6 +237,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 								type={zus?.metaData?.type}
 								orderNo={zus?.metaData?.salesId}
 								customerEmail={customer?.email ?? null}
+								customerPhone={customer?.phoneNo ?? null}
 								customerName={customer?.businessName || customer?.name}
 								trigger={
 									<Button
@@ -376,6 +377,7 @@ function SalesFormActionToolbar({ onPreview }: { onPreview: () => void }) {
 										type={zus?.metaData?.type}
 										orderNo={zus?.metaData?.salesId}
 										customerEmail={customer?.email ?? null}
+										customerPhone={customer?.phoneNo ?? null}
 										customerName={customer?.businessName || customer?.name}
 										trigger={
 											<DropdownMenuItem onSelect={(event) => event.preventDefault()}>

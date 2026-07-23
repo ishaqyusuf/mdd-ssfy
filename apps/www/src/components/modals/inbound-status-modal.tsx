@@ -23,7 +23,6 @@ import { SubmitButton } from "../submit-button";
 
 import { env } from "@/env.mjs";
 import { toast } from "@gnd/ui/use-toast";
-import { del } from "@vercel/blob";
 import Image from "next/image";
 import ConfirmBtn from "../confirm-button";
 import { InboundDocumentUploadZone } from "../sales-inbound/inbound-document-upload-zone";
@@ -110,6 +109,7 @@ export function InboundSalesModal() {
 			},
 		}),
 	);
+	const deleteUpload = useMutation(trpc.storage.delete.mutationOptions());
 	const statusList = [...orderInboundStatuses];
 	const resetForm = form.reset;
 	useEffect(() => {
@@ -240,8 +240,11 @@ export function InboundSalesModal() {
 											<ConfirmBtn
 												trash
 												onClick={(e) => {
-													del(a.pathname)
-														.then((e) => {
+													deleteUpload
+														.mutateAsync({
+															pathname: a.pathname,
+														})
+														.then(() => {
 															attachments.remove(ai);
 														})
 														.catch((e) => {});

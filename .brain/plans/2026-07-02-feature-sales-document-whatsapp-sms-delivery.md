@@ -4,13 +4,13 @@
 Feature
 
 ## Status
-Proposed
+Completed
 
 ## Created Date
 2026-07-02
 
 ## Last Updated
-2026-07-02
+2026-07-23
 
 ## Intake
 - Intake File: brain/intake/2026-07-02-sales-document-whatsapp-sms-delivery.md
@@ -71,14 +71,14 @@ Sales reps can currently send sales quote/order documents to customers by email.
 - TODO: SMS provider package/service files after provider confirmation
 
 ## Acceptance Criteria
-- A sales rep can send a quote to a customer by WhatsApp from the quote/order workflow when the customer has a valid phone number.
-- A sales rep can send an order/invoice by WhatsApp from the quote/order workflow when the customer has a valid phone number.
-- A sales rep can send the same quote/order document by SMS after the SMS provider is configured.
-- WhatsApp and SMS messages use shortened `/sh/<slug>` links instead of long tokenized URLs.
-- Short links are reused for the same target/source where appropriate and track clicks through the existing short-link redirect path.
-- Missing phone numbers disable or skip WhatsApp/SMS sends with clear UI feedback and audit/result accounting.
-- Existing email send behavior continues to work without requiring phone numbers.
-- Activity records identify the document type, customer, sales number(s), channel(s), and whether payment, quote acceptance, or PDF links were included.
+- [x] A sales rep can send a quote to a customer by WhatsApp from the quote/order workflow when the customer has a valid phone number.
+- [x] A sales rep can send an order/invoice by WhatsApp from the quote/order workflow when the customer has a valid phone number.
+- [x] A sales rep can send the same quote/order document by SMS after the SMS provider is configured.
+- [x] WhatsApp and SMS messages use shortened `/sh/<slug>` links instead of long tokenized URLs.
+- [x] Short links are reused for the same target/source where appropriate and track clicks through the existing short-link redirect path.
+- [x] Missing phone numbers disable or skip WhatsApp/SMS sends with clear UI feedback and audit/result accounting.
+- [x] Existing email send behavior continues to work without requiring phone numbers.
+- [x] Activity records identify the document type, customer, sales number(s), channel(s), link kinds, provider outcome, and overall outcome.
 
 ## Test Plan
 - `bun test packages/db/src/queries/short-links.test.ts`
@@ -111,8 +111,36 @@ Lower agent must report:
 - Any skipped acceptance criteria
 - SMS provider/env assumptions used
 
+## Completion Report
+
+- The composed sales document contract now accepts explicit `email`,
+  `whatsapp`, and `sms` channel intent while preserving email as the legacy
+  default.
+- Quote/order entry points use one audited delivery dialog with normalized phone
+  validation, missing-recipient disabled states, combined sends, and task
+  monitor feedback.
+- WhatsApp and SMS share compact message composition and stable reusable short
+  links for PDF, payment, and quote acceptance targets. Direct-message delivery
+  fails closed if the secure PDF link cannot be generated.
+- SMS uses Twilio only when `SMS_PROVIDER=twilio`, account credentials, and
+  either a Messaging Service SID or sender number are configured. Missing
+  configuration is an explicit skipped provider result, never a sent result.
+- Per-channel sent/skipped/failed results and provider statuses are appended to
+  the existing sales document activity tags. `SalesEmailAttempt` remains the
+  email-only provider ledger; no schema or migration was required.
+- Validation passed 39 focused tests / 92 assertions, notifications/jobs/API
+  package typechecks, targeted Biome, and whitespace checks. The local dev
+  server served the authenticated orders data path during browser smoke. The
+  complete Turbo typecheck passed 24 of 25 packages and remains blocked only by
+  the existing broad `@gnd/www` baseline diagnostics; no touched delivery file
+  appeared in that diagnostic set.
+- Feature documentation: `brain/features/sales-document-messaging.md`.
+- Architecture decision:
+  `brain/decisions/ADR-027-sales-document-message-delivery.md`.
+
 ## Risks / Edge Cases
-- SMS provider is not yet confirmed, so SMS transport implementation is blocked until credentials/provider behavior are known.
+- Twilio is the selected SMS adapter. Production send proof remains
+  configuration-dependent and must use an approved sender or Messaging Service.
 - WhatsApp Cloud API policy may require approved templates for some outbound customer messages, depending on whether messages are session-based or template-initiated.
 - Tokenized payment/PDF/quote links must preserve their existing expiry semantics after shortening.
 - Customer phone normalization must handle local numbers and avoid sending to invalid or wrong recipients.

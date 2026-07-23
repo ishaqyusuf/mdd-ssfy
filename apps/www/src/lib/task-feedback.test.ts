@@ -5,6 +5,7 @@ import {
 	getRunErrorMessage,
 	getRunTaskOutputFailureMessage,
 	getRunTerminalState,
+	getSalesDocumentDeliveryOutputFailure,
 	getSalesEmailOutputFailure,
 	getTaskFailureMessage,
 	getTaskOutputFailureMessage,
@@ -55,14 +56,39 @@ describe("task feedback", () => {
 			"Email was not sent. The selected sales document is missing a customer email, customer name, or sales rep email.",
 		);
 		expect(
-			getSalesEmailOutputFailure({ emails: { sent: 0, skipped: 0, failed: 2 } }),
+			getSalesEmailOutputFailure({
+				emails: { sent: 0, skipped: 0, failed: 2 },
+			}),
 		).toBe("Email provider reported 2 failed messages.");
 		expect(
-			getSalesEmailOutputFailure({ emails: { sent: 0, skipped: 1, failed: 0 } }),
+			getSalesEmailOutputFailure({
+				emails: { sent: 0, skipped: 1, failed: 0 },
+			}),
 		).toBe("Email was skipped before it could be sent.");
 		expect(
-			getSalesEmailOutputFailure({ emails: { sent: 1, skipped: 0, failed: 0 } }),
+			getSalesEmailOutputFailure({
+				emails: { sent: 1, skipped: 0, failed: 0 },
+			}),
 		).toBe(null);
+	});
+
+	test("classifies requested WhatsApp and SMS outcomes", () => {
+		expect(
+			getSalesDocumentDeliveryOutputFailure(
+				{
+					emails: { sent: 0, skipped: 0, failed: 0 },
+					whatsapp: { sent: 1, skipped: 0, failed: 0 },
+					sms: { sent: 0, skipped: 1, failed: 0 },
+				},
+				["whatsapp", "sms"],
+			),
+		).toBe("SMS was skipped before it could be sent.");
+		expect(
+			getSalesDocumentDeliveryOutputFailure(
+				{ errorMessage: "Add a valid customer phone number." },
+				["whatsapp"],
+			),
+		).toBe("Add a valid customer phone number.");
 	});
 
 	test("only applies output failure parsing to sales email tasks", () => {
@@ -78,6 +104,24 @@ describe("task feedback", () => {
 				output: { emails: { sent: 0, skipped: 0, failed: 1 } },
 			}),
 		).toBe(null);
+	});
+
+	test("reads requested channels from the notification event payload", () => {
+		expect(
+			getTaskOutputFailureMessage({
+				input: {
+					taskName: "notification",
+					payload: {
+						channel: "composed_sales_document_email",
+						payload: { channels: ["whatsapp"] },
+					},
+				},
+				output: {
+					emails: { sent: 0, skipped: 0, failed: 0 },
+					whatsapp: { sent: 0, skipped: 1, failed: 0 },
+				},
+			}),
+		).toBe("WhatsApp was skipped before it could be sent.");
 	});
 
 	test("uses specific fallback messages when Trigger does not provide an error", () => {

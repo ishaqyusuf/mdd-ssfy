@@ -1,8 +1,11 @@
+import { useAuth } from "@/hooks/use-auth";
 import { createSalesFormPermissions } from "@gnd/sales/sales-form";
 
 export function useSalesFormPermissions(type: "order" | "quote") {
+	const auth = useAuth();
+
 	return createSalesFormPermissions({
-		canEditCustomer: true,
+		canEditCustomer: Boolean(auth.can?.editSalesCustomers),
 		canEditPricing: true,
 		canSaveDraft: true,
 		canFinalize: true,

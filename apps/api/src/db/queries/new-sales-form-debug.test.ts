@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { captureNewSalesFormSavePayload } from "./new-sales-form-debug";
+import {
+	captureNewSalesFormSavePayload,
+	logNewSalesFormSaveDiagnostic,
+} from "./new-sales-form-debug";
 
 const tempRoots: string[] = [];
 
@@ -21,7 +24,9 @@ describe("captureNewSalesFormSavePayload", () => {
 			{
 				action: "save-final",
 				userId: 42,
+				requestId: "trpc-request-1",
 				payload: {
+					clientRequestId: "mobile-save-1",
 					type: "order",
 					salesId: null,
 					slug: null,
@@ -43,7 +48,7 @@ describe("captureNewSalesFormSavePayload", () => {
 			join(rootDir, "debug/new-sales-form-save-payloads/2026-06-24"),
 		);
 		expect(files).toHaveLength(1);
-		expect(files[0]).toContain("save-final__order__new.json");
+		expect(files[0]).toContain("save-final__order__new__mobile-save-1.json");
 		if (!filePath) throw new Error("Expected payload capture path");
 
 		const raw = await readFile(filePath, "utf8");
@@ -53,7 +58,9 @@ describe("captureNewSalesFormSavePayload", () => {
 			action: "save-final",
 			nodeEnv: "development",
 			userId: 42,
+			requestId: "trpc-request-1",
 			summary: {
+				clientRequestId: "mobile-save-1",
 				type: "order",
 				salesId: null,
 				slug: null,
@@ -66,6 +73,26 @@ describe("captureNewSalesFormSavePayload", () => {
 				autosave: false,
 			},
 		});
+	});
+
+	it("keeps diagnostic logging development-only and stage-oriented", () => {
+		const originalEnv = process.env.NODE_ENV;
+		const originalInfo = console.info;
+		const calls: unknown[][] = [];
+		process.env.NODE_ENV = "production";
+		console.info = (...args: unknown[]) => calls.push(args);
+
+		logNewSalesFormSaveDiagnostic({
+			action: "save-final",
+			stage: "ingress",
+			requestId: "request-1",
+			clientRequestId: "mobile-save-1",
+			payload: { type: "order", lineItems: [] },
+		});
+
+		expect(calls).toHaveLength(0);
+		process.env.NODE_ENV = originalEnv;
+		console.info = originalInfo;
 	});
 
 	it("does not write outside development mode", async () => {

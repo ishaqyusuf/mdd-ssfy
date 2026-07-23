@@ -4,7 +4,7 @@
 Feature
 
 ## Status
-Proposed
+Implementation slice complete; operator resolution UI/API and authenticated browser validation remain pending
 
 ## Created Date
 2026-07-01
@@ -103,6 +103,19 @@ Lower agent must report:
 
 ## Open Questions
 - TODO: Confirm whether review-required outcomes should block Save & Close, or allow close with an inventory-review badge.
+
+## 2026-07-22 Implementation Slice
+- Added `packages/sales/src/sales-inventory-repair-policy.ts` with explicit mutability rules: only unreceived, unlinked `pending`/`ordered` demand and `pending_review`/`approved`/`reserved` allocations are auto-cleanable; shipment-linked/received demand and `picked`/`consumed` allocations require review.
+- Hardened `syncSalesInventoryLineItems` stale component/line cleanup to apply those rules and skip component deletion while protected residue remains. This prevents order updates from silently cancelling linked/received demand or releasing terminal stock allocations.
+- Focused policy plus sync coverage passes 26 tests / 68 assertions; targeted Biome, Sales package typecheck, and `git diff --check` pass.
+- Added `inventories.salesInventoryOrderRepairPreview` and
+  `inventories.resolveSalesInventoryOrderRepair`, with exact reviewed-baseline
+  guards, mutable-only writes, component recomputation, and SalesHistory audit.
+  The saved-order inventory configurator and shared Sales Overview Inventory tab
+  now show the preview, let operators select safe rows, and link protected
+  inbound rows to `/sales-book/inbounds`. Authenticated browser proof for an
+  actual stale order and review-required inbound remains open because the local
+  headless browser did not retain the Quick Login auth cookie.
 
 ## Linked Task
 - Task Title: Sales Order Inventory Repair On Order Updates

@@ -4,7 +4,7 @@
 Bug Fix
 
 ## Status
-Proposed
+Phase 0 observability and mobile save failure UX implemented; runtime/device replay remains pending
 
 ## Created Date
 2026-06-23
@@ -48,14 +48,15 @@ flowchart TD
 ```
 
 ## Implementation Steps
-- Add mobile save diagnostics behind a dev flag:
+- Add mobile save diagnostics behind a dev flag: **implemented**
   - log the resolved tRPC base URL from `getBaseUrl()`
   - generate a client save attempt id
   - record save mode, sales type, payload size, line count, workflow family counts, and elapsed time
   - surface whether the timeout happened before or after any response/error
-- Add API save diagnostics for `newSalesForm.saveDraft` and `saveFinal`:
+- Add API save diagnostics for `newSalesForm.saveDraft` and `saveFinal`: **implemented**
   - accept/pass a client request id through tRPC headers or payload metadata
   - log ingress, schema parse completion, settings lookup, summary recalculation, transaction start/end, row write stages, post-save task start/end, and response return
+- Map classified mobile save failures to actionable retry, reload, sign-in, validation, timeout, and server-error copy while retaining stale status for conflicts: **implemented**
   - include elapsed milliseconds and sales id/order id when available
 - Verify mobile runtime target:
   - confirm development device uses the intended GND `www`/API proxy port from `brain/system/overview.md`

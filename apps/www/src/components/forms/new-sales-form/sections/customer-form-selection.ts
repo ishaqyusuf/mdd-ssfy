@@ -3,6 +3,8 @@ type CurrentCustomerSelection = {
 	customerProfileId: number | null;
 	billingAddressId: number | null;
 	shippingAddressId: number | null;
+	paymentTerm: string | null;
+	taxCode: string | null;
 };
 
 type SavedCustomerSelection = {
@@ -48,10 +50,10 @@ export function resolveCustomerFormSelection({
 
 	return {
 		customerId: savedCustomer.customerId,
-		customerProfileId: savedCustomer.profileId ?? null,
+		customerProfileId: current.customerProfileId,
 		billingAddressId,
 		shippingAddressId,
-		paymentTerm: savedCustomer.netTerm ?? null,
-		taxCode: savedCustomer.taxCode ?? null,
+		paymentTerm: current.paymentTerm,
+		taxCode: current.taxCode,
 	};
 }

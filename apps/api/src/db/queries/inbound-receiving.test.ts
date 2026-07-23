@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	assignInboundDemandsQuery,
+	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
 } from "./inbound-receiving";
 
@@ -234,6 +235,40 @@ describe("createInboundShipmentFromDemandsQuery", () => {
 		);
 
 		expect(shipmentCreated).toBe(false);
+	});
+});
+
+describe("countOrderInboundShipmentsQuery", () => {
+	test("counts only active shipments linked to the requested sale", async () => {
+		let receivedWhere: unknown;
+		const ctx = {
+			db: {
+				inboundShipment: {
+					count: async (input: { where: unknown }) => {
+						receivedWhere = input.where;
+						return 2;
+					},
+				},
+			},
+		} as unknown as Parameters<typeof countOrderInboundShipmentsQuery>[0];
+
+		expect(
+			await countOrderInboundShipmentsQuery(ctx, { salesOrderId: 100 }),
+		).toBe(2);
+		expect(receivedWhere).toEqual({
+			deletedAt: null,
+			items: {
+				some: {
+					deletedAt: null,
+					inboundDemands: {
+						some: {
+							deletedAt: null,
+							lineItemComponent: { parent: { saleId: 100 } },
+						},
+					},
+				},
+			},
+		});
 	});
 });
 

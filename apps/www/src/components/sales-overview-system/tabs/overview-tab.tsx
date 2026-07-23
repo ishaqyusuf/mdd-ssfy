@@ -38,6 +38,7 @@ import { SalesPO } from "../../sheets/sales-overview-sheet/inline-data-edit";
 import { useSalesInventorySegmentQuery } from "../hooks/use-sales-inventory-segment-query";
 import { getSalesOverviewDocumentStatus } from "../lib/document-status";
 import { useSalesOverviewSystem } from "../provider";
+import { DoorProductionPreflightCard } from "../sections/door-production-preflight-card";
 import { QuickActionsBar } from "../sections/quick-actions-bar";
 
 type AddressEntry = {
@@ -306,6 +307,7 @@ export function SalesOverviewOverviewTab() {
 		<DataSkeletonProvider value={skeletonContext}>
 			<div className="relative mt-0 space-y-6 p-6">
 				<QuickActionsBar />
+				<DoorProductionPreflightCard />
 
 				<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
 					<div className="space-y-6">

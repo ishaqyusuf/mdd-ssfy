@@ -10,11 +10,11 @@ import {
 	Text,
 } from "@react-email/components";
 import { format } from "date-fns";
-import { Footer } from "../components/footer";
 import {
 	DealerProgramBanner,
 	type DealerProgramBannerProps,
 } from "../components/dealer-program-banner";
+import { Footer } from "../components/footer";
 import { Logo } from "../components/logo";
 import {
 	Button,
@@ -31,9 +31,11 @@ interface Props {
 	paymentLink?: string;
 	pdfLink?: string | null;
 	hasPdfAttachment?: boolean;
-	dealerProgramBanner?: (DealerProgramBannerProps & {
-		placement: "TOP" | "BOTTOM";
-	}) | null;
+	dealerProgramBanner?:
+		| (DealerProgramBannerProps & {
+				placement: "TOP" | "BOTTOM";
+		  })
+		| null;
 	sales: {
 		orderId: string;
 		po?: string;
@@ -353,7 +355,7 @@ const SalesEmail = ({
 								</Section>
 							) : null}
 
-							{props.pdfLink ? (
+							{props.pdfLink && !props.hasPdfAttachment ? (
 								<Section className="text-center mt-[12px]">
 									<Button href={props.pdfLink} variant="secondary">
 										Download PDF
@@ -372,35 +374,34 @@ const SalesEmail = ({
 						</Section>
 					) : (
 						<>
-							<Section
-								className="mt-[22px] p-[18px]"
-								style={{
-									borderStyle: "solid",
-									borderWidth: 1,
-									borderColor: lightStyles.container.borderColor,
-									borderRadius: 12,
-									backgroundColor: "#f8fafc",
-								}}
-							>
-								<Text
-									className={`m-0 text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
-									style={{ color: "#64748b" }}
+							{props.pdfLink && !props.hasPdfAttachment ? (
+								<Section
+									className="mt-[22px] p-[18px]"
+									style={{
+										borderStyle: "solid",
+										borderWidth: 1,
+										borderColor: lightStyles.container.borderColor,
+										borderRadius: 12,
+										backgroundColor: "#f8fafc",
+									}}
 								>
-									Actions
-								</Text>
-								<Text
-									className={`m-0 mt-[8px] text-[15px] leading-[24px] ${themeClasses.text}`}
-									style={{ color: lightStyles.text.color }}
-								>
-									{props.pdfLink
-										? "Download the invoice PDF or use the secure payment button when you are ready."
-										: props.hasPdfAttachment
-											? "The invoice PDF is attached to this email for your reference."
-											: "Use the secure payment button when you are ready."}
-								</Text>
-							</Section>
+									<Text
+										className={`m-0 text-[12px] uppercase tracking-[0.8px] ${themeClasses.mutedText}`}
+										style={{ color: "#64748b" }}
+									>
+										Actions
+									</Text>
+									<Text
+										className={`m-0 mt-[8px] text-[15px] leading-[24px] ${themeClasses.text}`}
+										style={{ color: lightStyles.text.color }}
+									>
+										Download the invoice PDF or use the secure payment button
+										when you are ready.
+									</Text>
+								</Section>
+							) : null}
 
-							{props.pdfLink ? (
+							{props.pdfLink && !props.hasPdfAttachment ? (
 								<Section className="text-center mt-[16px]">
 									<Button href={props.pdfLink} variant="secondary">
 										Download PDF

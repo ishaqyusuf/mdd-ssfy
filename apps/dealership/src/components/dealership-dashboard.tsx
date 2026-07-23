@@ -1,5 +1,6 @@
 "use client";
 
+import { getDealerRequestNextStep } from "@/lib/dealer-next-step";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -12,6 +13,7 @@ import {
 	Users,
 } from "lucide-react";
 import Link from "next/link";
+import { DealerNextStep } from "./dealer-portal/dealer-next-step";
 
 function currency(value?: number | null) {
 	return new Intl.NumberFormat("en-US", {
@@ -56,7 +58,7 @@ export function DealershipDashboard({
 			href: "/orders",
 		},
 		{
-			label: "Unpaid Balance",
+			label: "Customer Balance",
 			value: currency(dashboard?.unpaidAmount),
 			icon: CircleDollarSign,
 			href: "/orders?amountDue=due",
@@ -174,20 +176,44 @@ export function DealershipDashboard({
 					</div>
 					<div className="space-y-3">
 						{dashboard?.recentRequests?.length ? (
-							dashboard.recentRequests.map((request) => (
-								<div className="rounded-md border p-3" key={request.id}>
-									<div className="flex items-center justify-between gap-3">
-										<p className="truncate text-sm font-medium">
-											{request.sale?.orderId || "Dealer request"}
+							dashboard.recentRequests.map((request) => {
+								const content = (
+									<div key={`request-content-${request.id}`}>
+										<div className="flex items-center justify-between gap-3">
+											<p className="truncate text-sm font-medium">
+												{request.sale?.orderId || "Dealer request"}
+											</p>
+											<Badge variant="outline">{request.status}</Badge>
+										</div>
+										<p className="mt-1 text-xs text-muted-foreground">
+											{request.sale?.customerName || "Customer"} ·{" "}
+											{date(request.createdAt)}
 										</p>
-										<Badge variant="outline">{request.status}</Badge>
+										<div className="mt-3">
+											<DealerNextStep
+												compact
+												guidance={getDealerRequestNextStep({
+													status: request.status,
+												})}
+											/>
+										</div>
 									</div>
-									<p className="mt-1 text-xs text-muted-foreground">
-										{request.sale?.customerName || "Customer"} ·{" "}
-										{date(request.createdAt)}
-									</p>
-								</div>
-							))
+								);
+
+								return request.status === "approved" && request.sale?.id ? (
+									<Link
+										className="block rounded-md border p-3 transition-colors hover:bg-muted/40"
+										href={`/orders/${request.sale.id}`}
+										key={request.id}
+									>
+										{content}
+									</Link>
+								) : (
+									<div className="rounded-md border p-3" key={request.id}>
+										{content}
+									</div>
+								);
+							})
 						) : (
 							<div className="py-10 text-center text-sm text-muted-foreground">
 								No order requests yet

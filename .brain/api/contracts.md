@@ -28,6 +28,46 @@ Tracks important request/response contracts and shared schema boundaries.
 
 ## Current Notes
 
+- Shared document caller contracts:
+  - Browser attachment writes use `storage.upload` with a declared
+    `inbound-documents` or `dispatch-documents` context, filename, allowed MIME,
+    and canonical base64. The response includes URL, pathname, size/type, and
+    `storedDocumentId`.
+  - `storage.delete` accepts one pathname and returns `{ deleted }`; it never
+    accepts a client-selected owner or storage token. Deletion repeats
+    authenticated canonical owner/uploader checks plus the browser-staging
+    source/key/status. Consumed or non-browser documents cannot be removed.
+    The server compare-and-set claims the exact staged row before provider
+    deletion and fences restore/tombstone by the delete claim id.
+    Note/inbound/activity persistence validates explicit current-user canonical
+    paths after adoption/claim and rejects deleting/deleted/failed states.
+    Unknown legacy path-only blobs return `deleted = false`; physical cleanup
+    requires trusted ownership established by a separate backfill/migration.
+  - `user.uploadDocumentAsset` accepts employee document title/description/
+    expiry plus validated file data and atomically returns the saved feature
+    row with its canonical document id.
+  - `saveDocument` derives its compatibility URL from an owned, ready
+    `StoredDocument` when `storedDocumentId` is present. Update identity is
+    `{ id, userId, deletedAt: null }`.
+  - `dispatch.signPackingSlip.signature` is a bounded PNG data URL for new
+    writes. Legacy URL values remain readable but cannot be submitted as a new
+    signature. A per-dispatch request id owns the upload lease; the registered
+    document id is checkpointed before packing, and the packing transaction
+    records `packingSignoff.status = "domain_completed"` atomically. The
+    five-minute completed re-sign window is enforced server-side. A later call
+    can reconcile post-commit document promotion without replaying packing.
+    Future/invalid completion timestamps never open the re-sign window, and an
+    expired uploaded lease retires its exact non-current document.
+  - Dispatch proof response/meta includes canonical signature and attachment
+    document ids beside legacy-compatible pathnames. A different request is
+    blocked during the active 15-minute proof lease and may take over after the
+    lease expires. The request id is bound to a SHA-256 proof-content
+    fingerprint; same-id retries with different bytes conflict. Registration
+    and the document-id checkpoint share one transaction callback, with Blob/
+    canonical compensation on failure and completed-state fencing for late
+    retries. Attachment client ids are unique per request; legacy partial
+    checkpoints without a fingerprint require a new request id.
+
 - Dealership recruitment and fulfillment contracts:
   - Dealer-owned customers default to `PRIVATE`; `SHARED` enables read-only
     office discovery but never unrelated office-origin sales.
@@ -44,6 +84,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - Standard/composed quote/invoice emails and payment reminders are eligible;
     receipts, dispatch/failure/security, and dealer-lifecycle messages are not.
 - Dealership quote-to-order contracts:
+  - `dealerPortal.saveQuote` rechecks dealer ownership, quote type, soft-delete
+    state, and the latest active `make_order` request in its transaction. A
+    `pending`, `approved`, or `rejected` request returns `CONFLICT` with an
+    actionable lock reason before customer resolution, pricing, item, or order
+    writes.
   - `dealerPortal.requestQuoteOrder` is dealer-authenticated, dealer-owned, and
     idempotent for an existing pending request. Its notification payload includes
     request id, sale id, quote number, dealer/customer labels, and request time.
@@ -55,6 +100,17 @@ Tracks important request/response contracts and shared schema boundaries.
     context from the dealer's customer receivable.
   - `dealerPortal.updateCustomerPaymentStatus` changes only the active dealer's
     customer ledger and writes history. It never clears `DealerSales.dueAmount`.
+  - Dealer sales list/detail payloads expose `officeAmountDue` for the
+    dealer-to-GND payable, `amountDue` for the dealer's customer receivable,
+    `deliveryOption`, and
+    `fulfillmentStatus: "preparing" | "ready" | "completed"`. Pickup/delivery
+    relations remain private. The projection uses only order-grain status,
+    `SalesOrders.deliveredAt`, or a non-deleted completed pickup; one partial
+    dispatch and legacy production completion cannot promote the whole order.
+  - Dealer next-step guidance gates `Pay GND` only on `officeAmountDue`.
+    A null/invalid GND payable produces review guidance rather than paid
+    guidance. Customer balance does not block fulfillment guidance, and only
+    the typed order-level projection can produce “ready” or “complete” wording.
   - Dealer print access accepts `pricingMode: "customer" | "internal"`.
     Explicit modes are part of the print snapshot document identity, so cached
     customer and internal documents cannot collide.
@@ -73,6 +129,90 @@ Tracks important request/response contracts and shared schema boundaries.
   - `sales.markLatestPaymentReviewed` returns its related order `{ id, orderId, type }` with the reviewed payment result.
   - `sales.markPaymentsReviewed({ salesIds, note? })` accepts 1-100 positive sales ids, deduplicates them, and returns `{ reviewed, skipped }`. Each reviewed row contains `{ paymentId, salesId, orderId, type }`; each skipped row contains `{ salesId, reason: "no_payment_needs_review" }`. The Sales Orders batch caller suppresses per-mutation automatic events and awaits one coalesced `sales.payment.changed` event before clearing selection and closing the menu.
 - Shared schemas and DTOs live across `apps/api/src/schemas`, `apps/api/src/dto`, and shared packages.
+- Inventory import source review contract:
+  - `inventories.inventoryImportSourceReview({ limit?, inventoryIds? })` is protected and
+    bounded to 200 rows. It returns source-labeled imported inventory
+    candidates outside the active sales-settings scope or with incomplete/
+    orphaned source labels.
+  - Each candidate includes source step/component labels, standard-vs-custom
+    classification, category/item identity, operational usage counts, and a
+    status of `archive_candidate`, `custom_review`, or `protected`.
+    Positive stock, active sales line references, active allocations, open
+    inbound demand, or storefront publication always protect a row from
+    archive recommendations. Custom rows remain explicit review exceptions
+    even when otherwise unused; the endpoint is read-only and performs no
+    archive or repair mutation. `inventories.archiveInventoryImportSourceCandidates`
+    is the corresponding protected mutation: it accepts 1-200 positive
+    inventory ids, defaults to `apply: false`, re-runs the same source-safety
+    classification inside a transaction, soft-archives only unused standard
+    `archive_candidate` rows, and queues the existing inventory-to-Dyke sync
+    for confirmed writes. Custom, protected, missing, or stale rows are
+    returned as skipped evidence. Source archive apply requires Super Admin.
+  - `inventories.applyInventoryImportSourceDisposition(...)` is the Super
+    Admin-only explicit retain path for a reviewed row that should not be
+    archived. Input includes
+    the reviewed category/source-label baseline, an active target category, and
+    `retain_as_inventory` or `retain_as_custom`. Apply requires the target to
+    remain in the active route graph with the same `productKind`, moves the row,
+    clears both legacy source UIDs, sets custom visibility from the disposition,
+    and records the authenticated actor plus before/after state in `Event`
+    inside the same transaction. Changed baselines and invalid targets return
+    skipped evidence; projection queue failure does not roll back the audited
+    retained ownership change.
+  - Applied results include `syncQueued`, nullable `syncRunId`, nullable
+    `projectionDiagnosticId`, and `projectionDiagnosticRecorded`. The API
+    persists either the queued Trigger identity or a retryable `START_FAILED`
+    diagnostic after the package-level ownership transaction completes.
+  - `inventories.applyInventoryImportSourceDispositionBatch({ items })` accepts
+    1-25 unique single-row inputs. Rows execute sequentially as independent
+    guarded transactions and return ordered per-row results plus
+    `appliedCount` / `skippedCount`; applied rows receive the same projection
+    diagnostic enrichment as the single-row route.
+- Inventory import retained-item projection contract:
+  - `inventories.inventoryImportProjectionHistory({ limit? })` is Super
+    Admin-only, defaults to 8, is capped at 20, and returns only bounded
+    `sync-inventory-to-dyke` diagnostics tagged with
+    `type=inventory-import-projection`.
+  - Each row includes normalized `inventoryId`, nullable disposition audit and
+    retry-parent ids, actor/run lifecycle fields, and `canRetry`. Queue/runtime
+    failure, cancellation, and stale statuses are retryable only while the
+    diagnostic remains unreviewed. Response `meta` reports bounded returned,
+    queued, succeeded, failed, and retryable counts for control-center health
+    checks; these counts describe the returned window, not all-time totals.
+  - `inventories.retryInventoryImportProjection({ diagnosticId })` verifies a
+    retryable tagged diagnostic and active inventory row, claims the exact
+    diagnostic once through `reviewedAt`/`reviewedById`, and returns `queued`,
+    `queue_failed`, or a stable skipped reason. Every attempted retry creates a
+    new linked diagnostic when diagnostic persistence is available.
+- Inventory import category cleanup contract:
+  - `inventories.inventoryImportCategoryCleanupReview({ limit?, categoryIds? })`
+    is protected, defaults to 50 rows, and is bounded to 100. It returns only
+    active inventory categories still mapped to Dyke steps outside the active
+    sales-settings route graph.
+  - A category is `ready` only when it has zero non-deleted inventory children.
+    Otherwise it is `blocked` with active standard/custom child counts, keeping
+    item-level source review and retained/archive disposition ahead of category
+    cleanup. The review also returns at most 100 active target categories for
+    the retained-row control.
+  - `inventories.cleanupInventoryImportCategories({ categoryIds, apply? })` is
+    Super Admin-only and dry-run by default. Apply re-resolves the route graph
+    and rechecks the no-live-child invariant inside the transaction,
+    soft-archives only confirmed empty stale categories, and queues the
+    category-level Dyke projection. Archived categories are excluded from
+    subsequent stale-scope counts.
+- Inventory import run history contract:
+  - `inventories.runFullImport(...)` requires Super Admin and returns the
+    Trigger run handle plus `diagnosticRecorded`. A successful Trigger dispatch
+    remains successful when diagnostic persistence fails, so an observability
+    write cannot conceal a queued import.
+  - Dispatch records `TaskRunDiagnostic` identity with the authenticated actor,
+    task, scope, strategy, compare/reset intent, category selection, and Trigger
+    run id. Trigger start failures are recorded separately when possible while
+    preserving the original dispatch error.
+  - `inventories.inventoryImportRunHistory({ limit? })` is protected, defaults
+    to eight rows, is bounded to 20, and returns only full inventory import and
+    inventory import test tasks. While the control center monitors a live
+    Trigger run, it finalizes the diagnostic from the terminal run status.
 - Sales production query contracts live in `packages/sales/src/schema.ts`.
 - Shared page-tab contracts:
   - `pageTabs.list({ page, includeInactive? })` returns tabs visible to the current user: their private tabs plus public/general tabs for the normalized page path. By default it returns only active tabs; `includeInactive: true` also returns manageable draft tabs for the edit modal.
@@ -134,6 +274,13 @@ Tracks important request/response contracts and shared schema boundaries.
   - `TASK_RUN_DIAGNOSTIC_STATUSES = RUNNING | SUCCEEDED | FAILED | CANCELED | STALE | START_FAILED`
   - `taskRunDiagnostics.list` accepts optional `page`, `size`, `status`, `taskName`, `q`, `entityType`, `entityId`, `from`, and `to`; responses include rows plus pagination metadata
   - `taskRunDiagnostics.register` accepts `runId`, `taskName`, optional title/description/source/environment, optional lightweight metadata, and optional started timestamp
+- Operational mutation contract:
+  - dispatch, inventory configuration, contractor job, community, and shared
+    settings mutations reject unauthenticated calls before business writes;
+  - domain mutations additionally enforce the permission/ownership matrix in
+    `.brain/plans/2026-07-23-api-public-route-hardening.md`;
+  - assigned dispatch lifecycle mutations use the persisted driver id, and job
+    self-service uses the persisted contractor id rather than client actor data.
   - `taskRunDiagnostics.startFailure` accepts `taskName`, optional context fields, error message/name, and lightweight metadata; rows are stored as `START_FAILED` without requiring a run id
   - `taskRunDiagnostics.finalize` accepts `runId`, optional observed status (`COMPLETED`, `FAILED`, `CANCELED`), optional error message, optional metadata, and optional finished timestamp; the server retrieves Trigger.dev status before upserting terminal diagnostics
   - `taskRunDiagnostics.markReviewed` accepts a diagnostic `id` and records the reviewing Super Admin
@@ -156,6 +303,15 @@ Tracks important request/response contracts and shared schema boundaries.
   - `sendSaleForPickupSchema = { salesId: number }`
   - `packingListQuerySchema = { tab?: "current" | "completed" | "cancelled" }`
   - `signPackingSlipSchema = { dispatchId: number, receivedBy?: string | null, signature: string, note?: string | null }`
+  - `completeDispatchWithProofSchema = { dispatchId: positive integer,
+    requestId: 12-100 safe characters, receivedBy?, receivedDate?, note?,
+    noteType?: "dispatch" | "pickup", signaturePath: validated drawing path,
+    attachments?: Array<{ clientId, fileName, contentType: image/*, base64 }>
+    }`; attachments are capped at five and 8,000,000 base64 characters each.
+  - Successful completion returns `status: "completed"`, `idempotent`, the
+    stored signature/attachment paths, and notification queue status. Repeating
+    the same completed request returns idempotent success; a different request
+    for a completed dispatch returns `CONFLICT`.
   - packing-list history is scoped by `sales-packing-list` notification membership, while live warehouse work uses normal `queue` delivery status
   - Expo mobile packing uses the same `packingListQuerySchema` tabs and opens the shared dispatch detail screen in a packing-aware mode via route params instead of introducing a second item-detail contract
 - Community job form contracts now include:
@@ -207,7 +363,18 @@ Tracks important request/response contracts and shared schema boundaries.
   - `sales.getSaleOverview` includes non-deleted payment rows plus linked transaction/Square metadata for recorded C.C.C extraction
   - `sales.getSaleOverview` is a single-document contract and resolves by exact `orderId` plus sales `type`; list/search-style partial order matching belongs to list endpoints, not the overview fetch
   - order overview rows include `inventoryInboundOwnership` with `hasInventoryInbound`, `linkedInboundIds`, compact `linkedInbounds[]` shipment summaries, `linkedInboundCount`, `linkedDemandCount`, `primaryInboundStatus`, and `canUseManualInboundStatus`. The flag is true when non-cancelled inventory `InboundDemand` rows are linked to active inbound shipment items for the sale, matching the manual inbound-status server guard; deleted or cancelled shipment links no longer keep the order in inventory-owned inbound mode. Overview status badges display the inventory inbound shipment state when inventory owns the status.
-  - `sales.getSaleOverview` also returns `overviewItems[]` for mobile/document overview surfaces, with bounded non-deleted sales line rows containing `id`, display `title`, `subtitle`, `qty`, and `total`; order views may still prefer dispatch-enriched item rows when dispatch data is available
+  - `sales.getSaleOverview` also returns `overviewItems[]` for mobile/document
+    overview surfaces. Each bounded non-deleted sales line now includes `id`,
+    display `title`, `subtitle`, `qty`, `total`, `swing`, compact configuration
+    steps, and door dimension/handing/no-handle evidence. The overview also
+    exposes `customerProfile`, `taxSummary`, `shippingAddressConfigured`, and,
+    for orders, `documentReadiness` with `ready`, `on_demand`, `stale`,
+    `generating`, or `failed` status. Shipping readiness requires a saved
+    shipping-address street field; billing/customer fallback display data does
+    not satisfy it. Reading an on-demand document state does not generate a
+    PDF. Order views may still prefer dispatch-enriched item rows when dispatch
+    data is available. Overview tax/configuration evidence filters soft-deleted
+    taxes and form steps before projection.
   - overview payment progress remains principal/order-based; when cost lines expose card-inclusive actuals, both old and new overview surfaces may add `Card Paid` or `Card Pending` alongside the principal paid/pending values
   - mobile overview consumers may use `invoice.displayTotal`, `invoice.displayPending`, and `invoice.displayPaid` for visible card-adjusted amounts, while `invoice.total`, `invoice.pending`, and `invoice.paid` remain the principal/order progress source
   - `sales.updatePaymentMethod({ salesId, paymentMethod })` updates order metadata for unpaid orders only, mirrors the value into `meta.newSalesForm.form.paymentMethod` when present, and rejects fully paid orders whose principal `amountDue` is zero or below
@@ -247,8 +414,9 @@ Tracks important request/response contracts and shared schema boundaries.
   - `notes.saveInboundNote` rejects manual status updates through the shared `inventoryInboundOwnership` rule when the order already has non-cancelled inventory `InboundDemand` linked to an active `InboundShipmentItem` / `InboundShipment`; inventory-created inbound work owns status from that point, and operators should update the linked inbound shipment instead. Cancelled or deleted inbound shipments do not keep blocking manual order status recovery.
 - New sales form save completion contract:
   - `newSalesForm.saveDraft` / `saveFinal` return after the sales form record is persisted
+  - both save inputs accept an optional development-only `clientRequestId` (a bounded opaque string); it is used only to correlate mobile diagnostics with the API `requestId` and is not persisted into the order payload
   - follow-up sales-document snapshot expiration, Trigger queue work for sales inventory line-item sync, and document snapshot warmups are best-effort and bounded; timeout/failure must not change the save response payload or leave clients waiting indefinitely
-  - in development only, the API captures parsed save payloads for debugging under `debug/new-sales-form-save-payloads/YYYY-MM-DD/*.json`; this capture has no request/response shape impact, is not active in production, and file-write failures are logged without failing the save
+  - in development only, the API captures parsed save payloads for debugging under `debug/new-sales-form-save-payloads/YYYY-MM-DD/*.json` and emits ingress/payload-captured/core-complete/post-save-complete stage timings with both request ids; this capture has no persistence side effect, is not active in production, and file-write failures are logged without failing the save
 - Mobile sales dashboard contract:
   - `sales.mobileDashboardOverview.recentSales[]` returns card-ready recent order rows with `id`, `orderId`, `customerName`, `customerPhone`, `total`, `due`, `paid`, `createdAt`, and `deliveryOption`
   - recent sales rows also include display-only `displayTotal`, `displayPending`, and `displayCcc` so mobile recent-sales cards can show C.C.C-adjusted card totals without changing principal `total`, `due`, or `paid`
@@ -261,6 +429,11 @@ Tracks important request/response contracts and shared schema boundaries.
   - `countDiagnostic.complete=false` means the readiness count may be underreported because only a bounded candidate set was scanned; the current bounded categories are held partial shipment lines and low-stock monitored variants
 - Sales inventory overview contract:
   - `inventories.salesInventoryOverview({ salesOrderId })` continues returning the sale, line items, and summary, and now also returns `groups[]` plus merged top-level `rows[]` for sales overview Inventory tabs
+  - Inventory overview rows include `supplierCount`, sorted `supplierNames`,
+    and `hasSupplierPrice`, derived only from active, non-deleted supplier
+    variants. Sales Overview uses this evidence for the read-only manager
+    production-preflight projection.
+  - `inventories.orderInboundShipmentCount({ salesOrderId })` accepts a positive integer sale id and returns the active linked inbound-shipment count without loading shipment items; the Inventory tab uses it for the inactive Inbounds badge and falls back to the detailed list only while the count is loading
   - `salesInventoryOverview` also returns lifecycle/setup metadata for the Inventory tab: `lifecycleStatus`, `lifecycleLabel`, `lifecycleTone`, `fulfillmentStatus`, `setupMode`, and `hasInventoryIntegration`. `setupMode` is `active` when merged inventory rows exist, `not_configured` for active orders that can still self-sync, `legacy_status_locked` for active orders with a manual `SalesOrders.inventoryStatus` but no inventory rows, and `completed_readonly` for fulfilled orders with no inventory rows so historical orders do not create new inventory demand after fulfillment.
   - `salesInventoryOverview` returns operation policy metadata: `operationMode`, `capabilities`, `isInventoryReadOnly`, and `inventoryActionBlockReason`. These capability flags are the UI contract for whether the current sale may sync inventory, create inbound, allocate stock, mark available, or configure tracking. Fulfilled and cancelled orders return read-only capabilities even when existing inventory rows remain inspectable.
   - `inventories.syncSalesInventoryOverview({ salesOrderId })` runs the existing single-sale inventory line-item sync for one order and returns the package sync result; the sales overview Inventory tab uses it as a self-healing path when an opened order has no inventory-backed rows yet. `salesOrderId` must be a positive integer at the tRPC boundary, and the underlying `sync-sales-inventory-line-items` Trigger schema applies the same positive-integer requirement for repair/manual sync jobs. When sync removes stale components from a still-active line, child allocation/demand cleanup and component removal are guarded by the exact pre-read component identity: component id, parent line id, sub-component id, and inventory variant id. When sync removes stale inventory lines for sales items no longer present on the sale, it first soft-deletes only line items still tied to the same sale and stale sales item ids, then cleans allocation, inbound-demand, and component residue only under line items confirmed by that soft-delete write; `deletedCount` reports confirmed line writes.
@@ -303,6 +476,21 @@ Tracks important request/response contracts and shared schema boundaries.
 - A PDF render failure is non-fatal: the email may still send with its signed PDF download link, and the failure is logged for diagnosis.
 - Attachment behavior is deterministic across development and production and is not gated by an environment variable.
 
+## Sales document channel delivery contract (2026-07-23)
+
+- `composed_sales_document_email` accepts explicit `email`, `whatsapp`, and
+  `sms` channel intent; omitted intent defaults to email for backward
+  compatibility.
+- Email requires customer and sales-rep email. WhatsApp/SMS require one
+  normalized valid customer phone and a generated secure PDF link.
+- WhatsApp/SMS bodies use reusable `/sh/<slug>` PDF, payment, and
+  quote-acceptance links and are bounded to 1,500 characters.
+- Notification output exposes independent per-channel sent/skipped/failed
+  counts and provider details. Requested skipped/failed channels are task
+  failures from the operator's perspective.
+- SMS is sent only through an explicitly configured Twilio adapter. Missing
+  provider configuration produces a skipped result.
+
 ## Staff Square terminal payment contract (2026-07-22)
 
 - Terminal payment submission requires a selected Square device id and a positive external amount.
@@ -340,6 +528,17 @@ Tracks important request/response contracts and shared schema boundaries.
 - Checkout input contains customer/address/fulfillment/payment intent only;
   accepted line prices, tax, delivery, card charge, and final total are
   recomputed by the server.
+- When an active calculated-shipping policy exists, Delivery checkout requires
+  a non-expired, owner/cart-matched quote for the selected Google Place. V1
+  quote amounts remain provisional; V2 may return `AUTO_APPROVED` only without
+  calculation or confidence blockers.
+- Shipping line evidence uses Door product/size override then profile then
+  global fallback; Moulding product/category/global pounds-per-shipped-LF; and
+  Shelf product/child-category/parent-category/global pounds per unit. Unmapped,
+  route-failed, out-of-area, or capacity-blocked quotes require manual review.
+- Payment-link creation accepts shipping only in `AUTO_APPROVED`, `APPROVED`,
+  or `OVERRIDDEN`. Office finalization transactionally updates checkout totals,
+  canonical Sales Delivery extra cost, `grandTotal`, and `amountDue`.
 - Successful checkout returns the canonical storefront checkout and standard
   Sales Order identity. Retries use idempotency and cannot create a second
   charge or order.
@@ -398,3 +597,20 @@ Tracks important request/response contracts and shared schema boundaries.
   selected-component snapshots already persisted in sales JSON/rows.
 - The shared `saveDykeStepComponent` helper persists `productCode` on both
   update and create paths.
+
+## Sales order inventory repair contracts (2026-07-22)
+
+- `inventories.salesInventoryOrderRepairPreview` accepts `{ salesOrderId }` and
+  returns exact row baselines for active inbound demand and non-terminal stock
+  allocations. Safe rows are unlinked/unreceived `pending` or `ordered` demand
+  and `pending_review`/`approved`/`reserved` allocations; linked, received,
+  picked, and consumed rows are returned as review-only classifications.
+- `inventories.resolveSalesInventoryOrderRepair` accepts selected preview
+  baselines in `demandBaselines[]` and `allocationBaselines[]`, plus optional
+  review-only baselines in `reviewDemandBaselines[]` and
+  `reviewAllocationBaselines[]` (each capped at 200). The
+  server scopes rows to the live order and requires the reviewed component,
+  status, quantity, received quantity, and inbound-link values to still match.
+  Only confirmed mutable rows are soft-cancelled/released, affected component
+  demand state is recomputed, and one `sales_inventory_order_update_repair`
+  SalesHistory record captures applied and skipped ids.

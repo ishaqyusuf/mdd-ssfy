@@ -5,6 +5,7 @@ type CaptureNewSalesFormSavePayloadInput = {
 	action: "save-draft" | "save-final";
 	payload: unknown;
 	userId?: number | null;
+	requestId?: string | null;
 };
 
 type CaptureNewSalesFormSavePayloadOptions = {
@@ -38,6 +39,10 @@ export async function captureNewSalesFormSavePayload(
 					? payload.salesId
 					: null,
 			slug: typeof payload.slug === "string" ? payload.slug : null,
+			clientRequestId:
+				typeof payload.clientRequestId === "string"
+					? payload.clientRequestId
+					: null,
 			now,
 		});
 		const filePath = join(dir, fileName);
@@ -50,6 +55,7 @@ export async function captureNewSalesFormSavePayload(
 					action: input.action,
 					nodeEnv,
 					userId: input.userId ?? null,
+					requestId: input.requestId ?? null,
 					summary: summarizeSavePayload(input.payload),
 					payload: input.payload,
 				},
@@ -77,6 +83,10 @@ function summarizeSavePayload(payload: unknown) {
 	const extraCosts = Array.isArray(record.extraCosts) ? record.extraCosts : [];
 
 	return {
+		clientRequestId:
+			typeof record.clientRequestId === "string"
+				? record.clientRequestId
+				: null,
 		type: typeof record.type === "string" ? record.type : null,
 		salesId: typeof record.salesId === "number" ? record.salesId : null,
 		slug: typeof record.slug === "string" ? record.slug : null,
@@ -86,11 +96,59 @@ function summarizeSavePayload(payload: unknown) {
 	};
 }
 
+export function logNewSalesFormSaveDiagnostic(input: {
+	action: "save-draft" | "save-final";
+	stage:
+		| "ingress"
+		| "payload-captured"
+		| "core-complete"
+		| "post-save-complete"
+		| "failed";
+	requestId?: string | null;
+	clientRequestId?: string | null;
+	startedAt?: number;
+	payload?: unknown;
+	salesId?: number | null;
+	error?: unknown;
+}) {
+	if (process.env.NODE_ENV !== "development") return;
+	const record = asRecord(input.payload);
+	const lineItems = Array.isArray(record.lineItems) ? record.lineItems : [];
+	console.info("[new-sales-form.save]", {
+		action: input.action,
+		stage: input.stage,
+		requestId: input.requestId ?? null,
+		clientRequestId: input.clientRequestId ?? null,
+		elapsedMs:
+			input.startedAt == null
+				? null
+				: Math.round(performance.now() - input.startedAt),
+		salesId: input.salesId ?? null,
+		lineItemCount: lineItems.length,
+		payloadBytes: input.payload == null ? null : jsonByteLength(input.payload),
+		error:
+			input.error instanceof Error
+				? input.error.message
+				: input.error == null
+					? null
+					: String(input.error),
+	});
+}
+
+function jsonByteLength(value: unknown) {
+	try {
+		return Buffer.byteLength(JSON.stringify(value), "utf8");
+	} catch {
+		return 0;
+	}
+}
+
 function buildCaptureFileName(input: {
 	action: "save-draft" | "save-final";
 	type: string | null;
 	salesId: number | null;
 	slug: string | null;
+	clientRequestId: string | null;
 	now: Date;
 }) {
 	const time = input.now
@@ -104,12 +162,15 @@ function buildCaptureFileName(input: {
 			: input.slug
 				? safeFilePart(input.slug)
 				: "new";
+	const requestSuffix = input.clientRequestId
+		? `__${safeFilePart(input.clientRequestId)}`
+		: "";
 	return `${[
 		time,
 		input.action,
 		safeFilePart(input.type || "unknown"),
 		identity,
-	].join("__")}.json`;
+	].join("__")}${requestSuffix}.json`;
 }
 
 function safeFilePart(value: string) {

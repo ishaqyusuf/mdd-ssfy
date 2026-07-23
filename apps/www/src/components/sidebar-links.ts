@@ -385,11 +385,9 @@ export const linkModules = [
 			//     _subLink("Inbound Management", "/sales-book/inbound-management")
 			//         .data,
 			// ]).access(_role.is("Super Admin")).data,
-			_link(
-				"Inbounds Managment",
-				"inbound",
-				"/sales-book/inbound-management",
-			).access(_perm.is("viewInboundOrder")).data,
+			_link("Inbounds", "inbound", "/sales-book/inbounds").access(
+				_perm.is("viewInboundOrder"),
+			).data,
 			// _link("Dispatch", "estimates", "/sales-books/quotes").access(
 			//     _perm.is("editOrders"),
 			// ).data,
@@ -643,7 +641,7 @@ export const linkModules = [
 						_link(
 							"Inbound Management",
 							"inbound",
-							"/sales-book/inbound-management",
+							"/sales-book/inbounds",
 						).access(_role.is("Super Admin")).data,
 						// _link(
 						//     "Inbounds Managment",

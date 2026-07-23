@@ -56,6 +56,12 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 		if (status === "rejected") return "Rejected";
 		return null;
 	};
+	const requestActionLabel = (status?: string | null) => {
+		if (status === "pending") return "Requested";
+		if (status === "approved") return "Approved";
+		if (status === "rejected") return "Rejected";
+		return "Request order";
+	};
 	const quoteEditHref = (document: { id?: number; orderId?: string | null }) =>
 		`/quotes/${encodeURIComponent(document.orderId || String(document.id || ""))}/edit`;
 
@@ -122,9 +128,26 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 									{type === "quote" ? (
 										<TableCell className="text-right">
 											<div className="flex justify-end gap-2">
-												<Button asChild size="sm" type="button" variant="ghost">
-													<Link href={quoteEditHref(document)}>Edit</Link>
-												</Button>
+												{document.editLocked ? (
+													<Button
+														disabled
+														size="sm"
+														title={document.editLockReason || undefined}
+														type="button"
+														variant="ghost"
+													>
+														Editing locked
+													</Button>
+												) : (
+													<Button
+														asChild
+														size="sm"
+														type="button"
+														variant="ghost"
+													>
+														<Link href={quoteEditHref(document)}>Edit</Link>
+													</Button>
+												)}
 												<Button
 													disabled={
 														requestOrder.isPending ||
@@ -139,9 +162,7 @@ export function DealerSalesDocuments({ type }: { type: "order" | "quote" }) {
 													type="button"
 													variant="outline"
 												>
-													{document.requestStatus === "pending"
-														? "Requested"
-														: "Request order"}
+													{requestActionLabel(document.requestStatus)}
 												</Button>
 											</div>
 										</TableCell>

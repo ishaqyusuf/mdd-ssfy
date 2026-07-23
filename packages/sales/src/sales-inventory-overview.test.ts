@@ -544,6 +544,15 @@ describe("buildSalesOverviewInventoryGroups", () => {
 							id: 501,
 							uid: "casing-white",
 							sku: "CASING-01",
+							supplierVariants: [
+								{
+									costPrice: 12.625,
+									salesPrice: 20.1875,
+									supplier: {
+										name: "Trim Supply",
+									},
+								},
+							],
 							attributes: [
 								{
 									value: {
@@ -571,6 +580,9 @@ describe("buildSalesOverviewInventoryGroups", () => {
 		expect(groups[0]?.rows[0]?.variantUid).toBe("casing-white");
 		expect(groups[0]?.rows[0]?.variantSku).toBe("CASING-01");
 		expect(groups[0]?.rows[0]?.variantName).toBe("White");
+		expect(groups[0]?.rows[0]?.supplierCount).toBe(1);
+		expect(groups[0]?.rows[0]?.supplierNames).toEqual(["Trim Supply"]);
+		expect(groups[0]?.rows[0]?.hasSupplierPrice).toBe(true);
 		expect(groups[0]?.totals.cost).toBe(50.5);
 		expect(groups[0]?.totals.salesPrice).toBe(80.75);
 	});

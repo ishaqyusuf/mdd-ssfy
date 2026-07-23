@@ -209,6 +209,7 @@ export async function saveUserDocument(
     url: string;
     description?: string | null;
     expiresAt?: string | null;
+    storedDocumentId?: string | null;
   },
 ) {
   if (!ctx.userId) {
@@ -245,9 +246,33 @@ export async function saveUserDocument(
       })
     : authUser;
 
+  let canonicalDocumentUrl = data.url;
+  if (data.storedDocumentId) {
+    const storedDocument = await ctx.db.storedDocument.findFirst({
+      where: {
+        id: data.storedDocumentId,
+        ownerType: "user",
+        ownerId: String(targetUserId),
+        status: "ready",
+        deletedAt: null,
+      },
+      select: { id: true, url: true, pathname: true },
+    });
+    if (!storedDocument) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: "The uploaded document asset is unavailable.",
+      });
+    }
+    canonicalDocumentUrl = storedDocument.url || storedDocument.pathname;
+  }
+
   const docMeta: Record<string, unknown> = {};
   if (data.expiresAt) {
     docMeta.expiresAt = data.expiresAt;
+  }
+  if (data.storedDocumentId) {
+    docMeta.storedDocumentId = data.storedDocumentId;
   }
 
   if (isInsuranceDocumentTitle(data.title)) {
@@ -260,11 +285,15 @@ export async function saveUserDocument(
 
   if (data.id) {
     return ctx.db.userDocuments.update({
-      where: { id: data.id },
+      where: {
+        id: data.id,
+        userId: targetUserId,
+        deletedAt: null,
+      },
       data: {
         title: data.title,
         description: data.description,
-        url: data.url,
+        url: canonicalDocumentUrl,
         meta: docMeta,
       },
       select: { id: true, title: true, url: true, meta: true },
@@ -275,7 +304,7 @@ export async function saveUserDocument(
     data: {
       title: data.title,
       description: data.description,
-      url: data.url,
+      url: canonicalDocumentUrl,
       userId: targetUserId,
       meta: docMeta,
     },
@@ -288,34 +317,43 @@ export async function saveUserDocument(
     },
   });
 
+  let notificationQueued = true;
   if (isInsuranceDocumentTitle(data.title)) {
-    const notifications = new Notifications(ctx.db);
-    await notifications.create(
-      "employee_document_review",
-      {
-        documentId: createdDocument.id,
-        userId: targetUserId,
-        userName: targetUser.name ?? "Employee",
-        documentTitle: createdDocument.title || data.title,
-        documentUrl: createdDocument.url,
-        description: createdDocument.description,
-        expiresAt:
-          (typeof createdDocument.meta === "object" &&
-          createdDocument.meta &&
-          !Array.isArray(createdDocument.meta)
-            ? ((createdDocument.meta as Record<string, unknown>).expiresAt as
-                | string
-                | null
-                | undefined)
-            : null) ?? null,
-      },
-      {
-        author: {
-          id: ctx.userId,
-          role: "employee",
+    try {
+      const notifications = new Notifications(ctx.db);
+      await notifications.create(
+        "employee_document_review",
+        {
+          documentId: createdDocument.id,
+          userId: targetUserId,
+          userName: targetUser.name ?? "Employee",
+          documentTitle: createdDocument.title || data.title,
+          documentUrl: createdDocument.url,
+          description: createdDocument.description,
+          expiresAt:
+            (typeof createdDocument.meta === "object" &&
+            createdDocument.meta &&
+            !Array.isArray(createdDocument.meta)
+              ? ((createdDocument.meta as Record<string, unknown>).expiresAt as
+                  | string
+                  | null
+                  | undefined)
+              : null) ?? null,
         },
-      },
-    );
+        {
+          author: {
+            id: ctx.userId,
+            role: "employee",
+          },
+        },
+      );
+    } catch (error) {
+      notificationQueued = false;
+      console.error(
+        "Employee document saved, but its review notification failed.",
+        error,
+      );
+    }
   }
 
   return {
@@ -323,6 +361,7 @@ export async function saveUserDocument(
     title: createdDocument.title,
     url: createdDocument.url,
     meta: createdDocument.meta,
+    notificationQueued,
   };
 }
 
@@ -411,9 +450,35 @@ export async function saveDocumentReviewNote(
 }
 
 export async function deleteUserDocument(ctx: TRPCContext, id: number) {
-  await ctx.db.userDocuments.update({
-    where: { id, userId: ctx.userId },
-    data: { deletedAt: new Date() },
+  const document = await ctx.db.userDocuments.findFirstOrThrow({
+    where: { id, userId: ctx.userId, deletedAt: null },
+    select: { meta: true },
+  });
+  const meta = parseMeta(document.meta);
+  const storedDocumentId =
+    typeof meta.storedDocumentId === "string" ? meta.storedDocumentId : null;
+  const deletedAt = new Date();
+
+  await ctx.db.$transaction(async (tx) => {
+    await tx.userDocuments.update({
+      where: { id, userId: ctx.userId },
+      data: { deletedAt },
+    });
+    if (storedDocumentId) {
+      await tx.storedDocument.updateMany({
+        where: {
+          id: storedDocumentId,
+          ownerType: "user",
+          ownerId: String(ctx.userId),
+          deletedAt: null,
+        },
+        data: {
+          status: "deleted",
+          isCurrent: false,
+          deletedAt,
+        },
+      });
+    }
   });
   return { success: true };
 }

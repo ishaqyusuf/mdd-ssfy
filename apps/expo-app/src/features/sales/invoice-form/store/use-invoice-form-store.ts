@@ -160,7 +160,7 @@ type InvoiceFormState = {
 		markSaving: () => void;
 		markSaved: (data?: InvoiceFormSaveResult) => void;
 		markError: (message?: string) => void;
-		markStale: () => void;
+		markStale: (message?: string) => void;
 		reset: () => void;
 	};
 };
@@ -807,8 +807,8 @@ export const useInvoiceFormStore = create<InvoiceFormState>((set, get) => {
 			markError(message) {
 				set({ saveStatus: "error", validationError: message ?? null });
 			},
-			markStale() {
-				set({ saveStatus: "stale" });
+			markStale(message) {
+				set({ saveStatus: "stale", validationError: message ?? null });
 			},
 			reset() {
 				const initialData = createInitialData();

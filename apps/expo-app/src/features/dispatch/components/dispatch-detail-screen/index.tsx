@@ -8,7 +8,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatchActions } from "../../api/use-dispatch-actions";
-import { useDispatchDocuments } from "../../api/use-dispatch-documents";
 import { useDispatchOverview } from "../../api/use-dispatch-overview";
 import { useDispatchPacking } from "../../api/use-dispatch-packing";
 import { formatDispatchDate, totalQty } from "../../lib/format-dispatch";
@@ -63,10 +62,6 @@ function sumPackedLinesQty(
 	);
 }
 
-function buildSignatureSvg(path: string) {
-	return `<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 320 160\"><path d=\"${path}\" fill=\"none\" stroke=\"#111827\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" /></svg>`;
-}
-
 export function DispatchDetailScreen({
 	dispatchId,
 	salesNo,
@@ -99,7 +94,6 @@ function DispatchDetailScreenInner({
 	const detailUi = useDispatchDetailContext();
 	const actions = useDispatchActions();
 	const packing = useDispatchPacking();
-	const documents = useDispatchDocuments();
 	const notification = useNotificationTrigger();
 	const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
@@ -1175,67 +1169,41 @@ function DispatchDetailScreenInner({
 						defaultReceivedBy={customerName || ""}
 						isSubmitting={
 							actions.submitDispatch.isPending ||
-							packing.taskTrigger.isPending ||
-							documents.uploadDocument.isPending
+							packing.taskTrigger.isPending
 						}
 						onClose={() => ui.setCompleteSheetOpen(false)}
 						onSubmit={async (input) => {
 							if (!order?.id || !dispatch?.id) return;
 							try {
-								if (dispatch.deliveryMode === "pickup") {
-									await packing.onPackAll({
-										salesId: order.id,
-										dispatchId: dispatch.id,
-										dispatchStatus: (dispatch.status as any) || "queue",
-									});
-								}
-
-								const attachmentPaths: { pathname: string }[] = [];
-								const files = (input as any)?.attachments || [];
-								for (const file of files) {
-									const uploaded = await documents.uploadBase64({
-										filename:
-											file.fileName || `dispatch-attachment-${Date.now()}.jpg`,
-										contentType: file.contentType || "image/jpeg",
-										folder: `dispatch/${dispatch.id}/attachments`,
-										base64: file.base64,
-									});
-									attachmentPaths.push({ pathname: uploaded.pathname });
-								}
-
-								let signaturePathname: string | null | undefined;
-								const signaturePathRaw = String(
-									(input as any)?.signaturePath || "",
-								).trim();
-								if (signaturePathRaw) {
-									const uploadedSignature = await documents.uploadText({
-										filename: `dispatch-signature-${dispatch.id}-${Date.now()}.svg`,
-										contentType: "image/svg+xml",
-										folder: `dispatch/${dispatch.id}/signature`,
-										text: buildSignatureSvg(signaturePathRaw),
-									});
-									signaturePathname =
-										uploadedSignature.url || uploadedSignature.pathname;
-								}
-
 								await actions.onSubmitDispatch({
 									salesId: order.id,
 									dispatchId: dispatch.id,
-									...input,
+									requestId: input.requestId,
+									receivedBy: input.receivedBy,
+									receivedDate: input.receivedDate,
+									note: input.note,
 									noteType:
-										(input as any)?.noteType ||
+										input.noteType ||
 										(dispatch.deliveryMode === "pickup"
 											? "pickup"
 											: "dispatch"),
-									signature: signaturePathname || undefined,
-									attachments: attachmentPaths,
+									signaturePath: input.signaturePath,
+									attachments: input.attachments?.map((file) => ({
+										clientId: file.clientId,
+										fileName: file.fileName,
+										contentType: file.contentType || "image/jpeg",
+										base64: file.base64,
+									})),
 								});
 								ui.setCompleteSheetOpen(false);
 								Toast.show("Dispatch completed", { type: "success" });
 							} catch {
-								Toast.show("Unable to complete dispatch", {
+								Toast.show(
+									"Completion paused. Your proof is still here—tap Complete Dispatch to retry.",
+									{
 									type: "error",
-								});
+									},
+								);
 							}
 						}}
 					/>

@@ -53,7 +53,7 @@ function createRecord(): SalesFormStateRecord {
 }
 
 describe("sales form state line item actions", () => {
-	it("keeps autosave opt-in for hydrated forms", () => {
+	it("enables autosave by default for hydrated forms", () => {
 		const state = hydrateSalesFormState(
 			createInitialSalesFormState(),
 			createRecord(),
@@ -61,7 +61,7 @@ describe("sales form state line item actions", () => {
 
 		expect(state.dirty).toBe(false);
 		expect(state.saveStatus).toBe("idle");
-		expect(state.editor.autosaveEnabled).toBe(false);
+		expect(state.editor.autosaveEnabled).toBe(true);
 		expect(state.editor.activeItem).toBe("line-1");
 		expect(state.editor.activeStepByLine).toEqual({ "line-1": 0 });
 	});

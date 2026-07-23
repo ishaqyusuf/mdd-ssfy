@@ -11,6 +11,7 @@ type QuoteActionItem = {
 	slug?: string | null;
 	uuid?: string | null;
 	email?: string | null;
+	customerPhone?: string | null;
 	displayName?: string | null;
 };
 
@@ -32,6 +33,7 @@ export function QuoteRowActionsMenu({
 			type="quote"
 			orderNo={item.orderId ?? null}
 			customerEmail={item.email ?? null}
+			customerPhone={item.customerPhone ?? null}
 			customerName={item.displayName}
 			open={open}
 			onOpenChange={onOpenChange}

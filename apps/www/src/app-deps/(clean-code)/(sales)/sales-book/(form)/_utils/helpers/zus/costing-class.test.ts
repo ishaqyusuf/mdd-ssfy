@@ -131,6 +131,25 @@ describe("CostingClass tax calculation", () => {
 		});
 	});
 
+	test("treats a sparse service row without metadata as non-taxable", () => {
+		const { costing, state } = createCosting([
+			{
+				totalPrice: 100,
+				type: "SERVICE",
+			},
+		]);
+		delete state.kvFormItem["line-0"].groupItem.form.value.meta;
+
+		costing.calculateTotalPrice();
+
+		expectPricing(state, {
+			subTotal: 100,
+			taxxable: 0,
+			taxValue: 0,
+			grandTotal: 100,
+		});
+	});
+
 	test("taxes products and checked services but excludes unchecked services", () => {
 		const { costing, state } = createCosting([
 			{
@@ -261,6 +280,36 @@ describe("CostingClass tax calculation", () => {
 		});
 	});
 
+	test("composes labor, flat labor, and card charge in the final total", () => {
+		const { costing, state } = createCosting(
+			[{ totalPrice: 100, type: "DOOR" }],
+			{
+				paymentMethod: "Credit Card",
+				taxPercentage: 0,
+			},
+		);
+		state.metaData.salesLaborConfig.rate = 4;
+		state.metaData.extraCosts = [
+			{ type: "Labor", amount: 0 },
+			{ type: "FlatLabor", amount: 15 },
+		];
+		state.kvFormItem["line-0"].groupItem.form.value.pricing = {
+			totalPrice: 100,
+			laborQty: 2,
+		};
+
+		costing.calculateTotalPrice();
+
+		expectPricing(state, {
+			subTotal: 100,
+			taxxable: 100,
+			grandTotal: 123,
+			ccc: 4.31,
+			totalWithCcc: 127.31,
+		});
+		expect(state.metaData.extraCosts[0].amount).toBe(8);
+	});
+
 	test("rounds subtotal additions through the shared money boundary", () => {
 		const { costing, state } = createCosting([
 			{ totalPrice: 0.1, type: "DOOR" },
@@ -272,6 +321,25 @@ describe("CostingClass tax calculation", () => {
 		expectPricing(state, {
 			subTotal: 0.3,
 			taxxable: 0.3,
+		});
+	});
+
+	test("persists pricing even when the optional labor row is absent", () => {
+		const { costing, state } = createCosting([
+			{
+				totalPrice: 125,
+				type: "DOOR",
+			},
+		]);
+		state.metaData.extraCosts = [];
+
+		costing.calculateTotalPrice();
+
+		expectPricing(state, {
+			subTotal: 125,
+			taxxable: 125,
+			taxValue: 8.75,
+			grandTotal: 133.75,
 		});
 	});
 

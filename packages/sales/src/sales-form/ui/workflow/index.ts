@@ -84,6 +84,7 @@ export {
 } from "./shelf-sections-panel";
 export {
   ShelfInlineItemsEditor,
+  patchShelfSectionCategories,
   type ShelfInlineItemsEditorProps,
 } from "./shelf-inline-items-editor";
 export {

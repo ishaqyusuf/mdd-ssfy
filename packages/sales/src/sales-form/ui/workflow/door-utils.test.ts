@@ -266,8 +266,8 @@ describe("workflow door price availability", () => {
 		]);
 
 		expect(rows[0]?.meta).toEqual({
-			baseUnitPrice: 10.23,
-			doorSalesUnitPrice: 12.55,
+			baseUnitPrice: 10.24,
+			doorSalesUnitPrice: 12.56,
 			sharedDoorSurcharge: 1.2,
 			priceMissing: false,
 		});

@@ -129,6 +129,14 @@ function createMockContext() {
   }
 
   const tx = {
+    customers: {
+      findFirst: async ({ where }: any) => {
+        const customer = state.customers.find(
+          (row) => row.id === where?.id && row.dealerOwnerId == null,
+        );
+        return customer ? { dealerOwnerId: customer.dealerOwnerId ?? null } : null;
+      },
+    },
     salesOrders: {
       findFirst: async ({ where }: any) => {
         const order = findOrder(where);
@@ -356,6 +364,14 @@ function createMockContext() {
       findMany: async () => state.customers,
     },
     users: {
+      findUnique: async ({ where }: any) => {
+        const user = state.users.find((row) => row.id === where?.id) || null;
+        return user
+          ? {
+              roles: [],
+            }
+          : null;
+      },
       findFirst: async ({ where, select }: any) => {
         const user = state.users.find((row) => row.id === where?.id) || null;
         if (!user || !select) return user;
@@ -365,6 +381,9 @@ function createMockContext() {
             .map((key) => [key, (user as any)[key]]),
         );
       },
+    },
+    dealerSalesRequest: {
+      findFirst: async () => ({ id: 1 }),
     },
     settings: {
       findFirst: async ({ where, select }: any) => {

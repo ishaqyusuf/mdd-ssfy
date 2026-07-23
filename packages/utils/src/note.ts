@@ -1,5 +1,5 @@
-import { noteTagNames, NoteTagNames } from "./constants";
 import { z } from "zod";
+import { noteTagNames, type NoteTagNames } from "./constants";
 export const noteTag = (tagName: NoteTagNames, tagValue) => ({
   tagName,
   tagValue: String(tagValue),
@@ -38,6 +38,57 @@ export const saveNoteSchema = z.object({
 });
 export type SaveNoteSchema = z.infer<typeof saveNoteSchema>;
 
+export async function adoptStoredDocumentAttachments(
+  db,
+  input: {
+    pathnames: string[];
+    uploadedBy: number;
+    ownerId: string;
+    ownerType: string;
+    sourceId: string;
+    sourceType: string;
+    status?: string;
+    ownerKey?: string;
+  },
+) {
+  const uniquePathnames = Array.from(new Set(input.pathnames.filter(Boolean)));
+  if (!uniquePathnames.length) return { adopted: 0 };
+  const candidates = await db.storedDocument.findMany({
+    where: {
+      pathname: { in: uniquePathnames },
+      uploadedBy: input.uploadedBy,
+      sourceType: "authenticated_browser_upload",
+      ownerKey: { startsWith: "staged:" },
+    },
+    select: { id: true },
+  });
+  if (!candidates.length) return { adopted: 0 };
+  const adopted = await db.storedDocument.updateMany({
+    where: {
+      id: { in: candidates.map(({ id }) => id) },
+      ownerType: "user",
+      ownerId: String(input.uploadedBy),
+      uploadedBy: input.uploadedBy,
+      sourceType: "authenticated_browser_upload",
+      ownerKey: { startsWith: "staged:" },
+      status: "ready",
+      deletedAt: null,
+    },
+    data: {
+      ownerType: input.ownerType,
+      ownerId: input.ownerId,
+      ...(input.ownerKey ? { ownerKey: input.ownerKey } : {}),
+      sourceType: input.sourceType,
+      sourceId: input.sourceId,
+      status: input.status || "ready",
+    },
+  });
+  if (adopted.count !== candidates.length) {
+    throw new Error("An attachment is being deleted or is no longer available.");
+  }
+  return { adopted: adopted.count };
+}
+
 export async function saveNote(db, data: SaveNoteSchema, authId) {
   const senderId = await getSenderId(db, authId);
   const note = await db.notePad.create({
@@ -68,6 +119,23 @@ export async function saveNote(db, data: SaveNoteSchema, authId) {
       },
     },
   });
+  const attachmentPathnames = (data.tags || [])
+    .filter(({ tagName, tagValue }) => tagName === "attachment" && tagValue)
+    .map(({ tagValue }) => tagValue);
+  if (attachmentPathnames.length) {
+    await adoptStoredDocumentAttachments(
+      db,
+      {
+        pathnames: attachmentPathnames,
+        uploadedBy: authId,
+        ownerType: "note",
+        ownerId: String(note.id),
+        ownerKey: "attachment",
+        sourceType: "note_attachment",
+        sourceId: String(note.id),
+      },
+    );
+  }
   return note;
 }
 export type Note = ReturnType<typeof transformNote>;

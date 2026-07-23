@@ -30,7 +30,7 @@ export const trpc = createTRPCOptionsProxy<AppRouter>({
 		links: [
 			httpBatchLink({
 				url: `${getServerBaseUrl()}/api/storefront/trpc`,
-				transformer: superjson,
+				transformer: superjson as never,
 				fetch: fetchWithRequestOrigin as typeof fetch,
 			}),
 			loggerLink({
@@ -52,30 +52,44 @@ export function HydrateClient(props: { children: React.ReactNode }) {
 	);
 }
 
-export async function prefetch<T extends ReturnType<TRPCQueryOptions<unknown>>>(
+type StorefrontResolverDef = {
+	input: unknown;
+	output: unknown;
+	transformer: boolean;
+	errorShape: unknown;
+	featureFlags: { keyPrefix: boolean };
+};
+
+type StorefrontQueryOptions = ReturnType<
+	TRPCQueryOptions<StorefrontResolverDef>
+>;
+
+export async function prefetch<T extends StorefrontQueryOptions>(
 	queryOptions: T,
 ) {
 	const queryClient = getQueryClient();
 
 	if (queryOptions.queryKey[1]?.type === "infinite") {
 		await queryClient.prefetchInfiniteQuery(
-			queryOptions as Parameters<typeof queryClient.prefetchInfiniteQuery>[0],
+			queryOptions as unknown as Parameters<
+				typeof queryClient.prefetchInfiniteQuery
+			>[0],
 		);
 	} else {
 		await queryClient.prefetchQuery(queryOptions);
 	}
 }
 
-export async function batchPrefetch<
-	T extends ReturnType<TRPCQueryOptions<unknown>>,
->(queryOptionsArray: T[]) {
+export async function batchPrefetch<T extends StorefrontQueryOptions>(
+	queryOptionsArray: T[],
+) {
 	const queryClient = getQueryClient();
 
 	await Promise.all(
 		queryOptionsArray.map((queryOptions) => {
 			if (queryOptions.queryKey[1]?.type === "infinite") {
 				return queryClient.prefetchInfiniteQuery(
-					queryOptions as Parameters<
+					queryOptions as unknown as Parameters<
 						typeof queryClient.prefetchInfiniteQuery
 					>[0],
 				);

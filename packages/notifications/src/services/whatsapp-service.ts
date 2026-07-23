@@ -1,85 +1,112 @@
 import { createWhatsAppClient } from "@gnd/app-store/whatsapp-client";
 import { logger } from "@gnd/logger";
 import type { UserData } from "../base";
+import { normalizeCustomerPhoneNumber } from "../phone-number";
 
 type WhatsAppInput = {
-  user: UserData;
-  message: string;
+	user: UserData;
+	message: string;
 };
 
-function normalizePhoneNumber(phoneNo?: string): string | null {
-  if (!phoneNo) return null;
-  const raw = phoneNo.trim();
-  if (!raw) return null;
-
-  if (raw.startsWith("+")) {
-    const digits = raw.slice(1).replace(/\D/g, "");
-    if (digits.length < 8 || digits.length > 15) return null;
-    return `+${digits}`;
-  }
-
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length >= 8 && digits.length <= 15) return `+${digits}`;
-  return null;
-}
+export type WhatsAppDeliveryResult = {
+	inputIndex: number;
+	status: "sent" | "skipped" | "failed";
+	to?: string | null;
+	providerMessageId?: string | null;
+	providerStatus?: string | null;
+	errorMessage?: string | null;
+};
 
 export class WhatsAppService {
-  async sendBulk(messages: WhatsAppInput[]) {
-    if (!messages.length) {
-      return {
-        sent: 0,
-        skipped: 0,
-        failed: 0,
-      };
-    }
+	async sendBulk(messages: WhatsAppInput[]) {
+		if (!messages.length) {
+			return {
+				sent: 0,
+				skipped: 0,
+				failed: 0,
+				deliveries: [] as WhatsAppDeliveryResult[],
+			};
+		}
 
-    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    if (!phoneNumberId || !accessToken) {
-      logger.warn(
-        "WhatsApp notification skipped: missing WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN",
-      );
-      return {
-        sent: 0,
-        skipped: messages.length,
-        failed: 0,
-      };
-    }
+		const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+		const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+		if (!phoneNumberId || !accessToken) {
+			logger.warn(
+				"WhatsApp notification skipped: missing WHATSAPP_PHONE_NUMBER_ID or WHATSAPP_ACCESS_TOKEN",
+			);
+			return {
+				sent: 0,
+				skipped: messages.length,
+				failed: 0,
+				deliveries: messages.map((_, inputIndex) => ({
+					inputIndex,
+					status: "skipped" as const,
+					providerStatus: "provider_not_configured",
+				})),
+			};
+		}
 
-    let client: ReturnType<typeof createWhatsAppClient>;
-    try {
-      client = createWhatsAppClient();
-    } catch (error) {
-      logger.warn(
-        `WhatsApp notification skipped: failed to initialize WhatsApp client (${String(error)})`,
-      );
-      return {
-        sent: 0,
-        skipped: messages.length,
-        failed: 0,
-      };
-    }
-    let sent = 0;
-    let skipped = 0;
-    let failed = 0;
+		let client: ReturnType<typeof createWhatsAppClient>;
+		try {
+			client = createWhatsAppClient();
+		} catch (error) {
+			logger.warn(
+				`WhatsApp notification skipped: failed to initialize WhatsApp client (${String(error)})`,
+			);
+			return {
+				sent: 0,
+				skipped: messages.length,
+				failed: 0,
+				deliveries: messages.map((_, inputIndex) => ({
+					inputIndex,
+					status: "skipped" as const,
+					providerStatus: "provider_initialization_failed",
+				})),
+			};
+		}
+		const deliveries: WhatsAppDeliveryResult[] = [];
 
-    for (const input of messages) {
-      const phone = normalizePhoneNumber(input.user.phoneNo);
-      if (!phone) {
-        skipped += 1;
-        continue;
-      }
+		for (const [inputIndex, input] of messages.entries()) {
+			const phone = normalizeCustomerPhoneNumber(input.user.phoneNo);
+			if (!phone) {
+				deliveries.push({
+					inputIndex,
+					status: "skipped",
+					providerStatus: "invalid_phone",
+				});
+				continue;
+			}
 
-      try {
-        await client.sendMessage(phone, input.message);
-        sent += 1;
-      } catch {
-        failed += 1;
-      }
-    }
+			try {
+				const response = (await client.sendMessage(phone, input.message)) as {
+					messages?: Array<{ id?: string }>;
+				};
+				deliveries.push({
+					inputIndex,
+					status: "sent",
+					to: phone,
+					providerMessageId: response.messages?.[0]?.id || null,
+					providerStatus: "accepted",
+				});
+			} catch (error) {
+				deliveries.push({
+					inputIndex,
+					status: "failed",
+					to: phone,
+					providerStatus: "provider_rejected",
+					errorMessage:
+						error instanceof Error ? error.message : "WhatsApp send failed.",
+				});
+			}
+		}
 
-    return { sent, skipped, failed };
-  }
+		return {
+			sent: deliveries.filter((delivery) => delivery.status === "sent").length,
+			skipped: deliveries.filter((delivery) => delivery.status === "skipped")
+				.length,
+			failed: deliveries.filter((delivery) => delivery.status === "failed")
+				.length,
+			deliveries,
+		};
+	}
 }

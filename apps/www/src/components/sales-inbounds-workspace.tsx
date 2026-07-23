@@ -5,12 +5,12 @@ import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { ActivityHistory as ChatActivityHistory } from "@/components/chat";
 import { SalesInboundsColumnVisibility } from "@/components/tables-2/sales-inbounds/column-visibility";
 import { DataTable as SalesInboundsTable } from "@/components/tables-2/sales-inbounds/data-table";
+import { SearchFilterProvider } from "@/hooks/use-search-filter";
 import { useTRPC } from "@/trpc/client";
 import type { TableSettings } from "@/utils/table-settings";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
-import { Input } from "@gnd/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -21,7 +21,15 @@ import {
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
-import { useEffect, useMemo, useState } from "react";
+import {
+	parseAsInteger,
+	parseAsString,
+	parseAsStringLiteral,
+	useQueryStates,
+} from "nuqs";
+import { useEffect, useMemo } from "react";
+
+import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 
 type InboundShipment = RouterOutputs["inventories"]["inboundShipments"][number];
 type InboundDetail = RouterOutputs["inventories"]["inboundShipmentDetail"];
@@ -44,6 +52,22 @@ const inboundStatuses = [
 	"closed",
 	"cancelled",
 ] satisfies InboundStatus[];
+
+const salesInboundWorkspaceParams = {
+	q: parseAsString,
+	status: parseAsStringLiteral(inboundStatuses),
+	inboundId: parseAsInteger,
+};
+
+function SalesInboundsSearchFilter() {
+	return (
+		<SearchFilterProvider
+			args={[{ filterSchema: salesInboundWorkspaceParams }]}
+		>
+			<SearchFilterTRPC placeholder="Search inbound, supplier, reference" />
+		</SearchFilterProvider>
+	);
+}
 
 function formatQty(value: number | null | undefined) {
 	return Number(value || 0).toLocaleString(undefined, {
@@ -189,11 +213,10 @@ export function SalesInboundsWorkspace({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [search, setSearch] = useState("");
-	const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-	const [selectedInboundId, setSelectedInboundId] = useState<number | null>(
-		null,
-	);
+	const [params, setParams] = useQueryStates(salesInboundWorkspaceParams);
+	const search = params.q ?? "";
+	const statusFilter = (params.status ?? "all") as StatusFilter;
+	const selectedInboundId = params.inboundId;
 	const shipmentsQuery = useQuery(
 		trpc.inventories.inboundShipments.queryOptions(
 			{},
@@ -281,7 +304,7 @@ export function SalesInboundsWorkspace({
 
 	useEffect(() => {
 		if (!filteredShipments.length) {
-			setSelectedInboundId(null);
+			if (selectedInboundId !== null) void setParams({ inboundId: null });
 			return;
 		}
 		if (
@@ -290,8 +313,8 @@ export function SalesInboundsWorkspace({
 		) {
 			return;
 		}
-		setSelectedInboundId(filteredShipments[0]?.id ?? null);
-	}, [filteredShipments, selectedInboundId]);
+		void setParams({ inboundId: filteredShipments[0]?.id ?? null });
+	}, [filteredShipments, selectedInboundId, setParams]);
 
 	const refreshInbound = async (inboundId?: number | null) => {
 		await Promise.all([
@@ -386,16 +409,17 @@ export function SalesInboundsWorkspace({
 						activity history.
 					</p>
 				</div>
-				<div className="flex flex-col gap-2 sm:flex-row">
-					<Input
-						value={search}
-						onChange={(event) => setSearch(event.target.value)}
-						placeholder="Search inbound, supplier, reference"
-						className="h-9 sm:w-72"
-					/>
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+					<div className="min-w-0 sm:w-[350px]">
+						<SalesInboundsSearchFilter />
+					</div>
 					<Select
 						value={statusFilter}
-						onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+						onValueChange={(value) =>
+							void setParams({
+								status: value === "all" ? null : (value as InboundStatus),
+							})
+						}
 					>
 						<SelectTrigger className="h-9 sm:w-44">
 							<SelectValue placeholder="Status" />
@@ -444,7 +468,7 @@ export function SalesInboundsWorkspace({
 				initialSettings={initialSettings}
 				isLoading={shipmentsQuery.isLoading}
 				selectedInboundId={selectedShipment?.id ?? null}
-				onSelectInbound={setSelectedInboundId}
+				onSelectInbound={(inboundId) => void setParams({ inboundId })}
 			/>
 
 			{selectedShipment ? (

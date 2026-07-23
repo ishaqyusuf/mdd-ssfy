@@ -107,6 +107,34 @@ describe("sales form costing", () => {
 		expect(summary.grandTotal).toBe(155);
 	});
 
+	it("uses explicit grouped service row tax flags over a stale parent flag", () => {
+		const summary = calculateSalesFormSummary({
+			strategy: "current",
+			taxRate: 10,
+			lineItems: [
+				{
+					qty: 2,
+					unitPrice: 75,
+					lineTotal: 150,
+					taxxable: false,
+					meta: {
+						taxxable: false,
+						serviceRows: [
+							{ qty: 1, unitPrice: 100, taxxable: true },
+							{ qty: 1, unitPrice: 50, taxxable: false },
+						],
+					},
+				},
+			],
+			extraCosts: [],
+		});
+
+		expect(summary.subTotal).toBe(150);
+		expect(summary.taxableSubTotal).toBe(100);
+		expect(summary.taxTotal).toBe(10);
+		expect(summary.grandTotal).toBe(160);
+	});
+
 	it("derives shelf totals from JSON row price metadata", () => {
 		const summary = calculateSalesFormSummary({
 			strategy: "current",

@@ -34,7 +34,7 @@ export function TRPCReactProvider(
 			links: [
 				httpBatchLink({
 					url: "/api/storefront/trpc",
-					transformer: superjson,
+					transformer: superjson as never,
 					fetch(url, options) {
 						return fetch(url, { ...options, credentials: "include" });
 					},

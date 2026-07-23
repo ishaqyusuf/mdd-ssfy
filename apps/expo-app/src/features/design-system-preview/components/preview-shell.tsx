@@ -12,7 +12,8 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { type ReactNode, useEffect, useState } from "react";
-import { ScrollView, Text, View, TextInput } from "react-native";
+import { ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { ResolvedPreviewDesignSystem } from "../design-systems/types";
 
 export function PreviewShell({
@@ -25,6 +26,7 @@ export function PreviewShell({
 	onSearchChange,
 	onFilterPress,
 	searchPlaceholder = "Search...",
+	comfortableControls = false,
 }: {
 	bottomNavigation?: ReactNode;
 	children: ReactNode;
@@ -35,9 +37,12 @@ export function PreviewShell({
 	onSearchChange?: (text: string) => void;
 	onFilterPress?: () => void;
 	searchPlaceholder?: string;
+	comfortableControls?: boolean;
 }) {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
+	const insets = useSafeAreaInsets();
+	const controlSize = comfortableControls ? 52 : 44;
 	const headerIsLight = isLightColor(system.colors.header);
 	const headerIconsInverted = headerIsLight === (colorScheme === "dark");
 	const headerText = headerIsLight ? system.colors.text : "#ffffff";
@@ -67,7 +72,7 @@ export function PreviewShell({
 					borderBottomRightRadius: 24,
 					paddingBottom: 18,
 					paddingHorizontal: 16,
-					paddingTop: 52,
+					paddingTop: Math.max(insets.top + 12, 20),
 				}}
 			>
 				<View
@@ -79,16 +84,18 @@ export function PreviewShell({
 					}}
 				>
 					<Pressable
+						accessibilityLabel="Back to design system previews"
+						accessibilityRole="button"
 						noRipple
 						onPress={() => router.back()}
 						style={{
 							alignItems: "center",
 							backgroundColor: headerControl,
 							borderRadius: 999,
-							height: 40,
+							height: controlSize,
 							justifyContent: "center",
 							overflow: "hidden",
-							width: 40,
+							width: controlSize,
 						}}
 					>
 						<Icon inverted={headerIconsInverted} name="ArrowLeft" size={19} />
@@ -114,6 +121,7 @@ export function PreviewShell({
 					<PreviewHeaderThemeToggle
 						backgroundColor={headerControl}
 						iconColor={headerText}
+						size={controlSize}
 					/>
 				</View>
 
@@ -146,6 +154,8 @@ export function PreviewShell({
 						style={{ color: headerSearchText, flex: 1, fontSize: 13 }}
 					/>
 					<Pressable
+						accessibilityLabel="Open workspace filters"
+						accessibilityRole="button"
 						onPress={onFilterPress}
 						style={{
 							alignItems: "center",
@@ -153,10 +163,10 @@ export function PreviewShell({
 								? system.colors.surfaceMuted
 								: "rgba(255,255,255,0.14)",
 							borderRadius: 10,
-							height: 30,
+							height: controlSize,
 							justifyContent: "center",
 							overflow: "hidden",
-							width: 34,
+							width: controlSize,
 						}}
 					>
 						<Icon
@@ -169,11 +179,15 @@ export function PreviewShell({
 			</View>
 
 			<ScrollView
+				keyboardDismissMode="interactive"
+				keyboardShouldPersistTaps="handled"
 				style={{ flex: 1 }}
 				contentContainerStyle={{
 					gap: 16,
 					padding: 16,
-					paddingBottom: bottomNavigation ? 116 : 40,
+					paddingBottom: bottomNavigation
+						? 104 + insets.bottom
+						: 40 + insets.bottom,
 				}}
 			>
 				{children}
@@ -184,7 +198,7 @@ export function PreviewShell({
 					style={{
 						bottom: 0,
 						left: 0,
-						paddingBottom: 24,
+						paddingBottom: Math.max(insets.bottom, 12),
 						paddingHorizontal: 16,
 						paddingTop: 8,
 						position: "absolute",
@@ -201,9 +215,11 @@ export function PreviewShell({
 function PreviewHeaderThemeToggle({
 	backgroundColor,
 	iconColor,
+	size,
 }: {
 	backgroundColor: string;
 	iconColor: string;
+	size: number;
 }) {
 	const { colorScheme, setColorScheme } = useColorScheme();
 	const [themeOverride, setThemeOverrideState] =
@@ -231,16 +247,18 @@ function PreviewHeaderThemeToggle({
 
 	return (
 		<Pressable
+			accessibilityLabel="Toggle preview color theme"
+			accessibilityRole="button"
 			noRipple
 			onPress={toggleColorScheme}
 			style={{
 				alignItems: "center",
 				backgroundColor,
 				borderRadius: 999,
-				height: 40,
+				height: size,
 				justifyContent: "center",
 				overflow: "hidden",
-				width: 40,
+				width: size,
 			}}
 		>
 			<HugeiconsIcon
@@ -282,12 +300,16 @@ export function PreviewBottomNav({
 	items,
 	system,
 	onSelect,
+	size = "compact",
 }: {
 	active: string;
 	items: { icon: IconKeys; label: string }[];
 	system: ResolvedPreviewDesignSystem;
 	onSelect?: (label: string) => void;
+	size?: "compact" | "comfortable";
 }) {
+	const comfortable = size === "comfortable";
+
 	return (
 		<View
 			style={{
@@ -307,19 +329,29 @@ export function PreviewBottomNav({
 				const isActive = item.label === active;
 				return (
 					<Pressable
+						accessibilityLabel={`${item.label} workspace`}
+						accessibilityRole="button"
+						accessibilityState={{ selected: isActive }}
+						hitSlop={comfortable ? 6 : 2}
 						key={item.label}
 						onPress={() => onSelect?.(item.label)}
-						style={{ alignItems: "center", gap: 4 }}
+						style={{
+							alignItems: "center",
+							flex: 1,
+							gap: 4,
+							justifyContent: "center",
+							minHeight: comfortable ? 52 : 44,
+						}}
 					>
 						<Icon
 							name={item.icon}
 							color={isActive ? system.colors.primary : system.colors.muted}
-							size={18}
+							size={comfortable ? 21 : 18}
 						/>
 						<Text
 							style={{
 								color: isActive ? system.colors.primary : system.colors.muted,
-								fontSize: 10,
+								fontSize: comfortable ? 11 : 10,
 								fontWeight: isActive ? "800" : "600",
 							}}
 						>

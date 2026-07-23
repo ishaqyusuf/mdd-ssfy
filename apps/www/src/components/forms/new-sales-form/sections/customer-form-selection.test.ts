@@ -3,14 +3,16 @@ import { readFileSync } from "node:fs";
 import { resolveCustomerFormSelection } from "./customer-form-selection";
 
 describe("customer form selection reconciliation", () => {
-	it("refreshes the current customer without replacing a distinct shipping address", () => {
+	it("refreshes the current customer without replacing sale pricing or addresses", () => {
 		expect(
 			resolveCustomerFormSelection({
 				current: {
 					billingAddressId: 201,
 					customerId: 42,
 					customerProfileId: 1,
+					paymentTerm: "Net 15",
 					shippingAddressId: 909,
+					taxCode: "FL-6",
 				},
 				editedCustomerId: 42,
 				savedCustomer: {
@@ -24,10 +26,10 @@ describe("customer form selection reconciliation", () => {
 		).toEqual({
 			billingAddressId: 201,
 			customerId: 42,
-			customerProfileId: 3,
-			paymentTerm: "Net 30",
+			customerProfileId: 1,
+			paymentTerm: "Net 15",
 			shippingAddressId: 909,
-			taxCode: "FL-7",
+			taxCode: "FL-6",
 		});
 	});
 
@@ -38,7 +40,9 @@ describe("customer form selection reconciliation", () => {
 					billingAddressId: null,
 					customerId: null,
 					customerProfileId: null,
+					paymentTerm: null,
 					shippingAddressId: null,
+					taxCode: null,
 				},
 				editedCustomerId: null,
 				savedCustomer: {
@@ -66,7 +70,9 @@ describe("customer form selection reconciliation", () => {
 					billingAddressId: null,
 					customerId: 42,
 					customerProfileId: 1,
+					paymentTerm: "None",
 					shippingAddressId: null,
+					taxCode: null,
 				},
 				editedCustomerId: 42,
 				savedCustomer: {
@@ -94,7 +100,9 @@ describe("customer form selection reconciliation", () => {
 					billingAddressId: 201,
 					customerId: 42,
 					customerProfileId: 1,
+					paymentTerm: "Net 15",
 					shippingAddressId: 201,
+					taxCode: "FL-6",
 				},
 				editedCustomerId: 42,
 				savedCustomer: {
@@ -107,10 +115,10 @@ describe("customer form selection reconciliation", () => {
 		).toEqual({
 			billingAddressId: 201,
 			customerId: 42,
-			customerProfileId: 3,
-			paymentTerm: "Net 30",
+			customerProfileId: 1,
+			paymentTerm: "Net 15",
 			shippingAddressId: 201,
-			taxCode: "FL-7",
+			taxCode: "FL-6",
 		});
 	});
 
@@ -123,6 +131,10 @@ describe("customer form selection reconciliation", () => {
 			new URL("../new-sales-form.tsx", import.meta.url),
 			"utf8",
 		);
+		const permissionsSource = readFileSync(
+			new URL("../adapters/use-sales-form-permissions.ts", import.meta.url),
+			"utf8",
+		);
 
 		expect(panelSource.includes("onEditCustomer=")).toBe(true);
 		expect(panelSource.includes("customerForm: true")).toBe(true);
@@ -130,5 +142,7 @@ describe("customer form selection reconciliation", () => {
 		expect(formSource.includes("salesFormPermissions.canEditCustomer")).toBe(
 			true,
 		);
+		expect(formSource.includes("dealerProfileCard")).toBe(true);
+		expect(permissionsSource.includes("editSalesCustomers")).toBe(true);
 	});
 });

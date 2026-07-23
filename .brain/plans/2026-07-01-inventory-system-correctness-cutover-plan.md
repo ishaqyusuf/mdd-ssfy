@@ -29,10 +29,21 @@ In Progress
 - Intake Rule: this cutover is already backed by `brain/intake/2026-06-15-inventory-cutover-pending-scope.md` plus related Sales Overview Inventory workflow intake at `brain/intake/2026-06-22-sales-overview-inventory-workflows.md`; create a new intake only if scope expands beyond those inventory correctness and sales-overview inventory workflow records.
 - Pending Gate Intake Rule: `brain/intake/2026-07-01-inventory-correctness-pending-gates.md` is a user-requested consolidation of the remaining pending gates for this existing cutover. It does not create duplicate plan scope, resume repairs, or change the Phase 11 completion rule.
 - Latest Ledger Correction: 2026-07-01 plan, roadmap, in-progress, progress, done-task, and reconciliation evidence ledgers were realigned after eleven additional reviewed materializable active/order backfill batches. This correction records completed slices as evidence only, keeps the full cutover open, and makes the live Phase 8 gate explicit: repairs are stopped by user request; if resumed, continue reviewed materializable active/order backfill batches, decide non-active and mapping-blocked missing-sales scope, and review shipment/allocation blockers before any clean reconciliation or broad browser-proof claim.
-- Latest Documentation Alignment: 2026-07-01 confirmed the source/related intake links, pending phase order, and done-slice scope without running new repair or evidence commands. The authoritative Phase 8 checkpoint was then advanced by seven more reviewed backfill applies; latest successful Markdown evidence reports sync coverage `3.05%`, `20449` missing sales, `0` componentless/stale rows, `9` shipment/allocation drift, `1` skipped comparison, `hasMore=true`, and next cursor `208`.
+- Latest Read-Only Evidence Refresh: 2026-07-23 no longer reproduces the
+  cleaner July 1 post-repair checkpoint. Current local evidence reports sync
+  coverage `0.87%`, `21745` missing sales, `5` componentless lines, `50` stale
+  lines, `281` reconciliation drifts, `14` skipped comparisons,
+  `hasMore=true`, and next cursor `200`. The stale cleanup remained dry-run and
+  no repair payload, migration, sync, or database write was run.
 - Latest Phase 8 Evidence Slice: 2026-07-01 applied two more reviewed materializable active/order backfill batches after dry-run review: `2587` through `2688` created `70` sale lines with `26` item-level mapping warnings, and `2690` through `2791` created `82` sale lines with `58` item-level mapping warnings. Latest post-apply evidence remains not clean but improved: sync coverage `3.05%`, `20449` missing sales, `0` componentless lines, `0` stale lines, `9` shipment/allocation drift, `1` skipped comparison, `hasMore=true`, and next cursor `208`.
 - Repair Loop Status: stopped by user request after the `2690` through `2791` apply and final evidence rerun. Do not run more repair dry-runs or applies unless the user explicitly resumes repairs.
-- Current Next Gate: with repairs stopped, decide the non-active and mapping-blocked missing-sales buckets and review shipment/allocation drift plus the remaining skipped comparison. If repairs are explicitly resumed, the next reviewed materializable active/order missing-sales batch is `50` ids from `244` remaining materializable candidates, next ids `2792` through `2884`.
+- Current Next Gate: with repairs stopped, first explain why the current local
+  database regressed from the July 1 evidence and re-review the exact current
+  stale/componentless/missing-sale candidates. Then decide the non-active and
+  mapping-blocked missing-sales buckets and review current
+  shipment/allocation/operator truth. Do not reuse the historical next-batch
+  payload unless repairs are explicitly resumed and a fresh baseline review
+  confirms it.
 
 ## Implementation Notes
 - 2026-07-01: First enforcement-proof slice started. Added focused API-query coverage for `createInboundShipmentFromDemandsQuery` proving fulfilled parent orders are rejected from component-selected inbound creation and cancelled parent orders are rejected from demand-id inbound creation before demand preparation or shipment writes run.

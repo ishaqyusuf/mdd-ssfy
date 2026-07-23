@@ -142,7 +142,7 @@ export function HousePackageToolEditor({
 					<Pressable
 						onPress={onAddDoor}
 						disabled={disabled}
-						className="mt-3 h-10 flex-row items-center justify-center gap-2 rounded-xl border border-primary bg-background active:bg-muted disabled:opacity-40"
+						className="mt-3 min-h-11 flex-row items-center justify-center gap-2 rounded-xl border border-primary bg-background active:bg-muted disabled:opacity-40"
 					>
 						<Icon name="Plus" className="text-primary" size={14} />
 						<Text className="text-xs font-bold text-primary">
@@ -192,7 +192,7 @@ export function HousePackageToolEditor({
 									: undefined
 							}
 							disabled={disabled}
-							className="h-10 flex-row items-center gap-1 rounded-xl border border-border bg-background px-3 active:bg-muted disabled:opacity-40"
+							className="min-h-11 flex-row items-center gap-1 rounded-xl border border-border bg-background px-3 active:bg-muted disabled:opacity-40"
 						>
 							<Icon name="Settings" className="text-foreground" size={14} />
 							<Text className="text-[11px] font-bold text-foreground">
@@ -204,7 +204,7 @@ export function HousePackageToolEditor({
 						<Pressable
 							onPress={() => setSwapOpen((open) => !open)}
 							disabled={disabled}
-							className="h-10 flex-row items-center gap-1 rounded-xl border border-border bg-background px-3 active:bg-muted disabled:opacity-40"
+							className="min-h-11 flex-row items-center gap-1 rounded-xl border border-border bg-background px-3 active:bg-muted disabled:opacity-40"
 						>
 							<Icon name="Route" className="text-foreground" size={14} />
 							<Text className="text-[11px] font-bold text-foreground">

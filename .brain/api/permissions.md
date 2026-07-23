@@ -4,6 +4,18 @@
 Tracks authentication and authorization patterns across API surfaces.
 
 ## Current Notes
+- Shared `storage.upload` and `storage.delete` require an authenticated user.
+  Upload ownership/uploader ids come only from API context; delete repeats
+  provider, pathname, owner, uploader, active-state, and trusted browser-staging
+  source/key checks. Durable consumed/employee documents and unregistered
+  legacy path-only blobs are not physically deleted through this route. The
+  browser receives no write-capable Blob credential.
+- Employee document saves require a session. Cross-user saves retain the
+  `editEmployeeDocument` capability check, and updates also scope the feature
+  row to the authorized target user.
+- Dispatch proof/signature writes retain assigned-driver or dispatch-manager
+  guards. Document owner ids are resolved from the live dispatch, never client
+  supplied.
 - All authenticated office users may read Sales Customer partnership status.
   Only Super Admin receives enabled `canSend`/`canResend` state and only Super
   Admin may call `dealerProgram.sendCustomerInvitation`; Sales Team and other
@@ -29,6 +41,10 @@ Tracks authentication and authorization patterns across API surfaces.
   protected by the dealer session and recheck `dealerAuthId` ownership at the
   query boundary. A dealer cannot request, pay, print, or mark customer payment
   status for another dealer's document.
+- Dealer quote edits also fail closed after any active `make_order` request
+  reaches `pending`, `approved`, or `rejected`. The lock is repeated inside the
+  save transaction; disabling Edit or hiding the composer is not the
+  authorization boundary.
 - Dealer request review is available to the assigned rep, Sales Team users for
   unassigned requests, and existing sales/admin roles. Approval stamps the first
   approver and later attempts return the already-worked state instead of
@@ -52,9 +68,32 @@ Tracks authentication and authorization patterns across API surfaces.
 - Sales email ledger access requires an authenticated active user with sales read/write capability (`viewOrders`, `editOrders`, or `viewEstimates`) or Super Admin role behavior.
 - Non-Super Admin sales email ledger reads are scoped to attempts where the authenticated user is the sender or the attached sales rep.
 - Super Admin can view all sales email attempts and is the only actor allowed to resend `FAILED` or `SKIPPED` attempts from the ledger.
+- Sales document Email/WhatsApp/SMS choices reuse the existing authenticated
+  sales document send boundary; selecting a transport does not grant a new
+  capability. Short-link redirects remain opaque public reads, never mutation
+  authority.
 - Task-run diagnostics writes require an authenticated actor when using the protected tRPC mutations; the `apps/www` server-action bridge skips diagnostic writes if no actor session is available rather than blocking the original task flow.
 - `taskRunDiagnostics.list`, `taskRunDiagnostics.get`, and `taskRunDiagnostics.markReviewed` are Super Admin-only review surfaces.
 - Normal production users do not receive run ids, task names, copy/cancel controls, or internal error detail in the task monitor UI; they only receive the simplified loading indicator and terminal toasts.
+- Inventory import source archive, single/batch retained disposition, retained-item projection history/retry, category cleanup, task dispatch, reset/backfill, Dyke projection writes, and inventory/category/sub-component delete routes require Super Admin after authentication. Retained disposition and projection-retry actors are always taken from the protected API context; clients cannot choose audit users. Each ownership update and `Event` evidence are fail-closed in one transaction, while each post-commit projection attempt is separately actor-attributed in `TaskRunDiagnostic`. Retry atomically claims one failed diagnostic before dispatch so concurrent clicks cannot queue it twice. Read-only import run/source/category review remains available to authenticated users.
+- Remaining inventory category/item/component/product-kind/stock-mode/status/
+  variant/cost writes now use the same authenticated Super Admin operator guard.
+  A dedicated inventory-edit permission is required before delegating these
+  configuration writes to other roles.
+- Dispatch mutations are protected and capability-shaped. Assigned trip start,
+  completion, and signature require the live `driverId` match unless the actor
+  has manager authority; manager operations require `editPickup`, `editOrders`,
+  or `viewPacking`. Mobile proof completion is bound to the dispatch and the
+  authenticated actor; the generic proof-upload mutation has been removed.
+- Contractor job assignment/restore/approve/reject requires `editJobs`;
+  payment create/cancel/reverse requires `editJobPayment`. Contractors may
+  submit/update only their own work, and custom submissions require either
+  `submitCustomJob` or the global `allowCustomJobs` setting.
+- Community mutations are protected and divided into template/project,
+  builder, unit, cost, invoice, job, and production capability sets.
+  CommunityUnit cost restrictions remain enforced after authentication.
+- Shared job settings require authentication to read and Super Admin to
+  mutate. Mobile/admin UI visibility is not the authorization boundary.
 - Community operations now include a restricted `CommunityUnit` permission surface:
   - it gets read-style community access for projects, units, and templates
   - install-cost queries and mutations are explicitly blocked server-side for that role
@@ -80,6 +119,10 @@ Tracks authentication and authorization patterns across API surfaces.
   visibility and operations.
 - `viewStorefrontOrders` and `manageStorefrontOrders` control storefront-order
   and inquiry operations.
+- Shipping settings read/write reuse `viewStorefront` and `editStorefront`.
+  Shipping quote review reuses `editStorefrontOrders`; order listing and quote
+  evidence remain under `viewStorefrontOrders`. Customer preview and order
+  detail remain collection/order owner-scoped.
 - Super Admin retains implicit authority; all other employee access is checked
   against the normal form-permission model. Customer reads remain strictly
   owner-scoped and are never authorized through employee sessions.

@@ -35,7 +35,9 @@ function InventoryConfiguratorDialog({
 				</DialogHeader>
 				<div className="min-h-0 flex-1 overflow-y-auto p-5">
 					{open ? (
-						<SalesOverviewInventoryContent salesOrderId={salesOrderId} />
+						<>
+							<SalesOverviewInventoryContent salesOrderId={salesOrderId} />
+						</>
 					) : null}
 				</div>
 				<DialogFooter className="border-t px-5 py-3">

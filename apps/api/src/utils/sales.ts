@@ -211,6 +211,22 @@ export const SalesListInclude = {
 
 export const SalesOverviewInclude = {
 	...SalesListInclude,
+	taxes: {
+		where: {
+			deletedAt: null,
+		},
+		select: {
+			tax: true,
+			taxCode: true,
+			taxConfig: true,
+		},
+	},
+	salesProfile: {
+		select: {
+			id: true,
+			title: true,
+		},
+	},
 	items: {
 		where: {
 			deletedAt: null,
@@ -225,14 +241,37 @@ export const SalesOverviewInclude = {
 			qty: true,
 			swing: true,
 			total: true,
+			meta: true,
 			formSteps: {
+				where: {
+					deletedAt: null,
+				},
 				select: {
 					value: true,
+					meta: true,
 					step: {
 						select: {
 							title: true,
 						},
 					},
+					component: {
+						select: {
+							meta: true,
+						},
+					},
+				},
+			},
+			salesDoors: {
+				where: {
+					deletedAt: null,
+				},
+				select: {
+					dimension: true,
+					swing: true,
+					lhQty: true,
+					rhQty: true,
+					totalQty: true,
+					meta: true,
 				},
 			},
 		},

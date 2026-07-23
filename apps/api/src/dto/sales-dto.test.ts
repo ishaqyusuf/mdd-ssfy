@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { SalesOverviewInclude } from "@api/utils/sales";
 
-import { salesOrderDto, salesQuoteDto } from "./sales-dto";
+import { salesOrderDto, salesOverviewDto, salesQuoteDto } from "./sales-dto";
 
 function makeSale(overrides: Record<string, unknown> = {}) {
 	return {
@@ -32,6 +33,15 @@ function makeSale(overrides: Record<string, unknown> = {}) {
 }
 
 describe("sales dto cost lines", () => {
+	it("keeps deleted tax and form-step evidence out of overview readiness", () => {
+		expect(SalesOverviewInclude.taxes.where).toEqual({
+			deletedAt: null,
+		});
+		expect(SalesOverviewInclude.items.select.formSteps.where).toEqual({
+			deletedAt: null,
+		});
+	});
+
 	it("maps overview items for quote and order overviews", () => {
 		const items = [
 			{
@@ -63,23 +73,32 @@ describe("sales dto cost lines", () => {
 			},
 		];
 
-		expect(salesQuoteDto(makeSale({ items })).overviewItems).toEqual([
+		expect(salesOverviewDto(makeSale({ items }), "quote").overviewItems).toEqual([
 			{
+				configurationSteps: [{ label: "Door", value: "Garage Door" }],
+				doors: [],
 				id: 10,
+				swing: "LH",
 				title: "DOOR 3PNL SHAKER",
 				subtitle: "Garage Door | LH",
 				qty: 2,
 				total: 300,
 			},
 			{
+				configurationSteps: [],
+				doors: [],
 				id: 11,
+				swing: null,
 				title: "FLAT BOARD",
 				subtitle: "",
 				qty: 0,
 				total: 0,
 			},
 			{
+				configurationSteps: [{ label: "Services", value: null }],
+				doors: [],
 				id: 12,
+				swing: null,
 				title: "SERVICE LINE",
 				subtitle: "Services",
 				qty: 1,
@@ -87,8 +106,100 @@ describe("sales dto cost lines", () => {
 			},
 		]);
 		expect(
-			salesOrderDto(makeSale({ type: "order", items })).overviewItems,
+			salesOverviewDto(makeSale({ type: "order", items }), "order")
+				.overviewItems,
 		).toHaveLength(3);
+		expect(salesQuoteDto(makeSale({ items })).overviewItems[0]).toEqual({
+			id: 10,
+			title: "DOOR 3PNL SHAKER",
+			subtitle: "Garage Door | LH",
+			qty: 2,
+			total: 300,
+		});
+	});
+
+	it("exposes manager preflight profile, tax, and door configuration data", () => {
+		const dto = salesOverviewDto(
+			makeSale({
+				type: "order",
+				salesProfile: {
+					id: 7,
+					title: "Builder",
+				},
+				shippingAddress: {
+					address1: "123 Main St",
+					address2: null,
+				},
+				taxes: [
+					{
+						tax: 6,
+						taxCode: "FL-6",
+						taxConfig: { title: "Florida Sales Tax" },
+					},
+				],
+				items: [
+					{
+						id: 10,
+						description: "Interior pre-hung door",
+						qty: 2,
+						swing: "LH",
+						total: 490,
+						meta: {
+							workflowDoorRouteConfig: {
+								noHandle: true,
+							},
+						},
+						formSteps: [
+							{ value: "Satin nickel", step: { title: "Hinge" } },
+						],
+						salesDoors: [
+							{
+								dimension: "2-8 x 8-0",
+								swing: "LH",
+								lhQty: 2,
+								rhQty: 0,
+								totalQty: 2,
+								meta: {},
+							},
+						],
+					},
+				],
+			}),
+			"order",
+		);
+
+		expect(dto.customerProfile).toEqual({ id: 7, title: "Builder" });
+		expect(dto.taxSummary).toEqual({
+			configured: true,
+			codes: ["FL-6", "Florida Sales Tax"],
+		});
+		expect(dto.overviewItems[0]).toMatchObject({
+			configurationSteps: [{ label: "Hinge", value: "Satin nickel" }],
+			doors: [
+				{
+					dimension: "2-8 x 8-0",
+					swing: "LH",
+					noHandle: true,
+				},
+			],
+		});
+		expect(dto.shippingAddressConfigured).toBe(true);
+	});
+
+	it("does not treat a billing-only address as delivery readiness", () => {
+		const dto = salesOverviewDto(
+			makeSale({
+				type: "order",
+				billingAddress: {
+					address1: "123 Billing St",
+					address2: null,
+				},
+				shippingAddress: null,
+			}),
+			"order",
+		);
+
+		expect(dto.shippingAddressConfigured).toBe(false);
 	});
 
 	it("includes repaired credit card fee before invoice total", () => {

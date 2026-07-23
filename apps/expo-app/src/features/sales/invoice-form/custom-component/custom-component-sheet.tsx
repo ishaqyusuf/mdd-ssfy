@@ -424,14 +424,18 @@ function CustomOptionRow({
           <Pressable
             onPress={onRequestArchive}
             disabled={disabled || !canArchive}
-            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-background disabled:opacity-40"
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${item.title}`}
+            className="h-11 w-11 items-center justify-center rounded-full border border-border bg-background disabled:opacity-40"
           >
             <Icon name="Trash" className="text-red-600" size={16} />
           </Pressable>
           <Pressable
             onPress={onSelect}
             disabled={disabled}
-            className="h-9 w-9 items-center justify-center rounded-full border border-border bg-background disabled:opacity-40"
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${item.title}`}
+            className="h-11 w-11 items-center justify-center rounded-full border border-border bg-background disabled:opacity-40"
           >
             <Icon name="ChevronRight" className="text-muted-foreground" size={18} />
           </Pressable>
@@ -449,7 +453,7 @@ function CustomOptionRow({
             <Pressable
               onPress={onCancelArchive}
               disabled={disabled}
-              className="h-9 items-center justify-center rounded-lg border border-border bg-background px-4 disabled:opacity-40"
+              className="min-h-11 items-center justify-center rounded-lg border border-border bg-background px-4 disabled:opacity-40"
             >
               <Text className="text-[11px] font-bold text-foreground">
                 Cancel
@@ -458,7 +462,7 @@ function CustomOptionRow({
             <Pressable
               onPress={onConfirmArchive}
               disabled={disabled || !canArchive}
-              className="h-9 items-center justify-center rounded-lg bg-red-600 px-4 disabled:opacity-40"
+              className="min-h-11 items-center justify-center rounded-lg bg-red-600 px-4 disabled:opacity-40"
             >
               <Text className="text-[11px] font-bold text-white">
                 {disabled ? "Deleting..." : "Delete"}

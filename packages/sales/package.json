@@ -37,6 +37,7 @@
 		"./sales-inventory-repair-policy": "./src/sales-inventory-repair-policy.ts",
 		"./sales-inventory-policy": "./src/sales-inventory-policy.ts",
 		"./sales-inventory-overview": "./src/sales-inventory-overview.ts",
+		"./sales-overview-production-preflight": "./src/sales-overview-production-preflight.ts",
 		"./sales-inventory-legacy-status-setup": "./src/sales-inventory-legacy-status-setup.ts",
 		"./inventory-reconciliation-report": "./src/inventory-reconciliation-report.ts",
 		"./sales-inventory-sync-monitor": "./src/sales-inventory-sync-monitor.ts",

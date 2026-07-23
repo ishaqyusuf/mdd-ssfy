@@ -1,6 +1,7 @@
 import {
 	applyInboundExtractionQuery,
 	assignInboundDemandsQuery,
+	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
 	createInboundShipmentQuery,
 	extractInboundDocumentsQuery,
@@ -13,6 +14,16 @@ import {
 	updateInboundShipmentStatusQuery,
 	uploadInboundDocumentsQuery,
 } from "@api/db/queries/inbound-receiving";
+import { requireInventoryImportOperator } from "@api/db/queries/inventory-import-permissions";
+import {
+	getInventoryImportProjectionHistory,
+	recordInventoryImportProjectionAttempt,
+	retryInventoryImportProjection,
+} from "@api/db/queries/inventory-import-projections";
+import {
+	getInventoryImportRunHistory,
+	queueInventoryImportRun,
+} from "@api/db/queries/inventory-import-runs";
 import {
 	getInventoryCategoryByShelfId,
 	upsertInventoriesForDykeShelfProducts,
@@ -23,6 +34,10 @@ import {
 	getSalesInventoryInboundStatusBackfillPreview,
 	repairSalesInventoryInboundStatusBackfill,
 } from "@api/db/queries/sales-inventory-inbound-ownership";
+import {
+	getSalesInventoryOrderRepairPreview,
+	resolveSalesInventoryOrderRepair,
+} from "@api/db/queries/sales-inventory-order-repair";
 import {
 	approveBulkStockAllocationQuery,
 	approveStockAllocationQuery,
@@ -35,9 +50,13 @@ import {
 } from "@community/community-template-schemas";
 import {
 	adjustInventoryStock,
+	applyInventoryImportSourceDisposition,
+	applyInventoryImportSourceDispositionBatch,
 	archiveDykeCustomStepComponent,
+	archiveInventoryImportSourceCandidates,
 	backfillInventoryImportSources,
 	backfillInventoryProductKinds,
+	cleanupInventoryImportCategories,
 	deleteInventories,
 	deleteInventoryCategory,
 	deleteInventorySupplier,
@@ -55,6 +74,8 @@ import {
 	inventoryBrowserValidationFixtureReport,
 	inventoryCategories,
 	inventoryForm,
+	inventoryImportCategoryCleanupReview,
+	inventoryImportSourceReview,
 	inventoryList,
 	inventoryOperationsSummary,
 	inventoryProductKindReview,
@@ -111,8 +132,17 @@ import {
 	inventoryCategoriesSchema,
 	inventoryCategoryFormSchema,
 	inventoryFormSchema,
+	inventoryImportCategoryCleanupReviewSchema,
+	inventoryImportCategoryCleanupSchema,
+	inventoryImportProjectionHistorySchema,
+	inventoryImportProjectionRetrySchema,
+	inventoryImportRunHistorySchema,
 	inventoryImportRunSchema,
 	inventoryImportSchema,
+	inventoryImportSourceArchiveSchema,
+	inventoryImportSourceDispositionBatchSchema,
+	inventoryImportSourceDispositionSchema,
+	inventoryImportSourceReviewSchema,
 	inventoryListSchema,
 	inventoryProductKindReviewSchema,
 	inventorySupplierFormSchema,
@@ -330,6 +360,37 @@ export const salesInventoryOrderIdsSchema = z
 	.array(salesInventoryOrderIdSchema)
 	.min(1)
 	.max(100);
+const salesInventoryOrderRepairDemandBaselineSchema = z.object({
+	id: salesInventoryOrderIdSchema,
+	lineItemComponentId: salesInventoryOrderIdSchema,
+	status: z.string().min(1),
+	qty: z.number().nonnegative(),
+	qtyReceived: z.number().nonnegative(),
+	inboundShipmentItemId: salesInventoryOrderIdSchema.nullable(),
+});
+const salesInventoryOrderRepairAllocationBaselineSchema = z.object({
+	id: salesInventoryOrderIdSchema,
+	lineItemComponentId: salesInventoryOrderIdSchema,
+	status: z.string().min(1),
+	qty: z.number().nonnegative(),
+});
+const salesInventoryOrderRepairApplySchema = z.object({
+	salesOrderId: salesInventoryOrderIdSchema,
+	demandBaselines: z
+		.array(salesInventoryOrderRepairDemandBaselineSchema)
+		.max(200),
+	allocationBaselines: z
+		.array(salesInventoryOrderRepairAllocationBaselineSchema)
+		.max(200),
+	reviewDemandBaselines: z
+		.array(salesInventoryOrderRepairDemandBaselineSchema)
+		.max(200)
+		.default([]),
+	reviewAllocationBaselines: z
+		.array(salesInventoryOrderRepairAllocationBaselineSchema)
+		.max(200)
+		.default([]),
+});
 const salesInventoryLegacyStatusSetupActionSchema = z.enum([
 	"reset",
 	"override",
@@ -392,6 +453,43 @@ export const inventoriesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return listOrderInboundShipmentsQuery(props.ctx, props.input);
 		}),
+	orderInboundShipmentCount: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: salesInventoryOrderIdSchema,
+			}),
+		)
+		.query(async (props) => {
+			return countOrderInboundShipmentsQuery(props.ctx, props.input);
+		}),
+	salesInventoryOrderRepairPreview: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: salesInventoryOrderIdSchema,
+			}),
+		)
+		.query(async (props) =>
+			getSalesInventoryOrderRepairPreview(props.ctx.db, props.input),
+		),
+	resolveSalesInventoryOrderRepair: protectedProcedure
+		.input(salesInventoryOrderRepairApplySchema)
+		.mutation(async (props) =>
+			resolveSalesInventoryOrderRepair(props.ctx.db, {
+				...props.input,
+				demandBaselines: props.input.demandBaselines.map((baseline) => ({
+					...baseline,
+					inboundShipmentItemId: baseline.inboundShipmentItemId ?? null,
+				})),
+				reviewDemandBaselines: props.input.reviewDemandBaselines.map(
+					(baseline) => ({
+						...baseline,
+						inboundShipmentItemId: baseline.inboundShipmentItemId ?? null,
+					}),
+				),
+				authorName: String(props.ctx.userId ?? "Inventory"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			}),
+		),
 	inboundSuppliers: protectedProcedure.query(async (props) => {
 		return listInboundSuppliers(props.ctx);
 	}),
@@ -626,28 +724,32 @@ export const inventoriesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return resolveInboundItemIssue(props.ctx.db, props.input);
 		}),
-	saveCommunityInput: publicProcedure
+	saveCommunityInput: protectedProcedure
 		.input(saveCommunityInputSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return saveCommunityInput(props.ctx.db, props.input);
 		}),
-	deleteInventories: publicProcedure
+	deleteInventories: protectedProcedure
 		.input(
 			z.object({
 				ids: z.array(z.number()).min(1),
 			}),
 		)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return deleteInventories(props.ctx.db, props.input.ids);
 		}),
-	deleteInventoryCategory: publicProcedure
+	deleteInventoryCategory: protectedProcedure
 		.input(idSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return deleteInventoryCategory(props.ctx.db, props.input.id);
 		}),
-	deleteSubComponent: publicProcedure
+	deleteSubComponent: protectedProcedure
 		.input(idSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			await props.ctx.db.subComponents.update({
 				where: {
 					id: props.input.id,
@@ -693,18 +795,20 @@ export const inventoriesRouter = createTRPCRouter({
 			return inventoryBrowserValidationFixtureReport(props.ctx.db);
 		},
 	),
-	upsertShelfProducts: publicProcedure
+	upsertShelfProducts: protectedProcedure
 		.input(upsertInventoriesForDykeShelfProductsSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return upsertInventoriesForDykeShelfProducts(props.ctx, props.input);
 		}),
-	upsertComponents: publicProcedure
+	upsertComponents: protectedProcedure
 		.input(
 			upsertInventoriesForDykeShelfProductsSchema.extend(
 				inventoryImportRunSchema.shape,
 			),
 		)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			if (!props.input.categoryId) {
 				throw new Error("categoryId is required");
 			}
@@ -717,24 +821,18 @@ export const inventoriesRouter = createTRPCRouter({
 				}),
 			};
 		}),
-	runFullImport: publicProcedure
+	runFullImport: protectedProcedure
 		.input(inventoryImportRunSchema)
 		.mutation(async (props) => {
-			return tasks.trigger(
-				props.input.compare
-					? "run-inventory-full-import-test"
-					: "run-inventory-full-import-now",
-				{
-					categoryId: props.input.categoryId,
-					scope: props.input.scope,
-					strategy: props.input.strategy,
-					compare: props.input.compare,
-					reset: props.input.reset,
-					source: "manual",
-				},
-			);
+			await requireInventoryImportOperator(props.ctx);
+			return queueInventoryImportRun(props.ctx, props.input);
 		}),
-	inventoryUpdateFromDyke: publicProcedure
+	inventoryImportRunHistory: protectedProcedure
+		.input(inventoryImportRunHistorySchema)
+		.query(async (props) => {
+			return getInventoryImportRunHistory(props.ctx, props.input);
+		}),
+	inventoryUpdateFromDyke: protectedProcedure
 		.input(
 			z.object({
 				stepId: z.number(),
@@ -744,6 +842,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return inventoryUpdateFromDyke(props.ctx.db, props.input);
 		}),
 	saveDykeStepComponent: protectedProcedure
@@ -839,6 +938,7 @@ export const inventoriesRouter = createTRPCRouter({
 		return inventorySupplierDykeReview(props.ctx.db);
 	}),
 	syncInventorySuppliersFromDyke: protectedProcedure.mutation(async (props) => {
+		await requireInventoryImportOperator(props.ctx);
 		return syncInventorySuppliersFromDyke(props.ctx.db);
 	}),
 	saveInventorySupplier: protectedProcedure
@@ -1188,7 +1288,7 @@ export const inventoriesRouter = createTRPCRouter({
 				triggeredByUserId: props.ctx.userId ?? null,
 			});
 		}),
-	dykeUpdateFromInventory: publicProcedure
+	dykeUpdateFromInventory: protectedProcedure
 		.input(
 			z.object({
 				inventoryCategoryId: z.number().optional().nullable(),
@@ -1198,6 +1298,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return dykeUpdateFromInventory(props.ctx.db, props.input);
 		}),
 	inventoryToDykeSyncCompare: protectedProcedure
@@ -1211,6 +1312,7 @@ export const inventoriesRouter = createTRPCRouter({
 	queueInventoryToDykeSync: protectedProcedure
 		.input(inventoryToDykeSyncPayloadSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return queueInventoryToDykeSync({
 				inventoryCategoryId: props.input.inventoryCategoryId ?? null,
 				inventoryId: props.input.inventoryId ?? null,
@@ -1241,6 +1343,70 @@ export const inventoriesRouter = createTRPCRouter({
 		.input(inventoryImportSchema)
 		.query(async (props) => {
 			return inventoryImport(props.ctx.db, props.input);
+		}),
+	inventoryImportSourceReview: protectedProcedure
+		.input(inventoryImportSourceReviewSchema)
+		.query(async (props) => {
+			return inventoryImportSourceReview(props.ctx.db, props.input);
+		}),
+	archiveInventoryImportSourceCandidates: protectedProcedure
+		.input(inventoryImportSourceArchiveSchema)
+		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
+			return archiveInventoryImportSourceCandidates(props.ctx.db, props.input);
+		}),
+	applyInventoryImportSourceDisposition: protectedProcedure
+		.input(inventoryImportSourceDispositionSchema)
+		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
+			const result = await applyInventoryImportSourceDisposition(
+				props.ctx.db,
+				props.input,
+				props.ctx.userId,
+			);
+			return recordInventoryImportProjectionAttempt(props.ctx, result);
+		}),
+	applyInventoryImportSourceDispositionBatch: protectedProcedure
+		.input(inventoryImportSourceDispositionBatchSchema)
+		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
+			const batch = await applyInventoryImportSourceDispositionBatch(
+				props.ctx.db,
+				props.input,
+				props.ctx.userId,
+			);
+			const results = await Promise.all(
+				batch.results.map((result) =>
+					recordInventoryImportProjectionAttempt(props.ctx, result),
+				),
+			);
+			return {
+				...batch,
+				results,
+			};
+		}),
+	inventoryImportProjectionHistory: protectedProcedure
+		.input(inventoryImportProjectionHistorySchema)
+		.query(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
+			return getInventoryImportProjectionHistory(props.ctx, props.input);
+		}),
+	retryInventoryImportProjection: protectedProcedure
+		.input(inventoryImportProjectionRetrySchema)
+		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
+			return retryInventoryImportProjection(props.ctx, props.input);
+		}),
+	inventoryImportCategoryCleanupReview: protectedProcedure
+		.input(inventoryImportCategoryCleanupReviewSchema)
+		.query(async (props) => {
+			return inventoryImportCategoryCleanupReview(props.ctx.db, props.input);
+		}),
+	cleanupInventoryImportCategories: protectedProcedure
+		.input(inventoryImportCategoryCleanupSchema)
+		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
+			return cleanupInventoryImportCategories(props.ctx.db, props.input);
 		}),
 	inventoryProducts: publicProcedure
 		.input(inventoryListSchema)
@@ -1295,9 +1461,11 @@ export const inventoriesRouter = createTRPCRouter({
 			return inventoryProductKindReview(props.ctx.db, props.input);
 		}),
 	backfillInventoryProductKinds: protectedProcedure.mutation(async (props) => {
+		await requireInventoryImportOperator(props.ctx);
 		return backfillInventoryProductKinds(props.ctx.db);
 	}),
 	backfillInventoryImportSources: protectedProcedure.mutation(async (props) => {
+		await requireInventoryImportOperator(props.ctx);
 		return backfillInventoryImportSources(props.ctx.db);
 	}),
 	inventoryCategories: publicProcedure
@@ -1312,14 +1480,16 @@ export const inventoriesRouter = createTRPCRouter({
 			const result = await getInventoryCategoryForm(props.ctx.db, props.input);
 			return result;
 		}),
-	resetInventorySystem: publicProcedure
+	resetInventorySystem: protectedProcedure
 		// .input(resetInventoriesSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return resetInventorySystem(props.ctx.db);
 		}),
-	saveInventoryCategory: publicProcedure
+	saveInventoryCategory: protectedProcedure
 		.input(inventoryCategoryFormSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return saveInventoryCategoryForm(props.ctx.db, props.input);
 		}),
 	inventoryForm: publicProcedure
@@ -1332,9 +1502,10 @@ export const inventoriesRouter = createTRPCRouter({
 			const result = await inventoryForm(props.ctx.db, props.input.id);
 			return result;
 		}),
-	saveInventory: publicProcedure
+	saveInventory: protectedProcedure
 		.input(inventoryFormSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return saveInventory(props.ctx.db, props.input);
 		}),
 	inventoryVariantStockForm: publicProcedure
@@ -1350,14 +1521,16 @@ export const inventoriesRouter = createTRPCRouter({
 			);
 			return result;
 		}),
-	updateCategoryVariantAttribute: publicProcedure
+	updateCategoryVariantAttribute: protectedProcedure
 		.input(updateCategoryVariantAttributeSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateCategoryVariantAttribute(props.ctx.db, props.input);
 		}),
-	updateCategoryStockMode: publicProcedure
+	updateCategoryStockMode: protectedProcedure
 		.input(updateCategoryStockModeSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateCategoryStockMode(props.ctx.db, props.input);
 		}),
 	salesInventoryTrackingChangeRepairPreview: protectedProcedure
@@ -1373,27 +1546,31 @@ export const inventoriesRouter = createTRPCRouter({
 				limit: props.input.limit,
 			});
 		}),
-	updateInventoryProductKind: publicProcedure
+	updateInventoryProductKind: protectedProcedure
 		.input(updateInventoryProductKindSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateInventoryProductKind(props.ctx.db, props.input);
 		}),
-	updateCategoryProductKind: publicProcedure
+	updateCategoryProductKind: protectedProcedure
 		.input(updateCategoryProductKindSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateCategoryProductKind(props.ctx.db, props.input);
 		}),
-	updateSubCategory: publicProcedure
+	updateSubCategory: protectedProcedure
 		.input(updateSubCategorySchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateSubCategory(props.ctx.db, props.input);
 		}),
-	updateSubComponent: publicProcedure
+	updateSubComponent: protectedProcedure
 		.input(updateSubComponentSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateSubComponent(props.ctx.db, props.input);
 		}),
-	updateSubComponentStatus: publicProcedure
+	updateSubComponentStatus: protectedProcedure
 		.input(
 			z.object({
 				id: z.number(),
@@ -1401,6 +1578,7 @@ export const inventoriesRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			// return updateSubComponentStatus(props.ctx, props.input);
 			await props.ctx.db.subComponents.update({
 				where: {
@@ -1411,20 +1589,23 @@ export const inventoriesRouter = createTRPCRouter({
 				},
 			});
 		}),
-	updateVariantCost: publicProcedure
+	updateVariantCost: protectedProcedure
 		.input(updateVariantCostSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateVariantCost(props.ctx.db, props.input);
 		}),
-	updateVariantStatus: publicProcedure
+	updateVariantStatus: protectedProcedure
 		.input(updateVariantStatusSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return updateVariantStatus(props.ctx.db, props.input);
 		}),
 
-	saveVariantForm: publicProcedure
+	saveVariantForm: protectedProcedure
 		.input(variantFormSchema)
 		.mutation(async (props) => {
+			await requireInventoryImportOperator(props.ctx);
 			return saveVariantForm(props.ctx.db, props.input);
 		}),
 	shipping: {

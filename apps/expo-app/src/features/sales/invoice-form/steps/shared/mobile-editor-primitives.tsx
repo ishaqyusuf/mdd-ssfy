@@ -34,7 +34,7 @@ export function StepSectionHeader({
 				<Pressable
 					onPress={onAction}
 					disabled={disabled}
-					className="h-8 flex-row items-center gap-1 rounded-full border border-primary bg-primary/5 px-3 disabled:opacity-40"
+					className="min-h-11 flex-row items-center gap-1 rounded-full border border-primary bg-primary/5 px-3 disabled:opacity-40"
 				>
 					<Icon name={actionIcon} className="text-primary" size={13} />
 					<Text className="text-[11px] font-bold text-primary">
@@ -235,7 +235,7 @@ export function IconButton({
 		<Pressable
 			onPress={onPress}
 			disabled={disabled}
-			className="h-10 w-10 items-center justify-center rounded-xl border border-border bg-background active:bg-muted disabled:opacity-40"
+			className="h-11 w-11 items-center justify-center rounded-xl border border-border bg-background active:bg-muted disabled:opacity-40"
 		>
 			<Icon
 				name={icon}
@@ -249,7 +249,7 @@ export function IconButton({
 const styles = StyleSheet.create({
 	input: {
 		minWidth: 0,
-		minHeight: 40,
+		minHeight: 44,
 		borderWidth: 1,
 		borderColor: "#E5E7EB",
 		borderRadius: 12,
