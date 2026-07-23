@@ -46,6 +46,31 @@ function parseQty(text: string, maxQty?: number | null) {
   return Math.min(parsed, Number(maxQty) || 0);
 }
 
+function formatCompactMoney(value: number) {
+  if (!Number.isFinite(value)) return "$0";
+
+  return `$${value.toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatLotBlock(
+  lotBlock?: string | null,
+  unit?: { lot?: string | number | null; block?: string | number | null },
+) {
+  const savedLotBlock = String(lotBlock || "").trim();
+  if (savedLotBlock) return savedLotBlock;
+
+  const lot = String(unit?.lot ?? "").trim();
+  const block = String(unit?.block ?? "").trim();
+  const parts = [
+    lot ? `Lot ${lot}` : null,
+    block ? `Block ${block}` : null,
+  ].filter(Boolean);
+
+  return parts.join(" / ") || "Not available";
+}
+
 export function JobDetailsStep() {
   const {
     form,
@@ -61,6 +86,7 @@ export function JobDetailsStep() {
     notifyContractorJobReady,
     isNotifyingContractor,
     projectList,
+    taskOptions,
     unitOptions,
     tabs,
     setStep,
@@ -104,6 +130,23 @@ export function JobDetailsStep() {
   );
   const selectedUnit = (unitOptions || []).find(
     (unit: any) => unit?.id === params.unitId,
+  );
+  const selectedTask = (taskOptions || []).find(
+    (task: any) => task?.id === params.builderTaskId,
+  );
+  const projectTitle = isProjectlessCustomJob
+    ? customProjectTitle?.trim() || "Custom Project"
+    : defaultValues?.unit?.projectTitle ||
+      selectedProject?.title ||
+      "Unknown Project";
+  const builderName = defaultValues?.unit?.builderName;
+  const selectedTaskName =
+    defaultValues?.unit?.taskName ||
+    selectedTask?.taskName ||
+    (isCustom ? "Custom Task" : "Not available");
+  const lotBlock = formatLotBlock(
+    defaultValues?.unit?.lotBlock,
+    selectedUnit,
   );
   const modelMissing = !isProjectlessCustomJob && !params.modelId;
 
@@ -237,16 +280,58 @@ export function JobDetailsStep() {
       >
         <NeoCard className="bg-card">
           <Text className="text-xs uppercase tracking-[1px] text-muted-foreground">
-            Summary
+            Selected Job
           </Text>
-          <Text className="text-sm font-bold text-foreground">
-            {isProjectlessCustomJob
-              ? customProjectTitle?.trim() || "Custom Project"
-              : defaultValues?.unit?.projectTitle || "Project"}
+          <Text className="mt-1 text-lg font-black text-foreground">
+            {projectTitle}
           </Text>
-          <Text className="text-xs text-muted-foreground">
-            {defaultValues?.unit?.modelName || "Unit"}
-          </Text>
+          {builderName ? (
+            <Text className="mt-1 text-xs text-muted-foreground">
+              {builderName}
+            </Text>
+          ) : null}
+
+          {isProjectlessCustomJob ? (
+            <View className="mt-4 rounded-2xl bg-background p-3">
+              <Text className="text-[11px] uppercase tracking-[1px] text-muted-foreground">
+                Task
+              </Text>
+              <Text className="mt-1 text-sm font-bold text-foreground">
+                {selectedTaskName}
+              </Text>
+            </View>
+          ) : (
+            <View className="mt-4 gap-3">
+              <View className="flex-row gap-3">
+                <View className="flex-1 rounded-2xl bg-background p-3">
+                  <Text className="text-[11px] uppercase tracking-[1px] text-muted-foreground">
+                    Lot / Block
+                  </Text>
+                  <Text className="mt-1 text-sm font-bold text-foreground">
+                    {lotBlock}
+                  </Text>
+                </View>
+                <View className="flex-1 rounded-2xl bg-background p-3">
+                  <Text className="text-[11px] uppercase tracking-[1px] text-muted-foreground">
+                    Model
+                  </Text>
+                  <Text className="mt-1 text-sm font-bold text-foreground">
+                    {defaultValues?.unit?.modelName ||
+                      selectedUnit?.modelName ||
+                      "Not available"}
+                  </Text>
+                </View>
+              </View>
+              <View className="rounded-2xl bg-background p-3">
+                <Text className="text-[11px] uppercase tracking-[1px] text-muted-foreground">
+                  Selected Task
+                </Text>
+                <Text className="mt-1 text-sm font-bold text-foreground">
+                  {selectedTaskName}
+                </Text>
+              </View>
+            </View>
+          )}
         </NeoCard>
 
         {isCustom ? (
@@ -406,19 +491,19 @@ export function JobDetailsStep() {
                   <Text className="flex-1 text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                     Item
                   </Text>
-                  <ShowTaskQty>
+                  {/* <ShowTaskQty>
                     <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                       Rate
                     </Text>
-                  </ShowTaskQty>
+                  </ShowTaskQty> */}
                   <Text className="w-24 text-center text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                     Qty
                   </Text>
-                  <ShowTaskQty>
+                  {/* <ShowTaskQty>
                     <Text className="w-16 text-right text-[11px] font-bold uppercase tracking-[1px] text-muted-foreground">
                       Total
                     </Text>
-                  </ShowTaskQty>
+                  </ShowTaskQty> */}
                 </View>
 
                 {taskRows.map((task, uid) => {
@@ -434,15 +519,20 @@ export function JobDetailsStep() {
                         </Text>
                         <ShowTaskQty>
                           <Text className="text-[11px] text-muted-foreground">
-                            Max: {task?.maxQty || 0}
+                            Max: {task?.maxQty || 0}. Rate:{" "}
+                            {formatCompactMoney(Number(task?.rate || 0))}. Total:{" "}
+                            {formatCompactMoney(
+                              Number(task?.rate || 0) *
+                                Number(task?.qty || 0),
+                            )}
                           </Text>
                         </ShowTaskQty>
                       </View>
-                      <ShowTaskQty>
+                      {/* <ShowTaskQty>
                         <Text className="w-16 text-right text-xs text-muted-foreground">
                           ${Number(task?.rate || 0).toFixed(2)}
                         </Text>
-                      </ShowTaskQty>
+                      </ShowTaskQty> */}
                       <Controller
                         control={form.control}
                         name={qtyFieldName as any}
@@ -495,7 +585,7 @@ export function JobDetailsStep() {
                           </View>
                         )}
                       />
-                      <ShowTaskQty>
+                      {/* <ShowTaskQty>
                         <Text className="w-16 text-right text-xs font-semibold text-foreground">
                           ${
                             (
@@ -504,7 +594,7 @@ export function JobDetailsStep() {
                             ).toFixed(2)
                           }
                         </Text>
-                      </ShowTaskQty>
+                      </ShowTaskQty> */}
                     </View>
                   );
                 })}
