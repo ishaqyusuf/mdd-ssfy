@@ -29,6 +29,17 @@ describe("Contractor Jobs Sales Orders table migration parity", () => {
 		expect(source.includes("fetchInfiniteQuery")).toBe(false);
 	});
 
+	it("keeps shared page tabs without the legacy jobs tab dependencies", () => {
+		const source = readSource("components/contractor-jobs-header.tsx");
+
+		expect(source.includes("SearchFilterAdapter")).toBe(true);
+		expect(source.includes("<SearchFilter")).toBe(true);
+		expect(source.includes("useJobsKpi")).toBe(false);
+		expect(source.includes("useQueryStates")).toBe(false);
+		expect(source.includes("ButtonGroup")).toBe(false);
+		expect(source.includes("showingCustom")).toBe(false);
+	});
+
 	it("keeps the table-owned scroll, column-drag, selection, and bottom-bar behavior from Sales Orders", () => {
 		const source = readSource(
 			"components/tables-2/contractor-jobs/data-table.tsx",
@@ -79,7 +90,9 @@ describe("Contractor Jobs Sales Orders table migration parity", () => {
 		const routeSource = readSource(
 			"app/(sidebar)/(jobs-dashboard)/jobs-dashboard/jobs-list/page.tsx",
 		);
-		const listSource = readSource("components/jobs-dashboard/worker-jobs-list.tsx");
+		const listSource = readSource(
+			"components/jobs-dashboard/worker-jobs-list.tsx",
+		);
 		const columnSource = readSource(
 			"components/tables-2/contractor-jobs/columns.tsx",
 		);
@@ -89,16 +102,18 @@ describe("Contractor Jobs Sales Orders table migration parity", () => {
 
 		expect(routeSource.includes("ScrollableContent")).toBe(true);
 		expect(routeSource.includes("batchPrefetch([")).toBe(true);
-		expect(routeSource.includes('getInitialTableSettings("contractor-jobs")')).toBe(
-			true,
-		);
+		expect(
+			routeSource.includes('getInitialTableSettings("contractor-jobs")'),
+		).toBe(true);
 		expect(routeSource.includes("fetchInfiniteQuery")).toBe(false);
 		expect(routeSource.includes("getQueryClient")).toBe(false);
 		expect(routeSource.includes("ContractorJobsSkeleton")).toBe(true);
-		expect(listSource.includes("components/tables-2/contractor-jobs/data-table")).toBe(
-			true,
+		expect(
+			listSource.includes("components/tables-2/contractor-jobs/data-table"),
+		).toBe(true);
+		expect(listSource.includes("components/tables/contractor-jobs")).toBe(
+			false,
 		);
-		expect(listSource.includes("components/tables/contractor-jobs")).toBe(false);
 		expect(listSource.includes("workerDashboardColumns")).toBe(true);
 		expect(columnSource.includes("export const workerDashboardColumns")).toBe(
 			true,
