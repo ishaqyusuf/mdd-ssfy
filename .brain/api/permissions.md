@@ -165,6 +165,9 @@ Tracks authentication and authorization patterns across API surfaces.
 
 ## Employee, profile, and notification mutation boundaries (2026-07-22)
 
+- The public `hrm.getQuickLoginEmployees` query is safe by construction: it
+  always returns an empty array and does not expose employee identities. Mobile
+  development quick login uses this route instead of the general employee list.
 - HRM employee mutations and employee-form reads now require an authenticated
   procedure. The query layer additionally requires Super Admin for password
   reset, delete, access revocation/restoration, employee saves, and employee

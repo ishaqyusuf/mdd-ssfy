@@ -38,6 +38,10 @@ Tracks notable API surfaces and where they are implemented.
   - `masterPasswordLoginAudits.clear`: Super Admin-only archive mutation for explicit row ids or the current active search/platform filter; stamps `clearedAt` and the acting Super Admin id.
 
 - Employee/user/notification route boundaries (2026-07-22):
+  - `hrm.getQuickLoginEmployees` is the mobile development quick-login list
+    query. It intentionally returns an empty array and never reads employee
+    records; the general `hrm.getEmployees` query remains unchanged for its
+    existing HRM and job consumers.
   - `hrm.resetEmployeePassword`, `deleteEmployee`, `revokeEmployee`,
     `restoreEmployeeAccess`, `setEmployeeBugReportingAccess`, `saveEmployee`,
     and `getEmployeeForm` are protected procedures; sensitive employee writes

@@ -22,6 +22,18 @@ function assertNotContains(source: string, search: string) {
 }
 
 describe("New Job install task table migration parity", () => {
+	it("keeps the new job modal full screen through the small breakpoint", () => {
+		const source = readSource("components/modals/new-job/index.tsx");
+
+		assertContains(source, "h-[100dvh]");
+		assertContains(source, "w-screen");
+		assertContains(source, "max-w-none");
+		assertContains(source, "md:h-auto");
+		assertContains(source, "md:max-w-xl");
+		assertContains(source, "max-h-none min-h-0");
+		assertContains(source, "md:max-h-[60vh]");
+	});
+
 	it("keeps the install task list off the embedded raw table", () => {
 		const source = readSource(
 			"components/modals/new-job/install-tasks-list.tsx",

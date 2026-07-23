@@ -7114,3 +7114,8 @@
   Focused validation passed 46 tests / 329 assertions, API/sales/utils/jobs/
   storefront typechecks, scoped Biome, diff checks, and two independent final
   reviews. No migration, inventory repair, sync, or data mutation ran.
+- 2026-07-23: disabled the mobile development quick-login employee list at the
+  API boundary. Added `hrm.getQuickLoginEmployees`, which always returns `[]`,
+  and moved the Expo quick-login picker off the shared `hrm.getEmployees`
+  query so HRM and job consumers keep their existing behavior. Focused API and
+  preview-security coverage passes 3 tests / 12 assertions.

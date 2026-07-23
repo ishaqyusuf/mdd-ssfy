@@ -14,6 +14,9 @@ Tracks Expo/EAS build-variant behavior for the GND mobile app.
 - Preview installed builds also check for OTA updates when the app returns to the foreground. Foreground checks are enabled by default, are cooldown-gated for 5 minutes, and can be overridden with `EXPO_PUBLIC_AUTO_UPDATE_ON_FOREGROUND` and `EXPO_PUBLIC_AUTO_UPDATE_FOREGROUND_COOLDOWN_MS`.
 - Mobile quick login, login credential prefills, and `Debug` wrappers are
   `__DEV__`-only. Preview and production builds render none of those controls.
+- The development-only mobile quick-login picker calls
+  `hrm.getQuickLoginEmployees`, whose API response is intentionally always
+  `[]`; it does not fetch from the shared employee list.
 - Preview build and OTA update commands remove `EXPO_PUBLIC_EMAIL` and
   `EXPO_PUBLIC_TOK` after loading the production environment and set
   `EXPO_NO_DOTENV=1` so Expo cannot reload those development credentials from
