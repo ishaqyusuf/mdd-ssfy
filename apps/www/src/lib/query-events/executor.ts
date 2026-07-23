@@ -12,15 +12,22 @@ type TRPCProcedureLike = {
 function getProcedure(trpc: object, route: string): TRPCProcedureLike {
 	let current: unknown = trpc;
 	for (const segment of route.split(".")) {
+		const currentType = typeof current;
 		if (
-			typeof current !== "object" ||
 			current === null ||
-			!(segment in current)
+			(currentType !== "object" && currentType !== "function")
 		) {
 			throw new Error(`Unknown tRPC query route: ${route}`);
 		}
 
 		current = (current as Record<string, unknown>)[segment];
+	}
+
+	if (
+		current === null ||
+		(typeof current !== "object" && typeof current !== "function")
+	) {
+		throw new Error(`Unknown tRPC query route: ${route}`);
 	}
 
 	return current as TRPCProcedureLike;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { QueryClient } from "@gnd/ui/tanstack";
+import type { AppRouter } from "@gnd/api/trpc/routers/_app";
+import { QueryClient, createTRPCOptionsProxy } from "@gnd/ui/tanstack";
 import {
 	createTypedQueryInvalidation,
 	executeQueryEvent,
@@ -81,6 +82,24 @@ function createQueryClientSpy() {
 }
 
 describe("query event executor", () => {
+	it("resolves query paths from the real tRPC options proxy", async () => {
+		const { invalidated, queryClient } = createQueryClientSpy();
+		const trpc = createTRPCOptionsProxy<AppRouter>({
+			client: {} as never,
+			queryClient: new QueryClient(),
+		});
+
+		const results = await executeQueryEvent({
+			event: { name: "customer.changed" },
+			queryClient,
+			trpc,
+		});
+
+		expect(results.every((result) => result.status === "fulfilled")).toBe(true);
+		expect(invalidated).toContainEqual([["customers", "getSalesCustomer"]]);
+		expect(invalidated).toContainEqual([["sales", "getSaleOverview"]]);
+	});
+
 	it("deduplicates identical query targets before invalidating", async () => {
 		const { invalidated, queryClient } = createQueryClientSpy();
 		const trpc = createTRPCProxy();

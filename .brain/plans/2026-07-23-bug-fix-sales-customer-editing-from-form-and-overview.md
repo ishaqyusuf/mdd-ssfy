@@ -209,6 +209,11 @@ flowchart TD
   `editSalesCustomers` and retain their dealer-ownership rejection.
 - `customer.changed` now refreshes customer directory/overview/form queries and
   sales projections after customer or customer-address saves.
+- Follow-up on 2026-07-23 fixed the live invalidation path: the executor no
+  longer checks dynamic tRPC Proxy routes with the unsupported `in` operator,
+  and mutation completion now waits for local invalidation listeners before the
+  customer sheet closes. A real tRPC options Proxy regression test verifies the
+  customer event reaches `sales.getSaleOverview`.
 - Existing server ownership guards for dealer-owned customers and addresses are
   protected by focused regression tests.
 - Validation passed 49 focused tests / 95 assertions, focused Biome, API and

@@ -20,7 +20,7 @@ The WWW app has one client-side query-event runtime under `apps/www/src/lib/quer
 - `runtime.tsx` installs one listener below the app's QueryClient and tRPC providers.
 - `apps/www/src/trpc/context.ts` owns the shared tRPC React context so the runtime does not create a circular dependency with the provider module.
 
-`apps/www/src/trpc/query-client.ts` is the central success boundary. Its global `MutationCache.onSuccess` invokes `triggerMutationQueryEvents()` after successful browser mutations. Toast behavior is independent and cannot prevent invalidation.
+`apps/www/src/trpc/query-client.ts` is the central success boundary. Its global `MutationCache.onSuccess` invokes and awaits `triggerMutationQueryEvents()` after successful browser mutations, so active local refetches finish before mutation completion reaches component success handlers. Toast behavior is independent and cannot prevent invalidation.
 
 ## Event Catalog
 
@@ -95,6 +95,9 @@ await invalidate.path("sales.productionOverview");
 - Query-event failures are logged and do not turn a committed mutation into a client-visible mutation failure.
 - Every emission receives a unique id. The transport suppresses duplicate delivery of the same envelope but does not collapse separate same-name events.
 - Query keys are deduplicated inside one event execution.
+- tRPC route traversal must use property access. The live tRPC options client is a
+  JavaScript Proxy and does not support route-existence checks with the `in`
+  operator.
 - Exact entity scope is preferred for detail queries; aggregate query families remain broad by design.
 - If any producer cannot supply scope, detail invalidation falls back to the route path so correctness is preserved.
 - Event names describe committed domain facts, not UI components.
@@ -123,6 +126,17 @@ The current transport refreshes the initiating tab and other open GND tabs in th
 - Customer information is projected into many sales. Until customer mutations
   carry every affected sale reference, the event intentionally path-invalidates
   Sales Overview details so all visible customer projections refresh.
+
+### Live Proxy Regression Fix
+
+On 2026-07-23, the executor was corrected after customer edits exposed that its
+route guard used the `in` operator. Plain-object test doubles accepted that
+lookup, but the real tRPC options Proxy reports dynamic routes as absent, so
+event execution stopped before invalidating any query. The executor now traverses
+the typed route through property access, and focused coverage executes
+`customer.changed` against a real `createTRPCOptionsProxy` instance. Mutation
+completion also awaits local event listeners so the customer editor cannot close
+ahead of the active Sales Overview refetch.
 
 ## Extension Checklist
 

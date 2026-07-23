@@ -3,7 +3,7 @@ import { type QueryEventName, resolveMutationQueryEvents } from "./registry";
 import { publishQueryEvents } from "./transport";
 import type { QueryEventScope } from "./types";
 
-export function triggerMutationQueryEvents({
+export async function triggerMutationQueryEvents({
 	data,
 	metaEvents,
 	metaScope,
@@ -25,12 +25,14 @@ export function triggerMutationQueryEvents({
 	});
 	if (!queryEvents.length) return queryEvents;
 
-	void publishQueryEvents(queryEvents).catch((error) => {
+	try {
+		await publishQueryEvents(queryEvents);
+	} catch (error) {
 		consoleLog("Mutation query events failed", {
 			error,
 			queryEvents,
 		});
-	});
+	}
 
 	return queryEvents;
 }

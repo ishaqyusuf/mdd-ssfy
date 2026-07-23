@@ -7058,6 +7058,16 @@
   version `20260723.1` with 37 detected tasks. The repository deploy wrapper's
   configured `gnd` Trigger profile could not access the project, so the
   successful deployment used the authenticated `default` profile explicitly.
+- 2026-07-23: fixed the customer-edit Sales Overview freshness regression. The
+  query-event executor had used `in` to validate tRPC routes; the live tRPC
+  options Proxy reports dynamic properties as absent, so `customer.changed`
+  stopped before invalidating any cache despite plain-object tests passing.
+  Route traversal now uses Proxy-compatible property access, mutation success
+  awaits local invalidation listeners, and a real-proxy regression verifies
+  customer and `sales.getSaleOverview` invalidation. Focused coverage passes 31
+  tests / 65 assertions, focused Biome and `@gnd/www` typecheck pass, and the
+  unauthenticated browser smoke check reaches the expected login redirect
+  without application errors.
 - 2026-07-23: completed the shared document caller migration. Expo employee
   gallery and dispatch proof, packing signatures, authenticated browser
   attachments, and generated Sales PDFs now retain canonical

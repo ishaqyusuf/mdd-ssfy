@@ -35,7 +35,7 @@ export function makeQueryClient() {
 					variant: "progress",
 				});
 			},
-			onSuccess: (data, variables, _context, mutation) => {
+			onSuccess: async (data, variables, _context, mutation) => {
 				const title = mutation?.meta?.toastTitle?.success;
 				if (title) {
 					toast({
@@ -46,7 +46,7 @@ export function makeQueryClient() {
 
 				if (isServer) return;
 
-				triggerMutationQueryEvents({
+				await triggerMutationQueryEvents({
 					data,
 					metaEvents: mutation.meta?.queryEvents,
 					metaScope: mutation.meta?.queryEventScope,

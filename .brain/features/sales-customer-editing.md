@@ -46,7 +46,10 @@ directory.
 Successful `customers.createCustomer` and
 `customers.createCustomerAddress` mutations emit `customer.changed`. The event
 invalidates customer directory/overview/search reads, new-sales-form customer
-resolution, Sales Customers, and Sales Overview projections.
+resolution, Sales Customers, and Sales Overview projections. The event executor
+supports the live tRPC options Proxy, and customer mutation completion waits for
+the active local Sales Overview refetch before the editor's success handler
+closes the sheet.
 
 ## Validation
 
@@ -64,6 +67,13 @@ resolution, Sales Customers, and Sales Overview projections.
   substantive spec findings were closed by enforcing `editSalesCustomers` at
   UI/API boundaries and preserving sale pricing profile, terms, and tax during
   direct reconciliation and later customer-query refreshes.
+- A post-implementation regression report found that the overview remained
+  stale after saving. The query-event executor's plain-object route guard was
+  incompatible with the live tRPC options Proxy and stopped before every
+  invalidation. Real-proxy regression coverage now verifies that
+  `customer.changed` invalidates customer projections and
+  `sales.getSaleOverview`; the focused query-event suite passes 31 tests / 65
+  assertions.
 
 ## Related Plan
 
