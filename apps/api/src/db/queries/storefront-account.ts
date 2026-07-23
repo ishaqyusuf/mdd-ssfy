@@ -491,7 +491,20 @@ export async function getStorefrontOrder(
 			ownerUserId: ctx.userId,
 		},
 		orderBy: { createdAt: "desc" },
-		select: { status: true, totals: true },
+		select: {
+			status: true,
+			totals: true,
+			shippingQuote: {
+				select: {
+					status: true,
+					calculatedAmount: true,
+					finalAmount: true,
+					oneWayDistanceMiles: true,
+					estimatedWeightLb: true,
+					reviewNote: true,
+				},
+			},
+		},
 	});
 	const checkoutTotals = safeRecord(checkout?.totals);
 	const summary = mapOrderListItem(order as any);
@@ -534,6 +547,25 @@ export async function getStorefrontOrder(
 						typeof checkoutTotals.paymentUrl === "string"
 							? checkoutTotals.paymentUrl
 							: null,
+					shippingQuote: checkout.shippingQuote
+						? {
+								...checkout.shippingQuote,
+								calculatedAmount: Number(
+									checkout.shippingQuote.calculatedAmount,
+								),
+								finalAmount:
+									checkout.shippingQuote.finalAmount == null
+										? null
+										: Number(checkout.shippingQuote.finalAmount),
+								oneWayDistanceMiles:
+									checkout.shippingQuote.oneWayDistanceMiles == null
+										? null
+										: Number(checkout.shippingQuote.oneWayDistanceMiles),
+								estimatedWeightLb: Number(
+									checkout.shippingQuote.estimatedWeightLb,
+								),
+							}
+						: null,
 				}
 			: null,
 		subTotal: Number(order.subTotal || 0),

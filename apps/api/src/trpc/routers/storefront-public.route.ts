@@ -1,4 +1,8 @@
 import { createHash } from "node:crypto";
+import {
+	resolveStorefrontPlace,
+	searchStorefrontAddresses,
+} from "@api/db/queries/google-place";
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import {
 	createStorefrontInvoiceAccess,
@@ -15,17 +19,18 @@ import {
 	getStorefrontCheckoutState,
 } from "@api/db/queries/storefront-checkout";
 import {
-	finalizeStorefrontCustomInquiry,
-	getStorefrontInquiryBlobToken,
-	startStorefrontCustomInquiry,
-} from "@api/db/queries/storefront-inquiries";
-import {
 	assertStorefrontLineOwnership,
 	getOrCreateStorefrontCollection,
 	getStorefrontCollection,
 	storefrontConfigurationInputSchema,
 	validateAndPriceStorefrontConfiguration,
 } from "@api/db/queries/storefront-commerce";
+import {
+	finalizeStorefrontCustomInquiry,
+	getStorefrontInquiryBlobToken,
+	startStorefrontCustomInquiry,
+} from "@api/db/queries/storefront-inquiries";
+import { previewStorefrontShipping } from "@api/db/queries/storefront-shipping";
 import {
 	storefrontAddressIdSchema,
 	storefrontAddressInputSchema,
@@ -37,6 +42,11 @@ import {
 	createStorefrontCheckoutSchema,
 	storefrontCheckoutIdSchema,
 } from "@api/schemas/storefront-checkout";
+import {
+	storefrontAddressAutocompleteSchema,
+	storefrontPlaceDetailsSchema,
+	storefrontShippingPreviewSchema,
+} from "@api/schemas/storefront-shipping";
 import type { TRPCContext } from "@api/trpc/init";
 import { requireStorefrontRateLimit } from "@api/utils/storefront-rate-limit";
 import type { Prisma } from "@gnd/db";
@@ -50,8 +60,8 @@ import {
 	storefrontCustomInquiryDraftSchema,
 	storefrontFinalizeCustomInquirySchema,
 } from "@gnd/sales/storefront-inquiry";
-import { TRPCError } from "@trpc/server";
 import { tasks } from "@trigger.dev/sdk/v3";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, customerProcedure, publicProcedure } from "../init";
 
@@ -592,6 +602,13 @@ export const storefrontPublicRouter = createTRPCRouter({
 				const collection = await getOrCreateStorefrontCollection(ctx, "CART");
 				const line = await ctx.db.$transaction(async (tx) => {
 					const quantity = priced.normalizedQuantity;
+					const configurationMeta: Record<string, unknown> =
+						priced.configuration.meta &&
+						typeof priced.configuration.meta === "object" &&
+						!Array.isArray(priced.configuration.meta)
+							? (priced.configuration.meta as Record<string, unknown>)
+							: {};
+					const isMoulding = Boolean(configurationMeta.storefrontMoulding);
 					const duplicate = await tx.storefrontCommerceLine.findFirst({
 						where: {
 							collectionId: collection.id,
@@ -600,7 +617,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 						},
 					});
 					let savedLine: { id: string };
-					if (duplicate && !priced.workflow.doorSchedule) {
+					if (duplicate && !priced.workflow.doorSchedule && !isMoulding) {
 						const mergedQuantity = Number(duplicate.quantity) + quantity;
 						savedLine = await tx.storefrontCommerceLine.update({
 							where: { id: duplicate.id },
@@ -836,6 +853,13 @@ export const storefrontPublicRouter = createTRPCRouter({
 					{ requireWorkflowConfiguration: true },
 				);
 				const cart = await getOrCreateStorefrontCollection(ctx, "CART");
+				const configurationMeta: Record<string, unknown> =
+					priced.configuration.meta &&
+					typeof priced.configuration.meta === "object" &&
+					!Array.isArray(priced.configuration.meta)
+						? (priced.configuration.meta as Record<string, unknown>)
+						: {};
+				const isMoulding = Boolean(configurationMeta.storefrontMoulding);
 				await ctx.db.$transaction(async (tx) => {
 					const duplicate = await tx.storefrontCommerceLine.findFirst({
 						where: {
@@ -844,7 +868,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 							configurationHash: priced.configurationHash,
 						},
 					});
-					if (duplicate && !priced.workflow.doorSchedule) {
+					if (duplicate && !priced.workflow.doorSchedule && !isMoulding) {
 						const quantity =
 							Number(duplicate.quantity) + priced.normalizedQuantity;
 						await tx.storefrontCommerceLine.update({
@@ -989,6 +1013,42 @@ export const storefrontPublicRouter = createTRPCRouter({
 			.input(storefrontCheckoutIdSchema)
 			.mutation(async ({ ctx, input }) => {
 				return confirmStorefrontCheckoutPayment(ctx, input.checkoutId);
+			}),
+		addressAutocomplete: customerProcedure
+			.input(storefrontAddressAutocompleteSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontRateLimit({
+					ctx,
+					action: "shipping-address-autocomplete",
+					identity: String(ctx.userId),
+					limit: 60,
+					windowSeconds: 60,
+				});
+				return searchStorefrontAddresses(input);
+			}),
+		placeDetails: customerProcedure
+			.input(storefrontPlaceDetailsSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontRateLimit({
+					ctx,
+					action: "shipping-place-details",
+					identity: String(ctx.userId),
+					limit: 30,
+					windowSeconds: 60,
+				});
+				return resolveStorefrontPlace(input);
+			}),
+		shippingPreview: customerProcedure
+			.input(storefrontShippingPreviewSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontRateLimit({
+					ctx,
+					action: "shipping-preview",
+					identity: String(ctx.userId),
+					limit: 12,
+					windowSeconds: 60,
+				});
+				return previewStorefrontShipping(ctx, input);
 			}),
 	},
 

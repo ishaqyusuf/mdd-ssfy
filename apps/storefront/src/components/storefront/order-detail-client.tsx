@@ -86,7 +86,12 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
 							</Button>
 						) : data.checkout?.status === "ORDER_CREATED" ? (
 							<p className="mt-3 text-sm text-muted-foreground">
-								Awaiting sales review
+								{data.checkout.shippingQuote &&
+								!["AUTO_APPROVED", "APPROVED", "OVERRIDDEN"].includes(
+									data.checkout.shippingQuote.status,
+								)
+									? `Delivery estimate $${data.checkout.shippingQuote.calculatedAmount.toFixed(2)} is awaiting office review`
+									: "Awaiting final sales review"}
 							</p>
 						) : null}
 					</div>

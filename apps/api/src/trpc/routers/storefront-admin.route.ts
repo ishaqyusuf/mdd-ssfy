@@ -1,3 +1,7 @@
+import {
+	resolveStorefrontPlace,
+	searchStorefrontAddresses,
+} from "@api/db/queries/google-place";
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import {
 	getStorefrontCatalogDetail,
@@ -21,6 +25,11 @@ import {
 	updateStorefrontInquiryStatus,
 } from "@api/db/queries/storefront-inquiries";
 import {
+	getStorefrontShippingPolicy,
+	reviewStorefrontShippingQuote,
+	saveStorefrontShippingPolicy,
+} from "@api/db/queries/storefront-shipping";
+import {
 	storefrontCatalogBulkSchema,
 	storefrontCatalogDetailSchema,
 	storefrontCatalogFeaturedSchema,
@@ -29,6 +38,12 @@ import {
 	storefrontCatalogMetadataSchema,
 	storefrontCatalogStatusSchema,
 } from "@api/schemas/storefront-admin";
+import {
+	storefrontAddressAutocompleteSchema,
+	storefrontPlaceDetailsSchema,
+	storefrontShippingPolicyInputSchema,
+	storefrontShippingReviewSchema,
+} from "@api/schemas/storefront-shipping";
 import {
 	requireStorefrontEmployeePermission,
 	requireStorefrontQuoteCreationPermission,
@@ -939,7 +954,26 @@ export const storefrontAdminRouter = createTRPCRouter({
 					? await ctx.db.storefrontCheckout.findMany({
 							where: { salesOrderId: { in: page.map((order) => order.id) } },
 							orderBy: { createdAt: "desc" },
-							select: { id: true, salesOrderId: true, status: true },
+							select: {
+								id: true,
+								salesOrderId: true,
+								status: true,
+								shippingQuote: {
+									select: {
+										id: true,
+										status: true,
+										calculatedAmount: true,
+										finalAmount: true,
+										oneWayDistanceMiles: true,
+										estimatedWeightLb: true,
+										chargeableWeightLb: true,
+										blockers: true,
+										autoApprovalBlockers: true,
+										calculation: true,
+										destinationAddress: true,
+									},
+								},
+							},
 						})
 					: [];
 				const checkoutBySalesId = new Map(
@@ -969,6 +1003,17 @@ export const storefrontAdminRouter = createTRPCRouter({
 					permission: "editStorefrontOrders",
 				});
 				return approveStorefrontCheckoutPayment(ctx, input.checkoutId);
+			}),
+
+		reviewShipping: protectedProcedure
+			.input(storefrontShippingReviewSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefrontOrders",
+				});
+				return reviewStorefrontShippingQuote(ctx, input);
 			}),
 
 		inquiries: protectedProcedure
@@ -1112,6 +1157,44 @@ export const storefrontAdminRouter = createTRPCRouter({
 	},
 
 	settings: {
+		addressAutocomplete: protectedProcedure
+			.input(storefrontAddressAutocompleteSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				return searchStorefrontAddresses(input);
+			}),
+		placeDetails: protectedProcedure
+			.input(storefrontPlaceDetailsSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				return resolveStorefrontPlace(input);
+			}),
+		shipping: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return getStorefrontShippingPolicy(ctx);
+		}),
+		saveShipping: protectedProcedure
+			.input(storefrontShippingPolicyInputSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefront",
+				});
+				return saveStorefrontShippingPolicy(ctx, input);
+			}),
 		salesReps: protectedProcedure.query(async ({ ctx }) => {
 			await requireStorefrontEmployeePermission({
 				db: ctx.db,

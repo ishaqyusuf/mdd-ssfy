@@ -20,8 +20,8 @@ import { Form } from "@gnd/ui/form";
 import { Icons } from "@gnd/ui/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
-import type { FieldPath } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { type FieldPath, useFormContext } from "react-hook-form";
 import { z } from "zod";
 
 const addressSchema = z.object({
@@ -35,6 +35,10 @@ const addressSchema = z.object({
 	state: z.string().min(1),
 	postalCode: z.string().min(3),
 	country: z.string().min(2),
+	placeId: z.string().optional().nullable(),
+	formattedAddress: z.string().optional().nullable(),
+	lat: z.number().optional().nullable(),
+	lng: z.number().optional().nullable(),
 });
 const checkoutFormSchema = z
 	.object({
@@ -120,6 +124,10 @@ function CheckoutForm({
 		state: primary?.state || "",
 		postalCode: primary?.postalCode || "",
 		country: primary?.country || "US",
+		placeId: primary?.placeId || null,
+		formattedAddress: primary?.formattedAddress || null,
+		lat: primary?.lat ?? null,
+		lng: primary?.lng ?? null,
 	};
 	const form = useZodForm(checkoutFormSchema, {
 		defaultValues: {
@@ -158,14 +166,60 @@ function CheckoutForm({
 			},
 		}),
 	);
+	const [shippingQuote, setShippingQuote] = useState<{
+		id: string;
+		status: string;
+		amount: number;
+		calculation: {
+			breakdown: {
+				oneWayDistanceMiles: number | null;
+				estimatedWeightLb: number;
+			};
+		};
+	} | null>(null);
+	const shippingPreview = useMutation(
+		trpc.storefrontCommerce.checkout.shippingPreview.mutationOptions({
+			onSuccess: (quote) => setShippingQuote(quote),
+			onError: () => setShippingQuote(null),
+		}),
+	);
 	const billingSame = form.watch("billingSameAsShipping");
 	const fulfillment = form.watch("fulfillment");
+	useEffect(() => {
+		if (
+			fulfillment !== "delivery" ||
+			!state.fulfillment.calculatedDeliveryEnabled ||
+			!defaultAddress.placeId ||
+			!defaultAddress.formattedAddress
+		) {
+			return;
+		}
+		shippingPreview.mutate({
+			cartVersion,
+			destination: {
+				placeId: defaultAddress.placeId,
+				formattedAddress: defaultAddress.formattedAddress,
+			},
+		});
+	}, [
+		cartVersion,
+		defaultAddress.formattedAddress,
+		defaultAddress.placeId,
+		fulfillment,
+		shippingPreview.mutate,
+		state.fulfillment.calculatedDeliveryEnabled,
+	]);
 
 	const submit = (value: CheckoutFormValues) =>
 		createCheckout.mutate({
 			...value,
 			idempotencyKey,
 			cartVersion,
+			shippingQuoteId:
+				value.fulfillment === "delivery" &&
+				state.fulfillment.calculatedDeliveryEnabled
+					? shippingQuote?.id
+					: null,
 		});
 
 	return (
@@ -220,7 +274,25 @@ function CheckoutForm({
 							<AddressFields
 								title="Shipping information"
 								prefix="shippingAddress"
+								deliveryAddress={
+									fulfillment === "delivery" &&
+									state.fulfillment.calculatedDeliveryEnabled
+								}
+								onVerifiedAddress={(destination) =>
+									shippingPreview.mutate({
+										cartVersion,
+										destination,
+									})
+								}
 							/>
+							{fulfillment === "delivery" &&
+							state.fulfillment.calculatedDeliveryEnabled ? (
+								<ShippingQuoteStatus
+									quote={shippingQuote}
+									loading={shippingPreview.isPending}
+									error={shippingPreview.error?.message}
+								/>
+							) : null}
 
 							<Card>
 								<CardContent className="pt-6">
@@ -244,18 +316,28 @@ function CheckoutForm({
 							<Button
 								type="submit"
 								className="w-full bg-amber-800 text-lg hover:bg-amber-900"
-								disabled={createCheckout.isPending}
+								disabled={
+									createCheckout.isPending ||
+									shippingPreview.isPending ||
+									(fulfillment === "delivery" &&
+										state.fulfillment.calculatedDeliveryEnabled &&
+										!shippingQuote)
+								}
 							>
 								<Icons.Lock className="mr-2 size-4" />
 								{createCheckout.isPending
-									? "Preparing payment…"
-									: "Continue to secure payment"}
+									? "Submitting order…"
+									: "Submit order for review"}
 							</Button>
 						</div>
 
 						<aside className="space-y-6">
 							<OrderItemsSummary />
-							<CheckoutOrderSummary state={state} fulfillment={fulfillment} />
+							<CheckoutOrderSummary
+								state={state}
+								fulfillment={fulfillment}
+								calculatedDelivery={shippingQuote?.amount ?? null}
+							/>
 							<p className="text-center text-xs text-muted-foreground">
 								Product prices and online availability are revalidated before
 								the order is created. Payment is processed securely by Square.
@@ -269,23 +351,87 @@ function CheckoutForm({
 	);
 }
 
+function ShippingQuoteStatus({
+	quote,
+	loading,
+	error,
+}: {
+	quote: {
+		status: string;
+		amount: number;
+		calculation: {
+			breakdown: {
+				oneWayDistanceMiles: number | null;
+				estimatedWeightLb: number;
+			};
+		};
+	} | null;
+	loading: boolean;
+	error?: string;
+}) {
+	if (loading) {
+		return (
+			<Alert>
+				<AlertDescription>
+					Calculating the driving route and product weight…
+				</AlertDescription>
+			</Alert>
+		);
+	}
+	if (error) {
+		return (
+			<Alert variant="destructive">
+				<AlertDescription>{error}</AlertDescription>
+			</Alert>
+		);
+	}
+	if (!quote) {
+		return (
+			<Alert>
+				<AlertDescription>
+					Select a Google-verified address to calculate delivery.
+				</AlertDescription>
+			</Alert>
+		);
+	}
+	const officeReview = quote.status !== "AUTO_APPROVED";
+	return (
+		<Alert>
+			<AlertDescription>
+				<strong>${quote.amount.toFixed(2)} delivery estimate.</strong>{" "}
+				{quote.calculation.breakdown.oneWayDistanceMiles?.toFixed(1) || "—"}{" "}
+				miles one way and approximately{" "}
+				{quote.calculation.breakdown.estimatedWeightLb.toFixed(0)} lb of
+				product.{" "}
+				{officeReview
+					? "The office will confirm or adjust this amount before sending payment."
+					: "This quote passed the automatic approval limits."}
+			</AlertDescription>
+		</Alert>
+	);
+}
+
 function CheckoutOrderSummary({
 	state,
 	fulfillment,
+	calculatedDelivery,
 }: {
 	state: StorefrontRouterOutputs["storefrontCommerce"]["checkout"]["state"];
 	fulfillment: "pickup" | "delivery";
+	calculatedDelivery: number | null;
 }) {
 	const cart = useCart();
 	const subtotal = cart.data?.estimate.subtotal || 0;
 	const delivery =
-		fulfillment === "delivery" &&
-		!(
-			state.fulfillment.freeDeliveryThreshold &&
-			subtotal >= state.fulfillment.freeDeliveryThreshold
-		)
-			? state.fulfillment.deliveryFlatRate
-			: 0;
+		fulfillment === "delivery" && calculatedDelivery != null
+			? calculatedDelivery
+			: fulfillment === "delivery" &&
+					!(
+						state.fulfillment.freeDeliveryThreshold &&
+						subtotal >= state.fulfillment.freeDeliveryThreshold
+					)
+				? state.fulfillment.deliveryFlatRate
+				: 0;
 	const tax = roundMoney(multiplyMoney(subtotal, state.pricing.taxRate / 100));
 	const orderTotal = addMoney(subtotal, delivery, tax);
 	const paymentCharge = calculatePaymentChannelCharge({
@@ -343,10 +489,32 @@ function SummaryRow({
 function AddressFields({
 	title,
 	prefix,
+	deliveryAddress = false,
+	onVerifiedAddress,
 }: {
 	title: string;
 	prefix: "shippingAddress" | "billingAddress";
+	deliveryAddress?: boolean;
+	onVerifiedAddress?: (destination: {
+		placeId: string;
+		formattedAddress: string;
+		sessionToken: string;
+	}) => void;
 }) {
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const form = useFormContext<CheckoutFormValues>();
+	const [addressSearch, setAddressSearch] = useState("");
+	const [sessionToken, setSessionToken] = useState(() => crypto.randomUUID());
+	const suggestions = useQuery(
+		trpc.storefrontCommerce.checkout.addressAutocomplete.queryOptions(
+			{
+				query: addressSearch.length >= 3 ? addressSearch : "___",
+				sessionToken,
+			},
+			{ enabled: deliveryAddress && addressSearch.length >= 3 },
+		),
+	);
 	type AddressFieldName =
 		| "name"
 		| "email"
@@ -365,6 +533,90 @@ function AddressFields({
 				<CardTitle>{title}</CardTitle>
 			</CardHeader>
 			<CardContent className="grid gap-4 sm:grid-cols-2">
+				{deliveryAddress ? (
+					<div className="relative sm:col-span-2">
+						<label className="grid gap-1 text-sm font-medium">
+							Find delivery address
+							<input
+								type="search"
+								autoComplete="street-address"
+								className="h-10 rounded-md border bg-background px-3"
+								placeholder="Start typing a street address"
+								value={addressSearch}
+								onChange={(event) => {
+									setAddressSearch(event.target.value);
+									form.setValue("shippingAddress.placeId", null);
+								}}
+							/>
+						</label>
+						{suggestions.data?.length ? (
+							<ul className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border bg-background p-1 shadow-lg">
+								{suggestions.data.map((suggestion) => (
+									<li key={suggestion.placeId}>
+										<button
+											type="button"
+											className="w-full rounded px-3 py-2 text-left text-sm hover:bg-muted"
+											onClick={async () => {
+												const selected = await queryClient.fetchQuery(
+													trpc.storefrontCommerce.checkout.placeDetails.queryOptions(
+														{
+															placeId: suggestion.placeId,
+															sessionToken,
+														},
+													),
+												);
+												form.setValue(
+													"shippingAddress.placeId",
+													selected.placeId,
+													{
+														shouldValidate: true,
+													},
+												);
+												form.setValue(
+													"shippingAddress.formattedAddress",
+													selected.formattedAddress,
+												);
+												form.setValue(
+													"shippingAddress.address1",
+													selected.address1 || selected.formattedAddress,
+												);
+												form.setValue("shippingAddress.city", selected.city);
+												form.setValue("shippingAddress.state", selected.state);
+												form.setValue(
+													"shippingAddress.postalCode",
+													selected.postalCode,
+												);
+												form.setValue(
+													"shippingAddress.country",
+													selected.country || "US",
+												);
+												form.setValue("shippingAddress.lat", selected.lat);
+												form.setValue("shippingAddress.lng", selected.lng);
+												setAddressSearch(selected.formattedAddress);
+												onVerifiedAddress?.({
+													placeId: selected.placeId,
+													formattedAddress: selected.formattedAddress,
+													sessionToken,
+												});
+												setSessionToken(crypto.randomUUID());
+											}}
+										>
+											<span className="block font-medium">
+												{suggestion.mainText}
+											</span>
+											<span className="text-muted-foreground">
+												{suggestion.secondaryText}
+											</span>
+										</button>
+									</li>
+								))}
+								<li className="px-3 py-1 text-right text-xs text-muted-foreground">
+									Powered by Google
+								</li>
+							</ul>
+						) : null}
+					</div>
+				) : null}
 				<FormInput name={field("name")} label="Name" />
 				<FormInput name={field("email")} label="Email" type="email" />
 				<FormInput name={field("phone")} label="Phone" />

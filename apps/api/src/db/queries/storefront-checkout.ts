@@ -12,6 +12,7 @@ import {
 	storefrontConfigurationInputSchema,
 	validateAndPriceStorefrontConfiguration,
 } from "@api/db/queries/storefront-commerce";
+import { canonicalizeStorefrontShippingAddress } from "@api/db/queries/storefront-shipping-domain";
 import type {
 	CreateStorefrontCheckoutInput,
 	StorefrontAddressInput,
@@ -176,7 +177,13 @@ async function persistCustomerAddress(
 		state: input.state,
 		country: input.country,
 		isPrimary,
-		meta: { zip_code: input.postalCode },
+		meta: {
+			zip_code: input.postalCode,
+			placeId: input.placeId || null,
+			formattedAddress: input.formattedAddress || null,
+			lat: input.lat ?? null,
+			lng: input.lng ?? null,
+		},
 		deletedAt: null,
 	};
 	if (input.id) {
@@ -239,16 +246,22 @@ async function loadCartForCheckout(
 export async function getStorefrontCheckoutState(
 	ctx: CustomerStorefrontContext,
 ) {
-	const [customer, settings, cart, salesSetting] = await Promise.all([
-		loadCheckoutCustomer(ctx),
-		loadStorefrontSettings(ctx),
-		loadCartForCheckout(ctx),
-		ctx.db.settings.findFirst({
-			where: { type: "sales-settings", deletedAt: null },
-			orderBy: { id: "desc" },
-			select: { meta: true },
-		}),
-	]);
+	const [customer, settings, cart, salesSetting, activeShippingPolicy] =
+		await Promise.all([
+			loadCheckoutCustomer(ctx),
+			loadStorefrontSettings(ctx),
+			loadCartForCheckout(ctx),
+			ctx.db.settings.findFirst({
+				where: { type: "sales-settings", deletedAt: null },
+				orderBy: { id: "desc" },
+				select: { meta: true },
+			}),
+			ctx.db.storefrontShippingPolicy.findFirst({
+				where: { active: true, enabled: true },
+				orderBy: { version: "desc" },
+				select: { id: true, version: true },
+			}),
+		]);
 	const salesSettings = deriveNewSalesFormSettings(salesSetting?.meta);
 	return {
 		customer: {
@@ -259,20 +272,30 @@ export async function getStorefrontCheckoutState(
 			phoneNo: customer.phoneNo,
 			profile: customer.profile,
 		},
-		addresses: customer.addressBooks.map((address) => ({
-			id: address.id,
-			name: address.name,
-			email: address.email,
-			phone: address.phoneNo,
-			address1: address.address1,
-			address2: address.address2,
-			city: address.city,
-			state: address.state,
-			country: address.country,
-			postalCode: String(safeRecord(address.meta).zip_code || ""),
-			isPrimary: address.isPrimary,
-		})),
-		fulfillment: settings,
+		addresses: customer.addressBooks.map((address) => {
+			const addressMeta = safeRecord(address.meta);
+			return {
+				id: address.id,
+				name: address.name,
+				email: address.email,
+				phone: address.phoneNo,
+				address1: address.address1,
+				address2: address.address2,
+				city: address.city,
+				state: address.state,
+				country: address.country,
+				postalCode: String(addressMeta.zip_code || ""),
+				placeId: String(addressMeta.placeId || "") || null,
+				formattedAddress: String(addressMeta.formattedAddress || "") || null,
+				lat: addressMeta.lat == null ? null : Number(addressMeta.lat),
+				lng: addressMeta.lng == null ? null : Number(addressMeta.lng),
+				isPrimary: address.isPrimary,
+			};
+		}),
+		fulfillment: {
+			...settings,
+			calculatedDeliveryEnabled: Boolean(activeShippingPolicy),
+		},
 		pricing: {
 			taxRate: Math.max(
 				0,
@@ -346,16 +369,22 @@ export async function createStorefrontCheckout(
 		}
 	}
 
-	const [customer, settings, cart, salesSetting] = await Promise.all([
-		loadCheckoutCustomer(ctx),
-		loadStorefrontSettings(ctx),
-		loadCartForCheckout(ctx, existing?.collectionId),
-		ctx.db.settings.findFirst({
-			where: { type: "sales-settings", deletedAt: null },
-			orderBy: { id: "desc" },
-			select: { meta: true },
-		}),
-	]);
+	const [customer, settings, cart, salesSetting, activeShippingPolicy] =
+		await Promise.all([
+			loadCheckoutCustomer(ctx),
+			loadStorefrontSettings(ctx),
+			loadCartForCheckout(ctx, existing?.collectionId),
+			ctx.db.settings.findFirst({
+				where: { type: "sales-settings", deletedAt: null },
+				orderBy: { id: "desc" },
+				select: { meta: true },
+			}),
+			ctx.db.storefrontShippingPolicy.findFirst({
+				where: { active: true, enabled: true },
+				orderBy: { version: "desc" },
+				select: { id: true },
+			}),
+		]);
 	const salesSettings = deriveNewSalesFormSettings(salesSetting?.meta);
 	if (!settings.defaultSalesRepId) {
 		throw new TRPCError({
@@ -447,13 +476,48 @@ export async function createStorefrontCheckout(
 	const subtotal = addMoney(
 		...repriced.map(({ current }) => current.lineTotal),
 	);
-	const deliveryAmount =
+	const shippingQuote =
+		input.fulfillment === "delivery" && activeShippingPolicy
+			? await ctx.db.storefrontShippingQuote.findFirst({
+					where: {
+						id: input.shippingQuoteId || "",
+						policyId: activeShippingPolicy.id,
+						policy: { active: true, enabled: true },
+						collectionId: cart.id,
+						cartVersion: cart.version,
+						destinationPlaceId: input.shippingAddress.placeId,
+						status: {
+							in: [
+								"PENDING_OFFICE_REVIEW",
+								"MANUAL_REVIEW_REQUIRED",
+								"AUTO_APPROVED",
+								"APPROVED",
+								"OVERRIDDEN",
+							],
+						},
+						expiresAt: { gt: new Date() },
+					},
+				})
+			: null;
+	if (
 		input.fulfillment === "delivery" &&
-		!(
-			settings.freeDeliveryThreshold &&
-			subtotal >= settings.freeDeliveryThreshold
-		)
-			? settings.deliveryFlatRate
+		activeShippingPolicy &&
+		!shippingQuote
+	) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Calculate delivery for the selected address before submitting the order.",
+		});
+	}
+	const deliveryAmount =
+		input.fulfillment === "delivery"
+			? shippingQuote
+				? Number(shippingQuote.finalAmount ?? shippingQuote.calculatedAmount)
+				: settings.freeDeliveryThreshold &&
+						subtotal >= settings.freeDeliveryThreshold
+					? 0
+					: settings.deliveryFlatRate
 			: 0;
 	const taxProfile = customer.taxProfiles[0]?.tax || null;
 	const taxRate = Math.max(0, Number(taxProfile?.percentage || 0));
@@ -464,48 +528,72 @@ export async function createStorefrontCheckout(
 		paymentAmount: total,
 		cccPercentage: salesSettings.cccPercentage,
 	});
-	const shipping = await persistCustomerAddress(
-		ctx,
-		input.shippingAddress,
-		true,
-	);
+	const shippingAddress = shippingQuote
+		? canonicalizeStorefrontShippingAddress(
+				input.shippingAddress,
+				shippingQuote.destinationAddress,
+			)
+		: input.shippingAddress;
+	const shipping = await persistCustomerAddress(ctx, shippingAddress, true);
 	const billing = input.billingSameAsShipping
 		? shipping
 		: await persistCustomerAddress(
 				ctx,
-				input.billingAddress || input.shippingAddress,
+				input.billingAddress || shippingAddress,
 				false,
 			);
 
 	const checkout =
 		existing ||
-		(await ctx.db.storefrontCheckout.create({
-			data: {
-				collectionId: cart.id,
-				ownerUserId: ctx.userId,
-				idempotencyKey: input.idempotencyKey,
-				status: "READY",
-				acceptedConfiguration: {
-					cartVersion: cart.version,
-					lineHashes: repriced.map(({ current }) => current.configurationHash),
+		(await ctx.db.$transaction(async (tx) => {
+			if (shippingQuote) {
+				const activePolicy = await tx.storefrontShippingPolicy.updateMany({
+					where: {
+						id: shippingQuote.policyId,
+						active: true,
+						enabled: true,
+					},
+					data: { active: true },
+				});
+				if (activePolicy.count !== 1) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message:
+							"Delivery settings changed. Recalculate delivery before submitting the order.",
+					});
+				}
+			}
+			return tx.storefrontCheckout.create({
+				data: {
+					collectionId: cart.id,
+					ownerUserId: ctx.userId,
+					idempotencyKey: input.idempotencyKey,
+					status: "READY",
+					acceptedConfiguration: {
+						cartVersion: cart.version,
+						lineHashes: repriced.map(
+							({ current }) => current.configurationHash,
+						),
+					},
+					totals: {
+						currency: "USD",
+						subtotal,
+						delivery: deliveryAmount,
+						tax,
+						taxRate,
+						orderTotal: total,
+						paymentFee: paymentCharge.amount,
+						paymentTotal: paymentCharge.chargeAmount,
+						cardFeePercentage: paymentCharge.percentage,
+					},
+					shippingAddress: shippingAddress as Prisma.InputJsonValue,
+					billingAddress: (input.billingSameAsShipping
+						? shippingAddress
+						: input.billingAddress) as Prisma.InputJsonValue,
+					shippingQuoteId: shippingQuote?.id || null,
+					expiresAt: new Date(Date.now() + 60 * 60 * 1_000),
 				},
-				totals: {
-					currency: "USD",
-					subtotal,
-					delivery: deliveryAmount,
-					tax,
-					taxRate,
-					orderTotal: total,
-					paymentFee: paymentCharge.amount,
-					paymentTotal: paymentCharge.chargeAmount,
-					cardFeePercentage: paymentCharge.percentage,
-				},
-				shippingAddress: input.shippingAddress as Prisma.InputJsonValue,
-				billingAddress: (input.billingSameAsShipping
-					? input.shippingAddress
-					: input.billingAddress) as Prisma.InputJsonValue,
-				expiresAt: new Date(Date.now() + 60 * 60 * 1_000),
-			},
+			});
 		}));
 
 	let salesOrderId = checkout.salesOrderId;
@@ -575,6 +663,7 @@ export async function approveStorefrontCheckoutPayment(
 ) {
 	const checkout = await ctx.db.storefrontCheckout.findUnique({
 		where: { id: checkoutId },
+		include: { shippingQuote: true },
 	});
 	if (!checkout?.salesOrderId) {
 		throw new TRPCError({ code: "NOT_FOUND", message: "Checkout not found." });
@@ -591,6 +680,18 @@ export async function approveStorefrontCheckoutPayment(
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message: "Only orders awaiting review can receive a payment link.",
+		});
+	}
+	if (
+		checkout.shippingQuote &&
+		!["AUTO_APPROVED", "APPROVED", "OVERRIDDEN"].includes(
+			checkout.shippingQuote.status,
+		)
+	) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message:
+				"Approve or override the delivery quote before sending the payment link.",
 		});
 	}
 	const sale = await ctx.db.salesOrders.findUnique({

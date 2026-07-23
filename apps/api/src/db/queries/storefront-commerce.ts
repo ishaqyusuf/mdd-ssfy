@@ -27,6 +27,10 @@ import {
 	projectStorefrontOfferRoute,
 	resolveStorefrontProductTypes,
 } from "@gnd/sales/storefront-configuration";
+import {
+	calculateMouldingQuantity,
+	deriveMouldingPieceLength,
+} from "@gnd/sales/storefront-shipping";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -134,6 +138,35 @@ export async function validateAndPriceStorefrontConfiguration(
 		loadPublishedOffer(ctx, input.offerId),
 		getNewSalesFormStepRouting(ctx, {}),
 	]);
+	const mouldingInput = safeRecord(
+		safeRecord(input.configuration.meta).storefrontMoulding,
+	);
+	const isMoulding =
+		offer.category.slug === "mouldings" ||
+		/moulding|molding/i.test(offer.category.title);
+	const requestedLinearFeet = isMoulding
+		? Math.max(
+				0,
+				Number(mouldingInput.requestedLinearFeet || input.quantity || 0),
+			)
+		: 0;
+	const pieceLengthFeet = isMoulding
+		? deriveMouldingPieceLength(
+				offer.title,
+				Number(mouldingInput.pieceLengthFeet || 16),
+			)
+		: 0;
+	const wastePercentage = isMoulding
+		? Math.min(100, Math.max(0, Number(mouldingInput.wastePercentage ?? 10)))
+		: 0;
+	const mouldingQuantity = isMoulding
+		? calculateMouldingQuantity({
+				linearFeet: requestedLinearFeet,
+				pieceLength: pieceLengthFeet,
+				wastePercentage,
+			})
+		: null;
+	const effectiveQuantity = mouldingQuantity?.pieces || input.quantity;
 	const productTypes = resolveStorefrontProductTypes({
 		routeData,
 		rootStepUid: offer.category.rootStepUid,
@@ -405,7 +438,7 @@ export async function validateAndPriceStorefrontConfiguration(
 			componentId: primary?.id ?? null,
 			prodUid: primary?.uid ?? "",
 			value: primary?.title ?? "",
-			qty: input.quantity,
+			qty: effectiveQuantity,
 			price: addMoney(
 				...selectedComponents.map((component) => component.price),
 			),
@@ -586,14 +619,17 @@ export async function validateAndPriceStorefrontConfiguration(
 		0,
 	);
 	const componentUnitPrice = addMoney(...componentUnitPrices);
-	const componentLineTotal = multiplyMoney(componentUnitPrice, input.quantity);
+	const componentLineTotal = multiplyMoney(
+		componentUnitPrice,
+		effectiveQuantity,
+	);
 	const shelfTotal = addMoney(...shelfItems.map((item) => item.totalPrice));
 	const lineTotal = normalizedDoorRows.length
 		? addMoney(hptTotal, shelfTotal)
 		: addMoney(componentLineTotal, shelfTotal);
 	const normalizedQuantity = normalizedDoorRows.length
 		? totalDoors
-		: input.quantity;
+		: effectiveQuantity;
 	const unitPrice =
 		normalizedQuantity > 0
 			? roundMoney(lineTotal / normalizedQuantity)
@@ -620,6 +656,18 @@ export async function validateAndPriceStorefrontConfiguration(
 			: input.configuration.housePackageTool || null,
 		meta: {
 			...safeRecord(input.configuration.meta),
+			...(isMoulding
+				? {
+						storefrontMoulding: {
+							requestedLinearFeet,
+							pieceLengthFeet,
+							wastePercentage,
+							pieces: mouldingQuantity?.pieces || 0,
+							shippedLinearFeet:
+								(mouldingQuantity?.pieces || 0) * pieceLengthFeet,
+						},
+					}
+				: {}),
 			storefront: {
 				offerId: offer.id,
 				configurationVersion: offer.configurationVersion,
@@ -667,6 +715,13 @@ export async function validateAndPriceStorefrontConfiguration(
 							stepProductId: door.stepProductId ?? null,
 						}),
 					),
+				}
+			: null,
+		storefrontMoulding: isMoulding
+			? {
+					requestedLinearFeet,
+					pieceLengthFeet,
+					wastePercentage,
 				}
 			: null,
 	};

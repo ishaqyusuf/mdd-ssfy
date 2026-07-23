@@ -4,6 +4,10 @@ import { useTRPC } from "@/trpc/client";
 import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
 import { deduplicateStorefrontOptions } from "@gnd/sales/storefront-configuration";
 import {
+	calculateMouldingQuantity,
+	deriveMouldingPieceLength,
+} from "@gnd/sales/storefront-shipping";
+import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
@@ -197,6 +201,8 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 		() => `storefront-${globalThis.crypto?.randomUUID?.() ?? Date.now()}`,
 	);
 	const [quantity, setQuantity] = useState(1);
+	const [requestedLinearFeet, setRequestedLinearFeet] = useState(16);
+	const [mouldingWastePercentage, setMouldingWastePercentage] = useState(10);
 	const [selections, setSelections] = useState<Record<string, string>>(() =>
 		initialSelections(offer.configuration.steps),
 	);
@@ -210,6 +216,22 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 	const [activeAddOnStep, setActiveAddOnStep] = useState("");
 	const [resolvedPreviewRequestKey, setResolvedPreviewRequestKey] =
 		useState("");
+	const isMoulding =
+		offer.category.slug === "mouldings" ||
+		/moulding|molding/i.test(offer.category.title);
+	const mouldingPieceLength = deriveMouldingPieceLength(offer.title, 16);
+	const mouldingOrder = useMemo(
+		() =>
+			calculateMouldingQuantity({
+				linearFeet: requestedLinearFeet,
+				pieceLength: mouldingPieceLength,
+				wastePercentage: mouldingWastePercentage,
+			}),
+		[mouldingPieceLength, mouldingWastePercentage, requestedLinearFeet],
+	);
+	const purchaseQuantity = isMoulding
+		? Math.max(1, mouldingOrder.pieces)
+		: quantity;
 
 	const displaySteps = useMemo(
 		() =>
@@ -281,11 +303,19 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 			uid: lineUid,
 			title: offer.title,
 			description: offer.description,
-			qty: quantity,
+			qty: purchaseQuantity,
 			unitPrice: 0,
 			lineTotal: 0,
 			taxxable: true,
-			meta: {},
+			meta: isMoulding
+				? {
+						storefrontMoulding: {
+							requestedLinearFeet,
+							pieceLengthFeet: mouldingPieceLength,
+							wastePercentage: mouldingWastePercentage,
+						},
+					}
+				: {},
 			formSteps: displaySteps.flatMap((step) => {
 				const selectedUid = selections[step.stepUid];
 				const selected = step.components.find(
@@ -298,7 +328,7 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 								componentId: selected.id,
 								prodUid: selected.uid,
 								value: selected.title,
-								qty: quantity,
+								qty: purchaseQuantity,
 								price: 0,
 								basePrice: 0,
 								meta: { selectedProdUids: [selected.uid] },
@@ -322,11 +352,27 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 					}
 				: null,
 		}),
-		[displaySteps, doorRows, lineUid, offer, quantity, selections],
+		[
+			displaySteps,
+			doorRows,
+			isMoulding,
+			lineUid,
+			mouldingPieceLength,
+			mouldingWastePercentage,
+			offer,
+			purchaseQuantity,
+			quantity,
+			requestedLinearFeet,
+			selections,
+		],
 	);
 	const request = useMemo(
-		() => ({ offerId: offer.id, quantity, configuration }),
-		[configuration, offer.id, quantity],
+		() => ({
+			offerId: offer.id,
+			quantity: purchaseQuantity,
+			configuration,
+		}),
+		[configuration, offer.id, purchaseQuantity],
 	);
 	const previewRequestKey = JSON.stringify(request);
 	const preview = useMutation(
@@ -609,14 +655,65 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 							</div>
 						) : null}
 
-						<div>
-							<p className="mb-2 text-sm font-medium text-gray-900">Quantity</p>
-							<QuantityInput
-								min={1}
-								value={quantity}
-								onChange={(value) => value > 0 && setQuantity(value)}
-							/>
-						</div>
+						{isMoulding ? (
+							<div className="space-y-3 rounded-md border bg-amber-50/40 p-4">
+								<p className="text-sm font-medium text-gray-900">
+									Length calculator
+								</p>
+								<div className="grid gap-3 sm:grid-cols-2">
+									<label className="grid gap-1 text-sm">
+										Required length (linear feet)
+										<input
+											type="number"
+											min={1}
+											step={1}
+											className="h-10 rounded-md border bg-white px-3"
+											value={requestedLinearFeet}
+											onChange={(event) =>
+												setRequestedLinearFeet(
+													Math.max(1, Number(event.target.value || 1)),
+												)
+											}
+										/>
+									</label>
+									<label className="grid gap-1 text-sm">
+										Waste allowance (%)
+										<input
+											type="number"
+											min={0}
+											max={100}
+											step={1}
+											className="h-10 rounded-md border bg-white px-3"
+											value={mouldingWastePercentage}
+											onChange={(event) =>
+												setMouldingWastePercentage(
+													Math.min(
+														100,
+														Math.max(0, Number(event.target.value || 0)),
+													),
+												)
+											}
+										/>
+									</label>
+								</div>
+								<p className="text-sm text-muted-foreground">
+									{mouldingOrder.pieces} whole {mouldingPieceLength}-ft pieces (
+									{mouldingOrder.pieces * mouldingPieceLength} ft shipped).
+									Price and delivery weight use the whole-piece quantity.
+								</p>
+							</div>
+						) : (
+							<div>
+								<p className="mb-2 text-sm font-medium text-gray-900">
+									Quantity
+								</p>
+								<QuantityInput
+									min={1}
+									value={quantity}
+									onChange={(value) => value > 0 && setQuantity(value)}
+								/>
+							</div>
+						)}
 
 						{addOnSteps.length ? (
 							<Accordion
