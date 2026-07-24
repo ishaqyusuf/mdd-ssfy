@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSaveDraftNewSalesFormMutation } from "./api";
 import type { NewSalesFormSaveDraftInput } from "./schema";
 
-type AutoSaveReason = "debounced-change" | "manual-flush" | "unmount";
+type AutoSaveReason = "debounced-change" | "manual-flush";
 type AutoSaveFlushOptions = {
     force?: boolean;
 };
@@ -42,6 +42,7 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
     const inFlightRef = useRef(false);
     const queuePromiseRef = useRef<Promise<any | null> | null>(null);
     const queuedPayloadRef = useRef<NewSalesFormSaveDraftInput | null>(null);
+    const manualFlushRef = useRef(false);
     const mountedRef = useRef(true);
 
     const [queued, setQueued] = useState(false);
@@ -78,15 +79,17 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
                     queuedPayloadRef.current = null;
                     setQueued(false);
 
-                    onSaving?.(next, "debounced-change");
+                    onSaving?.(
+                        next,
+                        next.autosave === false
+                            ? "manual-flush"
+                            : "debounced-change",
+                    );
                     setLastAttemptAt(new Date().toISOString());
                     latestResponse = null;
 
                     try {
-                        const response = await saveDraft.mutateAsync({
-                            ...next,
-                            autosave: true,
-                        });
+                        const response = await saveDraft.mutateAsync(next);
                         latestResponse = response;
                         onSaved?.(response, next);
                     } catch (error) {
@@ -133,13 +136,21 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
                 ...payload,
                 autosave: reason !== "manual-flush",
             };
+            const isManualFlush = reason === "manual-flush";
 
             if (inFlightRef.current) {
                 queuedPayloadRef.current = next;
                 setQueued(true);
-                return processQueue();
+                if (!isManualFlush) return processQueue();
+                manualFlushRef.current = true;
+                try {
+                    return await processQueue();
+                } finally {
+                    manualFlushRef.current = false;
+                }
             }
 
+            if (isManualFlush) manualFlushRef.current = true;
             onSaving?.(next, reason);
             setLastAttemptAt(new Date().toISOString());
 
@@ -151,6 +162,8 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
                 if (isStaleError(error)) onStale?.(error, next);
                 else onError?.(error, next);
                 return null;
+            } finally {
+                if (isManualFlush) manualFlushRef.current = false;
             }
         },
         [
@@ -174,7 +187,7 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
     }, [clearTimer]);
 
     useEffect(() => {
-        if (!enabled || !dirty || !payload) {
+        if (!enabled || !dirty || !payload || manualFlushRef.current) {
             clearTimer();
             return;
         }
@@ -192,10 +205,9 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
         mountedRef.current = true;
         return () => {
             mountedRef.current = false;
-            void flush("unmount");
             clearTimer();
         };
-    }, [clearTimer, flush]);
+    }, [clearTimer]);
 
     return {
         flush,

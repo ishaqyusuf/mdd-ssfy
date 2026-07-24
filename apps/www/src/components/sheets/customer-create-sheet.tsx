@@ -46,12 +46,13 @@ export function CustomerCreateSheet() {
             }
         }
         return data;
-    }, [opened, params.customerId]);
+    }, [opened, params.address, params.addressId, params.customerId]);
     if (!opened) return;
     return (
         <CustomSheet
             sheetName="customer-create"
-            onOpenChange={(e) => {
+            onOpenChange={(nextOpen) => {
+                if (nextOpen) return;
                 setTimeout(() => {
                     setParams(null);
                 }, 100);
@@ -69,7 +70,11 @@ export function CustomerCreateSheet() {
                     <CustomerForm />
                     <CustomSheetContentPortal>
                         <SheetFooter className="w-full border-t">
-                            <FormAction onCancel={(e) => {}} />
+                            <FormAction
+                                onCancel={() => {
+                                    void setParams(null);
+                                }}
+                            />
                         </SheetFooter>
                     </CustomSheetContentPortal>
                 </FormContext>

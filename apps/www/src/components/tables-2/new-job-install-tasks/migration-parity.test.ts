@@ -53,6 +53,8 @@ describe("New Job install task table migration parity", () => {
 			modalSource,
 			"[&_[data-radix-scroll-area-viewport]>div]:!min-w-0",
 		);
+		assertContains(modalSource, "-mx-4");
+		assertContains(modalSource, "md:-mx-0");
 		assertContains(formSource, "min-w-0 w-full max-w-full");
 		assertContains(footerSource, "flex-row");
 		assertNotContains(submitSource, "{...form}");

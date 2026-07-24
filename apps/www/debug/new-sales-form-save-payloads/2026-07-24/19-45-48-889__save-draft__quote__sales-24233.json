@@ -1,0 +1,974 @@
+{
+  "capturedAt": "2026-07-24T19:45:48.889Z",
+  "action": "save-draft",
+  "nodeEnv": "development",
+  "userId": 1,
+  "requestId": "e0b35b19-1d18-4874-a398-ad7e5fef2087",
+  "summary": {
+    "clientRequestId": null,
+    "type": "quote",
+    "salesId": 24233,
+    "slug": "03329LRG",
+    "autosave": true,
+    "lineItemCount": 4,
+    "extraCostCount": 1
+  },
+  "payload": {
+    "type": "quote",
+    "slug": "03329LRG",
+    "salesId": 24233,
+    "inventoryStatus": null,
+    "version": "1784922239806-LgDcJW",
+    "autosave": true,
+    "meta": {
+      "customerId": 3300,
+      "customerProfileId": 1,
+      "billingAddressId": 5658,
+      "shippingAddressId": null,
+      "paymentTerm": "None",
+      "createdAt": "2026-07-13T11:59:50.000Z",
+      "paymentDueDate": null,
+      "goodUntil": "2026-07-20T11:59:50.073Z",
+      "prodDueDate": null,
+      "po": "QA-NQ330",
+      "notes": "",
+      "deliveryOption": "pickup",
+      "paymentMethod": "Credit Card",
+      "taxCode": "ZSCK"
+    },
+    "lineItems": [
+      {
+        "id": 165525,
+        "uid": "line-1-dY5mKu",
+        "title": "Garage DOOR",
+        "description": "",
+        "qty": 1,
+        "unitPrice": 459.06,
+        "lineTotal": 459.06,
+        "taxxable": null,
+        "meta": {},
+        "formSteps": [
+          {
+            "id": 366852,
+            "stepId": 1,
+            "componentId": 878,
+            "prodUid": "Yl94q",
+            "value": "Garage DOOR",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": 366853,
+            "stepId": 41,
+            "componentId": 286,
+            "prodUid": "fAGaw",
+            "value": "Wood Stile & Rail",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 41,
+              "uid": "wUGhI",
+              "title": "Door Type"
+            }
+          },
+          {
+            "id": 366854,
+            "stepId": 13,
+            "componentId": 146,
+            "prodUid": "D2Vup",
+            "value": "6-8",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 13,
+              "uid": "YmWG7",
+              "title": "Height"
+            }
+          },
+          {
+            "id": 366855,
+            "stepId": 51,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 51,
+              "uid": "jdd5q",
+              "title": "Door"
+            }
+          },
+          {
+            "id": 366856,
+            "stepId": 31,
+            "componentId": 234,
+            "prodUid": "tQbPy",
+            "value": "Double Bore",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 31,
+              "uid": "hM1sD",
+              "title": "Bore"
+            }
+          },
+          {
+            "id": 366857,
+            "stepId": 72,
+            "componentId": 1521,
+            "prodUid": "w94kQ",
+            "value": "Wood ext jambs",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 72,
+              "uid": "8zCDT",
+              "title": "Jamb Type"
+            }
+          },
+          {
+            "id": 366858,
+            "stepId": 61,
+            "componentId": 1389,
+            "prodUid": "HNHjt",
+            "value": "EXT FRAME 4-5/8 FJ PINE PRIMED KERFED ",
+            "qty": 1,
+            "price": 41.97,
+            "basePrice": 27.25,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 61,
+              "uid": "mwK1t",
+              "title": "Jamb Size"
+            }
+          },
+          {
+            "id": 366859,
+            "stepId": 202,
+            "componentId": 1576,
+            "prodUid": "zpBri",
+            "value": "4 x 4 Exterior Hinges 5/8\" RC Steel W/ Safety Stud",
+            "qty": 1,
+            "price": 9.16,
+            "basePrice": 5.95,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 202,
+              "uid": "ZJXgZ",
+              "title": "Hinge Type"
+            }
+          },
+          {
+            "id": 366860,
+            "stepId": 115,
+            "componentId": 521,
+            "prodUid": "Q0zk0",
+            "value": "US26---Bright Chrome",
+            "qty": 1,
+            "price": 14.09,
+            "basePrice": 9.15,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 115,
+              "uid": "kLDii",
+              "title": "Hinge Finish"
+            }
+          },
+          {
+            "id": 366861,
+            "stepId": 195,
+            "componentId": 1712,
+            "prodUid": "1i7IX",
+            "value": "out-swing aluminum treshold 32\"",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 195,
+              "uid": "kCBxo",
+              "title": "Sill Type"
+            }
+          },
+          {
+            "id": 366862,
+            "stepId": 137,
+            "componentId": 651,
+            "prodUid": "dXDvZ",
+            "value": "No Cutdown",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 137,
+              "uid": "OBikk",
+              "title": "Cutdown Height"
+            }
+          },
+          {
+            "id": 366863,
+            "stepId": 212,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 212,
+              "uid": "VFInm",
+              "title": "House Package Tool"
+            }
+          }
+        ],
+        "shelfItems": [],
+        "housePackageTool": {
+          "id": 56674,
+          "height": null,
+          "doorType": "Garage DOOR",
+          "doorId": null,
+          "dykeDoorId": null,
+          "jambSizeId": null,
+          "casingId": null,
+          "moldingId": null,
+          "stepProductId": 1322,
+          "totalPrice": 459.06,
+          "totalDoors": 1,
+          "meta": {},
+          "molding": null,
+          "doors": [
+            {
+              "id": 59637,
+              "dimension": "2-8 x 6-8",
+              "swing": "OUT-SWING",
+              "doorType": null,
+              "doorPrice": 0,
+              "jambSizePrice": 393.84,
+              "casingPrice": 0,
+              "unitPrice": 459.06,
+              "lhQty": 1,
+              "rhQty": 0,
+              "totalQty": 1,
+              "lineTotal": 459.06,
+              "stepProductId": 1322,
+              "meta": {
+                "laborQty": 1,
+                "overridePrice": null,
+                "doorSalesUnitPrice": 393.84,
+                "jambSizePrice": 393.84,
+                "addon": 0,
+                "sharedDoorSurcharge": 65.22,
+                "flatRate": 0,
+                "customPrice": null,
+                "calculatedFinalUnitPrice": 459.06,
+                "finalUnitPrice": 459.06,
+                "priceMissing": false
+              },
+              "addon": 0,
+              "customPrice": null
+            }
+          ]
+        }
+      },
+      {
+        "id": 165526,
+        "uid": "line-2-3YUCrw",
+        "title": "Interior pre-hung",
+        "description": "",
+        "qty": 8,
+        "unitPrice": 190.12,
+        "lineTotal": 1520.94,
+        "taxxable": null,
+        "meta": {},
+        "formSteps": [
+          {
+            "id": 366864,
+            "stepId": 1,
+            "componentId": 1,
+            "prodUid": "KmUMM",
+            "value": "Interior pre-hung",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": 366865,
+            "stepId": 2,
+            "componentId": 4,
+            "prodUid": "xZTAn",
+            "value": "PH - Single",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 2,
+              "uid": "lzjs2",
+              "title": "Door Configuration"
+            }
+          },
+          {
+            "id": 366866,
+            "stepId": 13,
+            "componentId": 146,
+            "prodUid": "D2Vup",
+            "value": "6-8",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 13,
+              "uid": "YmWG7",
+              "title": "Height"
+            }
+          },
+          {
+            "id": 366867,
+            "stepId": 31,
+            "componentId": 233,
+            "prodUid": "YDGLA",
+            "value": "Single Bore",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 31,
+              "uid": "hM1sD",
+              "title": "Bore"
+            }
+          },
+          {
+            "id": 366868,
+            "stepId": 41,
+            "componentId": 286,
+            "prodUid": "fAGaw",
+            "value": "Wood Stile & Rail",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 41,
+              "uid": "wUGhI",
+              "title": "Door Type"
+            }
+          },
+          {
+            "id": 366869,
+            "stepId": 51,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 51,
+              "uid": "jdd5q",
+              "title": "Door"
+            }
+          },
+          {
+            "id": 366870,
+            "stepId": 61,
+            "componentId": 1656,
+            "prodUid": "BjMPX",
+            "value": "4-5/8",
+            "qty": 1,
+            "price": 33.49,
+            "basePrice": 21.75,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 61,
+              "uid": "mwK1t",
+              "title": "Jamb Size"
+            }
+          },
+          {
+            "id": 366871,
+            "stepId": 115,
+            "componentId": 521,
+            "prodUid": "Q0zk0",
+            "value": "US26---Bright Chrome",
+            "qty": 1,
+            "price": 10.44,
+            "basePrice": 6.78,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 115,
+              "uid": "kLDii",
+              "title": "Hinge Finish"
+            }
+          },
+          {
+            "id": 366872,
+            "stepId": 126,
+            "componentId": 630,
+            "prodUid": "6IuVn",
+            "value": "No Casing",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 126,
+              "uid": "cnJLu",
+              "title": "Casing Y/N"
+            }
+          },
+          {
+            "id": 366873,
+            "stepId": 212,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 212,
+              "uid": "VFInm",
+              "title": "House Package Tool"
+            }
+          }
+        ],
+        "shelfItems": [],
+        "housePackageTool": {
+          "id": 56675,
+          "height": null,
+          "doorType": "Interior pre-hung",
+          "doorId": null,
+          "dykeDoorId": null,
+          "jambSizeId": null,
+          "casingId": null,
+          "moldingId": null,
+          "stepProductId": 996,
+          "totalPrice": 1520.94,
+          "totalDoors": 8,
+          "meta": {},
+          "molding": null,
+          "doors": [
+            {
+              "id": 59638,
+              "dimension": "2-0 x 6-8",
+              "swing": "",
+              "doorType": null,
+              "doorPrice": 0,
+              "jambSizePrice": 135.92,
+              "casingPrice": 0,
+              "unitPrice": 179.85,
+              "lhQty": 1,
+              "rhQty": 1,
+              "totalQty": 2,
+              "lineTotal": 359.7,
+              "stepProductId": 996,
+              "meta": {
+                "laborQty": 2,
+                "overridePrice": null,
+                "doorSalesUnitPrice": 135.92,
+                "jambSizePrice": 135.92,
+                "addon": 0,
+                "sharedDoorSurcharge": 43.93,
+                "flatRate": 0,
+                "customPrice": null,
+                "calculatedFinalUnitPrice": 179.85,
+                "finalUnitPrice": 179.85,
+                "priceMissing": false
+              },
+              "addon": 0,
+              "customPrice": null
+            },
+            {
+              "id": 59639,
+              "dimension": "2-6 x 6-8",
+              "swing": "",
+              "doorType": null,
+              "doorPrice": 0,
+              "jambSizePrice": 149.61,
+              "casingPrice": 0,
+              "unitPrice": 193.54,
+              "lhQty": 2,
+              "rhQty": 4,
+              "totalQty": 6,
+              "lineTotal": 1161.24,
+              "stepProductId": 996,
+              "meta": {
+                "laborQty": 6,
+                "overridePrice": null,
+                "doorSalesUnitPrice": 149.61,
+                "jambSizePrice": 149.61,
+                "addon": 0,
+                "sharedDoorSurcharge": 43.93,
+                "flatRate": 0,
+                "customPrice": null,
+                "calculatedFinalUnitPrice": 193.54,
+                "finalUnitPrice": 193.54,
+                "priceMissing": false
+              },
+              "addon": 0,
+              "customPrice": null
+            }
+          ]
+        }
+      },
+      {
+        "id": 165527,
+        "uid": "line-3-zefvvv",
+        "title": "Bifold",
+        "description": "",
+        "qty": 9,
+        "unitPrice": 202.13,
+        "lineTotal": 1819.17,
+        "taxxable": null,
+        "meta": {},
+        "formSteps": [
+          {
+            "id": 366874,
+            "stepId": 1,
+            "componentId": 879,
+            "prodUid": "LDjny",
+            "value": "Bifold",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": 366875,
+            "stepId": 41,
+            "componentId": 286,
+            "prodUid": "fAGaw",
+            "value": "Wood Stile & Rail",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 41,
+              "uid": "wUGhI",
+              "title": "Door Type"
+            }
+          },
+          {
+            "id": 366876,
+            "stepId": 13,
+            "componentId": 146,
+            "prodUid": "D2Vup",
+            "value": "6-8",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 13,
+              "uid": "YmWG7",
+              "title": "Height"
+            }
+          },
+          {
+            "id": 366877,
+            "stepId": 51,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 51,
+              "uid": "jdd5q",
+              "title": "Door"
+            }
+          },
+          {
+            "id": 366878,
+            "stepId": 212,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 212,
+              "uid": "VFInm",
+              "title": "House Package Tool"
+            }
+          }
+        ],
+        "shelfItems": [],
+        "housePackageTool": {
+          "id": 56676,
+          "height": null,
+          "doorType": "Bifold",
+          "doorId": null,
+          "dykeDoorId": null,
+          "jambSizeId": null,
+          "casingId": null,
+          "moldingId": null,
+          "stepProductId": 1258,
+          "totalPrice": 1819.17,
+          "totalDoors": 9,
+          "meta": {},
+          "molding": null,
+          "doors": [
+            {
+              "id": 59640,
+              "dimension": "2-6 x 6-8",
+              "swing": "",
+              "doorType": null,
+              "doorPrice": 0,
+              "jambSizePrice": 202.13,
+              "casingPrice": 0,
+              "unitPrice": 202.13,
+              "lhQty": 0,
+              "rhQty": 0,
+              "totalQty": 5,
+              "lineTotal": 1010.65,
+              "stepProductId": 1258,
+              "meta": {
+                "laborQty": 5,
+                "overridePrice": null,
+                "doorSalesUnitPrice": 202.13,
+                "jambSizePrice": 202.13,
+                "addon": 0,
+                "sharedDoorSurcharge": 0,
+                "flatRate": 0,
+                "customPrice": null,
+                "calculatedFinalUnitPrice": 202.13,
+                "finalUnitPrice": 202.13,
+                "priceMissing": false
+              },
+              "addon": 0,
+              "customPrice": null
+            },
+            {
+              "id": 59641,
+              "dimension": "3-0 x 6-8",
+              "swing": "",
+              "doorType": null,
+              "doorPrice": 0,
+              "jambSizePrice": 202.13,
+              "casingPrice": 0,
+              "unitPrice": 202.13,
+              "lhQty": 0,
+              "rhQty": 0,
+              "totalQty": 4,
+              "lineTotal": 808.52,
+              "stepProductId": 1258,
+              "meta": {
+                "laborQty": 4,
+                "overridePrice": null,
+                "doorSalesUnitPrice": 202.13,
+                "jambSizePrice": 202.13,
+                "addon": 0,
+                "sharedDoorSurcharge": 0,
+                "flatRate": 0,
+                "customPrice": null,
+                "calculatedFinalUnitPrice": 202.13,
+                "finalUnitPrice": 202.13,
+                "priceMissing": false
+              },
+              "addon": 0,
+              "customPrice": null
+            }
+          ]
+        }
+      },
+      {
+        "id": 165528,
+        "uid": "line-4-CHd9eS",
+        "title": "Mouldings",
+        "description": "FLAT BOARD (11/16 X 3-1/2 X 17) PRIMED FJ S4S 1 X 4 | FLAT BOARD (11/16 X 5-1/2 X  X 16') PRIMED FJ S4S 1 X 6",
+        "qty": 95,
+        "unitPrice": 14.48,
+        "lineTotal": 1375.4,
+        "taxxable": null,
+        "meta": {
+          "groupUid": "8Dkm",
+          "mouldingRows": [
+            {
+              "salesItemId": 165528,
+              "hptId": 56677,
+              "groupUid": "8Dkm",
+              "primaryGroupItem": true,
+              "uid": "line-4-CHd9eS",
+              "title": "FLAT BOARD (11/16 X 3-1/2 X 17) PRIMED FJ S4S 1 X 4",
+              "description": "FLAT BOARD (11/16 X 3-1/2 X 17) PRIMED FJ S4S 1 X 4",
+              "qty": 50,
+              "addon": 0,
+              "customPrice": null,
+              "salesPrice": 13.09,
+              "basePrice": 8.5,
+              "unitLabor": null,
+              "laborQty": 50,
+              "stepProductId": 908,
+              "mouldingProductId": 360,
+              "lineTotal": 654.5
+            },
+            {
+              "salesItemId": 165529,
+              "hptId": 56678,
+              "groupUid": "8Dkm",
+              "primaryGroupItem": false,
+              "uid": "line-5-wxvqxa",
+              "title": "FLAT BOARD (11/16 X 5-1/2 X  X 16') PRIMED FJ S4S 1 X 6",
+              "description": "FLAT BOARD (11/16 X 5-1/2 X  X 16') PRIMED FJ S4S 1 X 6",
+              "qty": 45,
+              "addon": 0,
+              "customPrice": null,
+              "salesPrice": 16.02,
+              "basePrice": 10.4,
+              "unitLabor": null,
+              "laborQty": 45,
+              "stepProductId": 890,
+              "mouldingProductId": 342,
+              "lineTotal": 720.9
+            }
+          ],
+          "rateRoundingAdjustment": -0.2,
+          "totalAuthoritative": true
+        },
+        "formSteps": [
+          {
+            "id": 366879,
+            "stepId": 1,
+            "componentId": 883,
+            "prodUid": "5DcsP",
+            "value": "Mouldings",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 1,
+              "uid": "MtJgR",
+              "title": "Item Type"
+            }
+          },
+          {
+            "id": 366880,
+            "stepId": 215,
+            "componentId": null,
+            "prodUid": "line-4-CHd9eS",
+            "value": "FLAT BOARD (11/16 X 3-1/2 X 17) PRIMED FJ S4S 1 X 4, FLAT BOARD (11/16 X 5-1/2 X  X 16') PRIMED FJ S4S 1 X 6",
+            "qty": 1,
+            "price": 1375.4,
+            "basePrice": 18.9,
+            "meta": {
+              "flatRate": false,
+              "selectedProdUids": [
+                "line-4-CHd9eS",
+                "line-5-wxvqxa"
+              ],
+              "selectedComponents": [
+                {
+                  "id": 908,
+                  "uid": "line-4-CHd9eS",
+                  "title": "FLAT BOARD (11/16 X 3-1/2 X 17) PRIMED FJ S4S 1 X 4",
+                  "img": null,
+                  "inventoryId": null,
+                  "inventoryVariantId": null,
+                  "salesPrice": 13.09,
+                  "basePrice": 8.5,
+                  "pricing": null,
+                  "supplierVariants": [],
+                  "redirectUid": null,
+                  "sectionOverride": null
+                },
+                {
+                  "id": 890,
+                  "uid": "line-5-wxvqxa",
+                  "title": "FLAT BOARD (11/16 X 5-1/2 X  X 16') PRIMED FJ S4S 1 X 6",
+                  "img": null,
+                  "inventoryId": null,
+                  "inventoryVariantId": null,
+                  "salesPrice": 16.02,
+                  "basePrice": 10.4,
+                  "pricing": null,
+                  "supplierVariants": [],
+                  "redirectUid": null,
+                  "sectionOverride": null
+                }
+              ]
+            },
+            "step": {
+              "id": 215,
+              "uid": "8iDAw",
+              "title": "Moulding"
+            }
+          },
+          {
+            "id": 366881,
+            "stepId": 217,
+            "componentId": null,
+            "prodUid": null,
+            "value": "",
+            "qty": 1,
+            "price": 0,
+            "basePrice": 0,
+            "meta": {
+              "flatRate": false
+            },
+            "step": {
+              "id": 217,
+              "uid": "Jpys8",
+              "title": "Line Item"
+            }
+          }
+        ],
+        "shelfItems": [],
+        "housePackageTool": {
+          "id": 56677,
+          "height": null,
+          "doorType": "Mouldings",
+          "doorId": null,
+          "dykeDoorId": null,
+          "jambSizeId": null,
+          "casingId": null,
+          "moldingId": 360,
+          "stepProductId": 908,
+          "totalPrice": 0,
+          "totalDoors": 0,
+          "meta": {
+            "priceTags": {
+              "moulding": {
+                "addon": 0,
+                "price": 13.09,
+                "laborQty": 50,
+                "basePrice": 8.5,
+                "salesPrice": 13.09,
+                "overridePrice": ""
+              }
+            }
+          },
+          "molding": {
+            "id": 360,
+            "title": "FLAT BOARD (11/16 X 3-1/2 X 17) PRIMED FJ S4S 1 X 4",
+            "value": "FLAT BOARD (11/16 X 3-1/2 X 16) PRIMED FJ S4S 1 X 4",
+            "price": 14.45
+          },
+          "doors": []
+        }
+      }
+    ],
+    "extraCosts": [
+      {
+        "id": null,
+        "label": "Labor",
+        "type": "Labor",
+        "amount": 0,
+        "taxxable": false
+      }
+    ],
+    "summary": {
+      "subTotal": 5174.57,
+      "adjustedSubTotal": 5174.57,
+      "taxRate": 7,
+      "taxTotal": 362.22,
+      "grandTotal": 5536.79,
+      "totalWithCcc": 5702.89,
+      "discount": 0,
+      "discountPct": 0,
+      "percentDiscountValue": 0,
+      "labor": 0,
+      "delivery": 0,
+      "otherCosts": 0,
+      "taxableSubTotal": 5174.57,
+      "ccc": 166.1
+    }
+  }
+}

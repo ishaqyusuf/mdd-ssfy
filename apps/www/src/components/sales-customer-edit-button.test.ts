@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
+	getSalesAddressEditParams,
 	getSalesCustomerEditParams,
+	isCompletedSalesAddressEdit,
 	isCompletedSalesCustomerEdit,
 } from "./sales-customer-edit-button";
 
@@ -36,16 +38,69 @@ describe("sales customer edit button", () => {
 		).toBe(false);
 	});
 
-	it("keeps all Sales Overview customer sections on the shared edit action", () => {
-		const sources = [
-			new URL("./sales-overview-system/tabs/overview-tab.tsx", import.meta.url),
-			new URL("./sales-overview-system/tabs/overview/v2.tsx", import.meta.url),
-			new URL("./sheets/sales-overview-sheet/general-tab.tsx", import.meta.url),
-		].map((file) => readFileSync(file, "utf8"));
+	it("opens the address-only customer form for billing and shipping", () => {
+		expect(
+			getSalesAddressEditParams({
+				customerId: 42,
+				addressId: 7,
+				address: "bad",
+			}),
+		).toEqual({
+			customerForm: true,
+			customerId: 42,
+			addressId: 7,
+			address: "bad",
+		});
+		expect(
+			getSalesAddressEditParams({
+				customerId: 42,
+				addressId: null,
+				address: "sad",
+			}),
+		).toEqual({
+			customerForm: true,
+			customerId: 42,
+			address: "sad",
+		});
+		expect(
+			getSalesAddressEditParams({
+				customerId: null,
+				addressId: 7,
+				address: "bad",
+			}),
+		).toBeNull();
+	});
 
-		for (const source of sources) {
-			expect(source.includes("SalesCustomerEditButton")).toBe(true);
-		}
+	it("consumes only the matching completed address edit payload", () => {
+		expect(
+			isCompletedSalesAddressEdit({
+				payloadCustomerId: 42,
+				payloadAddress: "sad",
+				requestedCustomerId: 42,
+				requestedAddress: "sad",
+			}),
+		).toBe(true);
+		expect(
+			isCompletedSalesAddressEdit({
+				payloadCustomerId: 42,
+				payloadAddress: "bad",
+				requestedCustomerId: 42,
+				requestedAddress: "sad",
+			}),
+		).toBe(false);
+	});
+
+	it("keeps the canonical Sales Overview on shared customer and address actions", () => {
+		const source = readFileSync(
+			new URL(
+				"./sheets/sales-overview-sheet/general-tab.tsx",
+				import.meta.url,
+			),
+			"utf8",
+		);
+
+		expect(source.includes("SalesCustomerEditButton")).toBe(true);
+		expect(source.includes("SalesAddressEditButton")).toBe(true);
 	});
 
 	it("uses the customer-edit permission rather than the order-edit permission", () => {

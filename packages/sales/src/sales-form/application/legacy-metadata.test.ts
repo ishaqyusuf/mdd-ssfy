@@ -1,8 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
 	calculateLegacyPaymentDueDate,
+	mergeSalesMetaPatch,
 	projectSalesFormMetaToLegacyMeta,
 	readLegacySalesFormMeta,
+	readSalesFormPo,
 } from "./legacy-metadata";
 
 describe("legacy sales form metadata", () => {
@@ -96,6 +98,83 @@ describe("legacy sales form metadata", () => {
 			discount: 10,
 			deliveryCost: 25,
 			labor_cost: 40,
+		});
+	});
+
+	it("reads a P.O. number from either metadata shape while preferring the root", () => {
+		expect(
+			readSalesFormPo({
+				newSalesForm: {
+					form: {
+						po: "PO-NESTED",
+					},
+				},
+			}),
+		).toBe("PO-NESTED");
+		expect(
+			readSalesFormPo({
+				po: "PO-ROOT",
+				newSalesForm: {
+					form: {
+						po: "PO-NESTED",
+					},
+				},
+			}),
+		).toBe("PO-ROOT");
+	});
+
+	it("synchronizes overview P.O. patches into an existing new-form document", () => {
+		const meta = mergeSalesMetaPatch(
+			{
+				qb: "QB-1",
+				newSalesForm: {
+					form: {
+						po: "PO-OLD",
+						notes: "Preserve me",
+					},
+				},
+			},
+			{ po: "PO-OVERVIEW" },
+		);
+
+		expect(meta).toMatchObject({
+			po: "PO-OVERVIEW",
+			qb: "QB-1",
+			newSalesForm: {
+				form: {
+					po: "PO-OVERVIEW",
+					notes: "Preserve me",
+				},
+			},
+		});
+	});
+
+	it("preserves and synchronizes nested new-form metadata during a legacy save", () => {
+		const meta = projectSalesFormMetaToLegacyMeta({
+			existingMeta: {
+				newSalesForm: {
+					form: {
+						po: "PO-NEW-FORM",
+						notes: "Preserve me",
+					},
+				},
+			},
+			form: {
+				po: "PO-LEGACY",
+				paymentMethod: "Cash",
+			},
+		});
+
+		expect(meta).toMatchObject({
+			po: "PO-LEGACY",
+			payment_option: "Cash",
+			newSalesForm: {
+				form: {
+					po: "PO-LEGACY",
+					paymentMethod: "Cash",
+					notes: "Preserve me",
+				},
+			},
 		});
 	});
 

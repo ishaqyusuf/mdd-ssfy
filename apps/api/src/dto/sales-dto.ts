@@ -1,4 +1,3 @@
-import type { SalesListInclude } from "@api/utils/sales";
 import type {
 	AddressBookMeta,
 	QtyControlType,
@@ -6,6 +5,7 @@ import type {
 	SalesMeta,
 	SalesType,
 } from "@api/type";
+import type { SalesListInclude } from "@api/utils/sales";
 import {
 	composeSalesStat,
 	dispatchTitle,
@@ -18,6 +18,7 @@ import { repairSalesInvoiceCccDisplay } from "@gnd/sales/payment-system";
 import { getPrintPaymentFooterState } from "@gnd/sales/print/payment-footer-state";
 import { deriveOrderProductionGateState } from "@gnd/sales/production-gate";
 import { resolvePersistedSalesLineDoorRouteConfig } from "@gnd/sales/sales-form";
+import { readSalesFormPo } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { getNameInitials, sum, toNumber } from "@gnd/utils";
 import { timeAgo } from "@gnd/utils/dayjs";
 import type { DeliveryOption } from "@gnd/utils/sales";
@@ -103,7 +104,6 @@ export function salesOrderDto(data: Item, bin?: boolean) {
 	// }
 	let due = toNumber(data.amountDue);
 	if (due <= 0) due = 0;
-	const customer = data.customer;
 	return {
 		...commonListData(data, bin),
 		deliveryOption,
@@ -117,20 +117,14 @@ export function salesOrderDto(data: Item, bin?: boolean) {
 		due,
 		stats: statToKeyValueDto(data.stat),
 		status,
-		addressData: {
-			shipping: getAddressDto(
-				data.shippingAddress || data.billingAddress,
-				customer,
-				"Shipping Address",
-			),
-			billing: getAddressDto(data.billingAddress, customer, "Billing Address"),
-		},
+		addressData: getSalesAddressData(data),
 		statList: data.stat,
 	};
 }
 export function salesQuoteDto(data: Item, bin?: boolean) {
 	return {
 		...commonListData(data, bin),
+		addressData: getSalesAddressData(data),
 	};
 }
 
@@ -206,6 +200,23 @@ function getAddressDto(
 	};
 }
 
+function getSalesAddressData(data: Item) {
+	const customer = data.customer;
+	const shipping = getAddressDto(
+		data.shippingAddress || data.billingAddress,
+		customer,
+		"Shipping Address",
+	);
+
+	return {
+		shipping: {
+			...shipping,
+			id: data.shippingAddress?.id ?? null,
+		},
+		billing: getAddressDto(data.billingAddress, customer, "Billing Address"),
+	};
+}
+
 function salesOverviewItemsDto(
 	items: Item["items"],
 	includePreflightEvidence = false,
@@ -239,7 +250,9 @@ function salesOverviewItemsDto(
 			})),
 			doors: (item.salesDoors || []).map((door) => {
 				const meta =
-					door.meta && typeof door.meta === "object" && !Array.isArray(door.meta)
+					door.meta &&
+					typeof door.meta === "object" &&
+					!Array.isArray(door.meta)
 						? (door.meta as Record<string, unknown>)
 						: null;
 				const totalQty = Number(door.totalQty || 0);
@@ -400,7 +413,7 @@ function commonListData(data: Item, bin?: boolean) {
 		salesRepId: data.salesRepId,
 		salesRep: data.salesRep?.name,
 		salesRepInitial: getNameInitials(data.salesRep?.name!),
-		poNo: meta?.po,
+		poNo: readSalesFormPo(meta as any),
 		paymentMethod,
 		priority: normalizeSalesPriority(data.priority),
 		priorityLabel: getSalesPriorityLabel(data.priority),

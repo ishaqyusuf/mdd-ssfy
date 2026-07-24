@@ -31,6 +31,54 @@ export function isCompletedSalesCustomerEdit({
 	);
 }
 
+type SalesAddressType = "bad" | "sad";
+
+export function getSalesAddressEditParams({
+	customerId,
+	addressId,
+	address,
+}: {
+	customerId?: number | null;
+	addressId?: number | null;
+	address: SalesAddressType;
+}): {
+	customerForm: true;
+	customerId: number;
+	address: SalesAddressType;
+	addressId?: number;
+} | null {
+	if (!customerId || !Number.isFinite(customerId) || customerId <= 0) {
+		return null;
+	}
+
+	return {
+		customerForm: true,
+		customerId,
+		address,
+		...(addressId && Number.isFinite(addressId) && addressId > 0
+			? { addressId }
+			: {}),
+	};
+}
+
+export function isCompletedSalesAddressEdit({
+	payloadCustomerId,
+	payloadAddress,
+	requestedCustomerId,
+	requestedAddress,
+}: {
+	payloadCustomerId?: number;
+	payloadAddress?: SalesAddressType;
+	requestedCustomerId?: number | null;
+	requestedAddress?: SalesAddressType | null;
+}) {
+	return (
+		requestedCustomerId != null &&
+		payloadCustomerId === requestedCustomerId &&
+		payloadAddress === requestedAddress
+	);
+}
+
 export function SalesCustomerEditButton({
 	customerId,
 	readOnly = false,
@@ -82,6 +130,78 @@ export function SalesCustomerEditButton({
 		>
 			<Icons.Edit className="mr-1 size-3.5" />
 			Edit customer
+		</Button>
+	);
+}
+
+export function SalesAddressEditButton({
+	customerId,
+	addressId,
+	address,
+	label,
+	readOnly = false,
+}: {
+	customerId?: number | null;
+	addressId?: number | null;
+	address: SalesAddressType;
+	label: string;
+	readOnly?: boolean;
+}) {
+	const auth = useAuth();
+	const { params, setParams } = useCreateCustomerParams();
+	const requestedEditRef = useRef<{
+		customerId: number;
+		address: SalesAddressType;
+	} | null>(null);
+	const editParams = getSalesAddressEditParams({
+		customerId,
+		addressId,
+		address,
+	});
+	const payloadCustomerId = params.payload?.customerId;
+	const payloadAddress = params.payload?.address;
+
+	useEffect(() => {
+		const requestedEdit = requestedEditRef.current;
+		if (
+			requestedEdit &&
+			isCompletedSalesAddressEdit({
+				payloadCustomerId,
+				payloadAddress,
+				requestedCustomerId: requestedEdit.customerId,
+				requestedAddress: requestedEdit.address,
+			})
+		) {
+			requestedEditRef.current = null;
+			void setParams(null);
+			return;
+		}
+
+		if (requestedEdit && !params.customerForm && !payloadCustomerId) {
+			requestedEditRef.current = null;
+		}
+	}, [params.customerForm, payloadAddress, payloadCustomerId, setParams]);
+
+	if (!editParams || readOnly || !auth.can?.editSalesCustomers) return null;
+
+	const action = addressId ? "Edit" : "Add";
+	return (
+		<Button
+			aria-label={`${action} ${label}`}
+			title={`${action} ${label}`}
+			type="button"
+			size="xs"
+			variant="outline"
+			onClick={() => {
+				requestedEditRef.current = {
+					customerId: editParams.customerId,
+					address: editParams.address,
+				};
+				void setParams(editParams);
+			}}
+		>
+			<Icons.Edit className="mr-1 size-3.5" />
+			{action}
 		</Button>
 	);
 }

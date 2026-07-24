@@ -1,10 +1,11 @@
-import { Prisma } from "@/db";
+import { Prisma, prisma } from "@/db";
 import { __isProd } from "@/lib/is-prod-server";
 import { formatMoney } from "@/lib/use-number";
 import dayjs from "dayjs";
 import { isEqual, isNaN } from "lodash";
 
 import { SalesFormFields, SalesMeta } from "../../../types";
+import { projectSalesFormMetaToLegacyMeta } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { calculatePaymentDueDate } from "../../utils/sales-utils";
 import { generateSalesId } from "./sales-id-dta";
 import { SaveSalesClass } from "./save-sales-class";
@@ -28,16 +29,30 @@ export class SaveSalesHelper {
     }
     public async composeSalesForm(form: SalesFormFields) {
         const md = form.metaData;
+        const currentOrder = md.id
+            ? await prisma.salesOrders.findUnique({
+                  where: { id: md.id },
+                  select: { meta: true },
+              })
+            : null;
         const meta: Partial<SalesMeta> = {
-            ccc: md.pricing.ccc,
-            ccc_percentage: md.pricing.cccPercentage || 3.5,
-            discount: md.pricing.discount,
-            deliveryCost: Number(md.pricing?.delivery),
-            labor_cost: md.pricing.labour,
-            po: md.po,
+            ...projectSalesFormMetaToLegacyMeta({
+                existingMeta: currentOrder?.meta as any,
+                form: {
+                    po: md.po,
+                    paymentMethod: md.paymentMethod,
+                },
+                summary: {
+                    ccc: md.pricing.ccc,
+                    discount: md.pricing.discount,
+                    delivery: Number(md.pricing?.delivery),
+                    labor: md.pricing.labour,
+                },
+                cccPercentage: md.pricing.cccPercentage || 3.5,
+                paymentMethodReviewDismissed:
+                    md.paymentMethodReviewDismissed,
+            }),
             qb: md.qb,
-            payment_option: md.paymentMethod,
-            paymentMethodReviewDismissed: md.paymentMethodReviewDismissed,
             laborConfig: md?.salesLaborConfig,
         };
         const sd = this.ctx.data;

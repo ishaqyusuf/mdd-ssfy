@@ -5,6 +5,7 @@ import {
 } from "@/app/(clean-code)/(sales)/types";
 import { formatMoney } from "@/lib/use-number";
 import { generateRandomString } from "@/lib/utils";
+import { readLegacySalesFormMeta } from "@gnd/sales/sales-form/application/legacy-metadata";
 import { resolveSalesDisplayCcc } from "@sales/payment-system/domain/display-ccc";
 import { orderInboundStatuses, type OrderInboundStatus } from "@gnd/utils/constants";
 import dayjs from "dayjs";
@@ -46,6 +47,10 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
         paymentMethod: data.order?.meta?.payment_option || null,
         cccPercentage,
         meta: data.order?.meta,
+    });
+    const compatibleMeta = readLegacySalesFormMeta({
+        meta: data.order?.meta as any,
+        persistedForm: (data.order?.meta as any)?.newSalesForm?.form,
     });
     if (copy && selectedTax) selectedTax.salesTaxId = null;
     const isLegacy =
@@ -115,7 +120,7 @@ export function zhInitializeState(data: GetSalesBookForm, copy = false) {
                   },
             salesMultiplier,
             deliveryMode: data.order.deliveryOption as any,
-            po: data.order?.meta?.po,
+            po: compatibleMeta.po,
             qb: data.order?.meta?.qb,
             salesProfileId: profile?.id,
             // cad: data.customer?.id,

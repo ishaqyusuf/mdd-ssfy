@@ -1,9 +1,9 @@
+import { appliesPaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
 import type {
 	SalesFormExtraCostRecord,
 	SalesFormMetaRecord,
 	SalesFormSummaryRecord,
 } from "./record-normalization";
-import { appliesPaymentChannelCharge } from "../../payment-system/domain/payment-channel-charge";
 
 export type LegacySalesFormMetaContainer = Record<string, unknown> & {
 	newSalesForm?: {
@@ -50,6 +50,48 @@ function firstDefined<T>(...values: Array<T | null | undefined>) {
 		if (value !== undefined && value !== null) return value;
 	}
 	return null;
+}
+
+function getPersistedSalesForm(
+	meta?: LegacySalesFormMetaContainer | null,
+): Partial<SalesFormMetaRecord> {
+	const newSalesForm = safeRecord(safeRecord(meta).newSalesForm);
+	return safeRecord(newSalesForm.form) as Partial<SalesFormMetaRecord>;
+}
+
+export function readSalesFormPo(
+	meta?: LegacySalesFormMetaContainer | null,
+): string {
+	const rootMeta = safeRecord(meta);
+	const persistedForm = getPersistedSalesForm(meta);
+	return firstString(rootMeta.po, persistedForm.po) || "";
+}
+
+export function mergeSalesMetaPatch(
+	existingMeta: LegacySalesFormMetaContainer | null | undefined,
+	patch: Record<string, unknown>,
+) {
+	const existing = safeRecord(existingMeta);
+	const merged: LegacySalesFormMetaContainer = {
+		...existing,
+		...patch,
+	};
+
+	if (
+		Object.prototype.hasOwnProperty.call(patch, "po") &&
+		existing.newSalesForm
+	) {
+		const newSalesForm = safeRecord(existing.newSalesForm);
+		merged.newSalesForm = {
+			...newSalesForm,
+			form: {
+				...safeRecord(newSalesForm.form),
+				po: patch.po == null ? null : String(patch.po),
+			},
+		};
+	}
+
+	return merged;
 }
 
 function sumExtraCostsByType(
@@ -168,7 +210,7 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		? finiteNumber(summary.ccc)
 		: 0;
 
-	return {
+	const projectedMeta = {
 		...existingMetaWithoutDeprecated,
 		...(salesCoefficient == null
 			? {}
@@ -186,5 +228,19 @@ export function projectSalesFormMetaToLegacyMeta(input: {
 		payment_option: form.paymentMethod || null,
 		paymentMethodReviewDismissed,
 		laborConfig: existingMeta.laborConfig ?? null,
+	};
+
+	if (!existingMeta.newSalesForm) return projectedMeta;
+
+	const newSalesForm = safeRecord(existingMeta.newSalesForm);
+	return {
+		...projectedMeta,
+		newSalesForm: {
+			...newSalesForm,
+			form: {
+				...safeRecord(newSalesForm.form),
+				...form,
+			},
+		},
 	};
 }

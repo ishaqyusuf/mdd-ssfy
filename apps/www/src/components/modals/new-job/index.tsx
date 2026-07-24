@@ -52,7 +52,7 @@ export function NewJobModal() {
 		>
 			<JobFormProvider value={jobFormContext}>
 				<div className="" id="sub-header" />
-				<CustomModal.Content className="relative -mx-0 max-h-none min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!min-w-0 [&_[data-radix-scroll-area-viewport]>div]:!w-full md:max-h-[60vh] md:min-h-[60vh]">
+				<CustomModal.Content className="relative -mx-4 max-h-none min-h-0 flex-1 [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!min-w-0 [&_[data-radix-scroll-area-viewport]>div]:!w-full md:-mx-0 md:max-h-[60vh] md:min-h-[60vh]">
 					<Tabs
 						className="min-w-0 w-full max-w-full"
 						value={String(params.step)}

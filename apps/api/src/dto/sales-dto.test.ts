@@ -73,7 +73,9 @@ describe("sales dto cost lines", () => {
 			},
 		];
 
-		expect(salesOverviewDto(makeSale({ items }), "quote").overviewItems).toEqual([
+		expect(
+			salesOverviewDto(makeSale({ items }), "quote").overviewItems,
+		).toEqual([
 			{
 				configurationSteps: [{ label: "Door", value: "Garage Door" }],
 				doors: [],
@@ -149,9 +151,7 @@ describe("sales dto cost lines", () => {
 								noHandle: true,
 							},
 						},
-						formSteps: [
-							{ value: "Satin nickel", step: { title: "Hinge" } },
-						],
+						formSteps: [{ value: "Satin nickel", step: { title: "Hinge" } }],
 						salesDoors: [
 							{
 								dimension: "2-8 x 8-0",
@@ -200,6 +200,96 @@ describe("sales dto cost lines", () => {
 		);
 
 		expect(dto.shippingAddressConfigured).toBe(false);
+	});
+
+	it("exposes editable billing and shipping addresses for quote overviews", () => {
+		const dto = salesOverviewDto(
+			makeSale({
+				customer: {
+					id: 42,
+					name: "Test Customer",
+				},
+				billingAddress: {
+					id: 7,
+					address1: "123 Billing St",
+					address2: null,
+					meta: { zip_code: "33901" },
+				},
+				shippingAddress: {
+					id: 8,
+					address1: "456 Shipping Ave",
+					address2: null,
+					meta: { zip_code: "33902" },
+				},
+			}),
+			"quote",
+		);
+
+		expect(dto.addressData.billing).toMatchObject({
+			id: 7,
+			title: "Billing Address",
+		});
+		expect(dto.addressData.shipping).toMatchObject({
+			id: 8,
+			title: "Shipping Address",
+		});
+	});
+
+	it("displays billing as the shipping fallback without editing the billing row", () => {
+		const dto = salesOrderDto(
+			makeSale({
+				type: "order",
+				customer: {
+					id: 42,
+					name: "Test Customer",
+				},
+				billingAddress: {
+					id: 7,
+					address1: "123 Billing St",
+					address2: null,
+					meta: { zip_code: "33901" },
+				},
+				shippingAddress: null,
+			}),
+		);
+
+		expect(dto.addressData.shipping).toMatchObject({
+			id: null,
+			title: "Shipping Address",
+		});
+		expect(dto.addressData.shipping.lines).toEqual(
+			dto.addressData.billing.lines,
+		);
+	});
+
+	it("falls back to the new-form P.O. metadata while root metadata remains canonical", () => {
+		expect(
+			salesQuoteDto(
+				makeSale({
+					meta: {
+						newSalesForm: {
+							form: {
+								po: "PO-NESTED",
+							},
+						},
+					},
+				}),
+			).poNo,
+		).toBe("PO-NESTED");
+		expect(
+			salesQuoteDto(
+				makeSale({
+					meta: {
+						po: "PO-ROOT",
+						newSalesForm: {
+							form: {
+								po: "PO-NESTED",
+							},
+						},
+					},
+				}),
+			).poNo,
+		).toBe("PO-ROOT");
 	});
 
 	it("includes repaired credit card fee before invoice total", () => {

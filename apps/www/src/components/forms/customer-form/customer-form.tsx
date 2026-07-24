@@ -263,31 +263,6 @@ export function CustomerForm() {
 											// );
 										}}
 									/>
-									{!params.address || (
-										<>
-											<FormInput
-												control={form.control}
-												name="name"
-												label="Name"
-												size="sm"
-											/>
-
-											<div className="grid grid-cols-2 gap-4">
-												<PhoneFormInput
-													control={form.control}
-													name="phoneNo"
-													label="Phone"
-													size="sm"
-												/>
-												<FormInput
-													control={form.control}
-													name="email"
-													label="Email"
-													size="sm"
-												/>
-											</div>
-										</>
-									)}
 									<FormInput
 										control={form.control}
 										name="address1"
@@ -307,12 +282,6 @@ export function CustomerForm() {
 										size="sm"
 									/>
 									<div className="grid grid-cols-2 gap-4">
-										<PhoneFormInput
-											control={form.control}
-											name="phoneNo2"
-											label="Secondary Phone"
-											size="sm"
-										/>
 										<FormInput
 											control={form.control}
 											name="city"
@@ -329,6 +298,12 @@ export function CustomerForm() {
 											control={form.control}
 											name="zip_code"
 											label="Zip Code / Postal Code"
+											size="sm"
+										/>
+										<FormInput
+											control={form.control}
+											name="country"
+											label="Country"
 											size="sm"
 										/>
 									</div>

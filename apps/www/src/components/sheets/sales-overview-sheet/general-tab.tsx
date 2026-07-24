@@ -10,7 +10,10 @@ import { useSalesInventorySegmentQuery } from "@/components/sales-overview-syste
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
 import { DataSkeleton } from "@/components/data-skeleton";
 import { useCustomerOverviewQuery } from "@/hooks/use-customer-overview-query";
-import { SalesCustomerEditButton } from "@/components/sales-customer-edit-button";
+import {
+    SalesAddressEditButton,
+    SalesCustomerEditButton,
+} from "@/components/sales-customer-edit-button";
 import { DataSkeletonProvider } from "@/hooks/use-data-skeleton";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { middleTruncate } from "@/lib/truncate-middle";
@@ -389,6 +392,7 @@ export function GeneralTab({}) {
                                     <SalesPO
                                         salesId={saleData.id}
                                         value={saleData.poNo}
+                                        salesType={isQuote ? "quote" : "order"}
                                     />
                                 </div>
                             </div>
@@ -597,18 +601,39 @@ export function GeneralTab({}) {
                     </h3>
                     <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         {[
-                            saleData?.addressData?.billing,
-                            saleData?.addressData?.shipping,
-                        ]?.map((address, ai) => (
+                            {
+                                address: saleData?.addressData?.billing,
+                                addressType: "bad" as const,
+                            },
+                            {
+                                address: saleData?.addressData?.shipping,
+                                addressType: "sad" as const,
+                            },
+                        ]?.map(({ address, addressType }) => (
                             <Card
-                                key={ai}
-                                // key={address?.title}
+                                key={addressType}
                                 className="border-border/40"
                             >
                                 <CardContent className="p-4">
-                                    <h4 className="mb-2 font-medium">
-                                        {address?.title}
-                                    </h4>
+                                    <div className="mb-2 flex items-center justify-between gap-3">
+                                        <h4 className="font-medium">
+                                            {address?.title}
+                                        </h4>
+                                        <SalesAddressEditButton
+                                            customerId={saleData?.customerId}
+                                            addressId={address?.id}
+                                            address={addressType}
+                                            label={
+                                                address?.title ||
+                                                (addressType === "bad"
+                                                    ? "billing address"
+                                                    : "shipping address")
+                                            }
+                                            readOnly={Boolean(
+                                                saleData?.isDealerSale,
+                                            )}
+                                        />
+                                    </div>
                                     <DataSkeleton
                                         className="text-sm not-italic text-muted-foreground"
                                         placeholder="1713 LEE AVE"

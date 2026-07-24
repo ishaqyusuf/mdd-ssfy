@@ -11,7 +11,9 @@ export function FormAction({ onCancel }) {
 	const { setParams, params } = useCreateCustomerParams();
 	const form = useCustomerForm();
 	const id = form.watch("id");
-	const isEditing = params.customerId > 0;
+	const isEditing = params.address
+		? Boolean(params.addressId)
+		: params.customerId > 0;
 	const trpc = useTRPC();
 	const { mutate: mutateAddress, isPending: isAddressSubmitting } = useMutation(
 		trpc.customers.createCustomerAddress.mutationOptions({
@@ -58,7 +60,11 @@ export function FormAction({ onCancel }) {
 	return (
 		<div className="flex flex-1 py-4 items-center gap-4">
 			<div className="text-sm text-muted-foreground">
-				{isEditing ? "Update customer information" : "Create a new customer"}
+				{params.address
+					? `${isEditing ? "Update" : "Create"} this address only`
+					: isEditing
+						? "Update customer information"
+						: "Create a new customer"}
 			</div>
 			<div className="flex-1" />
 			<div className="flex gap-3">
