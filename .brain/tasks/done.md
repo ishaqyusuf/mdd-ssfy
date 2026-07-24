@@ -49,8 +49,9 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   typechecks, focused Biome, storefront production build, authenticated admin
   browser proof, and storefront campaign banner/card proof. Local schema push
   passed and its disposable campaign fixture was removed.
-- Release Gate: normal source migration generation is blocked by the existing
-  master-password shadow-history defect; production database was not changed.
+- Production Rollout: read-only preflight contained only five additive tables
+  and indexes; `push:prod` passed and the post-push diff is empty. The separate
+  master-password shadow-history defect remains documented.
 - Completed Date: 2026-07-24
 
 ### Sales Customer Editing From Form And Overview

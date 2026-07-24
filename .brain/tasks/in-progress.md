@@ -14,11 +14,10 @@ Tracks the active work queue. Keep this focused and execution-ready.
   verification, and user-confirmed development/production schema pushes are
   complete. Remaining gates are production catalog/content publication, real
   Square/email rehearsal, representative Door/Moulding/Shelf parity fixtures,
-  customer-profile/promotion schema deployment after the existing
-  `20260722180000_master_password_usage_audit` shadow-history defect is
-  reconciled, and monitored DNS/redirect cutover. Customer profile pricing and
-  scheduled targeted promotions are implemented and locally browser-verified;
-  `@gnd/storefront` typecheck and production build pass. See
+  and monitored DNS/redirect cutover. Customer profile pricing and scheduled
+  targeted promotions are implemented, locally browser-verified, and deployed
+  to the production schema after an additive-only preflight and empty post-push
+  diff; `@gnd/storefront` typecheck and production build pass. See
   `.brain/features/storefront-ecommerce-replacement.md` and
   `.brain/features/storefront-profile-pricing-promotions.md`.
 - [ ] Dealership Program Expansion and Recruitment: branding ZIP/cache

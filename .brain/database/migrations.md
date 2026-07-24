@@ -228,9 +228,16 @@ Tracks notable migrations and migration strategy.
 - Local `bun run push:dev` then synchronized disposable `gnd-prisma2` and
   regenerated Prisma Client, enabling browser QA. No `--accept-data-loss` flag
   was required.
-- No migration file was fabricated and no production database was changed.
-  Reconcile the existing shadow migration history, generate/review the
-  additive migration, then apply it through the approved deployment workflow.
+- On 2026-07-24, a read-only production diff showed only five additive table
+  creates (`StorefrontPromotion` plus the four normalized target tables) and
+  their indexes. It contained no drops, column rewrites, uniqueness changes,
+  or data-loss operations.
+- `bun run --cwd packages/db push:prod` then synchronized production database
+  `gndprodesk`; Prisma Client generation completed. A second read-only
+  production diff returned an empty migration.
+- No migration file was fabricated. Normal migration generation remains
+  blocked by the pre-existing shadow-history defect, but the production
+  datamodel is synchronized.
 
 ## 2026-07-23 sales document WhatsApp/SMS delivery
 

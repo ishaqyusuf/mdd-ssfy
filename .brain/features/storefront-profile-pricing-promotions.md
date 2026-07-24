@@ -116,10 +116,11 @@ payment, inventory, production, and fulfillment workflows remain canonical.
 
 ## Database Rollout
 
-`bun run db:generate` and local `prisma db push` pass. Normal migration
-generation remains blocked by the pre-existing
+`bun run db:generate`, local `prisma db push`, and the verified production
+`push:prod` pass. Before the production push, a read-only diff contained only
+the five additive promotion/target tables and their indexes. The post-push diff
+is empty. Normal migration generation remains blocked by the pre-existing
 `20260722180000_master_password_usage_audit` shadow-history defect, which
 alters `MasterPasswordLoginAudit` before its create migration is present in the
-configured migration chain. No production database was changed. The promotion
-schema must be applied through the approved deployment workflow after that
-existing migration-history issue is reconciled.
+configured migration chain; this remains a migration-history maintenance issue,
+not a storefront production-schema release gate.

@@ -103,8 +103,8 @@ Status: complete.
   across storefront announcement and catalog cards.
 - Remove browser QA data.
 - Document schema/API/permission/feature/task impact.
-- Reconcile the existing migration-history blocker before production schema
-  deployment.
+- Verify the production diff is additive, apply the production schema, and
+  confirm an empty post-push diff.
 
-Status: validation and documentation complete; production database rollout
-remains release-gated.
+Status: complete. Production schema rollout passed on 2026-07-24; the separate
+pre-existing migration shadow-history defect remains documented for repair.

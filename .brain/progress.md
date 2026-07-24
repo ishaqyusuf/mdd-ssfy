@@ -7150,3 +7150,13 @@
   remains blocked by pre-existing migration
   `20260722180000_master_password_usage_audit` failing shadow replay before
   `MasterPasswordLoginAudit` exists; no production database was changed.
+- 2026-07-24: deployed the storefront profile-pricing promotion schema to
+  production after a read-only Prisma diff showed only the five additive
+  promotion/target table creates and their indexes, with no drops, rewrites,
+  uniqueness changes, or data-loss operations. The root production push first
+  hit Turbo's non-terminal UI guard, so the identical package-level
+  `bun run --cwd packages/db push:prod` command was used. Prisma synchronized
+  production `gndprodesk` and regenerated the client; a post-push production
+  diff returned an empty migration. The unrelated migration shadow-history
+  defect remains documented but no longer blocks this feature's production
+  schema.
