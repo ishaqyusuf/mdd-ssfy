@@ -2,7 +2,8 @@
 
 ## Status
 
-Implemented on 2026-07-23.
+Implemented on 2026-07-23; address-only Sales Overview editing added on
+2026-07-24.
 
 ## Purpose
 
@@ -17,8 +18,13 @@ directory.
 - `Edit` opens the existing customer form prefilled for that customer.
 - `Change` opens the existing customer selector and changes the sale
   association only after a customer is selected.
-- Sales Overview exposes `Edit customer` in the current v1, v2, and legacy
-  compatibility general sections.
+- The canonical Sales Overview exposes `Edit customer` for the attached
+  customer.
+- Billing and shipping address cards expose independent Edit/Add actions for
+  orders and quotes.
+- Address actions open the existing customer sheet with only address search,
+  address lines, route, city, state/province, postal code, and country. Name,
+  email, and phone fields are not editable in this mode.
 - A successful edit refreshes customer and sales projections without requiring
   the user to leave Sales Overview or manually reload the page.
 
@@ -53,6 +59,10 @@ closes the sheet.
 
 ## Validation
 
+- Authenticated order and quote browser tests submitted unchanged billing
+  addresses through the address-only editor, verified that no personal fields
+  were present, and confirmed that the editor closed while the active Sales
+  Overview and list stayed refreshed.
 - 49 focused tests / 95 assertions passed.
 - Focused Biome, API and sales package typechecks, and scoped diff checks
   passed.

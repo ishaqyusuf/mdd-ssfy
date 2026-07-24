@@ -1,10 +1,20 @@
 # Sales Form System Hardening
 
-## Current behavior (2026-07-22)
+## Current behavior (2026-07-24)
 
 - Shared sales-form state enables debounced autosave by default for newly
   created and hydrated records; the editor toggle still supports deliberate
   manual-save mode.
+- Autosave timer cleanup is limited to cancelling pending work. Component
+  rerenders and unmount cleanup do not invoke another save, so saving-state
+  updates cannot recursively create a save storm.
+- Debounced work reads the latest payload through a ref and keeps one semantic
+  timer per payload. Manual saves that arrive during an active autosave retain
+  their manual-save reason when queued.
+- P.O. metadata is projected to both the legacy root field and an existing
+  nested new-form document. Legacy saves preserve the nested document instead
+  of replacing unknown metadata, and both editors hydrate the same canonical
+  P.O. value.
 - Dirty form payloads are persisted to versioned local-recovery storage on
   change and page-leave. Risky navigation warns when autosave is disabled,
   stale, or errored.
@@ -23,6 +33,10 @@
 
 ## Validation
 
+- Authenticated browser regression on order `08869PC` and quote `03329LRG`
+  saved P.O. changes from both new and legacy forms, reloaded both editors,
+  and found no maximum-update-depth overlay. The final capture produced one
+  save payload instead of the prior same-millisecond save storm.
 - Shared state/recovery tests: 14 tests / 57 assertions.
 - Legacy costing and subtotal tests: 13 tests / 50 assertions.
 - Current grouped-service tax/costing, normalization, workflow, and state tests:

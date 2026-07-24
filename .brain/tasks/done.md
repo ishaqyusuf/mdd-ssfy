@@ -1,5 +1,22 @@
 # Done
 
+### Sales P.O. Persistence And Address-Only Overview Editing
+- Status: Done
+- Description: Removed the new-form autosave cleanup loop that caused maximum
+  update depth failures, synchronized P.O. metadata across new, legacy, and
+  overview saves, added overview saving/saved/failed feedback, and added
+  independent address-only billing/shipping editing for orders and quotes.
+- Feature Files: `.brain/features/sales-form-system-hardening.md`,
+  `.brain/features/sales-overview.md`,
+  `.brain/features/sales-customer-editing.md`
+- Bug File: `.brain/bugs/sales-po-save-update-depth.md`
+- Validation: 28 focused tests / 52 assertions, 22 new-sales-form relational
+  parity tests, clean `@gnd/sales` and `@gnd/api` typechecks, authenticated
+  browser proof on order `08869PC` and quote `03329LRG`, and scoped diff
+  checks. Broad WWW typecheck remains red on the documented unrelated
+  repository baseline.
+- Completed Date: 2026-07-24
+
 ### Canonical Sales Overview Consolidation
 - Status: Done
 - Description: Discontinued the unused Sales Overview V2 page/sheet and

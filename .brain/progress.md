@@ -1,5 +1,22 @@
 # Progress
 
+- 2026-07-24: Fixed cross-surface Sales P.O. persistence and added address-only
+  editing to the canonical Sales Overview. The new-form autosave cleanup no
+  longer flushes during saving-state rerenders, semantic payload changes own
+  one debounced timer, and queued writes preserve their manual/autosave reason.
+  Root legacy and nested new-form P.O. metadata now stay synchronized without
+  discarding unknown metadata; legacy/new order and quote editors hydrate the
+  same value. Sales Overview shows Saving/Saved/Failed, invalidates the correct
+  order or quote list, exposes independent billing/shipping actions for orders
+  and quotes, and opens a customer sheet limited to address fields. Focused
+  metadata/DTO/address tests passed 28 tests / 52 assertions; the
+  new-sales-form relational suite passed 22 tests; sales/API typechecks passed.
+  Authenticated browser QA passed on order `08869PC` and quote `03329LRG`,
+  including new/legacy/overview P.O. saves, spinner/checkmark feedback,
+  address-only saves, active detail/list refresh, reload persistence, and no
+  maximum-update-depth overlay. Broad WWW typecheck remains blocked by the
+  existing unrelated baseline.
+
 - 2026-07-23: Repaired mobile contractor job submission after operational route
   hardening applied the community-editor gate to `community.saveJobForm`.
   The mutation now checks action, target worker, existing-job ownership, and

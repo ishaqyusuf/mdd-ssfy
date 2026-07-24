@@ -1,7 +1,7 @@
 "use server";
 
 import type { SalesMeta } from "@/app-deps/(clean-code)/(sales)/types";
-import { Prisma, prisma } from "@/db";
+import { type Prisma, prisma } from "@/db";
 import {
     mergeSalesMetaPatch,
     readSalesFormPo,

@@ -59,6 +59,8 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
             meta: payload.meta,
         });
     }, [payload]);
+    const payloadRef = useRef(payload);
+    payloadRef.current = payload;
 
     const clearTimer = useCallback(() => {
         if (!timerRef.current) return;
@@ -116,6 +118,8 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
         },
         [processQueue],
     );
+    const enqueueSaveRef = useRef(enqueueSave);
+    enqueueSaveRef.current = enqueueSave;
 
     const flush = useCallback(
         async (
@@ -187,19 +191,26 @@ export function useNewSalesFormAutoSave(options: UseNewSalesFormAutoSaveOptions)
     }, [clearTimer]);
 
     useEffect(() => {
-        if (!enabled || !dirty || !payload || manualFlushRef.current) {
+        const currentPayload = payloadRef.current;
+        if (
+            !enabled ||
+            !dirty ||
+            !payloadKey ||
+            !currentPayload ||
+            manualFlushRef.current
+        ) {
             clearTimer();
             return;
         }
         clearTimer();
         timerRef.current = setTimeout(() => {
-            enqueueSave({
-                ...payload,
+            enqueueSaveRef.current({
+                ...currentPayload,
                 autosave: true,
             });
         }, delayMs);
         return clearTimer;
-    }, [clearTimer, delayMs, dirty, enabled, enqueueSave, payload, payloadKey]);
+    }, [clearTimer, delayMs, dirty, enabled, payloadKey]);
 
     useEffect(() => {
         mountedRef.current = true;

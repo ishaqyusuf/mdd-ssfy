@@ -92,10 +92,7 @@ describe("sales customer edit button", () => {
 
 	it("keeps the canonical Sales Overview on shared customer and address actions", () => {
 		const source = readFileSync(
-			new URL(
-				"./sheets/sales-overview-sheet/general-tab.tsx",
-				import.meta.url,
-			),
+			new URL("./sheets/sales-overview-sheet/general-tab.tsx", import.meta.url),
 			"utf8",
 		);
 
