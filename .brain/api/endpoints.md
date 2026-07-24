@@ -352,3 +352,22 @@ Tracks notable API surfaces and where they are implemented.
 - Public reads are publication/soft-delete scoped and bounded. Ownership,
   configuration validity, price, payment, and order transitions are enforced
   on the server.
+
+### Storefront profile pricing and promotions (2026-07-24)
+
+- `storefrontAdmin.promotions.list` and `.detail` return private campaign
+  administration DTOs and normalized target IDs.
+- `storefrontAdmin.promotions.save` creates/updates a draft and replaces its
+  normalized target rows transactionally.
+- `storefrontAdmin.promotions.publish` and `.archive` perform audited lifecycle
+  transitions after validating targeted campaigns have targets.
+- `storefrontAdmin.promotions.profiles`, `.categories`, and `.searchOptions`
+  provide bounded, soft-delete-aware target pickers.
+- `storefrontAdmin.settings.get/save` now reads, validates, and persists
+  `defaultCustomerProfileId`.
+- `storefrontCommerce.catalog.announcement` returns the best eligible
+  campaign banner for the current shopper.
+- Existing public featured/category/search/offer responses include a safe
+  promotion projection. Configuration preview, cart, checkout, and order
+  creation use private server pricing context and expose only customer-facing
+  list/sale totals.

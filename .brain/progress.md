@@ -7130,3 +7130,23 @@
   and moved the Expo quick-login picker off the shared `hrm.getEmployees`
   query so HRM and job consumers keep their existing behavior. Focused API and
   preview-security coverage passes 3 tests / 12 assertions.
+- 2026-07-24: implemented storefront customer-profile pricing and scheduled,
+  targeted promotions. Signed-in customer profile now overrides the Storefront
+  Settings default and canonical fallback; one deterministic campaign can
+  target customers/profiles and categories/offers, and its line-level discount
+  survives cart repricing, checkout fingerprinting, shipping quote validity,
+  and canonical Sales Order discount/metadata persistence. Added protected
+  campaign administration, default-profile settings, announcement/card/product/
+  cart/checkout sale presentation, and safe public DTOs. Review hardening also
+  added lossless/canonical guest-cart consolidation, archived campaign
+  visibility, lazy target loading, profile-aware shelf prices, preserved
+  door-size sale metadata, bounded campaign resolution, and a shared checkout
+  pricing fingerprint. Validation passed 25 focused tests / 71 assertions,
+  sales/API/storefront typechecks, focused
+  Biome, and the storefront production build. Authenticated browser QA rendered
+  the Promotions workspace; a disposable 25%-off campaign rendered the public
+  announcement plus featured/search badges without console errors and was
+  removed. Local `prisma db push` succeeded. Normal migration generation
+  remains blocked by pre-existing migration
+  `20260722180000_master_password_usage_audit` failing shadow replay before
+  `MasterPasswordLoginAudit` exists; no production database was changed.

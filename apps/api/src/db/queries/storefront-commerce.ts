@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { getNewSalesFormStepRouting } from "@api/db/queries/new-sales-form";
 import { getStepComponents } from "@api/db/queries/sales-form";
+import { resolveStorefrontPricingContext } from "@api/db/queries/storefront-pricing";
 import type { TRPCContext } from "@api/trpc/init";
+import type { Prisma } from "@gnd/db";
 import { addMoney, multiplyMoney, roundMoney } from "@gnd/sales/payment-system";
 import { salesFormPortableLineItemSchema } from "@gnd/sales/sales-form/contracts/schemas";
 import {
@@ -27,6 +29,11 @@ import {
 	projectStorefrontOfferRoute,
 	resolveStorefrontProductTypes,
 } from "@gnd/sales/storefront-configuration";
+import {
+	applyStorefrontProfilePrice,
+	applyStorefrontPromotion,
+	toPublicStorefrontPricing,
+} from "@gnd/sales/storefront-pricing";
 import {
 	calculateMouldingQuantity,
 	deriveMouldingPieceLength,
@@ -138,6 +145,10 @@ export async function validateAndPriceStorefrontConfiguration(
 		loadPublishedOffer(ctx, input.offerId),
 		getNewSalesFormStepRouting(ctx, {}),
 	]);
+	const pricingContext = await resolveStorefrontPricingContext(ctx, {
+		offerId: offer.id,
+		categoryId: offer.categoryId,
+	});
 	const mouldingInput = safeRecord(
 		safeRecord(input.configuration.meta).storefrontMoulding,
 	);
@@ -339,11 +350,24 @@ export async function validateAndPriceStorefrontConfiguration(
 				selectedByStepUid,
 				{ selectedProdUidsByStepUid },
 			);
-			const price = Number(pricing.salesPrice);
+			const price = applyStorefrontProfilePrice({
+				salesPrice: Number(pricing.salesPrice),
+				basePrice: Number(pricing.basePrice),
+				profile: pricingContext.profile,
+			});
 			const basePrice = Number(pricing.basePrice);
+			const promotional = applyStorefrontPromotion({
+				listLineTotal: price,
+				quantity: 1,
+				promotion: pricingContext.promotion,
+				profile: pricingContext.profile,
+			});
 			return {
 				...publicOption,
-				price: Number.isFinite(price) ? roundMoney(price) : null,
+				price: Number.isFinite(price) ? promotional.unitPrice : null,
+				listPrice: Number.isFinite(price) ? roundMoney(price) : null,
+				percentageOff: promotional.promotion?.percentageOff ?? null,
+				badgeText: promotional.promotion?.badgeText ?? null,
 				basePrice: Number.isFinite(basePrice) ? roundMoney(basePrice) : null,
 			};
 		});
@@ -403,7 +427,11 @@ export async function validateAndPriceStorefrontConfiguration(
 					: resolveComponentPriceByDeps(component, selectedByStepUid, {
 							selectedProdUidsByStepUid,
 						});
-			const salesPrice = Number(pricing.salesPrice);
+			const salesPrice = applyStorefrontProfilePrice({
+				salesPrice: Number(pricing.salesPrice),
+				basePrice: Number(pricing.basePrice),
+				profile: pricingContext.profile,
+			});
 			if (!Number.isFinite(salesPrice) || salesPrice < 0) {
 				throw new TRPCError({
 					code: "PRECONDITION_FAILED",
@@ -489,7 +517,14 @@ export async function validateAndPriceStorefrontConfiguration(
 			});
 		}
 		const qty = Math.max(0, Number(item.qty || 0));
-		const unitPrice = roundMoney(product.unitPrice);
+		const basePrice = roundMoney(product.unitPrice);
+		const unitPrice = roundMoney(
+			applyStorefrontProfilePrice({
+				salesPrice: basePrice,
+				basePrice,
+				profile: pricingContext.profile,
+			}),
+		);
 		return {
 			id: null,
 			productId: product.id,
@@ -499,7 +534,11 @@ export async function validateAndPriceStorefrontConfiguration(
 			qty,
 			unitPrice,
 			totalPrice: multiplyMoney(qty, unitPrice),
-			meta: {},
+			meta: {
+				basePrice,
+				salesPrice: unitPrice,
+				unitPrice,
+			},
 		};
 	});
 	const doorSelection = selectedSteps.find(
@@ -528,10 +567,24 @@ export async function validateAndPriceStorefrontConfiguration(
 					fallbackSalesPrice: Number(component.salesPrice || 0),
 					fallbackBasePrice: Number(component.basePrice || 0),
 				});
+				const profileUnitPrice = applyStorefrontProfilePrice({
+					salesPrice: tier.salesPrice,
+					basePrice: tier.basePrice,
+					profile: pricingContext.profile,
+				});
+				const promotionalUnitPrice = applyStorefrontPromotion({
+					listLineTotal: profileUnitPrice,
+					quantity: 1,
+					promotion: pricingContext.promotion,
+					profile: pricingContext.profile,
+				});
 				return {
 					dimension,
 					hasPrice: tier.hasPrice,
-					unitPrice: roundMoney(tier.salesPrice),
+					unitPrice: roundMoney(profileUnitPrice),
+					saleUnitPrice: promotionalUnitPrice.unitPrice,
+					percentageOff: promotionalUnitPrice.promotion?.percentageOff ?? null,
+					badgeText: promotionalUnitPrice.promotion?.badgeText ?? null,
 					basePrice: roundMoney(tier.basePrice),
 				};
 			});
@@ -624,16 +677,22 @@ export async function validateAndPriceStorefrontConfiguration(
 		effectiveQuantity,
 	);
 	const shelfTotal = addMoney(...shelfItems.map((item) => item.totalPrice));
-	const lineTotal = normalizedDoorRows.length
+	const listLineTotal = normalizedDoorRows.length
 		? addMoney(hptTotal, shelfTotal)
 		: addMoney(componentLineTotal, shelfTotal);
 	const normalizedQuantity = normalizedDoorRows.length
 		? totalDoors
 		: effectiveQuantity;
-	const unitPrice =
+	const listUnitPrice =
 		normalizedQuantity > 0
-			? roundMoney(lineTotal / normalizedQuantity)
-			: roundMoney(lineTotal);
+			? roundMoney(listLineTotal / normalizedQuantity)
+			: roundMoney(listLineTotal);
+	const pricingSnapshot = applyStorefrontPromotion({
+		listLineTotal,
+		quantity: normalizedQuantity,
+		promotion: pricingContext.promotion,
+		profile: pricingContext.profile,
+	});
 	const normalizedConfiguration = {
 		...input.configuration,
 		id: null,
@@ -641,8 +700,8 @@ export async function validateAndPriceStorefrontConfiguration(
 		title: offer.title,
 		description: offer.description,
 		qty: normalizedQuantity,
-		unitPrice,
-		lineTotal,
+		unitPrice: listUnitPrice,
+		lineTotal: listLineTotal,
 		formSteps: pricedSteps,
 		shelfItems,
 		housePackageTool: normalizedDoorRows.length
@@ -651,7 +710,7 @@ export async function validateAndPriceStorefrontConfiguration(
 					id: null,
 					doors: normalizedDoorRows,
 					totalDoors,
-					totalPrice: lineTotal,
+					totalPrice: listLineTotal,
 				}
 			: input.configuration.housePackageTool || null,
 		meta: {
@@ -748,15 +807,10 @@ export async function validateAndPriceStorefrontConfiguration(
 					}
 				: null,
 		},
-		pricingSnapshot: {
-			currency: "USD",
-			unitPrice,
-			lineTotal,
-			pricedAt: new Date().toISOString(),
-			source: "canonical-dyke-sales-pricing",
-		},
-		unitPrice,
-		lineTotal,
+		pricingSnapshot,
+		pricing: toPublicStorefrontPricing(pricingSnapshot),
+		unitPrice: pricingSnapshot.unitPrice,
+		lineTotal: pricingSnapshot.lineTotal,
 	};
 }
 
@@ -804,7 +858,7 @@ export async function getOrCreateStorefrontCollection(
 	type: "CART" | "WISHLIST",
 ) {
 	const owner = await resolveStorefrontOwner(ctx);
-	return ctx.db.$transaction(async (tx) => {
+	const result = await ctx.db.$transaction(async (tx) => {
 		const userCollection = owner.ownerUserId
 			? await tx.storefrontCommerceCollection.findFirst({
 					where: {
@@ -829,42 +883,23 @@ export async function getOrCreateStorefrontCollection(
 
 		if (owner.ownerUserId && userCollection && guestCollection) {
 			for (const guestLine of guestCollection.lines) {
-				const duplicate = userCollection.lines.find(
-					(line) =>
-						line.offerId === guestLine.offerId &&
-						line.configurationHash === guestLine.configurationHash,
-				);
-				if (duplicate) {
-					const quantity =
-						Number(duplicate.quantity) + Number(guestLine.quantity);
-					await tx.storefrontCommerceLine.update({
-						where: { id: duplicate.id },
-						data: {
-							quantity,
-							lineTotal: multiplyMoney(quantity, Number(duplicate.unitPrice)),
-						},
-					});
-					await tx.storefrontCommerceLine.delete({
-						where: { id: guestLine.id },
-					});
-				} else {
-					await tx.storefrontCommerceLine.update({
-						where: { id: guestLine.id },
-						data: { collectionId: userCollection.id },
-					});
-				}
+				await tx.storefrontCommerceLine.update({
+					where: { id: guestLine.id },
+					data: { collectionId: userCollection.id },
+				});
 			}
 			await tx.storefrontCommerceCollection.update({
 				where: { id: guestCollection.id },
 				data: { status: "COMPLETED" },
 			});
-			return tx.storefrontCommerceCollection.update({
+			const collection = await tx.storefrontCommerceCollection.update({
 				where: { id: userCollection.id },
 				data: { version: { increment: 1 } },
 			});
+			return { collection, reprice: true };
 		}
 		if (owner.ownerUserId && guestCollection && !userCollection) {
-			return tx.storefrontCommerceCollection.update({
+			const collection = await tx.storefrontCommerceCollection.update({
 				where: { id: guestCollection.id },
 				data: {
 					ownerUserId: owner.ownerUserId,
@@ -872,10 +907,11 @@ export async function getOrCreateStorefrontCollection(
 					version: { increment: 1 },
 				},
 			});
+			return { collection, reprice: true };
 		}
-		if (userCollection) return userCollection;
-		if (guestCollection) return guestCollection;
-		return tx.storefrontCommerceCollection.create({
+		if (userCollection) return { collection: userCollection, reprice: false };
+		if (guestCollection) return { collection: guestCollection, reprice: false };
+		const collection = await tx.storefrontCommerceCollection.create({
 			data: {
 				type,
 				status: "ACTIVE",
@@ -886,7 +922,75 @@ export async function getOrCreateStorefrontCollection(
 					: new Date(Date.now() + 30 * 24 * 60 * 60 * 1_000),
 			},
 		});
+		return { collection, reprice: false };
 	});
+	if (result.reprice) {
+		const lines = await ctx.db.storefrontCommerceLine.findMany({
+			where: { collectionId: result.collection.id },
+			orderBy: { createdAt: "asc" },
+		});
+		const groupedLines = new Map<string, typeof lines>();
+		for (const line of lines) {
+			const groupKey = line.offerId
+				? `${line.offerId}:${line.configurationHash}`
+				: line.id;
+			groupedLines.set(groupKey, [...(groupedLines.get(groupKey) ?? []), line]);
+		}
+		const repriced = await Promise.all(
+			[...groupedLines.values()].flatMap((group) => {
+				const line = group[0];
+				return line?.offerId
+					? [
+							validateAndPriceStorefrontConfiguration(
+								ctx,
+								{
+									offerId: line.offerId,
+									quantity: group.reduce(
+										(total, item) => total + Number(item.quantity),
+										0,
+									),
+									configuration:
+										storefrontConfigurationInputSchema.shape.configuration.parse(
+											line.configuration,
+										),
+								},
+								{ requireWorkflowConfiguration: true },
+							).then((pricing) => ({ group, line, pricing })),
+						]
+					: [];
+			}),
+		);
+		await ctx.db.$transaction(async (tx) => {
+			for (const { group, line, pricing } of repriced) {
+				await tx.storefrontCommerceLine.update({
+					where: { id: line.id },
+					data: {
+						quantity: pricing.normalizedQuantity,
+						configuration: pricing.configuration as Prisma.InputJsonValue,
+						configurationHash: pricing.configurationHash,
+						configurationVersion: pricing.offer.configurationVersion,
+						pricingSnapshot: pricing.pricingSnapshot as Prisma.InputJsonValue,
+						unitPrice: pricing.unitPrice,
+						lineTotal: pricing.lineTotal,
+						validationStatus: "VALID",
+						validationMessage: null,
+						lastValidatedAt: new Date(),
+					},
+				});
+				const duplicateIds = group.slice(1).map((item) => item.id);
+				if (duplicateIds.length) {
+					await tx.storefrontCommerceLine.deleteMany({
+						where: { id: { in: duplicateIds } },
+					});
+				}
+			}
+			await tx.storefrontCommerceCollection.update({
+				where: { id: result.collection.id },
+				data: { version: { increment: 1 } },
+			});
+		});
+	}
+	return result.collection;
 }
 
 export async function getStorefrontCollection(
@@ -931,6 +1035,7 @@ export async function getStorefrontCollection(
 		lineTotal: Number(line.lineTotal),
 		validationStatus: line.validationStatus,
 		validationMessage: line.validationMessage,
+		pricing: toPublicStorefrontPricing(line.pricingSnapshot),
 	}));
 	return {
 		id: result.id,
@@ -939,6 +1044,12 @@ export async function getStorefrontCollection(
 		currency: result.currency,
 		items,
 		estimate: {
+			listSubtotal: addMoney(
+				...items.map((item) => item.pricing.listLineTotal),
+			),
+			promotionDiscount: addMoney(
+				...items.map((item) => item.pricing.discountAmount),
+			),
 			subtotal: addMoney(...items.map((item) => item.lineTotal)),
 			tax: null,
 			shipping: null,

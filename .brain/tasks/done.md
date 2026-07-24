@@ -31,6 +31,28 @@
 Tracks notable completed work snapshots. Use `brain/progress.md` for the detailed chronological log.
 
 ## Recent Highlights
+### Storefront Customer Profile Pricing And Promotions
+- Priority: High
+- Description: Added canonical customer-profile pricing precedence and
+  scheduled percentage campaigns targeted by customer/profile and
+  category/offer. Pricing now flows through product configuration, cart,
+  checkout, shipping validity, and canonical Sales persistence, with admin
+  settings/campaign management and shopper announcement, badge, slash-price,
+  savings, and discount-summary presentation.
+- Related Feature:
+  `.brain/features/storefront-profile-pricing-promotions.md`
+- Plan File:
+  `.brain/plans/2026-07-24-feature-storefront-profile-pricing-promotions.md`
+- Decision:
+  `.brain/decisions/ADR-029-storefront-profile-pricing-and-promotions.md`
+- Validation: 25 focused tests / 71 assertions, passing sales/API/storefront
+  typechecks, focused Biome, storefront production build, authenticated admin
+  browser proof, and storefront campaign banner/card proof. Local schema push
+  passed and its disposable campaign fixture was removed.
+- Release Gate: normal source migration generation is blocked by the existing
+  master-password shadow-history defect; production database was not changed.
+- Completed Date: 2026-07-24
+
 ### Sales Customer Editing From Form And Overview
 - Priority: High
 - Description: Added distinct customer Edit and Change actions to the new sales

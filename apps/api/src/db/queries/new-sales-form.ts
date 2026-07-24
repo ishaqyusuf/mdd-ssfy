@@ -2527,6 +2527,7 @@ async function saveNewSalesFormInternal(
 	origin?: {
 		salesChannel?: string;
 		storefrontCheckoutId?: string;
+		storefrontPricing?: unknown;
 		storefrontInquiryId?: string;
 		storefrontInquiryReference?: string;
 	},
@@ -2737,19 +2738,22 @@ async function saveNewSalesFormInternal(
 		const originMeta = {
 			...(origin?.storefrontCheckoutId
 				? {
-					storefront: {
-						checkoutId: origin.storefrontCheckoutId,
-						channel: origin.salesChannel || "storefront",
-					},
+						storefront: {
+							checkoutId: origin.storefrontCheckoutId,
+							channel: origin.salesChannel || "storefront",
+							...(origin.storefrontPricing
+								? { pricing: origin.storefrontPricing }
+								: {}),
+						},
 					}
 				: {}),
 			...(origin?.storefrontInquiryId
 				? {
-					storefrontInquiry: {
-						id: origin.storefrontInquiryId,
-						reference: origin.storefrontInquiryReference || null,
-						channel: origin.salesChannel || "storefront-custom",
-					},
+						storefrontInquiry: {
+							id: origin.storefrontInquiryId,
+							reference: origin.storefrontInquiryReference || null,
+							channel: origin.salesChannel || "storefront-custom",
+						},
 					}
 				: {}),
 		};
@@ -3533,21 +3537,37 @@ export async function saveStorefrontSalesOrder(
 		taxRate: number;
 		deliveryOption: "pickup" | "delivery";
 		deliveryAmount: number;
+		promotionAdjustments?: Array<{
+			id: string;
+			title: string;
+			amount: number;
+		}>;
+		storefrontPricing?: unknown;
 		lineItems: NewSalesFormLineItem[];
 	},
 ) {
-	const extraCosts: NewSalesFormExtraCost[] =
-		input.deliveryAmount > 0
+	const extraCosts: NewSalesFormExtraCost[] = [
+		...(input.promotionAdjustments || [])
+			.filter((adjustment) => adjustment.amount > 0)
+			.map((adjustment) => ({
+				id: null,
+				label: adjustment.title,
+				type: "Discount" as const,
+				amount: adjustment.amount,
+				taxxable: false,
+			})),
+		...(input.deliveryAmount > 0
 			? [
 					{
 						id: null,
 						label: "Delivery",
-						type: "Delivery",
+						type: "Delivery" as const,
 						amount: input.deliveryAmount,
 						taxxable: false,
 					},
 				]
-			: [];
+			: []),
+	];
 	const payload: SaveFinalNewSalesFormSchema = {
 		type: "order",
 		slug: null,
@@ -3590,6 +3610,7 @@ export async function saveStorefrontSalesOrder(
 	const result = await saveNewSalesFormInternal(ctx, payload, "Active", {
 		salesChannel: "storefront",
 		storefrontCheckoutId: input.checkoutId,
+		storefrontPricing: input.storefrontPricing,
 	});
 	await ctx.db.salesOrders.update({
 		where: { id: result.salesId },

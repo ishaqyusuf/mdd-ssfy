@@ -2,6 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
+import { percentageMoney, subtractMoney } from "@gnd/sales/payment-system";
 import { deduplicateStorefrontOptions } from "@gnd/sales/storefront-configuration";
 import {
 	calculateMouldingQuantity,
@@ -36,6 +37,41 @@ function formatMoney(value: number) {
 		style: "currency",
 		currency: "USD",
 	}).format(value);
+}
+
+function SalePrice({
+	listPrice,
+	salePrice,
+	badgeText,
+	className = "",
+}: {
+	listPrice: number;
+	salePrice: number;
+	badgeText?: string | null;
+	className?: string;
+}) {
+	const onSale = listPrice - salePrice >= 0.01;
+	return (
+		<span className={`inline-flex flex-wrap items-baseline gap-2 ${className}`}>
+			{onSale ? (
+				<del className="text-base font-normal text-muted-foreground">
+					{formatMoney(listPrice)}
+				</del>
+			) : null}
+			<span>{formatMoney(salePrice)}</span>
+			{onSale && badgeText ? (
+				<Badge className="bg-red-600 text-white hover:bg-red-600">
+					{badgeText}
+				</Badge>
+			) : null}
+			{onSale ? (
+				<span className="sr-only">
+					Previous price {formatMoney(listPrice)}; sale price{" "}
+					{formatMoney(salePrice)}.
+				</span>
+			) : null}
+		</span>
+	);
 }
 
 function initialSelections(steps: Step[]) {
@@ -176,7 +212,17 @@ function StepOptions({
 									</span>
 									{component.price != null ? (
 										<span className="w-full px-2 pb-2 text-left text-xs font-normal opacity-80">
-											{formatMoney(component.price)}
+											{component.listPrice != null &&
+											component.listPrice - component.price >= 0.01 ? (
+												<>
+													<del className="mr-1">
+														{formatMoney(component.listPrice)}
+													</del>
+													{formatMoney(component.price)}
+												</>
+											) : (
+												formatMoney(component.price)
+											)}
 										</span>
 									) : null}
 								</>
@@ -545,6 +591,11 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 							<p className="text-gray-700">{offer.description}</p>
 						) : null}
 						<div className="mt-3 flex flex-wrap gap-2">
+							{offer.promotion ? (
+								<Badge className="bg-red-600 text-white hover:bg-red-600">
+									{offer.promotion.badgeText}
+								</Badge>
+							) : null}
 							{rootStep?.components.length === 1 ? (
 								<Badge variant="secondary">
 									{rootStep.components[0]?.title}
@@ -599,6 +650,18 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 														selectedDoorSize?.stepProductId ===
 															component.stepProductId &&
 														selectedDoorSize.dimension === size.dimension;
+													const listPrice =
+														size.unitPrice + doorSchedule.sharedDoorSurcharge;
+													const salePrice =
+														size.percentageOff != null
+															? subtractMoney(
+																	listPrice,
+																	percentageMoney(
+																		listPrice,
+																		size.percentageOff,
+																	),
+																)
+															: listPrice;
 													return (
 														<Button
 															key={`${component.stepProductId}-${size.dimension}`}
@@ -614,12 +677,12 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 															}
 														>
 															<span>{size.dimension}</span>
-															<span className="text-xs font-normal opacity-80">
-																{formatMoney(
-																	size.unitPrice +
-																		doorSchedule.sharedDoorSurcharge,
-																)}
-															</span>
+															<SalePrice
+																listPrice={listPrice}
+																salePrice={salePrice}
+																badgeText={size.badgeText}
+																className="text-xs font-normal opacity-80"
+															/>
 														</Button>
 													);
 												}),
@@ -762,15 +825,23 @@ export function ProductConfigurator({ slug }: { slug: string }) {
 
 						<div className="flex items-center justify-between border-t pt-4">
 							<div className="text-3xl font-bold text-gray-900">
-								{doorSchedule?.required
-									? !hasDoorSizes
-										? "Unavailable"
-										: selectedDoorPrice != null
-											? `${formatMoney(selectedDoorPrice * quantity)}`
-											: "Select a size"
-									: preview.data?.complete
-										? formatMoney(preview.data.lineTotal)
-										: "Price pending"}
+								{preview.data?.complete ? (
+									<SalePrice
+										listPrice={preview.data.pricing.listLineTotal}
+										salePrice={preview.data.pricing.saleLineTotal}
+										badgeText={preview.data.pricing.badgeText}
+									/>
+								) : doorSchedule?.required ? (
+									!hasDoorSizes ? (
+										"Unavailable"
+									) : selectedDoorPrice != null ? (
+										"Price updating…"
+									) : (
+										"Select a size"
+									)
+								) : (
+									"Price pending"
+								)}
 							</div>
 							<div
 								className={`text-sm font-medium ${

@@ -7,6 +7,7 @@ export default async function StorefrontSettingsPage() {
 	await batchPrefetch([
 		trpc.storefrontAdmin.settings.get.queryOptions(),
 		trpc.storefrontAdmin.settings.salesReps.queryOptions(),
+		trpc.storefrontAdmin.promotions.profiles.queryOptions(),
 	]);
 	return (
 		<HydrateClient>

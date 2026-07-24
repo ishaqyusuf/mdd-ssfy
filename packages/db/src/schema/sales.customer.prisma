@@ -27,6 +27,7 @@ model Customers {
     dealerOwner    DealerAuth?           @relation(name: "dealerOwnedCustomers", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     dealerRecruitmentInvitations DealerRecruitmentInvitation[]
     dealerRecruitmentState DealerRecruitmentCustomerState?
+    storefrontPromotionTargets StorefrontPromotionCustomer[]
     userId         Int?                  @unique
     user           Users?                @relation(fields: [userId], references: [id])
 
@@ -133,6 +134,7 @@ model CustomerTypes {
     dealerOwner DealerAuth?   @relation(name: "dealerSalesProfiles", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     dealerSales SalesOrders[] @relation(name: "dealerSalesProfile")
     dealerSaleProfiles DealerSales[] @relation(name: "dealerSaleCustomerProfile")
+    storefrontPromotionTargets StorefrontPromotionCustomerProfile[]
 
     @@index([dealerOwnerId])
 }

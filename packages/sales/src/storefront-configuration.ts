@@ -179,6 +179,9 @@ export type PublicStorefrontComponent = {
 	img: string | null;
 	redirectUid: string | null;
 	price?: number | null;
+	listPrice?: number | null;
+	percentageOff?: number | null;
+	badgeText?: string | null;
 	basePrice?: number | null;
 };
 
@@ -203,6 +206,9 @@ export type StorefrontDoorScheduleComponentCandidate = {
 		dimension: string;
 		hasPrice: boolean;
 		unitPrice: number;
+		saleUnitPrice?: number;
+		percentageOff?: number | null;
+		badgeText?: string | null;
 		basePrice: number;
 	}>;
 };
@@ -220,6 +226,9 @@ export function projectStorefrontDoorScheduleComponents(
 						{
 							dimension: size.dimension,
 							unitPrice: size.unitPrice,
+							saleUnitPrice: size.saleUnitPrice ?? size.unitPrice,
+							percentageOff: size.percentageOff ?? null,
+							badgeText: size.badgeText ?? null,
 							basePrice: size.basePrice,
 						},
 					]

@@ -318,6 +318,9 @@ describe("storefront option presentation", () => {
 				dimension,
 				hasPrice: tier.hasPrice,
 				unitPrice: tier.salesPrice,
+				saleUnitPrice: tier.salesPrice * 0.8,
+				percentageOff: 20,
+				badgeText: "20% OFF",
 				basePrice: tier.basePrice,
 			};
 		});
@@ -339,11 +342,17 @@ describe("storefront option presentation", () => {
 					{
 						dimension: "1-6 x 6-8",
 						unitPrice: 47.5,
+						saleUnitPrice: 38,
+						percentageOff: 20,
+						badgeText: "20% OFF",
 						basePrice: 38,
 					},
 					{
 						dimension: "2-0 x 6-8",
 						unitPrice: 0,
+						saleUnitPrice: 0,
+						percentageOff: 20,
+						badgeText: "20% OFF",
 						basePrice: 0,
 					},
 				],

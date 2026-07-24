@@ -72,6 +72,23 @@ Tracks important cross-model relationships and ownership patterns.
 - User/customer ownership is stored through server-derived user IDs without
   exposing caller-controlled ownership mutations.
 
+### Storefront promotion targets (2026-07-24)
+
+- Storefront Promotion N:M Storefront Category through
+  `StorefrontPromotionCategory`.
+- Storefront Promotion N:M Storefront Offer through
+  `StorefrontPromotionOffer`.
+- Storefront Promotion N:M Customers through
+  `StorefrontPromotionCustomer`.
+- Storefront Promotion N:M CustomerTypes through
+  `StorefrontPromotionCustomerProfile`.
+- Category and offer target rows cascade with their storefront presentation
+  parent; customer/profile target rows cascade with their canonical customer
+  records.
+- The selected storefront default profile is a validated logical reference in
+  `Settings.meta`, so an unavailable profile fails safe to canonical pricing
+  and produces an admin warning.
+
 ## Storefront custom millwork inquiry links (2026-07-22)
 
 - `StorefrontInquiryActivity.inquiryId -> StorefrontInquiry.id` is a cascading

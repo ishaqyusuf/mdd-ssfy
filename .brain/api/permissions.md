@@ -140,6 +140,19 @@ Tracks authentication and authorization patterns across API surfaces.
   against the normal form-permission model. Customer reads remain strictly
   owner-scoped and are never authorized through employee sessions.
 
+### Storefront pricing and promotion permissions (2026-07-24)
+
+- Campaign list/detail and target-option reads require `viewStorefront`.
+- Campaign create/update and default-profile settings require
+  `editStorefront`.
+- Campaign publish/archive require `publishStorefront`.
+- Every mutation is a protected procedure and writes a
+  `StorefrontAuditEvent`; UI visibility is not an authorization boundary.
+- Public campaign projections omit internal name, priority, customer IDs,
+  profile IDs, coefficients, and all normalized targets.
+- Signed-in customer identity and assigned profile are derived from the server
+  session. Public inputs cannot claim a customer or profile.
+
 ## Workflow component catalog permissions (2026-07-21)
 
 - Admin and Super Admin may edit component details, visibility, section

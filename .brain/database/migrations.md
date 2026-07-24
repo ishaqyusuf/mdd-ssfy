@@ -211,6 +211,27 @@ Tracks notable migrations and migration strategy.
   table exists in the shadow history. No reset was performed and no production
   database was changed.
 
+## 2026-07-24 storefront profile pricing and promotions
+
+- Prisma schema adds `StorefrontPromotionAudienceMode`,
+  `StorefrontPromotionScopeMode`, `StorefrontPromotion`, and normalized
+  category, offer, customer, and customer-profile target tables.
+- Existing product, customer, and Sales data requires no backfill. Campaigns
+  are inert until an authorized employee publishes an active schedule.
+- `bun run db:generate` passed.
+- Escalated `prisma migrate dev --name
+  storefront_profile_pricing_promotions --create-only` connected to local
+  MySQL but failed with `P3006/P3018` while replaying pre-existing migration
+  `20260722180000_master_password_usage_audit`; that migration attempts to
+  update `MasterPasswordLoginAudit` before the table exists in the configured
+  shadow history.
+- Local `bun run push:dev` then synchronized disposable `gnd-prisma2` and
+  regenerated Prisma Client, enabling browser QA. No `--accept-data-loss` flag
+  was required.
+- No migration file was fabricated and no production database was changed.
+  Reconcile the existing shadow migration history, generate/review the
+  additive migration, then apply it through the approved deployment workflow.
+
 ## 2026-07-23 sales document WhatsApp/SMS delivery
 
 - No schema or migration was required.

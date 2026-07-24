@@ -105,7 +105,7 @@ export async function getStorefrontCatalogFamilies(ctx: TRPCContext) {
 
 export async function getStorefrontCatalogProfiles(ctx: TRPCContext) {
 	const profiles = await ctx.db.customerTypes.findMany({
-		where: { deletedAt: null },
+		where: { deletedAt: null, dealerOwnerId: null },
 		orderBy: [{ title: "asc" }, { id: "asc" }],
 		select: { id: true, title: true, coefficient: true },
 	});

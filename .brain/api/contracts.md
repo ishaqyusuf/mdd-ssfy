@@ -564,6 +564,29 @@ Tracks important request/response contracts and shared schema boundaries.
   cookie; customer ownership may come from the existing chunked secure
   NextAuth session cookie.
 
+### Storefront profile pricing and promotion contract (2026-07-24)
+
+- Pricing profile precedence is signed-in customer's active global profile,
+  active global storefront default profile, then canonical Sales pricing.
+- Dealer-owned, soft-deleted, or missing profiles are ignored. Public payloads
+  never include profile coefficients or target membership.
+- Campaign start is inclusive and end is exclusive. `endsAt = null` means no
+  scheduled end; archiving still disables the campaign.
+- Target audience matches selected customer OR selected resolved profile.
+  Product scope matches selected category OR selected offer.
+- Eligible campaigns do not stack. Winner order is percentage descending,
+  priority descending, start descending, then ID ascending.
+- The profile adjustment runs before the campaign percentage. Percentage
+  discount is calculated once on the authoritative full line total with
+  decimal money helpers.
+- Cart pricing snapshots include private profile/campaign identity and public
+  list/final totals. Guest-to-customer merge and checkout both reprice.
+- Checkout reports `PRICE_CHANGED` when profile, campaign, list total, or final
+  total differs from the accepted line snapshot.
+- Sales persistence receives the resolved customer profile, one fixed
+  `Discount` extra-cost adjustment per applied campaign, and private
+  storefront pricing metadata.
+
 ## Custom millwork inquiry contract (2026-07-22)
 
 - A custom brief requires at least one canonical project type, property type,

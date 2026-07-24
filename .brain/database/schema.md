@@ -142,6 +142,24 @@ Tracks important schema-level entities and ownership boundaries.
 - `SalesOrders.salesChannel`: nullable origin discriminator; storefront
   checkout sets `"storefront"`.
 
+### Storefront profile pricing and promotions (2026-07-24)
+
+- `StorefrontPromotion` stores internal/public campaign identity, badge/banner
+  copy, percentage, priority, audience/scope modes, publication state,
+  inclusive start, exclusive optional end, and actor/audit timestamps.
+- `StorefrontPromotionCategory` and `StorefrontPromotionOffer` normalize
+  product targeting.
+- `StorefrontPromotionCustomer` and
+  `StorefrontPromotionCustomerProfile` normalize shopper targeting.
+- The storefront default `CustomerTypes` profile ID is stored in the existing
+  `Settings.meta.defaultCustomerProfileId`; no parallel profile table or
+  pricing column is introduced.
+- `StorefrontCommerceLine.pricingSnapshot` now records private resolved
+  profile/campaign/list/final evidence without changing the column shape.
+- `SalesOrders.meta.storefront.pricing` carries order-level pricing evidence;
+  campaign discounts are also persisted as canonical fixed `Discount` extra
+  costs.
+
 ### Storefront custom millwork inquiries (2026-07-22)
 
 - `StorefrontInquiry.reference` is the unique customer-facing `CMW-*` or

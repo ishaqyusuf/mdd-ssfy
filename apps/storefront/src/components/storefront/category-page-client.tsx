@@ -1,9 +1,9 @@
 "use client";
 
 import { useTRPC } from "@/trpc/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@gnd/ui/card";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { StorefrontOfferCard } from "./storefront-offer-card";
 
 export function CategoryPageClient({ slug }: { slug: string }) {
 	const trpc = useTRPC();
@@ -36,30 +36,7 @@ export function CategoryPageClient({ slug }: { slug: string }) {
 			{category.offers.length ? (
 				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 					{category.offers.map((offer) => (
-						<Link key={offer.id} href={offer.href}>
-							<Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
-								<CardHeader className="p-0">
-									<div className="aspect-[4/3] bg-muted">
-										{offer.imageUrl && (
-											<img
-												src={offer.imageUrl}
-												alt=""
-												className="size-full object-cover"
-												loading="lazy"
-											/>
-										)}
-									</div>
-								</CardHeader>
-								<CardContent className="p-5">
-									<CardTitle className="text-lg">{offer.title}</CardTitle>
-									{offer.description && (
-										<p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-											{offer.description}
-										</p>
-									)}
-								</CardContent>
-							</Card>
-						</Link>
+						<StorefrontOfferCard key={offer.id} offer={offer} showDescription />
 					))}
 				</div>
 			) : (

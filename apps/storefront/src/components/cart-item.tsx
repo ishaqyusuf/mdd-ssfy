@@ -2,6 +2,7 @@
 
 import { useTRPC } from "@/trpc/client";
 import type { StorefrontRouterOutputs } from "@gnd/api/trpc/routers/storefront-app";
+import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { QuantityInput } from "@gnd/ui/quantity-input";
@@ -75,9 +76,7 @@ export function CartItem({ item }: { item: CartLine }) {
   const configured = item.configuration as {
     housePackageTool?: { doors?: unknown[] } | null;
   };
-  const hasDoorSchedule = Boolean(
-    configured?.housePackageTool?.doors?.length,
-  );
+	const hasDoorSchedule = Boolean(configured?.housePackageTool?.doors?.length);
 
   return (
     <article className="flex flex-col gap-4 border-b py-5 sm:flex-row sm:items-start">
@@ -115,6 +114,11 @@ export function CartItem({ item }: { item: CartLine }) {
             </p>
           ))}
         </div>
+				{item.pricing.isOnSale ? (
+					<Badge className="mt-2 bg-red-600 text-white hover:bg-red-600">
+						{item.pricing.badgeText}
+					</Badge>
+				) : null}
         <div className="mt-3 flex flex-wrap gap-2">
           <Button
             type="button"
@@ -164,7 +168,19 @@ export function CartItem({ item }: { item: CartLine }) {
             }}
           />
         )}
+				<div className="text-right">
+					{item.pricing.isOnSale ? (
+						<del className="block text-sm text-muted-foreground">
+							${item.pricing.listLineTotal.toFixed(2)}
+						</del>
+					) : null}
         <p className="text-lg font-bold">${item.lineTotal.toFixed(2)}</p>
+					{item.pricing.isOnSale ? (
+						<p className="text-xs font-medium text-red-700">
+							Save ${item.pricing.discountAmount.toFixed(2)}
+						</p>
+					) : null}
+				</div>
       </div>
     </article>
   );

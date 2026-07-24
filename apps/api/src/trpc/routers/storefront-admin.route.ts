@@ -25,6 +25,15 @@ import {
 	updateStorefrontInquiryStatus,
 } from "@api/db/queries/storefront-inquiries";
 import {
+	getStorefrontPromotion,
+	listStorefrontPromotionCategories,
+	listStorefrontPromotionProfiles,
+	listStorefrontPromotions,
+	saveStorefrontPromotion,
+	searchStorefrontPromotionOptions,
+	setStorefrontPromotionStatus,
+} from "@api/db/queries/storefront-promotions";
+import {
 	getStorefrontShippingSettings,
 	reviewStorefrontShippingQuote,
 	saveStorefrontShippingPolicy,
@@ -38,6 +47,12 @@ import {
 	storefrontCatalogMetadataSchema,
 	storefrontCatalogStatusSchema,
 } from "@api/schemas/storefront-admin";
+import {
+	storefrontPromotionIdSchema,
+	storefrontPromotionInputSchema,
+	storefrontPromotionListSchema,
+	storefrontPromotionOptionSearchSchema,
+} from "@api/schemas/storefront-promotion";
 import {
 	storefrontAddressAutocompleteSchema,
 	storefrontPlaceDetailsSchema,
@@ -69,6 +84,7 @@ const operationsListSchema = z.object({
 });
 const storefrontSettingsSchema = z.object({
 	defaultSalesRepId: z.number().int().positive().nullable(),
+	defaultCustomerProfileId: z.number().int().positive().nullable(),
 	pickupEnabled: z.boolean(),
 	deliveryEnabled: z.boolean(),
 	deliveryFlatRate: z.number().min(0).max(1_000_000),
@@ -1168,6 +1184,91 @@ export const storefrontAdminRouter = createTRPCRouter({
 			}),
 	},
 
+	promotions: {
+		list: protectedProcedure
+			.input(storefrontPromotionListSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				return listStorefrontPromotions(ctx, input);
+			}),
+		detail: protectedProcedure
+			.input(storefrontPromotionIdSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				return getStorefrontPromotion(ctx, input.id);
+			}),
+		save: protectedProcedure
+			.input(storefrontPromotionInputSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "editStorefront",
+				});
+				return saveStorefrontPromotion(ctx, input);
+			}),
+		publish: protectedProcedure
+			.input(storefrontPromotionIdSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "publishStorefront",
+				});
+				return setStorefrontPromotionStatus(ctx, {
+					id: input.id,
+					status: "PUBLISHED",
+				});
+			}),
+		archive: protectedProcedure
+			.input(storefrontPromotionIdSchema)
+			.mutation(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "publishStorefront",
+				});
+				return setStorefrontPromotionStatus(ctx, {
+					id: input.id,
+					status: "ARCHIVED",
+				});
+			}),
+		profiles: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return listStorefrontPromotionProfiles(ctx);
+		}),
+		categories: protectedProcedure.query(async ({ ctx }) => {
+			await requireStorefrontEmployeePermission({
+				db: ctx.db,
+				userId: ctx.userId,
+				permission: "viewStorefront",
+			});
+			return listStorefrontPromotionCategories(ctx);
+		}),
+		searchOptions: protectedProcedure
+			.input(storefrontPromotionOptionSearchSchema)
+			.query(async ({ ctx, input }) => {
+				await requireStorefrontEmployeePermission({
+					db: ctx.db,
+					userId: ctx.userId,
+					permission: "viewStorefront",
+				});
+				return searchStorefrontPromotionOptions(ctx, input);
+			}),
+	},
+
 	settings: {
 		addressAutocomplete: protectedProcedure
 			.input(storefrontAddressAutocompleteSchema)
@@ -1247,8 +1348,29 @@ export const storefrontAdminRouter = createTRPCRouter({
 				meta.checkout && typeof meta.checkout === "object"
 					? (meta.checkout as Record<string, unknown>)
 					: {};
+			const defaultCustomerProfileId =
+				Number.isInteger(Number(meta.defaultCustomerProfileId)) &&
+				Number(meta.defaultCustomerProfileId) > 0
+					? Number(meta.defaultCustomerProfileId)
+					: null;
+			const defaultCustomerProfile = defaultCustomerProfileId
+				? await ctx.db.customerTypes.findFirst({
+						where: {
+							id: defaultCustomerProfileId,
+							deletedAt: null,
+							dealerOwnerId: null,
+						},
+						select: { id: true, title: true },
+					})
+				: null;
 			return {
 				id: setting?.id || null,
+				defaultCustomerProfileId,
+				defaultCustomerProfile,
+				defaultCustomerProfileWarning:
+					defaultCustomerProfileId && !defaultCustomerProfile
+						? "The configured profile is unavailable; canonical pricing is being used."
+						: null,
 				defaultSalesRepId:
 					Number.isInteger(Number(meta.defaultSalesRepId)) &&
 					Number(meta.defaultSalesRepId) > 0
@@ -1281,16 +1403,34 @@ export const storefrontAdminRouter = createTRPCRouter({
 						: {};
 				const {
 					defaultSalesRepId,
+					defaultCustomerProfileId,
 					pickupEnabled,
 					deliveryEnabled,
 					deliveryFlatRate,
 					freeDeliveryThreshold,
 				} = input;
+				if (defaultCustomerProfileId) {
+					const profile = await ctx.db.customerTypes.findFirst({
+						where: {
+							id: defaultCustomerProfileId,
+							deletedAt: null,
+							dealerOwnerId: null,
+						},
+						select: { id: true },
+					});
+					if (!profile) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "The selected customer profile is unavailable.",
+						});
+					}
+				}
 				const data = {
 					type: "storefront-settings",
 					meta: asJson({
 						...existingMeta,
 						defaultSalesRepId,
+						defaultCustomerProfileId,
 						checkout: {
 							pickupEnabled,
 							deliveryEnabled,

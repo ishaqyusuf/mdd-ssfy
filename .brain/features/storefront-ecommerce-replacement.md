@@ -52,10 +52,15 @@ item, customer, and permission workspaces.
   charges, uses an idempotent Square flow, and promotes the cart into one
   canonical `SalesOrders` record with `salesChannel = "storefront"`.
 - The internal Storefront workspace provides separate permission-gated
-  Categories, Catalog, Carts & Wishlists, Orders, Inquiries, Pages & Sections,
-  and Settings routes. Catalog availability is paged and card-based rather
+  Categories, Catalog, Promotions, Carts & Wishlists, Orders, Inquiries, Pages
+  & Sections, and Settings routes. Catalog availability is paged and card-based rather
   than hydrating the complete component catalog. Its dashboard navigation link
   is marked `WIP` while the release gates below remain open.
+- Storefront pricing resolves the signed-in customer's active global pricing
+  profile, then the Storefront Settings default profile, then canonical Sales
+  pricing. Scheduled promotions can target customers/profiles and
+  categories/offers; one deterministic campaign is applied after profile
+  pricing and carried through cart, checkout, and Sales Order persistence.
 - Lifecycle cleanup and order-confirmation email run as background jobs.
 
 ## Product Direction
@@ -88,6 +93,10 @@ item, customer, and permission workspaces.
   `.brain/reports/2026-07-20-storefront-ecommerce-replacement-audit.md`
 - Wayfinder map:
   `.scratch/storefront-ecommerce-replacement/map.md`
+- Profile pricing and promotions plan:
+  `.brain/plans/2026-07-24-feature-storefront-profile-pricing-promotions.md`
+- Profile pricing and promotions feature contract:
+  `.brain/features/storefront-profile-pricing-promotions.md`
 
 ## Implementation Notes
 

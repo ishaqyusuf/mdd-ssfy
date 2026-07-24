@@ -422,6 +422,8 @@ function CheckoutOrderSummary({
 }) {
 	const cart = useCart();
 	const subtotal = cart.data?.estimate.subtotal || 0;
+	const listSubtotal = cart.data?.estimate.listSubtotal || subtotal;
+	const promotionDiscount = cart.data?.estimate.promotionDiscount || 0;
 	const delivery =
 		fulfillment === "delivery" && calculatedDelivery != null
 			? calculatedDelivery
@@ -443,6 +445,12 @@ function CheckoutOrderSummary({
 		<div className="rounded-lg bg-gray-50 p-6">
 			<h3 className="mb-4 text-lg font-semibold">Order summary</h3>
 			<div className="space-y-2">
+				{promotionDiscount > 0 ? (
+					<>
+						<SummaryRow label="Merchandise" value={listSubtotal} />
+						<SummaryRow label="Promotion" value={-promotionDiscount} />
+					</>
+				) : null}
 				<SummaryRow label="Subtotal" value={subtotal} />
 				<SummaryRow
 					label={fulfillment === "delivery" ? "Delivery" : "Pickup"}
@@ -481,7 +489,9 @@ function SummaryRow({
 			className={`flex justify-between ${emphasized ? "text-lg font-bold" : ""}`}
 		>
 			<span>{label}</span>
-			<span>${value.toFixed(2)}</span>
+			<span>
+				{value < 0 ? "−" : ""}${Math.abs(value).toFixed(2)}
+			</span>
 		</div>
 	);
 }

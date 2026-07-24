@@ -500,8 +500,12 @@ export function StorefrontSettingsPanel() {
 	const salesReps = useQuery(
 		trpc.storefrontAdmin.settings.salesReps.queryOptions(),
 	);
+	const customerProfiles = useQuery(
+		trpc.storefrontAdmin.promotions.profiles.queryOptions(),
+	);
 	const [form, setForm] = useState({
 		defaultSalesRepId: null as number | null,
+		defaultCustomerProfileId: null as number | null,
 		pickupEnabled: true,
 		deliveryEnabled: false,
 		deliveryFlatRate: 0,
@@ -512,6 +516,7 @@ export function StorefrontSettingsPanel() {
 			setForm({
 				...settings.data.checkout,
 				defaultSalesRepId: settings.data.defaultSalesRepId,
+				defaultCustomerProfileId: settings.data.defaultCustomerProfileId,
 			});
 	}, [settings.data]);
 	const save = useMutation(
@@ -548,6 +553,37 @@ export function StorefrontSettingsPanel() {
 							save.mutate(form);
 						}}
 					>
+						<label className="grid gap-1 text-sm">
+							Default customer pricing profile
+							<select
+								className="h-9 rounded-md border bg-background px-3"
+								value={form.defaultCustomerProfileId || ""}
+								onChange={(event) =>
+									setForm((current) => ({
+										...current,
+										defaultCustomerProfileId: event.target.value
+											? Number(event.target.value)
+											: null,
+									}))
+								}
+							>
+								<option value="">Use canonical sales pricing</option>
+								{customerProfiles.data?.map((profile) => (
+									<option key={profile.id} value={profile.id}>
+										{profile.title}
+									</option>
+								))}
+							</select>
+							<span className="text-xs text-muted-foreground">
+								Guests use this profile. A signed-in customer&apos;s assigned
+								profile takes precedence.
+							</span>
+							{settings.data?.defaultCustomerProfileWarning ? (
+								<span className="text-xs font-medium text-amber-700">
+									{settings.data.defaultCustomerProfileWarning}
+								</span>
+							) : null}
+						</label>
 						<label className="grid gap-1 text-sm">
 							Default sales rep
 							<select

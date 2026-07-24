@@ -30,6 +30,10 @@ import {
 	getStorefrontInquiryBlobToken,
 	startStorefrontCustomInquiry,
 } from "@api/db/queries/storefront-inquiries";
+import {
+	resolveStorefrontAnnouncement,
+	resolveStorefrontPromotionMap,
+} from "@api/db/queries/storefront-pricing";
 import { previewStorefrontShipping } from "@api/db/queries/storefront-shipping";
 import {
 	storefrontAddressIdSchema,
@@ -50,7 +54,12 @@ import {
 import type { TRPCContext } from "@api/trpc/init";
 import { requireStorefrontRateLimit } from "@api/utils/storefront-rate-limit";
 import type { Prisma } from "@gnd/db";
-import { multiplyMoney } from "@gnd/sales/payment-system";
+import {
+	divideMoney,
+	multiplyMoney,
+	percentageMoney,
+	subtractMoney,
+} from "@gnd/sales/payment-system";
 import {
 	normalizeStorefrontAvailability,
 	projectStorefrontOfferRoute,
@@ -91,6 +100,25 @@ const inquirySchema = z.object({
 
 function asJson(value: unknown): Prisma.InputJsonValue {
 	return value as Prisma.InputJsonValue;
+}
+
+function publicPromotion(
+	promotion:
+		| {
+				publicTitle: string;
+				badgeText: string;
+				percentageOff: number;
+		  }
+		| null
+		| undefined,
+) {
+	return promotion
+		? {
+				title: promotion.publicTitle,
+				badgeText: promotion.badgeText,
+				percentageOff: promotion.percentageOff,
+			}
+		: null;
 }
 
 async function writeCommerceAudit(input: {
@@ -201,6 +229,9 @@ export const storefrontPublicRouter = createTRPCRouter({
 	},
 
 	catalog: {
+		announcement: publicProcedure.query(({ ctx }) =>
+			resolveStorefrontAnnouncement(ctx),
+		),
 		sitemap: publicProcedure.query(async ({ ctx }) => {
 			const [categories, offers, pages] = await Promise.all([
 				ctx.db.storefrontCategory.findMany({
@@ -295,14 +326,22 @@ export const storefrontPublicRouter = createTRPCRouter({
 						description: true,
 						imageUrl: true,
 						availability: true,
-						category: { select: { slug: true, title: true } },
+						category: { select: { id: true, slug: true, title: true } },
 					},
 				});
+				const promotionMap = await resolveStorefrontPromotionMap(
+					ctx,
+					offers.map((offer) => ({
+						id: offer.id,
+						categoryId: offer.category.id,
+					})),
+				);
 				return {
 					items: offers.map((offer) => ({
 						...offer,
 						availability: normalizeStorefrontAvailability(offer.availability),
 						href: `/product/${offer.category.slug}/${offer.slug}`,
+						promotion: publicPromotion(promotionMap.get(offer.id)),
 					})),
 				};
 			}),
@@ -350,12 +389,20 @@ export const storefrontPublicRouter = createTRPCRouter({
 						message: "Category not found.",
 					});
 				}
+				const promotionMap = await resolveStorefrontPromotionMap(
+					ctx,
+					category.offers.map((offer) => ({
+						id: offer.id,
+						categoryId: category.id,
+					})),
+				);
 				return {
 					...category,
 					offers: category.offers.map((offer) => ({
 						...offer,
 						availability: normalizeStorefrontAvailability(offer.availability),
 						href: `/product/${category.slug}/${offer.slug}`,
+						promotion: publicPromotion(promotionMap.get(offer.id)),
 					})),
 				};
 			}),
@@ -457,6 +504,9 @@ export const storefrontPublicRouter = createTRPCRouter({
 					),
 				),
 			);
+			const promotionMap = await resolveStorefrontPromotionMap(ctx, [
+				{ id: offer.id, categoryId: offer.categoryId },
+			]);
 			return {
 				id: offer.id,
 				slug: offer.slug,
@@ -472,6 +522,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 					title: offer.category.title,
 				},
 				configuration: policy,
+				promotion: publicPromotion(promotionMap.get(offer.id)),
 			};
 		}),
 		search: publicProcedure
@@ -513,15 +564,23 @@ export const storefrontPublicRouter = createTRPCRouter({
 						imageUrl: true,
 						availability: true,
 						category: {
-							select: { slug: true, title: true },
+							select: { id: true, slug: true, title: true },
 						},
 					},
 				});
+				const promotionMap = await resolveStorefrontPromotionMap(
+					ctx,
+					offers.map((offer) => ({
+						id: offer.id,
+						categoryId: offer.category.id,
+					})),
+				);
 				return {
 					items: offers.map((offer) => ({
 						...offer,
 						availability: normalizeStorefrontAvailability(offer.availability),
 						href: `/product/${offer.category.slug}/${offer.slug}`,
+						promotion: publicPromotion(promotionMap.get(offer.id)),
 					})),
 					count: offers.length,
 				};
@@ -579,6 +638,7 @@ export const storefrontPublicRouter = createTRPCRouter({
 					currency: "USD" as const,
 					unitPrice: priced.unitPrice,
 					lineTotal: priced.lineTotal,
+					pricing: priced.pricing,
 					configuration: priced.configuration,
 					configurationHash: priced.configurationHash,
 					steps: priced.resolvedSteps,
@@ -619,6 +679,18 @@ export const storefrontPublicRouter = createTRPCRouter({
 					let savedLine: { id: string };
 					if (duplicate && !priced.workflow.doorSchedule && !isMoulding) {
 						const mergedQuantity = Number(duplicate.quantity) + quantity;
+						const listLineTotal = multiplyMoney(
+							mergedQuantity,
+							priced.pricingSnapshot.listUnitPrice,
+						);
+						const discountAmount = priced.pricingSnapshot.promotion
+							? percentageMoney(
+									listLineTotal,
+									priced.pricingSnapshot.promotion.percentageOff,
+								)
+							: 0;
+						const saleLineTotal = subtractMoney(listLineTotal, discountAmount);
+						const saleUnitPrice = divideMoney(saleLineTotal, mergedQuantity);
 						savedLine = await tx.storefrontCommerceLine.update({
 							where: { id: duplicate.id },
 							data: {
@@ -626,11 +698,17 @@ export const storefrontPublicRouter = createTRPCRouter({
 								configuration: asJson({
 									...priced.configuration,
 									qty: mergedQuantity,
-									lineTotal: multiplyMoney(mergedQuantity, priced.unitPrice),
+									lineTotal: listLineTotal,
 								}),
-								pricingSnapshot: asJson(priced.pricingSnapshot),
-								unitPrice: priced.unitPrice,
-								lineTotal: multiplyMoney(mergedQuantity, priced.unitPrice),
+								pricingSnapshot: asJson({
+									...priced.pricingSnapshot,
+									listLineTotal,
+									discountAmount,
+									unitPrice: saleUnitPrice,
+									lineTotal: saleLineTotal,
+								}),
+								unitPrice: saleUnitPrice,
+								lineTotal: saleLineTotal,
 								validationStatus: "VALID",
 								validationMessage: null,
 								lastValidatedAt: new Date(),

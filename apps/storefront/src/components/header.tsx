@@ -67,12 +67,43 @@ function CartButton() {
   );
 }
 
+function PromotionAnnouncement() {
+	const trpc = useTRPC();
+	const { data } = useQuery(
+		trpc.storefrontCommerce.catalog.announcement.queryOptions(),
+	);
+	if (!data?.text) return null;
+	const content = (
+		<>
+			<span className="font-semibold">{data.badgeText}</span>
+			<span>{data.text}</span>
+		</>
+	);
+	return (
+		<div className="bg-red-700 px-4 py-2 text-center text-sm text-white">
+			{data.href ? (
+				<Link
+					href={data.href}
+					className="inline-flex flex-wrap items-center justify-center gap-2 underline-offset-4 hover:underline"
+				>
+					{content}
+				</Link>
+			) : (
+				<span className="inline-flex flex-wrap items-center justify-center gap-2">
+					{content}
+				</span>
+			)}
+		</div>
+	);
+}
+
 export function Header() {
   const auth = useAuth();
   const isAuthenticated = Boolean(auth?.id);
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+			<PromotionAnnouncement />
       <div className="border-b">
         <div className="container mx-auto flex items-center justify-between px-4 py-2 text-xs text-muted-foreground">
           <a href="tel:+13052786555" className="flex items-center gap-1">
@@ -94,9 +125,15 @@ export function Header() {
           GND Millwork
         </Link>
 
-        <nav className="hidden flex-1 items-center gap-5 lg:flex" aria-label="Main">
+				<nav
+					className="hidden flex-1 items-center gap-5 lg:flex"
+					aria-label="Main"
+				>
           <CategoryLinks />
-          <Link href="/search" className="text-sm font-medium hover:text-amber-800">
+					<Link
+						href="/search"
+						className="text-sm font-medium hover:text-amber-800"
+					>
             All products
           </Link>
         </nav>
@@ -142,7 +179,9 @@ export function Header() {
                   <Link href="/wishlist">Wishlist</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => void signOut({ callbackUrl: "/" })}>
+								<DropdownMenuItem
+									onClick={() => void signOut({ callbackUrl: "/" })}
+								>
                   Sign out
                 </DropdownMenuItem>
               </>

@@ -28,6 +28,7 @@ import {
 	roundMoney,
 } from "@gnd/sales/payment-system";
 import { salesFormLineItemSchema } from "@gnd/sales/sales-form";
+import { storefrontPricingSnapshotFingerprint } from "@gnd/sales/storefront-pricing";
 import { getCustomerWallet } from "@gnd/sales/wallet";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { TRPCError } from "@trpc/server";
@@ -438,7 +439,9 @@ export async function createStorefrontCheckout(
 		);
 		if (
 			Math.abs(Number(line.lineTotal) - current.lineTotal) >= 0.01 ||
-			line.configurationVersion !== current.offer.configurationVersion
+			line.configurationVersion !== current.offer.configurationVersion ||
+			storefrontPricingSnapshotFingerprint(line.pricingSnapshot) !==
+				storefrontPricingSnapshotFingerprint(current.pricingSnapshot)
 		) {
 			changed = true;
 		}
@@ -473,6 +476,12 @@ export async function createStorefrontCheckout(
 		});
 	}
 
+	const listSubtotal = addMoney(
+		...repriced.map(({ current }) => current.pricingSnapshot.listLineTotal),
+	);
+	const promotionDiscount = addMoney(
+		...repriced.map(({ current }) => current.pricingSnapshot.discountAmount),
+	);
 	const subtotal = addMoney(
 		...repriced.map(({ current }) => current.lineTotal),
 	);
@@ -486,6 +495,7 @@ export async function createStorefrontCheckout(
 						collectionId: cart.id,
 						cartVersion: cart.version,
 						destinationPlaceId: input.shippingAddress.placeId,
+						subtotal,
 						status: {
 							in: [
 								"PENDING_OFFICE_REVIEW",
@@ -577,6 +587,9 @@ export async function createStorefrontCheckout(
 					},
 					totals: {
 						currency: "USD",
+						listSubtotal,
+						promotionDiscount,
+						discountedSubtotal: subtotal,
 						subtotal,
 						delivery: deliveryAmount,
 						tax,
@@ -600,10 +613,28 @@ export async function createStorefrontCheckout(
 	let orderId: string | null = null;
 	let createdOrder = false;
 	if (!salesOrderId) {
+		const promotionAdjustments = new Map<
+			string,
+			{ id: string; title: string; amount: number }
+		>();
+		for (const { current } of repriced) {
+			const promotion = current.pricingSnapshot.promotion;
+			if (!promotion || current.pricingSnapshot.discountAmount <= 0) continue;
+			const existingAdjustment = promotionAdjustments.get(promotion.id);
+			promotionAdjustments.set(promotion.id, {
+				id: promotion.id,
+				title: promotion.publicTitle,
+				amount: addMoney(
+					existingAdjustment?.amount ?? 0,
+					current.pricingSnapshot.discountAmount,
+				),
+			});
+		}
+		const profile = repriced[0]?.current.pricingSnapshot.profile ?? null;
 		const sales = await saveStorefrontSalesOrder(ctx, {
 			checkoutId: checkout.id,
 			customerId: customer.id,
-			customerProfileId: customer.customerTypeId,
+			customerProfileId: profile?.id ?? null,
 			salesRepId: settings.defaultSalesRepId,
 			billingAddressId: billing.id,
 			shippingAddressId: shipping.id,
@@ -611,6 +642,15 @@ export async function createStorefrontCheckout(
 			taxRate,
 			deliveryOption: input.fulfillment,
 			deliveryAmount,
+			promotionAdjustments: [...promotionAdjustments.values()],
+			storefrontPricing: {
+				pricedAt: new Date().toISOString(),
+				profile,
+				promotions: [...promotionAdjustments.values()],
+				listSubtotal,
+				promotionDiscount,
+				discountedSubtotal: subtotal,
+			},
 			lineItems: repriced.map(({ current }) =>
 				salesFormLineItemSchema.parse(current.configuration),
 			),
