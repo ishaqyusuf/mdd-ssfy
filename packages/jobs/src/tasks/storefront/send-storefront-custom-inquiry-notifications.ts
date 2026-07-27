@@ -1,6 +1,3 @@
-import { getUserIdsWithPermission } from "@gnd/auth/utils";
-import { db } from "@gnd/db";
-import { EmailService } from "@gnd/notifications/services/email-service";
 import { logger, schemaTask } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
 
@@ -16,6 +13,12 @@ export const sendStorefrontCustomInquiryNotifications = schemaTask({
 	maxDuration: 120,
 	queue: { concurrencyLimit: 5 },
 	run: async ({ inquiryId }) => {
+		const [{ getUserIdsWithPermission }, { db }, { EmailService }] =
+			await Promise.all([
+				import("@gnd/auth/utils"),
+				import("@gnd/db"),
+				import("@gnd/notifications/services/email-service"),
+			]);
 		const inquiry = await db.storefrontInquiry.findFirst({
 			where: { id: inquiryId, status: { not: "DRAFT" } },
 		});

@@ -1,5 +1,21 @@
 # Progress
 
+- 2026-07-27: Reduced Trigger startup time for the Storefront custom-inquiry
+  notification task by deferring its database, permission, and shared email
+  services until task execution. Fresh-process imports improved from 2,410.8 ms
+  to 277.5-920.2 ms across four serial checks, below the 1,000 ms warning
+  threshold. A source-boundary regression test, the Jobs package typecheck,
+  focused Biome, and scoped diff checks passed. Notification recipients,
+  templates, idempotency, activity evidence, API contracts, permissions, and
+  database behavior are unchanged.
+
+- 2026-07-27: Updated saved page-tab counts to use the shared animated-number
+  treatment in the inline tab bar, overflow menu, and Edit Tabs dialog.
+  Focused page-tab coverage passed 19 tests / 32 assertions, focused Biome and
+  `git diff --check` passed, and authenticated browser validation confirmed all
+  four Sales Orders saved-tab counts render as `number-flow-react` elements,
+  including `Prod Complete`.
+
 - 2026-07-27: Simplified the canonical Sales Orders Status menu to
   `Production completed` and `Fulfilled` with no redundant `Mark as` label.
   The shared inventory-attention modal now renders blocker rows in uppercase
@@ -7262,3 +7278,18 @@
   `/quotes`, and `/quotes/new` all resolved to the expected HTTP 200 login
   surface. Both app typechecks passed before deployment; unrelated working-tree
   changes were excluded from the release snapshot.
+- 2026-07-27: implemented the Sales Overview Production readiness quick action.
+  The Production tab now surfaces configured inventory blockers and open inbound
+  evidence, links directly to Inventory, and lets an authorized admin explicitly
+  confirm physical availability without mutating inventory-owned records.
+  Confirmation is persisted and audited against a full-order SHA-256 evidence
+  revision; assignment rechecks the revision, while completion remains strict.
+  Focused tests pass with 28 tests / 86 assertions, and sales/API/jobs/DB
+  typechecks pass. Browser proof
+  on `08869PC` covered the blocked banner, 14 blockers, 22 open inbound,
+  confirmation dialog, and worker selection. A local 2-unit assignment to
+  Samuel Gonzalez then succeeded through the corrected scoped gate; the
+  assignment was deleted, the override revoked, and zero active test
+  assignments remained. Prisma generation and local schema push passed; normal
+  migration generation remains blocked by the pre-existing master-password
+  shadow replay defect, and production was not changed.

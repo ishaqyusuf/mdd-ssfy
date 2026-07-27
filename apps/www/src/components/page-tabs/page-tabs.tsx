@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatedNumber } from "@/components/animated-number";
 import Link from "@/components/link";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
@@ -259,7 +260,7 @@ export function PageTabs({
 												)}
 												variant="secondary"
 											>
-												{tab.count}
+												<AnimatedNumber currency="number" value={tab.count} />
 											</Badge>
 										) : null}
 									</Link>
@@ -339,7 +340,10 @@ export function PageTabs({
 														className="px-2 tabular-nums"
 														variant="secondary"
 													>
-														{tab.count}
+														<AnimatedNumber
+															currency="number"
+															value={tab.count}
+														/>
 													</Badge>
 												) : null}
 											</Link>

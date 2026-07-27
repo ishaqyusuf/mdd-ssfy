@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatedNumber } from "@/components/animated-number";
 import { useAuth } from "@/hooks/use-auth";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
@@ -292,7 +293,10 @@ export function ManagePageTabsDialog({
 																{typeof tab.count === "number" ? (
 																	<InputGroup.Addon align="inline-end">
 																		<InputGroup.Text>
-																			{tab.count}
+																			<AnimatedNumber
+																				currency="number"
+																				value={tab.count}
+																			/>
 																		</InputGroup.Text>
 																	</InputGroup.Addon>
 																) : null}

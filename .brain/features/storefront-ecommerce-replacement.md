@@ -110,6 +110,11 @@ item, customer, and permission workspaces.
 - Public catalog and admin queries are bounded and soft-delete aware.
 - Production must configure a durable storefront guest signing secret and
   Square/auth/email environment settings.
+- The custom-inquiry notification task keeps its database, permission, and
+  shared email services out of the startup import graph and loads them only
+  while handling a submitted inquiry. This preserves notification behavior
+  while avoiding eager runtime-service and transactional-template
+  initialization during Trigger task discovery.
 - The Vercel `gnd-storefront` project root is `apps/storefront`, matching the
   rename from the former `apps/site` workspace.
 - The storefront app's server-side tRPC client must use the storefront origin
