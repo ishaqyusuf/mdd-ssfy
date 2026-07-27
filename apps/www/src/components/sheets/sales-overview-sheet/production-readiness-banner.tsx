@@ -66,8 +66,9 @@ export function ProductionReadinessBanner() {
 				}),
 		}),
 	);
+	const reviewInventory = () => query.setParams({ salesTab: "inventory" });
 
-	if (production.readinessLoading || (!readiness && production.data?.orderId)) {
+	if (production.readinessLoading) {
 		return (
 			<div
 				id="production-readiness"
@@ -75,9 +76,34 @@ export function ProductionReadinessBanner() {
 			/>
 		);
 	}
+	if (production.readinessUnavailable) {
+		return (
+			<section
+				id="production-readiness"
+				className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-950"
+			>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+					<div className="flex items-start gap-3">
+						<Icons.AlertTriangle className="mt-0.5 size-5 text-amber-700" />
+						<div>
+							<h3 className="font-semibold">
+								Inventory readiness is temporarily unavailable
+							</h3>
+							<p className="mt-1 text-sm text-amber-900">
+								Production items are still available below. Review Inventory
+								before assigning production.
+							</p>
+						</div>
+					</div>
+					<Button variant="outline" size="sm" onClick={reviewInventory}>
+						Review inventory
+					</Button>
+				</div>
+			</section>
+		);
+	}
 	if (!readiness) return null;
 
-	const reviewInventory = () => query.setParams({ salesTab: "inventory" });
 	const mutate = (action: "confirm" | "revoke") => {
 		if (!production.data?.orderId || !readiness.revision) return;
 		mutation.mutate({

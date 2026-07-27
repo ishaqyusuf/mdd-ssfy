@@ -114,6 +114,16 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 				},
 			),
 		);
+		const readinessQuery = useQuery(
+			trpc.sales.productionReadiness.queryOptions(
+				{
+					salesOrderId: data?.orderId || 0,
+				},
+				{
+					enabled: Boolean(data?.orderId),
+				},
+			),
+		);
 		const [selections, setSelections] = useState({});
 
 		return {
@@ -123,8 +133,9 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 			query,
 			users,
 			refetch,
-			readiness: data?.productionReadiness,
-			readinessLoading: Boolean(query.params["sales-overview-id"] && !data),
-			refetchReadiness: refetch,
+			readiness: readinessQuery.data,
+			readinessLoading: Boolean(data?.orderId && readinessQuery.isPending),
+			readinessUnavailable: readinessQuery.isError,
+			refetchReadiness: readinessQuery.refetch,
 		};
 	});

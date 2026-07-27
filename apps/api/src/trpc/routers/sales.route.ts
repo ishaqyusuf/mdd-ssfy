@@ -143,6 +143,7 @@ import {
 	protectedProcedure,
 	publicProcedure,
 } from "../init";
+import { loadCoreProductionOverview } from "./sales-production-overview";
 
 const dealerOrderRequestsSchema = z.object({
 	cursor: z.number().optional().nullable(),
@@ -614,28 +615,9 @@ export const salesRouter = createTRPCRouter({
 		.input(getFullSalesDataSchema)
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
-			if (props.input.salesId) {
-				const [overview, productionReadiness] = await Promise.all([
-					getSaleInformation(props.ctx.db, props.input),
-					getProductionReadiness(props.ctx.db, {
-						salesOrderId: props.input.salesId,
-					}),
-				]);
-				return {
-					...overview,
-					productionReadiness,
-				};
-			}
-			const overview = await getSaleInformation(props.ctx.db, props.input);
-			const productionReadiness = overview?.orderId
-				? await getProductionReadiness(props.ctx.db, {
-						salesOrderId: overview.orderId,
-					})
-				: null;
-			return {
-				...overview,
-				productionReadiness,
-			};
+			return loadCoreProductionOverview(() =>
+				getSaleInformation(props.ctx.db, props.input),
+			);
 		}),
 	productionReadiness: protectedProcedure
 		.input(productionReadinessSchema)

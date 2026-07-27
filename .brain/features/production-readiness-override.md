@@ -31,8 +31,14 @@ Implemented and locally validated on 2026-07-27.
 - `@gnd/sales` owns readiness projection, evidence revision, confirmation,
   revocation, and final gate behavior.
 - The Sales API owns authenticated permission checks and actor resolution.
-- The Production tab consumes readiness from its existing active-tab overview
-  query and does not add a page-level waterfall.
+- The active Production tab loads the core production overview first, then
+  starts readiness from the resolved order identity. Readiness never participates
+  in the core items response, so a slow or failed projection cannot blank or
+  indefinitely load the production list.
+- If the readiness projection is temporarily unavailable, the tab keeps the
+  core items visible and shows an Inventory-directed warning.
+- The dedicated readiness query, confirmation mutation, and Trigger assignment
+  gate remain strict; the availability warning never authorizes production.
 - The Trigger task rechecks readiness immediately before assignment. Assignment
   rows and override-use audit evidence commit in the same transaction.
 
@@ -48,3 +54,5 @@ Implemented and locally validated on 2026-07-27.
   create a 2-unit assignment for Samuel Gonzalez under the active override. The
   assignment was verified, deleted, and the override revoked; zero active test
   assignments remained.
+- Regression coverage verifies that the core production endpoint contains no
+  readiness lookup and that the active tab loads readiness independently.

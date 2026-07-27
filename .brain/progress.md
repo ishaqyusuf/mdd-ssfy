@@ -7293,3 +7293,10 @@
   assignments remained. Prisma generation and local schema push passed; normal
   migration generation remains blocked by the pre-existing master-password
   shadow replay defect, and production was not changed.
+- 2026-07-27: fixed the Sales Overview Production-tab regression where an
+  unavailable readiness projection rejected the whole overview and left the
+  production panel empty. Core production items and readiness now use independent
+  queries, so readiness failure or latency cannot block the list; the tab shows
+  an Inventory-directed availability warning when readiness fails. The focused
+  regression test passes, the API typecheck passes, and the WWW typecheck remains
+  blocked by the repository's existing unrelated baseline errors.

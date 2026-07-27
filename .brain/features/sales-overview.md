@@ -55,6 +55,11 @@ opening production, dispatch, packing, or inventory workflows.
   estimate, production, delivery, pickup, or packing capability.
 - `sales.productionOverview` requires authentication plus an order,
   production, delivery, pickup, or packing capability.
+- `sales.productionOverview` returns only the core production projection.
+  Readiness loads independently after the order identity resolves, so readiness
+  latency or failure cannot delay or blank production rows. The tab shows an
+  Inventory-directed warning when readiness is unavailable; assignment safety
+  remains enforced by the strict readiness endpoint and Trigger gate.
 - Neither query performs hidden gate or assignment repair writes.
 
 ## Performance Priorities
