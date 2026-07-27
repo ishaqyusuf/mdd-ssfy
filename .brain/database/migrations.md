@@ -247,3 +247,16 @@ Tracks notable migrations and migration strategy.
   notification activity/tag storage.
 - No migration, `db push`, sync, or database write command was run for this
   feature.
+
+## 2026-07-27 production readiness override
+
+- Added the `SalesProductionReadinessOverride` model and its order/actor
+  relations.
+- `bun run db:generate` passed.
+- Normal `prisma migrate dev --name production_readiness_override` remained
+  blocked by the pre-existing `20260722180000_master_password_usage_audit`
+  shadow replay failure, which references `MasterPasswordLoginAudit` before the
+  table exists.
+- The additive schema was synchronized only to local development with
+  `prisma db push`; no production database was changed and no migration file
+  was fabricated.

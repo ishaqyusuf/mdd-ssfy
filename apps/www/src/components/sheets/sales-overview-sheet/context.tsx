@@ -123,5 +123,8 @@ export const { useContext: useProduction, Provider: ProductionProvider } =
 			query,
 			users,
 			refetch,
+			readiness: data?.productionReadiness,
+			readinessLoading: Boolean(query.params["sales-overview-id"] && !data),
+			refetchReadiness: refetch,
 		};
 	});

@@ -372,3 +372,14 @@ Tracks notable API surfaces and where they are implemented.
   promotion projection. Configuration preview, cart, checkout, and order
   creation use private server pricing context and expose only customer-facing
   list/sale totals.
+
+## Production readiness override (2026-07-27)
+
+- `sales.productionOverview` includes `productionReadiness` in the active
+  Production-tab payload.
+- `sales.productionReadiness` returns the current order or selected-line
+  readiness projection, blocker sample, revision, summary, and active
+  confirmation evidence.
+- `sales.setProductionReadinessOverride` confirms or revokes the order-level
+  override using an expected revision. Confirm requires the literal
+  `all_required_inventory_physically_available` affirmation.

@@ -1,11 +1,15 @@
-import type { Db } from "./types";
 import {
-  getSalesProductionPlan,
+  buildProductionReadinessRevision,
+  isProductionReadinessOverrideActive,
+} from "./production-readiness-evidence";
+import {
   type SalesProductionPlan,
   type SalesProductionPlanComponent,
   type SalesProductionReadiness,
+  getSalesProductionPlan,
 } from "./sales-fulfillment-plan";
 import { syncSalesInventoryLineItems } from "./sync-sales-inventory-line-items";
+import type { Db } from "./types";
 
 const READY_READINESSES = new Set<SalesProductionReadiness>([
   "ready_for_production",
@@ -32,6 +36,12 @@ export type ProductionReadinessGateResult = {
   readiness: SalesProductionReadiness | "not_synced";
   blockers: ProductionReadinessBlocker[];
 };
+
+export type ProductionReadinessGateOverrideResult =
+  ProductionReadinessGateResult & {
+    overridden: boolean;
+    overrideRevision: string | null;
+  };
 
 export class ProductionReadinessGateError extends Error {
   blockers: ProductionReadinessBlocker[];
@@ -101,12 +111,34 @@ export function evaluateProductionReadinessGate(
   };
 }
 
+export function evaluateProductionReadinessGateWithOverride(
+  plan: SalesProductionPlan,
+  override: {
+    status: string;
+    revision: string;
+  } | null,
+  overrideEvidencePlan: SalesProductionPlan = plan,
+): ProductionReadinessGateOverrideResult {
+  const gate = evaluateProductionReadinessGate(plan);
+  const revision = buildProductionReadinessRevision(overrideEvidencePlan);
+  const overridden =
+    !gate.allowed && isProductionReadinessOverrideActive(override, revision);
+
+  return {
+    ...gate,
+    allowed: gate.allowed || overridden,
+    overridden,
+    overrideRevision: overridden ? revision : null,
+  };
+}
+
 export async function assertProductionReadinessForSale(
   db: Db,
   input: {
     salesOrderId: number;
     lineItemUids?: string[] | null;
     triggeredByUserId?: number | null;
+    allowActiveOverride?: boolean;
   },
 ) {
   await syncSalesInventoryLineItems(db as any, {
@@ -118,8 +150,31 @@ export async function assertProductionReadinessForSale(
   const plan = await getSalesProductionPlan(db, {
     salesOrderId: input.salesOrderId,
     lineItemUids: input.lineItemUids,
+    completeOrder: true,
   });
-  const result = evaluateProductionReadinessGate(plan);
+  const override = input.allowActiveOverride
+    ? await db.salesProductionReadinessOverride.findUnique({
+        where: {
+          salesOrderId: input.salesOrderId,
+        },
+        select: {
+          status: true,
+          revision: true,
+        },
+      })
+    : null;
+  const overrideEvidencePlan =
+    override && input.lineItemUids?.length
+      ? await getSalesProductionPlan(db, {
+          salesOrderId: input.salesOrderId,
+          completeOrder: true,
+        })
+      : plan;
+  const result = evaluateProductionReadinessGateWithOverride(
+    plan,
+    override,
+    overrideEvidencePlan,
+  );
 
   if (!result.allowed) {
     throw new ProductionReadinessGateError(result);

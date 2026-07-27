@@ -32,10 +32,14 @@ async function getPaymentReviewSettings(db: Db) {
 export async function submitAllTask(db: Db, data: UpdateSalesControl) {
 	const submitArgs = data.submitAll;
 	const paymentReviewSettings = await getPaymentReviewSettings(db);
-	const info = await getSaleInformation(db, {
-		salesId: data.meta.salesId,
-		assignedToId: submitArgs?.assignedToId ?? undefined,
-	}, { persistDerivedState: true });
+	const info = await getSaleInformation(
+		db,
+		{
+			salesId: data.meta.salesId,
+			assignedToId: submitArgs?.assignedToId ?? undefined,
+		},
+		{ persistDerivedState: true },
+	);
 	const resp = await db.$transaction(
 		async (tx) => {
 			const resp = await submitAssignmentsAction(tx as any, {
@@ -59,12 +63,25 @@ export async function submitAllTask(db: Db, data: UpdateSalesControl) {
 	);
 	return resp;
 }
-export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
+export async function createAssignmentsTask(
+	db: Db,
+	data: UpdateSalesControl,
+	options?: {
+		productionReadinessOverride?: {
+			revision: string;
+			lineItemUids: string[] | null;
+		};
+	},
+) {
 	const payload = data.createAssignments;
 	const paymentReviewSettings = await getPaymentReviewSettings(db);
-	const info = await getSaleInformation(db, {
-		salesId: data.meta.salesId,
-	}, { persistDerivedState: true });
+	const info = await getSaleInformation(
+		db,
+		{
+			salesId: data.meta.salesId,
+		},
+		{ persistDerivedState: true },
+	);
 
 	const createAssignments: CreateSalesAssignmentProps["items"] = [];
 	for (const item of info.items) {
@@ -87,13 +104,17 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
 	if (createAssignments.length != payload?.selections?.length) {
 		if (!payload?.retries) {
 			await resetSalesAction(db, data.meta.salesId);
-			return createAssignmentsTask(db, {
-				...data,
-				createAssignments: {
-					...payload,
-					retries: 1,
+			return createAssignmentsTask(
+				db,
+				{
+					...data,
+					createAssignments: {
+						...payload,
+						retries: 1,
+					},
 				},
-			});
+				options,
+			);
 		}
 	}
 	if (!createAssignments.length) {
@@ -117,6 +138,21 @@ export async function createAssignmentsTask(db: Db, data: UpdateSalesControl) {
 				reviewedById: data.meta.authorId,
 				reviewNote: "Auto-reviewed after production assignment.",
 			});
+			if (options?.productionReadinessOverride) {
+				await tx.salesHistory.create({
+					data: {
+						salesId: data.meta.salesId,
+						name: "Production inventory readiness override used",
+						authorName: data.meta.authorName,
+						data: {
+							event: "production_readiness_override_used",
+							revision: options.productionReadinessOverride.revision,
+							triggeredByUserId: data.meta.authorId,
+							lineItemUids: options.productionReadinessOverride.lineItemUids,
+						},
+					},
+				});
+			}
 		},
 		{
 			maxWait: 30 * 1000,
@@ -127,9 +163,13 @@ export async function submitNonProductionsTask(
 	db: Db,
 	data: UpdateSalesControl,
 ) {
-	const info = await getSaleInformation(db, {
-		salesId: data.meta.salesId,
-	}, { persistDerivedState: true });
+	const info = await getSaleInformation(
+		db,
+		{
+			salesId: data.meta.salesId,
+		},
+		{ persistDerivedState: true },
+	);
 	const response = await db.$transaction(
 		async (tx) => {
 			const resp = await submitNonProductionsAction(tx as any, {
@@ -484,9 +524,13 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 	const packMode = data.packItems?.packMode!;
 	const requestedDispatchStatus = data.packItems?.dispatchStatus;
 	if (packMode == "all") {
-		const assignmentInfo = await getSaleInformation(db, {
-			salesId: data.meta.salesId,
-		}, { persistDerivedState: true });
+		const assignmentInfo = await getSaleInformation(
+			db,
+			{
+				salesId: data.meta.salesId,
+			},
+			{ persistDerivedState: true },
+		);
 		const createAssignments: CreateSalesAssignmentProps["items"] =
 			assignmentInfo.items
 				.filter(
@@ -519,9 +563,13 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 			meta: data.meta,
 			submitAll: {},
 		});
-	const info = await getSaleInformation(db, {
-		salesId: data.meta.salesId,
-	}, { persistDerivedState: true });
+	const info = await getSaleInformation(
+		db,
+		{
+			salesId: data.meta.salesId,
+		},
+		{ persistDerivedState: true },
+	);
 	if (
 		data.packItems?.packMode === "selection" &&
 		(data.packItems?.requestedItems?.length || 0) > 0
@@ -535,9 +583,13 @@ export async function packDispatchItemTask(db: Db, data: UpdateSalesControl) {
 			await submitNonProductionsTask(db, {
 				meta: data.meta,
 			} as UpdateSalesControl);
-			const refreshed = await getSaleInformation(db, {
-				salesId: data.meta.salesId,
-			}, { persistDerivedState: true });
+			const refreshed = await getSaleInformation(
+				db,
+				{
+					salesId: data.meta.salesId,
+				},
+				{ persistDerivedState: true },
+			);
 			built = buildSelectionPackingLinesFromRequestedItems(
 				refreshed,
 				data.packItems!.requestedItems!,

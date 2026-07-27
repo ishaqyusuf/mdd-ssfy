@@ -666,3 +666,20 @@ Tracks important request/response contracts and shared schema boundaries.
   owned by the dedicated customer-service assignment workflow.
 - Existing assigned work orders must pass the same form schema as new work
   orders before the protected save mutation runs.
+
+## Production readiness override contract (2026-07-27)
+
+- Readiness states are `ready`, `blocked`, `overridden`, `not_configured`, and
+  `read_only`.
+- A configured blocked projection exposes a deterministic revision,
+  blocker/sample evidence, pending quantity, open inbound quantity, and
+  `canOverride = true`.
+- Confirmation compares `expectedRevision` after repair synchronization inside
+  the write transaction. A mismatch returns `stale` without activating a new
+  confirmation.
+- `not_configured` and terminal orders cannot be overridden.
+- Assignment evaluates selected-line blockers while matching the active
+  confirmation against a full-order evidence plan. The same confirmation is
+  invalid after any relevant inventory evidence changes.
+- Confirmation is an execution exception only: canonical inbound, allocation,
+  receipt, and stock records are unchanged.

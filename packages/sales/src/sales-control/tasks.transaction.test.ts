@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 const submitNonProductionsActionMock = mock(async () => ({}));
 const submitAssignmentsActionMock = mock(async () => ({}));
-const packDispatchItemsActionMock = mock(async () => ({ created: 1, skipped: 0 }));
+const packDispatchItemsActionMock = mock(async () => ({
+  created: 1,
+  skipped: 0,
+}));
 const resetSalesActionMock = mock(async () => ({}));
 const createSalesAssignmentActionMock = mock(async () => ({}));
+const autoReviewSalesPaymentsForOrderActionMock = mock(async () => ({}));
+const getSalesSettingMock = mock(async () => ({ data: {} }));
 const getSaleInformationMock = mock(async () => ({
   order: { id: 9001 },
   items: [],
@@ -22,6 +27,14 @@ mock.module("./get-sale-information", () => ({
   getSaleInformation: getSaleInformationMock,
 }));
 
+mock.module("../payment-system/application/payment-review", () => ({
+  autoReviewSalesPaymentsForOrderAction: autoReviewSalesPaymentsForOrderActionMock,
+}));
+
+mock.module("./settings", () => ({
+  getSalesSetting: getSalesSettingMock,
+}));
+
 const tasksModule = await import("./tasks");
 
 describe("sales-control task transactions", () => {
@@ -31,7 +44,76 @@ describe("sales-control task transactions", () => {
     packDispatchItemsActionMock.mockClear();
     resetSalesActionMock.mockClear();
     createSalesAssignmentActionMock.mockClear();
+    autoReviewSalesPaymentsForOrderActionMock.mockClear();
+    getSalesSettingMock.mockClear();
     getSaleInformationMock.mockClear();
+  });
+
+  it("creates assignment and override-use audit in the same transaction", async () => {
+    getSaleInformationMock.mockResolvedValueOnce({
+      order: { id: 9001 },
+      items: [
+        {
+          controlUid: "door-1",
+          analytics: {
+            assignment: {
+              pending: { qty: 2, lh: 0, rh: 2 },
+            },
+          },
+        },
+      ],
+    });
+    const tx = {
+      salesHistory: {
+        create: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    await tasksModule.createAssignmentsTask(
+      db as any,
+      {
+        meta: {
+          salesId: 9001,
+          authorId: 12,
+          authorName: "Operator",
+        },
+        createAssignments: {
+          assignedToId: 13,
+          selections: [
+            {
+              uid: "door-1",
+              qty: { qty: 2, lh: 0, rh: 2 },
+            },
+          ],
+        },
+      } as any,
+      {
+        productionReadinessOverride: {
+          revision: "revision-1",
+          lineItemUids: ["door-1"],
+        },
+      },
+    );
+
+    expect(createSalesAssignmentActionMock).toHaveBeenCalledTimes(1);
+    expect(createSalesAssignmentActionMock.mock.calls[0]?.[0]).toBe(tx);
+    expect(tx.salesHistory.create).toHaveBeenCalledTimes(1);
+    expect(tx.salesHistory.create).toHaveBeenCalledWith({
+      data: {
+        salesId: 9001,
+        name: "Production inventory readiness override used",
+        authorName: "Operator",
+        data: {
+          event: "production_readiness_override_used",
+          revision: "revision-1",
+          triggeredByUserId: 12,
+          lineItemUids: ["door-1"],
+        },
+      },
+    });
   });
 
   it("clearPackingTask updates and resets within the same transaction", async () => {
@@ -44,10 +126,13 @@ describe("sales-control task transactions", () => {
       $transaction: async (fn: any) => fn(tx),
     };
 
-    await tasksModule.clearPackingTask(db as any, {
-      meta: { salesId: 321, authorName: "Tester" },
-      clearPackings: { dispatchId: 44 },
-    } as any);
+    await tasksModule.clearPackingTask(
+      db as any,
+      {
+        meta: { salesId: 321, authorName: "Tester" },
+        clearPackings: { dispatchId: 44 },
+      } as any,
+    );
 
     expect(tx.orderItemDelivery.updateMany).toHaveBeenCalledTimes(1);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(1);
@@ -64,10 +149,13 @@ describe("sales-control task transactions", () => {
       $transaction: async (fn: any) => fn(tx),
     };
 
-    await tasksModule.cancelDispatchTask(db as any, {
-      meta: { salesId: 777 },
-      cancelDispatch: { dispatchIds: [55, 56] },
-    } as any);
+    await tasksModule.cancelDispatchTask(
+      db as any,
+      {
+        meta: { salesId: 777 },
+        cancelDispatch: { dispatchIds: [55, 56] },
+      } as any,
+    );
 
     expect(tx.orderDelivery.updateMany).toHaveBeenCalledTimes(1);
     expect(tx.orderDelivery.updateMany).toHaveBeenCalledWith({
@@ -93,13 +181,14 @@ describe("sales-control task transactions", () => {
     };
 
     await expect(
-      tasksModule.cancelDispatchTask(db as any, {
-        meta: { salesId: 777 },
-        cancelDispatch: { dispatchIds: [55, 56] },
-      } as any),
-    ).rejects.toThrow(
-      "One or more fulfillment dispatches do not belong to this sales order.",
-    );
+      tasksModule.cancelDispatchTask(
+        db as any,
+        {
+          meta: { salesId: 777 },
+          cancelDispatch: { dispatchIds: [55, 56] },
+        } as any,
+      ),
+    ).rejects.toThrow("One or more fulfillment dispatches do not belong to this sales order.");
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
 
@@ -113,15 +202,18 @@ describe("sales-control task transactions", () => {
       $transaction: async (fn: any) => fn(tx),
     };
 
-    const response = await tasksModule.packDispatchItemTask(db as any, {
-      meta: { salesId: 909, authorId: 12, authorName: "Operator" },
-      packItems: {
-        dispatchId: 90,
-        dispatchStatus: "queue",
-        packMode: "selection",
-        packingLines: [{ salesItemId: 1, submissionId: 2, qty: { qty: 1 } }],
-      },
-    } as any);
+    const response = await tasksModule.packDispatchItemTask(
+      db as any,
+      {
+        meta: { salesId: 909, authorId: 12, authorName: "Operator" },
+        packItems: {
+          dispatchId: 90,
+          dispatchStatus: "queue",
+          packMode: "selection",
+          packingLines: [{ salesItemId: 1, submissionId: 2, qty: { qty: 1 } }],
+        },
+      } as any,
+    );
 
     expect(getSaleInformationMock).toHaveBeenCalledTimes(1);
     expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
@@ -145,16 +237,19 @@ describe("sales-control task transactions", () => {
       $transaction: async (fn: any) => fn(tx),
     };
 
-    await tasksModule.packDispatchItemTask(db as any, {
-      meta: { salesId: 901, authorId: 17, authorName: "Operator" },
-      packItems: {
-        dispatchId: 91,
-        dispatchStatus: "queue",
-        packMode: "selection",
-        replaceExisting: true,
-        packingLines: [{ salesItemId: 1, submissionId: 2, qty: { qty: 1 } }],
-      },
-    } as any);
+    await tasksModule.packDispatchItemTask(
+      db as any,
+      {
+        meta: { salesId: 901, authorId: 17, authorName: "Operator" },
+        packItems: {
+          dispatchId: 91,
+          dispatchStatus: "queue",
+          packMode: "selection",
+          replaceExisting: true,
+          packingLines: [{ salesItemId: 1, submissionId: 2, qty: { qty: 1 } }],
+        },
+      } as any,
+    );
 
     expect(tx.orderItemDelivery.updateMany).toHaveBeenCalledTimes(1);
     expect(tx.orderItemDelivery.updateMany).toHaveBeenCalledWith({
@@ -186,10 +281,13 @@ describe("sales-control task transactions", () => {
     };
 
     await expect(
-      tasksModule.clearPackingTask(db as any, {
-        meta: { salesId: 99, authorName: "Tester" },
-        clearPackings: { dispatchId: 88 },
-      } as any),
+      tasksModule.clearPackingTask(
+        db as any,
+        {
+          meta: { salesId: 99, authorName: "Tester" },
+          clearPackings: { dispatchId: 88 },
+        } as any,
+      ),
     ).rejects.toThrow("update failed");
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
@@ -209,10 +307,13 @@ describe("sales-control task transactions", () => {
       $transaction: async (fn: any) => fn(tx),
     };
 
-    await tasksModule.deleteSubmissionsTask(db as any, {
-      meta: { salesId: 777 },
-      deleteSubmissions: { automaticCompletionSalesId: 777 },
-    } as any);
+    await tasksModule.deleteSubmissionsTask(
+      db as any,
+      {
+        meta: { salesId: 777 },
+        deleteSubmissions: { automaticCompletionSalesId: 777 },
+      } as any,
+    );
 
     expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledTimes(1);
     expect(tx.orderProductionSubmissions.updateMany.mock.calls[0]?.[0]).toEqual({
@@ -234,13 +335,14 @@ describe("sales-control task transactions", () => {
     };
 
     await expect(
-      tasksModule.deleteSubmissionsTask(db as any, {
-        meta: { salesId: 777 },
-        deleteSubmissions: { automaticCompletionSalesId: 777 },
-      } as any),
-    ).rejects.toThrow(
-      "No automatic production completion is available to cancel.",
-    );
+      tasksModule.deleteSubmissionsTask(
+        db as any,
+        {
+          meta: { salesId: 777 },
+          deleteSubmissions: { automaticCompletionSalesId: 777 },
+        } as any,
+      ),
+    ).rejects.toThrow("No automatic production completion is available to cancel.");
     expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledTimes(0);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
@@ -256,10 +358,13 @@ describe("sales-control task transactions", () => {
     };
 
     await expect(
-      tasksModule.deleteSubmissionsTask(db as any, {
-        meta: { salesId: 777 },
-        deleteSubmissions: { automaticCompletionSalesId: 778 },
-      } as any),
+      tasksModule.deleteSubmissionsTask(
+        db as any,
+        {
+          meta: { salesId: 777 },
+          deleteSubmissions: { automaticCompletionSalesId: 778 },
+        } as any,
+      ),
     ).rejects.toThrow("Production cancellation does not match this sales order.");
     expect(tx.orderProductionSubmissions.findMany).toHaveBeenCalledTimes(0);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
@@ -309,23 +414,26 @@ describe("sales-control task transactions", () => {
         ],
       });
 
-    await tasksModule.packDispatchItemTask(db as any, {
-      meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
-      packItems: {
-        dispatchId: 90,
-        dispatchStatus: "queue",
-        packMode: "selection",
-        replaceExisting: true,
-        requestedItems: [
-          {
-            salesItemId: 1,
-            itemUid: "uid-1",
-            title: "Alpha",
-            qty: { qty: 2 },
-          },
-        ],
-      },
-    } as any);
+    await tasksModule.packDispatchItemTask(
+      db as any,
+      {
+        meta: { salesId: 9001, authorId: 12, authorName: "Operator" },
+        packItems: {
+          dispatchId: 90,
+          dispatchStatus: "queue",
+          packMode: "selection",
+          replaceExisting: true,
+          requestedItems: [
+            {
+              salesItemId: 1,
+              itemUid: "uid-1",
+              title: "Alpha",
+              qty: { qty: 2 },
+            },
+          ],
+        },
+      } as any,
+    );
 
     expect(submitNonProductionsActionMock).toHaveBeenCalledTimes(1);
     expect(packDispatchItemsActionMock).toHaveBeenCalledTimes(1);
@@ -374,22 +482,25 @@ describe("sales-control task transactions", () => {
       });
 
     await expect(
-      tasksModule.packDispatchItemTask(db as any, {
-        meta: { salesId: 9002, authorId: 12, authorName: "Operator" },
-        packItems: {
-          dispatchId: 90,
-          dispatchStatus: "queue",
-          packMode: "selection",
-          requestedItems: [
-            {
-              salesItemId: 1,
-              itemUid: "uid-1",
-              title: "Alpha",
-              qty: { qty: 2 },
-            },
-          ],
-        },
-      } as any),
+      tasksModule.packDispatchItemTask(
+        db as any,
+        {
+          meta: { salesId: 9002, authorId: 12, authorName: "Operator" },
+          packItems: {
+            dispatchId: 90,
+            dispatchStatus: "queue",
+            packMode: "selection",
+            requestedItems: [
+              {
+                salesItemId: 1,
+                itemUid: "uid-1",
+                title: "Alpha",
+                qty: { qty: 2 },
+              },
+            ],
+          },
+        } as any,
+      ),
     ).rejects.toThrow("Insufficient deliverables for: Alpha");
 
     expect(submitNonProductionsActionMock).toHaveBeenCalledTimes(1);

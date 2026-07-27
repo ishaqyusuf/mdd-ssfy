@@ -861,3 +861,8 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
   share one tested policy that keeps the customer receivable separate from the
   GND payable and advances pickup/delivery wording only from affirmative
   fulfillment evidence. Authenticated desktop and mobile dealership QA passed.
+- [x] 2026-07-27: added the audited Production-tab inventory readiness override.
+  Configured blocked orders now show blocker/inbound evidence, Inventory
+  navigation, explicit physical-availability confirmation, stale-revision
+  protection, assignment-only gate use, and revocation. A 2-unit local
+  assignment smoke passed and its assignment/override state was cleaned up.

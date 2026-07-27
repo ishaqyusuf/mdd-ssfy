@@ -211,3 +211,13 @@ Tracks important schema-level entities and ownership boundaries.
   for packing signatures. It retains request ownership, lease timestamps,
   canonical `documentId`, and `processing` / `uploaded` /
   `domain_completed` / `completed` / `failed` status without a schema change.
+
+## Production readiness override (2026-07-27)
+
+- `SalesProductionReadinessOverride` stores one order-level readiness
+  confirmation for each `SalesOrders` row.
+- `status` is `ACTIVE` or `REVOKED`; `revision` is the SHA-256 fingerprint of
+  the confirmed full-order inventory evidence and `snapshot` preserves the
+  reviewed summary and blockers.
+- Confirm/revoke actor and timestamp fields retain durable audit context. The
+  record never changes inbound demand, allocation, receipt, or stock truth.

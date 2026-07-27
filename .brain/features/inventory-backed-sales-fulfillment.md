@@ -405,7 +405,12 @@ Status: Projection, board, lifecycle bridge, and readiness enforcement done; ope
 - [x] Canonical `update-sales-control` production mutations use the package-owned `shouldSyncInventoryProductionLifecycleForSalesControl` decision to refresh inventory production lifecycle for assignment, submit-all, submission update/delete, assignment delete, and mark-complete actions while leaving dispatch-only mutations out of production lifecycle refresh. Production lifecycle projection writes use an active-row guarded line-item update and count only confirmed updated rows.
 - [x] Existing production assignment/start actions are hard-gated by inventory readiness for inventory-backed required components.
 - [ ] Sale-level production-ready transitions need final wiring into the broader sales production workflow.
-- [ ] Browser/operator validation for blocked and allowed production assignment remains pending.
+- [x] Browser/operator validation now covers a configured blocked Production-tab
+  order, blocker/open-inbound evidence, Inventory navigation, audited physical
+  availability confirmation, worker selection, a successful 2-unit assignment
+  under the revision-bound override, assignment cleanup, and override
+  revocation. Strict genuinely-ready assignment proof remains part of broader
+  inventory cutover regression coverage.
 
 ### Phase 5: Await Inbound
 Status: Mostly done; receive retry guardrails added.

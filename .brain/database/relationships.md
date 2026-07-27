@@ -122,3 +122,13 @@ Tracks important cross-model relationships and ownership patterns.
   id as the durable fallback for activity handlers that emit no activity row.
 - `SalesDocumentSnapshot.storedDocumentId` remains the generated Sales PDF
   lifecycle link.
+
+## Production readiness override links (2026-07-27)
+
+- `SalesOrders` has at most one `SalesProductionReadinessOverride`.
+- `SalesProductionReadinessOverride.confirmedByUserId -> Users.id` uses the
+  `productionReadinessOverridesConfirmed` relation.
+- `SalesProductionReadinessOverride.revokedByUserId -> Users.id` uses the
+  `productionReadinessOverridesRevoked` relation.
+- `SalesHistory.salesId` stores append-only confirmation, successful-use, and
+  revocation evidence for the same order.

@@ -119,9 +119,11 @@ import { generateRandomString, timeLog } from "@gnd/utils";
 import { getAppUrl } from "@gnd/utils/envs";
 import { createNoteAction } from "@notifications/note";
 import {
+	getProductionReadiness,
 	productionV2DetailQuerySchema,
 	productionV2ListQuerySchema,
 	salesProductionQueryParamsSchema,
+	setProductionReadinessOverride,
 } from "@sales/exports";
 import { salesPrioritySchema } from "@sales/priority";
 import {
@@ -171,6 +173,32 @@ const markPaymentsReviewedSchema = z.object({
 	salesIds: z.array(z.number().int().positive()).min(1).max(100),
 	note: z.string().trim().max(500).optional().nullable(),
 });
+const productionReadinessSchema = z.object({
+	salesOrderId: z.number().int().positive(),
+	lineItemUids: z
+		.array(z.string().trim().min(1))
+		.max(100)
+		.optional()
+		.nullable(),
+});
+const setProductionReadinessOverrideSchema = z
+	.object({
+		salesOrderId: z.number().int().positive(),
+		expectedRevision: z.string().regex(/^[a-f0-9]{64}$/),
+		action: z.enum(["confirm", "revoke"]),
+		affirmation: z
+			.literal("all_required_inventory_physically_available")
+			.optional(),
+	})
+	.superRefine((value, ctx) => {
+		if (value.action === "confirm" && !value.affirmation) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				path: ["affirmation"],
+				message: "Inventory availability confirmation is required.",
+			});
+		}
+	});
 
 async function requireSalesOverviewViewer(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
@@ -207,6 +235,14 @@ async function requireProductionOverviewViewer(ctx: TRPCContext) {
 			"viewPacking",
 		],
 		"You do not have permission to view sales production details.",
+	);
+}
+
+async function requireProductionEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["editProduction"],
+		"You do not have permission to override production readiness.",
 	);
 }
 
@@ -578,7 +614,61 @@ export const salesRouter = createTRPCRouter({
 		.input(getFullSalesDataSchema)
 		.query(async (props) => {
 			await requireProductionOverviewViewer(props.ctx);
-			return getSaleInformation(props.ctx.db, props.input);
+			if (props.input.salesId) {
+				const [overview, productionReadiness] = await Promise.all([
+					getSaleInformation(props.ctx.db, props.input),
+					getProductionReadiness(props.ctx.db, {
+						salesOrderId: props.input.salesId,
+					}),
+				]);
+				return {
+					...overview,
+					productionReadiness,
+				};
+			}
+			const overview = await getSaleInformation(props.ctx.db, props.input);
+			const productionReadiness = overview?.orderId
+				? await getProductionReadiness(props.ctx.db, {
+						salesOrderId: overview.orderId,
+					})
+				: null;
+			return {
+				...overview,
+				productionReadiness,
+			};
+		}),
+	productionReadiness: protectedProcedure
+		.input(productionReadinessSchema)
+		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
+			return getProductionReadiness(props.ctx.db, props.input);
+		}),
+	setProductionReadinessOverride: protectedProcedure
+		.input(setProductionReadinessOverrideSchema)
+		.mutation(async (props) => {
+			await requireProductionEditor(props.ctx);
+			if (!props.ctx.userId) {
+				throw new Error("Authentication is required.");
+			}
+			const actor = await props.ctx.db.users.findUnique({
+				where: {
+					id: props.ctx.userId,
+				},
+				select: {
+					id: true,
+					name: true,
+				},
+			});
+			if (!actor) {
+				throw new Error("Authenticated employee was not found.");
+			}
+
+			return setProductionReadinessOverride(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
+				expectedRevision: props.input.expectedRevision,
+				action: props.input.action,
+				actor,
+			});
 		}),
 	saveOrderProductionGate: protectedProcedure
 		.input(saveOrderProductionGateSchema)

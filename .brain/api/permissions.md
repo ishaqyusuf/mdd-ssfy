@@ -200,3 +200,13 @@ Tracks authentication and authorization patterns across API surfaces.
   writes, and note creation are protected. Public channel/activity reads remain
   intentionally available to existing login and shared notification surfaces;
   personal activity mutations use the current authenticated contact.
+
+## Production readiness override permissions (2026-07-27)
+
+- Production readiness reads require the existing Production Overview viewer
+  boundary.
+- Confirm and revoke mutations require `editProduction`.
+- The server derives the actor from the authenticated session and does not
+  trust client-supplied author identity.
+- UI visibility is not an authorization boundary; the assignment task repeats
+  the revision-bound readiness check before writing.

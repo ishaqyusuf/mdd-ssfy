@@ -1,7 +1,8 @@
-import { db, type Db } from "@gnd/db";
+import { type Db, db } from "@gnd/db";
 import {
 	type LegacyUpdateSalesControlAction,
 	type UpdateSalesControl,
+	assertProductionReadinessForSale,
 	cancelDispatchTask,
 	clearPackingTask,
 	createAssignmentsTask,
@@ -10,7 +11,6 @@ import {
 	isControlWriteV2Enabled,
 	markAsCompletedTask,
 	packDispatchItemTask,
-	assertProductionReadinessForSale,
 	resolveLegacyUpdateSalesControlAction,
 	shouldSyncInventoryProductionLifecycleForSalesControl,
 	startDispatchTask,
@@ -329,16 +329,31 @@ export const updateSalesControl = schemaTask({
 	run: async (input) => {
 		const action = resolveActionHandler(input as UpdateSalesControl);
 		if (action) {
+			let productionReadinessOverrideRevision: string | null = null;
 			if (shouldGateProductionStart(input as UpdateSalesControl)) {
-				await assertProductionReadinessForSale(db as any, {
+				const readiness = await assertProductionReadinessForSale(db as any, {
 					salesOrderId: input.meta.salesId,
 					lineItemUids: getProductionReadinessGateLineUids(
 						input as UpdateSalesControl,
 					),
 					triggeredByUserId: input.meta.authorId,
+					allowActiveOverride: Boolean(input.createAssignments),
 				});
+				productionReadinessOverrideRevision = readiness.overridden
+					? readiness.overrideRevision
+					: null;
 			}
-			const response = await action(db, input);
+			const response =
+				input.createAssignments && productionReadinessOverrideRevision
+					? await createAssignmentsTask(db, input as UpdateSalesControl, {
+							productionReadinessOverride: {
+								revision: productionReadinessOverrideRevision,
+								lineItemUids: getProductionReadinessGateLineUids(
+									input as UpdateSalesControl,
+								),
+							},
+						})
+					: await action(db, input);
 			if (
 				shouldSyncInventoryProductionLifecycleForSalesControl(
 					input as UpdateSalesControl,

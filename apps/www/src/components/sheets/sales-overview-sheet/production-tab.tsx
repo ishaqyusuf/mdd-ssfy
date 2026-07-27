@@ -26,6 +26,7 @@ import { ProductionProvider, useProduction } from "./context";
 import { ItemProgressBar } from "./item-progress-bar";
 import { ProductionItemDetail } from "./production-item-detail";
 import { ProductionItemMenu } from "./production-item-menu";
+import { ProductionReadinessBanner } from "./production-readiness-banner";
 import { ProductionTabFooter } from "./production-tab-footer";
 
 export function ProductionTab() {
@@ -55,6 +56,7 @@ function Content() {
 			}
 		>
 			<div className="mt-0 space-y-6">
+				<ProductionReadinessBanner />
 				<Accordion
 					type="multiple"
 					value={[query.params["prod-item-view"]]}

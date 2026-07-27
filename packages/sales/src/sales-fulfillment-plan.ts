@@ -39,9 +39,11 @@ export type FulfillmentAllocationLike = {
 };
 
 export type FulfillmentInboundDemandLike = {
+	id?: number | null;
 	qty?: number | null;
 	qtyReceived?: number | null;
 	status?: string | null;
+	inboundShipmentItemId?: number | null;
 };
 
 export type FulfillmentDeliveryLike = {
@@ -144,6 +146,18 @@ export type SalesFulfillmentComponentProjection =
 		componentName: string | null;
 		supplierId: number | null;
 		supplierName: string | null;
+		allocationEvidence: Array<{
+			id: number | null;
+			qty: number;
+			status: string | null;
+		}>;
+		inboundEvidence: Array<{
+			id: number | null;
+			qty: number;
+			qtyReceived: number;
+			status: string | null;
+			inboundShipmentItemId: number | null;
+		}>;
 	};
 
 export type SalesFulfillmentLineProjection =
@@ -308,6 +322,8 @@ export type SalesProductionPlanComponent = SalesFulfillmentQuantitySnapshot & {
 	stockStatus: SalesProductionStockStatus;
 	readiness: SalesProductionReadiness;
 	lineReadiness: SalesProductionReadiness;
+	allocationEvidence: SalesFulfillmentComponentProjection["allocationEvidence"];
+	inboundEvidence: SalesFulfillmentComponentProjection["inboundEvidence"];
 };
 
 export type SalesProductionPlanGroup = {
@@ -360,6 +376,7 @@ export type GetSalesProductionPlanInput = {
 	supplierId?: number | null;
 	readinesses?: SalesProductionReadiness[] | null;
 	limit?: number;
+	completeOrder?: boolean;
 };
 
 export type PlanAvailableShipmentComponentInput = {
@@ -444,10 +461,7 @@ export type SetSalesInventoryLineFulfillmentHoldInput = {
 	authorName?: string | null;
 };
 
-export type InventoryDispatchTransitionAction =
-	| "assign"
-	| "pack"
-	| "release";
+export type InventoryDispatchTransitionAction = "assign" | "pack" | "release";
 
 export type InventoryDispatchAllocationStatus =
 	| "pending_review"
@@ -718,7 +732,9 @@ export function planAvailableShipmentForLine(
 	const alreadyShippedQty = integerQty(input.alreadyShippedQty);
 	const remainingQty = Math.max(0, orderedQty - alreadyShippedQty);
 	const components = input.components || [];
-	const blockingComponents = components.filter((component) => component.required);
+	const blockingComponents = components.filter(
+		(component) => component.required,
+	);
 
 	if (orderedQty <= 0 || remainingQty <= 0 || !blockingComponents.length) {
 		return {
@@ -814,7 +830,9 @@ export function planReceivedBackorderAllocation(
 function isCompletedDelivery(delivery: FulfillmentDeliveryLike) {
 	if (!ACTIVE_PACKING_STATUSES.has(delivery.packingStatus || "")) return false;
 	const status = delivery.delivery?.status || delivery.status || "";
-	return COMPLETED_DELIVERY_STATUSES.has(status) || !!delivery.delivery?.deliveredAt;
+	return (
+		COMPLETED_DELIVERY_STATUSES.has(status) || !!delivery.delivery?.deliveredAt
+	);
 }
 
 function isPackedDelivery(delivery: FulfillmentDeliveryLike) {
@@ -846,7 +864,9 @@ function summarizeComponent(
 			: 0,
 	);
 	const allocatedQty =
-		allocations.length > 0 ? allocationQty : numberValue(component.qtyAllocated);
+		allocations.length > 0
+			? allocationQty
+			: numberValue(component.qtyAllocated);
 	const pendingReviewQty = sumBy(allocations, (allocation) =>
 		allocation.status === "pending_review" ? numberValue(allocation.qty) : 0,
 	);
@@ -913,7 +933,8 @@ function summarizeComponent(
 			component.inventoryVariant?.id ?? component.inventoryVariantId ?? null,
 		inventoryCategoryId:
 			component.inventoryCategory?.id ?? component.inventoryCategoryId ?? null,
-		subComponentId: component.subComponent?.id ?? component.subComponentId ?? null,
+		subComponentId:
+			component.subComponent?.id ?? component.subComponentId ?? null,
 		inventoryName: component.inventory?.name ?? null,
 		inventoryVariantSku: component.inventoryVariant?.sku ?? null,
 		inventoryVariantDescription:
@@ -925,6 +946,18 @@ function summarizeComponent(
 		componentName: getComponentName(component),
 		supplierId: getSupplier(component)?.id ?? null,
 		supplierName: getSupplier(component)?.name ?? null,
+		allocationEvidence: allocations.map((allocation) => ({
+			id: allocation.id ?? null,
+			qty: numberValue(allocation.qty),
+			status: allocation.status ?? null,
+		})),
+		inboundEvidence: inboundDemands.map((demand) => ({
+			id: demand.id ?? null,
+			qty: numberValue(demand.qty),
+			qtyReceived: numberValue(demand.qtyReceived),
+			status: demand.status ?? null,
+			inboundShipmentItemId: demand.inboundShipmentItemId ?? null,
+		})),
 	};
 }
 
@@ -934,7 +967,9 @@ function deriveLineStatus(
 	remainingQty: number,
 	components: SalesFulfillmentComponentProjection[],
 ): SalesFulfillmentStatus {
-	const requiredComponents = components.filter((component) => component.required);
+	const requiredComponents = components.filter(
+		(component) => component.required,
+	);
 	const blockingComponents = requiredComponents.length
 		? requiredComponents
 		: components;
@@ -960,7 +995,9 @@ function deriveLineStatus(
 function getLineBlockingComponents(
 	components: SalesFulfillmentComponentProjection[],
 ) {
-	const requiredComponents = components.filter((component) => component.required);
+	const requiredComponents = components.filter(
+		(component) => component.required,
+	);
 	return requiredComponents.length ? requiredComponents : components;
 }
 
@@ -975,9 +1012,7 @@ function getAvailableToShipQtyForLine(input: {
 
 	const availableUnits = blockingComponents.map((component) => {
 		const perUnitQty =
-			component.orderedQty > 0
-				? component.orderedQty / input.orderedQty
-				: 1;
+			component.orderedQty > 0 ? component.orderedQty / input.orderedQty : 1;
 		if (perUnitQty <= 0) return input.remainingQty;
 
 		const availableComponentQty = Math.max(
@@ -990,7 +1025,9 @@ function getAvailableToShipQtyForLine(input: {
 	return Math.max(0, Math.min(input.remainingQty, ...availableUnits));
 }
 
-function summarizeLine(line: FulfillmentLineLike): SalesFulfillmentLineProjection {
+function summarizeLine(
+	line: FulfillmentLineLike,
+): SalesFulfillmentLineProjection {
 	const deliveries = line.salesItem?.itemDeliveries || [];
 	const components = (line.components || []).map(summarizeComponent);
 	const orderedQty = numberValue(line.qty ?? line.salesItem?.qty ?? 0);
@@ -1006,7 +1043,9 @@ function summarizeLine(line: FulfillmentLineLike): SalesFulfillmentLineProjectio
 		(component) => component.backorderedQty,
 	);
 	const backorderedQty =
-		componentBackorderedQty > 0 ? Math.min(remainingQty, componentBackorderedQty) : 0;
+		componentBackorderedQty > 0
+			? Math.min(remainingQty, componentBackorderedQty)
+			: 0;
 	const allocatedQty = sumBy(components, (component) => component.allocatedQty);
 	const pendingReviewQty = sumBy(
 		components,
@@ -1147,7 +1186,8 @@ function getBlockerComponents(line: SalesFulfillmentLineProjection) {
 			component.status === "awaiting_inbound" ||
 			component.status === "backordered" ||
 			component.backorderedQty > 0 ||
-			(component.inboundQty > 0 && component.receivedQty < component.inboundQty),
+			(component.inboundQty > 0 &&
+				component.receivedQty < component.inboundQty),
 	);
 }
 
@@ -1183,8 +1223,9 @@ export function buildSalesBackorderQueue(
 	lineItems: SalesBackorderQueueLineLike[],
 	input: Pick<GetSalesBackorderQueueInput, "statuses" | "limit"> = {},
 ): SalesBackorderQueue {
-	const requestedStatuses =
-		input.statuses?.length ? input.statuses : DEFAULT_BACKORDER_QUEUE_STATUSES;
+	const requestedStatuses = input.statuses?.length
+		? input.statuses
+		: DEFAULT_BACKORDER_QUEUE_STATUSES;
 	const allowedStatuses = new Set<SalesFulfillmentStatus>(requestedStatuses);
 	const limit = Math.min(Math.max(input.limit || 50, 1), 200);
 	const items: SalesBackorderQueueItem[] = [];
@@ -1327,7 +1368,8 @@ export function buildSalesPartialShipmentQueue(
 	};
 
 	for (const item of slicedItems) {
-		statusCounts[item.partialStatus] = (statusCounts[item.partialStatus] || 0) + 1;
+		statusCounts[item.partialStatus] =
+			(statusCounts[item.partialStatus] || 0) + 1;
 	}
 
 	return {
@@ -1341,7 +1383,8 @@ export function buildSalesPartialShipmentQueue(
 			inboundQty: sumBy(slicedItems, (item) => item.inboundQty),
 			receivedQty: sumBy(slicedItems, (item) => item.receivedQty),
 			availableToShipQty: sumBy(slicedItems, (item) => item.availableToShipQty),
-			heldLineCount: slicedItems.filter((item) => item.holdUntilComplete).length,
+			heldLineCount: slicedItems.filter((item) => item.holdUntilComplete)
+				.length,
 			shippableLineCount: slicedItems.filter((item) => item.canShipNow).length,
 		},
 		items: slicedItems,
@@ -1353,7 +1396,10 @@ export function buildSalesPartialShipmentQueue(
 function getProductionStockStatus(
 	component: SalesFulfillmentComponentProjection,
 ): SalesProductionStockStatus {
-	if (component.orderedQty > 0 && component.shippedQty >= component.orderedQty) {
+	if (
+		component.orderedQty > 0 &&
+		component.shippedQty >= component.orderedQty
+	) {
 		return "fulfilled";
 	}
 	if (component.allocatedQty >= component.orderedQty) return "allocated";
@@ -1397,8 +1443,7 @@ function deriveProductionReadiness(
 	if (readinesses.every((status) => status === "fulfilled")) return "fulfilled";
 	if (
 		readinesses.every(
-			(status) =>
-				status === "ready_for_production" || status === "fulfilled",
+			(status) => status === "ready_for_production" || status === "fulfilled",
 		)
 	) {
 		return "ready_for_production";
@@ -1415,7 +1460,9 @@ function deriveProductionReadiness(
 function getProductionComponents(
 	line: SalesFulfillmentLineProjection,
 ): SalesFulfillmentComponentProjection[] {
-	const requiredComponents = line.components.filter((component) => component.required);
+	const requiredComponents = line.components.filter(
+		(component) => component.required,
+	);
 	return requiredComponents.length ? requiredComponents : line.components;
 }
 
@@ -1440,7 +1487,8 @@ function buildProductionGroup(
 		label,
 		...extra,
 		componentCount: components.length,
-		lineCount: new Set(components.map((component) => component.lineItemId)).size,
+		lineCount: new Set(components.map((component) => component.lineItemId))
+			.size,
 		orderedQty: sumBy(components, (component) => component.orderedQty),
 		allocatedQty: sumBy(components, (component) => component.allocatedQty),
 		pendingReviewQty: sumBy(
@@ -1511,9 +1559,14 @@ function groupProductionComponents(
 
 export function buildSalesProductionPlan(
 	lineItems: SalesProductionPlanLineLike[],
-	input: Pick<GetSalesProductionPlanInput, "readinesses" | "limit"> = {},
+	input: Pick<
+		GetSalesProductionPlanInput,
+		"readinesses" | "limit" | "completeOrder"
+	> = {},
 ): SalesProductionPlan {
-	const limit = Math.min(Math.max(input.limit || 100, 1), 500);
+	const limit = input.completeOrder
+		? Number.POSITIVE_INFINITY
+		: Math.min(Math.max(input.limit || 100, 1), 500);
 	const requestedReadinesses = input.readinesses?.length
 		? new Set<SalesProductionReadiness>(input.readinesses)
 		: null;
@@ -1565,6 +1618,8 @@ export function buildSalesProductionPlan(
 				stockStatus,
 				readiness,
 				lineReadiness,
+				allocationEvidence: component.allocationEvidence,
+				inboundEvidence: component.inboundEvidence,
 			});
 
 			if (components.length >= limit) break;
@@ -1591,7 +1646,10 @@ export function buildSalesProductionPlan(
 
 	for (const component of components) {
 		incrementProductionReadinessCount(readinessCounts, component.readiness);
-		incrementProductionStockStatusCount(stockStatusCounts, component.stockStatus);
+		incrementProductionStockStatusCount(
+			stockStatusCounts,
+			component.stockStatus,
+		);
 	}
 
 	const visibleLineReadinesses = Array.from(
@@ -1613,12 +1671,10 @@ export function buildSalesProductionPlan(
 			lineCount: visibleLineReadinesses.length,
 			componentCount: components.length,
 			readyLineCount: visibleLineReadinesses.filter(
-				(status) =>
-					status === "ready_for_production" || status === "fulfilled",
+				(status) => status === "ready_for_production" || status === "fulfilled",
 			).length,
 			blockedLineCount: visibleLineReadinesses.filter(
-				(status) =>
-					status !== "ready_for_production" && status !== "fulfilled",
+				(status) => status !== "ready_for_production" && status !== "fulfilled",
 			).length,
 			supplierCount: supplierIds.size,
 			orderedQty: sumBy(components, (component) => component.orderedQty),
@@ -1630,7 +1686,10 @@ export function buildSalesProductionPlan(
 			pickedQty: sumBy(components, (component) => component.pickedQty),
 			shippedQty: sumBy(components, (component) => component.shippedQty),
 			remainingQty: sumBy(components, (component) => component.remainingQty),
-			backorderedQty: sumBy(components, (component) => component.backorderedQty),
+			backorderedQty: sumBy(
+				components,
+				(component) => component.backorderedQty,
+			),
 			inboundQty: sumBy(components, (component) => component.inboundQty),
 			receivedQty: sumBy(components, (component) => component.receivedQty),
 			readiness: deriveProductionReadiness(visibleLineReadinesses),
@@ -2118,8 +2177,13 @@ export async function getSalesProductionPlan(
 	db: Db,
 	input: GetSalesProductionPlanInput = {},
 ): Promise<SalesProductionPlan> {
+	if (input.completeOrder && !input.salesOrderId) {
+		throw new Error("A complete production plan requires a sales order ID.");
+	}
 	const limit = Math.min(Math.max(input.limit || 100, 1), 500);
-	const candidateTake = Math.min(limit * 2, 500);
+	const candidateTake = input.completeOrder
+		? undefined
+		: Math.min(limit * 2, 500);
 	const lineItems = await db.lineItem.findMany({
 		where: {
 			deletedAt: null,
@@ -2276,6 +2340,7 @@ export async function getSalesProductionPlan(
 							},
 						},
 						select: {
+							id: true,
 							qty: true,
 							status: true,
 						},
@@ -2288,9 +2353,11 @@ export async function getSalesProductionPlan(
 							},
 						},
 						select: {
+							id: true,
 							qty: true,
 							qtyReceived: true,
 							status: true,
+							inboundShipmentItemId: true,
 						},
 					},
 				},
@@ -2301,6 +2368,7 @@ export async function getSalesProductionPlan(
 	return buildSalesProductionPlan(lineItems, {
 		readinesses: input.readinesses,
 		limit,
+		completeOrder: input.completeOrder,
 	});
 }
 
@@ -2707,10 +2775,7 @@ async function recomputeLineItemComponentFulfillment(
 	};
 }
 
-async function getAvailableStockRows(
-	db: DbLike,
-	inventoryVariantId: number,
-) {
+async function getAvailableStockRows(db: DbLike, inventoryVariantId: number) {
 	const stockRows = await db.inventoryStock.findMany({
 		where: {
 			inventoryVariantId,
@@ -2756,7 +2821,10 @@ async function getAvailableStockRows(
 		.map((stock) => ({
 			id: stock.id,
 			availableQty: roundQuantity(
-				Math.max(0, numberValue(stock.qty) - (reservedByStockId.get(stock.id) || 0)),
+				Math.max(
+					0,
+					numberValue(stock.qty) - (reservedByStockId.get(stock.id) || 0),
+				),
 			),
 		}))
 		.filter((stock) => stock.availableQty > 0);
@@ -2773,7 +2841,8 @@ async function reserveAvailableStockForComponent(
 ) {
 	let remaining = roundQuantity(input.qty);
 	let reservedQty = 0;
-	const allocations: AllocateReceivedInboundToBackordersResult["allocations"] = [];
+	const allocations: AllocateReceivedInboundToBackordersResult["allocations"] =
+		[];
 	const stockRows = await getAvailableStockRows(db, input.inventoryVariantId);
 
 	for (const stock of stockRows) {
@@ -2852,7 +2921,8 @@ export async function allocateReceivedInboundToBackorders(
 		});
 
 		const touchedComponentIds = new Set<number>();
-		const allocations: AllocateReceivedInboundToBackordersResult["allocations"] = [];
+		const allocations: AllocateReceivedInboundToBackordersResult["allocations"] =
+			[];
 		let allocatedQty = 0;
 		let remainingBackorderQty = 0;
 		let skippedDemandCount = 0;
@@ -3159,8 +3229,7 @@ export async function shipAvailableSalesInventory(
 					const consumeQty =
 						plan.shipQty > 0
 							? roundQuantity(
-									componentPlan.consumeQty *
-										(decision.shipQty / plan.shipQty),
+									componentPlan.consumeQty * (decision.shipQty / plan.shipQty),
 								)
 							: 0;
 					const consumed = await consumeComponentAllocations(tx, {
@@ -3244,7 +3313,10 @@ export async function shipAvailableSalesInventory(
 			});
 		}
 
-		const shippedQty = sumBy(shippableLines, ({ decision }) => decision.shipQty);
+		const shippedQty = sumBy(
+			shippableLines,
+			({ decision }) => decision.shipQty,
+		);
 		const backorderedQty = sumBy(
 			mutationLines,
 			({ decision }) => decision.backorderedQty,
@@ -3289,7 +3361,9 @@ export async function transitionInventoryDispatchAllocations(
 	input: InventoryDispatchTransitionInput,
 ): Promise<InventoryDispatchTransitionResult> {
 	if (!input.salesOrderId && !input.allocationIds?.length) {
-		throw new Error("Inventory dispatch transition requires a sale or allocation selection.");
+		throw new Error(
+			"Inventory dispatch transition requires a sale or allocation selection.",
+		);
 	}
 
 	return db.$transaction(async (tx) => {

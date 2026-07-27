@@ -96,6 +96,7 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
     productionGate    OrderProductionGate?
+    productionReadinessOverride SalesProductionReadinessOverride?
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -170,6 +171,27 @@ model OrderProductionGate {
 
     @@index([definedByUserId])
     @@index([status])
+}
+
+model SalesProductionReadinessOverride {
+    id                Int       @unique @default(autoincrement())
+    salesOrderId      Int       @unique
+    status            String    @default("ACTIVE") @db.VarChar(32)
+    revision          String    @db.VarChar(64)
+    snapshot          Json      @db.Json
+    confirmedByUserId Int
+    confirmedAt       DateTime  @default(now()) @db.Timestamp(0)
+    revokedByUserId   Int?
+    revokedAt         DateTime? @db.Timestamp(0)
+    createdAt         DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime? @updatedAt
+    order             SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    confirmedBy       Users     @relation(name: "confirmedProductionReadinessOverrides", fields: [confirmedByUserId], references: [id])
+    revokedBy         Users?    @relation(name: "revokedProductionReadinessOverrides", fields: [revokedByUserId], references: [id])
+
+    @@index([status])
+    @@index([confirmedByUserId])
+    @@index([revokedByUserId])
 }
 
 model SalesHistory {
