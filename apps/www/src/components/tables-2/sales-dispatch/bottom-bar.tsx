@@ -1,5 +1,6 @@
 "use client";
 
+import { SalesMenu } from "@/components/sales-menu";
 import { useDriversList } from "@/hooks/use-data-list";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@gnd/ui/button";
@@ -13,13 +14,15 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { SalesDispatch } from "./columns";
+import { getDispatchSalesSelection } from "./sales-selection";
 import { useSalesDispatchTableStore } from "./store";
 
 type Props = {
 	data: SalesDispatch[];
+	enableSalesMarkAs?: boolean;
 };
 
-export function BottomBar({ data }: Props) {
+export function BottomBar({ data, enableSalesMarkAs = false }: Props) {
 	const [mounted, setMounted] = useState(false);
 	const { rowSelection, setRowSelection } = useSalesDispatchTableStore();
 	const selectedDispatches = data.filter(
@@ -28,6 +31,7 @@ export function BottomBar({ data }: Props) {
 	const selectedIds = selectedDispatches
 		.map((dispatch) => dispatch.id)
 		.filter((id): id is number => typeof id === "number");
+	const { salesIds, salesRefs } = getDispatchSalesSelection(selectedDispatches);
 	const selectedCount = selectedIds.length;
 
 	useEffect(() => {
@@ -63,6 +67,22 @@ export function BottomBar({ data }: Props) {
 						>
 							<span>Deselect all</span>
 						</Button>
+						{enableSalesMarkAs ? (
+							<SalesMenu
+								type="order"
+								salesIds={salesIds}
+								salesRefs={salesRefs}
+								trigger={
+									<Button variant="ghost" disabled={!salesIds.length}>
+										<Icons.CheckCheck className="mr-2 size-4" />
+										Mark as
+										<Icons.ChevronDown className="ml-1 size-3.5" />
+									</Button>
+								}
+							>
+								<SalesMenu.MarkAs asSubmenu={false} />
+							</SalesMenu>
+						) : null}
 						<BulkAssignDriver
 							selectedIds={selectedIds}
 							onDone={() => setRowSelection({})}

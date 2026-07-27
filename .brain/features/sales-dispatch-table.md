@@ -3,6 +3,7 @@
 ## Status
 - 2026-06-16: Dispatch list routes are migrated to the `tables-2` table standard.
 - 2026-07-17: Dispatch density and content-fit widths were tightened against the Sales Orders/Midday invoices standard while keeping the interactive dispatch controls readable.
+- 2026-07-27: Admin dispatch single-row and batch menus now reuse the canonical Sales Orders `Mark as` workflow for production completion and fulfillment.
 
 ## Routes
 - Canonical dispatch route: `/sales-book/dispatch`
@@ -41,6 +42,16 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
 - Existing client filter hook: `useDispatchFilterParams`
 - Existing sort state: `loadSortParams` / `useSortParams`
 - Existing mutations and actions for driver assignment, bulk assignment, cancellation, due-date updates, status updates, submit dispatch, and sales overview dispatch opening
+- Existing `SalesMenu.MarkAs` workflow for inventory preflight, production completion, fulfillment, task monitoring, and query invalidation
+
+The dispatch table maps selected dispatch rows to their underlying sales order ids
+before invoking batch `Mark as`. Duplicate active dispatch rows for one order are
+deduplicated so the sales workflow runs once per order. These sales actions are
+enabled only by the admin route and only for pending dispatch statuses, including
+missing-item rows that must pass the canonical inventory preflight; completed and
+cancelled rows, the standard dispatch route, and the driver task route do not
+receive them. The dispatch trip status menu remains separate and continues to
+own queue/packed/in-progress/completed trip transitions.
 
 No new dispatch `*V2` query, filter param, filter metadata endpoint, or table route was added for this migration.
 
@@ -71,3 +82,7 @@ Removed after import scans:
   - Touched-path `@gnd/www` typecheck scan produced no diagnostics for `sales-dispatch` / `table-configs`.
   - Authenticated browser proof on `/sales-book/dispatch?size=20` confirmed `56px` row height, `45px` header height, vertical table-owned overflow (`scrollHeight 2005` vs `clientHeight 459`), horizontal table-owned overflow (`scrollWidth 1180` vs `clientWidth 1146`), clean scroll movement from `scrollTop 0` / `scrollLeft 0` to `scrollTop 600` / `scrollLeft 34`, and `--header-offset` changing from `0px` to `70px`.
   - Screenshot evidence saved at `/private/tmp/gnd-sales-dispatch-table.png`.
+- 2026-07-27 Mark-as action proof:
+  - Focused dispatch selection and migration parity coverage was added for distinct orders, duplicate dispatch rows, terminal/invalid rows, and admin-only route wiring.
+  - The final scoped diff check passed.
+  - The final focused suite, browser QA, and package typecheck were not run under the explicitly requested fast Bun monorepo command discipline.

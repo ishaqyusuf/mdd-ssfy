@@ -127,7 +127,10 @@ export default async function Page(props: Props) {
 												/>
 											}
 										>
-											<DataTable initialSettings={initialSettings} />
+											<DataTable
+												enableSalesMarkAs
+												initialSettings={initialSettings}
+											/>
 										</Suspense>
 									</ErrorBoundary>
 								</div>

@@ -2,6 +2,7 @@
 
 import { DatePicker } from "@/components/_v1/date-range-picker";
 import { DispatchCompletionDecisionModal } from "@/components/dispatch-completion-decision-modal";
+import { SalesMenu } from "@/components/sales-menu";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useAuth } from "@/hooks/use-auth";
 import { useDriversList } from "@/hooks/use-data-list";
@@ -11,10 +12,12 @@ import { getColorFromName } from "@/lib/color";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
+import { Button } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { Menu } from "@gnd/ui/custom/menu";
 import { Progress } from "@gnd/ui/custom/progress";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
+import { Icons } from "@gnd/ui/icons";
 import { AlertDialog } from "@gnd/ui/namespace";
 import { useMutation, useQueryClient } from "@gnd/ui/tanstack";
 import { toast } from "@gnd/ui/use-toast";
@@ -22,6 +25,8 @@ import { salesDispatchStatus } from "@gnd/utils/constants";
 import type { UpdateSalesControl } from "@sales/schema";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
+
+import { isPendingDispatchStatus } from "./sales-selection";
 
 export type SalesDispatch = RouterOutputs["dispatch"]["index"]["data"][number];
 
@@ -213,25 +218,35 @@ const statusColumn: Column = {
 	cell: ({ row }) => <DispatchStatusCell item={row.original} />,
 };
 
-const actionsColumn: Column = {
-	id: "actions",
-	header: "Actions",
-	...sizes.custom(72, 72),
-	enableResizing: false,
-	enableHiding: false,
-	enableSorting: false,
-	meta: {
-		skeleton: { type: "icon" },
-		headerLabel: "Actions",
-		className: sizeClass(
-			sizes.custom(72, 72),
-			"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+function createActionsColumn(enableSalesMarkAs = false): Column {
+	return {
+		id: "actions",
+		header: "Actions",
+		...sizes.custom(72, 72),
+		enableResizing: false,
+		enableHiding: false,
+		enableSorting: false,
+		meta: {
+			skeleton: { type: "icon" },
+			headerLabel: "Actions",
+			className: sizeClass(
+				sizes.custom(72, 72),
+				"md:sticky md:right-0 bg-background group-hover:bg-[#F2F1EF] group-hover:dark:bg-secondary z-20",
+			),
+		},
+		cell: ({ row }) => (
+			<DispatchActionsCell
+				item={row.original}
+				enableSalesMarkAs={enableSalesMarkAs}
+			/>
 		),
-	},
-	cell: ({ row }) => <DispatchActionsCell item={row.original} />,
-};
+	};
+}
 
-function createColumns({ driverMode = false } = {}): Column[] {
+function createColumns({
+	driverMode = false,
+	enableSalesMarkAs = false,
+} = {}): Column[] {
 	const baseColumns = [
 		selectColumn,
 		createScheduleColumn(driverMode),
@@ -244,14 +259,26 @@ function createColumns({ driverMode = false } = {}): Column[] {
 		baseColumns.push(assignedToColumn);
 	}
 
-	return [...baseColumns, progressColumn, statusColumn, actionsColumn];
+	return [
+		...baseColumns,
+		progressColumn,
+		statusColumn,
+		createActionsColumn(enableSalesMarkAs),
+	];
 }
 
 export const columns: Column[] = createColumns();
 export const driverColumns: Column[] = createColumns({ driverMode: true });
 
-export function getSalesDispatchColumns(driverMode = false) {
-	return driverMode ? driverColumns : columns;
+export function getSalesDispatchColumns({
+	driverMode = false,
+	enableSalesMarkAs = false,
+} = {}) {
+	if (!enableSalesMarkAs) {
+		return driverMode ? driverColumns : columns;
+	}
+
+	return createColumns({ driverMode, enableSalesMarkAs });
 }
 
 function ScheduleDateCell({
@@ -639,24 +666,51 @@ function DispatchStatusCell({ item }: { item: SalesDispatch }) {
 	);
 }
 
-function DispatchActionsCell({ item }: { item: SalesDispatch }) {
+function DispatchActionsCell({
+	item,
+	enableSalesMarkAs,
+}: {
+	item: SalesDispatch;
+	enableSalesMarkAs: boolean;
+}) {
 	const overviewQuery = useSalesOverviewQuery();
+	const showSalesMarkAs =
+		enableSalesMarkAs && isPendingDispatchStatus(item.status);
 
 	return (
 		<div className="relative z-10 flex justify-end">
-			<Menu variant="ghost" triggerSize="sm">
-				<Menu.Item
-					icon="packingList"
-					onClick={(event) => {
+			<SalesMenu
+				id={item.order?.id}
+				type="order"
+				orderNo={item.order?.orderId}
+				trigger={
+					<Button
+						variant="ghost"
+						size="icon"
+						className="size-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+						onClick={(event) => event.stopPropagation()}
+					>
+						<Icons.MoreHoriz className="size-4" />
+						<span className="sr-only">
+							More actions for {item.order?.orderId || `dispatch ${item.id}`}
+						</span>
+					</Button>
+				}
+				contentClassName="min-w-56"
+			>
+				<SalesMenu.Item
+					onSelect={(event) => {
+						event.preventDefault();
 						event.stopPropagation();
 						overviewQuery.openDispatch(item.order?.orderId, item.id, "packing");
 					}}
 				>
+					<Icons.packingList className="mr-2 size-4 text-muted-foreground/70" />
 					Packing
-				</Menu.Item>
-				<Menu.Item
-					icon="production"
-					onClick={(event) => {
+				</SalesMenu.Item>
+				<SalesMenu.Item
+					onSelect={(event) => {
+						event.preventDefault();
 						event.stopPropagation();
 						overviewQuery.openDispatch(
 							item.order?.orderId,
@@ -665,9 +719,16 @@ function DispatchActionsCell({ item }: { item: SalesDispatch }) {
 						);
 					}}
 				>
+					<Icons.production className="mr-2 size-4 text-muted-foreground/70" />
 					Production
-				</Menu.Item>
-			</Menu>
+				</SalesMenu.Item>
+				{showSalesMarkAs ? (
+					<>
+						<SalesMenu.Separator />
+						<SalesMenu.MarkAs />
+					</>
+				) : null}
+			</SalesMenu>
 		</div>
 	);
 }

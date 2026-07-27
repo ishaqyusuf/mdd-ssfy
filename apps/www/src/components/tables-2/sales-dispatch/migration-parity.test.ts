@@ -72,6 +72,38 @@ describe("Sales Dispatch Sales Orders table migration parity", () => {
 		expect(source.includes("ResizeHandle")).toBe(true);
 	});
 
+	it("reuses the sales Mark as workflow for single and batch dispatch actions", () => {
+		const columnsSource = readSource(
+			"components/tables-2/sales-dispatch/columns.tsx",
+		);
+		const bottomBarSource = readSource(
+			"components/tables-2/sales-dispatch/bottom-bar.tsx",
+		);
+		const adminRoute = readSource(
+			"app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx",
+		);
+		const dispatchRoute = readSource(
+			"app/(sidebar)/(sales)/sales-book/dispatch/page.tsx",
+		);
+		const taskRoute = readSource(
+			"app/(sidebar)/(sales)/sales-book/dispatch-task/page.tsx",
+		);
+
+		expect(columnsSource.includes("<SalesMenu.MarkAs />")).toBe(true);
+		expect(columnsSource.includes("isPendingDispatchStatus(item.status)")).toBe(
+			true,
+		);
+		expect(
+			bottomBarSource.includes("<SalesMenu.MarkAs asSubmenu={false} />"),
+		).toBe(true);
+		expect(
+			bottomBarSource.includes("getDispatchSalesSelection(selectedDispatches)"),
+		).toBe(true);
+		expect(adminRoute.includes("enableSalesMarkAs")).toBe(true);
+		expect(dispatchRoute.includes("enableSalesMarkAs")).toBe(false);
+		expect(taskRoute.includes("enableSalesMarkAs")).toBe(false);
+	});
+
 	it("keeps Sales Dispatch registered for compact table settings and content-tailored widths", () => {
 		const settingsSource = readSource("utils/table-settings.ts");
 		const configSource = readSource("utils/table-configs.ts");

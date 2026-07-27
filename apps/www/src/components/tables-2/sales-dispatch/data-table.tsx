@@ -51,6 +51,7 @@ type Props = {
 	defaultFilters?: DispatchInput;
 	driver?: boolean;
 	singlePage?: boolean;
+	enableSalesMarkAs?: boolean;
 };
 
 export function DataTable({
@@ -58,13 +59,21 @@ export function DataTable({
 	defaultFilters,
 	driver,
 	singlePage,
+	enableSalesMarkAs = false,
 }: Props) {
 	const trpc = useTRPC();
 	const { params } = useSortParams();
 	const { filters } = useDispatchFilterParams();
 	const overviewQuery = useSalesOverviewQuery();
 	const parentRef = useRef<HTMLDivElement>(null);
-	const tableColumns = useMemo(() => getSalesDispatchColumns(driver), [driver]);
+	const tableColumns = useMemo(
+		() =>
+			getSalesDispatchColumns({
+				driverMode: driver,
+				enableSalesMarkAs,
+			}),
+		[driver, enableSalesMarkAs],
+	);
 	const columnIds = useMemo(() => getColumnIds(tableColumns), [tableColumns]);
 	const { rowSelection, setRowSelection, setColumns } =
 		useSalesDispatchTableStore();
@@ -277,7 +286,12 @@ export function DataTable({
 			</div>
 
 			<AnimatePresence>
-				{showBottomBar && <BottomBar data={tableData} />}
+				{showBottomBar && (
+					<BottomBar
+						data={tableData}
+						enableSalesMarkAs={enableSalesMarkAs}
+					/>
+				)}
 			</AnimatePresence>
 		</div>
 	);

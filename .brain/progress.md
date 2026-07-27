@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-07-27: Added canonical Sales Orders `Mark as` actions to the Admin
+  Dispatch Dashboard. Each row's action menu and the multi-select bottom bar
+  now offer production completion and fulfillment through the existing
+  inventory-preflight/task-monitor workflow. Batch selection deduplicates
+  duplicate dispatch rows for the same sales order before starting work, and
+  both entry points are limited to pending rows on the admin route. Focused
+  regression coverage was added and the final scoped diff check passed. No API,
+  permission, schema, migration, or database behavior changed.
+
 - 2026-07-27: Fixed legacy shelf-item invoice loading and printing. Both sales
   DTO copies now project normalized numeric shelf prices into every
   client-facing order branch, eliminating the Prisma `Decimal` RSC failure.
