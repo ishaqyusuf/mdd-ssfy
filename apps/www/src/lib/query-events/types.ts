@@ -47,12 +47,14 @@ export type InfiniteQueryRouteInput<Route extends InfiniteQueryRoute> =
 export type PathQueryTarget<Route extends QueryRoute = QueryRoute> = {
 	mode: "path";
 	route: Route;
+	refetchType?: QueryTargetRefetchType;
 };
 
 export type ExactQueryTarget<Route extends QueryRoute = QueryRoute> = {
 	mode: "query";
 	route: Route;
 	input?: QueryRouteInput<Route>;
+	refetchType?: QueryTargetRefetchType;
 };
 
 export type InfiniteQueryTarget<
@@ -61,7 +63,10 @@ export type InfiniteQueryTarget<
 	mode: "infinite";
 	route: Route;
 	input?: InfiniteQueryRouteInput<Route>;
+	refetchType?: QueryTargetRefetchType;
 };
+
+export type QueryTargetRefetchType = "active" | "all";
 
 export type QueryTarget =
 	| PathQueryTarget

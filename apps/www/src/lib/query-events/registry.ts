@@ -12,8 +12,14 @@ type QueryEventDefinition = {
 };
 
 const pageTabTargets = [
-	pathTarget("pageTabs.list"),
-	pathTarget("pageTabs.defaults"),
+	{
+		...pathTarget("pageTabs.list"),
+		refetchType: "all",
+	},
+	{
+		...pathTarget("pageTabs.defaults"),
+		refetchType: "all",
+	},
 ] as const;
 
 const salesDashboardTargets = [

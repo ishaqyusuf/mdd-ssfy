@@ -38,6 +38,14 @@ export const taskMonitorIntentSchema = z.discriminatedUnion("name", [
 			sales: z.array(taskSalesQueryRefSchema).optional(),
 		}),
 	}),
+	z.object({
+		name: z.literal("sales.cancel-production-completion"),
+		version: z.literal(1),
+		args: z.object({
+			salesIds: z.array(z.number()).min(1),
+			sales: z.array(taskSalesQueryRefSchema).optional(),
+		}),
+	}),
 ]);
 
 export type TaskMonitorIntent = z.infer<typeof taskMonitorIntentSchema>;

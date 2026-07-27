@@ -7186,3 +7186,14 @@
   diff returned an empty migration. The unrelated migration shadow-history
   defect remains documented but no longer blocks this feature's production
   schema.
+- 2026-07-27: added direct Sales Orders status actions and general saved-tab
+  count refresh behavior. Status cells now open a lifecycle-aware `Mark as`
+  menu for completion, fulfillment, and eligible rollback actions; Inbound
+  status cells use the same button-variant styling while retaining their
+  existing colors and click workflows. Query-event targets can now refetch
+  inactive caches, and saved page-tab list/default queries opt into that mode
+  so production or fulfillment activity updates counts without a page reload.
+  Focused coverage passed 35 tests / 66 assertions; repository-wide testing
+  reached 2,174 passing tests with 25 unrelated existing failures. Browser
+  mutation proof remained blocked by the already-running local Next process
+  accepting connections without returning page bytes.

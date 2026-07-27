@@ -16,7 +16,7 @@ The WWW app has one client-side query-event runtime under `apps/www/src/lib/quer
 - `registry.ts` owns domain event-to-query-target definitions and typed tRPC mutation route-to-event mappings.
 - `mutation-trigger.ts` resolves automatic route events plus optional `meta.queryEvents` after a mutation succeeds. It receives mutation result data, variables, and optional `meta.queryEventScope`.
 - `transport.ts` delivers event name and serializable scope in the initiating tab and through `BroadcastChannel` to other open GND tabs in the same browser. Duplicate event names in one batch merge and deduplicate their sale references.
-- `executor.ts` turns registered targets into tRPC `pathKey`, `queryKey`, or `infiniteQueryKey` values, deduplicates query keys, and invalidates active queries while leaving inactive queries stale for their next mount. Sales Overview uses an exact typed `queryKey({ orderNo, salesType })` when scope is known and the route path only as a compatibility fallback.
+- `executor.ts` turns registered targets into tRPC `pathKey`, `queryKey`, or `infiniteQueryKey` values, deduplicates query keys, and invalidates active queries while leaving inactive queries stale for their next mount. Targets can opt into `refetchType: "all"` when their cached data must refresh while inactive; the strongest refetch mode wins when duplicate targets collapse to one query key. Sales Overview uses an exact typed `queryKey({ orderNo, salesType })` when scope is known and the route path only as a compatibility fallback.
 - `runtime.tsx` installs one listener below the app's QueryClient and tRPC providers.
 - `apps/www/src/trpc/context.ts` owns the shared tRPC React context so the runtime does not create a circular dependency with the provider module.
 
@@ -95,6 +95,7 @@ await invalidate.path("sales.productionOverview");
 - Query-event failures are logged and do not turn a committed mutation into a client-visible mutation failure.
 - Every emission receives a unique id. The transport suppresses duplicate delivery of the same envelope but does not collapse separate same-name events.
 - Query keys are deduplicated inside one event execution.
+- Saved page-tab list/default targets use `refetchType: "all"` so count badges refresh after any registered domain activity even when the tab query is currently inactive. Ordinary domain targets continue to refetch only while active.
 - tRPC route traversal must use property access. The live tRPC options client is a
   JavaScript Proxy and does not support route-existence checks with the `in`
   operator.

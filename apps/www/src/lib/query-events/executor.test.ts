@@ -68,15 +68,27 @@ function createTRPCProxy() {
 
 function createQueryClientSpy() {
 	const invalidated: (readonly unknown[])[] = [];
+	const invalidations: Array<{
+		queryKey: readonly unknown[];
+		refetchType?: "active" | "all";
+	}> = [];
 	const queryClient = {
-		invalidateQueries: ({ queryKey }: { queryKey: readonly unknown[] }) => {
+		invalidateQueries: ({
+			queryKey,
+			refetchType,
+		}: {
+			queryKey: readonly unknown[];
+			refetchType?: "active" | "all";
+		}) => {
 			invalidated.push(queryKey);
+			invalidations.push({ queryKey, refetchType });
 			return Promise.resolve();
 		},
 	} as unknown as QueryClient;
 
 	return {
 		invalidated,
+		invalidations,
 		queryClient,
 	};
 }
@@ -186,6 +198,32 @@ describe("query event executor", () => {
 				),
 			).toBe(true);
 		}
+	});
+
+	it("refetches saved tab counts even when their queries are inactive", async () => {
+		const { invalidations, queryClient } = createQueryClientSpy();
+		const trpc = createTRPCOptionsProxy<AppRouter>({
+			client: {} as never,
+			queryClient: new QueryClient(),
+		});
+
+		await executeQueryEvent({
+			event: { name: "sales.production.changed" },
+			queryClient,
+			trpc,
+		});
+
+		const pageTabsInvalidation = invalidations.find(
+			({ queryKey }) =>
+				JSON.stringify(queryKey) === JSON.stringify([["pageTabs", "list"]]),
+		);
+		const ordersInvalidation = invalidations.find(
+			({ queryKey }) =>
+				JSON.stringify(queryKey) === JSON.stringify([["sales", "getOrders"]]),
+		);
+
+		expect(pageTabsInvalidation?.refetchType).toBe("all");
+		expect(ordersInvalidation?.refetchType).toBe("active");
 	});
 
 	it("invalidates only the selected sale overview when event scope is known", async () => {

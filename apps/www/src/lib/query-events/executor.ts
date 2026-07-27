@@ -58,17 +58,31 @@ export async function invalidateQueryTargets({
 	targets: readonly QueryTarget[];
 	trpc: object;
 }) {
-	const keys = new Map<string, readonly unknown[]>();
+	const keys = new Map<
+		string,
+		{
+			queryKey: readonly unknown[];
+			refetchType: "active" | "all";
+		}
+	>();
 	for (const target of targets) {
 		const queryKey = getTargetQueryKey(trpc, target);
-		keys.set(hashKey(queryKey), queryKey);
+		const key = hashKey(queryKey);
+		const existing = keys.get(key);
+		keys.set(key, {
+			queryKey,
+			refetchType:
+				target.refetchType === "all" || existing?.refetchType === "all"
+					? "all"
+					: "active",
+		});
 	}
 
 	return Promise.allSettled(
-		Array.from(keys.values(), (queryKey) =>
+		Array.from(keys.values(), ({ queryKey, refetchType }) =>
 			queryClient.invalidateQueries({
 				queryKey,
-				refetchType: "active",
+				refetchType,
 			}),
 		),
 	);

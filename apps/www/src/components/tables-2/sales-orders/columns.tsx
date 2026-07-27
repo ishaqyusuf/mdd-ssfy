@@ -2,12 +2,13 @@
 
 import { useSalesInventoryConfiguratorPrompt } from "@/components/forms/sales-form/inventory-configurator-dialog";
 import {
-	SalesInboundStatusBadge,
 	getInventoryInboundOwnershipLabel,
 	getInventoryInboundOwnershipStatus,
 	getInventoryInboundOwnershipTitle,
 	getInventoryInboundStatusToneClassName,
+	getSalesInboundStatusToneClassName,
 	getSingleInventoryInboundId,
+	normalizeSalesInboundStatus,
 } from "@/components/sales-inbound-status-badge";
 import { SalesMenu } from "@/components/sales-menu";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
@@ -22,7 +23,7 @@ import { useTRPC } from "@/trpc/client";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { getSalesOrderLifecycleStatusBadgeClassName } from "@gnd/sales/order-status";
 import { Badge } from "@gnd/ui/badge";
-import { Button } from "@gnd/ui/button";
+import { Button, buttonVariants } from "@gnd/ui/button";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { cn } from "@gnd/ui/cn";
 import TextWithTooltip from "@gnd/ui/custom/text-with-tooltip";
@@ -170,17 +171,54 @@ const statusColumn: Column = {
 		sortField: "status",
 		className: sizeClass(sizes.custom(110, 180, 130)),
 	},
-	cell: ({ row }) => (
-		<Badge
-			className={cn(
-				"whitespace-nowrap border-0",
-				getSalesOrderLifecycleStatusBadgeClassName(row.original.status),
-			)}
-		>
-			{row.original.statusLabel}
-		</Badge>
-	),
+	cell: ({ row }) => <SalesOrderStatusMenu item={row.original} />,
 };
+
+function SalesOrderStatusMenu({ item }: { item: SalesOrder }) {
+	return (
+		<SalesMenu
+			id={item.id}
+			slug={item.slug}
+			type="order"
+			orderNo={item.orderId}
+			customerEmail={item.email}
+			customerPhone={item.customerPhone}
+			customerName={item.customerName}
+			align="start"
+			contentClassName="min-w-56"
+			trigger={
+				<span
+					aria-label={`Change status for ${item.orderId}`}
+					// biome-ignore lint/a11y/useSemanticElements: Product design requires the status badge to remain a non-button trigger.
+					role="button"
+					tabIndex={0}
+					className={cn(
+						buttonVariants({
+							variant: "ghost",
+							size: "sm",
+						}),
+						"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap border-0 px-2 font-medium shadow-none",
+						getSalesOrderLifecycleStatusBadgeClassName(item.status),
+					)}
+					onClick={(event) => event.stopPropagation()}
+					onKeyDown={(event) => event.stopPropagation()}
+					onPointerDown={(event) => event.stopPropagation()}
+				>
+					<span className="truncate">{item.statusLabel}</span>
+					<Icons.ChevronDown className="size-3 shrink-0 opacity-70" />
+				</span>
+			}
+		>
+			<SalesMenu.Label>Mark as</SalesMenu.Label>
+			<SalesMenu.Separator />
+			<SalesMenu.MarkAs
+				asSubmenu={false}
+				currentStatus={item.status}
+				productionStatus={item.productionState}
+			/>
+		</SalesMenu>
+	);
+}
 
 const salesDateColumn: Column = {
 	id: "salesDate",
@@ -278,75 +316,101 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryInboundOwnership = item.inventoryInboundOwnership;
 	const hasInventoryInbound = !!inventoryInboundOwnership?.hasInventoryInbound;
+	const inboundStatusClassName =
+		"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap px-2 font-medium shadow-none";
 
 	if (hasInventoryInbound) {
 		const status = getInventoryInboundOwnershipStatus(
 			inventoryInboundOwnership,
 		);
+		const openInventoryInbound = () => {
+			setInventorySegment("inbounds", {
+				inboundId: getSingleInventoryInboundId(inventoryInboundOwnership),
+			});
+			overviewQuery.setParams({
+				"sales-overview-id": item.uuid,
+				"sales-type": "order",
+				mode: "sales",
+				salesTab: "inventory",
+				"prod-item-tab": null,
+				"prod-item-view": null,
+				dispatchOverviewId: null,
+			});
+		};
 
 		return (
-			<Button
-				type="button"
-				variant="ghost"
-				className="h-auto max-w-full justify-start rounded-full p-0 hover:bg-transparent"
+			<span
+				aria-label={`Open inbound status for ${item.orderId}`}
+				// biome-ignore lint/a11y/useSemanticElements: Product design requires status cells to use button styling without rendering a button.
+				role="button"
+				tabIndex={0}
+				className={cn(
+					buttonVariants({ variant: "ghost", size: "sm" }),
+					inboundStatusClassName,
+					getInventoryInboundStatusToneClassName(status),
+				)}
 				title={getInventoryInboundOwnershipTitle(inventoryInboundOwnership)}
 				onClick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
-					setInventorySegment("inbounds", {
-						inboundId: getSingleInventoryInboundId(inventoryInboundOwnership),
-					});
-					overviewQuery.setParams({
-						"sales-overview-id": item.uuid,
-						"sales-type": "order",
-						mode: "sales",
-						salesTab: "inventory",
-						"prod-item-tab": null,
-						"prod-item-view": null,
-						dispatchOverviewId: null,
-					});
+					openInventoryInbound();
 				}}
+				onKeyDown={(event) => {
+					event.stopPropagation();
+					if (event.key === "Enter" || event.key === " ") {
+						event.preventDefault();
+						openInventoryInbound();
+					}
+				}}
+				onPointerDown={(event) => event.stopPropagation()}
 			>
-				<Badge
-					variant="outline"
-					className={cn(
-						"h-5 max-w-full gap-1 rounded-full px-2 text-[10px] font-semibold uppercase",
-						getInventoryInboundStatusToneClassName(status),
-					)}
-				>
-					<Icons.PackageOpen className="size-3 shrink-0" />
-					<span className="truncate">
-						{getInventoryInboundOwnershipLabel(inventoryInboundOwnership)}
-					</span>
-				</Badge>
-			</Button>
+				<Icons.PackageOpen className="size-3 shrink-0" />
+				<span className="truncate">
+					{getInventoryInboundOwnershipLabel(inventoryInboundOwnership)}
+				</span>
+			</span>
 		);
 	}
 
+	const openManualInboundStatus = () => {
+		setInboundStatusParams({
+			inboundOrderId: item.id,
+			inboundOrderNo: item.orderId,
+			inboundOrderStatus: item.inboundStatus,
+			updateInboundStatus: true,
+		});
+	};
+	const inboundStatusLabel =
+		normalizeSalesInboundStatus(item.inboundStatus) ?? "Set status";
+
 	return (
-		<Button
-			type="button"
-			variant="ghost"
-			className="h-auto max-w-full justify-start rounded-full p-0 hover:bg-transparent"
+		<span
+			aria-label={`Change inbound status for ${item.orderId}`}
+			// biome-ignore lint/a11y/useSemanticElements: Product design requires status cells to use button styling without rendering a button.
+			role="button"
+			tabIndex={0}
+			className={cn(
+				buttonVariants({ variant: "ghost", size: "sm" }),
+				inboundStatusClassName,
+				getSalesInboundStatusToneClassName(item.inboundStatus),
+			)}
 			title="Manual order status - update inbound prompt"
 			onClick={(event) => {
 				event.preventDefault();
 				event.stopPropagation();
-				setInboundStatusParams({
-					inboundOrderId: item.id,
-					inboundOrderNo: item.orderId,
-					inboundOrderStatus: item.inboundStatus,
-					updateInboundStatus: true,
-				});
+				openManualInboundStatus();
 			}}
+			onKeyDown={(event) => {
+				event.stopPropagation();
+				if (event.key === "Enter" || event.key === " ") {
+					event.preventDefault();
+					openManualInboundStatus();
+				}
+			}}
+			onPointerDown={(event) => event.stopPropagation()}
 		>
-			<SalesInboundStatusBadge
-				status={item.inboundStatus}
-				emptyFallback="Set status"
-				title="Manual order status"
-				emptyClassName="text-[11px] font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-			/>
-		</Button>
+			<span className="truncate">{inboundStatusLabel}</span>
+		</span>
 	);
 }
 

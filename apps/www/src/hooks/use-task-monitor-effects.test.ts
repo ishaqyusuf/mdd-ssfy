@@ -16,6 +16,12 @@ describe("task monitor query events", () => {
 		expect(source.includes("sq.events.productionUpdated(sales)")).toBe(true);
 	});
 
+	it("uses the production event when production completion is cancelled", () => {
+		expect(source.includes('case "sales.cancel-production-completion"')).toBe(
+			true,
+		);
+	});
+
 	it("uses the fulfillment event for fulfilled sales tasks", () => {
 		expect(source.includes("sq.events.fulfillmentUpdated(sales)")).toBe(true);
 	});

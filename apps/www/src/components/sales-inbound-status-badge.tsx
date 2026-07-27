@@ -38,7 +38,7 @@ export function normalizeSalesInboundStatus(
 	return null;
 }
 
-function getSalesInboundStatusToneClassName(status?: string | null) {
+export function getSalesInboundStatusToneClassName(status?: string | null) {
 	switch (normalizeSalesInboundStatus(status)) {
 		case "AVAILABLE":
 			return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -84,9 +84,7 @@ export function formatInventoryInboundStatusLabel(status?: string | null) {
 	}
 }
 
-export function getInventoryInboundStatusToneClassName(
-	status?: string | null,
-) {
+export function getInventoryInboundStatusToneClassName(status?: string | null) {
 	switch (String(status || "").toLowerCase()) {
 		case "completed":
 		case "closed":
@@ -119,7 +117,7 @@ export function getSingleInventoryInboundId(
 	ownership?: InventoryInboundOwnershipLike | null,
 ) {
 	const linkedInbounds = getInventoryInboundSummaries(ownership);
-	return linkedInbounds.length === 1 ? linkedInbounds[0]?.id ?? null : null;
+	return linkedInbounds.length === 1 ? (linkedInbounds[0]?.id ?? null) : null;
 }
 
 export function getInventoryInboundOwnershipStatus(
@@ -161,7 +159,9 @@ export function getInventoryInboundOwnershipTitle(
 	if (linkedInbounds.length === 1) {
 		const linkedInbound = linkedInbounds[0];
 		const status = linkedInbound?.status ?? ownership?.primaryInboundStatus;
-		const statusLabel = status ? formatInventoryInboundStatusLabel(status) : null;
+		const statusLabel = status
+			? formatInventoryInboundStatusLabel(status)
+			: null;
 
 		return statusLabel
 			? `Inventory inbound status - inbound #${linkedInbound?.id} - ${statusLabel}`
@@ -222,7 +222,10 @@ export function SalesInboundStatusBadge({
 		if (emptyFallback === null) return null;
 
 		return (
-			<span className={cn("text-muted-foreground", emptyClassName)} title={title}>
+			<span
+				className={cn("text-muted-foreground", emptyClassName)}
+				title={title}
+			>
 				{emptyFallback}
 			</span>
 		);
