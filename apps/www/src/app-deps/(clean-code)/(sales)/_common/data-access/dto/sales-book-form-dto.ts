@@ -21,6 +21,13 @@ type SalesFormItems = AsyncFnType<typeof typedSalesBookFormItems>;
 export function transformSalesBookForm(data: SalesFormData) {
     const items = typedSalesBookFormItems(data);
     const deleteDoors = items.map((item) => item.deleteDoors).flat();
+    const order = {
+        ...data.order,
+        items: data.order.items.map((item, index) => ({
+            ...item,
+            shelfItems: items[index]?.shelfItems || [],
+        })),
+    };
 
     const itemArray = transformSalesBookFormItem(data, items);
     const footer = {
@@ -29,9 +36,9 @@ export function transformSalesBookForm(data: SalesFormData) {
     };
     let paidAmount = sum(data.order?.payments || [], "amount");
     return {
-        order: data.order,
+        order,
         deleteDoors,
-        _rawData: { ...data.order, footer, formItem: itemArray },
+        _rawData: { ...order, footer, formItem: itemArray },
         itemArray,
         paidAmount,
         footer,

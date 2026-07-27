@@ -27,8 +27,12 @@ export const useShelf = () => useContext(ShelfContext);
 export function useShelfContext(itemStepUid) {
     const { data: categories } = useEffectLoader(getShelfCateogriesAction);
     const [itemUid, stepUid] = itemStepUid?.split("-");
-    const costCls = new CostingClass(
-        new SettingsClass(itemStepUid, itemUid, stepUid)
+    const costCls = useMemo(
+        () =>
+            new CostingClass(
+                new SettingsClass(itemStepUid, itemUid, stepUid)
+            ),
+        [itemStepUid]
     );
     const zus = useFormDataStore();
     const shelfItemUids =

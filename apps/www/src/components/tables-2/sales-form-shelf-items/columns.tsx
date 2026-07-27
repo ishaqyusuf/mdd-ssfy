@@ -245,9 +245,8 @@ function ProductPickerCell({ prodUid }: { prodUid: string | null }) {
 	const [inputValue, setInputValue] = React.useState(product?.title || "");
 	const deferredInputValue = useDeferredValue(inputValue);
 	const [isTyping, setIsTyping] = useState(false);
-	const [content, setContent] = React.useState<React.ComponentRef<
-		typeof ComboboxContent
-	> | null>(null);
+	const contentRef =
+		React.useRef<React.ComponentRef<typeof ComboboxContent>>(null);
 
 	useEffect(() => {
 		if (!prodUid) return;
@@ -269,15 +268,12 @@ function ProductPickerCell({ prodUid }: { prodUid: string | null }) {
 		);
 	}, [deferredInputValue, products, isTyping]);
 
-	const onInputValueChange = React.useCallback(
-		(value: string) => {
-			setInputValue(value);
-			if (content) {
-				(content as HTMLDivElement).scrollTop = 0;
-			}
-		},
-		[content],
-	);
+	const onInputValueChange = React.useCallback((value: string) => {
+		setInputValue(value);
+		if (contentRef.current) {
+			(contentRef.current as HTMLDivElement).scrollTop = 0;
+		}
+	}, []);
 
 	if (!prodUid) return null;
 
@@ -328,7 +324,7 @@ function ProductPickerCell({ prodUid }: { prodUid: string | null }) {
 			</ComboboxAnchor>
 
 			<ComboboxContent
-				ref={(node) => setContent(node as HTMLDivElement | null)}
+				ref={contentRef}
 				className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
 			>
 				<ComboboxEmpty>No product found</ComboboxEmpty>

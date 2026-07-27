@@ -187,19 +187,15 @@ function ShelfItemProduct({
 		);
 		return __products;
 	}, [deferredInputValue, products, isTyping]);
-	const [content, setContent] = React.useState<React.ComponentRef<
-		typeof ComboboxContent
-	> | null>(null);
-	const onInputValueChange = React.useCallback(
-		(value: string) => {
-			setInputValue(value);
-			if (content) {
-				(content as HTMLDivElement).scrollTop = 0; // Reset scroll position
-				//  virtualizer.measure();
-			}
-		},
-		[content],
-	);
+	const contentRef =
+		React.useRef<React.ComponentRef<typeof ComboboxContent>>(null);
+	const onInputValueChange = React.useCallback((value: string) => {
+		setInputValue(value);
+		if (contentRef.current) {
+			(contentRef.current as HTMLDivElement).scrollTop = 0; // Reset scroll position
+			//  virtualizer.measure();
+		}
+	}, []);
 
 	if (mode === "mobile") {
 		return (
@@ -255,7 +251,7 @@ function ShelfItemProduct({
 							</ComboboxAnchor>
 
 							<ComboboxContent
-								ref={(node) => setContent(node as HTMLDivElement | null)}
+								ref={contentRef}
 								className="relative max-h-[300px] overflow-y-auto overflow-x-hidden"
 							>
 								<ComboboxEmpty>No product found</ComboboxEmpty>

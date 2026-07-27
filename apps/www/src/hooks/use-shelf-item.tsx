@@ -60,19 +60,15 @@ export function useShelfItemContext({ shelfUid }) {
 		);
 	}, [deferredInputValue, options]);
 
-	const [content, setContent] = React.useState<React.ComponentRef<
-		typeof ComboboxContent
-	> | null>(null);
-	const onInputValueChange = React.useCallback(
-		(value: string) => {
-			setInputValue(value);
-			if (content) {
-				(content as any).scrollTop = 0; // Reset scroll position
-				//  virtualizer.measure();
-			}
-		},
-		[content],
-	);
+	const contentRef =
+		React.useRef<React.ComponentRef<typeof ComboboxContent>>(null);
+	const onInputValueChange = React.useCallback((value: string) => {
+		setInputValue(value);
+		if (contentRef.current) {
+			(contentRef.current as HTMLDivElement).scrollTop = 0; // Reset scroll position
+			//  virtualizer.measure();
+		}
+	}, []);
 	const [prodRefreshToken, setProductRefreshToken] = React.useState(null);
 	const products = useAsyncMemo(async () => {
 		const category = categories?.find(
@@ -128,7 +124,7 @@ export function useShelfItemContext({ shelfUid }) {
 		},
 		filteredTricks,
 		dotUpdateProduct,
-		setContent,
+		contentRef,
 		// prodUids: shelf.productUids,
 		deferredInputValue,
 		inputValue,

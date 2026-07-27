@@ -30,6 +30,12 @@
   row. Explicit row tax flags override stale parent booleans, while omitted row
   flags fall back to the grouped parent taxability; one taxable sibling no
   longer taxes the entire grouped service line.
+- Legacy shelf-item DTOs project normalized numeric prices into both `order`
+  and `_rawData`, so Prisma `Decimal` values never cross the Server
+  Component-to-Client Component boundary.
+- Shelf combobox content nodes use stable object refs, and the shelf costing
+  helper is memoized per item step. Shelf product effects can update costing
+  without creating a render feedback loop.
 
 ## Validation
 
@@ -43,6 +49,11 @@
   82 tests / 315 assertions in the focused parity slice.
 - API sales-form transaction/parity tests: 29 tests / 237 assertions, plus 3
   bounded post-save tests / 8 assertions.
+- Shelf Decimal projection, render-stability, and print-data regression slice:
+  14 tests / 86 assertions.
+- Authenticated legacy shelf order `00003DPP` loads its `$380.38` shelf line
+  and opens the browser print dialog; a fresh reload-and-print run recorded
+  zero new console errors.
 - Remaining release gate: authenticated browser proof for autosave, recovery,
   leave warning, and full pricing permutations against a real database.
 

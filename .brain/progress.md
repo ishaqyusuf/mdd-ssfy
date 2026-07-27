@@ -1,5 +1,14 @@
 # Progress
 
+- 2026-07-27: Fixed legacy shelf-item invoice loading and printing. Both sales
+  DTO copies now project normalized numeric shelf prices into every
+  client-facing order branch, eliminating the Prisma `Decimal` RSC failure.
+  The shelf editor also uses stable combobox object refs and memoizes its
+  costing helper, eliminating the shelf-only maximum-update-depth loop exposed
+  after serialization was corrected. Focused shelf/print tests pass (14/14);
+  authenticated order `00003DPP` loads at `$380.38`, opens the browser print
+  dialog, and records zero new console errors on a fresh reload-and-print run.
+
 - 2026-07-24: Fixed cross-surface Sales P.O. persistence and added address-only
   editing to the canonical Sales Overview. The new-form autosave cleanup no
   longer flushes during saving-state rerenders, semantic payload changes own
