@@ -369,6 +369,16 @@ use focused static checks until a separate browser QA pass is requested.
 
 ## Implementation Progress
 
+- 2026-07-27: Promoted the dealership app to Vercel production as deployment
+  `dpl_DYRhZq77AzKFixyMNEszPkVe7G1i`. The first release attempt exposed a
+  production-build dependency on the machine-local `local-infra-kit`; the
+  default `build` script now runs Next.js directly while `build:prod` preserves
+  the explicit local production-environment workflow. The corrected local
+  production build passed, Vercel reached `READY`, and
+  `dealers.gndprodesk.com` now resolves to the new deployment. Anonymous smoke
+  checks returned the expected HTTP 200 login page for `/`, `/login`, `/quotes`,
+  and `/quotes/new`, with protected routes redirecting to `/login`.
+
 - 2026-07-23: Closed the post-request dealer quote edit gap. List actions and
   direct edit routes now present an explicit lock, while `dealerPortal.saveQuote`
   rechecks the latest active request inside the transaction and returns

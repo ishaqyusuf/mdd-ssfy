@@ -4,7 +4,7 @@ import { HugeiconsIcon, type HugeiconsIconProps } from "@hugeicons/react";
 import * as HugeIcons from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import Link from "next/link";
-import { FaFacebook, FaInstagram, FaXTwitter } from "react-icons/fa6";
+import { FaFacebook, FaInstagram } from "react-icons/fa6";
 import { FiGithub } from "react-icons/fi";
 import { PiDiscordLogo } from "react-icons/pi";
 import { Cross2Icon, DashboardIcon } from "@radix-ui/react-icons";
@@ -638,7 +638,6 @@ const IconsStatic = {
       />
     </svg>
   ),
-  X: FaXTwitter,
   Facebook: FaFacebook,
   Instagram: FaInstagram,
   Discord: PiDiscordLogo,

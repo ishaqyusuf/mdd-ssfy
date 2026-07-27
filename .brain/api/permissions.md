@@ -105,6 +105,10 @@ Tracks authentication and authorization patterns across API surfaces.
 - Community mutations are protected and divided into template/project,
   builder, unit, cost, invoice, job, and production capability sets.
   CommunityUnit cost restrictions remain enforced after authentication.
+- Work-order saves accept `editCustomerService`, `editCommunityUnit`,
+  `editCommunity`, or `editProject`. This keeps the mutation authenticated
+  while allowing the dedicated Customer Service role to perform the edit
+  action exposed by its workspace.
 - Shared job settings require authentication to read and Super Admin to
   mutate. Mobile/admin UI visibility is not the authorization boundary.
 - Community operations now include a restricted `CommunityUnit` permission surface:

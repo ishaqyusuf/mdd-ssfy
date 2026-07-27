@@ -1,5 +1,21 @@
 # Progress
 
+- 2026-07-27: Fixed the Customer Service work-order form silently refusing to
+  save assigned existing work orders. The shared form schema now matches
+  SuperJSON/Prisma by accepting `assignedAt` as a nullable `Date`, while the
+  general form save leaves assignment ownership to the dedicated assignment
+  workflow. The protected mutation now recognizes `editCustomerService`
+  alongside the existing community editor scopes, repairing the authorization
+  regression introduced by operational route hardening without broadening
+  other community-unit writes. Invalid form data and API/permission failures
+  now show an error toast. Focused schema and permission coverage passed 10
+  tests / 216 assertions; API and WWW typechecks passed. Authenticated browser
+  proof as Shorley Taylor / Customer Service first reproduced the `403`, then
+  saved assigned work order `2040` with no form-field changes, closed the modal,
+  cleared its URL parameter, showed Saved, and recorded no application console
+  error. No schema, migration, sync, or production database change was
+  required.
+
 - 2026-07-27: Added canonical Sales Orders `Mark as` actions to the Admin
   Dispatch Dashboard. Each row's action menu and the multi-select bottom bar
   now offer production completion and fulfillment through the existing
@@ -7206,3 +7222,18 @@
   reached 2,174 passing tests with 25 unrelated existing failures. Browser
   mutation proof remained blocked by the already-running local Next process
   accepting connections without returning page bytes.
+- 2026-07-27: deployed isolated release snapshots based on commit `5daac172`
+  to Vercel production, with the dealership build-script correction applied to
+  its release. Storefront deployment
+  `dpl_FHkq8zkVvAzmTaPH7hFHSY96NuZx` reached `READY` and was aliased to
+  `store.gndprodesk.com`; `/`, `/robots.txt`, and `/sitemap.xml` returned HTTP
+  200, with the sitemap served as `application/xml`. Dealership's first remote
+  build failed before promotion because its package `build` script called the
+  machine-local `local-infra-kit`. The default build now invokes Next.js
+  directly and the explicit local production-env wrapper remains available as
+  `build:prod`. The corrected local build passed, deployment
+  `dpl_DYRhZq77AzKFixyMNEszPkVe7G1i` reached `READY`, and
+  `dealers.gndprodesk.com` was promoted. Anonymous checks for `/`, `/login`,
+  `/quotes`, and `/quotes/new` all resolved to the expected HTTP 200 login
+  surface. Both app typechecks passed before deployment; unrelated working-tree
+  changes were excluded from the release snapshot.

@@ -210,6 +210,22 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
+	test("work-order saves accept the customer-service editor capability", () => {
+		const community = source("community.route.ts");
+		const guardStart = community.indexOf(
+			"async function requireWorkOrderEditor",
+		);
+		expect(guardStart).toBeGreaterThanOrEqual(0);
+		expect(community.slice(guardStart, guardStart + 500)).toContain(
+			'"editCustomerService"',
+		);
+		expectProtectedMutation(
+			community,
+			"saveWorkOrderForm",
+			"await requireWorkOrderEditor(props.ctx)",
+		);
+	});
+
 	test("shared settings writes are Super Admin-only", () => {
 		const settings = source("settings.route.ts");
 		expectProtectedMutation(

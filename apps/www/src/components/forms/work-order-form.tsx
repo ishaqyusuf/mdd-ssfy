@@ -83,7 +83,13 @@ export function WorkOrderForm({ data }: Props) {
                     title: "Saved",
                 });
             },
-            onError(error, variables, context) {},
+            onError(error) {
+                toast({
+                    title: "Unable to save work order",
+                    description: error.message,
+                    variant: "destructive",
+                });
+            },
         }),
     );
     const { options: buildersOptions } = useCommunityBuildersList(true);
@@ -93,7 +99,6 @@ export function WorkOrderForm({ data }: Props) {
             ...formData,
         });
     }
-    console.log({ projectList });
     return (
         <Form {...form}>
             <div
@@ -204,7 +209,16 @@ export function WorkOrderForm({ data }: Props) {
 
             {/* <span>{projectId}</span> */}
             <CustomModalPortal>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
+                <form
+                    onSubmit={form.handleSubmit(onSubmit, () => {
+                        toast({
+                            title: "Unable to save work order",
+                            description:
+                                "Check the required Project and Unit fields, then try again.",
+                            variant: "destructive",
+                        });
+                    })}
+                >
                     <DialogFooter className="">
                         <FormDebugBtn />
                         <SubmitButton

@@ -189,6 +189,19 @@ async function requireCommunityUnitEditor(ctx: TRPCContext) {
 	);
 }
 
+async function requireWorkOrderEditor(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		[
+			"editCustomerService",
+			"editCommunity",
+			"editProject",
+			"editCommunityUnit",
+		],
+		"You do not have permission to edit work orders.",
+	);
+}
+
 async function requireCommunityCostEditor(ctx: TRPCContext) {
 	return requireAnyOperationalPermission(
 		ctx,
@@ -1386,7 +1399,7 @@ export const communityRouters = createTRPCRouter({
 		saveWorkOrderForm: protectedProcedure
 			.input(workOrderFormSchema)
 			.mutation(async (props) => {
-				await requireCommunityUnitEditor(props.ctx);
+				await requireWorkOrderEditor(props.ctx);
 				return saveWorkOrderForm(props.ctx, props.input);
 			}),
 		findHomeOwner: publicProcedure

@@ -655,3 +655,13 @@ Tracks important request/response contracts and shared schema boundaries.
   Only confirmed mutable rows are soft-cancelled/released, affected component
   demand state is recomputed, and one `sales_inventory_order_update_repair`
   SalesHistory record captures applied and skipped ids.
+## Customer Service work-order save contract (2026-07-27)
+
+- `community.workOrder.form` hydrates Prisma `DateTime` values through
+  SuperJSON, so `assignedAt` is a nullable `Date` in the shared work-order form
+  schema rather than a string.
+- `community.workOrder.saveWorkOrderForm` accepts that hydrated value for edit
+  round-trips but does not write `assignedAt` or `techId`; assignment remains
+  owned by the dedicated customer-service assignment workflow.
+- Existing assigned work orders must pass the same form schema as new work
+  orders before the protected save mutation runs.

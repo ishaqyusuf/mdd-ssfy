@@ -12,6 +12,12 @@ The `/community/customer-services` route now renders through `apps/www/src/compo
 - Existing data loading uses `trpc.customerService.getCustomerServices`; no new customer-service query was introduced.
 - Existing Punchout employee loading is preserved through `trpc.hrm.getEmployees({ roles: ["Punchout"] })` for the assignment combobox.
 - Existing row actions are preserved: assignment, status update, edit work order, and delete work order.
+- The 2026-07-27 save repair lets assigned work orders round-trip their
+  SuperJSON-hydrated `assignedAt` date without treating that assignment field as
+  editable form data. The protected save accepts the dedicated
+  `editCustomerService` capability in addition to community editor scopes, and
+  form validation/API failures now render an error toast instead of failing
+  silently.
 - The table supports persisted table-2 column visibility, sizing, drag ordering, dividers, sticky appointment column behavior, row selection, select-all, a Sales Orders-style selection bottom bar, virtualized rows, sort URL state where configured, and table-owned horizontal scrolling. The restarted 2026-07-16 migration follows the Sales Orders table shell directly: the route composes `ScrollableContent`, `PageTitle`, `CustomerServiceHeader`, summary widgets, chart, and `DataTable` without a shared `PageStickyHeader` wrapper, while the table owns `useScrollHeader(parentRef)`, `DndContext`, `SortableContext`, `DraggableHeader`, `ResizeHandle`, and the header-offset spacer.
 - The 2026-07-17 density follow-up keeps the same contracts but lowers the table row height to `56px`, tightens Appointment/Customer/Description/Assigned To/Status/Actions widths to content-fit ranges, and gives the assignment combobox an `h-8` trigger so two-line work-order rows no longer need the old `72px` safety height.
 - The existing work-order summary widgets and filter chart remain outside the table.
@@ -49,3 +55,15 @@ The `/community/customer-services` route now renders through `apps/www/src/compo
   - Direct HTTP route smoke for `/community/customer-services` returned `200`.
   - Follow-up authenticated browser proof on `https://gndprodesk.localhost/community/customer-services` loaded work-order rows and confirmed `56px` rows, a `45px` header, table-owned vertical scroll (`scrollTop 0 -> 650`, `scrollHeight 2285`, `clientHeight 299`), and no document-level horizontal overflow. At the current desktop width the tightened columns fit the table container exactly (`scrollWidth 1131`, `clientWidth 1131`), so horizontal overflow was not present to scroll.
   - `git diff --check` passed for touched files and `components/tables-2/core` stayed unchanged.
+- Work-order save repair on 2026-07-27:
+  - The regression test reproduces an assigned existing work order hydrated
+    with `assignedAt: Date` and now passes.
+  - Permission-boundary coverage requires the work-order save guard to include
+    `editCustomerService` while retaining an authenticated protected mutation.
+  - API and WWW typechecks passed; focused tests passed 10 tests / 216
+    assertions.
+  - Authenticated browser proof as Shorley Taylor / Customer Service first
+    reproduced the protected mutation's `403`, then saved assigned work order
+    `2040` with no form-field changes after the fix. The modal closed, the URL
+    parameter cleared, the Saved toast appeared, and no application console
+    error was recorded.

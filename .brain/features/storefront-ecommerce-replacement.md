@@ -257,10 +257,13 @@ item, customer, and permission workspaces.
 ## Status
 
 Implemented, migration-verified, schema-deployed, and locally rehearsed through
-Square sandbox settlement. Traffic cutover remains release-gated on approved
-production content and policy copy, real Square/email credentials, and a
-physical fulfillment rehearsal. A healthy protected Vercel preview now exists;
-production promotion remains intentionally gated.
+Square sandbox settlement. The storefront was promoted to Vercel production on
+2026-07-27 as deployment `dpl_FHkq8zkVvAzmTaPH7hFHSY96NuZx`; the
+`store.gndprodesk.com` alias resolves to that `READY` deployment, and production
+smoke checks returned HTTP 200 for `/`, `/robots.txt`, and `/sitemap.xml`.
+Approved production content and policy copy, real Square/email credentials, and
+a physical fulfillment rehearsal remain operational follow-up gates; production
+hosting is now live.
 
 ## Custom millwork intake and office handoff (2026-07-22)
 

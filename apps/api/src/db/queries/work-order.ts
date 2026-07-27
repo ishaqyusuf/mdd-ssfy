@@ -19,7 +19,7 @@ export const workOrderFormSchema = z.object({
   homeOwner: z.string().optional().nullable(),
   homePhone: z.string().optional().nullable(),
   status: z.string().optional().nullable(),
-  assignedAt: z.string().optional().nullable(),
+  assignedAt: z.date().optional().nullable(),
   meta: z.object({
     lotBlock: z.string(),
   }),
@@ -41,7 +41,7 @@ export async function saveWorkOrderForm(ctx: TRPCContext, data: WorkOrderForm) {
       [data.projectName, data.lot, data.block],
       ctx.db.workOrders,
     );
-  const { id, techId, ...updateData } = data;
+  const { id, techId, assignedAt, ...updateData } = data;
   if (id)
     await ctx.db.workOrders.update({
       where: {
