@@ -22,7 +22,7 @@ import {
 } from "@gnd/sales";
 import type { NotificationJobInput } from "@notifications/schemas";
 import { NotificationService } from "@notifications/services/triggers";
-import { schemaTask, tasks } from "@trigger.dev/sdk/v3";
+import { logger, schemaTask, tasks } from "@trigger.dev/sdk/v3";
 import type { TaskName } from "../../schema";
 
 type SalesControlActionHandler = (
@@ -142,13 +142,21 @@ async function sendDispatchPackedNotification(input: UpdateSalesControl) {
 }
 
 async function sendDispatchLifecycleNotification(input: UpdateSalesControl) {
-	const dispatchId =
-		input.startDispatch?.dispatchId || input.cancelDispatch?.dispatchId;
-	if (!dispatchId) return;
+	const dispatchIds = input.startDispatch?.dispatchId
+		? [input.startDispatch.dispatchId]
+		: input.cancelDispatch?.dispatchIds?.length
+			? input.cancelDispatch.dispatchIds
+			: input.cancelDispatch?.dispatchId
+				? [input.cancelDispatch.dispatchId]
+				: [];
+	if (!dispatchIds.length) return;
 
-	const dispatch = await db.orderDelivery.findFirst({
+	const dispatches = await db.orderDelivery.findMany({
 		where: {
-			id: dispatchId,
+			id: {
+				in: dispatchIds,
+			},
+			salesOrderId: input.meta.salesId,
 			deletedAt: null,
 		},
 		select: {
@@ -164,32 +172,44 @@ async function sendDispatchLifecycleNotification(input: UpdateSalesControl) {
 			},
 		},
 	});
-	if (!dispatch) return;
 
 	const isStart = Boolean(input.startDispatch?.dispatchId);
-	const isCancel = Boolean(input.cancelDispatch?.dispatchId);
-	if (isStart && dispatch.status !== "in progress") return;
-	if (isCancel && dispatch.status !== "cancelled") return;
+	const isCancel = Boolean(
+		input.cancelDispatch?.dispatchIds?.length ||
+			input.cancelDispatch?.dispatchId,
+	);
 	const notification = new NotificationService(tasks, {
 		db,
 		userId: input.meta.authorId,
 	});
-	await notification.send(
-		isStart ? "sales_dispatch_in_progress" : "sales_dispatch_trip_canceled",
-		{
-			author: {
-				id: input.meta.authorId,
-				role: "employee",
-			},
-			payload: {
-				orderNo: dispatch.order?.orderId || undefined,
+	for (const dispatch of dispatches) {
+		if (isStart && dispatch.status !== "in progress") continue;
+		if (isCancel && dispatch.status !== "cancelled") continue;
+		try {
+			await notification.send(
+				isStart ? "sales_dispatch_in_progress" : "sales_dispatch_trip_canceled",
+				{
+					author: {
+						id: input.meta.authorId,
+						role: "employee",
+					},
+					payload: {
+						orderNo: dispatch.order?.orderId || undefined,
+						dispatchId: dispatch.id,
+						deliveryMode: dispatch.deliveryMode || undefined,
+						dueDate: dispatch.dueDate || undefined,
+						driverId: dispatch.driverId || undefined,
+					},
+				} as any,
+			);
+		} catch (error) {
+			logger.error("One dispatch lifecycle notification failed.", {
 				dispatchId: dispatch.id,
-				deliveryMode: dispatch.deliveryMode || undefined,
-				dueDate: dispatch.dueDate || undefined,
-				driverId: dispatch.driverId || undefined,
-			},
-		} as any,
-	);
+				error,
+				salesId: input.meta.salesId,
+			});
+		}
+	}
 }
 
 async function sendDispatchCompletedNotification(input: UpdateSalesControl) {
@@ -333,7 +353,17 @@ export const updateSalesControl = schemaTask({
 				await sendDispatchPackedNotification(input as UpdateSalesControl);
 			}
 			if (input.startDispatch || input.cancelDispatch) {
-				await sendDispatchLifecycleNotification(input as UpdateSalesControl);
+				try {
+					await sendDispatchLifecycleNotification(input as UpdateSalesControl);
+				} catch (error) {
+					logger.error(
+						"Sales control committed, but its dispatch notification failed.",
+						{
+							error,
+							salesId: input.meta.salesId,
+						},
+					);
+				}
 			}
 			if (input.submitDispatch) {
 				await sendDispatchCompletedNotification(input as UpdateSalesControl);

@@ -20,6 +20,7 @@ import { transformNote } from "@gnd/utils/note";
 
 export interface CreateSalesAssignmentProps {
   submit?: boolean;
+  submissionMeta?: Prisma.InputJsonObject;
   salesId: number;
   assignedToId?: number;
   authorId: number;
@@ -97,6 +98,7 @@ export async function createSalesAssignmentAction(
       authorId: args.authorId,
       updateStats: args.updateStats,
       salesId: args.salesId,
+      submissionMeta: args.submissionMeta,
       items: args.items.map((data) => ({
         assignmentId: assignments.find(
           (a) => a.salesItemControlUid === data.itemInfo.controlUid,
@@ -110,6 +112,7 @@ export async function createSalesAssignmentAction(
 export interface CreateSalesAssignmentSubmissionProps {
   salesId: number;
   authorId: number;
+  submissionMeta?: Prisma.InputJsonObject;
   updateStats?: boolean;
   items: {
     itemInfo: SalesInfoItem;
@@ -138,7 +141,7 @@ export async function createSalesAssignmentSubmissionAction(
           submittedById: args.authorId,
           salesOrderItemId: item.itemInfo.itemId!,
           // salesItemControlUid: item.itemInfo.controlUid,
-          meta: {},
+          meta: args.submissionMeta ?? {},
           assignmentId: item.assignmentId,
         }) satisfies Prisma.OrderProductionSubmissionsCreateManyInput,
     ),
@@ -380,6 +383,9 @@ export async function submitAssignmentsAction(
   props: SubmitAssingmentsAction,
 ) {
   const { assignedToId, authorId, data } = props;
+  const submissionMeta = props.submissionSource
+    ? { source: props.submissionSource }
+    : undefined;
   const createSubmissions: CreateSalesAssignmentSubmissionProps["items"] = [];
   const createAssignments: CreateSalesAssignmentProps["items"] = [];
   const submitAll = !props.selections?.length && !props.itemUids?.length;
@@ -415,10 +421,12 @@ export async function submitAssignmentsAction(
     authorId: authorId,
     salesId: data.order.id,
     assignedToId: assignedToId!,
+    submissionMeta,
   });
   await createSalesAssignmentSubmissionAction(db, {
     authorId,
     salesId: data.order.id,
+    submissionMeta,
     items: createSubmissions,
   });
 

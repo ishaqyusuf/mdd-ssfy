@@ -191,42 +191,68 @@ export const dispatchRouters = createTRPCRouter({
 		.mutation(async (props) => {
 			await requireDispatchManager(props.ctx);
 			const response = await cancelDispatchTask(props.ctx.db, props.input);
-			const dispatchId = props.input.cancelDispatch?.dispatchId;
-			if (dispatchId) {
-				const dispatch = await props.ctx.db.orderDelivery.findFirst({
-					where: {
-						id: dispatchId,
-						deletedAt: null,
-					},
-					select: {
-						id: true,
-						status: true,
-						dueDate: true,
-						deliveryMode: true,
-						driverId: true,
-						order: {
-							select: {
-								orderId: true,
+			const dispatchIds = props.input.cancelDispatch?.dispatchIds?.length
+				? props.input.cancelDispatch.dispatchIds
+				: props.input.cancelDispatch?.dispatchId
+					? [props.input.cancelDispatch.dispatchId]
+					: [];
+			try {
+				if (dispatchIds.length) {
+					const dispatches = await props.ctx.db.orderDelivery.findMany({
+						where: {
+							id: {
+								in: dispatchIds,
+							},
+							salesOrderId: props.input.meta.salesId,
+							deletedAt: null,
+						},
+						select: {
+							id: true,
+							status: true,
+							dueDate: true,
+							deliveryMode: true,
+							driverId: true,
+							order: {
+								select: {
+									orderId: true,
+								},
 							},
 						},
-					},
-				});
-				if (dispatch?.status === "cancelled") {
-					await getDispatchNotificationService(props.ctx).send(
-						"sales_dispatch_trip_canceled",
-						{
-							payload: {
-								orderNo: dispatch.order?.orderId || undefined,
-								dispatchId: dispatch.id,
-								deliveryMode: normalizeDispatchDeliveryMode(
-									dispatch.deliveryMode,
-								),
-								dueDate: dispatch.dueDate || undefined,
-								driverId: dispatch.driverId || undefined,
-							},
-						},
-					);
+					});
+					for (const dispatch of dispatches) {
+						if (dispatch.status === "cancelled") {
+							try {
+								await getDispatchNotificationService(props.ctx).send(
+									"sales_dispatch_trip_canceled",
+									{
+										payload: {
+											orderNo: dispatch.order?.orderId || undefined,
+											dispatchId: dispatch.id,
+											deliveryMode: normalizeDispatchDeliveryMode(
+												dispatch.deliveryMode,
+											),
+											dueDate: dispatch.dueDate || undefined,
+											driverId: dispatch.driverId || undefined,
+										},
+									},
+								);
+							} catch (error) {
+								console.error(
+									"Dispatch cancellation committed, but one notification failed.",
+									{
+										dispatchId: dispatch.id,
+										error,
+									},
+								);
+							}
+						}
+					}
 				}
+			} catch (error) {
+				console.error(
+					"Dispatch cancellation committed, but notifications could not be loaded.",
+					error,
+				);
 			}
 			return response;
 		}),

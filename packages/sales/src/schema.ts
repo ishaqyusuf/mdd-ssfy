@@ -74,6 +74,7 @@ export const updateSalesControlSchema = z.object({
 	cancelDispatch: z
 		.object({
 			dispatchId: z.number().nullable().optional(), //if null, it clears all packing for every dispatch
+			dispatchIds: z.array(z.number()).optional().nullable(),
 		})
 		.nullable()
 		.optional(),
@@ -96,6 +97,7 @@ export const updateSalesControlSchema = z.object({
 			itemIds: z.array(z.number()).optional().nullable(),
 			itemControlUids: z.array(z.string()).optional().nullable(),
 			allBySalesId: z.number().optional().nullable(),
+			automaticCompletionSalesId: z.number().optional().nullable(),
 		})
 		.optional()
 		.nullable(),
@@ -144,6 +146,10 @@ export const updateSalesControlSchema = z.object({
 		.object({
 			assignedToId: z.number().nullable().optional(),
 			itemUids: z.array(z.string()).optional().nullable(),
+			submissionSource: z
+				.enum(["sales_mark_as_completed"])
+				.optional()
+				.nullable(),
 			selections: z
 				.array(
 					z.object({

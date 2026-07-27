@@ -12,6 +12,11 @@ export type SalesOrderStatusMenuItem = {
 	disabled?: boolean;
 };
 
+type FulfillmentDispatch = {
+	id: number;
+	status?: string | null;
+};
+
 const PRODUCTION_COMPLETED_LIFECYCLE_STATUSES =
 	new Set<SalesOrderLifecycleStatus>([
 		"ready_to_fulfill",
@@ -39,6 +44,14 @@ const COMPLETED_PRODUCTION_STATUSES = new Set([
 
 function normalizeStatus(status?: string | null) {
 	return status?.trim().toLowerCase() || "";
+}
+
+export function getCancellableFulfillmentDispatchIds(
+	deliveries: readonly FulfillmentDispatch[],
+) {
+	return deliveries
+		.filter((delivery) => normalizeStatus(delivery.status) !== "cancelled")
+		.map((delivery) => delivery.id);
 }
 
 export function getSalesOrderStatusMenuActions({

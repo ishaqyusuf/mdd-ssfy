@@ -54,10 +54,10 @@ describe("sales-control task transactions", () => {
     expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 321);
   });
 
-  it("cancelDispatchTask transitions dispatch and resets within same transaction", async () => {
+  it("cancelDispatchTask transitions every dispatch and resets within same transaction", async () => {
     const tx = {
       orderDelivery: {
-        update: mock(async () => ({})),
+        updateMany: mock(async () => ({ count: 2 })),
       },
     };
     const db = {
@@ -66,16 +66,41 @@ describe("sales-control task transactions", () => {
 
     await tasksModule.cancelDispatchTask(db as any, {
       meta: { salesId: 777 },
-      cancelDispatch: { dispatchId: 55 },
+      cancelDispatch: { dispatchIds: [55, 56] },
     } as any);
 
-    expect(tx.orderDelivery.update).toHaveBeenCalledTimes(1);
-    expect(tx.orderDelivery.update).toHaveBeenCalledWith({
-      where: { id: 55 },
-      data: { status: "cancelled" },
+    expect(tx.orderDelivery.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.orderDelivery.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: [55, 56] },
+        salesOrderId: 777,
+        deletedAt: null,
+      },
+      data: { status: "cancelled", deliveredAt: null },
     });
     expect(resetSalesActionMock).toHaveBeenCalledTimes(1);
     expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 777);
+  });
+
+  it("rejects dispatch ids outside the parent sales order", async () => {
+    const tx = {
+      orderDelivery: {
+        updateMany: mock(async () => ({ count: 1 })),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    await expect(
+      tasksModule.cancelDispatchTask(db as any, {
+        meta: { salesId: 777 },
+        cancelDispatch: { dispatchIds: [55, 56] },
+      } as any),
+    ).rejects.toThrow(
+      "One or more fulfillment dispatches do not belong to this sales order.",
+    );
+    expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
 
   it("packDispatchItemTask packs and resets within same transaction client", async () => {
@@ -166,6 +191,77 @@ describe("sales-control task transactions", () => {
         clearPackings: { dispatchId: 88 },
       } as any),
     ).rejects.toThrow("update failed");
+    expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("only deletes submissions created by automatic production completion", async () => {
+    const tx = {
+      orderProductionSubmissions: {
+        findMany: mock(async () => [
+          { id: 10, meta: { source: "sales_mark_as_completed" } },
+          { id: 11, meta: {} },
+          { id: 12, meta: null },
+        ]),
+        updateMany: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    await tasksModule.deleteSubmissionsTask(db as any, {
+      meta: { salesId: 777 },
+      deleteSubmissions: { automaticCompletionSalesId: 777 },
+    } as any);
+
+    expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.orderProductionSubmissions.updateMany.mock.calls[0]?.[0]).toEqual({
+      where: { id: { in: [10] } },
+      data: { deletedAt: expect.any(Date) },
+    });
+    expect(resetSalesActionMock).toHaveBeenCalledWith(tx, 777);
+  });
+
+  it("rejects production cancellation when no automatic completion exists", async () => {
+    const tx = {
+      orderProductionSubmissions: {
+        findMany: mock(async () => [{ id: 11, meta: {} }]),
+        updateMany: mock(async () => ({})),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    await expect(
+      tasksModule.deleteSubmissionsTask(db as any, {
+        meta: { salesId: 777 },
+        deleteSubmissions: { automaticCompletionSalesId: 777 },
+      } as any),
+    ).rejects.toThrow(
+      "No automatic production completion is available to cancel.",
+    );
+    expect(tx.orderProductionSubmissions.updateMany).toHaveBeenCalledTimes(0);
+    expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
+  });
+
+  it("rejects production cancellation for a different sales order", async () => {
+    const tx = {
+      orderProductionSubmissions: {
+        findMany: mock(async () => []),
+      },
+    };
+    const db = {
+      $transaction: async (fn: any) => fn(tx),
+    };
+
+    await expect(
+      tasksModule.deleteSubmissionsTask(db as any, {
+        meta: { salesId: 777 },
+        deleteSubmissions: { automaticCompletionSalesId: 778 },
+      } as any),
+    ).rejects.toThrow("Production cancellation does not match this sales order.");
+    expect(tx.orderProductionSubmissions.findMany).toHaveBeenCalledTimes(0);
     expect(resetSalesActionMock).toHaveBeenCalledTimes(0);
   });
 

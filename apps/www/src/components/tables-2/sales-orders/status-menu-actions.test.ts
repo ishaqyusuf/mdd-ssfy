@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { getSalesOrderStatusMenuActions } from "../../sales-status-menu-actions";
+import {
+	getCancellableFulfillmentDispatchIds,
+	getSalesOrderStatusMenuActions,
+} from "../../sales-status-menu-actions";
 
 describe("sales order status menu actions", () => {
 	it("keeps completion and fulfillment as the first two actions", () => {
@@ -50,5 +53,15 @@ describe("sales order status menu actions", () => {
 			},
 			{ action: "cancel_fulfillment", label: "Cancel Fulfillment" },
 		]);
+	});
+
+	it("cancels every dispatch contributing to fulfillment state", () => {
+		expect(
+			getCancellableFulfillmentDispatchIds([
+				{ id: 11, status: "completed" },
+				{ id: 12, status: "queue" },
+				{ id: 13, status: "cancelled" },
+			]),
+		).toEqual([11, 12]);
 	});
 });

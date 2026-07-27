@@ -3,7 +3,10 @@ import { generateToken } from "@/actions/token-action";
 import Link from "@/components/link";
 import { SalesDocumentEmailDialog } from "@/components/sales-document-email-dialog";
 import { SalesPaymentNotificationsMenu } from "@/components/sales-payment-notifications-menu";
-import { getSalesOrderStatusMenuActions } from "@/components/sales-status-menu-actions";
+import {
+	getCancellableFulfillmentDispatchIds,
+	getSalesOrderStatusMenuActions,
+} from "@/components/sales-status-menu-actions";
 import { reviewSelectedPayments } from "@/components/tables-2/sales-orders/review-selected-payments";
 import { useAuth } from "@/hooks/use-auth";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
@@ -332,6 +335,8 @@ function SalesMenuRoot({
 				<DropdownMenu.Content
 					align={align}
 					className={contentClassName || "w-[185px]"}
+					onClick={(event) => event.stopPropagation()}
+					onPointerDown={(event) => event.stopPropagation()}
 				>
 					{children}
 				</DropdownMenu.Content>
@@ -911,6 +916,7 @@ function SalesMenuMarkAs({
 	const isDisabled = disabled || !salesIds.length;
 	const expectedTaskStartsRef = useRef(0);
 	const completedTaskStartsRef = useRef(0);
+	const taskStartedToastShownRef = useRef(false);
 	const createDispatchMutation = useMutation(
 		trpc.dispatch.createDispatch.mutationOptions({
 			meta: {
@@ -967,9 +973,21 @@ function SalesMenuMarkAs({
 		monitor: true,
 		onStarted() {
 			closeMenuAfterExpectedTaskStarts();
+			if (!taskStartedToastShownRef.current) {
+				taskStartedToastShownRef.current = true;
+				toast({
+					title: "Sales status update started",
+					description: "You can keep working while the order status updates.",
+				});
+			}
 		},
 		onSuccess() {
 			void invalidateOrders();
+			toast({
+				title: "Sales status updated",
+				description: "The order list and saved tab counts are refreshing.",
+				variant: "success",
+			});
 		},
 		onError() {
 			expectedTaskStartsRef.current = 0;
@@ -1051,36 +1069,35 @@ function SalesMenuMarkAs({
 		return createdDispatch.id;
 	};
 
-	const resolveCancellableDispatchId = async (salesId: number) => {
+	const resolveCancellableDispatchIds = async (salesId: number) => {
 		const deliveryInfo = await sq.qc.fetchQuery(
 			trpc.dispatch.salesDeliveryInfo.queryOptions({ salesId }),
 		);
-		const dispatch = [...(deliveryInfo?.deliveries || [])]
-			.sort((left, right) => {
-				const leftTime = left.dueDate ? new Date(left.dueDate).getTime() : 0;
-				const rightTime = right.dueDate ? new Date(right.dueDate).getTime() : 0;
-				return rightTime - leftTime;
-			})
-			.find((item) => String(item.status || "").toLowerCase() !== "cancelled");
+		const dispatchIds = getCancellableFulfillmentDispatchIds(
+			deliveryInfo?.deliveries || [],
+		);
 
-		if (!dispatch?.id) {
+		if (!dispatchIds.length) {
 			throw new Error("No active fulfillment was found for this order.");
 		}
 
-		return dispatch.id;
+		return dispatchIds;
 	};
 
 	const startMarkProductionCompletedTask = async () => {
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
+			taskStartedToastShownRef.current = false;
 			for (const salesId of salesIds) {
 				salesControlTask.trigger(
 					{
 						taskName: "update-sales-control",
 						payload: {
 							meta: getTaskMeta(salesId),
-							submitAll: {},
+							submitAll: {
+								submissionSource: "sales_mark_as_completed",
+							},
 						} as UpdateSalesControl,
 					},
 					{
@@ -1110,6 +1127,7 @@ function SalesMenuMarkAs({
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
+			taskStartedToastShownRef.current = false;
 			for (const salesId of salesIds) {
 				const dispatchId = await resolveDispatchId(salesId);
 				salesControlTask.trigger(
@@ -1152,6 +1170,7 @@ function SalesMenuMarkAs({
 		try {
 			expectedTaskStartsRef.current = salesIds.length;
 			completedTaskStartsRef.current = 0;
+			taskStartedToastShownRef.current = false;
 			for (const salesId of salesIds) {
 				salesControlTask.trigger(
 					{
@@ -1159,7 +1178,7 @@ function SalesMenuMarkAs({
 						payload: {
 							meta: getTaskMeta(salesId),
 							deleteSubmissions: {
-								allBySalesId: salesId,
+								automaticCompletionSalesId: salesId,
 							},
 						} as UpdateSalesControl,
 					},
@@ -1188,11 +1207,11 @@ function SalesMenuMarkAs({
 	const cancelFulfillment = async () => {
 		try {
 			for (const salesId of salesIds) {
-				const dispatchId = await resolveCancellableDispatchId(salesId);
+				const dispatchIds = await resolveCancellableDispatchIds(salesId);
 				await cancelDispatchMutation.mutateAsync({
 					meta: getTaskMeta(salesId),
 					cancelDispatch: {
-						dispatchId,
+						dispatchIds,
 					},
 				});
 			}

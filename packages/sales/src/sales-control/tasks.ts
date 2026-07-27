@@ -186,15 +186,33 @@ export async function deletePackingItem(db: Db, data: DeletePackingSchema) {
 }
 export async function cancelDispatchTask(db: Db, data: UpdateSalesControl) {
 	await db.$transaction(async (tx) => {
-		await tx.orderDelivery.update({
+		const dispatchIds = data.cancelDispatch?.dispatchIds?.length
+			? data.cancelDispatch.dispatchIds
+			: data.cancelDispatch?.dispatchId
+				? [data.cancelDispatch.dispatchId]
+				: [];
+		if (!dispatchIds.length) {
+			throw new Error("Unable to cancel fulfillment without a dispatch.");
+		}
+		const uniqueDispatchIds = [...new Set(dispatchIds)];
+		const result = await tx.orderDelivery.updateMany({
 			where: {
-				id: data.cancelDispatch?.dispatchId!,
+				id: {
+					in: uniqueDispatchIds,
+				},
+				salesOrderId: data.meta.salesId,
+				deletedAt: null,
 			},
 			data: {
 				status: "cancelled" as SalesDispatchStatus,
 				deliveredAt: null,
 			},
 		});
+		if (result.count !== uniqueDispatchIds.length) {
+			throw new Error(
+				"One or more fulfillment dispatches do not belong to this sales order.",
+			);
+		}
 		await resetSalesAction(tx as any, data.meta.salesId);
 	});
 }
@@ -599,6 +617,49 @@ export async function resetSalesTask(db: Db, salesId) {
 export async function deleteSubmissionsTask(db: Db, data: UpdateSalesControl) {
 	await db.$transaction(async (tx) => {
 		const args = data.deleteSubmissions!;
+		if (args.automaticCompletionSalesId) {
+			if (args.automaticCompletionSalesId !== data.meta.salesId) {
+				throw new Error(
+					"Production cancellation does not match this sales order.",
+				);
+			}
+			const submissions = await tx.orderProductionSubmissions.findMany({
+				where: {
+					salesOrderId: args.automaticCompletionSalesId,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					meta: true,
+				},
+			});
+			const submissionIds = submissions
+				.filter(
+					(submission) =>
+						submission.meta &&
+						typeof submission.meta === "object" &&
+						!Array.isArray(submission.meta) &&
+						"source" in submission.meta &&
+						submission.meta.source === "sales_mark_as_completed",
+				)
+				.map((submission) => submission.id);
+
+			if (!submissionIds.length) {
+				throw new Error(
+					"No automatic production completion is available to cancel.",
+				);
+			}
+			await tx.orderProductionSubmissions.updateMany({
+				where: {
+					id: {
+						in: submissionIds,
+					},
+				},
+				data: {
+					deletedAt: new Date(),
+				},
+			});
+		}
 		if (args.submissionIds?.length)
 			await tx.orderProductionSubmissions.updateMany({
 				where: {

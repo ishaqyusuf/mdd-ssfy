@@ -214,6 +214,8 @@ Tracks important request/response contracts and shared schema boundaries.
     inventory import test tasks. While the control center monitors a live
     Trigger run, it finalizes the diagnostic from the terminal run status.
 - Sales production query contracts live in `packages/sales/src/schema.ts`.
+  - `updateSalesControl.cancelDispatch` accepts the legacy `dispatchId` or a batch `dispatchIds` list. Batch cancellation constrains every ID to `meta.salesId`, requires the complete requested set to match, updates all selected dispatches, and resets the parent sale in one transaction. Lifecycle notifications are emitted only after that transition completes; notification failures are logged and do not reject the committed mutation.
+  - Automatic status-column production completion writes `submitProduction.submissionSource="sales_mark_as_completed"`. Its rollback uses `deleteSubmissions.automaticCompletionSalesId`, requires that ID to equal `meta.salesId`, and rejects when no tagged automatic completion exists, preserving legacy/manual production submissions.
 - Shared page-tab contracts:
   - `pageTabs.list({ page, includeInactive? })` returns tabs visible to the current user: their private tabs plus public/general tabs for the normalized page path. By default it returns only active tabs; `includeInactive: true` also returns manageable draft tabs for the edit modal.
   - `pageTabs.create({ page, title, query, setDefault?, visibility? })` stores normalized query strings, preserving reusable page state such as `sort` while stripping pagination/internal keys including `_page`, `cursor`, and `size`.
