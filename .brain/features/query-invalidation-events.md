@@ -33,7 +33,7 @@ The initial catalog contains:
 - Customers: customer profile and address changes.
 - Shared navigation: page-tab changes.
 
-The route registry maps 78 high-impact mutations across dispatch, inventory,
+The route registry maps 79 high-impact mutations across dispatch, inventory,
 sales, customers, office/online payment processing, contractor jobs, HRM
 employees, the new sales form, and page tabs.
 
@@ -114,6 +114,7 @@ The current transport refreshes the initiating tab and other open GND tabs in th
 - Office/customer portal `applyPayment` returns and uses its `appliedSales` result; a terminal session that has not applied payment emits no sales event, while the completed terminal response retains its scoped event.
 - Public online checkout verification returns `appliedSales` after `COMPLETED` settlement and emits no event while `PENDING`.
 - Inventory dispatch assign/pack/fulfill/release, partial shipment, and fulfillment-hold responses attach the affected sale reference.
+- Manual order inbound-status saves map `notes.saveInboundNote` to `inventory.inbound.changed` and scope the event from the returned order. The event refreshes Sales Orders lists/summaries, inventory inbound reads, and saved page-tab count data, including inactive tab queries.
 - New-form draft autosaves and final saves derive the order/quote event family from the returned document type. Legacy sales saves, priority/payment-method edits, sales-rep transfer, copy/move, production events, fulfillment task intents, and dispatch helpers carry sale scope when available. Move scope includes both the deleted source and created target sale.
 - Production events refresh the current worker task/filter queues, legacy/v2 production lists, dashboards, overview, Sales Orders aggregates, and the exact affected Sales Overview. Fulfillment task completion uses the fulfillment event family, which also owns inventory, dispatch, packing, and production query families.
 - Payment events still path-invalidate Sales Orders lists/summaries, dashboards, accounting reads, filters, and page tabs. Only Sales Overview detail invalidation is narrowed.

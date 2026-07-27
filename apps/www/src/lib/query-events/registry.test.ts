@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(78);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(79);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -41,6 +41,34 @@ describe("query event mutation registry", () => {
 				}),
 			).toEqual([{ name: "customer.changed" }]);
 		}
+	});
+
+	it("publishes a scoped inbound change after a manual inbound status save", () => {
+		expect(
+			resolveMutationQueryEvents({
+				data: {
+					order: {
+						id: 24413,
+						inventoryStatus: "ORDERED",
+						orderId: "08894LM",
+					},
+				},
+				mutationKey: [["notes", "saveInboundNote"]],
+			}),
+		).toEqual([
+			{
+				name: "inventory.inbound.changed",
+				scope: {
+					sales: [
+						{
+							orderNo: "08894LM",
+							salesId: 24413,
+							salesType: "order",
+						},
+					],
+				},
+			},
+		]);
 	});
 
 	it("scopes a reviewed payment event to its sale overview", () => {

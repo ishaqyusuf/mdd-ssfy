@@ -263,6 +263,7 @@ export const MUTATION_QUERY_EVENTS = {
 	"jobs.reverseCancelledContractorPayment": ["jobs.payment.changed"],
 	"newSalesForm.saveDraft": ["sales.order.changed"],
 	"newSalesForm.saveFinal": ["sales.order.changed"],
+	"notes.saveInboundNote": ["inventory.inbound.changed"],
 	"pageTabs.create": ["page-tabs.changed"],
 	"pageTabs.delete": ["page-tabs.changed"],
 	"pageTabs.reorder": ["page-tabs.changed"],
@@ -341,6 +342,9 @@ function extractMutationSalesRefs(
 
 	let candidates: readonly unknown[] = [];
 	switch (route) {
+		case "notes.saveInboundNote":
+			candidates = [result.order];
+			break;
 		case "sales.markLatestPaymentReviewed":
 			candidates = [result.order];
 			break;
