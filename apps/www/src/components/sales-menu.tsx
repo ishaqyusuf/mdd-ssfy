@@ -936,10 +936,7 @@ function SalesMenuMarkAs({
 		}),
 	);
 	const resolveInventoryMarkAsMutation = useMutation(
-		trpc.inventories.resolveSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
-	);
-	const autoResolveInventoryMarkAsMutation = useMutation(
-		trpc.inventories.resolveSalesInventoryMarkAsAutoForContinue.mutationOptions(),
+		trpc.inventories.overrideSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(),
 	);
 	const markPaymentsReviewedMutation = useMutation(
 		trpc.sales.markPaymentsReviewed.mutationOptions({
@@ -1291,39 +1288,6 @@ function SalesMenuMarkAs({
 		if (!inventoryPreflight) return;
 
 		try {
-			if (inventoryPreflight.action === "fulfilled") {
-				const result = await autoResolveInventoryMarkAsMutation.mutateAsync({
-					salesOrderIds: salesIds,
-					action: inventoryPreflight.action,
-				});
-
-				if (!result.continueAllowed) {
-					setInventoryPreflight(result.remainingPreflight);
-					toast({
-						title: "Inventory still needs review",
-						description:
-							"Inventory auto-resolution ran, but this order is not ready to continue.",
-						variant: "destructive",
-					});
-					return;
-				}
-
-				setInventoryPreflight(null);
-				toast({
-					title: "Inventory work auto-created",
-					description: `${result.approvedAllocationCount} allocation${
-						result.approvedAllocationCount === 1 ? "" : "s"
-					} approved, ${result.createdInboundShipmentCount} inbound${
-						result.createdInboundShipmentCount === 1 ? "" : "s"
-					} created, ${result.linkedDemandCount} demand row${
-						result.linkedDemandCount === 1 ? "" : "s"
-					} linked.`,
-					variant: "success",
-				});
-				await startMarkFulfilledTask();
-				return;
-			}
-
 			const result = await resolveInventoryMarkAsMutation.mutateAsync({
 				salesOrderIds: salesIds,
 				action: inventoryPreflight.action,
@@ -1334,9 +1298,7 @@ function SalesMenuMarkAs({
 				toast({
 					title: "Inventory still needs review",
 					description:
-						result.remainingPreflight.totals.unresolvableComponentCount > 0
-							? "Some stock work is linked to inbound receiving or still needs allocation."
-							: "Inventory was refreshed, but this order is not ready to continue yet.",
+						"The availability override could not be saved for every selected order.",
 					variant: "destructive",
 				});
 				return;
@@ -1344,10 +1306,9 @@ function SalesMenuMarkAs({
 
 			setInventoryPreflight(null);
 			toast({
-				title: "Inventory marked available",
-				description: `${result.cancelledDemandCount} pending demand row${
-					result.cancelledDemandCount === 1 ? "" : "s"
-				} resolved before continuing.`,
+				title: "Availability override recorded",
+				description:
+					"The status update can continue. Canonical inventory and inbound evidence were preserved.",
 				variant: "success",
 			});
 
@@ -1359,7 +1320,7 @@ function SalesMenuMarkAs({
 		} catch {
 			toast({
 				title: "Unable to resolve inventory",
-				description: "Please review the Inventory tab before using Mark as.",
+				description: "The availability override could not be saved.",
 				variant: "destructive",
 			});
 		}
@@ -1425,24 +1386,10 @@ function SalesMenuMarkAs({
 		</>
 	);
 	const blockerPreview = inventoryPreflight?.blockers.slice(0, 4) || [];
-	const canResolveInventoryAndContinue = Boolean(
-		inventoryPreflight?.canResolveAndContinue,
-	);
-	const canAutoResolveFulfillment = inventoryPreflight?.action === "fulfilled";
-	const isResolvingInventory =
-		resolveInventoryMarkAsMutation.isPending ||
-		autoResolveInventoryMarkAsMutation.isPending;
-	const primaryInventoryActionLabel = canAutoResolveFulfillment
-		? isResolvingInventory
-			? "Resolving..."
-			: inventoryPreflight?.totals.autoInboundQty ||
-					inventoryPreflight?.totals.autoInboundDemandCount ||
-					inventoryPreflight?.totals.openInboundQty
-				? "Create inbound and continue"
-				: "Resolve inventory and continue"
-		: isResolvingInventory
-			? "Resolving..."
-			: "Mark available and continue";
+	const isResolvingInventory = resolveInventoryMarkAsMutation.isPending;
+	const primaryInventoryActionLabel = isResolvingInventory
+		? "Resolving..."
+		: "Mark available and continue";
 	const dialog = (
 		<AlertDialog
 			open={Boolean(inventoryPreflight)}
@@ -1488,13 +1435,11 @@ function SalesMenuMarkAs({
 							</div>
 						</div>
 						<div className="rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
-							{canAutoResolveFulfillment
-								? "Fulfillment will approve available allocation suggestions, create and assign inbound demand for remaining shortages, then continue Mark as Fulfilled."
-								: canResolveInventoryAndContinue
-									? "Only unlinked pending inbound demand will be marked available. Shipment-linked receiving and allocation work are not changed here."
-									: "This inventory state cannot be safely marked available from Mark as. Resolve linked receiving or allocation work in the Inventory tab first."}
+							Marking available records an explicit status override and
+							continues this action. Existing linked receiving and allocation
+							evidence is preserved for later review.
 						</div>
-						<div className="max-h-64 overflow-y-auto rounded-md border">
+						<div className="max-h-64 overflow-y-auto rounded-md border uppercase">
 							{blockerPreview.map((blocker) => (
 								<div
 									key={blocker.salesOrderId}
@@ -1559,10 +1504,7 @@ function SalesMenuMarkAs({
 						Review inventory first
 					</AlertDialog.Cancel>
 					<AlertDialog.Action
-						disabled={
-							(!canAutoResolveFulfillment && !canResolveInventoryAndContinue) ||
-							isResolvingInventory
-						}
+						disabled={isResolvingInventory}
 						onClick={(event) => {
 							event.preventDefault();
 							void resolveInventoryAndContinue();

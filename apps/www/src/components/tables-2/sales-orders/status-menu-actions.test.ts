@@ -12,8 +12,8 @@ describe("sales order status menu actions", () => {
 				productionStatus: "pending",
 			}),
 		).toEqual([
-			{ action: "production_completed", label: "Mark as Completed" },
-			{ action: "fulfilled", label: "Mark as Fulfilled" },
+			{ action: "production_completed", label: "Production completed" },
+			{ action: "fulfilled", label: "Fulfilled" },
 		]);
 	});
 
@@ -27,9 +27,9 @@ describe("sales order status menu actions", () => {
 			{
 				action: "production_completed",
 				disabled: true,
-				label: "Mark as Completed",
+				label: "Production completed",
 			},
-			{ action: "fulfilled", label: "Mark as Fulfilled" },
+			{ action: "fulfilled", label: "Fulfilled" },
 			{ action: "cancel_production", label: "Cancel Production" },
 		]);
 	});
@@ -44,12 +44,12 @@ describe("sales order status menu actions", () => {
 			{
 				action: "production_completed",
 				disabled: true,
-				label: "Mark as Completed",
+				label: "Production completed",
 			},
 			{
 				action: "fulfilled",
 				disabled: true,
-				label: "Mark as Fulfilled",
+				label: "Fulfilled",
 			},
 			{ action: "cancel_fulfillment", label: "Cancel Fulfillment" },
 		]);

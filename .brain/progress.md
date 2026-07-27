@@ -1,5 +1,18 @@
 # Progress
 
+- 2026-07-27: Simplified the canonical Sales Orders Status menu to
+  `Production completed` and `Fulfilled` with no redundant `Mark as` label.
+  The shared inventory-attention modal now renders blocker rows in uppercase
+  and keeps `Mark available and continue` enabled for both actions. Confirming
+  records an `editOrders`-guarded workflow waiver without rewriting canonical
+  inventory/component/inbound truth, and continues the requested status task.
+  Missing batch rows fail before audit writes. Focused coverage passed 25 tests
+  / 252 assertions, Sales and API typechecks plus focused Biome passed, and
+  browser validation confirmed both enabled paths on order `08883LM` without
+  submitting either action. The full suite completed with 2,200 passing, 1
+  skipped, and the same 25 unrelated baseline failures; broad WWW typecheck
+  remains on its existing baseline.
+
 - 2026-07-27: Fixed Community Model Cost creation from the Unit Invoice editor
   when optional dates are blank. Authenticated local browser reproduction on
   unit `5A/01`, model `2315 LH`, confirmed that `Edit Model Cost` opens

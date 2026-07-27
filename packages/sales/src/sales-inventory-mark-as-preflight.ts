@@ -684,6 +684,15 @@ export type ResolveSalesInventoryMarkAsAutoResult = {
 	remainingPreflight: SalesInventoryMarkAsPreflightResult;
 };
 
+export type OverrideSalesInventoryMarkAsAvailabilityResult = {
+	action: SalesInventoryMarkAsAction;
+	continueAllowed: boolean;
+	overriddenSalesOrderCount: number;
+	auditHistoryCount: number;
+	preflight: SalesInventoryMarkAsPreflightResult;
+	remainingPreflight: SalesInventoryMarkAsPreflightResult;
+};
+
 function computeComponentDemandState(input: {
 	qtyRequired: number;
 	qtyAllocated: number;
@@ -1410,6 +1419,107 @@ export async function resolveSalesInventoryMarkAsAvailabilityForContinue(
 			cancelledDemandCount: appliedDemandRows.length,
 			recomputedComponentCount,
 			updatedSalesOrderCount: updatedOrders.count,
+			auditHistoryCount,
+			preflight,
+			remainingPreflight,
+		};
+	});
+}
+
+export async function overrideSalesInventoryMarkAsAvailabilityForContinue(
+	db: Db,
+	input: {
+		salesOrderIds: number[];
+		action: SalesInventoryMarkAsAction;
+		authorName?: string | null;
+		triggeredByUserId?: number | string | null;
+	},
+): Promise<OverrideSalesInventoryMarkAsAvailabilityResult> {
+	const salesOrderIds = Array.from(new Set(input.salesOrderIds)).filter(
+		(id) => Number.isInteger(id) && id > 0,
+	);
+
+	return db.$transaction(async (tx) => {
+		const preflight = await getSalesInventoryMarkAsPreflight(tx, {
+			salesOrderIds,
+			action: input.action,
+		});
+
+		if (preflight.ok) {
+			return {
+				action: input.action,
+				continueAllowed: true,
+				overriddenSalesOrderCount: 0,
+				auditHistoryCount: 0,
+				preflight,
+				remainingPreflight: preflight,
+			};
+		}
+
+		const blockedSalesOrderIds = uniquePositiveNumbers(
+			preflight.blockers.map((blocker) => blocker.salesOrderId),
+		);
+		const blockedSalesOrders = await tx.salesOrders.findMany({
+			where: {
+				id: {
+					in: blockedSalesOrderIds,
+				},
+				deletedAt: null,
+				type: "order",
+			},
+			select: {
+				id: true,
+				orderId: true,
+				inventoryStatus: true,
+			},
+		});
+
+		if (blockedSalesOrders.length !== blockedSalesOrderIds.length) {
+			throw new Error(
+				"Inventory availability override could not confirm every blocked order.",
+			);
+		}
+
+		const operationId = `mark-as-availability-override-${Date.now()}-${Math.random()
+			.toString(36)
+			.slice(2)}`;
+		let auditHistoryCount = 0;
+
+		for (const order of blockedSalesOrders) {
+			const blocker = preflight.blockers.find(
+				(candidate) => candidate.salesOrderId === order.id,
+			);
+			await tx.salesHistory.create({
+				data: {
+					salesId: order.id,
+					name: "Inventory availability overridden for status change",
+					authorName: input.authorName || "System",
+					data: {
+						type: "sales_inventory_mark_as_availability_overridden",
+						action: input.action,
+						orderId: order.orderId,
+						canonicalInventoryStatus: order.inventoryStatus ?? null,
+						workflowAvailabilityOverride: "AVAILABLE",
+						preservedCanonicalInventoryStatus: true,
+						blockReason: blocker?.reason ?? null,
+						unresolvedComponentCount: blocker?.unresolvedComponentCount ?? 0,
+						operationId,
+						triggeredByUserId: input.triggeredByUserId ?? null,
+					},
+				},
+			});
+			auditHistoryCount += 1;
+		}
+
+		const remainingPreflight = await getSalesInventoryMarkAsPreflight(tx, {
+			salesOrderIds,
+			action: input.action,
+		});
+
+		return {
+			action: input.action,
+			continueAllowed: auditHistoryCount === blockedSalesOrderIds.length,
+			overriddenSalesOrderCount: blockedSalesOrderIds.length,
 			auditHistoryCount,
 			preflight,
 			remainingPreflight,

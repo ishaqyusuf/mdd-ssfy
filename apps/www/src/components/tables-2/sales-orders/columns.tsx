@@ -209,8 +209,6 @@ function SalesOrderStatusMenu({ item }: { item: SalesOrder }) {
 				</span>
 			}
 		>
-			<SalesMenu.Label>Mark as</SalesMenu.Label>
-			<SalesMenu.Separator />
 			<SalesMenu.MarkAs
 				asSubmenu={false}
 				currentStatus={item.status}

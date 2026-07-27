@@ -154,6 +154,19 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
+	test("sales inventory availability override requires order editing permission", () => {
+		const inventories = source("inventories.route.ts");
+		expectProtectedMutation(
+			inventories,
+			"overrideSalesInventoryMarkAsAvailabilityForContinue",
+			"await requireAnyOperationalPermission",
+		);
+		const start = inventories.indexOf(
+			"overrideSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure",
+		);
+		expect(inventories.slice(start, start + 1800)).toContain('"editOrders"');
+	});
+
 	test("job assignment, review, payment, and creation writes are permission-shaped", () => {
 		const jobs = source("jobs.route.ts");
 		for (const mutation of [

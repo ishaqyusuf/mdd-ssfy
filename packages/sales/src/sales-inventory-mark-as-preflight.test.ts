@@ -3,6 +3,7 @@ import type { Db } from "@gnd/db";
 
 import {
 	buildSalesInventoryMarkAsPreflight,
+	overrideSalesInventoryMarkAsAvailabilityForContinue,
 	resolveSalesInventoryMarkAsAutoForContinue,
 	resolveSalesInventoryMarkAsAvailabilityForContinue,
 } from "./sales-inventory-mark-as-preflight";
@@ -323,6 +324,164 @@ describe("buildSalesInventoryMarkAsPreflight", () => {
 });
 
 describe("resolveSalesInventoryMarkAsAvailabilityForContinue", () => {
+	test("explicitly overrides linked inventory blockers without deleting their evidence", async () => {
+		const calls: Array<{ name: string; payload?: unknown }> = [];
+		let salesPreflightReadCount = 0;
+		const linkedInboundSale = {
+			id: 5,
+			orderId: "08665LM",
+			title: "Linked inbound sale",
+			lineItems: [
+				{
+					id: 13,
+					components: [
+						{
+							id: 24,
+							required: true,
+							qty: 2,
+							qtyAllocated: 0,
+							qtyInbound: 2,
+							qtyReceived: 0,
+							status: "inbound_required",
+							inboundDemands: [
+								{
+									id: 901,
+									qty: 2,
+									qtyReceived: 0,
+									status: "ordered",
+									inboundShipmentItemId: 701,
+								},
+							],
+						},
+					],
+				},
+			],
+		};
+		const tx = {
+			salesOrders: {
+				findMany: async (payload: FindManyPayload) => {
+					if (payload.select?.lineItems) {
+						salesPreflightReadCount += 1;
+						return [linkedInboundSale];
+					}
+
+					return [
+						{
+							id: 5,
+							orderId: "08665LM",
+							inventoryStatus: "PENDING ORDER",
+						},
+					];
+				},
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "salesOrders.updateMany", payload });
+					return { count: 1 };
+				},
+			},
+			inboundDemand: {
+				findMany: async () => {
+					calls.push({ name: "inboundDemand.findMany" });
+					return [];
+				},
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "inboundDemand.updateMany", payload });
+					return { count: 0 };
+				},
+			},
+			lineItemComponents: {
+				findFirst: async () => null,
+				updateMany: async () => ({ count: 0 }),
+			},
+			salesHistory: {
+				create: async (payload: unknown) => {
+					calls.push({ name: "salesHistory.create", payload });
+					return {};
+				},
+			},
+		};
+
+		const result = await overrideSalesInventoryMarkAsAvailabilityForContinue(
+			makeDb(tx),
+			{
+				salesOrderIds: [5],
+				action: "fulfilled",
+				authorName: "Tester",
+				triggeredByUserId: 10,
+			},
+		);
+
+		expect(result).toMatchObject({
+			action: "fulfilled",
+			continueAllowed: true,
+			overriddenSalesOrderCount: 1,
+			auditHistoryCount: 1,
+			preflight: {
+				ok: false,
+				canResolveAndContinue: false,
+			},
+			remainingPreflight: {
+				ok: false,
+			},
+		});
+		expect(salesPreflightReadCount).toBe(2);
+		expect(calls.map((call) => call.name)).toEqual(["salesHistory.create"]);
+		expect(calls).not.toContainEqual(
+			expect.objectContaining({ name: "salesOrders.updateMany" }),
+		);
+		expect(
+			calls.find((call) => call.name === "salesHistory.create")?.payload,
+		).toMatchObject({
+			data: {
+				salesId: 5,
+				name: "Inventory availability overridden for status change",
+				authorName: "Tester",
+				data: {
+					type: "sales_inventory_mark_as_availability_overridden",
+					action: "fulfilled",
+					canonicalInventoryStatus: "PENDING ORDER",
+					workflowAvailabilityOverride: "AVAILABLE",
+					preservedCanonicalInventoryStatus: true,
+					triggeredByUserId: 10,
+				},
+			},
+		});
+	});
+
+	test("rolls back availability override when every blocked order cannot be confirmed", async () => {
+		let salesPreflightReadCount = 0;
+		let historyWriteCount = 0;
+		const tx = {
+			salesOrders: {
+				findMany: async (payload: FindManyPayload) => {
+					if (payload.select?.lineItems) {
+						salesPreflightReadCount += 1;
+						return [saleWithResolvableInboundDemand()];
+					}
+					return [];
+				},
+			},
+			salesHistory: {
+				create: async () => {
+					historyWriteCount += 1;
+					return {};
+				},
+			},
+		};
+
+		await expect(
+			overrideSalesInventoryMarkAsAvailabilityForContinue(makeDb(tx), {
+				salesOrderIds: [5],
+				action: "production_completed",
+				authorName: "Tester",
+				triggeredByUserId: 10,
+			}),
+		).rejects.toThrow(
+			"Inventory availability override could not confirm every blocked order.",
+		);
+		expect(salesPreflightReadCount).toBe(1);
+		expect(historyWriteCount).toBe(0);
+	});
+
 	test("does not mark orders available from stale preview evidence", async () => {
 		const calls: string[] = [];
 		const updatePayloads: unknown[] = [];

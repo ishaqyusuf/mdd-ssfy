@@ -44,6 +44,7 @@ import {
 	rejectStockAllocationQuery,
 } from "@api/db/queries/stock-allocation-review";
 import { idSchema } from "@api/schemas/common";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import {
 	saveCommunityInput,
 	saveCommunityInputSchema,
@@ -183,6 +184,7 @@ import {
 import { resolveSalesInventoryLegacyStatusSetup as resolveSalesInventoryLegacyStatusSetupMutation } from "@gnd/sales/sales-inventory-legacy-status-setup";
 import {
 	getSalesInventoryMarkAsPreflight,
+	overrideSalesInventoryMarkAsAvailabilityForContinue,
 	resolveSalesInventoryMarkAsAutoForContinue,
 	resolveSalesInventoryMarkAsAvailabilityForContinue,
 } from "@gnd/sales/sales-inventory-mark-as-preflight";
@@ -1001,6 +1003,25 @@ export const inventoriesRouter = createTRPCRouter({
 		)
 		.mutation(async (props) => {
 			return resolveSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
+				...props.input,
+				authorName: String(props.ctx.userId ?? "System"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			});
+		}),
+	overrideSalesInventoryMarkAsAvailabilityForContinue: protectedProcedure
+		.input(
+			z.object({
+				salesOrderIds: salesInventoryOrderIdsSchema,
+				action: salesInventoryMarkAsActionSchema,
+			}),
+		)
+		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editOrders"],
+				"You do not have permission to override inventory availability for sales status changes.",
+			);
+			return overrideSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
 				...props.input,
 				authorName: String(props.ctx.userId ?? "System"),
 				triggeredByUserId: props.ctx.userId ?? null,

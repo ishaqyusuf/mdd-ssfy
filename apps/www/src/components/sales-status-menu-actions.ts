@@ -67,12 +67,12 @@ export function getSalesOrderStatusMenuActions({
 	const actions: SalesOrderStatusMenuItem[] = [
 		{
 			action: "production_completed",
-			label: "Mark as Completed",
+			label: "Production completed",
 			...(productionCompleted ? { disabled: true } : {}),
 		},
 		{
 			action: "fulfilled",
-			label: "Mark as Fulfilled",
+			label: "Fulfilled",
 			...(status === "fulfilled" ? { disabled: true } : {}),
 		},
 	];
