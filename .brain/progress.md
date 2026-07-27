@@ -1,5 +1,17 @@
 # Progress
 
+- 2026-07-27: Fixed Community Model Cost creation from the Unit Invoice editor
+  when optional dates are blank. Authenticated local browser reproduction on
+  unit `5A/01`, model `2315 LH`, confirmed that `Edit Model Cost` opens
+  `New Cost` with no Start Date. The API previously forwarded that blank value
+  as explicit `null` into required `CommunityModelCost.startDate`, bypassing
+  its database default and rejecting the transaction. New records now omit a
+  null Start Date so Prisma/MySQL applies the default; cost/tax aggregation and
+  matching unit-task synchronization are unchanged. Focused model-cost,
+  Community router, and permission coverage passed 20 tests / 242 assertions;
+  API typecheck, focused test-file Biome, and scoped diff checks passed. No
+  schema, migration, API contract, or permission change was required.
+
 - 2026-07-27: Fixed the Customer Service work-order form silently refusing to
   save assigned existing work orders. The shared form schema now matches
   SuperJSON/Prisma by accepting `assignedAt` as a nullable `Date`, while the

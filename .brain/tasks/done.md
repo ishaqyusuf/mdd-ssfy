@@ -1,5 +1,18 @@
 # Done
 
+### Community Model Cost Blank-Date Save Fix
+- Status: Done
+- Description: Restored New Cost persistence from Community Unit Invoices by
+  omitting a blank optional Start Date so the required database column can use
+  its default, while preserving transactional cost/tax synchronization.
+- Feature File: `.brain/features/unit-invoices-table.md`
+- Bug File:
+  `.brain/bugs/2026-07-27-community-model-cost-null-start-date.md`
+- Validation: Focused regression, Community router, and permission tests passed
+  with 20 tests / 242 assertions; API typecheck, focused Biome, authenticated
+  read-only browser reproduction, and scoped diff checks passed.
+- Completed Date: 2026-07-27
+
 ### Sales P.O. Persistence And Address-Only Overview Editing
 - Status: Done
 - Description: Removed the new-form autosave cleanup loop that caused maximum

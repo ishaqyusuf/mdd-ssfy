@@ -638,7 +638,7 @@ export async function saveCommunityModelCost(
       if (!data.id) {
         mc = await __tx.communityModelCost.create({
           data: {
-            startDate: data.startDate!,
+            startDate: data.startDate ?? undefined,
             endDate: data.endDate,
             current,
             pivot: {

@@ -17,6 +17,10 @@ The `/community/unit-invoices` route now renders through `apps/www/src/component
 - The table supports persisted table-2 column visibility, sizing, drag ordering, dividers, sticky Unit column behavior, virtualized rows, existing sort URL state, and table-owned horizontal scrolling. The restarted 2026-07-16 migration intentionally follows the Sales Orders route/table shell directly instead of the earlier shared `PageStickyHeader` wrapper: the route composes `ScrollableContent`, `PageTitle`, `UnitInvoicesHeader`, and `DataTable` in one stack, while the table owns `useScrollHeader(parentRef)`, `DndContext`, `SortableContext`, `DraggableHeader`, `ResizeHandle`, and the header-offset spacer.
 - Saved filter tabs on `/community/unit-invoices` use the shared `pageTabs` surface. Saved tab counts are computed server-side through `whereUnitInvoices`, so badges use the same filter semantics as the table and printable report filters. The shared filter row renders tabs before the search input, automatically prepends an `All` tab when saved tabs exist, keeps the save `+` action inside the tab group, and exposes a single Edit control for the sortable saved-tabs management dialog. Unit invoice form and related model-cost changes now invalidate the typed `unitInvoices` page-tab path so count badges refresh with the table.
 - Cross-page unit-invoice count refreshes should call `usePageTabs().invalidate("unitInvoices")` or the shared typed invalidation helper. Raw fallback paths and full app URLs are normalized to `/community/unit-invoices` before visible tabs, edit-modal tabs, and defaults are invalidated, keeping Unit Invoice saved-tab counts aligned after invoice-affecting actions from adjacent Community workflows.
+- `Edit Model Cost` opens a `New Cost` record with optional blank date fields.
+  Saving with no Start Date omits that field so the required
+  `CommunityModelCost.startDate` database default applies; task cost/tax totals
+  still synchronize to matching unit invoice tasks in the same transaction.
 
 ## Constraints Preserved
 - No new unit-invoice `*V2` query was added.
@@ -73,3 +77,13 @@ The `/community/unit-invoices` route now renders through `apps/www/src/component
   - desktop search updated the existing `q` URL param without fresh console errors.
   - mobile `390x844` `/community/unit-invoices` rendered rows, no app error, no fresh console errors, no document-level horizontal overflow, and table-owned horizontal scrolling.
   - row click opened `editUnitInvoiceId`, rendered the invoice modal, resolved Radix-generated dialog title/description ids, and produced no fresh console errors after the `CustomModal` fix.
+- Model-cost blank-date save regression on 2026-07-27:
+  - Authenticated local browser reproduction opened unit `5A/01`, model
+    `2315 LH`, and confirmed the Unit Invoice handoff opens `New Cost` with
+    blank Start Date and End Date fields.
+  - `bun test apps/api/src/db/queries/community-model-cost.test.ts apps/api/src/trpc/routers/community.route.test.ts apps/api/src/trpc/routers/permission-boundaries.test.ts`
+    passed with 20 tests / 242 assertions.
+  - `bun --filter @gnd/api typecheck`, focused test-file Biome, and
+    `git diff --check` passed. Whole-file Biome for the legacy
+    `community.ts` query remains blocked by pre-existing diagnostics outside
+    this one-line fix.
