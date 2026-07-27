@@ -31,6 +31,7 @@
 - `sales.getOrders`
   - canonical orders list query used by the canonical orders page, supporting web helpers and Expo order lists
   - reuses established sales filtering semantics through an internal legacy-query adapter
+  - accepts the shared `inbound` filter for no inbound, manual order inbound statuses, and active inventory shipment statuses; manual matches exclude rows already owned by an inventory inbound so results agree with the displayed Inbound badge
   - returns a slimmer row payload focused on list presentation instead of the legacy table shape
   - honors the existing pagination `bin` input for deleted-order table views
   - treats `paymentReview=needs_review` as the clean-payment review queue: only orders with successful `SalesPayments.reviewStatus = "needs_review"` payments are returned, grouped once per order, ordered by most recently received payment by default, and still respecting explicit saved/user column sorts
@@ -44,6 +45,7 @@
   - applies the same active-order vs `/bin` soft-delete scope as `sales.getOrders`, so summary cards do not count deleted rows that the table cannot render
 - `filters.salesOrders`
   - filter metadata source for the canonical orders page
+  - exposes the `Inbound` filter with `No inbound`, the three manual order statuses, and the active inventory shipment lifecycle statuses
 - `sales.salesRepOptions`
   - protected option list used by the sales overview transfer control
   - returns active sales/order-capable internal users with id, display name, email, initials, and role labels
@@ -185,6 +187,12 @@
 
 ## Validation
 
+- 2026-07-27 inbound Sales Orders filtering:
+  - Added the shared `inbound` query parameter to the canonical list and summary schemas, legacy sales-query adapter, URL filter parser, and `filters.salesOrders` metadata.
+  - Manual values are `AVAILABLE`, `ORDERED`, and `PENDING ORDER`; inventory-owned values are `pending`, `in_progress`, `completed`, `issue_open`, and `closed`; `none` finds orders with neither a manual status nor active linked inventory inbound.
+  - Focused query/schema tests passed (29 tests / 93 assertions), and `@gnd/sales`, `@gnd/api`, and `@gnd/www` typechecks passed.
+  - The repository-wide test run completed with 2,174 passing, one skipped, and 25 pre-existing failures in unrelated inventory, sales-control, redirect, quote, packing, and table-migration suites; neither inbound-filter focused suite failed.
+  - Authenticated browser QA verified all nine filter options, `inbound=PENDING ORDER` against matching manual rows, and `inbound=pending` against 33 active inventory-linked orders. Both list and summary requests returned HTTP 200.
 - 2026-07-22 batch payment review:
   - Replaced the per-order `markLatestPaymentReviewed` request loop with one `markPaymentsReviewed` mutation capped at 100 selected sales ids.
   - The payment domain deduplicates ids, selects the latest eligible payment per order, applies guarded updates in one transaction, and reports concurrent/no-payment skips without overstating success.

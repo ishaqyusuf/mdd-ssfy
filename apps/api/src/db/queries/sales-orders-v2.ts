@@ -27,6 +27,7 @@ import { paginationSchema } from "@gnd/utils/schema";
 import {
   SALES_CHANNEL_FILTER_OPTIONS,
   SALES_HAS_FILTER_OPTIONS,
+  SALES_INBOUND_FILTER_OPTIONS,
 } from "@sales/filter-constants";
 import {
   getSalesPriorityLabel,
@@ -75,6 +76,7 @@ const ordersV2FilterShape = {
   "sales.rep": z.string().optional().nullable(),
   has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
   salesChannel: z.enum(SALES_CHANNEL_FILTER_OPTIONS).optional().nullable(),
+  inbound: z.enum(SALES_INBOUND_FILTER_OPTIONS).optional().nullable(),
   showing: z.enum(["all sales"]).optional().nullable(),
 };
 
@@ -128,6 +130,7 @@ function toLegacyOrdersQuery(
     "sales.rep": query["sales.rep"],
     has: query.has,
     salesChannel: query.salesChannel,
+    inbound: query.inbound,
     bin: query.bin,
     showing: query.showing ?? undefined,
   };

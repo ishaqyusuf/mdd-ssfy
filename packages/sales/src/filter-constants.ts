@@ -1,3 +1,4 @@
+import { orderInboundStatuses } from "@gnd/utils/constants";
 import {
 	SALES_DELIVERY_OPTIONS,
 	SALES_PAYMENT_METHOD_OPTIONS,
@@ -54,6 +55,28 @@ export const SALES_HAS_FILTER_OPTIONS = [
 ] as const;
 
 export const SALES_CHANNEL_FILTER_OPTIONS = ["dealership", "office"] as const;
+
+export const SALES_INBOUND_FILTER_OPTIONS = [
+	"none",
+	...orderInboundStatuses,
+	"pending",
+	"in_progress",
+	"completed",
+	"issue_open",
+	"closed",
+] as const;
+
+export const SALES_INBOUND_FILTER_LABELS = {
+	none: "No inbound",
+	AVAILABLE: "Available (manual)",
+	ORDERED: "Ordered (manual)",
+	"PENDING ORDER": "Pending Order (manual)",
+	pending: "Pending (inventory)",
+	in_progress: "In Progress (inventory)",
+	completed: "Completed (inventory)",
+	issue_open: "Issue Open (inventory)",
+	closed: "Closed (inventory)",
+} satisfies Record<(typeof SALES_INBOUND_FILTER_OPTIONS)[number], string>;
 
 export const SALES_CHANNEL_FILTER_LABELS = {
 	dealership: "Dealership sales",

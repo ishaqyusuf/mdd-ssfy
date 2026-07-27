@@ -53,6 +53,7 @@ describe("sales orders default query contract", () => {
 				bin: true,
 				paymentReview: "needs_review",
 				salesChannel: "dealership",
+				inbound: "in_progress",
 				sort: ["grandTotal.desc"],
 			}),
 		).toEqual({
@@ -64,6 +65,7 @@ describe("sales orders default query contract", () => {
 			bin: true,
 			paymentReview: "needs_review",
 			salesChannel: "dealership",
+			inbound: "in_progress",
 			sort: ["grandTotal.desc"],
 		});
 	});

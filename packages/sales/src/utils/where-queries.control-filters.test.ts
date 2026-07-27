@@ -147,6 +147,57 @@ describe("whereSales stat filters", () => {
 		).toContain('"OR":[{"dealerAuthId":null},{"dealerAuthId":0}]');
 	});
 
+	it("accepts supported inbound filters and rejects cancelled shipments", () => {
+		expect(
+			salesQueryParamsSchema.safeParse({ inbound: "PENDING ORDER" }).success,
+		).toBe(true);
+		expect(
+			salesQueryParamsSchema.safeParse({ inbound: "in_progress" }).success,
+		).toBe(true);
+		expect(salesQueryParamsSchema.safeParse({ inbound: "none" }).success).toBe(
+			true,
+		);
+		expect(
+			salesQueryParamsSchema.safeParse({ inbound: "cancelled" }).success,
+		).toBe(false);
+	});
+
+	it("filters manual inbound statuses only when inventory does not own inbound", () => {
+		const where = whereSales({
+			inbound: "PENDING ORDER",
+		});
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"inventoryStatus":"PENDING ORDER"');
+		expect(json).toContain('"lineItems":{"none"');
+		expect(json).toContain('"inboundDemands":{"some"');
+		expect(json).toContain('"status":{"not":"cancelled"}');
+	});
+
+	it("filters inventory-owned inbound shipment statuses through active demand links", () => {
+		const where = whereSales({
+			inbound: "in_progress",
+		});
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"lineItems":{"some"');
+		expect(json).toContain('"inboundDemands":{"some"');
+		expect(json).toContain(
+			'"inbound":{"deletedAt":null,"status":"in_progress"}',
+		);
+		expect(json).not.toContain('"inventoryStatus":"in_progress"');
+	});
+
+	it("filters orders with no displayed inbound status", () => {
+		const where = whereSales({
+			inbound: "none",
+		});
+		const json = JSON.stringify(toClauses(where));
+
+		expect(json).toContain('"inventoryStatus":null');
+		expect(json).toContain('"lineItems":{"none"');
+	});
+
 	it("builds has services filter from item type signals", () => {
 		const where = whereSales({
 			has: "services",

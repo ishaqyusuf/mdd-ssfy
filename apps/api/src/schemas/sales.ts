@@ -12,6 +12,7 @@ import { paginationSchema } from "@gnd/utils/schema";
 import {
 	SALES_CHANNEL_FILTER_OPTIONS,
 	SALES_HAS_FILTER_OPTIONS,
+	SALES_INBOUND_FILTER_OPTIONS,
 } from "@sales/filter-constants";
 import { salesPrioritySchema } from "@sales/priority";
 import { z } from "zod";
@@ -123,6 +124,7 @@ export const salesQueryParamsSchema = z
 		priority: salesPrioritySchema.optional().nullable(),
 		has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
 		salesChannel: z.enum(SALES_CHANNEL_FILTER_OPTIONS).optional().nullable(),
+		inbound: z.enum(SALES_INBOUND_FILTER_OPTIONS).optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		paymentReview: z.enum(["needs_review"]).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),

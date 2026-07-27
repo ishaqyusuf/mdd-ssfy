@@ -7,12 +7,92 @@ import {
   fixDbTime,
   transformFilterDateToQuery,
 } from "@gnd/utils";
+import { orderInboundStatuses } from "@gnd/utils/constants";
 import dayjs from "@gnd/utils/dayjs";
 import type { SalesQueryParamsSchema } from "../schema";
 import { normalizeSalesPriority } from "../priority";
 import { SALES_HAS_FILTER_LABELS } from "../filter-constants";
 
 type SalesHasFilter = NonNullable<SalesQueryParamsSchema["has"]>;
+type SalesInboundFilter = NonNullable<SalesQueryParamsSchema["inbound"]>;
+
+const manualSalesInboundStatuses =
+  orderInboundStatuses satisfies readonly SalesInboundFilter[];
+type InventorySalesInboundStatus = Exclude<
+  SalesInboundFilter,
+  "none" | (typeof manualSalesInboundStatuses)[number]
+>;
+
+function isManualSalesInboundStatus(
+  inbound: SalesInboundFilter,
+): inbound is (typeof manualSalesInboundStatuses)[number] {
+  return manualSalesInboundStatuses.some((status) => status === inbound);
+}
+
+function activeInventoryInboundDemandWhere(status?: InventorySalesInboundStatus) {
+  return {
+    deletedAt: null,
+    inboundShipmentItemId: {
+      not: null,
+    },
+    inboundShipmentItem: {
+      deletedAt: null,
+      inbound: {
+        deletedAt: null,
+        status: status ?? {
+          not: "cancelled",
+        },
+      },
+    },
+    status: {
+      not: "cancelled",
+    },
+  } satisfies Prisma.InboundDemandWhereInput;
+}
+
+function inventoryOwnedInboundSalesWhere(
+  relation: "some" | "none",
+  status?: InventorySalesInboundStatus,
+): Prisma.SalesOrdersWhereInput {
+  return {
+    lineItems: {
+      [relation]: {
+        deletedAt: null,
+        components: {
+          some: {
+            inboundDemands: {
+              some: activeInventoryInboundDemandWhere(status),
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function buildSalesInboundWhere(
+  inbound: SalesInboundFilter,
+): Prisma.SalesOrdersWhereInput {
+  if (inbound === "none") {
+    return {
+      AND: [
+        { inventoryStatus: null },
+        inventoryOwnedInboundSalesWhere("none"),
+      ],
+    };
+  }
+
+  if (isManualSalesInboundStatus(inbound)) {
+    return {
+      AND: [
+        { inventoryStatus: inbound },
+        inventoryOwnedInboundSalesWhere("none"),
+      ],
+    };
+  }
+
+  return inventoryOwnedInboundSalesWhere("some", inbound);
+}
 
 function salesItemTypeWhere(label: string): Prisma.SalesOrderItemsWhereInput[] {
   return [
@@ -485,6 +565,9 @@ export function whereSales(query: SalesQueryParamsSchema) {
                 OR: [{ dealerAuthId: null }, { dealerAuthId: 0 }],
               },
         );
+        break;
+      case "inbound":
+        where.push(buildSalesInboundWhere(val));
         break;
       case "production.assignedToId":
         where.push({

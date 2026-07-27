@@ -18,6 +18,7 @@ import {
 import {
 	SALES_CHANNEL_FILTER_OPTIONS,
 	SALES_HAS_FILTER_OPTIONS,
+	SALES_INBOUND_FILTER_OPTIONS,
 } from "./filter-constants";
 import { salesPrioritySchema } from "./priority";
 import { SALES_DISPATCH_STATUS } from "./utils/constants";
@@ -250,6 +251,7 @@ export const salesQueryParamsSchema = z
 		priority: salesPrioritySchema.optional().nullable(),
 		has: z.enum(SALES_HAS_FILTER_OPTIONS).optional().nullable(),
 		salesChannel: z.enum(SALES_CHANNEL_FILTER_OPTIONS).optional().nullable(),
+		inbound: z.enum(SALES_INBOUND_FILTER_OPTIONS).optional().nullable(),
 		invoice: z.enum(INVOICE_FILTER_OPTIONS).optional().nullable(),
 		production: z.enum(PRODUCTION_FILTER_OPTIONS).optional().nullable(),
 		"account.no": z.string().optional().nullable(),

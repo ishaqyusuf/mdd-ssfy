@@ -29,6 +29,8 @@ import {
   SALES_CHANNEL_FILTER_OPTIONS,
   SALES_HAS_FILTER_LABELS,
   SALES_HAS_FILTER_OPTIONS,
+  SALES_INBOUND_FILTER_LABELS,
+  SALES_INBOUND_FILTER_OPTIONS,
 } from "@sales/filter-constants";
 import { SALES_PRIORITY_OPTIONS } from "@sales/priority";
 import type { InventoryList, SalesProductionQueryParams } from "@sales/schema";
@@ -800,6 +802,14 @@ export async function getSalesOrderFilters(
       "Sales channel",
       SALES_CHANNEL_FILTER_OPTIONS.map((value) => ({
         label: SALES_CHANNEL_FILTER_LABELS[value],
+        value,
+      })),
+    ),
+    optionFilter<T>(
+      "inbound",
+      "Inbound",
+      SALES_INBOUND_FILTER_OPTIONS.map((value) => ({
+        label: SALES_INBOUND_FILTER_LABELS[value],
         value,
       })),
     ),

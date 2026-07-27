@@ -229,6 +229,7 @@ Tracks important request/response contracts and shared schema boundaries.
   - Search fields are never a valid saved baseline. WWW excludes `q`, `search`, `_q*`, and the page-configured search key, hides the save action as soon as search is non-empty, and the create/update API rejects requests that still contain an active search field. Existing stored tabs containing search remain readable for compatibility.
 - Sales Orders filter contract:
   - `sales.getOrders`, `sales.getOrdersSummary`, and `filters.salesOrders` accept `paymentReview=needs_review` as an explicit filter for the clean-payment review queue.
+  - `sales.getOrders`, `sales.getOrdersSummary`, and the shared sales query accept `inbound=none | AVAILABLE | ORDERED | PENDING ORDER | pending | in_progress | completed | issue_open | closed`. Manual statuses match only when no active inventory shipment owns the order; inventory statuses match through active, non-cancelled demand/shipment links. `filters.salesOrders` exposes the same values and labels.
   - The `Invoice` column sort is invoice amount (`grandTotal`) again; payment review filtering is not inferred from `sort=latestPaymentAt.*`.
   - Payment Review defaults to latest clean-payment ordering when no explicit sort is supplied; explicit sorts remain part of the filtered query and are saveable in page tabs.
 - Sales Resolution Center contract:

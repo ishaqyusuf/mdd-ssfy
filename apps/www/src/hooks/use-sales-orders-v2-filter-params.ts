@@ -9,6 +9,7 @@ import {
 import {
 	SALES_CHANNEL_FILTER_OPTIONS,
 	SALES_HAS_FILTER_OPTIONS,
+	SALES_INBOUND_FILTER_OPTIONS,
 } from "@sales/filter-constants";
 import { SALES_PRIORITY_VALUES } from "@sales/priority";
 import { useQueryStates } from "nuqs";
@@ -45,6 +46,7 @@ export const salesOrdersV2FilterParams = {
 	"sales.rep": parseAsString,
 	has: parseAsStringLiteral(SALES_HAS_FILTER_OPTIONS),
 	salesChannel: parseAsStringLiteral(SALES_CHANNEL_FILTER_OPTIONS),
+	inbound: parseAsStringLiteral(SALES_INBOUND_FILTER_OPTIONS),
 	showing: parseAsString,
 } satisfies Partial<Record<FilterKeys, unknown>>;
 
