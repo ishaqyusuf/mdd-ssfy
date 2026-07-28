@@ -10,7 +10,7 @@ const routerSource = readFileSync(resolve(import.meta.dir, "sales.route.ts"), {
 const providerSource = readFileSync(
 	resolve(
 		import.meta.dir,
-		"../../../../www/src/components/sheets/sales-overview-sheet/context.tsx",
+		"../../../../dashboard/src/components/sheets/sales-overview-sheet/context.tsx",
 	),
 	{
 		encoding: "utf8",
@@ -59,5 +59,25 @@ describe("sales production overview query boundary", () => {
 		expect(providerSource).toContain(
 			"readinessUnavailable: readinessQuery.isError",
 		);
+	});
+
+	it("protects every production queue and detail route", () => {
+		for (const route of [
+			"productions",
+			"productionTasks",
+			"productionDashboard",
+			"productionsV2",
+			"productionDashboardV2",
+			"productionOrderDetailV2",
+		]) {
+			const routeStart = routerSource.indexOf(`\t${route}: protectedProcedure`);
+			expect(routeStart, route).toBeGreaterThan(-1);
+			expect(
+				routerSource
+					.slice(routeStart, routeStart + 900)
+					.includes("requireProductionOverviewViewer(props.ctx)"),
+				route,
+			).toBe(true);
+		}
 	});
 });

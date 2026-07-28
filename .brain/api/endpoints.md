@@ -385,13 +385,17 @@ Tracks notable API surfaces and where they are implemented.
   readiness projection, blocker sample, revision, summary, and active
   confirmation evidence.
 - `sales.productionOrderDetailV2` includes per-item material readiness,
-  quantities, and linked inbound shipment expected date when available.
+  quantities, and linked inbound shipment expected date when available. It
+  returns core production items with `materialsState=unavailable` when material
+  enrichment fails.
 - `sales.productions` and `sales.productionTasks` batch material readiness for
   the current page and expose a display-only material summary on each queue row,
-  including the latest outstanding inbound expected date.
+  including the latest known outstanding inbound expected date and count of
+  undated pending materials. Enrichment is capped at 100 orders and fails open
+  to an unavailable material state.
 - `sales.setProductionReadinessOverride` confirms or revokes the order-level
   override using an expected revision. Confirm requires the literal
   `all_required_inventory_physically_available` affirmation; this compatibility
   endpoint no longer controls production assignment.
 - `update-sales-control` allows `createAssignments` without inventory readiness
-  and keeps the readiness gate for `submitAll`.
+  or inventory lifecycle sync and keeps the readiness gate for `submitAll`.

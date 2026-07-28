@@ -4,6 +4,7 @@ import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatBusinessDate } from "@/lib/format-business-date";
 import { cn } from "@/lib/utils";
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 import { Button } from "@gnd/ui/button";
@@ -175,17 +176,6 @@ const statusColumn: Column = {
 	},
 };
 
-function formatMaterialExpectedAt(value: Date | string | null | undefined) {
-	if (!value) return null;
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return null;
-	return date.toLocaleDateString(undefined, {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
-}
-
 const materialsColumn: Column = {
 	id: "materials",
 	header: "Materials",
@@ -199,7 +189,20 @@ const materialsColumn: Column = {
 	},
 	cell: ({ row }) => {
 		const materials = row.original.materials;
-		const expectedAt = formatMaterialExpectedAt(materials.expectedAt);
+		const expectedAt = formatBusinessDate(materials.expectedAt);
+
+		if (materials.state === "unavailable") {
+			return (
+				<div className="min-w-0 space-y-1">
+					<p className="truncate text-sm font-medium text-amber-700">
+						Materials unavailable
+					</p>
+					<p className="truncate text-xs text-muted-foreground">
+						Assignment remains active
+					</p>
+				</div>
+			);
+		}
 
 		if (materials.state === "ready") {
 			return (
@@ -234,7 +237,9 @@ const materialsColumn: Column = {
 				</p>
 				<p className="truncate text-xs text-muted-foreground">
 					{expectedAt
-						? `Expected ${expectedAt}`
+						? materials.undatedPendingCount
+							? `Latest known ETA ${expectedAt} · ${materials.undatedPendingCount} unscheduled`
+							: `Expected ${expectedAt}`
 						: materials.openInboundQty
 							? "Inbound ordered · date pending"
 							: "Availability pending"}

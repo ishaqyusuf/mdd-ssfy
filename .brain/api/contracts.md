@@ -685,8 +685,14 @@ Tracks important request/response contracts and shared schema boundaries.
 - `sales.productionOrderDetailV2.items[].materials[]` returns the material
   identity, readiness/stock status, required/available/open-inbound quantities,
   and nullable linked-shipment `expectedAt`.
+- `sales.productionOrderDetailV2.materialsState` is `available` or
+  `unavailable`; inventory enrichment failure returns the core production items
+  with `unavailable` instead of failing the order detail.
 - `sales.productions.data[]` and `sales.productionTasks.data[]` include a
   display-only `materials` summary with state, component counts, open inbound
-  quantity, and the latest outstanding linked-shipment `expectedAt`.
+  quantity, latest known outstanding linked-shipment `expectedAt`, and
+  `undatedPendingCount`. `state=unavailable` is returned when enrichment fails;
+  the production rows remain available. Material-enriched pages are capped at
+  100 orders.
 - The confirmation contract remains callable for compatibility and audit
   history, but it no longer authorizes or blocks assignment.

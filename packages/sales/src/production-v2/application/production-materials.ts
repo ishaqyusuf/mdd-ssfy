@@ -1,8 +1,12 @@
+import type { Db } from "@gnd/db";
+
 import type {
+	GetSalesProductionPlanInput,
 	SalesProductionPlanComponent,
 	SalesProductionReadiness,
 	SalesProductionStockStatus,
 } from "../../sales-fulfillment-plan";
+import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
 
 export type ProductionMaterialStatus = {
 	salesOrderId: number | null;
@@ -15,6 +19,7 @@ export type ProductionMaterialStatus = {
 	availableQty: number;
 	openInboundQty: number;
 	expectedAt: Date | string | null;
+	undatedOpenInboundQty: number;
 };
 
 type ProductionMaterialSource = Pick<
@@ -57,6 +62,22 @@ function latestExpectedAt(
 	);
 }
 
+function undatedOpenInboundQty(
+	evidence: SalesProductionPlanComponent["inboundEvidence"],
+) {
+	return evidence
+		.filter(
+			(item) =>
+				item.status !== "cancelled" &&
+				item.qty > item.qtyReceived &&
+				!item.expectedAt,
+		)
+		.reduce(
+			(total, item) => total + Math.max(0, item.qty - item.qtyReceived),
+			0,
+		);
+}
+
 export function buildProductionMaterialStatuses(
 	components: ProductionMaterialSource[],
 ): ProductionMaterialStatus[] {
@@ -74,16 +95,47 @@ export function buildProductionMaterialStatuses(
 		availableQty: Math.max(component.allocatedQty, component.receivedQty),
 		openInboundQty: Math.max(0, component.inboundQty - component.receivedQty),
 		expectedAt: latestExpectedAt(component.inboundEvidence),
+		undatedOpenInboundQty: undatedOpenInboundQty(component.inboundEvidence),
 	}));
 }
 
+export async function loadProductionMaterialStatuses(
+	db: Db,
+	input: GetSalesProductionPlanInput,
+) {
+	try {
+		const plan = await getSalesProductionPlan(db, input);
+		return {
+			state: "available" as const,
+			materials: buildProductionMaterialStatuses(plan.components),
+		};
+	} catch {
+		return {
+			state: "unavailable" as const,
+			materials: [],
+		};
+	}
+}
+
 export type ProductionMaterialSummary = {
-	state: "ready" | "pending" | "not_configured";
+	state: "ready" | "pending" | "not_configured" | "unavailable";
 	totalCount: number;
 	pendingCount: number;
 	openInboundQty: number;
 	expectedAt: Date | string | null;
+	undatedPendingCount: number;
 };
+
+export function unavailableProductionMaterialSummary(): ProductionMaterialSummary {
+	return {
+		state: "unavailable",
+		totalCount: 0,
+		pendingCount: 0,
+		openInboundQty: 0,
+		expectedAt: null,
+		undatedPendingCount: 0,
+	};
+}
 
 export function summarizeProductionMaterials(
 	materials: ProductionMaterialStatus[],
@@ -120,5 +172,8 @@ export function summarizeProductionMaterials(
 			0,
 		),
 		expectedAt,
+		undatedPendingCount: pending.filter(
+			(material) => !material.expectedAt || material.undatedOpenInboundQty > 0,
+		).length,
 	};
 }

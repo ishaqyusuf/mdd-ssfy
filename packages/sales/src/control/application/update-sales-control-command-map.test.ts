@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
+import type { UpdateSalesControl } from "../../schema";
 import {
 	INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS,
 	UPDATE_SALES_CONTROL_COMMAND_MAP,
 	resolveLegacyUpdateSalesControlAction,
 	shouldSyncInventoryProductionLifecycleForSalesControl,
 } from "./update-sales-control-command-map";
-import type { UpdateSalesControl } from "../../schema";
 
 const baseInput = {
 	meta: {
@@ -16,15 +16,20 @@ const baseInput = {
 } satisfies Pick<UpdateSalesControl, "meta">;
 
 describe("update sales control command map", () => {
-	it("routes every production mutation through inventory lifecycle sync", () => {
+	it("keeps assignment independent from inventory lifecycle sync", () => {
 		expect(INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS).toEqual([
 			"submitAll",
-			"createAssignments",
 			"updateSubmissions",
 			"deleteSubmissions",
 			"deleteAssignments",
 			"markAsCompleted",
 		]);
+		expect(
+			shouldSyncInventoryProductionLifecycleForSalesControl({
+				...baseInput,
+				createAssignments: {},
+			}),
+		).toBe(false);
 
 		for (const action of INVENTORY_PRODUCTION_LIFECYCLE_SYNC_ACTIONS) {
 			expect(

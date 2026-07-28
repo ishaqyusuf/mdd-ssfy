@@ -15,9 +15,10 @@ information rather than authorization for production assignment.
 
 ## Decision
 
-`createAssignments` never enforces the production inventory readiness gate.
-Orders may be assigned while materials are unavailable, awaiting allocation, or
-linked to an inbound shipment.
+`createAssignments`, including direct single-item, legacy item, and batch
+assignment, never enforces the production inventory readiness gate or runs
+inventory lifecycle synchronization. Orders may be assigned while materials are
+unavailable, awaiting allocation, or linked to an inbound shipment.
 
 Inventory readiness remains visible:
 
@@ -25,8 +26,8 @@ Inventory readiness remains visible:
   evidence as an informational notice;
 - the worker/admin production order detail shows required material state and
   the linked inbound shipment expected date when available;
-- assignment does not receive, allocate, cancel, or otherwise rewrite inventory
-  records.
+- assignment does not run inventory lifecycle synchronization and does not
+  receive, allocate, cancel, or otherwise rewrite inventory records.
 
 `submitAll` continues to enforce readiness so production completion cannot claim
 work against unresolved required materials.
@@ -39,6 +40,8 @@ evidence.
 
 - Sales can assign work immediately and production can plan ahead.
 - Inbound and shortage information remains visible to the assigned team.
+- An unavailable material projection never prevents the production queue or
+  assignment result from loading.
 - Inventory truth stays owned by inventory workflows.
 - Existing override records are harmless historical evidence and do not grant
   or deny assignment.

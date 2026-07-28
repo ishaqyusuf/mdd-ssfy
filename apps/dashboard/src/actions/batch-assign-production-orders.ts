@@ -6,7 +6,6 @@ import { actionClient } from "./safe-action";
 import {
 	createAssignmentsTask,
 	getSaleInformation,
-	syncInventoryProductionLifecycleForSale,
 } from "@sales/exports";
 import { z } from "zod";
 
@@ -58,8 +57,6 @@ export const batchAssignProductionOrdersAction = actionClient
 					selections,
 				},
 			});
-			await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
-
 			ordersUpdated += 1;
 			assignmentsQueued += selections.length;
 		}

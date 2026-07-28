@@ -1,3 +1,4 @@
+import { formatBusinessDate } from "@/lib/format-business-date";
 import { Badge } from "@gnd/ui/badge";
 import { Icons } from "@gnd/ui/icons";
 
@@ -17,21 +18,18 @@ export type ProductionMaterialStatus = {
 	availableQty: number;
 	openInboundQty: number;
 	expectedAt: Date | string | null;
+	undatedOpenInboundQty: number;
 };
 
-function formatExpectedDate(value: Date | string | null) {
-	if (!value) return null;
-	const date = new Date(value);
-	if (Number.isNaN(date.getTime())) return null;
-	return new Intl.DateTimeFormat(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-	}).format(date);
-}
-
 function availabilityLabel(material: ProductionMaterialStatus) {
-	const expectedDate = formatExpectedDate(material.expectedAt);
+	const expectedDate = formatBusinessDate(material.expectedAt);
+	if (
+		material.openInboundQty > 0 &&
+		expectedDate &&
+		material.undatedOpenInboundQty > 0
+	) {
+		return `Latest known ETA ${expectedDate} · ${material.undatedOpenInboundQty} unscheduled`;
+	}
 	if (material.openInboundQty > 0 && expectedDate) {
 		return `Expected ${expectedDate}`;
 	}
@@ -42,9 +40,28 @@ function availabilityLabel(material: ProductionMaterialStatus) {
 
 export function ProductionMaterialsNotice({
 	materials,
+	unavailable = false,
 }: {
 	materials: ProductionMaterialStatus[];
+	unavailable?: boolean;
 }) {
+	if (unavailable) {
+		return (
+			<section className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-950">
+				<div className="flex items-start gap-3">
+					<Icons.AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-700" />
+					<div>
+						<p className="font-medium">Material status unavailable</p>
+						<p className="mt-1 text-sm text-amber-900">
+							This assignment remains active. Verify materials before beginning
+							production.
+						</p>
+					</div>
+				</div>
+			</section>
+		);
+	}
+
 	const pendingMaterials = materials.filter(
 		(material) =>
 			material.readiness !== "ready_for_production" &&

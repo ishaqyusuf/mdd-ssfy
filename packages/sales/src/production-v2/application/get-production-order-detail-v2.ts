@@ -1,9 +1,8 @@
 import type { Db } from "@gnd/db";
 
 import { getSaleInformation } from "../../sales-control/get-sale-information";
-import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
 import type { ProductionV2DetailQuery } from "../contracts";
-import { buildProductionMaterialStatuses } from "./production-materials";
+import { loadProductionMaterialStatuses } from "./production-materials";
 
 export async function getProductionOrderDetailV2(
 	db: Db,
@@ -15,13 +14,11 @@ export async function getProductionOrderDetailV2(
 		salesNo: query.salesNo,
 		assignedToId: resolvedAssignedToId,
 	});
-	const productionPlan = await getSalesProductionPlan(db, {
+	const materialProjection = await loadProductionMaterialStatuses(db, {
 		salesOrderId: data.order.id,
 		completeOrder: true,
 	});
-	const materials = buildProductionMaterialStatuses(
-		productionPlan.components,
-	);
+	const materials = materialProjection.materials;
 
 	const items = data.items
 		.map((item) => ({
@@ -103,6 +100,7 @@ export async function getProductionOrderDetailV2(
 		salesId: data.order.id,
 		customer:
 			data.order.customer?.name || data.order.customer?.businessName || null,
+		materialsState: materialProjection.state,
 		items,
 		actions: {
 			canQuickAssign: query.scope === "admin",

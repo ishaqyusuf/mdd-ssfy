@@ -75,7 +75,6 @@ export async function createItemAssignmentAction({
         }
         return assignment.id;
     }) as any)) as any;
-    await syncInventoryProductionLifecycleForSale(prisma as any, salesId);
     return assignmentId;
 }
 export async function deleteItemAssignmentAction({ id }) {

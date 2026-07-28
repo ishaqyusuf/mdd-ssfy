@@ -1,39 +1,107 @@
 import { describe, expect, it } from "bun:test";
+import type { Db } from "@gnd/db";
 
 import {
 	getSalesProductions,
 	isProductionCompleted,
 	sortProductionListByPriority,
 } from "./sales-production";
+import { salesProductionQueryParamsSchema } from "./schema";
+
+type SalesFindManyArgs = {
+	take?: number;
+	skip?: number;
+};
 
 describe("sales production priority sorting", () => {
 	it("keeps database pagination when a production sort is requested", async () => {
-		const findManyCalls: any[] = [];
+		const findManyCalls: SalesFindManyArgs[] = [];
 		const db = {
 			salesOrders: {
 				count: async () => 1000,
-				findMany: async (args: any) => {
+				findMany: async (args: SalesFindManyArgs) => {
 					findManyCalls.push(args);
 					return [];
 				},
 			},
 		};
 
-		await getSalesProductions(db as any, {
+		await getSalesProductions(db as unknown as Db, {
 			production: "pending",
 			productionSort: "priority",
 			size: 20,
 			cursor: "40",
-		} as any);
+		});
 
 		expect(findManyCalls).toHaveLength(1);
 		expect(findManyCalls[0].take).toBe(20);
 		expect(findManyCalls[0].skip).toBe(40);
 	});
 
+	it("bounds material-enriched production pages", async () => {
+		const findManyCalls: SalesFindManyArgs[] = [];
+		const db = {
+			salesOrders: {
+				count: async () => 1000,
+				findMany: async (args: SalesFindManyArgs) => {
+					findManyCalls.push(args);
+					return [];
+				},
+			},
+		};
+
+		await getSalesProductions(db as unknown as Db, {
+			production: "pending",
+			size: 999,
+		});
+
+		expect(findManyCalls[0].take).toBe(100);
+		expect(
+			salesProductionQueryParamsSchema.safeParse({ size: 101 }).success,
+		).toBe(false);
+	});
+
+	it("keeps the production queue available when material lookup fails", async () => {
+		const db = {
+			salesOrders: {
+				count: async () => 1,
+				findMany: async () => [
+					{
+						id: 42,
+						orderId: "ORDER-42",
+						createdAt: new Date("2026-07-28T12:00:00.000Z"),
+						priority: "NORMAL",
+						customer: null,
+						billingAddress: null,
+						salesRep: null,
+						stat: [],
+						itemControls: [],
+						assignments: [],
+					},
+				],
+			},
+			lineItem: {
+				findMany: async () => {
+					throw new Error("inventory unavailable");
+				},
+			},
+		};
+
+		const result = await getSalesProductions(db as unknown as Db, {
+			production: "pending",
+			size: 20,
+		});
+
+		expect(result.data[0]?.materials.state).toBe("unavailable");
+	});
+
 	it("sorts production queue by priority before due date", () => {
 		const sorted = sortProductionListByPriority([
-			{ orderId: "NORMAL-DUE-FIRST", priority: "NORMAL", dueDate: "2026-05-14" },
+			{
+				orderId: "NORMAL-DUE-FIRST",
+				priority: "NORMAL",
+				dueDate: "2026-05-14",
+			},
 			{ orderId: "LOW", priority: "LOW", dueDate: "2026-05-13" },
 			{ orderId: "CRITICAL", priority: "CRITICAL", dueDate: "2026-05-16" },
 			{ orderId: "HIGH", priority: "HIGH", dueDate: "2026-05-15" },

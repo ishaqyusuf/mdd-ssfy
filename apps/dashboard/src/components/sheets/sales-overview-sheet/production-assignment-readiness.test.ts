@@ -1,4 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { describe, it } from "bun:test";
+import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const itemMenuSource = readFileSync(
@@ -24,15 +25,13 @@ const productionColumnsSource = readFileSync(
 
 describe("production assignment inventory readiness", () => {
 	it("keeps inventory and inbound status informational during assignment", () => {
-		expect(itemMenuSource).not.toContain("productionReadiness.queryOptions");
-		expect(itemMenuSource).not.toContain("Inventory confirmation required");
-		expect(readinessBannerSource).toContain(
-			"Production assignment is available",
-		);
-		expect(readinessBannerSource).toContain("open inbound");
-		expect(productionDetailSource).toContain("ProductionMaterialsNotice");
-		expect(materialsStatusSource).toContain("Expected");
-		expect(productionColumnsSource).toContain("Materials pending");
-		expect(productionColumnsSource).toContain("Expected");
+		assert.doesNotMatch(itemMenuSource, /productionReadiness\.queryOptions/);
+		assert.doesNotMatch(itemMenuSource, /Inventory confirmation required/);
+		assert.match(readinessBannerSource, /Production assignment is available/);
+		assert.match(readinessBannerSource, /open inbound/);
+		assert.match(productionDetailSource, /ProductionMaterialsNotice/);
+		assert.match(materialsStatusSource, /Expected/);
+		assert.match(productionColumnsSource, /Materials pending/);
+		assert.match(productionColumnsSource, /Expected/);
 	});
 });

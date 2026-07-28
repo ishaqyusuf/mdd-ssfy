@@ -19,10 +19,6 @@ export async function createItemAssignmentDta(
         data,
     });
     await resetSalesAction(prisma as any, data.order.connect.id);
-    await syncInventoryProductionLifecycleForSale(
-        prisma as any,
-        data.order.connect.id,
-    );
     return assignment;
 }
 export async function deleteAssignmentDta(

@@ -84,6 +84,9 @@ Provide a cleaner production operations surface for both admins and production w
 - Admin and worker production queues show a `Materials` column with ready,
   pending, or not-configured status and the latest linked inbound expected date
   when available.
+- Queue material lookup is informational and bounded. Failure renders
+  `Materials unavailable` without suppressing production rows; mixed dated and
+  undated requirements show a latest-known ETA plus the unscheduled count.
 - `sales.productionOrderDetailV2.items[].noteContext`: normalized note identity used by the new inbox/chat note system
 - Worker scoping remains server-enforced in v2 through authenticated `workerId` injection at the router layer.
 - The `show: "past-due"` production alert/query only includes orders with incomplete production work; production-completed orders are excluded even if dispatch is still pending.

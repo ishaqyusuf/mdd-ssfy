@@ -9,6 +9,10 @@ Tracks authentication and authorization patterns across API surfaces.
   or packing viewers; `sales.productionOverview` accepts order, production,
   delivery, pickup, or packing viewers. UI tab visibility is not the
   authorization boundary, and both queries are side-effect-free.
+- Production queue, dashboard, worker-task, and v2 order-detail reads require an
+  authenticated user with an order, production, delivery, pickup, or packing
+  viewing capability. Worker routes always replace caller scope with the
+  authenticated worker id before querying assignments.
 - Shared `storage.upload` and `storage.delete` require an authenticated user.
   Upload ownership/uploader ids come only from API context; delete repeats
   provider, pathname, owner, uploader, active-state, and trusted browser-staging

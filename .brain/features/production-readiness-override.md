@@ -22,6 +22,11 @@ retained only for compatibility and historical audit.
 - `submitAll` remains subject to the strict readiness gate.
 - Assignment does not mutate inbound demand, stock, allocation, or receipt
   records.
+- Assignment is excluded from the post-command inventory lifecycle sync; the
+  assignment task can succeed independently of inventory projection health.
+- Direct single-item, legacy item, and batch assignment paths follow the same
+  rule and do not run inventory lifecycle synchronization after creating
+  assignments.
 
 ## Implementation Boundaries
 
@@ -37,6 +42,10 @@ retained only for compatibility and historical audit.
 - `sales.productionOrderDetailV2` reads inventory production-plan evidence
   lazily for the expanded worker/admin order and exposes per-item material
   status, open inbound quantity, and expected inbound date.
+- If detail material enrichment fails, the core order/items still return with
+  `materialsState=unavailable`; the worker sees that assignment remains active.
+- Production queue material enrichment is bounded to 100 orders and fails open
+  to an explicit `unavailable` display state.
 - The persisted override model, API, and audit history remain compatible but are
   not consulted by assignment.
 

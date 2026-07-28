@@ -139,6 +139,7 @@ const PRODUCTION_V2_SORT_VALUES = [
 type ProductionDetail = {
     orderId: string;
     salesId: number;
+    materialsState: "available" | "unavailable";
     customer?: string | null;
     salesRep?: string | null;
     items: {
@@ -1409,6 +1410,7 @@ function ProductionOrderDetailInline({
 
                 <TabsContent value="productions" className="mt-0 space-y-4">
                     <ProductionMaterialsNotice
+                        unavailable={detail.materialsState === "unavailable"}
                         materials={productionItems.flatMap(
                             (item) => item.materials || [],
                         )}

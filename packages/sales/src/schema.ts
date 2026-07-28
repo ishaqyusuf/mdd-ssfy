@@ -393,7 +393,10 @@ export const salesProductionQueryParamsSchema = z
 			.optional()
 			.nullable(),
 	})
-	.extend(paginationSchema.shape);
+	.extend({
+		...paginationSchema.shape,
+		size: z.number().int().min(1).max(100).optional().nullable(),
+	});
 export type SalesProductionQueryParams = z.infer<
 	typeof salesProductionQueryParamsSchema
 >;

@@ -11,6 +11,7 @@ import {
 	type ProductionMaterialStatus,
 	buildProductionMaterialStatuses,
 	summarizeProductionMaterials,
+	unavailableProductionMaterialSummary,
 } from "./production-v2/application/production-materials";
 import { getSalesProductionPlan } from "./sales-fulfillment-plan";
 import type {
@@ -230,6 +231,14 @@ async function getProductionListAction(
 	} = {},
 ) {
 	const where = whereSales(query);
+	const requestedTake =
+		options.includeMaterials === false
+			? Math.max(Number(query.size || 20), 1)
+			: Math.min(Math.max(Number(query.size || 20), 1), 100);
+	const boundedQuery = {
+		...query,
+		size: requestedTake,
+	};
 
 	const whereAssignments: Prisma.OrderItemProductionAssignmentsWhereInput[] =
 		[];
@@ -242,28 +251,33 @@ async function getProductionListAction(
 		whereAssignments.push(where.assignments.some);
 	}
 	const { response, queryProps } = await composeQueryData(
-		query,
+		boundedQuery,
 		where,
 		db.salesOrders,
 	);
-	const requestedTake = Number(query.size || 20);
 	const data = await db.salesOrders.findMany({
 		...queryProps,
 		select: select(whereAssignments),
 	});
 	const materialsBySalesOrder = new Map<number, ProductionMaterialStatus[]>();
+	let materialLookupUnavailable = false;
 	if (data.length && options.includeMaterials !== false) {
-		const productionPlan = await getSalesProductionPlan(db, {
-			salesOrderIds: data.map((item) => item.id),
-			completeOrder: true,
-		});
-		for (const material of buildProductionMaterialStatuses(
-			productionPlan.components,
-		)) {
-			if (material.salesOrderId == null) continue;
-			const materials = materialsBySalesOrder.get(material.salesOrderId) || [];
-			materials.push(material);
-			materialsBySalesOrder.set(material.salesOrderId, materials);
+		try {
+			const productionPlan = await getSalesProductionPlan(db, {
+				salesOrderIds: data.map((item) => item.id),
+				completeOrder: true,
+			});
+			for (const material of buildProductionMaterialStatuses(
+				productionPlan.components,
+			)) {
+				if (material.salesOrderId == null) continue;
+				const materials =
+					materialsBySalesOrder.get(material.salesOrderId) || [];
+				materials.push(material);
+				materialsBySalesOrder.set(material.salesOrderId, materials);
+			}
+		} catch {
+			materialLookupUnavailable = true;
 		}
 	}
 	const sorted = sortProductionListByPriority(
@@ -272,9 +286,11 @@ async function getProductionListAction(
 				useAssignmentCompletion:
 					!!query.workerId || !!query["production.status"],
 			}),
-			materials: summarizeProductionMaterials(
-				materialsBySalesOrder.get(item.id) || [],
-			),
+			materials: materialLookupUnavailable
+				? unavailableProductionMaterialSummary()
+				: summarizeProductionMaterials(
+						materialsBySalesOrder.get(item.id) || [],
+					),
 		})),
 		query.productionSort,
 	);

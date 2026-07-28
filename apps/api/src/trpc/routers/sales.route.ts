@@ -85,13 +85,13 @@ import {
 	updateSalesPaymentMethodSchema,
 } from "@api/schemas/sales";
 import { saveSupplierSchema } from "@api/schemas/sales-form";
-import { transformSalesFilterQuery } from "@api/utils/sales";
-import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import {
 	dealerDeliveryPricingSchema,
 	normalizeDealerDeliveryPricingSettings,
 	resolveDealerDeliveryCostSuggestion,
 } from "@api/utils/dealer-delivery-pricing";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
+import { transformSalesFilterQuery } from "@api/utils/sales";
 import {
 	approveDealerOrderRequest,
 	getDealerOrderRequest,
@@ -506,28 +506,32 @@ export const salesRouter = createTRPCRouter({
 		.query(async (props) => {
 			return sales(props.ctx, transformSalesFilterQuery(props.input));
 		}),
-	productions: publicProcedure
+	productions: protectedProcedure
 		.input(salesProductionQueryParamsSchema)
 		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
 			return getSalesProductions(props.ctx.db, props.input);
 		}),
-	productionTasks: publicProcedure
+	productionTasks: protectedProcedure
 		.input(salesProductionQueryParamsSchema)
 		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
 			const input = { ...props.input };
 			input.workerId = props.ctx.userId;
 			return getSalesProductions(props.ctx.db, input);
 		}),
-	productionDashboard: publicProcedure
+	productionDashboard: protectedProcedure
 		.input(salesProductionQueryParamsSchema.optional().nullable())
 		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
 			return getSalesProductionDashboard(props.ctx.db, {
 				...(props.input || {}),
 			});
 		}),
-	productionsV2: publicProcedure
+	productionsV2: protectedProcedure
 		.input(productionV2ListQuerySchema)
 		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
 			const input =
 				props.input.scope === "worker"
 					? {
@@ -537,9 +541,10 @@ export const salesRouter = createTRPCRouter({
 					: props.input;
 			return getProductionListV2(props.ctx.db, input);
 		}),
-	productionDashboardV2: publicProcedure
+	productionDashboardV2: protectedProcedure
 		.input(productionV2ListQuerySchema)
 		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
 			const input =
 				props.input.scope === "worker"
 					? {
@@ -549,9 +554,10 @@ export const salesRouter = createTRPCRouter({
 					: props.input;
 			return getProductionDashboardV2(props.ctx.db, input);
 		}),
-	productionOrderDetailV2: publicProcedure
+	productionOrderDetailV2: protectedProcedure
 		.input(productionV2DetailQuerySchema)
 		.query(async (props) => {
+			await requireProductionOverviewViewer(props.ctx);
 			const input =
 				props.input.scope === "worker"
 					? {
@@ -823,8 +829,7 @@ export const salesRouter = createTRPCRouter({
 			return markSalesPaymentsReviewed(props.ctx.db, {
 				salesIds: props.input.salesIds,
 				reviewedById: props.ctx.userId,
-				reviewNote:
-					props.input.note || "Reviewed from batch Mark as menu.",
+				reviewNote: props.input.note || "Reviewed from batch Mark as menu.",
 			});
 		}),
 	createPaymentLink: protectedProcedure

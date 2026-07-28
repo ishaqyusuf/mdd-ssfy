@@ -4,7 +4,9 @@ import type { Db } from "@gnd/db";
 import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
 import {
 	buildProductionMaterialStatuses,
+	loadProductionMaterialStatuses,
 	summarizeProductionMaterials,
+	unavailableProductionMaterialSummary,
 } from "./production-materials";
 
 describe("buildProductionMaterialStatuses", () => {
@@ -27,11 +29,19 @@ describe("buildProductionMaterialStatuses", () => {
 				inboundEvidence: [
 					{
 						id: 701,
-						qty: 2,
+						qty: 1,
 						qtyReceived: 0,
 						status: "ordered",
 						inboundShipmentItemId: 801,
 						expectedAt,
+					},
+					{
+						id: 702,
+						qty: 1,
+						qtyReceived: 0,
+						status: "pending",
+						inboundShipmentItemId: null,
+						expectedAt: null,
 					},
 				],
 			},
@@ -49,8 +59,10 @@ describe("buildProductionMaterialStatuses", () => {
 				availableQty: 0,
 				openInboundQty: 2,
 				expectedAt,
+				undatedOpenInboundQty: 1,
 			},
 		]);
+		expect(summarizeProductionMaterials(result).undatedPendingCount).toBe(1);
 	});
 });
 
@@ -68,6 +80,7 @@ describe("summarizeProductionMaterials", () => {
 				availableQty: 0,
 				openInboundQty: 2,
 				expectedAt: "2026-07-29T08:00:00.000Z",
+				undatedOpenInboundQty: 0,
 			},
 			{
 				salesOrderId: 42,
@@ -80,6 +93,7 @@ describe("summarizeProductionMaterials", () => {
 				availableQty: 0,
 				openInboundQty: 4,
 				expectedAt: "2026-07-30T08:00:00.000Z",
+				undatedOpenInboundQty: 0,
 			},
 		]);
 
@@ -89,7 +103,42 @@ describe("summarizeProductionMaterials", () => {
 			pendingCount: 2,
 			openInboundQty: 6,
 			expectedAt: "2026-07-30T08:00:00.000Z",
+			undatedPendingCount: 0,
 		});
+	});
+
+	it("tracks pending materials whose availability date is unknown", () => {
+		const summary = summarizeProductionMaterials([
+			{
+				salesOrderId: 42,
+				salesItemId: 101,
+				componentId: 501,
+				name: "Oak panels",
+				readiness: "awaiting_inbound",
+				stockStatus: "awaiting_inbound",
+				requiredQty: 2,
+				availableQty: 0,
+				openInboundQty: 2,
+				expectedAt: "2026-07-29T08:00:00.000Z",
+				undatedOpenInboundQty: 0,
+			},
+			{
+				salesOrderId: 42,
+				salesItemId: 102,
+				componentId: 502,
+				name: "Fasteners",
+				readiness: "blocked",
+				stockStatus: "shortage",
+				requiredQty: 4,
+				availableQty: 0,
+				openInboundQty: 0,
+				expectedAt: null,
+				undatedOpenInboundQty: 0,
+			},
+		]);
+
+		expect(summary.expectedAt).toBe("2026-07-29T08:00:00.000Z");
+		expect(summary.undatedPendingCount).toBe(1);
 	});
 
 	it("reports missing material setup without blocking the assignment", () => {
@@ -99,6 +148,18 @@ describe("summarizeProductionMaterials", () => {
 			pendingCount: 0,
 			openInboundQty: 0,
 			expectedAt: null,
+			undatedPendingCount: 0,
+		});
+	});
+
+	it("uses an explicit unavailable state when inventory lookup fails", () => {
+		expect(unavailableProductionMaterialSummary()).toEqual({
+			state: "unavailable",
+			totalCount: 0,
+			pendingCount: 0,
+			openInboundQty: 0,
+			expectedAt: null,
+			undatedPendingCount: 0,
 		});
 	});
 });
@@ -128,5 +189,25 @@ describe("getSalesProductionPlan", () => {
 
 		expect(query?.where.saleId).toEqual({ in: [42, 43] });
 		expect(query?.take).toBeUndefined();
+	});
+
+	it("keeps production detail available when material lookup fails", async () => {
+		const db = {
+			lineItem: {
+				findMany: async () => {
+					throw new Error("inventory unavailable");
+				},
+			},
+		};
+
+		expect(
+			await loadProductionMaterialStatuses(db as unknown as Db, {
+				salesOrderId: 42,
+				completeOrder: true,
+			}),
+		).toEqual({
+			state: "unavailable",
+			materials: [],
+		});
 	});
 });

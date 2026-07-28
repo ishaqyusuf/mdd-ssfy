@@ -4,7 +4,6 @@ import { authId } from "@/app-deps/(v1)/_actions/utils";
 import { prisma } from "@/db";
 import { sum } from "@/lib/utils";
 import { resetSalesAction } from "@sales/sales-control/actions";
-import { syncInventoryProductionLifecycleForSale } from "@sales/exports";
 import z from "zod";
 
 import { actionClient } from "./safe-action";
@@ -86,6 +85,5 @@ const _createSalesAssignmentAction = async (input) => {
             assignmentId: assignment.id,
         };
     });
-    await syncInventoryProductionLifecycleForSale(prisma as any, input.salesId);
     return resp;
 };
