@@ -43,6 +43,13 @@ export type ProductionReadinessGateOverrideResult =
     overrideRevision: string | null;
   };
 
+export function shouldEnforceProductionReadinessGate(input: {
+  createAssignments?: unknown;
+  submitAll?: unknown;
+}) {
+  return Boolean(input.submitAll);
+}
+
 export class ProductionReadinessGateError extends Error {
   blockers: ProductionReadinessBlocker[];
   readiness: ProductionReadinessGateResult["readiness"];

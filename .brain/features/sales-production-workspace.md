@@ -53,6 +53,9 @@ Provide a cleaner production operations surface for both admins and production w
   - expandable order detail
   - quick-assign panel scaffolded inline
 - Inline detail sections are the new home for production information, notes/activity, and production actions such as submission and submission removal.
+- Expanded worker/admin order detail shows material readiness independently of
+  assignment authorization. Pending materials include required, available, and
+  inbound quantities plus the linked shipment expected date when present.
 - Production items inside the expanded order now render as a responsive card grid:
   - single-column when there are 2 items or fewer
   - `lg:grid-cols-2` when there are more than 2 items
@@ -75,6 +78,12 @@ Provide a cleaner production operations surface for both admins and production w
 - `sales.productionsV2`: v2 list query for worker/admin boards
 - `sales.productionDashboardV2`: v2 summary counts plus label metadata including `completed`
 - `sales.productionOrderDetailV2`: lazy inline detail payload for expanded order sections
+- `sales.productionOrderDetailV2.items[].materials`: inventory-owned material
+  readiness, quantities, and nullable inbound expected date for the production
+  item.
+- Admin and worker production queues show a `Materials` column with ready,
+  pending, or not-configured status and the latest linked inbound expected date
+  when available.
 - `sales.productionOrderDetailV2.items[].noteContext`: normalized note identity used by the new inbox/chat note system
 - Worker scoping remains server-enforced in v2 through authenticated `workerId` injection at the router layer.
 - The `show: "past-due"` production alert/query only includes orders with incomplete production work; production-completed orders are excluded even if dispatch is still pending.
@@ -83,6 +92,8 @@ Provide a cleaner production operations surface for both admins and production w
   - worker mode treats an order as completed only when that worker's related assignments are fully submitted
   - admin mode treats an order as completed only when total submitted production qty meets the full production qty for the order
 - Production assignment mutations emitted through `update-sales-control` now trigger a targeted `sales_production_assigned` notification to the assigned worker from the Trigger jobs layer.
+- Inventory readiness never blocks `createAssignments`; `submitAll` retains the
+  strict readiness gate.
 
 ## V2 Notes
 - Order-level notes now use the newer inbox/chat note flow on the `sales_info` notification channel.

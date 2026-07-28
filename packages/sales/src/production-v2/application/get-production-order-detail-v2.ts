@@ -1,7 +1,9 @@
 import type { Db } from "@gnd/db";
 
 import { getSaleInformation } from "../../sales-control/get-sale-information";
+import { getSalesProductionPlan } from "../../sales-fulfillment-plan";
 import type { ProductionV2DetailQuery } from "../contracts";
+import { buildProductionMaterialStatuses } from "./production-materials";
 
 export async function getProductionOrderDetailV2(
 	db: Db,
@@ -13,6 +15,13 @@ export async function getProductionOrderDetailV2(
 		salesNo: query.salesNo,
 		assignedToId: resolvedAssignedToId,
 	});
+	const productionPlan = await getSalesProductionPlan(db, {
+		salesOrderId: data.order.id,
+		completeOrder: true,
+	});
+	const materials = buildProductionMaterialStatuses(
+		productionPlan.components,
+	);
 
 	const items = data.items
 		.map((item) => ({
@@ -39,6 +48,9 @@ export async function getProductionOrderDetailV2(
 			analytics: item.analytics,
 			itemConfig: item.itemConfig,
 			deliverables: item.deliverables,
+			materials: materials.filter(
+				(material) => material.salesItemId === item.itemId,
+			),
 			assignments: data.order.assignments
 				.filter(
 					(assignment) => assignment.salesItemControlUid === item.controlUid,

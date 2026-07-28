@@ -19,8 +19,6 @@ import { Separator } from "@gnd/ui/separator";
 import { deleteSalesAssignmentAction } from "@/actions/delete-sales-assignment";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "@gnd/ui/use-toast";
-import { useTRPC } from "@/trpc/client";
-import { useQueryClient } from "@gnd/ui/tanstack";
 export function ProductionItemMenu({}) {
     const ctx = useProductionItem();
     const { queryCtx, item } = ctx;
@@ -74,8 +72,6 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
     const [assignedToId, setAssignTo] = useState(null);
     const prod = useProduction();
     const queryCtx = useSalesOverviewQuery();
-    const trpc = useTRPC();
-    const queryClient = useQueryClient();
 
     const {
         assign: { pendingQty, items },
@@ -205,29 +201,6 @@ export function ProductionItemMenuActions({ itemUids = null, setOpened }) {
     };
     const submitAction = async (_action?: typeof action) => {
         if (!_action) _action = action;
-        if (_action === "assign") {
-            const readiness = await queryClient.fetchQuery(
-                trpc.sales.productionReadiness.queryOptions({
-                    salesOrderId: prod.data.orderId,
-                    lineItemUids: items?.map((item) => item.uid) || [],
-                }),
-            );
-            if (
-                readiness.state !== "ready" &&
-                readiness.state !== "overridden"
-            ) {
-                toast({
-                    title: "Inventory confirmation required",
-                    description:
-                        "Review the production readiness notice before assigning a worker.",
-                    variant: "destructive",
-                });
-                document
-                    .getElementById("production-readiness")
-                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                return;
-            }
-        }
         const payload = () => {
             const pl = {
                 meta: {

@@ -3,6 +3,7 @@ import { buildProductionReadinessRevision } from "./production-readiness-evidenc
 import {
   evaluateProductionReadinessGate,
   evaluateProductionReadinessGateWithOverride,
+  shouldEnforceProductionReadinessGate,
 } from "./production-readiness-gate";
 import { buildSalesProductionPlan } from "./sales-fulfillment-plan";
 
@@ -13,6 +14,19 @@ function requireRevision(revision: string | null) {
 }
 
 describe("evaluateProductionReadinessGate", () => {
+  it("does not enforce inventory readiness for production assignment", () => {
+    expect(
+      shouldEnforceProductionReadinessGate({
+        createAssignments: {},
+      }),
+    ).toBe(false);
+    expect(
+      shouldEnforceProductionReadinessGate({
+        submitAll: {},
+      }),
+    ).toBe(true);
+  });
+
   it("allows production when all required components are allocated or fulfilled", () => {
     const plan = buildSalesProductionPlan([
       {

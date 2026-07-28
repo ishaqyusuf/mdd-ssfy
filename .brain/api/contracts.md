@@ -667,7 +667,7 @@ Tracks important request/response contracts and shared schema boundaries.
 - Existing assigned work orders must pass the same form schema as new work
   orders before the protected save mutation runs.
 
-## Production readiness override contract (2026-07-27)
+## Production assignment and readiness contract (updated 2026-07-28)
 
 - Readiness states are `ready`, `blocked`, `overridden`, `not_configured`, and
   `read_only`.
@@ -678,8 +678,15 @@ Tracks important request/response contracts and shared schema boundaries.
   the write transaction. A mismatch returns `stale` without activating a new
   confirmation.
 - `not_configured` and terminal orders cannot be overridden.
-- Assignment evaluates selected-line blockers while matching the active
-  confirmation against a full-order evidence plan. The same confirmation is
-  invalid after any relevant inventory evidence changes.
-- Confirmation is an execution exception only: canonical inbound, allocation,
-  receipt, and stock records are unchanged.
+- `createAssignments` does not enforce readiness and does not read an active
+  confirmation. Inventory, allocation, and inbound state are informational for
+  assignment.
+- `submitAll` continues to enforce the strict readiness gate.
+- `sales.productionOrderDetailV2.items[].materials[]` returns the material
+  identity, readiness/stock status, required/available/open-inbound quantities,
+  and nullable linked-shipment `expectedAt`.
+- `sales.productions.data[]` and `sales.productionTasks.data[]` include a
+  display-only `materials` summary with state, component counts, open inbound
+  quantity, and the latest outstanding linked-shipment `expectedAt`.
+- The confirmation contract remains callable for compatibility and audit
+  history, but it no longer authorizes or blocks assignment.

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-07-27.
+Superseded — 2026-07-28 by ADR-035.
 
 ## Context
 
@@ -41,3 +41,9 @@ The override:
   required when a selected-line assignment uses an active override.
 - Inventory remains visibly unresolved until its canonical workflows reconcile
   the physical state.
+
+## Supersession
+
+ADR-035 removes inventory readiness as an authorization condition for
+`createAssignments`. The persisted override and its audit history remain
+available for compatibility, but assignment no longer reads or requires them.

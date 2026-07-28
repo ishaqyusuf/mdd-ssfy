@@ -379,13 +379,19 @@ Tracks notable API surfaces and where they are implemented.
   creation use private server pricing context and expose only customer-facing
   list/sale totals.
 
-## Production readiness override (2026-07-27)
+## Production assignment and readiness (updated 2026-07-28)
 
-- `sales.productionOverview` includes `productionReadiness` in the active
-  Production-tab payload.
 - `sales.productionReadiness` returns the current order or selected-line
   readiness projection, blocker sample, revision, summary, and active
   confirmation evidence.
+- `sales.productionOrderDetailV2` includes per-item material readiness,
+  quantities, and linked inbound shipment expected date when available.
+- `sales.productions` and `sales.productionTasks` batch material readiness for
+  the current page and expose a display-only material summary on each queue row,
+  including the latest outstanding inbound expected date.
 - `sales.setProductionReadinessOverride` confirms or revokes the order-level
   override using an expected revision. Confirm requires the literal
-  `all_required_inventory_physically_available` affirmation.
+  `all_required_inventory_physically_available` affirmation; this compatibility
+  endpoint no longer controls production assignment.
+- `update-sales-control` allows `createAssignments` without inventory readiness
+  and keeps the readiness gate for `submitAll`.

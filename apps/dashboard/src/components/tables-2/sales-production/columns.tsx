@@ -175,6 +175,75 @@ const statusColumn: Column = {
 	},
 };
 
+function formatMaterialExpectedAt(value: Date | string | null | undefined) {
+	if (!value) return null;
+	const date = new Date(value);
+	if (Number.isNaN(date.getTime())) return null;
+	return date.toLocaleDateString(undefined, {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	});
+}
+
+const materialsColumn: Column = {
+	id: "materials",
+	header: "Materials",
+	accessorFn: (row) => row.materials.state,
+	...sizes.custom(150, 240, 180),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "text", width: "w-32" },
+		headerLabel: "Materials",
+		className: sizeClass(sizes.custom(150, 240, 180)),
+	},
+	cell: ({ row }) => {
+		const materials = row.original.materials;
+		const expectedAt = formatMaterialExpectedAt(materials.expectedAt);
+
+		if (materials.state === "ready") {
+			return (
+				<div className="min-w-0 space-y-1">
+					<p className="truncate text-sm font-medium text-emerald-700">
+						Materials ready
+					</p>
+					<p className="truncate text-xs text-muted-foreground">
+						Ready to start
+					</p>
+				</div>
+			);
+		}
+
+		if (materials.state === "not_configured") {
+			return (
+				<div className="min-w-0 space-y-1">
+					<p className="truncate text-sm font-medium text-amber-700">
+						Materials not set
+					</p>
+					<p className="truncate text-xs text-muted-foreground">
+						Verify before starting
+					</p>
+				</div>
+			);
+		}
+
+		return (
+			<div className="min-w-0 space-y-1">
+				<p className="truncate text-sm font-medium text-amber-700">
+					Materials pending
+				</p>
+				<p className="truncate text-xs text-muted-foreground">
+					{expectedAt
+						? `Expected ${expectedAt}`
+						: materials.openInboundQty
+							? "Inbound ordered · date pending"
+							: "Availability pending"}
+				</p>
+			</div>
+		);
+	},
+};
+
 const progressColumn: Column = {
 	id: "productionProgress",
 	header: "Progress",
@@ -229,6 +298,7 @@ export const columns: Column[] = [
 	customerColumn,
 	orderColumn,
 	salesRepColumn,
+	materialsColumn,
 	statusColumn,
 	progressColumn,
 	actionsColumn,
@@ -238,6 +308,7 @@ export const workerColumns: Column[] = [
 	dueDateColumn,
 	salesColumn,
 	salesRepColumn,
+	materialsColumn,
 	statusColumn,
 	progressColumn,
 	actionsColumn,

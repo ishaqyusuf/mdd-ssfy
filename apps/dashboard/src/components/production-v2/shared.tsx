@@ -3,6 +3,10 @@
 import { batchAssignProductionOrdersAction } from "@/actions/batch-assign-production-orders";
 import Img from "@/components/(clean-code)/img";
 import {
+    type ProductionMaterialStatus,
+    ProductionMaterialsNotice,
+} from "@/components/production-v2/materials-status";
+import {
     ProductionItemNotes,
     ProductionOrderNotes,
 } from "@/components/production-v2/production-notes";
@@ -12,8 +16,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBatchSales } from "@/hooks/use-batch-sales";
 import { useLoadingToast } from "@/hooks/use-loading-toast";
 import { useTaskTrigger } from "@/hooks/use-task-trigger";
-import { printProduction } from "@/modules/sales-print/application/sales-print-service";
 import { cn } from "@/lib/utils";
+import { printProduction } from "@/modules/sales-print/application/sales-print-service";
 import { useTRPC } from "@/trpc/client";
 import { Badge } from "@gnd/ui/badge";
 import { Button } from "@gnd/ui/button";
@@ -56,12 +60,12 @@ import {
     activityOr,
     activityTag,
 } from "@notifications/activity-tree";
-import type { UpdateSalesControl } from "@sales/schema";
 import {
     SALES_PRIORITY_VALUES,
     type SalesPriorityValue,
 } from "@sales/priority";
 import type { ProductionV2Sort } from "@sales/production-v2";
+import type { UpdateSalesControl } from "@sales/schema";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAction } from "next-safe-action/hooks";
 import { parseAsString, parseAsStringLiteral, useQueryStates } from "nuqs";
@@ -172,6 +176,7 @@ type ProductionDetail = {
                 };
             };
         } | null;
+        materials: ProductionMaterialStatus[];
         assignments?: {
             id: number;
             assignedTo?: string | null;
@@ -1403,6 +1408,11 @@ function ProductionOrderDetailInline({
                 </div>
 
                 <TabsContent value="productions" className="mt-0 space-y-4">
+                    <ProductionMaterialsNotice
+                        materials={productionItems.flatMap(
+                            (item) => item.materials || [],
+                        )}
+                    />
                     {productionItems.length ? (
                         <ProductionItemsGrid
                             scope={scope}

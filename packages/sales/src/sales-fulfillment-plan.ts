@@ -44,6 +44,11 @@ export type FulfillmentInboundDemandLike = {
 	qtyReceived?: number | null;
 	status?: string | null;
 	inboundShipmentItemId?: number | null;
+	inboundShipmentItem?: {
+		inbound?: {
+			expectedAt?: Date | string | null;
+		} | null;
+	} | null;
 };
 
 export type FulfillmentDeliveryLike = {
@@ -157,6 +162,7 @@ export type SalesFulfillmentComponentProjection =
 			qtyReceived: number;
 			status: string | null;
 			inboundShipmentItemId: number | null;
+			expectedAt: Date | string | null;
 		}>;
 	};
 
@@ -371,6 +377,7 @@ export type SalesProductionPlan = {
 
 export type GetSalesProductionPlanInput = {
 	salesOrderId?: number | null;
+	salesOrderIds?: number[] | null;
 	lineItemUids?: string[] | null;
 	inventoryVariantId?: number | null;
 	supplierId?: number | null;
@@ -957,6 +964,7 @@ function summarizeComponent(
 			qtyReceived: numberValue(demand.qtyReceived),
 			status: demand.status ?? null,
 			inboundShipmentItemId: demand.inboundShipmentItemId ?? null,
+			expectedAt: demand.inboundShipmentItem?.inbound?.expectedAt ?? null,
 		})),
 	};
 }
@@ -2177,8 +2185,11 @@ export async function getSalesProductionPlan(
 	db: Db,
 	input: GetSalesProductionPlanInput = {},
 ): Promise<SalesProductionPlan> {
-	if (input.completeOrder && !input.salesOrderId) {
-		throw new Error("A complete production plan requires a sales order ID.");
+	const salesOrderIds = Array.from(
+		new Set((input.salesOrderIds || []).filter((id) => Number.isInteger(id))),
+	);
+	if (input.completeOrder && !input.salesOrderId && !salesOrderIds.length) {
+		throw new Error("A complete production plan requires sales order IDs.");
 	}
 	const limit = Math.min(Math.max(input.limit || 100, 1), 500);
 	const candidateTake = input.completeOrder
@@ -2188,7 +2199,13 @@ export async function getSalesProductionPlan(
 		where: {
 			deletedAt: null,
 			lineItemType: "SALE",
-			saleId: input.salesOrderId || undefined,
+			saleId:
+				input.salesOrderId ||
+				(salesOrderIds.length
+					? {
+							in: salesOrderIds,
+						}
+					: undefined),
 			uid: input.lineItemUids?.length
 				? {
 						in: input.lineItemUids,
@@ -2358,6 +2375,15 @@ export async function getSalesProductionPlan(
 							qtyReceived: true,
 							status: true,
 							inboundShipmentItemId: true,
+							inboundShipmentItem: {
+								select: {
+									inbound: {
+										select: {
+											expectedAt: true,
+										},
+									},
+								},
+							},
 						},
 					},
 				},

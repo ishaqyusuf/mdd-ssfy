@@ -1,58 +1,47 @@
-# Production Readiness Override
+# Production Assignment And Material Readiness
 
 ## Status
 
-Implemented and locally validated on 2026-07-27.
+Current assignment policy updated on 2026-07-28. The 2026-07-27 override flow is
+retained only for compatibility and historical audit.
 
 ## Operator Behavior
 
 - The Sales Overview Production tab shows an order-level readiness notice above
   the production list.
-- Ready orders show that production can be assigned.
-- Configured orders blocked by stock, allocation, or inbound evidence show
+- Production can be assigned whether materials are ready, awaiting allocation,
+  awaiting inbound, or not yet configured.
+- Configured orders with unresolved stock, allocation, or inbound evidence show
   blocker counts, pending/open inbound quantities, a bounded component sample,
   and a direct link to the Inventory tab.
-- Admins with `editProduction` may affirm that all required materials are
-  physically available. The confirmation does not receive, cancel, or rewrite
-  inbound demand, stock, or allocation records.
-- Orders without inventory component configuration remain blocked and direct
-  the operator to Inventory; they cannot be overridden.
+- Assigned production order detail shows pending material names, quantities,
+  and the linked inbound expected date when available.
+- Orders without inventory component configuration can still be assigned and
+  show a verify-materials notice to production.
 - Fulfilled and cancelled orders remain read-only.
-- A confirmed override may start assignment only while its SHA-256 evidence
-  revision exactly matches the current order-wide inventory plan. Any inventory
-  evidence change makes the confirmation stale.
-- `submitAll` remains subject to the strict readiness gate; the override applies
-  only to production assignment.
-- Confirm, assignment use, and revoke actions write Sales History audit
-  evidence. The override can be revoked from the Production tab.
+- `submitAll` remains subject to the strict readiness gate.
+- Assignment does not mutate inbound demand, stock, allocation, or receipt
+  records.
 
 ## Implementation Boundaries
 
-- `@gnd/sales` owns readiness projection, evidence revision, confirmation,
-  revocation, and final gate behavior.
-- The Sales API owns authenticated permission checks and actor resolution.
+- `@gnd/sales` owns readiness projection and the command policy that excludes
+  `createAssignments` from readiness enforcement.
+- The Trigger task enforces readiness only for `submitAll`.
 - The active Production tab loads the core production overview first, then
   starts readiness from the resolved order identity. Readiness never participates
   in the core items response, so a slow or failed projection cannot blank or
   indefinitely load the production list.
 - If the readiness projection is temporarily unavailable, the tab keeps the
-  core items visible and shows an Inventory-directed warning.
-- The dedicated readiness query, confirmation mutation, and Trigger assignment
-  gate remain strict; the availability warning never authorizes production.
-- The Trigger task rechecks readiness immediately before assignment. Assignment
-  rows and override-use audit evidence commit in the same transaction.
+  core items and assignment available and shows an Inventory-directed notice.
+- `sales.productionOrderDetailV2` reads inventory production-plan evidence
+  lazily for the expanded worker/admin order and exposes per-item material
+  status, open inbound quantity, and expected inbound date.
+- The persisted override model, API, and audit history remain compatible but are
+  not consulted by assignment.
 
-## Validation
+## Historical Override
 
-- Focused readiness, override, and assignment transaction coverage passes 28
-  tests / 86 assertions.
-- `@gnd/sales`, `@gnd/api`, `@gnd/jobs`, and `@gnd/db` typechecks pass.
-- Local browser validation on order `08869PC` showed 14 blocked components and
-  22 open inbound quantity, confirmed the warning/dialog/override UI, and
-  exercised the production worker selection flow.
-- A local domain smoke used the same order and exact selected control UID to
-  create a 2-unit assignment for Samuel Gonzalez under the active override. The
-  assignment was verified, deleted, and the override revoked; zero active test
-  assignments remained.
-- Regression coverage verifies that the core production endpoint contains no
-  readiness lookup and that the active tab loads readiness independently.
+ADR-030 documented the previous revision-bound exception. ADR-035 supersedes
+that authorization model: assignment is now unconditionally independent of
+inventory readiness.

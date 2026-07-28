@@ -12,6 +12,7 @@ import {
 	markAsCompletedTask,
 	packDispatchItemTask,
 	resolveLegacyUpdateSalesControlAction,
+	shouldEnforceProductionReadinessGate,
 	shouldSyncInventoryProductionLifecycleForSalesControl,
 	startDispatchTask,
 	submitAllTask,
@@ -91,10 +92,6 @@ function getProductionReadinessGateLineUids(input: UpdateSalesControl) {
 		);
 	}
 	return null;
-}
-
-function shouldGateProductionStart(input: UpdateSalesControl) {
-	return Boolean(input.createAssignments || input.submitAll);
 }
 
 async function sendDispatchPackedNotification(input: UpdateSalesControl) {
@@ -329,31 +326,18 @@ export const updateSalesControl = schemaTask({
 	run: async (input) => {
 		const action = resolveActionHandler(input as UpdateSalesControl);
 		if (action) {
-			let productionReadinessOverrideRevision: string | null = null;
-			if (shouldGateProductionStart(input as UpdateSalesControl)) {
-				const readiness = await assertProductionReadinessForSale(db as any, {
+			if (
+				shouldEnforceProductionReadinessGate(input as UpdateSalesControl)
+			) {
+				await assertProductionReadinessForSale(db as any, {
 					salesOrderId: input.meta.salesId,
 					lineItemUids: getProductionReadinessGateLineUids(
 						input as UpdateSalesControl,
 					),
 					triggeredByUserId: input.meta.authorId,
-					allowActiveOverride: Boolean(input.createAssignments),
 				});
-				productionReadinessOverrideRevision = readiness.overridden
-					? readiness.overrideRevision
-					: null;
 			}
-			const response =
-				input.createAssignments && productionReadinessOverrideRevision
-					? await createAssignmentsTask(db, input as UpdateSalesControl, {
-							productionReadinessOverride: {
-								revision: productionReadinessOverrideRevision,
-								lineItemUids: getProductionReadinessGateLineUids(
-									input as UpdateSalesControl,
-								),
-							},
-						})
-					: await action(db, input);
+			const response = await action(db, input);
 			if (
 				shouldSyncInventoryProductionLifecycleForSalesControl(
 					input as UpdateSalesControl,

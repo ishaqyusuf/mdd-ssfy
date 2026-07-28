@@ -7,6 +7,12 @@ import {
 	getSalesPriorityRank,
 	normalizeSalesPriority,
 } from "./priority";
+import {
+	type ProductionMaterialStatus,
+	buildProductionMaterialStatuses,
+	summarizeProductionMaterials,
+} from "./production-v2/application/production-materials";
+import { getSalesProductionPlan } from "./sales-fulfillment-plan";
 import type {
 	SalesProductionQueryParams,
 	SalesQueryParamsSchema,
@@ -27,6 +33,7 @@ export type ProductionListSort =
 
 type SalesProductionListQuery = SalesProductionQueryParams & {
 	productionSort?: ProductionListSort | null;
+	includeMaterials?: boolean;
 };
 
 export async function getSalesProductions(
@@ -41,36 +48,54 @@ export async function getSalesProductions(
 	};
 	const getDueToday = async () =>
 		filterCompletedProductions(
-			await getProductionListAction(db, {
-				salesType: "order",
-				"production.assignedToId": assignedToId,
-				"production.status": "due today",
-				"sales.priority": query.priority || query["sales.priority"],
-				productionSort: query.productionSort,
-				size: 99,
-			}),
+			await getProductionListAction(
+				db,
+				{
+					salesType: "order",
+					"production.assignedToId": assignedToId,
+					"production.status": "due today",
+					"sales.priority": query.priority || query["sales.priority"],
+					productionSort: query.productionSort,
+					size: 99,
+				},
+				{
+					includeMaterials: query.includeMaterials,
+				},
+			),
 		);
 	const getPastDue = async () =>
 		filterCompletedProductions(
-			await getProductionListAction(db, {
-				salesType: "order",
-				"production.assignedToId": assignedToId,
-				"production.status": "past due",
-				"sales.priority": query.priority || query["sales.priority"],
-				productionSort: query.productionSort,
-				size: 99,
-			}),
+			await getProductionListAction(
+				db,
+				{
+					salesType: "order",
+					"production.assignedToId": assignedToId,
+					"production.status": "past due",
+					"sales.priority": query.priority || query["sales.priority"],
+					productionSort: query.productionSort,
+					size: 99,
+				},
+				{
+					includeMaterials: query.includeMaterials,
+				},
+			),
 		);
 	const getDueTomorrow = async () =>
 		filterCompletedProductions(
-			await getProductionListAction(db, {
-				salesType: "order",
-				"production.assignedToId": assignedToId,
-				"production.status": "due tomorrow",
-				"sales.priority": query.priority || query["sales.priority"],
-				productionSort: query.productionSort,
-				size: 99,
-			}),
+			await getProductionListAction(
+				db,
+				{
+					salesType: "order",
+					"production.assignedToId": assignedToId,
+					"production.status": "due tomorrow",
+					"sales.priority": query.priority || query["sales.priority"],
+					productionSort: query.productionSort,
+					size: 99,
+				},
+				{
+					includeMaterials: query.includeMaterials,
+				},
+			),
 		);
 	switch (query.show) {
 		case "due-today":
@@ -80,12 +105,18 @@ export async function getSalesProductions(
 		case "past-due":
 			return await getPastDue();
 	}
-	const response = await getProductionListAction(db, {
-		...normalizedQuery,
-		"sales.priority": query.priority || query["sales.priority"],
-		salesType: "order",
-		//   "production.status": "part assigned",
-	});
+	const response = await getProductionListAction(
+		db,
+		{
+			...normalizedQuery,
+			"sales.priority": query.priority || query["sales.priority"],
+			salesType: "order",
+			//   "production.status": "part assigned",
+		},
+		{
+			includeMaterials: query.includeMaterials,
+		},
+	);
 	return query.production === "pending"
 		? filterCompletedProductions(response)
 		: response;
@@ -106,16 +137,34 @@ export async function getSalesProductionDashboard(
 	};
 
 	const [queueResponse, dueToday, dueTomorrow, pastDue] = await Promise.all([
-		getProductionListAction(db, {
+		getProductionListAction(
+			db,
+			{
+				...baseQuery,
+				"production.assignedToId":
+					query["production.assignedToId"] || assignedToId || undefined,
+				"sales.priority": query.priority || query["sales.priority"],
+				salesType: "order",
+			} as SalesQueryParamsSchema,
+			{
+				includeMaterials: false,
+			},
+		),
+		getSalesProductions(db, {
 			...baseQuery,
-			"production.assignedToId":
-				query["production.assignedToId"] || assignedToId || undefined,
-			"sales.priority": query.priority || query["sales.priority"],
-			salesType: "order",
-		} as SalesQueryParamsSchema),
-		getSalesProductions(db, { ...baseQuery, show: "due-today" }),
-		getSalesProductions(db, { ...baseQuery, show: "due-tomorrow" }),
-		getSalesProductions(db, { ...baseQuery, show: "past-due" }),
+			show: "due-today",
+			includeMaterials: false,
+		}),
+		getSalesProductions(db, {
+			...baseQuery,
+			show: "due-tomorrow",
+			includeMaterials: false,
+		}),
+		getSalesProductions(db, {
+			...baseQuery,
+			show: "past-due",
+			includeMaterials: false,
+		}),
 	]);
 
 	const queue = filterCompletedProductions(queueResponse);
@@ -176,6 +225,9 @@ async function getProductionListAction(
 		workerId?: number | null;
 		productionSort?: ProductionListSort | null;
 	},
+	options: {
+		includeMaterials?: boolean;
+	} = {},
 ) {
 	const where = whereSales(query);
 
@@ -199,13 +251,31 @@ async function getProductionListAction(
 		...queryProps,
 		select: select(whereAssignments),
 	});
+	const materialsBySalesOrder = new Map<number, ProductionMaterialStatus[]>();
+	if (data.length && options.includeMaterials !== false) {
+		const productionPlan = await getSalesProductionPlan(db, {
+			salesOrderIds: data.map((item) => item.id),
+			completeOrder: true,
+		});
+		for (const material of buildProductionMaterialStatuses(
+			productionPlan.components,
+		)) {
+			if (material.salesOrderId == null) continue;
+			const materials = materialsBySalesOrder.get(material.salesOrderId) || [];
+			materials.push(material);
+			materialsBySalesOrder.set(material.salesOrderId, materials);
+		}
+	}
 	const sorted = sortProductionListByPriority(
-		data.map((item) =>
-			transformProductionList(item, {
+		data.map((item) => ({
+			...transformProductionList(item, {
 				useAssignmentCompletion:
 					!!query.workerId || !!query["production.status"],
 			}),
-		),
+			materials: summarizeProductionMaterials(
+				materialsBySalesOrder.get(item.id) || [],
+			),
+		})),
 		query.productionSort,
 	);
 
