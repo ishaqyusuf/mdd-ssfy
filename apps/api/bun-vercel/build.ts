@@ -1,8 +1,10 @@
-import { exists, mkdir, readdir, stat, unlink } from "node:fs/promises";
+import { cp, exists, mkdir, readdir, stat, unlink } from "node:fs/promises";
 import path from "node:path";
 
 // Ex. ./src/main.ts
 const mainModulePath = process.argv[2];
+const repositoryRoot = path.resolve(process.cwd(), "../..");
+const functionOutputDirectory = "./.vercel/output/functions/App.func";
 async function logDirContents(dirPath: string) {
 	try {
 		const entries = await readdir(dirPath);
@@ -66,6 +68,31 @@ await mkdir("./.vercel/output/functions/App.func", {
 	recursive: true,
 });
 
+const prismaEngineGlob = new Bun.Glob(
+	"node_modules/**/libquery_engine*.so.node",
+);
+let prismaEnginePath: string | undefined;
+
+for await (const candidate of prismaEngineGlob.scan({
+	absolute: true,
+	cwd: repositoryRoot,
+	dot: true,
+	followSymlinks: true,
+	onlyFiles: true,
+})) {
+	prismaEnginePath = candidate;
+	break;
+}
+
+if (!prismaEnginePath) {
+	throw new Error("Prisma Linux query engine was not generated");
+}
+
+await cp(
+	prismaEnginePath,
+	path.join(functionOutputDirectory, "libquery_engine.so.node"),
+);
+
 // Create function config file
 await Bun.write(
 	"./.vercel/output/functions/App.func/.vc-config.json",
@@ -75,7 +102,7 @@ await Bun.write(
 			handler: "bootstrap",
 			maxDuration: 10,
 			memory: 1024,
-			runtime: "provided.al2",
+			runtime: "provided.al2023",
 			supportsWrapper: false,
 		},
 		null,
@@ -129,7 +156,6 @@ if (await exists("/etc/system-release")) {
 		".vercel/output/functions/App.func/bootstrap",
 	]);
 } else {
-	const repositoryRoot = path.resolve(process.cwd(), "../..");
 	const containerWorkdir = path.posix.join(
 		"/workspace",
 		path.relative(repositoryRoot, process.cwd()),

@@ -1,15 +1,25 @@
 # Progress
 
-- 2026-07-28: Prepared `apps/api` for an independent Vercel deployment. Added
-  public, non-cached `GET /health`; it runs `db.users.count()` and returns
-  `200` only when the database is reachable, otherwise `503`, without exposing
-  the user count or internal error. The existing Vercel project is
-  `prodesk-api`. API typecheck and scoped diff checks pass, and the stopped
-  local MySQL profile confirmed the `503` failure response. Live project
-  linking, the privileged Docker-backed artifact check, production deployment,
-  and the production database health call remain pending because the execution
-  environment requires a separate explicit approval. No consumer app was
-  configured to use the external API.
+- 2026-07-28: Fixed local GND service startup after the Docker Compose file
+  moved from `apps/www` to `apps/dashboard`. Compose had inferred the new
+  project name `dashboard`, failed to recognize the healthy `www`-owned
+  `gnd-mysql` container, and attempted to create a conflicting container with
+  the same global name. The file now pins the legacy `www` project identity,
+  preserving the populated `www_gnd_mysql_data` volume without deleting or
+  recreating MySQL.
+
+- 2026-07-28: Deployed `apps/api` independently to the existing Vercel
+  `prodesk-api` project at `https://api.gndprodesk.com`. Added public,
+  non-cached `GET /health`; it runs `db.users.count()` and returns `200` only
+  when the database is reachable, otherwise `503`, without exposing the user
+  count or internal error. Updated the legacy deployment path for Vercel Node
+  24/Amazon Linux 2023, made Bun compilation fail loudly, and packaged the
+  generated Prisma Linux query engine at runtime. Production tRPC reaches the
+  handler, and health diagnostics proved the remaining `503` is database
+  authentication rather than engine packaging. The current local production
+  `DATABASE_URL` passes the same read-only count query, but transferring it to
+  Vercel requires explicit authorization naming the `prodesk-api` production
+  environment. No consumer app was configured to use the external API.
 
 - 2026-07-28: Reworked the shared desktop site navigation around one selected
   module. A fixed top selector now shows the module icon/name above a divider,
@@ -538,6 +548,17 @@
   pending with no acknowledgement. Checkout now detects that condition and
   shows a Connected-mode sign-in instruction without creating a payment. A
   physical terminal sign-in and repeated charge/cancel test remain pending.
+- 2026-07-28: Corrected the production Terminal readiness window so the server
+  polls through Square's complete 10-second `PING` deadline plus a 2-second
+  response grace period instead of rejecting after 5 seconds. A red-first
+  regression proves a delayed acknowledgement after the old cutoff is accepted;
+  the focused payment suite passes 19 tests / 42 assertions and the Square
+  package typecheck passes. Fresh production diagnostics verified the configured
+  location, paired `TERMINAL_API` sessions, and recent `AVAILABLE` device data
+  for Terminals 1451 and 2443, but both remained `PENDING` through an independent
+  18-second probe and the corrected application check. The remaining blocker is
+  physical Connected-mode acknowledgement; checkout creation and local pending
+  writes remain safely blocked until a matching GND device-code sign-in succeeds.
 - 2026-07-22: Redesigned the storefront homepage hero around the selected
   RealCraft-inspired direction. The fallback and CMS-authored home-page paths
   now share one full-bleed, photo-led hero with editorial typography, a primary

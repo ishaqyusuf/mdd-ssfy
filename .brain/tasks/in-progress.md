@@ -11,14 +11,19 @@ Tracks the active work queue. Keep this focused and execution-ready.
 
 ## Current Focus
 - [ ] Standalone API Vercel deployment: existing target `prodesk-api` was
-  found; public `GET /health` now checks `db.users.count()`, returns `200` only
-  when the database is reachable, otherwise returns `503`, and disables
-  response caching. `@gnd/api` typecheck and scoped diff checks pass; the
-  stopped local MySQL profile proves the `503` failure response. Remaining
-  gates are linking `apps/api` to `prodesk-api`, verifying the production build
-  artifact, deploying it, and calling the production `/health` URL to prove
-  database connectivity. Do not repoint `www`, dealership, storefront, or Expo
-  during this task. (API + Deployment + Validation)
+  found, linked, upgraded to Node 24, and deployed at
+  `https://api.gndprodesk.com`. Public `GET /health` checks
+  `db.users.count()`, returns `200` only when the database is reachable,
+  otherwise returns `503`, and disables response caching. The Bun/Vercel
+  builder now targets Amazon Linux 2023 and packages Prisma's generated Linux
+  query engine; production tRPC reaches the handler and the health failure
+  advanced from missing query engine to database authentication. The current
+  local production credential passes the same read-only count query, while
+  Vercel's stored production `DATABASE_URL` is stale. Remaining gate: explicit
+  authorization to send that validated secret to the `prodesk-api` production
+  environment, redeploy, and prove `/health` returns `200`. Do not repoint
+  dashboard, dealership, storefront, or mobile during this task.
+  (API + Deployment + Validation)
 - [ ] Sentry production observability rollout: web ingestion/releases are live;
   a controlled Android run now proves mobile production-environment ingestion,
   release tagging, Expo context, and early startup capture. API and Trigger.dev

@@ -501,7 +501,7 @@ Tracks important request/response contracts and shared schema boundaries.
 - The API re-queries the configured Square location before checkout creation and matches `device:<id>` and `<id>` forms through one canonical device id.
 - Only a device currently reported as `AVAILABLE` may be used. A stale, offline, unknown, or unverifiable device fails before Square checkout creation and before a local `SquarePayments` pending row is written.
 - Device discovery is intersected with `PAIRED` `TERMINAL_API` device codes returned for the same Square application and location; merchant devices paired to another mode/application are not checkout candidates.
-- Before checkout creation, the API creates a `PING` Terminal action and waits briefly for `COMPLETED`. A device that does not acknowledge Connected mode fails with an operator-facing sign-in instruction; checkout creation and local pending-payment persistence do not run.
+- Before checkout creation, the API creates a `PING` Terminal action with a 10-second deadline and polls through that full deadline plus a 2-second response grace period for `COMPLETED`. A device that does not acknowledge Connected mode fails with an operator-facing sign-in instruction; checkout creation and local pending-payment persistence do not run.
 - Square Sandbox exposes the official successful simulated Terminal id and skips production-only pairing/`PING` gates because physical Square hardware cannot connect to the Sandbox.
 - Square checkout creation runs before the local pending-payment write. When Square rejects the checkout, no pending local payment is recorded.
 - The persisted terminal id and display name come from the server-observed Square device, not client-supplied display metadata.

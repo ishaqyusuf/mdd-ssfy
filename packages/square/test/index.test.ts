@@ -4,6 +4,7 @@ import {
 	isProductionSquareEnvironment,
 	normalizeTerminalDeviceId,
 	resolvePairedSquareTerminals,
+	waitForSquareTerminalActionReady,
 } from "../src/index";
 
 describe("Square runtime environment", () => {
@@ -75,5 +76,29 @@ describe("Square terminal device ids", () => {
 				value: "device:1451",
 			},
 		]);
+	});
+});
+
+describe("Square terminal readiness", () => {
+	it("waits through the full action deadline for a delayed acknowledgement", async () => {
+		let fetchCount = 0;
+		const sleeps: number[] = [];
+
+		const ready = await waitForSquareTerminalActionReady({
+			initialStatus: "PENDING",
+			getStatus: async () => {
+				fetchCount += 1;
+				return fetchCount >= 6 ? "COMPLETED" : "PENDING";
+			},
+			maxWaitMs: 10_000,
+			pollIntervalMs: 1_000,
+			sleep: async (milliseconds) => {
+				sleeps.push(milliseconds);
+			},
+		});
+
+		expect(ready).toBe(true);
+		expect(fetchCount).toBe(6);
+		expect(sleeps).toEqual([1_000, 1_000, 1_000, 1_000, 1_000, 1_000]);
 	});
 });

@@ -259,6 +259,46 @@ export interface CreateTerminalCheckoutProps {
   orderIds?: string[];
 }
 
+type SquareTerminalActionStatus =
+  | "PENDING"
+  | "IN_PROGRESS"
+  | "CANCEL_REQUESTED"
+  | "CANCELED"
+  | "COMPLETED"
+  | string
+  | null
+  | undefined;
+
+interface WaitForSquareTerminalActionReadyProps {
+  initialStatus: SquareTerminalActionStatus;
+  getStatus: () => Promise<SquareTerminalActionStatus>;
+  maxWaitMs: number;
+  pollIntervalMs: number;
+  sleep?: (milliseconds: number) => Promise<void>;
+}
+
+export async function waitForSquareTerminalActionReady({
+  initialStatus,
+  getStatus,
+  maxWaitMs,
+  pollIntervalMs,
+  sleep = (milliseconds) =>
+    new Promise((resolve) => setTimeout(resolve, milliseconds)),
+}: WaitForSquareTerminalActionReadyProps) {
+  let status = initialStatus;
+  let elapsedMs = 0;
+
+  while (true) {
+    if (status === "COMPLETED") return true;
+    if (status === "CANCELED" || status === "CANCEL_REQUESTED") return false;
+    if (elapsedMs >= maxWaitMs) return false;
+
+    await sleep(pollIntervalMs);
+    elapsedMs += pollIntervalMs;
+    status = await getStatus();
+  }
+}
+
 const formatSquareErrors = (
   errors?: { code?: string; detail?: string; category?: string }[],
 ) => {
@@ -348,23 +388,16 @@ export async function verifySquareTerminalReady(deviceId: string) {
   if (!action?.id) {
     throw new Error("Square could not start a terminal readiness check.");
   }
+  const actionId = action.id;
 
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    if (attempt > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 1_000));
-    }
-    const currentAction =
-      attempt === 0
-        ? action
-        : (await squareClient.terminal.actions.get({ actionId: action.id })).action;
-    if (currentAction?.status === "COMPLETED") return;
-    if (
-      currentAction?.status === "CANCELED" ||
-      currentAction?.status === "CANCEL_REQUESTED"
-    ) {
-      break;
-    }
-  }
+  const ready = await waitForSquareTerminalActionReady({
+    initialStatus: action.status,
+    getStatus: async () =>
+      (await squareClient.terminal.actions.get({ actionId })).action?.status,
+    maxWaitMs: 12_000,
+    pollIntervalMs: 1_000,
+  });
+  if (ready) return;
 
   throw new Error(
     "The selected Square Terminal is not responding in Connected mode. On the terminal, sign out of Square POS and sign in with its GND device code, then try again.",
