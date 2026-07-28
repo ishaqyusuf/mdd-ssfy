@@ -383,7 +383,11 @@ export const daysFilters = [
 	"this month",
 	"last month",
 	"last 2 months",
+	"last 3 months",
 	"last 6 months",
+	"before last month",
+	"before last 3 months",
+	"before last 6 months",
 	// "this year",
 	// "last year",
 ] as const;

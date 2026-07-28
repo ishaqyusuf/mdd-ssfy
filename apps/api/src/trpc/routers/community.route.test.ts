@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, setSystemTime } from "bun:test";
 import {
 	getBuilderTasksForProject,
 	getCommunityJobForm,
@@ -144,6 +144,31 @@ describe("project unit filters", () => {
 });
 
 describe("unit invoice filters", () => {
+	it("passes a before-last-month cutoff through to the database query", () => {
+		setSystemTime(new Date(2026, 6, 28, 12));
+
+		try {
+			const where = whereUnitInvoices({
+				dateRange: ["before last 3 months"],
+			}) as {
+				createdAt?: {
+					gte?: string;
+					lte?: string;
+				};
+			};
+			const cutoff = new Date(where.createdAt?.lte || "");
+
+			expect(where.createdAt?.gte).toBeUndefined();
+			expect(cutoff.getFullYear()).toBe(2026);
+			expect(cutoff.getMonth()).toBe(2);
+			expect(cutoff.getDate()).toBe(31);
+			expect(cutoff.getHours()).toBe(23);
+			expect(cutoff.getMinutes()).toBe(59);
+		} finally {
+			setSystemTime();
+		}
+	});
+
 	it("searches the same visible unit fields as project units", () => {
 		expect(whereUnitInvoices({ q: "/01" })).toEqual({
 			OR: [

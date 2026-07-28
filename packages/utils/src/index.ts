@@ -5,7 +5,19 @@ import { hash } from "bcrypt-ts";
 import _ from "lodash";
 
 import dotObject from "dot-object";
+import {
+  type DateFilterInput,
+  type DateFilterQuery,
+  parseCompleteMonthPreset,
+} from "./date-filter";
 import JsonSearch from "./json-search";
+export {
+  type CompleteMonthFilterMode,
+  type DateFilterInput,
+  type DateFilterQuery,
+  getCompleteMonthDateQuery,
+  parseCompleteMonthPreset,
+} from "./date-filter";
 export { dotObject };
 
 export function textValue<T extends object>(
@@ -458,16 +470,27 @@ export function consoleLog(title = "Log", ...data) {
   console.log("");
 }
 
-export function transformFilterDateToQuery(dateParts) {
-  if (!dateParts) return undefined;
-  let [fromStr, toStr] = dateParts;
+export function transformFilterDateToQuery(
+  dateParts: DateFilterInput,
+): DateFilterQuery | null | undefined {
+  if (!dateParts || (Array.isArray(dateParts) && dateParts.length === 0)) {
+    return undefined;
+  }
+  let [fromStr, toStr] =
+    typeof dateParts === "string" ? [dateParts] : dateParts;
+  if (!fromStr) return null;
+
   const today = dayjs();
-  const lower = fromStr!.toLowerCase().trim();
-  const toSafeIso = (value) => {
+  const lower = fromStr.toLowerCase().trim();
+  const toSafeIso = (value: string) => {
     const parsed = dayjs(value);
     return parsed.isValid() ? parsed.toISOString() : null;
   };
-  if (toStr == "-") toStr = null as any;
+  if (toStr === "-") toStr = null;
+
+  const completeMonthPreset = parseCompleteMonthPreset(lower, today.toDate());
+  if (completeMonthPreset) return completeMonthPreset;
+
   if (lower === "today") {
     return {
       gte: today.startOf("day").toISOString(),
@@ -518,25 +541,6 @@ export function transformFilterDateToQuery(dateParts) {
     };
   }
 
-  if (lower === "last month") {
-    return {
-      gte: today.subtract(1, "month").startOf("month").toISOString(),
-      lte: today.subtract(1, "month").endOf("month").toISOString(),
-    };
-  }
-  if (lower === "last 2 month" || lower === "last 2 months") {
-    return {
-      gte: today.subtract(2, "month").startOf("month").toISOString(),
-      lte: today.subtract(1, "month").endOf("month").toISOString(),
-    };
-  }
-  if (lower === "last 6 month" || lower === "last 6 months") {
-    return {
-      gte: today.subtract(6, "month").startOf("month").toISOString(),
-      lte: today.subtract(1, "month").endOf("month").toISOString(),
-    };
-  }
-
   if (lower === "this year") {
     return {
       gte: today.startOf("year").toISOString(),
@@ -553,7 +557,10 @@ export function transformFilterDateToQuery(dateParts) {
 
   // Handle specific date formats
 
-  if (dateParts.length === 1 && fromStr) {
+  if (
+    (typeof dateParts === "string" || dateParts.length === 1) &&
+    fromStr
+  ) {
     const fromIso = toSafeIso(fromStr);
     return fromIso ? { gte: fromIso } : null;
   }

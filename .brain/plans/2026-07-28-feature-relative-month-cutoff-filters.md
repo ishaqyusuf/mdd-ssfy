@@ -4,7 +4,7 @@
 Feature
 
 ## Status
-Proposed
+Implemented
 
 ## Created Date
 2026-07-28
@@ -199,6 +199,50 @@ app-local date parser.
   least one real API/report consumer.
 - No database schema, migration, API input schema, authentication, or
   permission change is introduced.
+
+## Implementation Outcome
+- Added the typed shared month-range module at
+  `packages/utils/src/date-filter.ts`.
+- `transformFilterDateToQuery` now accepts both existing array inputs and the
+  string input used by Customer Service, while preserving explicit ranges and
+  all non-month presets.
+- Month presets are parsed generically with positive whole-number counts.
+- Added `last 3 months`, `before last month`, `before last 3 months`, and
+  `before last 6 months` to the shared preset list.
+- Preserved `last 2 month` and `last 2 months` parsing for saved-filter
+  compatibility.
+- Added deterministic coverage for month boundaries, cutoff behavior, aliases,
+  whitespace/case normalization, leap-year February, year rollover, invalid
+  input, and explicit ranges.
+- Added a pure Midday calendar adapter that preserves the one-element preset
+  selection shape and displays an upper-bound-only cutoff without inventing a
+  lower-bound date.
+- Added Unit Invoice query coverage proving an upper-bound-only cutoff reaches
+  the Prisma where shape unchanged.
+
+## Validation
+- `bun test packages/utils/src/date-filter.test.ts
+  apps/dashboard/src/components/midday-search-filter/date-filter-selection.test.ts
+  apps/api/src/trpc/routers/community.route.test.ts`
+  - passed with 24 tests / 60 assertions.
+- `bun --filter @gnd/utils typecheck`
+  - passed.
+- `bun --filter @gnd/ui typecheck`
+  - passed.
+- `bun --filter @gnd/sales typecheck`
+  - passed.
+- Focused Biome passed for the new helper, tests, constants, and representative
+  API test.
+- Full `bun test` completed with 2,407 passing, 1 skipped, and 30 existing
+  unrelated failures; the date-filter and Unit Invoice regression suites
+  remained green.
+- API-wide typecheck reached only the existing unrelated Sentry event typing
+  errors in `apps/api/src/instrument.ts`.
+- Browser QA was attempted against the active shared dashboard route, but the
+  pre-existing Next development server remained CPU-bound and returned no HTTP
+  response. The shared proxy/server was not stopped or reconfigured.
+- The dashboard typecheck also remained non-responsive while that shared server
+  was CPU-bound and was stopped without changing the server or proxy.
 
 ## Risks and Mitigations
 - Ambiguous `from/above` wording could invert the query.

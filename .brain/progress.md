@@ -7502,3 +7502,17 @@
   environment wrapper is loaded. Added the jobs Sentry env example contract and
   a cross-runtime wiring regression test. Focused Sentry/runtime coverage passes
   17 tests / 61 assertions; focused Biome and `git diff --check` pass.
+
+- 2026-07-28: implemented shared complete-month cutoff filters. The canonical
+  date parser now generically supports `last N month(s)` and
+  `before last N month(s)`, exposes visible last/before presets for one, three,
+  and six months, preserves legacy two-month saved filters, and accepts the
+  existing Customer Service string input alongside array inputs. Deterministic
+  month-boundary, Midday calendar adapter, and Unit Invoice query coverage pass
+  with 24 tests / 60 assertions; utils, shared UI, and Sales typechecks pass.
+  Focused Biome and scoped diff checks pass. The full repository suite
+  completed with 2,407 passing, 1 skipped, and 30 existing unrelated failures.
+  The API-wide typecheck remains blocked only by the existing Sentry event
+  typing errors, while dashboard-wide typecheck and browser QA were blocked by
+  the pre-existing CPU-bound shared Next development server. No database,
+  migration, API schema, permission, or authentication change was required.

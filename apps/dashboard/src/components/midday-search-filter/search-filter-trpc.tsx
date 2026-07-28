@@ -24,8 +24,7 @@ import {
 } from "@gnd/ui/hover-card";
 import { Icon, Icons } from "@gnd/ui/icons";
 import { Input } from "@gnd/ui/input";
-import { transformFilterDateToQuery } from "@gnd/utils";
-import { type DaysFilters, daysFilters } from "@gnd/utils/constants";
+import { daysFilters } from "@gnd/utils/constants";
 import { formatISO } from "date-fns";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
@@ -36,6 +35,10 @@ import { queryFromActiveFilters } from "../page-tabs/query-utils";
 import { SavePageTabButton } from "../page-tabs/save-page-tab-button";
 import { usePageTabSelection } from "../page-tabs/use-page-tab-selection";
 import { SelectTag } from "../select-tag";
+import {
+	createDatePresetSelection,
+	getCalendarFilterDateValue,
+} from "./date-filter-selection";
 import {
 	type FilterDefinition,
 	buildOptionLabelLookup,
@@ -482,25 +485,9 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 		return false;
 	};
 
-	const dateValue = (index: number) => {
+	const dateValue = (index: 0 | 1) => {
 		const filterValue = filters?.[filter.key];
-
-		if (Array.isArray(filterValue) && filterValue.length > index) {
-			const dates = transformFilterDateToQuery(filterValue);
-			const date = index === 0 ? dates?.gte : dates?.lte;
-
-			if (index > 0) {
-				switch (filterValue?.[0] as DaysFilters) {
-					case "today":
-					case "yesterday":
-						return undefined;
-				}
-			}
-
-			return date ? new Date(date) : undefined;
-		}
-
-		return undefined;
+		return getCalendarFilterDateValue(filterValue, index);
 	};
 
 	return (
@@ -518,7 +505,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 							)}
 							onClick={() => {
 								setFilters({
-									[filter.key]: [dayFilter],
+									[filter.key]: createDatePresetSelection(dayFilter),
 								});
 							}}
 							key={dayFilter}
