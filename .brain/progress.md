@@ -1,5 +1,23 @@
 # Progress
 
+- 2026-07-28: Fixed and completed the production Trigger.dev jobs deployment.
+  `jobs:deploy` now explicitly uses the Redland CLI profile, and the Trigger
+  config retains the public project ref as a fallback because Trigger's remote
+  indexer does not receive the local `TRIGGER_PROJECT_ID` environment value.
+  The Jobs typecheck, focused Sentry observability tests (5/5), config import
+  without `TRIGGER_PROJECT_ID`, and scoped diff checks passed. Trigger.dev
+  version `20260728.2` deployed successfully with 37 detected tasks.
+
+- 2026-07-28: Fixed dashboard Vercel deployment discovery after a new
+  repository-level `.vercelignore` excluded `apps/dashboard`. Vercel removed
+  the dashboard manifest before the build, so Turbo found zero packages and
+  never created `apps/dashboard/.next`. The shared ignore now retains all app
+  workspaces because it is used by every Vercel project in the monorepo, while
+  continuing to exclude secrets, local state, diagnostics, and generated
+  output. A focused deployment-boundary regression protects the API,
+  dashboard, dealership, and storefront roots. No application behavior, API,
+  permission, schema, migration, or database behavior changed.
+
 - 2026-07-28: Fixed local GND service startup after the Docker Compose file
   moved from `apps/www` to `apps/dashboard`. Compose had inferred the new
   project name `dashboard`, failed to recognize the healthy `www`-owned

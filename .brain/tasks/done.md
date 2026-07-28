@@ -1,5 +1,17 @@
 # Done
 
+### Vercel Monorepo Web-App Upload Boundary Fix
+- Status: Done
+- Description: Restored dashboard, dealership, and storefront workspace
+  discovery by removing API-specific app exclusions from the repository-wide
+  `.vercelignore`.
+- Bug File:
+  `.brain/bugs/2026-07-28-vercel-shared-ignore-excluded-web-apps.md`
+- Validation: The focused deployment-boundary regression passes 4 tests and
+  Turbo discovers `@gnd/dashboard` for the production build instead of
+  reporting zero packages.
+- Completed Date: 2026-07-28
+
 ### Community Model Cost Blank-Date Save Fix
 - Status: Done
 - Description: Restored New Cost persistence from Community Unit Invoices by

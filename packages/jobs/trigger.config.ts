@@ -12,11 +12,8 @@ const sentrySourceMapUpload = getSentrySourceMapUploadConfig({
   project: process.env.SENTRY_PROJECT_BACKEND,
   release: process.env.SENTRY_RELEASE,
 });
-const triggerProjectId = process.env.TRIGGER_PROJECT_ID;
-
-if (!triggerProjectId) {
-  throw new Error("TRIGGER_PROJECT_ID is required.");
-}
+const triggerProjectId =
+  process.env.TRIGGER_PROJECT_ID?.trim() || "proj_caklyqpkhwrtmdbtjhjs";
 
 export default defineConfig({
   project: triggerProjectId,
