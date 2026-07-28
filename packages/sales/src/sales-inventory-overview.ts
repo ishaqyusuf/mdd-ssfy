@@ -14,6 +14,7 @@ import {
 	resolveSalesInventoryOverviewSetupMode,
 	resolveSalesInventoryRequirementDisplay,
 } from "./sales-inventory-policy";
+import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 export {
 	hasPassedInventoryTrackingRepairBoundary,
 	resolveSalesInventoryFulfillmentStatus,
@@ -461,36 +462,6 @@ function inventoryVariantDisplayName(
 	);
 }
 
-function resolveTrackingPolicy(
-	component: SalesInventoryOverviewComponentLike,
-): SalesOverviewInventoryTrackingPolicy {
-	const productKinds = [
-		component.inventoryCategory?.productKind,
-		component.subComponent?.inventoryCategory?.productKind,
-		component.inventory?.productKind,
-		component.subComponent?.defaultInventory?.productKind,
-	].filter(Boolean);
-	const productKind = productKinds.includes("component")
-		? "component"
-		: productKinds[0] || null;
-	const stockMode =
-		component.inventoryCategory?.stockMode ||
-		component.subComponent?.inventoryCategory?.stockMode ||
-		component.inventory?.stockMode ||
-		component.subComponent?.defaultInventory?.stockMode ||
-		null;
-	const hasInventoryIdentity =
-		!!component.inventoryVariantId ||
-		!!component.inventoryVariant?.id ||
-		!!component.inventoryId ||
-		!!component.inventory?.id;
-
-	if (!hasInventoryIdentity) return "not_inventory";
-	if (productKind === "component") return "not_inventory";
-	if (stockMode === "monitored") return "tracked";
-	return "untracked";
-}
-
 function resolveLineStatus(input: {
 	trackingPolicy: SalesOverviewInventoryTrackingPolicy;
 	requiredQty: number;
@@ -557,14 +528,14 @@ export function buildSalesOverviewInventoryGroups(
 				const qtyReceived = positiveNumberValue(component.qtyReceived);
 				const qtyInbound = positiveNumberValue(component.qtyInbound);
 				const qtyInboundOpen = Math.max(0, qtyInbound - qtyReceived);
-				const qtyPending = Math.max(
-					0,
-					qtyRequired - qtyAllocated - qtyReceived,
-				);
+				const qtyPending =
+					component.status === "fulfilled"
+						? 0
+						: Math.max(0, qtyRequired - qtyAllocated - qtyReceived);
 				const qtyInStock = sumBy(component.inventoryVariant?.stocks, (stock) =>
 					positiveNumberValue(stock.qty),
 				);
-				const trackingPolicy = resolveTrackingPolicy(component);
+				const trackingPolicy = resolveSalesInventoryTrackingPolicy(component);
 				const inventoryId =
 					component.inventoryId ?? component.inventory?.id ?? null;
 				const inventoryVariantId =

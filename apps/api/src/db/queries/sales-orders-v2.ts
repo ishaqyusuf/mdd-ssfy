@@ -555,7 +555,12 @@ async function normalizeOrders(
 ) {
   const { db } = ctx;
   const salesOrderIds = rows.map((row) => row.id);
-  const [noteCounts, inboundOwnershipMap, inventoryProjectionRows] =
+  const [
+    noteCounts,
+    inboundOwnershipMap,
+    inventoryProjectionRows,
+    existingInventoryRequirementRows,
+  ] =
     await Promise.all([
       salesNotesCount(
         rows.map((sale) => ({
@@ -578,6 +583,38 @@ async function normalizeOrders(
           completedAt: true,
         },
       }),
+      db.lineItem.findMany({
+        where: {
+          saleId: {
+            in: salesOrderIds,
+          },
+          deletedAt: null,
+          lineItemType: "SALE",
+          components: {
+            some: {
+              required: true,
+              qty: {
+                gt: 0,
+              },
+            },
+          },
+        },
+        select: {
+          saleId: true,
+          _count: {
+            select: {
+              components: {
+                where: {
+                  required: true,
+                  qty: {
+                    gt: 0,
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
     ]);
   const inventoryProjectionMap = new Map(
     inventoryProjectionRows.map((projection) => [
@@ -585,6 +622,16 @@ async function normalizeOrders(
       projection,
     ]),
   );
+  const existingInventoryNeedCountMap = new Map<number, number>();
+  for (const row of existingInventoryRequirementRows) {
+    if (!row.saleId) continue;
+
+    existingInventoryNeedCountMap.set(
+      row.saleId,
+      (existingInventoryNeedCountMap.get(row.saleId) ?? 0) +
+        row._count.components,
+    );
+  }
   const normalizedRows = rows.map((row) => ({
     ...normalizeOrderRow(row, noteCounts[row.id.toString()]?.noteCount ?? 0),
     inventoryInboundOwnership:
@@ -614,6 +661,8 @@ async function normalizeOrders(
       inventoryApplicability: resolveSalesInventoryApplicability({
         lifecycleStatus: lifecycleRow.status as SalesOrderLifecycleStatus,
         projection: inventoryProjection,
+        existingInventoryNeedCount:
+          existingInventoryNeedCountMap.get(lifecycleRow.id) ?? 0,
       }),
     };
   });

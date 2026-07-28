@@ -167,6 +167,19 @@ describe("high-risk tRPC permission boundaries", () => {
 		expect(inventories.slice(start, start + 1800)).toContain('"editOrders"');
 	});
 
+	test("manual inventory need fulfillment requires order editing permission", () => {
+		const inventories = source("inventories.route.ts");
+		expectProtectedMutation(
+			inventories,
+			"fulfillSalesInventoryNeedsManually",
+			"await requireAnyOperationalPermission",
+		);
+		const start = inventories.indexOf(
+			"fulfillSalesInventoryNeedsManually: protectedProcedure",
+		);
+		expect(inventories.slice(start, start + 1400)).toContain('"editOrders"');
+	});
+
 	test("job assignment, review, payment, and creation writes are permission-shaped", () => {
 		const jobs = source("jobs.route.ts");
 		for (const mutation of [

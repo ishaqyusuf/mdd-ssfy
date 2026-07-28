@@ -20,6 +20,33 @@ export type InventoryInboundOwnershipLike = {
 	primaryInboundStatus?: string | null;
 };
 
+export type SalesInboundColumnState =
+	| "inventory_inbound"
+	| "not_applicable"
+	| "syncing"
+	| "projection_attention"
+	| "manual_status";
+
+export function resolveSalesInboundColumnState(input: {
+	ownership?: InventoryInboundOwnershipLike | null;
+	inventoryApplicabilityState?: string | null;
+}): SalesInboundColumnState {
+	if (input.ownership?.hasInventoryInbound) return "inventory_inbound";
+
+	switch (input.inventoryApplicabilityState) {
+		case "not_applicable":
+		case "legacy_not_applicable":
+			return "not_applicable";
+		case "syncing":
+			return "syncing";
+		case "not_synced":
+		case "failed":
+			return "projection_attention";
+		default:
+			return "manual_status";
+	}
+}
+
 export function normalizeSalesInboundStatus(
 	status?: string | null,
 ): SalesInboundStatus | null {

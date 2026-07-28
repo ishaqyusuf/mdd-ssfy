@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { getSalesInboundActionIntent } from "./sales-inbound-status-badge";
+import {
+	getSalesInboundActionIntent,
+	resolveSalesInboundColumnState,
+} from "./sales-inbound-status-badge";
 
 describe("sales inbound action intent", () => {
 	test("opens the create-inbound workbench when no inventory shipment exists", () => {
@@ -37,5 +40,17 @@ describe("sales inbound action intent", () => {
 			openCreate: false,
 			segment: "inbounds",
 		});
+	});
+
+	test("shows a newly linked inventory inbound before stale projection status", () => {
+		expect(
+			resolveSalesInboundColumnState({
+				inventoryApplicabilityState: "not_synced",
+				ownership: {
+					hasInventoryInbound: true,
+					linkedInbounds: [{ id: 72, status: "pending" }],
+				},
+			}),
+		).toBe("inventory_inbound");
 	});
 });

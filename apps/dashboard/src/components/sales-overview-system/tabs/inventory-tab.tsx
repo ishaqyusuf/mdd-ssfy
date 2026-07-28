@@ -63,12 +63,16 @@ import { toast } from "@gnd/ui/use-toast";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import {
+	useFulfillSalesInventoryNeeds,
+	useRefreshSalesInventoryQueries,
+} from "../hooks/use-sales-inventory-actions";
+import {
 	type SalesInventorySegment,
 	useSalesInventorySegmentQuery,
 } from "../hooks/use-sales-inventory-segment-query";
 import { formatInventoryCategoryStepLabel } from "../lib/inventory-display";
 import {
-	canMarkAllInventoryAvailable,
+	canFulfillAllInventoryNeeds,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
 	resolveInventoryInboundCountState,
@@ -647,6 +651,8 @@ function InventoryActionBar({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
+	const refreshSalesInventoryQueries =
+		useRefreshSalesInventoryQueries(salesOrderId);
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const rows = overview.rows || [];
 	const capabilities = overview.capabilities;
@@ -787,33 +793,9 @@ function InventoryActionBar({
 				setInventorySegment("inbounds", {
 					inboundId: data.inboundId,
 				});
-				await Promise.all([
-					queryClient.invalidateQueries({
-						queryKey: trpc.inventories.salesInventoryOverview.queryKey({
-							salesOrderId,
-						}),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.inventories.inboundShipments.queryKey({}),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.inventories.orderInboundShipments.queryKey({
-							salesOrderId,
-						}),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.inventories.inboundDemandQueue.queryKey({}),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getSaleOverview.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrders.pathKey(),
-					}),
-					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrdersSummary.pathKey(),
-					}),
-				]);
+				await refreshSalesInventoryQueries({
+					includeInboundWorkspace: true,
+				});
 				toast({
 					title: `Inbound #${data.inboundId} created`,
 					description: `${data.linkedDemandCount} demand row${
@@ -831,65 +813,10 @@ function InventoryActionBar({
 			},
 		}),
 	);
-	const markAvailable = useMutation(
-		trpc.inventories.resolveSalesInventoryMarkAsAvailabilityForContinue.mutationOptions(
-			{
-				onSuccess: async (data) => {
-					await Promise.all([
-						queryClient.invalidateQueries({
-							queryKey: trpc.inventories.salesInventoryOverview.queryKey({
-								salesOrderId,
-							}),
-						}),
-						queryClient.invalidateQueries({
-							queryKey: trpc.inventories.orderInboundShipments.queryKey({
-								salesOrderId,
-							}),
-						}),
-						queryClient.invalidateQueries({
-							queryKey: trpc.sales.getSaleOverview.pathKey(),
-						}),
-						queryClient.invalidateQueries({
-							queryKey: trpc.sales.getOrders.pathKey(),
-						}),
-						queryClient.invalidateQueries({
-							queryKey: trpc.sales.getOrdersSummary.pathKey(),
-						}),
-					]);
-					if (!data.continueAllowed) {
-						setInventorySegment(
-							data.remainingPreflight.totals.openInboundQty > 0
-								? "inbounds"
-								: "stock",
-						);
-						toast({
-							title: "Inventory still needs review",
-							description:
-								data.remainingPreflight.totals.openInboundQty > 0
-									? "Shipment-linked receiving work was left unchanged. Review the linked inbound."
-									: "Some inventory rows still need allocation before they can be marked available.",
-							variant: "destructive",
-						});
-						return;
-					}
-					toast({
-						title: "Inventory marked available",
-						description: `${data.cancelledDemandCount} pending demand row${
-							data.cancelledDemandCount === 1 ? "" : "s"
-						} resolved.`,
-						variant: "success",
-					});
-				},
-				onError: (error) => {
-					toast({
-						title: "Unable to mark inventory available",
-						description: error.message,
-						variant: "destructive",
-					});
-				},
-			},
-		),
-	);
+	const fulfillNeeds = useFulfillSalesInventoryNeeds({
+		salesOrderId,
+		onProtectedNeeds: () => setInventorySegment("inbounds"),
+	});
 
 	useEffect(() => {
 		if (!isInboundFormOpen) return;
@@ -962,16 +889,15 @@ function InventoryActionBar({
 			note: inboundNote.trim() || null,
 		});
 	};
-	const canMarkAllAvailable = canMarkAllInventoryAvailable({
+	const canFulfillAllNeeds = canFulfillAllInventoryNeeds({
 		canMarkAvailable: capabilities.canMarkAvailable,
 		pendingQty,
 		isReadOnly: overview.isInventoryReadOnly,
 	});
-	const markAllAvailable = () => {
-		if (!canMarkAllAvailable || markAvailable.isPending) return;
-		markAvailable.mutate({
-			salesOrderIds: [salesOrderId],
-			action: "production_completed",
+	const fulfillAllNeeds = () => {
+		if (!canFulfillAllNeeds || fulfillNeeds.isPending) return;
+		fulfillNeeds.mutate({
+			salesOrderId,
 		});
 	};
 
@@ -1010,20 +936,20 @@ function InventoryActionBar({
 						type="button"
 						size="sm"
 						variant="outline"
-						disabled={!canMarkAllAvailable || markAvailable.isPending}
+						disabled={!canFulfillAllNeeds || fulfillNeeds.isPending}
 						title={
 							!capabilities.canMarkAvailable
 								? overview.inventoryActionBlockReason ||
-									"Inventory availability is locked for this order."
+									"Inventory need fulfillment is locked for this order."
 								: pendingQty <= 0
-									? "No pending inventory demand needs to be marked available."
+									? "No pending inventory needs require manual fulfillment."
 									: undefined
 						}
-						onClick={markAllAvailable}
+						onClick={fulfillAllNeeds}
 					>
-						{markAvailable.isPending
-							? "Checking inventory..."
-							: "Mark all available"}
+						{fulfillNeeds.isPending
+							? "Fulfilling needs..."
+							: "Mark all needs fulfilled"}
 					</Button>
 				</div>
 			</div>
@@ -1095,9 +1021,7 @@ function InventoryActionBar({
 									variant="outline"
 									className="w-full justify-between bg-background font-normal"
 								>
-									{inboundStatus === "in_progress"
-										? "In progress"
-										: "Pending"}
+									{inboundStatus === "in_progress" ? "In progress" : "Pending"}
 									<Icons.ChevronDown className="size-4 opacity-50" />
 								</Button>
 							</DropdownMenuTrigger>
@@ -1503,10 +1427,8 @@ function InventoryInboundShipmentRow({
 												isReadOnly || isUpdating || status === shipment.status
 											}
 											onSelect={() =>
-												onUpdateStatus(
-													status,
-													statusNote.trim() || null,
-													() => setStatusNote(""),
+												onUpdateStatus(status, statusNote.trim() || null, () =>
+													setStatusNote(""),
 												)
 											}
 										>

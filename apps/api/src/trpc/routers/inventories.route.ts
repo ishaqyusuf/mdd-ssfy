@@ -50,6 +50,7 @@ import {
 	saveCommunityInputSchema,
 } from "@community/community-template-schemas";
 import {
+	NEW_INBOUND_SHIPMENT_STATUSES,
 	adjustInventoryStock,
 	applyInventoryImportSourceDisposition,
 	applyInventoryImportSourceDispositionBatch,
@@ -89,7 +90,6 @@ import {
 	inventoryVariantStockForm,
 	inventoryVariantsWorkspace,
 	lowStockSummary,
-	NEW_INBOUND_SHIPMENT_STATUSES,
 	pendingStockAllocations,
 	queueDykeStepToInventorySync,
 	queueInventoryToDykeSync,
@@ -169,6 +169,8 @@ import {
 	inventoryReconciliationReportSchemaTask,
 } from "@gnd/jobs/schema";
 import { getInventoryReconciliationReport } from "@gnd/sales/inventory-reconciliation-report";
+import { fulfillSalesInventoryNeedsManually as fulfillSalesInventoryNeedsManuallyMutation } from "@gnd/sales/manual-fulfill-sales-inventory-needs";
+import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 import {
 	allocateReceivedInboundToBackorders,
 	assignInventoryDispatchAllocations,
@@ -198,7 +200,6 @@ import {
 	getSalesInventorySyncMonitor,
 } from "@gnd/sales/sales-inventory-sync-monitor";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
-import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
@@ -1008,6 +1009,24 @@ export const inventoriesRouter = createTRPCRouter({
 		.mutation(async (props) => {
 			return resolveSalesInventoryMarkAsAvailabilityForContinue(props.ctx.db, {
 				...props.input,
+				authorName: String(props.ctx.userId ?? "System"),
+				triggeredByUserId: props.ctx.userId ?? null,
+			});
+		}),
+	fulfillSalesInventoryNeedsManually: protectedProcedure
+		.input(
+			z.object({
+				salesOrderId: salesInventoryOrderIdSchema,
+			}),
+		)
+		.mutation(async (props) => {
+			await requireAnyOperationalPermission(
+				props.ctx,
+				["editOrders"],
+				"You do not have permission to manually fulfill inventory needs.",
+			);
+			return fulfillSalesInventoryNeedsManuallyMutation(props.ctx.db, {
+				salesOrderId: props.input.salesOrderId,
 				authorName: String(props.ctx.userId ?? "System"),
 				triggeredByUserId: props.ctx.userId ?? null,
 			});

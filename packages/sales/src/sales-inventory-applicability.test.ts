@@ -57,6 +57,22 @@ describe("resolveSalesInventoryApplicability", () => {
 		});
 	});
 
+	test("recognizes existing required inventory rows when the projection marker is missing", () => {
+		expect(
+			resolveSalesInventoryApplicability({
+				lifecycleStatus: "awaiting_production",
+				projection: null,
+				existingInventoryNeedCount: 1,
+			}),
+		).toMatchObject({
+			state: "applicable",
+			needCount: 1,
+			isInboundApplicable: true,
+			canManualSync: false,
+			label: "Inventory required",
+		});
+	});
+
 	test("does not repair legacy sales after production completion", () => {
 		expect(
 			resolveSalesInventoryApplicability({

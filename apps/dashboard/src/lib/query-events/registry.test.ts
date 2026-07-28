@@ -8,7 +8,7 @@ import {
 
 describe("query event mutation registry", () => {
 	it("keeps the critical-domain rollout registered", () => {
-		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(79);
+		expect(Object.keys(MUTATION_QUERY_EVENTS).length).toBe(80);
 		expect(Object.keys(QUERY_EVENTS).length).toBe(15);
 	});
 
@@ -76,6 +76,20 @@ describe("query event mutation registry", () => {
 			(target) => target.route,
 		);
 
+		expect(routes).toContain("notes.activityTree");
+	});
+
+	it("refreshes inventory and sales order projections after manual need fulfillment", () => {
+		expect(
+			resolveMutationQueryEvents({
+				mutationKey: [["inventories", "fulfillSalesInventoryNeedsManually"]],
+			}),
+		).toEqual([{ name: "inventory.inbound.changed" }]);
+
+		const routes = QUERY_EVENTS["inventory.inbound.changed"].targets.map(
+			(target) => target.route,
+		);
+		expect(routes).toContain("sales.getOrders");
 		expect(routes).toContain("notes.activityTree");
 	});
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 
 import {
-	canMarkAllInventoryAvailable,
+	canFulfillAllInventoryNeeds,
 	getInboundOrderableQty,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
@@ -32,21 +32,21 @@ describe("sales overview inventory inbound helpers", () => {
 		).toBe(3);
 	});
 
-	it("gates Mark all available on capability, lifecycle, and pending qty", () => {
+	it("gates Mark all needs fulfilled on capability, lifecycle, and pending qty", () => {
 		expect(
-			canMarkAllInventoryAvailable({
+			canFulfillAllInventoryNeeds({
 				canMarkAvailable: true,
 				pendingQty: 2,
 			}),
 		).toBe(true);
 		expect(
-			canMarkAllInventoryAvailable({
+			canFulfillAllInventoryNeeds({
 				canMarkAvailable: true,
 				pendingQty: 0,
 			}),
 		).toBe(false);
 		expect(
-			canMarkAllInventoryAvailable({
+			canFulfillAllInventoryNeeds({
 				canMarkAvailable: true,
 				pendingQty: 2,
 				isReadOnly: true,

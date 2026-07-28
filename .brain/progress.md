@@ -7549,3 +7549,39 @@
   typing errors, while dashboard-wide typecheck and browser QA were blocked by
   the pre-existing CPU-bound shared Next development server. No database,
   migration, API schema, permission, or authentication change was required.
+- 2026-07-28: fixed the Sales Orders inbound column misclassifying older
+  inventory-backed orders as `Not synced` when their canonical inventory sale
+  lines and required components existed but the newly introduced
+  `SalesInventoryProjectionState` marker did not. `sales.getOrders` now counts
+  active required positive-quantity components as conservative fallback
+  applicability evidence while still leaving genuinely unprojected rows in
+  `not_synced`. Focused applicability and inbound-action coverage passes 10
+  tests / 11 assertions; `@gnd/sales` typecheck passes. The API-wide typecheck
+  remains blocked only by the existing `apps/api/src/instrument.ts` Sentry
+  event typing errors. Authenticated browser proof on order `00003DPP`
+  confirmed the Inbound cell changed from `Not synced` to the normal actionable
+  `Set status` state without mutating the order or its inventory rows.
+- 2026-07-28: replaced the misleading Inventory Needs `Mark all available`
+  action with audited `Mark all needs fulfilled`. The mutation is
+  `editOrders`-guarded, resolves only active monitored Needs rows, cancels only
+  unlinked/unreceived mutable demand, preserves linked or partially received
+  inbound work, updates the order prompt to `AVAILABLE` only after every
+  applicable need is safe, and never fabricates stock, allocation, or receipt
+  quantity. Fulfilled component projections now report zero pending quantity.
+  Create-inbound also explicitly refetches the active infinite Sales Orders
+  query, and linked shipment ownership now takes display priority over stale
+  projection labels. The fulfillment write uses exact quantity guards and
+  rejects a concurrent active inbound demand instead of overwriting it.
+  Focused coverage passes 78 tests / 330 assertions, `@gnd/sales` typecheck
+  passes, focused lint/format checks and scoped diff checks pass, and
+  authenticated browser validation confirms order `00003DPP` shows `Mark all
+  needs fulfilled` while order `08883LM` now shows its linked `Received`
+  inbound status with no console errors. API-wide typecheck remains blocked
+  only by the existing Sentry event typing errors in `apps/api/src/instrument.ts`;
+  dashboard-wide typecheck remains blocked by its existing broad type-error
+  baseline. The full suite passes 2,418 tests with 31 unrelated baseline
+  failures and one opt-in live test skipped. The final standards review moved
+  tracking classification into one package-owned resolver, changed the Sales
+  Orders fallback query to filtered relation counts instead of component detail
+  rows, and extracted inventory refresh/manual-fulfillment mutation
+  orchestration from the large Inventory tab.

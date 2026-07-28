@@ -230,6 +230,9 @@ export const MUTATION_QUERY_EVENTS = {
 	"inventories.deleteInventoryCategory": ["inventory.catalog.changed"],
 	"inventories.deleteInventorySupplier": ["inventory.catalog.changed"],
 	"inventories.fulfillInventoryDispatch": ["inventory.fulfillment.changed"],
+	"inventories.fulfillSalesInventoryNeedsManually": [
+		"inventory.inbound.changed",
+	],
 	"inventories.packInventoryDispatchAllocations": [
 		"inventory.fulfillment.changed",
 	],

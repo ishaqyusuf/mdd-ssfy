@@ -9,6 +9,7 @@ import {
 	getSalesInboundActionIntent,
 	getSalesInboundStatusToneClassName,
 	normalizeSalesInboundStatus,
+	resolveSalesInboundColumnState,
 } from "@/components/sales-inbound-status-badge";
 import { SalesMenu } from "@/components/sales-menu";
 import { useSalesInventorySegmentQuery } from "@/components/sales-overview-system/hooks/use-sales-inventory-segment-query";
@@ -313,6 +314,10 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 	const inventoryInboundOwnership = item.inventoryInboundOwnership;
 	const inventoryApplicability = item.inventoryApplicability;
 	const hasInventoryInbound = !!inventoryInboundOwnership?.hasInventoryInbound;
+	const columnState = resolveSalesInboundColumnState({
+		ownership: inventoryInboundOwnership,
+		inventoryApplicabilityState: inventoryApplicability?.state,
+	});
 	const actionIntent = getSalesInboundActionIntent(inventoryInboundOwnership);
 	const inboundStatusClassName =
 		"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap px-2 font-medium shadow-none";
@@ -347,58 +352,7 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 		});
 	};
 
-	if (
-		inventoryApplicability?.state === "not_applicable" ||
-		inventoryApplicability?.state === "legacy_not_applicable"
-	) {
-		return (
-			<span
-				className="inline-flex h-7 max-w-full items-center rounded-md px-2 font-medium text-muted-foreground"
-				title={inventoryApplicability.description}
-			>
-				N/A
-			</span>
-		);
-	}
-
-	if (inventoryApplicability?.state === "syncing") {
-		return (
-			<span
-				className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-2 font-medium text-muted-foreground"
-				title={inventoryApplicability.description}
-			>
-				<Icons.Loader2 className="size-3 animate-spin" />
-				{inventoryApplicability.label}
-			</span>
-		);
-	}
-
-	if (
-		inventoryApplicability?.state === "not_synced" ||
-		inventoryApplicability?.state === "failed"
-	) {
-		return (
-			<button
-				type="button"
-				className={cn(
-					buttonVariants({ variant: "ghost", size: "sm" }),
-					inboundStatusClassName,
-					"text-muted-foreground",
-				)}
-				title={inventoryApplicability.description}
-				onClick={(event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					openInventoryReview();
-				}}
-				onPointerDown={(event) => event.stopPropagation()}
-			>
-				{inventoryApplicability.label}
-			</button>
-		);
-	}
-
-	if (hasInventoryInbound) {
+	if (columnState === "inventory_inbound" && hasInventoryInbound) {
 		const status = getInventoryInboundOwnershipStatus(
 			inventoryInboundOwnership,
 		);
@@ -434,6 +388,51 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 					{getInventoryInboundOwnershipLabel(inventoryInboundOwnership)}
 				</span>
 			</span>
+		);
+	}
+
+	if (columnState === "not_applicable") {
+		return (
+			<span
+				className="inline-flex h-7 max-w-full items-center rounded-md px-2 font-medium text-muted-foreground"
+				title={inventoryApplicability.description}
+			>
+				N/A
+			</span>
+		);
+	}
+
+	if (columnState === "syncing") {
+		return (
+			<span
+				className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-2 font-medium text-muted-foreground"
+				title={inventoryApplicability.description}
+			>
+				<Icons.Loader2 className="size-3 animate-spin" />
+				{inventoryApplicability.label}
+			</span>
+		);
+	}
+
+	if (columnState === "projection_attention") {
+		return (
+			<button
+				type="button"
+				className={cn(
+					buttonVariants({ variant: "ghost", size: "sm" }),
+					inboundStatusClassName,
+					"text-muted-foreground",
+				)}
+				title={inventoryApplicability.description}
+				onClick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					openInventoryReview();
+				}}
+				onPointerDown={(event) => event.stopPropagation()}
+			>
+				{inventoryApplicability.label}
+			</button>
 		);
 	}
 

@@ -462,6 +462,49 @@ describe("buildSalesOverviewInventoryMergedRows", () => {
 });
 
 describe("buildSalesOverviewInventoryGroups", () => {
+	test("treats manually fulfilled tracked needs as resolved without fabricating stock", () => {
+		const groups = buildSalesOverviewInventoryGroups([
+			{
+				id: 10,
+				components: [
+					{
+						id: 1,
+						required: true,
+						qty: 2,
+						qtyAllocated: 0,
+						qtyReceived: 0,
+						status: "fulfilled",
+						inventoryId: 500,
+						inventoryVariantId: 501,
+						inventoryCategoryId: 502,
+						inventory: {
+							id: 500,
+							name: "Door",
+							stockMode: "monitored",
+						},
+						inventoryVariant: {
+							id: 501,
+							sku: "2-8",
+							stocks: [{ qty: 0 }],
+						},
+						inventoryCategory: {
+							id: 502,
+							title: "Door",
+							stockMode: "monitored",
+						},
+					},
+				],
+			},
+		]);
+
+		expect(groups[0]?.rows[0]).toMatchObject({
+			status: "fulfilled",
+			qtyRequired: 2,
+			qtyAllocated: 0,
+			qtyPending: 0,
+		});
+	});
+
 	test("groups sale inventory rows by invoice item description", () => {
 		const groups = buildSalesOverviewInventoryGroups([
 			{

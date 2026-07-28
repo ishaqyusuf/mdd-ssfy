@@ -32,6 +32,7 @@ export type SalesInventoryApplicability = {
 export function resolveSalesInventoryApplicability(input: {
 	lifecycleStatus: SalesOrderLifecycleStatus;
 	projection?: SalesInventoryProjectionLike | null;
+	existingInventoryNeedCount?: number | null;
 }): SalesInventoryApplicability {
 	const projection = input.projection;
 	const passedRepairBoundary = hasPassedInventoryTrackingRepairBoundary(
@@ -39,6 +40,25 @@ export function resolveSalesInventoryApplicability(input: {
 	);
 
 	if (!projection) {
+		const existingInventoryNeedCount = Math.max(
+			0,
+			Number(input.existingInventoryNeedCount || 0),
+		);
+
+		if (existingInventoryNeedCount > 0) {
+			return {
+				state: "applicable",
+				needCount: existingInventoryNeedCount,
+				isInboundApplicable: true,
+				canManualSync: false,
+				label: "Inventory required",
+				description: `${existingInventoryNeedCount} inventory requirement${
+					existingInventoryNeedCount === 1 ? "" : "s"
+				} found for this sale.`,
+				lastSyncedAt: null,
+			};
+		}
+
 		if (passedRepairBoundary) {
 			return {
 				state: "legacy_not_applicable",
