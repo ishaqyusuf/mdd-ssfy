@@ -156,7 +156,7 @@ The cutover is not complete. The next execution slices should close these gates 
    - inbound policy and services: `packages/inventory/src/application/inbound/*`
    - fulfillment and dispatch: `packages/sales/src/sales-fulfillment-plan.ts`
    - API orchestration: `apps/api/src/trpc/routers/inventories.route.ts`
-   - Sales Overview UI: `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx`
+   - Sales Overview UI: `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx`
 2. Convert each invariant into one of: proven, implemented but needs proof, missing, or product-decision-needed.
 3. Validation gate: a short report showing no invariant is unowned before implementation continues.
 

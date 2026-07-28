@@ -20,7 +20,7 @@ This guide combines:
 - the current Brain decisions and engineering rules
 - the real local Midday repo at `/Users/M1PRO/Documents/code/_kitchen_sink/midday`
 - the smaller Midday-inspired references already present in this repo:
-  - `apps/www/src/(midday)`
+  - `apps/dashboard/src/(midday)`
   - `ai/midday-example`
 
 The goal is not to make GND look exactly like Midday. The goal is to borrow the useful parts of Midday's app architecture and pair them with stricter domain authority for GND's operations-heavy workflows.
@@ -44,9 +44,9 @@ That means:
 
 ## Scope
 This guide applies to:
-- `apps/www`
+- `apps/dashboard`
 - `apps/api`
-- `apps/expo-app`
+- `apps/mobile`
 - `apps/site`
 - `packages/*`
 - `brain/*` when architecture, delivery patterns, or domain ownership change
@@ -191,7 +191,7 @@ This is also aligned with the real Midday repo, which separates:
 
 ## Current GND Surface Map
 
-### `apps/www`
+### `apps/dashboard`
 Primary business web surface. This is where most workspace complexity lives.
 
 Current responsibilities already include:
@@ -200,7 +200,7 @@ Current responsibilities already include:
 - HRM/community/settings surfaces
 - tables, sheets, filters, modals, and page shells
 
-The risk in `apps/www` is not lack of capability. The risk is that domain rules can accidentally remain trapped in the web layer because the UI is so feature-rich.
+The risk in `apps/dashboard` is not lack of capability. The risk is that domain rules can accidentally remain trapped in the web layer because the UI is so feature-rich.
 
 ### `apps/api`
 Server-facing contract layer.
@@ -218,7 +218,7 @@ This is the correct kind of surface for:
 - request normalization
 - delegating into domain or data services
 
-### `apps/expo-app`
+### `apps/mobile`
 Mobile surface for platform-specific experiences.
 
 This should remain:
@@ -226,7 +226,7 @@ This should remain:
 - shared in business truth
 
 ### `apps/site`
-Separate web surface with narrower product needs. Keep it lighter than `apps/www`.
+Separate web surface with narrower product needs. Keep it lighter than `apps/dashboard`.
 
 ### `apps/gnd-backlog`
 Support surface. Useful, but not a second home for core business truth.
@@ -309,8 +309,8 @@ Do not hide business logic here.
 ### Allowed directions
 - `apps/*` -> `packages/*`
 - `apps/api` -> `packages/db`, `packages/sales`, and other shared packages
-- `apps/www` -> shared UI and domain packages
-- `apps/expo-app` -> shared domain packages and mobile-safe shared utilities
+- `apps/dashboard` -> shared UI and domain packages
+- `apps/mobile` -> shared domain packages and mobile-safe shared utilities
 - higher-level packages -> lower-level packages
 
 ### Forbidden or strongly discouraged directions
@@ -329,7 +329,7 @@ You likely need to promote code into a package when:
 
 ## How to Decide Where Code Goes
 
-### Put it in `apps/www` when it is:
+### Put it in `apps/dashboard` when it is:
 - route composition
 - table column definitions
 - local filter-param wiring
@@ -369,7 +369,7 @@ You likely need to promote code into a package when:
 
 ## Application Boundary Rules
 
-### `apps/www` rules
+### `apps/dashboard` rules
 
 #### Routes should be thin
 Route/page files should mainly:
@@ -388,10 +388,10 @@ A route file should not become:
 For medium or large features, group code around the feature rather than scattering it everywhere.
 
 Good homes include:
-- `apps/www/src/components/<feature>`
-- `apps/www/src/features/<feature>`
-- `apps/www/src/components/tables/<feature>`
-- `apps/www/src/components/sheets/<feature>`
+- `apps/dashboard/src/components/<feature>`
+- `apps/dashboard/src/features/<feature>`
+- `apps/dashboard/src/components/tables/<feature>`
+- `apps/dashboard/src/components/sheets/<feature>`
 
 #### Use reusable workspace primitives
 Where possible, use:
@@ -436,7 +436,7 @@ Use request and response schemas to:
 - normalize payloads
 - preserve cross-surface consistency
 
-### `apps/expo-app` rules
+### `apps/mobile` rules
 
 #### Mobile owns mobile UX
 The Expo app should own:
@@ -451,22 +451,22 @@ If the mobile app needs a different business rule, that needs explicit documenta
 
 ## File and Folder Structure Rules
 
-## `apps/www`
+## `apps/dashboard`
 
 ### Recommended route pattern
 Use route files as shell entry points, not as the whole feature.
 
 Preferred shape for larger features:
 ```text
-apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx
-apps/www/src/components/tables-2/sales-orders/
-apps/www/src/components/sales-orders-v2-header.tsx
-apps/www/src/hooks/use-sales-orders-v2-filter-params.ts
+apps/dashboard/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx
+apps/dashboard/src/components/tables-2/sales-orders/
+apps/dashboard/src/components/sales-orders-v2-header.tsx
+apps/dashboard/src/hooks/use-sales-orders-v2-filter-params.ts
 ```
 
 Alternative shape when the feature is more self-contained:
 ```text
-apps/www/src/features/<feature>/
+apps/dashboard/src/features/<feature>/
   api/
   components/
   hooks/
@@ -482,7 +482,7 @@ apps/www/src/features/<feature>/
 - `lib/`: low-level app utilities, not random business-rule dumping grounds
 - `data-access/`: app-level data composition where it is still truly app-specific
 
-### Anti-patterns in `apps/www`
+### Anti-patterns in `apps/dashboard`
 - giant page files that both fetch and transform and render everything
 - putting domain calculations into table column files
 - copy-pasting similar queries into many route surfaces

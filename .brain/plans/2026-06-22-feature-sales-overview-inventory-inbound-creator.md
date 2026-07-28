@@ -40,9 +40,9 @@ Add a `Create inbound` action in the sales overview Inventory tab. It should ope
 - `packages/inventory/src/application/inbound/*`
 - `packages/inventory/src/inventory.ts`
 - `apps/api/src/trpc/routers/inventories.route.ts`
-- `apps/www/src/app/(sidebar)/inventory/inbounds`
-- `apps/www/src/components/inventory/*`
-- `apps/www/src/components/sales-overview-system/*`
+- `apps/dashboard/src/app/(sidebar)/inventory/inbounds`
+- `apps/dashboard/src/components/inventory/*`
+- `apps/dashboard/src/components/sales-overview-system/*`
 - `brain/features/inventory-backed-sales-fulfillment.md`
 - `brain/api/contracts.md`
 

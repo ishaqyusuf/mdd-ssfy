@@ -12,7 +12,7 @@ describe("shared document caller migration", () => {
 	test("gallery-picked employee uploads register and retain StoredDocument ids", () => {
 		const route = source("apps/api/src/trpc/routers/user.route.ts");
 		const query = source("apps/api/src/db/queries/user.ts");
-		const mobile = source("apps/expo-app/src/screens/documents-screen.tsx");
+		const mobile = source("apps/mobile/src/screens/documents-screen.tsx");
 
 		expect(route).toContain("registerStoredDocumentUpload");
 		expect(route).toContain("storedDocumentId:");
@@ -34,7 +34,7 @@ describe("shared document caller migration", () => {
 		);
 		const dispatchQuery = source("apps/api/src/db/queries/dispatch.ts");
 		const salesTask = source("packages/sales/src/sales-control/tasks.ts");
-		const packing = source("apps/www/src/hooks/use-signature.ts");
+		const packing = source("apps/dashboard/src/hooks/use-signature.ts");
 
 		expect(route).toContain('kind: "signature"');
 		expect(route).toContain('kind: "dispatch_image"');
@@ -110,7 +110,7 @@ describe("shared document caller migration", () => {
 
 	test("browser source never receives write-capable Blob credentials", () => {
 		const clientFiles = [
-			...readdirSync(join(workspaceRoot, "apps/www/src"), {
+			...readdirSync(join(workspaceRoot, "apps/dashboard/src"), {
 				recursive: true,
 				withFileTypes: true,
 			}),

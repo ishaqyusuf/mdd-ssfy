@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/apps/www/docker-compose.yml}"
+COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/apps/dashboard/docker-compose.yml}"
 SERVICE_NAME="${SERVICE_NAME:-mysql}"
 XAMPP_BIN_DIR="${XAMPP_BIN_DIR:-/Applications/XAMPP/xamppfiles/bin}"
 MYSQLDUMP_BIN="${MYSQLDUMP_BIN:-mysqldump}"

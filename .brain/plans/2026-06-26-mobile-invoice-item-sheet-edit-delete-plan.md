@@ -15,7 +15,7 @@ Remove the inline `Item 1` title/description input from the top of the mobile in
 ## Detailed Execution Plan
 
 1. Preserve item ownership in `ItemsStep`
-   - Keep item sheet open/edit/delete state inside `apps/expo-app/src/features/sales/invoice-form/components/items-step.tsx`, because it already owns `activeIndex`, `itemSections`, sheet presentation, and item navigation.
+   - Keep item sheet open/edit/delete state inside `apps/mobile/src/features/sales/invoice-form/components/items-step.tsx`, because it already owns `activeIndex`, `itemSections`, sheet presentation, and item navigation.
    - Avoid moving item sheet state into `InvoiceFormScreen`; the screen should keep only the existing presenter callback and active title callback.
    - Continue deriving item sections through `buildInvoiceItemSections(...)` so workflow grouping and active-item ordering stay unchanged.
 
@@ -76,7 +76,7 @@ Remove the inline `Item 1` title/description input from the top of the mobile in
      - edit title target resolution
      - active index after deletion
    - Run focused validation:
-     - `bun test apps/expo-app/src/features/sales/invoice-form/components/items-step-sheet.test.ts apps/expo-app/src/features/sales/invoice-form/components/items-step-sections.test.ts`
+     - `bun test apps/mobile/src/features/sales/invoice-form/components/items-step-sheet.test.ts apps/mobile/src/features/sales/invoice-form/components/items-step-sections.test.ts`
      - `bunx biome check` on touched item-sheet helper files and any newly extracted components.
      - `git diff --check` on touched files.
    - If `items-step.tsx` still reports existing file-wide formatting debt, document that separately and keep the actual change scoped.

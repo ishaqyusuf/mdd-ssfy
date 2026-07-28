@@ -70,7 +70,7 @@ Do not implement code. Do not create handoffs. This investigation prepares appro
 - `brain/handoffs/completed/2026-06-12-inventory-to-dyke-sync-pending-01-fix-2.md`
 - `brain/reports/`
 - `brain/reviews/`
-- current code under `packages/inventory`, `packages/sales`, `packages/jobs`, `apps/api`, and `apps/www`
+- current code under `packages/inventory`, `packages/sales`, `packages/jobs`, `apps/api`, and `apps/dashboard`
 
 ## Acceptance Criteria
 - A gap matrix exists and covers every requested capability from the intake.

@@ -223,7 +223,7 @@ Commands:
 ```sh
 bun run --filter @gnd/dealership typecheck
 bun run --filter @gnd/sales typecheck
-bun run --filter @gnd/www typecheck
+bun run --filter @gnd/dashboard typecheck
 ```
 
 Result:
@@ -232,7 +232,7 @@ Result:
 - `@gnd/sales`: Blocked by existing unrelated typecheck errors in package test
   and print/control files; no new edited-file error was identified in the
   visible output.
-- `@gnd/www`: Blocked by existing unrelated application-wide typecheck errors;
+- `@gnd/dashboard`: Blocked by existing unrelated application-wide typecheck errors;
   no new edited-file error was identified in the visible output.
 
 ## 2026-05-20 Runtime Smoke Attempt
@@ -283,7 +283,7 @@ Implementation:
 - Added `setSalesFormCustomerProfileMeta(...)` to the shared sales-form state
   reducers so profile meta changes, profile repricing, and summary recompute are
   applied atomically.
-- Wired `apps/www` invoice overview profile changes through the new reducer for
+- Wired `apps/dashboard` invoice overview profile changes through the new reducer for
   manual profile selection, resolved-customer profile changes, default-profile
   selection, and late-loaded profile option safety.
 - Kept tax-rate updates on the existing `setSalesFormTaxRate(...)` path, which
@@ -331,7 +331,7 @@ Typecheck signal:
 - `@gnd/sales` still has existing repo-wide typecheck blockers, but filtering
   for the touched sales-form files only reports the existing missing
   `bun:test` type declaration in test files.
-- `@gnd/www` still has existing repo-wide typecheck blockers, and filtering for
+- `@gnd/dashboard` still has existing repo-wide typecheck blockers, and filtering for
   touched `new-sales-form/store` and `invoice-overview-panel` files reports no
   matching errors.
 
@@ -492,7 +492,7 @@ Known remaining typecheck signal:
 - `bun run --filter @gnd/sales typecheck` still fails on existing repo-wide
   strictness/test type issues, including missing `bun:test` declarations and
   unrelated print/control/UI utility errors.
-- `bun run --filter @gnd/www typecheck` still fails on existing repo-wide
+- `bun run --filter @gnd/dashboard typecheck` still fails on existing repo-wide
   action, legacy sales-book, table, TRPC, and shared UI type issues.
 
 ## 2026-05-20 Phase 2 Persistence/Recovery Proof
@@ -514,7 +514,7 @@ Implementation/proof:
 Focused command:
 
 ```sh
-bun test packages/sales/src/sales-form/state/actions/line-items.test.ts apps/www/src/components/forms/new-sales-form/local-recovery.test.ts
+bun test packages/sales/src/sales-form/state/actions/line-items.test.ts apps/dashboard/src/components/forms/new-sales-form/local-recovery.test.ts
 ```
 
 Result:
@@ -528,7 +528,7 @@ Regression commands:
 ```sh
 bun test packages/sales/src/sales-form/domain packages/sales/src/sales-form/state packages/sales/src/sales-form/ui/workflow
 bun test apps/api/src/db/queries/new-sales-form.test.ts apps/api/src/db/queries/new-sales-form.multi-line.test.ts
-bun test apps/www/src/components/forms/new-sales-form/local-recovery.test.ts
+bun test apps/dashboard/src/components/forms/new-sales-form/local-recovery.test.ts
 ```
 
 Result:

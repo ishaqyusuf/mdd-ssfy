@@ -1,12 +1,18 @@
-import { OpenAPIHono } from "@hono/zod-openapi";
-import type { Context } from "./rest/types";
-import { secureHeaders } from "hono/secure-headers";
-import { cors } from "hono/cors";
+import "./instrument";
+
+import { db } from "@gnd/db";
+import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
 import { trpcServer } from "@hono/trpc-server";
+import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
+import { HTTPException } from "hono/http-exception";
+import { secureHeaders } from "hono/secure-headers";
+import { captureApiError, captureTrpcError } from "./observability/sentry";
+import type { Context } from "./rest/types";
+import { createTRPCContext } from "./trpc/init";
 import { appRouter } from "./trpc/routers/_app";
 import { storefrontAppRouter } from "./trpc/routers/storefront-app";
-import { createTRPCContext } from "./trpc/init";
-import { appendDevLogEntryToFile } from "@gnd/dev-logger/file-sink";
+
 const app = new OpenAPIHono<Context>(); //.basePath("/api");
 
 app.use(secureHeaders());
@@ -85,6 +91,14 @@ app.use(
     router: storefrontAppRouter,
     createContext: createTRPCContext,
     endpoint: "/api/storefront/trpc",
+    onError({ error, path, type }) {
+      captureTrpcError({
+        error,
+        path,
+        type,
+        router: "storefront",
+      });
+    },
   }),
 );
 app.use(
@@ -93,10 +107,63 @@ app.use(
     router: appRouter,
     createContext: createTRPCContext,
     endpoint: "/api/trpc",
+    onError({ error, path, type }) {
+      captureTrpcError({
+        error,
+        path,
+        type,
+        router: "app",
+      });
+    },
   }),
 );
+app.get("/health", async (c) => {
+  c.header("Cache-Control", "no-store");
+
+  try {
+    await db.users.count();
+
+    return c.json({
+      status: "ok",
+      checks: {
+        database: "ok",
+      },
+    });
+  } catch (error) {
+    captureApiError(
+      error instanceof Error
+        ? error
+        : new Error("Database health check failed"),
+      {
+        method: c.req.method,
+      },
+    );
+
+    return c.json(
+      {
+        status: "error",
+        checks: {
+          database: "unavailable",
+        },
+      },
+      503,
+    );
+  }
+});
 app.get("/", (c) => {
   return c.json({ message: "Congrats! You've deployed Hono to Vercel" });
+});
+
+app.onError((error, c) => {
+  if (error instanceof HTTPException) {
+    return error.getResponse();
+  }
+
+  captureApiError(error, {
+    method: c.req.method,
+  });
+
+  return c.json({ error: "Internal Server Error" }, 500);
 });
 
 export { app };

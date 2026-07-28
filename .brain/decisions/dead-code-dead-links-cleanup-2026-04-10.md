@@ -2,7 +2,7 @@
 
 ## Summary
 
-Ran `knip` on the `apps/www` workspace to identify and delete unused files. Also performed a comprehensive analysis of dead navigation links and versioned duplicate pages across the route groups.
+Ran `knip` on the `apps/dashboard` workspace to identify and delete unused files. Also performed a comprehensive analysis of dead navigation links and versioned duplicate pages across the route groups.
 
 ---
 
@@ -37,7 +37,7 @@ Knip identified **277 unused files** in the existing `knip-report.txt`. Of those
 | `types/` | 2 | Dead type files |
 | `use-cases/` | 3 | Dead use-case files |
 | `utils/db.ts` | 1 | Dead utility |
-| Root-level (`apps/www/`) | 2 | `middleware_.ts`, `renderEmailFix.js` |
+| Root-level (`apps/dashboard/`) | 2 | `middleware_.ts`, `renderEmailFix.js` |
 
 ### Notable Deletions
 

@@ -1,4 +1,5 @@
 import {
+	type MouseEvent,
 	createContext,
 	useCallback,
 	useContext,
@@ -6,8 +7,8 @@ import {
 	useMemo,
 	useRef,
 	useState,
-	type MouseEvent,
 } from "react";
+import { resolveSelectedModule } from "../lib/module-selection";
 import {
 	getActiveLinkFromMap,
 	getLinkModules,
@@ -106,34 +107,40 @@ export const createSiteNavContext = (props: Props) => {
 			: false;
 	}, []);
 
-	const handleNavMouseLeave = useCallback((event?: MouseEvent) => {
-		if (isMovingToNavHoverSurface(event)) {
-			markNavHoverSurfaceEntered();
-			return;
-		}
-		scheduleNavHoverCollapse();
-	}, [
-		isMovingToNavHoverSurface,
-		markNavHoverSurfaceEntered,
-		scheduleNavHoverCollapse,
-	]);
+	const handleNavMouseLeave = useCallback(
+		(event?: MouseEvent) => {
+			if (isMovingToNavHoverSurface(event)) {
+				markNavHoverSurfaceEntered();
+				return;
+			}
+			scheduleNavHoverCollapse();
+		},
+		[
+			isMovingToNavHoverSurface,
+			markNavHoverSurfaceEntered,
+			scheduleNavHoverCollapse,
+		],
+	);
 
 	const handleNavFloatingMouseEnter = useCallback(() => {
 		markNavHoverSurfaceEntered();
 		clearHoverExpandTimeout();
 	}, [clearHoverExpandTimeout, markNavHoverSurfaceEntered]);
 
-	const handleNavFloatingMouseLeave = useCallback((event?: MouseEvent) => {
-		if (isMovingToNavHoverSurface(event)) {
-			markNavHoverSurfaceEntered();
-			return;
-		}
-		scheduleNavHoverCollapse();
-	}, [
-		isMovingToNavHoverSurface,
-		markNavHoverSurfaceEntered,
-		scheduleNavHoverCollapse,
-	]);
+	const handleNavFloatingMouseLeave = useCallback(
+		(event?: MouseEvent) => {
+			if (isMovingToNavHoverSurface(event)) {
+				markNavHoverSurfaceEntered();
+				return;
+			}
+			scheduleNavHoverCollapse();
+		},
+		[
+			isMovingToNavHoverSurface,
+			markNavHoverSurfaceEntered,
+			scheduleNavHoverCollapse,
+		],
+	);
 
 	const isNavHoverCollapsePending = useCallback(() => {
 		return hoverCollapsePendingRef.current;
@@ -146,7 +153,7 @@ export const createSiteNavContext = (props: Props) => {
 		};
 	}, [clearHoverCollapseTimeout, clearHoverExpandTimeout]);
 
-	const { activeLink, linkModules, modules, currentModule } = useMemo(() => {
+	const { activeLink, linkModules, modules, activeModule } = useMemo(() => {
 		const linkModules = getLinkModules(
 			validateLinks({
 				linkModules: props.linkModules,
@@ -179,10 +186,33 @@ export const createSiteNavContext = (props: Props) => {
 					href,
 				};
 			});
-		const currentModule = modules.find((m) => m.name === activeLink?.module);
+		const activeModule = modules.find((m) => m.name === activeLink?.module);
 
-		return { activeLink, modules, linkModules, currentModule };
+		return { activeLink, modules, linkModules, activeModule };
 	}, [props]);
+	const [selectedModuleName, setSelectedModuleName] = useState<string | null>(
+		() => activeModule?.name ?? modules[0]?.name ?? null,
+	);
+	const currentModule = resolveSelectedModule(
+		modules,
+		selectedModuleName,
+		activeModule?.name,
+	);
+	const selectModule = useCallback(
+		(moduleName: string) => {
+			if (modules.some((module) => module.name === moduleName)) {
+				setSelectedModuleName(moduleName);
+			}
+		},
+		[modules],
+	);
+
+	useEffect(() => {
+		if (activeModule?.name) {
+			setSelectedModuleName(activeModule.name);
+		}
+	}, [activeModule?.name]);
+
 	return {
 		props,
 		mainMenuRef,
@@ -199,6 +229,7 @@ export const createSiteNavContext = (props: Props) => {
 		modules,
 		linkModules,
 		currentModule,
+		selectModule,
 	};
 };
 export const useSiteNav = () => {

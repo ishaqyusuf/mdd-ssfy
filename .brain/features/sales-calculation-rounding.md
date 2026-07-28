@@ -38,7 +38,7 @@ Defines the shared money, grouped-pricing, shelf persistence, discount, and C.C.
 
 See `.brain/reports/2026-07-20-legacy-vs-new-sales-calculation-rounding-audit.md`.
 
-- `apps/www/src/components/forms/sales-form/payment-system-browser-boundary.test.ts`
+- `apps/dashboard/src/components/forms/sales-form/payment-system-browser-boundary.test.ts`
   verifies the browser-safe money export resolves without Prisma and prevents
   the broad server payment barrel from returning to the browser sales-form
   trees.

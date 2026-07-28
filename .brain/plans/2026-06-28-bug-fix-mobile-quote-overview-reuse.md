@@ -16,9 +16,9 @@ Done
 Mobile quote rows opened the quote edit form directly, while the website quote table opens a quote overview and keeps editing as an explicit action. Mobile quote list cards also reused invoice-oriented due/progress copy that was not needed on the quote list surface.
 
 ## Current Context
-- `apps/expo-app/src/features/sales/components/sales-document-list-screen.tsx` shared the mobile Orders and Quotes list behavior.
+- `apps/mobile/src/features/sales/components/sales-document-list-screen.tsx` shared the mobile Orders and Quotes list behavior.
 - Quote list rows previously required a saved slug and routed to `/(sales)/invoices/[slug]` in quote mode.
-- `apps/expo-app/src/features/sales/components/sales-order-detail-screen.tsx` already provided the mobile order overview UI.
+- `apps/mobile/src/features/sales/components/sales-order-detail-screen.tsx` already provided the mobile order overview UI.
 - `sales.getSaleOverview` already accepts `salesType: "quote"`, so no API, schema, or database change is needed.
 
 ## Proposed Approach
@@ -43,10 +43,10 @@ flowchart TD
 - Add focused helper coverage for quote overview routes, edit-route slug gating, and quote/order ledger labels.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/app/(sales)/quotes/[quoteNo].tsx`
-- `apps/expo-app/src/features/sales/components/sales-order-detail-screen.tsx`
-- `apps/expo-app/src/features/sales/components/sales-document-list*`
-- `apps/expo-app/src/features/sales/components/sales-invoice-list-card-*`
+- `apps/mobile/src/app/(sales)/quotes/[quoteNo].tsx`
+- `apps/mobile/src/features/sales/components/sales-order-detail-screen.tsx`
+- `apps/mobile/src/features/sales/components/sales-document-list*`
+- `apps/mobile/src/features/sales/components/sales-invoice-list-card-*`
 - `brain/features/mobile-invoice-form.md`
 - `brain/progress.md`
 
@@ -57,7 +57,7 @@ flowchart TD
 - Order list and order overview behavior remain unchanged.
 
 ## Test Plan
-- Run `bun test apps/expo-app/src/features/sales/components/sales-document-list.test.ts`.
+- Run `bun test apps/mobile/src/features/sales/components/sales-document-list.test.ts`.
 - Run focused Biome on touched Expo sales files.
 - Manual QA on mobile: Sales Dashboard > Quotes opens list, row opens overview, `Edit Quote` opens the form, and Orders still open order overview.
 

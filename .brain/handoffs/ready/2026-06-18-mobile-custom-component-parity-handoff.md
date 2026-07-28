@@ -29,12 +29,12 @@ Implement mobile custom component parity with the website new sales form: center
 - brain/features/mobile-invoice-form.md
 - brain/features/inventory-backed-sales-fulfillment.md
 - brain/api/endpoints.md
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/api/use-invoice-workflow-step-components.ts
-- apps/expo-app/src/features/sales/invoice-form/types.ts
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
-- apps/www/src/components/forms/sales-form/custom-component.tsx
-- apps/www/src/components/forms/sales-form/custom-component-combobox.tsx
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/api/use-invoice-workflow-step-components.ts
+- apps/mobile/src/features/sales/invoice-form/types.ts
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/dashboard/src/components/forms/sales-form/custom-component.tsx
+- apps/dashboard/src/components/forms/sales-form/custom-component-combobox.tsx
 
 ## Implementation Instructions
 1. Add a focused mobile custom-component module; keep search, save/update, sheet state, and selection actions outside large screen components.
@@ -61,11 +61,11 @@ Implement mobile custom component parity with the website new sales form: center
 - Website custom-component semantics are preserved, including custom-only filtering and selected custom hydration.
 
 ## Files Or Areas Likely Involved
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/api/use-invoice-workflow-step-components.ts
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
-- apps/expo-app/src/features/sales/invoice-form/custom-component/*
-- apps/expo-app/src/features/sales/invoice-form/components or shared sheet/floating-action modules
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/api/use-invoice-workflow-step-components.ts
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/custom-component/*
+- apps/mobile/src/features/sales/invoice-form/components or shared sheet/floating-action modules
 - packages/inventory or mobile API adapters only if required to expose existing mutation cleanly
 
 ## Do Not Change
@@ -98,7 +98,7 @@ Do not move linked tasks to `done`. `brain-review-handoff` owns final approval f
 ## Completion Notes
 Implementation is present; the latest hardening pass tightened custom result-row hit targets and accessibility labels.
 
-- Changed files: `apps/expo-app/src/features/sales/invoice-form/custom-component/custom-component-sheet.tsx`
+- Changed files: `apps/mobile/src/features/sales/invoice-form/custom-component/custom-component-sheet.tsx`
 - Checks run: focused Bun tests (32 tests / 69 assertions), targeted UID/API scans, and scoped `git diff --check`
 - Brain docs updated: `.brain/features/mobile-invoice-form.md`, `.brain/progress.md`
 - Unresolved issues: manual mobile QA and review-unit approval remain open; no API contract changes were required.

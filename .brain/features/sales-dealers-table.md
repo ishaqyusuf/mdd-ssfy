@@ -7,9 +7,9 @@
 ## Route
 - Canonical route: `/sales-book/dealers`
 - Access: Super Admin only through the existing route `AuthGuard`
-- Route file: `apps/www/src/app/(sidebar)/(sales)/sales-book/dealers/page.tsx`
-- Admin surface: `apps/www/src/components/dealers/dealers-admin-page.tsx`
-- Table module: `apps/www/src/components/tables-2/dealers/*`
+- Route file: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dealers/page.tsx`
+- Admin surface: `apps/dashboard/src/components/dealers/dealers-admin-page.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/dealers/*`
 
 ## Behavior
 - The route uses the direct Sales Orders/Midday invoices shell: `PageShell`, `HydrateClient`, `ScrollableContent`, `PageTitle`, `AuthGuard`, `batchPrefetch`, and `getInitialTableSettings("dealers")`.
@@ -39,22 +39,22 @@
 
 ## Validation
 - 2026-07-17 density/width tuning validation:
-  - `bun test apps/www/src/components/tables-2/dealers/migration-parity.test.ts` passed with 5 tests / 43 assertions.
-  - `bun test apps/www/src/components/tables-2` passed with 289 tests / 2340 assertions.
+  - `bun test apps/dashboard/src/components/tables-2/dealers/migration-parity.test.ts` passed with 5 tests / 43 assertions.
+  - `bun test apps/dashboard/src/components/tables-2` passed with 289 tests / 2340 assertions.
   - Focused Biome passed for the touched Dealers table/config/test files.
-  - Filtered `@gnd/www` typecheck scan produced no diagnostics for touched Dealers/table-config files.
+  - Filtered `@gnd/dashboard` typecheck scan produced no diagnostics for touched Dealers/table-config files.
   - Browser smoke on the authenticated local `/sales-book/dealers` page confirmed `48px` rows and table-owned horizontal overflow/scroll (`scrollWidth 1166` vs `clientWidth 1146`, `scrollLeft 0 -> 20`). The local dataset had only 5 dealer rows, so natural vertical overflow was not present (`scrollHeight 439`, `clientHeight 439`); vertical scroll proof requires a taller dealer fixture or exposed viewport resize control.
   - `git diff --check` passed and `components/tables-2/core` stayed unchanged.
 - 2026-07-17 page-tabs empty-shell validation:
   - Dealer admin page now only passes a save-tab action into `PageTabs` when `queryFromActiveFilters` returns a saveable query.
   - Follow-up browser validation confirmed `/sales-book/dealers` renders no saved-tab shell and no dealer tab/search wrapper border when there are no saved tabs and no active filter query.
   - Focused page-tabs/restarted-header tests passed with 17 tests / 25 assertions.
-  - Filtered `@gnd/www` typecheck scan produced no diagnostics for the touched page-tabs/search/dealer files.
+  - Filtered `@gnd/dashboard` typecheck scan produced no diagnostics for the touched page-tabs/search/dealer files.
 - Initial migration validation:
-  - `bun test apps/www/src/components/tables-2/dealers/migration-parity.test.ts apps/www/src/components/page-sticky-header.test.ts` passed with 8 tests / 44 assertions.
+  - `bun test apps/dashboard/src/components/tables-2/dealers/migration-parity.test.ts apps/dashboard/src/components/page-sticky-header.test.ts` passed with 8 tests / 44 assertions.
 - The restarted parity suite passed with 51 tests / 362 assertions.
 - Targeted Biome passed for the Dealers route/admin/table files, table settings/config, and restarted-page audit.
-- Filtered `@gnd/www` typecheck scan reported no diagnostics for the touched Dealers/table files; the broad typecheck remains blocked by existing unrelated baseline errors.
+- Filtered `@gnd/dashboard` typecheck scan reported no diagnostics for the touched Dealers/table files; the broad typecheck remains blocked by existing unrelated baseline errors.
 - `git diff --check` passed.
 - Static scans found no live `PageStickyHeader`, legacy dealer table, `@gnd/ui/data-table`, `fetchInfiniteQuery`, or manual `fetchQuery` usage in the Dealers route/admin/new table.
 - HTTP SSR smoke for `/sales-book/dealers` returned `200`.

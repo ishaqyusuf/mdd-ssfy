@@ -28,10 +28,10 @@ Fix the mobile door-size next-step bug and bring the mobile Door/HPT workflow to
 - brain/plans/2026-06-18-ux-ui-mobile-door-hpt-parity.md
 - brain/features/mobile-invoice-form.md
 - brain/api/contracts.md
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/app/(sales)/invoices/door-size.tsx
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-modal-store.ts
-- apps/expo-app/src/features/sales/invoice-form/steps/house-package-tool
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/app/(sales)/invoices/door-size.tsx
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-modal-store.ts
+- apps/mobile/src/features/sales/invoice-form/steps/house-package-tool
 - packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.ts
 
@@ -53,11 +53,11 @@ Fix the mobile door-size next-step bug and bring the mobile Door/HPT workflow to
 - Screen components remain thin and dedicated HPT/door modules own the feature UI.
 
 ## Files Or Areas Likely Involved
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/app/(sales)/invoices/door-size.tsx
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-modal-store.ts
-- apps/expo-app/src/features/sales/invoice-form/steps/house-package-tool/*
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/app/(sales)/invoices/door-size.tsx
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-modal-store.ts
+- apps/mobile/src/features/sales/invoice-form/steps/house-package-tool/*
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 - packages/sales/src/sales-form/ui/workflow/* only if a missing pure helper should be shared
 
 ## Do Not Change
@@ -89,7 +89,7 @@ Do not move linked tasks to `done`. `brain-review-handoff` owns final approval f
 ## Completion Notes
 Implementation is present; the latest hardening pass tightened shared Door/HPT editor hit targets without changing patch or pricing semantics.
 
-- Changed files: `apps/expo-app/src/features/sales/invoice-form/steps/shared/mobile-editor-primitives.tsx`, `apps/expo-app/src/features/sales/invoice-form/steps/house-package-tool/house-package-tool-editor.tsx`
+- Changed files: `apps/mobile/src/features/sales/invoice-form/steps/shared/mobile-editor-primitives.tsx`, `apps/mobile/src/features/sales/invoice-form/steps/house-package-tool/house-package-tool-editor.tsx`
 - Checks run: focused Bun tests (23 tests / 57 assertions), targeted patch-helper scans, and scoped `git diff --check`
 - Brain docs updated: `.brain/features/mobile-invoice-form.md`, `.brain/progress.md`
 - Unresolved issues: manual mobile QA and review-unit approval remain open; no API or payload contract changes were required.

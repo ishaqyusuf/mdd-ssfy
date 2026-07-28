@@ -4,6 +4,12 @@
 Tracks notable API surfaces and where they are implemented.
 
 ## Current Notes
+- Standalone API health:
+  - `GET /health` is a public, non-cached deployment health check implemented
+    by `apps/api`. It returns `200` with `checks.database = "ok"` only after
+    `db.users.count()` succeeds, and returns `503` with
+    `checks.database = "unavailable"` when the database check fails. The user
+    count and internal database error are not exposed in the response.
 - Operational route boundaries (2026-07-23):
   - reviewed `dispatch`, inventory configuration, `jobs`, `community`, and
     shared `settings` mutations are protected procedures with the scoped
@@ -32,7 +38,7 @@ Tracks notable API surfaces and where they are implemented.
   - `pageTabs.reorder`: protected mutation for persisting the current user's sortable tab order through `PageTabIndex.tabIndex`.
   - `pageTabs.delete`: protected mutation that soft-deletes manageable tabs and clears tab index/default rows.
 - App download route:
-  - `apps/www/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk` while preserving query-string overrides for `url` and `name`
+  - `apps/dashboard/src/app/api/download-app/route.ts` serves `/api/download-app` as an APK attachment, defaulting to the current Expo EAS artifact `GqAGsWE95IWmjJmVgUANhDvDFLaUkm-XyYQZTDNQk7U.apk` while preserving query-string overrides for `url` and `name`
 - Master password login audit routes:
   - `masterPasswordLoginAudits.list`: Super Admin-only paginated audit query with text search, platform filtering, and optional cleared-record visibility.
   - `masterPasswordLoginAudits.clear`: Super Admin-only archive mutation for explicit row ids or the current active search/platform filter; stamps `clearedAt` and the acting Super Admin id.
@@ -76,7 +82,7 @@ Tracks notable API surfaces and where they are implemented.
   - `taskRunDiagnostics.startFailure`: protected mutation for recording task start failures before a run id exists.
   - `taskRunDiagnostics.finalize`: protected mutation that retrieves Trigger.dev run status server-side and upserts terminal status, internal error, and bounded output summary.
   - `taskRunDiagnostics.markReviewed`: protected Super Admin mutation that stamps `reviewedAt` / `reviewedById`.
-  - `apps/www` also uses server actions for runtime task feedback: `triggerTask` records starts/start failures, and `finalizeTaskRunDiagnosticAction` finalizes rows from the client watcher signal.
+  - `apps/dashboard` also uses server actions for runtime task feedback: `triggerTask` records starts/start failures, and `finalizeTaskRunDiagnosticAction` finalizes rows from the client watcher signal.
 - Sales production routes now include:
   - `sales.productions`: admin-facing production queue list with due-date/status filtering
   - `sales.productionTasks`: worker-scoped production queue list using the authenticated user as `workerId`

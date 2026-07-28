@@ -83,8 +83,8 @@ The export should use the current Sales Orders V2 query/filter contract and tabl
 
 ## Validation
 
-- `bun test apps/www/src/components/sales-orders-export.test.ts` passed.
-- `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts` passed.
+- `bun test apps/dashboard/src/components/sales-orders-export.test.ts` passed.
+- `bunx biome check --formatter-enabled=false apps/dashboard/src/components/sales-orders-export.ts apps/dashboard/src/components/sales-orders-export.test.ts apps/dashboard/src/components/sales-orders-v2-export.tsx apps/dashboard/src/components/sales-orders-v2-header.tsx apps/dashboard/src/components/tables-2/sales-orders/data-table.tsx apps/dashboard/src/store/sales-orders.ts` passed.
 - `git diff --check` passed.
 - Broad typecheck/build/browser validation was intentionally not run under the fast Bun monorepo command discipline for this narrow UI/reporting change.
 

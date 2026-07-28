@@ -1,17 +1,18 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api"
-    }
-  ],
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/api/trpc",
-      "permanent": false
-    }
-  ],
-  "regions": ["bom1"]
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"buildCommand": "bun ./bun-vercel/build.ts ./src/bun.ts",
+	"rewrites": [
+		{
+			"source": "/(.*)",
+			"destination": "/api"
+		}
+	],
+	"redirects": [
+		{
+			"source": "/",
+			"destination": "/api/trpc",
+			"permanent": false
+		}
+	],
+	"regions": ["bom1"]
 }

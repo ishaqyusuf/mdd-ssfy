@@ -27,7 +27,7 @@ Observed shape:
 Likely owners:
 - `packages/notifications/src/activity-tree.ts`
 - `apps/api/src/db/queries/sales.ts` `salesNotesCount`
-- legacy web note actions under `apps/www/src/modules/notes/actions/` and `apps/www/src/actions/sales-note-count.ts`
+- legacy web note actions under `apps/dashboard/src/modules/notes/actions/` and `apps/dashboard/src/actions/sales-note-count.ts`
 
 Plan:
 1. Rewrite sales note counts to query `NoteTags` first and group by `salesId`/`salesNo`, then fetch note metadata only when needed.
@@ -94,7 +94,7 @@ Observed shape:
 - p50/p99 are low, but total query volume is high
 
 Likely owners:
-- `packages/auth/src/better-auth/www-session.ts`
+- `packages/auth/src/better-auth/dashboard-session.ts`
 - `packages/auth/src/utils.ts`
 - `apps/api/src/db/queries/user.ts`
 

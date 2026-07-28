@@ -263,7 +263,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan File: brain/plans/2026-07-17-query-invalidation-event-system.md
 - Feature File: brain/features/query-invalidation-events.md
 - Decision: brain/decisions/ADR-013-central-query-invalidation-events.md
-- Evidence: apps/www/src/lib/query-events; apps/www/src/trpc/query-client.ts; apps/www/src/trpc/client.tsx; apps/www/src/types/react-query.d.ts; apps/www/src/hooks/use-sales-query-client.ts
+- Evidence: apps/dashboard/src/lib/query-events; apps/dashboard/src/trpc/query-client.ts; apps/dashboard/src/trpc/client.tsx; apps/dashboard/src/types/react-query.d.ts; apps/dashboard/src/hooks/use-sales-query-client.ts
 - Completed Date: 2026-07-18
 
 ### Task Monitor Client Simplification And Error Ledger
@@ -275,7 +275,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan File: brain/plans/2026-07-13-spec-task-monitor-client-simplification-and-error-ledger.md
 - Feature File: brain/features/background-task-monitor.md
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/42
-- Evidence: packages/db/src/schema/task-run-diagnostics.prisma; apps/api/src/db/queries/task-run-diagnostics.ts; apps/api/src/trpc/routers/task-run-diagnostics.route.ts; apps/www/src/components/task-notification.tsx; apps/www/src/app/(sidebar)/task-events/diagnostics/page.tsx
+- Evidence: packages/db/src/schema/task-run-diagnostics.prisma; apps/api/src/db/queries/task-run-diagnostics.ts; apps/api/src/trpc/routers/task-run-diagnostics.route.ts; apps/dashboard/src/components/task-notification.tsx; apps/dashboard/src/app/(sidebar)/task-events/diagnostics/page.tsx
 - Completed Date: 2026-07-13
 
 ### Sales Orders Filtered Excel Export
@@ -287,7 +287,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan File: brain/plans/2026-07-10-spec-sales-orders-filtered-excel-export.md
 - Feature File: brain/features/sales-orders-v2.md
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/41
-- Evidence: apps/www/src/components/sales-orders-v2-export.tsx; apps/www/src/components/sales-orders-export.ts; apps/www/src/components/sales-orders-export.test.ts; apps/www/src/components/tables-2/sales-orders/data-table.tsx; apps/www/src/store/sales-orders.ts
+- Evidence: apps/dashboard/src/components/sales-orders-v2-export.tsx; apps/dashboard/src/components/sales-orders-export.ts; apps/dashboard/src/components/sales-orders-export.test.ts; apps/dashboard/src/components/tables-2/sales-orders/data-table.tsx; apps/dashboard/src/store/sales-orders.ts
 - Completed Date: 2026-07-10
 
 ### Sidebar Footer Account Menu Hover Loop
@@ -323,7 +323,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan File: brain/plans/2026-07-09-feature-sales-email-status-alerts-and-ledger.md
 - Feature File: brain/features/sales-email-delivery-ledger.md
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/37
-- Evidence: packages/db/src/schema/sales-email-attempts.prisma; apps/api/src/db/queries/sales-email-attempts.ts; apps/www/src/components/sales-email-ledger-page.tsx; packages/notifications/src/index.ts; packages/jobs/src/tasks/sales/create-send-sales-email-task.ts
+- Evidence: packages/db/src/schema/sales-email-attempts.prisma; apps/api/src/db/queries/sales-email-attempts.ts; apps/dashboard/src/components/sales-email-ledger-page.tsx; packages/notifications/src/index.ts; packages/jobs/src/tasks/sales/create-send-sales-email-task.ts
 - Completed Date: 2026-07-09
 
 ### Sales Order And Quote Sales Rep Transfer
@@ -334,7 +334,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan Status: Implemented
 - Plan File: brain/plans/2026-07-08-feature-sales-order-sales-rep-transfer.md
 - GitHub Issue: https://github.com/ishaqyusuf/mdd-ssfy/issues/36
-- Evidence: apps/api/src/db/queries/sales-rep-transfer.ts; apps/api/src/db/queries/sales-rep-transfer.test.ts; apps/www/src/components/sales-overview-system/tabs/overview-tab.tsx
+- Evidence: apps/api/src/db/queries/sales-rep-transfer.ts; apps/api/src/db/queries/sales-rep-transfer.test.ts; apps/dashboard/src/components/sales-overview-system/tabs/overview-tab.tsx
 - Completed Date: 2026-07-08
 
 ### Sales Inventory Non-Stock Status And Tracking Change Repair
@@ -345,7 +345,7 @@ Tracks notable completed work snapshots. Use `brain/progress.md` for the detaile
 - Plan Status: Done
 - Plan File: brain/plans/2026-07-01-feature-sales-inventory-non-stock-status-tracking-repair.md
 - Intake File: brain/intake/2026-07-01-sales-inventory-inbounds-tables-polish.md
-- Evidence: packages/sales/src/sales-inventory-overview.test.ts; apps/api/src/trpc/routers/inventories.route.ts; apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx
+- Evidence: packages/sales/src/sales-inventory-overview.test.ts; apps/api/src/trpc/routers/inventories.route.ts; apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx
 - Completed Date: 2026-07-02
 
 ### Inventory Correctness Cutover Pending Gates Intake Capture

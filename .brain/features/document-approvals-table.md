@@ -4,11 +4,11 @@
 The HRM document approvals route at `/hrm/document-approvals` lets authorized admins review employee insurance document uploads and approve or reject them.
 
 ## Current Implementation
-- Route: `apps/www/src/app/(sidebar)/hrm/document-approvals/page.tsx`
-- List wrapper: `apps/www/src/app/(sidebar)/hrm/document-approvals/document-approval-list.tsx`
+- Route: `apps/dashboard/src/app/(sidebar)/hrm/document-approvals/page.tsx`
+- List wrapper: `apps/dashboard/src/app/(sidebar)/hrm/document-approvals/document-approval-list.tsx`
 - Data source: existing server action `getEmployeeDocumentApprovals()`
 - Review action: existing server action `reviewEmployeeDocument(document.id, status)`
-- Table module: `apps/www/src/components/tables-2/document-approvals/*`
+- Table module: `apps/dashboard/src/components/tables-2/document-approvals/*`
 - The route uses `PageShell`, `ScrollableContent`, and `getInitialTableSettings("document-approvals")`.
 - The approval list keeps the existing review URL-param behavior through `useDocumentReviewParams`, but renders the repeatable approval queue through the domain `tables-2/document-approvals` table instead of card-mapped rows.
 - The table uses the `tables-2` core primitives through a domain table module, with no changes to `components/tables-2/core`.
@@ -34,12 +34,12 @@ The HRM document approvals route at `/hrm/document-approvals` lets authorized ad
 - Existing document URL opening remains available from the Document column.
 
 ## Validation
-- Focused parity test: `bun test apps/www/src/components/tables-2/document-approvals/migration-parity.test.ts`
-- Full restarted table suite: `bun test apps/www/src/components/tables-2`
+- Focused parity test: `bun test apps/dashboard/src/components/tables-2/document-approvals/migration-parity.test.ts`
+- Full restarted table suite: `bun test apps/dashboard/src/components/tables-2`
 - Targeted Biome check over the route, list wrapper, table module, and table registry.
-- Broad `@gnd/www` typecheck still exits on unrelated baseline errors, but the touched-file grep reported no diagnostics for this slice.
+- Broad `@gnd/dashboard` typecheck still exits on unrelated baseline errors, but the touched-file grep reported no diagnostics for this slice.
 - Static scans found no card-mapped approval rows, manual fetch, old table import, or shared-header pattern in the document approvals route/list surface; only expected table primitives remain inside the new `tables-2` module.
 - `git diff --check` passed.
-- `apps/www/src/components/tables-2/core` has no diff.
+- `apps/dashboard/src/components/tables-2/core` has no diff.
 - Direct route smoke for `/hrm/document-approvals` returned `200` from the local Next server on `3010`.
 - Follow-up authenticated browser proof on `https://gndprodesk.localhost/hrm/document-approvals` loaded the approval table, confirmed `56px` rows, a `45px` header, table-owned vertical scroll (`scrollTop 0 -> 650`, `scrollHeight 1837`, `clientHeight 419`), and no document-level horizontal overflow. At the current desktop width the tightened columns fit the table container exactly (`scrollWidth 1144`, `clientWidth 1144`), so there was no horizontal overflow to move.

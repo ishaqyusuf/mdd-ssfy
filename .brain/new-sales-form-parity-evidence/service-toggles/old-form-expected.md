@@ -5,4 +5,4 @@ Legacy service rows include both toggles:
 - `meta.produceable`
 
 Anchor:
-- `apps/www/src/components/forms/sales-form/moulding-and-service/service-content.tsx`
+- `apps/dashboard/src/components/forms/sales-form/moulding-and-service/service-content.tsx`

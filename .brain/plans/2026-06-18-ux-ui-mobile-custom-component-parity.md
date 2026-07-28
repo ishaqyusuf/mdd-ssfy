@@ -23,8 +23,8 @@ Mobile custom component behavior must match the website new sales form: a floati
 - Website custom component behavior uses inventory/Dyke custom component APIs documented in `brain/api/endpoints.md`.
 - `inventories.upsertDykeCustomStepComponent` is the canonical mutation for step-scoped custom component create/update in new flows.
 - Existing feature notes in `brain/features/inventory-backed-sales-fulfillment.md` describe custom component behavior: custom-only suggestions, hidden archived custom components, selected custom pinned first, edited price persistence on Proceed, and selected-step snapshot hydration.
-- Mobile workflow component picking lives in `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`.
-- Mobile selectable items already support `source?: "custom"` and custom metadata in `apps/expo-app/src/features/sales/invoice-form/types.ts`.
+- Mobile workflow component picking lives in `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`.
+- Mobile selectable items already support `source?: "custom"` and custom metadata in `apps/mobile/src/features/sales/invoice-form/types.ts`.
 
 ## Proposed Approach
 Create a bounded mobile custom-component module with a reusable morphable sheet primitive. Keep search, typed title state, compressed title/cost state, save/update, and step selection in hooks/actions outside visual rows. Reuse existing sales/inventory contracts instead of creating an app-local persistence path.
@@ -44,10 +44,10 @@ Create a bounded mobile custom-component module with a reusable morphable sheet 
 - Use virtualized result lists and avoid controlled TextInput lag where possible.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-workflow-step-components.ts` or adjacent API hooks
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
-- New `apps/expo-app/src/features/sales/invoice-form/custom-component/*` module
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
+- `apps/mobile/src/features/sales/invoice-form/api/use-invoice-workflow-step-components.ts` or adjacent API hooks
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- New `apps/mobile/src/features/sales/invoice-form/custom-component/*` module
 - New or existing shared `morphable-sheet` / `floating-actions` module under invoice form components
 - `packages/inventory` / mobile API adapters only if required to expose existing mutation cleanly
 

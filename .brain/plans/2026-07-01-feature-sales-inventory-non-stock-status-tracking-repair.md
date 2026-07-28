@@ -21,7 +21,7 @@ Inventory rows that are initialized as non-stock or otherwise have no stock-trac
 
 ## Current Context
 - Inventory owns inbound demand semantics through `brain/decisions/ADR-009-inventory-owned-inbound-demand-status.md`.
-- The sales overview Inventory tab currently segments rows into `Stock | Inbounds | Non Stock` and exposes row-level tracking controls in `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx`.
+- The sales overview Inventory tab currently segments rows into `Stock | Inbounds | Non Stock` and exposes row-level tracking controls in `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx`.
 - `brain/plans/2026-06-29-sales-inventory-inbound-status-guardrails.md` already covers inventory-owned inbound status once linked inbound exists and Mark As production/fulfilled preflight, but it does not fully specify future tracking-mode changes.
 - Existing inventory correctness cutover docs warn that repairs are stopped unless explicitly resumed; this plan should not trigger broad historical repair applies.
 
@@ -54,10 +54,10 @@ Define an inventory policy for stock-not-required rows and stock-mode transition
 - `packages/sales/src/sales-inventory-policy.ts`
 - `packages/sales/src/sales-inventory-overview.ts`
 - `packages/sales/src/sales-inventory-mark-as-preflight.ts`
-- `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx`
-- `apps/www/src/components/sales-inbound-status-badge.tsx`
-- `apps/www/src/components/forms/inventory-category-form/*`
-- `apps/www/src/components/forms/inventory-products/*`
+- `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx`
+- `apps/dashboard/src/components/sales-inbound-status-badge.tsx`
+- `apps/dashboard/src/components/forms/inventory-category-form/*`
+- `apps/dashboard/src/components/forms/inventory-products/*`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - `brain/features/inventory-backed-sales-fulfillment.md`
 - `brain/features/order-inbound-status.md`

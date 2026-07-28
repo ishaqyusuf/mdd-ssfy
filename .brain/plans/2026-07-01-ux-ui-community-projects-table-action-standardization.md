@@ -21,7 +21,7 @@ Community projects and project-units should use the current table system while p
 
 ## Current Context
 - `brain/plans/2026-06-16-orders-v2-table-standard-migration.md` lists `/community/projects` and `/community/project-units` as remaining community routes still using legacy table modules.
-- Existing likely files include `apps/www/src/components/tables/community-project/*` and `apps/www/src/components/tables/project-units/*`.
+- Existing likely files include `apps/dashboard/src/components/tables/community-project/*` and `apps/dashboard/src/components/tables/project-units/*`.
 - Already migrated domains such as community builders, templates, customer-services, unit-invoices, and inbound-management each have their own action menu implementations that may not match the desired baseline.
 
 ## Proposed Approach
@@ -51,19 +51,19 @@ First migrate `/community/projects` and `/community/project-units` to domain mod
 - Remove old table imports only after import scans prove no active consumers remain.
 
 ## Affected Files Or Areas
-- `apps/www/src/app/(sidebar)/community/(main)/projects/page.tsx`
-- `apps/www/src/app/(sidebar)/community/(main)/project-units/page.tsx`
-- `apps/www/src/components/tables/community-project/*`
-- `apps/www/src/components/tables/project-units/*`
-- `apps/www/src/components/tables-2/community-projects/*`
-- `apps/www/src/components/tables-2/project-units/*`
-- `apps/www/src/components/tables-2/community-builders/columns.tsx`
-- `apps/www/src/components/tables-2/community-templates/columns.tsx`
-- `apps/www/src/components/tables-2/customer-service/columns.tsx`
-- `apps/www/src/components/tables-2/unit-invoices/columns.tsx`
-- `apps/www/src/components/tables-2/unit-productions/columns.tsx`
-- `apps/www/src/components/tables-2/inbound-management/columns.tsx`
-- `apps/www/src/components/tables-2/core/*` only if shared action-menu support is required
+- `apps/dashboard/src/app/(sidebar)/community/(main)/projects/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/community/(main)/project-units/page.tsx`
+- `apps/dashboard/src/components/tables/community-project/*`
+- `apps/dashboard/src/components/tables/project-units/*`
+- `apps/dashboard/src/components/tables-2/community-projects/*`
+- `apps/dashboard/src/components/tables-2/project-units/*`
+- `apps/dashboard/src/components/tables-2/community-builders/columns.tsx`
+- `apps/dashboard/src/components/tables-2/community-templates/columns.tsx`
+- `apps/dashboard/src/components/tables-2/customer-service/columns.tsx`
+- `apps/dashboard/src/components/tables-2/unit-invoices/columns.tsx`
+- `apps/dashboard/src/components/tables-2/unit-productions/columns.tsx`
+- `apps/dashboard/src/components/tables-2/inbound-management/columns.tsx`
+- `apps/dashboard/src/components/tables-2/core/*` only if shared action-menu support is required
 - `brain/plans/2026-06-16-orders-v2-table-standard-migration.md`
 
 ## Acceptance Criteria

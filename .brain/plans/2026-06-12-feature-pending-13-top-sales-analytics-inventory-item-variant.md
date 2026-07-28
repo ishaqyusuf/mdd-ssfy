@@ -57,7 +57,7 @@ Build analytics from inventory-backed `LineItem` / `LineItemComponents` first, w
 - Task File: brain/tasks/roadmap.md
 
 ## Completion Report
-- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/www/src/components/inventory/inventory-top-sales-analytics.tsx`, `apps/www/src/app/(sidebar)/inventory/page.tsx`, and `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`.
+- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/dashboard/src/components/inventory/inventory-top-sales-analytics.tsx`, `apps/dashboard/src/app/(sidebar)/inventory/page.tsx`, and `apps/dashboard/src/components/inventory/inventory-item-dashboard-page.tsx`.
 - Added `inventoryTopSalesAnalytics(...)` and `buildInventoryTopSalesAnalytics(...)` to aggregate inventory-backed ordered quantity from `LineItem` and shipped quantity from consumed `StockAllocation` rows.
 - Added protected tRPC route `inventories.inventoryTopSalesAnalytics`.
 - Surfaced analytics on `/inventory` and `/inventory/[id]`, including item and variant rankings by ordered and shipped quantity plus revenue/cost reliability counts.

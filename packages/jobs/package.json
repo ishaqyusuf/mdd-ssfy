@@ -40,10 +40,12 @@
     "@prisma/client": "^6.18.0",
     "@prisma/instrumentation": "^6.18.0",
     "@vercel/blob": "^2.3.0",
+    "@sentry/node": "10.32.1",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@gnd/tsconfig": "workspace:*",
+    "@sentry/esbuild-plugin": "4.6.1",
     "@types/bun": "^1.2.17",
     "@types/heic-convert": "2.1.0",
     "@types/qs": "^6.14.0",

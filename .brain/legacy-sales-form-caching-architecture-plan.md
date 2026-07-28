@@ -17,7 +17,7 @@ without making saved order data or live pricing feel stale.
 
 ## Scope
 
-- `apps/www/src/components/forms/new-sales-form/*`
+- `apps/dashboard/src/components/forms/new-sales-form/*`
 - `apps/api/src/db/queries/new-sales-form.ts`
 - `apps/api/src/db/queries/sales-form.ts`
 - `apps/api/src/trpc/routers/new-sales-form.route.ts`
@@ -55,7 +55,7 @@ The active old sales form currently mixes several data classes under the same ge
 
 ### A. Static and volatile data are cached the same way
 
-`apps/www/src/trpc/query-client.ts` gives all queries a generic `staleTime` of 60 seconds. That is too short for mostly-static catalog data and too unspecific for pricing-sensitive reads.
+`apps/dashboard/src/trpc/query-client.ts` gives all queries a generic `staleTime` of 60 seconds. That is too short for mostly-static catalog data and too unspecific for pricing-sensitive reads.
 
 ### B. Component loading repeats expensive joins
 
@@ -242,7 +242,7 @@ Wrap these reads in tagged cache helpers:
 - `getNewSalesFormShelfProducts`
 
 Preferred mechanism:
-- `unstable_cache` in the Next-facing layer if the query remains in `apps/www`
+- `unstable_cache` in the Next-facing layer if the query remains in `apps/dashboard`
 - or a shared cache helper near the API layer if the team wants router-level reuse
 
 Constraint:
@@ -250,7 +250,7 @@ Constraint:
 
 ### 3. Promote query-specific client cache policies
 
-Update `apps/www/src/components/forms/new-sales-form/api.ts` to stop relying on the global default for heavy reference queries.
+Update `apps/dashboard/src/components/forms/new-sales-form/api.ts` to stop relying on the global default for heavy reference queries.
 
 Recommended overrides:
 
@@ -422,7 +422,7 @@ Recommendation:
 
 If we want the best risk-to-impact ratio, implement in this order:
 
-1. Query-specific client cache overrides in `apps/www/src/components/forms/new-sales-form/api.ts`
+1. Query-specific client cache overrides in `apps/dashboard/src/components/forms/new-sales-form/api.ts`
 2. Server cache for `getNewSalesFormStepRouting`
 3. Server cache for shelf categories/products
 4. Split `getStepComponents` into catalog + pricing helpers
@@ -441,7 +441,7 @@ The caching improvement is done when:
 
 ## File-Level Change Plan
 
-### `apps/www/src/components/forms/new-sales-form/api.ts`
+### `apps/dashboard/src/components/forms/new-sales-form/api.ts`
 
 - add query-specific cache timings
 - disable unnecessary refetch behaviors for reference queries

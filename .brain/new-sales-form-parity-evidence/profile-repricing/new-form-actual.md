@@ -11,9 +11,9 @@ Profile-change repricing behavior has explicit new-form handling:
   logic.
 
 Anchors:
-- `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
-- `apps/www/src/components/forms/new-sales-form/store.ts`
-- `apps/www/src/components/forms/new-sales-form/mappers.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/store.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/mappers.ts`
 - `packages/sales/src/sales-form/domain/profile-repricing.ts`
 - `packages/sales/src/sales-form/state/actions/meta.ts`
 

@@ -32,7 +32,7 @@ selection path.
 
 ## Hosts and freshness
 
-Both `ItemWorkflowPanel` and `WwwSalesFormWorkflowPanel` use
+Both `ItemWorkflowPanel` and `DashboardSalesFormWorkflowPanel` use
 `useWorkflowComponentAdmin`. Successful writes invalidate step-component and
 routing queries, refetch active picker data, queue Dyke-to-inventory sync, and
 patch matching selected-component snapshots so badges, redirects, and pricing

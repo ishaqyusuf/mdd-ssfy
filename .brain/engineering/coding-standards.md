@@ -16,6 +16,7 @@ Repository-level implementation rules that recur across active workstreams.
 - React TSX packages that can be imported outside their own app/package compiler context must self-pin their runtime with `/** @jsxImportSource react */`; do not rely only on package `tsconfig` when files may be loaded from `apps/api` or another workspace that uses a different JSX runtime such as `hono/jsx`.
 - Expo app components must not mix NativeWind `className` and React Native `style` on the same element. Use `className` only when it fully covers the design; when custom style is needed, convert that element to `style` only instead of combining both.
 - `bun run kill:ports` discovers numeric env variables ending in `_PORT` and ignores names containing `PORTLESS`. Keep every project-owned dev port declared as an individual `*_PORT` env variable instead of adding aggregate kill lists.
+- Treat the Portless proxy port and TLS mode as machine-wide shared infrastructure. Workspace scripts may declare `PORTLESS_APP_PORT`, route names, and wildcard behavior, but must not declare `PORTLESS_PORT` or `PORTLESS_HTTPS`.
 - Prefer Midday-style page architecture wherever possible:
   - before introducing a new workspace layout, dashboard shell, or page-level data pattern, inspect the local Midday reference and reuse its structural approach when it fits
   - route components should stay thin and avoid blocking navigation on expensive setup work
@@ -31,7 +32,7 @@ Repository-level implementation rules that recur across active workstreams.
     - shared behavior should move into package/domain modules once more than one surface depends on it
   - use `/Users/M1PRO/Documents/code/_kitchen_sink/midday` as the primary local reference for page architecture decisions
   - follow Midday's structural patterns first: thin route shells, section-based composition, and on-demand secondary data
-  - use existing in-repo reference patterns from `apps/www/src/(midday)` and `ai/midday-example` only as secondary examples
+  - use existing in-repo reference patterns from `apps/dashboard/src/(midday)` and `ai/midday-example` only as secondary examples
 
 ## Midday Implementation Standards
 - Prefer Midday's shadcn component usage, table composition, sheets, modals, sidebar layout, and page-level composition before inventing new UI structures.

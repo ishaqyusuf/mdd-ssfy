@@ -10,8 +10,8 @@ Plan:
 - Update Brain docs after implementation, then run the narrow export test and review the diff before committing.
 
 Validation:
-- `bun test apps/www/src/components/sales-orders-export.test.ts`
-- `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts`
+- `bun test apps/dashboard/src/components/sales-orders-export.test.ts`
+- `bunx biome check --formatter-enabled=false apps/dashboard/src/components/sales-orders-export.ts apps/dashboard/src/components/sales-orders-export.test.ts apps/dashboard/src/components/sales-orders-v2-export.tsx apps/dashboard/src/components/sales-orders-v2-header.tsx apps/dashboard/src/components/tables-2/sales-orders/data-table.tsx apps/dashboard/src/store/sales-orders.ts`
 - `git diff --check`
 
 ---
@@ -56,7 +56,7 @@ host-owned UI and routing.
 - Dealer quote saving now routes through `apps/api/src/db/queries` so the API
   layer can compose shared sales-form pricing while still using DB persistence
   and dealer visibility checks.
-- `apps/www` defaults the package workflow panel to legacy unless explicitly
+- `apps/dashboard` defaults the package workflow panel to legacy unless explicitly
   opted into `package`.
 - The dealership app now delegates dealer quote state hydration, line creation,
   pricing, and save payload mapping to package helpers.
@@ -77,11 +77,11 @@ host-owned UI and routing.
 # WWW Unused/Old Code Cleanup Continuation
 
 Date: 2026-06-18
-Status: In Progress
+Status: Awaiting production environment approval
 
 ## Goal
 
-Continue the conservative `apps/www` unused/old-code cleanup from the current
+Continue the conservative `apps/dashboard` unused/old-code cleanup from the current
 Knip baseline without widening scope or deleting live compatibility code.
 
 ## Execution Rules
@@ -240,24 +240,24 @@ Knip baseline without widening scope or deleting live compatibility code.
 - [x] Classify remaining file-only Knip candidates after the 20-candidate baseline.
 - [x] Confirm 16 remaining candidates are tests and retained by default.
 - [x] Confirm 3 remaining production-control files are read directly by `production-control-reset.test.ts`.
-- [x] Confirm `styles/globals.css` is tooling-backed by `apps/www/src/components.json` even though it is not runtime-imported.
+- [x] Confirm `styles/globals.css` is tooling-backed by `apps/dashboard/src/components.json` even though it is not runtime-imported.
 - [x] Record that no further conservative tracked-file deletion remains without deleting tests or making a tooling/regression-coverage decision.
 
 ## Package Dependency Cleanup Slice
 
 - [x] Refresh full Knip issue snapshot including dependencies, unlisted, unresolved, and exports.
 - [x] Exact-scan high-confidence stale dependency candidates before package edits.
-- [x] Remove unused `@gnd/www` package declarations for old GitHub actions, Cloudinary React helpers, MDX/MDX editor packages, accidental `crypto`/`i`/`npm`, `resend`, and `@types/mdx`.
+- [x] Remove unused `@gnd/dashboard` package declarations for old GitHub actions, Cloudinary React helpers, MDX/MDX editor packages, accidental `crypto`/`i`/`npm`, `resend`, and `@types/mdx`.
 - [x] Refresh `bun.lock` with `bun install --lockfile-only`.
 - [x] Refresh full Knip snapshot to the 39 runtime / 3 dev dependency baseline.
 - [x] Update Brain report/progress with the dependency cleanup result.
 
 ## Package Dependency Cleanup Slice 2
 
-- [x] Exact-scan the remaining 39 runtime dependency candidates against `apps/www` imports and config.
-- [x] Remove only package declarations with no direct `apps/www` import/config owner.
+- [x] Exact-scan the remaining 39 runtime dependency candidates against `apps/dashboard` imports and config.
+- [x] Remove only package declarations with no direct `apps/dashboard` import/config owner.
 - [x] Remove the stale commented `@gnd/events/client` layout import left behind by the dependency cleanup.
-- [x] Delete old unreferenced `apps/www/tailwind-copy.config` and remove its private plugin deps.
+- [x] Delete old unreferenced `apps/dashboard/tailwind-copy.config` and remove its private plugin deps.
 - [x] Remove unused package-local `vercel` CLI dev dependency while keeping Vercel runtime packages.
 - [x] Keep tooling-sensitive candidates for separate review: `eslint`, `eslint-config-next`, `puppeteer-core`, and `tailwindcss`.
 - [x] Refresh `bun.lock` with `bun install --lockfile-only`.
@@ -275,8 +275,8 @@ Knip baseline without widening scope or deleting live compatibility code.
 
 ## Unlisted Dependency Cleanup Slice
 
-- [x] Verify `server-only` is imported directly by `apps/www` server-only modules.
-- [x] Add `server-only` to `@gnd/www` dependencies.
+- [x] Verify `server-only` is imported directly by `apps/dashboard` server-only modules.
+- [x] Add `server-only` to `@gnd/dashboard` dependencies.
 - [x] Refresh `bun.lock` with `bun install --lockfile-only`.
 - [x] Refresh full Knip snapshot to the 0 unlisted dependency baseline.
 - [x] Update Brain report/progress with the unlisted cleanup result.
@@ -309,7 +309,7 @@ Knip baseline without widening scope or deleting live compatibility code.
 
 - [x] Exact-scan small utility/component export candidates.
 - [x] Remove definition-only utility exports while keeping still-imported module helpers.
-- [x] Remove now-unused `@date-fns/tz` from `@gnd/www` and refresh `bun.lock`.
+- [x] Remove now-unused `@date-fns/tz` from `@gnd/dashboard` and refresh `bun.lock`.
 - [x] Demote or remove local-only component exports without changing live imports.
 - [x] Refresh full Knip snapshot to the 503 export-candidate baseline.
 - [x] Update Brain report/progress with the export cleanup result.
@@ -510,7 +510,7 @@ Knip baseline without widening scope or deleting live compatibility code.
 
 - [x] Exact-scan utility/action helper export candidates in sales utility mirrors, cached HRM, v1 session utilities, generic DB utils, and sales-form helper code.
 - [x] Remove unused exports while preserving live sales status/sort/URL/payment helpers, permissions cache, session/user/auth ID helpers, and current pagination imports.
-- [x] Remove the now-unused `bcrypt-ts` app dependency after exact source scans found no remaining `apps/www` import.
+- [x] Remove the now-unused `bcrypt-ts` app dependency after exact source scans found no remaining `apps/dashboard` import.
 - [x] Refresh split Knip snapshots to the 208 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
 - [x] Update Brain report/progress with the export cleanup result.
 
@@ -584,3 +584,48 @@ Knip baseline without widening scope or deleting live compatibility code.
 - [x] Demote raw production assignment and labor-cost mutation helpers while preserving public safe-action wrappers.
 - [x] Refresh split Knip snapshots to the 129 export-candidate baseline and 3 runtime / 1 dev dependency baseline.
 - [x] Update Brain report/progress with the export cleanup result.
+
+---
+
+# Dashboard Workspace Rename and Sentry Rollout
+
+Date: 2026-07-28
+Status: In Progress
+
+## Goal
+
+- Rename the main Next.js workspace from `apps/www` / `@gnd/www` to
+  `apps/dashboard` / `@gnd/dashboard`.
+- Rename its local port contract from `GND_WWW_PORT` to
+  `GND_DASHBOARD_PORT`.
+- Preserve external Vercel, route-domain, and Sentry project identities.
+- Complete the authenticated Sentry project and alert rollout without running
+  local builds or dev servers.
+
+## Checklist
+
+- [x] Create the shared `gnd-prodesk-backend` Sentry project.
+- [x] Scope web, mobile, and backend high-priority alerts to `production` with
+  one-hour per-issue throttling.
+- [x] Inventory exact dashboard path/package/filter/port references.
+- [x] Move the workspace to `apps/dashboard`.
+- [x] Update Bun/Turbo, scripts, tests, instructions, and path-bearing docs.
+- [x] Run focused workspace discovery, stale-reference, test, and diff checks.
+- [x] Verify final Sentry project/alert state and record rollout evidence.
+- [x] Audit runtime entrypoint loading, preview isolation, and backend event
+  privacy across web, API, jobs, and mobile.
+- [x] Move the Trigger global hook into the configured task directory, scrub
+  SDK-generated API request/user data, and disable non-production mobile
+  telemetry/source-map upload.
+- [ ] Add backend Sentry values to Vercel Production and Trigger Production
+  after explicit production-configuration approval.
+- [ ] Verify a controlled backend ingestion event after deployment values are
+  available.
+
+## Constraints
+
+- Do not rename the Vercel `gndprodesk` project, production domains, or
+  `gnd-prodesk-web` Sentry project.
+- Do not run EAS, native, Next.js, or Turbo builds.
+- Do not start development servers.
+- Do not stage unrelated existing worktree changes.

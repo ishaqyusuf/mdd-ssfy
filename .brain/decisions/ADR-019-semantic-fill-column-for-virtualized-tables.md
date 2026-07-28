@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-22
-- Scope: `apps/www/src/components/tables-2`
+- Scope: `apps/dashboard/src/components/tables-2`
 
 ## Context
 

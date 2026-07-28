@@ -9,7 +9,7 @@ Short prompt-level guardrails for future AI sessions working in this repository.
 - Preserve current behavior notes and historical context when restructuring docs.
 - Use `TODO:` markers for unknown implementation details instead of guessing.
 - Keep Brain markdown concise, factual, and easy to diff.
-- For Next.js work in `apps/www`, `apps/dealership`, or shared React UI consumed by either app, always load and apply these skills before implementation or review:
+- For Next.js work in `apps/dashboard`, `apps/dealership`, or shared React UI consumed by either app, always load and apply these skills before implementation or review:
   - `vercel-react-best-practices`
   - `agency-engineering` using the Frontend Developer specialist unless the task clearly routes elsewhere
 - Apply this React/Next.js UI skill set especially to App Router pages/layouts, React components, data-fetching adapters, forms, shared package UI, and dealership quote/new-sales-form work.

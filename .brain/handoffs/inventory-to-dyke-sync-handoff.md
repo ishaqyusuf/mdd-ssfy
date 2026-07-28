@@ -581,7 +581,7 @@ bun run --filter @gnd/api typecheck
 
 If touching web UI:
 ```sh
-bun run --filter @gnd/www typecheck
+bun run --filter @gnd/dashboard typecheck
 ```
 
 Note: full workspace typechecks may have unrelated baseline failures. Capture focused output and grep for touched files when necessary.

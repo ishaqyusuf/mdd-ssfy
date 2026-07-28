@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Tracks the Expo mobile invoice/quote form under `apps/expo-app/src/features/sales/invoice-form`.
+Tracks the Expo mobile invoice/quote form under `apps/mobile/src/features/sales/invoice-form`.
 
 ## Current Architecture
 
@@ -10,7 +10,7 @@ Tracks the Expo mobile invoice/quote form under `apps/expo-app/src/features/sale
 - `@gnd/sales/sales-form-core` is treated as the native-safe sales-form boundary for Expo; it must not export from web UI TSX files or any module importing `@gnd/ui`, and this boundary is covered by `packages/sales/src/sales-form-core.native-safety.test.ts`.
 - Expo app source must not import the web UI package directly or consume the
   broad `@gnd/sales/payment-system` server barrel.
-  `apps/expo-app/src/features/sales/invoice-form/native-ui-boundary.test.ts`
+  `apps/mobile/src/features/sales/invoice-form/native-ui-boundary.test.ts`
   scans mobile source for `@gnd/ui`, direct `packages/ui` references, and the
   server payment barrel. Mobile money calculations import the native-safe
   `@gnd/sales/payment-system/money` subpath so Metro does not traverse payment
@@ -45,7 +45,7 @@ Tracks the Expo mobile invoice/quote form under `apps/expo-app/src/features/sale
 Specialized invoice line editors now live under dedicated step-family folders:
 
 ```text
-apps/expo-app/src/features/sales/invoice-form/steps/
+apps/mobile/src/features/sales/invoice-form/steps/
   house-package-tool/
   moulding/
   service/
@@ -63,7 +63,7 @@ apps/expo-app/src/features/sales/invoice-form/steps/
 - The invoice item swipe/workflow wrapper uses stable React Native `style` for its fixed minimum height instead of the arbitrary NativeWind class `min-h-[640px]`, avoiding `react-native-css` variable-set remount warnings during the customer-to-items transition.
 - Android sales-form helper routes for customer selection, sales details, and door-size entry use ordinary card presentation while keeping the headerless full-screen visual shape; iOS keeps native full-screen modal presentation. This avoids Android edge-to-edge `react-native-screens` modal traversal crashes when customer selection immediately replaces the selector route with the invoice route.
 - The read-only mobile sales details helper route uses a sales-form-aligned native layout for invoice/quote details: a subtle header divider, rounded card sections, structured customer/detail rows, status badge, formatted dates, and a card-style totals section. The grand total is fixed in a soft bottom summary bar so it remains visible while details scroll. The route remains read-only and keeps the existing sales-details props and navigation behavior.
-- Android edge-to-edge is disabled in `apps/expo-app/app.config.ts` after the crash continued inside `EdgeToEdgeReactViewGroup`; testing this mitigation requires installing a fresh Android native build, not only reloading Metro or applying an OTA update.
+- Android edge-to-edge is disabled in `apps/mobile/app.config.ts` after the crash continued inside `EdgeToEdgeReactViewGroup`; testing this mitigation requires installing a fresh Android native build, not only reloading Metro or applying an OTA update.
 - The mobile sales dashboard uses a structured loading skeleton instead of a centered spinner, preserving the page's stat-card, action-row, and recent-sales-card rhythm while the overview query is pending.
 - The mobile sales dashboard now exposes a live `Quotes` entry beside `Orders`. The quotes route reuses the mobile orders list architecture for back navigation, search, filters, pull-to-refresh, empty state, and document cards while querying `sales.quotes` and `filters.salesQuotes`; quote cards show quote-specific status (`Paid`, `Open`, `Part paid`) from invoice pending/total amounts, omit remaining-due/payment-progress list copy, and open the shared flat document overview by quote number. The quote form is still available from an explicit sticky `Edit Quote` action when the quote has a saved slug. Orders use the same overview shell with order-specific due/payment labels and sticky `Create Delivery`; the primary overview order follows the supplied flat ledger template with Summary, Financial, Customer Contact, Items, Activities, and Deliveries, omitting Shipping from the main scan path. Both document types share the `sales.getSaleOverview.overviewItems[]` fallback for line items, while orders prefer dispatch-enriched rows when available and preview the first five items before offering a `View more` affordance. Customer Contact and Items use full-card-width row dividers while keeping row content padded, and the top Total/Paid/Due amounts use stronger value typography. Overview screens show explicit unavailable/not-found states instead of rendering fallback `$0.00` customer data when the live overview query fails or returns no record. The overview scroll view supports swipe-down refresh, and the sticky order/quote action respects the device bottom inset so `Create Delivery` remains visible. The order/quote overview overflow rollout is tracked in `brain/plans/2026-06-28-mobile-sales-overview-more-actions-rollout.md`; Phase 0/1 adds a custom-pressable More button and floating sheet with a dev-only `Edit Order` / `Edit Quote` action, and Phase 2 adds a dev-only `Copy` tab that offers `As Order` and `As Quote`, uses smooth fade/slide tab transitions, reuses `sales.copySale`, invalidates dashboard/list/overview queries, and opens the copied document editor when a slug is returned. These staged actions stay hidden from preview and production until promoted. Mobile edit-mode sales forms now initialize inline workflow step pills on the last usable pill, while create-mode forms still start from the first pill.
 - Mobile Orders, Quotes, and dispatch-search list search now opens from a floating footer pill backed by the shared `FloatingBottomSheet` primitive. Orders and Quotes draft search plus filters inside the sheet and commit only on Apply, Cancel preserves the current results, and dispatch-search uses the same sheet in search-only mode.

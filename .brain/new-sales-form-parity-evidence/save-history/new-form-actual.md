@@ -8,10 +8,10 @@ Save history behavior is implemented:
 - Restore copies snapshot content into the current document while preserving current identity/status/payments, strips copied persistence IDs, and shows a blue restored-version top banner until a successful save.
 
 Anchors:
-- `apps/www/src/components/sales-hx.tsx`
-- `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
-- `apps/www/src/components/forms/new-sales-form/history-restore.ts`
-- `apps/www/src/components/forms/new-sales-form/sales-history-snapshot-preview.tsx`
+- `apps/dashboard/src/components/sales-hx.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/history-restore.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/sales-history-snapshot-preview.tsx`
 - `apps/api/src/db/queries/sales-hx.ts`
 - `apps/api/src/db/queries/new-sales-form.ts`
 

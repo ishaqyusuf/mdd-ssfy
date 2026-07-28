@@ -26,23 +26,23 @@ Design cues to adapt, not copy:
 
 ## Current App Context
 
-- Mobile app lives in `apps/expo-app`.
-- Routing uses Expo Router under `apps/expo-app/src/app`.
-- Shared mobile tokens currently live in `apps/expo-app/src/lib/theme.ts`.
+- Mobile app lives in `apps/mobile`.
+- Routing uses Expo Router under `apps/mobile/src/app`.
+- Shared mobile tokens currently live in `apps/mobile/src/lib/theme.ts`.
 - The existing design uses NativeWind classes, Hugeicons, and shadcn-style token names.
 - Settings are centralized through:
-  - `apps/expo-app/src/screens/screen-settings.tsx`
-  - `apps/expo-app/src/components/settings-sections.tsx`
-  - `apps/expo-app/src/app/settings.tsx`
-  - `apps/expo-app/src/app/(job-admin)/(tabs)/settings.tsx`
-  - `apps/expo-app/src/app/(drivers)/settings.tsx`
+  - `apps/mobile/src/screens/screen-settings.tsx`
+  - `apps/mobile/src/components/settings-sections.tsx`
+  - `apps/mobile/src/app/settings.tsx`
+  - `apps/mobile/src/app/(job-admin)/(tabs)/settings.tsx`
+  - `apps/mobile/src/app/(drivers)/settings.tsx`
 
 ## Proposed Preview Placement
 
 Add a dedicated preview feature under:
 
 ```text
-apps/expo-app/src/features/design-system-preview/
+apps/mobile/src/features/design-system-preview/
   data/
     sample-data.ts
   design-systems/
@@ -65,11 +65,11 @@ apps/expo-app/src/features/design-system-preview/
 Add routes:
 
 ```text
-apps/expo-app/src/app/design-system-preview/_layout.tsx
-apps/expo-app/src/app/design-system-preview/index.tsx
-apps/expo-app/src/app/design-system-preview/template-a.tsx
-apps/expo-app/src/app/design-system-preview/template-b.tsx
-apps/expo-app/src/app/design-system-preview/template-c.tsx
+apps/mobile/src/app/design-system-preview/_layout.tsx
+apps/mobile/src/app/design-system-preview/index.tsx
+apps/mobile/src/app/design-system-preview/template-a.tsx
+apps/mobile/src/app/design-system-preview/template-b.tsx
+apps/mobile/src/app/design-system-preview/template-c.tsx
 ```
 
 Add a Settings section:
@@ -171,9 +171,9 @@ Sample screen:
 
 ## Documentation Plan
 
-Create `apps/expo-app/DESIGN.md` as the canonical mobile design system document after a template is selected.
+Create `apps/mobile/DESIGN.md` as the canonical mobile design system document after a template is selected.
 
-Create `apps/expo-app/src/features/design-system-preview/DESIGN.md` during preview implementation with:
+Create `apps/mobile/src/features/design-system-preview/DESIGN.md` during preview implementation with:
 
 - purpose and scope
 - inspiration notes
@@ -203,7 +203,7 @@ If the selected template materially changes the app architecture or long-term de
 ### Phase 3: Design Documentation
 
 - Document each template in preview `DESIGN.md`.
-- Add the mobile-wide `apps/expo-app/DESIGN.md` with current-system findings and selection criteria.
+- Add the mobile-wide `apps/mobile/DESIGN.md` with current-system findings and selection criteria.
 - Document tradeoffs: scan density, field usability, sales suitability, implementation cost, dark-mode fit, and accessibility risk.
 
 ### Phase 4: Review And Selection
@@ -211,11 +211,11 @@ If the selected template materially changes the app architecture or long-term de
 - Run the Expo app and review all three previews on narrow and large phone sizes.
 - Capture screenshots for the three template routes.
 - Pick one primary template and optionally one secondary pattern set.
-- Record the decision in `apps/expo-app/DESIGN.md` and, if durable, a Brain ADR.
+- Record the decision in `apps/mobile/DESIGN.md` and, if durable, a Brain ADR.
 
 ### Phase 5: Production Adoption
 
-- Promote selected tokens into `apps/expo-app/src/lib/theme.ts`.
+- Promote selected tokens into `apps/mobile/src/lib/theme.ts`.
 - Extract reusable primitives only after the chosen direction is clear.
 - Migrate one low-risk surface first, likely Settings or HRM dashboard.
 - Then migrate high-value surfaces in this order:
@@ -226,9 +226,9 @@ If the selected template materially changes the app architecture or long-term de
 
 ## Validation
 
-- `bunx tsc -p apps/expo-app/tsconfig.json --noEmit`
+- `bunx tsc -p apps/mobile/tsconfig.json --noEmit`
 - focused import check for new preview routes and screens
-- Expo Go smoke test through `bun --cwd apps/expo-app run dev`
+- Expo Go smoke test through `bun --cwd apps/mobile run dev`
 - manual navigation from Settings to all three previews
 - screenshot check for iPhone-sized and larger mobile viewports
 
@@ -238,11 +238,11 @@ Known caveat: broad Expo typecheck currently has existing baseline errors in unr
 
 Implemented on 2026-06-15.
 
-- Added the preview route group at `apps/expo-app/src/app/design-system-preview`.
-- Added the preview feature under `apps/expo-app/src/features/design-system-preview`.
+- Added the preview route group at `apps/mobile/src/app/design-system-preview`.
+- Added the preview feature under `apps/mobile/src/features/design-system-preview`.
 - Added static sample data, local preview components, three design-system token files, and four screens.
 - Added `Design System Previews` to the Settings screen with direct links to all templates.
-- Added `apps/expo-app/DESIGN.md` and preview-specific `DESIGN.md`.
+- Added `apps/mobile/DESIGN.md` and preview-specific `DESIGN.md`.
 - Registered `design-system-preview` in the protected root Expo stack for signed-in users.
 - Follow-up update: the Settings section, protected root stack screen, and preview route layout are now gated behind `__DEV__` so the previews are development-only.
 - Follow-up update: added per-template dark palettes and wired the preview index plus all three template screens to resolve colors from the active app color scheme.
@@ -258,9 +258,9 @@ Implemented on 2026-06-15.
 
 Validation:
 
-- `bunx biome check apps/expo-app/src/app/design-system-preview apps/expo-app/src/features/design-system-preview` passed.
+- `bunx biome check apps/mobile/src/app/design-system-preview apps/mobile/src/features/design-system-preview` passed.
 - `git diff --check` passed.
-- Broad `bunx tsc -p apps/expo-app/tsconfig.json --noEmit` remains blocked by existing workspace baseline errors, but a touched-file grep for `app/design-system-preview`, `features/design-system-preview`, `screen-settings`, and `app/_layout` returned no diagnostics after the Settings type fix.
+- Broad `bunx tsc -p apps/mobile/tsconfig.json --noEmit` remains blocked by existing workspace baseline errors, but a touched-file grep for `app/design-system-preview`, `features/design-system-preview`, `screen-settings`, and `app/_layout` returned no diagnostics after the Settings type fix.
 - Expo dev server started on port `3502` because port `3501` was already occupied.
 - Playwright screenshot smoke was blocked because the local Playwright browser binary is not installed.
 - Expo web HTTP route smoke was blocked by an existing `react-native-css` / `react-native-web` FlatList Metro error. Native Expo Go validation remains the expected preview path.

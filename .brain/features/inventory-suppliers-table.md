@@ -16,7 +16,7 @@ The Inventory Suppliers workspace lets operators search, create, edit, delete, s
 - Save, delete, and Dyke sync actions invalidate the supplier directory and Dyke review queries so the table/search surface stays fresh.
 
 ## Tables-2 Migration
-- Table module: `apps/www/src/components/tables-2/inventory-suppliers/*`
+- Table module: `apps/dashboard/src/components/tables-2/inventory-suppliers/*`
 - The old item-list supplier rows were replaced with a `tables-2` table using:
   - `VirtualRow`
   - table-owned scroll
@@ -39,7 +39,7 @@ The Inventory Suppliers workspace lets operators search, create, edit, delete, s
 - Focused Biome passed for the route, manager, table module, and table registry files.
 - Focused Inventory Suppliers parity tests passed with 5 tests / 43 assertions.
 - Full restarted table parity suite passed with 180 tests / 1757 assertions.
-- Broad `@gnd/www` typecheck still exits nonzero from existing baseline errors, but the touched-file filtered scan reported no diagnostics for inventory suppliers or table registry files.
+- Broad `@gnd/dashboard` typecheck still exits nonzero from existing baseline errors, but the touched-file filtered scan reported no diagnostics for inventory suppliers or table registry files.
 - Static scans found no live old supplier item-list/manual fetch patterns in the route or manager.
 - `git diff --check` passed.
-- `apps/www/src/components/tables-2/core` diff stayed clean.
+- `apps/dashboard/src/components/tables-2/core` diff stayed clean.

@@ -10,9 +10,9 @@ Stabilize legacy sales-form runtime correctness (pricing, save consistency, and 
 
 ## Scope
 
-- `apps/www/src/components/forms/sales-form/*`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/*`
-- `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/*`
+- `apps/dashboard/src/components/forms/sales-form/*`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/*`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/*`
 
 ## Coordination Note
 

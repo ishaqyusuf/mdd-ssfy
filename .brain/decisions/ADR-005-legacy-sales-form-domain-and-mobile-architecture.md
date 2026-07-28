@@ -22,7 +22,7 @@ This makes the form difficult to simplify visually, difficult to make mobile-nat
 
 Adopt a modular frontend domain boundary for the active legacy sales form under:
 
-- `apps/www/src/domains/sales-form/legacy/*`
+- `apps/dashboard/src/domains/sales-form/legacy/*`
 
 Use the following architecture rules:
 

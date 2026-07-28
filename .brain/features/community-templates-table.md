@@ -3,7 +3,7 @@
 ## Status
 Validated migration slice, 2026-06-16.
 
-The `/community/templates` route now renders through `apps/www/src/components/tables-2/community-templates/*` while preserving the existing community template route, query, filters, header actions, and modal/action behavior.
+The `/community/templates` route now renders through `apps/dashboard/src/components/tables-2/community-templates/*` while preserving the existing community template route, query, filters, header actions, and modal/action behavior.
 
 ## Behavior
 - The route stays at `/community/templates`; no `/v2` route was added.
@@ -19,15 +19,15 @@ The `/community/templates` route now renders through `apps/www/src/components/ta
 ## Constraints Preserved
 - No new community template `*V2` query was added.
 - No new filter param or filter metadata endpoint was added.
-- `apps/www/src/components/tables-2/core/*` was not modified.
+- `apps/dashboard/src/components/tables-2/core/*` was not modified.
 - The route no longer awaits template filter metadata before rendering; filter options are loaded lazily by the existing Midday adapter when needed.
-- Cleanup removed the old `apps/www/src/components/tables/community-template/*` files and old `CommunityTemplateSearchFilter` wrapper after runtime import scans found no remaining consumers.
+- Cleanup removed the old `apps/dashboard/src/components/tables/community-template/*` files and old `CommunityTemplateSearchFilter` wrapper after runtime import scans found no remaining consumers.
 
 ## Validation
 - Focused Biome passed for the templates route, header, new `tables-2/community-templates` files, and table settings/config files.
-- Filtered `@gnd/www` typecheck produced no diagnostics for the touched templates route/table/header/settings/config files or the retargeted legacy install-cost modal row type while the full workspace typecheck remains blocked by existing baseline errors.
+- Filtered `@gnd/dashboard` typecheck produced no diagnostics for the touched templates route/table/header/settings/config files or the retargeted legacy install-cost modal row type while the full workspace typecheck remains blocked by existing baseline errors.
 - Import scans found no remaining runtime references to `CommunityTemplateSearchFilter`, `community-template-search-filter`, `components/tables/community-template`, or `tables/community-template`.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - `git diff --check` passed for the templates slice.
 - HTTP smoke returned `200` for `/community/templates`.
 - Browser smoke passed with Quick Login as Pablo Cruz / Super Admin:
@@ -39,10 +39,10 @@ The `/community/templates` route now renders through `apps/www/src/components/ta
   - Switched route hydration to sort-aware `batchPrefetch` so the route no longer blocks on manual infinite-query fetch.
   - Added the Sales Orders table-core column drag flow to Community Templates: `useTableDnd`, `DndContext`, `SortableContext`, `DraggableHeader`, non-reorderable/action-column handling, resize handles, sort buttons for configured sort fields, and the header-offset scroll spacer.
   - Added `migration-parity.test.ts` to lock Community Templates against the failed shared-header implementation and require Sales Orders-style table-owned scroll/DnD plus `TABLE_CONFIGS["community-templates"].rowHeight`.
-  - Validation: `bun test apps/www/src/components/tables-2/community-templates/migration-parity.test.ts` passed; combined Unit Invoices + Community Templates parity suite passed with 10 tests / 51 assertions; targeted Biome passed for the Templates route/table/header/test files; `git diff --check` passed; HTTP SSR smoke for `/community/templates` returned `200` with Community Template markers.
+  - Validation: `bun test apps/dashboard/src/components/tables-2/community-templates/migration-parity.test.ts` passed; combined Unit Invoices + Community Templates parity suite passed with 10 tests / 51 assertions; targeted Biome passed for the Templates route/table/header/test files; `git diff --check` passed; HTTP SSR smoke for `/community/templates` returned `200` with Community Template markers.
 - Community Model Cost form task-grid restart on 2026-07-17:
-  - `apps/www/src/components/forms/community-model-cost-form.tsx` now uses `CommunityModelCostFormTasksTable` from `components/tables-2/community-model-cost-form-tasks`.
-  - Focused parity test passed with 4 tests, full `apps/www/src/components/tables-2` passed with 225 tests / 2337 assertions, focused Biome passed, touched-file typecheck scan showed no diagnostics, `/community/templates` returned `200` on direct Next, `git diff --check` passed, and `components/tables-2/core` stayed unchanged.
+  - `apps/dashboard/src/components/forms/community-model-cost-form.tsx` now uses `CommunityModelCostFormTasksTable` from `components/tables-2/community-model-cost-form-tasks`.
+  - Focused parity test passed with 4 tests, full `apps/dashboard/src/components/tables-2` passed with 225 tests / 2337 assertions, focused Biome passed, touched-file typecheck scan showed no diagnostics, `/community/templates` returned `200` on direct Next, `git diff --check` passed, and `components/tables-2/core` stayed unchanged.
 - Community Install Cost form task-grid restart on 2026-07-17:
-  - `apps/www/src/components/forms/community-install-cost-form.tsx` now uses `CommunityInstallCostFormTasksTable` from `components/tables-2/community-install-cost-form-tasks`.
-  - Focused install-cost form parity test passed with 4 tests, combined community install-cost/model-cost parity tests passed with 13 tests / 44 assertions, full `apps/www/src/components/tables-2` passed with 229 tests / 2337 assertions, focused Biome passed, touched-file typecheck scan showed no diagnostics, `/community/templates` returned `200` on direct Next and HTTPS proxy, legacy table markup scan on the form was clean, `git diff --check` passed, and `components/tables-2/core` stayed unchanged.
+  - `apps/dashboard/src/components/forms/community-install-cost-form.tsx` now uses `CommunityInstallCostFormTasksTable` from `components/tables-2/community-install-cost-form-tasks`.
+  - Focused install-cost form parity test passed with 4 tests, combined community install-cost/model-cost parity tests passed with 13 tests / 44 assertions, full `apps/dashboard/src/components/tables-2` passed with 229 tests / 2337 assertions, focused Biome passed, touched-file typecheck scan showed no diagnostics, `/community/templates` returned `200` on direct Next and HTTPS proxy, legacy table markup scan on the form was clean, `git diff --check` passed, and `components/tables-2/core` stayed unchanged.

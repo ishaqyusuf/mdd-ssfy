@@ -65,21 +65,21 @@ Standardize install-cost ordering across admin and jobs flows so install cost ro
 - `jobs.getInstallCosts`
 
 - Supporting consumers
-- `apps/www/src/hooks/use-model-install-config.ts`
-- `apps/expo-app/src/hooks/use-job-form-v2.tsx`
+- `apps/dashboard/src/hooks/use-model-install-config.ts`
+- `apps/mobile/src/hooks/use-job-form-v2.tsx`
 
 ## UI
 - Web admin
-- `apps/www/src/components/forms/community-template-v1/install-cost-resizable-panel.tsx`
-- `apps/www/src/components/modals/model-install-cost-modal/install-configuration.tsx`
-- `apps/www/src/components/modals/model-install-cost-modal/add-new-install-cost.tsx`
+- `apps/dashboard/src/components/forms/community-template-v1/install-cost-resizable-panel.tsx`
+- `apps/dashboard/src/components/modals/model-install-cost-modal/install-configuration.tsx`
+- `apps/dashboard/src/components/modals/model-install-cost-modal/add-new-install-cost.tsx`
 
 - Web jobs form
-- `apps/www/src/components/modals/new-job/install-tasks-list.tsx`
+- `apps/dashboard/src/components/modals/new-job/install-tasks-list.tsx`
 
 - Expo/mobile jobs form
-- `apps/expo-app/src/components/forms/job-v2/install-cost-form.tsx`
-- `apps/expo-app/src/hooks/use-job-form-v2.tsx`
+- `apps/mobile/src/components/forms/job-v2/install-cost-form.tsx`
+- `apps/mobile/src/hooks/use-job-form-v2.tsx`
 
 ## Detailed Implementation
 1. ✅ Server query updates

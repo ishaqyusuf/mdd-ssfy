@@ -14,7 +14,7 @@ type EasAccount = {
 	username: string | null;
 };
 
-const APP_DIR = path.join(import.meta.dir, "..", "apps", "expo-app");
+const APP_DIR = path.join(import.meta.dir, "..", "apps", "mobile");
 
 const ACTION_COMMANDS: Record<Action, string[]> = {
 	"eas-build:dev": ["bun", "run", "eas-build:dev"],

@@ -1,10 +1,25 @@
-import { defineConfig } from "@trigger.dev/sdk/v3";
-import { syncVercelEnvVars } from "@trigger.dev/build/extensions/core";
-import { prismaExtension } from "@trigger.dev/build/extensions/prisma";
 import { PrismaInstrumentation } from "@prisma/instrumentation";
+import { sentryEsbuildPlugin } from "@sentry/esbuild-plugin";
+import { esbuildPlugin } from "@trigger.dev/build/extensions";
+import { prismaExtension } from "@trigger.dev/build/extensions/prisma";
+import { defineConfig } from "@trigger.dev/sdk/v3";
+import { getSentrySourceMapUploadConfig } from "./src/observability/sentry";
+
+const sentrySourceMapUpload = getSentrySourceMapUploadConfig({
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  environment: process.env.SENTRY_ENVIRONMENT,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT_BACKEND,
+  release: process.env.SENTRY_RELEASE,
+});
+const triggerProjectId = process.env.TRIGGER_PROJECT_ID;
+
+if (!triggerProjectId) {
+  throw new Error("TRIGGER_PROJECT_ID is required.");
+}
 
 export default defineConfig({
-  project: process.env.TRIGGER_PROJECT_ID!,
+  project: triggerProjectId,
   runtime: "node",
   logLevel: "log",
   maxDuration: 60,
@@ -20,6 +35,24 @@ export default defineConfig({
   },
   build: {
     extensions: [
+      ...(sentrySourceMapUpload
+        ? [
+            esbuildPlugin(
+              sentryEsbuildPlugin({
+                org: sentrySourceMapUpload.org,
+                project: sentrySourceMapUpload.project,
+                authToken: sentrySourceMapUpload.authToken,
+                release: sentrySourceMapUpload.release
+                  ? { name: sentrySourceMapUpload.release }
+                  : undefined,
+                sourcemaps: {
+                  filesToDeleteAfterUpload: ["**/*.map"],
+                },
+              }),
+              { placement: "last", target: "deploy" },
+            ),
+          ]
+        : []),
       // syncVercelEnvVars({
       //   projectId: process.env.PROJECT_ID_VERCEL!,
       //   vercelAccessToken: process.env.VERCEL_TRIGGER_ACCESS_TOKEN!,

@@ -23,10 +23,10 @@
 
 ## Validation
 - 2026-07-17 density/width validation:
-  - `bun test apps/www/src/components/tables-2/inventory-stock-audit/migration-parity.test.ts` passed with `3` tests and `32` assertions.
-  - `bun test apps/www/src/components/tables-2` passed with `306` tests and `2570` assertions.
+  - `bun test apps/dashboard/src/components/tables-2/inventory-stock-audit/migration-parity.test.ts` passed with `3` tests and `32` assertions.
+  - `bun test apps/dashboard/src/components/tables-2` passed with `306` tests and `2570` assertions.
   - Focused Biome passed for the stocks route, operations page, stock-audit table files, parity test, and table config.
-  - Filtered `@gnd/www` typecheck grep reported no stock-audit/table-config diagnostics.
+  - Filtered `@gnd/dashboard` typecheck grep reported no stock-audit/table-config diagnostics.
   - `git diff --check` passed for the touched stock-audit files, and `components/tables-2/core` stayed unchanged.
   - Direct local HTTP GET smoke returned `200` for `http://127.0.0.1:3010/inventory/stocks`; the portless HTTPS route timed out after 60s with zero bytes and `https://gndprodesk.localhost:3011` was not listening.
   - Authenticated browser proof confirmed a `45px` header, `56px` rows, table-owned vertical scroll (`scrollTop 0 -> 63`), no document-level horizontal overflow, and no table horizontal overflow at the current desktop width because the compact columns fit the container.

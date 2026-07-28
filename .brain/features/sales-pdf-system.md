@@ -149,9 +149,9 @@ apps/api/src/trpc/routers/print.route.ts
 ### Client layer
 
 ```
-apps/www/src/components/print-sales-v2.tsx            # legacy/fallback PDF viewer
-apps/www/src/components/sales-document-preview-page.tsx # HTML preview with actions
-apps/www/src/app/(public)/p/sales-document-v2/        # signed HTML preview route
+apps/dashboard/src/components/print-sales-v2.tsx            # legacy/fallback PDF viewer
+apps/dashboard/src/components/sales-document-preview-page.tsx # HTML preview with actions
+apps/dashboard/src/app/(public)/p/sales-document-v2/        # signed HTML preview route
 ```
 
 2026-07-16 browser proof: `/sales-book/orders` batch selection of five orders used `Print > PDF > Order & Packing` and produced `~/Downloads/Sales_Print_10_.pdf`; after root auth hydration was fixed, the same selected batch used `Print > PDF > Order`, showed `PDF download started`, and produced `~/Downloads/Sales_Print_4_.pdf` with no new browser console errors.
@@ -299,7 +299,7 @@ The stored-document phase should answer these operational rules explicitly:
 ## Pickup packing signoff
 
 - Packing signoff now lives on `/p/sales-document-v2` for packing-slip preview payloads.
-- The UI surface is a floating `Sign` control rendered by `apps/www/src/components/packing-slip-sign-fab.tsx`.
+- The UI surface is a floating `Sign` control rendered by `apps/dashboard/src/components/packing-slip-sign-fab.tsx`.
 - The sign form prefills:
   - `Packed By` from the current logged-in account
   - `Received By` from the customer/shipping name

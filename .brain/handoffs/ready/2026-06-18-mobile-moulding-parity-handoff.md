@@ -28,9 +28,9 @@ Make mobile moulding selection work as a multi-select step with floating proceed
 - brain/plans/2026-06-18-ux-ui-mobile-moulding-parity.md
 - brain/features/mobile-invoice-form.md
 - brain/api/contracts.md
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/steps/moulding
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/steps/moulding
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-moulding-actions.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts
 - packages/sales/src/sales-form/domain/grouping.ts
@@ -55,9 +55,9 @@ Make mobile moulding selection work as a multi-select step with floating proceed
 - Moulding logic remains modular and does not turn the workflow selector into a monolith.
 
 ## Files Or Areas Likely Involved
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/steps/moulding/*
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/steps/moulding/*
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-moulding-actions.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts
 - packages/sales/src/sales-form/domain/grouping.ts only if shared contract gaps are found

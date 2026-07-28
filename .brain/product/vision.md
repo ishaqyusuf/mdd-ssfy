@@ -7,7 +7,7 @@ Captures the long-term product and platform intent for the repository.
 Build and operate a scalable monorepo powering GND's web, mobile, and backend products with fast iteration, shared domain packages, and consistent engineering standards.
 
 ## Product Outcomes
-- Deliver reliable business workflows across web (`apps/www`, `apps/site`, `apps/gnd-backlog`) and mobile (`apps/expo-app`).
+- Deliver reliable business workflows across web (`apps/dashboard`, `apps/site`, `apps/gnd-backlog`) and mobile (`apps/mobile`).
 - Keep API and domain logic centralized and reusable (`apps/api`, `packages/*`).
 - Reduce delivery friction with Turborepo task orchestration, shared UI/domain packages, and predictable release quality.
 

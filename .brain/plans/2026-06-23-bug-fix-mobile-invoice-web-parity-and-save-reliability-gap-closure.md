@@ -16,11 +16,11 @@ Phase 0 observability and mobile save failure UX implemented; runtime/device rep
 Mobile invoice/quote creation still times out with `Cannot finish saving this invoice. Check your connection and try again.` after prior client and post-save timeout hardening. The mobile form also remains a native implementation beside the web `new-sales-form`, so save reliability and form behavior need a parity-driven closure plan instead of another isolated timeout patch.
 
 ## Current Context
-- Mobile saves call `actions.buildSavePayload(...)` from `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`, then `newSalesForm.saveDraft` / `saveFinal` through `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-actions.ts`.
-- Mobile wraps the save request in `runMobileInvoiceSaveRequest(...)` with a 30 second timeout in `apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.ts`.
-- Expo tRPC mutations currently use unbatched `httpLink` in `apps/expo-app/src/trpc/client.tsx`, while queries remain batched.
+- Mobile saves call `actions.buildSavePayload(...)` from `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`, then `newSalesForm.saveDraft` / `saveFinal` through `apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-actions.ts`.
+- Mobile wraps the save request in `runMobileInvoiceSaveRequest(...)` with a 30 second timeout in `apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.ts`.
+- Expo tRPC mutations currently use unbatched `httpLink` in `apps/mobile/src/trpc/client.tsx`, while queries remain batched.
 - API save functions in `apps/api/src/db/queries/new-sales-form.ts` still await `saveNewSalesFormInternal(...)` before bounded post-save tasks run. Therefore the remaining mobile timeout can still come from request routing/connectivity, payload validation, the core transaction, DB lock/contention, or an unobserved server error before the bounded post-save section.
-- Web `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx` has richer save orchestration: queued autosave, manual save lock, save/close/save/new branches, stale handling, toast feedback, route transition, print/PDF pre-save flushes, and inventory-configuration post-save work.
+- Web `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx` has richer save orchestration: queued autosave, manual save lock, save/close/save/new branches, stale handling, toast feedback, route transition, print/PDF pre-save flushes, and inventory-configuration post-save work.
 - Web `InvoiceOverviewPanel` reconciles customer profile, billing/shipping address, tax code, tax rate, payment method, credit card fee display, delivery, payment terms, dates, and credit-limit context. Mobile has native Details/Costs/Review steps and shared core summary helpers, but not all web actions or post-save effects are represented.
 - Existing Brain parity docs already flag unresolved new-sales-form gaps around route fallback, override precedence, dependency pricing, grouped workflows, legacy costing, tax/labor/credit-card charge behavior, customer profile repricing, and full fixture proof.
 
@@ -99,7 +99,7 @@ flowchart TD
 - Gap: Mobile base URL depends on Expo host URI and port env; preview builds use `EXPO_PUBLIC_BASE_URL`. A device can appear healthy while hitting the wrong local port, stale dev server, the production-env local smoke profile, or production.
 - Web Parity Target: Web runs in the browser against the current app/API stack; mobile must make its target explicit in development.
 - Plan: Add a dev-only visible/logged API target and verify phone, Metro, web, and API/proxy ports before further save fixes.
-- Evidence Areas: `apps/expo-app/src/lib/base-url.ts`, `apps/expo-app/src/trpc/client.tsx`, `brain/system/overview.md`.
+- Evidence Areas: `apps/mobile/src/lib/base-url.ts`, `apps/mobile/src/trpc/client.tsx`, `brain/system/overview.md`.
 
 ### P1 Save UX And Post-Save Effects
 - Gap: Mobile has Save Draft/Create and route replacement after create, but not web's save-close, save-new, print/PDF pre-save flush, post-save inventory configuration modal, broad cache invalidation, and toast-specific result copy.
@@ -168,18 +168,18 @@ flowchart TD
 - Evidence Areas: `brain/plans/2026-06-19-feature-mobile-invoice-form-architecture-refactor.md`.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
-- `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-actions.ts`
-- `apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.ts`
-- `apps/expo-app/src/features/sales/invoice-form/lib/calculate-summary.ts`
-- `apps/expo-app/src/features/sales/invoice-form/components/details-step.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/components/costs-step.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/steps/`
-- `apps/expo-app/src/lib/base-url.ts`
-- `apps/expo-app/src/trpc/client.tsx`
-- `apps/www/src/components/forms/new-sales-form/`
+- `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-actions.ts`
+- `apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.ts`
+- `apps/mobile/src/features/sales/invoice-form/lib/calculate-summary.ts`
+- `apps/mobile/src/features/sales/invoice-form/components/details-step.tsx`
+- `apps/mobile/src/features/sales/invoice-form/components/costs-step.tsx`
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
+- `apps/mobile/src/features/sales/invoice-form/steps/`
+- `apps/mobile/src/lib/base-url.ts`
+- `apps/mobile/src/trpc/client.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/`
 - `apps/api/src/db/queries/new-sales-form.ts`
 - `apps/api/src/schemas/new-sales-form.ts`
 - `packages/sales/src/sales-form/`

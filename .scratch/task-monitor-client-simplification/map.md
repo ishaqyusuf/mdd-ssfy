@@ -10,8 +10,8 @@ Reach an implementation-ready decision map for simplifying the background task m
 
 ## Notes
 
-- Domain: `apps/www` background task monitor, Trigger.dev run feedback, developer/admin task diagnostics, and database-backed failure audit.
-- Current client state lives in `apps/www/src/store/task-monitor.ts` and is persisted in the browser under `gnd-task-monitor`.
+- Domain: `apps/dashboard` background task monitor, Trigger.dev run feedback, developer/admin task diagnostics, and database-backed failure audit.
+- Current client state lives in `apps/dashboard/src/store/task-monitor.ts` and is persisted in the browser under `gnd-task-monitor`.
 - `TaskNotification` is globally mounted in sidebar and clean-code layouts and currently shows a bottom-right floating monitor with a task count, expandable rows, run ids, task names, copy/cancel/dismiss controls, and detailed error text.
 - `useTaskTrigger` starts Trigger.dev tasks, registers monitored runs, watches `useRealtimeRun`, and currently emits success/error toasts only when the task is not monitor-backed. Monitor-backed tasks rely mostly on the task monitor surface.
 - Sales document email failures already have a domain-specific durable ledger through `SalesEmailAttempt`; this should remain the email delivery source of truth.
@@ -37,7 +37,7 @@ Reach an implementation-ready decision map for simplifying the background task m
 
 #### Question
 
-What exact task feedback contract should `apps/www` use across production and non-production? Decide whether production shows only a spinner button, whether non-production keeps the full expandable monitor, whether users can cancel tasks from production, which task starts show spinner toasts versus global spinner state, and how success, failure, cancellation, and stale runs should map to closeable toasts.
+What exact task feedback contract should `apps/dashboard` use across production and non-production? Decide whether production shows only a spinner button, whether non-production keeps the full expandable monitor, whether users can cancel tasks from production, which task starts show spinner toasts versus global spinner state, and how success, failure, cancellation, and stale runs should map to closeable toasts.
 
 #### Known Inputs
 

@@ -14,6 +14,7 @@ const HOVER_COLLAPSE_DELAY_MS = 1000;
 export interface NavItemProps {
 	module: NavModule;
 	item: NavLinkType;
+	mobile?: boolean;
 	isActive: boolean;
 	isExpanded: boolean;
 	isItemExpanded: boolean;
@@ -24,6 +25,7 @@ export interface NavItemProps {
 
 export const NavItem = ({
 	item,
+	mobile = false,
 	isActive,
 	isExpanded,
 	isItemExpanded,
@@ -163,12 +165,13 @@ export const NavItem = ({
 				onClick={() => {
 					if (item.href) onSelect?.();
 				}}
-				className="group"
+				className="group block"
 			>
 				<div className="relative">
 					<div
 						className={cn(
-							"ml-[10px] mr-[10px] h-[42px] rounded-lg border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+							"ml-[10px] mr-[10px] rounded-lg border transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+							mobile ? "h-11" : "h-[42px]",
 							isExpanded && isActive
 								? "border-sidebar-border/90 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.08),0_10px_28px_rgba(15,23,42,0.06)]"
 								: "border-transparent bg-transparent",
@@ -180,10 +183,20 @@ export const NavItem = ({
 					/>
 
 					{isExpanded && isActive && (
-						<div className="absolute inset-y-[9px] left-[13px] w-[3px] rounded-full bg-sidebar-primary" />
+						<div
+							className={cn(
+								"absolute left-[13px] w-[3px] rounded-full bg-sidebar-primary",
+								mobile ? "inset-y-[10px]" : "inset-y-[9px]",
+							)}
+						/>
 					)}
 
-					<div className="pointer-events-none absolute left-[10px] top-0 flex h-[42px] w-[42px] items-center justify-center text-sidebar-foreground/48 group-hover:text-sidebar-foreground/88">
+					<div
+						className={cn(
+							"pointer-events-none absolute left-[10px] top-0 flex items-center justify-center text-sidebar-foreground/48 group-hover:text-sidebar-foreground/88",
+							mobile ? "size-11" : "h-[42px] w-[42px]",
+						)}
+					>
 						<div
 							className={cn(
 								"flex h-7 w-7 items-center justify-center rounded-md transition-colors duration-200",
@@ -196,7 +209,12 @@ export const NavItem = ({
 					</div>
 
 					{isExpanded && (
-						<div className="pointer-events-none absolute left-[58px] right-[10px] top-0 flex h-[42px] items-center">
+						<div
+							className={cn(
+								"pointer-events-none absolute left-[58px] right-[10px] top-0 flex items-center",
+								mobile ? "h-11" : "h-[42px]",
+							)}
+						>
 							<span
 								className={cn(
 									"overflow-hidden whitespace-nowrap text-sm font-medium text-sidebar-foreground/64 transition-colors duration-150 group-hover:text-sidebar-foreground",
@@ -216,7 +234,8 @@ export const NavItem = ({
 									type="button"
 									onClick={handleChevronClick}
 									className={cn(
-										"pointer-events-auto ml-auto mr-1 flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-sidebar-foreground/42 transition-all duration-200 hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-foreground",
+										"pointer-events-auto ml-auto mr-1 flex items-center justify-center rounded-lg border border-transparent text-sidebar-foreground/42 transition-all duration-200 hover:border-sidebar-border hover:bg-sidebar-accent hover:text-sidebar-foreground",
+										mobile ? "size-11" : "h-7 w-7",
 										isActive && "text-sidebar-primary",
 										shouldShowChildren && "rotate-180",
 									)}
@@ -245,6 +264,7 @@ export const NavItem = ({
 							<NavChildItem
 								key={child.href || child.name || `${item.href}-child-${index}`}
 								child={child}
+								mobile={mobile}
 								isActive={isChildActive}
 								isExpanded={isExpanded}
 								isParentHovered={

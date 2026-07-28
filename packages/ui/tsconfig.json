@@ -12,7 +12,7 @@
   },
   "include": [
     "src",
-    "../../apps/www/src/components/create-sales-btn.tsx",
+    "../../apps/dashboard/src/components/create-sales-btn.tsx",
     "../utils/src/hooks/use-search.ts",
     "../utils/src/hooks/use-debounce.ts"
   ],

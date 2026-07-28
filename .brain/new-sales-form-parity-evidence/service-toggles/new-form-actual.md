@@ -12,7 +12,7 @@ Multi-row package proof now verifies:
 - grouped service display totals are derived from stored rows before stale parent totals.
 
 Anchors:
-- `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - `packages/sales/src/sales-form/domain/workflow-calculators.ts`
 
 Current parity status:

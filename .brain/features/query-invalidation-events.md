@@ -10,7 +10,7 @@ Keep TanStack Query data fresh after successful application actions without requ
 
 ## Architecture
 
-The WWW app has one client-side query-event runtime under `apps/www/src/lib/query-events/`:
+The WWW app has one client-side query-event runtime under `apps/dashboard/src/lib/query-events/`:
 
 - `types.ts` derives valid query, infinite-query, and mutation route strings from the `useTRPC()` proxy. Registry typos therefore fail TypeScript validation.
 - `registry.ts` owns domain event-to-query-target definitions and typed tRPC mutation route-to-event mappings.
@@ -18,9 +18,9 @@ The WWW app has one client-side query-event runtime under `apps/www/src/lib/quer
 - `transport.ts` delivers event name and serializable scope in the initiating tab and through `BroadcastChannel` to other open GND tabs in the same browser. Duplicate event names in one batch merge and deduplicate their sale references.
 - `executor.ts` turns registered targets into tRPC `pathKey`, `queryKey`, or `infiniteQueryKey` values, deduplicates query keys, and invalidates active queries while leaving inactive queries stale for their next mount. Targets can opt into `refetchType: "all"` when their cached data must refresh while inactive; the strongest refetch mode wins when duplicate targets collapse to one query key. Sales Overview uses an exact typed `queryKey({ orderNo, salesType })` when scope is known and the route path only as a compatibility fallback.
 - `runtime.tsx` installs one listener below the app's QueryClient and tRPC providers.
-- `apps/www/src/trpc/context.ts` owns the shared tRPC React context so the runtime does not create a circular dependency with the provider module.
+- `apps/dashboard/src/trpc/context.ts` owns the shared tRPC React context so the runtime does not create a circular dependency with the provider module.
 
-`apps/www/src/trpc/query-client.ts` is the central success boundary. Its global `MutationCache.onSuccess` invokes and awaits `triggerMutationQueryEvents()` after successful browser mutations, so active local refetches finish before mutation completion reaches component success handlers. Toast behavior is independent and cannot prevent invalidation.
+`apps/dashboard/src/trpc/query-client.ts` is the central success boundary. Its global `MutationCache.onSuccess` invokes and awaits `triggerMutationQueryEvents()` after successful browser mutations, so active local refetches finish before mutation completion reaches component success handlers. Toast behavior is independent and cannot prevent invalidation.
 
 ## Event Catalog
 
@@ -158,7 +158,7 @@ Do not add raw string query keys, broad `queryClient.clear()`, or whole-cache in
 - Focused query-event, sales facade, task-effect, stats-reset, payment-response, payment-review, inventory-route, and payment-review-domain suite: 57 tests / 182 assertions passed.
 - Checkout query coverage: 4 tests / 18 assertions passed with the required test encryption key.
 - Focused Biome check: passed for all new runtime files and touched query-client/facade/metadata files.
-- Filtered `@gnd/www` TypeScript pass: no diagnostics in the query-event runtime, provider wiring, mutation client, metadata declaration, tests, or sales facade. The broad app typecheck remains blocked by unrelated existing repository errors.
+- Filtered `@gnd/dashboard` TypeScript pass: no diagnostics in the query-event runtime, provider wiring, mutation client, metadata declaration, tests, or sales facade. The broad app typecheck remains blocked by unrelated existing repository errors.
 - No visual/browser QA was required because this change adds no visual surface; behavior is exercised at the cache/event boundary.
 
 ### Sales Payment Review Follow-up
@@ -168,7 +168,7 @@ On 2026-07-18, the Sales Orders `markLatestPaymentReviewed` action was moved ful
 - Focused query-event, page-tab, sales facade, and payment-review suite: 27 tests / 56 assertions passed.
 - The executor regression test verifies `sales.payment.changed` invalidates `sales.getOrders`, `sales.getOrdersSummary`, and `pageTabs.list`.
 - Focused Biome and scoped `git diff --check` passed.
-- Filtered `@gnd/www` TypeScript output contained no diagnostics for the touched payment-review/query-event files; the broad app typecheck remains blocked by unrelated existing repository errors.
+- Filtered `@gnd/dashboard` TypeScript output contained no diagnostics for the touched payment-review/query-event files; the broad app typecheck remains blocked by unrelated existing repository errors.
 - Static UI coverage confirms both row and batch payment-review actions use `Reviewed`. The user requested that browser mutation testing be skipped, so no payment record was changed during validation.
 
 ### Batch Sales Payment Review Follow-up

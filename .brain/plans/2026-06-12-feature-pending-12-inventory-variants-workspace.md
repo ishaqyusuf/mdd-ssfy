@@ -58,7 +58,7 @@ Create a variants table/workspace with filters for item, category, stock mode, s
 - Task File: brain/tasks/roadmap.md
 
 ## Completion Report
-- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/www/src/app/(sidebar)/inventory/variants/page.tsx`, `apps/www/src/components/inventory/inventory-variants-workspace-page.tsx`, and `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`.
+- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/dashboard/src/app/(sidebar)/inventory/variants/page.tsx`, `apps/dashboard/src/components/inventory/inventory-variants-workspace-page.tsx`, and `apps/dashboard/src/components/inventory/inventory-item-dashboard-page.tsx`.
 - Replaced the `/inventory/variants` redirect with a real workspace backed by `inventories.inventoryVariantsWorkspace`.
 - Added search and filters for item id, category id, supplier id, status, stock mode, and low stock, with rows exposing price, stock, supplier, status, and attribute context.
 - Added row actions for item dashboard, item edit flow, and stock operations; item dashboard links can prefill the variants workspace by `inventoryId`.

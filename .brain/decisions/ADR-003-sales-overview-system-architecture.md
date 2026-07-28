@@ -12,7 +12,7 @@ URL-state, lazy-domain, and controller seams from this experiment.
 
 ## Context
 
-The current sales overview implementation in `apps/www/src/components/sheets/sales-overview-sheet/index.tsx` mixes:
+The current sales overview implementation in `apps/dashboard/src/components/sheets/sales-overview-sheet/index.tsx` mixes:
 
 - sheet surface rendering
 - role/view-mode branching
@@ -34,7 +34,7 @@ Adopt a shared sales overview system architecture with:
 
 Initial implementation lives under:
 
-- `apps/www/src/components/sales-overview-system/*`
+- `apps/dashboard/src/components/sales-overview-system/*`
 
 ## Rationale
 

@@ -1,27 +1,10 @@
-import { cn, cva } from "@gnd/ui/cn";
-import { Icon, Icons } from "@gnd/ui/icons";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { resolveVisibleNavModules } from "../lib/module-selection";
 import type { NavLink } from "../lib/types";
-import {
-	getActiveLinkFromMap,
-	isPathInLink,
-	normalizeNavPath,
-} from "../lib/utils";
+import { isPathInLink, normalizeNavPath } from "../lib/utils";
 import { NavItem } from "./nav-item";
 import { useSiteNav } from "./use-site-nav";
 
-const sectionLabel = cva("", {
-	variants: {
-		renderMode: {
-			suppressed: "",
-			default: "hidden",
-			none: "hidden",
-		},
-	},
-	defaultVariants: {
-		renderMode: "default",
-	},
-});
 export function NavsList({
 	mobile = false,
 	onSelect,
@@ -32,202 +15,102 @@ export function NavsList({
 	const {
 		linkModules,
 		activeLink,
+		currentModule,
 		mainMenuRef,
-		isExpanded: _isExpanded,
+		isExpanded: desktopIsExpanded,
 		props: { pathName: rawPathName },
 	} = useSiteNav();
 	const [expandedItem, setExpandedItem] = useState<string | null>(null);
-	const isExpanded = _isExpanded || mobile;
-	const [expandModule, setExpandModule] = useState<string | null>(null);
-	const [stableModuleName, setStableModuleName] = useState<string | null>(null);
 	const [stableLinkModules, setStableLinkModules] = useState(linkModules);
+	const isExpanded = desktopIsExpanded || mobile;
 	const renderedLinkModules =
 		(linkModules?.modules?.length || 0) > 0
 			? linkModules
 			: stableLinkModules || linkModules;
-	const normalizedPathName = useMemo(() => {
-		return normalizeNavPath(rawPathName?.toLocaleLowerCase() || "");
-	}, [rawPathName]);
-	const currentModuleName = useMemo(() => {
-		const pathName = normalizedPathName;
-		if (!pathName) return null;
+	const normalizedPathName = useMemo(
+		() => normalizeNavPath(rawPathName?.toLocaleLowerCase() || ""),
+		[rawPathName],
+	);
+	const visibleModules = useMemo(
+		() =>
+			resolveVisibleNavModules(
+				renderedLinkModules?.modules || [],
+				currentModule?.name,
+				activeLink?.module,
+			),
+		[activeLink?.module, currentModule?.name, renderedLinkModules?.modules],
+	);
 
-		const activeFromMap = getActiveLinkFromMap(
-			pathName,
-			renderedLinkModules?.linksNameMap || {},
-		);
-		if (
-			typeof activeFromMap?.module === "string" &&
-			activeFromMap.module.trim() !== ""
-		) {
-			return activeFromMap.module;
-		}
-
-		const firstSegment = pathName.split("/").filter(Boolean)[0]?.toLowerCase();
-		if (firstSegment) {
-			const moduleFromSegment = (renderedLinkModules?.modules || []).find(
-				(module) => {
-					const moduleName = module?.name;
-					if (typeof moduleName !== "string" || !moduleName.trim())
-						return false;
-					const normalizedModule = moduleName
-						.toLowerCase()
-						.replace(/\s+/g, "-")
-						.trim();
-					return (
-						normalizedModule === firstSegment ||
-						firstSegment.startsWith(`${normalizedModule}-`) ||
-						normalizedModule.startsWith(`${firstSegment}-`)
-					);
-				},
-			);
-			if (
-				typeof moduleFromSegment?.name === "string" &&
-				moduleFromSegment.name.trim() !== ""
-			) {
-				return moduleFromSegment.name;
-			}
-		}
-		return typeof activeLink?.module === "string" &&
-			activeLink.module.trim() !== ""
-			? activeLink.module
-			: null;
-	}, [
-		normalizedPathName,
-		renderedLinkModules?.linksNameMap,
-		renderedLinkModules?.modules,
-		activeLink?.module,
-	]);
-	const effectiveModuleName =
-		currentModuleName ||
-		(typeof activeLink?.module === "string" && activeLink.module.trim() !== ""
-			? activeLink.module
-			: null);
-	const visibleModuleName = effectiveModuleName || stableModuleName;
-	const isLinkActive = (link: NavLink) => {
-		if (!link || !normalizedPathName) return false;
-		if (isPathInLink(normalizedPathName, link)) return true;
-		return (link?.subLinks || []).some((subLink) =>
-			isPathInLink(normalizedPathName, subLink),
-		);
-	};
-	useEffect(() => {
-		if (!effectiveModuleName) return;
-		setStableModuleName((prev) =>
-			prev === effectiveModuleName ? prev : effectiveModuleName,
-		);
-	}, [effectiveModuleName]);
 	useEffect(() => {
 		if ((linkModules?.modules?.length || 0) === 0) return;
 		setStableLinkModules(linkModules);
 	}, [linkModules]);
-	useEffect(() => {
-		if (!isExpanded) return;
-		setExpandModule(visibleModuleName);
-	}, [isExpanded, visibleModuleName]);
+
+	const isLinkActive = (link: NavLink) => {
+		if (!link || !normalizedPathName) return false;
+		if (isPathInLink(normalizedPathName, link)) return true;
+		return (link.subLinks || []).some((subLink) =>
+			isPathInLink(normalizedPathName, subLink),
+		);
+	};
+
+	if (!visibleModules.length) return null;
+
 	return (
-		<div className="mt-3 w-full px-3">
-			<nav className="w-full overflow-auto">
+		<div className="w-full px-3 pt-3">
+			<nav className="w-full">
 				<div className="flex flex-col gap-2.5">
-					{renderedLinkModules?.modules.map((module, mi) => {
-						if (isExpanded && !module?.activeLinkCount) return null;
-						const hasModuleTitle = Boolean(module?.name?.trim());
-						const isActiveModule = visibleModuleName === module?.name;
-						const isExpandedModule =
-							hasModuleTitle && expandModule === module.name;
-						const showExpandedState =
-							isExpanded &&
-							(!hasModuleTitle ||
-								isExpandedModule ||
-								(!visibleModuleName && !hasModuleTitle));
-						const showCollapsedState =
-							!isExpanded && (!hasModuleTitle || isActiveModule);
-						const show = showExpandedState || showCollapsedState;
+					{visibleModules.map((module, moduleIndex) => {
+						const isFirstUnnamedModule =
+							!module.name?.trim() &&
+							visibleModules
+								.slice(0, moduleIndex)
+								.every((previousModule) => previousModule.name?.trim());
+
 						return (
-							<Fragment key={module?.name || `module-${mi}`}>
-								{hasModuleTitle ? (
-									<button
-										type="button"
-										onClick={() => {
-											setExpandModule(isExpandedModule ? null : module.name);
-										}}
-										className={cn(
-											"group mb-1.5 flex h-8 w-full cursor-pointer select-none items-center justify-between gap-2 rounded-lg px-2.5 text-left transition-colors duration-200 hover:bg-sidebar-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-											isExpandedModule &&
-												"bg-sidebar-accent text-sidebar-foreground shadow-[inset_0_0_0_1px_rgba(99,91,255,0.08)]",
-											!isExpanded && "hidden",
-										)}
-										aria-expanded={show}
-									>
-										<div className="min-w-0 flex-1">
-											<span
-												className={cn(
-													"block truncate text-[12px] font-medium text-sidebar-foreground/66 group-hover:text-sidebar-foreground",
-													isExpandedModule &&
-														"text-sidebar-foreground font-semibold",
-												)}
-											>
-												{module.name}
-											</span>
-										</div>
-										<Icons.ChevronDown
-											className={cn(
-												"size-3.5 text-sidebar-foreground/38 transition-transform duration-200 group-hover:text-sidebar-foreground/70",
-												isExpandedModule && "text-sidebar-foreground/80",
-												show ? "" : "-rotate-90",
-											)}
-										/>
-									</button>
+							<Fragment key={module.name || `module-${module.index}`}>
+								{isFirstUnnamedModule ? (
+									<div
+										className="mx-1 my-1 h-px bg-sidebar-border/80"
+										aria-hidden="true"
+									/>
 								) : null}
-								<div
-									className={cn(
-										"overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out",
-										show
-											? "max-h-[3000px] opacity-100"
-											: "pointer-events-none max-h-0 opacity-0",
-									)}
-								>
-									{module?.sections?.map((section, si) => (
+								{module.sections.map((section, sectionIndex) => {
+									if (!section.linksCount) return null;
+									const sectionTitle = section.title || section.name;
+
+									return (
 										<div
-											key={section?.name || section?.title || `section-${si}`}
-											className={cn(!section?.linksCount && "hidden")}
+											key={
+												section.name ||
+												section.title ||
+												`${module.index}-section-${sectionIndex}`
+											}
 										>
-											{!isExpanded && si > 0 ? null : (
-												<div
-													className={cn(
-														"mx-4 mt-4 hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/36",
-														activeLink?.module !== module.name &&
-															sectionLabel({
-																renderMode: isExpanded
-																	? "default"
-																	: "suppressed",
-															}),
-														!section?.title &&
-															!section?.name &&
-															(si > 0 || !module?.name) &&
-															"hidden",
-														isExpanded && si > 0 && "block",
-													)}
-												>
-													{si === 0 && !isExpanded
-														? module.name
-														: section?.title || section.name}
+											{isExpanded && sectionTitle ? (
+												<div className="mx-4 mb-1 mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/36">
+													{sectionTitle}
 												</div>
-											)}
+											) : null}
 											<div>
-												{section?.links
-													?.filter((l) => l?.show)
-													?.map((link, li) => (
+												{section.links
+													.filter((link) => link?.show)
+													.map((link, linkIndex) => (
 														<Fragment
-															key={link?.href || link?.name || `link-${li}`}
+															key={
+																link?.href ||
+																link?.name ||
+																`${module.index}-link-${linkIndex}`
+															}
 														>
 															<NavItem
+																mobile={mobile}
 																isExpanded={isExpanded}
-																isItemExpanded={expandedItem === link.href}
+																isItemExpanded={expandedItem === link?.href}
 																onSelect={onSelect}
 																onToggle={(path) => {
-																	setExpandedItem(
-																		expandedItem === path ? null : path,
+																	setExpandedItem((currentPath) =>
+																		currentPath === path ? null : path,
 																	);
 																}}
 																scrollContainerRef={mainMenuRef}
@@ -239,8 +122,8 @@ export function NavsList({
 													))}
 											</div>
 										</div>
-									))}
-								</div>
+									);
+								})}
 							</Fragment>
 						);
 					})}

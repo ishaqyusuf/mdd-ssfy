@@ -10,11 +10,12 @@ Operational rules for AI agents contributing to this repository.
 - Prefer editing the structured Brain locations over creating new flat docs.
 - Leave compatibility breadcrumbs when moving or reorganizing existing documentation.
 - Keep historical logs in `.brain/progress.md` unless a future migration explicitly relocates them.
+- Local Portless-backed workspace scripts reuse the active shared HTTPS wildcard proxy. Do not set `PORTLESS_PORT` or `PORTLESS_HTTPS` in app dev scripts, and do not reconfigure the machine-wide proxy merely to change a displayed URL without explicit user approval.
 - When a task updates Prisma models/schema, run `bun run db:migrate` and `bun run db:push`; do not manually create migration files.
-- For Next.js work in `apps/www`, `apps/dealership`, or shared React UI consumed by either app, always use the repository's React/Next.js UI skill set before implementing or reviewing:
+- For Next.js work in `apps/dashboard`, `apps/dealership`, or shared React UI consumed by either app, always use the repository's React/Next.js UI skill set before implementing or reviewing:
   - `vercel-react-best-practices`
   - `agency-engineering` with the Frontend Developer specialist by default
-- Treat that React/Next.js UI skill set as mandatory for dealership quote/new-sales-form UI migration work, including shared `@gnd/sales/sales-form` package UI that feeds `apps/www` or `apps/dealership`.
+- Treat that React/Next.js UI skill set as mandatory for dealership quote/new-sales-form UI migration work, including shared `@gnd/sales/sales-form` package UI that feeds `apps/dashboard` or `apps/dealership`.
 - Follow Midday-style architecture by default wherever it fits the feature:
   - when building or refactoring a page, workspace, dashboard, sheet-heavy flow, or route tree, study the real Midday repo first and let it teach the architecture before writing code
   - favor quick shell render, progressive hydration, and clear loading states
@@ -33,5 +34,5 @@ Operational rules for AI agents contributing to this repository.
     - study how Midday keeps route shells thin, composes pages from smaller sections, and loads secondary detail after first paint
     - copy the architecture pattern, loading strategy, and query shape decisions before copying UI details
   - use local in-repo examples only as secondary references:
-    - `apps/www/src/(midday)`
+    - `apps/dashboard/src/(midday)`
     - `ai/midday-example`

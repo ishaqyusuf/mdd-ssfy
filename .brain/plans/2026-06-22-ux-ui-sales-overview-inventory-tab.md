@@ -20,13 +20,13 @@ In Progress
 The sales overview should give operators a clear sale-specific inventory workspace where they can see which selected components are in stock, allocated, pending, not inventory, or action-required without leaving the order.
 
 ## Current Context
-The sales overview architecture is migrating into `apps/www/src/components/sales-overview-system/*` per `brain/decisions/ADR-003-sales-overview-system-architecture.md`. Inventory item dashboards and stock/movement views already exist from `brain/plans/2026-06-12-feature-pending-11-inventory-item-dashboard.md`, so the overview tab should link into existing inventory drilldowns instead of duplicating item dashboard features.
+The sales overview architecture is migrating into `apps/dashboard/src/components/sales-overview-system/*` per `brain/decisions/ADR-003-sales-overview-system-architecture.md`. Inventory item dashboards and stock/movement views already exist from `brain/plans/2026-06-12-feature-pending-11-inventory-item-dashboard.md`, so the overview tab should link into existing inventory drilldowns instead of duplicating item dashboard features.
 
 ## Proposed Approach
 Add a registry-backed `Inventory` tab to the sales overview system with a new-feature icon/badge. The tab should render grouped invoice-item sections. Each section should use the invoice item description when present, otherwise `Invoice Item N`. Rows should show component name, quantity, in-stock quantity, allocated quantity, pending quantity, cost, status, and an action menu. Stock values should be clickable and open the existing inventory item dashboard/stock context as a secondary tab, sheet, or deep link.
 
 ## Implementation Steps
-- Locate the sales overview tab registry/controller in `apps/www/src/components/sales-overview-system/*`.
+- Locate the sales overview tab registry/controller in `apps/dashboard/src/components/sales-overview-system/*`.
 - Add an Inventory tab definition gated to order/sales contexts where inventory-backed projection data can be loaded.
 - Add a new-feature badge/icon treatment that is visually distinct but quiet enough for an operations screen.
 - Build grouped invoice item sections using the projection query from the demand-projection plan.
@@ -36,10 +36,10 @@ Add a registry-backed `Inventory` tab to the sales overview system with a new-fe
 - Suggested extra features to consider in this UI slice: only-show-attention filter, "has pending qty" summary card, missing policy warning, stock reliability tooltip, row audit popover, and CSV/print-friendly view if cheap.
 
 ## Affected Files Or Areas
-- `apps/www/src/components/sales-overview-system/*`
-- `apps/www/src/components/sheets/sales-overview-sheet/*`
-- `apps/www/src/components/inventory/*`
-- `apps/www/src/hooks/*sales-overview*`
+- `apps/dashboard/src/components/sales-overview-system/*`
+- `apps/dashboard/src/components/sheets/sales-overview-sheet/*`
+- `apps/dashboard/src/components/inventory/*`
+- `apps/dashboard/src/hooks/*sales-overview*`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - `brain/features/inventory-backed-sales-fulfillment.md`
 

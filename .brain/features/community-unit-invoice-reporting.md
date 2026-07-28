@@ -84,10 +84,10 @@
     - uses compact summary grids for overall, project, and unit rollups
     - task rows show `Task`, `Task Date`, `Cost`, `Tax`, `Due`, `Paid`, `Open`, `Check No`, and `Check Date`
 - Current architecture pieces
-  - `apps/www/src/lib/unit-invoice-report-print.ts`
-  - `apps/www/src/hooks/use-community-invoice-print-filter.ts`
-  - `apps/www/src/components/print-community-invoice-aging-report.tsx`
-  - `apps/www/src/components/print-community-invoice-task-detail-report.tsx`
+  - `apps/dashboard/src/lib/unit-invoice-report-print.ts`
+  - `apps/dashboard/src/hooks/use-community-invoice-print-filter.ts`
+  - `apps/dashboard/src/components/print-community-invoice-aging-report.tsx`
+  - `apps/dashboard/src/components/print-community-invoice-task-detail-report.tsx`
   - `packages/pdf/src/community-invoice-aging/document.tsx`
   - `packages/pdf/src/community-invoice-task-detail/document.tsx`
   - `apps/api/src/db/queries/unit-invoice-reports.ts`

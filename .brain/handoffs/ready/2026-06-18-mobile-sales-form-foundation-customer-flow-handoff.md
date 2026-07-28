@@ -28,12 +28,12 @@ Implement the mobile sales form foundation slice: `New Invoice` opens a Sales/Qu
 - brain/plans/2026-06-18-ux-ui-mobile-sales-form-foundation-customer-flow.md
 - brain/features/mobile-invoice-form.md
 - brain/api/contracts.md
-- apps/expo-app/src/features/sales/components/sales-dashboard-screen.tsx
-- apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx
-- apps/expo-app/src/app/(sales)/invoices/customer-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/components/sales-dashboard-screen.tsx
+- apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx
+- apps/mobile/src/app/(sales)/invoices/customer-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 
 ## Implementation Instructions
 1. Add a bounded Sales/Quote chooser bottom sheet for the mobile sales dashboard `New Invoice` action.
@@ -54,14 +54,14 @@ Implement the mobile sales form foundation slice: `New Invoice` opens a Sales/Qu
 - Main screen files remain composition-focused; new logic is split into bounded helpers/components.
 
 ## Files Or Areas Likely Involved
-- apps/expo-app/src/features/sales/components/sales-dashboard-screen.tsx
-- apps/expo-app/src/app/(sales)/invoices/new.tsx
-- apps/expo-app/src/app/(sales)/invoices/customer-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts
-- apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx
-- apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
-- apps/expo-app/src/features/sales/invoice-form/components or new focused feature folders
+- apps/mobile/src/features/sales/components/sales-dashboard-screen.tsx
+- apps/mobile/src/app/(sales)/invoices/new.tsx
+- apps/mobile/src/app/(sales)/invoices/customer-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts
+- apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx
+- apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/components or new focused feature folders
 - API/customer query surface only if current mobile API lacks recent-by-type support
 
 ## Do Not Change

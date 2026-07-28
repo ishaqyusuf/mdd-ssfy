@@ -8,7 +8,7 @@ Shelf workflow has been improved and package pricing proof is passing:
 - shared package proof now covers section flattening, legacy row unit-price preservation, explicit base-metadata profile repricing, and parent line qty/unit/total sync.
 
 Anchor:
-- `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (shelf section)
+- `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (shelf section)
 
 Remaining parity gap:
 - no full legacy nested category drilldown/creation workflow yet.

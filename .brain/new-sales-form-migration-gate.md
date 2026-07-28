@@ -15,7 +15,7 @@ bun run test:new-sales-form-migration
 - Shared sales package workflow/domain/composer tests.
 - Dealer persistence/query tests.
 - `@gnd/dealership` typecheck.
-- `@gnd/www` typecheck as a watched-file signal.
+- `@gnd/dashboard` typecheck as a watched-file signal.
 
 ## Expected Pass Shape
 
@@ -28,8 +28,8 @@ bun run test:new-sales-form-migration
 
 ## Watched Migration Areas
 
-- `apps/www/src/components/forms/new-sales-form/**`
-- `apps/www/src/env.mjs`
+- `apps/dashboard/src/components/forms/new-sales-form/**`
+- `apps/dashboard/src/env.mjs`
 - `packages/sales/src/sales-form/contracts/**`
 - `packages/sales/src/sales-form/ui/workflow/**`
 - `packages/sales/src/sales-form/ui/shell/sales-form-shell.tsx`

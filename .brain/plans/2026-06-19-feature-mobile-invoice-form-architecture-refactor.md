@@ -16,9 +16,9 @@ Proposed
 The mobile sales invoice form has accumulated too much workflow, layout, modal, and domain coordination logic in a few large React Native components. Recent recurring regressions around inline workflow `Proceed`, sticky workflow controls, footer hiding, Moulding selection, Door Size, and HPT handoff indicate that behavior is coupled across component boundaries that are hard to reason about and hard to validate.
 
 ## Current Context
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx` is about 2,061 lines and currently owns workflow step selection, component grid rendering, Moulding quantity controls, Door Size modal wiring, HPT handoff, custom component action positioning, sticky header publication, inline/overlay mode differences, and Proceed visibility/rendering.
-- `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx` is about 905 lines and owns form shell, recovery, footer, sticky workflow header, inline Proceed overlay, customer/detail routing, save actions, and scroll/keyboard orchestration.
-- `apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx` and `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts` are also over 1,000 lines each, increasing the blast radius of edits.
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx` is about 2,061 lines and currently owns workflow step selection, component grid rendering, Moulding quantity controls, Door Size modal wiring, HPT handoff, custom component action positioning, sticky header publication, inline/overlay mode differences, and Proceed visibility/rendering.
+- `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx` is about 905 lines and owns form shell, recovery, footer, sticky workflow header, inline Proceed overlay, customer/detail routing, save actions, and scroll/keyboard orchestration.
+- `apps/mobile/src/features/sales/invoice-form/components/line-item-card.tsx` and `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts` are also over 1,000 lines each, increasing the blast radius of edits.
 - Shared domain helpers under `packages/sales/src/sales-form` are a useful boundary, but the mobile UI still mixes state derivation, mutations, step routing, and presentation in large components.
 - Existing focused tests cover some pure helpers, but React Native shell interactions still depend heavily on manual device testing.
 
@@ -56,12 +56,12 @@ flowchart TD
 - Run a manual device matrix for Door multi-select, Moulding multi-select, HPT add door, Custom component, sticky search header, footer hide/reveal, item sheet, edit reopen, and quote mode.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/components/items-step.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
-- `apps/expo-app/src/features/sales/invoice-form/steps/`
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
+- `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
+- `apps/mobile/src/features/sales/invoice-form/components/items-step.tsx`
+- `apps/mobile/src/features/sales/invoice-form/components/line-item-card.tsx`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/steps/`
 - `packages/sales/src/sales-form/`
 - `brain/features/mobile-invoice-form.md`
 

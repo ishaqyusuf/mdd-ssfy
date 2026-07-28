@@ -57,8 +57,8 @@ Expected:
 - Fulfillment flow uses canonical control command chain and submits only after required packing behavior completes.
 
 Evidence Sources:
-- Web: `apps/www/src/components/tables/sales-orders/columns.tsx`
-- Legacy server action path: `apps/www/src/actions/sales-mark-as-completed.ts`
+- Web: `apps/dashboard/src/components/tables/sales-orders/columns.tsx`
+- Legacy server action path: `apps/dashboard/src/actions/sales-mark-as-completed.ts`
 
 Static Baseline Findings:
 - `columns.tsx` fulfillment path can trigger `packItems` asynchronously and then immediately call `submitDispatch` without waiting.
@@ -75,8 +75,8 @@ Expected:
 - Dispatch row progress uses dispatch-scoped control values and matches dispatch overview item math.
 
 Evidence Sources:
-- Web list: `apps/www/src/components/tables/sales-dispatch/columns.tsx`
-- Mobile list: `apps/expo-app/src/features/dispatch/components/dispatch-list-item.tsx`
+- Web list: `apps/dashboard/src/components/tables/sales-dispatch/columns.tsx`
+- Mobile list: `apps/mobile/src/features/dispatch/components/dispatch-list-item.tsx`
 - API list query: `apps/api/src/db/queries/dispatch.ts`
 
 Static Baseline Findings:
@@ -109,9 +109,9 @@ Expected:
 - Mobile packing payload and completion behavior matches web/API contract and waits for task completion.
 
 Evidence Sources:
-- Mobile payload builder: `apps/expo-app/src/features/dispatch/lib/packing-payload.ts`
-- Mobile packing trigger: `apps/expo-app/src/features/dispatch/api/use-dispatch-packing.ts`
-- Mobile completion flow: `apps/expo-app/src/features/dispatch/components/dispatch-detail-screen/index.tsx`
+- Mobile payload builder: `apps/mobile/src/features/dispatch/lib/packing-payload.ts`
+- Mobile packing trigger: `apps/mobile/src/features/dispatch/api/use-dispatch-packing.ts`
+- Mobile completion flow: `apps/mobile/src/features/dispatch/components/dispatch-detail-screen/index.tsx`
 
 Checklist:
 - [ ] For `F4`, run pack selection, pack available/all, and complete flow.
@@ -146,11 +146,11 @@ Store under:
 | Dispatch list query | `apps/api/src/db/queries/dispatch.ts#getDispatches` | `V2 + compat mapper` | Uses `withDispatchListControl` with legacy `statistic` compatibility mapping. |
 | Dispatch overview query | `apps/api/src/db/queries/dispatch.ts#getDispatchOverview` | `V2 + compat fallback` | Flagged V2 overview, still keeps legacy fallback/parity path. |
 | Control compute utility | `packages/sales/src/utils/with-sales-control.ts` | `compat authority for fallback` | Contains packables/pendingPacking derivation used by compatibility paths. |
-| Mark fulfilled (web table action) | `apps/www/src/components/tables/sales-orders/columns.tsx` | `mixed/orchestration risk` | `packItems` trigger not awaited before `submitDispatch` in pack-all mode. |
-| Mark fulfilled (legacy server action) | `apps/www/src/actions/sales-mark-as-completed.ts` | `legacy bypass` | Directly mutates `qtyControl` + dispatch status; bypasses command chain. |
-| Dispatch progress (web list) | `apps/www/src/components/tables/sales-dispatch/columns.tsx` | `mixed scope` | Falls back across `order.control`, `dispatch.control`, and `statistic`. |
-| Dispatch progress (mobile list) | `apps/expo-app/src/features/dispatch/components/dispatch-list-item.tsx` | `mixed scope` | Uses `order.control` pending/packed for dispatch row card. |
-| Mobile pack trigger | `apps/expo-app/src/features/dispatch/api/use-dispatch-packing.ts` | `V2-aligned` | Uses `startAndWait` and canonical `packingLines`. |
+| Mark fulfilled (web table action) | `apps/dashboard/src/components/tables/sales-orders/columns.tsx` | `mixed/orchestration risk` | `packItems` trigger not awaited before `submitDispatch` in pack-all mode. |
+| Mark fulfilled (legacy server action) | `apps/dashboard/src/actions/sales-mark-as-completed.ts` | `legacy bypass` | Directly mutates `qtyControl` + dispatch status; bypasses command chain. |
+| Dispatch progress (web list) | `apps/dashboard/src/components/tables/sales-dispatch/columns.tsx` | `mixed scope` | Falls back across `order.control`, `dispatch.control`, and `statistic`. |
+| Dispatch progress (mobile list) | `apps/mobile/src/features/dispatch/components/dispatch-list-item.tsx` | `mixed scope` | Uses `order.control` pending/packed for dispatch row card. |
+| Mobile pack trigger | `apps/mobile/src/features/dispatch/api/use-dispatch-packing.ts` | `V2-aligned` | Uses `startAndWait` and canonical `packingLines`. |
 | Jobs command router | `packages/jobs/src/tasks/sales/update-sales-control.ts` | `V2-aligned` | Routes actions through new control command mapping. |
 
 ## Exit Criteria (Phase 0 Complete)

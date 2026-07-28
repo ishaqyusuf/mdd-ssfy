@@ -81,7 +81,7 @@ This is the source-level inventory for the arithmetic above. Calls that only for
 | `packages/sales/src/payment-system/domain/display-ccc.ts` | stored-versus-derived C.C.C comparison and display total | Display-only C.C.C and total |
 | `packages/sales/src/payment-system/infrastructure/canonical-mirror.ts` | canonical payment amount normalization | Two-decimal payment mirror values |
 | `packages/sales/src/sales-form/domain/costing.ts` | legacy/current subtotal, discounts, percentage discount, tax base, tax, delivery/labor/flat-labor/other-cost sums, grand total, C.C.C | Shared summary contract |
-| `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts` | legacy grouped subtotal, fixed/percentage discount subtraction, labor, tax, principal and C.C.C | Legacy form pricing metadata |
+| `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts` | legacy grouped subtotal, fixed/percentage discount subtraction, labor, tax, principal and C.C.C | Legacy form pricing metadata |
 | `packages/sales/src/sales-form/domain/workflow-calculators.ts` | HPT/service/shelf/moulding unit composition, row products, grouped sums, display averages and reconciliation adjustment | Authoritative grouped `lineTotal` and display `unitPrice` |
 | `packages/sales/src/sales-form/domain/grouping.ts` | legacy sibling grouping/expansion, row products, grouped sums and display-average reconciliation | Legacy-compatible grouped metadata |
 | `packages/sales/src/sales-form/domain/hpt-compatibility.ts` | HPT custom/calculated unit selection, row products, parent sums and persisted-cent reconciliation | HPT row and parent totals |
@@ -93,12 +93,12 @@ This is the source-level inventory for the arithmetic above. Calls that only for
 | `packages/sales/src/sales-form/ui/workflow/door-price-update.ts`, `door-pricing.ts`, `door-utils.ts`, and `workflow-door-actions.ts` | door unit composition, quantity products and profile division | Door row price fields |
 | `packages/sales/src/sales-form/ui/workflow/shelf-helpers.ts`, `shelf-row-products.ts`, and `shelf-inline-items-editor.tsx` | shelf unit selection and `qty × unit` | Shelf row total |
 | `packages/sales/src/sales-form/ui/workflow/moulding-calculator.ts` and `moulding-line-items-editor.tsx` | moulding price composition and products | Moulding row total |
-| `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` and shared workflow panels | web edit-time products/sums using shared helpers | Draft row/line totals |
+| `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` and shared workflow panels | web edit-time products/sums using shared helpers | Draft row/line totals |
 | `apps/api/src/db/queries/new-sales-form.ts` | save-time money normalization, summary persistence, payment sums, shelf Decimal conversion | Relational sales record and numeric API response |
-| `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/item-helper-class.ts` and mirrored app path | legacy shelf write rounding and numeric conversion | Decimal-compatible shelf persistence |
+| `apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/item-helper-class.ts` and mirrored app path | legacy shelf write rounding and numeric conversion | Decimal-compatible shelf persistence |
 | `packages/sales/src/print/compose/service-sections.ts` and `moulding-sections.ts` | authoritative total read; decimal product only as absent-total fallback; display average division | Printed grouped rows |
 | `packages/sales/src/sync-sales-inventory-line-items.ts` and `sales-inventory-overview.ts` | Decimal-to-number boundary and two-decimal price snapshots/aggregates | Inventory synchronization/read models |
-| `apps/expo-app/src/features/sales/invoice-form/lib/calculate-summary.ts` and invoice store/components | shared summary consumption and card display total selection | Mobile summary/display |
+| `apps/mobile/src/features/sales/invoice-form/lib/calculate-summary.ts` and invoice store/components | shared summary consumption and card display total selection | Mobile summary/display |
 
 ## Intentional Display-versus-Authoritative Difference
 

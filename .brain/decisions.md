@@ -61,7 +61,7 @@ Legacy compatibility index for durable project decisions.
 
 ## 2026-04-16 - Legacy Sales Form Domain and Mobile Architecture
 
-- Decision: Move the active legacy sales-form frontend into a canonical modular domain root under `apps/www/src/domains/sales-form/legacy/*`.
+- Decision: Move the active legacy sales-form frontend into a canonical modular domain root under `apps/dashboard/src/domains/sales-form/legacy/*`.
 - Decision: Treat the legacy sales-form refactor as a modular-monolith migration, not a big-bang package rewrite.
 - Decision: Re-home current legacy classes/helpers into centralized controller/helper folders and put adapters/hooks between UI components and those legacy controllers.
 - Decision: Adopt a mobile-first single-active-item editing model with top-level invoice item selector, wrapped step CTA buttons, value-only selected-component previews, and flatter summary/specialized-step surfaces.

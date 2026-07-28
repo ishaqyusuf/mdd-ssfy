@@ -30,17 +30,17 @@ Completed
 The three mobile design-system templates currently render static sample screens. Build the shared preview architecture needed for complete interactive templates: active bottom tabs, header search state, reusable floating rounded filter bottom sheet, record selection, and detail-tab scaffolding.
 
 ## Current Context
-- Existing preview feature: `apps/expo-app/src/features/design-system-preview`.
-- Existing routes: `apps/expo-app/src/app/design-system-preview`.
+- Existing preview feature: `apps/mobile/src/features/design-system-preview`.
+- Existing routes: `apps/mobile/src/app/design-system-preview`.
 - Existing preview plan: `brain/plans/2026-06-15-mobile-design-system-template-previews.md`.
-- Existing mobile design docs: `apps/expo-app/DESIGN.md` and `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
+- Existing mobile design docs: `apps/mobile/DESIGN.md` and `apps/mobile/src/features/design-system-preview/DESIGN.md`.
 - `PreviewShell` currently owns a static search row and static bottom navigation.
 - `PreviewRecordCard` is pressable but has no selection or navigation behavior.
 - The attached bottom-sheet sample shows a dimmed backdrop, a floating rounded sheet, a grabber, generous white surface, and clear close/action affordances.
 
 ## Standard Architecture
-- Keep the implementation preview-local under `apps/expo-app/src/features/design-system-preview`.
-- Keep route files under `apps/expo-app/src/app/design-system-preview` as tiny screen wrappers.
+- Keep the implementation preview-local under `apps/mobile/src/features/design-system-preview`.
+- Keep route files under `apps/mobile/src/app/design-system-preview` as tiny screen wrappers.
 - Keep screens mostly compositional; extract reusable interaction primitives into `components/`, `hooks/`, and `utils/`.
 - Use static sample data only; do not add tRPC calls or mutations.
 - Use the app's existing `Modal` / `useModal` bottom-sheet wrapper and Gorhom sheet primitives where possible.
@@ -52,7 +52,7 @@ The three mobile design-system templates currently render static sample screens.
 Target additions:
 
 ```text
-apps/expo-app/src/features/design-system-preview/
+apps/mobile/src/features/design-system-preview/
   components/
     preview-bottom-filter-sheet.tsx
     preview-detail-tabs.tsx
@@ -72,11 +72,11 @@ apps/expo-app/src/features/design-system-preview/
 Existing files to update:
 
 ```text
-apps/expo-app/src/features/design-system-preview/components/preview-shell.tsx
-apps/expo-app/src/features/design-system-preview/components/preview-card.tsx
-apps/expo-app/src/features/design-system-preview/data/sample-data.ts
-apps/expo-app/src/features/design-system-preview/DESIGN.md
-apps/expo-app/DESIGN.md
+apps/mobile/src/features/design-system-preview/components/preview-shell.tsx
+apps/mobile/src/features/design-system-preview/components/preview-card.tsx
+apps/mobile/src/features/design-system-preview/data/sample-data.ts
+apps/mobile/src/features/design-system-preview/DESIGN.md
+apps/mobile/DESIGN.md
 ```
 
 ## Proposed Approach
@@ -95,16 +95,16 @@ Refactor `PreviewShell` so search text, filter-button press, active bottom tab, 
 - Update docs with the new interactive architecture and folder structure.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/design-system-preview/components/preview-shell.tsx`
-- `apps/expo-app/src/features/design-system-preview/components/preview-card.tsx`
-- `apps/expo-app/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx`
-- `apps/expo-app/src/features/design-system-preview/components/preview-detail-tabs.tsx`
-- `apps/expo-app/src/features/design-system-preview/data/sample-data.ts`
-- `apps/expo-app/src/features/design-system-preview/data/template-tabs.ts`
-- `apps/expo-app/src/features/design-system-preview/hooks/`
-- `apps/expo-app/src/features/design-system-preview/utils/`
-- `apps/expo-app/src/features/design-system-preview/DESIGN.md`
-- `apps/expo-app/DESIGN.md`
+- `apps/mobile/src/features/design-system-preview/components/preview-shell.tsx`
+- `apps/mobile/src/features/design-system-preview/components/preview-card.tsx`
+- `apps/mobile/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx`
+- `apps/mobile/src/features/design-system-preview/components/preview-detail-tabs.tsx`
+- `apps/mobile/src/features/design-system-preview/data/sample-data.ts`
+- `apps/mobile/src/features/design-system-preview/data/template-tabs.ts`
+- `apps/mobile/src/features/design-system-preview/hooks/`
+- `apps/mobile/src/features/design-system-preview/utils/`
+- `apps/mobile/src/features/design-system-preview/DESIGN.md`
+- `apps/mobile/DESIGN.md`
 
 ## Acceptance Criteria
 - Search input in the shared shell accepts text and filters records for all templates.
@@ -121,8 +121,8 @@ Refactor `PreviewShell` so search text, filter-button press, active bottom tab, 
 - Manual Expo smoke: open Settings -> Design System Previews -> all three templates; verify search, filter sheet, bottom tab switching, and detail tab scaffold.
 
 ## Brain Update Requirements
-- Update `apps/expo-app/DESIGN.md`.
-- Update `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
+- Update `apps/mobile/DESIGN.md`.
+- Update `apps/mobile/src/features/design-system-preview/DESIGN.md`.
 - Update `brain/progress.md`.
 - No API or database docs expected.
 

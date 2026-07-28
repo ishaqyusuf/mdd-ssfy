@@ -1,4 +1,5 @@
 import { cn } from "@gnd/ui/cn";
+import { ModuleSelector } from "./module-selector";
 import { NavsList } from "./navs-list";
 import { useSiteNav } from "./use-site-nav";
 
@@ -28,11 +29,21 @@ export function Sidebar({ children }: { children?: React.ReactNode }) {
 				<div className="absolute inset-y-0 right-0 w-px bg-sidebar-border/70" />
 				<div className="absolute left-0 top-0 h-full w-1 bg-sidebar-primary" />
 			</div>
-			<div
-				ref={mainMenuRef}
-				className="scrollbar-hide relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto pb-4 pt-[70px]"
-			>
-				<NavsList />
+			<div className="relative flex min-h-0 w-full flex-1 flex-col pt-[70px]">
+				<div
+					className={cn(
+						"relative z-20 flex h-[64px] shrink-0 items-center border-b border-sidebar-border/80 bg-sidebar",
+						isExpanded ? "px-3" : "justify-center px-0",
+					)}
+				>
+					<ModuleSelector />
+				</div>
+				<div
+					ref={mainMenuRef}
+					className="scrollbar-hide relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto pb-4"
+				>
+					<NavsList />
+				</div>
 			</div>
 			{children}
 		</aside>

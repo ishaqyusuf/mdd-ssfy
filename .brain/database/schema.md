@@ -51,7 +51,7 @@ Tracks important schema-level entities and ownership boundaries.
 - Receiving work should extend the existing inventory schema (`InboundShipment`, `InboundShipmentItem`, `InventoryStock`, `StockMovement`) instead of creating a separate supplier-receipt system outside inventory.
 - Legacy Dyke authoring is now starting to move behind the inventory domain/API boundary:
   - `@gnd/inventory` now owns the active custom-component save/update and pricing-update services
-  - inventories tRPC now exposes Dyke authoring mutations (`saveDykeStepComponent`, `updateDykeComponentPricing`) instead of relying on `apps/www` server actions for the active custom-component flow
+  - inventories tRPC now exposes Dyke authoring mutations (`saveDykeStepComponent`, `updateDykeComponentPricing`) instead of relying on `apps/dashboard` server actions for the active custom-component flow
   - targeted Dyke-step structural sync now has a dedicated async job path via `sync-dyke-step-to-inventory`
   - current drift tooling is structural only: it reports Dyke component UIDs missing inventory/variant rows; pricing drift remains undecided until pricing semantics are finalized
 - Supplier pricing migration now starts from a split model instead of treating suppliers as inventory:

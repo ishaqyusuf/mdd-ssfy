@@ -26,10 +26,12 @@ Final responses must include the Brain files updated, or `No Brain documentation
 
 - Package manager: `bun`.
 - Start the full dev stack with `bun run dev`.
-- Start the main web app with `bun run dev --filter www`.
+- Start the main web app with `bun run dev --filter dashboard`.
 - Start dealership work with `bun run dev --filter dealership`.
-- Start jobs with `bun run dev --filter jobs`; start web plus jobs with `bun run dev --filter www jobs`.
-- Start mobile work with `bun run dev --filter expo-app www`.
+- Start jobs with `bun run dev --filter jobs`; start web plus jobs with `bun run dev --filter dashboard jobs`.
+- Start mobile work with `bun run dev --filter mobile dashboard`.
+- Use the HTTPS URLs reported by the active shared Portless proxy; workspace dev scripts must not set `PORTLESS_PORT` or `PORTLESS_HTTPS`.
+- Reuse the active shared proxy configuration. Do not stop or reconfigure it merely to change how a local URL is displayed unless the user explicitly approves that machine-wide action.
 - Run database generation with `bun run db:generate`.
 - Run database migrations with `bun run db:migrate`.
 - Sync production data locally only when asked, using the dry run first: `bun run db:sync:dry-run`.

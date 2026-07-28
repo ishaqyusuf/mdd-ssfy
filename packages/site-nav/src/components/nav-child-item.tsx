@@ -4,6 +4,7 @@ import { NavLink } from "./nav-link";
 
 export const NavChildItem = ({
 	child,
+	mobile,
 	isActive,
 	isExpanded,
 	isParentHovered,
@@ -13,6 +14,7 @@ export const NavChildItem = ({
 	index,
 }: {
 	child: LinkItem;
+	mobile: boolean;
 	isActive: boolean;
 	isExpanded: boolean;
 	isParentHovered: boolean;
@@ -29,12 +31,13 @@ export const NavChildItem = ({
 			prefetch
 			href={child.targetHref || child.href}
 			onClick={() => onSelect?.()}
-			className="group"
+			className="group block"
 		>
 			<div className="relative">
 				<div
 					className={cn(
-						"ml-[42px] mr-[15px] flex h-[32px] items-center border-l border-sidebar-border/80 pl-4",
+						"ml-[42px] mr-[15px] flex items-center border-l border-sidebar-border/80 pl-4",
+						mobile ? "h-11" : "h-[32px]",
 						!shouldSkipAnimation && "transition-all duration-300 ease-in-out",
 						showChild
 							? "opacity-100 translate-x-0"
@@ -50,7 +53,8 @@ export const NavChildItem = ({
 				>
 					<span
 						className={cn(
-							"text-xs font-medium transition-colors duration-200",
+							"font-medium transition-colors duration-200",
+							mobile ? "text-sm" : "text-xs",
 							"text-sidebar-foreground/50 group-hover:text-sidebar-foreground/88",
 							"whitespace-nowrap overflow-hidden",
 							isActive && "text-sidebar-primary font-semibold",

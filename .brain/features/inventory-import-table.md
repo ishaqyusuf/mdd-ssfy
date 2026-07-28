@@ -3,7 +3,7 @@
 ## Status
 Validated migration slice, 2026-06-16.
 
-The `/inventory/imports` control-center page now renders its diagnostic scope table through `apps/www/src/components/tables-2/inventory-import/*` while preserving the existing import control-center workflow.
+The `/inventory/imports` control-center page now renders its diagnostic scope table through `apps/dashboard/src/components/tables-2/inventory-import/*` while preserving the existing import control-center workflow.
 
 ## Behavior
 - The route stays at `/inventory/imports`; no `/v2` route was added.
@@ -17,14 +17,14 @@ The `/inventory/imports` control-center page now renders its diagnostic scope ta
 ## Constraints Preserved
 - No new inventory import `*V2` query was added.
 - No new filter param or filter metadata endpoint was added.
-- `apps/www/src/components/tables-2/core/*` was not modified.
-- Cleanup removed the old `apps/www/src/components/tables/inventory-import/*` files only after import scans found no remaining consumers.
+- `apps/dashboard/src/components/tables-2/core/*` was not modified.
+- Cleanup removed the old `apps/dashboard/src/components/tables/inventory-import/*` files only after import scans found no remaining consumers.
 
 ## Validation
 - Focused Biome passed for the imports route, control center, new `tables-2/inventory-import` files, and table settings/config files.
-- Filtered `@gnd/www` typecheck produced no diagnostics for the touched imports route/table/control-center/settings/config files while the full workspace typecheck remains blocked by existing baseline errors.
+- Filtered `@gnd/dashboard` typecheck produced no diagnostics for the touched imports route/table/control-center/settings/config files while the full workspace typecheck remains blocked by existing baseline errors.
 - Import scans found no remaining references to `components/tables/inventory-import` or `tables/inventory-import`.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - `git diff --check` passed for the import slice.
 - HTTP smoke returned `200` for `http://localhost:3000/inventory/imports`.
 - Browser smoke passed with the Pablo Cruz / Super Admin `PC` account signal:

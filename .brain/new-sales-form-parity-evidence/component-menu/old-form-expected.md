@@ -7,4 +7,4 @@ Legacy component card includes menu actions:
 - Delete
 
 Anchor:
-- `apps/www/src/components/forms/sales-form/component-item-card.tsx:320`
+- `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx:320`

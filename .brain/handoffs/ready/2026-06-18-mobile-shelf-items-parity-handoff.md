@@ -28,10 +28,10 @@ Bring the mobile shelf items step to website new-sales-form parity: category/pro
 - brain/plans/2026-06-18-ux-ui-mobile-shelf-items-parity.md
 - brain/features/mobile-invoice-form.md
 - brain/api/contracts.md
-- apps/expo-app/src/features/sales/invoice-form/steps/shelf-items
-- apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx
-- apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/steps/shelf-items
+- apps/mobile/src/features/sales/invoice-form/components/line-item-card.tsx
+- apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts
 
@@ -55,10 +55,10 @@ Bring the mobile shelf items step to website new-sales-form parity: category/pro
 - Shelf UI remains flat, clean, and easy to navigate.
 
 ## Files Or Areas Likely Involved
-- apps/expo-app/src/features/sales/invoice-form/steps/shelf-items/*
-- apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx
-- apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts
-- apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+- apps/mobile/src/features/sales/invoice-form/steps/shelf-items/*
+- apps/mobile/src/features/sales/invoice-form/components/line-item-card.tsx
+- apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts
+- apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.ts
 - packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts
 

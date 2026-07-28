@@ -7,7 +7,7 @@ Tax-rate resolution bug identified and patched:
 
 Anchor:
 - `apps/api/src/trpc/routers/customer.route.ts`
-- `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
 
 Current parity status:
 - Core tax-rate data path is present for recalculation.

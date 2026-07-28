@@ -19,7 +19,7 @@ The user sees an error panel with a retry action.
 
 ## Implementation
 
-`apps/www/src/components/forms/new-sales-form/new-sales-form.tsx` now checks
+`apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx` now checks
 `loadError` before the `isLoading || !record` skeleton fallback, so a failed
 bootstrap/get can settle into retry UI.
 

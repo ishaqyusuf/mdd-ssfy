@@ -51,15 +51,15 @@ Give sales reps and Super Admin in-app visibility into sales document email deli
 - Migration application is still required for any environment whose actual database is behind the Prisma schema; hosted dev was verified to already expose `SalesEmailAttempt` even though its Prisma migration history is not aligned with the configured migration folder.
 
 ## Implementation Touchpoints
-- `apps/www/src/app/(sidebar)/(sales)/sales-book/emails/page.tsx`
-- `apps/www/src/components/sales-email-ledger-page.tsx`
-- `apps/www/src/components/tables-2/sales-email-ledger/*`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/emails/page.tsx`
+- `apps/dashboard/src/components/sales-email-ledger-page.tsx`
+- `apps/dashboard/src/components/tables-2/sales-email-ledger/*`
 - `apps/api/src/db/queries/sales-email-attempts.ts`
 - `apps/api/src/schemas/emails.ts`
 - `apps/api/src/trpc/routers/emails.route.ts`
 - `packages/notifications/src/index.ts`
 - `packages/notifications/src/services/email-service.ts`
 - `packages/jobs/src/tasks/sales/create-send-sales-email-task.ts`
-- `apps/www/src/hooks/use-task-trigger.ts`
-- `apps/www/src/store/task-monitor.ts`
-- `apps/www/src/components/task-notification.tsx`
+- `apps/dashboard/src/hooks/use-task-trigger.ts`
+- `apps/dashboard/src/store/task-monitor.ts`
+- `apps/dashboard/src/components/task-notification.tsx`

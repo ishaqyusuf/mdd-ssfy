@@ -13,7 +13,7 @@ Per-component action menu parity is implemented with:
 Anchors:
 - `packages/sales/src/sales-form/ui/workflow/workflow-component-action-menu.tsx`
 - `packages/sales/src/sales-form/ui/workflow/workflow-step-component-panel.tsx`
-- `apps/www/src/components/forms/new-sales-form/sections/use-workflow-component-admin.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/use-workflow-component-admin.tsx`
 - `apps/api/src/db/queries/sales-form.ts`
 
 Current parity status:

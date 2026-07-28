@@ -22,13 +22,13 @@ This caused slow or inconsistent print opens and made it easy for new CTAs to re
 
 Adopt a single application-layer entry point for sales print orchestration under:
 
-- `apps/www/src/modules/sales-print/application/sales-print-service.ts`
+- `apps/dashboard/src/modules/sales-print/application/sales-print-service.ts`
 
 Establish these boundaries:
 
 - `packages/sales/src/print/*` is the canonical source of sales print document data.
 - `@gnd/pdf/sales-v2` is the canonical renderer for sales print PDF/HTML output.
-- `apps/www/src/modules/sales-print/application/*` owns client-side orchestration:
+- `apps/dashboard/src/modules/sales-print/application/*` owns client-side orchestration:
   - mode normalization
   - document access resolution
   - shared route construction
@@ -37,7 +37,7 @@ Establish these boundaries:
   - preview preparation
 - CTA components must be thin callers and should not rebuild print URLs or duplicate mode mappings.
 
-Legacy helper paths such as `apps/www/src/lib/quick-print.ts` remain compatibility shims only and must delegate to the application service.
+Legacy helper paths such as `apps/dashboard/src/lib/quick-print.ts` remain compatibility shims only and must delegate to the application service.
 
 ## Consequences
 

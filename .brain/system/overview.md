@@ -8,12 +8,12 @@ High-level description of the runtime surfaces and operating model of the GND mo
 - Core delivery surfaces include a web app, API service, Expo mobile app, and supporting web/backlog apps.
 - Business logic is progressively moving into shared packages so web, API, and mobile flows can reuse the same domain rules.
 - `.brain/` is the shared planning and memory layer for ongoing execution.
-- Local app/dev surfaces use explicit project-owned app ports in the `3010-3019` range: `www` on `3010`, Expo Metro on `3012`, email preview on `3013`, API on `3014`, the production-env www smoke profile on `3015`, dealership on `3016`, `apps/web` on `3017`, site on `3018`, and backlog on `3019`; the shared `portless` proxy binds standard HTTPS port `443` so local app URLs are clean `.localhost` hostnames without visible ports. Docker infrastructure ports remain separate.
+- Local app/dev surfaces use explicit project-owned app ports in the `3010-3019` range: dashboard on `3010`, Expo Metro on `3012`, email preview on `3013`, API on `3014`, the production-env dashboard smoke profile on `3015`, dealership on `3016`, `apps/web` on `3017`, site on `3018`, and backlog on `3019`. Portless-capable workspace scripts register those app ports with the active shared HTTPS wildcard proxy without setting its global port or TLS mode. The machine-wide proxy service normally binds standard HTTPS port `443`, producing clean `.localhost` URLs; if the shared proxy is intentionally configured on another port, consumers use the URL Portless reports. Docker infrastructure ports remain separate.
 
 ## Primary Runtime Surfaces
-- `apps/www`: main business web workflows
+- `apps/dashboard`: main business web workflows
 - `apps/api`: API endpoints, query/mutation orchestration, schema validation integration
-- `apps/expo-app`: mobile workflows
+- `apps/mobile`: mobile workflows
 - `packages/*`: shared domain, infrastructure, and UI modules
 
 ## Operational Priorities

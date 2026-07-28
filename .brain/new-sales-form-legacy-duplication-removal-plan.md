@@ -12,10 +12,10 @@ QA and the rollback window has closed. Removal must not happen before phases
 
 ## Keep Until Final Signoff
 
-- `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
-- `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx` legacy dynamic
+- `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx` legacy dynamic
   import and rollback toggle wiring.
-- `apps/www` admin dialogs still owned by `WwwSalesFormWorkflowPanel`, including
+- `apps/dashboard` admin dialogs still owned by `DashboardSalesFormWorkflowPanel`, including
   component edit, section override, redirect, supplier, image upload, and door
   size variant flows.
 - Dealer package metadata readers in API/DB/print/inventory sync.

@@ -47,7 +47,7 @@ Recommended next approval/build order:
 | Production assignment updates inventory lines | Missing / Planned | `packages/jobs/src/tasks/sales/update-sales-control.ts` calls sales-control tasks; no clear inventory lifecycle bridge call found in production assignment paths | `brain/plans/2026-06-12-feature-pending-03-production-assignment-completion-inventory-lifecycle-bridge.md` | No bridge tests found | Approve/build Pending 03 |
 | Production fulfilled updates inventory equivalent as fulfilled | Missing / Planned | `prodCompleted` and `updateSubmissions` live in sales-control paths; current inventory component `fulfilled` is stock/inbound fulfillment, not production completion | Pending 03 and Pending 08 | No production-completion-to-inventory proof found | Build Pending 03, then Pending 08 readiness gates |
 | Production readiness gates | Planned | `salesProductionPlan` API/UI exists; production start guards were not found as enforced shared guard | `brain/plans/2026-06-12-feature-pending-08-production-readiness-gates.md` | No guard tests found | Build after Pending 03 |
-| Backorder queue and partial shipment | Partially Implemented | `packages/sales/src/sales-fulfillment-plan.ts` has `shipAvailableSalesInventory`, `allocateReceivedInboundToBackorders`, `SalesBackorderQueue`; UI at `apps/www/src/components/inventory/inventory-backorder-queue-page.tsx`; API procedures in `inventories.route.ts` | Pending 09 and Pending 10 | Focused fulfillment tests exist; hold-until-complete and idempotency guardrails remain planned | Build Pending 09 and 10 after core dispatch/production bridge |
+| Backorder queue and partial shipment | Partially Implemented | `packages/sales/src/sales-fulfillment-plan.ts` has `shipAvailableSalesInventory`, `allocateReceivedInboundToBackorders`, `SalesBackorderQueue`; UI at `apps/dashboard/src/components/inventory/inventory-backorder-queue-page.tsx`; API procedures in `inventories.route.ts` | Pending 09 and Pending 10 | Focused fulfillment tests exist; hold-until-complete and idempotency guardrails remain planned | Build Pending 09 and 10 after core dispatch/production bridge |
 | Dispatch inventory mode assign/pack/fulfill | Partially Implemented | Legacy dispatch/packing uses `OrderDelivery` / `OrderItemDelivery`; `shipAvailableSalesInventory` creates inventory partial shipments and consumes allocations; no full inventory-mode assign/pack/fulfill workflow found | `brain/plans/2026-06-12-feature-pending-04-inventory-mode-dispatch-assign-pack-fulfill.md`; Pending 05 shipment decision | Existing dispatch browser surfaces exist, but inventory-mode flow lacks proof | Decide shipment source in Pending 05, then build Pending 04 |
 | Shipment record source of truth | Planned | Partial inventory shipment currently writes `OrderDelivery` / `OrderItemDelivery` with `inventory_partial_shipment` metadata; no `SalesShipment` / `SalesShipmentLine` models found | `brain/plans/2026-06-12-feature-pending-05-shipment-record-decision.md` | No ADR/decision found | Approve Pending 05 before expanding dispatch reporting |
 | Inventory print route/data composer | Partially Implemented | `packages/sales/src/print/inventory-print-data.ts`; `apps/api/src/trpc/routers/print.route.ts` has `salesInventoryV2`; `/p/sales-inventory-v2` viewer files; inventory print links in backorder/production/overview UI | `brain/plans/2026-06-12-feature-pending-06-inventory-print-parity-dyke-golden-packets.md` | Focused print data/request tests exist; Dyke-compatible golden packet proof missing | Build Pending 06 |
@@ -99,9 +99,9 @@ Recommended next approval/build order:
 - `packages/sales/src/print/inventory-print-data.ts`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - `apps/api/src/trpc/routers/print.route.ts`
-- `apps/www/src/app/(sidebar)/inventory/page.tsx`
-- `apps/www/src/components/widgets/inventory-stock-alert-widget.tsx`
-- `apps/www/src/components/inventory/inventory-stock-operations-page.tsx`
+- `apps/dashboard/src/app/(sidebar)/inventory/page.tsx`
+- `apps/dashboard/src/components/widgets/inventory-stock-alert-widget.tsx`
+- `apps/dashboard/src/components/inventory/inventory-stock-operations-page.tsx`
 
 ## Validation
 - Read-only audit; no builds, typechecks, dev servers, browser tests, or curl checks were run.

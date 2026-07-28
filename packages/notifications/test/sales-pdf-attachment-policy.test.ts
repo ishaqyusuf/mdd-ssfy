@@ -20,7 +20,7 @@ describe("sales PDF attachment policy", () => {
 			"packages/jobs/src/tasks/sales/create-send-sales-email-task.ts",
 			"apps/api/src/db/queries/sales-email-attempts.ts",
 			"apps/api/src/db/queries/checkout.ts",
-			"apps/www/src/components/sales-menu.tsx",
+			"apps/dashboard/src/components/sales-menu.tsx",
 		];
 
 		for (const path of attachmentSources) {

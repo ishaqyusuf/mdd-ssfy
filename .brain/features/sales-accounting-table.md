@@ -2,23 +2,23 @@
 
 ## Current Route
 - `/sales-book/accounting`
-  - renders `apps/www/src/components/tables-2/sales-accounting/*`
+  - renders `apps/dashboard/src/components/tables-2/sales-accounting/*`
   - reuses the existing `sales.getSalesAccountings` list query
   - reuses the existing `loadSalesAccountingFilterParams` / `useSalesAccountingFilterParams` URL filter contract
   - reuses the existing `SalesAccountingHeader`, `SearchFilterAdapter`, export action, report menu, and resolution-center link
 - `/sales-book/accounting/resolution-center`
-  - now renders `apps/www/src/components/tables-2/sales-resolution/*`
+  - now renders `apps/dashboard/src/components/tables-2/sales-resolution/*`
   - see `.brain/features/sales-resolution-center-table.md` for the dedicated resolution-center table behavior and validation notes
 
 ## Migration Notes
 - This is a table UI migration only.
 - No new sales accounting `*V2` query was added.
 - No new sales accounting filter params or filter metadata route were added.
-- `apps/www/src/components/tables-2/core/*` was not changed.
+- `apps/dashboard/src/components/tables-2/core/*` was not changed.
 - The route now uses `batchPrefetch` plus `HydrateClient`, `Suspense`, and `ErrorBoundary`, and no longer blocks first paint on `filters.salesAccounting` metadata.
 - The new table keeps row selection backed by the existing `useSalesAccountingStore` so `SalesAccountingExport` continues to read selected customer transaction ids.
 - The 2026-07-17 density pass aligned the table mechanics with Sales Orders by adding `useScrollHeader(parentRef)`, `useTableDnd(table)`, `DndContext`, `SortableContext`, `DraggableHeader`, a select-all header checkbox, compact `56px` rows, and tighter content-fit widths while preserving the accounting query/filter/selection/export and row-open contracts.
-- The old route table `apps/www/src/components/tables/sales-accounting/data-table.tsx` was removed after import scans.
+- The old route table `apps/dashboard/src/components/tables/sales-accounting/data-table.tsx` was removed after import scans.
 - The customer transaction subtable and Transaction Overview modal no longer import the legacy `components/tables/sales-accounting/*` paths; current import scans only find the old customer-transaction path inside negative migration-parity assertions.
 - The global Transaction Overview modal now renders dedicated `tables-2/transaction-overview-applications` and `tables-2/transaction-overview-payments` modules with compact modal-fit widths and settings hydrated from the clean-code layout.
 
@@ -55,16 +55,16 @@
 ## Validation
 - 2026-07-17 accounting density proof:
   - Focused Sales Accounting parity test passed with 4 tests / 50 assertions.
-  - Full `apps/www/src/components/tables-2` suite passed with 301 tests / 2475 assertions.
+  - Full `apps/dashboard/src/components/tables-2` suite passed with 301 tests / 2475 assertions.
   - Focused Biome passed for the accounting table files and `table-configs`.
-  - Touched-path `@gnd/www` typecheck scan produced no diagnostics.
+  - Touched-path `@gnd/dashboard` typecheck scan produced no diagnostics.
   - Browser proof on `/sales-book/accounting?size=20` confirmed `56px` rows, `45px` header, vertical table-owned overflow/scroll (`scrollTop 0 -> 600`), horizontal table-owned overflow/scroll (`scrollWidth 1500`, `clientWidth 1146`, `scrollLeft 0 -> 354`), and `--header-offset` changing from `0px` to `70px`.
   - Screenshot evidence saved at `/private/tmp/gnd-sales-accounting-table.jpg`.
 - 2026-07-17:
-  - Transaction Overview modal restart validation passed: focused parity tests passed with 3 tests / 48 assertions; full restarted table parity suite passed with 169 tests / 1666 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck grep reported no diagnostics; JSX-aware static scan found no raw table import/markup in the modal; `components/tables-2/core/*` had no diff.
+  - Transaction Overview modal restart validation passed: focused parity tests passed with 3 tests / 48 assertions; full restarted table parity suite passed with 169 tests / 1666 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck grep reported no diagnostics; JSX-aware static scan found no raw table import/markup in the modal; `components/tables-2/core/*` had no diff.
 - 2026-06-16:
   - focused Biome check passed for the accounting route/header/filter hook/table module/settings/config files.
-  - filtered `@gnd/www` typecheck grep reported no touched-file diagnostics for the accounting migration files.
+  - filtered `@gnd/dashboard` typecheck grep reported no touched-file diagnostics for the accounting migration files.
   - stale route table import scan found no remaining imports of `components/tables/sales-accounting/data-table`.
-  - `apps/www/src/components/tables-2/core/*` had no diff.
+  - `apps/dashboard/src/components/tables-2/core/*` had no diff.
   - browser smoke as Pablo Cruz / Super Admin confirmed desktop `/sales-book/accounting`, visible `Search Sales Accountings...`, table rows, existing `q=08492PC` search narrowing, row-click `openSalesAccountingId=11139`, mobile `390x844` no document-level overflow, and table-owned horizontal scrolling.

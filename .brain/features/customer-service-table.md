@@ -4,7 +4,7 @@
 Validated migration slice, 2026-06-16.
 Density follow-up, 2026-07-17.
 
-The `/community/customer-services` route now renders through `apps/www/src/components/tables-2/customer-service/*` while preserving the existing route, customer-service query, search filter, summary widgets, chart, work-order sheet params, and row actions.
+The `/community/customer-services` route now renders through `apps/dashboard/src/components/tables-2/customer-service/*` while preserving the existing route, customer-service query, search filter, summary widgets, chart, work-order sheet params, and row actions.
 
 ## Behavior
 - The route stays at `/community/customer-services`; no `/v2` route was added.
@@ -25,15 +25,15 @@ The `/community/customer-services` route now renders through `apps/www/src/compo
 ## Constraints Preserved
 - No new customer-service `*V2` query was added.
 - No new filter param or filter metadata endpoint was added.
-- `apps/www/src/components/tables-2/core/*` was not modified.
-- Cleanup removed the old `apps/www/src/components/tables/customer-service/*` files after runtime import scans found no remaining consumers.
+- `apps/dashboard/src/components/tables-2/core/*` was not modified.
+- Cleanup removed the old `apps/dashboard/src/components/tables/customer-service/*` files after runtime import scans found no remaining consumers.
 - A shared `packages/ui/src/components/custom/summary-card-skeleton.tsx` invalid HTML nesting issue was fixed after browser validation exposed a fresh hydration warning on this route.
 
 ## Validation
 - Focused Biome passed for the customer-services route, header, new `tables-2/customer-service` files, table settings/config files, and the shared summary-card skeleton fix.
-- Filtered `@gnd/www` typecheck produced no diagnostics for the touched customer-services route/table/header/settings/config files while the full workspace typecheck remains blocked by existing baseline errors.
+- Filtered `@gnd/dashboard` typecheck produced no diagnostics for the touched customer-services route/table/header/settings/config files while the full workspace typecheck remains blocked by existing baseline errors.
 - Import scans found no remaining runtime references to `components/tables/customer-service` or `tables/customer-service`.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - `git diff --check` passed for the customer-service slice.
 - HTTP smoke returned `200` for `/community/customer-services`.
 - Browser smoke passed with Quick Login as Pablo Cruz / Super Admin:
@@ -49,7 +49,7 @@ The `/community/customer-services` route now renders through `apps/www/src/compo
   - Validation: combined Unit Invoices + Community Templates + Customer Services parity suite passed with 14 tests / 82 assertions; targeted Biome passed for the Customer Services route/table/header/bottom-bar/test files; `git diff --check` passed; HTTP SSR smoke for `/community/customer-services` returned `200` with Customer Service markers.
 - Density follow-up on 2026-07-17:
   - Focused Customer Services parity tests passed with 4 tests / 38 assertions.
-  - Full `apps/www/src/components/tables-2` tests passed with 305 tests / 2538 assertions.
+  - Full `apps/dashboard/src/components/tables-2` tests passed with 305 tests / 2538 assertions.
   - Focused Biome passed for `customer-service/columns.tsx`, `customer-service/migration-parity.test.ts`, and `utils/table-configs.ts`.
   - Touched-file typecheck grep produced no Customer Service/table-config diagnostics after the parity test switched from Bun-only matcher typings to `includes(...).toBe(...)` assertions.
   - Direct HTTP route smoke for `/community/customer-services` returned `200`.

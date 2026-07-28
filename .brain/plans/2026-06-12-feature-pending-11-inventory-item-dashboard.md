@@ -59,10 +59,10 @@ Add an item dashboard route or full-screen sheet backed by an item overview quer
 - Task File: brain/tasks/roadmap.md
 
 ## Completion Report
-- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/www/src/app/(sidebar)/inventory/[id]/page.tsx`, `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`, and `apps/www/src/components/tables/inventory-products/columns.tsx`.
+- Changed files: `packages/inventory/src/inventory.ts`, `packages/inventory/src/inventory-item-dashboard.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, `apps/dashboard/src/app/(sidebar)/inventory/[id]/page.tsx`, `apps/dashboard/src/components/inventory/inventory-item-dashboard-page.tsx`, and `apps/dashboard/src/components/tables/inventory-products/columns.tsx`.
 - Implemented a bounded item dashboard query with variants, stock rows, stock movement history, inbound demand, allocations, and related sales/quotes from inventory `LineItem` references.
 - Added `/inventory/[id]` and wired the existing inventory item eye action to open it without forcing edit mode.
-- Checks run: `bun test packages/inventory/src/inventory-item-dashboard.test.ts`; import smoke for `apps/api/src/trpc/routers/inventories.route.ts` and `apps/www/src/components/inventory/inventory-item-dashboard-page.tsx`.
+- Checks run: `bun test packages/inventory/src/inventory-item-dashboard.test.ts`; import smoke for `apps/api/src/trpc/routers/inventories.route.ts` and `apps/dashboard/src/components/inventory/inventory-item-dashboard-page.tsx`.
 - Deferred: browser/manual validation remains part of Pending 15.
 
 ## 2026-07-17 Table Standard Follow-Up

@@ -31,7 +31,7 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 
 ### 2026-04-16
 
-- Added a tab-version registry at `apps/www/src/components/sales-overview-system/tab-versions.tsx` so each tab can resolve a default version without changing the provider, shell, or access-policy flow.
+- Added a tab-version registry at `apps/dashboard/src/components/sales-overview-system/tab-versions.tsx` so each tab can resolve a default version without changing the provider, shell, or access-policy flow.
 - Organized the tab file shape for future redesigns by adding version folders such as:
   - `tabs/overview/v1.tsx`
   - `tabs/overview/v2.tsx`
@@ -67,7 +67,7 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 
 ### 2026-03-17
 
-- Phase 1 started by extracting shared controller utilities into `apps/www/src/components/sales-overview-system/controller.ts`.
+- Phase 1 started by extracting shared controller utilities into `apps/dashboard/src/components/sales-overview-system/controller.ts`.
 - Phase 2 started by scaffolding:
   - `provider.tsx`
   - `tab-registry.tsx`
@@ -76,10 +76,10 @@ Design a new sales overview system that replaces the current noisy sheet with a 
   - `page-shell.tsx`
   - `index.tsx`
 - The new system is now intentionally isolated from the legacy runtime while we build it separately.
-- The legacy sheet entry at `apps/www/src/components/sheets/sales-overview-sheet/index.tsx` remains fully unchanged as the active production path.
+- The legacy sheet entry at `apps/dashboard/src/components/sheets/sales-overview-sheet/index.tsx` remains fully unchanged as the active production path.
 - The scaffolded `sales-overview-system` files should only be connected through a dedicated page route or explicit opt-in once parity is ready.
-- Added a dedicated build route at `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/overview-v2/page.tsx`.
-- Added a separate v2 sheet entry at `apps/www/src/components/sheets/sales-overview-system-sheet/index.tsx` and mounted it independently from the legacy sheet.
+- Added a dedicated build route at `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/orders/overview-v2/page.tsx`.
+- Added a separate v2 sheet entry at `apps/dashboard/src/components/sheets/sales-overview-system-sheet/index.tsx` and mounted it independently from the legacy sheet.
 - Split the new system open logic into separate query contracts:
   - page route: `sales-overview-v2-*`
   - sheet: `sales-overview-v2-sheet-*`
@@ -98,7 +98,7 @@ Design a new sales overview system that replaces the current noisy sheet with a 
 
 ## Why This Exists
 
-- The current sales overview entry at `apps/www/src/components/sheets/sales-overview-sheet/index.tsx` mixes surface rendering, role/view-mode branching, tab registration, and feature orchestration in one place.
+- The current sales overview entry at `apps/dashboard/src/components/sheets/sales-overview-sheet/index.tsx` mixes surface rendering, role/view-mode branching, tab registration, and feature orchestration in one place.
 - The general overview UI is too dense and difficult to evolve safely.
 - The product now needs both side-sheet and full-page support without duplicating logic.
 
@@ -206,21 +206,21 @@ This allows sheet/page density differences without duplicating business logic.
 
 Suggested new structure:
 
-- `apps/www/src/components/sales-overview-system/index.tsx`
-- `apps/www/src/components/sales-overview-system/provider.tsx`
-- `apps/www/src/components/sales-overview-system/controller.ts`
-- `apps/www/src/components/sales-overview-system/view-model.ts`
-- `apps/www/src/components/sales-overview-system/tab-registry.tsx`
-- `apps/www/src/components/sales-overview-system/tab-policy.ts`
-- `apps/www/src/components/sales-overview-system/layout.tsx`
-- `apps/www/src/components/sales-overview-system/sheet-shell.tsx`
-- `apps/www/src/components/sales-overview-system/page-shell.tsx`
-- `apps/www/src/components/sales-overview-system/sections/*`
-- `apps/www/src/components/sales-overview-system/tabs/*`
+- `apps/dashboard/src/components/sales-overview-system/index.tsx`
+- `apps/dashboard/src/components/sales-overview-system/provider.tsx`
+- `apps/dashboard/src/components/sales-overview-system/controller.ts`
+- `apps/dashboard/src/components/sales-overview-system/view-model.ts`
+- `apps/dashboard/src/components/sales-overview-system/tab-registry.tsx`
+- `apps/dashboard/src/components/sales-overview-system/tab-policy.ts`
+- `apps/dashboard/src/components/sales-overview-system/layout.tsx`
+- `apps/dashboard/src/components/sales-overview-system/sheet-shell.tsx`
+- `apps/dashboard/src/components/sales-overview-system/page-shell.tsx`
+- `apps/dashboard/src/components/sales-overview-system/sections/*`
+- `apps/dashboard/src/components/sales-overview-system/tabs/*`
 
 Migration note:
 
-- Keep `apps/www/src/components/sheets/sales-overview-sheet/index.tsx` as a compatibility wrapper during rollout.
+- Keep `apps/dashboard/src/components/sheets/sales-overview-sheet/index.tsx` as a compatibility wrapper during rollout.
 
 ## Execution Phases
 

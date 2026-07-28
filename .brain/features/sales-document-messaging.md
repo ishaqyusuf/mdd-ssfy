@@ -67,5 +67,5 @@ activity evidence consistent.
 - Targeted Biome and `git diff --check` pass.
 - The local dev server served the authenticated sales orders query during
   browser smoke. The full Turbo gate passes 24 of 25 packages and retains the
-  documented unrelated `@gnd/www` baseline.
+  documented unrelated `@gnd/dashboard` baseline.
 

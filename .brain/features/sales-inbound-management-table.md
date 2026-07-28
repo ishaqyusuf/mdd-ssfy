@@ -11,10 +11,10 @@
 - Compatibility route: `/sales-book/inbound-management` remains available for legacy management views.
 
 ## Frontend Implementation
-- Route: `apps/www/src/app/(sidebar)/(sales)/sales-book/inbound-management/page.tsx`
-- Table module: `apps/www/src/components/tables-2/inbound-management/*`
-- Header: `apps/www/src/components/inbound-header.tsx`
-- Search filter: `apps/www/src/components/inbound-search-filter.tsx`
+- Route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/inbound-management/page.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/inbound-management/*`
+- Header: `apps/dashboard/src/components/inbound-header.tsx`
+- Search filter: `apps/dashboard/src/components/inbound-search-filter.tsx`
 
 The table uses the shared `tables-2` domain pattern with typed columns, stable row ids, virtual rows, sticky order column, column visibility/settings, table-owned vertical and horizontal scrolling, `useScrollHeader(parentRef)` header-offset behavior, DnD column order, draggable headers, empty state, no-results state, and the existing inbound row-open and packing-list preview action flows.
 
@@ -28,9 +28,9 @@ The table uses the shared `tables-2` domain pattern with typed columns, stable r
 - The table intentionally fits the five-column desktop layout without horizontal overflow when the container is wide enough; narrower containers still use table-owned horizontal scrolling.
 
 ## Sales Book Inbounds Workspace
-- Route: `apps/www/src/app/(sidebar)/(sales)/sales-book/inbounds/page.tsx`
-- Workspace: `apps/www/src/components/sales-inbounds-workspace.tsx`
-- Table module: `apps/www/src/components/tables-2/sales-inbounds/*`
+- Route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/inbounds/page.tsx`
+- Workspace: `apps/dashboard/src/components/sales-inbounds-workspace.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/sales-inbounds/*`
 - The route now uses `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, and `getInitialTableSettings("sales-inbounds")`.
 - The primary inbound shipment selector no longer uses hand-mapped collapsible cards. It renders through `tables-2/sales-inbounds` with compact `64px` rows, sticky Inbound/Actions columns, tailored Inbound/Status/Order/Counts/Dates/Progress/Actions widths, `VirtualRow`, table-owned scroll, DnD headers, resize handles, horizontal pagination, and persisted visibility/sizing/order/dividers.
 - Existing `inventories.inboundShipments`, local search/status filtering, analytics cards, selected-inbound detail, status update, receive-stock, linked order cards, stock-line cards, and activity history behavior are preserved.
@@ -55,16 +55,16 @@ No new inbound `*V2` query, filter param, filter metadata endpoint, or table rou
 
 ## Cleanup
 Removed after import scans:
-- `apps/www/src/components/tables/inbound-managment/data-table.tsx`
-- `apps/www/src/components/tables/inbound-managment/columns.tsx`
+- `apps/dashboard/src/components/tables/inbound-managment/data-table.tsx`
+- `apps/dashboard/src/components/tables/inbound-managment/columns.tsx`
 
-`apps/www/src/components/tables-2/core/*` was not modified.
+`apps/dashboard/src/components/tables-2/core/*` was not modified.
 
 ## Validation
 - Focused Biome check passed for the inbound route, header, filter hooks, table settings/config, and new inbound-management table files.
-- Filtered `@gnd/www` typecheck grep reported no diagnostics for touched inbound route/table/header/hook/config files.
+- Filtered `@gnd/dashboard` typecheck grep reported no diagnostics for touched inbound route/table/header/hook/config files.
 - Import scans found no remaining references to `components/tables/inbound-managment`, `tables/inbound-managment`, or `inbound-managment`.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - Browser smoke used Quick Login as Pablo Cruz / Super Admin:
   - desktop `1440x900` rendered the page, `PC` account signal, search field, table headers, and table rows with no document-level horizontal overflow.
   - search for `08492PC` updated the URL to `q=08492PC` and narrowed to one row.
@@ -72,9 +72,9 @@ Removed after import scans:
   - row click set `viewInboundId=22996` plus payload query state without app errors.
 - 2026-07-17 inbound-management density proof:
   - Focused migration parity test passed with 4 tests / 43 assertions.
-  - Full `apps/www/src/components/tables-2` suite passed with 297 tests / 2425 assertions.
+  - Full `apps/dashboard/src/components/tables-2` suite passed with 297 tests / 2425 assertions.
   - Focused Biome passed for the inbound-management table files and `table-configs`.
-  - Touched-path `@gnd/www` typecheck scan produced no diagnostics.
+  - Touched-path `@gnd/dashboard` typecheck scan produced no diagnostics.
   - Browser proof on `/sales-book/inbound-management?size=20` confirmed `56px` rows, `45px` header, vertical table-owned overflow/scroll (`scrollHeight 2285 -> 2355`, `scrollTop 0 -> 600`), and `--header-offset` changing to `70px` during scroll.
   - Desktop table width fit the visible container (`scrollWidth 1146`, `clientWidth 1146`), so no horizontal overflow was needed for the current five-column layout.
   - Screenshot evidence saved at `/private/tmp/gnd-inbound-management-table.png`.
@@ -83,11 +83,11 @@ Removed after import scans:
   - Full restarted `tables-2` suite passed with 216 tests / 2249 assertions.
   - Targeted Biome passed for the route, workspace, table module, and table registry files.
   - Static runtime scans found no `filteredShipments.map`, `<Collapsible`, old table import, shared sticky header, or manual fetch patterns in the route/workspace/table surface.
-  - Filtered `@gnd/www` typecheck grep reported no diagnostics for `sales-inbounds`, the route, workspace, or table registry files while broad typecheck remains blocked by unrelated baseline errors.
+  - Filtered `@gnd/dashboard` typecheck grep reported no diagnostics for `sales-inbounds`, the route, workspace, or table registry files while broad typecheck remains blocked by unrelated baseline errors.
   - HTTPS route smoke returned `200` for `/sales-book/inbounds`.
   - `git diff --check` passed and `components/tables-2/core` has no diff.
 - 2026-07-22 URL/canonical-route slice:
   - Focused Sales Book Inbounds parity and sidebar tests passed with 13 tests / 83 assertions.
   - Targeted Biome passed for the workspace, inbound-management actions, sidebar links, and parity test.
-  - `bun run --cwd apps/www typecheck` and `git diff --check` passed.
+  - `bun run --cwd apps/dashboard typecheck` and `git diff --check` passed.
   - Authenticated browser interaction proof remains pending for deep-link selection, search/status back-forward behavior, and the retargeted row action.

@@ -9,16 +9,16 @@
 - Detail route: `/sales-book/customers/v2/[accountNo]` remains the customer overview v2 detail route and now participates in the table migration for its embedded sales/quotes previews.
 
 ## Frontend Implementation
-- Route: `apps/www/src/app/(sidebar)/(sales)/sales-book/customers/page.tsx`
-- Redirect: `apps/www/src/app/(sidebar)/(sales)/sales-book/customers/v2/page.tsx`
-- Table module: `apps/www/src/components/tables-2/customers/*`
-- Customer transactions table module: `apps/www/src/components/tables-2/customer-transactions/*`
-- Customer Pay Portal table module: `apps/www/src/components/tables-2/customer-pay-portal/*`
-- Customer Sales List table module: `apps/www/src/components/tables-2/customer-sales-list/*`
-- Customer Sales Workspace table module: `apps/www/src/components/tables-2/customer-sales-workspace/*`
-- Customer Overview Sales Preview table module: `apps/www/src/components/tables-2/customer-overview-sales-preview/*`
-- Header: `apps/www/src/components/customer-header.tsx`
-- Search filter: `apps/www/src/components/customer-search-filter.tsx`
+- Route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/customers/page.tsx`
+- Redirect: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/customers/v2/page.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/customers/*`
+- Customer transactions table module: `apps/dashboard/src/components/tables-2/customer-transactions/*`
+- Customer Pay Portal table module: `apps/dashboard/src/components/tables-2/customer-pay-portal/*`
+- Customer Sales List table module: `apps/dashboard/src/components/tables-2/customer-sales-list/*`
+- Customer Sales Workspace table module: `apps/dashboard/src/components/tables-2/customer-sales-workspace/*`
+- Customer Overview Sales Preview table module: `apps/dashboard/src/components/tables-2/customer-overview-sales-preview/*`
+- Header: `apps/dashboard/src/components/customer-header.tsx`
+- Search filter: `apps/dashboard/src/components/customer-search-filter.tsx`
 
 The table uses the shared `tables-2` domain pattern with typed columns, stable row ids, virtual rows, sticky customer column, column visibility/settings, horizontal table scrolling, empty state, no-results state, and route-level hydration.
 
@@ -59,18 +59,18 @@ No new customer `*V2` query, filter param, filter metadata endpoint, or table ro
 
 ## Cleanup
 Removed after import scans:
-- `apps/www/src/components/tables/customers/data-table.tsx`
-- `apps/www/src/components/tables/customers/columns.tsx`
-- `apps/www/src/components/customer-v2/customer-directory-v2-page.tsx`
+- `apps/dashboard/src/components/tables/customers/data-table.tsx`
+- `apps/dashboard/src/components/tables/customers/columns.tsx`
+- `apps/dashboard/src/components/customer-v2/customer-directory-v2-page.tsx`
 
-`apps/www/src/components/tables-2/core/*` was not modified.
+`apps/dashboard/src/components/tables-2/core/*` was not modified.
 
 ## Validation
 - Focused Biome check passed for the customers route, redirect route, header, table settings/config, and new customers table files.
-- Filtered `@gnd/www` typecheck grep reported no diagnostics for touched customers route/table/header/config files.
+- Filtered `@gnd/dashboard` typecheck grep reported no diagnostics for touched customers route/table/header/config files.
 - Import scans found no remaining references to `components/tables/customers`, `tables/customers`, `customer-directory-v2-page`, or `CustomerDirectoryV2Page`.
 - `git diff --check` passed.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - Browser smoke passed in the Pablo Cruz session:
   - desktop `1440x900`
   - mobile `390x844`
@@ -82,30 +82,30 @@ Removed after import scans:
 - 2026-07-16 restarted Sales Orders parity pass:
   - removed `PageStickyHeader` from `/sales-book/customers` and kept the route on the direct `ScrollableContent` + title + header + table shell.
   - added `useTableDnd`, `DndContext`, `SortableContext`, `DraggableHeader`, and the header-offset spacer to the customer table/header without changing the query or filter contract.
-  - added `apps/www/src/components/tables-2/customers/migration-parity.test.ts` and enrolled Sales Customers in `apps/www/src/components/page-sticky-header.test.ts` so the route cannot regress to the failed shared wrapper, legacy customer table, `@gnd/ui/data-table`, or route-level `fetchInfiniteQuery`.
-  - validation: focused Customers/audit tests passed with 10 tests / 44 assertions; the restarted parity suite passed with 46 tests / 321 assertions; targeted Biome passed for the route/table/header/test/audit files; static scans found no live failed-header/legacy-table patterns in the Customers route/new table; filtered `@gnd/www` typecheck scan reported no touched-file diagnostics; `git diff --check` passed.
+  - added `apps/dashboard/src/components/tables-2/customers/migration-parity.test.ts` and enrolled Sales Customers in `apps/dashboard/src/components/page-sticky-header.test.ts` so the route cannot regress to the failed shared wrapper, legacy customer table, `@gnd/ui/data-table`, or route-level `fetchInfiniteQuery`.
+  - validation: focused Customers/audit tests passed with 10 tests / 44 assertions; the restarted parity suite passed with 46 tests / 321 assertions; targeted Biome passed for the route/table/header/test/audit files; static scans found no live failed-header/legacy-table patterns in the Customers route/new table; filtered `@gnd/dashboard` typecheck scan reported no touched-file diagnostics; `git diff --check` passed.
   - HTTP SSR smoke for `/sales-book/customers` returned `200` with Sales Customers markers, but the unauthenticated response also included the expected `/login/v2` protected-route redirect marker. Headless Playwright scroll smoke remains blocked by the local browser limitation documented in the Sales Quotes slice, so scroll remains verified through the source-level table-owned scroll contract tests for this slice.
 - 2026-07-17 Customers density/width tuning:
   - reduced `TABLE_CONFIGS["customers"].rowHeight` from `64` to `48`, converted the customer cell to one line with a `size-6` identity marker, and tightened Customer/Phone/Secondary/Email/Address/Actions widths to the current content-fit ranges.
-  - validation: focused Customers parity tests passed with 4 tests / 36 assertions; full `apps/www/src/components/tables-2` suite passed with 289 tests / 2338 assertions; focused Biome passed; touched-file typecheck grep returned no diagnostics; `git diff --check` passed.
+  - validation: focused Customers parity tests passed with 4 tests / 36 assertions; full `apps/dashboard/src/components/tables-2` suite passed with 289 tests / 2338 assertions; focused Biome passed; touched-file typecheck grep returned no diagnostics; `git diff --check` passed.
   - authenticated browser smoke on `/sales-book/customers` confirmed row height `48px`, table-owned vertical overflow (`scrollHeight 2925` vs `clientHeight 753`), horizontal overflow at a temporary 760px viewport (`scrollWidth 804` vs `clientWidth 710`), successful horizontal scroll to `scrollLeft 94`, and successful vertical table scroll to `scrollTop 600`; the tab was restored to top/left afterward.
 - 2026-07-17 Customer Overview transactions restart:
-  - added `apps/www/src/components/tables-2/customer-transactions/*` and registered `customer-transactions` in table settings/config.
+  - added `apps/dashboard/src/components/tables-2/customer-transactions/*` and registered `customer-transactions` in table settings/config.
   - updated `components/sheets/customer-overview-sheet/transactions-tab.tsx` to render the restarted table and column visibility/divider control.
   - removed live customer transaction usage of `components/tables/sales-accounting/table.customer-transaction` / `@gnd/ui/data-table`; the old file remains only as an unused legacy definition until cleanup.
-  - validation: focused customer-transactions parity tests passed with 4 tests / 35 assertions; full restarted table parity suite passed with 140 tests / 1320 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck grep reported no diagnostics; static scans found no live customer transaction import of the old accounting transaction table outside negative test assertions; `git diff --check` passed; `components/tables-2/core` stayed unchanged; HTTP smoke returned `200` for `/sales-book/customers`, while direct `/sales-book/customers/v2/cust-1` smoke timed out after 30s with no bytes from local dev.
+  - validation: focused customer-transactions parity tests passed with 4 tests / 35 assertions; full restarted table parity suite passed with 140 tests / 1320 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck grep reported no diagnostics; static scans found no live customer transaction import of the old accounting transaction table outside negative test assertions; `git diff --check` passed; `components/tables-2/core` stayed unchanged; HTTP smoke returned `200` for `/sales-book/customers`, while direct `/sales-book/customers/v2/cust-1` smoke timed out after 30s with no bytes from local dev.
 - 2026-07-17 Customer Overview Pay Portal/Sales List restart:
-  - added `apps/www/src/components/tables-2/customer-pay-portal/*` and `apps/www/src/components/tables-2/customer-sales-list/*`; registered both table ids in table settings/config.
+  - added `apps/dashboard/src/components/tables-2/customer-pay-portal/*` and `apps/dashboard/src/components/tables-2/customer-sales-list/*`; registered both table ids in table settings/config.
   - updated `pay-portal-tab.tsx` and `sales-list.tsx` to render the restarted tables with local column visibility controls instead of inline `table-sm` surfaces.
   - preserved pay-portal selection/payment behavior and quote-list data loading while adding table-owned scroll, `VirtualRow`, DnD, draggable headers, resize handles, horizontal pagination, compact 48px rows, and content-tailored widths.
-  - validation: focused customer overview inline-table parity tests passed with 6 tests / 63 assertions; full restarted table parity suite passed with 150 tests / 1417 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck grep reported no diagnostics; sheet-only static scans found no legacy table patterns; `git diff --check` passed; `components/tables-2/core` stayed unchanged.
+  - validation: focused customer overview inline-table parity tests passed with 6 tests / 63 assertions; full restarted table parity suite passed with 150 tests / 1417 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck grep reported no diagnostics; sheet-only static scans found no legacy table patterns; `git diff --check` passed; `components/tables-2/core` stayed unchanged.
 - 2026-07-17 Customer Overview Sales Workspace restart:
-  - added `apps/www/src/components/tables-2/customer-sales-workspace/*` and registered `customer-sales-workspace` in table settings/config.
+  - added `apps/dashboard/src/components/tables-2/customer-sales-workspace/*` and registered `customer-sales-workspace` in table settings/config.
   - updated `customer-sales-workspace.tsx` to render the restarted table with local column visibility controls instead of an inline `@gnd/ui/table`.
   - preserved the existing customer overview workspace query, search/type/payment/delivery filters, row-open behavior, selection, bulk email, delete, and row SalesMenu actions while adding table-owned scroll, `VirtualRow`, DnD, draggable headers, resize handles, horizontal pagination, compact 40px rows, and content-tailored widths.
-  - validation: focused customer sales workspace parity tests passed with 5 tests / 59 assertions; full restarted table parity suite passed with 155 tests / 1476 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck grep reported no diagnostics; sheet-only static scans found no parent inline table patterns; stale copied-module scan found no Pay Portal/Sales List names in the workspace module; `git diff --check` passed; `components/tables-2/core` stayed unchanged.
+  - validation: focused customer sales workspace parity tests passed with 5 tests / 59 assertions; full restarted table parity suite passed with 155 tests / 1476 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck grep reported no diagnostics; sheet-only static scans found no parent inline table patterns; stale copied-module scan found no Pay Portal/Sales List names in the workspace module; `git diff --check` passed; `components/tables-2/core` stayed unchanged.
 - 2026-07-17 Customer Overview Sales Preview restart:
-  - added `apps/www/src/components/tables-2/customer-overview-sales-preview/*` and registered `customer-overview-sales-preview` in table settings/config.
+  - added `apps/dashboard/src/components/tables-2/customer-overview-sales-preview/*` and registered `customer-overview-sales-preview` in table settings/config.
   - updated `/sales-book/customers/v2/[accountNo]` to use `ScrollableContent`, `batchPrefetch`, and hydrated table settings instead of route-level `getQueryClient().fetchQuery`.
   - updated `customer-overview-v2-content.tsx` so recent sales, recent quotes, the Sales tab, and the Quotes tab render the restarted preview table instead of raw table markup.
-  - validation: focused customer overview sales-preview parity tests passed with 5 tests / 52 assertions; full restarted table parity suite passed with 209 tests / 2115 assertions; targeted Biome passed; touched-file filtered `@gnd/www` typecheck grep reported no diagnostics; static scans found no raw preview table/manual fetch patterns in the route/component; HTTPS route smoke returned `200` for `/sales-book/customers/v2/555-111-2222`; `git diff --check` passed; `components/tables-2/core` stayed unchanged.
+  - validation: focused customer overview sales-preview parity tests passed with 5 tests / 52 assertions; full restarted table parity suite passed with 209 tests / 2115 assertions; targeted Biome passed; touched-file filtered `@gnd/dashboard` typecheck grep reported no diagnostics; static scans found no raw preview table/manual fetch patterns in the route/component; HTTPS route smoke returned `200` for `/sales-book/customers/v2/555-111-2222`; `git diff --check` passed; `components/tables-2/core` stayed unchanged.

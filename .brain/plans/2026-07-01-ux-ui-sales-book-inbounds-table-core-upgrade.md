@@ -20,7 +20,7 @@ Partially Implemented; URL/canonical-route slice complete, authenticated browser
 `/sales-book/inbounds` should feel like the standard Sales Book table workspaces while preserving the collapsible inbound detail experience. The current workspace uses local search/filter state and custom list rendering; the user wants the same search input component used by Sales Book orders and other table pages, support from the new table core including list mode, analytics cards like community/customer-services, and inbound-management links should open `/sales-book/inbounds`.
 
 ## Current Context
-- `apps/www/src/components/sales-inbounds-workspace.tsx` is the current `/sales-book/inbounds` implementation.
+- `apps/dashboard/src/components/sales-inbounds-workspace.tsx` is the current `/sales-book/inbounds` implementation.
 - `brain/features/inventory-backed-sales-fulfillment.md` says `/sales-book/inbounds` uses flattened shadcn collapsible rows, search/status filtering, compact analytics, linked order/customer context, status controls, receive-stock, and timeline history.
 - `/sales-book/inbound-management` is already migrated to `components/tables-2/inbound-management/*`, but the requested destination is now `/sales-book/inbounds`.
 - `brain/plans/2026-06-16-orders-v2-table-standard-migration.md` established the table migration rules: preserve existing queries/filters, avoid route forks, and avoid unnecessary core churn.
@@ -38,18 +38,18 @@ Introduce list-mode support in the table core only if the existing core does not
   - expanded content: stock lines, linked orders, status controls, receive-stock, documents, and timeline.
 - Replace local search input with the same standard search input component/pattern used by `/sales-book/orders`.
 - Add analytics cards similar in density to `community/customer-services`: total, active/in-progress, issue/open, completed/closed, pending quantity or received progress.
-- Update `apps/www/src/components/sidebar-links.ts`, sales tabs, and inbound-management row actions/links so inbound management opens `/sales-book/inbounds` where appropriate.
+- Update `apps/dashboard/src/components/sidebar-links.ts`, sales tabs, and inbound-management row actions/links so inbound management opens `/sales-book/inbounds` where appropriate.
 - Preserve selected inbound deep links and browser back/forward behavior.
 
 ## Affected Files Or Areas
-- `apps/www/src/app/(sidebar)/(sales)/sales-book/inbounds/page.tsx`
-- `apps/www/src/components/sales-inbounds-workspace.tsx`
-- `apps/www/src/components/tables-2/core/*`
-- `apps/www/src/components/tables-2/inbound-management/*`
-- `apps/www/src/components/inbound-header.tsx`
-- `apps/www/src/components/inbound-search-filter.tsx`
-- `apps/www/src/components/sidebar-links.ts`
-- `apps/www/src/components/sales-tabs.tsx`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/inbounds/page.tsx`
+- `apps/dashboard/src/components/sales-inbounds-workspace.tsx`
+- `apps/dashboard/src/components/tables-2/core/*`
+- `apps/dashboard/src/components/tables-2/inbound-management/*`
+- `apps/dashboard/src/components/inbound-header.tsx`
+- `apps/dashboard/src/components/inbound-search-filter.tsx`
+- `apps/dashboard/src/components/sidebar-links.ts`
+- `apps/dashboard/src/components/sales-tabs.tsx`
 - `packages/sales` / `packages/inventory` inbound query areas if analytics require API changes
 - `brain/features/sales-inbound-management-table.md`
 - `brain/features/inventory-backed-sales-fulfillment.md`

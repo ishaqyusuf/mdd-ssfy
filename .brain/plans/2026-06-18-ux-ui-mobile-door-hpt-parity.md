@@ -21,7 +21,7 @@ Door size selection currently does not reliably move to the next step, and the m
 
 ## Current Context
 - Mobile workflow selector imports shared door/HPT helpers from `@gnd/sales/sales-form-core`.
-- Mobile route `apps/expo-app/src/app/(sales)/invoices/door-size.tsx` opens `DoorSizePickerScreen`.
+- Mobile route `apps/mobile/src/app/(sales)/invoices/door-size.tsx` opens `DoorSizePickerScreen`.
 - Current HPT mobile section is documented in `brain/features/mobile-invoice-form.md` as having package totals, active-door chips, add-size behavior, and stacked editable rows.
 - Website parity logic is increasingly shared through `packages/sales/src/sales-form/ui/workflow/*`, including door/HPT and row patch helpers.
 
@@ -38,11 +38,11 @@ Fix the door-size transition path first, then audit the mobile HPT editor agains
 - Keep app-specific UI state and navigation separate from shared pricing/patch logic.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
-- `apps/expo-app/src/app/(sales)/invoices/door-size.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-modal-store.ts`
-- `apps/expo-app/src/features/sales/invoice-form/steps/house-package-tool/*`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
+- `apps/mobile/src/app/(sales)/invoices/door-size.tsx`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-modal-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/steps/house-package-tool/*`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
 - `packages/sales/src/sales-form/ui/workflow/*` only if a missing pure helper should be shared
 
 ## Acceptance Criteria

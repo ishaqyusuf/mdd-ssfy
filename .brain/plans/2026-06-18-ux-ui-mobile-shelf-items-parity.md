@@ -20,7 +20,7 @@ In Progress
 The mobile shelf items step must include all website new-sales-form shelf features in a flat, clean, mobile-native UX while preserving canonical shelf row payloads and invoice totals.
 
 ## Current Context
-- Mobile shelf editor lives under `apps/expo-app/src/features/sales/invoice-form/steps/shelf-items`.
+- Mobile shelf editor lives under `apps/mobile/src/features/sales/invoice-form/steps/shelf-items`.
 - Mobile feature doc says shelf items support section/row management, product search chips, custom rows, qty, unit price, and total updates.
 - Website new-sales-form shelf behavior includes categories, products, sections, row editing, totals, and category/product visibility rules.
 - Shared package helpers include shelf section patch derivation and line total helpers.
@@ -39,10 +39,10 @@ Audit website shelf behavior against the current mobile shelf editor, fill missi
 - Keep shelf UI flat and avoid nested card/table layouts.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/steps/shelf-items/*`
-- `apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/steps/shelf-items/*`
+- `apps/mobile/src/features/sales/invoice-form/components/line-item-card.tsx`
+- `apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
 - `packages/sales/src/sales-form/ui/workflow/workflow-sync-patches.ts`
 - `packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts`
 

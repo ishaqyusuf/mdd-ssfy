@@ -9,7 +9,7 @@
 @import "shadcn/tailwind.css";
 @source "../**/*.{ts,tsx}";
 @source "../../../site-nav/src/**/*.{ts,tsx}";
-@source "../../../../apps/www/src/**/*.{ts,tsx}";
+@source "../../../../apps/dashboard/src/**/*.{ts,tsx}";
 @source "../../../../apps/site/src/**/*.{ts,tsx}";
 @source "../../../../apps/dealership/src/**/*.{ts,tsx}";
 /* @source "../components*.{ts,tsx}"; */

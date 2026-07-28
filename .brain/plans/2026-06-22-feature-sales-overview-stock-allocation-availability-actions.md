@@ -46,8 +46,8 @@ Add action availability and mutations to the Inventory tab. A `StockAllocator` a
 - `packages/sales/src/*`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - `apps/api/src/trpc/routers/notes.route.ts`
-- `apps/www/src/components/sales-overview-system/*`
-- `apps/www/src/components/inventory/*`
+- `apps/dashboard/src/components/sales-overview-system/*`
+- `apps/dashboard/src/components/inventory/*`
 - `brain/features/inventory-backed-sales-fulfillment.md`
 - `brain/features/order-inbound-status.md`
 - `brain/api/contracts.md`

@@ -12,7 +12,7 @@ item, customer, and permission workspaces.
 
 - **Storefront**: the customer-facing e-commerce application in
   `apps/storefront`.
-- **Storefront Admin**: permission-gated merchant operations in `apps/www`.
+- **Storefront Admin**: permission-gated merchant operations in `apps/dashboard`.
 - **Dyke Sales Configuration**: the shared office-authored step graph,
   components, dependencies, routes, and pricing behavior used by the sales
   form.
@@ -119,7 +119,7 @@ item, customer, and permission workspaces.
   rename from the former `apps/site` workspace.
 - The storefront app's server-side tRPC client must use the storefront origin
   for `/api/storefront/trpc`, not the shared `NEXT_PUBLIC_APP_URL` when that
-  value points at the internal `apps/www` host. Server prefetches preserve the
+  value points at the internal `apps/dashboard` host. Server prefetches preserve the
   current request host and forwarded headers so local portless/proxy rendering
   returns JSON instead of the main app's HTML 404.
 - Storefront homepage prefetches are awaited before hydration so the server and
@@ -185,7 +185,7 @@ item, customer, and permission workspaces.
   the default secret; production must continue to provide
   `BETTER_AUTH_SECRET`. The subsequent full Turbo typecheck advanced through
   storefront and completed 24 of 25 packages; only the separately documented
-  broad `@gnd/www` baseline failed.
+  broad `@gnd/dashboard` baseline failed.
 - Storefront migration `20260720130000_storefront_ecommerce_replacement`
   applied with all 102 repository migrations to isolated MySQL database
   `gnd_storefront_verify`.

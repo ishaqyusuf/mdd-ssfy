@@ -4,16 +4,16 @@
 Provide a cleaner production operations surface for both admins and production workers with fast due-date triage, clear urgency alerts, and a more usable daily queue.
 
 ## Routes
-- Admin board: `apps/www/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/page.tsx`
-- Admin board v2: `apps/www/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/v2/page.tsx`
-- Worker sales-book route: `apps/www/src/app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx`
-- Worker sidebar route: `apps/www/src/app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx`
-- Worker sidebar route v2: `apps/www/src/app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx`
+- Admin board: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/page.tsx`
+- Admin board v2: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/(admin)/productions/v2/page.tsx`
+- Worker sales-book route: `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(pages)/production-tasks/page.tsx`
+- Worker sidebar route: `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/page.tsx`
+- Worker sidebar route v2: `apps/dashboard/src/app/(sidebar)/(sales-production-worker)/production/dashboard/v2/page.tsx`
 
 ## Shared UI
-- Shared client shell: `apps/www/src/components/production-workspace.tsx`
-- Shared list/table: `apps/www/src/components/tables-2/sales-production/*`
-- Shared filter state: `apps/www/src/hooks/use-sales-production-filter-params.ts`
+- Shared client shell: `apps/dashboard/src/components/production-workspace.tsx`
+- Shared list/table: `apps/dashboard/src/components/tables-2/sales-production/*`
+- Shared filter state: `apps/dashboard/src/hooks/use-sales-production-filter-params.ts`
 
 ## V2 Architecture
 - 2026-07-17 update: the live v2 route entry points now reuse `ProductionWorkspace` and `components/tables-2/sales-production/*` so the user-facing worker/admin production pages match the Sales Orders table migration standard.

@@ -13,7 +13,7 @@ Proposed
 Finish implementation of all mobile design templates: Ops Console, Field Flow, and Sales Ledger. Include all tabs from each template. Field Flow must support search, Continue Route, clicking a job to open an overview, and all overview tabs. Ops Console must support search, clicking work items, all tabs, and a search filter that opens a nice floating rounded bottom sheet like the attached sample. Include the same search/filter treatment and complete interactions for the other templates. Include standard architecture and folder structure in the intake.
 
 ## Standard Architecture
-- Keep the work inside the existing Expo preview boundary unless a later approval explicitly promotes a template into production: `apps/expo-app/src/features/design-system-preview` plus tiny route wrappers in `apps/expo-app/src/app/design-system-preview`.
+- Keep the work inside the existing Expo preview boundary unless a later approval explicitly promotes a template into production: `apps/mobile/src/features/design-system-preview` plus tiny route wrappers in `apps/mobile/src/app/design-system-preview`.
 - Preserve the existing Turborepo and Expo Router layout. Screens should stay thin; reusable preview behavior should live in feature-local components, hooks, state helpers, and data modules.
 - Follow the repository mobile rule from `brain/engineering/coding-standards.md`: Expo components must not mix NativeWind `className` and React Native `style` on the same element.
 - Reuse existing native primitives where practical: `Pressable`, `Icon`, `Modal` / `useModal`, `BottomSheetView`, `BottomSheetScrollView`, and theme/color helpers.
@@ -21,13 +21,13 @@ Finish implementation of all mobile design templates: Ops Console, Field Flow, a
 - Use summary-first mobile architecture from `brain/system/architecture-guide.md`: render the template shell and active tab first, then show detail tabs only after a record/route/order is opened.
 - Mount only the active tab/detail tab content. Do not eagerly render every tab tree if the implementation grows.
 - Use feature-local pure helpers for filtering, tab state, and selected-record lookup so lower-level tests can cover behavior without device automation.
-- Update `apps/expo-app/DESIGN.md`, `apps/expo-app/src/features/design-system-preview/DESIGN.md`, and `brain/progress.md` after implementation.
+- Update `apps/mobile/DESIGN.md`, `apps/mobile/src/features/design-system-preview/DESIGN.md`, and `brain/progress.md` after implementation.
 
 ## Folder Structure
 Recommended target structure:
 
 ```text
-apps/expo-app/src/features/design-system-preview/
+apps/mobile/src/features/design-system-preview/
   components/
     preview-bottom-filter-sheet.tsx
     preview-card.tsx
@@ -62,7 +62,7 @@ apps/expo-app/src/features/design-system-preview/
 Route wrappers stay in:
 
 ```text
-apps/expo-app/src/app/design-system-preview/
+apps/mobile/src/app/design-system-preview/
   _layout.tsx
   index.tsx
   template-a.tsx
@@ -94,7 +94,7 @@ apps/expo-app/src/app/design-system-preview/
 
 ## Duplicate Or Existing Items
 - Existing implemented preview foundation: `brain/plans/2026-06-15-mobile-design-system-template-previews.md`.
-- Existing design docs: `apps/expo-app/DESIGN.md` and `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
+- Existing design docs: `apps/mobile/DESIGN.md` and `apps/mobile/src/features/design-system-preview/DESIGN.md`.
 - This intake extends the existing preview implementation; it does not replace the already implemented static preview foundation.
 
 ## Needs Clarification

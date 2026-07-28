@@ -123,15 +123,15 @@ flowchart TD
 
 ## Affected Files Or Areas
 - `packages/sales/src/sales-form/ui/overview/customer-overview-card.tsx`
-- `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
-- `apps/www/src/components/forms/new-sales-form/sections/customer-selector-dialog.tsx`
-- `apps/www/src/components/forms/customer-form/*`
-- `apps/www/src/components/sheets/customer-create-sheet.tsx`
-- `apps/www/src/components/sales-overview-system/tabs/overview-tab.tsx`
-- `apps/www/src/components/sales-overview-system/tabs/overview/v2.tsx`
-- `apps/www/src/components/sheets/sales-overview-sheet/general-tab.tsx`
-- `apps/www/src/lib/query-events/registry.ts`
-- `apps/www/src/lib/query-events/*test.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/customer-selector-dialog.tsx`
+- `apps/dashboard/src/components/forms/customer-form/*`
+- `apps/dashboard/src/components/sheets/customer-create-sheet.tsx`
+- `apps/dashboard/src/components/sales-overview-system/tabs/overview-tab.tsx`
+- `apps/dashboard/src/components/sales-overview-system/tabs/overview/v2.tsx`
+- `apps/dashboard/src/components/sheets/sales-overview-sheet/general-tab.tsx`
+- `apps/dashboard/src/lib/query-events/registry.ts`
+- `apps/dashboard/src/lib/query-events/*test.ts`
 - Customer mutation ownership checks under `apps/api/src/db/queries/customer.ts`
   and `apps/api/src/trpc/routers/customer.route.ts`
 - `.brain/features/sales-form-system-hardening.md`

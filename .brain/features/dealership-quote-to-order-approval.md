@@ -358,7 +358,7 @@ use focused static checks until a separate browser QA pass is requested.
   authenticated dealership and `www` package paths are proven in browser.
 - Keep rollback plans available:
   - `brain/dealership-new-sales-form-rollback-plan.md`
-  - `brain/www-new-sales-form-rollback-plan.md`
+  - `brain/dashboard-new-sales-form-rollback-plan.md`
 
 ## Follow Up
 

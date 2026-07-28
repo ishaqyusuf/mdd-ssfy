@@ -4,9 +4,9 @@
 - 2026-07-17: `/settings/profile` Active Sessions is migrated to the `tables-2` table standard.
 
 ## Surface
-- Route: `apps/www/src/app/(sidebar)/settings/profile/page.tsx`
-- Component: `apps/www/src/components/user-logged-in-devices.tsx`
-- Table module: `apps/www/src/components/tables-2/user-logged-in-devices/*`
+- Route: `apps/dashboard/src/app/(sidebar)/settings/profile/page.tsx`
+- Component: `apps/dashboard/src/components/user-logged-in-devices.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/user-logged-in-devices/*`
 - Table settings id: `user-logged-in-devices`
 
 ## Behavior
@@ -26,9 +26,9 @@
 
 ## Validation
 - Focused Biome passed for the route, component, new table module, table settings, and table config files.
-- Focused parity test passed: `bun test apps/www/src/components/tables-2/user-logged-in-devices/migration-parity.test.ts` with 4 tests / 43 assertions.
+- Focused parity test passed: `bun test apps/dashboard/src/components/tables-2/user-logged-in-devices/migration-parity.test.ts` with 4 tests / 43 assertions.
 - Full restarted table parity suite passed with 159 tests / 1519 assertions.
-- Touched-file filtered `@gnd/www` typecheck grep reported no diagnostics.
+- Touched-file filtered `@gnd/dashboard` typecheck grep reported no diagnostics.
 - Static scans found no inline `@gnd/ui/table`, `Table*`, `DataSkeletonProvider`, `skeletonListData`, or stale copied-module names in the profile component/new module.
 - `git diff --check` passed.
-- `apps/www/src/components/tables-2/core` diff stayed clean.
+- `apps/dashboard/src/components/tables-2/core` diff stayed clean.

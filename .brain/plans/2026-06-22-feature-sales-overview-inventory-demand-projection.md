@@ -40,7 +40,7 @@ Add a sale-scoped inventory overview projection in the inventory/sales domain la
 - `packages/sales/src/*`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - `apps/api/src/trpc/routers/sales.route.ts`
-- `apps/www/src/components/sales-overview-system/*`
+- `apps/dashboard/src/components/sales-overview-system/*`
 - `brain/features/inventory-backed-sales-fulfillment.md`
 - `brain/api/contracts.md`
 

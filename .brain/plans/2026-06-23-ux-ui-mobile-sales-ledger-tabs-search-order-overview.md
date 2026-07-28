@@ -28,7 +28,7 @@ Completed
 Complete the Sales Ledger template so it behaves like a clickable sales/order-management preview with all tabs, search/filter, and order detail tabs.
 
 ## Current Context
-- Sales Ledger lives in `apps/expo-app/src/features/design-system-preview/screens/template-c-screen.tsx`.
+- Sales Ledger lives in `apps/mobile/src/features/design-system-preview/screens/template-c-screen.tsx`.
 - Current bottom nav labels are Home, Sales, Money, Ship, and More.
 - Current screen has static sales metrics, invoice snapshot rows, and recent order cards.
 - Existing recommendation says Sales Ledger should inform invoice and sales order surfaces.
@@ -43,12 +43,12 @@ Complete the Sales Ledger template so it behaves like a clickable sales/order-ma
 Expected Sales Ledger files:
 
 ```text
-apps/expo-app/src/features/design-system-preview/screens/template-c-screen.tsx
-apps/expo-app/src/features/design-system-preview/data/sample-data.ts
-apps/expo-app/src/features/design-system-preview/data/template-tabs.ts
-apps/expo-app/src/features/design-system-preview/components/preview-detail-tabs.tsx
-apps/expo-app/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx
-apps/expo-app/src/features/design-system-preview/utils/preview-filtering.ts
+apps/mobile/src/features/design-system-preview/screens/template-c-screen.tsx
+apps/mobile/src/features/design-system-preview/data/sample-data.ts
+apps/mobile/src/features/design-system-preview/data/template-tabs.ts
+apps/mobile/src/features/design-system-preview/components/preview-detail-tabs.tsx
+apps/mobile/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx
+apps/mobile/src/features/design-system-preview/utils/preview-filtering.ts
 ```
 
 ## Proposed Approach
@@ -66,11 +66,11 @@ Turn Sales Ledger bottom navigation into actual tabs. Add searchable/filterable 
 - Preserve tabular numeric alignment and lower-radius ledger styling.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/design-system-preview/screens/template-c-screen.tsx`
-- `apps/expo-app/src/features/design-system-preview/data/sample-data.ts`
-- `apps/expo-app/src/features/design-system-preview/data/template-tabs.ts`
+- `apps/mobile/src/features/design-system-preview/screens/template-c-screen.tsx`
+- `apps/mobile/src/features/design-system-preview/data/sample-data.ts`
+- `apps/mobile/src/features/design-system-preview/data/template-tabs.ts`
 - Shared preview interaction files from the architecture plan
-- `apps/expo-app/src/features/design-system-preview/DESIGN.md`
+- `apps/mobile/src/features/design-system-preview/DESIGN.md`
 
 ## Acceptance Criteria
 - Home, Sales, Money, Ship, and More tabs all switch to distinct Sales Ledger content.
@@ -88,8 +88,8 @@ Turn Sales Ledger bottom navigation into actual tabs. Add searchable/filterable 
 - Manual Expo smoke through `/design-system-preview/template-c`: search, filter sheet, each bottom tab, order tap, overview tab switching.
 
 ## Brain Update Requirements
-- Update `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
-- Update `apps/expo-app/DESIGN.md` if Sales Ledger behavior changes the documented preview capabilities.
+- Update `apps/mobile/src/features/design-system-preview/DESIGN.md`.
+- Update `apps/mobile/DESIGN.md` if Sales Ledger behavior changes the documented preview capabilities.
 - Update `brain/progress.md`.
 - No API or database docs expected.
 

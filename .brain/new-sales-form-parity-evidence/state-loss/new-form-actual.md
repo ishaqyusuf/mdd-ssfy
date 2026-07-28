@@ -6,9 +6,9 @@ State resilience is now partially implemented in `new-sales-form`:
 - restore/dismiss banner shown when local snapshot differs from server payload
 
 Anchors:
-- `apps/www/src/components/forms/new-sales-form/store.ts`
-- `apps/www/src/components/forms/new-sales-form/local-recovery.ts`
-- `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/store.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/local-recovery.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
 
 Current parity status:
 - Local recovery path exists and prevents silent state loss on refresh/idle reload.

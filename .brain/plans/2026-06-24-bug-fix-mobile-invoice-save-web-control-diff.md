@@ -22,11 +22,11 @@ Mobile invoice creation can still time out with `Could not finish saving this in
 ## Current Context
 - The completed plan `brain/plans/2026-06-23-bug-fix-mobile-invoice-save-stuck.md` added a 30 second mobile save timeout, unbatched Expo mutation transport, bounded post-save document/cache work, and store-driven save state so the UI can recover from a hung request.
 - The broader plan `brain/plans/2026-06-23-bug-fix-mobile-invoice-web-parity-and-save-reliability-gap-closure.md` already tracks the larger web/mobile parity surface. This plan narrows the next implementation slice to save reliability only.
-- Web final save in `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx` validates, takes a manual save lock, composes the payload through `toSaveDraftInput(record, false)`, calls `newSalesForm.saveFinal`, handles stale/server errors, runs post-save success/inventory configuration, clears selected-customer query state, and routes to edit mode after create.
-- Web payload mapping in `apps/www/src/components/forms/new-sales-form/mappers.ts` calls `composeSalesFormSavePayload` with `surface: "www"` and `pricing.mode: "coefficient"`.
-- Mobile create/save in `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx` validates, marks saving, calls `runMobileInvoiceSaveRequest(() => saveFinal(actions.buildSavePayload(false)))`, marks saved or failure, clears recovery keys, and routes to edit mode after create.
-- Mobile payload mapping in `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts` calls shared `toSalesFormSaveDraftPayload(...)`, which recomputes summary through shared sales-form core and normalizes order inbound status.
-- Expo tRPC mutations are already unbatched through `httpLink` in `apps/expo-app/src/trpc/client.tsx`, and the target API URL comes from `apps/expo-app/src/lib/base-url.ts`.
+- Web final save in `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx` validates, takes a manual save lock, composes the payload through `toSaveDraftInput(record, false)`, calls `newSalesForm.saveFinal`, handles stale/server errors, runs post-save success/inventory configuration, clears selected-customer query state, and routes to edit mode after create.
+- Web payload mapping in `apps/dashboard/src/components/forms/new-sales-form/mappers.ts` calls `composeSalesFormSavePayload` with `surface: "www"` and `pricing.mode: "coefficient"`.
+- Mobile create/save in `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx` validates, marks saving, calls `runMobileInvoiceSaveRequest(() => saveFinal(actions.buildSavePayload(false)))`, marks saved or failure, clears recovery keys, and routes to edit mode after create.
+- Mobile payload mapping in `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts` calls shared `toSalesFormSaveDraftPayload(...)`, which recomputes summary through shared sales-form core and normalizes order inbound status.
+- Expo tRPC mutations are already unbatched through `httpLink` in `apps/mobile/src/trpc/client.tsx`, and the target API URL comes from `apps/mobile/src/lib/base-url.ts`.
 - API `saveDraftNewSalesForm` and `saveFinalNewSalesForm` both parse schema input, await `saveNewSalesFormInternal`, then await bounded post-save tasks for document snapshot expiration, inventory sync queueing, and document warmup queueing in `apps/api/src/db/queries/new-sales-form.ts`.
 
 ## Proposed Approach
@@ -72,14 +72,14 @@ Do not increase the mobile timeout as the primary fix. The desired outcome is th
   - Do not implement Save & Close, Save & New, print/PDF, payment, or full profile/address parity in this bug-fix slice unless they are proven to block save completion.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
-- `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-actions.ts`
-- `apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.ts`
-- `apps/expo-app/src/lib/base-url.ts`
-- `apps/expo-app/src/trpc/client.tsx`
-- `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
-- `apps/www/src/components/forms/new-sales-form/mappers.ts`
+- `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-actions.ts`
+- `apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.ts`
+- `apps/mobile/src/lib/base-url.ts`
+- `apps/mobile/src/trpc/client.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/mappers.ts`
 - `apps/api/src/db/queries/new-sales-form.ts`
 - `apps/api/src/schemas/new-sales-form.ts`
 - `packages/sales/src/sales-form/application/record-normalization.ts`

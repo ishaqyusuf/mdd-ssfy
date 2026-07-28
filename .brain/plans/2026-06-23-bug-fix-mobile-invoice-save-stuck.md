@@ -16,7 +16,7 @@ Done
 Mobile invoice creation can remain stuck on `Saving invoice...` when the save request or follow-up save path does not settle. Users need the create/save flow to either complete or return to a retryable error state.
 
 ## Current Context
-The Expo invoice form saves through `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx`, `useInvoiceFormActions`, and the `newSalesForm.saveDraft` / `newSalesForm.saveFinal` tRPC mutations. The API already bounded post-save queue work for inventory sync and document warmups, but document snapshot expiration still ran before the response and the mobile overlay was driven by React Query mutation pending state, so a slow post-save path or client-side hung mutation could keep the UI blocked.
+The Expo invoice form saves through `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx`, `useInvoiceFormActions`, and the `newSalesForm.saveDraft` / `newSalesForm.saveFinal` tRPC mutations. The API already bounded post-save queue work for inventory sync and document warmups, but document snapshot expiration still ran before the response and the mobile overlay was driven by React Query mutation pending state, so a slow post-save path or client-side hung mutation could keep the UI blocked.
 
 ## Proposed Approach
 Added a bounded mobile save await path and drive the visible saving overlay from the invoice form store's save state. If a save request does not settle within the mobile timeout, the form is marked with a retryable save error so the overlay clears and the user can try again.
@@ -44,10 +44,10 @@ flowchart TD
 - Done: Ran focused tests for the helper and existing invoice store/save coverage.
 
 ## Affected Files Or Areas
-- apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx
-- apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.ts
-- apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.test.ts
-- apps/expo-app/src/trpc/client.tsx
+- apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx
+- apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.ts
+- apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.test.ts
+- apps/mobile/src/trpc/client.tsx
 - apps/api/src/db/queries/new-sales-form.ts
 - brain/api/contracts.md
 - brain/features/mobile-invoice-form.md
@@ -61,8 +61,8 @@ flowchart TD
 - Done: Save failures show a retryable footer error.
 
 ## Test Plan
-- Passed: `bun test apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.test.ts apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.test.ts apps/api/src/db/queries/new-sales-form-post-save.test.ts`
-- Passed: `bunx biome check apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.ts apps/expo-app/src/features/sales/invoice-form/lib/mobile-save-timeout.test.ts`
+- Passed: `bun test apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.test.ts apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.test.ts apps/api/src/db/queries/new-sales-form-post-save.test.ts`
+- Passed: `bunx biome check apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.ts apps/mobile/src/features/sales/invoice-form/lib/mobile-save-timeout.test.ts`
 
 ## Risks / Edge Cases
 - Retrying after a network timeout could race an original request that later reaches the server; this fix should prefer visible recovery while preserving the existing server save contract.

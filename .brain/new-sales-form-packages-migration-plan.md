@@ -6,7 +6,7 @@ Status: Phase 3 In Progress
 
 ## Objective
 
-Move sales-form business logic into a well-organized `packages/sales` module so API and web consume one canonical engine, while keeping app-specific UI/routing in `apps/www`.
+Move sales-form business logic into a well-organized `packages/sales` module so API and web consume one canonical engine, while keeping app-specific UI/routing in `apps/dashboard`.
 
 ## Target Structure
 
@@ -25,7 +25,7 @@ Move sales-form business logic into a well-organized `packages/sales` module so 
 
 ## Boundaries
 
-Keep in `apps/www`:
+Keep in `apps/dashboard`:
 - Next.js pages/layouts
 - component composition and app-level interaction state
 - app navigation/modals

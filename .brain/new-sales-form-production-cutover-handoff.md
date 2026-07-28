@@ -8,7 +8,7 @@ Scope: old sales form vs `new-sales-form` parity closure and production rollout.
 - Parity matrix status: closed for scoped rows (`PASS` across matrix).
 - Current regression gate: `54 pass, 0 fail` (sales-form package domain/costing + API parity tests).
 - Canonical logic location: `packages/sales/src/sales-form/*`.
-- UI adapters: `apps/www/src/components/forms/new-sales-form/*`.
+- UI adapters: `apps/dashboard/src/components/forms/new-sales-form/*`.
 - API persistence/recalc: `apps/api/src/db/queries/new-sales-form.ts`.
 
 ## 2. Pre-Production Risk Checks

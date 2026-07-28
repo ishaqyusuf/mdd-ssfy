@@ -65,8 +65,8 @@ These belong together because each part is required for the end-to-end office fe
 
 ## Known Codebase Touchpoints
 
-- `apps/www/src/components/header.tsx` - likely location for the top-right bug report button.
-- `apps/www/src/components/tables/employees/columns.tsx` - current employee row action menu for Super Admin controls.
+- `apps/dashboard/src/components/header.tsx` - likely location for the top-right bug report button.
+- `apps/dashboard/src/components/tables/employees/columns.tsx` - current employee row action menu for Super Admin controls.
 - `apps/api/src/trpc/routers/hrm.route.ts` - likely location for employee access toggle mutation.
 - `apps/api/src/db/queries/hrm.ts` - existing employee-specific permission patterns.
 - `packages/utils/src/constants.ts` - existing extra permission scopes and permission normalization.

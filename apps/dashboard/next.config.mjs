@@ -1,0 +1,169 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
+const localNetworkDevOrigins = [
+    "10.*.*.*",
+    "172.*.*.*",
+    "192.168.*.*",
+    "*.local",
+];
+
+const extraDevOrigins =
+    process.env.NEXT_ALLOWED_DEV_ORIGINS?.split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean) ?? [];
+
+/** @type {import('next').NextConfig} */
+const config = {
+    allowedDevOrigins: [
+        "gndprodesk.test",
+        "gndprodesk.localhost",
+        "localhost",
+        "127.0.0.1",
+        ...localNetworkDevOrigins,
+        ...extraDevOrigins,
+    ],
+    transpilePackages: [
+        "@gnd/ui",
+        "@gnd/api",
+        "@gnd/sales",
+        "@gnd/community",
+        "@gnd/inventory",
+        "@gnd/square",
+        "@gnd/notifications",
+        "@gnd/pdf",
+    ],
+    typescript: {
+        ignoreBuildErrors: true,
+    },
+    devIndicators: false,
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "**",
+            },
+            // {
+            //     protocol: "https",
+            //     hostname: "res.cloudinary.com",
+            //     port: "",
+            //     // pathname: "/account123/**"
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "plus.unsplash.com",
+            //     port: "",
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "images.unsplash.com",
+            //     port: "",
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "wbycmglit0cmqbex.public.blob.vercel-storage.com",
+            //     port: "",
+            // },
+            // {
+            //     protocol: "https",
+            //     hostname: "gndmillwork.com",
+            //     port: "",
+            // },
+        ],
+    },
+    experimental: {
+        optimizePackageImports: [
+            "lucide-react",
+            "react-icons",
+            "date-fns",
+            "framer-motion",
+            "recharts",
+            "@dnd-kit/core",
+            "@dnd-kit/sortable",
+            "usehooks-ts",
+        ],
+        serverActions: {
+            bodySizeLimit: "3mb",
+        },
+    },
+    // experimental: {
+    // serverExternalPackages: ["puppeteer-core", "@prisma/client", "@gnd/db"],
+    serverExternalPackages: ["puppeteer-core", "pino"],
+    // },
+    // webpack: (config, { isServer }) => {
+    //     if (isServer) {
+    //         config.plugins = [...config.plugins, new PrismaPlugin()];
+    //     }
+    //     return config;
+    // },
+    // webpack: (
+    //     config,
+    //     { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }
+    // ) => {
+    //     config.plugins = config.plugins || [];
+    //     config.plugins.push(
+    //         new NormalModuleReplacementPlugin(
+    //             /email\/render/,
+    //             path.resolve(__dirname, "./renderEmailFix.js")
+    //         )
+    //     );
+    //     // Important: return the modified config
+    //     return config;
+    // },
+    async headers() {
+        return [
+            {
+                // matching all API routes
+                source: "/api/:path*",
+                headers: [
+                    { key: "Access-Control-Allow-Credentials", value: "true" },
+                    { key: "Access-Control-Allow-Origin", value: "*" }, // replace this your actual origin
+                    {
+                        key: "Access-Control-Allow-Methods",
+                        value: "GET,DELETE,PATCH,POST,PUT",
+                    },
+                    {
+                        key: "Access-Control-Allow-Headers",
+                        value: "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version",
+                    },
+                ],
+            },
+        ];
+    },
+};
+
+// module.exports = nextConfig;
+const deploymentEnvironment =
+    process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development";
+const isProduction = deploymentEnvironment === "production";
+const sentryRelease =
+    process.env.SENTRY_RELEASE ??
+    process.env.VERCEL_GIT_COMMIT_SHA ??
+    process.env.GIT_COMMIT_SHA ??
+    undefined;
+
+export default isProduction
+    ? withSentryConfig(config, {
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          telemetry: false,
+
+          // Only print logs for uploading source maps in CI
+          silent: !process.env.CI,
+
+          // Upload source maps for better stack traces
+          widenClientFileUpload: true,
+
+          webpack: {
+              treeshake: {
+                  removeDebugLogging: true,
+              },
+          },
+
+          ...(sentryRelease ? { release: { name: sentryRelease } } : {}),
+
+          sourcemaps: {
+              deleteSourcemapsAfterUpload: true,
+          },
+      })
+    : config;

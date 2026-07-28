@@ -26,7 +26,7 @@ Completed
 Complete the Field Flow template so it behaves like a full clickable mobile field-worker preview instead of a static screen.
 
 ## Current Context
-- Field Flow lives in `apps/expo-app/src/features/design-system-preview/screens/template-b-screen.tsx`.
+- Field Flow lives in `apps/mobile/src/features/design-system-preview/screens/template-b-screen.tsx`.
 - Current bottom nav labels are Home, Route, Pack, Proof, and Me.
 - Current screen has a static active route card, Continue Route button, metrics, filters, and three task records.
 - Existing recommendation says Field Flow is best for drivers, installers, warehouse packing, dispatch detail, and job completion workflows.
@@ -42,12 +42,12 @@ Complete the Field Flow template so it behaves like a full clickable mobile fiel
 Expected Field Flow files:
 
 ```text
-apps/expo-app/src/features/design-system-preview/screens/template-b-screen.tsx
-apps/expo-app/src/features/design-system-preview/data/sample-data.ts
-apps/expo-app/src/features/design-system-preview/data/template-tabs.ts
-apps/expo-app/src/features/design-system-preview/components/preview-detail-tabs.tsx
-apps/expo-app/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx
-apps/expo-app/src/features/design-system-preview/utils/preview-filtering.ts
+apps/mobile/src/features/design-system-preview/screens/template-b-screen.tsx
+apps/mobile/src/features/design-system-preview/data/sample-data.ts
+apps/mobile/src/features/design-system-preview/data/template-tabs.ts
+apps/mobile/src/features/design-system-preview/components/preview-detail-tabs.tsx
+apps/mobile/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx
+apps/mobile/src/features/design-system-preview/utils/preview-filtering.ts
 ```
 
 ## Proposed Approach
@@ -66,11 +66,11 @@ Add real tab switching for Home, Route, Pack, Proof, and Me. Add searchable/filt
 - Preserve the Field Flow visual direction: thumb-first controls, active work card, pill filters, and strong bottom action.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/design-system-preview/screens/template-b-screen.tsx`
-- `apps/expo-app/src/features/design-system-preview/data/sample-data.ts`
-- `apps/expo-app/src/features/design-system-preview/data/template-tabs.ts`
+- `apps/mobile/src/features/design-system-preview/screens/template-b-screen.tsx`
+- `apps/mobile/src/features/design-system-preview/data/sample-data.ts`
+- `apps/mobile/src/features/design-system-preview/data/template-tabs.ts`
 - Shared preview interaction files from the architecture plan
-- `apps/expo-app/src/features/design-system-preview/DESIGN.md`
+- `apps/mobile/src/features/design-system-preview/DESIGN.md`
 
 ## Acceptance Criteria
 - Home, Route, Pack, Proof, and Me tabs all switch to distinct Field Flow content.
@@ -89,8 +89,8 @@ Add real tab switching for Home, Route, Pack, Proof, and Me. Add searchable/filt
 - Manual Expo smoke through `/design-system-preview/template-b`: search, filter sheet, each bottom tab, Continue Route, card tap, overview tab switching.
 
 ## Brain Update Requirements
-- Update `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
-- Update `apps/expo-app/DESIGN.md` if Field Flow behavior changes the documented preview capabilities.
+- Update `apps/mobile/src/features/design-system-preview/DESIGN.md`.
+- Update `apps/mobile/DESIGN.md` if Field Flow behavior changes the documented preview capabilities.
 - Update `brain/progress.md`.
 - No API or database docs expected.
 

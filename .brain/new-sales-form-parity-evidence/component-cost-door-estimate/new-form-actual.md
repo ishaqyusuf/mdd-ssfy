@@ -6,7 +6,7 @@ Door estimate component-cost composition is now normalized across paths:
 - persisted rows keep `meta.baseUnitPrice` and computed effective unit with surcharge.
 
 Anchor:
-- `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 
 Current parity status:
 - Code path now consistently includes component surcharge in door estimate calculations.

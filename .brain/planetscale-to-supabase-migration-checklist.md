@@ -11,7 +11,7 @@ Cut the app over from PlanetScale to Supabase with Prisma retained as the primar
 - Phase 1 scope is database migration only: PlanetScale MySQL to Supabase Postgres.
 - Prisma remains the canonical application data-access layer during the initial cutover.
 - `packages/db/src/schema/schema.prisma` is the current schema source and still targets MySQL.
-- Existing staging/local migration experiments such as `apps/www/db.load` are valid starting points, but must be formalized before production use.
+- Existing staging/local migration experiments such as `apps/dashboard/db.load` are valid starting points, but must be formalized before production use.
 - Supabase Auth, Storage, Realtime, and RLS are not part of the first cut unless separately approved.
 - A short production write freeze or controlled cutover window is acceptable.
 
@@ -54,7 +54,7 @@ Validation gate:
 
 ## 4) Repeatable Data Migration Rehearsal
 
-- [ ] Formalize the MySQL-to-Postgres load workflow currently hinted by `apps/www/db.load`.
+- [ ] Formalize the MySQL-to-Postgres load workflow currently hinted by `apps/dashboard/db.load`.
 - [ ] Create a repeatable export/import process from a recent PlanetScale snapshot to local Postgres.
 - [ ] Rehearse the same import flow into Supabase staging.
 - [ ] Add normalization steps for timestamps, booleans, JSON, bigint ranges, null/default mismatches, and orphaned rows.
@@ -66,7 +66,7 @@ Validation gate:
 
 ## 5) Application Compatibility Hardening
 
-- [ ] Remove or update PlanetScale-specific runtime/UI assumptions such as `apps/www/src/app/layout.tsx` production DB detection.
+- [ ] Remove or update PlanetScale-specific runtime/UI assumptions such as `apps/dashboard/src/app/layout.tsx` production DB detection.
 - [ ] Update env validation in app packages to accept the Supabase/Postgres connection contract.
 - [ ] Audit server actions, tRPC routes, and jobs for MySQL-specific behavior or raw SQL assumptions.
 - [ ] Audit schema-heavy domains for compatibility: employee management, payment system, document platform, production, and auth/session flows.
@@ -137,7 +137,7 @@ Validation gate:
 
 - `packages/db/src/schema/schema.prisma`
 - `packages/db/prisma.config.ts`
-- `apps/www/db.load`
-- `apps/www/src/app/layout.tsx`
+- `apps/dashboard/db.load`
+- `apps/dashboard/src/app/layout.tsx`
 - `brain/database/schema.md`
 - `brain/tasks/backlog.md`

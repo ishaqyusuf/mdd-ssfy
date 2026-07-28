@@ -2,14 +2,14 @@
 
 Date: 2026-04-15
 Owner: Web Performance / App Router workstream
-Scope: `apps/www` route optimization prioritized by active navigation in `apps/www/src/components/sidebar/links.ts`.
+Scope: `apps/dashboard` route optimization prioritized by active navigation in `apps/dashboard/src/components/sidebar/links.ts`.
 
 ## Objective
 Use `linkModules` as the authoritative source for active user-facing route planning, optimize those pages first, and keep routes not represented in `linkModules` in a separate "possibly stale" bucket for later cleanup or review.
 
 ## Planning Rule
-- Active roadmap scope is defined by reachable routes in `apps/www/src/components/sidebar/links.ts`.
-- Pages that exist in `apps/www/src/app/**/page.tsx` but are not represented in `linkModules` should not drive current optimization priority.
+- Active roadmap scope is defined by reachable routes in `apps/dashboard/src/components/sidebar/links.ts`.
+- Pages that exist in `apps/dashboard/src/app/**/page.tsx` but are not represented in `linkModules` should not drive current optimization priority.
 - Those non-linked pages must be tracked under `Possibly Stale Pages` for future action.
 
 ## Active Areas
@@ -40,7 +40,7 @@ Use `linkModules` as the authoritative source for active user-facing route plann
 - `/jobs-dashboard`, `/jobs-dashboard/payments`
 
 ## Possibly Stale Pages
-- Route pages present in `apps/www/src/app/**/page.tsx` but not reachable from `linkModules`
+- Route pages present in `apps/dashboard/src/app/**/page.tsx` but not reachable from `linkModules`
 - Legacy alternates under `(v1)`, `(v2)`, `(clean-code)` that are not part of the current nav model
 - Hidden experiments, old dashboards, old settings pages, unlinked public/print support routes, and dev-only debug pages
 
@@ -98,4 +98,4 @@ Target behavior:
 ### Remaining Community Follow-up
 - Verify whether Community detail pages that are not directly listed in `linkModules` should stay in `Possibly Stale Pages` or be promoted back into active scope.
 - Add route-level measurements for the active Community surfaces before moving the same pattern into Sales.
-- Apply the guardrails in `brain/engineering/www-performance-guardrails.md` to all follow-up route work so route hydration improvements are not undone by heavy client shells.
+- Apply the guardrails in `brain/engineering/dashboard-performance-guardrails.md` to all follow-up route work so route hydration improvements are not undone by heavy client shells.

@@ -17,8 +17,8 @@ This plan is for the active legacy form, not the `new-sales-form` parity stream.
 
 ## Scope
 
-- `apps/www/src/components/forms/sales-form/*`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/*`
+- `apps/dashboard/src/components/forms/sales-form/*`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/*`
 - current legacy save orchestration and related post-save side effects
 - mobile UX for HPT/house package, moulding, service lines, shelf items, and item/step navigation
 
@@ -60,7 +60,7 @@ This plan is for the active legacy form, not the `new-sales-form` parity stream.
 Adopt a modular-monolith domain boundary for the legacy form:
 
 ```text
-apps/www/src/domains/sales-form/legacy/
+apps/dashboard/src/domains/sales-form/legacy/
   index.ts
   shell/
   item-editor/
@@ -186,7 +186,7 @@ Current save orchestration is too close to the view layer. Move to four layers:
 ### Target Save Structure
 
 ```text
-apps/www/src/domains/sales-form/legacy/
+apps/dashboard/src/domains/sales-form/legacy/
   application/
     build-save-payload.ts
     save-sales-form.ts

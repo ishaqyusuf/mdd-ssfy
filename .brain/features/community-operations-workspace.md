@@ -8,15 +8,15 @@
   - Community dashboard with summary widgets and dashboard tabs, including a dedicated Projects tab before Productions for broader project monitoring views.
 - `/community/projects`
   - Project index with a standard `SearchFilter` header, project-specific analytics cards, row selection, batch archive actions, and inline supervisor management.
-  - The index table uses the restarted Sales Orders table-core pattern through `apps/www/src/components/tables-2/community-projects/*`, with table-owned scrolling, virtualization, DnD headers, resize handles, sticky select/project columns, persisted settings, and 64px compact rows.
+  - The index table uses the restarted Sales Orders table-core pattern through `apps/dashboard/src/components/tables-2/community-projects/*`, with table-owned scrolling, virtualization, DnD headers, resize handles, sticky select/project columns, persisted settings, and 64px compact rows.
 - `/community/projects/[slug]`
   - Project overview with production, invoice, job, and unit visibility plus quick actions, with the recent activity area composed as a single tabbed widget under `components/widgets/project-overview`.
 - `/community/project-units`
   - Unit index with analytics and route-first navigation into unit overview pages.
-  - The index table uses the restarted Sales Orders table-core pattern through `apps/www/src/components/tables-2/project-units/*`, with table-owned scrolling, virtualization, DnD headers, resize handles, sticky select/lot-block columns, persisted settings, compact padding, tailored column widths, and 64px compact rows.
+  - The index table uses the restarted Sales Orders table-core pattern through `apps/dashboard/src/components/tables-2/project-units/*`, with table-owned scrolling, virtualization, DnD headers, resize handles, sticky select/lot-block columns, persisted settings, compact padding, tailored column widths, and 64px compact rows.
 - `/community/unit-productions`
   - Unit production task index with summary widgets, production task action cells, and batch Start / Stop / Complete actions.
-  - The index table uses the restarted Sales Orders table-core pattern through `apps/www/src/components/tables-2/unit-productions/*`, with table-owned scrolling, virtualization, DnD headers, resize handles, sticky select/due-date columns, persisted settings, compact padding, and 64px compact rows.
+  - The index table uses the restarted Sales Orders table-core pattern through `apps/dashboard/src/components/tables-2/unit-productions/*`, with table-owned scrolling, virtualization, DnD headers, resize handles, sticky select/due-date columns, persisted settings, compact padding, and 64px compact rows.
 - `/community/project-units/[slug]`
   - Unit overview with production, invoice, job, and template context.
 

@@ -25,20 +25,20 @@ Verdict: Not 100% in line.
 
 ## Legacy Scope Reviewed
 
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/group-form-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/service-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/hpt-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/group-form-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/service-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/moulding-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/hpt-class.ts`
 
 ## New Scope Reviewed
 
-- `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
-- `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
-- `apps/www/src/components/forms/new-sales-form/mappers.ts`
-- `apps/www/src/components/forms/new-sales-form/store.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/mappers.ts`
+- `apps/dashboard/src/components/forms/new-sales-form/store.ts`
 - `apps/api/src/db/queries/new-sales-form.ts`
 - `apps/api/src/schemas/new-sales-form.ts`
 

@@ -23,7 +23,7 @@ Mobile moulding selection is not selecting correctly as a multi-select step, and
 - The shared contract for grouped moulding rows is documented in `brain/api/contracts.md`: rows live in `line.meta.mouldingRows`, preserve legacy identity where known, and API save expands rows back into legacy sibling sales items and `HousePackageTools`.
 - Mobile feature doc says moulding rows currently support description, qty, add-on, custom price, estimate, and total.
 - Shared package helpers include moulding selection, row patch, grouped line, and total logic under `packages/sales/src/sales-form`.
-- Mobile moulding UI lives under `apps/expo-app/src/features/sales/invoice-form/steps/moulding`.
+- Mobile moulding UI lives under `apps/mobile/src/features/sales/invoice-form/steps/moulding`.
 
 ## Proposed Approach
 Repair moulding multi-select in the workflow selector, then align mobile grouped row editing with website semantics through shared package helpers. Keep selection UI, row editor UI, and patch helpers separate.
@@ -39,9 +39,9 @@ Repair moulding multi-select in the workflow selector, then align mobile grouped
 - Keep moulding UI flat and mobile-native.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/steps/moulding/*`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
+- `apps/mobile/src/features/sales/invoice-form/steps/moulding/*`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
 - `packages/sales/src/sales-form/ui/workflow/workflow-moulding-actions.ts`
 - `packages/sales/src/sales-form/ui/workflow/workflow-row-patches.ts`
 - `packages/sales/src/sales-form/domain/grouping.ts` only if shared contract gaps are found

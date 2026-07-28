@@ -33,6 +33,7 @@
 		"@hono/zod-openapi": "^0.19.8",
 		"@hono/zod-validator": "^0.7.0",
 		"@scalar/hono-api-reference": "^0.9.1",
+		"@sentry/bun": "10.32.1",
 		"@gnd/auth": "workspace:*",
 		"@gnd/cache": "workspace:*",
 		"@gnd/community": "workspace:*",

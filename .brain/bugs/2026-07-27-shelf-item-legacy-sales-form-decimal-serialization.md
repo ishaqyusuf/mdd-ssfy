@@ -71,8 +71,8 @@ Regression commands:
 
 ```sh
 bun test \
-  'apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.test.ts' \
-  'apps/www/src/components/forms/sales-form/shelf-combobox-ref-regression.test.ts' \
+  'apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.test.ts' \
+  'apps/dashboard/src/components/forms/sales-form/shelf-combobox-ref-regression.test.ts' \
   packages/sales/src/print/get-print-data.test.ts
 ```
 
@@ -102,14 +102,14 @@ Authenticated browser checks:
 ## Related Files
 
 - `packages/db/src/migrations/20260720081100_sales_shelf_decimal_prices/migration.sql`
-- `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts`
-- `apps/www/src/app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts`
-- `apps/www/src/components/forms/sales-form/shelf-items.tsx`
-- `apps/www/src/components/forms/sales-form/shelf-item-category-input.tsx`
-- `apps/www/src/components/tables-2/sales-form-shelf-items/columns.tsx`
-- `apps/www/src/hooks/use-shelf.tsx`
-- `apps/www/src/hooks/use-shelf-item.tsx`
-- `apps/www/src/app/(clean-code)/(sales)/sales-book/(form)/edit-order/[slug]/page.tsx`
-- `apps/www/src/app/(clean-code)/(sales)/sales-book/(form)/edit-quote/[slug]/page.tsx`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/data-access/dto/sales-book-form-dto.ts`
+- `apps/dashboard/src/components/forms/sales-form/shelf-items.tsx`
+- `apps/dashboard/src/components/forms/sales-form/shelf-item-category-input.tsx`
+- `apps/dashboard/src/components/tables-2/sales-form-shelf-items/columns.tsx`
+- `apps/dashboard/src/hooks/use-shelf.tsx`
+- `apps/dashboard/src/hooks/use-shelf-item.tsx`
+- `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(form)/edit-order/[slug]/page.tsx`
+- `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(form)/edit-quote/[slug]/page.tsx`
 - `apps/api/src/db/queries/new-sales-form.ts`
 - `packages/sales/src/print/compose/shelf-sections.ts`

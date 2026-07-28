@@ -22,4 +22,4 @@ Mobile must not consume `@gnd/ui` or shared website UI components. Cross-surface
 - Future mobile parity work should first ask whether a needed helper is pure. If it is trapped in a web TSX file, extract the helper into a pure module before exporting it.
 - Lightweight import smoke checks on `sales-form-core` are useful after changing the barrel export surface.
 - `packages/sales/src/sales-form-core.native-safety.test.ts` enforces this boundary by walking the barrel's relative dependency graph and rejecting TSX modules or `@gnd/ui` imports.
-- `apps/expo-app/src/features/sales/invoice-form/native-ui-boundary.test.ts` adds a second guard at the Expo source boundary, rejecting direct mobile imports from the web UI package.
+- `apps/mobile/src/features/sales/invoice-form/native-ui-boundary.test.ts` adds a second guard at the Expo source boundary, rejecting direct mobile imports from the web UI package.

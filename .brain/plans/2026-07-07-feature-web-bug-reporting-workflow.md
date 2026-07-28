@@ -55,10 +55,10 @@ Implemented the first web-only slice with:
 - API/query implementation in `apps/api/src/db/queries/bug-reports.ts`.
 - Zod schemas in `apps/api/src/schemas/bug-reports.ts`.
 - Permission scope updates in `packages/utils/src/constants.ts`.
-- Super Admin employee access toggle through `apps/api/src/db/queries/hrm.ts`, `apps/api/src/trpc/routers/hrm.route.ts`, and `apps/www/src/components/tables/employees/columns.tsx`.
-- Header recorder button in `apps/www/src/components/bug-reports/bug-report-button.tsx`.
-- Server-mediated Vercel Blob client upload authorization in `apps/www/src/app/api/bug-reports/upload/route.ts`.
-- Issue board in `apps/www/src/components/bug-reports/bug-report-workspace.tsx` at `/support/bug-reports`.
+- Super Admin employee access toggle through `apps/api/src/db/queries/hrm.ts`, `apps/api/src/trpc/routers/hrm.route.ts`, and `apps/dashboard/src/components/tables/employees/columns.tsx`.
+- Header recorder button in `apps/dashboard/src/components/bug-reports/bug-report-button.tsx`.
+- Server-mediated Vercel Blob client upload authorization in `apps/dashboard/src/app/api/bug-reports/upload/route.ts`.
+- Issue board in `apps/dashboard/src/components/bug-reports/bug-report-workspace.tsx` at `/support/bug-reports`.
 
 Validation status:
 
@@ -335,9 +335,9 @@ This keeps the board simple for office staff while still giving Super Admin enou
 
 ## Affected Areas
 
-- `apps/www/src/components/header.tsx`
-- `apps/www/src/components/tables/employees/columns.tsx`
-- `apps/www/src/app` or route group for issue board pages
+- `apps/dashboard/src/components/header.tsx`
+- `apps/dashboard/src/components/tables/employees/columns.tsx`
+- `apps/dashboard/src/app` or route group for issue board pages
 - `apps/api/src/trpc/routers`
 - `apps/api/src/db/queries/hrm.ts`
 - `apps/api/src/utils/documents.ts`

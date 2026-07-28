@@ -44,17 +44,17 @@ Do a focused viewport-density pass across the listed routes. Align page shell sp
 - Extract a tiny shared spacing helper only if repeated route-local changes become meaningfully duplicated.
 
 ## Affected Files Or Areas
-- `apps/www/src/app/(sidebar)/community/customer-services/page.tsx`
-- `apps/www/src/app/(sidebar)/community/(main)/builders/page.tsx`
-- `apps/www/src/app/(sidebar)/community/(main)/templates/page.tsx`
-- `apps/www/src/app/(sidebar)/community/(main)/unit-invoices/page.tsx`
-- `apps/www/src/app/(sidebar)/community/(main)/unit-productions/page.tsx`
-- `apps/www/src/components/tables-2/customer-service/*`
-- `apps/www/src/components/tables-2/community-builders/*`
-- `apps/www/src/components/tables-2/community-templates/*`
-- `apps/www/src/components/tables-2/unit-invoices/*`
-- `apps/www/src/components/tables-2/unit-productions/*`
-- `apps/www/src/components/tables-2/core/*` only if a shared height/spacing primitive is truly needed
+- `apps/dashboard/src/app/(sidebar)/community/customer-services/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/community/(main)/builders/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/community/(main)/templates/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/community/(main)/unit-invoices/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/community/(main)/unit-productions/page.tsx`
+- `apps/dashboard/src/components/tables-2/customer-service/*`
+- `apps/dashboard/src/components/tables-2/community-builders/*`
+- `apps/dashboard/src/components/tables-2/community-templates/*`
+- `apps/dashboard/src/components/tables-2/unit-invoices/*`
+- `apps/dashboard/src/components/tables-2/unit-productions/*`
+- `apps/dashboard/src/components/tables-2/core/*` only if a shared height/spacing primitive is truly needed
 
 ## Acceptance Criteria
 - Listed routes have compact search/header spacing comparable to Sales Book orders.

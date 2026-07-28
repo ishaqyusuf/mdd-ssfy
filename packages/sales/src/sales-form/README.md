@@ -102,7 +102,7 @@ workflow data source.
 
 ## Cutover And Rollback
 
-`apps/www` keeps a legacy/package panel switch until browser QA and the rollback
+`apps/dashboard` keeps a legacy/package panel switch until browser QA and the rollback
 window close:
 
 - `NEXT_PUBLIC_NEW_SALES_FORM_PACKAGE_PANEL_DEFAULT=legacy | package`
@@ -117,10 +117,10 @@ Brain runbooks:
 
 - `brain/new-sales-form-cutover-strategy.md`
 - `brain/dealership-new-sales-form-rollback-plan.md`
-- `brain/www-new-sales-form-rollback-plan.md`
+- `brain/dashboard-new-sales-form-rollback-plan.md`
 - `brain/new-sales-form-legacy-duplication-removal-plan.md`
 - `brain/dealership-cutover-readiness.md`
-- `brain/www-cutover-readiness.md`
+- `brain/dashboard-cutover-readiness.md`
 
 ## Regression Gate
 

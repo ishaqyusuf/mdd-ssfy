@@ -27,7 +27,7 @@ Completed
 Complete the Ops Console template so it behaves like a full clickable operational command-center preview with working search, filters, bottom tabs, and work-item details.
 
 ## Current Context
-- Ops Console lives in `apps/expo-app/src/features/design-system-preview/screens/template-a-screen.tsx`.
+- Ops Console lives in `apps/mobile/src/features/design-system-preview/screens/template-a-screen.tsx`.
 - Current bottom nav labels are Home, Inbox, Sales, Calendar, and More.
 - Current screen has static metrics and ten work queue records.
 - Existing recommendation says Ops Console is the likely overall mobile shell direction.
@@ -42,12 +42,12 @@ Complete the Ops Console template so it behaves like a full clickable operationa
 Expected Ops Console files:
 
 ```text
-apps/expo-app/src/features/design-system-preview/screens/template-a-screen.tsx
-apps/expo-app/src/features/design-system-preview/data/sample-data.ts
-apps/expo-app/src/features/design-system-preview/data/template-tabs.ts
-apps/expo-app/src/features/design-system-preview/components/preview-detail-tabs.tsx
-apps/expo-app/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx
-apps/expo-app/src/features/design-system-preview/utils/preview-filtering.ts
+apps/mobile/src/features/design-system-preview/screens/template-a-screen.tsx
+apps/mobile/src/features/design-system-preview/data/sample-data.ts
+apps/mobile/src/features/design-system-preview/data/template-tabs.ts
+apps/mobile/src/features/design-system-preview/components/preview-detail-tabs.tsx
+apps/mobile/src/features/design-system-preview/components/preview-bottom-filter-sheet.tsx
+apps/mobile/src/features/design-system-preview/utils/preview-filtering.ts
 ```
 
 ## Proposed Approach
@@ -65,11 +65,11 @@ Turn the Ops Console bottom nav into actual tabs and provide sample content for 
 - Preserve compact operational styling: dark header chrome, metadata rows, status chips, and dense cards.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/design-system-preview/screens/template-a-screen.tsx`
-- `apps/expo-app/src/features/design-system-preview/data/sample-data.ts`
-- `apps/expo-app/src/features/design-system-preview/data/template-tabs.ts`
+- `apps/mobile/src/features/design-system-preview/screens/template-a-screen.tsx`
+- `apps/mobile/src/features/design-system-preview/data/sample-data.ts`
+- `apps/mobile/src/features/design-system-preview/data/template-tabs.ts`
 - Shared preview interaction files from the architecture plan
-- `apps/expo-app/src/features/design-system-preview/DESIGN.md`
+- `apps/mobile/src/features/design-system-preview/DESIGN.md`
 
 ## Acceptance Criteria
 - Home, Inbox, Sales, Calendar, and More tabs all switch to distinct Ops Console content.
@@ -88,8 +88,8 @@ Turn the Ops Console bottom nav into actual tabs and provide sample content for 
 - Manual Expo smoke through `/design-system-preview/template-a`: search, filter sheet, each bottom tab, work item tap, overview tab switching.
 
 ## Brain Update Requirements
-- Update `apps/expo-app/src/features/design-system-preview/DESIGN.md`.
-- Update `apps/expo-app/DESIGN.md` if Ops Console behavior changes the documented preview capabilities.
+- Update `apps/mobile/src/features/design-system-preview/DESIGN.md`.
+- Update `apps/mobile/DESIGN.md` if Ops Console behavior changes the documented preview capabilities.
 - Update `brain/progress.md`.
 - No API or database docs expected.
 

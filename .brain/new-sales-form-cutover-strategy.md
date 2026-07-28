@@ -9,7 +9,7 @@ Owner: Sales Form Rebuild Team
 This covers the shared `@gnd/sales/sales-form` package cutover for:
 
 - `apps/dealership` dealer quote creation/editing.
-- `apps/www` internal new sales form workflow panel replacement.
+- `apps/dashboard` internal new sales form workflow panel replacement.
 
 Browser/runtime QA remains intentionally later in the roadmap.
 
@@ -20,14 +20,14 @@ Browser/runtime QA remains intentionally later in the roadmap.
 - Primary default flag: `NEXT_PUBLIC_NEW_SALES_FORM_PACKAGE_PANEL_DEFAULT`.
 - Values:
   - `legacy`: default to legacy `ItemWorkflowPanel`.
-  - `package`: default to shared `WwwSalesFormWorkflowPanel`.
+  - `package`: default to shared `DashboardSalesFormWorkflowPanel`.
 - Operator override:
   - URL: `?packageWorkflowPanel=package` or `?packageWorkflowPanel=legacy`.
   - Local storage key: `gnd:new-sales-form:package-workflow-panel`.
 - Dev toggle:
   - The existing dev-only checkbox still switches the same local preference.
 - Rollback:
-  - `brain/www-new-sales-form-rollback-plan.md`
+  - `brain/dashboard-new-sales-form-rollback-plan.md`
 
 ### Dealership
 

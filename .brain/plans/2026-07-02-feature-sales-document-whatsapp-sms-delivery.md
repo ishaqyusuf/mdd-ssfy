@@ -21,7 +21,7 @@ Sales reps can currently send sales quote/order documents to customers by email.
 
 ## Current Context
 - Sales document email is handled by `simple_sales_document_email` and `composed_sales_document_email` in `packages/notifications`.
-- Sales document email actions are exposed from UI surfaces such as `apps/www/src/components/sales-menu.tsx` and `apps/www/src/components/sales-document-email-dialog.tsx`.
+- Sales document email actions are exposed from UI surfaces such as `apps/dashboard/src/components/sales-menu.tsx` and `apps/dashboard/src/components/sales-document-email-dialog.tsx`.
 - The sales document email loaders already read `customer.phoneNo`, but the resolved notification schemas and direct contacts currently focus on email delivery.
 - Sales document email direct contacts set `whatsAppNotification: false`, so the existing WhatsApp dispatcher cannot send these messages today.
 - `packages/notifications/src/services/whatsapp-service.ts` can send text messages through `@gnd/app-store/whatsapp-client` when `WHATSAPP_PHONE_NUMBER_ID` and `WHATSAPP_ACCESS_TOKEN` are configured.
@@ -62,12 +62,12 @@ Sales reps can currently send sales quote/order documents to customers by email.
 - `packages/notifications/src/schemas.ts`
 - `packages/db/src/queries/short-links.ts`
 - `apps/api/src/trpc/routers/short-links.route.ts`
-- `apps/www/src/components/sales-menu.tsx`
-- `apps/www/src/components/sales-document-email-dialog.tsx`
-- `apps/www/src/components/sales-overview-system/*`
-- `apps/www/src/components/sheets/sales-overview-sheet/*`
-- `apps/www/src/components/tables-2/sales-orders/*`
-- `apps/www/src/components/tables-2/sales-quotes/*`
+- `apps/dashboard/src/components/sales-menu.tsx`
+- `apps/dashboard/src/components/sales-document-email-dialog.tsx`
+- `apps/dashboard/src/components/sales-overview-system/*`
+- `apps/dashboard/src/components/sheets/sales-overview-sheet/*`
+- `apps/dashboard/src/components/tables-2/sales-orders/*`
+- `apps/dashboard/src/components/tables-2/sales-quotes/*`
 - TODO: SMS provider package/service files after provider confirmation
 
 ## Acceptance Criteria
@@ -132,7 +132,7 @@ Lower agent must report:
   package typechecks, targeted Biome, and whitespace checks. The local dev
   server served the authenticated orders data path during browser smoke. The
   complete Turbo typecheck passed 24 of 25 packages and remains blocked only by
-  the existing broad `@gnd/www` baseline diagnostics; no touched delivery file
+  the existing broad `@gnd/dashboard` baseline diagnostics; no touched delivery file
   appeared in that diagnostic set.
 - Feature documentation: `brain/features/sales-document-messaging.md`.
 - Architecture decision:

@@ -2,14 +2,14 @@
 
 ## Current Route
 - `/sales-book/accounting/resolution-center`
-  - renders `apps/www/src/components/tables-2/sales-resolution/*`
+  - renders `apps/dashboard/src/components/tables-2/sales-resolution/*`
   - reuses the existing `sales.getSalesResolutions` infinite query
   - reuses the existing `sales.getSalesResolutionsSummary` count query
   - reuses the existing `filters.salesResolutions` metadata route and `SalesResolutionHeader`
 
 ## Migration Notes
 - This is a table UI migration only; no new `*V2` route or query was added.
-- `apps/www/src/components/tables-2/core/*` was not changed.
+- `apps/dashboard/src/components/tables-2/core/*` was not changed.
 - The route now uses `batchPrefetch`, `HydrateClient`, `ScrollableContent`, `Suspense`, `ErrorBoundary`, and `getInitialTableSettings("sales-resolution")`.
 - The old one-column expandable `@gnd/ui/data-table` resolution table was removed from the live route surface.
 - The old variable-height expanded card content was moved out of virtual rows: row clicks and the Review action toggle selected resolution ids in URL state, while payment detail/review panels render below the fixed-height table.
@@ -41,14 +41,14 @@
 ## Validation
 - 2026-07-17 density proof:
   - Focused Sales Resolution parity test passed with 3 tests / 43 assertions.
-  - Full `apps/www/src/components/tables-2` suite passed with 301 tests / 2478 assertions.
+  - Full `apps/dashboard/src/components/tables-2` suite passed with 301 tests / 2478 assertions.
   - Focused Biome passed for the resolution table files and `table-configs`.
-  - Touched-path `@gnd/www` typecheck scan produced no diagnostics.
+  - Touched-path `@gnd/dashboard` typecheck scan produced no diagnostics.
   - Browser proof on `/sales-book/accounting/resolution-center` confirmed `56px` rows, `45px` header, vertical table-owned overflow/scroll (`scrollTop 0 -> 600`), horizontal table-owned overflow/scroll (`scrollWidth 1248`, `clientWidth 1146`, `scrollLeft 0 -> 102`), and `--header-offset` changing from `0px` to `70px`.
   - Screenshot evidence saved at `/private/tmp/gnd-sales-resolution-table.jpg`.
 - 2026-07-16:
   - focused Biome passed for the resolution route/table/API/filter/settings files.
   - full restarted table parity suite passed with 72 tests / 646 assertions.
   - static scan found no live `@gnd/ui/data-table`, legacy table skeleton, `getQueryClient`, `fetchInfiniteQuery`, or `PageStickyHeader` usage in the resolution route surface.
-  - filtered `@gnd/www` and `@gnd/api` typecheck greps reported no touched-file diagnostics; broad package typechecks remain blocked by existing unrelated baseline errors.
+  - filtered `@gnd/dashboard` and `@gnd/api` typecheck greps reported no touched-file diagnostics; broad package typechecks remain blocked by existing unrelated baseline errors.
   - HEAD smoke returned `200` for `/sales-book/accounting/resolution-center` and `/sales-book/accounting/resolution-center?sort=orderId.asc` through the local `3011` proxy after the route warmed.

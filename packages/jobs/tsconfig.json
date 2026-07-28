@@ -1,6 +1,6 @@
 {
   "extends": "@gnd/tsconfig/base.json",
-  "include": ["src", "../../types"],
+  "include": ["src", "trigger", "trigger.config.ts", "../../types"],
   "exclude": ["node_modules"],
   "compilerOptions": {
     "module": "ESNext",

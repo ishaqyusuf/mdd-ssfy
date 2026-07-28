@@ -9,9 +9,9 @@ Tracks the current technical topology and major module boundaries.
 ## Current Topology
 - Monorepo: Turborepo + Bun workspaces
 - Apps:
-  - `apps/www` for the main web app
+  - `apps/dashboard` for the main web app
   - `apps/api` for API services
-  - `apps/expo-app` for mobile
+  - `apps/mobile` for mobile
   - `apps/storefront` for the customer-facing storefront
   - `apps/gnd-backlog` for the supporting backlog surface
 - Shared packages: domain and infrastructure modules under `packages/*` including `db`, `ui`, `auth`, `notifications`, `jobs`, `sales`, `documents`, and supporting utilities
@@ -41,7 +41,7 @@ Tracks the current technical topology and major module boundaries.
     - reuse its shell-first routing, smaller section composition, and detail-on-demand loading patterns
     - avoid copying only visuals; preserve the architectural intent behind its page and data boundaries
   - reference in-repo Midday-inspired implementations second:
-    - `apps/www/src/(midday)` for shared in-repo Midday-style UI patterns
+    - `apps/dashboard/src/(midday)` for shared in-repo Midday-style UI patterns
     - `ai/midday-example` for focused example snippets and interaction patterns
 
 ## Data and Execution Flow

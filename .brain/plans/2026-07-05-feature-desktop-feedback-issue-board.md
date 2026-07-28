@@ -4,18 +4,18 @@
 - Plan Status: Proposed
 - Created Date: 2026-07-05
 - Requested By: User
-- Related Surfaces: `apps/desktop` candidate, `apps/www`, `apps/api`, `packages/db`, `packages/documents`
+- Related Surfaces: `apps/desktop` candidate, `apps/dashboard`, `apps/api`, `packages/db`, `packages/documents`
 
 ## Objective
 Add a Tauri desktop shell for the office web app, following the Midday desktop pattern, and introduce a feedback workflow where employees can submit bugs or feedback with an optional screenshot, screen recording, microphone narration, and description. Employees should see only their submissions, while admins can review all submissions and update status.
 
 ## Validation Summary
-- Recommended approach: proceed with a Tauri v2 desktop app that loads the hosted/local `apps/www` URL, like Midday's `apps/desktop`, instead of trying to statically bundle the full Next.js app.
+- Recommended approach: proceed with a Tauri v2 desktop app that loads the hosted/local `apps/dashboard` URL, like Midday's `apps/desktop`, instead of trying to statically bundle the full Next.js app.
 - Key gate: screenshot and screen recording capture must be validated in a small desktop proof-of-concept before full implementation. Browser `getDisplayMedia` plus `MediaRecorder` is the simplest recording path, while screenshot capture can reuse the selected display/window stream and capture one frame to an image blob. OS webview support, screen-recording permissions, microphone permissions, screenshot quality, and output formats need proof on the client's target machines.
 - Sensitive-data gate: screenshots and recordings may capture customer, sales, payment, inventory, and employee information. Feedback media storage must be treated as private, permission-gated operational evidence with retention limits.
 
 ## Current-State Findings
-- GND is a Bun/Turborepo monorepo with `apps/www`, `apps/api`, `apps/expo-app`, and shared `packages/*`.
+- GND is a Bun/Turborepo monorepo with `apps/dashboard`, `apps/api`, `apps/mobile`, and shared `packages/*`.
 - Midday's local reference has a dedicated `apps/desktop` Tauri v2 app that loads external app URLs by environment and adds desktop affordances such as updater, deep links, tray, global shortcuts, and secondary windows.
 - GND already has a shared document/storage foundation through `StoredDocument` and `packages/documents`, plus Vercel Blob/Cloudinary provider helpers.
 - GND already has a Support section with `/support/mobile-app`, so the issue board can extend Support cleanly.
@@ -37,7 +37,7 @@ Desktop shell:
   - `@tauri-apps/plugin-fs` only if local temporary files are required for recorder fallback behavior.
 
 Web app and issue board:
-- Next.js App Router in `apps/www`.
+- Next.js App Router in `apps/dashboard`.
 - React and TypeScript for the feedback modal, recorder UI, and issue-board pages.
 - Existing `@gnd/ui` primitives and project icon system for buttons, dialogs/sheets, tables, badges, inputs, and controls.
 - TanStack Query plus the existing tRPC client for issue list/detail reads and mutations.
@@ -153,7 +153,7 @@ Upload path:
 
 ## Proposed Desktop Architecture
 - Add `apps/desktop` with a minimal Vite + Tauri v2 setup, modeled on Midday.
-- Load `apps/www` as an external URL:
+- Load `apps/dashboard` as an external URL:
   - development: `http://localhost:3001`
   - staging/production: configured hosted GND URLs
 - Add a custom GND desktop user agent and/or a tiny Tauri command so the web app can detect desktop mode.
@@ -170,7 +170,7 @@ Upload path:
 
 ## Execution Phases
 1. Phase 0 - Technical proof
-   - Build a throwaway Tauri recorder POC against local `apps/www`.
+   - Build a throwaway Tauri recorder POC against local `apps/dashboard`.
    - Validate screenshot capture, screen selection, microphone toggle, file output, preview playback, screenshot preview, and upload on target OS machines.
    - Decide whether browser `getDisplayMedia`, canvas snapshots, and `MediaRecorder` are sufficient or whether a native Tauri/Rust capture fallback is needed.
 

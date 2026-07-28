@@ -8,7 +8,7 @@ Workspace Runtime: Bun
 ## Priority Focus (Current)
 
 Primary legacy parity source-of-truth for edit flows is the clean-code sales-book pipeline rooted at:
-- `apps/www/src/app/(clean-code)/(sales)/sales-book/(form)/edit-order/[slug]/page.tsx`
+- `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(form)/edit-order/[slug]/page.tsx`
 
 Dependency chain to treat as highest-priority reference during parity work:
 1. `getSalesBookFormUseCase`
@@ -17,9 +17,9 @@ Dependency chain to treat as highest-priority reference during parity work:
 4. `SalesBookFormIncludes`
 
 Concrete paths:
-- `apps/www/src/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case.ts`
-- `apps/www/src/app/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts`
-- `apps/www/src/app/(clean-code)/(sales)/_common/utils/db-utils.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/utils/db-utils.ts`
 
 Plan maintenance rule:
 - This `plan.md` must be updated in every substantive thread with important findings, scope decisions, status changes, and validation outcomes before handoff.
@@ -33,15 +33,15 @@ Plan maintenance rule:
 ## Legacy Step Engine Findings (Must Preserve)
 
 ### Source paths reviewed
-- `apps/www/src/app/(clean-code)/(sales)/sales-book/(form)/edit-order/[slug]/page.tsx`
-- `apps/www/src/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case.ts`
-- `apps/www/src/app/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts`
-- `apps/www/src/app/(clean-code)/(sales)/_common/utils/sales-step-utils.ts`
-- `apps/www/src/app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts`
-- `apps/www/src/app/(v2)/(loggedIn)/sales-v2/form/_hooks/use-step-items.tsx`
-- `apps/www/src/app/(v2)/(loggedIn)/sales-v2/form/_action/get-next-dyke-step.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/sales-book/(form)/edit-order/[slug]/page.tsx`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/utils/sales-step-utils.ts`
+- `apps/dashboard/src/app/(clean-code)/(sales)/_common/data-access/sales-form-step-dta.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/step-component-class.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts`
+- `apps/dashboard/src/app/(v2)/(loggedIn)/sales-v2/form/_hooks/use-step-items.tsx`
+- `apps/dashboard/src/app/(v2)/(loggedIn)/sales-v2/form/_action/get-next-dyke-step.ts`
 
 ### Core mechanics
 1. Old form is step-based per line item, not flat line editing.
@@ -529,29 +529,29 @@ Rebuild sales form flows with **exact legacy business behavior** and **UI fideli
 - Router registry: `apps/api/src/trpc/routers/_app.ts`
 
 ### Frontend module
-- Root: `apps/www/src/components/forms/new-sales-form`
-- Main orchestrator: `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
-- API hooks: `apps/www/src/components/forms/new-sales-form/api.ts`
-- Mappers: `apps/www/src/components/forms/new-sales-form/mappers.ts`
-- Store: `apps/www/src/components/forms/new-sales-form/store.ts`
-- Autosave: `apps/www/src/components/forms/new-sales-form/use-auto-save.ts`
-- Typed schema: `apps/www/src/components/forms/new-sales-form/schema.ts`
+- Root: `apps/dashboard/src/components/forms/new-sales-form`
+- Main orchestrator: `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
+- API hooks: `apps/dashboard/src/components/forms/new-sales-form/api.ts`
+- Mappers: `apps/dashboard/src/components/forms/new-sales-form/mappers.ts`
+- Store: `apps/dashboard/src/components/forms/new-sales-form/store.ts`
+- Autosave: `apps/dashboard/src/components/forms/new-sales-form/use-auto-save.ts`
+- Typed schema: `apps/dashboard/src/components/forms/new-sales-form/schema.ts`
 - Sections:
-  - `apps/www/src/components/forms/new-sales-form/sections/header-actions.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/status-strip.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/line-items-panel.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/header-actions.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/status-strip.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/line-items-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
 
 ### Routes
-- `apps/www/src/app/(sidebar)/(sales)/sales-form/layout.tsx`
-- `apps/www/src/app/(sidebar)/(sales)/sales-form/create-order/page.tsx`
-- `apps/www/src/app/(sidebar)/(sales)/sales-form/create-quote/page.tsx`
-- `apps/www/src/app/(sidebar)/(sales)/sales-form/edit-order/[slug]/page.tsx`
-- `apps/www/src/app/(sidebar)/(sales)/sales-form/edit-quote/[slug]/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-form/layout.tsx`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-form/create-order/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-form/create-quote/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-form/edit-order/[slug]/page.tsx`
+- `apps/dashboard/src/app/(sidebar)/(sales)/sales-form/edit-quote/[slug]/page.tsx`
 
 ### Navigation touched
-- `apps/www/src/components/sidebar/links.ts`
+- `apps/dashboard/src/components/sidebar/links.ts`
 
 ## 4) What Is Implemented Already
 
@@ -573,15 +573,15 @@ Current implementation is scaffold-level and **not parity complete**.
 ## 5) Legacy Behavior Sources (Do Not Import, But Must Reproduce)
 
 Primary behavior references:
-- `apps/www/src/components/forms/sales-form/sales-form.tsx`
-- `apps/www/src/components/forms/sales-form/sales-form-save.tsx`
-- `apps/www/src/components/forms/sales-form/sales-meta-form.tsx`
-- `apps/www/src/components/forms/sales-form/sales-customer-input.tsx`
-- `apps/www/src/components/forms/sales-form/customer-data-section.tsx`
-- `apps/www/src/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts`
-- `apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/*`
-- `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/*`
+- `apps/dashboard/src/components/forms/sales-form/sales-form.tsx`
+- `apps/dashboard/src/components/forms/sales-form/sales-form-save.tsx`
+- `apps/dashboard/src/components/forms/sales-form/sales-meta-form.tsx`
+- `apps/dashboard/src/components/forms/sales-form/sales-customer-input.tsx`
+- `apps/dashboard/src/components/forms/sales-form/customer-data-section.tsx`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/use-case/sales-book-form-use-case.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/sales-form-dta.ts`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/save-sales/*`
+- `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/*`
 - `apps/api/src/db/queries/sales-form.ts`
 - `apps/api/src/db/queries/customer.ts`
 

@@ -81,11 +81,11 @@ flowchart TD
 - `packages/sales/src/payment-system/contracts/*`
 - `apps/api/src/db/queries/sales-payment-processor.ts`
 - `apps/api/src/trpc/routers/sales-payment-processor.route.ts`
-- `apps/www/src/components/sales-overview-system/tabs/finance-tab.tsx`
-- `apps/www/src/components/sales-overview-system/tabs/transactions-tab.tsx`
-- `apps/www/src/components/sheets/customer-overview-sheet/transactions-tab.tsx`
-- `apps/www/src/actions/get-customer-tx-action.ts`
-- `apps/www/src/components/tables/sales-accounting/*`
+- `apps/dashboard/src/components/sales-overview-system/tabs/finance-tab.tsx`
+- `apps/dashboard/src/components/sales-overview-system/tabs/transactions-tab.tsx`
+- `apps/dashboard/src/components/sheets/customer-overview-sheet/transactions-tab.tsx`
+- `apps/dashboard/src/actions/get-customer-tx-action.ts`
+- `apps/dashboard/src/components/tables/sales-accounting/*`
 - `brain/api/contracts.md`
 - `brain/api/endpoints.md`
 - `brain/features/sales-payment-v2-checkout.md`

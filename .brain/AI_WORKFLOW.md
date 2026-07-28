@@ -31,7 +31,7 @@ Defines the expected read-before-write and update-after-change workflow for AI c
     - keep route entrypoints lean, split pages into focused sections, and defer secondary detail until after the shell is visible
     - use Midday for structure, data-loading cadence, and boundary decisions rather than surface-level styling
   - use local in-repo references second:
-    - `apps/www/src/(midday)`
+    - `apps/dashboard/src/(midday)`
     - `ai/midday-example`
 
 ## After Work

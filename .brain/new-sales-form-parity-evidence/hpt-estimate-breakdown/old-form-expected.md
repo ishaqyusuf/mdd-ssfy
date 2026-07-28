@@ -3,4 +3,4 @@
 Legacy HPT estimate uses interactive menu with line-by-line price contributors.
 
 Anchor:
-- `apps/www/src/components/forms/sales-form/hpt/price-estimate-cell.tsx`
+- `apps/dashboard/src/components/forms/sales-form/hpt/price-estimate-cell.tsx`

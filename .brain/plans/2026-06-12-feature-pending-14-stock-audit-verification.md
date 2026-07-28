@@ -59,7 +59,7 @@ Create an audit matrix of all stock mutations, expected movement/audit action, r
 - Task File: brain/tasks/roadmap.md
 
 ## Completion Report
-- Changed files: `packages/inventory/src/application/stock/stock-adjustment.ts`, `packages/inventory/src/application/stock/stock-adjustment.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, and `apps/www/src/components/inventory/inventory-stock-operations-page.tsx`.
+- Changed files: `packages/inventory/src/application/stock/stock-adjustment.ts`, `packages/inventory/src/application/stock/stock-adjustment.test.ts`, `apps/api/src/trpc/routers/inventories.route.ts`, and `apps/dashboard/src/components/inventory/inventory-stock-operations-page.tsx`.
 - Added `STOCK_AUDIT_MATRIX`, `getStockAuditExpectation(...)`, `buildStockAuditVerificationReport(...)`, and `getStockAuditVerificationReport(...)`.
 - Added protected tRPC route `inventories.stockAuditVerificationReport`.
 - Surfaced audit verification on the stock operations page with movement/log counts for stock in, stock out, return, correction, consume, and release.

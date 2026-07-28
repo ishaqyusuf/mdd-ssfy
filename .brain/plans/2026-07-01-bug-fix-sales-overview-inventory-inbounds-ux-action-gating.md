@@ -20,7 +20,7 @@ Implementation slice complete; authenticated browser validation remains pending
 The sales overview Inventory tab has several operator-facing issues: the Create inbound submit path can remain disabled or impossible to use after the form is filled, Mark all available is still disabled, clicking inbound status should always open `inventorySegment=inbounds`, the Inbounds segment shows a bare "No inbound shipments" message instead of required stock/inbound actions, the inactive Inbounds count can show `0` until the segment is clicked, and the side inbound list layout should be replaced by collapsible rows like `/sales-book/inbounds`.
 
 ## Current Context
-- `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx` already contains the stock/inbounds/non-stock segment UI, create inbound form, order inbound query, inactive count fallback, and side-list Inbounds panel.
+- `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx` already contains the stock/inbounds/non-stock segment UI, create inbound form, order inbound query, inactive count fallback, and side-list Inbounds panel.
 - Existing guardrail work already added routing from inventory-owned inbound status to the Inventory tab's `Inbounds` segment, but this request says the behavior must be consistent whenever the inbound status is clicked.
 - `inventories.orderInboundShipments` is currently loaded only when `inventorySegment === "inbounds"`, which likely explains the `0` count before clicking if overview row hints are missing.
 
@@ -52,12 +52,12 @@ Treat this as a focused sales overview bug/polish slice. Fix action gating for c
 - Preserve read-only locks for fulfilled/cancelled/completed-readonly orders.
 
 ## Affected Files Or Areas
-- `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx`
-- `apps/www/src/components/sales-overview-system/hooks/use-sales-inventory-segment-query.ts`
-- `apps/www/src/components/sales-inbound-status-badge.tsx`
-- `apps/www/src/components/tables-2/sales-orders/columns.tsx`
-- `apps/www/src/components/tables-2/inbound-management/columns.tsx`
-- `apps/www/src/components/sheets/sales-overview-sheet/*`
+- `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx`
+- `apps/dashboard/src/components/sales-overview-system/hooks/use-sales-inventory-segment-query.ts`
+- `apps/dashboard/src/components/sales-inbound-status-badge.tsx`
+- `apps/dashboard/src/components/tables-2/sales-orders/columns.tsx`
+- `apps/dashboard/src/components/tables-2/inbound-management/columns.tsx`
+- `apps/dashboard/src/components/sheets/sales-overview-sheet/*`
 - `packages/sales/src/sales-inventory-overview.ts`
 - `apps/api/src/trpc/routers/inventories.route.ts`
 - `brain/features/inventory-backed-sales-fulfillment.md`

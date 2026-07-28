@@ -333,7 +333,7 @@ Validation and gate:
 ## Affected Files Or Areas
 - `apps/storefront`: public routes, auth, cart/account/order UI, metadata,
   sitemap/robots, configuration, release scripts, and deployment settings.
-- `apps/www/src/app/(sidebar)/storefront`: Categories, Catalog, Carts &
+- `apps/dashboard/src/app/(sidebar)/storefront`: Categories, Catalog, Carts &
   Wishlists, Orders, Inquiries, Pages & Sections, and Settings administration.
 - `apps/api/src/db/queries/storefront-*.ts` and
   `apps/api/src/trpc/routers/storefront-*.ts`: public/admin API orchestration,

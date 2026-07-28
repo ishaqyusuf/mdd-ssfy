@@ -12,14 +12,14 @@
 - Driver task route: `/sales-book/dispatch-task`
 
 ## Frontend Implementation
-- Dispatch route: `apps/www/src/app/(sidebar)/(sales)/sales-book/dispatch/page.tsx`
-- Dispatch redirect: `apps/www/src/app/(sidebar)/(sales)/sales-book/dispatch/v2/page.tsx`
-- Admin route: `apps/www/src/app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx`
-- Driver route: `apps/www/src/app/(sidebar)/(sales)/sales-book/dispatch-task/page.tsx`
-- Table module: `apps/www/src/components/tables-2/sales-dispatch/*`
+- Dispatch route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch/page.tsx`
+- Dispatch redirect: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch/v2/page.tsx`
+- Admin route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch-admin/page.tsx`
+- Driver route: `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/dispatch-task/page.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/sales-dispatch/*`
 - Headers:
-  - `apps/www/src/components/dispatch-header.tsx`
-  - `apps/www/src/components/dispatch-admin/admin-dispatch-header.tsx`
+  - `apps/dashboard/src/components/dispatch-header.tsx`
+  - `apps/dashboard/src/components/dispatch-admin/admin-dispatch-header.tsx`
 
 The table uses the shared `tables-2` domain pattern with typed columns, stable row ids, virtual rows, sticky order columns, column visibility/settings, table-owned horizontal and vertical scrolling, `useScrollHeader(parentRef)` header-offset behavior, empty state, no-results state, row selection, and the existing dispatch row-action flows.
 
@@ -57,18 +57,18 @@ No new dispatch `*V2` query, filter param, filter metadata endpoint, or table ro
 
 ## Cleanup
 Removed after import scans:
-- `apps/www/src/components/tables/sales-dispatch/data-table.tsx`
-- `apps/www/src/components/tables/sales-dispatch/columns.tsx`
-- `apps/www/src/components/tables/sales-dispatch/batch-actions.tsx`
+- `apps/dashboard/src/components/tables/sales-dispatch/data-table.tsx`
+- `apps/dashboard/src/components/tables/sales-dispatch/columns.tsx`
+- `apps/dashboard/src/components/tables/sales-dispatch/batch-actions.tsx`
 
-`apps/www/src/components/tables-2/core/*` was not modified.
+`apps/dashboard/src/components/tables-2/core/*` was not modified.
 
 ## Validation
 - Focused Biome check passed for the dispatch routes, headers, sidebar links, table settings/config, and new sales-dispatch table files.
-- Filtered `@gnd/www` typecheck grep reported no diagnostics for touched dispatch route/table/header/config files.
+- Filtered `@gnd/dashboard` typecheck grep reported no diagnostics for touched dispatch route/table/header/config files.
 - Import scans found no remaining references to `components/tables/sales-dispatch` or `tables/sales-dispatch`.
 - `git diff --check` passed.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - Browser smoke passed in authenticated sessions:
   - `/sales-book/dispatch?size=5` rendered search, table headers, rows, and table-owned horizontal scroll on desktop and mobile.
   - Search for `07340` updated the URL to `q=07340` and narrowed the dispatch rows.
@@ -77,9 +77,9 @@ Removed after import scans:
 - Caveat: `/sales-book/dispatch-task` still timed out before first byte even when temporarily reduced to static markup, so end-to-end browser smoke for that route remains blocked by a route/access/dev-server issue outside the table module.
 - 2026-07-17 density proof:
   - Focused Dispatch parity test passed with 4 tests / 39 assertions.
-  - Full `apps/www/src/components/tables-2` suite passed with 293 tests / 2382 assertions.
+  - Full `apps/dashboard/src/components/tables-2` suite passed with 293 tests / 2382 assertions.
   - Focused Biome passed for the Dispatch table files and table config.
-  - Touched-path `@gnd/www` typecheck scan produced no diagnostics for `sales-dispatch` / `table-configs`.
+  - Touched-path `@gnd/dashboard` typecheck scan produced no diagnostics for `sales-dispatch` / `table-configs`.
   - Authenticated browser proof on `/sales-book/dispatch?size=20` confirmed `56px` row height, `45px` header height, vertical table-owned overflow (`scrollHeight 2005` vs `clientHeight 459`), horizontal table-owned overflow (`scrollWidth 1180` vs `clientWidth 1146`), clean scroll movement from `scrollTop 0` / `scrollLeft 0` to `scrollTop 600` / `scrollLeft 34`, and `--header-offset` changing from `0px` to `70px`.
   - Screenshot evidence saved at `/private/tmp/gnd-sales-dispatch-table.png`.
 - 2026-07-27 Mark-as action proof:

@@ -4,6 +4,7 @@ import { cn } from "@gnd/ui/cn";
 import {
 	DropdownMenu,
 	DropdownMenuContentWithoutPortal,
+	DropdownMenuGroup,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
@@ -11,6 +12,7 @@ import {
 } from "@gnd/ui/dropdown-menu";
 import { Icons } from "@gnd/ui/icons";
 import { type ReactNode, useState } from "react";
+import { ModuleMenuItems } from "./module-menu-items";
 import { useSiteNav } from "./use-site-nav";
 
 type SiteNavUserData = {
@@ -32,7 +34,8 @@ function getInitials(name?: string) {
 }
 
 export function User({ user, onLogout, children }: SiteNavUserProps) {
-	const { isExpanded, expandSiteNav, isNavHoverCollapsePending } = useSiteNav();
+	const { isExpanded, expandSiteNav, isNavHoverCollapsePending, modules } =
+		useSiteNav();
 	const [isMenuRequestedOpen, setIsMenuRequestedOpen] = useState(false);
 	const isMenuOpen = isExpanded && isMenuRequestedOpen;
 
@@ -114,8 +117,16 @@ export function User({ user, onLogout, children }: SiteNavUserProps) {
 								</div>
 							</div>
 						</DropdownMenuLabel>
+						{modules.length ? (
+							<>
+								<DropdownMenuSeparator />
+								<ModuleMenuItems />
+							</>
+						) : null}
 						{children ? <DropdownMenuSeparator /> : null}
-						{children}
+						{children ? (
+							<DropdownMenuGroup>{children}</DropdownMenuGroup>
+						) : null}
 						{onLogout ? (
 							<>
 								<DropdownMenuSeparator />

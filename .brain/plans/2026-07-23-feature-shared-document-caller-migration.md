@@ -75,6 +75,6 @@ read contracts.
 - Expo changed-runtime TypeScript filtering reports no diagnostics; its Bun
   test file remains outside the Expo TypeScript type environment.
 - Main-web changed-runtime filtering reports no migration diagnostics; the
-  broad `@gnd/www` command still reports unrelated repository baseline errors.
+  broad `@gnd/dashboard` command still reports unrelated repository baseline errors.
 - Focused Biome and `git diff --check` pass.
 - Two independent final reviews report no findings.

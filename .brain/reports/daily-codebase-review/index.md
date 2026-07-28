@@ -1,9 +1,10 @@
 # Daily Codebase Review Index
 
-- [2026-07-27](./2026-07-27.md) - Typecheck still fails in `@gnd/www`; top risks are public operational reads, customer pay portal trust, inventory release evidence, and mock active sessions.
-- [2026-07-26](./2026-07-26.md) - Typecheck still fails in `@gnd/www`; top risks are public internal read/payment routes, inventory release evidence, and customer pay portal trust.
-- [2026-07-25](./2026-07-25.md) - Typecheck still fails in `@gnd/www`; top risks shifted to public internal read/report endpoints, inventory release evidence, and WWW baseline debt.
-- [2026-07-24](./2026-07-24.md) - Typecheck fails in `@gnd/www`; remaining top risks are public jobs/payroll and HRM reads, mock active sessions, storefront pricing projection, and inventory readiness.
+- [2026-07-28](./2026-07-28.md) - Typecheck still fails in `@gnd/dashboard`; top risks are public scheduler controls, public operational reads, customer payment trust, and inventory release evidence.
+- [2026-07-27](./2026-07-27.md) - Typecheck still fails in `@gnd/dashboard`; top risks are public operational reads, customer pay portal trust, inventory release evidence, and mock active sessions.
+- [2026-07-26](./2026-07-26.md) - Typecheck still fails in `@gnd/dashboard`; top risks are public internal read/payment routes, inventory release evidence, and customer pay portal trust.
+- [2026-07-25](./2026-07-25.md) - Typecheck still fails in `@gnd/dashboard`; top risks shifted to public internal read/report endpoints, inventory release evidence, and WWW baseline debt.
+- [2026-07-24](./2026-07-24.md) - Typecheck fails in `@gnd/dashboard`; remaining top risks are public jobs/payroll and HRM reads, mock active sessions, storefront pricing projection, and inventory readiness.
 - [2026-07-23](./2026-07-23.md) - Typecheck now stops in storefront; public operational mutations, dealer quote edit locks, dispatch proof atomicity, and inventory release readiness remain risks.
 - [2026-07-22](./2026-07-22.md) - Typecheck still stops in documents; public operational routes, hard-coded sales Share, prompt-based dealer delivery approval, dispatch proof atomicity, and inventory readiness remain risks.
 - [2026-07-21](./2026-07-21.md) - Typecheck now stops in documents; public operational routes, dealer direct conversion, dispatch proof atomicity, hard-coded Share, and inventory readiness remain risks.

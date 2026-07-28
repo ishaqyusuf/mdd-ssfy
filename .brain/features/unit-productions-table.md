@@ -3,7 +3,7 @@
 ## Status
 Validated restarted Sales Orders parity migration slice, 2026-07-16.
 
-The `/community/unit-productions` route now renders through `apps/www/src/components/tables-2/unit-productions/*` with the restarted Sales Orders table-core behavior while preserving the existing production query, filters, summary widgets, open production sheet, production task action cells, and batch Start / Stop / Complete bottom bar.
+The `/community/unit-productions` route now renders through `apps/dashboard/src/components/tables-2/unit-productions/*` with the restarted Sales Orders table-core behavior while preserving the existing production query, filters, summary widgets, open production sheet, production task action cells, and batch Start / Stop / Complete bottom bar.
 
 ## Behavior
 - The route follows the canonical Sales Orders shell: `PageShell`, `HydrateClient`, `ScrollableContent`, `PageTitle`, `UnitProductionsHeader`, summary widgets, `ErrorBoundary`, `Suspense`, and table.
@@ -16,16 +16,16 @@ The `/community/unit-productions` route now renders through `apps/www/src/compon
 
 ## Constraints Preserved
 - No custom shared page-header abstraction is used.
-- `apps/www/src/components/tables-2/core/*` remains unchanged.
+- `apps/dashboard/src/components/tables-2/core/*` remains unchanged.
 - The existing community unit production API/query/filter contracts are reused.
 - Old table imports are not used by the Unit Productions route/header/table.
-- The old `apps/www/src/components/tables/unit-productions/*` files were removed on 2026-07-17 after import scans confirmed there were no live source consumers outside Brain notes and negative audit assertions.
+- The old `apps/dashboard/src/components/tables/unit-productions/*` files were removed on 2026-07-17 after import scans confirmed there were no live source consumers outside Brain notes and negative audit assertions.
 
 ## Validation
-- `bun test apps/www/src/components/tables-2/unit-productions/migration-parity.test.ts` passed with 4 tests.
+- `bun test apps/dashboard/src/components/tables-2/unit-productions/migration-parity.test.ts` passed with 4 tests.
 - The restarted parity/audit suite including Unit Productions passed with 37 tests / 245 assertions.
 - Targeted Biome passed for the Unit Productions route/header/table/settings files.
-- Filtered `@gnd/www` typecheck reported no touched-file diagnostics for the Unit Productions route/header/table/settings files while the full command still exits nonzero from unrelated baseline issues.
+- Filtered `@gnd/dashboard` typecheck reported no touched-file diagnostics for the Unit Productions route/header/table/settings files while the full command still exits nonzero from unrelated baseline issues.
 - `git diff --check` passed.
 - Static scans confirmed the Unit Productions route/header/table do not import `PageStickyHeader`, legacy `components/tables/unit-productions`, `@gnd/ui/data-table`, or manual `fetchInfiniteQuery`.
 - Project Overview embed validation on 2026-07-16 confirmed `components/widgets/project-overview/index.tsx` imports `tables-2/unit-productions` instead of the legacy unit-productions table.

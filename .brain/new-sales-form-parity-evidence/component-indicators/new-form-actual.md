@@ -6,7 +6,7 @@ Top-left component indicators are implemented for:
 - redirect
 
 Anchor:
-- `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 
 Current parity status:
 - Indicator semantics are now present in new component cards.

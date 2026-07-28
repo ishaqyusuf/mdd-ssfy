@@ -2,11 +2,11 @@
 
 ## Purpose
 
-Give users persistent visibility into long-running background jobs after a job id is returned to the browser. The initial production surface is `apps/www`.
+Give users persistent visibility into long-running background jobs after a job id is returned to the browser. The initial production surface is `apps/dashboard`.
 
 ## Current Implementation
 
-- Client state lives in `apps/www/src/store/task-monitor.ts`.
+- Client state lives in `apps/dashboard/src/store/task-monitor.ts`.
 - State is persisted with Zustand persist under `gnd-task-monitor`.
 - `useTaskTrigger` registers Trigger.dev run ids into the monitor after `triggerTask` returns an id and public access token.
 - `TaskNotification` is mounted globally in the sidebar and clean-code layouts, rehydrates tasks after navigation or reload, and resumes monitoring with `useRealtimeRun`.
@@ -18,8 +18,8 @@ Give users persistent visibility into long-running background jobs after a job i
 - Failed tasks remain visible until dismissed in development/local detail mode; in production the task row is hidden from the client monitor and removed after the failure toast window.
 - Running tasks that do not report progress for six hours are marked failed with a stale-run message.
 - Tasks carry lightweight metadata only: task name, type, entity id, and entity label. Full payloads are not persisted.
-- Server-side task start logging lives in `apps/www/src/lib/task-run-diagnostics.server.ts` and records starts/start failures from `apps/www/src/actions/trigger-task.ts`.
-- Terminal watcher finalization calls `apps/www/src/actions/task-run-diagnostics.ts`, which retrieves Trigger.dev run status server-side and upserts a database diagnostic row.
+- Server-side task start logging lives in `apps/dashboard/src/lib/task-run-diagnostics.server.ts` and records starts/start failures from `apps/dashboard/src/actions/trigger-task.ts`.
+- Terminal watcher finalization calls `apps/dashboard/src/actions/task-run-diagnostics.ts`, which retrieves Trigger.dev run status server-side and upserts a database diagnostic row.
 - Generic task diagnostics are stored in `TaskRunDiagnostic`; sales email delivery still uses `SalesEmailAttempt` as the email-specific delivery ledger.
 
 ## User Experience

@@ -103,7 +103,7 @@ payment, inventory, production, and fulfillment workflows remain canonical.
 - `@gnd/sales`, `@gnd/api`, and `@gnd/storefront` typechecks pass.
 - Storefront Next.js/Turbopack production build passes all routes.
 - Focused Biome checks pass for the new domain, API, admin, and card modules.
-- The broad `@gnd/www` typecheck retains more than 500 unrelated existing
+- The broad `@gnd/dashboard` typecheck retains more than 500 unrelated existing
   diagnostics; filtered output contains no changed storefront admin files.
 - Review follow-up preserved archived campaigns in the default admin list,
   lazily loads editor target options, moved target lookups out of the router,

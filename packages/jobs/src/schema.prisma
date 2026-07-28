@@ -677,6 +677,7 @@ model SalesOrders {
     history           SalesHistory[]
     lineItems         LineItem[]
     productionGate    OrderProductionGate?
+    productionReadinessOverride SalesProductionReadinessOverride?
 
     org   Organization? @relation(fields: [orgId], references: [id])
     orgId Int?
@@ -751,6 +752,27 @@ model OrderProductionGate {
 
     @@index([definedByUserId])
     @@index([status])
+}
+
+model SalesProductionReadinessOverride {
+    id                Int       @unique @default(autoincrement())
+    salesOrderId      Int       @unique
+    status            String    @default("ACTIVE") @db.VarChar(32)
+    revision          String    @db.VarChar(64)
+    snapshot          Json      @db.Json
+    confirmedByUserId Int
+    confirmedAt       DateTime  @default(now()) @db.Timestamp(0)
+    revokedByUserId   Int?
+    revokedAt         DateTime? @db.Timestamp(0)
+    createdAt         DateTime? @default(now()) @db.Timestamp(0)
+    updatedAt         DateTime? @updatedAt
+    order             SalesOrders @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+    confirmedBy       Users     @relation(name: "confirmedProductionReadinessOverrides", fields: [confirmedByUserId], references: [id])
+    revokedBy         Users?    @relation(name: "revokedProductionReadinessOverrides", fields: [revokedByUserId], references: [id])
+
+    @@index([status])
+    @@index([confirmedByUserId])
+    @@index([revokedByUserId])
 }
 
 model SalesHistory {
@@ -1451,6 +1473,16 @@ enum StorefrontPublicationStatus {
     ARCHIVED
 }
 
+enum StorefrontPromotionAudienceMode {
+    EVERYONE
+    TARGETED
+}
+
+enum StorefrontPromotionScopeMode {
+    ALL_OFFERS
+    TARGETED
+}
+
 enum StorefrontCollectionType {
     CART
     WISHLIST
@@ -1535,6 +1567,7 @@ model StorefrontCategory {
     updatedAt            DateTime                     @updatedAt
     deletedAt            DateTime?                    @db.Timestamp(0)
     offers               StorefrontOffer[]
+    promotionTargets     StorefrontPromotionCategory[]
 
     @@index([status, sortOrder])
     @@index([rootStepUid])
@@ -1570,6 +1603,7 @@ model StorefrontOffer {
     stepPolicies         StorefrontStepPolicy[]
     componentPolicies    StorefrontOfferComponentPolicy[]
     commerceLines        StorefrontCommerceLine[]
+    promotionTargets     StorefrontPromotionOffer[]
 
     @@unique([categoryId, slug])
     @@index([categoryId, status, sortOrder])
@@ -1699,6 +1733,83 @@ model StorefrontCommerceLine {
     @@index([validationStatus])
 }
 
+/// Scheduled storefront-only merchandising campaign. CustomerTypes continue
+/// to own base pricing; this model owns the automatic discount layered on top.
+model StorefrontPromotion {
+    id                 String                            @id @default(cuid())
+    internalName       String                            @db.VarChar(255)
+    publicTitle        String                            @db.VarChar(255)
+    description        String?                           @db.LongText
+    badgeText          String                            @db.VarChar(64)
+    bannerText         String?                           @db.VarChar(255)
+    bannerHref         String?                           @db.VarChar(191)
+    percentageOff      Decimal                           @db.Decimal(5, 2)
+    priority           Int                               @default(0)
+    audienceMode       StorefrontPromotionAudienceMode
+    scopeMode          StorefrontPromotionScopeMode
+    status             StorefrontPublicationStatus      @default(DRAFT)
+    startsAt           DateTime                          @db.Timestamp(0)
+    endsAt             DateTime?                         @db.Timestamp(0)
+    publishedAt        DateTime?                         @db.Timestamp(0)
+    createdByUserId    Int?
+    updatedByUserId    Int?
+    createdAt          DateTime                          @default(now()) @db.Timestamp(0)
+    updatedAt          DateTime                          @updatedAt
+    deletedAt          DateTime?                         @db.Timestamp(0)
+    categoryTargets    StorefrontPromotionCategory[]
+    offerTargets       StorefrontPromotionOffer[]
+    customerTargets    StorefrontPromotionCustomer[]
+    profileTargets     StorefrontPromotionCustomerProfile[]
+
+    @@index([status, startsAt, endsAt])
+    @@index([priority])
+    @@index([deletedAt])
+}
+
+model StorefrontPromotionCategory {
+    promotionId String
+    categoryId  String
+    createdAt   DateTime              @default(now()) @db.Timestamp(0)
+    promotion   StorefrontPromotion   @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+    category    StorefrontCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+    @@id([promotionId, categoryId])
+    @@index([categoryId])
+}
+
+model StorefrontPromotionOffer {
+    promotionId String
+    offerId     String
+    createdAt   DateTime              @default(now()) @db.Timestamp(0)
+    promotion   StorefrontPromotion   @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+    offer       StorefrontOffer       @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+    @@id([promotionId, offerId])
+    @@index([offerId])
+}
+
+model StorefrontPromotionCustomer {
+    promotionId String
+    customerId  Int
+    createdAt   DateTime              @default(now()) @db.Timestamp(0)
+    promotion   StorefrontPromotion   @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+    customer    Customers             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+    @@id([promotionId, customerId])
+    @@index([customerId])
+}
+
+model StorefrontPromotionCustomerProfile {
+    promotionId      String
+    customerProfileId Int
+    createdAt         DateTime            @default(now()) @db.Timestamp(0)
+    promotion         StorefrontPromotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+    customerProfile   CustomerTypes       @relation(fields: [customerProfileId], references: [id], onDelete: Cascade)
+
+    @@id([promotionId, customerProfileId])
+    @@index([customerProfileId])
+}
+
 /// Durable, idempotent transition from a cart snapshot to the canonical
 /// SalesOrders workflow. It is checkout state, not a parallel order.
 model StorefrontCheckout {
@@ -1778,7 +1889,8 @@ model StorefrontShippingPolicy {
 }
 
 /// Immutable calculation evidence plus a mutable office decision. Recalculation
-/// creates a revision and supersedes the prior quote rather than overwriting it.
+/// creates a revision rather than overwriting prior evidence; checkout linkage
+/// identifies the authoritative revision for an order.
 model StorefrontShippingQuote {
     id                       String   @id @default(cuid())
     collectionId             String
@@ -4339,6 +4451,8 @@ model Users {
     salesTransactions           SalesPayments[]
     submissions                 OrderProductionSubmissions[]
     definedProductionGates      OrderProductionGate[]
+    confirmedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "confirmedProductionReadinessOverrides")
+    revokedProductionReadinessOverrides SalesProductionReadinessOverride[] @relation(name: "revokedProductionReadinessOverrides")
     sentSalesEmailAttempts      SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSender")
     salesRepEmailAttempts       SalesEmailAttempt[]              @relation(name: "salesEmailAttemptSalesRep")
     taskRunDiagnosticsStarted   TaskRunDiagnostic[]              @relation(name: "taskRunDiagnosticActor")
@@ -4672,6 +4786,7 @@ model Customers {
     dealerOwner    DealerAuth?           @relation(name: "dealerOwnedCustomers", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     dealerRecruitmentInvitations DealerRecruitmentInvitation[]
     dealerRecruitmentState DealerRecruitmentCustomerState?
+    storefrontPromotionTargets StorefrontPromotionCustomer[]
     userId         Int?                  @unique
     user           Users?                @relation(fields: [userId], references: [id])
 
@@ -4778,6 +4893,7 @@ model CustomerTypes {
     dealerOwner DealerAuth?   @relation(name: "dealerSalesProfiles", fields: [dealerOwnerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
     dealerSales SalesOrders[] @relation(name: "dealerSalesProfile")
     dealerSaleProfiles DealerSales[] @relation(name: "dealerSaleCustomerProfile")
+    storefrontPromotionTargets StorefrontPromotionCustomerProfile[]
 
     @@index([dealerOwnerId])
 }

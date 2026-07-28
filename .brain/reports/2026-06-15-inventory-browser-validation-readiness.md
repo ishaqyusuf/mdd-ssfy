@@ -49,7 +49,7 @@ Detailed fixture setup plan: `brain/reports/2026-06-16-inventory-validation-fixt
 6. Inventory print sale with production BOM, pick list, packing list, backorder, and remaining-summary modes.
 
 ## Validation Commands Or Actions Requiring Approval
-1. Start the web app in the user's preferred local mode, for example `bun run dev --filter www` or the active workspace command.
+1. Start the web app in the user's preferred local mode, for example `bun run dev --filter dashboard` or the active workspace command.
 2. Open the routes listed in scope with an authenticated session.
 3. Capture screenshots or concise notes for each matrix row.
 4. Run only focused tests for any issues found and update Brain with pass/fail evidence.
@@ -146,21 +146,21 @@ For each checklist row, capture:
 ## Non-Browser Checks Run
 - `bun test packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
   - Result: 24 tests passed, 68 assertions.
-- `bun test apps/www/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
+- `bun test apps/dashboard/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
   - Result: 29 tests passed, 89 assertions.
-- `bun test packages/sales/src/print/inventory-print-data.test.ts apps/www/src/modules/sales-print/application/inventory-print-request.test.ts apps/www/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
+- `bun test packages/sales/src/print/inventory-print-data.test.ts apps/dashboard/src/modules/sales-print/application/inventory-print-request.test.ts apps/dashboard/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
   - Result: 36 tests passed, 105 assertions.
-- `bun test packages/sales/src/print/inventory-print-data.test.ts apps/www/src/modules/sales-print/application/inventory-print-request.test.ts apps/www/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
+- `bun test packages/sales/src/print/inventory-print-data.test.ts apps/dashboard/src/modules/sales-print/application/inventory-print-request.test.ts apps/dashboard/src/components/sidebar-links.test.ts packages/sales/src/sales-fulfillment-plan.test.ts packages/inventory/src/inventory-item-dashboard.test.ts`
   - Result after route-file matrix coverage: 37 tests passed, 115 assertions.
-- `bun -e 'await import("./apps/www/src/components/inventory/inventory-dispatch-mode-page.tsx"); await import("./apps/www/src/components/inventory/inventory-operations-dashboard.tsx"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory browser-readiness imports ok")'`
+- `bun -e 'await import("./apps/dashboard/src/components/inventory/inventory-dispatch-mode-page.tsx"); await import("./apps/dashboard/src/components/inventory/inventory-operations-dashboard.tsx"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory browser-readiness imports ok")'`
   - Result: passed.
-- `bun -e 'await import("./apps/www/src/components/sidebar-links.ts"); await import("./apps/www/src/components/inventory/inventory-dispatch-mode-page.tsx"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory nav readiness imports ok")'`
+- `bun -e 'await import("./apps/dashboard/src/components/sidebar-links.ts"); await import("./apps/dashboard/src/components/inventory/inventory-dispatch-mode-page.tsx"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory nav readiness imports ok")'`
   - Result: passed.
-- `bun -e 'await import("./apps/www/src/components/sidebar-links.ts"); await import("./apps/www/src/components/inventory/inventory-dispatch-mode-page.tsx"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory route readiness imports ok")'`
+- `bun -e 'await import("./apps/dashboard/src/components/sidebar-links.ts"); await import("./apps/dashboard/src/components/inventory/inventory-dispatch-mode-page.tsx"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory route readiness imports ok")'`
   - Result: passed.
-- `bun -e 'await import("./apps/api/src/trpc/routers/print.route.ts"); await import("./apps/www/src/components/rendered-inventory-pdf-print-viewer.tsx"); await import("./apps/www/src/modules/sales-print/application/inventory-print-request.ts"); console.log("inventory print importable surfaces ok")'`
+- `bun -e 'await import("./apps/api/src/trpc/routers/print.route.ts"); await import("./apps/dashboard/src/components/rendered-inventory-pdf-print-viewer.tsx"); await import("./apps/dashboard/src/modules/sales-print/application/inventory-print-request.ts"); console.log("inventory print importable surfaces ok")'`
   - Result: passed.
-- `bun -e 'await import("./apps/www/src/components/sidebar-links.ts"); await import("./apps/api/src/trpc/routers/print.route.ts"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory matrix import surfaces ok")'`
+- `bun -e 'await import("./apps/dashboard/src/components/sidebar-links.ts"); await import("./apps/api/src/trpc/routers/print.route.ts"); await import("./apps/api/src/trpc/routers/inventories.route.ts"); console.log("inventory matrix import surfaces ok")'`
   - Result: passed.
 - Attempted import smoke for `SalesInventoryPrintViewerPage`
   - Result: blocked outside Next by expected `server-only` package boundary.

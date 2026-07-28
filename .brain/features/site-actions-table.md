@@ -3,7 +3,7 @@
 ## Status
 Validated restarted Sales Orders parity migration slice, 2026-07-16.
 
-The `/site-actions` operation log now renders through `apps/www/src/components/tables-2/site-actions/*` while preserving the existing `siteActions.index` query and URL filter hook.
+The `/site-actions` operation log now renders through `apps/dashboard/src/components/tables-2/site-actions/*` while preserving the existing `siteActions.index` query and URL filter hook.
 
 ## Behavior
 - The route follows the restarted Sales Orders shell with `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, `ErrorBoundary`, `Suspense`, and `getInitialTableSettings("site-actions")`.
@@ -16,14 +16,14 @@ The `/site-actions` operation log now renders through `apps/www/src/components/t
 
 ## Constraints Preserved
 - No custom shared page-header abstraction is used.
-- `apps/www/src/components/tables-2/core/*` remains unchanged.
+- `apps/dashboard/src/components/tables-2/core/*` remains unchanged.
 - The old `components/tables/site-actions/*` files were deleted after import scans confirmed no live consumers.
 
 ## Validation
 - Focused Site Actions/page audit tests passed with 6 tests / 39 assertions.
 - Full restarted parity suite passed with 65 tests / 562 assertions.
 - Targeted Biome passed for the route, table files, table settings/config, audit tests, API schema/query, and notification helper.
-- Filtered `@gnd/www`, `@gnd/api`, and `@gnd/notifications` typecheck greps reported no touched-file diagnostics.
+- Filtered `@gnd/dashboard`, `@gnd/api`, and `@gnd/notifications` typecheck greps reported no touched-file diagnostics.
 - Static scan found no live legacy Site Actions table, `@gnd/ui/data-table`, `PageStickyHeader`, `getQueryClient`, or `fetchInfiniteQuery` imports in the route/table.
 - `git diff --check` passed.
 - HEAD smoke for `/site-actions` returned `200`.

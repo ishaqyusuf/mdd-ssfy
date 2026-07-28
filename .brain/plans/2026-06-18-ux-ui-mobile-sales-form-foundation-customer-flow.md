@@ -20,12 +20,12 @@ In Progress
 Mobile sales users need the dashboard `New Invoice` action to choose Sales or Quote, the invoice form customer selector to default to recent customers for the selected sales type, component lists to stop showing UID subtitles, and shared floating-action placement to support later custom/proceed buttons without blocking footer actions.
 
 ## Current Context
-- Mobile sales dashboard lives under `apps/expo-app/src/features/sales/components/sales-dashboard-screen.tsx`.
-- Mobile invoice form lives under `apps/expo-app/src/features/sales/invoice-form`.
+- Mobile sales dashboard lives under `apps/mobile/src/features/sales/components/sales-dashboard-screen.tsx`.
+- Mobile invoice form lives under `apps/mobile/src/features/sales/invoice-form`.
 - Current `New Invoice` navigates directly to `/(sales)/invoices/new`.
-- Customer selector route exists at `apps/expo-app/src/app/(sales)/invoices/customer-selector.tsx`.
-- Customer/product/workflow search helpers live in `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts`.
-- Component picking currently runs through `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`.
+- Customer selector route exists at `apps/mobile/src/app/(sales)/invoices/customer-selector.tsx`.
+- Customer/product/workflow search helpers live in `apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts`.
+- Component picking currently runs through `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`.
 - `brain/features/mobile-invoice-form.md` describes the current mobile invoice form architecture and should remain the feature doc.
 
 ## Proposed Approach
@@ -45,14 +45,14 @@ Keep screen components thin: the dashboard composes the type chooser, the custom
 - Keep the foundation module boundaries explicit; do not expand `invoice-form-screen.tsx` or `workflow-step-selector.tsx` with large inline business logic.
 
 ## Affected Files Or Areas
-- `apps/expo-app/src/features/sales/components/sales-dashboard-screen.tsx`
-- `apps/expo-app/src/app/(sales)/invoices/new.tsx`
-- `apps/expo-app/src/app/(sales)/invoices/customer-selector.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts`
-- `apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
-- `apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
-- `apps/expo-app/src/features/sales/invoice-form/components` or new focused feature folders for customer/floating actions
+- `apps/mobile/src/features/sales/components/sales-dashboard-screen.tsx`
+- `apps/mobile/src/app/(sales)/invoices/new.tsx`
+- `apps/mobile/src/app/(sales)/invoices/customer-selector.tsx`
+- `apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts`
+- `apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx`
+- `apps/mobile/src/features/sales/invoice-form/components/workflow-step-selector.tsx`
+- `apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts`
+- `apps/mobile/src/features/sales/invoice-form/components` or new focused feature folders for customer/floating actions
 - API/customer query surface if current mobile API lacks recent-by-type support
 
 ## Acceptance Criteria

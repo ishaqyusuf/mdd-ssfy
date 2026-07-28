@@ -6,7 +6,7 @@ Supplier-driven recalculation path in door size/qty modal is now aligned to shar
 - supplier key changes trigger row re-derivation when modal is open
 
 Anchor:
-- `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+- `apps/dashboard/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
 
 Current parity status:
 - Supplier switch is implemented in code path with package proof for persisted

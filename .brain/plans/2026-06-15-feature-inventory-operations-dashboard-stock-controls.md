@@ -64,9 +64,9 @@ Keep reusable calculations in `@gnd/inventory` or `@gnd/sales` packages and keep
 - `packages/inventory/src/application/*`
 - `packages/inventory/src/schema.ts`
 - `apps/api/src/trpc/routers/inventories.route.ts`
-- `apps/www/src/app/(sidebar)/inventory`
-- `apps/www/src/components/inventory`
-- `apps/www/src/components/widgets/inventory-stock-alert-widget.tsx`
+- `apps/dashboard/src/app/(sidebar)/inventory`
+- `apps/dashboard/src/components/inventory`
+- `apps/dashboard/src/components/widgets/inventory-stock-alert-widget.tsx`
 - `brain/features/inventory-backed-sales-fulfillment.md`
 - `brain/progress.md`
 
@@ -123,6 +123,6 @@ Lower agent must report:
 - Added `InventoryOperationsDashboard` on `/inventory` with tracked/untracked, low-stock, out-of-stock, inbound, allocation, backorder, and production blocker cards plus stock alert drilldowns.
 - Replaced the old low-stock-only dashboard widget mount on `/inventory` with the operations dashboard; the old widget remains available but unused by this page.
 - Validation: `bun test packages/inventory/src/inventory-item-dashboard.test.ts` passed with 4 tests and 13 assertions.
-- Validation: import smoke for `apps/api/src/trpc/routers/inventories.route.ts` and `apps/www/src/components/inventory/inventory-operations-dashboard.tsx` passed.
+- Validation: import smoke for `apps/api/src/trpc/routers/inventories.route.ts` and `apps/dashboard/src/components/inventory/inventory-operations-dashboard.tsx` passed.
 - Validation: scoped `git diff --check` passed.
 - Deferred: browser/manual validation remains part of Pending 15.

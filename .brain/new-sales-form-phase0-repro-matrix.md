@@ -30,9 +30,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 1. Moulding line items + moulding calculator parity
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/moulding-and-service/moulding-content.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/moulding-and-service/moulding-content.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:956`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:956`
 - Manual repro:
   1. Select item type that includes moulding flow.
   2. Select >=2 mouldings.
@@ -49,10 +49,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 2. Customer profile update not changing pricings
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/sales-customer-input.tsx:121`
-  - `apps/www/src/components/forms/sales-form/sales-customer-input.tsx:132`
+  - `apps/dashboard/src/components/forms/sales-form/sales-customer-input.tsx:121`
+  - `apps/dashboard/src/components/forms/sales-form/sales-customer-input.tsx:132`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/invoice-overview-panel.tsx`
   - `packages/sales/src/sales-form/domain/profile-repricing.ts`
 - Manual repro:
   1. Open existing sales with non-empty line items.
@@ -68,10 +68,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 3. Supplier changing in door qty modal
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:87`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:87`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - Manual repro:
   1. Open door step and select supplier A.
   2. Open size/qty modal; capture displayed prices.
@@ -87,9 +87,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 4. Quick base price update inside size/qty modal
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
 - Manual repro:
   1. Open door size/qty modal.
   2. Attempt inline base-price edit for a size bucket.
@@ -102,9 +102,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 5. HPT estimate column click -> breakdown
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/hpt/price-estimate-cell.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/hpt/price-estimate-cell.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (HPT rows)
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (HPT rows)
 - Manual repro:
   1. Configure HPT rows.
   2. Click estimate column value.
@@ -117,10 +117,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 6. Component cost not adding right to door estimate
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts`
 - New anchors:
   - `packages/sales/src/sales-form/domain/workflow-calculators.ts:summarizeDoors`
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - Manual repro:
   1. Configure door component dependencies + door sizes.
   2. Compare expected line totals with old form for same fixture.
@@ -149,10 +149,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 8. State loss / refresh data loss
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/sales-form-save.tsx` + old save/history flow.
+  - `apps/dashboard/src/components/forms/sales-form/sales-form-save.tsx` + old save/history flow.
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/use-auto-save.ts`
-  - `apps/www/src/components/forms/new-sales-form/store.ts:74`
+  - `apps/dashboard/src/components/forms/new-sales-form/use-auto-save.ts`
+  - `apps/dashboard/src/components/forms/new-sales-form/store.ts:74`
 - Manual repro:
   1. Edit long form for several minutes.
   2. Simulate idle/network blip/refresh.
@@ -166,9 +166,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 9. Shelf item feature parity
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/shelf-items.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/shelf-items.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1570`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1570`
 - Manual repro:
   1. Build shelf line using category/product paths in old/new.
   2. Compare editability, rollups, and persistence.
@@ -182,9 +182,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 10. Services line items tax switch + production switch
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/moulding-and-service/service-content.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/moulding-and-service/service-content.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (service panel)
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx` (service panel)
 - Manual repro:
   1. Add service rows.
   2. Toggle tax/production flags.
@@ -198,9 +198,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 11. Tax not getting calculated
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts:417`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/costing-class.ts:417`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/mappers.ts:96`
+  - `apps/dashboard/src/components/forms/new-sales-form/mappers.ts:96`
   - `packages/sales/src/sales-form/domain/costing.ts:109`
 - Manual repro:
   1. Set taxable lines and tax code.
@@ -215,9 +215,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 12. Step floating bar options parity
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/index.tsx:168`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/index.tsx:168`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - Manual repro:
   1. Check step component surface for floating menu actions.
 - Expected: tabs/select-all/pricing/component/refresh/enable-custom available.
@@ -229,11 +229,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 13. Component menu parity (nested edit/select/redirect/delete)
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/component-item-card.tsx:320`
+  - `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx:320`
 - New anchors:
   - `packages/sales/src/sales-form/ui/workflow/workflow-component-action-menu.tsx`
   - `packages/sales/src/sales-form/ui/workflow/workflow-step-component-panel.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/use-workflow-component-admin.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/use-workflow-component-admin.tsx`
 - Manual repro:
   1. Inspect each component card actions.
 - Expected: `Edit` nests Details, Visibility, Price, and Section Setting
@@ -249,9 +249,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 14. Component icon indicators (top-left)
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/component-item-card.tsx` (variation/override/redirect badges)
+  - `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx` (variation/override/redirect badges)
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - Manual repro:
   1. Open step with components using variations/override/redirect.
   2. Verify indicators.
@@ -264,11 +264,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 15. Sales save history sidebar parity
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/sales-meta-form.tsx`
-  - `apps/www/src/components/forms/sales-form/sales-form-save.tsx:62`
-  - `apps/www/src/components/sales-hx.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/sales-meta-form.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/sales-form-save.tsx:62`
+  - `apps/dashboard/src/components/sales-hx.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
 - Manual repro:
   1. Save draft/final repeatedly.
   2. Open history panel and inspect timeline.
@@ -281,10 +281,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 16. Component edit parity
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/component-item-card.tsx:320`
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx:320`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/step-component-modal.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3734`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3734`
 - Manual repro:
   1. Open a component card in editable mode.
   2. Trigger `Edit`.
@@ -299,9 +299,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 17. Component image attachment in edit flow
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/*`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/step-component-modal/*`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3734`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3734`
 - Manual repro:
   1. Open component edit.
   2. Attempt to add or replace component image/attachment as in old flow.
@@ -314,11 +314,11 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 18. Redirect component route list parity
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/component-item-card.tsx:343`
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts:109`
+  - `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx:343`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/settings-class.ts:109`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:143`
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3777`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:143`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:3777`
 - Manual repro:
   1. Open redirect menu/list for same component in old and new forms.
   2. Compare available routes and ordering.
@@ -331,9 +331,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 19. Door size inline base-cost edit parity
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx:245`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
 - Manual repro:
   1. Open door size/qty modal.
   2. Attempt inline base-cost edit on a size row.
@@ -347,9 +347,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 20. Component cost display should show calculated sales cost
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/component-item-card.tsx`
+  - `apps/dashboard/src/components/forms/sales-form/component-item-card.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - Manual repro:
   1. Open same component in old and new forms with dependency/profile-sensitive pricing.
   2. Compare displayed cost value.
@@ -362,9 +362,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 21. HPT add-size action broken
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-select-modal/index.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1410`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx:1410`
 - Manual repro:
   1. Open HPT section for a door component.
   2. Click `Add Size`.
@@ -380,9 +380,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 22. HPT section add-door option parity
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/hpt/*`
+  - `apps/dashboard/src/components/forms/sales-form/hpt/*`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
 - Manual repro:
   1. Open HPT section.
   2. Attempt to add a new door option/entry as in old form.
@@ -396,12 +396,12 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 24. Door size variant control + filtering parity
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/component-section-footer.tsx`
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal/index.tsx`
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper.ts:365`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/components-section/component-section-footer.tsx`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/modals/door-size-modal/index.tsx`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_utils/helpers/zus/zus-form-helper.ts:365`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
-  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/item-workflow-panel.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/workflow-modals.tsx`
   - `packages/sales/src/sales-form/domain/workflow-calculators.ts`
 - Manual repro:
   1. Open a Door step in the new form.
@@ -420,9 +420,9 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 23. Moulding calculator outside-click dismiss parity
 - Old anchors:
-  - `apps/www/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/moulding-step/index.tsx`
+  - `apps/dashboard/src/app-deps/(clean-code)/(sales)/sales-book/(form)/_components/moulding-step/index.tsx`
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/sections/workflow-modals.tsx:613`
+  - `apps/dashboard/src/components/forms/new-sales-form/sections/workflow-modals.tsx:613`
 - Manual repro:
   1. Open moulding calculator.
   2. Click outside the modal/dialog content.
@@ -479,7 +479,7 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 - Old anchors:
   - n/a; new-form resilience requirement.
 - New anchors:
-  - `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx:1455`
+  - `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx:1455`
 - Manual repro:
   1. Force `newSalesForm.bootstrap` or `newSalesForm.get` to fail.
   2. Open create/edit route.
@@ -493,10 +493,10 @@ Create deterministic reproduction coverage for every user-reported parity gap be
 
 28. Surface-specific header action gating
 - Old anchors:
-  - `apps/www/src/components/forms/sales-form/*` action surfaces.
+  - `apps/dashboard/src/components/forms/sales-form/*` action surfaces.
 - New anchors:
   - `packages/sales/src/sales-form/ui/header-actions.tsx`
-  - `apps/www/src/components/forms/new-sales-form/new-sales-form.tsx`
+  - `apps/dashboard/src/components/forms/new-sales-form/new-sales-form.tsx`
   - `apps/dealership/src/components/dealer-sales-form/dealer-quote-composer.tsx`
 - Manual repro:
   1. Open `www` new order/quote.

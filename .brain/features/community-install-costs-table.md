@@ -19,9 +19,9 @@
 - Row height: `48px`
 
 ## Validation
-- Focused parity: `bun test apps/www/src/components/tables-2/community-install-costs/migration-parity.test.ts` passed with 5 tests / 44 assertions.
-- Full restarted table parity: `bun test apps/www/src/components/tables-2` passed with 175 tests / 1714 assertions.
+- Focused parity: `bun test apps/dashboard/src/components/tables-2/community-install-costs/migration-parity.test.ts` passed with 5 tests / 44 assertions.
+- Full restarted table parity: `bun test apps/dashboard/src/components/tables-2` passed with 175 tests / 1714 assertions.
 - Targeted Biome passed for the install-cost route/component/table files plus table settings/config.
-- Broad `@gnd/www` typecheck still fails on existing baseline errors, but filtered log scan found no diagnostics for install-cost/table-setting/table-config touched paths.
+- Broad `@gnd/dashboard` typecheck still fails on existing baseline errors, but filtered log scan found no diagnostics for install-cost/table-setting/table-config touched paths.
 - Runtime static scan excluding tests found no old `@gnd/ui/namespace`, `InstallCostLine`, `getQueryClient`, or `fetchQuery` usage in the install-cost route/runtime component paths.
-- `git diff --check` passed and `apps/www/src/components/tables-2/core` stayed unchanged.
+- `git diff --check` passed and `apps/dashboard/src/components/tables-2/core` stayed unchanged.

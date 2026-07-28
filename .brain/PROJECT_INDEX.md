@@ -4,9 +4,9 @@
 Concise map of the repository so contributors can quickly find the main runtime surfaces and shared modules.
 
 ## Applications
-- `apps/www`: primary web application
+- `apps/dashboard`: primary web application
 - `apps/api`: API service and server-side query/mutation layer
-- `apps/expo-app`: mobile application
+- `apps/mobile`: mobile application
 - `apps/site`: additional web surface
 - `apps/gnd-backlog`: backlog-focused application surface
 

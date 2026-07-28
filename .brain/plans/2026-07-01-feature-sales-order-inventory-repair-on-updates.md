@@ -50,9 +50,9 @@ Add a repair preview after order updates that compares previous inventory-backed
 - Ensure the sales overview Inventory tab refreshes after resolution and surfaces any remaining review-required rows.
 
 ## Affected Files Or Areas
-- `apps/www/src/actions/sales-inventory-sync-save-paths.test.ts`
-- `apps/www/src/components/forms/sales-form/inventory-configurator-dialog.tsx`
-- `apps/www/src/components/sales-overview-system/tabs/inventory-tab.tsx`
+- `apps/dashboard/src/actions/sales-inventory-sync-save-paths.test.ts`
+- `apps/dashboard/src/components/forms/sales-form/inventory-configurator-dialog.tsx`
+- `apps/dashboard/src/components/sales-overview-system/tabs/inventory-tab.tsx`
 - `packages/sales/src/sync-sales-inventory-line-items.ts`
 - `packages/sales/src/sync-sales-inventory-line-items.test.ts`
 - `packages/sales/src/sales-inventory-overview.ts`

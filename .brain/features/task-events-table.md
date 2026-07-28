@@ -4,9 +4,9 @@
 The task events dashboard at `/task-events` lists scheduled/background task events with their status, latest run time, latest record count, and latest run result. It is the list entry point for opening an individual task event detail page.
 
 ## Current Implementation
-- Route: `apps/www/src/app/(sidebar)/task-events/page.tsx`
-- Dashboard component: `apps/www/src/app/(sidebar)/task-events/_components/task-events-dashboard.tsx`
-- Table module: `apps/www/src/components/tables-2/task-events/*`
+- Route: `apps/dashboard/src/app/(sidebar)/task-events/page.tsx`
+- Dashboard component: `apps/dashboard/src/app/(sidebar)/task-events/_components/task-events-dashboard.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/task-events/*`
 - Data source: existing `trpc.taskEvents.list.queryOptions()`
 - The route uses `PageShell`, `HydrateClient`, `ScrollableContent`, `batchPrefetch`, and `getInitialTableSettings("task-events")`.
 - The dashboard uses `useSuspenseQuery` for the task event list, keeps the local title/description/event-name/status search, and renders the restarted `tables-2/task-events` table instead of a card-mapped list.
@@ -32,11 +32,11 @@ The task events dashboard at `/task-events` lists scheduled/background task even
 - The Task Diagnostics link still opens `/task-events/diagnostics`.
 
 ## Validation
-- Focused parity test: `bun test apps/www/src/components/tables-2/task-events/migration-parity.test.ts`
-- Full restarted table suite: `bun test apps/www/src/components/tables-2`
+- Focused parity test: `bun test apps/dashboard/src/components/tables-2/task-events/migration-parity.test.ts`
+- Full restarted table suite: `bun test apps/dashboard/src/components/tables-2`
 - Targeted Biome check over the route, dashboard component, table module, and table registry.
-- Broad `@gnd/www` typecheck still exits on unrelated baseline errors, but the touched-file grep reported no diagnostics for this slice.
+- Broad `@gnd/dashboard` typecheck still exits on unrelated baseline errors, but the touched-file grep reported no diagnostics for this slice.
 - Static scans found no card-mapped list, old manual fetch, raw table, `PageStickyHeader`, or legacy data-table usage in the task events route/dashboard/table surface.
 - `git diff --check` passed.
-- `apps/www/src/components/tables-2/core` has no diff.
+- `apps/dashboard/src/components/tables-2/core` has no diff.
 - Runtime route smoke did not complete locally because both the HTTPS proxy and direct HTTP dev-server URL timed out after 20s with no bytes.

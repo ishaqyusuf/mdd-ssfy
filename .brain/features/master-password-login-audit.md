@@ -16,7 +16,7 @@ Persist master-password login and sales-rep transfer usage for Super Admin revie
 - Audit persistence failure is logged server-side and does not block emergency master-password access.
 - Transfer usage is fail-closed: the sale update, `SalesHistory`, and master-password audit row share one Prisma transaction, so an audit-write failure rolls back the completed transfer evidence and ownership change.
 - Invalid credentials, non-owner/forbidden requests, invalid targets, and unchanged assignments create no transfer-usage row. Account-password transfers create `SalesHistory` but no master-password usage row.
-- The previous `auth_master_password_login_alert` task trigger is no longer registered by `apps/www/src/lib/auth/web-auth.ts`, so normal master-password login activity no longer sends admin email.
+- The previous `auth_master_password_login_alert` task trigger is no longer registered by `apps/dashboard/src/lib/auth/web-auth.ts`, so normal master-password login activity no longer sends admin email.
 
 ## Admin Surface
 - Super Admin users can open `/settings/master-password-logins` from Settings navigation.

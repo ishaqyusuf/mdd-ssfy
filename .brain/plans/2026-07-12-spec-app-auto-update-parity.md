@@ -108,7 +108,7 @@ Because GND has data-entry workflows such as mobile invoices, quotes, jobs, disp
 - Tests should assert that `isAvailable` and `isRollBackToEmbedded` both lead to the download/apply path.
 - Tests should assert that no-update results return to idle without opening the modal.
 - Tests should assert that check failures are silent and fetch/reload failures produce the dismissible failed state.
-- Existing prior art in GND includes `apps/expo-app/src/lib/launch-auto-update.test.ts`, the current `use-launch-auto-update` hook, `app-auto-update-modal`, and `updates-screen`.
+- Existing prior art in GND includes `apps/mobile/src/lib/launch-auto-update.test.ts`, the current `use-launch-auto-update` hook, `app-auto-update-modal`, and `updates-screen`.
 - Reference prior art in al-ghurobaa includes its `use-launch-auto-update` AppState subscription, config/env parsing helpers, `AppAutoUpdateModal`, and Settings > App Updates screen.
 - Manual QA must use an installed preview build. Metro/dev-client reload does not prove Expo Updates production behavior.
 - Manual QA should publish a preview OTA update, open an older installed preview APK, observe automatic download/restart, then confirm the update id/version diagnostics changed after reload.
@@ -126,7 +126,7 @@ Because GND has data-entry workflows such as mobile invoices, quotes, jobs, disp
 - Replacing Settings > App Updates.
 - Adding push notifications for available updates.
 - Forcing updates across incompatible runtime versions.
-- Building a web auto-update system for `apps/www`.
+- Building a web auto-update system for `apps/dashboard`.
 - Publishing the spec to GitHub or any external issue tracker.
 
 ## Further Notes

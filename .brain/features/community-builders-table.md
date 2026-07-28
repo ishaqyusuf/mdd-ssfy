@@ -3,7 +3,7 @@
 ## Status
 Validated migration slice, 2026-06-16. Restarted Sales Orders parity hardening completed 2026-07-17.
 
-The `/community/builders` route now renders through `apps/www/src/components/tables-2/community-builders/*` while preserving the existing community builders route, query, filters, header, and builder modal behavior.
+The `/community/builders` route now renders through `apps/dashboard/src/components/tables-2/community-builders/*` while preserving the existing community builders route, query, filters, header, and builder modal behavior.
 
 ## Behavior
 - The route stays at `/community/builders`; no `/v2` route was added.
@@ -19,22 +19,22 @@ The `/community/builders` route now renders through `apps/www/src/components/tab
 ## Constraints Preserved
 - No new community builder `*V2` query was added.
 - No new filter param or filter metadata endpoint was added.
-- `apps/www/src/components/tables-2/core/*` was not modified.
-- Cleanup removed the old `apps/www/src/components/tables/builder/*` files only after runtime import scans found no remaining consumers.
+- `apps/dashboard/src/components/tables-2/core/*` was not modified.
+- Cleanup removed the old `apps/dashboard/src/components/tables/builder/*` files only after runtime import scans found no remaining consumers.
 
 ## Validation
 - 2026-07-17 restarted parity validation:
-  - Builder form task-grid validation passed with focused Biome, focused Builder form plus Community Builders parity tests (8 tests / 37 assertions), full `apps/www/src/components/tables-2` tests (233 tests / 2337 assertions), touched-file typecheck scan, direct Next and HTTPS `/community/builders` route smokes, legacy table markup scan, `git diff --check`, and a clean `components/tables-2/core` diff. A Playwright CLI screenshot in an unauthenticated browser context was blank and was not counted as browser proof.
+  - Builder form task-grid validation passed with focused Biome, focused Builder form plus Community Builders parity tests (8 tests / 37 assertions), full `apps/dashboard/src/components/tables-2` tests (233 tests / 2337 assertions), touched-file typecheck scan, direct Next and HTTPS `/community/builders` route smokes, legacy table markup scan, `git diff --check`, and a clean `components/tables-2/core` diff. A Playwright CLI screenshot in an unauthenticated browser context was blank and was not counted as browser proof.
   - focused Biome passed for the builders route/header/table files, table config, and page audit test.
   - full restarted table migration parity suite passed with 103 tests / 878 assertions.
   - static scans found no live builder route references to `components/tables/builder`, `@gnd/ui/data-table`, `getQueryClient`, `fetchInfiniteQuery`, `PageStickyHeader`, manual `IntersectionObserver`, or row `map` rendering patterns.
-  - filtered `@gnd/www` typecheck grep reported no diagnostics for touched builders files while broad typecheck remains blocked by unrelated baseline errors.
+  - filtered `@gnd/dashboard` typecheck grep reported no diagnostics for touched builders files while broad typecheck remains blocked by unrelated baseline errors.
   - HTTP smoke returned `200` for `/community/builders` on both `127.0.0.1:3010` and `https://gndprodesk.localhost:3011` after route compile warmup.
-  - `git diff --check` passed and `apps/www/src/components/tables-2/core` remained unchanged.
+  - `git diff --check` passed and `apps/dashboard/src/components/tables-2/core` remained unchanged.
 - Focused Biome passed for the builders route, header, new `tables-2/community-builders` files, and table settings/config files.
-- Filtered `@gnd/www` typecheck produced no diagnostics for the touched builders route/table/header/settings/config files while the full workspace typecheck remains blocked by existing baseline errors.
+- Filtered `@gnd/dashboard` typecheck produced no diagnostics for the touched builders route/table/header/settings/config files while the full workspace typecheck remains blocked by existing baseline errors.
 - Import scans found no remaining runtime references to `components/tables/builder` or `tables/builder`.
-- `git diff -- apps/www/src/components/tables-2/core` was clean.
+- `git diff -- apps/dashboard/src/components/tables-2/core` was clean.
 - `git diff --check` passed for the builder slice.
 - Browser smoke passed with Quick Login as Pablo Cruz / Super Admin:
   - desktop `/community/builders` rendered the builder header, existing `Search Builders...` input, table headers, virtualized builder rows, no app error, no console errors, and no document-level horizontal overflow.

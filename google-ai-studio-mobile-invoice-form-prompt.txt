@@ -4,7 +4,7 @@ You are a senior React Native + Expo engineer working inside this repo:
 
 Build a complete working mobile invoice form for the Expo app at:
 
-apps/expo-app
+apps/mobile
 
 The implementation must be compatible with the existing newSalesForm backend feature and payload schema. Use dummy/mock data by default so the form works immediately without backend access, but structure hooks so they can switch to real tRPC calls later.
 
@@ -25,8 +25,8 @@ Stack:
   - @/components/ui/input-2
   - @/components/ui/text
 - Sales route group already exists:
-  - apps/expo-app/src/app/(sales)/_layout.tsx
-  - apps/expo-app/src/features/sales/...
+  - apps/mobile/src/app/(sales)/_layout.tsx
+  - apps/mobile/src/features/sales/...
 
 Do not add new npm dependencies.
 
@@ -162,33 +162,33 @@ FILES TO CREATE
 
 Create this structure:
 
-apps/expo-app/src/app/(sales)/invoices/new.tsx
-apps/expo-app/src/app/(sales)/invoices/[slug].tsx
+apps/mobile/src/app/(sales)/invoices/new.tsx
+apps/mobile/src/app/(sales)/invoices/[slug].tsx
 
-apps/expo-app/src/features/sales/invoice-form/types.ts
-apps/expo-app/src/features/sales/invoice-form/mock-data.ts
-apps/expo-app/src/features/sales/invoice-form/lib/calculate-summary.ts
-apps/expo-app/src/features/sales/invoice-form/lib/format.ts
-apps/expo-app/src/features/sales/invoice-form/store/use-invoice-form-store.ts
+apps/mobile/src/features/sales/invoice-form/types.ts
+apps/mobile/src/features/sales/invoice-form/mock-data.ts
+apps/mobile/src/features/sales/invoice-form/lib/calculate-summary.ts
+apps/mobile/src/features/sales/invoice-form/lib/format.ts
+apps/mobile/src/features/sales/invoice-form/store/use-invoice-form-store.ts
 
-apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-actions.ts
-apps/expo-app/src/features/sales/invoice-form/api/use-invoice-form-search.ts
+apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-actions.ts
+apps/mobile/src/features/sales/invoice-form/api/use-invoice-form-search.ts
 
-apps/expo-app/src/features/sales/invoice-form/components/invoice-form-screen.tsx
-apps/expo-app/src/features/sales/invoice-form/components/invoice-form-header.tsx
-apps/expo-app/src/features/sales/invoice-form/components/invoice-step-track.tsx
-apps/expo-app/src/features/sales/invoice-form/components/invoice-form-footer.tsx
-apps/expo-app/src/features/sales/invoice-form/components/customer-step.tsx
-apps/expo-app/src/features/sales/invoice-form/components/details-step.tsx
-apps/expo-app/src/features/sales/invoice-form/components/items-step.tsx
-apps/expo-app/src/features/sales/invoice-form/components/item-selector.tsx
-apps/expo-app/src/features/sales/invoice-form/components/line-item-card.tsx
-apps/expo-app/src/features/sales/invoice-form/components/costs-step.tsx
-apps/expo-app/src/features/sales/invoice-form/components/review-step.tsx
+apps/mobile/src/features/sales/invoice-form/components/invoice-form-screen.tsx
+apps/mobile/src/features/sales/invoice-form/components/invoice-form-header.tsx
+apps/mobile/src/features/sales/invoice-form/components/invoice-step-track.tsx
+apps/mobile/src/features/sales/invoice-form/components/invoice-form-footer.tsx
+apps/mobile/src/features/sales/invoice-form/components/customer-step.tsx
+apps/mobile/src/features/sales/invoice-form/components/details-step.tsx
+apps/mobile/src/features/sales/invoice-form/components/items-step.tsx
+apps/mobile/src/features/sales/invoice-form/components/item-selector.tsx
+apps/mobile/src/features/sales/invoice-form/components/line-item-card.tsx
+apps/mobile/src/features/sales/invoice-form/components/costs-step.tsx
+apps/mobile/src/features/sales/invoice-form/components/review-step.tsx
 
 Also update:
 
-apps/expo-app/src/app/(sales)/_layout.tsx
+apps/mobile/src/app/(sales)/_layout.tsx
 
 Add stack screens for:
 - invoices/new
@@ -525,7 +525,7 @@ Visual language:
 
 ROUTES
 
-apps/expo-app/src/app/(sales)/invoices/new.tsx:
+apps/mobile/src/app/(sales)/invoices/new.tsx:
 
 import { InvoiceFormScreen } from "@/features/sales/invoice-form/components/invoice-form-screen";
 
@@ -533,7 +533,7 @@ export default function NewInvoiceRoute() {
   return <InvoiceFormScreen mode="create" />;
 }
 
-apps/expo-app/src/app/(sales)/invoices/[slug].tsx:
+apps/mobile/src/app/(sales)/invoices/[slug].tsx:
 - read slug from useLocalSearchParams
 - render <InvoiceFormScreen mode="edit" slug={slug} />
 

@@ -3,7 +3,7 @@
 import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { normalizeSalesBookFormExtraCosts } from "../apps/www/src/app-deps/(clean-code)/(sales)/_common/data-access/sales-book-extra-costs";
+import { normalizeSalesBookFormExtraCosts } from "../apps/dashboard/src/app-deps/(clean-code)/(sales)/_common/data-access/sales-book-extra-costs";
 import { calculateSalesFormSummary } from "../packages/sales/src/sales-form/domain/costing";
 import {
 	alternateLatestOrderQuote,

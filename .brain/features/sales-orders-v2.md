@@ -23,7 +23,7 @@
   - preserves query params for existing bookmarks
 - `/sales-book/orders/bin`
   - deleted orders route
-  - renders the same `apps/www/src/components/tables-2/sales-orders/*` table with `bin` enabled
+  - renders the same `apps/dashboard/src/components/tables-2/sales-orders/*` table with `bin` enabled
   - uses the existing `SalesOrdersV2Header` and canonical sales-orders URL filter contract
 
 ## Backend Contracts
@@ -75,26 +75,26 @@
 ## Frontend Structure
 
 - Hook
-  - `apps/www/src/hooks/use-sales-orders-v2-filter-params.ts`
+  - `apps/dashboard/src/hooks/use-sales-orders-v2-filter-params.ts`
 - Header
-  - `apps/www/src/components/sales-orders-v2-header.tsx`
-  - `apps/www/src/components/sales-orders-v2-export.tsx`
-  - `apps/www/src/components/sales-orders-export.ts`
-  - `apps/www/src/components/sales-tabs.tsx` renders the shared sales-book Orders/Quotes/Production/Shelf Items navigation as a real `ButtonGroup` in both the page-tab portal and the compact inline header placement.
+  - `apps/dashboard/src/components/sales-orders-v2-header.tsx`
+  - `apps/dashboard/src/components/sales-orders-v2-export.tsx`
+  - `apps/dashboard/src/components/sales-orders-export.ts`
+  - `apps/dashboard/src/components/sales-tabs.tsx` renders the shared sales-book Orders/Quotes/Production/Shelf Items navigation as a real `ButtonGroup` in both the page-tab portal and the compact inline header placement.
   - `/sales-book/shelf-items` now uses the restarted route shell plus `components/tables-2/shelf-items/*`; product rows consume table-core compact `56px` spacing, sticky Product/Actions columns, smaller product thumbnails, and tailored Product/Category/Price/Status/Actions widths while preserving the existing shelf product and category management workflows.
 - Summary widgets
-  - `apps/www/src/components/sales-orders-v2-summary-widgets.tsx`
+  - `apps/dashboard/src/components/sales-orders-v2-summary-widgets.tsx`
 - Table
-  - `apps/www/src/components/tables-2/sales-orders/columns.tsx`
-  - `apps/www/src/components/tables-2/sales-orders/data-table.tsx`
-  - `apps/www/src/components/tables-2/sales-orders/bottom-bar.tsx`
-  - `apps/www/src/components/tables-2/sales-orders/table-header.tsx`
-  - `apps/www/src/components/tables-2/sales-orders/skeleton.tsx`
-  - `apps/www/src/components/tables-2/sales-orders/empty-states.tsx`
+  - `apps/dashboard/src/components/tables-2/sales-orders/columns.tsx`
+  - `apps/dashboard/src/components/tables-2/sales-orders/data-table.tsx`
+  - `apps/dashboard/src/components/tables-2/sales-orders/bottom-bar.tsx`
+  - `apps/dashboard/src/components/tables-2/sales-orders/table-header.tsx`
+  - `apps/dashboard/src/components/tables-2/sales-orders/skeleton.tsx`
+  - `apps/dashboard/src/components/tables-2/sales-orders/empty-states.tsx`
 - Route
-  - `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx`
-  - `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/v2/page.tsx` redirects to the canonical route
-  - `apps/www/src/app/(sidebar)/(sales)/sales-book/orders/bin/page.tsx`
+  - `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx`
+  - `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/orders/v2/page.tsx` redirects to the canonical route
+  - `apps/dashboard/src/app/(sidebar)/(sales)/sales-book/orders/bin/page.tsx`
 
 ## Architectural Notes
 
@@ -167,7 +167,8 @@
   - the sticky `Order #` column defaults to a narrower 180px width with a 150px minimum so the table exposes more downstream columns without changing row actions or sort behavior
   - the `Address` column defaults to a compact 220px width with a 150px minimum while preserving truncation and tooltip access to full addresses
   - the `Invoice` column defaults to 120px with a 100px minimum so money totals stay readable while freeing horizontal space for adjacent order columns
-  - the `/sales-rep` recent-sales panel now reuses `components/tables-2/sales-orders` in embedded single-page mode with a five-row default size, `showing: null` for sales-rep default scoping, and the same compact table-core behavior as the canonical orders page.
+  - the canonical Sales Orders table is workspace-only: `/sales-book/orders` retains filters, persisted settings, selection, virtualization, drag-and-drop, row actions, and infinite scrolling.
+  - `/sales-rep` reuses the canonical `sales.getOrders` query scope, lifecycle-status resolver, and URL-driven Sales Overview opener through a bounded five-order semantic list. It intentionally omits table-workspace behavior and internal scrolling because the dashboard panel is a recent-items summary with a `View all` path to the full orders workspace.
   - Sales Orders status, production, fulfillment, and sales-rep columns default to narrower content-sized widths while preserving resizing and action-column capacity.
 - Smart funnel status
   - `pending`
@@ -193,7 +194,7 @@
 - 2026-07-27 inbound Sales Orders filtering:
   - Added the shared `inbound` query parameter to the canonical list and summary schemas, legacy sales-query adapter, URL filter parser, and `filters.salesOrders` metadata.
   - Manual values are `AVAILABLE`, `ORDERED`, and `PENDING ORDER`; inventory-owned values are `pending`, `in_progress`, `completed`, `issue_open`, and `closed`; `none` finds orders with neither a manual status nor active linked inventory inbound.
-  - Focused query/schema tests passed (29 tests / 93 assertions), and `@gnd/sales`, `@gnd/api`, and `@gnd/www` typechecks passed.
+  - Focused query/schema tests passed (29 tests / 93 assertions), and `@gnd/sales`, `@gnd/api`, and `@gnd/dashboard` typechecks passed.
   - The repository-wide test run completed with 2,174 passing, one skipped, and 25 pre-existing failures in unrelated inventory, sales-control, redirect, quote, packing, and table-migration suites; neither inbound-filter focused suite failed.
   - Authenticated browser QA verified all nine filter options, `inbound=PENDING ORDER` against matching manual rows, and `inbound=pending` against 33 active inventory-linked orders. Both list and summary requests returned HTTP 200.
 - 2026-07-22 batch payment review:
@@ -207,38 +208,38 @@
 - 2026-07-16 saved-tab edit dialog crash fix:
   - Fixed a maximum-update-depth crash when opening the page-tabs Edit dialog by replacing the render-created default tab array with a stable empty tab snapshot before syncing local dialog state.
   - Updated the root Next catalog and the WWW Next lint config from `16.2.9` to latest verified `16.2.10`, then refreshed `bun.lock`.
-  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
-  - `bunx biome check --formatter-enabled=false apps/www/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/www/src/components/page-tabs/page-tabs.tsx apps/www/package.json package.json` passed.
-  - Filtered `@gnd/www` typecheck scan reported no page-tabs/package diagnostics.
+  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/dashboard/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false apps/dashboard/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/dashboard/src/components/page-tabs/page-tabs.tsx apps/dashboard/package.json package.json` passed.
+  - Filtered `@gnd/dashboard` typecheck scan reported no page-tabs/package diagnostics.
 - 2026-07-16 typed page-tab invalidation:
   - Sales Orders saved-tab counts now refresh through the typed `PAGE_TAB_PATHS.orders` key when order creation, payment, payment review, production, fulfillment, or dispatch paths invalidate the sales list.
   - The shared invalidation hook now supports `usePageTabs().invalidate()` for the current path and `usePageTabs().invalidate("orders")` from any page, with raw path normalization/deduping available through `invalidatePath`.
   - `createPageTabsInvalidation` keeps the hook's current-path default and raw-path fallback testable without React, so future Sales Orders payment/activity refreshes can reuse the same contract from any page.
-  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/www/src/components/page-tabs/invalidation.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
-  - `bunx biome check apps/api/src/trpc/routers/page-tabs.route.ts apps/www/src/components/page-tabs/invalidation.ts apps/www/src/components/page-tabs/invalidation.test.ts apps/www/src/components/page-tabs/use-page-tabs.ts apps/www/src/components/page-tabs/query-utils.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
-  - Follow-up validation covered the expanded page-tabs/router/dealer integration. Focused page-tabs tests still pass, focused Biome passed for the page-tabs/router/dealer files, `git diff --check` passed, and filtered `@gnd/api` / `@gnd/www` typecheck scans reported no touched-file diagnostics.
+  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/dashboard/src/components/page-tabs/invalidation.test.ts apps/dashboard/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bunx biome check apps/api/src/trpc/routers/page-tabs.route.ts apps/dashboard/src/components/page-tabs/invalidation.ts apps/dashboard/src/components/page-tabs/invalidation.test.ts apps/dashboard/src/components/page-tabs/use-page-tabs.ts apps/dashboard/src/components/page-tabs/query-utils.ts apps/dashboard/src/components/page-tabs/query-utils.test.ts` passed.
+  - Follow-up validation covered the expanded page-tabs/router/dealer integration. Focused page-tabs tests still pass, focused Biome passed for the page-tabs/router/dealer files, `git diff --check` passed, and filtered `@gnd/api` / `@gnd/dashboard` typecheck scans reported no touched-file diagnostics.
 - 2026-07-16 payment review explicit filter:
   - Replaced the Invoice-column queue trigger with explicit `paymentReview=needs_review` filtering.
   - Invoice column sorting now maps to `grandTotal` again.
   - Payment Review defaults to latest clean payment ordering when no sort is selected, while explicit user sorts such as invoice amount are still applied inside the filtered queue and can be saved with tabs.
   - Saved-tab counts for `/sales-book/orders` default to `showing="all sales"` and use the distinct `SalesPayments.groupBy(orderId)` clean-payment grouping only when `paymentReview=needs_review`.
-  - `bun test apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/page-tabs.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bun test apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/page-tabs.route.test.ts apps/dashboard/src/components/page-tabs/query-utils.test.ts` passed.
   - `bunx biome check --formatter-enabled=false` passed for the touched files excluding `apps/api/src/db/queries/filters.ts`, which still carries existing unrelated lint debt.
-  - Filtered `@gnd/api` and `@gnd/www` typecheck scans reported no diagnostics for the touched files.
+  - Filtered `@gnd/api` and `@gnd/dashboard` typecheck scans reported no diagnostics for the touched files.
 - 2026-07-16 batch PDF validation:
   - Browser-selected five visible orders on `/sales-book/orders`: `08670LRG`, `08669PC`, `08708PC`, `08706DB`, and `08704PC`.
   - Batch `Print > PDF > Order & Packing` produced `~/Downloads/Sales_Print_10_.pdf`.
   - Fixed the page's dev-overlay `UNAUTHORIZED` server-render error by hydrating the root `SessionProvider` with the server session before client tRPC headers are built.
   - Reloaded `/sales-book/orders`; the table rendered and recent browser console errors were empty.
   - Current-code batch `Print > PDF > Order` showed the `PDF download started` toast and produced `~/Downloads/Sales_Print_4_.pdf`.
-  - Focused Prettier check passed for touched auth/provider/layout files; `bun --filter @gnd/www typecheck` remains blocked by existing unrelated baseline diagnostics outside this fix.
+  - Focused Prettier check passed for touched auth/provider/layout files; `bun --filter @gnd/dashboard typecheck` remains blocked by existing unrelated baseline diagnostics outside this fix.
 - 2026-07-15 payment review queue implementation:
   - `bun run db:generate` completed.
   - Added migration `packages/db/src/schema/migrations/20260715120000_add_sales_payment_review/migration.sql`.
   - `bun run with-env prisma migrate dev --name add_sales_payment_review --create-only` reached local MySQL but stopped on pre-existing broad drift and requested a reset; reset was not run.
   - Applied this migration's SQL directly to local `gnd-prisma2` for browser QA only.
   - `bun test apps/api/src/db/queries/sales-orders-v2.test.ts packages/sales/src/payment-system/application/payment-review.test.ts` passed.
-  - Filtered type checks for changed API/www/sales files were clean after excluding unrelated existing repo-wide errors.
+  - Filtered type checks for changed API/dashboard/sales files were clean after excluding unrelated existing repo-wide errors.
   - Broad package type checks still fail on existing unrelated type issues in API/sales/UI packages.
   - Browser QA on `/sales-book/orders`: Invoice header click set `sort=latestPaymentAt.desc`; Review Settings appeared with Production, Fulfillment, and Inbound checkboxes; row action menu showed Create Payment Link and Mark Payment Reviewed; Create Payment Link opened the `Link created` modal with Copy, Click to open, and checkout URL.
   - Browser QA completed a Square sandbox checkout for order `08670LRG`; the resulting `SalesPayments` row was stamped `origin = online`, `reviewStatus = needs_review`, and appeared in the invoice review queue before manual review removed it.
@@ -250,27 +251,27 @@
 - 2026-07-15 payment review settings placement:
   - Removed the header `Review Settings` popover button.
   - Added an automatic inline `Payment Review Settings` bar above the Sales Orders table when `sort=latestPaymentAt.*` is active and the user can manage payment review settings.
-  - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx` passed.
+  - `bunx biome check --formatter-enabled=false apps/dashboard/src/components/sales-orders-v2-header.tsx apps/dashboard/src/app/(sidebar)/(sales)/sales-book/orders/page.tsx` passed.
 - 2026-07-15 payment review actions:
   - Payment review mode row actions now hide the direct edit/open icons and show only the more menu plus a direct primary `Review` button.
   - The batch bottom bar `Mark as` menu includes `Review` only while `sort=latestPaymentAt.*` is active.
-  - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-menu.tsx apps/www/src/components/tables-2/sales-orders/bottom-bar.tsx apps/www/src/components/tables-2/sales-orders/columns.tsx` passed.
+  - `bunx biome check --formatter-enabled=false apps/dashboard/src/components/sales-menu.tsx apps/dashboard/src/components/tables-2/sales-orders/bottom-bar.tsx apps/dashboard/src/components/tables-2/sales-orders/columns.tsx` passed.
 - 2026-07-10 filtered Excel export implementation:
-  - `bun test apps/www/src/components/sales-orders-export.test.ts` passed.
-  - `bunx biome check --formatter-enabled=false apps/www/src/components/sales-orders-export.ts apps/www/src/components/sales-orders-export.test.ts apps/www/src/components/sales-orders-v2-export.tsx apps/www/src/components/sales-orders-v2-header.tsx apps/www/src/components/tables-2/sales-orders/data-table.tsx apps/www/src/store/sales-orders.ts` passed.
+  - `bun test apps/dashboard/src/components/sales-orders-export.test.ts` passed.
+  - `bunx biome check --formatter-enabled=false apps/dashboard/src/components/sales-orders-export.ts apps/dashboard/src/components/sales-orders-export.test.ts apps/dashboard/src/components/sales-orders-v2-export.tsx apps/dashboard/src/components/sales-orders-v2-header.tsx apps/dashboard/src/components/tables-2/sales-orders/data-table.tsx apps/dashboard/src/store/sales-orders.ts` passed.
   - `git diff --check` passed.
   - Broad typecheck/build/browser validation was intentionally not run under the fast Bun monorepo command discipline for this narrow UI/reporting change.
 - 2026-07-15 saved filter tabs:
-  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/community.route.test.ts apps/www/src/components/page-tabs/query-utils.test.ts` passed.
+  - `bun test apps/api/src/trpc/routers/page-tabs.route.test.ts apps/api/src/db/queries/sales-orders-v2.test.ts apps/api/src/trpc/routers/community.route.test.ts apps/dashboard/src/components/page-tabs/query-utils.test.ts` passed.
   - `bunx biome check --formatter-enabled=false` passed for the touched page-tabs, Sales Orders, Unit Invoices, search-filter, and related test files.
-  - Filtered `@gnd/api` typecheck output reported no diagnostics for touched page-tabs, sales-orders-v2, unit-invoices, or community route test files; full `@gnd/api` typecheck remains blocked by existing unrelated baseline diagnostics, and `@gnd/www` typecheck was stopped after running silently for several minutes.
+  - Filtered `@gnd/api` typecheck output reported no diagnostics for touched page-tabs, sales-orders-v2, unit-invoices, or community route test files; full `@gnd/api` typecheck remains blocked by existing unrelated baseline diagnostics, and `@gnd/dashboard` typecheck was stopped after running silently for several minutes.
 - 2026-07-15 saved filter tab placement:
   - Shared `SearchFilterTRPC` now renders saved filter tabs inline before the search input instead of mounting them into the top `#pageTab` portal.
   - `PageTabs` automatically prepends an `All` tab whenever saved tabs exist.
   - The save `+` action now renders inside the tab group.
   - The tab group now uses a single icon-only Edit button below `2xl`, expands the label on `2xl`, and opens a shadcn-composed edit dialog with sortable saved tabs, rename, active/draft, default, delete confirmation, and Super Admin public/private controls.
   - The edit dialog saved-tab rows are compact and flat: each row keeps the drag handle outside a grouped title input, places the tab count as the input suffix, hides repeated active/private badges, removes the card border treatment, adds light row dividers, and renders each saved query parameter as its own small badge below the title.
-  - `bunx biome check --formatter-enabled=false apps/www/src/components/page-tabs/page-tabs.tsx apps/www/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/www/src/components/page-tabs/confirm-delete-button.tsx apps/www/src/components/page-tabs/save-page-tab-button.tsx apps/www/src/components/midday-search-filter/search-filter-trpc.tsx` passed.
+  - `bunx biome check --formatter-enabled=false apps/dashboard/src/components/page-tabs/page-tabs.tsx apps/dashboard/src/components/page-tabs/manage-page-tabs-dialog.tsx apps/dashboard/src/components/page-tabs/confirm-delete-button.tsx apps/dashboard/src/components/page-tabs/save-page-tab-button.tsx apps/dashboard/src/components/midday-search-filter/search-filter-trpc.tsx` passed.
 - 2026-06-16 browser smoke:
   - Quick Login as Pablo Cruz / Super Admin.
   - Desktop `/sales-book/orders` rendered summary cards, Orders search placeholder, table headers, and 20 virtual rows with no `/sales-book/orders/v2` links or Legacy button.

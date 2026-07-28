@@ -4,12 +4,12 @@
 The support bug reports route at `/support/bug-reports` lets employees review their submitted bug reports and lets Super Admin users triage all submitted reports.
 
 ## Current Implementation
-- Route: `apps/www/src/app/(sidebar)/support/bug-reports/page.tsx`
-- Workspace component: `apps/www/src/components/bug-reports/bug-report-workspace.tsx`
-- Table module: `apps/www/src/components/tables-2/bug-reports/*`
-- Access settings route: `apps/www/src/app/(sidebar)/settings/bug-reports/page.tsx`
-- Access settings component: `apps/www/src/components/settings/bug-report-access-settings-page.tsx`
-- Access settings table module: `apps/www/src/components/tables-2/bug-report-access-employees/*`
+- Route: `apps/dashboard/src/app/(sidebar)/support/bug-reports/page.tsx`
+- Workspace component: `apps/dashboard/src/components/bug-reports/bug-report-workspace.tsx`
+- Table module: `apps/dashboard/src/components/tables-2/bug-reports/*`
+- Access settings route: `apps/dashboard/src/app/(sidebar)/settings/bug-reports/page.tsx`
+- Access settings component: `apps/dashboard/src/components/settings/bug-report-access-settings-page.tsx`
+- Access settings table module: `apps/dashboard/src/components/tables-2/bug-report-access-employees/*`
 - Data sources:
   - `trpc.bugReports.mine.queryOptions()` for normal users
   - `trpc.bugReports.adminList.queryOptions({ status })` for Super Admin users
@@ -55,12 +55,12 @@ The support bug reports route at `/support/bug-reports` lets employees review th
 - Existing bug-report access behavior is unchanged: Super Admin users can toggle employee-specific access, Super Admin employees are enabled by role, and the employee list query stays client-guarded instead of server-prefetched.
 
 ## Validation
-- Focused parity test: `bun test apps/www/src/components/tables-2/bug-reports/migration-parity.test.ts`
-- Full restarted table suite: `bun test apps/www/src/components/tables-2`
+- Focused parity test: `bun test apps/dashboard/src/components/tables-2/bug-reports/migration-parity.test.ts`
+- Full restarted table suite: `bun test apps/dashboard/src/components/tables-2`
 - Targeted Biome check over the route, workspace, table module, and table registry.
-- Broad `@gnd/www` typecheck still exits on unrelated baseline errors, but the touched-file grep reported no diagnostics for this slice.
+- Broad `@gnd/dashboard` typecheck still exits on unrelated baseline errors, but the touched-file grep reported no diagnostics for this slice.
 - Static scans found no card-mapped report rows, old table import, shared-header pattern, or manual route fetch in the bug reports route/workspace/table surface.
 - Runtime route smoke returned `200` from both `https://gndprodesk.localhost:3011/support/bug-reports` and `http://localhost:3010/support/bug-reports` after the dev server booted.
 - `git diff --check` passed.
-- `apps/www/src/components/tables-2/core` has no diff.
-- Access settings follow-up validation: `bun test apps/www/src/components/tables-2/bug-reports/migration-parity.test.ts` passed with coverage that `/settings/bug-reports` hydrates `bug-report-access-employees`, the client component renders the domain table/column visibility control, the guarded employee query is preserved, and the switch/by-role behavior lives in the table columns.
+- `apps/dashboard/src/components/tables-2/core` has no diff.
+- Access settings follow-up validation: `bun test apps/dashboard/src/components/tables-2/bug-reports/migration-parity.test.ts` passed with coverage that `/settings/bug-reports` hydrates `bug-report-access-employees`, the client component renders the domain table/column visibility control, the guarded employee query is preserved, and the switch/by-role behavior lives in the table columns.

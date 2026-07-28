@@ -321,7 +321,7 @@ flowchart TD
 - `apps/storefront/src/components/address-autocomplete.tsx`
 - `apps/storefront/src/components/storefront/product-configurator.tsx`
 - `apps/storefront/src/components/storefront/order-detail-client.tsx`
-- `apps/www/src/components/storefront/storefront-operations-panels.tsx`
+- `apps/dashboard/src/components/storefront/storefront-operations-panels.tsx`
 - Storefront transactional notifications/email templates
 - `.brain/database/`, `.brain/api/`, `.brain/features/`, and ADR documentation
   required by the final implementation
