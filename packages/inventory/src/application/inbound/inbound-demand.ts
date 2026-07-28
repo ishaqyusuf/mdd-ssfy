@@ -23,18 +23,26 @@ type InboundDemandQueueStatus =
   | "partially_received"
   | "received"
   | "cancelled";
+export const NEW_INBOUND_SHIPMENT_STATUSES = [
+  "pending",
+  "in_progress",
+] as const;
+export type NewInboundShipmentStatus =
+  (typeof NEW_INBOUND_SHIPMENT_STATUSES)[number];
 
 export type CreateInboundShipmentFromDemandsInput = {
   supplierId: number;
   demandIds: number[];
   reference?: string | null;
   expectedAt?: Date | null;
+  status?: NewInboundShipmentStatus;
 };
 
 export type CreateInboundShipmentInput = {
   supplierId: number;
   reference?: string | null;
   expectedAt?: Date | null;
+  status?: NewInboundShipmentStatus;
 };
 
 export type CreateInboundShipmentFromDemandsResult = {
@@ -1043,7 +1051,7 @@ export async function createInboundShipment(
       supplierId: input.supplierId,
       reference: input.reference ?? null,
       expectedAt: input.expectedAt ?? null,
-      status: "pending",
+      status: input.status ?? "pending",
       progress: 0,
     },
     select: {
@@ -1689,7 +1697,7 @@ export async function createInboundShipmentFromDemands(
       supplierId: input.supplierId,
       reference: input.reference ?? null,
       expectedAt: input.expectedAt ?? null,
-      status: "pending",
+      status: input.status ?? "pending",
       progress: 0,
     },
     select: {

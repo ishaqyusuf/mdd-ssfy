@@ -120,6 +120,26 @@ export function getSingleInventoryInboundId(
 	return linkedInbounds.length === 1 ? (linkedInbounds[0]?.id ?? null) : null;
 }
 
+export function getSalesInboundActionIntent(
+	ownership?: InventoryInboundOwnershipLike | null,
+) {
+	const hasInventoryInbound = !!ownership?.hasInventoryInbound;
+
+	if (!hasInventoryInbound) {
+		return {
+			inboundId: null,
+			openCreate: true,
+			segment: "stock" as const,
+		};
+	}
+
+	return {
+		inboundId: getSingleInventoryInboundId(ownership),
+		openCreate: false,
+		segment: "inbounds" as const,
+	};
+}
+
 export function getInventoryInboundOwnershipStatus(
 	ownership?: InventoryInboundOwnershipLike | null,
 ) {

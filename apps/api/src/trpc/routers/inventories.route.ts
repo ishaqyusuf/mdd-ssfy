@@ -89,6 +89,7 @@ import {
 	inventoryVariantStockForm,
 	inventoryVariantsWorkspace,
 	lowStockSummary,
+	NEW_INBOUND_SHIPMENT_STATUSES,
 	pendingStockAllocations,
 	queueDykeStepToInventorySync,
 	queueInventoryToDykeSync,
@@ -310,6 +311,7 @@ const inboundReceiptIssueTypeSchema = z.enum([
 export const updateInboundShipmentStatusSchema = z.object({
 	inboundId: inventoryPositiveIdSchema,
 	status: inboundShipmentStatusSchema,
+	note: z.string().trim().max(2000).optional().nullable(),
 });
 
 export const receiveInboundShipmentSchema = z.object({
@@ -341,6 +343,8 @@ export const createInboundShipmentFromDemandsSchema = z.object({
 	supplierId: inventoryPositiveIdSchema,
 	demandIds: inventoryPositiveIdsSchema.optional(),
 	lineItemComponentIds: inventoryPositiveIdsSchema.optional(),
+	status: z.enum(NEW_INBOUND_SHIPMENT_STATUSES).optional(),
+	note: z.string().trim().max(2000).optional().nullable(),
 	componentSelections: z
 		.array(
 			z.object({

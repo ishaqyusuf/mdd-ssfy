@@ -7,6 +7,10 @@ export function serializeTagValue(value: unknown): string {
   }
 }
 
+export function getTagQueryValues(value: unknown): string[] {
+  return Array.from(new Set([serializeTagValue(value), String(value)]));
+}
+
 export function deserializeTagValue(value: unknown): unknown {
   if (typeof value !== "string") return value;
   if (value === "undefined") return undefined;

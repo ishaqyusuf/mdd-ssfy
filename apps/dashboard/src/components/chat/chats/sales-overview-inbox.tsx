@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityHistory } from "../activity-history";
 import { Chat, useChat } from "../chat";
+import { buildSalesOverviewActivityFilter } from "./sales-overview-activity-filter";
 
 const channelNames = [
 	"sales_info",
@@ -207,10 +208,10 @@ export function SalesOverviewInbox({
 	if (!saleData?.id) return null;
 
 	const trpc = useTRPC();
-	const salesFilter = activityOr([
-		activityTag("salesId", String(saleData.id)),
-		activityTag("salesNo", String(saleData.orderId)),
-	]);
+	const salesFilter = buildSalesOverviewActivityFilter({
+		id: saleData.id,
+		orderId: saleData.orderId,
+	});
 	const isInboundOnly = variant === "inbound";
 	const isActivityView = variant === "activity";
 	const activityFilter = isInboundOnly
@@ -309,7 +310,9 @@ export function SalesOverviewInbox({
 					<SalesInboxComposer />
 				</Chat>
 			</div>
-			<div className={cn(isActivityView && "min-h-0 flex-1 overflow-y-auto pr-1")}>
+			<div
+				className={cn(isActivityView && "min-h-0 flex-1 overflow-y-auto pr-1")}
+			>
 				<ActivityHistory
 					data={filteredActivityRows}
 					isPending={activityQuery.isPending}

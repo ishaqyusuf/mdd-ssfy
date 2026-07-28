@@ -2277,6 +2277,7 @@ describe("createInboundShipmentFromDemands", () => {
 				supplierId: 301,
 				demandIds: [801, 802],
 				reference: "PO-1",
+				status: "in_progress",
 			},
 		);
 
@@ -2292,7 +2293,7 @@ describe("createInboundShipmentFromDemands", () => {
 					supplierId: 301,
 					reference: "PO-1",
 					expectedAt: null,
-					status: "pending",
+					status: "in_progress",
 					progress: 0,
 				},
 				select: {

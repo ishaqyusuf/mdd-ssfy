@@ -3,6 +3,7 @@
 import type { RouterOutputs } from "@api/trpc/routers/_app";
 
 import { useTRPC } from "@/trpc/client";
+import type { NewInboundShipmentStatus } from "@gnd/inventory";
 import { ComboboxDropdown } from "@gnd/ui/combobox-dropdown";
 
 import { Alert, AlertDescription, AlertTitle } from "@gnd/ui/alert";
@@ -57,6 +58,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@gnd/ui/popover";
 import { Separator } from "@gnd/ui/separator";
 import { Skeleton } from "@gnd/ui/skeleton";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
+import { Textarea } from "@gnd/ui/textarea";
 import { toast } from "@gnd/ui/use-toast";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -92,7 +94,6 @@ type InboundShipmentStatus =
 	| "issue_open"
 	| "closed"
 	| "cancelled";
-
 function formatQty(value: number | null | undefined) {
 	return Number(value || 0).toLocaleString(undefined, {
 		maximumFractionDigits: 2,
@@ -693,6 +694,9 @@ function InventoryActionBar({
 	const [supplierId, setSupplierId] = useState("");
 	const [expectedAt, setExpectedAt] = useState("");
 	const [reference, setReference] = useState("");
+	const [inboundStatus, setInboundStatus] =
+		useState<NewInboundShipmentStatus>("pending");
+	const [inboundNote, setInboundNote] = useState("");
 	const [createdInboundId, setCreatedInboundId] = useState<number | null>(null);
 	useEffect(() => {
 		if (!openInboundForm) return;
@@ -747,6 +751,8 @@ function InventoryActionBar({
 				setSelectedInboundRowIds([]);
 				setReference("");
 				setExpectedAt("");
+				setInboundStatus("pending");
+				setInboundNote("");
 				setInventorySegment("inbounds", {
 					inboundId: data.inboundId,
 				});
@@ -921,6 +927,8 @@ function InventoryActionBar({
 			componentSelections: selectedComponentSelections,
 			reference: reference.trim() || null,
 			expectedAt: expectedAt ? new Date(`${expectedAt}T00:00:00`) : null,
+			status: inboundStatus,
+			note: inboundNote.trim() || null,
 		});
 	};
 	const canMarkAllAvailable = canMarkAllInventoryAvailable({
@@ -990,7 +998,7 @@ function InventoryActionBar({
 			</div>
 			{isInboundFormOpen ? (
 				<div className="mt-3 space-y-3 rounded-md border bg-background p-3">
-					<div className="grid gap-2 md:grid-cols-[1.2fr_1fr_1fr]">
+					<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_1fr_0.8fr]">
 						<div className="space-y-2">
 							<ComboboxDropdown
 								items={supplierItems}
@@ -1049,7 +1057,45 @@ function InventoryActionBar({
 							onChange={(event) => setReference(event.target.value)}
 							placeholder="PO / reference"
 						/>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									type="button"
+									variant="outline"
+									className="w-full justify-between bg-background font-normal"
+								>
+									{inboundStatus === "in_progress"
+										? "In progress"
+										: "Pending"}
+									<Icons.ChevronDown className="size-4 opacity-50" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="start">
+								<DropdownMenuLabel>Initial inbound status</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								<DropdownMenuRadioGroup
+									value={inboundStatus}
+									onValueChange={(value) =>
+										setInboundStatus(value as NewInboundShipmentStatus)
+									}
+								>
+									<DropdownMenuRadioItem value="pending">
+										Pending
+									</DropdownMenuRadioItem>
+									<DropdownMenuRadioItem value="in_progress">
+										In progress
+									</DropdownMenuRadioItem>
+								</DropdownMenuRadioGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</div>
+					<Textarea
+						value={inboundNote}
+						maxLength={2000}
+						onChange={(event) => setInboundNote(event.target.value)}
+						placeholder="Inbound note (appears in Sales Overview activity)"
+						aria-label="Inbound note"
+					/>
 					<div className="max-h-72 space-y-2 overflow-y-auto pr-1">
 						{inboundRows.map((row) => {
 							const isChecked = selectedInboundRowIds.includes(row.id);
@@ -1305,9 +1351,14 @@ function InventoryInboundShipmentRow({
 	readOnlyReason: string | null;
 	isUpdating: boolean;
 	isReceiving: boolean;
-	onUpdateStatus: (status: InboundShipmentStatus) => void;
+	onUpdateStatus: (
+		status: InboundShipmentStatus,
+		note: string | null,
+		onSuccess: () => void,
+	) => void;
 	onReceive: () => void;
 }) {
+	const [statusNote, setStatusNote] = useState("");
 	const canReceive =
 		!isReadOnly &&
 		!["completed", "closed", "cancelled"].includes(shipment.status) &&
@@ -1378,10 +1429,19 @@ function InventoryInboundShipmentRow({
 						</Alert>
 					) : null}
 					<div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-						<p className="text-xs text-muted-foreground">
-							Expected {formatDateValue(shipment.expectedAt)}
-						</p>
-						<div className="flex flex-wrap gap-2">
+						<div className="min-w-0 flex-1 space-y-2">
+							<p className="text-xs text-muted-foreground">
+								Expected {formatDateValue(shipment.expectedAt)}
+							</p>
+							<Textarea
+								value={statusNote}
+								maxLength={2000}
+								onChange={(event) => setStatusNote(event.target.value)}
+								placeholder="Optional status note for Sales Overview activity"
+								aria-label={`Inbound #${shipment.id} status note`}
+							/>
+						</div>
+						<div className="flex shrink-0 flex-wrap gap-2">
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<Button
@@ -1411,7 +1471,13 @@ function InventoryInboundShipmentRow({
 											disabled={
 												isReadOnly || isUpdating || status === shipment.status
 											}
-											onSelect={() => onUpdateStatus(status)}
+											onSelect={() =>
+												onUpdateStatus(
+													status,
+													statusNote.trim() || null,
+													() => setStatusNote(""),
+												)
+											}
 										>
 											{titleCaseLabel(status)}
 										</DropdownMenuItem>
@@ -1678,12 +1744,18 @@ function InventoryInboundsPanel({
 					readOnlyReason={readOnlyReason}
 					isUpdating={updateStatus.isPending}
 					isReceiving={receiveInbound.isPending}
-					onUpdateStatus={(status) => {
+					onUpdateStatus={(status, note, onSuccess) => {
 						if (!isReadOnly) {
-							updateStatus.mutate({
-								inboundId: shipment.id,
-								status,
-							});
+							updateStatus.mutate(
+								{
+									inboundId: shipment.id,
+									status,
+									note,
+								},
+								{
+									onSuccess,
+								},
+							);
 						}
 					}}
 					onReceive={() => receiveShipment(shipment)}
@@ -2220,8 +2292,12 @@ function SalesOverviewInventoryContentBody({
 	const queryClient = useQueryClient();
 	const [autoSyncOrderId, setAutoSyncOrderId] = useState<number | null>(null);
 	const [openInboundForm, setOpenInboundForm] = useState(false);
-	const { inventorySegment: stockFilter, setInventorySegment: setStockFilter } =
-		useSalesInventorySegmentQuery();
+	const {
+		inventorySegment: stockFilter,
+		openInboundCreator,
+		setInventorySegment: setStockFilter,
+		setOpenInboundCreator,
+	} = useSalesInventorySegmentQuery();
 	const normalizedSalesOrderId = salesOrderId ? Number(salesOrderId) : 0;
 	const inventoryQuery = useQuery(
 		trpc.inventories.salesInventoryOverview.queryOptions(
@@ -2432,8 +2508,11 @@ function SalesOverviewInventoryContentBody({
 			<InventoryActionBar
 				overview={overview}
 				salesOrderId={normalizedSalesOrderId}
-				openInboundForm={openInboundForm}
-				onInboundFormOpened={() => setOpenInboundForm(false)}
+				openInboundForm={openInboundForm || openInboundCreator}
+				onInboundFormOpened={() => {
+					setOpenInboundForm(false);
+					setOpenInboundCreator(false);
+				}}
 			/>
 			{stockFilter === "inbounds" ? (
 				<InventoryInboundsPanel

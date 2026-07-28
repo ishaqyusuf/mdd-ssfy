@@ -113,6 +113,7 @@ describe("inventoriesRouter", () => {
       mod.updateInboundShipmentStatusSchema.safeParse({
         inboundId: 1,
         status: "cancelled",
+        note: "Supplier confirmed the cancellation.",
       }).success,
     ).toBe(true);
 
@@ -120,6 +121,7 @@ describe("inventoriesRouter", () => {
       { inboundId: 0, status: "cancelled" },
       { inboundId: -1, status: "closed" },
       { inboundId: 1.25, status: "completed" },
+      { inboundId: 1, status: "pending", note: "x".repeat(2001) },
     ]) {
       expect(mod.updateInboundShipmentStatusSchema.safeParse(input).success).toBe(
         false,
@@ -191,6 +193,8 @@ describe("inventoriesRouter", () => {
         supplierId: 1,
         demandIds: [2],
         lineItemComponentIds: [3],
+        status: "in_progress",
+        note: "Vendor confirmed the order.",
         componentSelections: [
           {
             lineItemComponentIds: [4, 5],
@@ -206,6 +210,8 @@ describe("inventoriesRouter", () => {
       { supplierId: 1, demandIds: [0] },
       { supplierId: 1, demandIds: [2.5] },
       { supplierId: 1, lineItemComponentIds: [-1] },
+      { supplierId: 1, status: "completed" },
+      { supplierId: 1, note: "x".repeat(2001) },
       {
         supplierId: 1,
         componentSelections: [{ lineItemComponentIds: [], qty: 1 }],

@@ -6,8 +6,8 @@ import {
 	getInventoryInboundOwnershipStatus,
 	getInventoryInboundOwnershipTitle,
 	getInventoryInboundStatusToneClassName,
+	getSalesInboundActionIntent,
 	getSalesInboundStatusToneClassName,
-	getSingleInventoryInboundId,
 	normalizeSalesInboundStatus,
 } from "@/components/sales-inbound-status-badge";
 import { SalesMenu } from "@/components/sales-menu";
@@ -15,7 +15,6 @@ import { useSalesInventorySegmentQuery } from "@/components/sales-overview-syste
 import { SalesPriorityBadge } from "@/components/sales-priority-control";
 import { sizeClass, sizes } from "@/components/tables-2/core/table-sizes";
 import { SalesPaymentProcessor } from "@/components/widgets/sales-payment-processor/sales-payment-processor";
-import { useInboundStatusModal } from "@/hooks/use-inbound-status-modal";
 import { useSalesOrdersV2FilterParams } from "@/hooks/use-sales-orders-v2-filter-params";
 import { useSalesOverviewQuery } from "@/hooks/use-sales-overview-query";
 import { formatCurrency } from "@/lib/utils";
@@ -309,32 +308,33 @@ const inboundColumn: Column = {
 };
 
 function InboundStatusCell({ item }: { item: SalesOrder }) {
-	const { setParams: setInboundStatusParams } = useInboundStatusModal();
 	const overviewQuery = useSalesOverviewQuery();
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryInboundOwnership = item.inventoryInboundOwnership;
 	const hasInventoryInbound = !!inventoryInboundOwnership?.hasInventoryInbound;
+	const actionIntent = getSalesInboundActionIntent(inventoryInboundOwnership);
 	const inboundStatusClassName =
 		"h-7 max-w-full cursor-pointer justify-start gap-1.5 whitespace-nowrap px-2 font-medium shadow-none";
+	const openInventoryInbound = () => {
+		setInventorySegment(actionIntent.segment, {
+			inboundId: actionIntent.inboundId,
+			openCreate: actionIntent.openCreate,
+		});
+		overviewQuery.setParams({
+			"sales-overview-id": item.uuid,
+			"sales-type": "order",
+			mode: "sales",
+			salesTab: "inventory",
+			"prod-item-tab": null,
+			"prod-item-view": null,
+			dispatchOverviewId: null,
+		});
+	};
 
 	if (hasInventoryInbound) {
 		const status = getInventoryInboundOwnershipStatus(
 			inventoryInboundOwnership,
 		);
-		const openInventoryInbound = () => {
-			setInventorySegment("inbounds", {
-				inboundId: getSingleInventoryInboundId(inventoryInboundOwnership),
-			});
-			overviewQuery.setParams({
-				"sales-overview-id": item.uuid,
-				"sales-type": "order",
-				mode: "sales",
-				salesTab: "inventory",
-				"prod-item-tab": null,
-				"prod-item-view": null,
-				dispatchOverviewId: null,
-			});
-		};
 
 		return (
 			<span
@@ -370,14 +370,6 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 		);
 	}
 
-	const openManualInboundStatus = () => {
-		setInboundStatusParams({
-			inboundOrderId: item.id,
-			inboundOrderNo: item.orderId,
-			inboundOrderStatus: item.inboundStatus,
-			updateInboundStatus: true,
-		});
-	};
 	const inboundStatusLabel =
 		normalizeSalesInboundStatus(item.inboundStatus) ?? "Set status";
 
@@ -392,17 +384,17 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 				inboundStatusClassName,
 				getSalesInboundStatusToneClassName(item.inboundStatus),
 			)}
-			title="Manual order status - update inbound prompt"
+			title="Create inventory inbound"
 			onClick={(event) => {
 				event.preventDefault();
 				event.stopPropagation();
-				openManualInboundStatus();
+				openInventoryInbound();
 			}}
 			onKeyDown={(event) => {
 				event.stopPropagation();
 				if (event.key === "Enter" || event.key === " ") {
 					event.preventDefault();
-					openManualInboundStatus();
+					openInventoryInbound();
 				}
 			}}
 			onPointerDown={(event) => event.stopPropagation()}

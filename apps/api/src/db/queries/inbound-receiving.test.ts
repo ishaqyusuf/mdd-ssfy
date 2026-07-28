@@ -4,6 +4,7 @@ import {
 	assignInboundDemandsQuery,
 	countOrderInboundShipmentsQuery,
 	createInboundShipmentFromDemandsQuery,
+	updateInboundShipmentStatusQuery,
 } from "./inbound-receiving";
 
 function makeCtx(tx: Record<string, unknown>) {
@@ -268,6 +269,130 @@ describe("countOrderInboundShipmentsQuery", () => {
 					},
 				},
 			},
+		});
+	});
+});
+
+describe("updateInboundShipmentStatusQuery", () => {
+	test("captures linked sales activity context inside the status transaction", async () => {
+		const transactionEvents: string[] = [];
+		let activityData: any;
+		const transaction = {
+			inboundDemand: {
+				findMany: async () => {
+					transactionEvents.push("read-linked-orders");
+					return [
+						{
+							lineItemComponent: {
+								parent: {
+									sale: {
+										orderId: "08661LM",
+									},
+								},
+							},
+						},
+						{
+							lineItemComponent: {
+								parent: {
+									sale: {
+										orderId: "08661LM",
+									},
+								},
+							},
+						},
+					];
+				},
+			},
+			inboundShipment: {
+				updateMany: async () => {
+					transactionEvents.push("commit-status");
+					return { count: 1 };
+				},
+				findFirstOrThrow: async () => ({
+					id: 70,
+					status: "in_progress",
+					progress: 0,
+					receivedAt: null,
+				}),
+			},
+		};
+		const ctx = {
+			userId: 1,
+			db: {
+				users: {
+					findFirstOrThrow: async () => ({ id: 1, name: "Ops" }),
+					findMany: async () => [
+						{
+							id: 1,
+							name: "Ops",
+							email: "ops@example.com",
+							phoneNo: null,
+						},
+					],
+				},
+				inboundShipment: {
+					findFirstOrThrow: async () => ({
+						id: 70,
+						status: "pending",
+						supplierId: 10,
+						reference: "PO-70",
+						supplier: {
+							name: "Supplier",
+						},
+					}),
+				},
+				noteChannels: {
+					findMany: async () => [],
+					createMany: async () => ({ count: 0 }),
+					updateMany: async () => ({ count: 0 }),
+					findUnique: async () => null,
+				},
+				notePadContacts: {
+					findMany: async () => [
+						{
+							id: 9,
+							profileId: 1,
+							name: "Ops",
+							role: "employee",
+						},
+					],
+				},
+				notePad: {
+					create: async ({ data }: { data: unknown }) => {
+						activityData = data;
+						return { id: 901 };
+					},
+				},
+				$transaction: async <T>(
+					callback: (tx: typeof transaction) => Promise<T>,
+				) => callback(transaction),
+			},
+		} as any;
+
+		const previousResendKey = process.env.RESEND_API_KEY;
+		process.env.RESEND_API_KEY = "re_test";
+		try {
+			await updateInboundShipmentStatusQuery(ctx, {
+				inboundId: 70,
+				status: "in_progress",
+				note: "Supplier confirmed dispatch.",
+			});
+		} finally {
+			if (previousResendKey === undefined) {
+				delete process.env.RESEND_API_KEY;
+			} else {
+				process.env.RESEND_API_KEY = previousResendKey;
+			}
+		}
+
+		expect(transactionEvents).toEqual([
+			"read-linked-orders",
+			"commit-status",
+		]);
+		expect(activityData.note).toBe("Supplier confirmed dispatch.");
+		expect(activityData.tags.createMany.data).toContainEqual({
+			tagName: "orderNos",
+			tagValue: '"08661LM"',
 		});
 	});
 });

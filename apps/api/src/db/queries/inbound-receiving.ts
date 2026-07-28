@@ -12,6 +12,7 @@ import {
 	createInboundShipmentFromDemands,
 	getInboundShipmentDetail,
 	listInboundShipments,
+	type NewInboundShipmentStatus,
 	releaseCancelledInboundShipmentDemand,
 } from "@gnd/inventory";
 import { Notifications } from "@gnd/notifications";
@@ -992,6 +993,7 @@ export async function updateInboundShipmentStatusQuery(
 			| "issue_open"
 			| "closed"
 			| "cancelled";
+		note?: string | null;
 	},
 ) {
 	const actor = await getInboundActor(ctx);
@@ -1029,43 +1031,77 @@ export async function updateInboundShipmentStatusQuery(
 		data.progress = 0;
 	}
 
-	const { updated, releasedDemand } = await ctx.db.$transaction(async (tx) => {
-		const committedStatus = await tx.inboundShipment.updateMany({
-			where: {
-				id: input.inboundId,
-				deletedAt: null,
-				status: previous.status,
-			},
-			data,
-		});
-		if (committedStatus.count <= 0) {
-			throw new Error(
-				`Inbound shipment #${input.inboundId} changed before the status update could be applied.`,
+	const { updated, releasedDemand, orderNos } = await ctx.db.$transaction(
+		async (tx) => {
+			const linkedOrderRows = await tx.inboundDemand.findMany({
+				where: {
+					deletedAt: null,
+					inboundShipmentItem: {
+						inboundId: input.inboundId,
+						deletedAt: null,
+					},
+				},
+				select: {
+					lineItemComponent: {
+						select: {
+							parent: {
+								select: {
+									sale: {
+										select: {
+											orderId: true,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			});
+			const orderNos = Array.from(
+				new Set(
+					linkedOrderRows
+						.map((row) => row.lineItemComponent.parent.sale?.orderId)
+						.filter((value): value is string => Boolean(value)),
+				),
 			);
-		}
+			const committedStatus = await tx.inboundShipment.updateMany({
+				where: {
+					id: input.inboundId,
+					deletedAt: null,
+					status: previous.status,
+				},
+				data,
+			});
+			if (committedStatus.count <= 0) {
+				throw new Error(
+					`Inbound shipment #${input.inboundId} changed before the status update could be applied.`,
+				);
+			}
 
-		const updated = await tx.inboundShipment.findFirstOrThrow({
-			where: {
-				id: input.inboundId,
-				deletedAt: null,
-			},
-			select: {
-				id: true,
-				status: true,
-				progress: true,
-				receivedAt: true,
-			},
-		});
-		const releasedDemand =
-			input.status === "cancelled"
-				? await releaseCancelledInboundShipmentDemand(tx, input.inboundId)
-				: null;
+			const updated = await tx.inboundShipment.findFirstOrThrow({
+				where: {
+					id: input.inboundId,
+					deletedAt: null,
+				},
+				select: {
+					id: true,
+					status: true,
+					progress: true,
+					receivedAt: true,
+				},
+			});
+			const releasedDemand =
+				input.status === "cancelled"
+					? await releaseCancelledInboundShipmentDemand(tx, input.inboundId)
+					: null;
 
-		return {
-			updated,
-			releasedDemand,
-		};
-	});
+			return {
+				updated,
+				releasedDemand,
+				orderNos,
+			};
+		},
+	);
 
 	await createInboundActivity(ctx, {
 		inboundId: input.inboundId,
@@ -1075,6 +1111,8 @@ export async function updateInboundShipmentStatusQuery(
 		activityType: "status_updated",
 		subject: "Inbound status updated",
 		headline: `${actor.name || "Unknown"} updated inbound #${input.inboundId} from ${previous.status} to ${input.status}.`,
+		note: input.note,
+		orderNos,
 		meta: {
 			previousStatus: previous.status,
 			status: input.status,
@@ -1136,6 +1174,8 @@ export async function createInboundShipmentFromDemandsQuery(
 		}>;
 		reference?: string | null;
 		expectedAt?: Date | null;
+		status?: NewInboundShipmentStatus;
+		note?: string | null;
 	},
 ) {
 	const actor = await getInboundActor(ctx);
@@ -1174,6 +1214,7 @@ export async function createInboundShipmentFromDemandsQuery(
 				demandIds,
 				reference: input.reference,
 				expectedAt: input.expectedAt,
+				status: input.status,
 			});
 			const linkedDemandSales = await tx.inboundDemand.findMany({
 				where: {
@@ -1257,6 +1298,7 @@ export async function createInboundShipmentFromDemandsQuery(
 		activityType: "created",
 		subject: "Inbound created from demand",
 		headline: `${actor.name || "Unknown"} created inbound #${result.inboundId} from ${result.linkedDemandCount} demand row${result.linkedDemandCount === 1 ? "" : "s"}${supplier?.name ? ` for ${supplier.name}` : ""}.`,
+		note: input.note,
 		orderNos: linkedSales.map((sale) => sale.orderId),
 		meta: {
 			createdItemCount: result.createdItemCount,

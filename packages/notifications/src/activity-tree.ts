@@ -4,6 +4,7 @@ import { channelNames } from "./channels";
 import type {
 	DispatchPackingDelayTags,
 	EmployeeDocumentReviewTags,
+	InventoryInboundActivityTags,
 	JobApprovedTags,
 	JobAssignedTags,
 	JobDeletedTags,
@@ -11,8 +12,8 @@ import type {
 	JobRejectedTags,
 	JobReviewRequestedTags,
 	JobSubmittedTags,
-	JobTaskConfiguredTags,
 	JobTaskConfigureRequestTags,
+	JobTaskConfiguredTags,
 	SalesCheckoutSuccessTags,
 	SalesDispatchAssignedTags,
 	SalesDispatchCancelledTags,
@@ -38,8 +39,8 @@ import type {
 } from "./schemas";
 import {
 	deserializeTagValue,
+	getTagQueryValues,
 	mergeTagRows,
-	serializeTagValue,
 } from "./tag-values";
 
 type KeysOfUnion<T> = T extends T ? keyof T : never;
@@ -56,6 +57,7 @@ type KnownNotificationActivityTags =
 	| JobSubmittedTags
 	| JobTaskConfiguredTags
 	| JobTaskConfigureRequestTags
+	| InventoryInboundActivityTags
 	| SalesCheckoutSuccessTags
 	| SalesDispatchAssignedTags
 	| SalesDispatchCancelledTags
@@ -330,7 +332,9 @@ function buildSingleTagClause(tagName: ActivityTagName, tagValue: unknown) {
 		tags: {
 			some: {
 				tagName,
-				tagValue: serializeTagValue(tagValue),
+				tagValue: {
+					in: getTagQueryValues(tagValue),
+				},
 			},
 		},
 	};
@@ -345,7 +349,9 @@ function buildSingleTagInClause(
 			some: {
 				tagName,
 				tagValue: {
-					in: tagValues.map((value) => serializeTagValue(value)),
+					in: Array.from(
+						new Set(tagValues.flatMap((value) => getTagQueryValues(value))),
+					),
 				},
 			},
 		},
@@ -406,8 +412,12 @@ function buildTagWhereClause(
 }
 
 function buildChannelTagWhere(channels?: string[]) {
-	const values = (channels?.length ? channels : [...channelNames]).map((name) =>
-		serializeTagValue(name),
+	const values = Array.from(
+		new Set(
+			(channels?.length ? channels : [...channelNames]).flatMap((name) =>
+				getTagQueryValues(name),
+			),
+		),
 	);
 	return {
 		tags: {

@@ -71,6 +71,14 @@ describe("query event mutation registry", () => {
 		]);
 	});
 
+	it("refreshes Sales Overview activity after inbound lifecycle changes", () => {
+		const routes = QUERY_EVENTS["inventory.inbound.changed"].targets.map(
+			(target) => target.route,
+		);
+
+		expect(routes).toContain("notes.activityTree");
+	});
+
 	it("scopes a reviewed payment event to its sale overview", () => {
 		expect(
 			resolveMutationQueryEvents({

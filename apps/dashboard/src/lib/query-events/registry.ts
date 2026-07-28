@@ -111,6 +111,7 @@ const inventoryInboundTargets = [
 	pathTarget("inventories.inboundDemandQueue"),
 	pathTarget("inventories.supplierReorderSuggestions"),
 	pathTarget("inventories.inboundStatusDemandReconciliation"),
+	pathTarget("notes.activityTree"),
 	pathTarget("sales.inboundSummary"),
 	pathTarget("sales.inboundIndex"),
 ] as const;

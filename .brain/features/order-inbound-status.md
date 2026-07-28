@@ -34,6 +34,7 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 ## UI
 - The sales orders table exposes an `Inbound` badge column.
 - `AVAILABLE` is green, `ORDERED` is blue, and `PENDING ORDER` is amber with row emphasis.
+- The canonical Sales Orders `Inbound` cell is now an inventory workflow entry point. Orders without active linked inventory inbound work open the Sales Overview Inventory `Needs` segment with the Create inbound form expanded; orders with one active linked shipment open that exact inbound, and orders with several active linked shipments open the full `Inbounds` list.
 - Inventory row-level `N/A` appears only in the Inventory tab requirement display for stock-not-required rows; it is not editable through the manual order inbound status modal.
 - The order action menu opens the existing inbound status modal for later manual updates.
 - Sales overview action bars no longer expose the old `Inbound` / `Update Inbound` shortcut. Order inbound status updates remain available from inbound-management workflows and inventory-oriented surfaces that use the shared inbound status modal.
@@ -41,6 +42,7 @@ Track whether a sales order has vendor-order work outstanding while keeping item
 - Demand rows in the inbound status modal join through `inventories.salesInventoryOverview` by `InboundDemand.id`, so component name, shared category/step formatting, and human-readable variant labels match the Sales Overview Inventory tab's Create inbound form. Queue-provided sales-line, inventory-name, and SKU labels remain the fallback when overview metadata is unavailable.
 - The modal preselects every prompt-mutable demand after the active demand query settles. A visible `Mark all` action restores that complete mutable selection after manual deselection, while linked or received demand remains disabled and excluded.
 - Successful manual inbound updates publish the scoped `inventory.inbound.changed` query event. Sales Orders lists and summaries, inventory inbound reads, and saved Sales Orders page-tab counts therefore refresh through the shared mutation invalidation system, including inactive saved-tab queries. The modal retains its focused Sales Activity tree and sales inventory overview invalidation so the existing `Sales Inbound` activity note and inventory detail appear without a page reload or duplicate activity write.
+- Activity-tree reads accept both canonical JSON tag values and the historical raw values written by manual `Sales Inbound` notes, so existing and future manual status activity remains visible without changing the legacy inbound-summary tag contract.
 - `/inventory/inbounds` includes an inbound reconciliation panel showing orders where the manual prompt and open inventory demand disagree.
 
 ## Future Improvements
