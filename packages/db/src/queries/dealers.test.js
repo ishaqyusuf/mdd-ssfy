@@ -1,0 +1,2066 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+// @ts-expect-error packages/db typecheck does not include Bun test types.
+const bun_test_1 = require("bun:test");
+const dealers_1 = require("./dealers");
+(0, bun_test_1.describe)("dealer portal pricing", () => {
+    (0, bun_test_1.it)("rebuilds customer pricing after the office completes a dealer quote", () => {
+        const result = (0, dealers_1.calculateDealerApprovalPricing)({
+            lineItems: [
+                {
+                    uid: "office-added-shelf-line",
+                    title: "Shelf item",
+                    qty: 1,
+                    unitPrice: 380.38,
+                    lineTotal: 380.38,
+                    shelfItems: [
+                        {
+                            productId: 113,
+                            qty: 1,
+                            unitPrice: 380.38,
+                            totalPrice: 380.38,
+                            meta: {
+                                basePrice: 247,
+                            },
+                        },
+                    ],
+                },
+            ],
+            taxRate: 0,
+            internalGrandTotal: 405.38,
+            internalCoefficient: 1,
+            dealerSalesPercentage: 20,
+            fallbackDealerGrandTotal: 0,
+        });
+        (0, bun_test_1.expect)(result.internalBaseTotal).toBe(380.38);
+        (0, bun_test_1.expect)(result.dealerBaseTotal).toBe(481.46);
+    });
+    (0, bun_test_1.it)("keeps the saved dealer total when no structured quote lines exist", () => {
+        const result = (0, dealers_1.calculateDealerApprovalPricing)({
+            lineItems: [],
+            taxRate: 0,
+            internalGrandTotal: 300,
+            internalCoefficient: 0.65,
+            dealerSalesPercentage: 20,
+            fallbackDealerGrandTotal: 360,
+        });
+        (0, bun_test_1.expect)(result).toEqual({
+            internalBaseTotal: 300,
+            dealerBaseTotal: 360,
+        });
+    });
+    (0, bun_test_1.it)("keeps internal and dealer customer pricing snapshots separate", () => {
+        const result = (0, dealers_1.calculateDealerQuotePricing)({
+            createdAt: "2026-05-18T00:00:00.000Z",
+            taxRate: 10,
+            internalProfile: {
+                id: 1,
+                title: "Dealer Standard",
+                coefficient: 0.67,
+            },
+            dealerProfile: {
+                id: 2,
+                title: "Retail",
+                coefficient: 99,
+                salesPercentage: 20,
+            },
+            lineItems: [
+                {
+                    uid: "line-1",
+                    title: "Door",
+                    qty: 2,
+                    unitPrice: 100,
+                },
+            ],
+        });
+        (0, bun_test_1.expect)(result.source).toBe("dealer_portal_dual_pricing");
+        (0, bun_test_1.expect)(result.createdAt).toBe("2026-05-18T00:00:00.000Z");
+        (0, bun_test_1.expect)(result.profiles.internal).toEqual({
+            id: 1,
+            label: "Dealer Standard",
+            coefficient: 0.67,
+        });
+        (0, bun_test_1.expect)(result.profiles.dealer).toEqual({
+            id: 2,
+            label: "Retail",
+            coefficient: 99,
+            salesPercentage: 20,
+        });
+        (0, bun_test_1.expect)(result.lines[0]).toMatchObject({
+            internalUnitPrice: 149,
+            internalLineTotal: 298,
+            dealerUnitPrice: 178.8,
+            dealerLineTotal: 357.6,
+        });
+        (0, bun_test_1.expect)(result.internalPricing.grandTotal).toBe(327.8);
+        (0, bun_test_1.expect)(result.dealerPricing.grandTotal).toBe(393.36);
+    });
+    (0, bun_test_1.it)("taxes only taxable lines in both pricing layers", () => {
+        const result = (0, dealers_1.calculateDealerQuotePricing)({
+            taxRate: 10,
+            internalProfile: { coefficient: 1 },
+            dealerProfile: { salesPercentage: 20 },
+            lineItems: [
+                { uid: "taxable", qty: 1, unitPrice: 100, taxxable: true },
+                { uid: "exempt", qty: 1, unitPrice: 50, taxxable: false },
+            ],
+        });
+        (0, bun_test_1.expect)(result.internalPricing.taxableSubTotal).toBe(100);
+        (0, bun_test_1.expect)(result.internalPricing.taxTotal).toBe(10);
+        (0, bun_test_1.expect)(result.internalPricing.grandTotal).toBe(160);
+        (0, bun_test_1.expect)(result.dealerPricing.taxableSubTotal).toBe(120);
+        (0, bun_test_1.expect)(result.dealerPricing.taxTotal).toBe(12);
+        (0, bun_test_1.expect)(result.dealerPricing.grandTotal).toBe(192);
+        (0, bun_test_1.expect)(result.lines.map((line) => line.taxable)).toEqual([true, false]);
+    });
+    (0, bun_test_1.it)("keeps customer tax while exempting a qualified dealer resale layer", () => {
+        const result = (0, dealers_1.calculateDealerQuotePricing)({
+            taxRate: 8,
+            internalProfile: { coefficient: 1 },
+            dealerProfile: { salesPercentage: 20 },
+            sellerOfRecord: "DEALER",
+            resaleCertificateOnFile: true,
+            lineItems: [{ uid: "door", qty: 1, unitPrice: 100 }],
+        });
+        (0, bun_test_1.expect)(result.internalPricing.taxableSubTotal).toBe(100);
+        (0, bun_test_1.expect)(result.internalPricing.taxTotal).toBe(0);
+        (0, bun_test_1.expect)(result.internalPricing.grandTotal).toBe(100);
+        (0, bun_test_1.expect)(result.dealerPricing.taxableSubTotal).toBe(120);
+        (0, bun_test_1.expect)(result.dealerPricing.taxTotal).toBe(9.6);
+        (0, bun_test_1.expect)(result.dealerPricing.grandTotal).toBe(129.6);
+    });
+    (0, bun_test_1.it)("prices flat, door, shelf, moulding, and service lines from their effective totals", () => {
+        const result = (0, dealers_1.calculateDealerQuotePricing)({
+            createdAt: "2026-05-18T00:00:00.000Z",
+            taxRate: 0,
+            internalProfile: {
+                id: 1,
+                title: "Dealer Standard",
+                coefficient: 1,
+            },
+            dealerProfile: {
+                id: 2,
+                title: "Retail",
+                coefficient: 99,
+                salesPercentage: 10,
+            },
+            lineItems: [
+                {
+                    uid: "flat",
+                    title: "Flat",
+                    qty: 2,
+                    unitPrice: 100,
+                    lineTotal: 200,
+                },
+                {
+                    uid: "door-hpt",
+                    title: "Door",
+                    qty: 4,
+                    unitPrice: 0,
+                    lineTotal: 800,
+                    housePackageTool: {
+                        totalDoors: 4,
+                        totalPrice: 800,
+                        doors: [],
+                    },
+                },
+                {
+                    uid: "shelf",
+                    title: "Shelf",
+                    qty: 3,
+                    unitPrice: 0,
+                    lineTotal: 150,
+                    shelfItems: [],
+                },
+                {
+                    uid: "moulding",
+                    title: "Moulding",
+                    qty: 5,
+                    unitPrice: 0,
+                    lineTotal: 250,
+                    meta: {
+                        mouldingRows: [],
+                    },
+                },
+                {
+                    uid: "service",
+                    title: "Service",
+                    qty: 2,
+                    unitPrice: 0,
+                    lineTotal: 120,
+                    meta: {
+                        serviceRows: [],
+                    },
+                },
+            ],
+        });
+        (0, bun_test_1.expect)(result.lines.map((line) => line.internalLineTotal)).toEqual([
+            200, 800, 150, 250, 120,
+        ]);
+        (0, bun_test_1.expect)(result.lines.map((line) => line.dealerLineTotal)).toEqual([
+            220, 880, 165, 275, 132,
+        ]);
+        (0, bun_test_1.expect)(result.internalPricing.subTotal).toBe(1520);
+        (0, bun_test_1.expect)(result.dealerPricing.subTotal).toBe(1672);
+    });
+});
+(0, bun_test_1.describe)("dealer order request visibility", () => {
+    (0, bun_test_1.it)("locks quote edits after every terminal handoff state", () => {
+        (0, bun_test_1.expect)((0, dealers_1.getDealerQuoteEditLock)(null)).toEqual({
+            locked: false,
+            reason: null,
+        });
+        for (const status of ["pending", "approved", "rejected"]) {
+            (0, bun_test_1.expect)((0, dealers_1.getDealerQuoteEditLock)(status)).toMatchObject({
+                locked: true,
+            });
+            (0, bun_test_1.expect)((0, dealers_1.getDealerQuoteEditLock)(status).reason?.toLowerCase()).toContain("locked");
+        }
+    });
+    (0, bun_test_1.it)("tracks pending request aging against the 24-hour SLA", () => {
+        const createdAt = "2026-07-20T00:00:00.000Z";
+        (0, bun_test_1.expect)((0, dealers_1.getDealerRequestSla)({
+            createdAt,
+            status: "pending",
+            now: new Date("2026-07-20T19:00:00.000Z"),
+        })).toMatchObject({ status: "due_soon", ageHours: 19, targetHours: 24 });
+        (0, bun_test_1.expect)((0, dealers_1.getDealerRequestSla)({
+            createdAt,
+            status: "pending",
+            now: new Date("2026-07-21T01:00:00.000Z"),
+        })).toMatchObject({ status: "overdue", ageHours: 25 });
+    });
+    (0, bun_test_1.it)("summarizes approval, rejection, and decision-time analytics", () => {
+        const analytics = (0, dealers_1.summarizeDealerRequestSla)([
+            {
+                status: "approved",
+                createdAt: "2026-07-20T00:00:00.000Z",
+                updatedAt: "2026-07-20T12:00:00.000Z",
+            },
+            {
+                status: "rejected",
+                createdAt: "2026-07-20T00:00:00.000Z",
+                updatedAt: "2026-07-21T00:00:00.000Z",
+            },
+            {
+                status: "pending",
+                createdAt: "2026-07-20T00:00:00.000Z",
+            },
+        ], new Date("2026-07-21T01:00:00.000Z"));
+        (0, bun_test_1.expect)(analytics).toMatchObject({
+            total: 3,
+            pending: 1,
+            overdue: 1,
+            approved: 1,
+            rejected: 1,
+            averageDecisionHours: 18,
+            approvalRate: 50,
+        });
+    });
+    (0, bun_test_1.it)("lets Sales Team members review unassigned dealer requests", async () => {
+        let capturedWhere;
+        const db = {
+            users: {
+                findUnique: async () => ({
+                    roles: [{ role: { name: "Sales Team" } }],
+                }),
+            },
+            dealerSalesRequest: {
+                count: async ({ where }) => {
+                    capturedWhere = where;
+                    return 1;
+                },
+            },
+        };
+        (0, bun_test_1.expect)(await (0, dealers_1.getDealerOrderRequestCount)(db, 69)).toBe(1);
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            status: "pending",
+            OR: [{ sale: { salesRepId: 69 } }, { sale: { salesRepId: null } }],
+        });
+    });
+    (0, bun_test_1.it)("captures an immutable direct-ship recipient snapshot on submission", async () => {
+        let addressData;
+        const saleUpdates = [];
+        const tx = {
+            salesOrders: {
+                findFirst: async () => ({
+                    id: 81,
+                    orderId: "DPP-81",
+                    slug: "dpp-81",
+                    meta: {
+                        newSalesForm: {
+                            form: { deliveryOption: "ship" },
+                        },
+                    },
+                    deliveryOption: "ship",
+                    billingAddressId: null,
+                    shippingAddressId: null,
+                    salesRepId: 9,
+                    dealerAuth: {
+                        id: 10,
+                        email: "dealer@example.com",
+                        companyName: "Dealer Co",
+                        salesRepId: 9,
+                    },
+                    customer: {
+                        id: 44,
+                        businessName: "End Customer",
+                        email: "ship@example.com",
+                        phoneNo: "555-0100",
+                        address: "123 Main St",
+                        meta: {
+                            dealerAddress: {
+                                address1: "123 Main St",
+                                city: "Orlando",
+                                state: "FL",
+                                zip_code: "32801",
+                                country: "US",
+                            },
+                        },
+                    },
+                    requests: [],
+                }),
+                update: async ({ data }) => {
+                    saleUpdates.push(data);
+                    return { id: 81 };
+                },
+            },
+            addressBooks: {
+                create: async ({ data }) => {
+                    addressData = data;
+                    return { id: 501 };
+                },
+            },
+            dealerSalesRequest: {
+                create: async () => ({
+                    id: 700,
+                    status: "pending",
+                    createdAt: new Date("2026-07-19T12:00:00.000Z"),
+                }),
+            },
+        };
+        const db = {
+            $transaction: async (callback) => callback(tx),
+        };
+        const result = await (0, dealers_1.requestDealerPortalQuoteOrder)(db, 10, 81);
+        (0, bun_test_1.expect)(addressData).toMatchObject({
+            name: "End Customer",
+            email: "ship@example.com",
+            phoneNo: "555-0100",
+            address1: "123 Main St",
+            city: "Orlando",
+            state: "FL",
+            meta: {
+                source: "dealer_order_recipient_snapshot",
+                dealerId: 10,
+                customerId: 44,
+                zip_code: "32801",
+            },
+        });
+        (0, bun_test_1.expect)(saleUpdates[0]).toMatchObject({
+            billingAddressId: 501,
+            shippingAddressId: 501,
+            meta: {
+                dealerFulfillmentRecipient: {
+                    customerId: 44,
+                    email: "ship@example.com",
+                    phoneNo: "555-0100",
+                    zip_code: "32801",
+                },
+            },
+        });
+        (0, bun_test_1.expect)(result.notification.fulfillmentRecipient).toMatchObject({
+            customerId: 44,
+            address1: "123 Main St",
+        });
+    });
+});
+(0, bun_test_1.describe)("dealer approval delivery metadata", () => {
+    (0, bun_test_1.it)("keeps the sales-form snapshot synchronized with the reviewed delivery row", () => {
+        const meta = (0, dealers_1.mergeDealerApprovalDeliveryMeta)({
+            meta: {
+                newSalesForm: {
+                    extraCosts: [
+                        { id: 10, label: "Labor", type: "Labor", amount: 0 },
+                        { id: 11, label: "Old delivery", type: "Delivery", amount: 5 },
+                    ],
+                },
+            },
+            deliveryCost: 25,
+            extraCostId: 12,
+        });
+        (0, bun_test_1.expect)(meta).toMatchObject({
+            deliveryCost: 25,
+            newSalesForm: {
+                extraCosts: [
+                    { id: 10, type: "Labor", amount: 0 },
+                    {
+                        id: 12,
+                        label: "Delivery",
+                        type: "Delivery",
+                        amount: 25,
+                        taxxable: false,
+                    },
+                ],
+            },
+        });
+    });
+});
+function createDealerQuoteTestDb(options) {
+    const collidingOrderIds = new Set(options.collidingOrderIds || []);
+    const dealerProfile = options.dealerProfile ?? {
+        id: 30,
+        title: "Retail",
+        coefficient: 1.2,
+        salesPercentage: 20,
+        defaultProfile: true,
+    };
+    let createdOrderData = null;
+    let updatedOrderData = null;
+    let createdItemData = [];
+    let dealerSalesData = null;
+    let sequenceCountWhere = null;
+    const tx = {
+        customers: {
+            findFirst: async () => ({
+                id: 20,
+                customerTypeId: options.customerTypeId ?? null,
+                taxProfiles: options.customerTaxCode
+                    ? [
+                        {
+                            taxCode: options.customerTaxCode,
+                            tax: {
+                                taxCode: options.customerTaxCode,
+                                percentage: options.customerTaxCode === "FL" ? 6 : 8,
+                            },
+                        },
+                    ]
+                    : [],
+            }),
+        },
+        customerTypes: {
+            findFirst: async ({ where }) => {
+                if (where.dealerOwnerId === null) {
+                    return {
+                        id: 1,
+                        title: "Dealer Standard",
+                        coefficient: 1,
+                    };
+                }
+                if (where.dealerOwnerId === 10 && dealerProfile) {
+                    if (where.id && where.id !== dealerProfile.id)
+                        return null;
+                    if (where.defaultProfile && !dealerProfile.defaultProfile) {
+                        return null;
+                    }
+                    return dealerProfile;
+                }
+                return null;
+            },
+        },
+        dealerAuth: {
+            findUnique: async () => ({
+                meta: options.dealerMeta || {},
+                dealer: {
+                    customerTypeId: 30,
+                    profile: {
+                        id: 30,
+                        title: "Retail",
+                        coefficient: 1.2,
+                    },
+                },
+            }),
+        },
+        settings: {
+            findFirst: async () => options.salesSettingsMeta === undefined
+                ? null
+                : { meta: options.salesSettingsMeta },
+        },
+        taxes: {
+            findFirst: async ({ where }) => {
+                if (where.taxCode === "FL")
+                    return { taxCode: "FL", percentage: 6 };
+                if (where.taxCode === "TX")
+                    return { taxCode: "TX", percentage: 8 };
+                return null;
+            },
+        },
+        dykeShelfProducts: {
+            findMany: async ({ where }) => {
+                const ids = new Set(where.id?.in || []);
+                return (options.shelfProducts || []).filter((product) => ids.has(product.id));
+            },
+        },
+        salesOrders: {
+            findFirst: async () => options.existingQuote ?? null,
+            count: async ({ where }) => {
+                if (typeof where.orderId === "string") {
+                    const collidesWithDocument = options.dppDocuments?.some((document) => document.orderId === where.orderId);
+                    return collidingOrderIds.has(where.orderId) || collidesWithDocument
+                        ? 1
+                        : 0;
+                }
+                sequenceCountWhere = where;
+                if (options.dppDocuments) {
+                    return options.dppDocuments.filter((document) => document.deletedAt == null).length;
+                }
+                return options.activeDppCount ?? 0;
+            },
+            create: async ({ data }) => {
+                createdOrderData = data;
+                return {
+                    id: 55,
+                    orderId: data.orderId,
+                    slug: data.slug,
+                };
+            },
+            update: async ({ data }) => {
+                updatedOrderData = data;
+                return {
+                    id: options.existingQuote?.id ?? 55,
+                    orderId: data.orderId,
+                    slug: data.slug,
+                };
+            },
+        },
+        salesOrderItems: {
+            deleteMany: async () => ({ count: 1 }),
+            createMany: async ({ data, }) => {
+                createdItemData = data;
+                return { count: data.length };
+            },
+        },
+        dealerSales: {
+            upsert: async ({ create, update }) => {
+                dealerSalesData = dealerSalesData
+                    ? { ...dealerSalesData, ...update }
+                    : create;
+                return dealerSalesData;
+            },
+        },
+    };
+    const db = {
+        $transaction: async (callback) => callback(tx),
+    };
+    return {
+        db,
+        getCreatedOrderData: () => createdOrderData,
+        getCreatedItemData: () => createdItemData,
+        getDealerSalesData: () => dealerSalesData,
+        getUpdatedOrderData: () => updatedOrderData,
+        getSequenceCountWhere: () => sequenceCountWhere,
+    };
+}
+function dealerQuoteInput(overrides = {}) {
+    return {
+        customerId: 20,
+        taxRate: 0,
+        lineItems: [
+            {
+                uid: "line-1",
+                title: "Door",
+                qty: 1,
+                unitPrice: 100,
+            },
+        ],
+        ...overrides,
+    };
+}
+(0, bun_test_1.describe)("dealer portal DPP identities", () => {
+    (0, bun_test_1.it)("assigns the first DPP serial to a new dealer quote", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+        });
+        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
+        (0, bun_test_1.expect)(saved.orderId).toBe("00001DPP");
+        (0, bun_test_1.expect)(saved.slug).toBe("quote-00001dpp");
+        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toMatchObject({
+            orderId: "00001DPP",
+            slug: "quote-00001dpp",
+            type: "quote",
+            dealerAuthId: 10,
+        });
+        (0, bun_test_1.expect)(testDb.getSequenceCountWhere()).toMatchObject({
+            dealerAuthId: {
+                not: null,
+            },
+            deletedAt: null,
+            orderId: {
+                endsWith: "DPP",
+            },
+        });
+    });
+    (0, bun_test_1.it)("preserves dealer workflow payload in saved quote metadata", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+        });
+        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            lineItems: [
+                {
+                    uid: "line-1",
+                    title: "Door",
+                    qty: 1,
+                    unitPrice: 100,
+                    meta: {
+                        serviceRows: [{ uid: "svc-1", service: "Install" }],
+                    },
+                    formSteps: [{ stepId: 10, prodUid: "door-a", value: "Door A" }],
+                    shelfItems: [{ uid: "shelf-1", qty: 2 }],
+                    housePackageTool: {
+                        doors: [{ dimension: "30 x 80", totalQty: 1 }],
+                    },
+                },
+            ],
+        }));
+        const meta = testDb.getCreatedOrderData()?.meta;
+        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].formSteps).toHaveLength(1);
+        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].shelfItems).toHaveLength(1);
+        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].housePackageTool.doors).toHaveLength(1);
+        (0, bun_test_1.expect)(meta.newSalesForm.lineItems[0].meta.serviceRows).toHaveLength(1);
+    });
+    (0, bun_test_1.it)("rejects dealer quote line items for hidden item types", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            salesSettingsMeta: {
+                route: {
+                    service: {
+                        config: {
+                            dealerVisible: false,
+                        },
+                    },
+                },
+            },
+        });
+        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            lineItems: [
+                {
+                    uid: "line-1",
+                    title: "Service",
+                    qty: 1,
+                    unitPrice: 100,
+                    formSteps: [
+                        {
+                            stepId: 1,
+                            prodUid: "service",
+                            value: "Service",
+                        },
+                    ],
+                },
+            ],
+        }))).rejects.toThrow("This item type is not available in the dealer portal.");
+    });
+    (0, bun_test_1.it)("rejects dealer quote shelf items outside the dealer allowlist", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            salesSettingsMeta: {
+                dealerShelfCategoryVisibility: {
+                    mode: "allowlist",
+                    categoryIds: [10],
+                },
+            },
+            shelfProducts: [
+                {
+                    id: 99,
+                    categoryId: 20,
+                    parentCategoryId: null,
+                },
+            ],
+        });
+        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            lineItems: [
+                {
+                    uid: "line-1",
+                    title: "Shelf",
+                    qty: 1,
+                    unitPrice: 100,
+                    shelfItems: [
+                        {
+                            uid: "shelf-1",
+                            productId: 99,
+                            categoryId: 20,
+                        },
+                    ],
+                },
+            ],
+        }))).rejects.toThrow("This shelf item is not available in the dealer portal.");
+    });
+    (0, bun_test_1.it)("allows dealer quote shelf items in an allowed parent category", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            salesSettingsMeta: {
+                dealerShelfCategoryVisibility: {
+                    mode: "allowlist",
+                    categoryIds: [10],
+                },
+            },
+            shelfProducts: [
+                {
+                    id: 99,
+                    categoryId: 20,
+                    parentCategoryId: 10,
+                },
+            ],
+        });
+        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            lineItems: [
+                {
+                    uid: "line-1",
+                    title: "Shelf",
+                    qty: 1,
+                    unitPrice: 100,
+                    shelfItems: [
+                        {
+                            uid: "shelf-1",
+                            productId: 99,
+                            categoryId: 20,
+                        },
+                    ],
+                },
+            ],
+        }));
+        (0, bun_test_1.expect)(saved.orderId).toBe("00001DPP");
+    });
+    (0, bun_test_1.it)("persists dealer workflow tax and production flags on sales items", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+        });
+        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            lineItems: [
+                {
+                    uid: "line-1",
+                    title: "Service",
+                    qty: 1,
+                    unitPrice: 100,
+                    meta: {
+                        serviceRows: [
+                            {
+                                uid: "svc-1",
+                                service: "Install",
+                                taxxable: true,
+                                produceable: true,
+                            },
+                        ],
+                    },
+                },
+                {
+                    uid: "line-2",
+                    title: "Flat",
+                    qty: 1,
+                    unitPrice: 50,
+                    meta: {
+                        taxxable: false,
+                        produceable: false,
+                    },
+                },
+            ],
+        }));
+        const [serviceItem, flatItem] = testDb.getCreatedItemData();
+        (0, bun_test_1.expect)((serviceItem?.meta).tax).toBe(true);
+        (0, bun_test_1.expect)(serviceItem?.dykeProduction).toBe(true);
+        (0, bun_test_1.expect)((flatItem?.meta).tax).toBe(false);
+        (0, bun_test_1.expect)(flatItem?.dykeProduction).toBe(false);
+    });
+    (0, bun_test_1.it)("uses the next shared DPP serial and skips collisions", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 1,
+            collidingOrderIds: ["00002DPP"],
+        });
+        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
+        (0, bun_test_1.expect)(saved.orderId).toBe("00003DPP");
+        (0, bun_test_1.expect)(saved.slug).toBe("quote-00003dpp");
+    });
+    (0, bun_test_1.it)("ignores deleted DPP documents when calculating the next serial", async () => {
+        const testDb = createDealerQuoteTestDb({
+            dppDocuments: [
+                { orderId: "00001DPP", deletedAt: null },
+                { orderId: "00002DPP", deletedAt: new Date("2026-05-22") },
+            ],
+        });
+        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
+        (0, bun_test_1.expect)(saved.orderId).toBe("00003DPP");
+        (0, bun_test_1.expect)(testDb.getSequenceCountWhere()).toMatchObject({
+            deletedAt: null,
+            orderId: {
+                endsWith: "DPP",
+            },
+        });
+    });
+    (0, bun_test_1.it)("preserves an existing quote order number when editing", async () => {
+        const testDb = createDealerQuoteTestDb({
+            existingQuote: {
+                id: 55,
+                orderId: "00007DPP",
+                slug: "quote-00007dpp",
+            },
+        });
+        const saved = await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({ id: 55 }));
+        (0, bun_test_1.expect)(saved.orderId).toBe("00007DPP");
+        (0, bun_test_1.expect)(saved.slug).toBe("quote-00007dpp");
+        (0, bun_test_1.expect)(testDb.getUpdatedOrderData()).toMatchObject({
+            orderId: "00007DPP",
+            slug: "quote-00007dpp",
+            type: "quote",
+        });
+        (0, bun_test_1.expect)(testDb.getSequenceCountWhere()).toBeNull();
+    });
+    (0, bun_test_1.it)("assigns a new DPP order number when converting a dealer quote", async () => {
+        let updateData = null;
+        const tx = {
+            salesOrders: {
+                findFirst: async () => ({
+                    id: 55,
+                    meta: {},
+                }),
+                count: async ({ where }) => {
+                    if (typeof where.orderId === "string")
+                        return 0;
+                    return 1;
+                },
+                update: async ({ data }) => {
+                    updateData = data;
+                    return {
+                        id: 55,
+                        orderId: data.orderId,
+                        slug: data.slug,
+                        type: data.type,
+                        status: data.status,
+                    };
+                },
+            },
+        };
+        const db = {
+            $transaction: async (callback) => callback(tx),
+        };
+        const order = await (0, dealers_1.convertDealerPortalQuoteToOrder)(db, 10, 55);
+        (0, bun_test_1.expect)(order).toMatchObject({
+            orderId: "00002DPP",
+            slug: "order-00002dpp",
+            type: "order",
+            status: "New",
+        });
+        (0, bun_test_1.expect)(updateData).toMatchObject({
+            orderId: "00002DPP",
+            slug: "order-00002dpp",
+            type: "order",
+            status: "New",
+            meta: {
+                convertedFromDealerQuoteId: 55,
+            },
+        });
+    });
+});
+(0, bun_test_1.describe)("dealer portal isolation", () => {
+    (0, bun_test_1.it)("updates the linked customer profile from a dealer account", async () => {
+        const updates = [];
+        const db = {
+            $transaction: async (callback) => callback(db),
+            dealerAuth: {
+                findFirst: async () => ({
+                    id: 10,
+                    dealerId: 20,
+                    email: "dealer@example.com",
+                    name: "Dealer",
+                    companyName: null,
+                    dealer: {
+                        customerTypeId: 25,
+                        profile: {
+                            id: 25,
+                            title: "Standard",
+                        },
+                    },
+                }),
+            },
+            customerTypes: {
+                findFirst: async () => ({ id: 30, title: "Preferred" }),
+            },
+            customers: {
+                update: async (args) => {
+                    updates.push(args);
+                    return { id: 20 };
+                },
+            },
+        };
+        const result = await (0, dealers_1.updateDealerSalesProfile)(db, {
+            dealerId: 10,
+            customerProfileId: 30,
+        });
+        (0, bun_test_1.expect)(result).toEqual({
+            dealerId: 10,
+            customerId: 20,
+            customerProfileId: 30,
+            dealerName: "Dealer",
+            dealerEmail: "dealer@example.com",
+            previousProfileName: "Standard",
+            newProfileName: "Preferred",
+            profileChanged: true,
+        });
+        (0, bun_test_1.expect)(updates[0]).toEqual({
+            where: { id: 20 },
+            data: { customerTypeId: 30 },
+        });
+    });
+    (0, bun_test_1.it)("creates and links a customer when setting a dealer-only sales profile", async () => {
+        const dealerUpdates = [];
+        const customerCreates = [];
+        const db = {
+            $transaction: async (callback) => callback(db),
+            dealerAuth: {
+                findFirst: async () => ({
+                    id: 10,
+                    dealerId: null,
+                    email: "dealer@example.com",
+                    name: "Dealer",
+                    companyName: "Dealer Co",
+                    dealer: null,
+                }),
+                update: async (args) => {
+                    dealerUpdates.push(args);
+                    return { id: 10 };
+                },
+            },
+            customerTypes: {
+                findFirst: async () => ({ id: 30, title: "Preferred" }),
+            },
+            customers: {
+                create: async (args) => {
+                    customerCreates.push(args);
+                    return { id: 40 };
+                },
+            },
+        };
+        const result = await (0, dealers_1.updateDealerSalesProfile)(db, {
+            dealerId: 10,
+            customerProfileId: 30,
+        });
+        (0, bun_test_1.expect)(result).toEqual({
+            dealerId: 10,
+            customerId: 40,
+            customerProfileId: 30,
+            dealerName: "Dealer Co",
+            dealerEmail: "dealer@example.com",
+            previousProfileName: null,
+            newProfileName: "Preferred",
+            profileChanged: true,
+        });
+        (0, bun_test_1.expect)(customerCreates[0]).toEqual({
+            data: {
+                name: "Dealer",
+                businessName: "Dealer Co",
+                email: "dealer@example.com",
+                customerTypeId: 30,
+                meta: {
+                    source: "dealer_admin_profile_assignment",
+                    dealerAuthId: 10,
+                },
+            },
+            select: { id: true },
+        });
+        (0, bun_test_1.expect)(dealerUpdates[0]).toEqual({
+            where: { id: 10 },
+            data: { dealerId: 40 },
+        });
+    });
+    (0, bun_test_1.it)("marks linked dealer profile updates as unchanged when the profile is already assigned", async () => {
+        const db = {
+            $transaction: async (callback) => callback(db),
+            dealerAuth: {
+                findFirst: async () => ({
+                    id: 10,
+                    dealerId: 20,
+                    email: "dealer@example.com",
+                    name: "Dealer",
+                    companyName: null,
+                    dealer: {
+                        customerTypeId: 30,
+                        profile: {
+                            id: 30,
+                            title: "Preferred",
+                        },
+                    },
+                }),
+            },
+            customerTypes: {
+                findFirst: async () => ({ id: 30, title: "Preferred" }),
+            },
+            customers: {
+                update: async () => ({ id: 20 }),
+            },
+        };
+        const result = await (0, dealers_1.updateDealerSalesProfile)(db, {
+            dealerId: 10,
+            customerProfileId: 30,
+        });
+        (0, bun_test_1.expect)(result).toMatchObject({
+            dealerId: 10,
+            customerId: 20,
+            customerProfileId: 30,
+            previousProfileName: "Preferred",
+            newProfileName: "Preferred",
+            profileChanged: false,
+        });
+    });
+    (0, bun_test_1.it)("rejects assigning another dealer's sales profile to a dealer customer", async () => {
+        let capturedWhere = null;
+        const db = {
+            customerTypes: {
+                findFirst: async ({ where }) => {
+                    capturedWhere = where;
+                    return null;
+                },
+            },
+            customers: {
+                create: async () => {
+                    throw new Error("Customer create should not run.");
+                },
+            },
+        };
+        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+            name: "Retail Buyer",
+            email: "buyer@example.com",
+            customerTypeId: 99,
+        })).rejects.toThrow("Customer profile could not be found.");
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            id: 99,
+            dealerOwnerId: 10,
+            deletedAt: null,
+        });
+    });
+    (0, bun_test_1.it)("saves a dealer customer default tax group", async () => {
+        let capturedTaxWhere = null;
+        let createdTaxProfile = null;
+        const db = {
+            taxes: {
+                findFirst: async ({ where }) => {
+                    capturedTaxWhere = where;
+                    return { taxCode: "TX" };
+                },
+            },
+            $transaction: async (callback) => callback({
+                customers: {
+                    create: async () => ({ id: 50 }),
+                },
+                customerTaxProfiles: {
+                    findFirst: async () => null,
+                    create: async ({ data }) => {
+                        createdTaxProfile = data;
+                        return { id: 70, ...data };
+                    },
+                },
+            }),
+        };
+        const customer = await (0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+            name: "Taxed Buyer",
+            taxCode: "TX",
+        });
+        (0, bun_test_1.expect)(customer).toMatchObject({ id: 50 });
+        (0, bun_test_1.expect)(capturedTaxWhere).toMatchObject({
+            taxCode: "TX",
+            deletedAt: null,
+        });
+        (0, bun_test_1.expect)(createdTaxProfile).toMatchObject({
+            customerId: 50,
+            taxCode: "TX",
+        });
+    });
+    (0, bun_test_1.it)("saves and loads dealer defaults from company settings", async () => {
+        let savedMeta = null;
+        const db = {
+            dealerAuth: {
+                findUnique: async ({ select, }) => {
+                    const dealer = {
+                        id: 10,
+                        email: "dealer@example.com",
+                        name: "Dealer",
+                        companyName: "Dealer Co",
+                        phoneNo: "555-111-2222",
+                        meta: {
+                            logoUrl: "https://example.com/old.png",
+                        },
+                        primaryBillingAddressId: 1,
+                        primaryBillingAddress: {
+                            id: 1,
+                            address1: "1 Old St",
+                            address2: null,
+                            city: "Orlando",
+                            state: "FL",
+                            country: "US",
+                        },
+                    };
+                    if (select?.primaryBillingAddress)
+                        return dealer;
+                    return {
+                        id: dealer.id,
+                        meta: dealer.meta,
+                        primaryBillingAddressId: dealer.primaryBillingAddressId,
+                    };
+                },
+                update: async ({ data }) => {
+                    savedMeta = data.meta;
+                    return {
+                        id: 10,
+                        email: "dealer@example.com",
+                        name: data.name,
+                        companyName: data.companyName,
+                        phoneNo: data.phoneNo,
+                        meta: data.meta,
+                    };
+                },
+            },
+            customerTypes: {
+                findFirst: async ({ where }) => where.id === 45 && where.dealerOwnerId === 10 ? { id: 45 } : null,
+            },
+            taxes: {
+                findFirst: async ({ where }) => where.taxCode === "FL" ? { taxCode: "FL" } : null,
+            },
+            addressBooks: {
+                update: async () => ({ id: 1 }),
+            },
+            $transaction: async (callback) => callback(db),
+        };
+        await (0, dealers_1.saveDealerPortalSettings)(db, 10, {
+            name: "Dealer",
+            companyName: "Dealer Co",
+            phoneNo: "555-111-2222",
+            logoUrl: "https://example.com/logo.png",
+            zip_code: "32801",
+            defaultCustomerProfileId: 45,
+            defaultTaxCode: "FL",
+            defaultFulfillmentMode: "delivery",
+        });
+        (0, bun_test_1.expect)(savedMeta).toMatchObject({
+            logoUrl: "https://example.com/logo.png",
+            billingZip: "32801",
+            brandingVersion: 1,
+            defaultCustomerProfileId: 45,
+            defaultTaxCode: "FL",
+            defaultFulfillmentMode: "delivery",
+        });
+        const settings = await (0, dealers_1.getDealerPortalSettings)(db, 10);
+        (0, bun_test_1.expect)(settings?.meta).toMatchObject({
+            logoUrl: "https://example.com/old.png",
+        });
+    });
+    (0, bun_test_1.it)("shares only a customer owned by the active dealer", async () => {
+        let update;
+        const db = {
+            customers: {
+                updateMany: async (args) => {
+                    update = args;
+                    return { count: 1 };
+                },
+            },
+        };
+        await (0, dealers_1.updateDealerPortalCustomerOfficeVisibility)(db, 10, {
+            id: 44,
+            officeVisibility: "SHARED",
+        });
+        (0, bun_test_1.expect)(update).toEqual({
+            where: {
+                id: 44,
+                dealerOwnerId: 10,
+                deletedAt: null,
+            },
+            data: {
+                officeVisibility: "SHARED",
+            },
+        });
+    });
+    (0, bun_test_1.it)("rejects dealer defaults outside the active dealer scope", async () => {
+        const baseDb = {
+            dealerAuth: {
+                findUnique: async () => ({
+                    id: 10,
+                    meta: {},
+                    primaryBillingAddressId: 1,
+                }),
+            },
+            addressBooks: {
+                update: async () => ({ id: 1 }),
+            },
+            customerTypes: {
+                findFirst: async () => null,
+            },
+            taxes: {
+                findFirst: async () => ({ taxCode: "FL" }),
+            },
+            $transaction: async (callback) => callback(baseDb),
+        };
+        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalSettings)(baseDb, 10, {
+            defaultCustomerProfileId: 99,
+        })).rejects.toThrow("Default customer profile could not be found.");
+    });
+    (0, bun_test_1.it)("rejects unknown default tax groups", async () => {
+        const baseDb = {
+            dealerAuth: {
+                findUnique: async () => ({
+                    id: 10,
+                    meta: {},
+                    primaryBillingAddressId: 1,
+                }),
+            },
+            addressBooks: {
+                update: async () => ({ id: 1 }),
+            },
+            customerTypes: {
+                findFirst: async () => ({ id: 45 }),
+            },
+            taxes: {
+                findFirst: async () => null,
+            },
+            $transaction: async (callback) => callback(baseDb),
+        };
+        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalSettings)(baseDb, 10, {
+            defaultTaxCode: "BAD",
+        })).rejects.toThrow("Default tax group could not be found.");
+    });
+    (0, bun_test_1.it)("uses dealer defaults when creating a customer with blank profile and tax", async () => {
+        let createdCustomer = null;
+        let createdTaxProfile = null;
+        const db = {
+            dealerAuth: {
+                findUnique: async () => ({
+                    meta: {
+                        defaultCustomerProfileId: 45,
+                        defaultTaxCode: "FL",
+                    },
+                }),
+            },
+            customerTypes: {
+                findFirst: async ({ where }) => where.id === 45 && where.dealerOwnerId === 10 ? { id: 45 } : null,
+            },
+            taxes: {
+                findFirst: async ({ where }) => where.taxCode === "FL" ? { taxCode: "FL" } : null,
+            },
+            customers: {
+                create: async ({ data }) => {
+                    createdCustomer = data;
+                    return { id: 20, ...data };
+                },
+            },
+            customerTaxProfiles: {
+                findFirst: async () => null,
+                create: async ({ data }) => {
+                    createdTaxProfile = data;
+                    return { id: 1, ...data };
+                },
+            },
+            $transaction: async (callback) => callback(db),
+        };
+        await (0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+            name: "Defaulted Customer",
+        });
+        (0, bun_test_1.expect)(createdCustomer).toMatchObject({
+            customerTypeId: 45,
+            dealerOwnerId: 10,
+        });
+        (0, bun_test_1.expect)(createdTaxProfile).toEqual({
+            customerId: 20,
+            taxCode: "FL",
+        });
+    });
+    (0, bun_test_1.it)("preserves explicit customer profile and tax values on edit", async () => {
+        let updatedCustomer = null;
+        let updatedTaxProfile = null;
+        const db = {
+            customerTypes: {
+                findFirst: async ({ where }) => where.id === 46 && where.dealerOwnerId === 10 ? { id: 46 } : null,
+            },
+            taxes: {
+                findFirst: async ({ where }) => where.taxCode === "TX" ? { taxCode: "TX" } : null,
+            },
+            customers: {
+                findFirst: async () => ({ id: 20, meta: {} }),
+                update: async ({ data }) => {
+                    updatedCustomer = data;
+                    return { id: 20, ...data };
+                },
+            },
+            customerTaxProfiles: {
+                findFirst: async () => ({ id: 5, taxCode: "FL" }),
+                update: async ({ data }) => {
+                    updatedTaxProfile = data;
+                    return { id: 5, ...data };
+                },
+            },
+            $transaction: async (callback) => callback(db),
+        };
+        await (0, dealers_1.saveDealerPortalCustomer)(db, 10, {
+            id: 20,
+            name: "Explicit Customer",
+            customerTypeId: 46,
+            taxCode: "TX",
+        });
+        (0, bun_test_1.expect)(updatedCustomer).toMatchObject({
+            customerTypeId: 46,
+        });
+        (0, bun_test_1.expect)(updatedTaxProfile).toEqual({
+            taxCode: "TX",
+        });
+    });
+    (0, bun_test_1.it)("soft-deletes only a customer owned by the dealer", async () => {
+        let capturedArgs = null;
+        const db = {
+            customers: {
+                updateMany: async (args) => {
+                    capturedArgs = args;
+                    return { count: 1 };
+                },
+            },
+        };
+        await (0, bun_test_1.expect)((0, dealers_1.deleteDealerPortalCustomer)(db, 10, 55)).resolves.toEqual({ id: 55 });
+        (0, bun_test_1.expect)(capturedArgs).not.toBeNull();
+        const args = capturedArgs;
+        (0, bun_test_1.expect)(args.where).toEqual({
+            id: 55,
+            dealerOwnerId: 10,
+            deletedAt: null,
+        });
+        (0, bun_test_1.expect)(args.data.deletedAt).toBeInstanceOf(Date);
+    });
+    (0, bun_test_1.it)("rejects deleting a missing or unowned dealer customer", async () => {
+        const db = {
+            customers: {
+                updateMany: async () => ({ count: 0 }),
+            },
+        };
+        await (0, bun_test_1.expect)((0, dealers_1.deleteDealerPortalCustomer)(db, 10, 55)).rejects.toThrow("Dealer customer could not be found.");
+    });
+    (0, bun_test_1.it)("lists only the active dealer's percentage sales profiles", async () => {
+        let capturedWhere = null;
+        const profiles = await (0, dealers_1.getDealerPortalSalesProfiles)({
+            customerTypes: {
+                findMany: async ({ where }) => {
+                    capturedWhere = where;
+                    return [
+                        {
+                            id: 45,
+                            title: "Retail",
+                            salesPercentage: 20,
+                            defaultProfile: true,
+                            createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                            _count: { customers: 2 },
+                        },
+                    ];
+                },
+            },
+        }, 10);
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            dealerOwnerId: 10,
+            deletedAt: null,
+        });
+        (0, bun_test_1.expect)(profiles[0]).toMatchObject({
+            id: 45,
+            salesPercentage: 20,
+        });
+    });
+    (0, bun_test_1.it)("saves dealer sales profiles as dealer-owned percentage profiles", async () => {
+        let createData = null;
+        const db = {
+            customerTypes: {
+                create: async ({ data }) => {
+                    createData = data;
+                    return { id: 45, ...data };
+                },
+            },
+        };
+        await (0, dealers_1.saveDealerPortalSalesProfile)(db, 10, {
+            title: "Retail",
+            salesPercentage: 20,
+            defaultProfile: false,
+        });
+        (0, bun_test_1.expect)(createData).toMatchObject({
+            title: "Retail",
+            salesPercentage: 20,
+            defaultProfile: false,
+            dealerOwnerId: 10,
+        });
+    });
+    (0, bun_test_1.it)("does not expose raw sales order item metadata in dealer document detail", async () => {
+        let capturedWhere = null;
+        const document = await (0, dealers_1.getDealerPortalSalesDocument)({
+            salesOrders: {
+                findFirst: async ({ where }) => {
+                    capturedWhere = where;
+                    return {
+                        id: 55,
+                        orderId: "DQ-55",
+                        title: "Dealer Quote",
+                        status: "Draft",
+                        type: "quote",
+                        prodStatus: "completed",
+                        deliveredAt: null,
+                        deliveryOption: null,
+                        grandTotal: 100,
+                        amountDue: 100,
+                        taxPercentage: 0,
+                        customerId: 20,
+                        customerProfileId: 30,
+                        dealerSalesProfileId: 40,
+                        meta: {},
+                        pickup: null,
+                        deliveries: [
+                            {
+                                status: "completed",
+                                deliveredAt: new Date("2026-05-18T00:00:00.000Z"),
+                            },
+                        ],
+                        dealerSale: {
+                            customerId: 20,
+                            dealerCustomerProfileId: 40,
+                            dealerSalesPercentage: 50,
+                            grandTotal: 150,
+                            dueAmount: 150,
+                        },
+                        customer: {
+                            id: 20,
+                            name: "Customer",
+                            businessName: null,
+                            email: "customer@example.com",
+                            customerTypeId: 40,
+                        },
+                        items: [
+                            {
+                                id: 1,
+                                description: "Door",
+                                dykeDescription: "Entry Door",
+                                qty: 1,
+                                rate: 100,
+                                total: 100,
+                                meta: {
+                                    uid: "line-1",
+                                    title: "Entry Door",
+                                },
+                            },
+                        ],
+                    };
+                },
+            },
+        }, 10, 55);
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            id: 55,
+            dealerAuthId: 10,
+            deletedAt: null,
+        });
+        (0, bun_test_1.expect)("meta" in document).toBe(false);
+        (0, bun_test_1.expect)("items" in document).toBe(false);
+        (0, bun_test_1.expect)("deliveries" in document).toBe(false);
+        (0, bun_test_1.expect)("pickup" in document).toBe(false);
+        (0, bun_test_1.expect)("prodStatus" in document).toBe(false);
+        (0, bun_test_1.expect)("deliveredAt" in document).toBe(false);
+        (0, bun_test_1.expect)(document).toMatchObject({
+            grandTotal: 150,
+            amountDue: 150,
+            officeGrandTotal: 100,
+            officeAmountDue: 100,
+            customerPaymentStatus: "unpaid",
+            customerPaidAmount: 0,
+            fulfillmentStatus: "preparing",
+        });
+        (0, bun_test_1.expect)(document.lineItems).toEqual([
+            {
+                uid: "line-1",
+                title: "Entry Door",
+                description: "Door",
+                qty: 1,
+                unitPrice: 150,
+                lineTotal: 150,
+            },
+        ]);
+    });
+    (0, bun_test_1.it)("updates only the active dealer's customer-payment ledger and records history", async () => {
+        let updatedDue = null;
+        let historyData = null;
+        const tx = {
+            dealerSales: {
+                findFirst: async () => ({
+                    id: 7,
+                    grandTotal: 150,
+                    dueAmount: 150,
+                    salesOrderId: 55,
+                }),
+                update: async ({ data }) => {
+                    updatedDue = data.dueAmount;
+                    return {
+                        grandTotal: 150,
+                        dueAmount: data.dueAmount,
+                        updatedAt: new Date("2026-07-18T00:00:00.000Z"),
+                    };
+                },
+            },
+            salesHistory: {
+                create: async ({ data }) => {
+                    historyData = data;
+                    return data;
+                },
+            },
+        };
+        const db = {
+            $transaction: async (callback) => callback(tx),
+        };
+        const result = await (0, dealers_1.updateDealerPortalCustomerPayment)(db, 10, {
+            id: 55,
+            status: "paid",
+        });
+        (0, bun_test_1.expect)(updatedDue).toBe(0);
+        (0, bun_test_1.expect)(result).toMatchObject({ status: "paid", amountDue: 0 });
+        (0, bun_test_1.expect)(historyData).toMatchObject({
+            salesId: 55,
+            name: "Dealer customer payment status updated",
+            authorName: "Dealer 10",
+            data: {
+                dealerId: 10,
+                status: "paid",
+                previousDue: 150,
+                nextDue: 0,
+            },
+        });
+    });
+    (0, bun_test_1.it)("reopens dealer documents from saved package workflow payload", async () => {
+        const document = await (0, dealers_1.getDealerPortalSalesDocument)({
+            salesOrders: {
+                findFirst: async () => ({
+                    id: 55,
+                    orderId: "DQ-55",
+                    title: "Dealer Quote",
+                    status: "Draft",
+                    type: "quote",
+                    grandTotal: 100,
+                    amountDue: 100,
+                    taxPercentage: 0,
+                    customerId: 20,
+                    customerProfileId: 30,
+                    dealerSalesProfileId: 40,
+                    dealerSale: {
+                        customerId: 20,
+                        dealerCustomerProfileId: 40,
+                        dealerSalesPercentage: 50,
+                        grandTotal: 150,
+                        dueAmount: 150,
+                    },
+                    meta: {
+                        newSalesForm: {
+                            form: {
+                                customerId: 20,
+                                customerProfileId: 40,
+                            },
+                            summary: {
+                                taxRate: 8.25,
+                            },
+                            lineItems: [
+                                {
+                                    uid: "saved-line",
+                                    title: "Saved Door",
+                                    qty: 2,
+                                    unitPrice: 0,
+                                    lineTotal: 400,
+                                    formSteps: [{ stepId: 1, value: "Door" }],
+                                    housePackageTool: {
+                                        doors: [{ dimension: "30 x 80", totalQty: 2 }],
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    customer: {
+                        id: 20,
+                        name: "Customer",
+                        businessName: null,
+                        email: "customer@example.com",
+                        customerTypeId: 40,
+                    },
+                    items: [
+                        {
+                            id: 1,
+                            description: "Legacy row",
+                            dykeDescription: "Legacy row",
+                            qty: 1,
+                            rate: 10,
+                            total: 10,
+                            meta: {},
+                        },
+                    ],
+                }),
+            },
+        }, 10, 55);
+        (0, bun_test_1.expect)(document.grandTotal).toBe(150);
+        (0, bun_test_1.expect)(document.customerProfileId).toBe(40);
+        (0, bun_test_1.expect)(document.taxRate).toBe(8.25);
+        (0, bun_test_1.expect)(document.lineItems).toEqual([
+            {
+                uid: "saved-line",
+                title: "Saved Door",
+                qty: 2,
+                unitPrice: 0,
+                lineTotal: 400,
+                formSteps: [{ stepId: 1, value: "Door" }],
+                housePackageTool: {
+                    doors: [{ dimension: "30 x 80", totalQty: 2 }],
+                },
+            },
+        ]);
+    });
+    (0, bun_test_1.it)("saves quotes with the selected dealer customer profile", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            dealerProfile: {
+                id: 45,
+                title: "Retail customer",
+                coefficient: 0.5,
+                salesPercentage: 50,
+                defaultProfile: false,
+            },
+        });
+        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            customerProfileId: 45,
+        }));
+        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toMatchObject({
+            dealerSalesProfileId: 45,
+            grandTotal: 100,
+        });
+        const savedOrderData = testDb.getCreatedOrderData();
+        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
+        (0, bun_test_1.expect)(savedOrderData.meta).not.toHaveProperty("dealerPricing");
+        (0, bun_test_1.expect)(savedOrderData.meta).not.toHaveProperty("pricingSnapshot");
+        (0, bun_test_1.expect)(testDb.getDealerSalesData()).toMatchObject({
+            dealerCustomerProfileId: 45,
+            dealerSalesPercentage: 50,
+            grandTotal: 150,
+            dueAmount: 150,
+        });
+    });
+    (0, bun_test_1.it)("falls back to the dealer customer's assigned profile when quote profile is omitted", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            customerTypeId: 45,
+            dealerProfile: {
+                id: 45,
+                title: "Builder customer",
+                coefficient: 0.8,
+                salesPercentage: 25,
+                defaultProfile: false,
+            },
+        });
+        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
+        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toMatchObject({
+            dealerSalesProfileId: 45,
+        });
+        const savedOrderData = testDb.getCreatedOrderData();
+        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form.customerProfileId).toBe(45);
+    });
+    (0, bun_test_1.it)("falls back to dealership default profile, tax, and fulfillment on quote save", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            customerTypeId: null,
+            dealerMeta: {
+                defaultCustomerProfileId: 45,
+                defaultTaxCode: "FL",
+                defaultFulfillmentMode: "delivery",
+            },
+            dealerProfile: {
+                id: 45,
+                title: "Dealer Default",
+                coefficient: 0.8,
+                salesPercentage: 25,
+                defaultProfile: true,
+            },
+        });
+        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput());
+        const savedOrderData = testDb.getCreatedOrderData();
+        (0, bun_test_1.expect)(savedOrderData).toMatchObject({
+            dealerSalesProfileId: 45,
+            taxPercentage: 6,
+        });
+        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form).toMatchObject({
+            customerProfileId: 45,
+            taxCode: "FL",
+            deliveryOption: "delivery",
+        });
+    });
+    (0, bun_test_1.it)("keeps explicit quote customer tax and fulfillment over dealership defaults", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            customerTaxCode: "TX",
+            dealerMeta: {
+                defaultTaxCode: "FL",
+                defaultFulfillmentMode: "delivery",
+            },
+        });
+        await (0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            taxCode: "TX",
+            deliveryOption: "ship",
+        }));
+        const savedOrderData = testDb.getCreatedOrderData();
+        (0, bun_test_1.expect)(savedOrderData).toMatchObject({
+            taxPercentage: 8,
+        });
+        (0, bun_test_1.expect)(savedOrderData.meta.newSalesForm.form).toMatchObject({
+            taxCode: "TX",
+            deliveryOption: "ship",
+        });
+    });
+    (0, bun_test_1.it)("rejects quote profiles not owned by the active dealer", async () => {
+        const testDb = createDealerQuoteTestDb({
+            activeDppCount: 0,
+            dealerProfile: {
+                id: 45,
+                title: "Retail customer",
+                coefficient: 0.5,
+                salesPercentage: 50,
+                defaultProfile: true,
+            },
+        });
+        await (0, bun_test_1.expect)((0, dealers_1.saveDealerPortalQuote)(testDb.db, 10, dealerQuoteInput({
+            customerProfileId: 99,
+        }))).rejects.toThrow("Dealer customer profile is required before saving a quote.");
+        (0, bun_test_1.expect)(testDb.getCreatedOrderData()).toBeNull();
+    });
+    (0, bun_test_1.it)("scopes dealer order lists and keeps partial dispatches out of order-level fulfillment", async () => {
+        let capturedWhere = null;
+        const documents = await (0, dealers_1.getDealerPortalSalesDocuments)({
+            salesOrders: {
+                findMany: async ({ where }) => {
+                    capturedWhere = where;
+                    return [
+                        {
+                            id: 55,
+                            orderId: "DQ-55",
+                            title: "Dealer Order",
+                            status: "New",
+                            type: "order",
+                            prodStatus: "completed",
+                            deliveredAt: null,
+                            deliveryOption: "ship",
+                            grandTotal: 100,
+                            amountDue: null,
+                            meta: {},
+                            dealerSale: {
+                                grandTotal: 150,
+                                dueAmount: 150,
+                            },
+                            invoiceStatus: null,
+                            pickup: null,
+                            deliveries: [
+                                {
+                                    status: "packed",
+                                    deliveredAt: null,
+                                },
+                            ],
+                            createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                            customer: {
+                                id: 20,
+                                name: "Customer",
+                                businessName: null,
+                                email: "customer@example.com",
+                            },
+                        },
+                        {
+                            id: 56,
+                            orderId: "DQ-56",
+                            title: "Ready Dealer Order",
+                            status: "ready_to_fulfill",
+                            type: "order",
+                            prodStatus: "completed",
+                            deliveredAt: null,
+                            deliveryOption: "pickup",
+                            grandTotal: 100,
+                            amountDue: 0,
+                            meta: {},
+                            dealerSale: {
+                                grandTotal: 150,
+                                dueAmount: 0,
+                            },
+                            invoiceStatus: null,
+                            pickup: null,
+                            deliveries: [
+                                {
+                                    status: "completed",
+                                    deliveredAt: new Date("2026-05-19T00:00:00.000Z"),
+                                },
+                            ],
+                            createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                            customer: null,
+                        },
+                        {
+                            id: 57,
+                            orderId: "DQ-57",
+                            title: "Delivered Dealer Order",
+                            status: "New",
+                            type: "order",
+                            deliveredAt: new Date("2026-05-20T00:00:00.000Z"),
+                            deliveryOption: "delivery",
+                            grandTotal: 100,
+                            amountDue: 0,
+                            meta: {},
+                            dealerSale: null,
+                            invoiceStatus: null,
+                            pickup: null,
+                            createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                            customer: null,
+                        },
+                        {
+                            id: 58,
+                            orderId: "DQ-58",
+                            title: "Deleted Pickup Dealer Order",
+                            status: "New",
+                            type: "order",
+                            deliveredAt: null,
+                            deliveryOption: "pickup",
+                            grandTotal: 100,
+                            amountDue: 0,
+                            meta: {},
+                            dealerSale: null,
+                            invoiceStatus: null,
+                            pickup: {
+                                pickupAt: new Date("2026-05-20T00:00:00.000Z"),
+                                deletedAt: new Date("2026-05-21T00:00:00.000Z"),
+                            },
+                            createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                            customer: null,
+                        },
+                    ];
+                },
+            },
+        }, 10, "order");
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            dealerAuthId: 10,
+            deletedAt: null,
+            type: { not: "quote" },
+        });
+        (0, bun_test_1.expect)(documents[0]?.grandTotal).toBe(150);
+        (0, bun_test_1.expect)(documents[0]?.amountDue).toBe(150);
+        (0, bun_test_1.expect)(documents[0]?.officeAmountDue).toBeNull();
+        (0, bun_test_1.expect)(documents[0]?.deliveryOption).toBe("ship");
+        (0, bun_test_1.expect)(documents[0]?.fulfillmentStatus).toBe("preparing");
+        (0, bun_test_1.expect)(documents[1]?.fulfillmentStatus).toBe("ready");
+        (0, bun_test_1.expect)(documents[2]?.fulfillmentStatus).toBe("completed");
+        (0, bun_test_1.expect)(documents[3]?.fulfillmentStatus).toBe("preparing");
+        (0, bun_test_1.expect)("meta" in documents[0]).toBe(false);
+        (0, bun_test_1.expect)("deliveries" in documents[0]).toBe(false);
+        (0, bun_test_1.expect)("pickup" in documents[0]).toBe(false);
+        (0, bun_test_1.expect)("prodStatus" in documents[0]).toBe(false);
+        (0, bun_test_1.expect)("deliveredAt" in documents[0]).toBe(false);
+    });
+    (0, bun_test_1.it)("applies dealer sales list filters to dealer-owned records", async () => {
+        let capturedWhere = null;
+        await (0, dealers_1.getDealerPortalSalesList)({
+            salesOrders: {
+                findMany: async ({ where }) => {
+                    capturedWhere = where;
+                    return [];
+                },
+                count: async () => 0,
+            },
+        }, 10, "order", {
+            customerId: 20,
+            deliveryOption: "delivery",
+            customerProfileId: "45",
+            paymentStatus: "due",
+            invoiceStatus: "pending",
+        });
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            dealerAuthId: 10,
+            deletedAt: null,
+            dealerSale: {
+                is: {
+                    customerId: 20,
+                    dealerCustomerProfileId: 45,
+                    dueAmount: {
+                        gt: 0,
+                    },
+                },
+            },
+            type: {
+                not: "quote",
+            },
+            deliveryOption: "delivery",
+            invoiceStatus: "pending",
+        });
+    });
+    (0, bun_test_1.it)("loads dealer customer overview with scoped sales counts", async () => {
+        let capturedCustomerWhere = null;
+        let capturedSalesWhere = null;
+        const overview = await (0, dealers_1.getDealerPortalCustomerOverview)({
+            customers: {
+                findFirst: async ({ where }) => {
+                    capturedCustomerWhere = where;
+                    return {
+                        id: 20,
+                        name: "Jane Customer",
+                        businessName: "Jane Co",
+                        email: "jane@example.com",
+                        phoneNo: "555-000-0000",
+                        address: "100 Main St",
+                        meta: {
+                            dealerAddress: {
+                                formattedAddress: "100 Main St, Dallas, TX",
+                                city: "Dallas",
+                                state: "TX",
+                            },
+                        },
+                        customerTypeId: 45,
+                        createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                        profile: {
+                            id: 45,
+                            title: "Retail",
+                            salesPercentage: 20,
+                        },
+                    };
+                },
+            },
+            salesOrders: {
+                groupBy: async ({ where }) => {
+                    capturedSalesWhere = where;
+                    return [
+                        { type: "quote", _count: { _all: 2 } },
+                        { type: "order", _count: { _all: 1 } },
+                    ];
+                },
+            },
+        }, 10, 20);
+        (0, bun_test_1.expect)(capturedCustomerWhere).toMatchObject({
+            id: 20,
+            dealerOwnerId: 10,
+            deletedAt: null,
+        });
+        (0, bun_test_1.expect)(capturedSalesWhere).toMatchObject({
+            dealerAuthId: 10,
+            customerId: 20,
+            deletedAt: null,
+            type: {
+                in: ["order", "quote"],
+            },
+        });
+        (0, bun_test_1.expect)(overview).toMatchObject({
+            id: 20,
+            formattedAddress: "100 Main St, Dallas, TX",
+            ordersCount: 1,
+            quotesCount: 2,
+        });
+        (0, bun_test_1.expect)("meta" in overview).toBe(false);
+    });
+    (0, bun_test_1.it)("loads dealer customers with scoped sales and quote counts", async () => {
+        let capturedCustomerWhere = null;
+        let capturedSalesWhere = null;
+        const customers = await (0, dealers_1.getDealerPortalCustomers)({
+            customers: {
+                findMany: async ({ where }) => {
+                    capturedCustomerWhere = where;
+                    return [
+                        {
+                            id: 20,
+                            name: "Jane Customer",
+                            businessName: "Jane Co",
+                            email: "jane@example.com",
+                            phoneNo: "555-000-0000",
+                            address: "100 Main St",
+                            meta: {
+                                dealerAddress: {
+                                    formattedAddress: "100 Main St, Dallas, TX",
+                                    city: "Dallas",
+                                    state: "TX",
+                                },
+                            },
+                            customerTypeId: 45,
+                            createdAt: new Date("2026-05-18T00:00:00.000Z"),
+                            profile: {
+                                id: 45,
+                                title: "Retail",
+                                coefficient: 1,
+                                salesPercentage: 20,
+                                dealerOwnerId: 10,
+                            },
+                            taxProfiles: [
+                                {
+                                    id: 60,
+                                    taxCode: "TX",
+                                    tax: {
+                                        taxCode: "TX",
+                                        title: "Texas",
+                                        percentage: 8.25,
+                                    },
+                                },
+                            ],
+                        },
+                    ];
+                },
+            },
+            salesOrders: {
+                groupBy: async ({ where }) => {
+                    capturedSalesWhere = where;
+                    return [
+                        { customerId: 20, type: "quote", _count: { _all: 3 } },
+                        { customerId: 20, type: "order", _count: { _all: 2 } },
+                    ];
+                },
+            },
+        }, 10);
+        (0, bun_test_1.expect)(capturedCustomerWhere).toMatchObject({
+            dealerOwnerId: 10,
+            deletedAt: null,
+        });
+        (0, bun_test_1.expect)(capturedSalesWhere).toMatchObject({
+            dealerAuthId: 10,
+            deletedAt: null,
+            customerId: {
+                in: [20],
+            },
+            type: {
+                in: ["order", "quote"],
+            },
+        });
+        const customer = customers[0];
+        (0, bun_test_1.expect)(customer).toMatchObject({
+            id: 20,
+            formattedAddress: "100 Main St, Dallas, TX",
+            ordersCount: 2,
+            quotesCount: 3,
+            taxCode: "TX",
+            taxProfileId: 60,
+            profile: {
+                id: 45,
+                title: "Retail",
+                salesPercentage: 20,
+            },
+        });
+        (0, bun_test_1.expect)("dealerOwnerId" in (customer?.profile || {})).toBe(false);
+    });
+    (0, bun_test_1.it)("rejects another dealer's customer overview", async () => {
+        let grouped = false;
+        await (0, bun_test_1.expect)((0, dealers_1.getDealerPortalCustomerOverview)({
+            customers: {
+                findFirst: async () => null,
+            },
+            salesOrders: {
+                groupBy: async () => {
+                    grouped = true;
+                    return [];
+                },
+            },
+        }, 10, 20)).rejects.toThrow("Dealer customer could not be found.");
+        (0, bun_test_1.expect)(grouped).toBe(false);
+    });
+    (0, bun_test_1.it)("scopes quote conversion to the active dealer", async () => {
+        let capturedWhere = null;
+        const tx = {
+            salesOrders: {
+                findFirst: async ({ where }) => {
+                    capturedWhere = where;
+                    return null;
+                },
+                update: async () => {
+                    throw new Error("Quote update should not run.");
+                },
+            },
+        };
+        const db = {
+            $transaction: async (callback) => callback(tx),
+        };
+        await (0, bun_test_1.expect)((0, dealers_1.convertDealerPortalQuoteToOrder)(db, 10, 55)).rejects.toThrow("Dealer quote could not be found.");
+        (0, bun_test_1.expect)(capturedWhere).toMatchObject({
+            id: 55,
+            dealerAuthId: 10,
+            deletedAt: null,
+            type: "quote",
+        });
+    });
+});

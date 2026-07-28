@@ -15,5 +15,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 // export * from "./activities";
+__exportStar(require("./dealers"), exports);
+__exportStar(require("./dealer-program"), exports);
 __exportStar(require("./notification-settings"), exports);
+__exportStar(require("./short-links"), exports);
 __exportStar(require("./users"), exports);

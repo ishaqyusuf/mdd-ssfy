@@ -25,13 +25,8 @@ tmp
 **/.env.production
 **/.env.remote.local
 
-# Applications unrelated to the standalone API deployment
-apps/dashboard
-apps/dealership
-apps/gnd-backlog
-apps/mobile
-apps/storefront
-apps/web
+# Keep workspace sources in the upload. This file is shared by every Vercel
+# project in the monorepo, and Turbo needs app manifests to discover builds.
 
 # Local notes, diagnostics, and generated artifacts
 ai
