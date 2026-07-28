@@ -2,12 +2,14 @@ import type { SalesOrderLifecycleStatus } from "./order-status";
 
 export type SalesInventoryOverviewSetupMode =
 	| "active"
+	| "not_applicable"
 	| "legacy_status_locked"
 	| "not_configured"
 	| "completed_readonly";
 
 export type SalesInventoryOperationMode =
 	| "active"
+	| "not_applicable"
 	| "legacy_status_locked"
 	| "not_configured"
 	| "completed_readonly"
@@ -70,7 +72,11 @@ function normalizeLifecycleInputStatus(status?: string | null) {
 }
 
 function readonlyPolicy(
-	mode: "completed_readonly" | "cancelled_readonly" | "legacy_status_locked",
+	mode:
+		| "completed_readonly"
+		| "cancelled_readonly"
+		| "legacy_status_locked"
+		| "not_applicable",
 	reason: string,
 ): SalesInventoryOperationPolicy {
 	return {
@@ -91,9 +97,19 @@ export function resolveSalesInventoryOverviewSetupMode(input: {
 	lifecycleStatus: SalesOrderLifecycleStatus;
 	inventoryRowCount: number;
 	inventoryStatus?: string | null;
+	projectionStatus?: string | null;
+	projectionNeedCount?: number | null;
 }): SalesInventoryOverviewSetupMode {
 	if (input.inventoryRowCount > 0) return "active";
-	if (input.lifecycleStatus === "fulfilled") return "completed_readonly";
+	if (
+		input.projectionStatus === "ready" &&
+		Number(input.projectionNeedCount || 0) === 0
+	) {
+		return "not_applicable";
+	}
+	if (hasPassedInventoryTrackingRepairBoundary(input.lifecycleStatus)) {
+		return "completed_readonly";
+	}
 	if (input.inventoryStatus) return "legacy_status_locked";
 	return "not_configured";
 }
@@ -120,6 +136,13 @@ export function resolveSalesInventoryOperationPolicy(input: {
 		return readonlyPolicy(
 			"completed_readonly",
 			"This completed order was not previously configured for inventory.",
+		);
+	}
+
+	if (input.setupMode === "not_applicable") {
+		return readonlyPolicy(
+			"not_applicable",
+			"This sale has no inventory requirements.",
 		);
 	}
 

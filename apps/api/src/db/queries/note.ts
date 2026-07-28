@@ -10,6 +10,11 @@ import {
 } from "@notifications/channel-subscribers";
 import { getChannels, syncChannels } from "@notifications/channels-query";
 import type { GetNotificationChannelsSchema } from "@notifications/schemas";
+import {
+	createInboundShipmentFromDemandsQuery,
+	updateInboundShipmentStatusQuery,
+} from "./inbound-receiving";
+import { planOrderedInboundAutomation } from "./sales-inventory-inbound-automation";
 import { getSalesInventoryInboundOwnership } from "./sales-inventory-inbound-ownership";
 import { getAuthUser } from "./user";
 
@@ -17,6 +22,7 @@ async function assertManualInboundStatusCanUpdate(
 	ctx: TRPCContext,
 	input: {
 		salesId: number;
+		status: SaveInboundNoteSchema["status"];
 	},
 ) {
 	const ownership = await getSalesInventoryInboundOwnership(
@@ -24,11 +30,126 @@ async function assertManualInboundStatusCanUpdate(
 		input.salesId,
 	);
 
-	if (!ownership.canUseManualInboundStatus) {
+	if (!ownership.canUseManualInboundStatus && input.status !== "ORDERED") {
 		throw new Error(
 			"This order has inventory-created inbound work. Update the inbound shipment from the Inventory tab instead.",
 		);
 	}
+}
+
+async function applyOrderedInboundAutomation(
+	ctx: TRPCContext,
+	input: {
+		salesId: number;
+		demandIds?: number[];
+		note?: string | null;
+	},
+) {
+	const demandIds = Array.from(
+		new Set(
+			(input.demandIds || []).filter((id) => Number.isInteger(id) && id > 0),
+		),
+	);
+	const demands = await ctx.db.inboundDemand.findMany({
+		where: {
+			deletedAt: null,
+			status: {
+				in: ["pending", "ordered", "partially_received"],
+			},
+			...(demandIds.length
+				? {
+						id: {
+							in: demandIds,
+						},
+					}
+				: {}),
+			lineItemComponent: {
+				parent: {
+					saleId: input.salesId,
+					deletedAt: null,
+				},
+			},
+		},
+		select: {
+			id: true,
+			inboundShipmentItem: {
+				select: {
+					inboundId: true,
+					inbound: {
+						select: {
+							status: true,
+						},
+					},
+				},
+			},
+			inventoryVariant: {
+				select: {
+					inventory: {
+						select: {
+							defaultSupplierId: true,
+						},
+					},
+					supplierVariants: {
+						where: {
+							deletedAt: null,
+							active: true,
+						},
+						select: {
+							supplierId: true,
+							preferred: true,
+							active: true,
+						},
+					},
+				},
+			},
+		},
+	});
+	const plan = planOrderedInboundAutomation(demands);
+	const startedInboundIds: number[] = [];
+	const createdInboundIds: number[] = [];
+	const failures: string[] = [];
+
+	for (const inboundId of plan.inboundIdsToStart) {
+		try {
+			await updateInboundShipmentStatusQuery(ctx, {
+				inboundId,
+				status: "in_progress",
+				note: input.note,
+			});
+			startedInboundIds.push(inboundId);
+		} catch (error) {
+			failures.push(
+				`Inbound #${inboundId}: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
+		}
+	}
+
+	for (const group of plan.createGroups) {
+		try {
+			const created = await createInboundShipmentFromDemandsQuery(ctx, {
+				supplierId: group.supplierId,
+				demandIds: group.demandIds,
+				status: "in_progress",
+				note: input.note,
+			});
+			createdInboundIds.push(created.inboundId);
+		} catch (error) {
+			failures.push(
+				`Supplier #${group.supplierId}: ${
+					error instanceof Error ? error.message : String(error)
+				}`,
+			);
+		}
+	}
+
+	return {
+		startedInboundIds,
+		createdInboundIds,
+		skippedDemandIds: plan.skippedDemandIds,
+		failures,
+	};
 }
 
 export async function getNotificationChannels(
@@ -152,6 +273,7 @@ export async function saveInboundNote(
 	const changed = previousStatus !== nextStatus;
 	await assertManualInboundStatusCanUpdate(ctx, {
 		salesId: order.id,
+		status: nextStatus,
 	});
 	const subscribers =
 		nextStatus === "PENDING ORDER"
@@ -277,11 +399,20 @@ export async function saveInboundNote(
 			demandIds: data.demandIds,
 		},
 	);
+	const inboundAutomation =
+		nextStatus === "ORDERED"
+			? await applyOrderedInboundAutomation(ctx, {
+					salesId: order.id,
+					demandIds: data.demandIds,
+					note: userNote,
+				})
+			: null;
 
 	return {
 		order: updatedOrder,
 		note,
 		inventoryDemandUpdate,
+		inboundAutomation,
 		notificationCount: recipientIds.length,
 		previousStatus,
 		status: nextStatus,

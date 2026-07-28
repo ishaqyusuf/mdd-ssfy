@@ -95,6 +95,7 @@ model SalesOrders {
     payrolls          Payroll[]
     history           SalesHistory[]
     lineItems         LineItem[]
+    inventoryProjection SalesInventoryProjectionState?
     productionGate    OrderProductionGate?
     productionReadinessOverride SalesProductionReadinessOverride?
 
@@ -114,6 +115,24 @@ model SalesOrders {
     @@index([prodId])
     @@index([salesRepId])
     @@index([pickupId])
+}
+
+model SalesInventoryProjectionState {
+    id           Int          @id @default(autoincrement())
+    salesOrderId Int          @unique
+    status       String       @default("syncing") @db.VarChar(32)
+    version      Int          @default(1)
+    needCount    Int          @default(0)
+    requiredQty  Float        @default(0)
+    source       String?      @db.VarChar(32)
+    lastError    String?      @db.Text
+    startedAt    DateTime?    @db.Timestamp(0)
+    completedAt  DateTime?    @db.Timestamp(0)
+    createdAt    DateTime?    @default(now()) @db.Timestamp(0)
+    updatedAt    DateTime?    @updatedAt
+    salesOrder   SalesOrders  @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+
+    @@index([status, updatedAt])
 }
 
 enum DealerSellerOfRecord {

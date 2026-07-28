@@ -1,5 +1,38 @@
 # Progress
 
+- 2026-07-28: Fixed the global navigation loading bar updating React state
+  while the Next.js App Router was rendering. Native same-origin click and
+  form-submit signals now defer the loading start until the active event stack
+  completes, and the bar no longer attempts a state update during
+  `beforeunload`. Focused regression coverage passed 2 tests, focused Biome
+  and scoped diff checks passed, and authenticated browser QA confirmed the
+  bar starts at 14%, settles back to hidden after client navigation, and emits
+  no `Cannot update a component` warning on the reported Sales Orders URL. The
+  broad dashboard typecheck remains on its existing unrelated baseline. No
+  API, permission, schema, migration, or database behavior changed.
+
+- 2026-07-28: Fixed staff Square Terminal checkout completion and cancellation
+  getting stuck behind the dashboard QueryClient's 60-second cache. Every
+  two-second poll now makes a fresh status request, `CANCEL_REQUESTED` remains
+  intermediate until Square confirms `CANCELED`, and the UI clears the loading
+  overlay with an explicit no-payment-applied notice. A live completion exposed
+  a second defect: the completion mutation omitted derived sale ids, allowing
+  an orphan Square row to be marked complete without an order payment. The
+  browser now rebuilds sale/order references and the server refuses zero-order
+  settlement, while a guarded recovery claim repairs only completed rows with
+  no linked sale payment. Terminal settlement is reverified against Square and
+  atomically transitions its local row through
+  `PENDING -> PROCESSING -> COMPLETED` with duplicate protection. Operator
+  cancellation now uses Square's cancel-checkout API rather than dismissal.
+  Live localhost QA completed two $0.01 production checkouts on Terminal 2443;
+  both were recovered exactly once to order `08870LM`, and browser plus database
+  verification show $0.02 paid and $192.05 due. Focused payment/Square coverage
+  passed 31 tests and 63 assertions; focused Biome and scoped diff checks
+  passed. The API-wide typecheck remains blocked by the existing unrelated
+  Sentry event typing errors in `apps/api/src/instrument.ts`, and the broad
+  dashboard typecheck remains on its existing baseline. Physical cancellation
+  verification is still pending because both live checkouts were paid.
+
 - 2026-07-28: Fixed and completed the production Trigger.dev jobs deployment.
   `jobs:deploy` now explicitly uses the Redland CLI profile, and the Trigger
   config retains the public project ref as a fallback because Trigger's remote

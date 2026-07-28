@@ -10,11 +10,15 @@ import {
   withSalesControl,
   withSalesListControl,
 } from "@gnd/sales";
-import { getSalesOrderLifecycleStatusInfo } from "@gnd/sales/order-status";
+import {
+  type SalesOrderLifecycleStatus,
+  getSalesOrderLifecycleStatusInfo,
+} from "@gnd/sales/order-status";
 import {
   isReviewableSalesPaymentStatus,
   repairSalesInvoiceCccDisplay,
 } from "@gnd/sales/payment-system";
+import { resolveSalesInventoryApplicability } from "@gnd/sales/sales-inventory-applicability";
 import {
   INVOICE_FILTER_OPTIONS,
   PRODUCTION_ASSIGNMENT_FILTER_OPTIONS,
@@ -550,28 +554,69 @@ async function normalizeOrders(
   rows: Prisma.SalesOrdersGetPayload<{ include: typeof SalesListInclude }>[],
 ) {
   const { db } = ctx;
-  const noteCounts = await salesNotesCount(
-    rows.map((sale) => ({
-      id: sale.id,
-      orderId: sale.orderId,
-    })),
-    db,
-  );
-  const inboundOwnershipMap = await getSalesInventoryInboundOwnershipMap(
-    db,
-    rows.map((row) => row.id),
+  const salesOrderIds = rows.map((row) => row.id);
+  const [noteCounts, inboundOwnershipMap, inventoryProjectionRows] =
+    await Promise.all([
+      salesNotesCount(
+        rows.map((sale) => ({
+          id: sale.id,
+          orderId: sale.orderId,
+        })),
+        db,
+      ),
+      getSalesInventoryInboundOwnershipMap(db, salesOrderIds),
+      db.salesInventoryProjectionState.findMany({
+        where: {
+          salesOrderId: {
+            in: salesOrderIds,
+          },
+        },
+        select: {
+          salesOrderId: true,
+          status: true,
+          needCount: true,
+          completedAt: true,
+        },
+      }),
+    ]);
+  const inventoryProjectionMap = new Map(
+    inventoryProjectionRows.map((projection) => [
+      projection.salesOrderId,
+      projection,
+    ]),
   );
   const normalizedRows = rows.map((row) => ({
     ...normalizeOrderRow(row, noteCounts[row.id.toString()]?.noteCount ?? 0),
     inventoryInboundOwnership:
       inboundOwnershipMap.get(row.id) ?? emptySalesInventoryInboundOwnership(),
+    inventoryProjection: inventoryProjectionMap.get(row.id) ?? null,
   }));
   const rowsWithControl = isControlReadV2Enabled()
     ? await withSalesListControl(normalizedRows, db)
     : await withSalesControl(normalizedRows, db);
-  const data = rowsWithControl.map((row) =>
-    applyControlAwareLifecycle(row as ControlAwareOrderRow),
-  );
+  const data = rowsWithControl.map((row) => {
+    const {
+      inventoryProjection,
+      ...lifecycleInput
+    } = row as ControlAwareOrderRow & {
+      inventoryProjection:
+        | {
+            status: string;
+            needCount: number;
+            completedAt: Date | null;
+          }
+        | null;
+    };
+    const lifecycleRow = applyControlAwareLifecycle(lifecycleInput);
+
+    return {
+      ...lifecycleRow,
+      inventoryApplicability: resolveSalesInventoryApplicability({
+        lifecycleStatus: lifecycleRow.status as SalesOrderLifecycleStatus,
+        projection: inventoryProjection,
+      }),
+    };
+  });
   return data;
 }
 

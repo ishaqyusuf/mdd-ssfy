@@ -24,7 +24,7 @@ export const salesPaymentProcessorRouter = createTRPCRouter({
 	getTerminalPaymentStatus: protectedProcedure
 		.input(salesPaymentProcessorTerminalStatusSchema)
 		.query(async (props) => {
-			return getSalesPaymentProcessorTerminalStatus(props.input);
+			return getSalesPaymentProcessorTerminalStatus(props.ctx, props.input);
 		}),
 	sendPaymentLink: protectedProcedure
 		.input(salesPaymentProcessorSendPaymentLinkSchema)

@@ -1,8 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import {
+	assertSalesPaymentProcessorTerminalSettlementApplied,
+	cancelSalesPaymentProcessorTerminalPayment,
+	claimSalesPaymentProcessorTerminalSettlement,
+	completeSalesPaymentProcessorTerminalSettlement,
 	createSalesPaymentPayrollIfAvailable,
 	createTerminalPayment,
 	queueSalesCustomerPaymentReceipt,
+	reconcileSalesPaymentProcessorTerminalStatus,
+	verifySalesPaymentProcessorTerminalSettlement,
 } from "./sales-payment-processor";
 
 describe("createTerminalPayment", () => {
@@ -194,6 +200,316 @@ describe("createTerminalPayment", () => {
 		).rejects.toThrow("not responding in Connected mode");
 		expect(squareCalled).toBe(false);
 		expect(wrote).toBe(false);
+	});
+});
+
+describe("reconcileSalesPaymentProcessorTerminalStatus", () => {
+	it("persists a terminal cancellation against the checkout id", async () => {
+		const updates: unknown[] = [];
+		const result = await reconcileSalesPaymentProcessorTerminalStatus(
+			{
+				db: {
+					squarePayments: {
+						updateMany: async (request: unknown) => {
+							updates.push(request);
+							return { count: 1 };
+						},
+					},
+				},
+			} as never,
+			{ checkoutId: "checkout-1" },
+			{
+				getTerminalPaymentStatus: async () => ({
+					status: "CANCELED",
+					tip: 0,
+				}),
+			},
+		);
+
+		expect(result).toEqual({ status: "CANCELED", tip: 0 });
+		expect(updates).toEqual([
+			{
+				where: {
+					paymentId: "checkout-1",
+					status: { not: "COMPLETED" },
+				},
+				data: { status: "CANCELED" },
+			},
+		]);
+	});
+
+	it("keeps cancellation-requested polling without finalizing locally", async () => {
+		let updated = false;
+		const result = await reconcileSalesPaymentProcessorTerminalStatus(
+			{
+				db: {
+					squarePayments: {
+						updateMany: async () => {
+							updated = true;
+							return { count: 1 };
+						},
+					},
+				},
+			} as never,
+			{ checkoutId: "checkout-1" },
+			{
+				getTerminalPaymentStatus: async () => ({
+					status: "CANCEL_REQUESTED",
+					tip: 0,
+				}),
+			},
+		);
+
+		expect(result).toEqual({ status: "CANCEL_REQUESTED", tip: 0 });
+		expect(updated).toBe(false);
+	});
+});
+
+describe("verifySalesPaymentProcessorTerminalSettlement", () => {
+	const input = {
+		accountNo: "cust-44",
+		amount: 100,
+		deviceId: "device:238CS149B2002443",
+		orderNos: ["ORD-10"],
+		paymentMethod: "terminal",
+		salesIds: [10],
+		terminalPaymentSession: {
+			squareCheckoutId: "checkout-1",
+			squarePaymentId: "square-payment-row-1",
+			status: "COMPLETED",
+		},
+	};
+
+	it("accepts completion only after Square reports the checkout completed", async () => {
+		const result = await verifySalesPaymentProcessorTerminalSettlement(
+			{ db: {} } as never,
+			input as never,
+			{
+				getTerminalPaymentStatus: async () => ({
+					status: "COMPLETED",
+					tip: 4.25,
+				}),
+			},
+		);
+
+		expect(result).toEqual({
+			squareCheckoutId: "checkout-1",
+			squarePaymentId: "square-payment-row-1",
+			tip: 4.25,
+		});
+	});
+
+	it("persists and rejects a cancellation instead of applying the order", async () => {
+		const updates: unknown[] = [];
+
+		expect(
+			verifySalesPaymentProcessorTerminalSettlement(
+				{
+					db: {
+						squarePayments: {
+							updateMany: async (request: unknown) => {
+								updates.push(request);
+								return { count: 1 };
+							},
+						},
+					},
+				} as never,
+				input as never,
+				{
+					getTerminalPaymentStatus: async () => ({
+						status: "CANCELED",
+						tip: 0,
+					}),
+				},
+			),
+		).rejects.toThrow("was canceled");
+
+		expect(updates).toEqual([
+			{
+				where: {
+					paymentId: "checkout-1",
+					status: { not: "COMPLETED" },
+				},
+				data: { status: "CANCELED" },
+			},
+		]);
+	});
+
+	it("rejects a still-pending checkout even if the browser claims completion", async () => {
+		expect(
+			verifySalesPaymentProcessorTerminalSettlement(
+				{ db: {} } as never,
+				input as never,
+				{
+					getTerminalPaymentStatus: async () => ({
+						status: "PENDING",
+						tip: 0,
+					}),
+				},
+			),
+		).rejects.toThrow("not complete");
+	});
+});
+
+describe("terminal settlement persistence", () => {
+	it("claims pending and finalizes completed Square rows with the terminal tip", async () => {
+		const updates: unknown[] = [];
+		const db = {
+			squarePayments: {
+				updateMany: async (request: unknown) => {
+					updates.push(request);
+					return { count: 1 };
+				},
+			},
+		};
+		const settlement = {
+			squareCheckoutId: "checkout-1",
+			squarePaymentId: "square-payment-row-1",
+			tip: 4.25,
+		};
+
+		await claimSalesPaymentProcessorTerminalSettlement(db as never, settlement);
+		await completeSalesPaymentProcessorTerminalSettlement(
+			db as never,
+			settlement,
+		);
+
+		expect(updates).toEqual([
+			{
+				where: {
+					id: "square-payment-row-1",
+					paymentId: "checkout-1",
+					OR: [
+						{ status: "PENDING" },
+						{
+							status: "COMPLETED",
+							salesPayments: { none: {} },
+						},
+					],
+				},
+				data: {
+					status: "PROCESSING",
+					tip: 4.25,
+				},
+			},
+			{
+				where: {
+					id: "square-payment-row-1",
+					paymentId: "checkout-1",
+					status: "PROCESSING",
+				},
+				data: {
+					status: "COMPLETED",
+					tip: 4.25,
+				},
+			},
+		]);
+	});
+
+	it("rejects duplicate settlement claims before recording another order payment", async () => {
+		expect(
+			claimSalesPaymentProcessorTerminalSettlement(
+				{
+					squarePayments: {
+						updateMany: async () => ({ count: 0 }),
+					},
+				} as never,
+				{
+					squareCheckoutId: "checkout-1",
+					squarePaymentId: "square-payment-row-1",
+					tip: 0,
+				},
+			),
+		).rejects.toThrow("already applied");
+	});
+
+	it("refuses to finalize a checkout when no order payment was written", () => {
+		expect(() =>
+			assertSalesPaymentProcessorTerminalSettlementApplied([]),
+		).toThrow("no selected order");
+		expect(() =>
+			assertSalesPaymentProcessorTerminalSettlementApplied([
+				{ amountApplied: 0.01 },
+			]),
+		).not.toThrow();
+	});
+});
+
+describe("cancelSalesPaymentProcessorTerminalPayment", () => {
+	it("persists an already-canceled terminal checkout without canceling it again", async () => {
+		const updates: unknown[] = [];
+		let cancelCalled = false;
+		const result = await cancelSalesPaymentProcessorTerminalPayment(
+			{
+				db: {
+					squarePayments: {
+						updateMany: async (request: unknown) => {
+							updates.push(request);
+							return { count: 1 };
+						},
+					},
+				},
+			} as never,
+			{
+				checkoutId: "checkout-1",
+				squarePaymentId: "square-payment-row-1",
+			},
+			{
+				getTerminalPaymentStatus: async () => ({
+					status: "CANCELED",
+					tip: 0,
+				}),
+				cancelSquareTerminalPayment: async () => {
+					cancelCalled = true;
+					return { status: "CANCELED" };
+				},
+			},
+		);
+
+		expect(result).toEqual({ ok: true, status: "CANCELED" });
+		expect(cancelCalled).toBe(false);
+		expect(updates).toEqual([
+			{
+				where: {
+					id: "square-payment-row-1",
+					paymentId: "checkout-1",
+					status: { not: "COMPLETED" },
+				},
+				data: { status: "CANCELED" },
+			},
+		]);
+	});
+
+	it("keeps the local row pending until Square confirms cancellation", async () => {
+		let updated = false;
+		const result = await cancelSalesPaymentProcessorTerminalPayment(
+			{
+				db: {
+					squarePayments: {
+						updateMany: async () => {
+							updated = true;
+							return { count: 1 };
+						},
+					},
+				},
+			} as never,
+			{
+				checkoutId: "checkout-1",
+				squarePaymentId: "square-payment-row-1",
+			},
+			{
+				getTerminalPaymentStatus: async () => ({
+					status: "IN_PROGRESS",
+					tip: 0,
+				}),
+				cancelSquareTerminalPayment: async () => ({
+					status: "CANCEL_REQUESTED",
+				}),
+			},
+		);
+
+		expect(result).toEqual({ ok: true, status: "CANCEL_REQUESTED" });
+		expect(updated).toBe(false);
 	});
 });
 

@@ -311,6 +311,7 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 	const overviewQuery = useSalesOverviewQuery();
 	const { setInventorySegment } = useSalesInventorySegmentQuery();
 	const inventoryInboundOwnership = item.inventoryInboundOwnership;
+	const inventoryApplicability = item.inventoryApplicability;
 	const hasInventoryInbound = !!inventoryInboundOwnership?.hasInventoryInbound;
 	const actionIntent = getSalesInboundActionIntent(inventoryInboundOwnership);
 	const inboundStatusClassName =
@@ -330,6 +331,72 @@ function InboundStatusCell({ item }: { item: SalesOrder }) {
 			dispatchOverviewId: null,
 		});
 	};
+	const openInventoryReview = () => {
+		setInventorySegment("stock", {
+			inboundId: null,
+			openCreate: false,
+		});
+		overviewQuery.setParams({
+			"sales-overview-id": item.uuid,
+			"sales-type": "order",
+			mode: "sales",
+			salesTab: "inventory",
+			"prod-item-tab": null,
+			"prod-item-view": null,
+			dispatchOverviewId: null,
+		});
+	};
+
+	if (
+		inventoryApplicability?.state === "not_applicable" ||
+		inventoryApplicability?.state === "legacy_not_applicable"
+	) {
+		return (
+			<span
+				className="inline-flex h-7 max-w-full items-center rounded-md px-2 font-medium text-muted-foreground"
+				title={inventoryApplicability.description}
+			>
+				N/A
+			</span>
+		);
+	}
+
+	if (inventoryApplicability?.state === "syncing") {
+		return (
+			<span
+				className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md px-2 font-medium text-muted-foreground"
+				title={inventoryApplicability.description}
+			>
+				<Icons.Loader2 className="size-3 animate-spin" />
+				{inventoryApplicability.label}
+			</span>
+		);
+	}
+
+	if (
+		inventoryApplicability?.state === "not_synced" ||
+		inventoryApplicability?.state === "failed"
+	) {
+		return (
+			<button
+				type="button"
+				className={cn(
+					buttonVariants({ variant: "ghost", size: "sm" }),
+					inboundStatusClassName,
+					"text-muted-foreground",
+				)}
+				title={inventoryApplicability.description}
+				onClick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					openInventoryReview();
+				}}
+				onPointerDown={(event) => event.stopPropagation()}
+			>
+				{inventoryApplicability.label}
+			</button>
+		);
+	}
 
 	if (hasInventoryInbound) {
 		const status = getInventoryInboundOwnershipStatus(

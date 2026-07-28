@@ -92,11 +92,35 @@ export function InboundSalesModal() {
 	const autoSelectedContextRef = useRef<string | null>(null);
 	const saveInboundStatus = useMutation(
 		trpc.notes.saveInboundNote.mutationOptions({
-			onSuccess: () => {
+			onSuccess: (data) => {
 				invalidateInboundStatusQueries(queryClient, trpc);
+				const automation = data.inboundAutomation;
+				const createdCount = automation?.createdInboundIds.length ?? 0;
+				const startedCount = automation?.startedInboundIds.length ?? 0;
+				const skippedCount = automation?.skippedDemandIds.length ?? 0;
+				const failureCount = automation?.failures.length ?? 0;
 				toast({
 					title: "Inbound status updated.",
-					variant: "success",
+					description:
+						createdCount || startedCount || skippedCount || failureCount
+							? [
+									createdCount
+										? `${createdCount} inbound${createdCount === 1 ? "" : "s"} created`
+										: null,
+									startedCount
+										? `${startedCount} existing inbound${startedCount === 1 ? "" : "s"} started`
+										: null,
+									skippedCount
+										? `${skippedCount} demand row${skippedCount === 1 ? "" : "s"} need supplier review`
+										: null,
+									failureCount
+										? `${failureCount} automation action${failureCount === 1 ? "" : "s"} failed`
+										: null,
+								]
+									.filter(Boolean)
+									.join(" • ")
+							: undefined,
+					variant: failureCount ? "destructive" : "success",
 				});
 				setParams(null);
 			},

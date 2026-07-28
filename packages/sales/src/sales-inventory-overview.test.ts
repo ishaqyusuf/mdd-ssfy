@@ -20,6 +20,15 @@ describe("resolveSalesInventoryOverviewSetupMode", () => {
 		).toBe("completed_readonly");
 	});
 
+	test("keeps production-complete legacy orders without inventory rows read-only", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "ready_to_fulfill",
+				inventoryRowCount: 0,
+			}),
+		).toBe("completed_readonly");
+	});
+
 	test("keeps active orders without inventory rows configurable", () => {
 		expect(
 			resolveSalesInventoryOverviewSetupMode({
@@ -27,6 +36,17 @@ describe("resolveSalesInventoryOverviewSetupMode", () => {
 				inventoryRowCount: 0,
 			}),
 		).toBe("not_configured");
+	});
+
+	test("marks a completed zero-need projection as not applicable", () => {
+		expect(
+			resolveSalesInventoryOverviewSetupMode({
+				lifecycleStatus: "awaiting_production",
+				inventoryRowCount: 0,
+				projectionStatus: "ready",
+				projectionNeedCount: 0,
+			}),
+		).toBe("not_applicable");
 	});
 
 	test("locks active orders with a manual inbound status before inventory setup", () => {
@@ -112,6 +132,22 @@ describe("resolveSalesInventoryOperationPolicy", () => {
 
 		expect(policy).toMatchObject({
 			mode: "legacy_status_locked",
+			isReadOnly: true,
+			capabilities: {
+				canSync: false,
+				canCreateInbound: false,
+			},
+		});
+	});
+
+	test("keeps zero-need projections read-only without offering another sync", () => {
+		const policy = resolveSalesInventoryOperationPolicy({
+			lifecycleStatus: "awaiting_production",
+			setupMode: "not_applicable",
+		});
+
+		expect(policy).toMatchObject({
+			mode: "not_applicable",
 			isReadOnly: true,
 			capabilities: {
 				canSync: false,

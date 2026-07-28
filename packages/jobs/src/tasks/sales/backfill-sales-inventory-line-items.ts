@@ -5,7 +5,7 @@ import {
   type TaskName,
 } from "../../schema";
 import { db, type Prisma } from "@gnd/db";
-import { syncSalesInventoryLineItems } from "@gnd/sales/sync-sales-inventory-line-items";
+import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 
 const id: TaskName = "backfill-sales-inventory-line-items";
 
@@ -75,13 +75,11 @@ export const backfillSalesInventoryLineItemsTask = schemaTask({
 
     for (const order of orders) {
       try {
-        await db.$transaction((tx) =>
-          syncSalesInventoryLineItems(tx, {
-            salesOrderId: order.id,
-            source: payload.source,
-            triggeredByUserId: payload.triggeredByUserId ?? null,
-          }),
-        );
+        await runSalesInventoryProjectionSync(db, {
+          salesOrderId: order.id,
+          source: payload.source,
+          triggeredByUserId: payload.triggeredByUserId ?? null,
+        });
         results.push({
           salesOrderId: order.id,
           orderId: order.orderId,

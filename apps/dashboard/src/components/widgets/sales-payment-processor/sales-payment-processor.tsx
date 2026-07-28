@@ -44,6 +44,10 @@ import type z from "zod";
 import { PaymentProcessorSkeleton } from "./payment-processor-skeleton";
 import { PaymentStatusOverlay } from "./payment-status-overlay";
 import { paymentProcessorFormSchema as formSchema } from "./schema";
+import {
+	fetchFreshTerminalPaymentStatus,
+	getCompletedTerminalSaleReferences,
+} from "./terminal-status-polling";
 import type {
 	PaymentOverlayState,
 	PendingAppliedPaymentCheck,
@@ -546,13 +550,16 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 	);
 	const cancelTerminalPayment = useMutation(
 		trpc.salesPaymentProcessor.cancelTerminalPayment.mutationOptions({
-			onSuccess: () => {
-				setWaitSeconds(null);
-				setTerminalState("form");
-				setTerminalError(null);
-				hasSubmittedCompletedTerminalRef.current = false;
-				form.setValue("paymentStatus", "cancelled");
-				// form.setValue("terminalPaymentSession", null);
+			onSuccess: (result) => {
+				if (result.status === "CANCELED") {
+					finalizeTerminalCancellation();
+					return;
+				}
+				toast({
+					title: "Cancellation requested",
+					description:
+						"Waiting for Square to confirm that the terminal payment was canceled.",
+				});
 			},
 			onError(e) {
 				//toast.error("Unable to cancel payment");
@@ -700,12 +707,12 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			try {
 				const rep = mockStatus
 					? { status: mockStatus }
-					: await queryClient.fetchQuery(
+					: await fetchFreshTerminalPaymentStatus(
+							queryClient,
 							trpc.salesPaymentProcessor.getTerminalPaymentStatus.queryOptions({
 								checkoutId: terminalPaymentSession.squareCheckoutId,
 							}),
 						);
-				console.log({ rep });
 				switch (rep.status) {
 					case "COMPLETED": {
 						if (hasSubmittedCompletedTerminalRef.current) return null;
@@ -714,8 +721,13 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						setTerminalState("recording");
 						form.setValue("terminalPaymentSession.status", "COMPLETED");
 						const completedFormData = form.getValues();
+						const completedSaleReferences = getCompletedTerminalSaleReferences(
+							completedFormData.sales,
+							data.pendingSales,
+						);
 						makePayment.mutate({
 							...completedFormData,
+							...completedSaleReferences,
 							notifyCustomer:
 								canNotifyCustomer && completedFormData.notifyCustomer === true,
 							amount:
@@ -728,13 +740,14 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 						return null;
 					}
 					case "CANCELED":
-					case "CANCEL_REQUESTED":
 						// cancelTerminalPayment.mutate({
 						//     checkoutId: terminalPaymentSession.squareCheckoutId,
 						//     squarePaymentId: terminalPaymentSession.squarePaymentId,
 						// });
-						__cancel();
+						finalizeTerminalCancellation();
 						return null;
+					case "CANCEL_REQUESTED":
+						break;
 				}
 			} catch (error) {
 				showTerminalFailure(
@@ -753,6 +766,7 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		}
 	}, [
 		canNotifyCustomer,
+		data.pendingSales,
 		form,
 		makePayment.mutate,
 		mockStatus,
@@ -763,12 +777,9 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		trpc.salesPaymentProcessor.getTerminalPaymentStatus,
 		waitSeconds,
 	]);
-	function __cancel() {
+	function finalizeTerminalCancellation() {
 		closePendingPrintRequests(pendingPrintRequestsRef.current);
 		pendingPrintRequestsRef.current = [];
-		const tps = {
-			...(terminalPaymentSession || {}),
-		};
 		setWaitSeconds(null);
 		setMockStatus(null);
 		setTerminalError(null);
@@ -778,12 +789,18 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		lastSubmittedPaymentMethodRef.current = null;
 		form.setValue("terminalPaymentSession", null);
 		form.setValue("paymentStatus", "cancelled");
-		setTimeout(() => {
-			cancelTerminalPayment.mutate({
-				checkoutId: tps?.squareCheckoutId,
-				squarePaymentId: tps?.squarePaymentId,
-			});
-		}, 100);
+		toast({
+			title: "Payment canceled",
+			description:
+				"The terminal payment was canceled and no payment was applied.",
+		});
+	}
+	function __cancel() {
+		if (cancelTerminalPayment.isPending) return;
+		cancelTerminalPayment.mutate({
+			checkoutId: terminalPaymentSession?.squareCheckoutId,
+			squarePaymentId: terminalPaymentSession?.squarePaymentId,
+		});
 	}
 	const percentageList = [25, 50, 75, 100];
 	const setPercentageAmount = (percentage: number) => {

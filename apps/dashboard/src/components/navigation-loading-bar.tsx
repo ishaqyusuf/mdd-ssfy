@@ -6,155 +6,159 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type TimeoutId = ReturnType<typeof window.setTimeout>;
 
 function getProgressColor(progress: number) {
-    if (progress >= 100) return "#86efac";
-    if (progress >= 84) return "#38bdf8";
-    if (progress >= 68) return "#818cf8";
-    if (progress >= 42) return "#f59e0b";
+	if (progress >= 100) return "#86efac";
+	if (progress >= 84) return "#38bdf8";
+	if (progress >= 68) return "#818cf8";
+	if (progress >= 42) return "#f59e0b";
 
-    return "#f97316";
+	return "#f97316";
 }
 
 export function NavigationLoadingBar() {
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
-    const routeKey = `${pathname}?${searchParams.toString()}`;
-    const timers = useRef<TimeoutId[]>([]);
-    const [visible, setVisible] = useState(true);
-    const [progress, setProgress] = useState(14);
-    const progressColor = getProgressColor(progress);
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const routeKey = `${pathname}?${searchParams.toString()}`;
+	const timers = useRef<TimeoutId[]>([]);
+	const [visible, setVisible] = useState(true);
+	const [progress, setProgress] = useState(14);
+	const progressColor = getProgressColor(progress);
 
-    const clearTimers = useCallback(() => {
-        for (const timer of timers.current) {
-            window.clearTimeout(timer);
-        }
-        timers.current = [];
-    }, []);
+	const clearTimers = useCallback(() => {
+		for (const timer of timers.current) {
+			window.clearTimeout(timer);
+		}
+		timers.current = [];
+	}, []);
 
-    const queueTimer = useCallback((callback: () => void, delay: number) => {
-        const timer = window.setTimeout(callback, delay);
-        timers.current.push(timer);
-    }, []);
+	const queueTimer = useCallback((callback: () => void, delay: number) => {
+		const timer = window.setTimeout(callback, delay);
+		timers.current.push(timer);
+	}, []);
 
-    const finishLoading = useCallback(() => {
-        clearTimers();
-        setVisible(true);
-        setProgress(100);
+	const finishLoading = useCallback(() => {
+		clearTimers();
+		setVisible(true);
+		setProgress(100);
 
-        queueTimer(() => {
-            setVisible(false);
-            setProgress(0);
-        }, 280);
-    }, [clearTimers, queueTimer]);
+		queueTimer(() => {
+			setVisible(false);
+			setProgress(0);
+		}, 280);
+	}, [clearTimers, queueTimer]);
 
-    const startLoading = useCallback(() => {
-        clearTimers();
-        setVisible(true);
-        setProgress((current) => (current > 0 && current < 94 ? current : 14));
+	const startLoading = useCallback(() => {
+		clearTimers();
+		setVisible(true);
+		setProgress((current) => (current > 0 && current < 94 ? current : 14));
 
-        queueTimer(() => setProgress((current) => Math.max(current, 42)), 120);
-        queueTimer(() => setProgress((current) => Math.max(current, 68)), 420);
-        queueTimer(() => setProgress((current) => Math.max(current, 84)), 1200);
-        queueTimer(() => setProgress((current) => Math.max(current, 92)), 2400);
-        queueTimer(finishLoading, 8000);
-    }, [clearTimers, finishLoading, queueTimer]);
+		queueTimer(() => setProgress((current) => Math.max(current, 42)), 120);
+		queueTimer(() => setProgress((current) => Math.max(current, 68)), 420);
+		queueTimer(() => setProgress((current) => Math.max(current, 84)), 1200);
+		queueTimer(() => setProgress((current) => Math.max(current, 92)), 2400);
+		queueTimer(finishLoading, 8000);
+	}, [clearTimers, finishLoading, queueTimer]);
 
-    useEffect(() => {
-        const settleTimer = window.setTimeout(finishLoading, 180);
+	const scheduleStartLoading = useCallback(() => {
+		queueTimer(startLoading, 0);
+	}, [queueTimer, startLoading]);
 
-        return () => window.clearTimeout(settleTimer);
-    }, [routeKey, finishLoading]);
+	useEffect(() => {
+		// Pathname/search changes own this completion timer.
+		void routeKey;
+		const settleTimer = window.setTimeout(finishLoading, 180);
 
-    useEffect(() => {
-        function handleDocumentClick(event: MouseEvent) {
-            if (
-                event.defaultPrevented ||
-                event.button !== 0 ||
-                event.metaKey ||
-                event.ctrlKey ||
-                event.shiftKey ||
-                event.altKey
-            ) {
-                return;
-            }
+		return () => window.clearTimeout(settleTimer);
+	}, [routeKey, finishLoading]);
 
-            const target = event.target as Element | null;
-            const anchor = target?.closest("a[href]");
+	useEffect(() => {
+		function handleDocumentClick(event: MouseEvent) {
+			if (
+				event.defaultPrevented ||
+				event.button !== 0 ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.shiftKey ||
+				event.altKey
+			) {
+				return;
+			}
 
-            if (!(anchor instanceof HTMLAnchorElement)) {
-                return;
-            }
+			const target = event.target as Element | null;
+			const anchor = target?.closest("a[href]");
 
-            if (
-                (anchor.target && anchor.target !== "_self") ||
-                anchor.hasAttribute("download")
-            ) {
-                return;
-            }
+			if (!(anchor instanceof HTMLAnchorElement)) {
+				return;
+			}
 
-            const nextUrl = new URL(anchor.href, window.location.href);
-            const currentUrl = new URL(window.location.href);
+			if (
+				(anchor.target && anchor.target !== "_self") ||
+				anchor.hasAttribute("download")
+			) {
+				return;
+			}
 
-            if (nextUrl.origin !== currentUrl.origin) {
-                return;
-            }
+			const nextUrl = new URL(anchor.href, window.location.href);
+			const currentUrl = new URL(window.location.href);
 
-            const onlyHashChanged =
-                nextUrl.pathname === currentUrl.pathname &&
-                nextUrl.search === currentUrl.search &&
-                nextUrl.hash !== currentUrl.hash;
+			if (nextUrl.origin !== currentUrl.origin) {
+				return;
+			}
 
-            if (nextUrl.href === currentUrl.href || onlyHashChanged) {
-                return;
-            }
+			const onlyHashChanged =
+				nextUrl.pathname === currentUrl.pathname &&
+				nextUrl.search === currentUrl.search &&
+				nextUrl.hash !== currentUrl.hash;
 
-            startLoading();
-        }
+			if (nextUrl.href === currentUrl.href || onlyHashChanged) {
+				return;
+			}
 
-        function handleDocumentSubmit(event: SubmitEvent) {
-            const form = event.target;
+			scheduleStartLoading();
+		}
 
-            if (!(form instanceof HTMLFormElement)) {
-                return;
-            }
+		function handleDocumentSubmit(event: SubmitEvent) {
+			const form = event.target;
 
-            if (
-                event.defaultPrevented ||
-                form.method.toLowerCase() === "dialog" ||
-                (form.target && form.target !== "_self")
-            ) {
-                return;
-            }
+			if (!(form instanceof HTMLFormElement)) {
+				return;
+			}
 
-            startLoading();
-        }
+			if (
+				event.defaultPrevented ||
+				form.method.toLowerCase() === "dialog" ||
+				(form.target && form.target !== "_self")
+			) {
+				return;
+			}
 
-        window.addEventListener("beforeunload", startLoading);
-        document.addEventListener("click", handleDocumentClick, true);
-        document.addEventListener("submit", handleDocumentSubmit, true);
+			scheduleStartLoading();
+		}
 
-        return () => {
-            window.removeEventListener("beforeunload", startLoading);
-            document.removeEventListener("click", handleDocumentClick, true);
-            document.removeEventListener("submit", handleDocumentSubmit, true);
-            clearTimers();
-        };
-    }, [clearTimers, startLoading]);
+		document.addEventListener("click", handleDocumentClick, true);
+		document.addEventListener("submit", handleDocumentSubmit, true);
 
-    return (
-        <div
-            aria-hidden="true"
-            className={`pointer-events-none fixed inset-x-0 top-0 z-[10000] h-0.5 overflow-hidden print:hidden transition-opacity duration-200 ${
-                visible ? "opacity-100" : "opacity-0"
-            }`}
-        >
-            <div
-                className="h-full rounded-r-full transition-[width,background-color,box-shadow] duration-300 ease-out"
-                style={{
-                    width: `${progress}%`,
-                    backgroundColor: progressColor,
-                    boxShadow: `0 0 14px ${progressColor}`,
-                }}
-            />
-        </div>
-    );
+		return () => {
+			document.removeEventListener("click", handleDocumentClick, true);
+			document.removeEventListener("submit", handleDocumentSubmit, true);
+			clearTimers();
+		};
+	}, [clearTimers, scheduleStartLoading]);
+
+	return (
+		<div
+			aria-hidden="true"
+			className={`pointer-events-none fixed inset-x-0 top-0 z-[10000] h-0.5 overflow-hidden print:hidden transition-opacity duration-200 ${
+				visible ? "opacity-100" : "opacity-0"
+			}`}
+		>
+			<div
+				className="h-full rounded-r-full transition-[width,background-color,box-shadow] duration-300 ease-out"
+				style={{
+					width: `${progress}%`,
+					backgroundColor: progressColor,
+					boxShadow: `0 0 14px ${progressColor}`,
+				}}
+			/>
+		</div>
+	);
 }

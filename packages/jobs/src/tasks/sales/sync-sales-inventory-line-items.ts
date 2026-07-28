@@ -4,7 +4,7 @@ import {
   type TaskName,
 } from "../../schema";
 import { db } from "@gnd/db";
-import { syncSalesInventoryLineItems } from "@sales/sync-sales-inventory-line-items";
+import { runSalesInventoryProjectionSync } from "@sales/run-sales-inventory-projection-sync";
 
 export const syncSalesInventoryLineItemsTask = schemaTask({
   id: "sync-sales-inventory-line-items" as TaskName,
@@ -14,12 +14,10 @@ export const syncSalesInventoryLineItemsTask = schemaTask({
     concurrencyLimit: 10,
   },
   run: async (payload) => {
-    return db.$transaction((tx) =>
-      syncSalesInventoryLineItems(tx, {
-        salesOrderId: payload.salesOrderId,
-        source: payload.source,
-        triggeredByUserId: payload.triggeredByUserId ?? null,
-      }),
-    );
+    return runSalesInventoryProjectionSync(db, {
+      salesOrderId: payload.salesOrderId,
+      source: payload.source,
+      triggeredByUserId: payload.triggeredByUserId ?? null,
+    });
   },
 });

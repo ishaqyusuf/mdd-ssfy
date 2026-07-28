@@ -293,12 +293,12 @@ function InventoryReadonlyMetric({
 	);
 }
 
-function FulfilledInventoryNoIntegrationState({
+function LegacyInventoryNoIntegrationState({
 	overview,
 }: {
 	overview: NonNullable<InventoryOverview>;
 }) {
-	const lifecycleLabel = overview.lifecycleLabel || "Fulfilled";
+	const lifecycleLabel = overview.lifecycleLabel || "Production complete";
 	const inventoryStatusLabel = overview.inventoryStatus
 		? titleCaseLabel(overview.inventoryStatus)
 		: "No manual inbound status";
@@ -310,7 +310,7 @@ function FulfilledInventoryNoIntegrationState({
 				<InventoryReadonlyMetric
 					label="Order lifecycle"
 					value={lifecycleLabel}
-					description="The sales workflow has already reached a terminal fulfillment state."
+					description="The sales workflow already passed the inventory synchronization boundary."
 				/>
 				<InventoryReadonlyMetric
 					label="Inventory setup"
@@ -337,11 +337,12 @@ function FulfilledInventoryNoIntegrationState({
 								<Icons.CheckCircle2 />
 							</EmptyMedia>
 							<EmptyHeader className="max-w-none items-start text-left">
-								<EmptyTitle>Fulfilled outside inventory</EmptyTitle>
+								<EmptyTitle>Inventory not applicable</EmptyTitle>
 								<EmptyDescription>
-									This order was completed before inventory-backed fulfillment
-									was configured, so the Inventory tab is keeping it in a
-									read-only historical state.
+									This sale reached production completion or fulfillment before
+									inventory-backed synchronization was implemented. It is kept
+									as a read-only historical sale and will not be synchronized
+									automatically.
 								</EmptyDescription>
 							</EmptyHeader>
 						</div>
@@ -409,6 +410,36 @@ function FulfilledInventoryNoIntegrationState({
 				</div>
 			</Empty>
 		</div>
+	);
+}
+
+function InventoryNotApplicableState({
+	overview,
+}: {
+	overview: NonNullable<InventoryOverview>;
+}) {
+	return (
+		<Empty className="items-stretch justify-start border bg-background p-0 text-left">
+			<div className="flex flex-col gap-4 p-5">
+				<div className="flex min-w-0 gap-3">
+					<EmptyMedia
+						variant="icon"
+						className="border border-slate-200 bg-slate-50 text-slate-700"
+					>
+						<Icons.Package />
+					</EmptyMedia>
+					<EmptyHeader className="max-w-none items-start text-left">
+						<EmptyTitle>Inventory not applicable</EmptyTitle>
+						<EmptyDescription>
+							{overview.inventoryApplicability.description}
+						</EmptyDescription>
+					</EmptyHeader>
+				</div>
+				<Badge variant="outline" className="w-fit">
+					No inbound work required
+				</Badge>
+			</div>
+		</Empty>
 	);
 }
 
@@ -2290,7 +2321,6 @@ function SalesOverviewInventoryContentBody({
 }) {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
-	const [autoSyncOrderId, setAutoSyncOrderId] = useState<number | null>(null);
 	const [openInboundForm, setOpenInboundForm] = useState(false);
 	const {
 		inventorySegment: stockFilter,
@@ -2338,11 +2368,19 @@ function SalesOverviewInventoryContentBody({
 	const syncInventory = useMutation(
 		trpc.inventories.syncSalesInventoryOverview.mutationOptions({
 			onSuccess: async () => {
-				await queryClient.invalidateQueries({
-					queryKey: trpc.inventories.salesInventoryOverview.queryKey({
-						salesOrderId: normalizedSalesOrderId,
+				await Promise.all([
+					queryClient.invalidateQueries({
+						queryKey: trpc.inventories.salesInventoryOverview.queryKey({
+							salesOrderId: normalizedSalesOrderId,
+						}),
 					}),
-				});
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrders.pathKey(),
+					}),
+					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getSaleOverview.pathKey(),
+					}),
+				]);
 			},
 		}),
 	);
@@ -2378,21 +2416,6 @@ function SalesOverviewInventoryContentBody({
 	const filteredShortageCount = filteredRows.filter(
 		isShortageInventoryLine,
 	).length;
-	const shouldAutoSync =
-		!!normalizedSalesOrderId &&
-		!!overview &&
-		overview.capabilities.canSync &&
-		overview.setupMode === "not_configured" &&
-		!groups.length &&
-		autoSyncOrderId !== normalizedSalesOrderId &&
-		!syncInventory.isPending;
-
-	useEffect(() => {
-		if (!shouldAutoSync) return;
-		setAutoSyncOrderId(normalizedSalesOrderId);
-		syncInventory.mutate({ salesOrderId: normalizedSalesOrderId });
-	}, [normalizedSalesOrderId, shouldAutoSync, syncInventory]);
-
 	if (!normalizedSalesOrderId) {
 		return (
 			<OverviewEmptyState>
@@ -2403,7 +2426,7 @@ function SalesOverviewInventoryContentBody({
 
 	if (inventoryQuery.isLoading) return <InventoryTabSkeleton />;
 
-	if (shouldAutoSync || syncInventory.isPending) {
+	if (syncInventory.isPending) {
 		return (
 			<div className="space-y-4">
 				{overview ? (
@@ -2426,7 +2449,11 @@ function SalesOverviewInventoryContentBody({
 	}
 
 	if (overview.setupMode === "completed_readonly") {
-		return <FulfilledInventoryNoIntegrationState overview={overview} />;
+		return <LegacyInventoryNoIntegrationState overview={overview} />;
+	}
+
+	if (overview.setupMode === "not_applicable") {
+		return <InventoryNotApplicableState overview={overview} />;
 	}
 
 	if (overview.setupMode === "legacy_status_locked") {

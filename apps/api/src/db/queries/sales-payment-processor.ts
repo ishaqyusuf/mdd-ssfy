@@ -183,7 +183,9 @@ export async function applySalesPaymentProcessorPayment(
 		return response;
 	}
 
-	const result = await applySalesPayment(ctx, input);
+	const terminalSettlement =
+		await verifySalesPaymentProcessorTerminalSettlement(ctx, input);
+	const result = await applySalesPayment(ctx, input, terminalSettlement);
 	response.appliedSalesIds = result.appliedSalesIds;
 	response.appliedSales = result.appliedSales;
 	response.walletAppliedAmount = result.walletAppliedAmount;
@@ -258,6 +260,7 @@ export async function createSalesPaymentPayrollIfAvailable(
 async function applySalesPayment(
 	ctx: TRPCContext & { userId: number },
 	props: SalesPaymentProcessorApplyPaymentInput,
+	terminalSettlement: VerifiedTerminalSettlement | null = null,
 ) {
 	if (!props.accountNo) throw new Error("Customer account number is required.");
 	const wallet = await getCustomerWallet(ctx.db, props.accountNo);
@@ -306,6 +309,13 @@ async function applySalesPayment(
 	};
 
 	return ctx.db.$transaction(async (tx) => {
+		if (terminalSettlement) {
+			await claimSalesPaymentProcessorTerminalSettlement(
+				tx,
+				terminalSettlement,
+			);
+		}
+
 		let walletBalance = walletAppliedAmount;
 		let externalBalance = externalPrincipalAmount;
 		let externalCustomerTransactionId: number | null = null;
@@ -441,6 +451,14 @@ async function applySalesPayment(
 			});
 		}
 
+		if (terminalSettlement) {
+			assertSalesPaymentProcessorTerminalSettlementApplied(appliedSales);
+			await completeSalesPaymentProcessorTerminalSettlement(
+				tx,
+				terminalSettlement,
+			);
+		}
+
 		return {
 			appliedSalesIds,
 			appliedSales,
@@ -454,6 +472,110 @@ async function applySalesPayment(
 			events,
 		};
 	});
+}
+
+export function assertSalesPaymentProcessorTerminalSettlementApplied(
+	appliedSales: { amountApplied: number }[],
+) {
+	if (
+		appliedSales.length === 0 ||
+		appliedSales.every((sale) => Number(sale.amountApplied || 0) <= 0)
+	) {
+		throw new Error(
+			"Terminal payment was received, but no selected order could be credited.",
+		);
+	}
+}
+
+type VerifiedTerminalSettlement = {
+	squareCheckoutId: string;
+	squarePaymentId: string;
+	tip: number;
+};
+
+export async function claimSalesPaymentProcessorTerminalSettlement(
+	tx: Pick<TRPCContext["db"], "squarePayments">,
+	settlement: VerifiedTerminalSettlement,
+) {
+	const claimed = await tx.squarePayments.updateMany({
+		where: {
+			id: settlement.squarePaymentId,
+			paymentId: settlement.squareCheckoutId,
+			OR: [
+				{ status: "PENDING" },
+				{
+					status: "COMPLETED",
+					salesPayments: { none: {} },
+				},
+			],
+		},
+		data: {
+			status: "PROCESSING",
+			tip: settlement.tip,
+		},
+	});
+	if (claimed.count !== 1) {
+		throw new Error(
+			"Terminal payment was already applied, canceled, or is no longer available.",
+		);
+	}
+}
+
+export async function completeSalesPaymentProcessorTerminalSettlement(
+	tx: Pick<TRPCContext["db"], "squarePayments">,
+	settlement: VerifiedTerminalSettlement,
+) {
+	const completed = await tx.squarePayments.updateMany({
+		where: {
+			id: settlement.squarePaymentId,
+			paymentId: settlement.squareCheckoutId,
+			status: "PROCESSING",
+		},
+		data: {
+			status: "COMPLETED",
+			tip: settlement.tip,
+		},
+	});
+	if (completed.count !== 1) {
+		throw new Error("Unable to finalize the terminal payment record.");
+	}
+}
+
+export async function verifySalesPaymentProcessorTerminalSettlement(
+	ctx: TRPCContext,
+	input: SalesPaymentProcessorApplyPaymentInput,
+	dependencies: {
+		getTerminalPaymentStatus: typeof getTerminalPaymentStatus;
+	} = { getTerminalPaymentStatus },
+): Promise<VerifiedTerminalSettlement | null> {
+	if (input.paymentMethod !== "terminal") return null;
+	const squareCheckoutId = input.terminalPaymentSession?.squareCheckoutId;
+	const squarePaymentId = input.terminalPaymentSession?.squarePaymentId;
+	if (!squareCheckoutId || !squarePaymentId) {
+		throw new Error("Terminal payment session is incomplete.");
+	}
+
+	const { status, tip } =
+		await dependencies.getTerminalPaymentStatus(squareCheckoutId);
+	if (status === "CANCELED") {
+		await ctx.db.squarePayments.updateMany({
+			where: {
+				paymentId: squareCheckoutId,
+				status: { not: "COMPLETED" },
+			},
+			data: { status: "CANCELED" },
+		});
+		throw new Error("Terminal payment was canceled.");
+	}
+	if (status !== "COMPLETED") {
+		throw new Error("Terminal payment is not complete.");
+	}
+
+	return {
+		squareCheckoutId,
+		squarePaymentId,
+		tip,
+	};
 }
 
 type TerminalPaymentDependencies = {
@@ -597,16 +719,29 @@ export async function createTerminalPayment(
 export async function cancelSalesPaymentProcessorTerminalPayment(
 	ctx: TRPCContext,
 	input: z.infer<typeof salesPaymentProcessorCancelTerminalPaymentSchema>,
+	dependencies: {
+		cancelSquareTerminalPayment: typeof cancelSquareTerminalPayment;
+		getTerminalPaymentStatus: typeof getTerminalPaymentStatus;
+	} = { cancelSquareTerminalPayment, getTerminalPaymentStatus },
 ) {
+	let status: string | undefined;
 	if (input.checkoutId) {
-		const { status } = await getTerminalPaymentStatus(input.checkoutId);
+		const current = await dependencies.getTerminalPaymentStatus(
+			input.checkoutId,
+		);
+		status = current.status;
 		if (status === "COMPLETED") throw new Error("Payment already received!");
-		await cancelSquareTerminalPayment(input.checkoutId);
+		if (status !== "CANCELED") {
+			status = (
+				await dependencies.cancelSquareTerminalPayment(input.checkoutId)
+			).status;
+		}
 	}
-	if (input.squarePaymentId) {
-		await ctx.db.squarePayments.update({
+	if (status === "CANCELED") {
+		await ctx.db.squarePayments.updateMany({
 			where: {
-				id: input.squarePaymentId,
+				...(input.squarePaymentId ? { id: input.squarePaymentId } : {}),
+				...(input.checkoutId ? { paymentId: input.checkoutId } : {}),
 				status: {
 					not: "COMPLETED",
 				},
@@ -616,13 +751,35 @@ export async function cancelSalesPaymentProcessorTerminalPayment(
 			},
 		});
 	}
-	return { ok: true };
+	return { ok: true, status };
 }
 
 export async function getSalesPaymentProcessorTerminalStatus(
+	ctx: TRPCContext,
 	input: z.infer<typeof salesPaymentProcessorTerminalStatusSchema>,
 ) {
-	const { status, tip } = await getTerminalPaymentStatus(input.checkoutId);
+	return reconcileSalesPaymentProcessorTerminalStatus(ctx, input);
+}
+
+export async function reconcileSalesPaymentProcessorTerminalStatus(
+	ctx: TRPCContext,
+	input: z.infer<typeof salesPaymentProcessorTerminalStatusSchema>,
+	dependencies: {
+		getTerminalPaymentStatus: typeof getTerminalPaymentStatus;
+	} = { getTerminalPaymentStatus },
+) {
+	const { status, tip } = await dependencies.getTerminalPaymentStatus(
+		input.checkoutId,
+	);
+	if (status === "CANCELED") {
+		await ctx.db.squarePayments.updateMany({
+			where: {
+				paymentId: input.checkoutId,
+				status: { not: "COMPLETED" },
+			},
+			data: { status: "CANCELED" },
+		});
+	}
 	return { status, tip };
 }
 

@@ -198,7 +198,7 @@ import {
 	getSalesInventorySyncMonitor,
 } from "@gnd/sales/sales-inventory-sync-monitor";
 import { getStoreAddonComponentFormSchema } from "@gnd/sales/schema";
-import { syncSalesInventoryLineItems } from "@gnd/sales/sync-sales-inventory-line-items";
+import { runSalesInventoryProjectionSync } from "@gnd/sales/run-sales-inventory-projection-sync";
 import { getStoreAddonComponentForm } from "@sales/storefront-product";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
@@ -1063,7 +1063,7 @@ export const inventoriesRouter = createTRPCRouter({
 				);
 			}
 
-			return syncSalesInventoryLineItems(props.ctx.db, {
+			return runSalesInventoryProjectionSync(props.ctx.db, {
 				salesOrderId: props.input.salesOrderId,
 				source: "manual",
 				triggeredByUserId: props.ctx.userId,

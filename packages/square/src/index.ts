@@ -456,7 +456,10 @@ export async function getTerminalPaymentStatus(checkoutId: string) {
 }
 
 export async function cancelSquareTerminalPayment(checkoutId: string) {
-  await squareClient.terminal.dismissTerminalCheckout({
+  const { checkout } = await squareClient.terminal.checkouts.cancel({
     checkoutId,
   });
+  return {
+    status: checkout?.status as TerminalCheckoutStatus,
+  };
 }

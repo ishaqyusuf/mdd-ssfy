@@ -505,6 +505,9 @@ Tracks important request/response contracts and shared schema boundaries.
 - Square Sandbox exposes the official successful simulated Terminal id and skips production-only pairing/`PING` gates because physical Square hardware cannot connect to the Sandbox.
 - Square checkout creation runs before the local pending-payment write. When Square rejects the checkout, no pending local payment is recorded.
 - The persisted terminal id and display name come from the server-observed Square device, not client-supplied display metadata.
+- Active terminal checkout polling bypasses shared query-cache freshness and rechecks Square every two seconds. `CANCEL_REQUESTED` is not final; polling continues until `CANCELED`, which clears the client loading state, persists the local cancellation by Square checkout id, and tells the operator that no payment was applied.
+- Applying a terminal payment does not trust the browser's reported state. The completion mutation must rebuild the selected `salesIds` and `orderNos`; the API rereads Square, rejects pending or canceled checkouts, refuses to finalize when no selected order was credited, and atomically claims the matching local row from `PENDING` to `PROCESSING`, records the order payment, then marks it `COMPLETED` with Square's verified tip. A checkout cannot be applied twice. Recovery may reclaim a `COMPLETED` row only when it has no linked `SalesPayments`, which repairs false-completed orphan rows without reopening a legitimately applied checkout.
+- Operator cancellation uses Square's cancel-checkout operation. The local row remains pending while Square reports `CANCEL_REQUESTED` and becomes `CANCELED` only after Square confirms the final state; terminal dismissal is not used because it has payment-capture semantics.
 
 ## Sales Summary Money Contract (2026-07-20)
 

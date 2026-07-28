@@ -5,6 +5,7 @@ import {
 	getSalesOrderLifecycleStatusInfo,
 } from "./order-status";
 import { roundMoney } from "./payment-system/domain/money";
+import { resolveSalesInventoryApplicability } from "./sales-inventory-applicability";
 import {
 	type SalesInventoryRequirementDisplayStatus,
 	hasPassedInventoryTrackingRepairBoundary,
@@ -1189,6 +1190,13 @@ export async function getSalesInventoryOverview(
 			status: true,
 			inventoryStatus: true,
 			prodStatus: true,
+			inventoryProjection: {
+				select: {
+					status: true,
+					needCount: true,
+					completedAt: true,
+				},
+			},
 			deliveries: {
 				where: {
 					deletedAt: null,
@@ -1460,6 +1468,8 @@ export async function getSalesInventoryOverview(
 		lifecycleStatus: lifecycle.status,
 		inventoryRowCount: rows.length,
 		inventoryStatus: sale.inventoryStatus,
+		projectionStatus: sale.inventoryProjection?.status,
+		projectionNeedCount: sale.inventoryProjection?.needCount,
 	});
 	const operationPolicy = resolveSalesInventoryOperationPolicy({
 		lifecycleStatus: lifecycle.status,
@@ -1472,6 +1482,10 @@ export async function getSalesInventoryOverview(
 		lifecycleLabel: lifecycle.label,
 		lifecycleTone: lifecycle.tone,
 		fulfillmentStatus,
+		inventoryApplicability: resolveSalesInventoryApplicability({
+			lifecycleStatus: lifecycle.status,
+			projection: sale.inventoryProjection,
+		}),
 		setupMode,
 		operationMode: operationPolicy.mode,
 		capabilities: operationPolicy.capabilities,
