@@ -576,7 +576,8 @@ function toPageTab(
 		page: normalizePage(tab.page),
 		title: tab.title,
 		query: normalizeQuery(tab.query),
-		visibility: tab.private === false ? "public" : "private",
+		visibility:
+			tab.private === false ? ("public" as const) : ("private" as const),
 		canManage: options.canManage,
 		count: options.count ?? undefined,
 		default: Boolean(index?.default),

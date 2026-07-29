@@ -194,8 +194,8 @@
 ## Validation
 
 - 2026-07-29 adaptive Sales Orders toolbar:
-  - Focused page-tab render/query coverage passed 28 tests / 45 assertions, including the two-tab inline boundary, three-tab stacking boundary, responsive 3/5/8 capacities, default-capacity compatibility, and active overflow promotion.
-  - Focused Biome, dashboard typecheck, and scoped diff checks passed before browser validation.
+  - Focused page-tab API/render/query coverage passed 41 tests / 69 assertions, including the two-tab inline boundary, three-tab stacking boundary, responsive 3/5/8 capacities, default-capacity compatibility, and active overflow promotion.
+  - Focused Biome and scoped diff checks passed. The repository-wide dashboard typecheck remains on its unrelated baseline, while a filtered scan reported no diagnostics in the adaptive toolbar, shared PageTabs, or page-tabs API files.
   - Authenticated browser QA confirmed the stacked full-width tab row at standard desktop and `2xl`, five visible tabs plus `+3` at 1280px, all eight visible tabs at 1600px, and one flexible controls row containing search, the active `Over 6 months` filter, and right-aligned actions. The page had no horizontal overflow or console errors.
 - 2026-07-29 Sales Orders filter icons:
   - Focused shared icon coverage passed 2 tests / 17 assertions, `@gnd/ui` typecheck passed, and focused Biome plus scoped diff checks passed.
