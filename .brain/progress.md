@@ -7631,3 +7631,13 @@
   raw/legacy table findings outside this change. The dashboard-wide typecheck
   remains blocked by its existing broad baseline, while a filtered scan reports
   no diagnostics in the changed files.
+- 2026-07-29: fixed fulfilled Sales Inventory Needs opening an empty inbound
+  form on first entry. Create-inbound intent is now gated by capability,
+  orderable rows, and positive pending quantity, while zero-pending Needs hide
+  the action bar. Fully fulfilled Needs show a green `All needs fulfilled`
+  summary plus per-item `Fulfilled` and `INBOUND: FULFILLED` status. Focused
+  inventory UI and overview coverage passes 36 tests / 70 assertions; targeted
+  Biome and `git diff --check` pass. Authenticated browser QA reproduced the
+  original first-open URL on order `09071PC` and confirmed the form and disabled
+  CTAs stay absent while both fulfilled item statuses render. The dashboard-wide
+  typecheck remains blocked by existing unrelated repository diagnostics.
