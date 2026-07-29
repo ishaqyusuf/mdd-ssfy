@@ -69,6 +69,7 @@
 - `Notify customer` payment receipts are queued only for the explicit `true` request. They use a direct customer email contact and bypass notification-channel subscribers/fallback recipients, so the receipt is delivered once to the customer email instead of being skipped or duplicated through subscriber delivery.
 - Receipt construction accepts harmless customer-name differences when all listed orders normalize to the same email. Missing or genuinely mixed recipients produce a failed optional receipt result without reversing the recorded payment, and invoice PDF failures fall back to a receipt without an attachment.
 - Successful web payment application now uses the shared sales query invalidation path so order lists, overview balances, dashboard summaries, sales transactions, and accounting/payment reads refresh without a manual browser reload.
+- Direct staff payments capture the submitted sale ids and selected print mode before payment state can reset. When invoice, packing slip, or both are selected, Apply Payment reserves one browser-authorized `Preparing print...` tab; the combined selection remains one `order-packing` document. Successful payment consumes that immutable request once through the shared sales-print service. Failed or cancelled payments close the reserved tab, while popup or document-preparation failures leave the payment successful and expose an `Open print` recovery action.
 
 ## Quote Acceptance Flow
 

@@ -31,11 +31,13 @@ export type SalesPrintControllerActionInput = {
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 	openInNewTab?: boolean;
+	targetWindow?: Window | null;
 	salesType?: "order" | "quote";
 };
 
 export type SalesPrintControllerOptions = {
 	showToast?: boolean;
+	throwOnError?: boolean;
 	onRegenerated?: (access: SalesPrintRegenerateResult) => void | Promise<void>;
 };
 
@@ -373,7 +375,13 @@ export function useSalesPrintController() {
 			input: SalesPrintControllerActionInput,
 			options: SalesPrintControllerOptions = {},
 		) => {
-			if (!input.salesIds.length || isPrintingRef.current) return;
+			if (!input.salesIds.length) return;
+			if (isPrintingRef.current) {
+				if (options.throwOnError) {
+					throw new Error("Another sales document is already being prepared.");
+				}
+				return;
+			}
 			isPrintingRef.current = true;
 			setIsPrinting(true);
 			const mode = resolveSalesPrintMode(input.mode, input.salesType);
@@ -395,12 +403,16 @@ export function useSalesPrintController() {
 					baseUrl: input.baseUrl ?? null,
 					forceRegenerate: input.forceRegenerate ?? false,
 					openInNewTab: input.openInNewTab,
+					targetWindow: input.targetWindow ?? null,
 					onPrintStage: lifecycle.onPrintStage,
 					onPrintReady: lifecycle.onPrintReady,
 					onPrintError: lifecycle.onPrintError,
 				} satisfies SalesPrintRequest);
 			} catch (error) {
 				lifecycle.onAccessError(error);
+				if (options.throwOnError) {
+					throw error;
+				}
 			} finally {
 				isPrintingRef.current = false;
 				setIsPrinting(false);

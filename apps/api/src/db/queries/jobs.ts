@@ -6,6 +6,10 @@ import {
 } from "@community/create-job-schema";
 import type { InstallCostMeta, JobMeta, JobStatus } from "@community/types";
 import { generateControlId, generateJobId } from "@gnd/community/utils/job";
+import {
+	formatMoneyCents,
+	moneyToCents,
+} from "@gnd/contractor-accounting";
 import type { Prisma } from "@gnd/db";
 import { Notifications } from "@gnd/notifications";
 import { resolveSalesCompanyAddress } from "@gnd/sales/print";
@@ -478,7 +482,7 @@ const PAYMENT_PORTAL_FILTERS = [
 const READY_TO_PAY_JOB_STATUSES = ["Approved", "Completed"] as const;
 
 function roundPaymentAmount(value: number) {
-	return Math.round(Number(value || 0));
+	return Number(formatMoneyCents(moneyToCents(value || 0)));
 }
 
 function buildPaymentPortalStatusWhere(

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { getContractorPeriodReport } from "@api/db/queries/contractor-accounting";
 import {
 	getContractorPayoutPrintData,
 	getJobsPrintData,
@@ -237,6 +238,29 @@ export const printRouter = createTRPCRouter({
 
 			return getContractorPayoutPrintData(props.ctx, {
 				paymentIds: payload.paymentIds,
+			});
+		}),
+	contractorAccounting: publicProcedure
+		.input(
+			z.object({
+				token: z.string(),
+				preview: z.boolean().optional().default(false),
+			}),
+		)
+		.query(async (props) => {
+			const payload = await validateToken(
+				props.input.token,
+				tokenSchemas.contractorAccountingPdfToken,
+			);
+
+			if (!payload) return null;
+
+			return getContractorPeriodReport(props.ctx, {
+				from: payload.from,
+				to: payload.to,
+				timezone: payload.timezone,
+				contractorIds: payload.contractorIds || undefined,
+				includeEntries: true,
 			});
 		}),
 	communityInvoiceAgingReport: publicProcedure

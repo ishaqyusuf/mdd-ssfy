@@ -196,9 +196,9 @@ model JobInstallTasks {
 
 model JobPayments {
     id            Int                     @unique @default(autoincrement())
-    amount        Int
-    charges       Int?
-    subTotal      Int?
+    amount        Decimal                 @db.Decimal(12, 2)
+    charges       Decimal?                @db.Decimal(12, 2)
+    subTotal      Decimal?                @db.Decimal(12, 2)
     userId        Int
     paidBy        Int
     checkNo       String?
@@ -218,7 +218,7 @@ model JobPayments {
 
 model JobPaymentAdjustments {
     id          Int             @unique @default(autoincrement())
-    amount      Int
+    amount      Decimal         @db.Decimal(12, 2)
     type        AdjustmentTypes
     description String?
 

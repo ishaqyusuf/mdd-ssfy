@@ -15,6 +15,7 @@
     "./sales-v2": "./src/sales-v2/index.ts"
   },
   "dependencies": {
+    "@gnd/contractor-accounting": "workspace:*",
     "@gnd/sales": "workspace:*",
     "@gnd/utils": "workspace:*",
     "@react-pdf/renderer": "^4.3.1",

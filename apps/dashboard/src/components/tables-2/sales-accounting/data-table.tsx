@@ -191,7 +191,7 @@ export function DataTable({
 					}}
 					className="overflow-auto overscroll-contain border-b border-l border-r border-border scrollbar-hide"
 					style={{
-						height: "calc(100vh - 260px + var(--header-offset, 0px))",
+						height: "calc(100vh - 240px + var(--header-offset, 0px))",
 					}}
 				>
 					<DndContext

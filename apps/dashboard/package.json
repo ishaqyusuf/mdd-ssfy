@@ -21,6 +21,7 @@
     "@gnd/api": "workspace:*",
     "@gnd/auth": "workspace:*",
     "@gnd/community": "workspace:*",
+    "@gnd/contractor-accounting": "workspace:*",
     "@gnd/db": "workspace:*",
     "@gnd/inventory": "workspace:*",
     "@gnd/notifications": "workspace:*",

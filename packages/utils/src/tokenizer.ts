@@ -37,6 +37,18 @@ export const payoutPdfToken = z.object({
 	expiry: z.string(),
 });
 export type PayoutPdfToken = z.infer<typeof payoutPdfToken>;
+export const CONTRACTOR_ACCOUNTING_PDF_AUDIENCE = "contractor-accounting";
+export const contractorAccountingPdfToken = z.object({
+	audience: z.literal(CONTRACTOR_ACCOUNTING_PDF_AUDIENCE),
+	from: z.string().date(),
+	to: z.string().date(),
+	timezone: z.string().min(1),
+	contractorIds: z.array(z.number()).max(100).optional().nullable(),
+	expiry: z.string(),
+});
+export type ContractorAccountingPdfToken = z.infer<
+	typeof contractorAccountingPdfToken
+>;
 export const communityInvoiceAgingPdfToken = z.object({
 	expiry: z.string(),
 	q: z.string().optional().nullable(),
@@ -101,6 +113,7 @@ export const tokenSchemas = {
 	salesDocumentAccessToken,
 	jobsPdfToken,
 	payoutPdfToken,
+	contractorAccountingPdfToken,
 	communityInvoiceAgingPdfToken,
 	communityInvoiceTaskDetailPdfToken,
 	customerStatementPdfToken,
@@ -117,6 +130,7 @@ type KnownToken =
 	| SalesDocumentAccessToken
 	| JobsPdfToken
 	| PayoutPdfToken
+	| ContractorAccountingPdfToken
 	| CommunityInvoiceAgingPdfToken
 	| CommunityInvoiceTaskDetailPdfToken
 	| CustomerStatementPdfToken

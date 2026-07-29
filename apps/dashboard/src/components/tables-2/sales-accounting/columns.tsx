@@ -178,6 +178,25 @@ const descriptionColumn: Column = {
 	),
 };
 
+const customerColumn: Column = {
+	id: "customerName",
+	header: "Customer",
+	accessorKey: "customerName",
+	...sizes.custom(180, 340, 220),
+	enableResizing: true,
+	meta: {
+		skeleton: { type: "text", width: "w-44" },
+		headerLabel: "Customer",
+		className: sizeClass(sizes.custom(180, 340, 220)),
+	},
+	cell: ({ row }) => (
+		<TextWithTooltip
+			className="max-w-full truncate font-medium"
+			text={row.original.customerName || "Unnamed customer"}
+		/>
+	),
+};
+
 const orderColumn: Column = {
 	id: "orderIds",
 	header: "Order #",
@@ -351,6 +370,7 @@ export const columns: Column[] = [
 	dateColumn,
 	amountColumn,
 	descriptionColumn,
+	customerColumn,
 	orderColumn,
 	salesRepColumn,
 	processedByColumn,

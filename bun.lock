@@ -36,6 +36,7 @@
         "@gnd/auth": "workspace:*",
         "@gnd/cache": "workspace:*",
         "@gnd/community": "workspace:*",
+        "@gnd/contractor-accounting": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/dev-logger": "workspace:*",
         "@gnd/documents": "workspace:*",
@@ -91,6 +92,7 @@
         "@gnd/api": "workspace:*",
         "@gnd/auth": "workspace:*",
         "@gnd/community": "workspace:*",
+        "@gnd/contractor-accounting": "workspace:*",
         "@gnd/db": "workspace:*",
         "@gnd/events": "workspace:*",
         "@gnd/notifications": "workspace:*",
@@ -613,6 +615,16 @@
         "react-dom": "catalog:",
       },
     },
+    "packages/contractor-accounting": {
+      "name": "@gnd/contractor-accounting",
+      "dependencies": {
+        "decimal.js-light": "^2.5.1",
+      },
+      "devDependencies": {
+        "@gnd/tsconfig": "workspace:*",
+        "@types/bun": "^1.2.17",
+      },
+    },
     "packages/db": {
       "name": "@gnd/db",
       "dependencies": {
@@ -782,6 +794,7 @@
     "packages/pdf": {
       "name": "@gnd/pdf",
       "dependencies": {
+        "@gnd/contractor-accounting": "workspace:*",
         "@gnd/sales": "workspace:*",
         "@gnd/utils": "workspace:*",
         "@react-pdf/renderer": "^4.3.1",
@@ -1616,6 +1629,8 @@
     "@gnd/cache": ["@gnd/cache@workspace:packages/cache"],
 
     "@gnd/community": ["@gnd/community@workspace:packages/community"],
+
+    "@gnd/contractor-accounting": ["@gnd/contractor-accounting@workspace:packages/contractor-accounting"],
 
     "@gnd/db": ["@gnd/db@workspace:packages/db"],
 

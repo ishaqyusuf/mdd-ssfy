@@ -7705,3 +7705,44 @@
   `09049LM` keeps `Needs 1 / Pending 1` while the repair panel disappears.
   Focused package/API coverage and the Sales package typecheck pass; the API
   typecheck remains blocked only by the existing Sentry instrumentation errors.
+- 2026-07-29: added a visible Customer column to Sales Accounting using the
+  additive `sales.getSalesAccountings.data[].customerName` contract.
+  Business names take precedence over personal names, the wallet customer takes
+  precedence over deduplicated associated-order fallbacks, and missing values
+  render as `Unnamed customer`. The large-screen actions now use the
+  Midday search-toolbar slot, duplicate route padding was removed, and the
+  table-owned scroll viewport uses the shared `100vh - 240px` height. Focused
+  API/dashboard coverage passes 6 tests / 65 assertions; targeted Biome and
+  `git diff --check` pass. Authenticated browser QA at `1440x900` and
+  `390x844` confirms aligned controls, customer visibility, pinned-header
+  vertical scrolling, horizontal column scrolling, preserved row opening, and
+  no document-level overflow or console errors. API/dashboard typechecks remain
+  blocked only by their documented unrelated baselines.
+- 2026-07-29: restored reliable post-payment invoice and packing-slip printing
+  for direct staff payments. Apply Payment now captures immutable sale ids and
+  print mode, reserves one browser-authorized placeholder tab, and consumes the
+  request exactly once after confirmed payment; invoice plus packing slip stays
+  one combined `order-packing` job. Failure and cancellation close reserved
+  tabs, while popup/document failures preserve payment success and offer an
+  `Open print` recovery action. Focused orchestration, payment utility,
+  sales-print service, and print-frame coverage passes 55 tests / 130
+  assertions; targeted Biome and diff checks pass. Authenticated local QA on
+  disposable order `09074PC` confirmed the combined placeholder opens during a
+  $0.01 cash payment and the successful payment survives a transient document
+  preparation failure with recovery UI. The existing manual combined print
+  path then resolved access and mounted the hidden viewer. Dashboard-wide
+  typecheck remains blocked by the documented unrelated repository baseline.
+- 2026-07-29: implemented the first contractor accounting reporting slice.
+  Authorized staff can generate an inclusive custom-period report such as
+  January 1 through August 31 with opening liability, earned work, adjustments,
+  payouts, cancellation reversals, closing liability, contractor breakdowns,
+  reconciliation, and source-quality evidence. The screen, three-sheet Excel
+  workbook, and signed-token PDF use one cent-safe, timezone-aware report
+  dataset. Contractor finance reads now require `viewJobPayment` or
+  `editJobPayment`, while payout mutations retain `editJobPayment`. Focused
+  domain/API/permission/export/PDF coverage passes 24 tests / 275 assertions;
+  dashboard, PDF, and contractor-accounting package typechecks pass. API
+  typecheck is blocked only by the existing Sentry event typing errors. Prisma
+  generation and schema validation pass, but the local Decimal payout-money
+  migration remains gated on explicit approval because four older repository
+  migrations are pending; no database reset or workaround was used.

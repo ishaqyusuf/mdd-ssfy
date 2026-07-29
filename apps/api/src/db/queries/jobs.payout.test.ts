@@ -260,4 +260,57 @@ describe("contractor payout job descriptions", () => {
 			contractorId: 77,
 		});
 	});
+
+	it("preserves cents when creating a discounted contractor payout", async () => {
+		const createdPayments: any[] = [];
+		const db = {
+			jobs: {
+				findMany: async () => [
+					createPayoutJob({
+						amount: 100.25,
+						status: "Approved",
+						controlId: "J-20811",
+					}),
+				],
+				updateMany: async () => ({ count: 1 }),
+			},
+			users: {
+				findFirst: async () => ({
+					id: 77,
+					employeeProfile: {
+						discount: 4,
+					},
+				}),
+			},
+			jobPayments: {
+				create: async (args: any) => {
+					createdPayments.push(args);
+					return { id: 2654 };
+				},
+			},
+			$transaction: async (callback: (tx: unknown) => unknown) => callback(db),
+		};
+
+		const result = await createPaymentPortal(
+			{ db, userId: 12 } as any,
+			{
+				userId: 77,
+				jobIds: [20811],
+				paymentMethod: "ACH",
+				adjustment: 0,
+				discount: 4.01,
+			},
+		);
+
+		expect(result.totalPayout).toBe(96.24);
+		expect(createdPayments[0]?.data).toMatchObject({
+			amount: 96.24,
+			subTotal: 100.25,
+			charges: 4.01,
+		});
+		expect(createdPayments[0]?.data.adjustments.create[0]).toMatchObject({
+			type: "DEDUCTION",
+			amount: 4.01,
+		});
+	});
 });

@@ -1,5 +1,11 @@
 # In Progress
 
+- [ ] Contractor accounting period reporting: application/reporting slice is
+  implemented with protected custom-period API, Jan–Aug inclusive semantics,
+  reconciliation, Excel, PDF, and data-quality evidence. Remaining deployment
+  gate: explicitly approve and complete the local Decimal payout-money
+  migration, then run database-backed smoke validation.
+
 - 2026-07-22 execution note: the responsive full-width Tables-2 core contract
   was tracked here during implementation and moved to
   `.brain/tasks/done.md` after focused tests, configuration audit, and canonical

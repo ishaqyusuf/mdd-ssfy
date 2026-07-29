@@ -469,22 +469,25 @@ export const linkModules = [
 				"payment",
 				"/contractors/jobs/payment-dashboard",
 			)
-				.access(_perm.every("viewProject", "viewInvoice", "viewJobPayment"))
+				.access(_perm.in("viewJobPayment", "editJobPayment"))
 				.subLinks(
 					_subLink(
 						"Payment Dashboard",
 						"/contractors/jobs/payment-dashboard",
-					).access(_perm.every("viewProject", "viewInvoice", "viewJobPayment"))
-						.data,
+					).access(_perm.in("viewJobPayment", "editJobPayment")).data,
+					_subLink("Accounting", "/contractors/accounting").access(
+						_perm.in("viewJobPayment", "editJobPayment"),
+					).data,
 					_subLink("Payment Portal", "/contractors/jobs/payment-portal").access(
-						_perm.every("viewProject", "viewInvoice", "viewJobPayment"),
+						_perm.in("viewJobPayment", "editJobPayment"),
 					).data,
 					_subLink("Payments", "/contractors/jobs/payments").access(
-						_perm.every("viewProject", "viewInvoice", "viewJobPayment"),
+						_perm.in("viewJobPayment", "editJobPayment"),
 					).data,
 				)
 				.childPaths(
 					"/contractors/jobs/payment-dashboard",
+					"/contractors/accounting",
 					"/contractors/jobs/payment-portal",
 					"/contractors/jobs/payments",
 				).data,

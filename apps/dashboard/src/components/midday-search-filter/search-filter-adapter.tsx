@@ -6,6 +6,7 @@ import {
 } from "@/hooks/use-search-filter";
 import type { PageFilterData } from "@api/type";
 import { useQuery } from "@gnd/ui/tanstack";
+import type { ReactNode } from "react";
 import type { FilterDefinition } from "./filter-definitions";
 import { SearchFilterTRPC } from "./search-filter-trpc";
 
@@ -19,6 +20,7 @@ type SearchFilterAdapterProps = {
 	placeholder?: string;
 	debounceMs?: number;
 	searchKey?: string;
+	toolbarActions?: ReactNode;
 };
 
 export function SearchFilterAdapter({
@@ -47,6 +49,7 @@ function SearchFilterAdapterContent({
 	placeholder = "Search ...",
 	debounceMs,
 	searchKey,
+	toolbarActions,
 }: Omit<SearchFilterAdapterProps, "filterSchema">) {
 	const { shouldFetch } = useSearchFilterContext();
 	const queryOptions = trpcRoute.queryOptions(trpQueryOptions);
@@ -67,6 +70,7 @@ function SearchFilterAdapterContent({
 				>
 			}
 			searchKey={searchKey}
+			toolbarActions={toolbarActions}
 		/>
 	);
 }

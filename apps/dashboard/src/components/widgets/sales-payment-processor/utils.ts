@@ -166,7 +166,7 @@ export function buildPrintRequests(input: {
 	if (input.shouldPrintInvoice && input.shouldPrintPackingSlip) {
 		requests.push({
 			mode: "invoice,packing-slip",
-			salesIds: input.salesIds,
+			salesIds: [...input.salesIds],
 			windowRef: null,
 		});
 		return requests;
@@ -175,7 +175,7 @@ export function buildPrintRequests(input: {
 	if (input.shouldPrintInvoice) {
 		requests.push({
 			mode: "invoice",
-			salesIds: input.salesIds,
+			salesIds: [...input.salesIds],
 			windowRef: null,
 		});
 	}
@@ -183,7 +183,7 @@ export function buildPrintRequests(input: {
 	if (input.shouldPrintPackingSlip) {
 		requests.push({
 			mode: "packing-slip",
-			salesIds: input.salesIds,
+			salesIds: [...input.salesIds],
 			windowRef: null,
 		});
 	}

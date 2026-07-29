@@ -1,0 +1,1 @@
+export { ContractorAccountingPdfDocument } from "./document";

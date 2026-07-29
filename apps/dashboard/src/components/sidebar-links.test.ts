@@ -125,6 +125,24 @@ describe("sidebar role access", () => {
 		expect(links.linksNameMap["/sales-book/edit-order"]?.hasAccess).toBe(false);
 	});
 
+	test("shows contractor accounting to payment viewers or editors", () => {
+		for (const can of [
+			permissions({ viewJobPayment: true }),
+			permissions({ editJobPayment: true }),
+		]) {
+			const links = getLinkModules(
+				validateLinks({
+					role: { name: "Admin" },
+					can,
+					userId: "admin-1",
+				}),
+			);
+			expect(links.linksNameMap["/contractors/accounting"]?.hasAccess).toBe(
+				true,
+			);
+		}
+	});
+
 	test("exposes inventory validation routes to super admins", () => {
 		const links = getLinkModules(
 			validateLinks({

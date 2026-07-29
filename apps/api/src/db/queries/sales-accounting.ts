@@ -16,6 +16,28 @@ import { endOfDay, format, isValid, parse, startOfDay } from "date-fns";
 
 const dateOnlyParamFormat = "yyyy-MM-dd";
 
+type SalesAccountingCustomer = {
+  businessName?: string | null;
+  name?: string | null;
+} | null | undefined;
+
+export function resolveSalesAccountingCustomerName(
+  customers: SalesAccountingCustomer[]
+) {
+  const customerNames = Array.from(
+    new Set(
+      customers
+        .map(
+          (customer) =>
+            customer?.businessName?.trim() || customer?.name?.trim() || null
+        )
+        .filter((name): name is string => Boolean(name))
+    )
+  );
+
+  return customerNames.length ? customerNames.join(", ") : null;
+}
+
 function parseDateOnlyParam(value?: string | null) {
   if (!value) return null;
 
@@ -101,6 +123,16 @@ export async function getSalesAccountings(
           name: true,
         },
       },
+      wallet: {
+        select: {
+          customer: {
+            select: {
+              businessName: true,
+              name: true,
+            },
+          },
+        },
+      },
       salesPayments: {
         where: {
           deletedAt: null,
@@ -130,6 +162,12 @@ export async function getSalesAccountings(
               },
               salesRep: {
                 select: {
+                  name: true,
+                },
+              },
+              customer: {
+                select: {
+                  businessName: true,
                   name: true,
                 },
               },
@@ -167,6 +205,11 @@ export async function getSalesAccountings(
     const deliveryCost = order?.extraCosts?.find(
       (a) => a.type == "Delivery"
     )?.amount;
+    const customerName =
+      resolveSalesAccountingCustomerName([item.wallet?.customer]) ??
+      resolveSalesAccountingCustomerName(
+        item.salesPayments.map((payment) => payment.order.customer)
+      );
     return {
       checkNo: meta?.checkNo || spMeta?.checkNo,
       reason: item?.history?.[0]?.reason,
@@ -184,6 +227,7 @@ export async function getSalesAccountings(
       paymentCharges: paymentMeta?.paymentCharges ?? [],
       paymentMethod,
       description,
+      customerName,
       ordersCount,
       orderIds: orderIdsString,
       salesReps,

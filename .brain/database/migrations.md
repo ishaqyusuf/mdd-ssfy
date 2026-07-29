@@ -10,6 +10,21 @@ Tracks notable migrations and migration strategy.
 - If the configured database is unavailable or drift blocks migration, record the exact limitation here rather than forcing a reset or data-destructive action.
 
 ## Current Notes
+- 2026-07-29 contractor accounting decimal money:
+  - `JobPayments.amount`, `charges`, and `subTotal`, plus
+    `JobPaymentAdjustments.amount`, are changed from integer columns to
+    `Decimal(12,2)` in the Prisma schema.
+  - `bun run db:generate` and Prisma schema validation pass.
+  - Read-only migration status reached local `gnd-prisma2` and found four older
+    repository migrations still pending:
+    `20260722150000_dealer_customer_direct_partnership_invitations`,
+    `20260722180000_master_password_usage_audit`,
+    `20260728120000_sales_inventory_projection_state`, and
+    `20260729153000_optional_inbound_supplier`.
+  - Applying those pending migrations and generating the new decimal migration
+    was not authorized by the escalation gate. No reset, direct SQL, migration
+    history rewrite, or workaround was attempted. Explicit approval is required
+    before mutating the local development database.
 - 2026-07-29 optional inbound supplier:
   - `packages/db/src/migrations/20260729153000_optional_inbound_supplier/migration.sql`
     changes only `InboundShipment.supplierId` from required to nullable.

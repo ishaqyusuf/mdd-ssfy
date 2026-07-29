@@ -45,6 +45,7 @@ export interface SalesPrintRequest {
 	baseUrl?: string | null;
 	forceRegenerate?: boolean;
 	openInNewTab?: boolean;
+	targetWindow?: Window | null;
 	onPrintReady?: () => void;
 	onPrintError?: (error: unknown) => void;
 	onPrintStage?: (
@@ -76,7 +77,7 @@ type SalesPrintDependencies = {
 	openLink: typeof openLink;
 	openViewerShell: typeof openViewerShell;
 	closeViewerShell?: typeof closeViewerShell;
-	openPendingPrintWindow: typeof openPendingPrintWindow;
+	openPendingPrintWindow: typeof reserveSalesPrintWindow;
 	createPrintViewerContent: typeof createPrintViewerContent;
 	mountHiddenPrintViewer?: typeof mountHiddenPrintViewer;
 	createPrintLoadingContent?: typeof createPrintLoadingContent;
@@ -111,7 +112,7 @@ const defaultDependencies: SalesPrintDependencies = {
 	openLink,
 	openViewerShell,
 	closeViewerShell,
-	openPendingPrintWindow,
+	openPendingPrintWindow: reserveSalesPrintWindow,
 	createPrintViewerContent,
 	mountHiddenPrintViewer,
 	createPrintLoadingContent,
@@ -357,13 +358,22 @@ export async function openSalesPrintDocument(
 	dependencies: SalesPrintDependencies = defaultDependencies,
 ) {
 	const mode = resolveSalesPrintMode(request.mode);
+	const hasTargetWindow = request.targetWindow != null;
+	const targetWindow =
+		request.targetWindow && !request.targetWindow.closed
+			? request.targetWindow
+			: null;
 	const shouldUseAttachmentOverlay =
-		dependencies.useAttachmentOverlay && !request.openInNewTab;
-	const pendingWindow = request.openInNewTab
-		? null
-		: shouldUseAttachmentOverlay
+		!hasTargetWindow &&
+		dependencies.useAttachmentOverlay &&
+		!request.openInNewTab;
+	const pendingWindow = hasTargetWindow
+		? targetWindow
+		: request.openInNewTab
 			? null
-			: dependencies.openPendingPrintWindow();
+			: shouldUseAttachmentOverlay
+				? null
+				: dependencies.openPendingPrintWindow();
 
 	try {
 		request.onPrintStage?.("resolve-access-start", {
@@ -416,6 +426,14 @@ export async function openSalesPrintDocument(
 				});
 				return;
 			}
+		}
+
+		if (hasTargetWindow) {
+			if (!pendingWindow || pendingWindow.closed) {
+				throw new Error("The reserved print window is unavailable.");
+			}
+			pendingWindow.location.replace(href);
+			return;
 		}
 
 		if (pendingWindow && !pendingWindow.closed) {
@@ -742,7 +760,7 @@ function createPrintLoadingContent(mode: PrintMode): ReactNode {
 	);
 }
 
-function openPendingPrintWindow() {
+export function reserveSalesPrintWindow() {
 	if (typeof window === "undefined") return null;
 
 	const printWindow = window.open("", "_blank");

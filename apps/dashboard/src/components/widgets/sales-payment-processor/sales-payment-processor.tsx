@@ -43,6 +43,12 @@ import {
 import type z from "zod";
 import { PaymentProcessorSkeleton } from "./payment-processor-skeleton";
 import { PaymentStatusOverlay } from "./payment-status-overlay";
+import {
+	closePendingPrintRequests,
+	dispatchPendingPrintRequests,
+	reservePendingPrintRequests,
+	takePendingPrintRequests,
+} from "./post-payment-print";
 import { paymentProcessorFormSchema as formSchema } from "./schema";
 import {
 	fetchFreshTerminalPaymentStatus,
@@ -68,7 +74,6 @@ import {
 	resolveDefaultPaymentTerminal,
 } from "./utils";
 
-type SalesPrintExecutor = ReturnType<typeof useSalesPrintController>["print"];
 type PaymentMethod = NonNullable<z.infer<typeof formSchema>["paymentMethod"]>;
 type ExternalPaymentMethod = Exclude<PaymentMethod, "wallet">;
 
@@ -104,42 +109,6 @@ export function SalesPaymentProcessor(props: SalesPaymentProcessorProps) {
 			</Dialog.Content>
 		</Dialog.Root>
 	);
-}
-
-async function resolvePendingPrintRequests(
-	requests: PendingPrintRequest[],
-	printSalesDocument: SalesPrintExecutor,
-) {
-	for (const request of requests) {
-		if (!request.salesIds.length) {
-			request.windowRef?.close();
-			continue;
-		}
-
-		try {
-			if (request.windowRef && !request.windowRef.closed) {
-				request.windowRef.close();
-			}
-
-			await printSalesDocument({
-				salesIds: request.salesIds,
-				mode: request.mode,
-			});
-		} catch (error) {
-			if (request.windowRef && !request.windowRef.closed) {
-				request.windowRef.close();
-			}
-			throw error;
-		}
-	}
-}
-
-function closePendingPrintRequests(requests: PendingPrintRequest[]) {
-	for (const request of requests) {
-		if (request.windowRef && !request.windowRef.closed) {
-			request.windowRef.close();
-		}
-	}
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -407,6 +376,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		if (!paymentStatus) return;
 		switch (paymentStatus) {
 			case "cancelled":
+				closePendingPrintRequests(pendingPrintRequestsRef.current);
+				pendingPrintRequestsRef.current = [];
 				form.setValue("paymentStatus", null);
 				break;
 			case "processing":
@@ -414,20 +385,55 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 			case "completed": {
 				const isTerminalPayment =
 					pm === "terminal" || terminalState === "success";
-				const formData = form.getValues();
-				void resolvePendingPrintRequests(
-					pendingPrintRequestsRef.current.length
-						? pendingPrintRequestsRef.current
-						: getPrintableRequests(formData),
+				const pendingPrintRequests = takePendingPrintRequests(
+					pendingPrintRequestsRef,
+				);
+				void dispatchPendingPrintRequests(
+					pendingPrintRequests,
 					salesPrint.print,
-				).catch(() => {
+				).then(({ failures }) => {
+					if (!failures.length) return;
+
+					const retryRequests = failures.map(({ request }) => ({
+						...request,
+						windowRef: null,
+					}));
+					const popupWasBlocked = failures.some(
+						(failure) => failure.reason === "blocked",
+					);
 					toast({
-						title: "Unable to open print view",
-						description: "The payment was recorded, but the print view failed.",
-						variant: "destructive",
+						title: popupWasBlocked
+							? "Print popup blocked"
+							: "Unable to open print view",
+						description: popupWasBlocked
+							? "The payment was recorded. Allow popups, then open the print view."
+							: "The payment was recorded, but the print view failed.",
+						variant: popupWasBlocked ? undefined : "destructive",
+						action: (
+							<ToastAction
+								altText="Open print"
+								onClick={() => {
+									const reservedRetryRequests =
+										reservePendingPrintRequests(retryRequests);
+									void dispatchPendingPrintRequests(
+										reservedRetryRequests,
+										salesPrint.print,
+									).then(({ failures: retryFailures }) => {
+										if (!retryFailures.length) return;
+										toast({
+											title: "Unable to open print view",
+											description:
+												"Allow popups for this site, then print from the sale menu.",
+											variant: "destructive",
+										});
+									});
+								}}
+							>
+								Open print
+							</ToastAction>
+						),
 					});
 				});
-				pendingPrintRequestsRef.current = [];
 				setTerminalError(null);
 				setTerminalState("success");
 				pendingAppliedPaymentCheckRef.current = null;
@@ -444,6 +450,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 				return () => clearTimeout(closeTimer);
 			}
 			case "failed":
+				closePendingPrintRequests(pendingPrintRequestsRef.current);
+				pendingPrintRequestsRef.current = [];
 				setTerminalError(
 					(current) =>
 						current ||
@@ -454,7 +462,6 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		}
 	}, [
 		form,
-		getPrintableRequests,
 		paymentStatus,
 		pm,
 		resetTerminalFlow,
@@ -486,6 +493,8 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 
 		const elapsed = Date.now() - pendingCheck.startedAt;
 		if (elapsed > 12000) {
+			closePendingPrintRequests(pendingPrintRequestsRef.current);
+			pendingPrintRequestsRef.current = [];
 			setTerminalError(
 				"Payment is taking longer than expected. Check the invoice balance and try again if it did not apply.",
 			);
@@ -620,6 +629,10 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 		if (amount == null) return;
 		const selectedSalesIds = getSelectedSalesIds(formData);
 		const selectedOrderNos = getSelectedOrderNos(formData);
+		closePendingPrintRequests(pendingPrintRequestsRef.current);
+		pendingPrintRequestsRef.current = reservePendingPrintRequests(
+			getPrintableRequests(formData),
+		);
 		const walletOnly =
 			!!formData.useWallet &&
 			paymentChargePreview.walletApplied > 0 &&
@@ -641,7 +654,6 @@ function Content(props: SalesPaymentProcessorProps & { setOpened }) {
 				startedAt: Date.now(),
 			};
 		}
-		pendingPrintRequestsRef.current = [];
 		makePayment.mutate({
 			...formData,
 			notifyCustomer: canNotifyCustomer && formData.notifyCustomer === true,

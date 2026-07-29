@@ -24,6 +24,8 @@ describe("Sales Accounting Sales Orders table migration parity", () => {
 			pageSource.includes('getInitialTableSettings("sales-accounting")'),
 		).toBe(true);
 		expect(pageSource.includes("<SalesAccountingHeader />")).toBe(true);
+		expect(pageSource.includes('className="flex flex-col gap-6"')).toBe(true);
+		expect(pageSource.includes("gap-6 py-6")).toBe(false);
 		expect(
 			pageSource.includes("components/tables-2/sales-accounting/data-table"),
 		).toBe(true);
@@ -34,6 +36,24 @@ describe("Sales Accounting Sales Orders table migration parity", () => {
 		).toBe(false);
 		expect(pageSource.includes("@gnd/ui/data-table")).toBe(false);
 		expect(pageSource.includes("PageStickyHeader")).toBe(false);
+	});
+
+	it("keeps accounting actions aligned in the Midday search toolbar", () => {
+		const headerSource = readSource("components/sales-accounting-header.tsx");
+		const adapterSource = readSource(
+			"components/midday-search-filter/search-filter-adapter.tsx",
+		);
+
+		expect(headerSource.includes("toolbarActions={")).toBe(true);
+		expect(headerSource.includes("<SalesAccountingColumnVisibility />")).toBe(
+			true,
+		);
+		expect(headerSource.includes("<SalesReportMenu />")).toBe(true);
+		expect(headerSource.includes("md:flex-row")).toBe(false);
+		expect(adapterSource.includes("toolbarActions?: ReactNode")).toBe(true);
+		expect(adapterSource.includes("toolbarActions={toolbarActions}")).toBe(
+			true,
+		);
 	});
 
 	it("keeps table-owned scroll, DnD, resize, virtualization, selection, and row-open behavior", () => {
@@ -58,6 +78,11 @@ describe("Sales Accounting Sales Orders table migration parity", () => {
 		);
 		expect(source.includes("setRowSelection")).toBe(true);
 		expect(source.includes("openSalesAccountingId: row.id")).toBe(true);
+		expect(
+			source.includes(
+				'height: "calc(100vh - 240px + var(--header-offset, 0px))"',
+			),
+		).toBe(true);
 		expect(source.includes('height: "var(--header-offset, 0px)"')).toBe(true);
 	});
 
@@ -92,6 +117,10 @@ describe("Sales Accounting Sales Orders table migration parity", () => {
 		expect(columnsSource.includes("sizes.custom(118, 180, 136)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(104, 150, 118)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(180, 360, 220)")).toBe(true);
+		expect(columnsSource.includes('header: "Customer"')).toBe(true);
+		expect(columnsSource.includes('accessorKey: "customerName"')).toBe(true);
+		expect(columnsSource.includes("sizes.custom(180, 340, 220)")).toBe(true);
+		expect(columnsSource.includes('"Unnamed customer"')).toBe(true);
 		expect(columnsSource.includes("sizes.custom(140, 260, 170)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(112, 190, 136)")).toBe(true);
 		expect(columnsSource.includes("sizes.custom(112, 180, 130)")).toBe(true);

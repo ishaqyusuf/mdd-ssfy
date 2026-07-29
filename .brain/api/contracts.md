@@ -727,3 +727,41 @@ Tracks important request/response contracts and shared schema boundaries.
   to deleted sale lines or retired (`status=cancelled`) components. Ordinary
   live demand/allocation on a current synchronized component must not appear in
   the repair panel.
+
+## Sales accounting list contract (2026-07-29)
+
+- `sales.getSalesAccountings.data[].customerName` is an additive
+  `string | null` display field.
+- Each customer resolves `businessName` before personal `name`. The transaction
+  wallet customer is preferred; associated order customers are used only when
+  it is missing, and duplicate names from multi-invoice payments are returned
+  once.
+- Missing customer data returns `null`; the dashboard displays
+  `Unnamed customer`.
+- The database schema, URL filters, pagination, selection, row opening, and
+  Excel export contracts are unchanged.
+
+## Contractor accounting period report contract (2026-07-29)
+
+- `jobs.contractorPeriodReport` accepts `from` and `to` as `YYYY-MM-DD`,
+  `timezone` (default `America/New_York`), optional `contractorIds` (maximum
+  100), and `includeEntries`.
+- Both input dates are inclusive business dates. The response exposes their UTC
+  `[from, toExclusive)` boundary and the timezone used.
+- Summary and contractor rows expose integer-cent fields for opening, earned,
+  bonus, expense, deduction, payout, reversal, net activity, and closing
+  balances plus job/payout counts.
+- `includeEntries=false` returns the same reviewed summary and contractor
+  balances with an empty `entries` array. Excel and PDF request
+  `includeEntries=true` only when transaction detail is needed.
+- `dataQuality` identifies the legacy transaction source, approval-date fallback
+  count, missing-contractor count, missing-payout-date quarantine count,
+  cancelled-payout count, and summary-to-contractor cross-foot difference in
+  cents.
+- Source loading fails closed above 50,000 jobs, 25,000 payouts, or 100
+  adjustments on one payout. No screen or document receives silently truncated
+  financial totals.
+- `print.contractorAccounting` accepts only a signed expiring token. The token
+  requires the `contractor-accounting` audience and fixes the period, timezone,
+  and optional contractor IDs. `jobs.contractorAccountingPrintToken` is the
+  protected mint path; the generic token action refuses this audience.

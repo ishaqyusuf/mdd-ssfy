@@ -197,6 +197,32 @@ describe("high-risk tRPC permission boundaries", () => {
 		}
 	});
 
+	test("contractor finance reads require payment-manager access", () => {
+		const jobs = source("jobs.route.ts");
+		for (const procedure of [
+			"paymentDashboard",
+			"paymentPortal",
+			"contractorPayouts",
+			"contractorPayoutOverview",
+			"getContractorPayoutPrintData",
+			"contractorPeriodReport",
+			"contractorAccountingPrintToken",
+		]) {
+			const start = jobs.indexOf(`${procedure}: protectedProcedure`);
+			expect(start).toBeGreaterThanOrEqual(0);
+			expect(jobs.slice(start, start + 1100)).toContain(
+				"await requireJobPaymentViewer(props.ctx)",
+			);
+		}
+
+		const filters = source("filters.route.ts");
+		const filterStart = filters.indexOf("contractorPayout: protectedProcedure");
+		expect(filterStart).toBeGreaterThanOrEqual(0);
+		expect(filters.slice(filterStart, filterStart + 700)).toContain(
+			"await requireAnyOperationalPermission",
+		);
+	});
+
 	test("community writes require a scoped editor permission", () => {
 		const community = source("community.route.ts");
 		for (const mutation of [

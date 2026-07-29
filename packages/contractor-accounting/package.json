@@ -1,0 +1,22 @@
+{
+  "name": "@gnd/contractor-accounting",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "format": "biome format --write .",
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./report": "./src/report.ts"
+  },
+  "dependencies": {
+    "decimal.js-light": "^2.5.1"
+  },
+  "devDependencies": {
+    "@gnd/tsconfig": "workspace:*",
+    "@types/bun": "^1.2.17"
+  }
+}

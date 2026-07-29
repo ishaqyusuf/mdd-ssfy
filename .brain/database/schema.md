@@ -116,6 +116,15 @@ Tracks important schema-level entities and ownership boundaries.
   `Decimal(12,2)` values. Application/query boundaries convert those Prisma
   Decimal values to the numeric sales domain representation before returning
   data to web/mobile clients or inventory synchronization.
+- Contractor payout money is modeled as fixed precision:
+  - `JobPayments.amount`, `JobPayments.charges`, and `JobPayments.subTotal` are
+    `Decimal(12,2)`.
+  - `JobPaymentAdjustments.amount` is `Decimal(12,2)`.
+  - `Jobs.amount` remains the legacy `Float`; contractor accounting converts it
+    to integer cents before arithmetic.
+  - No new contractor-ledger or report-snapshot tables are introduced in this
+    slice. The schema change remains deployment-pending until the normal
+    migration workflow is approved and completed.
 
 ## TODO
 - Document the canonical schema modules and the most important tables/models.

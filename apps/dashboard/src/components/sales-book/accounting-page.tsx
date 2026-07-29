@@ -39,7 +39,7 @@ export async function SalesBookAccountingPage({
 	return (
 		<PageShell>
 			<HydrateClient>
-				<div className="flex flex-col gap-6 py-6">
+				<div className="flex flex-col gap-6">
 					<PageTitle>{title}</PageTitle>
 					<SalesAccountingHeader />
 					<ErrorBoundary errorComponent={ErrorFallback}>

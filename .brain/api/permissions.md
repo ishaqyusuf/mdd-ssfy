@@ -205,6 +205,24 @@ Tracks authentication and authorization patterns across API surfaces.
   intentionally available to existing login and shared notification surfaces;
   personal activity mutations use the current authenticated contact.
 
+## Contractor accounting permissions (2026-07-29)
+
+- `jobs.paymentDashboard`, `jobs.paymentPortal`, `jobs.contractorPayouts`,
+  `jobs.contractorPayoutOverview`, `jobs.getContractorPayoutPrintData`,
+  `jobs.contractorPeriodReport`, and `filters.contractorPayout` are protected
+  reads requiring `viewJobPayment` or `editJobPayment`.
+- Creating, cancelling, and reversing contractor payouts still requires
+  `editJobPayment`; read authority does not imply mutation authority.
+- `print.contractorAccounting` is public only at the transport layer. It returns
+  data solely for a valid signed, expiring server-generated token whose payload
+  fixes the report period and optional contractor scope.
+- `jobs.contractorAccountingPrintToken` requires the same payment-viewer guard
+  and adds the required `contractor-accounting` audience. The generic dashboard
+  token action rejects that audience, so it cannot bypass finance permission.
+- Sidebar visibility is not the authorization boundary; every interactive read
+  repeats permission enforcement on the server.
+
+
 ## Production readiness override permissions (2026-07-27)
 
 - Production readiness reads require the existing Production Overview viewer

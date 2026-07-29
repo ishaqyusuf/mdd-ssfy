@@ -22,8 +22,13 @@ import {
   salesAccountingFilters,
   unitProductionFilters,
 } from "@api/db/queries/filters";
-import { createTRPCRouter, publicProcedure } from "../init";
+import { requireAnyOperationalPermission } from "@api/utils/operational-route-access";
 import { z } from "zod";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from "../init";
 
 export const filterRouters = createTRPCRouter({
   communityProject: publicProcedure.query(async (props) => {
@@ -59,7 +64,12 @@ export const filterRouters = createTRPCRouter({
   job: publicProcedure.query(async (props) => {
     return jobFilters(props.ctx);
   }),
-  contractorPayout: publicProcedure.query(async (props) => {
+  contractorPayout: protectedProcedure.query(async (props) => {
+    await requireAnyOperationalPermission(
+      props.ctx,
+      ["viewJobPayment", "editJobPayment"],
+      "You do not have permission to view contractor payments.",
+    );
     return contractorPayoutFilters(props.ctx);
   }),
   notificationChannel: publicProcedure.query(async (props) => {

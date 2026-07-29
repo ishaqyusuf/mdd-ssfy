@@ -575,6 +575,125 @@ describe("sales print service", () => {
 		]);
 	});
 
+	it("navigates an explicitly reserved print window after access resolves", async () => {
+		let hiddenViewerMounted = false;
+		let pendingWindowOpened = false;
+		let openedLinkHref: string | null = null;
+		let replacedHref: string | null = null;
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: true,
+			mode: "order-packing",
+			documentType: "invoice_packing_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		const targetWindow = {
+			closed: false,
+			close: () => undefined,
+			location: {
+				replace: (href: string) => {
+					replacedHref = href;
+				},
+			},
+		} as unknown as Window;
+		const dependencies = {
+			resolveAccess: async () => response,
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: (href: string) => {
+				openedLinkHref = href;
+			},
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => {
+				pendingWindowOpened = true;
+				return null;
+			},
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: () => {
+				hiddenViewerMounted = true;
+				return true;
+			},
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await openSalesPrintDocument(
+			{
+				salesIds: [42],
+				mode: "invoice,packing-slip",
+				targetWindow,
+			},
+			dependencies,
+		);
+
+		expect(replacedHref).toBe(
+			"/p/sales-invoice-v2?accessToken=access-123&preview=false&mode=order-packing",
+		);
+		expect(hiddenViewerMounted).toBe(false);
+		expect(pendingWindowOpened).toBe(false);
+		expect(openedLinkHref).toBe(null);
+	});
+
+	it("rejects a reserved print window that closes before access resolves", async () => {
+		const response: ResolveSalesDocumentAccessResult = {
+			kind: "snapshot",
+			generated: true,
+			mode: "invoice",
+			documentType: "invoice_pdf",
+			salesOrderId: 42,
+			snapshotId: "snapshot-1",
+			accessToken: "access-123",
+			expiresAt: null,
+			previewUrl:
+				"https://app.example.com/p/sales-document-v2?accessToken=access-123",
+			downloadUrl:
+				"https://app.example.com/api/download/sales-v2?accessToken=access-123",
+		};
+		let targetClosed = false;
+		const targetWindow = {
+			get closed() {
+				return targetClosed;
+			},
+			close() {
+				targetClosed = true;
+			},
+			location: {
+				replace: () => undefined,
+			},
+		} as unknown as Window;
+		const dependencies = {
+			resolveAccess: async () => {
+				targetClosed = true;
+				return response;
+			},
+			resolveHtmlPreviewAccess: async () => response,
+			openLink: () => undefined,
+			openViewerShell: () => false,
+			openPendingPrintWindow: () => null,
+			createPrintViewerContent: (href) => ({ props: { href } }),
+			mountHiddenPrintViewer: () => true,
+			getBaseUrl: () => "https://app.example.com",
+			useAttachmentOverlay: true,
+		};
+
+		await expect(
+			openSalesPrintDocument(
+				{
+					salesIds: [42],
+					mode: "invoice",
+					targetWindow,
+				},
+				dependencies,
+			),
+		).rejects.toThrow("The reserved print window is unavailable.");
+	});
+
 	it("marks hidden print stages when an existing snapshot is reused", async () => {
 		const snapshotFlags: Array<boolean | undefined> = [];
 		const response: ResolveSalesDocumentAccessResult = {

@@ -24,6 +24,7 @@ import { orgs } from "./organization.route";
 import { pageTabsRouter } from "./page-tabs.route";
 import { printRouter } from "./print.route";
 import { salesDashboardRouter } from "./sales-dashboard.route";
+import { salesFinanceRouter } from "./sales-finance.route";
 import { salesPaymentProcessorRouter } from "./sales-payment-processor.route";
 import { salesShelfItems } from "./sales-shelf-item";
 import { salesRouter } from "./sales.route";
@@ -70,6 +71,7 @@ export const appRouter = createTRPCRouter({
 	newSalesForm: newSalesFormRouter,
 	print: printRouter,
 	sales: salesRouter,
+	salesFinance: salesFinanceRouter,
 	salesShelfItems,
 	salesPaymentProcessor: salesPaymentProcessorRouter,
 	salesDashboard: salesDashboardRouter,

@@ -790,7 +790,10 @@ export async function getEmployeeOverview(ctx: TRPCContext, id: number) {
           ).length,
           pendingJobs: user.jobs.filter((j) => j.status === "pending").length,
           totalEarnings: formatMoney(
-            user.payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+            user.payments.reduce(
+              (sum, p) => sum + Number(p.amount || 0),
+              0,
+            ),
           ),
           pendingPayout: formatMoney(
             user.jobs

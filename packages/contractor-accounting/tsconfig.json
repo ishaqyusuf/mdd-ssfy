@@ -1,0 +1,15 @@
+{
+  "extends": "@gnd/tsconfig/base.json",
+  "include": ["src", "../../types"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node", "bun"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../node_modules/@types",
+      "../../types"
+    ]
+  }
+}

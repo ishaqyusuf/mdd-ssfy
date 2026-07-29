@@ -1,4 +1,9 @@
 import {
+	contractorAccountingPrintTokenSchema,
+	getContractorPeriodReport,
+	getContractorPeriodReportSchema,
+} from "@api/db/queries/contractor-accounting";
+import {
 	adminAnalytics,
 	adminAnalyticsSchema,
 	cancelContractorPayment,
@@ -37,8 +42,13 @@ import {
 } from "@community/create-job-schema";
 import type { JobStatus } from "@community/types";
 import { generateJobId } from "@community/utils/job";
+import { addDays } from "date-fns";
 import { sum } from "@gnd/utils";
 import { saveNote } from "@gnd/utils/note";
+import {
+	CONTRACTOR_ACCOUNTING_PDF_AUDIENCE,
+	tokenize,
+} from "@gnd/utils/tokenizer";
 import { NotificationService } from "@notifications/services/triggers";
 import { getSettingAction } from "@gnd/settings";
 import { tasks } from "@trigger.dev/sdk/v3";
@@ -85,6 +95,14 @@ async function requireJobPaymentManager(ctx: TRPCContext) {
 		ctx,
 		["editJobPayment"],
 		"You do not have permission to manage contractor payments.",
+	);
+}
+
+async function requireJobPaymentViewer(ctx: TRPCContext) {
+	return requireAnyOperationalPermission(
+		ctx,
+		["viewJobPayment", "editJobPayment"],
+		"You do not have permission to view contractor payments.",
 	);
 }
 
@@ -512,30 +530,53 @@ export const jobRoutes = createTRPCRouter({
 	getJobs: publicProcedure.input(getJobsSchema).query(async (props) => {
 		return getJobs(props.ctx, props.input);
 	}),
-	paymentDashboard: publicProcedure
+	paymentDashboard: protectedProcedure
 		.input(getPaymentDashboardSchema)
 		.query(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
 			return getPaymentDashboard(props.ctx, props.input);
 		}),
-	paymentPortal: publicProcedure
+	paymentPortal: protectedProcedure
 		.input(getPaymentPortalSchema)
 		.query(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
 			return getPaymentPortal(props.ctx, props.input);
 		}),
-	contractorPayouts: publicProcedure
+	contractorPayouts: protectedProcedure
 		.input(getContractorPayoutsSchema)
 		.query(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
 			return getContractorPayouts(props.ctx, props.input);
 		}),
-	contractorPayoutOverview: publicProcedure
+	contractorPayoutOverview: protectedProcedure
 		.input(getContractorPayoutOverviewSchema)
 		.query(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
 			return getContractorPayoutOverview(props.ctx, props.input);
 		}),
-	getContractorPayoutPrintData: publicProcedure
+	getContractorPayoutPrintData: protectedProcedure
 		.input(getContractorPayoutPrintSchema)
 		.query(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
 			return getContractorPayoutPrintData(props.ctx, props.input);
+		}),
+	contractorPeriodReport: protectedProcedure
+		.input(getContractorPeriodReportSchema)
+		.query(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
+			return getContractorPeriodReport(props.ctx, props.input);
+		}),
+	contractorAccountingPrintToken: protectedProcedure
+		.input(contractorAccountingPrintTokenSchema)
+		.mutation(async (props) => {
+			await requireJobPaymentViewer(props.ctx);
+			return {
+				token: await tokenize({
+					...props.input,
+					audience: CONTRACTOR_ACCOUNTING_PDF_AUDIENCE,
+					expiry: addDays(new Date(), 7).toISOString(),
+				}),
+			};
 		}),
 	createPaymentPortal: protectedProcedure
 		.input(createPaymentPortalSchema)
