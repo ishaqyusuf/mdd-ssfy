@@ -703,3 +703,18 @@ Tracks important request/response contracts and shared schema boundaries.
   100 orders.
 - The confirmation contract remains callable for compatibility and audit
   history, but it no longer authorizes or blocks assignment.
+
+## Sales inventory synchronization capability (updated 2026-07-29)
+
+- `inventories.salesInventoryOverview.capabilities.canSync` is true for
+  non-terminal orders in either `not_configured` or `active` setup mode.
+  `active` includes legacy orders that already have inventory-backed line rows
+  but are missing or have failed the canonical projection marker.
+- `inventories.syncSalesInventoryOverview` continues to enforce the returned
+  operation capability server-side. Fulfilled, cancelled, legacy-locked,
+  completed-readonly, and confirmed zero-need/not-applicable orders cannot use
+  the synchronization mutation.
+- Clients should automatically synchronize only when
+  `inventoryApplicability.state` is `not_synced` or `failed` and
+  `inventoryApplicability.canManualSync` is true. Capability alone does not
+  imply that every active order should be resynchronized on view.

@@ -7681,3 +7681,15 @@
   row renders an amber locked `ORDERED` badge and opens the Inventory review
   state. Focused sales/inventory coverage passes 42 tests / 71 assertions, and
   authenticated browser QA confirms the corrected row and review navigation.
+- 2026-07-29: added guarded automatic Sales Inventory synchronization with a
+  manual retry fallback. Opening an eligible `not_synced` or failed Inventory
+  tab runs one background projection attempt per browser session, while active
+  orders with older inventory rows are now permitted to resynchronize through
+  the existing server-guarded mutation. Completion refreshes the exact infinite
+  Sales Orders cache plus the overview and summary queries. Authenticated local
+  browser proof on `09049LM` rebuilt the stale `Needs 0 / Not Needed 3` view
+  into `Needs 1 / Not Needed 10`; a subsequent fresh read changed the Inbound
+  column from `Not synced` to `Set status`. Focused inventory, applicability,
+  operation-policy, and UI coverage passes 48 tests / 101 assertions; scoped
+  Biome and diff checks pass. The dashboard-wide typecheck remains blocked by
+  the documented unrelated repository baseline.

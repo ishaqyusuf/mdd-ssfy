@@ -552,10 +552,10 @@ function LegacyInventoryStatusLockedState({
 						queryKey: trpc.sales.getSaleOverview.pathKey(),
 					}),
 					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrders.pathKey(),
+						queryKey: trpc.sales.getOrders.infiniteQueryKey(),
 					}),
 					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrdersSummary.pathKey(),
+						queryKey: trpc.sales.getOrdersSummary.queryKey(),
 					}),
 				]);
 				const migrationDescription =
@@ -2475,10 +2475,10 @@ function SalesOverviewInventoryContentBody({
 						}),
 					}),
 					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrders.pathKey(),
+						queryKey: trpc.sales.getOrders.infiniteQueryKey(),
 					}),
 					queryClient.invalidateQueries({
-						queryKey: trpc.sales.getOrdersSummary.pathKey(),
+						queryKey: trpc.sales.getOrdersSummary.queryKey(),
 					}),
 					queryClient.invalidateQueries({
 						queryKey: trpc.sales.getSaleOverview.pathKey(),
@@ -2608,21 +2608,15 @@ function SalesOverviewInventoryContentBody({
 	if (!rows.length) {
 		return (
 			<div className="space-y-4">
-				{syncInventory.isError ? (
-					<InventorySyncState message="Inventory sync could not finish." />
+				{canRunInventorySync ? (
+					<InventorySyncFallback
+						isError={syncInventory.isError || applicabilityState === "failed"}
+						onSync={runInventorySync}
+					/>
 				) : null}
 				<OverviewEmptyState>
 					No inventory-backed line items are synced for this order yet.
 				</OverviewEmptyState>
-				<Button
-					type="button"
-					size="sm"
-					variant="outline"
-					disabled={!overview.capabilities.canSync}
-					onClick={runInventorySync}
-				>
-					Sync with inventory
-				</Button>
 			</div>
 		);
 	}

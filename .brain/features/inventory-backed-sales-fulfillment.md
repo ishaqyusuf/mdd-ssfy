@@ -30,6 +30,15 @@ The long-term source of truth for overview, print, production, deployment, fulfi
   inventory-variant supplier count/name/price evidence returned on overview
   rows. The card is read-only and routes review work into the existing Details
   or Inventory tab; it does not release production or mutate inventory.
+- Opening the Inventory tab now performs one automatic synchronization attempt
+  per order and browser session when applicability is `not_synced` or `failed`
+  and the active, non-terminal order is eligible for repair. A compact manual
+  synchronize/retry alert remains available if the automatic attempt fails.
+  Successful synchronization invalidates the inventory overview, the active
+  infinite Sales Orders list, its summary, and the open Sales Overview so new
+  needs and the Inbound column refresh without tab switching or a page reload.
+  Active orders with older inventory rows may be resynchronized; fulfilled,
+  cancelled, not-applicable, and other read-only orders remain blocked.
 - Sales overview side sheets show the order inbound prompt/status in the sheet header and Order Details section for orders, reusing the same `AVAILABLE` / `ORDERED` / `PENDING ORDER` badge semantics as the sales orders table; quotes hide the order-only inbound status.
 - The sales overview Inventory tab renders the merged component list as a compact inventory workbench, with Needs/Not Needed filters, visible row counts, and pending/shortage summary badges. When the active Needs segment has zero tracked rows, the tab hides Create inbound, Mark all needs fulfilled, the inbound form, and the readiness badge instead of rendering disabled or misleading inventory actions.
 - When tracked Needs rows exist but every need is fulfilled, the tab consumes any first-open Create inbound intent without rendering the empty inbound form or disabled action buttons. The summary shows `All needs fulfilled`; each completed row keeps its `Needed` tracking-classification badge, adds a distinct `Fulfilled` lifecycle badge, and reports `INBOUND: FULFILLED`.
@@ -623,4 +632,4 @@ Status: Partially done; dry-run reconciliation and receive/allocation retry guar
 - Inventory dispatch mode UI: `apps/dashboard/src/components/inventory/inventory-dispatch-mode-page.tsx`, `inventories.assignInventoryDispatchAllocations`, `inventories.packInventoryDispatchAllocations`, `inventories.fulfillInventoryDispatch`, `inventories.releaseInventoryDispatchAllocations`, `/inventory/dispatch-mode`
 - Inventory pages: `/inventory`, `/inventory/[id]`, `/inventory/variants`, `/inventory/stocks`, `/inventory/allocations`, `/inventory/inbounds`, `/inventory/backorders`, `/inventory/partial-shipments`, `/inventory/dispatch-mode`, `/inventory/production-plan`, `/inventory/suppliers`, `/inventory/review`
 
-Last updated: 2026-06-23
+Last updated: 2026-07-29

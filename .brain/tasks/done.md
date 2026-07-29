@@ -1,5 +1,16 @@
 # Done
 
+### Automatic Sales Inventory Synchronization Fallback
+- Status: Done
+- Description: Automatically synchronizes repairable not-synced/failed orders
+  when Inventory opens, retains a manual retry on failure, permits safe
+  resynchronization of active legacy rows, and refreshes the infinite Sales
+  Orders Inbound column cache after completion.
+- Feature File: `.brain/features/inventory-backed-sales-fulfillment.md`
+- Validation: 48 focused tests / 101 assertions, scoped Biome and diff checks,
+  plus authenticated browser proof on order `09049LM`.
+- Completed Date: 2026-07-29
+
 ### Sales Production And Inventory Readiness Parity
 - Status: Done
 - Description: Aligned Production material readiness with Inventory's
