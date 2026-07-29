@@ -67,6 +67,26 @@ export function shouldShowInventoryNeedsActions(input: {
 	return input.segment === "stock" && Number(input.needCount || 0) > 0;
 }
 
+export function shouldShowInventoryInboundForm(input: {
+	isOpen: boolean;
+	canCreateInbound: boolean;
+	inboundRowCount: number;
+	pendingQty: number;
+}) {
+	return (
+		input.isOpen &&
+		input.canCreateInbound &&
+		Number(input.inboundRowCount || 0) > 0 &&
+		Number(input.pendingQty || 0) > 0
+	);
+}
+
+export function areAllInventoryNeedsFulfilled(
+	rows: Array<{ status?: string | null }>,
+) {
+	return rows.length > 0 && rows.every((row) => row.status === "fulfilled");
+}
+
 export function resolveInventoryInboundCountState(input: {
 	shipmentCount?: number | null;
 	pendingQty: number;

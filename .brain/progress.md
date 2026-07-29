@@ -7616,3 +7616,18 @@
   existing unrelated Sentry event typing errors in `apps/api/src/instrument.ts`;
   authenticated browser revalidation was temporarily blocked because the shared
   local Next.js route returned 502 after the typecheck run.
+- 2026-07-29: removed the redundant Sales Book main navigation tabs. The
+  full-width Orders/Quotes/Production/Shelf Items/Inbounds/Emails bar and the
+  Sales Orders scroll-only compact copy are no longer mounted; the unused shared
+  component, tab-only Zustand scroll state, and table scroll listener were
+  deleted. The permission-aware Sales sidebar remains the canonical route
+  navigation, while saved filter tabs, quick actions, reports, contextual tabs,
+  permissions, and routes are unchanged. Focused navigation coverage passes
+  3 tests / 16 assertions, targeted Biome and `git diff --check` pass, and
+  authenticated browser QA at desktop `1440x900` and mobile `390x844` confirms
+  Orders, Quotes, and Customers scroll independently without the removed bar,
+  document-level horizontal overflow, or console errors. The broader restarted
+  page audit retains four passing checks and remains blocked only by existing
+  raw/legacy table findings outside this change. The dashboard-wide typecheck
+  remains blocked by its existing broad baseline, while a filtered scan reports
+  no diagnostics in the changed files.

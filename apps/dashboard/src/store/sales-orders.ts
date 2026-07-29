@@ -9,8 +9,6 @@ interface SalesOrdersState {
     rowSelection: Record<string, boolean>;
     selectedSalesIds: number[];
     setSelectedSalesIds: (selectedSalesIds: number[]) => void;
-    isTableScrolled: boolean;
-    setIsTableScrolled: (isTableScrolled: boolean) => void;
     showColumnDividers: boolean;
     setShowColumnDividers: (updater: SetStateAction<boolean>) => void;
     bindShowColumnDividers: (
@@ -25,10 +23,8 @@ export const useSalesOrdersStore = create<SalesOrdersState>((set) => ({
     columns: [],
     rowSelection: {},
     selectedSalesIds: [],
-    isTableScrolled: false,
     showColumnDividers: false,
     setColumns: (columns) => set({ columns }),
-    setIsTableScrolled: (isTableScrolled) => set({ isTableScrolled }),
     setRowSelection: (updater: Updater<RowSelectionState>) =>
         set((state) => {
             return {

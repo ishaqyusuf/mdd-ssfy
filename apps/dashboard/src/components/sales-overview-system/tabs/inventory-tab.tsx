@@ -72,11 +72,13 @@ import {
 } from "../hooks/use-sales-inventory-segment-query";
 import { formatInventoryCategoryStepLabel } from "../lib/inventory-display";
 import {
+	areAllInventoryNeedsFulfilled,
 	canFulfillAllInventoryNeeds,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
 	isInventoryNeedRow,
 	resolveInventoryInboundCountState,
+	shouldShowInventoryInboundForm,
 	shouldShowInventoryNeedsActions,
 } from "../lib/inventory-inbounds-utils";
 import { OrderInventoryRepairPanel } from "../order-inventory-repair-panel";
@@ -233,6 +235,13 @@ function inventoryLineKindTags(row: InventoryLine) {
 					className: "border-zinc-200 bg-zinc-50 text-zinc-600",
 				},
 	);
+	if (row.status === "fulfilled") {
+		tags.push({
+			label: "Fulfilled",
+			className:
+				"border-emerald-300 bg-emerald-100 text-emerald-800 font-semibold",
+		});
+	}
 
 	return tags;
 }
@@ -668,7 +677,13 @@ function InventoryActionBar({
 		() => inboundRows.map((row) => row.id),
 		[inboundRows],
 	);
-	const [isInboundFormOpen, setIsInboundFormOpen] = useState(openInboundForm);
+	const [isInboundFormOpen, setIsInboundFormOpen] = useState(false);
+	const isInboundFormVisible = shouldShowInventoryInboundForm({
+		isOpen: isInboundFormOpen,
+		canCreateInbound: capabilities.canCreateInbound,
+		inboundRowCount: inboundRows.length,
+		pendingQty,
+	});
 	const [selectedInboundRowIds, setSelectedInboundRowIds] = useState<string[]>(
 		[],
 	);
@@ -731,12 +746,25 @@ function InventoryActionBar({
 	const [createdInboundId, setCreatedInboundId] = useState<number | null>(null);
 	useEffect(() => {
 		if (!openInboundForm) return;
-		setIsInboundFormOpen(true);
+		setIsInboundFormOpen(
+			shouldShowInventoryInboundForm({
+				isOpen: true,
+				canCreateInbound: capabilities.canCreateInbound,
+				inboundRowCount: inboundRows.length,
+				pendingQty,
+			}),
+		);
 		onInboundFormOpened?.();
-	}, [onInboundFormOpened, openInboundForm]);
+	}, [
+		capabilities.canCreateInbound,
+		inboundRows.length,
+		onInboundFormOpened,
+		openInboundForm,
+		pendingQty,
+	]);
 	const suppliersQuery = useQuery(
 		trpc.inventories.inboundSuppliers.queryOptions(undefined, {
-			enabled: isInboundFormOpen,
+			enabled: isInboundFormVisible,
 			refetchOnWindowFocus: false,
 			staleTime: 60 * 1000,
 		}),
@@ -813,7 +841,7 @@ function InventoryActionBar({
 	});
 
 	useEffect(() => {
-		if (!isInboundFormOpen) return;
+		if (!isInboundFormVisible) return;
 		setSelectedInboundRowIds(inboundRowIds);
 		setInboundQtyByRowId((current) => {
 			const next: Record<string, number> = {};
@@ -823,7 +851,7 @@ function InventoryActionBar({
 			}
 			return next;
 		});
-	}, [inboundRowIds, inboundRows, isInboundFormOpen]);
+	}, [inboundRowIds, inboundRows, isInboundFormVisible]);
 
 	const toggleInboundRow = (row: InventoryLine, checked: boolean) => {
 		setSelectedInboundRowIds((current) => {
@@ -908,6 +936,8 @@ function InventoryActionBar({
 		);
 	}
 
+	if (pendingQty <= 0) return null;
+
 	return (
 		<div className="space-y-3">
 			<div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -947,7 +977,7 @@ function InventoryActionBar({
 					</Button>
 				</div>
 			</div>
-			{isInboundFormOpen ? (
+			{isInboundFormVisible ? (
 				<div className="mt-3 space-y-3 rounded-md border bg-background p-3">
 					<div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_1fr_0.8fr]">
 						<div className="space-y-2">
@@ -1763,6 +1793,9 @@ function InventoryLineRow({
 										tag.className,
 									)}
 								>
+									{tag.label === "Fulfilled" ? (
+										<Icons.CheckCircle2 className="mr-0.5 size-2.5" />
+									) : null}
 									{tag.label}
 								</Badge>
 							))}
@@ -1789,7 +1822,11 @@ function InventoryLineRow({
 				<div className="flex flex-wrap gap-1.5">
 					<InventoryMetric
 						label="INBOUND"
-						value={row.requirementShortLabel}
+						value={
+							row.status === "fulfilled"
+								? "Fulfilled"
+								: row.requirementShortLabel
+						}
 						className={requirementStatusClassName(row)}
 					/>
 					<InventoryMetric label="QTY" value={formatQty(row.qtyRequired)} />
@@ -2305,6 +2342,7 @@ function SalesOverviewInventoryContentBody({
 	const rows = overview?.rows ?? [];
 	const stockRows = rows.filter(isInventoryNeedRow);
 	const nonStockRows = rows.filter((row) => !isInventoryNeedRow(row));
+	const allNeedsFulfilled = areAllInventoryNeedsFulfilled(stockRows);
 	const orderInboundShipments = orderInboundsQuery.data ?? [];
 	const overviewLinkedInboundRowCount = rows.filter(
 		(row) => Number(row.qtyInboundLinkedOpen || 0) > 0,
@@ -2418,8 +2456,20 @@ function SalesOverviewInventoryContentBody({
 				/>
 				<div className="flex flex-wrap items-center gap-2">
 					{stockRows.length ? (
-						<Badge variant="outline" className="capitalize">
-							{readinessLabel(overview.summary.readiness)}
+						<Badge
+							variant="outline"
+							className={cn(
+								"capitalize",
+								allNeedsFulfilled &&
+									"border-emerald-200 bg-emerald-50 text-emerald-700",
+							)}
+						>
+							{allNeedsFulfilled ? (
+								<Icons.CheckCircle2 className="mr-1 size-3" />
+							) : null}
+							{allNeedsFulfilled
+								? "All needs fulfilled"
+								: readinessLabel(overview.summary.readiness)}
 						</Badge>
 					) : null}
 					{stockFilter === "inbounds" ? (

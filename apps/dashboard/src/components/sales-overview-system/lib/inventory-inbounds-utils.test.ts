@@ -1,12 +1,14 @@
 import { describe, expect, it } from "bun:test";
 
 import {
+	areAllInventoryNeedsFulfilled,
 	canFulfillAllInventoryNeeds,
 	getInboundOrderableQty,
 	getInventoryInboundEmptyStateCopy,
 	getPendingInventoryQty,
 	isInventoryNeedRow,
 	resolveInventoryInboundCountState,
+	shouldShowInventoryInboundForm,
 	shouldShowInventoryNeedsActions,
 } from "./inventory-inbounds-utils";
 
@@ -97,6 +99,49 @@ describe("sales overview inventory inbound helpers", () => {
 				needCount: 2,
 			}),
 		).toBe(false);
+	});
+
+	it("does not open an inbound form when fulfilled needs have no pending work", () => {
+		expect(
+			shouldShowInventoryInboundForm({
+				isOpen: true,
+				canCreateInbound: true,
+				inboundRowCount: 0,
+				pendingQty: 0,
+			}),
+		).toBe(false);
+		expect(
+			shouldShowInventoryInboundForm({
+				isOpen: true,
+				canCreateInbound: true,
+				inboundRowCount: 2,
+				pendingQty: 2,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowInventoryInboundForm({
+				isOpen: false,
+				canCreateInbound: true,
+				inboundRowCount: 2,
+				pendingQty: 2,
+			}),
+		).toBe(false);
+	});
+
+	it("distinguishes fulfilled needs from tracked needs that are merely covered", () => {
+		expect(
+			areAllInventoryNeedsFulfilled([
+				{ status: "fulfilled" },
+				{ status: "fulfilled" },
+			]),
+		).toBe(true);
+		expect(
+			areAllInventoryNeedsFulfilled([
+				{ status: "fulfilled" },
+				{ status: "allocated" },
+			]),
+		).toBe(false);
+		expect(areAllInventoryNeedsFulfilled([])).toBe(false);
 	});
 
 	it("keeps inbound count loading separate from empty state", () => {

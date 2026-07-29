@@ -9,8 +9,6 @@ import {
 	SearchFilterProvider,
 	useSearchFilterContext,
 } from "@/hooks/use-search-filter";
-import { cn } from "@/lib/utils";
-import { useSalesOrdersStore } from "@/store/sales-orders";
 import { useTRPC } from "@/trpc/client";
 import { Checkbox } from "@gnd/ui/checkbox";
 import { useMutation, useQuery, useQueryClient } from "@gnd/ui/tanstack";
@@ -19,7 +17,6 @@ import { CreateSalesBtn } from "./create-sales-btn";
 import { SearchFilterTRPC } from "./midday-search-filter/search-filter-trpc";
 import { SalesOrdersV2ColumnVisibility } from "./sales-orders-v2-column-visibility";
 import { SalesOrdersV2Export } from "./sales-orders-v2-export";
-import { SalesTabs } from "./sales-tabs";
 
 export function SalesOrdersV2Header() {
 	return (
@@ -138,7 +135,6 @@ function SalesOrdersV2SearchFilterContent() {
 	const auth = useAuth();
 	const trpc = useTRPC();
 	const { shouldFetch } = useSearchFilterContext();
-	const isTableScrolled = useSalesOrdersStore((state) => state.isTableScrolled);
 	const { data: trpcFilterData, isFetching } = useQuery({
 		enabled: shouldFetch,
 		...trpc.filters.salesOrders.queryOptions({
@@ -151,7 +147,6 @@ function SalesOrdersV2SearchFilterContent() {
 			placeholder="Search order number, customer, phone, address, or P.O..."
 			filterList={trpcFilterData}
 			loading={shouldFetch && isFetching}
-			afterSearch={<SalesOrdersV2InlineTabs visible={isTableScrolled} />}
 			pageTabsLayout="adaptive"
 			toolbarActions={<SalesOrdersV2ToolbarActions />}
 		/>
@@ -165,21 +160,5 @@ function SalesOrdersV2ToolbarActions() {
 			<SalesOrdersV2Export />
 			<CreateSalesBtn />
 		</>
-	);
-}
-
-function SalesOrdersV2InlineTabs({ visible }: { visible: boolean }) {
-	return (
-		<div
-			aria-hidden={!visible}
-			className={cn(
-				"min-w-0 flex-1 overflow-hidden transition-[max-width,opacity,transform] duration-200 ease-out lg:flex-none",
-				visible
-					? "max-w-full translate-y-0 opacity-100 lg:max-w-[520px]"
-					: "pointer-events-none max-w-0 -translate-y-1 opacity-0",
-			)}
-		>
-			<SalesTabs portal={false} compact />
-		</div>
 	);
 }
