@@ -64,6 +64,7 @@ export type SalesInventoryOrderRepairPreview = {
 const repairComponentSelect = {
 	id: true,
 	qty: true,
+	status: true,
 	parent: {
 		select: {
 			id: true,
@@ -149,18 +150,39 @@ function componentLabel(component: {
 async function findRepairComponents(db: RepairDb, salesOrderId: number) {
 	return db.lineItemComponents.findMany({
 		where: {
-			parent: {
-				saleId: salesOrderId,
-			},
-			OR: [
-				{ inboundDemands: { some: { deletedAt: null } } },
+			AND: [
 				{
-					stockAllocations: {
-						some: {
-							deletedAt: null,
-							status: { notIn: ["released", "cancelled"] },
+					OR: [
+						{
+							parent: {
+								is: {
+									saleId: salesOrderId,
+									deletedAt: { not: null },
+								},
+							},
 						},
-					},
+						{
+							status: "cancelled",
+							parent: {
+								is: {
+									saleId: salesOrderId,
+								},
+							},
+						},
+					],
+				},
+				{
+					OR: [
+						{ inboundDemands: { some: { deletedAt: null } } },
+						{
+							stockAllocations: {
+								some: {
+									deletedAt: null,
+									status: { notIn: ["released", "cancelled"] },
+								},
+							},
+						},
+					],
 				},
 			],
 		},

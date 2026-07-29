@@ -21,5 +21,8 @@ describe("sales inventory automatic synchronization UI", () => {
 		expect(inventoryTabSource).toContain(
 			"trpc.sales.getOrdersSummary.queryKey()",
 		);
+		expect(inventoryTabSource).toContain(
+			"trpc.inventories.salesInventoryOrderRepairPreview.queryKey",
+		);
 	});
 });

@@ -2475,6 +2475,12 @@ function SalesOverviewInventoryContentBody({
 						}),
 					}),
 					queryClient.invalidateQueries({
+						queryKey:
+							trpc.inventories.salesInventoryOrderRepairPreview.queryKey({
+								salesOrderId: normalizedSalesOrderId,
+							}),
+					}),
+					queryClient.invalidateQueries({
 						queryKey: trpc.sales.getOrders.infiniteQueryKey(),
 					}),
 					queryClient.invalidateQueries({

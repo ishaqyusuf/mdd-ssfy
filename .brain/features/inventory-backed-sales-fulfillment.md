@@ -39,6 +39,15 @@ The long-term source of truth for overview, print, production, deployment, fulfi
   needs and the Inbound column refresh without tab switching or a page reload.
   Active orders with older inventory rows may be resynchronized; fulfilled,
   cancelled, not-applicable, and other read-only orders remain blocked.
+- Projection synchronization now embeds the safe order-repair cleanup pass.
+  Mutable pending/ordered demand and pending-review/approved/reserved
+  allocations are automatically cancelled or released only when attached to a
+  deleted sales line or a component retired by that synchronization. Current
+  synchronized demand is never classified as repair residue. Stale components
+  with linked/received demand or picked/consumed allocations are retained as
+  cancelled, non-required records for explicit review, and the repair-preview
+  query is scoped to deleted-line or retired-component residue instead of every
+  active demand/allocation on the order.
 - Sales overview side sheets show the order inbound prompt/status in the sheet header and Order Details section for orders, reusing the same `AVAILABLE` / `ORDERED` / `PENDING ORDER` badge semantics as the sales orders table; quotes hide the order-only inbound status.
 - The sales overview Inventory tab renders the merged component list as a compact inventory workbench, with Needs/Not Needed filters, visible row counts, and pending/shortage summary badges. When the active Needs segment has zero tracked rows, the tab hides Create inbound, Mark all needs fulfilled, the inbound form, and the readiness badge instead of rendering disabled or misleading inventory actions.
 - When tracked Needs rows exist but every need is fulfilled, the tab consumes any first-open Create inbound intent without rendering the empty inbound form or disabled action buttons. The summary shows `All needs fulfilled`; each completed row keeps its `Needed` tracking-classification badge, adds a distinct `Fulfilled` lifecycle badge, and reports `INBOUND: FULFILLED`.

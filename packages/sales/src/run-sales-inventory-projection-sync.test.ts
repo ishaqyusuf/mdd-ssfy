@@ -18,6 +18,11 @@ function trackedRequirement(qty: number) {
 	};
 }
 
+const cleanupRepairResidue = async () => ({
+	releasedAllocationCount: 0,
+	cancelledDemandCount: 0,
+});
+
 describe("runSalesInventoryProjectionSync", () => {
 	test("records a successful zero-need projection", async () => {
 		const projectionWrites: unknown[] = [];
@@ -51,6 +56,7 @@ describe("runSalesInventoryProjectionSync", () => {
 					skippedCount: 0,
 					warnings: [],
 				}),
+				cleanupRepairResidue,
 			},
 		);
 
@@ -150,6 +156,7 @@ describe("runSalesInventoryProjectionSync", () => {
 					skippedCount: 0,
 					warnings: [],
 				}),
+				cleanupRepairResidue,
 			},
 		);
 
@@ -191,6 +198,7 @@ describe("runSalesInventoryProjectionSync", () => {
 					skippedCount: 1,
 					warnings: ["salesItem:9: missing inventory mapping"],
 				}),
+				cleanupRepairResidue,
 			},
 		);
 
@@ -236,6 +244,7 @@ describe("runSalesInventoryProjectionSync", () => {
 					syncLineItems: async () => {
 						throw new Error("broken mapping");
 					},
+					cleanupRepairResidue,
 				},
 			),
 		).rejects.toThrow("broken mapping");

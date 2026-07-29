@@ -1,6 +1,7 @@
 import type { Db } from "@gnd/db";
 
 import { SALES_INVENTORY_PROJECTION_VERSION } from "./sales-inventory-applicability";
+import { cleanupSalesInventoryRepairResidue } from "./sales-inventory-repair";
 import { resolveSalesInventoryTrackingPolicy } from "./sales-inventory-tracking-policy";
 import {
 	type SyncSalesInventoryLineItemsInput,
@@ -9,6 +10,7 @@ import {
 
 type RunSalesInventoryProjectionSyncDeps = {
 	syncLineItems?: typeof syncSalesInventoryLineItems;
+	cleanupRepairResidue?: typeof cleanupSalesInventoryRepairResidue;
 };
 
 function projectionWrite(input: {
@@ -70,6 +72,11 @@ export async function runSalesInventoryProjectionSync(
 				tx,
 				input,
 			);
+			const repair = await (
+				deps.cleanupRepairResidue ?? cleanupSalesInventoryRepairResidue
+			)(tx, {
+				salesOrderId: input.salesOrderId,
+			});
 			const requirements = await tx.lineItemComponents.findMany({
 				where: {
 					required: true,
@@ -155,6 +162,7 @@ export async function runSalesInventoryProjectionSync(
 
 			return {
 				...result,
+				repair,
 				projection: {
 					status,
 					needCount,

@@ -2369,6 +2369,14 @@ export async function syncSalesInventoryLineItems(
 					is: staleComponentIdentityWhere,
 				},
 			};
+			await db.lineItemComponents.updateMany({
+				where: staleComponentIdentityWhere,
+				data: {
+					required: false,
+					status: "cancelled",
+					qtyInbound: 0,
+				},
+			});
 			await db.stockAllocation.updateMany({
 				where: {
 					...staleComponentResidueWhere,

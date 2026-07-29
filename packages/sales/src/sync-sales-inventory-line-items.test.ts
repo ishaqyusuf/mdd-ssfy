@@ -934,11 +934,16 @@ describe("sync sales inventory line items", () => {
 			},
 		};
 
-		const result = await syncSalesInventoryLineItems(db as any, {
-			salesOrderId: 9001,
-			source: "repair",
-		});
-		const lineUpdate = calls.find((call) => call.name === "lineItem.updateMany");
+		const result = await syncSalesInventoryLineItems(
+			db as unknown as Parameters<typeof syncSalesInventoryLineItems>[0],
+			{
+				salesOrderId: 9001,
+				source: "repair",
+			},
+		);
+		const lineUpdate = calls.find(
+			(call) => call.name === "lineItem.updateMany",
+		);
 		const componentRead = calls.find(
 			(call) => call.name === "lineItemComponents.findMany",
 		);
@@ -1079,6 +1084,10 @@ describe("sync sales inventory line items", () => {
 				},
 			},
 			lineItemComponents: {
+				updateMany: async (payload: unknown) => {
+					calls.push({ name: "lineItemComponents.updateMany", payload });
+					return { count: 1 };
+				},
 				deleteMany: async (payload: unknown) => {
 					calls.push({ name: "lineItemComponents.deleteMany", payload });
 					return { count: 1 };
@@ -1086,10 +1095,13 @@ describe("sync sales inventory line items", () => {
 			},
 		};
 
-		await syncSalesInventoryLineItems(db as any, {
-			salesOrderId: 9001,
-			source: "repair",
-		});
+		await syncSalesInventoryLineItems(
+			db as unknown as Parameters<typeof syncSalesInventoryLineItems>[0],
+			{
+				salesOrderId: 9001,
+				source: "repair",
+			},
+		);
 		const allocationUpdate = calls.find(
 			(call) => call.name === "stockAllocation.updateMany",
 		);
@@ -1101,6 +1113,9 @@ describe("sync sales inventory line items", () => {
 		);
 		const componentDelete = calls.find(
 			(call) => call.name === "lineItemComponents.deleteMany",
+		);
+		const componentRetire = calls.find(
+			(call) => call.name === "lineItemComponents.updateMany",
 		);
 		const exactComponentIdentity = {
 			OR: [
@@ -1153,6 +1168,14 @@ describe("sync sales inventory line items", () => {
 		});
 		expect(componentDelete?.payload).toMatchObject({
 			where: exactComponentIdentity,
+		});
+		expect(componentRetire?.payload).toMatchObject({
+			where: exactComponentIdentity,
+			data: {
+				required: false,
+				status: "cancelled",
+				qtyInbound: 0,
+			},
 		});
 	});
 
@@ -1216,10 +1239,13 @@ describe("sync sales inventory line items", () => {
 			},
 		};
 
-		const result = await syncSalesInventoryLineItems(db as any, {
-			salesOrderId: 9001,
-			source: "repair",
-		});
+		const result = await syncSalesInventoryLineItems(
+			db as unknown as Parameters<typeof syncSalesInventoryLineItems>[0],
+			{
+				salesOrderId: 9001,
+				source: "repair",
+			},
+		);
 
 		expect(result.deletedCount).toBe(0);
 		expect(calls).toEqual([

@@ -8,7 +8,8 @@ function component(overrides: Record<string, unknown> = {}) {
 	return {
 		id: 501,
 		qty: 2,
-		parent: { id: 41, title: "Dining table", deletedAt: null },
+		status: "inbound_required",
+		parent: { id: 41, title: "Dining table", deletedAt: new Date() },
 		inventoryCategory: { title: "Table tops" },
 		inventory: { name: "Oak top" },
 		inventoryVariant: {
@@ -24,37 +25,41 @@ function component(overrides: Record<string, unknown> = {}) {
 
 describe("sales inventory order repair", () => {
 	test("preview separates safe residue from linked and picked rows", async () => {
+		const componentQueries: unknown[] = [];
 		const db = {
 			salesOrders: {
 				findFirstOrThrow: async () => ({ id: 100, orderId: "SO-100" }),
 			},
 			lineItemComponents: {
-				findMany: async () => [
-					component({
-						inboundDemands: [
-							{
-								id: 1,
-								qty: 2,
-								qtyReceived: 0,
-								status: "pending",
-								inboundShipmentItemId: null,
-								inboundShipmentItem: null,
-							},
-							{
-								id: 2,
-								qty: 1,
-								qtyReceived: 0,
-								status: "ordered",
-								inboundShipmentItemId: 22,
-								inboundShipmentItem: { inboundId: 9 },
-							},
-						],
-						stockAllocations: [
-							{ id: 3, qty: 1, status: "approved" },
-							{ id: 4, qty: 1, status: "picked" },
-						],
-					}),
-				],
+				findMany: async (payload: unknown) => {
+					componentQueries.push(payload);
+					return [
+						component({
+							inboundDemands: [
+								{
+									id: 1,
+									qty: 2,
+									qtyReceived: 0,
+									status: "pending",
+									inboundShipmentItemId: null,
+									inboundShipmentItem: null,
+								},
+								{
+									id: 2,
+									qty: 1,
+									qtyReceived: 0,
+									status: "ordered",
+									inboundShipmentItemId: 22,
+									inboundShipmentItem: { inboundId: 9 },
+								},
+							],
+							stockAllocations: [
+								{ id: 3, qty: 1, status: "approved" },
+								{ id: 4, qty: 1, status: "picked" },
+							],
+						}),
+					];
+				},
 			},
 		} as unknown as Parameters<typeof getSalesInventoryOrderRepairPreview>[0];
 
@@ -72,6 +77,25 @@ describe("sales inventory order repair", () => {
 		expect(preview.reviewAllocations[0]).toMatchObject({
 			id: 4,
 			reason: "picked_or_consumed",
+		});
+		const componentQuery = componentQueries[0] as {
+			where: { AND: unknown[] };
+		};
+		expect(componentQuery.where.AND[0]).toMatchObject({
+			OR: [
+				{
+					parent: {
+						is: {
+							saleId: 100,
+							deletedAt: { not: null },
+						},
+					},
+				},
+				{
+					status: "cancelled",
+					parent: { is: { saleId: 100 } },
+				},
+			],
 		});
 	});
 

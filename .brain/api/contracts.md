@@ -718,3 +718,12 @@ Tracks important request/response contracts and shared schema boundaries.
   `inventoryApplicability.state` is `not_synced` or `failed` and
   `inventoryApplicability.canManualSync` is true. Capability alone does not
   imply that every active order should be resynchronized on view.
+- A successful projection synchronization also runs guarded repair-residue
+  cleanup in the same transaction. Only pending/ordered, unreceived, unlinked
+  demand and pending-review/approved/reserved allocations attached to deleted
+  sale lines or `cancelled` retired components are changed. Linked, received,
+  picked, consumed, and other non-mutable rows remain untouched.
+- `inventories.salesInventoryOrderRepairPreview` returns only residue attached
+  to deleted sale lines or retired (`status=cancelled`) components. Ordinary
+  live demand/allocation on a current synchronized component must not appear in
+  the repair panel.

@@ -7693,3 +7693,15 @@
   operation-policy, and UI coverage passes 48 tests / 101 assertions; scoped
   Biome and diff checks pass. The dashboard-wide typecheck remains blocked by
   the documented unrelated repository baseline.
+- 2026-07-29: corrected the post-synchronization `Inventory repair needed`
+  false positive. The repair preview had classified every mutable demand and
+  allocation on an order as residue, including the legitimate pending demand
+  just created for `09049LM`; applying it would have cancelled the real Need.
+  Projection sync now automatically cleans only safe residue on deleted sale
+  lines or explicitly retired components, marks protected stale components
+  cancelled/non-required, and leaves linked/received/picked/consumed history
+  for review. The preview uses the same retired-residue boundary and its query
+  is invalidated after synchronization. Authenticated browser proof confirms
+  `09049LM` keeps `Needs 1 / Pending 1` while the repair panel disappears.
+  Focused package/API coverage and the Sales package typecheck pass; the API
+  typecheck remains blocked only by the existing Sentry instrumentation errors.
