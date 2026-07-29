@@ -121,6 +121,7 @@
 - The `Invoice` column sorts invoice amount through `grandTotal`; it no longer opens the clean-payment review queue.
 - Saved filter tabs are enabled on `/sales-book/orders` through the shared `pageTabs` surface. Saving preserves active filters and `sort`, so the explicit `Payment Review = Needs review` filter can be saved as a reusable tab such as `Payment Review`; count badges use the same distinct-order `SalesPayments.reviewStatus = "needs_review"` grouping as the table when `paymentReview=needs_review`. The shared filter row renders tabs before the search input, prepends an `All` tab when saved tabs exist, keeps the save `+` action inside the tab group, hides the entire inline tab strip when there are no saved tabs and no active saveable filter/search/sort query, and exposes a single Edit control for managing saved tabs. The visible tab row does not show a General/Public badge; visibility is managed inside the edit dialog. Sales list, quote list, and payment-review mutation refreshes now call the typed page-tabs invalidation registry so `/sales-book/orders` saved-tab counts refresh even when the triggering activity happens from another page.
 - Date cutoff presets retain their existing `before last ...` query values for saved URL compatibility, but the selector and active filter chip present them as `Over a month`, `Over 3 months`, and `Over 6 months`. The preset rail is wide enough to show every month label without truncation.
+- The Sales Orders filter menu resolves every filter key through the shared search-filter icon contract. Item, Payment Review, Sales channel, and Inbound no longer fall back to Search; P.O., Fulfillment, and Invoice Status use document, truck, and invoice icons instead of unrelated package/download/news icons.
 - The current saved page tab uses the primary/default button variant while inactive tabs remain ghost buttons.
 - Dealer-origin office orders use the former Dealer badge's cyan accent directly on the order number (`text-cyan-700`, with the accessible cyan counterpart in dark mode), add a flush matching 3px left marker against the Order cell's existing divider with no intervening padding, and no longer render a separate Dealer badge; the `Sales channel` filter remains the explicit way to isolate dealership sales.
 - The Orders saved-tab row keeps at most three tabs inline, including `All`, and raises the capacity to five on `2xl` screens. Remaining tabs are available from a `+N` dropdown immediately before Edit with title, default marker, and record count. Selecting an overflow tab promotes it into the final inline slot and moves the displaced tab into the dropdown without changing persisted order.
@@ -192,6 +193,10 @@
 
 ## Validation
 
+- 2026-07-29 Sales Orders filter icons:
+  - Focused shared icon coverage passed 2 tests / 17 assertions, `@gnd/ui` typecheck passed, and focused Biome plus scoped diff checks passed.
+  - Authenticated browser QA confirmed all 14 current filter rows render an SVG with the intended domain icon, none of the missing mappings fall back to Search, and the page reports no console errors.
+  - The dashboard typecheck remains on its existing unrelated test-typing baseline. The full repository suite completed with 2,423 passing, one skipped, and the same 32 unrelated baseline failures; the focused icon suite passed within that run.
 - 2026-07-29 date cutoff labels:
   - Focused date-filter selection coverage passed 3 tests / 6 assertions, and focused Biome plus scoped diff checks passed.
   - Authenticated browser QA confirmed the complete `Over a month`, `Over 3 months`, and `Over 6 months` labels, no horizontal label overflow, the matching active chip, preservation of `dateRange=before+last+month`, and no console errors.
