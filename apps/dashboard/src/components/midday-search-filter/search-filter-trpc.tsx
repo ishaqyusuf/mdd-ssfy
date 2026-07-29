@@ -38,6 +38,7 @@ import { SelectTag } from "../select-tag";
 import {
 	createDatePresetSelection,
 	getCalendarFilterDateValue,
+	getDatePresetLabel,
 } from "./date-filter-selection";
 import {
 	type FilterDefinition,
@@ -492,7 +493,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 
 	return (
 		<div className="flex max-w-[calc(100vw-2rem)] overflow-x-auto">
-			<div className="w-32 shrink-0 border-r border-border py-1">
+			<div className="w-40 shrink-0 border-r border-border py-1">
 				{daysFilters.map((dayFilter) => {
 					const selected = isCurrentFilter(dayFilter);
 
@@ -500,7 +501,7 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 						<button
 							type="button"
 							className={cn(
-								"flex h-8 w-full items-center gap-2 px-2 text-left text-sm capitalize text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+								"flex h-8 w-full items-center gap-2 px-2 text-left text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
 								selected && "bg-accent font-medium text-accent-foreground",
 							)}
 							onClick={() => {
@@ -516,7 +517,9 @@ function CalendarFilter({ filter }: CalendarFilterProps) {
 									selected ? "opacity-100" : "opacity-20",
 								)}
 							/>
-							<span className="truncate">{dayFilter}</span>
+							<span className="whitespace-nowrap">
+								{getDatePresetLabel(dayFilter)}
+							</span>
 						</button>
 					);
 				})}

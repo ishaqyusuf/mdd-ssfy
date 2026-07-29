@@ -5,6 +5,7 @@ import type { PageFilterData } from "@api/type";
 import { Button } from "@gnd/ui/button";
 import { Icons } from "@gnd/ui/icons";
 import { Skeleton } from "@gnd/ui/skeleton";
+import { getDatePresetLabel } from "./date-filter-selection";
 import {
 	type FilterDefinition,
 	type FilterOption,
@@ -159,7 +160,9 @@ function formatDateValue({
 			.filter((item) => item && item !== "-")
 			.map((item) => {
 				const parsed = safeDate(item);
-				return parsed ? format(parsed, "MMM d, yyyy") : String(item);
+				return parsed
+					? format(parsed, "MMM d, yyyy")
+					: getDatePresetLabel(String(item));
 			})
 			.join(" - ");
 	}
