@@ -8,6 +8,7 @@ import {
 	getPendingInventoryQty,
 	isInventoryNeedRow,
 	resolveInventoryInboundCountState,
+	shouldAutoSyncSalesInventory,
 	shouldShowInventoryInboundForm,
 	shouldShowInventoryNeedsActions,
 } from "./inventory-inbounds-utils";
@@ -97,6 +98,48 @@ describe("sales overview inventory inbound helpers", () => {
 			shouldShowInventoryNeedsActions({
 				segment: "non_stock",
 				needCount: 2,
+			}),
+		).toBe(false);
+	});
+
+	it("auto-syncs only repairable unsynchronized inventory once per page session", () => {
+		const base = {
+			salesOrderId: 42,
+			canManualSync: true,
+			canSync: true,
+			hasAttempted: false,
+		};
+
+		expect(
+			shouldAutoSyncSalesInventory({
+				...base,
+				applicabilityState: "not_synced",
+			}),
+		).toBe(true);
+		expect(
+			shouldAutoSyncSalesInventory({
+				...base,
+				applicabilityState: "failed",
+			}),
+		).toBe(true);
+		expect(
+			shouldAutoSyncSalesInventory({
+				...base,
+				applicabilityState: "applicable",
+			}),
+		).toBe(false);
+		expect(
+			shouldAutoSyncSalesInventory({
+				...base,
+				applicabilityState: "not_synced",
+				hasAttempted: true,
+			}),
+		).toBe(false);
+		expect(
+			shouldAutoSyncSalesInventory({
+				...base,
+				applicabilityState: "not_synced",
+				canSync: false,
 			}),
 		).toBe(false);
 	});

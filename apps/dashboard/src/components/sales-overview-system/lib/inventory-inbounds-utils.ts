@@ -67,6 +67,23 @@ export function shouldShowInventoryNeedsActions(input: {
 	return input.segment === "stock" && Number(input.needCount || 0) > 0;
 }
 
+export function shouldAutoSyncSalesInventory(input: {
+	salesOrderId: number;
+	applicabilityState?: string | null;
+	canManualSync: boolean;
+	canSync: boolean;
+	hasAttempted: boolean;
+}) {
+	return (
+		input.salesOrderId > 0 &&
+		(input.applicabilityState === "not_synced" ||
+			input.applicabilityState === "failed") &&
+		input.canManualSync &&
+		input.canSync &&
+		!input.hasAttempted
+	);
+}
+
 export function shouldShowInventoryInboundForm(input: {
 	isOpen: boolean;
 	canCreateInbound: boolean;

@@ -160,7 +160,8 @@ export function resolveSalesInventoryOperationPolicy(input: {
 		isReadOnly: false,
 		reason: null,
 		capabilities: {
-			canSync: input.setupMode === "not_configured",
+			canSync:
+				input.setupMode === "not_configured" || input.setupMode === "active",
 			canCreateInbound: isConfigured,
 			canAllocateStock: isConfigured,
 			canMarkAvailable: isConfigured,

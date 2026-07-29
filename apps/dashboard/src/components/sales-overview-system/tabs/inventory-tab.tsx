@@ -78,6 +78,7 @@ import {
 	getPendingInventoryQty,
 	isInventoryNeedRow,
 	resolveInventoryInboundCountState,
+	shouldAutoSyncSalesInventory,
 	shouldShowInventoryInboundForm,
 	shouldShowInventoryNeedsActions,
 } from "../lib/inventory-inbounds-utils";
@@ -104,6 +105,7 @@ type InboundShipmentStatus =
 	| "cancelled";
 
 const legacyMigrationAttempts = new Map<string, string | null>();
+const inventoryAutoSyncAttempts = new Set<number>();
 
 function formatQty(value: number | null | undefined) {
 	return Number(value || 0).toLocaleString(undefined, {
@@ -276,6 +278,48 @@ function InventorySyncState({
 				</div>
 			</div>
 		</div>
+	);
+}
+
+function InventorySyncFallback({
+	isError,
+	onSync,
+}: {
+	isError: boolean;
+	onSync: () => void;
+}) {
+	return (
+		<Alert
+			className={cn(
+				"items-start",
+				isError
+					? "border-red-200 bg-red-50/60"
+					: "border-amber-200 bg-amber-50/60",
+			)}
+		>
+			<Icons.RefreshCw />
+			<AlertTitle>
+				{isError
+					? "Automatic inventory synchronization failed"
+					: "Inventory synchronization is required"}
+			</AlertTitle>
+			<AlertDescription className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<span>
+					{isError
+						? "The order is still available, but its inventory requirements could not be refreshed automatically."
+						: "This legacy order has not been projected into the inventory workflow yet."}
+				</span>
+				<Button
+					type="button"
+					size="sm"
+					variant={isError ? "destructive" : "outline"}
+					onClick={onSync}
+				>
+					<Icons.RefreshCw className="mr-2 size-4" />
+					{isError ? "Retry synchronization" : "Synchronize inventory"}
+				</Button>
+			</AlertDescription>
+		</Alert>
 	);
 }
 
@@ -2434,6 +2478,9 @@ function SalesOverviewInventoryContentBody({
 						queryKey: trpc.sales.getOrders.pathKey(),
 					}),
 					queryClient.invalidateQueries({
+						queryKey: trpc.sales.getOrdersSummary.pathKey(),
+					}),
+					queryClient.invalidateQueries({
 						queryKey: trpc.sales.getSaleOverview.pathKey(),
 					}),
 				]);
@@ -2441,6 +2488,40 @@ function SalesOverviewInventoryContentBody({
 		}),
 	);
 	const overview = inventoryQuery.data;
+	const applicabilityState = overview?.inventoryApplicability.state;
+	const canRunInventorySync = Boolean(
+		overview?.inventoryApplicability.canManualSync &&
+			overview.capabilities.canSync,
+	);
+	const runInventorySync = () => {
+		syncInventory.mutate({
+			salesOrderId: normalizedSalesOrderId,
+		});
+	};
+	useEffect(() => {
+		if (
+			!shouldAutoSyncSalesInventory({
+				salesOrderId: normalizedSalesOrderId,
+				applicabilityState,
+				canManualSync: Boolean(overview?.inventoryApplicability.canManualSync),
+				canSync: Boolean(overview?.capabilities.canSync),
+				hasAttempted: inventoryAutoSyncAttempts.has(normalizedSalesOrderId),
+			})
+		) {
+			return;
+		}
+
+		inventoryAutoSyncAttempts.add(normalizedSalesOrderId);
+		syncInventory.mutate({
+			salesOrderId: normalizedSalesOrderId,
+		});
+	}, [
+		applicabilityState,
+		normalizedSalesOrderId,
+		overview?.capabilities.canSync,
+		overview?.inventoryApplicability.canManualSync,
+		syncInventory.mutate,
+	]);
 	const groups = overview?.groups ?? [];
 	const rows = overview?.rows ?? [];
 	const stockRows = rows.filter(isInventoryNeedRow);
@@ -2538,11 +2619,7 @@ function SalesOverviewInventoryContentBody({
 					size="sm"
 					variant="outline"
 					disabled={!overview.capabilities.canSync}
-					onClick={() =>
-						syncInventory.mutate({
-							salesOrderId: normalizedSalesOrderId,
-						})
-					}
+					onClick={runInventorySync}
 				>
 					Sync with inventory
 				</Button>
@@ -2606,6 +2683,14 @@ function SalesOverviewInventoryContentBody({
 					)}
 				</div>
 			</div>
+			{canRunInventorySync &&
+			(applicabilityState === "not_synced" ||
+				applicabilityState === "failed") ? (
+				<InventorySyncFallback
+					isError={syncInventory.isError || applicabilityState === "failed"}
+					onSync={runInventorySync}
+				/>
+			) : null}
 			{showNeedsActions ? (
 				<InventoryActionBar
 					overview={overview}

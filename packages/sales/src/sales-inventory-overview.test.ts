@@ -118,6 +118,7 @@ describe("resolveSalesInventoryOperationPolicy", () => {
 			mode: "active",
 			isReadOnly: false,
 			capabilities: {
+				canSync: true,
 				canCreateInbound: true,
 				canAllocateStock: true,
 			},
